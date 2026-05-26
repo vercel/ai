@@ -26,6 +26,7 @@ const workdir = args.workdir;
 if (!workdir) {
   emitFatal('Missing --workdir argument.');
 }
+const bootstrapDir = args.bootstrapDir ?? workdir;
 
 try {
   const envFile = JSON.parse(
@@ -246,7 +247,7 @@ async function runTurn({
     mcpServers['harness-tools'] = {
       enabled: true,
       command: 'node',
-      args: [`${workdir}/host-tool-mcp.mjs`],
+      args: [`${bootstrapDir}/host-tool-mcp.mjs`],
       env: {
         TOOL_SCHEMAS: JSON.stringify(
           start.tools.map(t => ({
@@ -798,11 +799,16 @@ function closeServer(server: Server): void {
   } catch {}
 }
 
-function parseArgs(args: string[]): { workdir?: string } {
-  const out: { workdir?: string } = {};
+function parseArgs(args: string[]): {
+  workdir?: string;
+  bootstrapDir?: string;
+} {
+  const out: { workdir?: string; bootstrapDir?: string } = {};
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--workdir' && i + 1 < args.length) {
       out.workdir = args[++i];
+    } else if (args[i] === '--bootstrap-dir' && i + 1 < args.length) {
+      out.bootstrapDir = args[++i];
     }
   }
   return out;

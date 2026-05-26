@@ -41,6 +41,16 @@ export interface HarnessV1SandboxHandle {
   readonly setNetworkPolicy?: (
     policy: HarnessV1NetworkPolicy,
   ) => PromiseLike<void>;
+
+  /**
+   * Replace the set of ports exposed by the sandbox. Full-replacement
+   * semantics: ports omitted from the array are deregistered. Optional —
+   * implementations that cannot expose ports (e.g. just-bash) omit this.
+   */
+  readonly setPorts?: (
+    ports: ReadonlyArray<number>,
+    options?: { abortSignal?: AbortSignal },
+  ) => PromiseLike<void>;
 }
 
 /**

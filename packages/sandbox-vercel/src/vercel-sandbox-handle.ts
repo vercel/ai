@@ -34,6 +34,13 @@ export class VercelSandboxHandle implements HarnessV1SandboxHandle {
     port: number;
     protocol?: 'http' | 'https' | 'ws';
   }): Promise<string> => {
+    const exposedPorts = this.ports;
+    if (!exposedPorts.includes(options.port)) {
+      throw new HarnessCapabilityUnsupportedError({
+        harnessId: VERCEL_PROVIDER_ID,
+        message: `Port ${options.port} is not exposed on this sandbox. Exposed ports: [${exposedPorts.join(', ')}].`,
+      });
+    }
     const protocol = options.protocol ?? 'https';
     const url = new URL(this.sandbox.domain(options.port));
     const isSecure = url.protocol === 'https:';
@@ -53,6 +60,16 @@ export class VercelSandboxHandle implements HarnessV1SandboxHandle {
 
   setNetworkPolicy = async (policy: HarnessV1NetworkPolicy): Promise<void> => {
     await this.sandbox.update({ networkPolicy: toVercelPolicy(policy) });
+  };
+
+  setPorts = async (
+    ports: ReadonlyArray<number>,
+    options?: { abortSignal?: AbortSignal },
+  ): Promise<void> => {
+    await this.sandbox.update(
+      { ports: [...ports] },
+      options?.abortSignal ? { signal: options.abortSignal } : undefined,
+    );
   };
 
   stop = async (): Promise<void> => {

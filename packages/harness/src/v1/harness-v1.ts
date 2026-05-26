@@ -1,4 +1,5 @@
 import type { FlexibleSchema } from '@ai-sdk/provider-utils';
+import type { HarnessV1Bootstrap } from './harness-v1-bootstrap';
 import type { HarnessV1BuiltinToolDescriptor } from './harness-v1-builtin-tool';
 import type { HarnessV1StartOptions } from './harness-v1-call-options';
 import type { HarnessV1Session } from './harness-v1-session';
@@ -43,6 +44,21 @@ export type HarnessV1 = {
    * resume payloads safely.
    */
   readonly resumeStateSchema?: FlexibleSchema<unknown>;
+
+  /**
+   * Optional bootstrap recipe. When defined, the harness session manager
+   * computes a stable identity from the recipe, passes it (along with a
+   * one-time recipe-application hook) to the sandbox provider, and applies
+   * the recipe idempotently after the provider returns the handle.
+   *
+   * Adapters with no sandbox needs omit this. Adapters that need to install
+   * deps or ship bridge files into the sandbox declare them here so the
+   * provider can cache the result across sessions via snapshots when
+   * supported.
+   */
+  readonly getBootstrap?: (options?: {
+    abortSignal?: AbortSignal;
+  }) => PromiseLike<HarnessV1Bootstrap>;
 
   /**
    * Start a fresh session (or reattach via `resumeFrom`). The host then

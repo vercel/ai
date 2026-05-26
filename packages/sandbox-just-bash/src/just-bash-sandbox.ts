@@ -1,6 +1,8 @@
 import type {
+  HarnessV1ProviderSettings,
   HarnessV1SandboxHandle,
   HarnessV1SandboxProvider,
+  HarnessV1SandboxSession,
 } from '@ai-sdk/harness';
 import { Sandbox } from 'just-bash';
 import { JustBashSandboxHandle } from './just-bash-sandbox-handle';
@@ -15,16 +17,20 @@ type JustBashSandboxCreateParams = NonNullable<
 >;
 
 /**
- * Settings for {@link createJustBashSandbox}. Two mutually-exclusive shapes:
+ * Settings for {@link createJustBashSandbox}. Two mutually-exclusive shapes
+ * extended with the provider-agnostic {@link HarnessV1ProviderSettings} fields:
  *
  * - `{ sandbox }` — wrap an already-created `just-bash` `Sandbox`. The caller
  *   owns its lifecycle.
  * - {@link JustBashSandboxCreateParams} fields — provider calls
  *   `Sandbox.create(settings)` on every `create()`.
+ *
+ * just-bash has no port exposure and no snapshot mechanism, so image
+ * management is a per-call no-op: if an adapter declares a bootstrap recipe
+ * the provider runs it once on the freshly-created sandbox before returning.
  */
-export type JustBashSandboxSettings =
-  | { sandbox: Sandbox }
-  | (JustBashSandboxCreateParams & { sandbox?: never });
+export type JustBashSandboxSettings = HarnessV1ProviderSettings &
+  ({ sandbox: Sandbox } | (JustBashSandboxCreateParams & { sandbox?: never }));
 
 const JUST_BASH_PROVIDER_ID = 'just-bash-sandbox';
 
@@ -46,11 +52,19 @@ export function createJustBashSandbox(
 export class JustBashSandboxProvider implements HarnessV1SandboxProvider {
   readonly specificationVersion = 'harness-sandbox-v1' as const;
   readonly providerId = JUST_BASH_PROVIDER_ID;
+  readonly setup?: HarnessV1ProviderSettings['setup'];
 
-  constructor(private readonly settings: JustBashSandboxSettings) {}
+  constructor(private readonly settings: JustBashSandboxSettings) {
+    this.setup = settings.setup;
+  }
 
   create = async (options?: {
     abortSignal?: AbortSignal;
+    identity?: string;
+    onFirstCreate?: (
+      session: HarnessV1SandboxSession,
+      opts: { abortSignal?: AbortSignal },
+    ) => Promise<void>;
   }): Promise<HarnessV1SandboxHandle> => {
     options?.abortSignal?.throwIfAborted();
 
@@ -61,8 +75,24 @@ export class JustBashSandboxProvider implements HarnessV1SandboxProvider {
       });
     }
 
-    const { sandbox: _ignored, ...createParams } = this.settings;
+    const {
+      sandbox: _ignoredSandbox,
+      setup: _ignoredSetup,
+      ...createParams
+    } = this.settings as JustBashSandboxCreateParams & {
+      sandbox?: never;
+      setup?: HarnessV1ProviderSettings['setup'];
+    };
+
     const sandbox = await Sandbox.create(createParams);
-    return new JustBashSandboxHandle({ sandbox, ownsLifecycle: true });
+    const handle = new JustBashSandboxHandle({ sandbox, ownsLifecycle: true });
+
+    if (options?.onFirstCreate != null) {
+      await options.onFirstCreate(handle.session, {
+        abortSignal: options?.abortSignal,
+      });
+    }
+
+    return handle;
   };
 }

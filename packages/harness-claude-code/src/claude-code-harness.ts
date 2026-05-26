@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import {
   HarnessCapabilityUnsupportedError,
   type HarnessV1,
+  type HarnessV1Bootstrap,
   type HarnessV1BuiltinToolDescriptor,
   type HarnessV1PromptControl,
   type HarnessV1SandboxHandle,
@@ -47,18 +48,50 @@ const BUILTIN_TOOLS: ReadonlyArray<HarnessV1BuiltinToolDescriptor> = [
   { nativeName: 'Grep', commonName: 'grep' },
 ];
 
+const BOOTSTRAP_DIR = '/tmp/harness/claude-code';
+const SESSION_DIR_PREFIX = '/tmp/harness/sessions/claude-code';
+
 export function createClaudeCode(
   settings: ClaudeCodeHarnessSettings = {},
 ): HarnessV1 {
+  let cachedBootstrap: HarnessV1Bootstrap | undefined;
+
   return {
     specificationVersion: 'harness-v1',
     harnessId: 'claude-code',
     builtinTools: BUILTIN_TOOLS,
+    getBootstrap: async () => {
+      if (cachedBootstrap != null) return cachedBootstrap;
+      const [pkg, lock, bridge] = await Promise.all([
+        readBridgeAsset('package.json'),
+        readBridgeAsset('pnpm-lock.yaml'),
+        readBridgeAsset('index.mjs'),
+      ]);
+      cachedBootstrap = {
+        harnessId: 'claude-code',
+        bootstrapDir: BOOTSTRAP_DIR,
+        files: [
+          { path: `${BOOTSTRAP_DIR}/package.json`, content: pkg },
+          { path: `${BOOTSTRAP_DIR}/pnpm-lock.yaml`, content: lock },
+          { path: `${BOOTSTRAP_DIR}/bridge.mjs`, content: bridge },
+        ],
+        commands: [
+          { command: `mkdir -p ${BOOTSTRAP_DIR}` },
+          {
+            command: `pnpm --dir ${BOOTSTRAP_DIR} install --frozen-lockfile --store-dir ${BOOTSTRAP_DIR}/.pnpm-store`,
+          },
+          {
+            command: `cd ${BOOTSTRAP_DIR} && if [ -f node_modules/@anthropic-ai/claude-code/install.cjs ]; then node node_modules/@anthropic-ai/claude-code/install.cjs; fi && ./node_modules/.bin/claude --version`,
+          },
+        ],
+      };
+      return cachedBootstrap;
+    },
     doStart: async startOpts => {
       const handle = requireHandle(startOpts.sandboxHandle);
       const { session } = handle;
 
-      const workdir = `/tmp/harness/${startOpts.sessionId}`;
+      const sessionDir = `${SESSION_DIR_PREFIX}/${startOpts.sessionId}`;
       const port = resolveBridgePort(handle, settings.port);
       const token = randomBytes(32).toString('hex');
       const env = {
@@ -68,64 +101,27 @@ export function createClaudeCode(
       };
 
       await session.runCommand({
-        command: `mkdir -p ${workdir}`,
+        command: `mkdir -p ${sessionDir}`,
         abortSignal: startOpts.abortSignal,
       });
 
-      await Promise.all([
-        session.writeTextFile({
-          path: `${workdir}/env.json`,
-          content: JSON.stringify(env),
-          abortSignal: startOpts.abortSignal,
-        }),
-        session.writeTextFile({
-          path: `${workdir}/package.json`,
-          content: await readBridgeAsset('package.json'),
-          abortSignal: startOpts.abortSignal,
-        }),
-        session.writeTextFile({
-          path: `${workdir}/bridge.mjs`,
-          content: await readBridgeAsset('index.mjs'),
-          abortSignal: startOpts.abortSignal,
-        }),
-        session.writeTextFile({
-          path: `${workdir}/pnpm-lock.yaml`,
-          content: await readBridgeAsset('pnpm-lock.yaml'),
-          abortSignal: startOpts.abortSignal,
-        }),
-      ]);
-
-      const install = await session.runCommand({
-        command: `pnpm --dir ${workdir} install --frozen-lockfile --store-dir ${workdir}/.pnpm-store`,
+      await session.writeTextFile({
+        path: `${sessionDir}/env.json`,
+        content: JSON.stringify(env),
         abortSignal: startOpts.abortSignal,
       });
-      if (install.exitCode !== 0) {
-        throw new Error(
-          `claude-code bridge install failed (exit ${install.exitCode}):\n${install.stderr || install.stdout}`,
-        );
-      }
-
-      const postInstall = await session.runCommand({
-        command: `cd ${workdir} && if [ -f node_modules/@anthropic-ai/claude-code/install.cjs ]; then node node_modules/@anthropic-ai/claude-code/install.cjs; fi && ./node_modules/.bin/claude --version`,
-        abortSignal: startOpts.abortSignal,
-      });
-      if (postInstall.exitCode !== 0) {
-        throw new Error(
-          `claude-code post-install failed (exit ${postInstall.exitCode}):\n${postInstall.stderr || postInstall.stdout}`,
-        );
-      }
 
       if (settings.skills && settings.skills.length > 0) {
         await writeSkills({
           sandbox: session,
-          workdir,
+          workdir: sessionDir,
           skills: settings.skills,
           abortSignal: startOpts.abortSignal,
         });
       }
 
       const proc = await session.spawnCommand({
-        command: `node ${workdir}/bridge.mjs --workdir ${workdir}`,
+        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${sessionDir}`,
         abortSignal: startOpts.abortSignal,
       });
 

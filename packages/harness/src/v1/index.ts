@@ -1,5 +1,10 @@
 export type { HarnessV1 } from './harness-v1';
 export type {
+  HarnessV1Bootstrap,
+  HarnessV1BootstrapCommand,
+  HarnessV1BootstrapFile,
+} from './harness-v1-bootstrap';
+export type {
   HarnessV1PromptControl,
   HarnessV1PromptOptions,
   HarnessV1StartOptions,
@@ -16,7 +21,10 @@ export type {
 } from './harness-v1-metadata';
 export type { HarnessV1Prompt } from './harness-v1-prompt';
 export type { HarnessV1ResumeState } from './harness-v1-resume-state';
-export type { HarnessV1SandboxProvider } from './harness-v1-sandbox-provider';
+export type {
+  HarnessV1ProviderSettings,
+  HarnessV1SandboxProvider,
+} from './harness-v1-sandbox-provider';
 export type {
   HarnessV1NetworkPolicy,
   HarnessV1SandboxHandle,

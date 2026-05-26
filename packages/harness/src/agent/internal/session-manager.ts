@@ -1,13 +1,16 @@
 import { HarnessCapabilityUnsupportedError } from '../../errors/harness-capability-unsupported-error';
 import type {
   HarnessV1,
+  HarnessV1Bootstrap,
   HarnessV1Options,
   HarnessV1ResumeState,
-  HarnessV1SandboxProvider,
   HarnessV1SandboxHandle,
+  HarnessV1SandboxProvider,
   HarnessV1Session,
 } from '../../v1';
 import { generateId } from '@ai-sdk/provider-utils';
+import { applyBootstrapRecipe, hashBootstrap } from './bootstrap-recipe';
+import { acquireBridgePort, releaseBridgePort } from './bridge-port-registry';
 
 /**
  * Owns the lifecycle of one `HarnessV1Session` on behalf of a `HarnessAgent`.
@@ -31,6 +34,7 @@ export class SessionManager {
 
   private session: HarnessV1Session | null = null;
   private sandboxHandle: HarnessV1SandboxHandle | null = null;
+  private leasedBridgePort: number | null = null;
   private startPromise: Promise<HarnessV1Session> | null = null;
   private stopped = false;
 
@@ -73,12 +77,51 @@ export class SessionManager {
     }
 
     this.startPromise = (async () => {
-      const sandboxHandle =
-        this.sandboxProvider != null
-          ? await this.sandboxProvider.create({
+      let sandboxHandle: HarnessV1SandboxHandle | undefined;
+      let recipe: HarnessV1Bootstrap | undefined;
+      let identity: string | undefined;
+
+      if (this.sandboxProvider != null) {
+        if (this.harness.getBootstrap != null) {
+          recipe = await this.harness.getBootstrap({
+            abortSignal: options?.abortSignal,
+          });
+          identity = await hashBootstrap(recipe);
+        }
+
+        const rawHandle = await this.sandboxProvider.create({
+          abortSignal: options?.abortSignal,
+          identity,
+          onFirstCreate:
+            recipe != null && identity != null
+              ? (session, opts) =>
+                  applyBootstrapRecipe(session, recipe!, identity!, opts)
+              : undefined,
+        });
+
+        sandboxHandle = this.applyPortLease(this.sandboxProvider, rawHandle);
+
+        try {
+          if (recipe != null && identity != null) {
+            await applyBootstrapRecipe(
+              sandboxHandle.session,
+              recipe,
+              identity,
+              { abortSignal: options?.abortSignal },
+            );
+          }
+          if (this.sandboxProvider.setup != null) {
+            await this.sandboxProvider.setup({
+              session: sandboxHandle.session,
               abortSignal: options?.abortSignal,
-            })
-          : undefined;
+            });
+          }
+        } catch (err) {
+          await this.cleanupAfterStartFailure(rawHandle);
+          throw err;
+        }
+      }
+
       this.sandboxHandle = sandboxHandle ?? null;
 
       try {
@@ -93,9 +136,9 @@ export class SessionManager {
         return session;
       } catch (error) {
         if (sandboxHandle != null) {
-          await Promise.resolve(sandboxHandle.stop()).catch(() => {});
-          this.sandboxHandle = null;
+          await this.cleanupAfterStartFailure(sandboxHandle);
         }
+        this.sandboxHandle = null;
         throw error;
       }
     })().finally(() => {
@@ -118,6 +161,7 @@ export class SessionManager {
     if (handle != null) {
       await Promise.resolve(handle.stop()).catch(() => {});
     }
+    this.releasePortLeaseIfAny();
   }
 
   /**
@@ -149,6 +193,58 @@ export class SessionManager {
       // sandbox is host infrastructure, not the runtime. We stop it.
       await Promise.resolve(handle.stop()).catch(() => {});
     }
+    this.releasePortLeaseIfAny();
     return state;
   }
+
+  private applyPortLease(
+    provider: HarnessV1SandboxProvider,
+    handle: HarnessV1SandboxHandle,
+  ): HarnessV1SandboxHandle {
+    const pool = provider.bridgePorts;
+    if (pool == null || pool.length === 0) {
+      return handle;
+    }
+    const port = acquireBridgePort({
+      poolKey: provider,
+      pool,
+      sessionId: this.sessionId,
+    });
+    this.leasedBridgePort = port;
+    return narrowHandlePorts(handle, port);
+  }
+
+  private releasePortLeaseIfAny(): void {
+    if (this.leasedBridgePort == null) return;
+    if (this.sandboxProvider != null) {
+      releaseBridgePort({
+        poolKey: this.sandboxProvider,
+        sessionId: this.sessionId,
+      });
+    }
+    this.leasedBridgePort = null;
+  }
+
+  private async cleanupAfterStartFailure(
+    handle: HarnessV1SandboxHandle,
+  ): Promise<void> {
+    await Promise.resolve(handle.stop()).catch(() => {});
+    this.releasePortLeaseIfAny();
+  }
+}
+
+function narrowHandlePorts(
+  handle: HarnessV1SandboxHandle,
+  leasedPort: number,
+): HarnessV1SandboxHandle {
+  return {
+    session: handle.session,
+    ports: [leasedPort],
+    getPortUrl: handle.getPortUrl,
+    stop: handle.stop,
+    ...(handle.setNetworkPolicy != null
+      ? { setNetworkPolicy: handle.setNetworkPolicy }
+      : {}),
+    ...(handle.setPorts != null ? { setPorts: handle.setPorts } : {}),
+  };
 }

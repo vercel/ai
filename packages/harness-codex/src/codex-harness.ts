@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import {
   HarnessCapabilityUnsupportedError,
   type HarnessV1,
+  type HarnessV1Bootstrap,
   type HarnessV1BuiltinToolDescriptor,
   type HarnessV1PromptControl,
   type HarnessV1SandboxHandle,
@@ -47,16 +48,50 @@ const BUILTIN_TOOLS: ReadonlyArray<HarnessV1BuiltinToolDescriptor> = [
   { nativeName: 'todo_list', commonName: 'todoList' },
 ];
 
+const BOOTSTRAP_DIR = '/tmp/harness/codex';
+const SESSION_DIR_PREFIX = '/tmp/harness/sessions/codex';
+
 export function createCodex(settings: CodexHarnessSettings = {}): HarnessV1 {
+  let cachedBootstrap: HarnessV1Bootstrap | undefined;
+
   return {
     specificationVersion: 'harness-v1',
     harnessId: 'codex',
     builtinTools: BUILTIN_TOOLS,
+    getBootstrap: async () => {
+      if (cachedBootstrap != null) return cachedBootstrap;
+      const [pkg, lock, bridge, hostToolMcp] = await Promise.all([
+        readBridgeAsset('package.json'),
+        readBridgeAsset('pnpm-lock.yaml'),
+        readBridgeAsset('index.mjs'),
+        readBridgeAsset('host-tool-mcp.mjs'),
+      ]);
+      cachedBootstrap = {
+        harnessId: 'codex',
+        bootstrapDir: BOOTSTRAP_DIR,
+        files: [
+          { path: `${BOOTSTRAP_DIR}/package.json`, content: pkg },
+          { path: `${BOOTSTRAP_DIR}/pnpm-lock.yaml`, content: lock },
+          { path: `${BOOTSTRAP_DIR}/bridge.mjs`, content: bridge },
+          {
+            path: `${BOOTSTRAP_DIR}/host-tool-mcp.mjs`,
+            content: hostToolMcp,
+          },
+        ],
+        commands: [
+          { command: `mkdir -p ${BOOTSTRAP_DIR}` },
+          {
+            command: `pnpm --dir ${BOOTSTRAP_DIR} install --frozen-lockfile --store-dir ${BOOTSTRAP_DIR}/.pnpm-store`,
+          },
+        ],
+      };
+      return cachedBootstrap;
+    },
     doStart: async startOpts => {
       const handle = requireHandle(startOpts.sandboxHandle);
       const { session } = handle;
 
-      const workdir = `/tmp/harness/${startOpts.sessionId}`;
+      const sessionDir = `${SESSION_DIR_PREFIX}/${startOpts.sessionId}`;
       const port = resolveBridgePort(handle, settings.port);
       const token = randomBytes(32).toString('hex');
       const env = {
@@ -66,50 +101,18 @@ export function createCodex(settings: CodexHarnessSettings = {}): HarnessV1 {
       };
 
       await session.runCommand({
-        command: `mkdir -p ${workdir}`,
+        command: `mkdir -p ${sessionDir}`,
         abortSignal: startOpts.abortSignal,
       });
 
-      await Promise.all([
-        session.writeTextFile({
-          path: `${workdir}/env.json`,
-          content: JSON.stringify(env),
-          abortSignal: startOpts.abortSignal,
-        }),
-        session.writeTextFile({
-          path: `${workdir}/package.json`,
-          content: await readBridgeAsset('package.json'),
-          abortSignal: startOpts.abortSignal,
-        }),
-        session.writeTextFile({
-          path: `${workdir}/bridge.mjs`,
-          content: await readBridgeAsset('index.mjs'),
-          abortSignal: startOpts.abortSignal,
-        }),
-        session.writeTextFile({
-          path: `${workdir}/host-tool-mcp.mjs`,
-          content: await readBridgeAsset('host-tool-mcp.mjs'),
-          abortSignal: startOpts.abortSignal,
-        }),
-        session.writeTextFile({
-          path: `${workdir}/pnpm-lock.yaml`,
-          content: await readBridgeAsset('pnpm-lock.yaml'),
-          abortSignal: startOpts.abortSignal,
-        }),
-      ]);
-
-      const install = await session.runCommand({
-        command: `pnpm --dir ${workdir} install --frozen-lockfile --store-dir ${workdir}/.pnpm-store`,
+      await session.writeTextFile({
+        path: `${sessionDir}/env.json`,
+        content: JSON.stringify(env),
         abortSignal: startOpts.abortSignal,
       });
-      if (install.exitCode !== 0) {
-        throw new Error(
-          `codex bridge install failed (exit ${install.exitCode}):\n${install.stderr || install.stdout}`,
-        );
-      }
 
       const proc = await session.spawnCommand({
-        command: `node ${workdir}/bridge.mjs --workdir ${workdir}`,
+        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${sessionDir} --bootstrap-dir ${BOOTSTRAP_DIR}`,
         abortSignal: startOpts.abortSignal,
       });
 

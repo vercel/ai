@@ -58,7 +58,9 @@ describe('createVercelSandbox (wrap existing)', () => {
 
   describe('getPortUrl', () => {
     it('returns the value from sandbox.domain for https', async () => {
-      const { sandbox, spies } = makeMockSandbox();
+      const { sandbox, spies } = makeMockSandbox({
+        routes: [{ port: 3000 }],
+      });
       spies.domain.mockReturnValueOnce('https://sub.vercel.run');
 
       const handle = await createVercelSandbox({ sandbox }).create();
@@ -71,7 +73,7 @@ describe('createVercelSandbox (wrap existing)', () => {
       const { sandbox, spies } = makeMockSandbox();
       spies.domain.mockReturnValueOnce('https://sub.vercel.run');
       const handle = await createVercelSandbox({ sandbox }).create();
-      const url = await handle.getPortUrl({ port: 81, protocol: 'ws' });
+      const url = await handle.getPortUrl({ port: 4000, protocol: 'ws' });
       expect(url).toBe('wss://sub.vercel.run/');
     });
 
@@ -79,8 +81,16 @@ describe('createVercelSandbox (wrap existing)', () => {
       const { sandbox, spies } = makeMockSandbox();
       spies.domain.mockReturnValueOnce('http://sub.vercel.run');
       const handle = await createVercelSandbox({ sandbox }).create();
-      const url = await handle.getPortUrl({ port: 81, protocol: 'ws' });
+      const url = await handle.getPortUrl({ port: 4000, protocol: 'ws' });
       expect(url).toBe('ws://sub.vercel.run/');
+    });
+
+    it('throws when the requested port is not in the sandbox routes', async () => {
+      const { sandbox } = makeMockSandbox({ routes: [{ port: 4000 }] });
+      const handle = await createVercelSandbox({ sandbox }).create();
+      await expect(handle.getPortUrl({ port: 9999 })).rejects.toThrow(
+        /Port 9999 is not exposed/,
+      );
     });
   });
 
@@ -152,6 +162,44 @@ describe('createVercelSandbox (wrap existing)', () => {
           subnets: { allow: ['10.0.0.0/8'], deny: ['10.5.0.0/16'] },
         },
       });
+    });
+  });
+
+  describe('setPorts', () => {
+    it('forwards the requested port list to sandbox.update', async () => {
+      const { sandbox, spies } = makeMockSandbox();
+      const handle = await createVercelSandbox({ sandbox }).create();
+      await handle.setPorts!([4000, 5000]);
+      expect(spies.update).toHaveBeenCalledWith(
+        { ports: [4000, 5000] },
+        undefined,
+      );
+    });
+  });
+
+  describe('bridgePorts', () => {
+    it('is exposed on the provider when set on settings', () => {
+      const { sandbox } = makeMockSandbox();
+      const provider = createVercelSandbox({
+        sandbox,
+        bridgePorts: [5001, 5002],
+      });
+      expect(provider.bridgePorts).toEqual([5001, 5002]);
+    });
+
+    it('is undefined when not set', () => {
+      const { sandbox } = makeMockSandbox();
+      const provider = createVercelSandbox({ sandbox });
+      expect(provider.bridgePorts).toBeUndefined();
+    });
+  });
+
+  describe('setup', () => {
+    it('is passed through from settings to provider', () => {
+      const { sandbox } = makeMockSandbox();
+      const setup = async () => {};
+      const provider = createVercelSandbox({ sandbox, setup });
+      expect(provider.setup).toBe(setup);
     });
   });
 });
