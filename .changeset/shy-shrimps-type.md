@@ -16,4 +16,5 @@ Adds first-class support for realtime (speech-to-speech) APIs:
 - OpenAI, Google, xAI, and ElevenLabs (ElevenAgents) realtime provider implementations
 - `openai.realtime()` / `google.realtime()` / `xai.realtime()` / `elevenlabs.realtime()` work in both server and browser
 - `.getToken()` static method on each provider for server-side ephemeral token creation
-- `useRealtime` hook in `@ai-sdk/react` returning `UIMessage[]` (aligned with `useChat`), with `addToolOutput` for client-side tool result submission
+- `getRealtimeToolDefinitions` helper for provider session tool definitions
+- `useRealtime` hook in `@ai-sdk/react` returning `UIMessage[]` (aligned with `useChat`), with `onToolCall` and `addToolOutput` for client-driven tool execution
