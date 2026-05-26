@@ -23,7 +23,7 @@ const sandbox = createVercelSandbox({
 const handle = await sandbox.create();
 
 await handle.session.writeTextFile({ path: 'hello.txt', content: 'hi' });
-const { stdout } = await handle.session.runCommand({
+const { stdout } = await handle.session.run({
   command: 'cat hello.txt',
 });
 await handle.stop();

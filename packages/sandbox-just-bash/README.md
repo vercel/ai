@@ -23,7 +23,7 @@ const handle = await sandbox.create();
 
 await handle.session.writeTextFile({ path: '/work/hello.txt', content: 'hi' });
 
-const { stdout } = await handle.session.runCommand({
+const { stdout } = await handle.session.run({
   command: 'cat /work/hello.txt',
 });
 console.log(stdout); // "hi"

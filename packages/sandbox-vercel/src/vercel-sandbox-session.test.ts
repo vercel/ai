@@ -77,7 +77,7 @@ describe('VercelSandboxSession', () => {
     });
   });
 
-  describe('runCommand', () => {
+  describe('run', () => {
     it('wraps the command in bash -c and maps stdout/stderr/exitCode', async () => {
       const { sandbox, spies } = makeMockSandbox();
       const { handle } = makeMockCommand({
@@ -90,7 +90,7 @@ describe('VercelSandboxSession', () => {
       spies.runCommand.mockResolvedValueOnce(handle);
 
       const vsbx = new VercelSandboxSession(sandbox);
-      const result = await vsbx.runCommand({ command: 'echo hi' });
+      const result = await vsbx.run({ command: 'echo hi' });
 
       expect(spies.runCommand).toHaveBeenCalledWith(
         expect.objectContaining({ cmd: 'bash', args: ['-c', 'echo hi'] }),
@@ -104,7 +104,7 @@ describe('VercelSandboxSession', () => {
         makeMockCommand({ logs: [], exitCode: 0 }).handle,
       );
 
-      await new VercelSandboxSession(sandbox).runCommand({
+      await new VercelSandboxSession(sandbox).run({
         command: 'ls',
         workingDirectory: '/work',
       });
@@ -119,7 +119,7 @@ describe('VercelSandboxSession', () => {
       const ac = new AbortController();
       ac.abort();
       await expect(
-        new VercelSandboxSession(sandbox).runCommand({
+        new VercelSandboxSession(sandbox).run({
           command: 'echo',
           abortSignal: ac.signal,
         }),
@@ -238,7 +238,7 @@ describe('VercelSandboxSession', () => {
     });
   });
 
-  describe('spawnCommand', () => {
+  describe('spawn', () => {
     let baseSandbox: ReturnType<typeof makeMockSandbox>;
 
     beforeEach(() => {
@@ -255,9 +255,7 @@ describe('VercelSandboxSession', () => {
       });
       baseSandbox.spies.runCommand.mockResolvedValueOnce(handle);
 
-      const proc = await new VercelSandboxSession(
-        baseSandbox.sandbox,
-      ).spawnCommand({
+      const proc = await new VercelSandboxSession(baseSandbox.sandbox).spawn({
         command: 'node x.js',
       });
 
@@ -279,9 +277,7 @@ describe('VercelSandboxSession', () => {
     it('surfaces non-zero exit codes via wait()', async () => {
       const { handle } = makeMockCommand({ exitCode: 7 });
       baseSandbox.spies.runCommand.mockResolvedValueOnce(handle);
-      const proc = await new VercelSandboxSession(
-        baseSandbox.sandbox,
-      ).spawnCommand({
+      const proc = await new VercelSandboxSession(baseSandbox.sandbox).spawn({
         command: 'exit 7',
       });
       expect((await proc.wait()).exitCode).toBe(7);
@@ -290,9 +286,7 @@ describe('VercelSandboxSession', () => {
     it('kill() delegates to the underlying command', async () => {
       const { handle, spies } = makeMockCommand({});
       baseSandbox.spies.runCommand.mockResolvedValueOnce(handle);
-      const proc = await new VercelSandboxSession(
-        baseSandbox.sandbox,
-      ).spawnCommand({
+      const proc = await new VercelSandboxSession(baseSandbox.sandbox).spawn({
         command: 'sleep 10',
       });
       await proc.kill();
@@ -304,9 +298,7 @@ describe('VercelSandboxSession', () => {
       baseSandbox.spies.runCommand.mockResolvedValueOnce(handle);
       const ac = new AbortController();
 
-      const proc = await new VercelSandboxSession(
-        baseSandbox.sandbox,
-      ).spawnCommand({
+      const proc = await new VercelSandboxSession(baseSandbox.sandbox).spawn({
         command: 'sleep 10',
         abortSignal: ac.signal,
       });

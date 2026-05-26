@@ -31,9 +31,9 @@ describe('JustBashSandboxSession', () => {
     });
   });
 
-  describe('runCommand', () => {
+  describe('run', () => {
     it('returns stdout, stderr, and exitCode', async () => {
-      const result = await sandbox.runCommand({
+      const result = await sandbox.run({
         command: 'echo hello && echo bye >&2',
       });
 
@@ -43,9 +43,9 @@ describe('JustBashSandboxSession', () => {
     });
 
     it('honours workingDirectory', async () => {
-      await sandbox.runCommand({ command: 'mkdir -p /tmp/cwd-test' });
+      await sandbox.run({ command: 'mkdir -p /tmp/cwd-test' });
 
-      const result = await sandbox.runCommand({
+      const result = await sandbox.run({
         command: 'pwd',
         workingDirectory: '/tmp/cwd-test',
       });
@@ -57,7 +57,7 @@ describe('JustBashSandboxSession', () => {
       const ac = new AbortController();
       ac.abort();
       await expect(
-        sandbox.runCommand({ command: 'echo hi', abortSignal: ac.signal }),
+        sandbox.run({ command: 'echo hi', abortSignal: ac.signal }),
       ).rejects.toThrow();
     });
   });
@@ -133,9 +133,9 @@ describe('JustBashSandboxSession', () => {
     });
   });
 
-  describe('spawnCommand', () => {
+  describe('spawn', () => {
     it('streams stdout and stderr and resolves wait() with exit code', async () => {
-      const proc = await sandbox.spawnCommand({
+      const proc = await sandbox.spawn({
         command: 'echo out && echo err >&2',
       });
 
@@ -156,7 +156,7 @@ describe('JustBashSandboxSession', () => {
         content: 'shared payload',
       });
 
-      const proc = await sandbox.spawnCommand({
+      const proc = await sandbox.spawn({
         command: 'cat /work/shared.txt',
       });
 
@@ -166,7 +166,7 @@ describe('JustBashSandboxSession', () => {
     });
 
     it('non-zero exit codes are surfaced via wait()', async () => {
-      const proc = await sandbox.spawnCommand({ command: 'exit 7' });
+      const proc = await sandbox.spawn({ command: 'exit 7' });
       await collect(proc.stdout);
       await collect(proc.stderr);
       const result = await proc.wait();
@@ -174,7 +174,7 @@ describe('JustBashSandboxSession', () => {
     });
 
     it('kill() terminates the process', async () => {
-      const proc = await sandbox.spawnCommand({
+      const proc = await sandbox.spawn({
         command: 'sleep 10',
       });
       await proc.kill();
@@ -184,7 +184,7 @@ describe('JustBashSandboxSession', () => {
 
     it('abortSignal aborts a running process', async () => {
       const ac = new AbortController();
-      const proc = await sandbox.spawnCommand({
+      const proc = await sandbox.spawn({
         command: 'sleep 10',
         abortSignal: ac.signal,
       });

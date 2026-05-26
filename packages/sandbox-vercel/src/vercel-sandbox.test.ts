@@ -46,7 +46,7 @@ describe('createVercelSandbox (wrap existing)', () => {
     });
 
     const handle = await createVercelSandbox({ sandbox }).create();
-    const result = await handle.session.runCommand({ command: 'echo ok' });
+    const result = await handle.session.run({ command: 'echo ok' });
     expect(result.stdout).toBe('ok\n');
   });
 

@@ -103,7 +103,7 @@ export async function applyBootstrapRecipe(
   }
 
   for (const cmd of recipe.commands) {
-    const result = await session.runCommand({
+    const result = await session.run({
       command: cmd.command,
       workingDirectory: cmd.workingDirectory,
       abortSignal: options?.abortSignal,

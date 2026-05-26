@@ -232,12 +232,6 @@ export class LocalSandbox implements Sandbox {
     });
   }
 
-  spawnCommand(): never {
-    throw new Error(
-      'LocalSandbox: spawnCommand is not yet implemented for this sandbox.',
-    );
-  }
-
   get description() {
     return [
       'WARNING: LocalSandbox is not a true sandbox.',

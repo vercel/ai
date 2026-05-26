@@ -9,7 +9,7 @@ import type { Sandbox, SandboxCommand } from 'just-bash';
 /**
  * `Experimental_Sandbox` implementation backed by a `just-bash` `Sandbox`. File
  * operations and spawned processes share the same in-memory filesystem, so a
- * bridge process spawned via `spawnCommand` can read files the host wrote via
+ * bridge process spawned via `spawn` can read files the host wrote via
  * `writeTextFile` (and vice versa).
  *
  * Produced by `JustBashSandboxHandle.session` — not constructed directly by
@@ -32,7 +32,7 @@ export class JustBashSandboxSession implements Experimental_Sandbox {
       : posix.join(this.sandbox.bashEnvInstance.getCwd(), path);
   }
 
-  async runCommand({
+  async run({
     command,
     workingDirectory,
     abortSignal,
@@ -62,7 +62,7 @@ export class JustBashSandboxSession implements Experimental_Sandbox {
     };
   }
 
-  async spawnCommand({
+  async spawn({
     command,
     workingDirectory,
     abortSignal,

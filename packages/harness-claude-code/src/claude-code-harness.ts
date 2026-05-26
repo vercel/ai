@@ -100,7 +100,7 @@ export function createClaudeCode(
         BRIDGE_WS_PORT: String(port),
       };
 
-      await session.runCommand({
+      await session.run({
         command: `mkdir -p ${sessionDir}`,
         abortSignal: startOpts.abortSignal,
       });
@@ -120,7 +120,7 @@ export function createClaudeCode(
         });
       }
 
-      const proc = await session.spawnCommand({
+      const proc = await session.spawn({
         command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${sessionDir}`,
         abortSignal: startOpts.abortSignal,
       });

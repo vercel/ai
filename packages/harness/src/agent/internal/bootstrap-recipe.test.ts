@@ -95,7 +95,7 @@ describe('applyBootstrapRecipe', () => {
     session: HarnessV1SandboxSession;
     readTextFile: ReturnType<typeof vi.fn>;
     writeTextFile: ReturnType<typeof vi.fn>;
-    runCommand: ReturnType<typeof vi.fn>;
+    run: ReturnType<typeof vi.fn>;
   } {
     const markerPath = bootstrapMarkerPath(baseRecipe, identity);
     const readTextFile = vi.fn(async (args: { path: string }) => {
@@ -103,7 +103,7 @@ describe('applyBootstrapRecipe', () => {
       return null;
     });
     const writeTextFile = vi.fn(async () => {});
-    const runCommand = vi.fn(async () => ({
+    const run = vi.fn(async () => ({
       exitCode: opts?.commandExitCode ?? 0,
       stdout: 'ok',
       stderr: opts?.runFailureMessage ?? '',
@@ -112,40 +112,41 @@ describe('applyBootstrapRecipe', () => {
       description: 'mock',
       readTextFile,
       writeTextFile,
-      runCommand,
+      run,
     } as unknown as HarnessV1SandboxSession;
-    return { session, readTextFile, writeTextFile, runCommand };
+    return { session, readTextFile, writeTextFile, run };
   }
 
   it('skips when the marker file is present', async () => {
-    const { session, readTextFile, writeTextFile, runCommand } =
-      makeMockSession({ markerExists: true });
+    const { session, readTextFile, writeTextFile, run } = makeMockSession({
+      markerExists: true,
+    });
     await applyBootstrapRecipe(session, baseRecipe, identity);
     expect(readTextFile).toHaveBeenCalledTimes(1);
     expect(writeTextFile).not.toHaveBeenCalled();
-    expect(runCommand).not.toHaveBeenCalled();
+    expect(run).not.toHaveBeenCalled();
   });
 
   it('writes files, runs commands, and writes the marker on cold run', async () => {
-    const { session, writeTextFile, runCommand } = makeMockSession();
+    const { session, writeTextFile, run } = makeMockSession();
     await applyBootstrapRecipe(session, baseRecipe, identity);
     expect(writeTextFile).toHaveBeenCalledTimes(
       baseRecipe.files.length + 1, // recipe files + marker
     );
-    expect(runCommand).toHaveBeenCalledTimes(baseRecipe.commands.length);
+    expect(run).toHaveBeenCalledTimes(baseRecipe.commands.length);
     const lastWrite = writeTextFile.mock.calls.at(-1)![0];
     expect(lastWrite.path).toBe(bootstrapMarkerPath(baseRecipe, identity));
   });
 
   it('throws when a command exits non-zero and skips the marker write', async () => {
-    const { session, writeTextFile, runCommand } = makeMockSession({
+    const { session, writeTextFile, run } = makeMockSession({
       commandExitCode: 7,
       runFailureMessage: 'boom',
     });
     await expect(
       applyBootstrapRecipe(session, baseRecipe, identity),
     ).rejects.toThrow(/Bootstrap command failed.*exit 7.*boom/s);
-    expect(runCommand).toHaveBeenCalledTimes(1);
+    expect(run).toHaveBeenCalledTimes(1);
     const markerWrites = writeTextFile.mock.calls.filter(
       ([args]) => args.path === bootstrapMarkerPath(baseRecipe, identity),
     );

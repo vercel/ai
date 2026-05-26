@@ -22,7 +22,7 @@ export class VercelSandboxSession implements Experimental_Sandbox {
     ].join('\n');
   }
 
-  async runCommand({
+  async run({
     command,
     workingDirectory,
     abortSignal,
@@ -52,7 +52,7 @@ export class VercelSandboxSession implements Experimental_Sandbox {
     };
   }
 
-  async spawnCommand({
+  async spawn({
     command,
     workingDirectory,
     abortSignal,

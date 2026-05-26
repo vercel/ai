@@ -100,7 +100,7 @@ export function createCodex(settings: CodexHarnessSettings = {}): HarnessV1 {
         BRIDGE_WS_PORT: String(port),
       };
 
-      await session.runCommand({
+      await session.run({
         command: `mkdir -p ${sessionDir}`,
         abortSignal: startOpts.abortSignal,
       });
@@ -111,7 +111,7 @@ export function createCodex(settings: CodexHarnessSettings = {}): HarnessV1 {
         abortSignal: startOpts.abortSignal,
       });
 
-      const proc = await session.spawnCommand({
+      const proc = await session.spawn({
         command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${sessionDir} --bootstrap-dir ${BOOTSTRAP_DIR}`,
         abortSignal: startOpts.abortSignal,
       });

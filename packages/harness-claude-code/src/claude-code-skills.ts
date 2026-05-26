@@ -24,7 +24,7 @@ export async function writeSkills({
   abortSignal?: AbortSignal;
 }): Promise<void> {
   if (skills.length === 0) return;
-  await sandbox.runCommand({
+  await sandbox.run({
     command: `mkdir -p ${workdir}/.claude/skills`,
     abortSignal,
   });
