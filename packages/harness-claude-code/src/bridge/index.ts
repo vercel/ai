@@ -199,6 +199,14 @@ async function runTurn({
   const abortCtl = new AbortController();
   onAbortCtl(abortCtl);
 
+  /*
+   * Map of native tool-use id → tool name. Claude assistant messages emit
+   * `tool_use` blocks with both `id` and `name`; the matching `tool_result`
+   * block on a later user message carries only `tool_use_id`, so without this
+   * map the tool-result event would have to emit `toolName: 'unknown'`.
+   */
+  const nativeToolCallNames = new Map<string, string>();
+
   const mcpServers: Record<string, unknown> = {};
   if (start.tools && start.tools.length > 0) {
     const server = new mcpModule.McpServer({
@@ -348,6 +356,7 @@ async function runTurn({
           ) {
             const mcpPrefix = 'mcp__harness-tools__';
             if (block.name.startsWith(mcpPrefix)) continue;
+            nativeToolCallNames.set(block.id, block.name);
             send({
               type: 'tool-call',
               toolCallId: block.id,
@@ -367,10 +376,13 @@ async function runTurn({
             block.type === 'tool_result' &&
             typeof block.tool_use_id === 'string'
           ) {
+            const toolName =
+              nativeToolCallNames.get(block.tool_use_id) ?? 'unknown';
+            nativeToolCallNames.delete(block.tool_use_id);
             send({
               type: 'tool-result',
               toolCallId: block.tool_use_id,
-              toolName: 'unknown',
+              toolName,
               result: stringifyContent(block.content),
               isError: !!block.is_error,
             });
