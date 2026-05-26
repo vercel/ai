@@ -20,7 +20,6 @@ export type RealtimeSessionOptions = {
   model: RealtimeModel;
   api: {
     token: string;
-    tools?: string;
   };
   sessionConfig?: Partial<RealtimeSessionConfig>;
   sampleRate?: number;
@@ -288,40 +287,7 @@ export abstract class AbstractRealtimeSession {
       }
     }
 
-    if (this.api.tools == null) return;
-
-    try {
-      const response = await fetch(this.api.tools, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tools: {
-            [callId]: { name, inputs: args },
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        const text = await response.text();
-        this.onError?.(
-          new Error(
-            `Tool execution request failed: ${response.status} ${text}`,
-          ),
-        );
-        return;
-      }
-
-      const data = await response.json();
-      const result = data[callId] ?? data;
-
-      this.addToolOutput(callId, result);
-    } catch (error) {
-      this.onError?.(
-        error instanceof Error
-          ? error
-          : new Error(`Tool execution failed: ${String(error)}`),
-      );
-    }
+    this.onError?.(new Error(`No handler provided for tool "${name}"`));
   }
 
   private async handleServerEvent(event: RealtimeServerEvent): Promise<void> {
