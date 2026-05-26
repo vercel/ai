@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 3.0.0-canary.51
+
+### Patch Changes
+
+- 9f1e1ba: fix: accept empty string `role` in streaming delta chunks from OpenAI-compatible providers
+
 ## 3.0.0-canary.50
 
 ### Patch Changes
