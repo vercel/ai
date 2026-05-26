@@ -76,13 +76,6 @@ export type HarnessV1PromptOptions = {
   readonly instructions?: string;
 
   /**
-   * Subset of builtin tool `commonName`s the caller wants enabled for this
-   * turn. Treated as a hint; adapters that cannot filter their native
-   * runtime's builtins ignore it.
-   */
-  readonly activeBuiltinTools?: ReadonlyArray<string>;
-
-  /**
    * Signal that aborts the in-flight turn. The adapter must cancel any
    * underlying work and resolve `done` (with an error if appropriate).
    */

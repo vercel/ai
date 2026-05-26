@@ -35,7 +35,6 @@ export async function toHarnessStream(options: {
   prompt: HarnessV1PromptOptions['prompt'];
   tools?: HarnessV1PromptOptions['tools'];
   instructions?: HarnessV1PromptOptions['instructions'];
-  activeBuiltinTools?: HarnessV1PromptOptions['activeBuiltinTools'];
   abortSignal?: AbortSignal;
 }): Promise<{
   stream: ReadableStream<HarnessV1StreamPart>;
@@ -65,7 +64,6 @@ export async function toHarnessStream(options: {
     prompt: options.prompt,
     tools: options.tools,
     instructions: options.instructions,
-    activeBuiltinTools: options.activeBuiltinTools,
     abortSignal: options.abortSignal,
     emit: safeEnqueue,
   });

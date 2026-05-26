@@ -67,7 +67,6 @@ describe('inboundMessageSchema', () => {
         type: 'start',
         promptMessages: [{ role: 'user', content: 'hi' }],
         tools: [{ name: 'deploy' }],
-        activeBuiltinTools: ['read'],
         model: 'claude-sonnet-4-5',
         maxTurns: 5,
         thinking: 'adaptive',

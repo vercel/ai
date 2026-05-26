@@ -153,7 +153,6 @@ describe('toHarnessStream', () => {
       prompt: [{ role: 'user', content: [{ type: 'text', text: 'hi' }] }],
       tools: [{ name: 'myTool' }],
       instructions: 'be brief',
-      activeBuiltinTools: ['read'],
     });
 
     expect(doPrompt).toHaveBeenCalledTimes(1);
@@ -163,7 +162,6 @@ describe('toHarnessStream', () => {
     ]);
     expect(arg.tools).toEqual([{ name: 'myTool' }]);
     expect(arg.instructions).toBe('be brief');
-    expect(arg.activeBuiltinTools).toEqual(['read']);
     expect(typeof arg.emit).toBe('function');
   });
 

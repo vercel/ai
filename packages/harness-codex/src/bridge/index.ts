@@ -90,7 +90,6 @@ type StartMessage = {
     description?: string;
     inputSchema?: unknown;
   }>;
-  activeBuiltinTools?: ReadonlyArray<string>;
   model?: string;
   reasoningEffort?: 'low' | 'medium' | 'high';
   webSearch?: boolean;
@@ -296,9 +295,6 @@ async function runTurn({
     ...(Object.keys(codexConfig).length > 0 ? { config: codexConfig } : {}),
   });
 
-  const canWebSearch =
-    !start.activeBuiltinTools || start.activeBuiltinTools.includes('webSearch');
-
   const threadOptions = {
     ...(start.model ? { model: start.model } : {}),
     sandboxMode: 'danger-full-access',
@@ -308,7 +304,7 @@ async function runTurn({
     ...(start.reasoningEffort
       ? { modelReasoningEffort: start.reasoningEffort }
       : {}),
-    webSearchMode: canWebSearch && start.webSearch ? 'live' : 'disabled',
+    webSearchMode: start.webSearch ? 'live' : 'disabled',
   };
   const thread = threadState.id
     ? codex.resumeThread(threadState.id, threadOptions)

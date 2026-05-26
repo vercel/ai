@@ -455,9 +455,6 @@ function createSession({
           description: t.description,
           inputSchema: t.inputSchema,
         })),
-        activeBuiltinTools: promptOpts.activeBuiltinTools as
-          | string[]
-          | undefined,
         model,
         maxTurns,
         thinking,

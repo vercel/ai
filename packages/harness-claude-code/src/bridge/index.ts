@@ -84,7 +84,6 @@ type StartMessage = {
     description?: string;
     inputSchema?: unknown;
   }>;
-  activeBuiltinTools?: ReadonlyArray<string>;
   model?: string;
   maxTurns?: number;
   thinking?: 'off' | 'on' | 'adaptive';
@@ -265,9 +264,6 @@ async function runTurn({
       ...(start.model ? { model: start.model } : {}),
       ...(start.maxTurns !== undefined ? { maxTurns: start.maxTurns } : {}),
       ...(start.thinking ? { thinking: start.thinking } : {}),
-      ...(start.activeBuiltinTools
-        ? { activeTools: start.activeBuiltinTools.slice() }
-        : {}),
       includePartialMessages: true,
       ...(firstTurn ? {} : { continue: true }),
       permissionMode: 'bypassPermissions',

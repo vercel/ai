@@ -36,7 +36,6 @@ export type CodexHarnessSettings = {
   readonly reasoningEffort?: 'low' | 'medium' | 'high';
   /**
    * When `true`, allow the underlying runtime to use live web search.
-   * Ignored when `webSearch` is excluded from `activeBuiltinTools`.
    */
   readonly webSearch?: boolean;
   /**
@@ -415,9 +414,6 @@ function createSession({
           description: t.description,
           inputSchema: t.inputSchema,
         })),
-        activeBuiltinTools: promptOpts.activeBuiltinTools as
-          | string[]
-          | undefined,
         model,
         reasoningEffort,
         webSearch,

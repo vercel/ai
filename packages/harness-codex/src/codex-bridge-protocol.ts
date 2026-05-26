@@ -119,7 +119,6 @@ export const inboundMessageSchema = z.discriminatedUnion('type', [
         }),
       )
       .optional(),
-    activeBuiltinTools: z.array(z.string()).optional(),
     model: z.string().optional(),
     reasoningEffort: z.enum(['low', 'medium', 'high']).optional(),
     webSearch: z.boolean().optional(),

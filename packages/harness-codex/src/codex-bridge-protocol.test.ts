@@ -67,7 +67,6 @@ describe('inboundMessageSchema', () => {
         type: 'start',
         promptMessages: [{ role: 'user', content: 'hi' }],
         tools: [{ name: 'deploy' }],
-        activeBuiltinTools: ['read'],
         model: 'gpt-5.1',
         reasoningEffort: 'high',
         webSearch: true,
