@@ -1,5 +1,12 @@
 # @ai-sdk/otel
 
+## 1.0.0-canary.99
+
+### Patch Changes
+
+- Updated dependencies [6c93e36]
+  - ai@7.0.0-canary.153
+
 ## 1.0.0-canary.98
 
 ### Patch Changes

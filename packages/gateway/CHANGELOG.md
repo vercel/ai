@@ -1,5 +1,13 @@
 # @ai-sdk/gateway
 
+## 4.0.0-canary.92
+
+### Patch Changes
+
+- Updated dependencies [6c93e36]
+- Updated dependencies [f617ac2]
+  - @ai-sdk/provider-utils@5.0.0-canary.44
+
 ## 4.0.0-canary.91
 
 ### Patch Changes
