@@ -1,21 +1,6 @@
-import type { HarnessV1Metadata, HarnessV1StreamPart } from '../../v1';
+import type { HarnessV1StreamPart } from '../../v1';
 import type { TextStreamPart } from 'ai';
 import type { ToolSet } from '@ai-sdk/provider-utils';
-
-/**
- * Convert one `HarnessV1Metadata` object into the `providerMetadata` shape
- * AI SDK consumers expect. `harnessMetadata` is keyed by `harnessId`; for
- * AI SDK purposes we surface the same nested-keyed structure under
- * `providerMetadata`, so the adapter's metadata flows through to consumers
- * via the AI SDK's standard channel without losing its namespacing.
- */
-function asProviderMetadata(
-  meta: HarnessV1Metadata | undefined,
-): Record<string, Record<string, never>> | undefined {
-  // The shapes are structurally identical (Record<string, Record<string, JSONValue>>).
-  // We cast through unknown rather than redeclaring the shape.
-  return meta as unknown as Record<string, Record<string, never>> | undefined;
-}
 
 /**
  * Translate one event from the harness wire format to the AI SDK
@@ -46,7 +31,8 @@ export function translateStreamPart<TOOLS extends ToolSet>(
       return {
         type: 'text-start',
         id: event.id,
-        providerMetadata: asProviderMetadata(event.harnessMetadata),
+        // `providerMetadata` and `harnessMetadata` have the same shape.
+        providerMetadata: event.harnessMetadata,
       } as TextStreamPart<TOOLS>;
 
     case 'text-delta':
@@ -54,21 +40,24 @@ export function translateStreamPart<TOOLS extends ToolSet>(
         type: 'text-delta',
         id: event.id,
         text: event.delta,
-        providerMetadata: asProviderMetadata(event.harnessMetadata),
+        // `providerMetadata` and `harnessMetadata` have the same shape.
+        providerMetadata: event.harnessMetadata,
       } as TextStreamPart<TOOLS>;
 
     case 'text-end':
       return {
         type: 'text-end',
         id: event.id,
-        providerMetadata: asProviderMetadata(event.harnessMetadata),
+        // `providerMetadata` and `harnessMetadata` have the same shape.
+        providerMetadata: event.harnessMetadata,
       } as TextStreamPart<TOOLS>;
 
     case 'reasoning-start':
       return {
         type: 'reasoning-start',
         id: event.id,
-        providerMetadata: asProviderMetadata(event.harnessMetadata),
+        // `providerMetadata` and `harnessMetadata` have the same shape.
+        providerMetadata: event.harnessMetadata,
       } as TextStreamPart<TOOLS>;
 
     case 'reasoning-delta':
@@ -76,27 +65,50 @@ export function translateStreamPart<TOOLS extends ToolSet>(
         type: 'reasoning-delta',
         id: event.id,
         text: event.delta,
-        providerMetadata: asProviderMetadata(event.harnessMetadata),
+        // `providerMetadata` and `harnessMetadata` have the same shape.
+        providerMetadata: event.harnessMetadata,
       } as TextStreamPart<TOOLS>;
 
     case 'reasoning-end':
       return {
         type: 'reasoning-end',
         id: event.id,
-        providerMetadata: asProviderMetadata(event.harnessMetadata),
+        // `providerMetadata` and `harnessMetadata` have the same shape.
+        providerMetadata: event.harnessMetadata,
       } as TextStreamPart<TOOLS>;
 
     case 'tool-call': {
       // Strip the harness-only fields before forwarding.
       const { nativeName: _n, observeOnly: _o, ...rest } = event;
-      return rest as unknown as TextStreamPart<TOOLS>;
+      return rest as TextStreamPart<TOOLS>;
     }
 
     case 'tool-approval-request':
-      return event as unknown as TextStreamPart<TOOLS>;
+      return {
+        type: 'tool-approval-request',
+        approvalId: event.approvalId,
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: event.toolCallId,
+          toolName: '',
+          input: undefined,
+        },
+      } as TextStreamPart<TOOLS>;
 
     case 'tool-result':
-      return event as unknown as TextStreamPart<TOOLS>;
+      return {
+        type: 'tool-result',
+        toolCallId: event.toolCallId,
+        toolName: event.toolName,
+        input: undefined,
+        output: event.result,
+        ...(event.preliminary !== undefined
+          ? { preliminary: event.preliminary }
+          : {}),
+        ...(event.providerMetadata !== undefined
+          ? { providerMetadata: event.providerMetadata }
+          : {}),
+      } as TextStreamPart<TOOLS>;
 
     case 'error':
       return { type: 'error', error: event.error } as TextStreamPart<TOOLS>;
