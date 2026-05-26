@@ -1,4 +1,4 @@
-import { RealtimeToolDefinition } from '../types/realtime-model';
+import type { RealtimeToolDefinition } from '../types/realtime-model';
 
 /**
  * Response shape for the realtime setup/token endpoint.

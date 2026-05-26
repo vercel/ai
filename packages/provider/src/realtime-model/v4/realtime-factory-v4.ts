@@ -1,5 +1,5 @@
-import { RealtimeModelV4 } from './realtime-model-v4';
-import { RealtimeModelV4ClientSecretOptions } from './realtime-model-v4-client-secret';
+import type { RealtimeModelV4 } from './realtime-model-v4';
+import type { RealtimeModelV4ClientSecretOptions } from './realtime-model-v4-client-secret';
 
 export type RealtimeFactoryV4GetTokenOptions = {
   model: string;

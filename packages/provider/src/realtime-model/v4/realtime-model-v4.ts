@@ -1,10 +1,10 @@
-import {
+import type {
   RealtimeModelV4ClientSecretOptions,
   RealtimeModelV4ClientSecretResult,
 } from './realtime-model-v4-client-secret';
-import { RealtimeModelV4ClientEvent } from './realtime-model-v4-client-event';
-import { RealtimeModelV4ServerEvent } from './realtime-model-v4-server-event';
-import { RealtimeModelV4SessionConfig } from './realtime-model-v4-session-config';
+import type { RealtimeModelV4ClientEvent } from './realtime-model-v4-client-event';
+import type { RealtimeModelV4ServerEvent } from './realtime-model-v4-server-event';
+import type { RealtimeModelV4SessionConfig } from './realtime-model-v4-session-config';
 
 /**
  * Specification for a realtime model that supports bidirectional

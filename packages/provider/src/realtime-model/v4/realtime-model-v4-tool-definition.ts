@@ -1,4 +1,4 @@
-import { JSONSchema7 } from 'json-schema';
+import type { JSONSchema7 } from 'json-schema';
 
 /**
  * A tool definition for realtime models. Sent as part of the session

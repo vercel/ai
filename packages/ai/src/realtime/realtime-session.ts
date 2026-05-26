@@ -1,11 +1,15 @@
 import { safeParseJSON } from '@ai-sdk/provider-utils';
-import {
+import type {
   RealtimeClientEvent,
   RealtimeModel,
   RealtimeServerEvent,
   RealtimeSessionConfig,
 } from '../types/realtime-model';
-import { UIMessage, TextUIPart, DynamicToolUIPart } from '../ui/ui-messages';
+import type {
+  UIMessage,
+  TextUIPart,
+  DynamicToolUIPart,
+} from '../ui/ui-messages';
 import { decodeRealtimeAudio, encodeAudioForRealtime } from './audio-utils';
 
 export type RealtimeStatus =

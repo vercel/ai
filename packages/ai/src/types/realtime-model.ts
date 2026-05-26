@@ -1,4 +1,4 @@
-import {
+import type {
   Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
   Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
   Experimental_RealtimeFactoryV4GetTokenResult as RealtimeFactoryV4GetTokenResult,

@@ -1,5 +1,5 @@
-import { RealtimeModelV4ConversationItem } from './realtime-model-v4-conversation-item';
-import { RealtimeModelV4SessionConfig } from './realtime-model-v4-session-config';
+import type { RealtimeModelV4ConversationItem } from './realtime-model-v4-conversation-item';
+import type { RealtimeModelV4SessionConfig } from './realtime-model-v4-session-config';
 
 /**
  * Normalized events sent from the browser to the realtime model.

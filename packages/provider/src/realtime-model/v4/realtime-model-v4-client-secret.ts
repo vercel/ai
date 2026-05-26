@@ -1,4 +1,4 @@
-import { RealtimeModelV4SessionConfig } from './realtime-model-v4-session-config';
+import type { RealtimeModelV4SessionConfig } from './realtime-model-v4-session-config';
 
 /**
  * Options for creating an ephemeral client secret for browser-side

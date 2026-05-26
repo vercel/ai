@@ -1,4 +1,4 @@
-import { RealtimeModelV4ToolDefinition } from './realtime-model-v4-tool-definition';
+import type { RealtimeModelV4ToolDefinition } from './realtime-model-v4-tool-definition';
 
 /**
  * Provider-neutral configuration for a realtime session.
