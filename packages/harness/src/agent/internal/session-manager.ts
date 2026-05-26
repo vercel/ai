@@ -7,6 +7,7 @@ import type {
   HarnessV1SandboxHandle,
   HarnessV1SandboxProvider,
   HarnessV1Session,
+  HarnessV1Skill,
 } from '../../v1';
 import { generateId } from '@ai-sdk/provider-utils';
 import { applyBootstrapRecipe, hashBootstrap } from './bootstrap-recipe';
@@ -28,6 +29,7 @@ export class SessionManager {
   private readonly harness: HarnessV1;
   private readonly sandboxProvider: HarnessV1SandboxProvider | undefined;
   private readonly harnessOptions: HarnessV1Options | undefined;
+  private readonly skills: ReadonlyArray<HarnessV1Skill> | undefined;
   private readonly resumeFrom: HarnessV1ResumeState | undefined;
 
   readonly sessionId: string;
@@ -43,11 +45,13 @@ export class SessionManager {
     sessionId?: string;
     sandbox?: HarnessV1SandboxProvider;
     harnessOptions?: HarnessV1Options;
+    skills?: ReadonlyArray<HarnessV1Skill>;
     resumeFrom?: HarnessV1ResumeState;
   }) {
     this.harness = options.harness;
     this.sandboxProvider = options.sandbox;
     this.harnessOptions = options.harnessOptions;
+    this.skills = options.skills;
     this.resumeFrom = options.resumeFrom;
     this.sessionId = options.sessionId ?? generateId();
   }
@@ -129,6 +133,7 @@ export class SessionManager {
           sessionId: this.sessionId,
           sandboxHandle,
           harnessOptions: this.harnessOptions,
+          skills: this.skills,
           resumeFrom: this.resumeFrom,
           abortSignal: options?.abortSignal,
         });

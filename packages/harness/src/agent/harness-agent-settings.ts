@@ -3,6 +3,7 @@ import type {
   HarnessV1Options,
   HarnessV1ResumeState,
   HarnessV1SandboxProvider,
+  HarnessV1Skill,
 } from '../v1';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 
@@ -32,6 +33,13 @@ export type HarnessAgentSettings<TOOLS extends ToolSet = ToolSet> = {
    * back to the harness.
    */
   readonly tools?: TOOLS;
+
+  /**
+   * Skills made available to the underlying runtime for the lifetime of
+   * the session. Each adapter decides how to surface skills (file in the
+   * working tree, prompt prefix, …).
+   */
+  readonly skills?: ReadonlyArray<HarnessV1Skill>;
 
   /**
    * Instructions appended to the underlying agent's system prompt.

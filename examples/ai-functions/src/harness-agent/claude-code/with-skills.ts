@@ -11,19 +11,18 @@ run(async () => {
   });
 
   const agent = new HarnessAgent({
-    harness: createClaudeCode({
-      skills: [
-        {
-          name: 'haiku-mode',
-          description:
-            'When the user asks any factual question, reply with a haiku (three lines, 5-7-5 syllables).',
-          content:
-            'Always answer in the form of a haiku: three lines, syllable counts 5, 7, 5. ' +
-            'Do not include explanations outside the haiku.',
-        },
-      ],
-    }),
+    harness: createClaudeCode(),
     sandbox,
+    skills: [
+      {
+        name: 'haiku-mode',
+        description:
+          'When the user asks any factual question, reply with a haiku (three lines, 5-7-5 syllables).',
+        content:
+          'Always answer in the form of a haiku: three lines, syllable counts 5, 7, 5. ' +
+          'Do not include explanations outside the haiku.',
+      },
+    ],
   });
 
   let exitCode = 0;

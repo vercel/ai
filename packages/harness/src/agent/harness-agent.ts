@@ -58,6 +58,7 @@ export class HarnessAgent<
       sessionId: settings.sessionId,
       sandbox: settings.sandbox,
       harnessOptions: settings.harnessOptions,
+      skills: settings.skills,
       resumeFrom: settings.resumeFrom,
     });
   }

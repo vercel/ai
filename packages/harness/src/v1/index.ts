@@ -31,5 +31,6 @@ export type {
 } from './harness-v1-sandbox-handle';
 export type { HarnessV1SandboxSession } from './harness-v1-sandbox-session';
 export type { HarnessV1Session } from './harness-v1-session';
+export type { HarnessV1Skill } from './harness-v1-skill';
 export type { HarnessV1StreamPart } from './harness-v1-stream-part';
 export type { HarnessV1ToolSpec } from './harness-v1-tool-spec';

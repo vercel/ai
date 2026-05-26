@@ -9,10 +9,12 @@ import {
   type HarnessV1PromptControl,
   type HarnessV1SandboxHandle,
   type HarnessV1Session,
+  type HarnessV1Skill,
   type HarnessV1StreamPart,
 } from '@ai-sdk/harness';
 import {
   safeParseJSON,
+  type Experimental_Sandbox,
   type Experimental_SandboxProcess,
 } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
@@ -22,12 +24,10 @@ import {
 } from './claude-code-auth';
 import { BridgeChannel } from './claude-code-bridge-channel';
 import { bridgeReadySchema } from './claude-code-bridge-protocol';
-import { writeSkills, type ClaudeCodeSkill } from './claude-code-skills';
 import { translate } from './claude-code-translate';
 
 export type ClaudeCodeHarnessSettings = {
   readonly auth?: ClaudeCodeAuthOptions;
-  readonly skills?: ReadonlyArray<ClaudeCodeSkill>;
   /**
    * Override the port the bridge binds inside the sandbox. By default the
    * adapter uses the first port the sandbox declares via `sandbox.ports`.
@@ -111,11 +111,11 @@ export function createClaudeCode(
         abortSignal: startOpts.abortSignal,
       });
 
-      if (settings.skills && settings.skills.length > 0) {
+      if (startOpts.skills && startOpts.skills.length > 0) {
         await writeSkills({
           sandbox: session,
           workdir: sessionDir,
-          skills: settings.skills,
+          skills: startOpts.skills,
           abortSignal: startOpts.abortSignal,
         });
       }
@@ -168,6 +168,34 @@ function resolveBridgePort(
       'The claude-code harness needs a TCP port exposed by the sandbox. ' +
       'Create the sandbox with `ports: [<port>]` or pass `createClaudeCode({ port })`.',
   });
+}
+
+/**
+ * Materialise skill files into `${workdir}/.claude/skills/<name>.md`. The
+ * `claude` CLI auto-discovers skills from that directory on startup, so the
+ * files have to be in place before the bridge is spawned. Each file uses
+ * the YAML-frontmatter shape the CLI expects.
+ */
+async function writeSkills({
+  sandbox,
+  workdir,
+  skills,
+  abortSignal,
+}: {
+  sandbox: Experimental_Sandbox;
+  workdir: string;
+  skills: ReadonlyArray<HarnessV1Skill>;
+  abortSignal?: AbortSignal;
+}): Promise<void> {
+  await sandbox.run({
+    command: `mkdir -p ${workdir}/.claude/skills`,
+    abortSignal,
+  });
+  for (const skill of skills) {
+    const path = `${workdir}/.claude/skills/${skill.name}.md`;
+    const content = `---\nname: ${skill.name}\ndescription: ${skill.description}\n---\n\n${skill.content}\n`;
+    await sandbox.writeTextFile({ path, content, abortSignal });
+  }
 }
 
 async function readBridgeAsset(name: string): Promise<string> {

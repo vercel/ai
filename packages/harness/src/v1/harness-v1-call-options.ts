@@ -2,6 +2,7 @@ import type { HarnessV1Options } from './harness-v1-metadata';
 import type { HarnessV1Prompt } from './harness-v1-prompt';
 import type { HarnessV1ResumeState } from './harness-v1-resume-state';
 import type { HarnessV1SandboxHandle } from './harness-v1-sandbox-handle';
+import type { HarnessV1Skill } from './harness-v1-skill';
 import type { HarnessV1StreamPart } from './harness-v1-stream-part';
 import type { HarnessV1ToolSpec } from './harness-v1-tool-spec';
 
@@ -32,6 +33,14 @@ export type HarnessV1StartOptions = {
    * Adapter-namespaced configuration, keyed by harness id.
    */
   readonly harnessOptions?: HarnessV1Options;
+
+  /**
+   * Skills made available to the underlying runtime for the lifetime of
+   * the session. Adapters decide how to surface them — the `claude` CLI
+   * picks them up from `.claude/skills/*.md`, while the `codex` adapter
+   * inlines them into every user message.
+   */
+  readonly skills?: ReadonlyArray<HarnessV1Skill>;
 
   /**
    * Optional resume payload returned by a prior `doDetach()`. When provided,

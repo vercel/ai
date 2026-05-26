@@ -9,6 +9,7 @@ import {
   type HarnessV1PromptControl,
   type HarnessV1SandboxHandle,
   type HarnessV1Session,
+  type HarnessV1Skill,
   type HarnessV1StreamPart,
 } from '@ai-sdk/harness';
 import {
@@ -19,17 +20,10 @@ import { WebSocket } from 'ws';
 import { resolveCodexEnv, type CodexAuthOptions } from './codex-auth';
 import { BridgeChannel } from './codex-bridge-channel';
 import { bridgeReadySchema } from './codex-bridge-protocol';
-import type { CodexSkill } from './codex-skills';
 import { translate } from './codex-translate';
 
 export type CodexHarnessSettings = {
   readonly auth?: CodexAuthOptions;
-  /**
-   * Skills made available to the model. Unlike the `claude` CLI, the
-   * `codex` CLI does not auto-discover a skills directory — every supplied
-   * skill is injected inline into the user prompt on every turn.
-   */
-  readonly skills?: ReadonlyArray<CodexSkill>;
   /**
    * Override the port the bridge binds inside the sandbox. By default the
    * adapter uses the first port the sandbox declares via `sandbox.ports`.
@@ -133,7 +127,7 @@ export function createCodex(settings: CodexHarnessSettings = {}): HarnessV1 {
         sessionId: startOpts.sessionId,
         channel,
         proc,
-        skills: settings.skills,
+        skills: startOpts.skills,
       });
     },
   };
@@ -290,7 +284,7 @@ function createSession({
   sessionId: string;
   channel: BridgeChannel;
   proc: Experimental_SandboxProcess;
-  skills: ReadonlyArray<CodexSkill> | undefined;
+  skills: ReadonlyArray<HarnessV1Skill> | undefined;
 }): HarnessV1Session {
   let stopped = false;
   let stopPromise: Promise<void> | undefined;
