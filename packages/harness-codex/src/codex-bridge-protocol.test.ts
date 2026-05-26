@@ -71,8 +71,6 @@ describe('inboundMessageSchema', () => {
         model: 'gpt-5.1',
         reasoningEffort: 'high',
         webSearch: true,
-        sandboxMode: 'workspace-write',
-        approvalPolicy: 'never',
       }),
     ).not.toThrow();
   });

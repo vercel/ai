@@ -123,10 +123,6 @@ export const inboundMessageSchema = z.discriminatedUnion('type', [
     model: z.string().optional(),
     reasoningEffort: z.enum(['low', 'medium', 'high']).optional(),
     webSearch: z.boolean().optional(),
-    sandboxMode: z
-      .enum(['read-only', 'workspace-write', 'danger-full-access'])
-      .optional(),
-    approvalPolicy: z.enum(['never', 'on-request', 'untrusted']).optional(),
     skills: z
       .array(
         z.object({

@@ -94,8 +94,6 @@ type StartMessage = {
   model?: string;
   reasoningEffort?: 'low' | 'medium' | 'high';
   webSearch?: boolean;
-  sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access';
-  approvalPolicy?: 'never' | 'on-request' | 'untrusted';
   skills?: ReadonlyArray<{
     name: string;
     description: string;
@@ -298,21 +296,13 @@ async function runTurn({
     ...(Object.keys(codexConfig).length > 0 ? { config: codexConfig } : {}),
   });
 
-  const canBash =
-    !start.activeBuiltinTools || start.activeBuiltinTools.includes('bash');
-  const canEdit =
-    !start.activeBuiltinTools ||
-    start.activeBuiltinTools.includes('edit') ||
-    start.activeBuiltinTools.includes('write');
   const canWebSearch =
     !start.activeBuiltinTools || start.activeBuiltinTools.includes('webSearch');
 
   const threadOptions = {
     ...(start.model ? { model: start.model } : {}),
-    sandboxMode:
-      start.sandboxMode ?? (canEdit ? 'danger-full-access' : 'read-only'),
-    approvalPolicy:
-      start.approvalPolicy ?? (canBash && canEdit ? 'never' : 'on-request'),
+    sandboxMode: 'danger-full-access',
+    approvalPolicy: 'never',
     workingDirectory: workdir,
     skipGitRepoCheck: true,
     ...(start.reasoningEffort
