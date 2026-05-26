@@ -312,10 +312,18 @@ function RealtimeChat({
       tools: '/api/realtime/execute-tools',
     },
     sessionConfig: {
-      instructions:
-        'You are a helpful assistant. Be concise. ' +
-        'You have access to tools for weather and dice rolling.',
-      voice,
+      // ElevenLabs agents reject any override (voice, prompt/instructions,
+      // …) that isn't explicitly allowed in the dashboard under
+      // Security → Overrides. Configure the prompt and voice on the agent
+      // itself and skip the overrides here.
+      ...(provider === 'elevenlabs'
+        ? {}
+        : {
+            instructions:
+              'You are a helpful assistant. Be concise. ' +
+              'You have access to tools for weather and dice rolling.',
+            voice,
+          }),
       turnDetection: { type: 'server-vad' },
       ...config.sessionConfigOverrides,
       ...(llmModel != null
