@@ -11,12 +11,10 @@ export type {
   GenerateTextStartEvent,
   GenerateTextStepEndEvent,
   GenerateTextStepStartEvent,
-  OnChunkEvent,
   OnFinishEvent,
   OnStartEvent,
   OnStepFinishEvent,
   OnStepStartEvent,
-  StreamTextChunkEvent,
 } from './generate-text-events';
 export type { GenerateTextResult } from './generate-text-result';
 export {
@@ -41,7 +39,7 @@ export type { PrepareStepFunction, PrepareStepResult } from './prepare-step';
 export { pruneMessages } from './prune-messages';
 export type { ReasoningFileOutput, ReasoningOutput } from './reasoning-output';
 export { smoothStream, type ChunkDetector } from './smooth-stream';
-export type { StepResult } from './step-result';
+export type { StepResult, StepResultPerformance } from './step-result';
 export {
   hasToolCall,
   isLoopFinished,

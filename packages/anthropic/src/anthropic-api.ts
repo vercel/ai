@@ -42,6 +42,7 @@ export interface AnthropicAssistantMessage {
     | AnthropicToolSearchToolResultContent
     | AnthropicBashCodeExecutionToolResultContent
     | AnthropicTextEditorCodeExecutionToolResultContent
+    | AnthropicAdvisorToolResultContent
     | AnthropicMcpToolUseContent
     | AnthropicMcpToolResultContent
     | AnthropicCompactionContent
@@ -155,7 +156,9 @@ export interface AnthropicServerToolUseContent {
     | 'text_editor_code_execution'
     // tool search:
     | 'tool_search_tool_regex'
-    | 'tool_search_tool_bm25';
+    | 'tool_search_tool_bm25'
+    // advisor:
+    | 'advisor';
   input: unknown;
   cache_control: AnthropicCacheControl | undefined;
 }
@@ -206,13 +209,18 @@ export interface AnthropicToolResultContent {
 export interface AnthropicWebSearchToolResultContent {
   type: 'web_search_tool_result';
   tool_use_id: string;
-  content: Array<{
-    url: string;
-    title: string | null;
-    page_age: string | null;
-    encrypted_content: string;
-    type: string;
-  }>;
+  content:
+    | Array<{
+        url: string;
+        title: string | null;
+        page_age: string | null;
+        encrypted_content: string;
+        type: string;
+      }>
+    | {
+        type: 'web_search_tool_result_error';
+        error_code: string;
+      };
   cache_control: AnthropicCacheControl | undefined;
 }
 
@@ -309,6 +317,30 @@ export interface AnthropicBashCodeExecutionToolResultContent {
       }
     | {
         type: 'bash_code_execution_tool_result_error';
+        error_code: string;
+      };
+  cache_control: AnthropicCacheControl | undefined;
+}
+
+export interface AnthropicAdvisorToolResultContent {
+  type: 'advisor_tool_result';
+  tool_use_id: string;
+  content:
+    | {
+        type: 'advisor_result';
+        text: string;
+      }
+    | {
+        type: 'advisor_redacted_result';
+        encrypted_content: string;
+      }
+    | {
+        type: 'advisor_tool_result_error';
+        /**
+         * Available options: `max_uses_exceeded`, `too_many_requests`,
+         * `overloaded`, `prompt_too_long`, `execution_time_exceeded`,
+         * `unavailable`.
+         */
         error_code: string;
       };
   cache_control: AnthropicCacheControl | undefined;
@@ -463,6 +495,16 @@ export type AnthropicTool =
   | {
       type: 'tool_search_tool_bm25_20251119';
       name: string;
+    }
+  | {
+      type: 'advisor_20260301';
+      name: 'advisor';
+      model: string;
+      max_uses?: number;
+      caching?: {
+        type: 'ephemeral';
+        ttl: '5m' | '1h';
+      };
     };
 
 export type AnthropicSpeed = 'fast' | 'standard';
@@ -836,6 +878,25 @@ export const anthropicResponseSchema = lazySchema(() =>
               }),
             ]),
           }),
+          // advisor results for advisor_20260301:
+          z.object({
+            type: z.literal('advisor_tool_result'),
+            tool_use_id: z.string(),
+            content: z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('advisor_result'),
+                text: z.string(),
+              }),
+              z.object({
+                type: z.literal('advisor_redacted_result'),
+                encrypted_content: z.string(),
+              }),
+              z.object({
+                type: z.literal('advisor_tool_result_error'),
+                error_code: z.string(),
+              }),
+            ]),
+          }),
         ]),
       ),
       stop_reason: z.string().nullish(),
@@ -847,11 +908,23 @@ export const anthropicResponseSchema = lazySchema(() =>
         cache_read_input_tokens: z.number().nullish(),
         iterations: z
           .array(
-            z.object({
-              type: z.union([z.literal('compaction'), z.literal('message')]),
-              input_tokens: z.number(),
-              output_tokens: z.number(),
-            }),
+            z.union([
+              z.object({
+                type: z.union([z.literal('compaction'), z.literal('message')]),
+                input_tokens: z.number(),
+                output_tokens: z.number(),
+                cache_creation_input_tokens: z.number().nullish(),
+                cache_read_input_tokens: z.number().nullish(),
+              }),
+              z.object({
+                type: z.literal('advisor_message'),
+                model: z.string(),
+                input_tokens: z.number(),
+                output_tokens: z.number(),
+                cache_creation_input_tokens: z.number().nullish(),
+                cache_read_input_tokens: z.number().nullish(),
+              }),
+            ]),
           )
           .nullish(),
       }),
@@ -1194,6 +1267,25 @@ export const anthropicChunkSchema = lazySchema(() =>
               }),
             ]),
           }),
+          // advisor results for advisor_20260301:
+          z.object({
+            type: z.literal('advisor_tool_result'),
+            tool_use_id: z.string(),
+            content: z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('advisor_result'),
+                text: z.string(),
+              }),
+              z.object({
+                type: z.literal('advisor_redacted_result'),
+                encrypted_content: z.string(),
+              }),
+              z.object({
+                type: z.literal('advisor_tool_result_error'),
+                error_code: z.string(),
+              }),
+            ]),
+          }),
         ]),
       }),
       z.object({
@@ -1292,11 +1384,26 @@ export const anthropicChunkSchema = lazySchema(() =>
           cache_read_input_tokens: z.number().nullish(),
           iterations: z
             .array(
-              z.object({
-                type: z.union([z.literal('compaction'), z.literal('message')]),
-                input_tokens: z.number(),
-                output_tokens: z.number(),
-              }),
+              z.union([
+                z.object({
+                  type: z.union([
+                    z.literal('compaction'),
+                    z.literal('message'),
+                  ]),
+                  input_tokens: z.number(),
+                  output_tokens: z.number(),
+                  cache_creation_input_tokens: z.number().nullish(),
+                  cache_read_input_tokens: z.number().nullish(),
+                }),
+                z.object({
+                  type: z.literal('advisor_message'),
+                  model: z.string(),
+                  input_tokens: z.number(),
+                  output_tokens: z.number(),
+                  cache_creation_input_tokens: z.number().nullish(),
+                  cache_read_input_tokens: z.number().nullish(),
+                }),
+              ]),
             )
             .nullish(),
         }),

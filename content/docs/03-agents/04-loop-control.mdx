@@ -324,9 +324,9 @@ const result = await agent.generate({
 });
 ```
 
-### Sandbox Selection
+### Experimental Sandbox Selection
 
-Switch the sandbox used for tool execution in a single step:
+Switch the experimental sandbox used for tool execution in a single step:
 
 ```ts
 import { ToolLoopAgent } from 'ai';
@@ -337,11 +337,11 @@ const agent = new ToolLoopAgent({
   tools: {
     runCommand,
   },
-  sandbox: defaultSandbox,
+  experimental_sandbox: defaultSandbox,
   prepareStep: async ({ stepNumber }) => {
     if (stepNumber === 0) {
       return {
-        sandbox: setupSandbox,
+        experimental_sandbox: setupSandbox,
       };
     }
 
@@ -354,9 +354,9 @@ const result = await agent.generate({
 });
 ```
 
-Unlike `runtimeContext` and `toolsContext`, a sandbox returned from `prepareStep`
+Unlike `runtimeContext` and `toolsContext`, an experimental sandbox returned from `prepareStep`
 only applies to tool execution in that step. Later steps use the top-level
-`sandbox` unless they return their own sandbox override.
+`experimental_sandbox` unless they return their own experimental sandbox override.
 
 ## Access Step Information
 

@@ -3,6 +3,7 @@ import {
   type LanguageModelV4CallOptions,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
+import { removeAdditionalPropertiesFalse } from './remove-additional-properties';
 import type { XaiToolChoice } from './xai-chat-prompt';
 
 export function prepareTools({
@@ -58,7 +59,7 @@ export function prepareTools({
         function: {
           name: tool.name,
           description: tool.description,
-          parameters: tool.inputSchema,
+          parameters: removeAdditionalPropertiesFalse(tool.inputSchema),
           ...(tool.strict != null ? { strict: tool.strict } : {}),
         },
       });

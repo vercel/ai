@@ -1,11 +1,12 @@
 import { z } from 'zod/v4';
 import {
   tool,
-  type Sandbox,
+  type Experimental_Sandbox as Sandbox,
   type Tool,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import { describe, expect, it } from 'vitest';
+import { mockSandboxFileStubs } from '../test/mock-sandbox';
 import { prepareTools } from './prepare-tools';
 
 const mockTools = {
@@ -236,11 +237,12 @@ describe('prepareTools', () => {
   it('resolves function descriptions from toolsContext and sandbox', async () => {
     const sandbox: Sandbox = {
       description: 'test-sandbox',
-      executeCommand: async () => ({
+      runCommand: async () => ({
         exitCode: 0,
         stdout: '',
         stderr: '',
       }),
+      ...mockSandboxFileStubs,
     };
 
     const result = await prepareTools({
@@ -254,14 +256,17 @@ describe('prepareTools', () => {
         },
         withSandbox: {
           type: 'dynamic' as const,
-          description: ({ sandbox: sb }: { sandbox?: Sandbox }) =>
-            `Env: ${sb?.description ?? 'none'}`,
+          description: ({
+            experimental_sandbox: sandbox,
+          }: {
+            experimental_sandbox?: Sandbox;
+          }) => `Env: ${sandbox?.description ?? 'none'}`,
           inputSchema: z.object({}),
           execute: async () => {},
         },
       } as unknown as ToolSet,
       toolsContext: { contextual: { userName: 'Ada' } },
-      sandbox,
+      experimental_sandbox: sandbox,
     });
 
     expect(result).toEqual([

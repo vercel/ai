@@ -41,7 +41,10 @@ describe('bash_20241022 tool type', () => {
 
   it('infers custom execute output', () => {
     const bashTool = bash_20241022({
-      execute: async ({ command, restart }, { sandbox }) => {
+      execute: async (
+        { command, restart },
+        { experimental_sandbox: sandbox },
+      ) => {
         expectTypeOf(command).toEqualTypeOf<string>();
         expectTypeOf(restart).toEqualTypeOf<boolean | undefined>();
         expectTypeOf(sandbox).not.toEqualTypeOf<undefined>();

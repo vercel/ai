@@ -24,7 +24,7 @@ export type PrepareGoogleInteractionsToolsResult = {
  * `src/interactions/resources/interactions.ts` `Function.parameters: unknown`).
  *
  * Provider-defined tools (`{ type: 'provider', id: 'google.<name>', args }`)
- * map to the discriminated `Tool` union (TASK-7). The full set of
+ * map to the discriminated `Tool` union. The full set of
  * provider-defined tool ids supported here:
  *
  * - `google.google_search`     -> `{ type: 'google_search', search_types? }`

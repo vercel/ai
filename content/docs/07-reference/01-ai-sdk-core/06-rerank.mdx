@@ -137,7 +137,7 @@ const { ranking } = await rerank({
         'Called when the rerank operation begins, before the reranking model is called.',
     },
     {
-      name: 'experimental_onFinish',
+      name: 'experimental_onEnd',
       type: '(event: RerankEndEvent) => void | Promise<void>',
       isOptional: true,
       description:

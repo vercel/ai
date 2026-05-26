@@ -103,6 +103,8 @@ const { embedding } = await embed({
 });
 ```
 
+Google's `gemini-embedding-2-preview` model also supports multimodal embedding content through `providerOptions.google.content`. Each entry corresponds to the value at the same index and can contain `{ text: string }`, `{ inlineData: { mimeType: string; data: string } }`, or `{ fileData: { fileUri: string; mimeType: string } }` parts. `fileUri` can reference remote content such as HTTP URLs or Google Cloud Storage URIs (`gs://...`).
+
 ### Parallel Requests
 
 The `embedMany` function now supports parallel processing with configurable `maxParallelCalls` to optimize performance:

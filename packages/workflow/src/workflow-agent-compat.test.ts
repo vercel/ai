@@ -1222,7 +1222,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
     });
   });
 
-  describe('onFinish', () => {
+  describe('onEnd', () => {
     describe('stream', () => {
       let mockModel: MockLanguageModelV4;
 
@@ -1374,8 +1374,8 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
               onStepFinish: async () => {
                 events.push('onStepFinish');
               },
-              onFinish: async () => {
-                events.push('onFinish');
+              onEnd: async () => {
+                events.push('onEnd');
               },
             },
           },
@@ -1395,7 +1395,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
           'onStepFinish',
           'onStepStart',
           'onStepFinish',
-          'onFinish',
+          'onEnd',
         ]);
       });
 
@@ -1443,7 +1443,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
               onToolExecutionStart: async event => {
                 toolStartEvent = event;
               },
-              onFinish: async event => {
+              onEnd: async event => {
                 finishEvent = event;
               },
             },
@@ -1488,8 +1488,8 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
             onStepFinish: async () => {
               events.push('global-onStepFinish');
             },
-            onFinish: async () => {
-              events.push('global-onFinish');
+            onEnd: async () => {
+              events.push('global-onEnd');
             },
           },
         ];
@@ -1523,7 +1523,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         expect(events).toEqual([
           'global-onStart',
           'global-onStepFinish',
-          'global-onFinish',
+          'global-onEnd',
         ]);
       });
 
@@ -1565,8 +1565,8 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
               onStepFinish: async () => {
                 events.push('integration-onStepFinish');
               },
-              onFinish: async () => {
-                events.push('integration-onFinish');
+              onEnd: async () => {
+                events.push('integration-onEnd');
               },
             },
           },
@@ -1584,7 +1584,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
           'agent-onStepFinish',
           'integration-onStepFinish',
           'agent-onFinish',
-          'integration-onFinish',
+          'integration-onEnd',
         ]);
       });
 
@@ -1615,7 +1615,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
               onStepFinish: async () => {
                 throw new Error('integration error');
               },
-              onFinish: async () => {
+              onEnd: async () => {
                 throw new Error('integration error');
               },
             },
