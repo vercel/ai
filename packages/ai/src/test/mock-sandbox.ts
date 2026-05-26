@@ -5,7 +5,7 @@ import type {
 
 /**
  * No-op stubs for the file and spawn methods on `Experimental_Sandbox`,
- * intended to be spread into test fixtures that only care about `runCommand`.
+ * intended to be spread into test fixtures that only care about `run`.
  */
 export const mockSandboxFileStubs: Pick<
   Experimental_Sandbox,
@@ -15,7 +15,7 @@ export const mockSandboxFileStubs: Pick<
   | 'writeFile'
   | 'writeBinaryFile'
   | 'writeTextFile'
-  | 'spawnCommand'
+  | 'spawn'
 > = {
   readFile: async () => null,
   readBinaryFile: async () => null,
@@ -23,7 +23,7 @@ export const mockSandboxFileStubs: Pick<
   writeFile: async () => {},
   writeBinaryFile: async () => {},
   writeTextFile: async () => {},
-  spawnCommand: async (): Promise<Experimental_SandboxProcess> => ({
+  spawn: async (): Promise<Experimental_SandboxProcess> => ({
     stdout: new ReadableStream<Uint8Array>({ start: c => c.close() }),
     stderr: new ReadableStream<Uint8Array>({ start: c => c.close() }),
     wait: async () => ({ exitCode: 0 }),

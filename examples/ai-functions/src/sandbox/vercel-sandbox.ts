@@ -25,7 +25,7 @@ export class VercelSandbox implements Sandbox {
     return isAbsolute(path) ? path : join(rootDirectory, path);
   }
 
-  async runCommand({
+  async run({
     command,
     workingDirectory,
     abortSignal,
@@ -34,7 +34,7 @@ export class VercelSandbox implements Sandbox {
     workingDirectory?: string;
     abortSignal?: AbortSignal;
   }) {
-    const proc = await this.spawnCommand({
+    const proc = await this.spawn({
       command,
       workingDirectory,
       abortSignal,
@@ -49,7 +49,7 @@ export class VercelSandbox implements Sandbox {
     return { exitCode, stdout, stderr };
   }
 
-  async spawnCommand({
+  async spawn({
     command,
     workingDirectory,
     abortSignal,

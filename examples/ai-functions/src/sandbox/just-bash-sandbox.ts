@@ -23,7 +23,7 @@ export class JustBashSandbox implements Sandbox {
       : join(this.sandbox.bashEnvInstance.getCwd(), path);
   }
 
-  async runCommand({
+  async run({
     command,
     workingDirectory,
     abortSignal,
@@ -32,7 +32,7 @@ export class JustBashSandbox implements Sandbox {
     workingDirectory?: string;
     abortSignal?: AbortSignal;
   }) {
-    const proc = await this.spawnCommand({
+    const proc = await this.spawn({
       command,
       workingDirectory,
       abortSignal,
@@ -47,7 +47,7 @@ export class JustBashSandbox implements Sandbox {
     return { exitCode, stdout, stderr };
   }
 
-  async spawnCommand({
+  async spawn({
     command,
     workingDirectory,
     abortSignal,
