@@ -245,10 +245,7 @@ The following optional provider options are available for Google models:
 
   Because Priority can be gracefully downgraded to Standard under load, the
   tier the request actually ran on is surfaced on
-  `result.providerMetadata.google.serviceTier` (read from the
-  `x-gemini-service-tier` response header). On `streamText` this value is
-  currently always `null`: Google's `streamGenerateContent` endpoint does
-  not return the header. See
+  `result.providerMetadata.google.serviceTier`. See
   [Priority inference](https://ai.google.dev/gemini-api/docs/priority-inference)
   and [Flex inference](https://ai.google.dev/gemini-api/docs/flex-inference).
 
@@ -1899,6 +1896,29 @@ const { image } = await generateImage({
   directly with `generateText()`. See [Image Outputs](#image-outputs) for
   details.
 </Note>
+
+#### Google Search Grounding
+
+Gemini image models support [Google Search grounding](#google-search) through `providerOptions.google.googleSearch`. The value matches the args of `google.tools.googleSearch(...)`; pass `{}` to enable with defaults, or `{ searchTypes: { imageSearch: {} } }` to ground on reference photos.
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateImage } from 'ai';
+
+const result = await generateImage({
+  model: google.image('gemini-3.1-flash-image-preview'),
+  prompt:
+    'Search for live footage of the 2026 Super Bowl halftime show artist, then generate a close-up in space.',
+  providerOptions: {
+    google: {
+      googleSearch: { searchTypes: { imageSearch: {} } },
+    },
+  },
+});
+
+// Grounding metadata is forwarded onto the image result:
+console.log(result.providerMetadata?.google?.groundingMetadata);
+```
 
 #### Gemini Image Model Capabilities
 
