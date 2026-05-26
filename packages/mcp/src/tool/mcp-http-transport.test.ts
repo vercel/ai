@@ -223,6 +223,76 @@ describe('HttpMCPTransport', () => {
     const error = await errorPromise;
     expect(error).toBeInstanceOf(MCPClientError);
     expect((error as Error).message).toContain('POSTing to endpoint');
+    expect((error as MCPClientError).statusCode).toBe(500);
+    expect((error as MCPClientError).url).toBe('http://localhost:4000/mcp');
+    expect((error as MCPClientError).responseBody).toBe(
+      'Internal Server Error',
+    );
+  });
+
+  it('should expose HTTP status, URL, and response body on 404 from POST', async () => {
+    transport = new HttpMCPTransport({ url: 'http://localhost:4000/mcp' });
+
+    server.urls['http://localhost:4000/mcp'].response = {
+      type: 'error',
+      status: 404,
+      body: 'Not Found',
+    };
+
+    await transport.start();
+
+    let captured: unknown;
+    transport.onerror = e => {
+      captured = e;
+    };
+
+    await expect(
+      transport.send({
+        jsonrpc: '2.0' as const,
+        method: 'initialize',
+        id: 1,
+        params: {},
+      }),
+    ).rejects.toThrow('POSTing to endpoint');
+
+    expect(captured).toBeInstanceOf(MCPClientError);
+    const error = captured as MCPClientError;
+    expect(error.statusCode).toBe(404);
+    expect(error.url).toBe('http://localhost:4000/mcp');
+    expect(error.responseBody).toBe('Not Found');
+    expect(error.message).toContain('does not support HTTP transport');
+  });
+
+  it('should expose HTTP status and URL on GET SSE failure', async () => {
+    transport = new HttpMCPTransport({ url: 'http://localhost:4000/mcp' });
+
+    server.urls['http://localhost:4000/mcp'].response = {
+      type: 'error',
+      status: 503,
+      body: 'Service Unavailable',
+    };
+
+    let captured: unknown;
+    transport.onerror = e => {
+      captured = e;
+    };
+
+    await transport.start();
+
+    while (
+      !(server.calls.length > 0 && server.calls[0].requestMethod === 'GET')
+    ) {
+      await vi.advanceTimersByTimeAsync(0);
+    }
+
+    // Wait for the GET error handler to run
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(captured).toBeInstanceOf(MCPClientError);
+    const error = captured as MCPClientError;
+    expect(error.statusCode).toBe(503);
+    expect(error.url).toBe('http://localhost:4000/mcp');
+    expect(error.message).toContain('GET SSE failed');
   });
 
   it('should handle invalid JSON-RPC messages from inbound SSE', async () => {
