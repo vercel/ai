@@ -309,7 +309,6 @@ function RealtimeChat({
     model,
     api: {
       token: `/api/realtime/setup?provider=${provider}`,
-      tools: '/api/realtime/execute-tools',
     },
     sessionConfig: {
       // ElevenLabs agents reject any override (voice, prompt/instructions,
@@ -339,6 +338,30 @@ function RealtimeChat({
     onEvent: event => {
       if (event.type !== 'audio-delta') {
         console.log(`[realtime:${provider}] ${event.type}`, event);
+      }
+    },
+    onToolCall: async ({ toolCall }) => {
+      switch (toolCall.toolName) {
+        case 'getWeather': {
+          const response = await fetch('/api/realtime/weather', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(toolCall.args),
+          });
+          if (!response.ok) {
+            throw new Error('Weather lookup failed');
+          }
+          return response.json();
+        }
+        case 'rollDice': {
+          const response = await fetch('/api/realtime/roll-dice', {
+            method: 'POST',
+          });
+          if (!response.ok) {
+            throw new Error('Dice roll failed');
+          }
+          return response.json();
+        }
       }
     },
     onError: error => {
