@@ -16,7 +16,7 @@ export type {
 } from './harness-v1-metadata';
 export type { HarnessV1Prompt } from './harness-v1-prompt';
 export type { HarnessV1ResumeState } from './harness-v1-resume-state';
-export type { HarnessV1SandboxProvider } from './harness-v1-sandbox';
+export type { HarnessV1SandboxProvider } from './harness-v1-sandbox-provider';
 export type {
   HarnessV1NetworkPolicy,
   HarnessV1SandboxHandle,

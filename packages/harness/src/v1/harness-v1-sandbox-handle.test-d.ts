@@ -1,20 +1,9 @@
-import type { Experimental_Sandbox } from '@ai-sdk/provider-utils';
 import { expectTypeOf, test } from 'vitest';
-import type { HarnessV1SandboxProvider } from './harness-v1-sandbox';
 import type {
   HarnessV1NetworkPolicy,
   HarnessV1SandboxHandle,
 } from './harness-v1-sandbox-handle';
 import type { HarnessV1SandboxSession } from './harness-v1-sandbox-session';
-
-test('HarnessV1SandboxSession is an alias for Experimental_Sandbox', () => {
-  expectTypeOf<HarnessV1SandboxSession>().toEqualTypeOf<Experimental_Sandbox>();
-});
-
-test('HarnessV1SandboxProvider has create returning a handle', () => {
-  type CreateReturn = ReturnType<HarnessV1SandboxProvider['create']>;
-  expectTypeOf<Awaited<CreateReturn>>().toEqualTypeOf<HarnessV1SandboxHandle>();
-});
 
 test('handle exposes session, ports, getPortUrl, stop as required', () => {
   expectTypeOf<
@@ -29,7 +18,6 @@ test('handle exposes session, ports, getPortUrl, stop as required', () => {
 
 test('setNetworkPolicy is optional on the handle', () => {
   const _handle = {} as HarnessV1SandboxHandle;
-  // optional — may be undefined
   expectTypeOf(_handle.setNetworkPolicy).toEqualTypeOf<
     HarnessV1SandboxHandle['setNetworkPolicy']
   >();
