@@ -112,6 +112,19 @@ export function createElevenLabs(
     (agentId: string) => createRealtimeModel(agentId),
     {
       getToken: async (tokenOptions: RealtimeFactoryV4GetTokenOptions) => {
+        if ((tokenOptions.sessionConfig?.tools?.length ?? 0) > 0) {
+          // ElevenLabs agents don't accept tool definitions over the
+          // WebSocket — tools must be registered on the agent in the
+          // ElevenLabs dashboard (or via REST), and the `name` of each
+          // dashboard tool must match the SDK-side tool. The SDK only wires
+          // up the client-side execution half of the protocol.
+          console.warn(
+            'AI SDK: `tools` passed to elevenlabs.realtime.getToken are ignored. ' +
+              'Register the tools on your ElevenLabs agent (matching names + schemas) ' +
+              'and the SDK will execute them when the agent emits client_tool_call.',
+          );
+        }
+
         const model = createRealtimeModel(tokenOptions.model);
         const secret = await model.doCreateClientSecret({
           sessionConfig: tokenOptions.sessionConfig,
