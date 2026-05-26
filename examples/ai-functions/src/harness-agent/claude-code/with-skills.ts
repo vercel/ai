@@ -1,5 +1,6 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { claudeCode } from '@ai-sdk/harness-claude-code';
+import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
@@ -27,10 +28,10 @@ run(async () => {
 
   let exitCode = 0;
   try {
-    const result = await agent.generate({
+    const result = await agent.stream({
       prompt: 'What is the speed of light?',
     });
-    console.log(result.text);
+    await printFullStream({ result });
   } catch (err) {
     exitCode = 1;
     console.error('[example] failed:', err);

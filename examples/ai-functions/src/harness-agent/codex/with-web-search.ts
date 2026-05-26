@@ -1,5 +1,6 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { createCodex } from '@ai-sdk/harness-codex';
+import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
@@ -20,15 +21,7 @@ run(async () => {
       prompt:
         'Search the web for the latest version of Node.js and report it back.',
     });
-
-    for await (const part of result.fullStream) {
-      if (part.type === 'text-delta') {
-        process.stdout.write(part.text);
-      } else if (part.type === 'tool-call' && part.toolName === 'webSearch') {
-        console.log('\n[webSearch]', part.input);
-      }
-    }
-    console.log();
+    await printFullStream({ result });
   } catch (err) {
     exitCode = 1;
     console.error('[example] failed:', err);

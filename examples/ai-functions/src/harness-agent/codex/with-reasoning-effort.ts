@@ -1,5 +1,6 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { createCodex } from '@ai-sdk/harness-codex';
+import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
@@ -21,15 +22,7 @@ run(async () => {
         'Plan a multi-step path from A to B where A=(0,0) and B=(3,4) on a grid, moving only N/S/E/W. ' +
         'Explain your reasoning, then give the final path.',
     });
-
-    for await (const part of result.fullStream) {
-      if (part.type === 'reasoning-delta') {
-        process.stdout.write(`[thinking] ${part.text}`);
-      } else if (part.type === 'text-delta') {
-        process.stdout.write(part.text);
-      }
-    }
-    console.log();
+    await printFullStream({ result });
   } catch (err) {
     exitCode = 1;
     console.error('[example] failed:', err);

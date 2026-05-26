@@ -1,5 +1,6 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { createClaudeCode } from '@ai-sdk/harness-claude-code';
+import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
@@ -22,14 +23,7 @@ run(async () => {
         'Show your reasoning briefly.',
     });
 
-    for await (const part of result.fullStream) {
-      if (part.type === 'reasoning-delta') {
-        process.stdout.write(`[thinking] ${part.text}`);
-      } else if (part.type === 'text-delta') {
-        process.stdout.write(part.text);
-      }
-    }
-    console.log();
+    await printFullStream({ result });
 
     const reasoning = await result.reasoningText;
     console.log('reasoning text length:', reasoning?.length ?? 0);

@@ -1,5 +1,6 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { codex } from '@ai-sdk/harness-codex';
+import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
@@ -17,16 +18,16 @@ run(async () => {
   let exitCode = 0;
   try {
     console.log('--- turn 1 ---');
-    const first = await agent.generate({
+    const first = await agent.stream({
       prompt: 'My name is Felix. Remember it.',
     });
-    console.log(first.text);
+    await printFullStream({ result: first });
 
     console.log('--- turn 2 ---');
-    const second = await agent.generate({
+    const second = await agent.stream({
       prompt: 'What is my name? Answer in one word.',
     });
-    console.log(second.text);
+    await printFullStream({ result: second });
   } catch (err) {
     exitCode = 1;
     console.error('[example] failed:', err);

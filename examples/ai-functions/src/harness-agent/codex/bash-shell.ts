@@ -1,5 +1,6 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { codex } from '@ai-sdk/harness-codex';
+import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
@@ -19,17 +20,7 @@ run(async () => {
     const result = await agent.stream({
       prompt: 'Run `uname -a` and tell me what kernel this sandbox is running.',
     });
-
-    for await (const part of result.fullStream) {
-      if (part.type === 'text-delta') {
-        process.stdout.write(part.text);
-      } else if (part.type === 'tool-call') {
-        console.log('\n[tool-call]', part.toolName, part.input);
-      } else if (part.type === 'tool-result') {
-        console.log('[tool-result]', part.toolName, part.output);
-      }
-    }
-    console.log();
+    await printFullStream({ result });
   } catch (err) {
     exitCode = 1;
     console.error('[example] failed:', err);

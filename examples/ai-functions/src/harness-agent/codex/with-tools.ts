@@ -2,6 +2,7 @@ import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { codex } from '@ai-sdk/harness-codex';
 import { tool } from 'ai';
 import { z } from 'zod';
+import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
@@ -32,14 +33,14 @@ run(async () => {
 
   let exitCode = 0;
   try {
-    const result = await agent.generate({
+    const result = await agent.stream({
       prompt:
         'What is the weather in Paris and Reykjavik? Use the `weather` tool, then summarize in one sentence.',
     });
-    console.log('text:', result.text);
-    console.log('toolCalls:', result.toolCalls);
-    console.log('toolResults:', result.toolResults);
-    console.log('steps:', result.steps.length);
+
+    await printFullStream({ result });
+
+    console.log('steps:', (await result.steps).length);
   } catch (err) {
     exitCode = 1;
     console.error('[example] failed:', err);

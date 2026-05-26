@@ -1,5 +1,6 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { codex } from '@ai-sdk/harness-codex';
+import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
@@ -20,10 +21,7 @@ run(async () => {
       prompt: 'Recite the first sentence of "A Tale of Two Cities".',
     });
 
-    for await (const part of result.fullStream) {
-      if (part.type === 'text-delta') process.stdout.write(part.text);
-    }
-    console.log();
+    await printFullStream({ result });
 
     console.log('finishReason:', await result.finishReason);
     console.log('usage:', await result.usage);

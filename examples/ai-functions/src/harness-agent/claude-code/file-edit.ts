@@ -1,5 +1,6 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { claudeCode } from '@ai-sdk/harness-claude-code';
+import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
@@ -16,12 +17,23 @@ run(async () => {
 
   let exitCode = 0;
   try {
-    const result = await agent.generate({
-      prompt:
-        'Create a file at `notes.md` containing the text "hello world", then edit it to replace ' +
-        '"hello" with "Hello" (capitalized), then read it back and print its contents in your reply.',
+    console.log('--- turn 1: create ---');
+    const first = await agent.stream({
+      prompt: 'Create a file at `notes.md` containing the text "hello world".',
     });
-    console.log('text:', result.text);
+    await printFullStream({ result: first });
+
+    console.log('--- turn 2: edit ---');
+    const second = await agent.stream({
+      prompt: 'Edit `notes.md` to replace "hello" with "Hello" (capitalized).',
+    });
+    await printFullStream({ result: second });
+
+    console.log('--- turn 3: read ---');
+    const third = await agent.stream({
+      prompt: 'Read `notes.md` and print its contents in your reply.',
+    });
+    await printFullStream({ result: third });
   } catch (err) {
     exitCode = 1;
     console.error('[example] failed:', err);

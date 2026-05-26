@@ -10,28 +10,30 @@ run(async () => {
     ports: [4000],
     timeout: 10 * 60 * 1000,
   });
-
   const agent = new HarnessAgent({
     harness: codex,
     sandbox,
-    skills: [
-      {
-        name: 'haiku-mode',
-        description:
-          'When the user asks any factual question, reply with a haiku (three lines, 5-7-5 syllables).',
-        content:
-          'Always answer in the form of a haiku: three lines, syllable counts 5, 7, 5. ' +
-          'Do not include explanations outside the haiku.',
-      },
-    ],
   });
 
   let exitCode = 0;
   try {
-    const result = await agent.stream({
-      prompt: 'What is the speed of light?',
+    console.log('--- turn 1: create ---');
+    const first = await agent.stream({
+      prompt: 'Create a file at `notes.md` containing the text "hello world".',
     });
-    await printFullStream({ result });
+    await printFullStream({ result: first });
+
+    console.log('--- turn 2: edit ---');
+    const second = await agent.stream({
+      prompt: 'Edit `notes.md` to replace "hello" with "Hello" (capitalized).',
+    });
+    await printFullStream({ result: second });
+
+    console.log('--- turn 3: read ---');
+    const third = await agent.stream({
+      prompt: 'Read `notes.md` and print its contents in your reply.',
+    });
+    await printFullStream({ result: third });
   } catch (err) {
     exitCode = 1;
     console.error('[example] failed:', err);

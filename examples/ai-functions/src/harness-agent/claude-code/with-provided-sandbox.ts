@@ -2,6 +2,7 @@ import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { claudeCode } from '@ai-sdk/harness-claude-code';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { Sandbox } from '@vercel/sandbox';
+import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 
 run(async () => {
@@ -18,12 +19,14 @@ run(async () => {
 
   let exitCode = 0;
   try {
-    const result = await agent.generate({
+    const result = await agent.stream({
       prompt: 'In one sentence, what is the capital of France?',
     });
-    console.log('text:', result.text);
-    console.log('finishReason:', result.finishReason);
-    console.log('usage:', result.usage);
+
+    await printFullStream({ result });
+
+    console.log('finishReason:', await result.finishReason);
+    console.log('usage:', await result.usage);
   } catch (err) {
     exitCode = 1;
     console.error('[example] failed:', err);
