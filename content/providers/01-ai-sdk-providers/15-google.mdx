@@ -1065,6 +1065,32 @@ The following Zod features are known to not work with Google:
   available provider model ID as a string if needed.
 </Note>
 
+## Realtime Models
+
+<Note type="warning">Realtime is an experimental feature.</Note>
+
+You can create models that call the [Gemini Live API](https://ai.google.dev/gemini-api/docs/live)
+using the `.realtime()` factory method.
+
+```ts
+import { google } from '@ai-sdk/google';
+
+const model = google.realtime('gemini-3.1-flash-live-preview');
+```
+
+Realtime sessions run in the browser and require a short-lived token created on
+your server with `google.realtime.getToken()`:
+
+```ts
+const token = await google.realtime.getToken({
+  model: 'gemini-3.1-flash-live-preview',
+});
+```
+
+Google realtime models may require provider-specific audio formats, depending
+on the model and modality. See [Realtime](/docs/ai-sdk-core/realtime) for the
+complete setup and tool calling pattern.
+
 ## Interactions API
 
 The [Gemini Interactions API](https://ai.google.dev/gemini-api/docs/interactions)

@@ -2336,6 +2336,31 @@ The following optional provider options are available for OpenAI completion mode
   provider model ID as a string if needed.
 </Note>
 
+## Realtime Models
+
+<Note type="warning">Realtime is an experimental feature.</Note>
+
+You can create models that call the [OpenAI Realtime API](https://platform.openai.com/docs/guides/realtime)
+using the `.realtime()` factory method.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+
+const model = openai.realtime('gpt-4o-realtime-preview');
+```
+
+Realtime sessions run in the browser and require a short-lived token created on
+your server with `openai.realtime.getToken()`:
+
+```ts
+const token = await openai.realtime.getToken({
+  model: 'gpt-4o-realtime-preview',
+});
+```
+
+See [Realtime](/docs/ai-sdk-core/realtime) for the complete setup and tool
+calling pattern.
+
 ## Embedding Models
 
 You can create models that call the [OpenAI embeddings API](https://platform.openai.com/docs/api-reference/embeddings)
