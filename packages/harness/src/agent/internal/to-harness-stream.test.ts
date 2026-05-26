@@ -154,7 +154,6 @@ describe('toHarnessStream', () => {
       tools: [{ name: 'myTool' }],
       instructions: 'be brief',
       activeBuiltinTools: ['read'],
-      harnessOptions: { 'claude-code': { thinking: 'adaptive' } },
     });
 
     expect(doPrompt).toHaveBeenCalledTimes(1);
@@ -165,9 +164,6 @@ describe('toHarnessStream', () => {
     expect(arg.tools).toEqual([{ name: 'myTool' }]);
     expect(arg.instructions).toBe('be brief');
     expect(arg.activeBuiltinTools).toEqual(['read']);
-    expect(arg.harnessOptions).toEqual({
-      'claude-code': { thinking: 'adaptive' },
-    });
     expect(typeof arg.emit).toBe('function');
   });
 

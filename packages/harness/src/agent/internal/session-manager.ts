@@ -2,7 +2,6 @@ import { HarnessCapabilityUnsupportedError } from '../../errors/harness-capabili
 import type {
   HarnessV1,
   HarnessV1Bootstrap,
-  HarnessV1Options,
   HarnessV1ResumeState,
   HarnessV1SandboxHandle,
   HarnessV1SandboxProvider,
@@ -28,7 +27,6 @@ import { acquireBridgePort, releaseBridgePort } from './bridge-port-registry';
 export class SessionManager {
   private readonly harness: HarnessV1;
   private readonly sandboxProvider: HarnessV1SandboxProvider | undefined;
-  private readonly harnessOptions: HarnessV1Options | undefined;
   private readonly skills: ReadonlyArray<HarnessV1Skill> | undefined;
   private readonly resumeFrom: HarnessV1ResumeState | undefined;
 
@@ -44,13 +42,11 @@ export class SessionManager {
     harness: HarnessV1;
     sessionId?: string;
     sandbox?: HarnessV1SandboxProvider;
-    harnessOptions?: HarnessV1Options;
     skills?: ReadonlyArray<HarnessV1Skill>;
     resumeFrom?: HarnessV1ResumeState;
   }) {
     this.harness = options.harness;
     this.sandboxProvider = options.sandbox;
-    this.harnessOptions = options.harnessOptions;
     this.skills = options.skills;
     this.resumeFrom = options.resumeFrom;
     this.sessionId = options.sessionId ?? generateId();
@@ -132,7 +128,6 @@ export class SessionManager {
         const session = await this.harness.doStart({
           sessionId: this.sessionId,
           sandboxHandle,
-          harnessOptions: this.harnessOptions,
           skills: this.skills,
           resumeFrom: this.resumeFrom,
           abortSignal: options?.abortSignal,

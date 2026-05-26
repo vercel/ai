@@ -1,5 +1,4 @@
 import type {
-  HarnessV1Options,
   HarnessV1Prompt,
   HarnessV1ResumeState,
   HarnessV1ToolSpec,
@@ -57,7 +56,6 @@ export class HarnessAgent<
       harness: settings.harness,
       sessionId: settings.sessionId,
       sandbox: settings.sandbox,
-      harnessOptions: settings.harnessOptions,
       skills: settings.skills,
       resumeFrom: settings.resumeFrom,
     });
@@ -122,9 +120,6 @@ export class HarnessAgent<
     // cast to RUNTIME_CONTEXT, which is correct for the default Context type.
     const runtimeContext = {} as RUNTIME_CONTEXT;
 
-    const callHarnessOptions = (
-      options as { harnessOptions?: HarnessAgentSettings['harnessOptions'] }
-    ).harnessOptions;
     return runPrompt<TOOLS, RUNTIME_CONTEXT>({
       harness: this.settings.harness,
       session,
@@ -133,10 +128,6 @@ export class HarnessAgent<
       tools: this.tools,
       toolSpecs,
       sandboxSession: this.sessions.currentSandboxHandle?.session,
-      harnessOptions: mergeHarnessOptions(
-        this.settings.harnessOptions,
-        callHarnessOptions,
-      ),
       runtimeContext,
       abortSignal: options.abortSignal,
     });
@@ -267,17 +258,4 @@ export class HarnessAgent<
       output: undefined as never,
     };
   }
-}
-
-function mergeHarnessOptions(
-  base: HarnessV1Options | undefined,
-  override: HarnessV1Options | undefined,
-): HarnessV1Options | undefined {
-  if (!base) return override;
-  if (!override) return base;
-  const merged: HarnessV1Options = { ...base };
-  for (const [harnessId, opts] of Object.entries(override)) {
-    merged[harnessId] = { ...(base[harnessId] ?? {}), ...opts };
-  }
-  return merged;
 }

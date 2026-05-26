@@ -25,6 +25,33 @@ import { translate } from './codex-translate';
 export type CodexHarnessSettings = {
   readonly auth?: CodexAuthOptions;
   /**
+   * OpenAI model id the underlying `codex` CLI should use. Leaving this
+   * unset defers to the CLI's default.
+   */
+  readonly model?: string;
+  /**
+   * Reasoning effort for reasoning-capable models. Leaving this unset
+   * defers to the CLI's default.
+   */
+  readonly reasoningEffort?: 'low' | 'medium' | 'high';
+  /**
+   * When `true`, allow the underlying runtime to use live web search.
+   * Ignored when `webSearch` is excluded from `activeBuiltinTools`.
+   */
+  readonly webSearch?: boolean;
+  /**
+   * Filesystem sandbox policy passed to the CLI. When unset, the adapter
+   * picks a sensible default based on `activeBuiltinTools` (full access
+   * when edit/write is enabled, read-only otherwise).
+   */
+  readonly sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access';
+  /**
+   * CLI approval policy. When unset, the adapter picks a default based on
+   * `activeBuiltinTools` (`'never'` when both bash and edit/write are
+   * enabled, `'on-request'` otherwise).
+   */
+  readonly approvalPolicy?: 'never' | 'on-request' | 'untrusted';
+  /**
    * Override the port the bridge binds inside the sandbox. By default the
    * adapter uses the first port the sandbox declares via `sandbox.ports`.
    * Only set this if the sandbox declares multiple ports and the first one
@@ -128,6 +155,11 @@ export function createCodex(settings: CodexHarnessSettings = {}): HarnessV1 {
         channel,
         proc,
         skills: startOpts.skills,
+        model: settings.model,
+        reasoningEffort: settings.reasoningEffort,
+        webSearch: settings.webSearch,
+        sandboxMode: settings.sandboxMode,
+        approvalPolicy: settings.approvalPolicy,
       });
     },
   };
@@ -280,11 +312,25 @@ function createSession({
   channel,
   proc,
   skills,
+  model,
+  reasoningEffort,
+  webSearch,
+  sandboxMode,
+  approvalPolicy,
 }: {
   sessionId: string;
   channel: BridgeChannel;
   proc: Experimental_SandboxProcess;
   skills: ReadonlyArray<HarnessV1Skill> | undefined;
+  model: string | undefined;
+  reasoningEffort: 'low' | 'medium' | 'high' | undefined;
+  webSearch: boolean | undefined;
+  sandboxMode:
+    | 'read-only'
+    | 'workspace-write'
+    | 'danger-full-access'
+    | undefined;
+  approvalPolicy: 'never' | 'on-request' | 'untrusted' | undefined;
 }): HarnessV1Session {
   let stopped = false;
   let stopPromise: Promise<void> | undefined;
@@ -394,9 +440,11 @@ function createSession({
         activeBuiltinTools: promptOpts.activeBuiltinTools as
           | string[]
           | undefined,
-        harnessOptions: promptOpts.harnessOptions as
-          | Record<string, unknown>
-          | undefined,
+        model,
+        reasoningEffort,
+        webSearch,
+        sandboxMode,
+        approvalPolicy,
         ...(skills && skills.length > 0
           ? {
               skills: skills.map(s => ({

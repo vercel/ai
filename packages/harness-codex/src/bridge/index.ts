@@ -91,7 +91,11 @@ type StartMessage = {
     inputSchema?: unknown;
   }>;
   activeBuiltinTools?: ReadonlyArray<string>;
-  harnessOptions?: Record<string, unknown>;
+  model?: string;
+  reasoningEffort?: 'low' | 'medium' | 'high';
+  webSearch?: boolean;
+  sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access';
+  approvalPolicy?: 'never' | 'on-request' | 'untrusted';
   skills?: ReadonlyArray<{
     name: string;
     description: string;
@@ -206,16 +210,6 @@ async function runTurn({
   const abortCtl = new AbortController();
   onAbortCtl(abortCtl);
 
-  const codexOptions = start.harnessOptions?.codex as
-    | {
-        model?: string;
-        reasoningEffort?: 'low' | 'medium' | 'high';
-        webSearch?: boolean;
-        sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access';
-        approvalPolicy?: 'never' | 'on-request' | 'untrusted';
-      }
-    | undefined;
-
   /*
    * Known limitation: codex CLI does not currently surface MCP tools to the
    * model in `codex exec --experimental-json` mode (the path the
@@ -314,20 +308,17 @@ async function runTurn({
     !start.activeBuiltinTools || start.activeBuiltinTools.includes('webSearch');
 
   const threadOptions = {
-    ...(codexOptions?.model ? { model: codexOptions.model } : {}),
+    ...(start.model ? { model: start.model } : {}),
     sandboxMode:
-      codexOptions?.sandboxMode ??
-      (canEdit ? 'danger-full-access' : 'read-only'),
+      start.sandboxMode ?? (canEdit ? 'danger-full-access' : 'read-only'),
     approvalPolicy:
-      codexOptions?.approvalPolicy ??
-      (canBash && canEdit ? 'never' : 'on-request'),
+      start.approvalPolicy ?? (canBash && canEdit ? 'never' : 'on-request'),
     workingDirectory: workdir,
     skipGitRepoCheck: true,
-    ...(codexOptions?.reasoningEffort
-      ? { modelReasoningEffort: codexOptions.reasoningEffort }
+    ...(start.reasoningEffort
+      ? { modelReasoningEffort: start.reasoningEffort }
       : {}),
-    webSearchMode:
-      canWebSearch && codexOptions?.webSearch ? 'live' : 'disabled',
+    webSearchMode: canWebSearch && start.webSearch ? 'live' : 'disabled',
   };
   const thread = threadState.id
     ? codex.resumeThread(threadState.id, threadOptions)

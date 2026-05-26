@@ -25,8 +25,8 @@ export type HarnessV1 = {
 
   /**
    * Stable identifier for this harness, used as the key inside
-   * `HarnessV1Metadata` / `HarnessV1Options` objects. Conventionally a
-   * kebab-case slug matching the package name (`'claude-code'`, `'codex'`).
+   * `HarnessV1Metadata` objects. Conventionally a kebab-case slug matching
+   * the package name (`'claude-code'`, `'codex'`).
    */
   readonly harnessId: string;
 

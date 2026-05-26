@@ -68,7 +68,9 @@ describe('inboundMessageSchema', () => {
         promptMessages: [{ role: 'user', content: 'hi' }],
         tools: [{ name: 'deploy' }],
         activeBuiltinTools: ['read'],
-        harnessOptions: { 'claude-code': { thinking: 'adaptive' } },
+        model: 'claude-sonnet-4-5',
+        maxTurns: 5,
+        thinking: 'adaptive',
       }),
     ).not.toThrow();
   });

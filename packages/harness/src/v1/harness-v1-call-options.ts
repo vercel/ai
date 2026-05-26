@@ -1,4 +1,3 @@
-import type { HarnessV1Options } from './harness-v1-metadata';
 import type { HarnessV1Prompt } from './harness-v1-prompt';
 import type { HarnessV1ResumeState } from './harness-v1-resume-state';
 import type { HarnessV1SandboxHandle } from './harness-v1-sandbox-handle';
@@ -28,11 +27,6 @@ export type HarnessV1StartOptions = {
    * must not call `stop()` themselves; the agent does that during cleanup.
    */
   readonly sandboxHandle?: HarnessV1SandboxHandle;
-
-  /**
-   * Adapter-namespaced configuration, keyed by harness id.
-   */
-  readonly harnessOptions?: HarnessV1Options;
 
   /**
    * Skills made available to the underlying runtime for the lifetime of
@@ -87,13 +81,6 @@ export type HarnessV1PromptOptions = {
    * runtime's builtins ignore it.
    */
   readonly activeBuiltinTools?: ReadonlyArray<string>;
-
-  /**
-   * Adapter-namespaced per-call configuration. Overrides any matching keys
-   * from `HarnessV1StartOptions.harnessOptions` for the duration of this
-   * turn (the adapter is free to define merge semantics).
-   */
-  readonly harnessOptions?: HarnessV1Options;
 
   /**
    * Signal that aborts the in-flight turn. The adapter must cancel any

@@ -1,6 +1,5 @@
 import type {
   HarnessV1,
-  HarnessV1Options,
   HarnessV1ResumeState,
   HarnessV1SandboxProvider,
   HarnessV1Skill,
@@ -55,11 +54,6 @@ export type HarnessAgentSettings<TOOLS extends ToolSet = ToolSet> = {
    * `Experimental_Sandbox` so tools cannot reach the infra surface.
    */
   readonly sandbox?: HarnessV1SandboxProvider;
-
-  /**
-   * Adapter-namespaced configuration applied to every call.
-   */
-  readonly harnessOptions?: HarnessV1Options;
 
   /**
    * Stable identifier for the underlying harness session. When omitted,

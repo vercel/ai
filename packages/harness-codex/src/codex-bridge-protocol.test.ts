@@ -68,7 +68,11 @@ describe('inboundMessageSchema', () => {
         promptMessages: [{ role: 'user', content: 'hi' }],
         tools: [{ name: 'deploy' }],
         activeBuiltinTools: ['read'],
-        harnessOptions: { 'claude-code': { thinking: 'adaptive' } },
+        model: 'gpt-5.1',
+        reasoningEffort: 'high',
+        webSearch: true,
+        sandboxMode: 'workspace-write',
+        approvalPolicy: 'never',
       }),
     ).not.toThrow();
   });

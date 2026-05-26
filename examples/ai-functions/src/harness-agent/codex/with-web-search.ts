@@ -10,11 +10,8 @@ run(async () => {
     timeout: 10 * 60 * 1000,
   });
   const agent = new HarnessAgent({
-    harness: createCodex(),
+    harness: createCodex({ webSearch: true }),
     sandbox,
-    harnessOptions: {
-      codex: { webSearch: true },
-    },
   });
 
   let exitCode = 0;

@@ -29,6 +29,21 @@ import { translate } from './claude-code-translate';
 export type ClaudeCodeHarnessSettings = {
   readonly auth?: ClaudeCodeAuthOptions;
   /**
+   * Anthropic model id the underlying `claude` CLI should use. Leaving this
+   * unset defers to the CLI's default.
+   */
+  readonly model?: string;
+  /**
+   * Hard cap on how many internal turns the CLI can take before yielding
+   * back to the caller. Unset means the CLI's default.
+   */
+  readonly maxTurns?: number;
+  /**
+   * Controls extended-thinking behavior. `'off'` disables thinking,
+   * `'on'` forces it on, `'adaptive'` lets the runtime decide.
+   */
+  readonly thinking?: 'off' | 'on' | 'adaptive';
+  /**
    * Override the port the bridge binds inside the sandbox. By default the
    * adapter uses the first port the sandbox declares via `sandbox.ports`.
    * Only set this if the sandbox declares multiple ports and the first one
@@ -138,7 +153,14 @@ export function createClaudeCode(
       const ws = await openWebSocket(wsUrl);
       const channel = new BridgeChannel(ws);
 
-      return createSession({ sessionId: startOpts.sessionId, channel, proc });
+      return createSession({
+        sessionId: startOpts.sessionId,
+        channel,
+        proc,
+        model: settings.model,
+        maxTurns: settings.maxTurns,
+        thinking: settings.thinking,
+      });
     },
   };
 }
@@ -317,10 +339,16 @@ function createSession({
   sessionId,
   channel,
   proc,
+  model,
+  maxTurns,
+  thinking,
 }: {
   sessionId: string;
   channel: BridgeChannel;
   proc: Experimental_SandboxProcess;
+  model: string | undefined;
+  maxTurns: number | undefined;
+  thinking: 'off' | 'on' | 'adaptive' | undefined;
 }): HarnessV1Session {
   let stopped = false;
   let stopPromise: Promise<void> | undefined;
@@ -430,9 +458,9 @@ function createSession({
         activeBuiltinTools: promptOpts.activeBuiltinTools as
           | string[]
           | undefined,
-        harnessOptions: promptOpts.harnessOptions as
-          | Record<string, unknown>
-          | undefined,
+        model,
+        maxTurns,
+        thinking,
       });
 
       const control: HarnessV1PromptControl = {

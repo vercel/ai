@@ -85,7 +85,9 @@ type StartMessage = {
     inputSchema?: unknown;
   }>;
   activeBuiltinTools?: ReadonlyArray<string>;
-  harnessOptions?: Record<string, unknown>;
+  model?: string;
+  maxTurns?: number;
+  thinking?: 'off' | 'on' | 'adaptive';
 };
 
 type InboundMessage =
@@ -246,15 +248,6 @@ async function runTurn({
     };
   }
 
-  const claudeOptions = start.harnessOptions?.['claude-code'] as
-    | {
-        model?: string;
-        maxTurns?: number;
-        thinking?: 'off' | 'on' | 'adaptive';
-        effort?: string;
-      }
-    | undefined;
-
   const userMessage = extractUserText(start.promptMessages);
 
   send({ type: 'stream-start' });
@@ -269,11 +262,9 @@ async function runTurn({
     prompt: queryInput,
     options: {
       ...(start.instructions ? { customSystemPrompt: start.instructions } : {}),
-      ...(claudeOptions?.model ? { model: claudeOptions.model } : {}),
-      ...(claudeOptions?.maxTurns !== undefined
-        ? { maxTurns: claudeOptions.maxTurns }
-        : {}),
-      ...(claudeOptions?.thinking ? { thinking: claudeOptions.thinking } : {}),
+      ...(start.model ? { model: start.model } : {}),
+      ...(start.maxTurns !== undefined ? { maxTurns: start.maxTurns } : {}),
+      ...(start.thinking ? { thinking: start.thinking } : {}),
       ...(start.activeBuiltinTools
         ? { activeTools: start.activeBuiltinTools.slice() }
         : {}),
