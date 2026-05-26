@@ -323,6 +323,7 @@ function RealtimeChat({
             instructions:
               'You are a helpful assistant. Be concise. ' +
               'You have access to tools for weather and dice rolling.',
+            inputAudioTranscription: {},
             voice,
           }),
       turnDetection: { type: 'server-vad' },

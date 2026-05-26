@@ -36,6 +36,30 @@ export type RealtimeModelV4SessionConfig = {
   };
 
   /**
+   * Input audio transcription configuration.
+   *
+   * When enabled, providers that support input transcription emit normalized
+   * `input-transcription-completed` events that can be rendered as user
+   * messages.
+   */
+  inputAudioTranscription?: {
+    /**
+     * Provider-specific transcription model.
+     */
+    model?: string;
+
+    /**
+     * Optional language hint for the input audio.
+     */
+    language?: string;
+
+    /**
+     * Optional prompt to guide transcription.
+     */
+    prompt?: string;
+  };
+
+  /**
    * Audio format configuration for output audio.
    */
   outputAudioFormat?: {

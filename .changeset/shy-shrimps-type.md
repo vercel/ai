@@ -18,3 +18,4 @@ Adds first-class support for realtime (speech-to-speech) APIs:
 - `.getToken()` static method on each provider for server-side ephemeral token creation
 - `experimental_getRealtimeToolDefinitions` helper for provider session tool definitions
 - `experimental_useRealtime` hook in `@ai-sdk/react` returning `UIMessage[]` (aligned with `useChat`), with `onToolCall` and `addToolOutput` for client-driven tool execution
+- `inputAudioTranscription` session config for showing transcribed user audio messages when supported by the provider

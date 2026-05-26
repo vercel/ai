@@ -83,6 +83,15 @@ export class GoogleRealtimeEventMapper {
       return this.parseServerContent(data.serverContent, raw);
     }
 
+    if (data.inputTranscription?.text != null) {
+      return {
+        type: 'input-transcription-completed',
+        itemId: `google-input-${this.turnCounter}`,
+        transcript: data.inputTranscription.text,
+        raw,
+      };
+    }
+
     return { type: 'custom', rawType: String(Object.keys(data)[0]), raw };
   }
 
@@ -131,6 +140,15 @@ export class GoogleRealtimeEventMapper {
         responseId: this.responseId,
         itemId: this.itemId,
         delta: serverContent.outputTranscription.text,
+        raw,
+      });
+    }
+
+    if (serverContent.inputTranscription?.text) {
+      events.push({
+        type: 'input-transcription-completed',
+        itemId: `google-input-${this.turnCounter}`,
+        transcript: serverContent.inputTranscription.text,
         raw,
       });
     }
@@ -290,6 +308,10 @@ export function buildGoogleSessionConfig(
         })),
       },
     ];
+  }
+
+  if (config?.inputAudioTranscription != null) {
+    setup.inputAudioTranscription = {};
   }
 
   if (config?.providerOptions != null) {

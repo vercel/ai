@@ -75,6 +75,38 @@ describe('GoogleRealtimeEventMapper', () => {
       });
     });
 
+    it('maps serverContent with inputTranscription to input-transcription-completed', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      const raw = {
+        serverContent: {
+          inputTranscription: { text: 'Can you hear me?' },
+        },
+      };
+      const result = mapper.parseServerEvent(raw);
+
+      expect(result).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-0',
+        transcript: 'Can you hear me?',
+        raw,
+      });
+    });
+
+    it('maps top-level inputTranscription to input-transcription-completed', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      const raw = {
+        inputTranscription: { text: 'Can you hear me?' },
+      };
+      const result = mapper.parseServerEvent(raw);
+
+      expect(result).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-0',
+        transcript: 'Can you hear me?',
+        raw,
+      });
+    });
+
     it('maps serverContent with interrupted to speech-started', () => {
       const mapper = new GoogleRealtimeEventMapper();
       const raw = {
@@ -506,6 +538,15 @@ describe('buildGoogleSessionConfig', () => {
     expect(
       (result.generationConfig as Record<string, unknown>).responseModalities,
     ).toEqual(['AUDIO', 'TEXT']);
+  });
+
+  it('enables input audio transcription', () => {
+    const result = buildGoogleSessionConfig(
+      { inputAudioTranscription: {} },
+      'model',
+    );
+
+    expect(result.inputAudioTranscription).toEqual({});
   });
 
   it('preserves model path that already includes slash', () => {

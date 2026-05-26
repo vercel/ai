@@ -322,7 +322,11 @@ export function buildOpenAISessionConfig(
 
   const audio: Record<string, unknown> = {};
 
-  if (config.inputAudioFormat != null || config.turnDetection != null) {
+  if (
+    config.inputAudioFormat != null ||
+    config.inputAudioTranscription != null ||
+    config.turnDetection != null
+  ) {
     const input: Record<string, unknown> = {};
 
     if (config.inputAudioFormat != null) {
@@ -355,6 +359,18 @@ export function buildOpenAISessionConfig(
         }
         input.turn_detection = td;
       }
+    }
+
+    if (config.inputAudioTranscription != null) {
+      input.transcription = {
+        model: config.inputAudioTranscription.model ?? 'gpt-realtime-whisper',
+        ...(config.inputAudioTranscription.language != null
+          ? { language: config.inputAudioTranscription.language }
+          : {}),
+        ...(config.inputAudioTranscription.prompt != null
+          ? { prompt: config.inputAudioTranscription.prompt }
+          : {}),
+      };
     }
 
     audio.input = input;

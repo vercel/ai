@@ -63,6 +63,7 @@ export class RealtimeEventReducer {
   private toolArgAccumulators = new Map<string, string>();
   private toolCallIdToMessageId = new Map<string, string>();
   private toolCallIdToName = new Map<string, string>();
+  private inputAudioMessageInsertIndex = new Map<string, number>();
   private itemIdToPartLocation = new Map<
     string,
     { messageId: string; partIndex: number }
@@ -136,6 +137,16 @@ export class RealtimeEventReducer {
         break;
       }
 
+      case 'audio-committed': {
+        if (event.itemId != null) {
+          this.inputAudioMessageInsertIndex.set(
+            event.itemId,
+            nextState.messages.length,
+          );
+        }
+        break;
+      }
+
       case 'audio-transcript-delta':
       case 'text-delta': {
         nextState = this.appendTextDelta(nextState, event.itemId, event.delta);
@@ -157,23 +168,11 @@ export class RealtimeEventReducer {
       }
 
       case 'input-transcription-completed': {
-        nextState = {
-          ...nextState,
-          messages: [
-            ...nextState.messages,
-            {
-              id: `user-${event.itemId}`,
-              role: 'user',
-              parts: [
-                {
-                  type: 'text',
-                  text: event.transcript,
-                  state: 'done',
-                } as TextUIPart,
-              ],
-            },
-          ],
-        };
+        nextState = this.addInputTranscriptionMessage(
+          nextState,
+          event.itemId,
+          event.transcript,
+        );
         break;
       }
 
@@ -288,6 +287,60 @@ export class RealtimeEventReducer {
         ],
       },
       messageId,
+    };
+  }
+
+  private addInputTranscriptionMessage(
+    state: RealtimeState,
+    itemId: string,
+    transcript: string,
+  ): RealtimeState {
+    const messageId = `user-${itemId}`;
+    const existingMessage = state.messages.find(
+      message => message.id === messageId,
+    );
+
+    if (existingMessage != null) {
+      return {
+        ...state,
+        messages: state.messages.map(message =>
+          message.id === messageId
+            ? {
+                ...message,
+                parts: [
+                  {
+                    type: 'text',
+                    text: transcript,
+                    state: 'done',
+                  } as TextUIPart,
+                ],
+              }
+            : message,
+        ),
+      };
+    }
+
+    const insertIndex = Math.min(
+      this.inputAudioMessageInsertIndex.get(itemId) ?? state.messages.length,
+      state.messages.length,
+    );
+
+    const messages = [...state.messages];
+    messages.splice(insertIndex, 0, {
+      id: messageId,
+      role: 'user',
+      parts: [
+        {
+          type: 'text',
+          text: transcript,
+          state: 'done',
+        } as TextUIPart,
+      ],
+    });
+
+    return {
+      ...state,
+      messages,
     };
   }
 
