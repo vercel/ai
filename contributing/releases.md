@@ -23,6 +23,51 @@ We use [changesets](https://github.com/changesets/action) for automated releases
   1. Create a pull request against the maintenance branch.
   2. Merge it to trigger the release workflow.
 
+## Manual Releases During GitHub Actions Outages
+
+If GitHub Actions is unavailable, maintainers can perform a manual release as an emergency fallback.
+
+### Prerequisites
+
+- `pnpm` installed
+- npm publish access for the `@ai-sdk` scope
+- authenticated npm CLI session
+- latest `main` or maintenance branch checked out
+
+### Steps
+
+1. Install dependencies:
+
+   ```bash
+   pnpm install
+````
+
+2. Update package versions:
+
+   ```bash
+   pnpm ci:version
+   ```
+
+3. Build the repository:
+
+   ```bash
+   pnpm build
+   ```
+
+4. Publish packages:
+
+   ```bash
+   pnpm ci:release
+   ```
+
+5. Push release commits and tags:
+
+   ```bash
+   git push --follow-tags
+   ```
+
+Note: the standard GitHub Actions release workflow also handles npm provenance and Trusted Publisher integration. Manual releases are intended as an emergency fallback and may not behave identically to the automated release flow.
+
 ## Beta / Pre-Release Cycle
 
 For starting and managing a major-version pre-release cycle (beta releases on `main` while maintaining stable patches), see **[Pre-Release Cycle](./pre-release-cycle.md)**.
