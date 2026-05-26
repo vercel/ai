@@ -216,4 +216,36 @@ describe('google-vertex-anthropic-provider', () => {
       }),
     );
   });
+
+  it('should use multi-region endpoint for eu location', () => {
+    const provider = createGoogleVertexAnthropic({
+      project: 'test-project',
+      location: 'eu',
+    });
+    provider('test-model-id');
+
+    expect(AnthropicLanguageModel).toHaveBeenCalledWith(
+      'test-model-id',
+      expect.objectContaining({
+        baseURL:
+          'https://aiplatform.eu.rep.googleapis.com/v1/projects/test-project/locations/eu/publishers/anthropic/models',
+      }),
+    );
+  });
+
+  it('should use multi-region endpoint for us location', () => {
+    const provider = createGoogleVertexAnthropic({
+      project: 'test-project',
+      location: 'us',
+    });
+    provider('test-model-id');
+
+    expect(AnthropicLanguageModel).toHaveBeenCalledWith(
+      'test-model-id',
+      expect.objectContaining({
+        baseURL:
+          'https://aiplatform.us.rep.googleapis.com/v1/projects/test-project/locations/us/publishers/anthropic/models',
+      }),
+    );
+  });
 });

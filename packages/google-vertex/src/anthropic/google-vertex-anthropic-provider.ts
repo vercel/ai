@@ -187,10 +187,18 @@ export function createGoogleVertexAnthropic(
       environmentVariableName: 'GOOGLE_VERTEX_PROJECT',
     });
 
-    return (
-      withoutTrailingSlash(options.baseURL) ??
-      `https://${location === 'global' ? '' : location + '-'}aiplatform.googleapis.com/v1/projects/${project}/locations/${location}/publishers/anthropic/models`
-    );
+    if (options.baseURL) {
+      return withoutTrailingSlash(options.baseURL);
+    }
+
+    // Multi-region endpoints (eu, us) use a different hostname format.
+    // See: https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/use-claude#multi-region-availability
+    const multiRegions = new Set(['eu', 'us']);
+    const host = multiRegions.has(location ?? '')
+      ? `aiplatform.${location}.rep.googleapis.com`
+      : `${location === 'global' ? '' : location + '-'}aiplatform.googleapis.com`;
+
+    return `https://${host}/v1/projects/${project}/locations/${location}/publishers/anthropic/models`;
   };
 
   const createChatModel = (modelId: GoogleVertexAnthropicModelId) =>
