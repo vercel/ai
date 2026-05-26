@@ -12,7 +12,7 @@ export type Experimental_Sandbox = {
   /**
    * Run a command in the sandbox.
    */
-  readonly runCommand: (options: {
+  readonly run: (options: {
     /**
      * Command to execute in the sandbox.
      */
@@ -191,10 +191,10 @@ export type Experimental_Sandbox = {
    * Spawn a long-running process in the sandbox. Returns immediately with a
    * handle that streams stdout/stderr, can be waited on, and can be killed.
    *
-   * `runCommand` is conceptually a thin wrapper over this primitive: spawn,
+   * `run` is conceptually a thin wrapper over this primitive: spawn,
    * collect both streams to strings, await `wait()`, return the result.
    */
-  readonly spawnCommand: (options: {
+  readonly spawn: (options: {
     /**
      * Command to execute in the sandbox.
      */
@@ -214,7 +214,7 @@ export type Experimental_Sandbox = {
 };
 
 /**
- * Handle to a long-running process started via `Experimental_Sandbox.spawnCommand`.
+ * Handle to a long-running process started via `Experimental_Sandbox.spawn`.
  */
 export type Experimental_SandboxProcess = {
   /**

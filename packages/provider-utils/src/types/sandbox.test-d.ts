@@ -4,17 +4,15 @@ import type {
   Experimental_SandboxProcess,
 } from './sandbox';
 
-test('Experimental_Sandbox exposes spawnCommand returning a process handle', () => {
-  expectTypeOf<Experimental_Sandbox['spawnCommand']>().toBeFunction();
-  expectTypeOf<
-    Parameters<Experimental_Sandbox['spawnCommand']>[0]
-  >().toEqualTypeOf<{
+test('Experimental_Sandbox exposes spawn returning a process handle', () => {
+  expectTypeOf<Experimental_Sandbox['spawn']>().toBeFunction();
+  expectTypeOf<Parameters<Experimental_Sandbox['spawn']>[0]>().toEqualTypeOf<{
     command: string;
     workingDirectory?: string;
     abortSignal?: AbortSignal;
   }>();
   expectTypeOf<
-    Awaited<ReturnType<Experimental_Sandbox['spawnCommand']>>
+    Awaited<ReturnType<Experimental_Sandbox['spawn']>>
   >().toEqualTypeOf<Experimental_SandboxProcess>();
 });
 
