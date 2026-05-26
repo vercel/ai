@@ -4,8 +4,8 @@ import {
   type RealtimeSessionOptions,
   type RealtimeState,
   type RealtimeStatus,
+  type UIMessage,
 } from 'ai';
-import type { UIMessage } from 'ai';
 import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 
 export type { RealtimeStatus };

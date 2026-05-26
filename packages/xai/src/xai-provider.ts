@@ -1,13 +1,11 @@
-import type {
-  Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
-  Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
-} from '@ai-sdk/provider';
 import {
-  NoSuchModelError,
+  type Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
+  type Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
   type Experimental_VideoModelV4,
   type FilesV4,
   type ImageModelV4,
   type LanguageModelV4,
+  NoSuchModelError,
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {

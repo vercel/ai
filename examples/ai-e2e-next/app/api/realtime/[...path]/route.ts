@@ -2,11 +2,13 @@ import { openai } from '@ai-sdk/openai';
 import { google } from '@ai-sdk/google';
 import { xai } from '@ai-sdk/xai';
 import { elevenlabs } from '@ai-sdk/elevenlabs';
-import { tool, getRealtimeToolDefinitions, executeRealtimeTool } from 'ai';
-import type {
-  RealtimeFactory,
-  RealtimeSessionConfig,
-  RealtimeToolsExecuteRequestBody,
+import {
+  executeRealtimeTool,
+  getRealtimeToolDefinitions,
+  type RealtimeFactory,
+  type RealtimeSessionConfig,
+  type RealtimeToolsExecuteRequestBody,
+  tool,
 } from 'ai';
 import { z } from 'zod';
 
