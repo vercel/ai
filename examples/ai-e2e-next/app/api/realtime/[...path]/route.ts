@@ -44,7 +44,7 @@ const providers: Record<
 > = {
   openai: {
     factory: openai.experimental_realtime,
-    model: 'gpt-4o-realtime-preview',
+    model: 'gpt-realtime',
   },
   google: {
     factory: google.experimental_realtime,

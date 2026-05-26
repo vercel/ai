@@ -35,7 +35,7 @@ const toolDefinitions = await experimental_getRealtimeToolDefinitions({
 });
 
 const token = await openai.experimental_realtime.getToken({
-  model: 'gpt-4o-realtime-preview',
+  model: 'gpt-realtime',
   sessionConfig: {
     tools: toolDefinitions,
   },

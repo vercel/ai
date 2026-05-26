@@ -46,7 +46,7 @@ export async function POST(request: Request) {
   });
 
   const token = await openai.experimental_realtime.getToken({
-    model: 'gpt-4o-realtime-preview',
+    model: 'gpt-realtime',
     sessionConfig: {
       ...body.sessionConfig,
       tools: toolDefinitions,
@@ -78,7 +78,7 @@ import { experimental_useRealtime } from '@ai-sdk/react';
 
 export default function RealtimePage() {
   const realtime = experimental_useRealtime({
-    model: openai.experimental_realtime('gpt-4o-realtime-preview'),
+    model: openai.experimental_realtime('gpt-realtime'),
     api: {
       token: '/api/realtime/setup',
     },
@@ -151,7 +151,7 @@ import { experimental_useRealtime } from '@ai-sdk/react';
 
 export default function RealtimePage() {
   const realtime = experimental_useRealtime({
-    model: openai.experimental_realtime('gpt-4o-realtime-preview'),
+    model: openai.experimental_realtime('gpt-realtime'),
     api: {
       token: '/api/realtime/setup',
     },
@@ -195,7 +195,7 @@ import { google } from '@ai-sdk/google';
 import { xai } from '@ai-sdk/xai';
 import { elevenLabs } from '@ai-sdk/elevenlabs';
 
-const openaiModel = openai.experimental_realtime('gpt-4o-realtime-preview');
+const openaiModel = openai.experimental_realtime('gpt-realtime');
 const googleModel = google.experimental_realtime(
   'gemini-3.1-flash-live-preview',
 );

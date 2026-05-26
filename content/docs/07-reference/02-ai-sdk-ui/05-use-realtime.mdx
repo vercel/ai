@@ -21,7 +21,7 @@ import { openai } from '@ai-sdk/openai';
 import { experimental_useRealtime } from '@ai-sdk/react';
 
 const realtime = experimental_useRealtime({
-  model: openai.experimental_realtime('gpt-4o-realtime-preview'),
+  model: openai.experimental_realtime('gpt-realtime'),
   api: {
     token: '/api/realtime/setup',
   },
@@ -218,7 +218,7 @@ and return the tool output:
 
 ```tsx
 const realtime = experimental_useRealtime({
-  model: openai.experimental_realtime('gpt-4o-realtime-preview'),
+  model: openai.experimental_realtime('gpt-realtime'),
   api: {
     token: '/api/realtime/setup',
   },

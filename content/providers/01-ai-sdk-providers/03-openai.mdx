@@ -2346,7 +2346,7 @@ using the `.experimental_realtime()` factory method.
 ```ts
 import { openai } from '@ai-sdk/openai';
 
-const model = openai.experimental_realtime('gpt-4o-realtime-preview');
+const model = openai.experimental_realtime('gpt-realtime');
 ```
 
 Realtime sessions run in the browser and require a short-lived token created on
@@ -2354,7 +2354,7 @@ your server with `openai.experimental_realtime.getToken()`:
 
 ```ts
 const token = await openai.experimental_realtime.getToken({
-  model: 'gpt-4o-realtime-preview',
+  model: 'gpt-realtime',
 });
 ```
 

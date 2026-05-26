@@ -44,7 +44,7 @@ const PROVIDER_CONFIG: Record<
 > = {
   openai: {
     label: 'OpenAI',
-    defaultModel: 'gpt-4o-realtime-preview',
+    defaultModel: 'gpt-realtime',
     staticVoices: toVoiceOptions([
       'alloy',
       'ash',
