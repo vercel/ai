@@ -397,7 +397,7 @@ describe('generateText types', () => {
           prepareStep: () => ({
             experimental_sandbox: {
               description: 'test sandbox',
-              runCommand: async () => ({
+              run: async () => ({
                 exitCode: 0,
                 stdout: 'ok',
                 stderr: '',
@@ -408,6 +408,16 @@ describe('generateText types', () => {
               writeFile: async () => {},
               writeBinaryFile: async () => {},
               writeTextFile: async () => {},
+              spawn: async () => ({
+                stdout: new ReadableStream<Uint8Array>({
+                  start: c => c.close(),
+                }),
+                stderr: new ReadableStream<Uint8Array>({
+                  start: c => c.close(),
+                }),
+                wait: async () => ({ exitCode: 0 }),
+                kill: async () => {},
+              }),
             },
           }),
         });

@@ -247,7 +247,7 @@ describe('executeToolsFromStream', () => {
   it('should pass sandbox to tool execution', async () => {
     const sandbox = {
       description: 'test sandbox',
-      runCommand: vi.fn(async () => ({
+      run: vi.fn(async () => ({
         exitCode: 0,
         stdout: 'ok',
         stderr: '',
