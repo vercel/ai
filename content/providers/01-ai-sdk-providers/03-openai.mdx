@@ -2341,19 +2341,19 @@ The following optional provider options are available for OpenAI completion mode
 <Note type="warning">Realtime is an experimental feature.</Note>
 
 You can create models that call the [OpenAI Realtime API](https://platform.openai.com/docs/guides/realtime)
-using the `.realtime()` factory method.
+using the `.experimental_realtime()` factory method.
 
 ```ts
 import { openai } from '@ai-sdk/openai';
 
-const model = openai.realtime('gpt-4o-realtime-preview');
+const model = openai.experimental_realtime('gpt-4o-realtime-preview');
 ```
 
 Realtime sessions run in the browser and require a short-lived token created on
-your server with `openai.realtime.getToken()`:
+your server with `openai.experimental_realtime.getToken()`:
 
 ```ts
-const token = await openai.realtime.getToken({
+const token = await openai.experimental_realtime.getToken({
   model: 'gpt-4o-realtime-preview',
 });
 ```

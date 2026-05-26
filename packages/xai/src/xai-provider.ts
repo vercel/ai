@@ -66,7 +66,7 @@ export interface XaiProvider extends ProviderV4 {
    */
   videoModel(modelId: XaiVideoModelId): Experimental_VideoModelV4;
 
-  realtime: RealtimeFactoryV4;
+  experimental_realtime: RealtimeFactoryV4;
 
   /**
    * Returns the xAI files interface for uploading files.
@@ -171,7 +171,7 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
     });
   };
 
-  const realtimeFactory = Object.assign(
+  const experimentalRealtimeFactory = Object.assign(
     (modelId: string) => createRealtimeModel(modelId),
     {
       getToken: async (tokenOptions: RealtimeFactoryV4GetTokenOptions) => {
@@ -213,7 +213,7 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
   provider.image = createImageModel;
   provider.videoModel = createVideoModel;
   provider.video = createVideoModel;
-  provider.realtime = realtimeFactory;
+  provider.experimental_realtime = experimentalRealtimeFactory;
   provider.files = createFiles;
   provider.tools = xaiTools;
 

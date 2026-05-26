@@ -143,19 +143,19 @@ Supported values:
 <Note type="warning">Realtime is an experimental feature.</Note>
 
 You can create models that call the [xAI Realtime API](https://docs.x.ai/docs/guides/realtime)
-using the `.realtime()` factory method.
+using the `.experimental_realtime()` factory method.
 
 ```ts
 import { xai } from '@ai-sdk/xai';
 
-const model = xai.realtime('grok-3');
+const model = xai.experimental_realtime('grok-3');
 ```
 
 Realtime sessions run in the browser and require a short-lived token created on
-your server with `xai.realtime.getToken()`:
+your server with `xai.experimental_realtime.getToken()`:
 
 ```ts
-const token = await xai.realtime.getToken({
+const token = await xai.experimental_realtime.getToken({
   model: 'grok-3',
 });
 ```

@@ -1,11 +1,13 @@
 ---
-title: useRealtime
-description: API reference for the useRealtime hook.
+title: experimental_useRealtime
+description: API reference for the experimental_useRealtime hook.
 ---
 
-# `useRealtime()`
+# `experimental_useRealtime()`
 
-<Note type="warning">`useRealtime` is an experimental feature.</Note>
+<Note type="warning">
+  `experimental_useRealtime` is an experimental feature.
+</Note>
 
 Creates a browser-side realtime session for bidirectional audio and text
 conversations with a realtime provider model.
@@ -16,10 +18,10 @@ audio capture, playback, text input, and tool output.
 
 ```tsx
 import { openai } from '@ai-sdk/openai';
-import { useRealtime } from '@ai-sdk/react';
+import { experimental_useRealtime } from '@ai-sdk/react';
 
-const realtime = useRealtime({
-  model: openai.realtime('gpt-4o-realtime-preview'),
+const realtime = experimental_useRealtime({
+  model: openai.experimental_realtime('gpt-4o-realtime-preview'),
   api: {
     token: '/api/realtime/setup',
   },
@@ -28,7 +30,10 @@ const realtime = useRealtime({
 
 ## Import
 
-<Snippet text={`import { useRealtime } from "@ai-sdk/react"`} prompt={false} />
+<Snippet
+  text={`import { experimental_useRealtime } from "@ai-sdk/react"`}
+  prompt={false}
+/>
 
 ## API Signature
 
@@ -38,7 +43,7 @@ const realtime = useRealtime({
   content={[
     {
       name: 'model',
-      type: 'RealtimeModel',
+      type: 'Experimental_RealtimeModel',
       description: 'The realtime model to connect to.',
     },
     {
@@ -54,7 +59,7 @@ const realtime = useRealtime({
               name: 'token',
               type: 'string',
               description:
-                'The setup endpoint that returns a RealtimeSetupResponse.',
+                'The setup endpoint that returns an Experimental_RealtimeSetupResponse.',
             },
           ],
         },
@@ -62,7 +67,7 @@ const realtime = useRealtime({
     },
     {
       name: 'sessionConfig',
-      type: 'Partial<RealtimeSessionConfig>',
+      type: 'Partial<Experimental_RealtimeSessionConfig>',
       isOptional: true,
       description:
         'Provider-neutral session configuration, such as instructions, voice, audio formats, turn detection, tools, and providerOptions.',
@@ -90,7 +95,7 @@ const realtime = useRealtime({
     },
     {
       name: 'onEvent',
-      type: '(event: RealtimeServerEvent) => void',
+      type: '(event: Experimental_RealtimeServerEvent) => void',
       isOptional: true,
       description: 'Called for every normalized realtime server event.',
     },
@@ -120,8 +125,9 @@ const realtime = useRealtime({
     },
     {
       name: 'events',
-      type: 'RealtimeServerEvent[]',
-      description: 'Recent normalized provider events for inspection or debug UI.',
+      type: 'Experimental_RealtimeServerEvent[]',
+      description:
+        'Recent normalized provider events for inspection or debug UI.',
     },
     {
       name: 'isCapturing',
@@ -152,7 +158,7 @@ const realtime = useRealtime({
     },
     {
       name: 'sendEvent',
-      type: '(event: RealtimeClientEvent) => void',
+      type: '(event: Experimental_RealtimeClientEvent) => void',
       description: 'Sends a normalized realtime client event.',
     },
     {
@@ -211,8 +217,8 @@ Realtime tool execution is client-driven. Use `onToolCall` to handle tool calls
 and return the tool output:
 
 ```tsx
-const realtime = useRealtime({
-  model: openai.realtime('gpt-4o-realtime-preview'),
+const realtime = experimental_useRealtime({
+  model: openai.experimental_realtime('gpt-4o-realtime-preview'),
   api: {
     token: '/api/realtime/setup',
   },

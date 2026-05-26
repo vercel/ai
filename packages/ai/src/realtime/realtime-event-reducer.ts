@@ -1,5 +1,5 @@
 import { safeParseJSON } from '@ai-sdk/provider-utils';
-import type { RealtimeServerEvent } from '../types/realtime-model';
+import type { Experimental_RealtimeServerEvent as RealtimeServerEvent } from '../types/realtime-model';
 import type {
   DynamicToolUIPart,
   TextUIPart,

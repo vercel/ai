@@ -1070,19 +1070,19 @@ The following Zod features are known to not work with Google:
 <Note type="warning">Realtime is an experimental feature.</Note>
 
 You can create models that call the [Gemini Live API](https://ai.google.dev/gemini-api/docs/live)
-using the `.realtime()` factory method.
+using the `.experimental_realtime()` factory method.
 
 ```ts
 import { google } from '@ai-sdk/google';
 
-const model = google.realtime('gemini-3.1-flash-live-preview');
+const model = google.experimental_realtime('gemini-3.1-flash-live-preview');
 ```
 
 Realtime sessions run in the browser and require a short-lived token created on
-your server with `google.realtime.getToken()`:
+your server with `google.experimental_realtime.getToken()`:
 
 ```ts
-const token = await google.realtime.getToken({
+const token = await google.experimental_realtime.getToken({
   model: 'gemini-3.1-flash-live-preview',
 });
 ```

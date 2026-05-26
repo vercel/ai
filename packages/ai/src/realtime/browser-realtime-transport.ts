@@ -1,8 +1,8 @@
 import { safeParseJSON } from '@ai-sdk/provider-utils';
 import type {
-  RealtimeClientEvent,
-  RealtimeModel,
-  RealtimeServerEvent,
+  Experimental_RealtimeClientEvent as RealtimeClientEvent,
+  Experimental_RealtimeModel as RealtimeModel,
+  Experimental_RealtimeServerEvent as RealtimeServerEvent,
 } from '../types/realtime-model';
 
 export type BrowserRealtimeTransportOptions = {

@@ -15,7 +15,7 @@ server.
 The typical flow is:
 
 1. The browser calls your setup endpoint.
-1. Your server creates a short-lived provider token with `realtime.getToken()`.
+1. Your server creates a short-lived provider token with `experimental_realtime.getToken()`.
 1. The browser opens a WebSocket connection to the provider.
 1. The model streams audio, text, and tool calls back to the browser.
 1. Tool calls are handled by your application with `onToolCall`.
@@ -27,7 +27,7 @@ provider. This endpoint can also attach tool definitions to the session.
 
 ```ts filename='app/api/realtime/setup/route.ts'
 import { openai } from '@ai-sdk/openai';
-import { getRealtimeToolDefinitions, tool } from 'ai';
+import { experimental_getRealtimeToolDefinitions, tool } from 'ai';
 import { z } from 'zod';
 
 const tools = {
@@ -41,9 +41,11 @@ const tools = {
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
-  const toolDefinitions = await getRealtimeToolDefinitions({ tools });
+  const toolDefinitions = await experimental_getRealtimeToolDefinitions({
+    tools,
+  });
 
-  const token = await openai.realtime.getToken({
+  const token = await openai.experimental_realtime.getToken({
     model: 'gpt-4o-realtime-preview',
     sessionConfig: {
       ...body.sessionConfig,
@@ -65,18 +67,18 @@ export async function POST(request: Request) {
 
 ## Client Session
 
-Use the `useRealtime` hook to connect to the provider, capture microphone audio,
+Use the `experimental_useRealtime` hook to connect to the provider, capture microphone audio,
 play model audio, send text messages, and render messages.
 
 ```tsx filename='app/realtime/page.tsx'
 'use client';
 
 import { openai } from '@ai-sdk/openai';
-import { useRealtime } from '@ai-sdk/react';
+import { experimental_useRealtime } from '@ai-sdk/react';
 
 export default function RealtimePage() {
-  const realtime = useRealtime({
-    model: openai.realtime('gpt-4o-realtime-preview'),
+  const realtime = experimental_useRealtime({
+    model: openai.experimental_realtime('gpt-4o-realtime-preview'),
     api: {
       token: '/api/realtime/setup',
     },
@@ -145,11 +147,11 @@ export async function POST(request: Request) {
 
 ```tsx filename='app/realtime/page.tsx' highlight="10-24"
 import { openai } from '@ai-sdk/openai';
-import { useRealtime } from '@ai-sdk/react';
+import { experimental_useRealtime } from '@ai-sdk/react';
 
 export default function RealtimePage() {
-  const realtime = useRealtime({
-    model: openai.realtime('gpt-4o-realtime-preview'),
+  const realtime = experimental_useRealtime({
+    model: openai.experimental_realtime('gpt-4o-realtime-preview'),
     api: {
       token: '/api/realtime/setup',
     },
@@ -193,14 +195,16 @@ import { google } from '@ai-sdk/google';
 import { xai } from '@ai-sdk/xai';
 import { elevenLabs } from '@ai-sdk/elevenlabs';
 
-const openaiModel = openai.realtime('gpt-4o-realtime-preview');
-const googleModel = google.realtime('gemini-3.1-flash-live-preview');
-const xaiModel = xai.realtime('grok-3');
-const elevenlabsModel = elevenLabs.realtime('your-agent-id');
+const openaiModel = openai.experimental_realtime('gpt-4o-realtime-preview');
+const googleModel = google.experimental_realtime(
+  'gemini-3.1-flash-live-preview',
+);
+const xaiModel = xai.experimental_realtime('grok-3');
+const elevenlabsModel = elevenLabs.experimental_realtime('your-agent-id');
 ```
 
 <Note>
   ElevenLabs agents must have tools registered on the agent. Passing
-  `sessionConfig.tools` to `elevenLabs.realtime.getToken()` currently does not
-  register tools dynamically.
+  `sessionConfig.tools` to `elevenLabs.experimental_realtime.getToken()`
+  currently does not register tools dynamically.
 </Note>

@@ -1,12 +1,13 @@
 ---
-title: getRealtimeToolDefinitions
-description: API reference for getRealtimeToolDefinitions.
+title: experimental_getRealtimeToolDefinitions
+description: API reference for experimental_getRealtimeToolDefinitions.
 ---
 
-# `getRealtimeToolDefinitions()`
+# `experimental_getRealtimeToolDefinitions()`
 
 <Note type="warning">
-  `getRealtimeToolDefinitions` is part of the experimental realtime API.
+  `experimental_getRealtimeToolDefinitions` is part of the experimental realtime
+  API.
 </Note>
 
 Converts an AI SDK `ToolSet` into provider-neutral realtime tool definitions
@@ -17,7 +18,7 @@ provider token.
 
 ```ts
 import { openai } from '@ai-sdk/openai';
-import { getRealtimeToolDefinitions, tool } from 'ai';
+import { experimental_getRealtimeToolDefinitions, tool } from 'ai';
 import { z } from 'zod';
 
 const tools = {
@@ -29,9 +30,11 @@ const tools = {
   }),
 };
 
-const toolDefinitions = await getRealtimeToolDefinitions({ tools });
+const toolDefinitions = await experimental_getRealtimeToolDefinitions({
+  tools,
+});
 
-const token = await openai.realtime.getToken({
+const token = await openai.experimental_realtime.getToken({
   model: 'gpt-4o-realtime-preview',
   sessionConfig: {
     tools: toolDefinitions,
@@ -42,7 +45,7 @@ const token = await openai.realtime.getToken({
 ## Import
 
 <Snippet
-  text={`import { getRealtimeToolDefinitions } from "ai"`}
+  text={`import { experimental_getRealtimeToolDefinitions } from "ai"`}
   prompt={false}
 />
 
@@ -75,7 +78,7 @@ const token = await openai.realtime.getToken({
 
 ### Returns
 
-A `Promise<RealtimeToolDefinition[]>`.
+A `Promise<Experimental_RealtimeToolDefinition[]>`.
 
 Each returned definition contains:
 
@@ -107,9 +110,9 @@ Each returned definition contains:
 
 ## Notes
 
-- Tool execution is not handled by `getRealtimeToolDefinitions`. Use
-  [`useRealtime`](/docs/reference/ai-sdk-ui/use-realtime) `onToolCall` and
-  `addToolOutput` to execute tools and return results.
+- Tool execution is not handled by `experimental_getRealtimeToolDefinitions`. Use
+  [`experimental_useRealtime`](/docs/reference/ai-sdk-ui/use-realtime)
+  `onToolCall` and `addToolOutput` to execute tools and return results.
 - Provider tools are skipped because realtime providers expect regular function
   definitions in the session config.
 - Some providers may not support dynamic tool registration. For example,

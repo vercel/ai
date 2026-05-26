@@ -3,9 +3,9 @@ import { google } from '@ai-sdk/google';
 import { xai } from '@ai-sdk/xai';
 import { elevenlabs } from '@ai-sdk/elevenlabs';
 import {
-  getRealtimeToolDefinitions,
-  type RealtimeFactory,
-  type RealtimeSessionConfig,
+  experimental_getRealtimeToolDefinitions,
+  type Experimental_RealtimeFactory,
+  type Experimental_RealtimeSessionConfig,
   tool,
 } from 'ai';
 import { z } from 'zod';
@@ -38,18 +38,24 @@ const tools = {
   }),
 };
 
-const providers: Record<string, { factory: RealtimeFactory; model: string }> = {
-  openai: { factory: openai.realtime, model: 'gpt-4o-realtime-preview' },
+const providers: Record<
+  string,
+  { factory: Experimental_RealtimeFactory; model: string }
+> = {
+  openai: {
+    factory: openai.experimental_realtime,
+    model: 'gpt-4o-realtime-preview',
+  },
   google: {
-    factory: google.realtime,
+    factory: google.experimental_realtime,
     model: 'gemini-3.1-flash-live-preview',
   },
   xai: {
-    factory: xai.realtime,
+    factory: xai.experimental_realtime,
     model: 'grok-3',
   },
   elevenlabs: {
-    factory: elevenlabs.realtime,
+    factory: elevenlabs.experimental_realtime,
     model: process.env.ELEVENLABS_AGENT_ID ?? '',
   },
 };
@@ -66,10 +72,10 @@ export async function POST(
     const provider = searchParams.get('provider') ?? 'openai';
 
     const body = await request.json().catch(() => ({}));
-    const sessionConfig: RealtimeSessionConfig | undefined =
+    const sessionConfig: Experimental_RealtimeSessionConfig | undefined =
       body.sessionConfig ?? undefined;
 
-    const toolDefs = await getRealtimeToolDefinitions({ tools });
+    const toolDefs = await experimental_getRealtimeToolDefinitions({ tools });
 
     const { factory, model } = providers[provider] ?? providers.openai;
     const tokenResult = await factory.getToken({

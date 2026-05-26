@@ -37,10 +37,10 @@ export interface ElevenLabsProvider extends ProviderV4 {
   speech(modelId: ElevenLabsSpeechModelId): SpeechModelV4;
 
   /**
-   * Creates a realtime model for bidirectional audio/text conversations.
+   * Creates an experimental realtime model for bidirectional audio/text conversations.
    * The modelId corresponds to an ElevenLabs agent_id.
    */
-  realtime: RealtimeFactoryV4;
+  experimental_realtime: RealtimeFactoryV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -108,7 +108,7 @@ export function createElevenLabs(
       fetch: options.fetch,
     });
 
-  const realtimeFactory = Object.assign(
+  const experimentalRealtimeFactory = Object.assign(
     (agentId: string) => createRealtimeModel(agentId),
     {
       getToken: async (tokenOptions: RealtimeFactoryV4GetTokenOptions) => {
@@ -119,7 +119,7 @@ export function createElevenLabs(
           // dashboard tool must match the SDK-side tool. The SDK only wires
           // up the client-side execution half of the protocol.
           console.warn(
-            'AI SDK: `tools` passed to elevenlabs.realtime.getToken are ignored. ' +
+            'AI SDK: `tools` passed to elevenlabs.experimental_realtime.getToken are ignored. ' +
               'Register the tools on your ElevenLabs agent (matching names + schemas) ' +
               'and the SDK will execute them when the agent emits client_tool_call.',
           );
@@ -151,7 +151,7 @@ export function createElevenLabs(
   provider.transcriptionModel = createTranscriptionModel;
   provider.speech = createSpeechModel;
   provider.speechModel = createSpeechModel;
-  provider.realtime = realtimeFactory;
+  provider.experimental_realtime = experimentalRealtimeFactory;
 
   provider.languageModel = (modelId: string) => {
     throw new NoSuchModelError({

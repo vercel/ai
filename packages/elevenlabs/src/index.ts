@@ -15,9 +15,9 @@ export type {
 export type { ElevenLabsSpeechModelOptions } from './elevenlabs-speech-model-options';
 export type { ElevenLabsTranscriptionModelOptions } from './elevenlabs-transcription-model-options';
 export {
-  ElevenLabsRealtimeModel,
-  ElevenLabsRealtimeEventMapper,
-  buildElevenLabsSessionConfig,
+  Experimental_ElevenLabsRealtimeModel,
+  Experimental_ElevenLabsRealtimeEventMapper,
+  experimental_buildElevenLabsSessionConfig,
 } from './realtime';
-export type { ElevenLabsRealtimeModelConfig } from './realtime';
+export type { Experimental_ElevenLabsRealtimeModelConfig } from './realtime';
 export { VERSION } from './version';

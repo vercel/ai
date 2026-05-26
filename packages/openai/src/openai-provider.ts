@@ -101,10 +101,10 @@ export interface OpenAIProvider extends ProviderV4 {
   speech(modelId: OpenAISpeechModelId): SpeechModelV4;
 
   /**
-   * Creates a realtime model for bidirectional audio/text
+   * Creates an experimental realtime model for bidirectional audio/text
    * communication over WebSocket.
    */
-  realtime: RealtimeFactoryV4;
+  experimental_realtime: RealtimeFactoryV4;
 
   /**
    * Returns a FilesV4 interface for uploading files to OpenAI.
@@ -284,7 +284,7 @@ export function createOpenAI(
       fetch: options.fetch,
     });
 
-  const realtimeFactory = Object.assign(
+  const experimentalRealtimeFactory = Object.assign(
     (modelId: string) => createRealtimeModel(modelId),
     {
       getToken: async (tokenOptions: RealtimeFactoryV4GetTokenOptions) => {
@@ -328,7 +328,7 @@ export function createOpenAI(
   provider.files = createFiles;
   provider.skills = createSkills;
 
-  provider.realtime = realtimeFactory;
+  provider.experimental_realtime = experimentalRealtimeFactory;
 
   provider.tools = openaiTools;
 

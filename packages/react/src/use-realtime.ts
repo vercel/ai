@@ -1,21 +1,22 @@
 import {
-  AbstractRealtimeSession,
-  type RealtimeServerEvent,
-  type RealtimeSessionOptions,
-  type RealtimeState,
-  type RealtimeStatus,
+  Experimental_AbstractRealtimeSession,
+  type Experimental_RealtimeServerEvent,
+  type Experimental_RealtimeSessionOptions,
+  type Experimental_RealtimeState,
+  type Experimental_RealtimeStatus,
   type UIMessage,
 } from 'ai';
 import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 
-export type { RealtimeStatus };
+export type { Experimental_RealtimeStatus };
 
-export type UseRealtimeOptions = RealtimeSessionOptions;
+export type Experimental_UseRealtimeOptions =
+  Experimental_RealtimeSessionOptions;
 
-type RealtimeStateKey = keyof RealtimeState;
+type RealtimeStateKey = keyof Experimental_RealtimeState;
 
-class RealtimeStore extends AbstractRealtimeSession {
-  protected state: RealtimeState = {
+class RealtimeStore extends Experimental_AbstractRealtimeSession {
+  protected state: Experimental_RealtimeState = {
     status: 'disconnected',
     messages: [],
     events: [],
@@ -31,7 +32,7 @@ class RealtimeStore extends AbstractRealtimeSession {
     isPlaying: new Set(),
   };
 
-  get status(): RealtimeStatus {
+  get status(): Experimental_RealtimeStatus {
     return this.state.status;
   }
 
@@ -39,7 +40,7 @@ class RealtimeStore extends AbstractRealtimeSession {
     return this.state.messages;
   }
 
-  get events(): RealtimeServerEvent[] {
+  get events(): Experimental_RealtimeServerEvent[] {
     return this.state.events;
   }
 
@@ -61,7 +62,7 @@ class RealtimeStore extends AbstractRealtimeSession {
 
   protected setState<K extends RealtimeStateKey>(
     key: K,
-    value: RealtimeState[K],
+    value: Experimental_RealtimeState[K],
   ): void {
     this.state = { ...this.state, [key]: value };
     this.callbacks[key].forEach(callback => callback());
@@ -85,7 +86,7 @@ class RealtimeStore extends AbstractRealtimeSession {
     this.callbacks.messages.forEach(callback => callback());
   }
 
-  protected pushEvent(event: RealtimeServerEvent): void {
+  protected pushEvent(event: Experimental_RealtimeServerEvent): void {
     const nextEvents = [...this.state.events, event];
     this.state = {
       ...this.state,
@@ -98,10 +99,10 @@ class RealtimeStore extends AbstractRealtimeSession {
   }
 }
 
-export type UseRealtimeReturn = {
-  status: RealtimeStatus;
+export type Experimental_UseRealtimeReturn = {
+  status: Experimental_RealtimeStatus;
   messages: UIMessage[];
-  events: RealtimeServerEvent[];
+  events: Experimental_RealtimeServerEvent[];
   isCapturing: boolean;
   isPlaying: boolean;
 
@@ -120,7 +121,9 @@ export type UseRealtimeReturn = {
   stopPlayback: () => void;
 };
 
-export function useRealtime(options: UseRealtimeOptions): UseRealtimeReturn {
+function useExperimentalRealtime(
+  options: Experimental_UseRealtimeOptions,
+): Experimental_UseRealtimeReturn {
   const callbacksRef = useRef({
     onToolCall: options.onToolCall,
     onEvent: options.onEvent,
@@ -200,3 +203,5 @@ export function useRealtime(options: UseRealtimeOptions): UseRealtimeReturn {
     stopPlayback: rt.stopPlayback.bind(rt),
   };
 }
+
+export const experimental_useRealtime = useExperimentalRealtime;

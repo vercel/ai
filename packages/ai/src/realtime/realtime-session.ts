@@ -1,8 +1,8 @@
 import type {
-  RealtimeClientEvent,
-  RealtimeModel,
-  RealtimeServerEvent,
-  RealtimeSessionConfig,
+  Experimental_RealtimeClientEvent as RealtimeClientEvent,
+  Experimental_RealtimeModel as RealtimeModel,
+  Experimental_RealtimeServerEvent as RealtimeServerEvent,
+  Experimental_RealtimeSessionConfig as RealtimeSessionConfig,
 } from '../types/realtime-model';
 import { BrowserRealtimeAudio } from './browser-realtime-audio';
 import { BrowserRealtimeTransport } from './browser-realtime-transport';
@@ -14,9 +14,12 @@ import {
   type RealtimeStatus,
 } from './realtime-event-reducer';
 
-export type { RealtimeState, RealtimeStatus };
+export type {
+  RealtimeState as Experimental_RealtimeState,
+  RealtimeStatus as Experimental_RealtimeStatus,
+};
 
-export type RealtimeSessionOptions = {
+export type Experimental_RealtimeSessionOptions = {
   model: RealtimeModel;
   api: {
     token: string;
@@ -31,16 +34,16 @@ export type RealtimeSessionOptions = {
   onError?: (error: Error) => void;
 };
 
-export abstract class AbstractRealtimeSession {
+export abstract class Experimental_AbstractRealtimeSession {
   protected state: RealtimeState = createInitialRealtimeState();
   protected maxEvents: number;
 
-  onToolCall: RealtimeSessionOptions['onToolCall'];
+  onToolCall: Experimental_RealtimeSessionOptions['onToolCall'];
   onEvent: ((event: RealtimeServerEvent) => void) | undefined;
   onError: ((error: Error) => void) | undefined;
 
   private readonly model: RealtimeModel;
-  private readonly api: RealtimeSessionOptions['api'];
+  private readonly api: Experimental_RealtimeSessionOptions['api'];
   private readonly sessionConfig: Partial<RealtimeSessionConfig> | undefined;
   private readonly reducer: RealtimeEventReducer;
   private readonly transport: BrowserRealtimeTransport;
@@ -52,7 +55,7 @@ export abstract class AbstractRealtimeSession {
     value: RealtimeState[K],
   ): void;
 
-  constructor(options: RealtimeSessionOptions) {
+  constructor(options: Experimental_RealtimeSessionOptions) {
     this.model = options.model;
     this.api = options.api;
     this.sessionConfig = options.sessionConfig;

@@ -23,8 +23,8 @@ export type {
 export type { XaiFilesOptions } from './files/xai-files-options';
 export { createXai, xai } from './xai-provider';
 export type { XaiProvider, XaiProviderSettings } from './xai-provider';
-export { XaiRealtimeModel } from './realtime/xai-realtime-model';
-export type { XaiRealtimeModelConfig } from './realtime/xai-realtime-model';
+export { XaiRealtimeModel as Experimental_XaiRealtimeModel } from './realtime/xai-realtime-model';
+export type { XaiRealtimeModelConfig as Experimental_XaiRealtimeModelConfig } from './realtime/xai-realtime-model';
 export {
   codeExecution,
   mcpServer,

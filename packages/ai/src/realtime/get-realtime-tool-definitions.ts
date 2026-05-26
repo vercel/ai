@@ -1,12 +1,12 @@
 import { asSchema, type ToolSet } from '@ai-sdk/provider-utils';
-import type { RealtimeToolDefinition } from '../types/realtime-model';
+import type { Experimental_RealtimeToolDefinition } from '../types/realtime-model';
 
-export async function getRealtimeToolDefinitions({
+export async function experimental_getRealtimeToolDefinitions({
   tools,
 }: {
   tools: ToolSet;
-}): Promise<RealtimeToolDefinition[]> {
-  const definitions: RealtimeToolDefinition[] = [];
+}): Promise<Experimental_RealtimeToolDefinition[]> {
+  const definitions: Experimental_RealtimeToolDefinition[] = [];
 
   for (const [name, tool] of Object.entries(tools)) {
     const toolType = tool.type;

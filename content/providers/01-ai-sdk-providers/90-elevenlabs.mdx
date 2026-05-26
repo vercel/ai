@@ -69,26 +69,26 @@ You can use the following optional settings to customize the ElevenLabs provider
 <Note type="warning">Realtime is an experimental feature.</Note>
 
 You can create models that call the [ElevenLabs Conversational AI WebSocket API](https://elevenlabs.io/docs/conversational-ai/api-reference/conversations/websocket)
-using the `.realtime()` factory method. The model ID is your ElevenLabs agent
+using the `.experimental_realtime()` factory method. The model ID is your ElevenLabs agent
 ID.
 
 ```ts
 import { elevenLabs } from '@ai-sdk/elevenlabs';
 
-const model = elevenLabs.realtime('your-agent-id');
+const model = elevenLabs.experimental_realtime('your-agent-id');
 ```
 
 Realtime sessions run in the browser and require a signed URL created on your
-server with `elevenLabs.realtime.getToken()`:
+server with `elevenLabs.experimental_realtime.getToken()`:
 
 ```ts
-const token = await elevenLabs.realtime.getToken({
+const token = await elevenLabs.experimental_realtime.getToken({
   model: 'your-agent-id',
 });
 ```
 
 ElevenLabs agents must have tools registered on the agent. Passing
-`sessionConfig.tools` to `elevenLabs.realtime.getToken()` currently does not
+`sessionConfig.tools` to `elevenLabs.experimental_realtime.getToken()` currently does not
 register tools dynamically. See [Realtime](/docs/ai-sdk-core/realtime) for the
 complete setup and tool calling pattern.
 

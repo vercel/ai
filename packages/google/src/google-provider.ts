@@ -105,7 +105,7 @@ export interface GoogleProvider extends ProviderV4 {
       | { managedAgent: string },
   ): LanguageModelV4;
 
-  realtime: RealtimeFactoryV4;
+  experimental_realtime: RealtimeFactoryV4;
 
   tools: typeof googleTools;
 }
@@ -236,7 +236,7 @@ export function createGoogle(
       fetch: options.fetch,
     });
 
-  const realtimeFactory = Object.assign(
+  const experimentalRealtimeFactory = Object.assign(
     (modelId: string) => createRealtimeModel(modelId),
     {
       getToken: async (tokenOptions: RealtimeFactoryV4GetTokenOptions) => {
@@ -294,7 +294,7 @@ export function createGoogle(
   provider.imageModel = createImageModel;
   provider.video = createVideoModel;
   provider.videoModel = createVideoModel;
-  provider.realtime = realtimeFactory;
+  provider.experimental_realtime = experimentalRealtimeFactory;
   provider.files = createFiles;
   provider.interactions = createInteractionsModel;
   provider.tools = googleTools;

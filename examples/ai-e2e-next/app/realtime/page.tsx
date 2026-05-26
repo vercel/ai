@@ -1,6 +1,6 @@
 'use client';
 
-import { useRealtime } from '@ai-sdk/react';
+import { experimental_useRealtime } from '@ai-sdk/react';
 import { openai } from '@ai-sdk/openai';
 import { google } from '@ai-sdk/google';
 import { xai } from '@ai-sdk/xai';
@@ -36,7 +36,9 @@ const PROVIDER_CONFIG: Record<
     staticVoices: VoiceOption[];
     dynamicVoices?: boolean;
     llmModels?: readonly string[];
-    createModel: (modelId: string) => ReturnType<typeof openai.realtime>;
+    createModel: (
+      modelId: string,
+    ) => ReturnType<typeof openai.experimental_realtime>;
     sessionConfigOverrides?: Record<string, unknown>;
   }
 > = {
@@ -55,13 +57,13 @@ const PROVIDER_CONFIG: Record<
       'shimmer',
       'verse',
     ]),
-    createModel: modelId => openai.realtime(modelId),
+    createModel: modelId => openai.experimental_realtime(modelId),
   },
   google: {
     label: 'Google',
     defaultModel: 'gemini-3.1-flash-live-preview',
     staticVoices: toVoiceOptions(['Puck', 'Charon', 'Kore', 'Fenrir', 'Aoede']),
-    createModel: modelId => google.realtime(modelId),
+    createModel: modelId => google.experimental_realtime(modelId),
     sessionConfigOverrides: {
       inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
       outputAudioFormat: { type: 'audio/pcm', rate: 24000 },
@@ -79,7 +81,7 @@ const PROVIDER_CONFIG: Record<
       'sage',
       'shimmer',
     ]),
-    createModel: modelId => xai.realtime(modelId),
+    createModel: modelId => xai.experimental_realtime(modelId),
   },
   elevenlabs: {
     label: 'ElevenLabs',
@@ -87,7 +89,7 @@ const PROVIDER_CONFIG: Record<
     staticVoices: [],
     dynamicVoices: true,
     llmModels: ELEVENLABS_LLM_MODELS,
-    createModel: modelId => elevenlabs.realtime(modelId),
+    createModel: modelId => elevenlabs.experimental_realtime(modelId),
     sessionConfigOverrides: {
       inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
       outputAudioFormat: { type: 'audio/pcm', rate: 16000 },
@@ -305,7 +307,7 @@ function RealtimeChat({
     startAudioCapture,
     stopAudioCapture,
     stopPlayback,
-  } = useRealtime({
+  } = experimental_useRealtime({
     model,
     api: {
       token: `/api/realtime/setup?provider=${provider}`,
