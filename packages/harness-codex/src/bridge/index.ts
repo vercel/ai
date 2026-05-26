@@ -379,7 +379,8 @@ type CodexItem = {
   text?: string;
   command?: string;
   exit_code?: number;
-  output?: string;
+  aggregated_output?: string;
+  status?: 'in_progress' | 'completed' | 'failed';
   server?: string;
   tool?: string;
   arguments?: unknown;
@@ -501,7 +502,11 @@ function translateAndEmit(
         type: 'tool-result',
         toolCallId: id,
         toolName: 'bash',
-        result: { exitCode: item.exit_code ?? 0, output: item.output ?? '' },
+        result: {
+          exitCode: item.exit_code ?? null,
+          output: item.aggregated_output ?? '',
+          status: item.status ?? 'completed',
+        },
       });
     }
     return;
@@ -547,24 +552,6 @@ function translateAndEmit(
         result: item.result ?? null,
       });
     }
-    return;
-  }
-
-  if (item.type === 'file_change' && event.type === 'item.completed') {
-    ctx.send({
-      type: 'tool-call',
-      toolCallId: id,
-      toolName: 'edit',
-      nativeName: 'file_edit',
-      input: JSON.stringify(item.arguments ?? {}),
-      observeOnly: true,
-    });
-    ctx.send({
-      type: 'tool-result',
-      toolCallId: id,
-      toolName: 'edit',
-      result: item.result ?? null,
-    });
     return;
   }
 
