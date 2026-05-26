@@ -1,5 +1,5 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { createClaudeCode } from '@ai-sdk/harness-claude-code';
+import { claudeCode } from '@ai-sdk/harness-claude-code';
 import { run } from '../../lib/run';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
@@ -11,7 +11,7 @@ run(async () => {
   });
 
   const agent = new HarnessAgent({
-    harness: createClaudeCode(),
+    harness: claudeCode,
     sandbox,
     skills: [
       {

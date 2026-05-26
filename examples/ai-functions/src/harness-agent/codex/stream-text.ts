@@ -1,5 +1,5 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { createCodex } from '@ai-sdk/harness-codex';
+import { codex } from '@ai-sdk/harness-codex';
 import { run } from '../../lib/run';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
@@ -10,7 +10,7 @@ run(async () => {
     timeout: 10 * 60 * 1000,
   });
   const agent = new HarnessAgent({
-    harness: createCodex(),
+    harness: codex,
     sandbox,
   });
 

@@ -1,5 +1,5 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { createCodex } from '@ai-sdk/harness-codex';
+import { codex } from '@ai-sdk/harness-codex';
 import { tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
@@ -25,7 +25,7 @@ run(async () => {
   });
 
   const agent = new HarnessAgent({
-    harness: createCodex(),
+    harness: codex,
     sandbox,
     tools: { weather },
   });

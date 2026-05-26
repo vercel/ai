@@ -1,5 +1,5 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { createClaudeCode } from '@ai-sdk/harness-claude-code';
+import { claudeCode } from '@ai-sdk/harness-claude-code';
 import { tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
@@ -25,7 +25,7 @@ run(async () => {
   });
 
   const agent = new HarnessAgent({
-    harness: createClaudeCode(),
+    harness: claudeCode,
     sandbox,
     tools: { weather },
   });
