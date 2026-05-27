@@ -224,12 +224,14 @@ export function convertToGoogleMessages(
     return SKIP_THOUGHT_SIGNATURE_VALIDATOR;
   };
 
-  const readProviderOpts = (part: {
+  const readProviderOptions = (part: {
     providerOptions?: Record<string, unknown> | undefined;
   }): Record<string, unknown> | undefined => {
     for (const name of providerOptionsNames) {
-      const v = part.providerOptions?.[name];
-      if (v != null) return v as Record<string, unknown>;
+      const providerOptions = part.providerOptions?.[name];
+      if (providerOptions != null) {
+        return providerOptions as Record<string, unknown>;
+      }
     }
     // Cross-namespace fallback (gateway interop): Vertex providers may receive
     // metadata under `google`, and the Google provider may receive metadata
@@ -338,10 +340,10 @@ export function convertToGoogleMessages(
           role: 'model',
           parts: content
             .map(part => {
-              const providerOpts = readProviderOpts(part);
+              const providerOptions = readProviderOptions(part);
               const thoughtSignature =
-                providerOpts?.thoughtSignature != null
-                  ? String(providerOpts.thoughtSignature)
+                providerOptions?.thoughtSignature != null
+                  ? String(providerOptions.thoughtSignature)
                   : undefined;
 
               switch (part.type) {
@@ -409,7 +411,7 @@ export function convertToGoogleMessages(
                             provider: 'google',
                           }),
                         },
-                        ...(providerOpts?.thought === true
+                        ...(providerOptions?.thought === true
                           ? { thought: true }
                           : {}),
                         thoughtSignature,
@@ -425,7 +427,7 @@ export function convertToGoogleMessages(
                             new TextEncoder().encode(part.data.text),
                           ),
                         },
-                        ...(providerOpts?.thought === true
+                        ...(providerOptions?.thought === true
                           ? { thought: true }
                           : {}),
                         thoughtSignature,
@@ -437,7 +439,7 @@ export function convertToGoogleMessages(
                           mimeType: part.mediaType,
                           data: convertToBase64(part.data.data),
                         },
-                        ...(providerOpts?.thought === true
+                        ...(providerOptions?.thought === true
                           ? { thought: true }
                           : {}),
                         thoughtSignature,
@@ -449,12 +451,12 @@ export function convertToGoogleMessages(
 
                 case 'tool-call': {
                   const serverToolCallId =
-                    providerOpts?.serverToolCallId != null
-                      ? String(providerOpts.serverToolCallId)
+                    providerOptions?.serverToolCallId != null
+                      ? String(providerOptions.serverToolCallId)
                       : undefined;
                   const serverToolType =
-                    providerOpts?.serverToolType != null
-                      ? String(providerOpts.serverToolType)
+                    providerOptions?.serverToolType != null
+                      ? String(providerOptions.serverToolType)
                       : undefined;
                   const effectiveThoughtSignature =
                     thoughtSignature ??
@@ -490,12 +492,12 @@ export function convertToGoogleMessages(
 
                 case 'tool-result': {
                   const serverToolCallId =
-                    providerOpts?.serverToolCallId != null
-                      ? String(providerOpts.serverToolCallId)
+                    providerOptions?.serverToolCallId != null
+                      ? String(providerOptions.serverToolCallId)
                       : undefined;
                   const serverToolType =
-                    providerOpts?.serverToolType != null
-                      ? String(providerOpts.serverToolType)
+                    providerOptions?.serverToolType != null
+                      ? String(providerOptions.serverToolType)
                       : undefined;
 
                   if (serverToolCallId && serverToolType) {
@@ -530,20 +532,20 @@ export function convertToGoogleMessages(
             continue;
           }
 
-          const partProviderOpts = readProviderOpts(part);
+          const partProviderOptions = readProviderOptions(part);
           const serverToolCallId =
-            partProviderOpts?.serverToolCallId != null
-              ? String(partProviderOpts.serverToolCallId)
+            partProviderOptions?.serverToolCallId != null
+              ? String(partProviderOptions.serverToolCallId)
               : undefined;
           const serverToolType =
-            partProviderOpts?.serverToolType != null
-              ? String(partProviderOpts.serverToolType)
+            partProviderOptions?.serverToolType != null
+              ? String(partProviderOptions.serverToolType)
               : undefined;
 
           if (serverToolCallId && serverToolType) {
             const serverThoughtSignature =
-              partProviderOpts?.thoughtSignature != null
-                ? String(partProviderOpts.thoughtSignature)
+              partProviderOptions?.thoughtSignature != null
+                ? String(partProviderOptions.thoughtSignature)
                 : undefined;
 
             if (contents.length > 0) {
