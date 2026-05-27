@@ -1358,7 +1358,7 @@ import { streamText, toUIMessageChunkStream } from 'ai';
 
 const result = streamText({ model, prompt });
 
-const uiStream = toUIMessageChunkStream({
+const uiStream = toUIMessageStream({
   stream: result.fullStream,
   generateMessageId,
   originalMessages,
@@ -1375,10 +1375,17 @@ return result.toUIMessageStreamResponse({ originalMessages });
 ```tsx filename="AI SDK 7"
 import { toUIMessageStreamResponse } from 'ai';
 
-return toUIMessageStreamResponse({
+const uiStream = toUIMessageStream({
   stream: result.fullStream,
+  generateMessageId,
   originalMessages,
+  onFinish,
 });
+
+// note to self: use existing `createUiMessageStreamResponse` method
+return createUiMessageStreamResponse({
+  stream: uiStream,
+})
 ```
 
 **Pipe UI message stream to Node.js response**
@@ -1390,10 +1397,16 @@ result.pipeUIMessageStreamToResponse(response, { originalMessages });
 ```tsx filename="AI SDK 7"
 import { pipeTextStreamToUIMessageStreamResponse } from 'ai';
 
-pipeTextStreamToUIMessageStreamResponse({
-  response,
+const uiStream = toUIMessageStream({
   stream: result.fullStream,
+  generateMessageId,
   originalMessages,
+  onFinish,
+});
+
+pipeUiMessageStreamToResponse({
+  stream: uiStream,
+  response,
 });
 ```
 
@@ -1406,7 +1419,14 @@ return result.toTextStreamResponse();
 ```tsx filename="AI SDK 7"
 import { createTextStreamResponse } from 'ai';
 
-return createTextStreamResponse({ textStream: result.textStream });
+const textStream = toTextStream({
+  stream: result.stream, // TODO: create separate PR to rename result.fullStream to result.stream
+  generateMessageId,
+  originalMessages,
+  onFinish,
+});
+
+return createTextStreamResponse({ stream: textStream });
 ```
 
 **Pipe text stream to Node.js response**
@@ -1418,7 +1438,14 @@ result.pipeTextStreamToResponse(response);
 ```tsx filename="AI SDK 7"
 import { pipeTextStreamToResponse } from 'ai';
 
-pipeTextStreamToResponse({ response, textStream: result.textStream });
+const textStream = toTextStream({
+  stream: result.stream, // TODO: create separate PR to rename result.fullStream to result.stream
+  generateMessageId,
+  originalMessages,
+  onFinish,
+});
+
+pipeTextStreamToResponse({ response, stream: textStream });
 ```
 
 ## MCP Package
