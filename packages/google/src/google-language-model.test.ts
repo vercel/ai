@@ -603,7 +603,7 @@ describe('doGenerate', () => {
     expect(body).not.toHaveProperty('serviceTier');
   });
 
-  it('should sanitize serviceTier to Vertex format when using Vertex provider', async () => {
+  it('should send sharedRequestType as X-Vertex-AI-LLM-Shared-Request-Type header on Vertex', async () => {
     prepareJsonResponse({ content: 'test response' });
 
     const vertexModel = new GoogleLanguageModel('gemini-pro', {
@@ -617,53 +617,124 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
       providerOptions: {
         google: {
-          serviceTier: 'flex',
+          sharedRequestType: 'flex',
         },
       },
     });
 
-    expect(await server.calls[0].requestBodyJson).toMatchObject({
-      serviceTier: 'SERVICE_TIER_FLEX',
+    expect(server.calls[0].requestHeaders).toMatchObject({
+      'x-vertex-ai-llm-shared-request-type': 'flex',
     });
+    expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+      'serviceTier',
+    );
   });
 
-  it('should not sanitize serviceTier when using non-Vertex provider', async () => {
+  it('should send requestType as X-Vertex-AI-LLM-Request-Type header on Vertex', async () => {
     prepareJsonResponse({ content: 'test response' });
 
-    await model.doGenerate({
+    const vertexModel = new GoogleLanguageModel('gemini-pro', {
+      provider: 'google.vertex.chat',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: { 'x-goog-api-key': 'test-api-key' },
+      generateId: () => 'test-id',
+    });
+
+    await vertexModel.doGenerate({
       prompt: TEST_PROMPT,
       providerOptions: {
         google: {
-          serviceTier: 'standard',
+          sharedRequestType: 'priority',
+          requestType: 'shared',
         },
       },
     });
 
-    expect(await server.calls[0].requestBodyJson).toMatchObject({
-      serviceTier: 'standard',
+    expect(server.calls[0].requestHeaders).toMatchObject({
+      'x-vertex-ai-llm-shared-request-type': 'priority',
+      'x-vertex-ai-llm-request-type': 'shared',
     });
   });
 
-  it('should expose serviceTier in provider metadata', async () => {
+  it('should warn and drop serviceTier on Vertex provider', async () => {
+    prepareJsonResponse({ content: 'test response' });
+
+    const vertexModel = new GoogleLanguageModel('gemini-pro', {
+      provider: 'google.vertex.chat',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: { 'x-goog-api-key': 'test-api-key' },
+      generateId: () => 'test-id',
+    });
+
+    const { warnings } = await vertexModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          serviceTier: 'priority',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+      'serviceTier',
+    );
+    expect(server.calls[0].requestHeaders).not.toHaveProperty(
+      'x-vertex-ai-llm-shared-request-type',
+    );
+    expect(warnings).toContainEqual(
+      expect.objectContaining({
+        type: 'other',
+        message: expect.stringContaining(
+          "'serviceTier' is a Gemini API option",
+        ),
+      }),
+    );
+  });
+
+  it('should warn when sharedRequestType is set on a non-Vertex provider', async () => {
+    prepareJsonResponse({ content: 'test response' });
+
+    const { warnings } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          sharedRequestType: 'priority',
+        },
+      },
+    });
+
+    expect(server.calls[0].requestHeaders).not.toHaveProperty(
+      'x-vertex-ai-llm-shared-request-type',
+    );
+    expect(warnings).toContainEqual(
+      expect.objectContaining({
+        type: 'other',
+        message: expect.stringContaining(
+          "'sharedRequestType' and 'requestType'",
+        ),
+      }),
+    );
+  });
+
+  it('should read serviceTier from usageMetadata.serviceTier', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'json-value',
       body: {
         candidates: [
           {
-            content: {
-              parts: [{ text: 'test response' }],
-              role: 'model',
-            },
+            content: { parts: [{ text: 'Blue.' }], role: 'model' },
             finishReason: 'STOP',
+            index: 0,
             safetyRatings: SAFETY_RATINGS,
           },
         ],
+        promptFeedback: { safetyRatings: SAFETY_RATINGS },
         usageMetadata: {
           promptTokenCount: 1,
           candidatesTokenCount: 2,
           totalTokenCount: 3,
+          serviceTier: 'priority',
         },
-        serviceTier: 'flex',
       },
     };
 
@@ -671,7 +742,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(providerMetadata?.google.serviceTier).toBe('flex');
+    expect(providerMetadata?.google.serviceTier).toBe('priority');
   });
 
   it('should expose null serviceTier in provider metadata when not present', async () => {
@@ -4115,6 +4186,80 @@ describe('doStream', () => {
     });
   });
 
+  describe('streaming-tool-call-array-arguments', () => {
+    beforeEach(() => {
+      prepareChunksFixtureResponse(
+        'google-stream-tool-call-array-arguments-missing-terminal-function-call',
+      );
+    });
+
+    it('should finalize streamed function call arguments when the final partialArgs chunk omits willContinue', async () => {
+      const vertexModel = new GoogleLanguageModel('gemini-pro', {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+      });
+
+      const { stream } = await vertexModel.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+        tools: [
+          {
+            type: 'function',
+            name: 'writeItems',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                operations: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      action: { type: 'string' },
+                      description: { type: 'string' },
+                      itemid: { type: 'string' },
+                      price: { type: 'number' },
+                    },
+                    required: ['action', 'description', 'itemid', 'price'],
+                    additionalProperties: false,
+                  },
+                },
+              },
+              required: ['operations'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+        providerOptions: {
+          vertex: {
+            streamFunctionCallArguments: true,
+          },
+        },
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+      const inputDeltas = events.filter(e => e.type === 'tool-input-delta');
+      const toolCalls = events.filter(e => e.type === 'tool-call');
+      const finish = events.find(e => e.type === 'finish');
+
+      expect(inputDeltas.map(e => e.delta).join('')).toMatchInlineSnapshot(
+        `"{"operations":[{"action":"add","description":"Fresh red apple","itemid":"apple_001","price":0.5},{"action":"add","description":"Ripe yellow banana","itemid":"banana_001","price":0.3}]}"`,
+      );
+      expect(toolCalls.map(c => ({ toolName: c.toolName, input: c.input })))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "input": "{"operations":[{"action":"add","description":"Fresh red apple","itemid":"apple_001","price":0.5},{"action":"add","description":"Ripe yellow banana","itemid":"banana_001","price":0.3}]}",
+            "toolName": "writeItems",
+          },
+        ]
+      `);
+      expect(finish?.finishReason.unified).toBe('tool-calls');
+    });
+  });
+
   describe('streaming-no-args-tool-call', () => {
     beforeEach(() => {
       prepareChunksFixtureResponse('google-stream-no-args-tool-call');
@@ -4643,27 +4788,26 @@ describe('doStream', () => {
     ).toBeNull();
   });
 
-  it('should expose serviceTier in provider metadata on finish', async () => {
+  it('should read serviceTier from chunk usageMetadata', async () => {
+    // Gemini streaming does not set the x-gemini-service-tier response header
+    // but does include serviceTier in each chunk's usageMetadata.
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'stream-chunks',
       chunks: [
         `data: ${JSON.stringify({
           candidates: [
             {
-              content: {
-                parts: [{ text: 'test response' }],
-                role: 'model',
-              },
+              content: { parts: [{ text: 'Blue' }], role: 'model' },
               finishReason: 'STOP',
-              safetyRatings: SAFETY_RATINGS,
+              index: 0,
             },
           ],
           usageMetadata: {
-            promptTokenCount: 1,
-            candidatesTokenCount: 2,
-            totalTokenCount: 3,
+            promptTokenCount: 10,
+            candidatesTokenCount: 1,
+            totalTokenCount: 11,
+            serviceTier: 'priority',
           },
-          serviceTier: 'flex',
         })}\n\n`,
       ],
     };
@@ -4678,7 +4822,7 @@ describe('doStream', () => {
     expect(
       finishEvent?.type === 'finish' &&
         finishEvent.providerMetadata?.google.serviceTier,
-    ).toBe('flex');
+    ).toBe('priority');
   });
 
   it('should expose null serviceTier in provider metadata on finish when not present', async () => {

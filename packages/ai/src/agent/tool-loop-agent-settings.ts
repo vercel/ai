@@ -60,6 +60,16 @@ export type ToolLoopAgentSettings<
     instructions?: Instructions;
 
     /**
+     * Whether system messages are allowed in the `prompt` or `messages` fields.
+     *
+     * When disabled, system messages must be provided through the `instructions`
+     * option.
+     *
+     * @default false
+     */
+    allowSystemInMessages?: boolean;
+
+    /**
      * The language model to use.
      */
     model: LanguageModel;
@@ -262,6 +272,7 @@ export type ToolLoopAgentSettings<
           | 'seed'
           | 'headers'
           | 'instructions'
+          | 'allowSystemInMessages'
           | 'stopWhen'
           | 'telemetry'
           | 'experimental_telemetry'
@@ -294,6 +305,7 @@ export type ToolLoopAgentSettings<
         | 'seed'
         | 'headers'
         | 'instructions'
+        | 'allowSystemInMessages'
         | 'stopWhen'
         | 'telemetry'
         | 'experimental_telemetry'

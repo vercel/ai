@@ -1,18 +1,8 @@
 {
-  "id": "v1_ChdLTjM0YWRHQkVKbXNtdGtQOUlQUXNBURIXS04zNGFkR0JFSm1zbXRrUDlJUFFzQVE",
+  "id": "v1_ChdTbXNIYXFyUEV0ZUttdGtQNXVqVHdRRRIXU21zSGFxclBFdGVLbXRrUDV1alR3UUU",
   "status": "completed",
-  "outputs": [
-    {
-      "signature": "Cv0BAQw51serEk3MRGVfSy7vc0tS+q+WLnLsoLLdOvC3q/iR8A1qkVaM4HTJx4z1+0wstylDi+YTpVc48Ho2iu36UuupoZ8EwEV87DXHrYJifyR7BPwNYdId9sr70OhDCp7/bss1wHWnQcW79NJoxm5UJw9ByajV4UQfBtFLgafkYN2wrX1oSFWJl3NikzpkCFsDOyrRaSt1iCQ5SuL2cmHJbx2pjapYi0hKdd5g9Gi0jSfyv2rI7YrAJi1kAJSCJ4CNeUiitO7DB/CIxZBA0r718u6+8eFtzFbtLgWDVJwpPWVqOCAzSCVLbmBgkFwQHmIhkPVlwr6Ta3ilGlVeyA==",
-      "type": "thought"
-    },
-    {
-      "text": "Hello! I'm an AI, so I don't experience feelings like humans do, but I'm ready and functioning perfectly.\n\nHow can I help you today?",
-      "type": "text"
-    }
-  ],
   "usage": {
-    "total_tokens": 98,
+    "total_tokens": 58,
     "total_input_tokens": 7,
     "input_tokens_by_modality": [
       {
@@ -21,14 +11,28 @@
       }
     ],
     "total_cached_tokens": 0,
-    "total_output_tokens": 36,
+    "total_output_tokens": 19,
     "total_tool_use_tokens": 0,
-    "total_thought_tokens": 55
+    "total_thought_tokens": 32
   },
-  "role": "model",
-  "created": "2026-05-04T17:53:45Z",
-  "updated": "2026-05-04T17:53:45Z",
+  "created": "2026-05-15T18:51:55Z",
+  "updated": "2026-05-15T18:51:55Z",
   "service_tier": "standard",
+  "steps": [
+    {
+      "signature": "CqwBAQw51sfgKVnBHSz5praTe+uG0Anr7XQqpCF63u254O4l2U4+GL3n7WRshuMFMfTty31n/76lM81JlqplsBd+YnEEPdyYqh4RpVrMnvUgDP7rkuWFPutrEgLUU/r3LuD3z1dc3qiMjtw3r3RkXtdHNF2Om28zmRoMT0/u8yNkPJA7S2IEfzasBN5yobkpwgbPAQ73PDJZy8n0qjNQmSG/OCMCUDBZMH3C9A1rEg==",
+      "type": "thought"
+    },
+    {
+      "content": [
+        {
+          "text": "Hello! I'm doing well, thank you for asking.\n\nHow are you today?",
+          "type": "text"
+        }
+      ],
+      "type": "model_output"
+    }
+  ],
   "object": "interaction",
   "model": "gemini-2.5-flash"
 }

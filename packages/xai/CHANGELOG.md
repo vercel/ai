@@ -1,5 +1,46 @@
 # @ai-sdk/xai
 
+## 4.0.0-canary.68
+
+### Patch Changes
+
+- Updated dependencies [6c93e36]
+- Updated dependencies [f617ac2]
+  - @ai-sdk/provider-utils@5.0.0-canary.44
+  - @ai-sdk/openai-compatible@3.0.0-canary.52
+
+## 4.0.0-canary.67
+
+### Patch Changes
+
+- Updated dependencies [9f1e1ba]
+  - @ai-sdk/openai-compatible@3.0.0-canary.51
+
+## 4.0.0-canary.66
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - @ai-sdk/openai-compatible@3.0.0-canary.50
+  - @ai-sdk/provider-utils@5.0.0-canary.43
+  - @ai-sdk/provider@4.0.0-canary.17
+
+## 4.0.0-canary.65
+
+### Patch Changes
+
+- Updated dependencies [a6617c5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+  - @ai-sdk/openai-compatible@3.0.0-canary.49
+
+## 4.0.0-canary.64
+
+### Patch Changes
+
+- 2dc2a52: fix reasoning-start dedupe on multi-summary-part responses to prevent xai 400 on continuation requests
+- 1293885: surface full xai error detail in APICallError.message instead of falling back to http status text
+
 ## 4.0.0-canary.63
 
 ### Patch Changes

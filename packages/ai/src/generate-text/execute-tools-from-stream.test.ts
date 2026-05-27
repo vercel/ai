@@ -9,6 +9,7 @@ import {
   mockId,
 } from '@ai-sdk/provider-utils/test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { mockSandboxFileStubs } from '../test/mock-sandbox';
 import { z } from 'zod/v4';
 import { TypeValidationError } from '../error';
 import { asLanguageModelUsage } from '../types/usage';
@@ -246,11 +247,12 @@ describe('executeToolsFromStream', () => {
   it('should pass sandbox to tool execution', async () => {
     const sandbox = {
       description: 'test sandbox',
-      runCommand: vi.fn(async () => ({
+      run: vi.fn(async () => ({
         exitCode: 0,
         stdout: 'ok',
         stderr: '',
       })),
+      ...mockSandboxFileStubs,
     } satisfies Sandbox;
     let receivedSandbox: Sandbox | undefined;
 

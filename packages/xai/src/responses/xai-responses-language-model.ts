@@ -573,16 +573,18 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
             if (event.type === 'response.reasoning_summary_part.added') {
               const blockId = `reasoning-${event.item_id}`;
 
-              activeReasoning[event.item_id] = {};
-              controller.enqueue({
-                type: 'reasoning-start',
-                id: blockId,
-                providerMetadata: {
-                  xai: {
-                    itemId: event.item_id,
+              if (activeReasoning[event.item_id] == null) {
+                activeReasoning[event.item_id] = {};
+                controller.enqueue({
+                  type: 'reasoning-start',
+                  id: blockId,
+                  providerMetadata: {
+                    xai: {
+                      itemId: event.item_id,
+                    },
                   },
-                },
-              });
+                });
+              }
             }
 
             if (event.type === 'response.reasoning_summary_text.delta') {

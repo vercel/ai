@@ -12,7 +12,9 @@ import {
 import * as assert from 'node:assert';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
+  context,
   SpanStatusCode,
+  trace,
   type Attributes,
   type Span,
   type SpanOptions,
@@ -505,6 +507,35 @@ describe('LegacyOpenTelemetry', () => {
       const attrs = getStartSpanAttributes(tracer, 1);
       expect(attrs['ai.prompt.tools']).toBeDefined();
       expect(attrs['ai.prompt.toolChoice']).toBeDefined();
+    });
+  });
+
+  describe('executeLanguageModelCall', () => {
+    it('runs the model call inside the active step span context', async () => {
+      let activeSpan: Span | undefined;
+      const contextWithSpy = vi
+        .spyOn(context, 'with')
+        .mockImplementation((nextContext, fn, thisArg, ...args) => {
+          activeSpan = trace.getSpan(nextContext) ?? undefined;
+          return fn.call(thisArg, ...args);
+        });
+
+      try {
+        otelIntegration.onStart!(makeOnStartEvent());
+        otelIntegration.onStepStart!(makeStepStartEvent());
+
+        await expect(
+          otelIntegration.executeLanguageModelCall!({
+            callId,
+            execute: async () => 'result',
+          }),
+        ).resolves.toBe('result');
+
+        const activeSpanRecord = tracer.spans.find(span => span === activeSpan);
+        expect(activeSpanRecord?.name).toBe('ai.generateText.doGenerate');
+      } finally {
+        contextWithSpy.mockRestore();
+      }
     });
   });
 

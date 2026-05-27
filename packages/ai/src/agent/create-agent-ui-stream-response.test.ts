@@ -8,6 +8,7 @@ import {
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { mockSandboxFileStubs } from '../test/mock-sandbox';
 import { z } from 'zod/v4';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { createAgentUIStreamResponse } from './create-agent-ui-stream-response';
@@ -363,11 +364,12 @@ describe('createAgentUIStreamResponse', () => {
   it('should pass sandbox to tool execution', async () => {
     const sandbox = {
       description: 'test sandbox',
-      runCommand: async () => ({
+      run: async () => ({
         exitCode: 0,
         stdout: 'ok',
         stderr: '',
       }),
+      ...mockSandboxFileStubs,
     } satisfies Sandbox;
     let receivedSandbox: Sandbox | undefined;
     let callCount = 0;

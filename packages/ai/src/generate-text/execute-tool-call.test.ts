@@ -3,6 +3,7 @@ import {
   type Experimental_Sandbox as Sandbox,
 } from '@ai-sdk/provider-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { mockSandboxFileStubs } from '../test/mock-sandbox';
 import * as z from 'zod/v4';
 import { TypeValidationError } from '../error';
 import { now } from '../util/now';
@@ -87,11 +88,12 @@ describe('executeToolCall', () => {
     it('should pass sandbox to tool execution', async () => {
       const sandbox = {
         description: 'test sandbox',
-        runCommand: vi.fn(async () => ({
+        run: vi.fn(async () => ({
           exitCode: 0,
           stdout: 'ok',
           stderr: '',
         })),
+        ...mockSandboxFileStubs,
       } satisfies Sandbox;
       let receivedSandbox: Sandbox | undefined;
 
