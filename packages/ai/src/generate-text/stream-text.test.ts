@@ -9398,7 +9398,7 @@ describe('streamText', () => {
               "outputTokensPerSecond": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
-              "timeBetweenOutputTokensMs": {
+              "timeBetweenOutputChunksMs": {
                 "avg": 0,
                 "max": 0,
                 "median": 0,
@@ -9406,7 +9406,7 @@ describe('streamText', () => {
                 "p10": 0,
                 "p90": 0,
               },
-              "timeToFirstOutputTokenMs": 0,
+              "timeToFirstOutputMs": 0,
               "toolExecutionMs": {
                 "2": 0,
               },
@@ -9521,8 +9521,8 @@ describe('streamText', () => {
               "outputTokensPerSecond": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
-              "timeBetweenOutputTokensMs": undefined,
-              "timeToFirstOutputTokenMs": 0,
+              "timeBetweenOutputChunksMs": undefined,
+              "timeToFirstOutputMs": 0,
               "toolExecutionMs": {},
             },
             "providerMetadata": undefined,
@@ -18817,7 +18817,7 @@ describe('streamText', () => {
                 "outputTokensPerSecond": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeBetweenOutputTokensMs": {
+                "timeBetweenOutputChunksMs": {
                   "avg": 0,
                   "max": 0,
                   "median": 0,
@@ -18825,7 +18825,7 @@ describe('streamText', () => {
                   "p10": 0,
                   "p90": 0,
                 },
-                "timeToFirstOutputTokenMs": 0,
+                "timeToFirstOutputMs": 0,
                 "toolExecutionMs": {
                   "call-1": 0,
                 },
@@ -20617,8 +20617,8 @@ describe('streamText', () => {
               "outputTokensPerSecond": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
-              "timeBetweenOutputTokensMs": undefined,
-              "timeToFirstOutputTokenMs": 0,
+              "timeBetweenOutputChunksMs": undefined,
+              "timeToFirstOutputMs": 0,
               "toolExecutionMs": {},
             },
             "providerMetadata": undefined,
