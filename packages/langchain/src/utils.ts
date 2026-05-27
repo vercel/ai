@@ -1161,18 +1161,18 @@ export function processLangGraphEvent(
           | undefined;
         if (toolCallChunks?.length) {
           for (const toolCallChunk of toolCallChunks) {
-            const idx = toolCallChunk.index ?? 0;
+            const toolCallIndex = toolCallChunk.index ?? 0;
 
             /**
              * If this chunk has an id, store it for future lookups by index
              */
             if (toolCallChunk.id) {
               toolCallInfoByIndex[msgId] ??= {};
-              toolCallInfoByIndex[msgId][idx] = {
+              toolCallInfoByIndex[msgId][toolCallIndex] = {
                 id: toolCallChunk.id,
                 name:
                   toolCallChunk.name ||
-                  concatChunk?.tool_call_chunks?.[idx]?.name ||
+                  concatChunk?.tool_call_chunks?.[toolCallIndex]?.name ||
                   'unknown',
               };
             }
@@ -1182,8 +1182,8 @@ export function processLangGraphEvent(
              */
             const toolCallId =
               toolCallChunk.id ||
-              toolCallInfoByIndex[msgId]?.[idx]?.id ||
-              concatChunk?.tool_call_chunks?.[idx]?.id;
+              toolCallInfoByIndex[msgId]?.[toolCallIndex]?.id ||
+              concatChunk?.tool_call_chunks?.[toolCallIndex]?.id;
 
             /**
              * Skip if we don't have a proper tool call ID - we'll handle it in values
@@ -1194,8 +1194,8 @@ export function processLangGraphEvent(
 
             const toolName =
               toolCallChunk.name ||
-              toolCallInfoByIndex[msgId]?.[idx]?.name ||
-              concatChunk?.tool_call_chunks?.[idx]?.name ||
+              toolCallInfoByIndex[msgId]?.[toolCallIndex]?.name ||
+              concatChunk?.tool_call_chunks?.[toolCallIndex]?.name ||
               'unknown';
 
             /**
