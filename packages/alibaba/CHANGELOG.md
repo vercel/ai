@@ -1,5 +1,37 @@
 # @ai-sdk/alibaba
 
+## 2.0.0-canary.55
+
+### Patch Changes
+
+- Updated dependencies [6c93e36]
+- Updated dependencies [f617ac2]
+  - @ai-sdk/provider-utils@5.0.0-canary.44
+  - @ai-sdk/openai-compatible@3.0.0-canary.52
+
+## 2.0.0-canary.54
+
+### Patch Changes
+
+- Updated dependencies [9f1e1ba]
+  - @ai-sdk/openai-compatible@3.0.0-canary.51
+
+## 2.0.0-canary.53
+
+### Patch Changes
+
+- 94c6edc: Add `qwen3.7-max` model ID to Alibaba and AI Gateway.
+
+## 2.0.0-canary.52
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - @ai-sdk/openai-compatible@3.0.0-canary.50
+  - @ai-sdk/provider-utils@5.0.0-canary.43
+  - @ai-sdk/provider@4.0.0-canary.17
+
 ## 2.0.0-canary.51
 
 ### Patch Changes

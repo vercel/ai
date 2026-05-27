@@ -1,5 +1,43 @@
 # @ai-sdk/mcp
 
+## 2.0.0-canary.55
+
+### Patch Changes
+
+- f7bc0b4: feat(mcp): expose `statusCode`, `url`, and `responseBody` on `MCPClientError` for HTTP transport failures
+
+  `MCPClientError` now carries structured HTTP context when it originates from the
+  streamable HTTP transport. This lets downstream consumers (e.g. agent frameworks
+  that need to decide whether to fall back from streamable HTTP to legacy SSE
+  transport per the MCP spec) branch on the actual response status without parsing
+  the error message string.
+
+  Fields are optional — they remain `undefined` for stdio transport errors and for
+  non-response failures (network errors, aborts).
+
+## 2.0.0-canary.54
+
+### Patch Changes
+
+- Updated dependencies [6c93e36]
+- Updated dependencies [f617ac2]
+  - @ai-sdk/provider-utils@5.0.0-canary.44
+
+## 2.0.0-canary.53
+
+### Patch Changes
+
+- 6c17a9f: fix(mcp): deduplicate auth refresh on http transport
+
+## 2.0.0-canary.52
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - @ai-sdk/provider-utils@5.0.0-canary.43
+  - @ai-sdk/provider@4.0.0-canary.17
+
 ## 2.0.0-canary.51
 
 ### Patch Changes

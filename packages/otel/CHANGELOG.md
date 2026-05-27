@@ -1,5 +1,89 @@
 # @ai-sdk/otel
 
+## 1.0.0-canary.101
+
+### Patch Changes
+
+- Updated dependencies [e67d80e]
+- Updated dependencies [6cca112]
+- Updated dependencies [82fc0ab]
+- Updated dependencies [76fd58c]
+  - ai@7.0.0-canary.155
+
+## 1.0.0-canary.100
+
+### Patch Changes
+
+- 594029e: feat(ai): wrap the model call in telemetry context
+- Updated dependencies [594029e]
+  - ai@7.0.0-canary.154
+
+## 1.0.0-canary.99
+
+### Patch Changes
+
+- Updated dependencies [6c93e36]
+  - ai@7.0.0-canary.153
+
+## 1.0.0-canary.98
+
+### Patch Changes
+
+- ai@7.0.0-canary.152
+
+## 1.0.0-canary.97
+
+### Patch Changes
+
+- ai@7.0.0-canary.151
+
+## 1.0.0-canary.96
+
+### Patch Changes
+
+- ai@7.0.0-canary.150
+
+## 1.0.0-canary.95
+
+### Patch Changes
+
+- Updated dependencies [e3d9c0e]
+  - ai@7.0.0-canary.149
+
+## 1.0.0-canary.94
+
+### Patch Changes
+
+- Updated dependencies [2852a84]
+  - ai@7.0.0-canary.148
+
+## 1.0.0-canary.93
+
+### Patch Changes
+
+- ai@7.0.0-canary.147
+
+## 1.0.0-canary.92
+
+### Patch Changes
+
+- ai@7.0.0-canary.146
+
+## 1.0.0-canary.91
+
+### Patch Changes
+
+- ai@7.0.0-canary.145
+
+## 1.0.0-canary.90
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - ai@7.0.0-canary.144
+  - @ai-sdk/provider@4.0.0-canary.17
+
 ## 1.0.0-canary.89
 
 ### Patch Changes

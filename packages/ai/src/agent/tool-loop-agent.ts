@@ -58,7 +58,8 @@ export class ToolLoopAgent<
       OUTPUT
     >,
   ) {
-    this.settings = settings;
+    const { onFinish, onEnd = onFinish } = settings;
+    this.settings = { ...settings, onEnd };
   }
 
   /**
@@ -85,11 +86,13 @@ export class ToolLoopAgent<
       ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT, OUTPUT>,
       | 'prepareCall'
       | 'instructions'
+      | 'allowSystemInMessages'
       | 'experimental_onStart'
       | 'experimental_onStepStart'
       | 'onToolExecutionStart'
       | 'onToolExecutionEnd'
       | 'onStepFinish'
+      | 'onEnd'
       | 'onFinish'
     > &
       Prompt
@@ -113,6 +116,7 @@ export class ToolLoopAgent<
       onToolExecutionEnd: _settingsOnToolExecutionEnd,
       onStepFinish: _settingsOnStepFinish,
       onFinish: _settingsOnFinish,
+      onEnd: _settingsOnEnd,
       ...settingsWithoutCallbacks
     } = this.settings;
 
@@ -136,10 +140,21 @@ export class ToolLoopAgent<
         >[0],
       )) ?? baseCallArgs;
 
-    const { instructions, messages, prompt, runtimeContext, ...callArgs } =
-      preparedCallArgs;
+    const {
+      instructions,
+      allowSystemInMessages,
+      messages,
+      prompt,
+      runtimeContext,
+      ...callArgs
+    } = preparedCallArgs;
 
-    const promptArgs = { instructions, messages, prompt } as Prompt;
+    const promptArgs = {
+      instructions,
+      allowSystemInMessages,
+      messages,
+      prompt,
+    } as Prompt;
 
     if (runtimeContext === undefined) {
       return {
@@ -168,6 +183,7 @@ export class ToolLoopAgent<
     onToolExecutionEnd,
     onStepFinish,
     onFinish,
+    onEnd = onFinish,
     ...options
   }: AgentCallParameters<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT>): Promise<
     GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>
@@ -202,7 +218,7 @@ export class ToolLoopAgent<
         onToolExecutionEnd,
       ),
       onStepFinish: mergeCallbacks(this.settings.onStepFinish, onStepFinish),
-      onFinish: mergeCallbacks(this.settings.onFinish, onFinish),
+      onEnd: mergeCallbacks(this.settings.onEnd, onEnd),
     };
 
     return await generate({
@@ -225,6 +241,7 @@ export class ToolLoopAgent<
     onToolExecutionEnd,
     onStepFinish,
     onFinish,
+    onEnd = onFinish,
     ...options
   }: AgentStreamParameters<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT>): Promise<
     StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>
@@ -260,7 +277,7 @@ export class ToolLoopAgent<
         onToolExecutionEnd,
       ),
       onStepFinish: mergeCallbacks(this.settings.onStepFinish, onStepFinish),
-      onFinish: mergeCallbacks(this.settings.onFinish, onFinish),
+      onEnd: mergeCallbacks(this.settings.onEnd, onEnd),
     };
 
     return await stream({

@@ -1,5 +1,91 @@
 # @ai-sdk/workflow
 
+## 1.0.0-canary.72
+
+### Patch Changes
+
+- Updated dependencies [e67d80e]
+- Updated dependencies [6cca112]
+- Updated dependencies [82fc0ab]
+- Updated dependencies [76fd58c]
+  - ai@7.0.0-canary.155
+
+## 1.0.0-canary.71
+
+### Patch Changes
+
+- Updated dependencies [594029e]
+  - ai@7.0.0-canary.154
+
+## 1.0.0-canary.70
+
+### Patch Changes
+
+- Updated dependencies [6c93e36]
+- Updated dependencies [f617ac2]
+  - @ai-sdk/provider-utils@5.0.0-canary.44
+  - ai@7.0.0-canary.153
+
+## 1.0.0-canary.69
+
+### Patch Changes
+
+- ai@7.0.0-canary.152
+
+## 1.0.0-canary.68
+
+### Patch Changes
+
+- ai@7.0.0-canary.151
+
+## 1.0.0-canary.67
+
+### Patch Changes
+
+- ai@7.0.0-canary.150
+
+## 1.0.0-canary.66
+
+### Patch Changes
+
+- Updated dependencies [e3d9c0e]
+  - ai@7.0.0-canary.149
+
+## 1.0.0-canary.65
+
+### Patch Changes
+
+- Updated dependencies [2852a84]
+  - ai@7.0.0-canary.148
+
+## 1.0.0-canary.64
+
+### Patch Changes
+
+- ai@7.0.0-canary.147
+
+## 1.0.0-canary.63
+
+### Patch Changes
+
+- ai@7.0.0-canary.146
+
+## 1.0.0-canary.62
+
+### Patch Changes
+
+- ai@7.0.0-canary.145
+
+## 1.0.0-canary.61
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - ai@7.0.0-canary.144
+  - @ai-sdk/provider-utils@5.0.0-canary.43
+  - @ai-sdk/provider@4.0.0-canary.17
+
 ## 1.0.0-canary.60
 
 ### Patch Changes

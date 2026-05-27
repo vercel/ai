@@ -1,5 +1,31 @@
 # @ai-sdk/deepinfra
 
+## 3.0.0-canary.52
+
+### Patch Changes
+
+- Updated dependencies [6c93e36]
+- Updated dependencies [f617ac2]
+  - @ai-sdk/provider-utils@5.0.0-canary.44
+  - @ai-sdk/openai-compatible@3.0.0-canary.52
+
+## 3.0.0-canary.51
+
+### Patch Changes
+
+- Updated dependencies [9f1e1ba]
+  - @ai-sdk/openai-compatible@3.0.0-canary.51
+
+## 3.0.0-canary.50
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - @ai-sdk/openai-compatible@3.0.0-canary.50
+  - @ai-sdk/provider-utils@5.0.0-canary.43
+  - @ai-sdk/provider@4.0.0-canary.17
+
 ## 3.0.0-canary.49
 
 ### Patch Changes

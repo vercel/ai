@@ -337,7 +337,7 @@ export interface StreamTextResult<
    * Consumes the stream without processing the parts.
    * This is useful to force the stream to finish.
    * It effectively removes the backpressure and allows the stream to finish,
-   * triggering the `onFinish` callback and the promise resolution.
+   * triggering the `onEnd` callback and the promise resolution.
    *
    * If an error occurs, it is passed to the optional `onError` callback.
    */
