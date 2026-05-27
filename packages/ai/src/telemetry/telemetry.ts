@@ -12,6 +12,7 @@ import type {
   GenerateObjectStepStartEvent,
 } from '../generate-object/structured-output-events';
 import type {
+  GenerateTextAbortEvent,
   GenerateTextEndEvent,
   GenerateTextStartEvent,
   GenerateTextStepEndEvent,
@@ -69,6 +70,7 @@ export interface TelemetryDispatcher {
   onRerankStart?: Callback<RerankingModelCallStartEvent>;
   onRerankEnd?: Callback<RerankingModelCallEndEvent>;
   onEnd?: Callback<OperationEndEvent>;
+  onAbort?: Callback<GenerateTextAbortEvent<ToolSet>>;
   onError?: Callback<unknown>;
   executeLanguageModelCall?: Telemetry['executeLanguageModelCall'];
   executeTool?: Telemetry['executeTool'];
@@ -192,6 +194,12 @@ export interface Telemetry {
    * Use the event shape or `operationId` to distinguish between operation types.
    */
   onEnd?: Callback<InferTelemetryEvent<OperationEndEvent>>;
+
+  /**
+   * Called when a streaming text generation operation is aborted before it
+   * completes.
+   */
+  onAbort?: Callback<InferTelemetryEvent<GenerateTextAbortEvent<ToolSet>>>;
 
   /**
    * Called when an unrecoverable error occurs during the generation lifecycle.

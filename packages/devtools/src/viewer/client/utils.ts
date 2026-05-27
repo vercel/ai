@@ -469,21 +469,21 @@ export function buildTraceSpans(
 
       if (!hasSubParts) {
         const stepChildRuns = childRuns.filter(
-          cr => cr.run.parent_step_id === step.id,
+          childRun => childRun.run.parent_step_id === step.id,
         );
-        for (const cr of stepChildRuns) {
+        for (const childRun of stepChildRuns) {
           addStepSpans(
-            cr.steps,
+            childRun.steps,
             depth + 1,
-            cr.childRuns ?? [],
-            cr.run.function_id,
+            childRun.childRuns ?? [],
+            childRun.run.function_id,
           );
         }
         continue;
       }
 
       const stepChildRuns = childRuns.filter(
-        cr => cr.run.parent_step_id === step.id,
+        childRun => childRun.run.parent_step_id === step.id,
       );
       const sortedChildRuns = [...stepChildRuns].sort(
         (a, b) =>
@@ -499,7 +499,7 @@ export function buildTraceSpans(
       const unmatchedChildRuns: ChildRun[] = [];
 
       if (toolCallParts.length > 0 && sortedChildRuns.length > 0) {
-        let crIdx = 0;
+        let childRunIndex = 0;
         for (const tc of toolCallParts) {
           const tcId = tc.toolCallId;
           if (!tcId) continue;
@@ -511,19 +511,19 @@ export function buildTraceSpans(
               p.toolCallId === tcId,
           );
 
-          if (tcResult && crIdx < sortedChildRuns.length) {
-            const cr = sortedChildRuns[crIdx];
-            if (cr) {
+          if (tcResult && childRunIndex < sortedChildRuns.length) {
+            const childRun = sortedChildRuns[childRunIndex];
+            if (childRun) {
               const existing = toolCallToChildRuns.get(tcId) ?? [];
-              existing.push(cr);
+              existing.push(childRun);
               toolCallToChildRuns.set(tcId, existing);
-              crIdx++;
+              childRunIndex++;
             }
           }
         }
-        for (let i = crIdx; i < sortedChildRuns.length; i++) {
-          const cr = sortedChildRuns[i];
-          if (cr) unmatchedChildRuns.push(cr);
+        for (let i = childRunIndex; i < sortedChildRuns.length; i++) {
+          const childRun = sortedChildRuns[i];
+          if (childRun) unmatchedChildRuns.push(childRun);
         }
       } else {
         unmatchedChildRuns.push(...sortedChildRuns);
@@ -541,18 +541,19 @@ export function buildTraceSpans(
         if (tcChildRuns.length > 0) {
           const earliest = Math.min(
             ...tcChildRuns.map(
-              cr => new Date(cr.run.started_at).getTime() - traceStart,
+              childRun =>
+                new Date(childRun.run.started_at).getTime() - traceStart,
             ),
           );
           const latest = Math.max(
-            ...tcChildRuns.map(cr => {
-              const crStart =
-                new Date(cr.run.started_at).getTime() - traceStart;
-              const crDuration = cr.steps.reduce(
+            ...tcChildRuns.map(childRun => {
+              const childRunStart =
+                new Date(childRun.run.started_at).getTime() - traceStart;
+              const childRunDuration = childRun.steps.reduce(
                 (a, s) => a + (s.duration_ms || 0),
                 0,
               );
-              return crStart + crDuration;
+              return childRunStart + childRunDuration;
             }),
           );
           toolTimeRanges.push({
@@ -600,11 +601,13 @@ export function buildTraceSpans(
               ? Object.entries(args as Record<string, unknown>)
                   .slice(0, 3)
                   .map(([, v]) => {
-                    const s =
+                    const previewText =
                       typeof v === 'string'
                         ? v
                         : (JSON.stringify(v) ?? String(v));
-                    return s.length > 30 ? s.slice(0, 30) + '…' : s;
+                    return previewText.length > 30
+                      ? previewText.slice(0, 30) + '…'
+                      : previewText;
                   })
                   .join(', ')
               : typeof args === 'string'
@@ -640,12 +643,12 @@ export function buildTraceSpans(
             toolCallId: part.toolCallId,
           });
 
-          for (const cr of tcChildRuns) {
+          for (const childRun of tcChildRuns) {
             addStepSpans(
-              cr.steps,
+              childRun.steps,
               depth + 2,
-              cr.childRuns ?? [],
-              cr.run.function_id,
+              childRun.childRuns ?? [],
+              childRun.run.function_id,
             );
           }
 
@@ -687,12 +690,12 @@ export function buildTraceSpans(
         });
       }
 
-      for (const cr of unmatchedChildRuns) {
+      for (const childRun of unmatchedChildRuns) {
         addStepSpans(
-          cr.steps,
+          childRun.steps,
           depth + 1,
-          cr.childRuns ?? [],
-          cr.run.function_id,
+          childRun.childRuns ?? [],
+          childRun.run.function_id,
         );
       }
     }
