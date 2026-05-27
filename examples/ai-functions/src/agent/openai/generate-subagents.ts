@@ -12,9 +12,13 @@ const mainAgent = new ToolLoopAgent({
     researcher: subagent({
       description:
         'A helpful researcher that can research topics and questions in depth.',
+
+      instructions: 'You are a helpful news researcher.',
+
       inputSchema: z.object({
         topic: z.string().describe('The topic to research'),
       }),
+      prompt: ({ topic }) => `Research the topic: ${topic}.`,
 
       model: openai('gpt-5-mini'),
       output: Output.array({
@@ -24,8 +28,6 @@ const mainAgent = new ToolLoopAgent({
           url: z.string(),
         }),
       }),
-      instructions: 'You are a helpful news researcher.',
-      prompt: ({ topic }) => `Research the topic: ${topic}.`,
       tools: {
         websearch: openai.tools.webSearch(),
       },

@@ -1,4 +1,5 @@
 import {
+  type ModelMessage,
   Output,
   ToolLoopAgent,
   type FlexibleSchema,
@@ -30,7 +31,10 @@ export function subagent<
   inputSchema: FlexibleSchema<INPUT>;
   output?: OUTPUT;
   instructions: string | ((options: INPUT) => string);
-  prompt: string | ((options: INPUT) => string);
+  prompt:
+    | string
+    | Array<ModelMessage>
+    | ((options: INPUT) => string | Array<ModelMessage>);
 }): Tool<INPUT, OUTPUT> {
   const agent = new ToolLoopAgent({
     model,
