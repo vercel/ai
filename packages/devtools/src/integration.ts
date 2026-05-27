@@ -126,10 +126,10 @@ export function DevToolsTelemetry(): Telemetry {
   function resolveParentInfo(): { runId: string; stepId: string } | undefined {
     if (!currentToolCallId) return undefined;
 
-    const ctx = toolContextMap.get(currentToolCallId);
-    if (!ctx) return undefined;
+    const toolCallContext = toolContextMap.get(currentToolCallId);
+    if (!toolCallContext) return undefined;
 
-    const parentState = callStates.get(ctx.parentCallId);
+    const parentState = callStates.get(toolCallContext.parentCallId);
     if (!parentState) return undefined;
 
     // Find the step that is currently executing the tool call.
