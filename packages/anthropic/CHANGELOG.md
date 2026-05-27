@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.80
+
+### Patch Changes
+
+- 263d3e6: fix(provider/anthropic): fix remaining errors with Anthropic `code_execution` tool dynamic calls from latest `web_fetch` or `web_search`
+
 ## 3.0.79
 
 ### Patch Changes
