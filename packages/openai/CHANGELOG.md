@@ -1,5 +1,111 @@
 # @ai-sdk/openai
 
+## 4.0.0-canary.64
+
+### Patch Changes
+
+- Updated dependencies [6c93e36]
+- Updated dependencies [f617ac2]
+  - @ai-sdk/provider-utils@5.0.0-canary.44
+
+## 4.0.0-canary.63
+
+### Patch Changes
+
+- 17b5597: fix(openai): skip passing reasoning items when using previous response id
+
+## 4.0.0-canary.62
+
+### Patch Changes
+
+- bf837fe: feat(provider/gateway): add speech and transcription model support
+
+## 4.0.0-canary.61
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - @ai-sdk/provider-utils@5.0.0-canary.43
+  - @ai-sdk/provider@4.0.0-canary.17
+
+## 4.0.0-canary.60
+
+### Patch Changes
+
+- Updated dependencies [a6617c5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+
+## 4.0.0-canary.59
+
+### Patch Changes
+
+- 685cec7: feat(openai): add opt-in pass-through for unsupported file media types
+
+## 4.0.0-canary.58
+
+### Patch Changes
+
+- Updated dependencies [28dfa06]
+- Updated dependencies [e93fa91]
+  - @ai-sdk/provider-utils@5.0.0-canary.41
+
+## 4.0.0-canary.57
+
+### Patch Changes
+
+- Updated dependencies [a7de9c9]
+  - @ai-sdk/provider-utils@5.0.0-canary.40
+
+## 4.0.0-canary.56
+
+### Patch Changes
+
+- Updated dependencies [105f95b]
+  - @ai-sdk/provider-utils@5.0.0-canary.39
+
+## 4.0.0-canary.55
+
+### Patch Changes
+
+- Updated dependencies [ca446f8]
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+
+## 4.0.0-canary.54
+
+### Patch Changes
+
+- Updated dependencies [d848405]
+  - @ai-sdk/provider-utils@5.0.0-canary.37
+
+## 4.0.0-canary.53
+
+### Patch Changes
+
+- Updated dependencies [ca39020]
+  - @ai-sdk/provider-utils@5.0.0-canary.36
+
+## 4.0.0-canary.52
+
+### Patch Changes
+
+- Updated dependencies [f634bac]
+  - @ai-sdk/provider-utils@5.0.0-canary.35
+
+## 4.0.0-canary.51
+
+### Patch Changes
+
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+  - @ai-sdk/provider-utils@5.0.0-canary.34
+
+## 4.0.0-canary.50
+
+### Patch Changes
+
+- 29e6ac6: feat: add allowedTools provider option for OpenAI Responses
+
 ## 4.0.0-canary.49
 
 ### Patch Changes
@@ -650,7 +756,6 @@
 ### Patch Changes
 
 - 04c89b1: Provide Responses API providerMetadata types at the message / reasoning level.
-
   - Export the following types for use in client code:
     - `OpenaiResponsesProviderMetadata`
     - `OpenaiResponsesReasoningProviderMetadata`
@@ -731,7 +836,6 @@
 ### Patch Changes
 
 - 330bd92: Fix Responses `code_interpreter` annotations and add typed providerMetadata
-
   - Align Responses API `code_interpreter` annotation types with the official spec.
   - Add tests to ensure the overlapping parts of the Zod schemas used by `doGenerate` and `doStream` stay in sync.
   - Export the following types for use in client code:

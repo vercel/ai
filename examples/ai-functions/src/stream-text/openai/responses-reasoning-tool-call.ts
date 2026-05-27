@@ -35,7 +35,7 @@ run(async () => {
         },
       }),
     },
-    system: `If you encounter a function call error, you should retry 3 times before giving up.`,
+    instructions: `If you encounter a function call error, you should retry 3 times before giving up.`,
     prompt: `Generate two texts of 1024 characters each. Count the number of "a" in the first text, and the number of "b" in the second text.`,
     reasoning: 'medium',
     providerOptions: {

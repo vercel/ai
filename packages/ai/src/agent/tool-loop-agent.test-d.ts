@@ -3,7 +3,7 @@ import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
 import {
   Output,
-  type GenerateTextOnFinishCallback,
+  type GenerateTextOnEndCallback,
   type ToolApprovalConfiguration,
   type ToolInputRefinement,
 } from '../generate-text';
@@ -16,7 +16,7 @@ import { ToolLoopAgent } from './tool-loop-agent';
 describe('ToolLoopAgent', () => {
   describe('onFinish callback type compatibility', () => {
     it('should allow StreamTextOnFinishCallback where ToolLoopAgentOnFinishCallback is expected', () => {
-      const streamTextCallback: GenerateTextOnFinishCallback<
+      const streamTextCallback: GenerateTextOnEndCallback<
         {},
         {}
       > = async event => {
@@ -25,23 +25,30 @@ describe('ToolLoopAgent', () => {
       };
 
       expectTypeOf(streamTextCallback).toMatchTypeOf<
-        GenerateTextOnFinishCallback<{}>
+        GenerateTextOnEndCallback<{}>
       >();
     });
 
-    it('should allow ToolLoopAgentOnFinishCallback where GenerateTextOnFinishCallback is expected', () => {
-      const agentCallback: GenerateTextOnFinishCallback<{}> = async event => {
+    it('should allow ToolLoopAgentOnFinishCallback where GenerateTextOnEndCallback is expected', () => {
+      const agentCallback: GenerateTextOnEndCallback<{}> = async event => {
         const runtimeContext: unknown = event.runtimeContext;
         runtimeContext;
       };
 
       expectTypeOf(agentCallback).toMatchTypeOf<
-        GenerateTextOnFinishCallback<{}, {}>
+        GenerateTextOnEndCallback<{}, {}>
       >();
     });
   });
 
   describe('generate', () => {
+    it('should accept include', async () => {
+      new ToolLoopAgent({
+        model: new MockLanguageModelV4(),
+        include: { requestMessages: true },
+      });
+    });
+
     it('should not allow system prompt', async () => {
       const agent = new ToolLoopAgent({
         model: new MockLanguageModelV4(),

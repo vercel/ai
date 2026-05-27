@@ -15,9 +15,16 @@ import type {
   LanguageModelCallEndEvent,
   LanguageModelCallStartEvent,
 } from './language-model-events';
+import { now } from '../util/now';
 import { streamLanguageModelCall } from './stream-language-model-call';
 import type { ToolCallRepairFunction } from './tool-call-repair-function';
 import type { ToolInputRefinement } from './tool-input-refinement';
+
+vi.mock('../util/now', () => ({
+  now: vi.fn(() => 0),
+}));
+
+const mockNow = vi.mocked(now);
 
 const testUsage: LanguageModelV4Usage = {
   inputTokens: {
@@ -111,6 +118,7 @@ describe('streamLanguageModelCall', () => {
         {
           "callId": "test-telemetry-call-id",
           "frequencyPenalty": 0.1,
+          "instructions": undefined,
           "maxOutputTokens": 128,
           "messages": [
             {
@@ -126,11 +134,9 @@ describe('streamLanguageModelCall', () => {
           "stopSequences": [
             "stop",
           ],
-          "system": undefined,
           "temperature": 0.7,
           "tools": [
             {
-              "description": undefined,
               "inputSchema": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "additionalProperties": false,
@@ -145,7 +151,6 @@ describe('streamLanguageModelCall', () => {
                 "type": "object",
               },
               "name": "testTool",
-              "providerOptions": undefined,
               "type": "function",
             },
           ],
@@ -198,10 +203,18 @@ describe('streamLanguageModelCall', () => {
             "content": [],
             "finishReason": "stop",
             "modelId": "mock-model-id",
+            "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": undefined,
+              "outputTokensPerSecond": undefined,
+              "responseTimeMs": 0,
+              "timeBetweenOutputChunksMs": undefined,
+              "timeToFirstOutputMs": undefined,
+            },
             "provider": "mock-provider",
             "responseId": "aitxt-generated-response-id",
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -214,12 +227,12 @@ describe('streamLanguageModelCall', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
           },
           "startEvent": {
             "callId": "call-generated-call-id",
+            "instructions": undefined,
             "messages": [
               {
                 "content": "test prompt",
@@ -228,7 +241,6 @@ describe('streamLanguageModelCall', () => {
             ],
             "modelId": "mock-model-id",
             "provider": "mock-provider",
-            "system": undefined,
             "tools": undefined,
           },
         }
@@ -306,10 +318,25 @@ describe('streamLanguageModelCall', () => {
             ],
             "finishReason": "tool-calls",
             "modelId": "mock-model-id",
+            "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
+              "responseTimeMs": 0,
+              "timeBetweenOutputChunksMs": {
+                "avg": 0,
+                "max": 0,
+                "median": 0,
+                "min": 0,
+                "p10": 0,
+                "p90": 0,
+              },
+              "timeToFirstOutputMs": 0,
+            },
             "provider": "mock-provider",
             "responseId": "response-1",
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -322,7 +349,6 @@ describe('streamLanguageModelCall', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
           },
@@ -364,10 +390,18 @@ describe('streamLanguageModelCall', () => {
           "content": [],
           "finishReason": "stop",
           "modelId": "mock-model-id",
+          "performance": {
+            "effectiveOutputTokensPerSecond": 0,
+            "effectiveTotalTokensPerSecond": 0,
+            "inputTokensPerSecond": undefined,
+            "outputTokensPerSecond": undefined,
+            "responseTimeMs": 0,
+            "timeBetweenOutputChunksMs": undefined,
+            "timeToFirstOutputMs": undefined,
+          },
           "provider": "mock-provider",
           "responseId": "aitxt-generated-response-id",
           "usage": {
-            "cachedInputTokens": undefined,
             "inputTokenDetails": {
               "cacheReadTokens": undefined,
               "cacheWriteTokens": undefined,
@@ -380,7 +414,6 @@ describe('streamLanguageModelCall', () => {
             },
             "outputTokens": 10,
             "raw": undefined,
-            "reasoningTokens": undefined,
             "totalTokens": 13,
           },
         }
@@ -442,11 +475,19 @@ describe('streamLanguageModelCall', () => {
           },
           {
             "finishReason": "stop",
+            "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": undefined,
+              "outputTokensPerSecond": undefined,
+              "responseTimeMs": 0,
+              "timeBetweenOutputChunksMs": undefined,
+              "timeToFirstOutputMs": undefined,
+            },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "type": "model-call-end",
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -459,7 +500,6 @@ describe('streamLanguageModelCall', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
           },
@@ -503,11 +543,19 @@ describe('streamLanguageModelCall', () => {
           },
           {
             "finishReason": "stop",
+            "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
+              "responseTimeMs": 0,
+              "timeBetweenOutputChunksMs": undefined,
+              "timeToFirstOutputMs": 0,
+            },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "type": "model-call-end",
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -520,12 +568,153 @@ describe('streamLanguageModelCall', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
           },
         ]
       `);
+    });
+
+    it('should measure time to first output from text deltas', async () => {
+      mockNow
+        .mockReturnValueOnce(1000)
+        .mockReturnValueOnce(1250)
+        .mockReturnValueOnce(1600);
+
+      const result = await streamLanguageModelCallResult({
+        streamParts: [
+          { type: 'text-start', id: '1' },
+          { type: 'text-delta', id: '1', delta: 'text' },
+          { type: 'text-end', id: '1' },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: testUsage,
+          },
+        ],
+        tools: undefined,
+        repairToolCall: undefined,
+      });
+
+      expect(result.at(-1)).toMatchObject({
+        type: 'model-call-end',
+        performance: {
+          responseTimeMs: 600,
+          effectiveOutputTokensPerSecond: 16.666666666666668,
+          outputTokensPerSecond: 28.571428571428573,
+          inputTokensPerSecond: 12,
+          effectiveTotalTokensPerSecond: 21.666666666666668,
+          timeToFirstOutputMs: 250,
+        },
+      });
+    });
+
+    it('should measure time between output chunks from text deltas', async () => {
+      mockNow
+        .mockReturnValueOnce(1000)
+        .mockReturnValueOnce(1100)
+        .mockReturnValueOnce(1200)
+        .mockReturnValueOnce(1500)
+        .mockReturnValueOnce(1600)
+        .mockReturnValueOnce(2000)
+        .mockReturnValueOnce(2500)
+        .mockReturnValueOnce(2500);
+
+      const result = await streamLanguageModelCallResult({
+        streamParts: [
+          { type: 'text-start', id: '1' },
+          { type: 'text-delta', id: '1', delta: 'a' },
+          { type: 'text-delta', id: '1', delta: 'b' },
+          { type: 'text-delta', id: '1', delta: 'c' },
+          { type: 'text-delta', id: '1', delta: 'd' },
+          { type: 'text-delta', id: '1', delta: 'e' },
+          { type: 'text-delta', id: '1', delta: 'f' },
+          { type: 'text-end', id: '1' },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: testUsage,
+          },
+        ],
+        tools: undefined,
+        repairToolCall: undefined,
+      });
+
+      expect(result.at(-1)).toMatchObject({
+        type: 'model-call-end',
+        performance: {
+          timeBetweenOutputChunksMs: {
+            min: 100,
+            p10: 100,
+            median: 300,
+            avg: 280,
+            p90: 500,
+            max: 500,
+          },
+        },
+      });
+    });
+
+    it('should measure time between all output chunk types', async () => {
+      const tools = {
+        testTool: tool({
+          inputSchema: z.object({ value: z.string() }),
+          execute: async ({ value }) => `${value}-result`,
+        }),
+      };
+
+      mockNow
+        .mockReturnValueOnce(1000)
+        .mockReturnValueOnce(1100)
+        .mockReturnValueOnce(1300)
+        .mockReturnValueOnce(1600)
+        .mockReturnValueOnce(2000)
+        .mockReturnValueOnce(2500);
+
+      const result = await streamLanguageModelCallResult({
+        streamParts: [
+          { type: 'text-start', id: '1' },
+          { type: 'text-delta', id: '1', delta: 'text' },
+          {
+            type: 'file',
+            data: { type: 'data', data: 'ZmlsZQ==' },
+            mediaType: 'text/plain',
+          },
+          {
+            type: 'reasoning-file',
+            data: { type: 'data', data: 'cmVhc29uaW5n' },
+            mediaType: 'text/plain',
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'testTool',
+            input: `{ "value": "test" }`,
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+            usage: testUsage,
+          },
+        ],
+        tools,
+        repairToolCall: undefined,
+      });
+
+      expect(result.at(-1)).toMatchObject({
+        type: 'model-call-end',
+        performance: {
+          timeToFirstOutputMs: 100,
+          timeBetweenOutputChunksMs: {
+            min: 200,
+            p10: 200,
+            median: 300,
+            avg: 300,
+            p90: 400,
+            max: 400,
+          },
+        },
+      });
     });
   });
 
@@ -559,6 +748,42 @@ describe('streamLanguageModelCall', () => {
         },
       ]
     `);
+    });
+
+    it('should measure time to first output from reasoning-file parts', async () => {
+      mockNow
+        .mockReturnValueOnce(1000)
+        .mockReturnValueOnce(1250)
+        .mockReturnValueOnce(1600);
+
+      const result = await streamLanguageModelCallResult({
+        streamParts: [
+          {
+            type: 'reasoning-file',
+            data: { type: 'data', data: 'cmVhc29uaW5n' },
+            mediaType: 'text/plain',
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: testUsage,
+          },
+        ],
+        tools: undefined,
+        repairToolCall: undefined,
+      });
+
+      expect(result.at(-1)).toMatchObject({
+        type: 'model-call-end',
+        performance: {
+          responseTimeMs: 600,
+          effectiveOutputTokensPerSecond: 16.666666666666668,
+          outputTokensPerSecond: 28.571428571428573,
+          inputTokensPerSecond: 12,
+          effectiveTotalTokensPerSecond: 21.666666666666668,
+          timeToFirstOutputMs: 250,
+        },
+      });
     });
   });
 
@@ -595,11 +820,19 @@ describe('streamLanguageModelCall', () => {
           },
           {
             "finishReason": "stop",
+            "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
+              "responseTimeMs": 0,
+              "timeBetweenOutputChunksMs": undefined,
+              "timeToFirstOutputMs": 0,
+            },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "type": "model-call-end",
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -612,7 +845,6 @@ describe('streamLanguageModelCall', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
           },
@@ -676,11 +908,19 @@ describe('streamLanguageModelCall', () => {
           },
           {
             "finishReason": "stop",
+            "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
+              "responseTimeMs": 0,
+              "timeBetweenOutputChunksMs": undefined,
+              "timeToFirstOutputMs": 0,
+            },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "type": "model-call-end",
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -693,12 +933,47 @@ describe('streamLanguageModelCall', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
           },
         ]
       `);
+    });
+
+    it('should measure time to first output from file parts', async () => {
+      mockNow
+        .mockReturnValueOnce(1000)
+        .mockReturnValueOnce(1250)
+        .mockReturnValueOnce(1600);
+
+      const result = await streamLanguageModelCallResult({
+        streamParts: [
+          {
+            type: 'file',
+            data: { type: 'data', data: 'SGVsbG8gV29ybGQ=' },
+            mediaType: 'text/plain',
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: testUsage,
+          },
+        ],
+        tools: undefined,
+        repairToolCall: undefined,
+      });
+
+      expect(result.at(-1)).toMatchObject({
+        type: 'model-call-end',
+        performance: {
+          responseTimeMs: 600,
+          effectiveOutputTokensPerSecond: 16.666666666666668,
+          outputTokensPerSecond: 28.571428571428573,
+          inputTokensPerSecond: 12,
+          effectiveTotalTokensPerSecond: 21.666666666666668,
+          timeToFirstOutputMs: 250,
+        },
+      });
     });
   });
 
@@ -736,11 +1011,19 @@ describe('streamLanguageModelCall', () => {
           },
           {
             "finishReason": "stop",
+            "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": undefined,
+              "outputTokensPerSecond": undefined,
+              "responseTimeMs": 0,
+              "timeBetweenOutputChunksMs": undefined,
+              "timeToFirstOutputMs": undefined,
+            },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "type": "model-call-end",
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -753,7 +1036,6 @@ describe('streamLanguageModelCall', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
           },
@@ -763,6 +1045,50 @@ describe('streamLanguageModelCall', () => {
   });
 
   describe('tool-call parts', () => {
+    it('should measure time to first output from tool-call parts', async () => {
+      const tools = {
+        testTool: tool({
+          inputSchema: z.object({ value: z.string() }),
+          execute: async ({ value }) => `${value}-result`,
+        }),
+      };
+
+      mockNow
+        .mockReturnValueOnce(1000)
+        .mockReturnValueOnce(1250)
+        .mockReturnValueOnce(1600);
+
+      const result = await streamLanguageModelCallResult({
+        streamParts: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'testTool',
+            input: `{ "value": "test" }`,
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+            usage: testUsage,
+          },
+        ],
+        tools,
+        repairToolCall: undefined,
+      });
+
+      expect(result.at(-1)).toMatchObject({
+        type: 'model-call-end',
+        performance: {
+          responseTimeMs: 600,
+          effectiveOutputTokensPerSecond: 16.666666666666668,
+          outputTokensPerSecond: 28.571428571428573,
+          inputTokensPerSecond: 12,
+          effectiveTotalTokensPerSecond: 21.666666666666668,
+          timeToFirstOutputMs: 250,
+        },
+      });
+    });
+
     it('should refine tool call input before emitting tool-call parts and model-call end content', async () => {
       const tools = {
         testTool: tool({
@@ -853,43 +1179,50 @@ describe('streamLanguageModelCall', () => {
       });
 
       expect(result).toMatchInlineSnapshot(`
-          [
-            {
-              "input": {
-                "value": "test",
-              },
-              "providerExecuted": undefined,
-              "providerMetadata": undefined,
-              "title": undefined,
-              "toolCallId": "call-1",
-              "toolName": "correctTool",
-              "type": "tool-call",
+        [
+          {
+            "input": {
+              "value": "test",
             },
-            {
-              "finishReason": "stop",
-              "providerMetadata": undefined,
-              "rawFinishReason": "stop",
-              "type": "model-call-end",
-              "usage": {
-                "cachedInputTokens": undefined,
-                "inputTokenDetails": {
-                  "cacheReadTokens": undefined,
-                  "cacheWriteTokens": undefined,
-                  "noCacheTokens": 3,
-                },
-                "inputTokens": 3,
-                "outputTokenDetails": {
-                  "reasoningTokens": undefined,
-                  "textTokens": 10,
-                },
-                "outputTokens": 10,
-                "raw": undefined,
+            "providerExecuted": undefined,
+            "providerMetadata": undefined,
+            "title": undefined,
+            "toolCallId": "call-1",
+            "toolName": "correctTool",
+            "type": "tool-call",
+          },
+          {
+            "finishReason": "stop",
+            "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
+              "responseTimeMs": 0,
+              "timeBetweenOutputChunksMs": undefined,
+              "timeToFirstOutputMs": 0,
+            },
+            "providerMetadata": undefined,
+            "rawFinishReason": "stop",
+            "type": "model-call-end",
+            "usage": {
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
                 "reasoningTokens": undefined,
-                "totalTokens": 13,
+                "textTokens": 10,
               },
+              "outputTokens": 10,
+              "raw": undefined,
+              "totalTokens": 13,
             },
-          ]
-        `);
+          },
+        ]
+      `);
     });
   });
 
@@ -921,11 +1254,19 @@ describe('streamLanguageModelCall', () => {
           },
           {
             "finishReason": "stop",
+            "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": undefined,
+              "outputTokensPerSecond": undefined,
+              "responseTimeMs": 0,
+              "timeBetweenOutputChunksMs": undefined,
+              "timeToFirstOutputMs": undefined,
+            },
             "providerMetadata": undefined,
             "rawFinishReason": undefined,
             "type": "model-call-end",
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -938,7 +1279,6 @@ describe('streamLanguageModelCall', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
           },
@@ -1011,11 +1351,19 @@ describe('streamLanguageModelCall', () => {
           },
           {
             "finishReason": "tool-calls",
+            "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
+              "responseTimeMs": 0,
+              "timeBetweenOutputChunksMs": undefined,
+              "timeToFirstOutputMs": 0,
+            },
             "providerMetadata": undefined,
             "rawFinishReason": undefined,
             "type": "model-call-end",
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -1028,7 +1376,6 @@ describe('streamLanguageModelCall', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
           },
@@ -1146,11 +1493,26 @@ describe('streamLanguageModelCall', () => {
           },
           {
             "finishReason": "tool-calls",
+            "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
+              "responseTimeMs": 0,
+              "timeBetweenOutputChunksMs": {
+                "avg": 0,
+                "max": 0,
+                "median": 0,
+                "min": 0,
+                "p10": 0,
+                "p90": 0,
+              },
+              "timeToFirstOutputMs": 0,
+            },
             "providerMetadata": undefined,
             "rawFinishReason": undefined,
             "type": "model-call-end",
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -1163,7 +1525,6 @@ describe('streamLanguageModelCall', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
           },

@@ -1,3 +1,4 @@
+import type { JSONObject } from '@ai-sdk/provider';
 import type {
   InferToolInput,
   InferToolOutput,
@@ -281,6 +282,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
    */
   toolCallId: string;
   title?: string;
+  toolMetadata?: JSONObject;
 
   /**
    * Whether the tool call was executed by the provider.
@@ -289,7 +291,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
 } & (
   | {
       state: 'input-streaming';
-      input: DeepPartial<asUITool<TOOL>['input']> | undefined;
+      input?: DeepPartial<asUITool<TOOL>['input']> | undefined;
       output?: never;
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
@@ -393,6 +395,7 @@ export type DynamicToolUIPart = {
    */
   toolCallId: string;
   title?: string;
+  toolMetadata?: JSONObject;
 
   /**
    * Whether the tool call was executed by the provider.
@@ -401,7 +404,7 @@ export type DynamicToolUIPart = {
 } & (
   | {
       state: 'input-streaming';
-      input: unknown | undefined;
+      input?: unknown;
       output?: never;
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;

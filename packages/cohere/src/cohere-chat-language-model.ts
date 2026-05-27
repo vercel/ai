@@ -15,6 +15,7 @@ import {
   isCustomReasoning,
   mapReasoningToProviderBudget,
   parseProviderOptions,
+  parseJSON,
   postJsonToApi,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
@@ -287,7 +288,7 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
             controller.enqueue({ type: 'stream-start', warnings });
           },
 
-          transform(chunk, controller) {
+          async transform(chunk, controller) {
             if (options.includeRawChunks) {
               controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
             }
@@ -412,7 +413,9 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
                     toolCallId: pendingToolCall.id,
                     toolName: pendingToolCall.name,
                     input: JSON.stringify(
-                      JSON.parse(pendingToolCall.arguments?.trim() || '{}'),
+                      await parseJSON({
+                        text: pendingToolCall.arguments?.trim() || '{}',
+                      }),
                     ),
                   });
 

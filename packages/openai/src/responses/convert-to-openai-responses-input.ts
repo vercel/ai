@@ -58,8 +58,10 @@ export async function convertToOpenAIResponsesInput({
   systemMessageMode,
   providerOptionsName,
   fileIdPrefixes,
+  passThroughUnsupportedFiles = false,
   store,
   hasConversation = false,
+  hasPreviousResponseId = false,
   hasLocalShellTool = false,
   hasShellTool = false,
   hasApplyPatchTool = false,
@@ -71,8 +73,10 @@ export async function convertToOpenAIResponsesInput({
   providerOptionsName: string;
   /** @deprecated Use provider references instead. */
   fileIdPrefixes?: readonly string[];
+  passThroughUnsupportedFiles?: boolean;
   store: boolean;
   hasConversation?: boolean; // when true, skip assistant messages that already have item IDs
+  hasPreviousResponseId?: boolean; // when true, skip reasoning and function-call items that already exist in the previous response chain
   hasLocalShellTool?: boolean;
   hasShellTool?: boolean;
   hasApplyPatchTool?: boolean;
@@ -178,7 +182,10 @@ export async function convertToOpenAIResponsesInput({
                       }
 
                       const fullMediaType = resolveFullMediaType({ part });
-                      if (fullMediaType !== 'application/pdf') {
+                      if (
+                        fullMediaType !== 'application/pdf' &&
+                        !passThroughUnsupportedFiles
+                      ) {
                         throw new UnsupportedFunctionalityError({
                           functionality: `file part media type ${fullMediaType}`,
                         });
@@ -190,8 +197,12 @@ export async function convertToOpenAIResponsesInput({
                         isFileId(part.data.data, fileIdPrefixes)
                           ? { file_id: part.data.data }
                           : {
-                              filename: part.filename ?? `part-${index}.pdf`,
-                              file_data: `data:application/pdf;base64,${convertToBase64(part.data.data)}`,
+                              filename:
+                                part.filename ??
+                                (fullMediaType === 'application/pdf'
+                                  ? `part-${index}.pdf`
+                                  : `part-${index}`),
+                              file_data: `data:${fullMediaType};base64,${convertToBase64(part.data.data)}`,
                             }),
                       };
                     }
@@ -298,6 +309,9 @@ export async function convertToOpenAIResponsesInput({
               }
 
               if (store && id != null) {
+                if (hasPreviousResponseId) {
+                  break;
+                }
                 input.push({ type: 'item_reference', id });
                 break;
               }
@@ -496,7 +510,10 @@ export async function convertToOpenAIResponsesInput({
 
               const reasoningId = providerOptions?.itemId;
 
-              if (hasConversation && reasoningId != null) {
+              if (
+                (hasConversation || hasPreviousResponseId) &&
+                reasoningId != null
+              ) {
                 break;
               }
 

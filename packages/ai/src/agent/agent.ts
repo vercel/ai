@@ -1,11 +1,12 @@
 import type {
   Arrayable,
   Context,
+  Experimental_Sandbox as Sandbox,
   ModelMessage,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import type {
-  GenerateTextOnFinishCallback,
+  GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
@@ -88,12 +89,12 @@ export type AgentCallParameters<
     /**
      * Callback that is called before each tool execution begins.
      */
-    experimental_onToolExecutionStart?: OnToolExecutionStartCallback<TOOLS>;
+    onToolExecutionStart?: OnToolExecutionStartCallback<TOOLS>;
 
     /**
      * Callback that is called after each tool execution completes.
      */
-    experimental_onToolExecutionEnd?: OnToolExecutionEndCallback<TOOLS>;
+    onToolExecutionEnd?: OnToolExecutionEndCallback<TOOLS>;
 
     /**
      * Callback that is called when each step (LLM call) is finished, including intermediate steps.
@@ -103,7 +104,19 @@ export type AgentCallParameters<
     /**
      * Callback that is called when all steps are finished and the response is complete.
      */
-    onFinish?: GenerateTextOnFinishCallback<TOOLS, RUNTIME_CONTEXT>;
+    onEnd?: GenerateTextOnEndCallback<TOOLS, RUNTIME_CONTEXT>;
+
+    /**
+     * Callback that is called when all steps are finished and the response is complete.
+     *
+     * @deprecated Use `onEnd` instead.
+     */
+    onFinish?: GenerateTextOnEndCallback<TOOLS, RUNTIME_CONTEXT>;
+
+    /**
+     * The sandbox environment that is passed through to tool execution.
+     */
+    experimental_sandbox?: Sandbox;
   };
 
 /**

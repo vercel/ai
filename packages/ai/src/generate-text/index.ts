@@ -1,22 +1,21 @@
 export type { ActiveTools } from './active-tools';
 export type { ContentPart } from './content-part';
 export { filterActiveTools as experimental_filterActiveTools } from './filter-active-tools';
-export { generateText } from './generate-text';
+export { generateText, type GenerateTextInclude } from './generate-text';
 export type {
   GenerateTextEndEvent,
   GenerateTextOnFinishCallback,
+  GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
   GenerateTextStartEvent,
   GenerateTextStepEndEvent,
   GenerateTextStepStartEvent,
-  OnChunkEvent,
   OnFinishEvent,
   OnStartEvent,
   OnStepFinishEvent,
   OnStepStartEvent,
-  StreamTextChunkEvent,
 } from './generate-text-events';
 export type { GenerateTextResult } from './generate-text-result';
 export {
@@ -41,7 +40,11 @@ export type { PrepareStepFunction, PrepareStepResult } from './prepare-step';
 export { pruneMessages } from './prune-messages';
 export type { ReasoningFileOutput, ReasoningOutput } from './reasoning-output';
 export { smoothStream, type ChunkDetector } from './smooth-stream';
-export type { StepResult } from './step-result';
+export type {
+  OutputChunkTimingStats,
+  StepResult,
+  StepResultPerformance,
+} from './step-result';
 export {
   hasToolCall,
   isLoopFinished,
@@ -59,6 +62,7 @@ export {
 } from './stream-language-model-call';
 export {
   streamText,
+  type StreamTextInclude,
   type StreamTextOnChunkCallback,
   type StreamTextOnErrorCallback,
   type StreamTextTransform,

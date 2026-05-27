@@ -12,7 +12,7 @@ import type {
   TelemetryOptions,
 } from '../telemetry/telemetry-options';
 import type {
-  GenerateTextOnFinishCallback,
+  GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
@@ -37,14 +37,14 @@ export type RestrictedTelemetryDispatcher<
   | 'onStart'
   | 'onStepStart'
   | 'onStepFinish'
-  | 'onFinish'
+  | 'onEnd'
   | 'onToolExecutionStart'
   | 'onToolExecutionEnd'
 > & {
   onStart: GenerateTextOnStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
   onStepStart: GenerateTextOnStepStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
   onStepFinish: GenerateTextOnStepFinishCallback<TOOLS, RUNTIME_CONTEXT>;
-  onFinish: GenerateTextOnFinishCallback<TOOLS, RUNTIME_CONTEXT>;
+  onEnd: GenerateTextOnEndCallback<TOOLS, RUNTIME_CONTEXT>;
   onToolExecutionStart?: OnToolExecutionStartCallback<TOOLS>;
   onToolExecutionEnd?: OnToolExecutionEndCallback<TOOLS>;
 };
@@ -104,6 +104,7 @@ function restrictStepResult<
     finishReason: step.finishReason,
     rawFinishReason: step.rawFinishReason,
     usage: step.usage,
+    performance: step.performance,
     warnings: step.warnings,
     request: step.request,
     response: step.response,
@@ -222,25 +223,32 @@ export function createRestrictedTelemetryDispatcher<
           includeToolsContext,
         }),
       ),
-    onFinish: event =>
-      telemetryDispatcher.onFinish?.({
-        ...event,
-        runtimeContext: filterIncludedContext({
-          context: event.runtimeContext,
-          includeContext: includeRuntimeContext,
-        }),
-        steps: event.steps.map(step =>
-          restrictStepResult({
-            step,
-            includeRuntimeContext,
-            includeToolsContext,
-          }),
+    onEnd: event =>
+      telemetryDispatcher.onEnd?.(
+        ((restrictedSteps: StepResult<TOOLS, Context>[]) => {
+          return {
+            ...event,
+            runtimeContext: filterIncludedContext({
+              context: event.runtimeContext,
+              includeContext: includeRuntimeContext,
+            }),
+            steps: restrictedSteps,
+            finalStep: restrictedSteps.at(-1)!,
+            toolsContext: filterToolsContext({
+              toolsContext: event.toolsContext,
+              includeToolsContext,
+            }),
+          };
+        })(
+          event.steps.map(step =>
+            restrictStepResult({
+              step,
+              includeRuntimeContext,
+              includeToolsContext,
+            }),
+          ),
         ),
-        toolsContext: filterToolsContext({
-          toolsContext: event.toolsContext,
-          includeToolsContext,
-        }),
-      }),
+      ),
     onToolExecutionStart: event =>
       telemetryDispatcher.onToolExecutionStart?.({
         ...event,

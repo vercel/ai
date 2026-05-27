@@ -18,7 +18,7 @@ run(async () => {
   console.log('Sources:', result.sources);
   console.log('Token usage:', result.usage);
   console.log('Finish reason:', result.finishReason);
-  console.log('Metadata:', result.providerMetadata);
+  console.log('Metadata:', result.finalStep.providerMetadata);
 
   for (const source of result.sources) {
     if (source.sourceType === 'url') {

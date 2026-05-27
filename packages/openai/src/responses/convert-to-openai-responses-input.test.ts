@@ -592,6 +592,44 @@ describe('convertToOpenAIResponsesInput', () => {
       ).rejects.toThrow('file part media type text/plain');
     });
 
+    it('should pass through unsupported file types when enabled', async () => {
+      const base64Data = 'bmFtZSxyb2xlCkFkYSxlbmdpbmVlcgo=';
+
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'text/csv',
+                data: { type: 'data' as const, data: base64Data },
+                filename: 'names.csv',
+              },
+            ],
+          },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        passThroughUnsupportedFiles: true,
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'input_file',
+              filename: 'names.csv',
+              file_data: `data:text/csv;base64,${base64Data}`,
+            },
+          ],
+        },
+      ]);
+    });
+
     it('should convert PDF file parts with URL to input_file with file_url', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [
@@ -4495,6 +4533,119 @@ describe('convertToOpenAIResponsesInput', () => {
       });
 
       // Reasoning with itemId should be skipped
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Hello",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('hasPreviousResponseId', () => {
+    it('should keep text item references and skip function call item references when hasPreviousResponseId is true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Hi there!',
+                providerOptions: { openai: { itemId: 'msg_existing_123' } },
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call_123',
+                toolName: 'getWeather',
+                input: { location: 'San Francisco' },
+                providerOptions: {
+                  openai: { itemId: 'fc_existing_456' },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'getWeather',
+                output: { type: 'json', value: { temp: 72 } },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasPreviousResponseId: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Hello",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "id": "msg_existing_123",
+            "type": "item_reference",
+          },
+          {
+            "call_id": "call_123",
+            "output": "{"temp":72}",
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should skip reasoning parts with item IDs when hasPreviousResponseId is true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'Let me think...',
+                providerOptions: {
+                  openai: { itemId: 'rs_existing_789' },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasPreviousResponseId: true,
+      });
+
       expect(result.input).toMatchInlineSnapshot(`
         [
           {

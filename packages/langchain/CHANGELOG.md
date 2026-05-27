@@ -1,5 +1,266 @@
 # @ai-sdk/langchain
 
+## 3.0.0-canary.155
+
+### Patch Changes
+
+- Updated dependencies [e67d80e]
+- Updated dependencies [6cca112]
+- Updated dependencies [82fc0ab]
+- Updated dependencies [76fd58c]
+  - ai@7.0.0-canary.155
+
+## 3.0.0-canary.154
+
+### Patch Changes
+
+- Updated dependencies [594029e]
+  - ai@7.0.0-canary.154
+
+## 3.0.0-canary.153
+
+### Patch Changes
+
+- 62ae6c7: fix(langchain): recognize Python `AIMessageChunk` plain message objects from RemoteGraph streams
+
+  Python `langchain-core` serializes streaming message chunks with `type: "AIMessageChunk"`, while TypeScript `langchain-core` uses `type: "ai"`. The `toUIMessageStream` adapter previously only matched the TypeScript form, silently dropping text deltas and tool-call events when streaming from Python LangGraph servers via `RemoteGraph`.
+
+- Updated dependencies [6c93e36]
+  - ai@7.0.0-canary.153
+
+## 3.0.0-canary.152
+
+### Patch Changes
+
+- ai@7.0.0-canary.152
+
+## 3.0.0-canary.151
+
+### Patch Changes
+
+- ai@7.0.0-canary.151
+
+## 3.0.0-canary.150
+
+### Patch Changes
+
+- ai@7.0.0-canary.150
+
+## 3.0.0-canary.149
+
+### Patch Changes
+
+- Updated dependencies [e3d9c0e]
+  - ai@7.0.0-canary.149
+
+## 3.0.0-canary.148
+
+### Patch Changes
+
+- Updated dependencies [2852a84]
+  - ai@7.0.0-canary.148
+
+## 3.0.0-canary.147
+
+### Patch Changes
+
+- ai@7.0.0-canary.147
+
+## 3.0.0-canary.146
+
+### Patch Changes
+
+- ai@7.0.0-canary.146
+
+## 3.0.0-canary.145
+
+### Patch Changes
+
+- ai@7.0.0-canary.145
+
+## 3.0.0-canary.144
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - ai@7.0.0-canary.144
+
+## 3.0.0-canary.143
+
+### Patch Changes
+
+- b567a6c: dependency updates
+- Updated dependencies [a6617c5]
+  - ai@7.0.0-canary.143
+
+## 3.0.0-canary.142
+
+### Patch Changes
+
+- Updated dependencies [62d6481]
+  - ai@7.0.0-canary.142
+
+## 3.0.0-canary.141
+
+### Patch Changes
+
+- Updated dependencies [e3a0419]
+  - ai@7.0.0-canary.141
+
+## 3.0.0-canary.140
+
+### Patch Changes
+
+- ai@7.0.0-canary.140
+
+## 3.0.0-canary.139
+
+### Patch Changes
+
+- Updated dependencies [334ae5d]
+- Updated dependencies [28dfa06]
+- Updated dependencies [e93fa91]
+  - ai@7.0.0-canary.139
+
+## 3.0.0-canary.138
+
+### Patch Changes
+
+- ai@7.0.0-canary.138
+
+## 3.0.0-canary.137
+
+### Patch Changes
+
+- Updated dependencies [98627e5]
+- Updated dependencies [476e1ca]
+  - ai@7.0.0-canary.137
+
+## 3.0.0-canary.136
+
+### Patch Changes
+
+- Updated dependencies [a7de9c9]
+  - ai@7.0.0-canary.136
+
+## 3.0.0-canary.135
+
+### Patch Changes
+
+- ai@7.0.0-canary.135
+
+## 3.0.0-canary.134
+
+### Patch Changes
+
+- Updated dependencies [ed74dae]
+- Updated dependencies [f4cc8eb]
+- Updated dependencies [e80ada0]
+- Updated dependencies [1dca341]
+- Updated dependencies [2605e5f]
+  - ai@7.0.0-canary.134
+
+## 3.0.0-canary.133
+
+### Patch Changes
+
+- Updated dependencies [38ca8dc]
+- Updated dependencies [6d76710]
+  - ai@7.0.0-canary.133
+
+## 3.0.0-canary.132
+
+### Patch Changes
+
+- Updated dependencies [eaf849f]
+- Updated dependencies [8565dcb]
+  - ai@7.0.0-canary.132
+
+## 3.0.0-canary.131
+
+### Patch Changes
+
+- Updated dependencies [b67525f]
+- Updated dependencies [ca446f8]
+- Updated dependencies [bcacd48]
+  - ai@7.0.0-canary.131
+
+## 3.0.0-canary.130
+
+### Patch Changes
+
+- ai@7.0.0-canary.130
+
+## 3.0.0-canary.129
+
+### Patch Changes
+
+- Updated dependencies [d1b3786]
+  - ai@7.0.0-canary.129
+
+## 3.0.0-canary.128
+
+### Patch Changes
+
+- ai@7.0.0-canary.128
+
+## 3.0.0-canary.127
+
+### Patch Changes
+
+- Updated dependencies [e95e38d]
+- Updated dependencies [016e877]
+- Updated dependencies [ca99fea]
+- Updated dependencies [d775a57]
+- Updated dependencies [538c12b]
+  - ai@7.0.0-canary.127
+
+## 3.0.0-canary.126
+
+### Patch Changes
+
+- ai@7.0.0-canary.126
+
+## 3.0.0-canary.125
+
+### Patch Changes
+
+- Updated dependencies [fd4f578]
+- Updated dependencies [31f69de]
+- Updated dependencies [7c71ac6]
+- Updated dependencies [c0c8ca2]
+- Updated dependencies [5faf71c]
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+- Updated dependencies [eee1166]
+- Updated dependencies [7dbf992]
+  - ai@7.0.0-canary.125
+
+## 3.0.0-canary.124
+
+### Patch Changes
+
+- Updated dependencies [69aeb0e]
+- Updated dependencies [48e92f3]
+  - ai@7.0.0-canary.124
+
+## 3.0.0-canary.123
+
+### Patch Changes
+
+- Updated dependencies [7392266]
+- Updated dependencies [4bb4dbc]
+  - ai@7.0.0-canary.123
+
+## 3.0.0-canary.122
+
+### Patch Changes
+
+- Updated dependencies [79b2468]
+- Updated dependencies [c22750c]
+  - ai@7.0.0-canary.122
+
 ## 3.0.0-canary.121
 
 ### Patch Changes

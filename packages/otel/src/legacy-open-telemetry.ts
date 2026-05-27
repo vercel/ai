@@ -19,7 +19,6 @@ import type {
   GenerateObjectStartEvent,
   GenerateObjectStepEndEvent,
   GenerateObjectStepStartEvent,
-  StreamTextChunkEvent,
   GenerateTextEndEvent,
   GenerateTextStartEvent,
   GenerateTextStepEndEvent,
@@ -175,6 +174,26 @@ export class LegacyOpenTelemetry implements Telemetry {
     return context.with(toolSpanEntry.context, execute);
   }
 
+  /**
+   * Runs the provider `doGenerate`/`doStream` call with the active legacy
+   * model-call context.
+   */
+  executeLanguageModelCall<T>({
+    callId,
+    execute,
+  }: {
+    callId: string;
+    execute: () => PromiseLike<T>;
+  }): PromiseLike<T> {
+    const stepContext = this.getCallState(callId)?.stepContext;
+
+    if (stepContext == null) {
+      return execute();
+    }
+
+    return context.with(stepContext, execute);
+  }
+
   onStart(
     event:
       | InferTelemetryEvent<GenerateTextStartEvent>
@@ -249,7 +268,7 @@ export class LegacyOpenTelemetry implements Telemetry {
       'ai.prompt': {
         input: () =>
           JSON.stringify({
-            system: event.system,
+            system: event.instructions,
             messages: event.messages,
           }),
       },
@@ -420,8 +439,10 @@ export class LegacyOpenTelemetry implements Telemetry {
         'ai.usage.inputTokens': event.usage.inputTokens,
         'ai.usage.outputTokens': event.usage.outputTokens,
         'ai.usage.totalTokens': event.usage.totalTokens,
-        'ai.usage.reasoningTokens': event.usage.reasoningTokens,
-        'ai.usage.cachedInputTokens': event.usage.cachedInputTokens,
+        'ai.usage.reasoningTokens':
+          event.usage.outputTokenDetails?.reasoningTokens,
+        'ai.usage.cachedInputTokens':
+          event.usage.inputTokenDetails?.cacheReadTokens,
 
         'gen_ai.response.finish_reasons': [event.finishReason],
         'gen_ai.response.id': event.response.id,
@@ -638,6 +659,7 @@ export class LegacyOpenTelemetry implements Telemetry {
     if (!state?.stepSpan) return;
 
     const { telemetry } = state;
+    const isStreamText = state.operationId === 'ai.streamText';
 
     state.stepSpan.setAttributes(
       selectAttributes(telemetry, {
@@ -684,12 +706,23 @@ export class LegacyOpenTelemetry implements Telemetry {
         'ai.response.providerMetadata': event.providerMetadata
           ? JSON.stringify(event.providerMetadata)
           : undefined,
+        'ai.response.msToFirstChunk': isStreamText
+          ? event.performance.timeToFirstOutputMs
+          : undefined,
+        'ai.response.msToFinish': isStreamText
+          ? event.performance.responseTimeMs
+          : undefined,
+        'ai.response.avgOutputTokensPerSecond': isStreamText
+          ? event.performance.effectiveOutputTokensPerSecond
+          : undefined,
 
         'ai.usage.inputTokens': event.usage.inputTokens,
         'ai.usage.outputTokens': event.usage.outputTokens,
         'ai.usage.totalTokens': event.usage.totalTokens,
-        'ai.usage.reasoningTokens': event.usage.reasoningTokens,
-        'ai.usage.cachedInputTokens': event.usage.cachedInputTokens,
+        'ai.usage.reasoningTokens':
+          event.usage.outputTokenDetails?.reasoningTokens,
+        'ai.usage.cachedInputTokens':
+          event.usage.inputTokenDetails?.cacheReadTokens,
         'ai.usage.inputTokenDetails.noCacheTokens':
           event.usage.inputTokenDetails?.noCacheTokens,
         'ai.usage.inputTokenDetails.cacheReadTokens':
@@ -709,12 +742,26 @@ export class LegacyOpenTelemetry implements Telemetry {
       }),
     );
 
+    if (isStreamText && event.performance.timeToFirstOutputMs != null) {
+      state.stepSpan.addEvent('ai.stream.firstChunk', {
+        'ai.response.msToFirstChunk': event.performance.timeToFirstOutputMs,
+      });
+    }
+
+    if (isStreamText) {
+      state.stepSpan.addEvent('ai.stream.finish', {
+        'ai.response.msToFinish': event.performance.responseTimeMs,
+        'ai.response.avgOutputTokensPerSecond':
+          event.performance.effectiveOutputTokensPerSecond,
+      });
+    }
+
     state.stepSpan.end();
     state.stepSpan = undefined;
     state.stepContext = undefined;
   }
 
-  onFinish(
+  onEnd(
     event:
       | GenerateTextEndEvent<ToolSet>
       | GenerateObjectEndEvent<unknown>
@@ -728,12 +775,12 @@ export class LegacyOpenTelemetry implements Telemetry {
       state.operationId === 'ai.embed' ||
       state.operationId === 'ai.embedMany'
     ) {
-      this.onEmbedOperationFinish(event as EmbedEndEvent);
+      this.onEmbedOperationEnd(event as EmbedEndEvent);
       return;
     }
 
     if (state.operationId === 'ai.rerank') {
-      this.onRerankOperationFinish(event as RerankEndEvent);
+      this.onRerankOperationEnd(event as RerankEndEvent);
       return;
     }
 
@@ -741,14 +788,14 @@ export class LegacyOpenTelemetry implements Telemetry {
       state.operationId === 'ai.generateObject' ||
       state.operationId === 'ai.streamObject'
     ) {
-      this.onObjectOperationFinish(event as GenerateObjectEndEvent<unknown>);
+      this.onObjectOperationEnd(event as GenerateObjectEndEvent<unknown>);
       return;
     }
 
-    this.onGenerateFinish(event as GenerateTextEndEvent<ToolSet>);
+    this.onGenerateEnd(event as GenerateTextEndEvent<ToolSet>);
   }
 
-  private onGenerateFinish(event: GenerateTextEndEvent<ToolSet>): void {
+  private onGenerateEnd(event: GenerateTextEndEvent<ToolSet>): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan) return;
 
@@ -762,8 +809,8 @@ export class LegacyOpenTelemetry implements Telemetry {
         },
         'ai.response.reasoning': {
           output: () =>
-            event.reasoning.length > 0
-              ? event.reasoning
+            event.finalStep.reasoning.length > 0
+              ? event.finalStep.reasoning
                   .filter(part => 'text' in part)
                   .map(part => part.text)
                   .join('\n')
@@ -793,25 +840,27 @@ export class LegacyOpenTelemetry implements Telemetry {
                 )
               : undefined,
         },
-        'ai.response.providerMetadata': event.providerMetadata
-          ? JSON.stringify(event.providerMetadata)
+        'ai.response.providerMetadata': event.finalStep.providerMetadata
+          ? JSON.stringify(event.finalStep.providerMetadata)
           : undefined,
 
-        'ai.usage.inputTokens': event.totalUsage.inputTokens,
-        'ai.usage.outputTokens': event.totalUsage.outputTokens,
-        'ai.usage.totalTokens': event.totalUsage.totalTokens,
-        'ai.usage.reasoningTokens': event.totalUsage.reasoningTokens,
-        'ai.usage.cachedInputTokens': event.totalUsage.cachedInputTokens,
+        'ai.usage.inputTokens': event.usage.inputTokens,
+        'ai.usage.outputTokens': event.usage.outputTokens,
+        'ai.usage.totalTokens': event.usage.totalTokens,
+        'ai.usage.reasoningTokens':
+          event.usage.outputTokenDetails?.reasoningTokens,
+        'ai.usage.cachedInputTokens':
+          event.usage.inputTokenDetails?.cacheReadTokens,
         'ai.usage.inputTokenDetails.noCacheTokens':
-          event.totalUsage.inputTokenDetails?.noCacheTokens,
+          event.usage.inputTokenDetails?.noCacheTokens,
         'ai.usage.inputTokenDetails.cacheReadTokens':
-          event.totalUsage.inputTokenDetails?.cacheReadTokens,
+          event.usage.inputTokenDetails?.cacheReadTokens,
         'ai.usage.inputTokenDetails.cacheWriteTokens':
-          event.totalUsage.inputTokenDetails?.cacheWriteTokens,
+          event.usage.inputTokenDetails?.cacheWriteTokens,
         'ai.usage.outputTokenDetails.textTokens':
-          event.totalUsage.outputTokenDetails?.textTokens,
+          event.usage.outputTokenDetails?.textTokens,
         'ai.usage.outputTokenDetails.reasoningTokens':
-          event.totalUsage.outputTokenDetails?.reasoningTokens,
+          event.usage.outputTokenDetails?.reasoningTokens,
       }),
     );
 
@@ -819,9 +868,7 @@ export class LegacyOpenTelemetry implements Telemetry {
     this.cleanupCallState(event.callId);
   }
 
-  private onObjectOperationFinish(
-    event: GenerateObjectEndEvent<unknown>,
-  ): void {
+  private onObjectOperationEnd(event: GenerateObjectEndEvent<unknown>): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan) return;
 
@@ -841,8 +888,10 @@ export class LegacyOpenTelemetry implements Telemetry {
         'ai.usage.inputTokens': event.usage.inputTokens,
         'ai.usage.outputTokens': event.usage.outputTokens,
         'ai.usage.totalTokens': event.usage.totalTokens,
-        'ai.usage.reasoningTokens': event.usage.reasoningTokens,
-        'ai.usage.cachedInputTokens': event.usage.cachedInputTokens,
+        'ai.usage.reasoningTokens':
+          event.usage.outputTokenDetails?.reasoningTokens,
+        'ai.usage.cachedInputTokens':
+          event.usage.inputTokenDetails?.cacheReadTokens,
       }),
     );
 
@@ -850,7 +899,7 @@ export class LegacyOpenTelemetry implements Telemetry {
     this.cleanupCallState(event.callId);
   }
 
-  private onEmbedOperationFinish(event: EmbedEndEvent): void {
+  private onEmbedOperationEnd(event: EmbedEndEvent): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan) return;
 
@@ -909,7 +958,7 @@ export class LegacyOpenTelemetry implements Telemetry {
     });
   }
 
-  onEmbedFinish(event: EmbeddingModelCallEndEvent): void {
+  onEmbedEnd(event: EmbeddingModelCallEndEvent): void {
     const state = this.getCallState(event.callId);
     if (!state) return;
 
@@ -982,7 +1031,7 @@ export class LegacyOpenTelemetry implements Telemetry {
     });
   }
 
-  private onRerankOperationFinish(event: RerankEndEvent): void {
+  private onRerankOperationEnd(event: RerankEndEvent): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan) return;
 
@@ -1017,7 +1066,7 @@ export class LegacyOpenTelemetry implements Telemetry {
     state.rerankSpan = { span: rerankSpan, context: rerankContext };
   }
 
-  onRerankFinish(event: RerankingModelCallEndEvent): void {
+  onRerankEnd(event: RerankingModelCallEndEvent): void {
     const state = this.getCallState(event.callId);
     if (!state?.rerankSpan) return;
 
@@ -1035,39 +1084,6 @@ export class LegacyOpenTelemetry implements Telemetry {
 
     span.end();
     state.rerankSpan = undefined;
-  }
-
-  onChunk(event: StreamTextChunkEvent<ToolSet>): void {
-    const chunk = event.chunk as {
-      type: string;
-      callId?: unknown;
-      attributes?: unknown;
-    };
-
-    if (typeof chunk.callId !== 'string') {
-      return;
-    }
-
-    if (
-      chunk.type !== 'ai.stream.firstChunk' &&
-      chunk.type !== 'ai.stream.finish'
-    ) {
-      return;
-    }
-
-    const state = this.getCallState(chunk.callId);
-    if (!state?.stepSpan) return;
-
-    const attributes = Object.fromEntries(
-      Object.entries(
-        (chunk.attributes as Record<string, unknown>) ?? {},
-      ).filter(([, value]) => value != null),
-    ) as Attributes;
-
-    state.stepSpan.addEvent(chunk.type, attributes);
-    if (Object.keys(attributes).length > 0) {
-      state.stepSpan.setAttributes(attributes);
-    }
   }
 
   onError(error: unknown): void {

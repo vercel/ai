@@ -1,13 +1,78 @@
 import type { JSONValue } from '@ai-sdk/provider';
-import { tool, type Context } from '@ai-sdk/provider-utils';
+import {
+  tool,
+  type Context,
+  type ModelMessage,
+  type Tool,
+} from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
 import { Output, streamText } from '../generate-text';
+import type { Instructions } from '../prompt';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import type { AsyncIterableStream } from '../util';
 import type { DeepPartial } from '../util/deep-partial';
+import type { GenerateTextEndEvent } from './generate-text-events';
+import type { ResponseMessage } from './response-message';
+import type { StepResult } from './step-result';
 
 describe('streamText types', () => {
+  describe('onEnd', () => {
+    it('should expose end event properties', () => {
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        onEnd: event => {
+          expectTypeOf(event).toMatchTypeOf<GenerateTextEndEvent>();
+          expectTypeOf(event.totalUsage).toEqualTypeOf<
+            GenerateTextEndEvent['usage']
+          >();
+          expectTypeOf(event.reasoning).toEqualTypeOf<
+            StepResult<any>['reasoning']
+          >();
+          expectTypeOf(event.reasoningText).toEqualTypeOf<string | undefined>();
+          expectTypeOf(event.request).toEqualTypeOf<
+            StepResult<any>['request']
+          >();
+          expectTypeOf(event.response).toEqualTypeOf<
+            StepResult<any>['response']
+          >();
+          expectTypeOf(event.providerMetadata).toEqualTypeOf<
+            StepResult<any>['providerMetadata']
+          >();
+        },
+      });
+    });
+  });
+
+  describe('onFinish compatibility', () => {
+    it('should expose deprecated AI SDK 6 properties', () => {
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        onFinish: event => {
+          expectTypeOf(event).toMatchTypeOf<GenerateTextEndEvent>();
+          expectTypeOf(event.totalUsage).toEqualTypeOf<
+            GenerateTextEndEvent['usage']
+          >();
+          expectTypeOf(event.reasoning).toEqualTypeOf<
+            StepResult<any>['reasoning']
+          >();
+          expectTypeOf(event.reasoningText).toEqualTypeOf<string | undefined>();
+          expectTypeOf(event.request).toEqualTypeOf<
+            StepResult<any>['request']
+          >();
+          expectTypeOf(event.response).toEqualTypeOf<
+            StepResult<any>['response']
+          >();
+          expectTypeOf(event.providerMetadata).toEqualTypeOf<
+            StepResult<any>['providerMetadata']
+          >();
+        },
+      });
+    });
+  });
+
   describe('output', () => {
     it('should infer text output type (default)', async () => {
       const result = streamText({
@@ -237,6 +302,21 @@ describe('streamText types', () => {
     }),
   };
 
+  type ToolWithFullyOptionalContext = {
+    weather: Tool<{ location: string }, never, { weatherApiKey?: string }>;
+  };
+
+  type ToolWithOptionalContextObject = {
+    weather: Tool<
+      { location: string },
+      never,
+      { weatherApiKey: string } | undefined
+    >;
+  };
+
+  const toolWithFullyOptionalContext = {} as ToolWithFullyOptionalContext;
+  const toolWithOptionalContextObject = {} as ToolWithOptionalContextObject;
+
   describe('experimental_refineToolInput', () => {
     it('should infer input and return types for each tool', async () => {
       streamText({
@@ -416,7 +496,24 @@ describe('streamText types', () => {
         streamText({
           model: new MockLanguageModelV4(),
           prompt: 'Hello',
-          prepareStep: ({ runtimeContext, toolsContext }) => {
+          prepareStep: ({
+            instructions,
+            initialInstructions,
+            initialMessages,
+            responseMessages,
+            runtimeContext,
+            toolsContext,
+          }) => {
+            expectTypeOf(instructions).toEqualTypeOf<
+              Instructions | undefined
+            >();
+            expectTypeOf(initialInstructions).toEqualTypeOf<
+              Instructions | undefined
+            >();
+            expectTypeOf(initialMessages).toEqualTypeOf<Array<ModelMessage>>();
+            expectTypeOf(responseMessages).toEqualTypeOf<
+              Array<ResponseMessage>
+            >();
             expectTypeOf(runtimeContext).toEqualTypeOf<Context>();
             expectTypeOf(toolsContext).toEqualTypeOf<{}>();
 
@@ -468,6 +565,39 @@ describe('streamText types', () => {
 
             return {};
           },
+        });
+      });
+
+      it('should accept sandbox overrides', async () => {
+        streamText({
+          model: new MockLanguageModelV4(),
+          prompt: 'Hello',
+          prepareStep: () => ({
+            experimental_sandbox: {
+              description: 'test sandbox',
+              run: async () => ({
+                exitCode: 0,
+                stdout: 'ok',
+                stderr: '',
+              }),
+              readFile: async () => null,
+              readBinaryFile: async () => null,
+              readTextFile: async () => null,
+              writeFile: async () => {},
+              writeBinaryFile: async () => {},
+              writeTextFile: async () => {},
+              spawn: async () => ({
+                stdout: new ReadableStream<Uint8Array>({
+                  start: c => c.close(),
+                }),
+                stderr: new ReadableStream<Uint8Array>({
+                  start: c => c.close(),
+                }),
+                wait: async () => ({ exitCode: 0 }),
+                kill: async () => {},
+              }),
+            },
+          }),
         });
       });
     });
@@ -523,6 +653,73 @@ describe('streamText types', () => {
           tools: toolWithoutContext,
           // @ts-expect-error toolsContext is not accepted when no tools require it
           toolsContext: {},
+        });
+      });
+    });
+
+    describe('single tool with fully optional contextSchema', () => {
+      it('should reject no toolsContext', async () => {
+        // @ts-expect-error toolsContext is required when a tool has contextSchema
+        streamText({
+          model: new MockLanguageModelV4(),
+          prompt: 'Hello',
+          tools: toolWithFullyOptionalContext,
+        });
+      });
+
+      it('should accept empty toolsContext entry', async () => {
+        streamText({
+          model: new MockLanguageModelV4(),
+          prompt: 'Hello',
+          tools: toolWithFullyOptionalContext,
+          toolsContext: { weather: {} },
+        });
+      });
+    });
+
+    describe('single tool with optional context object', () => {
+      it('should accept no toolsContext', async () => {
+        streamText({
+          model: new MockLanguageModelV4(),
+          prompt: 'Hello',
+          tools: toolWithOptionalContextObject,
+        });
+      });
+
+      it('should accept empty toolsContext', async () => {
+        streamText({
+          model: new MockLanguageModelV4(),
+          prompt: 'Hello',
+          tools: toolWithOptionalContextObject,
+          toolsContext: {},
+        });
+      });
+
+      it('should accept undefined toolsContext entry', async () => {
+        streamText({
+          model: new MockLanguageModelV4(),
+          prompt: 'Hello',
+          tools: toolWithOptionalContextObject,
+          toolsContext: { weather: undefined },
+        });
+      });
+
+      it('should accept defined toolsContext entry', async () => {
+        streamText({
+          model: new MockLanguageModelV4(),
+          prompt: 'Hello',
+          tools: toolWithOptionalContextObject,
+          toolsContext: { weather: { weatherApiKey: 'key' } },
+        });
+      });
+
+      it('should reject missing required fields when context object is provided', async () => {
+        streamText({
+          model: new MockLanguageModelV4(),
+          prompt: 'Hello',
+          tools: toolWithOptionalContextObject,
+          // @ts-expect-error missing required weather.weatherApiKey
+          toolsContext: { weather: {} },
         });
       });
     });

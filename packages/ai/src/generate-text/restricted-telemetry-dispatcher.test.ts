@@ -59,8 +59,18 @@ function createStepResult({
     finishReason: 'stop',
     rawFinishReason: 'stop',
     usage: createNullLanguageModelUsage(),
+    performance: {
+      effectiveOutputTokensPerSecond: 0,
+      outputTokensPerSecond: undefined,
+      inputTokensPerSecond: undefined,
+      effectiveTotalTokensPerSecond: 0,
+      stepTimeMs: 0,
+      responseTimeMs: 0,
+      toolExecutionMs: {},
+      timeToFirstOutputMs: undefined,
+    },
     warnings: [],
-    request: {},
+    request: { messages: [] },
     response: {
       id: 'response-1',
       timestamp: new Date(0),
@@ -251,23 +261,24 @@ describe('createRestrictedTelemetryDispatcher', () => {
     expect(step.toolsContext).toEqual(toolsContext);
   });
 
-  it('includes configured runtimeContext for finish events and all steps without mutating source steps', async () => {
-    const onFinish = vi.fn();
+  it('includes configured runtimeContext for end events and all steps without mutating source steps', async () => {
+    const onEnd = vi.fn();
     const telemetryDispatcher = createRestrictedTelemetryDispatcher({
-      telemetry: { integrations: { onFinish } },
+      telemetry: { integrations: { onEnd } },
       includeRuntimeContext,
     });
     const step = createStepResult();
 
-    await telemetryDispatcher.onFinish?.({
+    await telemetryDispatcher.onEnd?.({
       ...createStepResult(),
       text: 'Hello',
       runtimeContext,
       steps: [step],
-      totalUsage: createNullLanguageModelUsage(),
+      finalStep: step,
+      usage: createNullLanguageModelUsage(),
     } as any);
 
-    const telemetryEvent = onFinish.mock.calls[0][0];
+    const telemetryEvent = onEnd.mock.calls[0][0];
 
     expect(telemetryEvent.runtimeContext).toEqual({
       requestId: 'request-123',
@@ -275,32 +286,35 @@ describe('createRestrictedTelemetryDispatcher', () => {
     expect(telemetryEvent.steps[0].runtimeContext).toEqual({
       requestId: 'request-123',
     });
+    expect(telemetryEvent.finalStep).toBe(telemetryEvent.steps[0]);
     expect(telemetryEvent.text).toBe('Hello');
     expect(step.runtimeContext).toEqual(runtimeContext);
   });
 
-  it('filters toolsContext for finish events and all steps without mutating source steps', async () => {
-    const onFinish = vi.fn();
+  it('filters toolsContext for end events and all steps without mutating source steps', async () => {
+    const onEnd = vi.fn();
     const telemetryDispatcher = createRestrictedTelemetryDispatcher({
-      telemetry: { integrations: { onFinish } },
+      telemetry: { integrations: { onEnd } },
       includeRuntimeContext: undefined,
       includeToolsContext,
     });
     const step = createStepResult({ toolContexts: toolsContext });
 
-    await telemetryDispatcher.onFinish?.({
+    await telemetryDispatcher.onEnd?.({
       ...createStepResult({ toolContexts: toolsContext }),
       text: 'Hello',
       runtimeContext,
       toolsContext,
       steps: [step],
-      totalUsage: createNullLanguageModelUsage(),
+      finalStep: step,
+      usage: createNullLanguageModelUsage(),
     } as any);
 
-    const telemetryEvent = onFinish.mock.calls[0][0];
+    const telemetryEvent = onEnd.mock.calls[0][0];
 
     expect(telemetryEvent.toolsContext).toEqual(filteredToolsContext);
     expect(telemetryEvent.steps[0].toolsContext).toEqual(filteredToolsContext);
+    expect(telemetryEvent.finalStep).toBe(telemetryEvent.steps[0]);
     expect(telemetryEvent.text).toBe('Hello');
     expect(step.toolsContext).toEqual(toolsContext);
   });
@@ -344,7 +358,7 @@ describe('createRestrictedTelemetryDispatcher', () => {
     });
     const event = {
       callId: 'call-1',
-      durationMs: 10,
+      toolExecutionMs: 10,
       messages: [],
       toolCall: {
         type: 'tool-call',
