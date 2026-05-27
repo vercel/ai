@@ -67,7 +67,7 @@ function createStepResult({
       stepTimeMs: 0,
       responseTimeMs: 0,
       toolExecutionMs: {},
-      timeToFirstOutputTokenMs: undefined,
+      timeToFirstOutputMs: undefined,
     },
     warnings: [],
     request: { messages: [] },
@@ -274,7 +274,8 @@ describe('createRestrictedTelemetryDispatcher', () => {
       text: 'Hello',
       runtimeContext,
       steps: [step],
-      totalUsage: createNullLanguageModelUsage(),
+      finalStep: step,
+      usage: createNullLanguageModelUsage(),
     } as any);
 
     const telemetryEvent = onEnd.mock.calls[0][0];
@@ -285,6 +286,7 @@ describe('createRestrictedTelemetryDispatcher', () => {
     expect(telemetryEvent.steps[0].runtimeContext).toEqual({
       requestId: 'request-123',
     });
+    expect(telemetryEvent.finalStep).toBe(telemetryEvent.steps[0]);
     expect(telemetryEvent.text).toBe('Hello');
     expect(step.runtimeContext).toEqual(runtimeContext);
   });
@@ -304,13 +306,15 @@ describe('createRestrictedTelemetryDispatcher', () => {
       runtimeContext,
       toolsContext,
       steps: [step],
-      totalUsage: createNullLanguageModelUsage(),
+      finalStep: step,
+      usage: createNullLanguageModelUsage(),
     } as any);
 
     const telemetryEvent = onEnd.mock.calls[0][0];
 
     expect(telemetryEvent.toolsContext).toEqual(filteredToolsContext);
     expect(telemetryEvent.steps[0].toolsContext).toEqual(filteredToolsContext);
+    expect(telemetryEvent.finalStep).toBe(telemetryEvent.steps[0]);
     expect(telemetryEvent.text).toBe('Hello');
     expect(step.toolsContext).toEqual(toolsContext);
   });

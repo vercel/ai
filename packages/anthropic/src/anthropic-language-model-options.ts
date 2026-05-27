@@ -26,6 +26,12 @@ export type AnthropicModelId =
  */
 export const anthropicFilePartProviderOptions = z.object({
   /**
+   * Upload this file into the code execution container instead of sending it as
+   * a normal document or image content block.
+   */
+  containerUpload: z.boolean().optional(),
+
+  /**
    * Citation configuration for this document.
    * When enabled, this document will generate citations in the response.
    */

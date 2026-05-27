@@ -67,7 +67,7 @@ import {
   type ActiveToolSubset,
 } from './filter-active-tools';
 import type {
-  GenerateTextOnFinishCallback,
+  GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
@@ -202,7 +202,8 @@ export type GenerateTextInclude = {
  * Uses a discriminated union: check `success` to determine if `output` or `error` is present.
  * @param experimental_onToolCallFinish - Deprecated alias for `onToolExecutionEnd`.
  * @param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
- * @param onFinish - Callback that is called when all steps are finished and the response is complete.
+ * @param onEnd - Callback that is called when all steps are finished and the response is complete.
+ * @param onFinish - Deprecated alias for `onEnd`.
  *
  * @returns
  * A result object that contains the generated text, the results of the tool calls, and additional information.
@@ -255,6 +256,7 @@ export async function generateText<
   experimental_onToolCallFinish,
   onStepFinish,
   onFinish,
+  onEnd = onFinish,
   ...settings
 }: LanguageModelCallOptions &
   RequestOptions<TOOLS> &
@@ -419,7 +421,14 @@ export async function generateText<
     /**
      * Callback that is called when all steps are finished and the response is complete.
      */
-    onFinish?: GenerateTextOnFinishCallback<
+    onEnd?: GenerateTextOnEndCallback<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>;
+
+    /**
+     * Callback that is called when all steps are finished and the response is complete.
+     *
+     * @deprecated Use `onEnd` instead.
+     */
+    onFinish?: GenerateTextOnEndCallback<
       NoInfer<TOOLS>,
       NoInfer<RUNTIME_CONTEXT>
     >;
@@ -772,16 +781,25 @@ export async function generateText<
 
         const stepStartTimestampMs = now();
 
+        const executeLanguageModelCallInTelemetryContext =
+          telemetryDispatcher.executeLanguageModelCall ??
+          (async <T>({ execute }: { execute: () => PromiseLike<T> }) =>
+            await execute());
+
         currentModelResponse = await retry(async () => {
-          const result = await stepModel.doGenerate({
-            ...callSettings,
-            tools: stepTools,
-            toolChoice: stepToolChoice,
-            responseFormat: await output?.responseFormat,
-            prompt: promptMessages,
-            providerOptions: stepProviderOptions,
-            abortSignal: mergedAbortSignal,
-            headers: headersWithUserAgent,
+          const result = await executeLanguageModelCallInTelemetryContext({
+            callId,
+            execute: async () =>
+              await stepModel.doGenerate({
+                ...callSettings,
+                tools: stepTools,
+                toolChoice: stepToolChoice,
+                responseFormat: await output?.responseFormat,
+                prompt: promptMessages,
+                providerOptions: stepProviderOptions,
+                abortSignal: mergedAbortSignal,
+                headers: headersWithUserAgent,
+              }),
           });
 
           const responseData = {
@@ -858,7 +876,7 @@ export async function generateText<
                 ),
                 durationMs: responseTimeMs,
               }),
-              timeToFirstOutputTokenMs: undefined,
+              timeToFirstOutputMs: undefined,
             },
           },
           callbacks: [
@@ -1042,7 +1060,7 @@ export async function generateText<
           stepTimeMs,
           responseTimeMs,
           toolExecutionMs,
-          timeToFirstOutputTokenMs: undefined,
+          timeToFirstOutputMs: undefined,
         };
 
         // Track provider-executed tool calls that support deferred results.
@@ -1185,44 +1203,52 @@ export async function generateText<
     );
 
     const files = steps.flatMap(step => step.files);
+    const sources = steps.flatMap(step => step.sources);
+    const toolCalls = steps.flatMap(step => step.toolCalls);
+    const staticToolCalls = steps.flatMap(step => step.staticToolCalls);
+    const dynamicToolCalls = steps.flatMap(step => step.dynamicToolCalls);
+    const toolResults = steps.flatMap(step => step.toolResults);
+    const staticToolResults = steps.flatMap(step => step.staticToolResults);
+    const dynamicToolResults = steps.flatMap(step => step.dynamicToolResults);
     const warnings = steps.flatMap(step => step.warnings ?? []);
 
-    const onFinishEvent = {
+    const onEndEvent = {
       callId,
       stepNumber: lastStep.stepNumber,
       model: lastStep.model,
       runtimeContext: lastStep.runtimeContext,
       finishReason: lastStep.finishReason,
       rawFinishReason: lastStep.rawFinishReason,
-      usage: lastStep.usage,
-      content: lastStep.content,
+      usage: totalUsage,
+      totalUsage,
+      content: steps.flatMap(step => step.content),
       text: lastStep.text,
-      reasoningText: lastStep.reasoningText,
       reasoning: lastStep.reasoning,
+      reasoningText: lastStep.reasoningText,
       files,
-      sources: lastStep.sources,
-      toolCalls: lastStep.toolCalls,
-      staticToolCalls: lastStep.staticToolCalls,
-      dynamicToolCalls: lastStep.dynamicToolCalls,
-      toolResults: lastStep.toolResults,
-      staticToolResults: lastStep.staticToolResults,
-      dynamicToolResults: lastStep.dynamicToolResults,
-      request: lastStep.request,
-      response: lastStep.response,
+      sources,
+      toolCalls,
+      staticToolCalls,
+      dynamicToolCalls,
+      toolResults,
+      staticToolResults,
+      dynamicToolResults,
       responseMessages: [
         ...initialResponseMessages,
         ...steps.flatMap(step => step.response.messages),
       ],
       warnings,
+      request: lastStep.request,
+      response: lastStep.response,
       providerMetadata: lastStep.providerMetadata,
       steps,
-      totalUsage,
+      finalStep: lastStep,
       toolsContext,
     };
 
     await notify({
-      event: onFinishEvent,
-      callbacks: [onFinish, telemetryDispatcher.onEnd],
+      event: onEndEvent,
+      callbacks: [onEnd, telemetryDispatcher.onEnd],
     });
 
     // parse output only if the last step was finished with "stop":

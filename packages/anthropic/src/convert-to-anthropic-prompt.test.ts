@@ -729,6 +729,61 @@ describe('user messages', () => {
     });
   });
 
+  it('should convert provider referenced file parts to container uploads when requested', async () => {
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'Analyze this data.',
+            },
+            {
+              type: 'file',
+              mediaType: 'text/csv',
+              data: {
+                type: 'reference' as const,
+                reference: { anthropic: 'file-csv-12345' },
+              },
+              providerOptions: {
+                anthropic: {
+                  containerUpload: true,
+                },
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'Analyze this data.',
+                cache_control: undefined,
+              },
+              {
+                type: 'container_upload',
+                file_id: 'file-csv-12345',
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      },
+      betas: new Set(['files-api-2025-04-14']),
+    });
+  });
+
   it('should throw when provider reference does not contain anthropic key', async () => {
     await expect(
       convertToAnthropicPrompt({

@@ -99,6 +99,18 @@ export async function convertToAnthropicPrompt({
     return anthropicOptions?.citations?.enabled ?? false;
   }
 
+  async function shouldUseContainerUpload(
+    providerMetadata: SharedV4ProviderMetadata | undefined,
+  ): Promise<boolean> {
+    const anthropicOptions = await parseProviderOptions({
+      provider: 'anthropic',
+      providerOptions: providerMetadata,
+      schema: anthropicFilePartProviderOptions,
+    });
+
+    return anthropicOptions?.containerUpload ?? false;
+  }
+
   async function getDocumentMetadata(
     providerMetadata: SharedV4ProviderMetadata | undefined,
   ): Promise<{ title?: string; context?: string }> {
@@ -187,7 +199,16 @@ export async function convertToAnthropicPrompt({
                         });
                         betas.add('files-api-2025-04-14');
 
-                        if (getTopLevelMediaType(part.mediaType) === 'image') {
+                        if (
+                          await shouldUseContainerUpload(part.providerOptions)
+                        ) {
+                          anthropicContent.push({
+                            type: 'container_upload',
+                            file_id: fileId,
+                          });
+                        } else if (
+                          getTopLevelMediaType(part.mediaType) === 'image'
+                        ) {
                           anthropicContent.push({
                             type: 'image',
                             source: { type: 'file', file_id: fileId },
