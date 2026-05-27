@@ -973,7 +973,7 @@ describe('generateText', () => {
         stepTimeMs: 500,
         responseTimeMs: 500,
         toolExecutionMs: {},
-        timeToFirstOutputTokenMs: undefined,
+        timeToFirstOutputMs: undefined,
       });
     });
 
@@ -1021,7 +1021,7 @@ describe('generateText', () => {
         toolExecutionMs: {
           'call-1': 300,
         },
-        timeToFirstOutputTokenMs: undefined,
+        timeToFirstOutputMs: undefined,
       });
     });
   });
@@ -2705,7 +2705,7 @@ describe('generateText', () => {
               "inputTokensPerSecond": undefined,
               "outputTokensPerSecond": undefined,
               "responseTimeMs": 0,
-              "timeToFirstOutputTokenMs": undefined,
+              "timeToFirstOutputMs": undefined,
             },
             "provider": "mock-provider",
             "responseId": "response-1",
@@ -4024,7 +4024,7 @@ describe('generateText', () => {
               "outputTokensPerSecond": undefined,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
-              "timeToFirstOutputTokenMs": undefined,
+              "timeToFirstOutputMs": undefined,
               "toolExecutionMs": {
                 "call-1": 0,
               },
@@ -4264,7 +4264,7 @@ describe('generateText', () => {
                 "outputTokensPerSecond": undefined,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeToFirstOutputTokenMs": undefined,
+                "timeToFirstOutputMs": undefined,
                 "toolExecutionMs": {
                   "call-1": 0,
                 },
@@ -4890,7 +4890,7 @@ describe('generateText', () => {
                     "outputTokensPerSecond": undefined,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeToFirstOutputTokenMs": undefined,
+                    "timeToFirstOutputMs": undefined,
                     "toolExecutionMs": {
                       "call-1": 0,
                     },
@@ -4981,7 +4981,7 @@ describe('generateText', () => {
                     "outputTokensPerSecond": undefined,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeToFirstOutputTokenMs": undefined,
+                    "timeToFirstOutputMs": undefined,
                     "toolExecutionMs": {},
                   },
                   "providerMetadata": undefined,
@@ -5114,7 +5114,7 @@ describe('generateText', () => {
                     "outputTokensPerSecond": undefined,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeToFirstOutputTokenMs": undefined,
+                    "timeToFirstOutputMs": undefined,
                     "toolExecutionMs": {
                       "call-1": 0,
                     },
@@ -5205,7 +5205,7 @@ describe('generateText', () => {
                     "outputTokensPerSecond": undefined,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeToFirstOutputTokenMs": undefined,
+                    "timeToFirstOutputMs": undefined,
                     "toolExecutionMs": {},
                   },
                   "providerMetadata": undefined,
@@ -5634,7 +5634,7 @@ describe('generateText', () => {
                     "outputTokensPerSecond": undefined,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeToFirstOutputTokenMs": undefined,
+                    "timeToFirstOutputMs": undefined,
                     "toolExecutionMs": {
                       "call-1": 0,
                     },
@@ -5745,7 +5745,7 @@ describe('generateText', () => {
                     "outputTokensPerSecond": undefined,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeToFirstOutputTokenMs": undefined,
+                    "timeToFirstOutputMs": undefined,
                     "toolExecutionMs": {
                       "call-1": 0,
                     },
@@ -9387,7 +9387,7 @@ describe('generateText', () => {
                 "outputTokensPerSecond": undefined,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeToFirstOutputTokenMs": undefined,
+                "timeToFirstOutputMs": undefined,
                 "toolExecutionMs": {
                   "call-1": 0,
                 },

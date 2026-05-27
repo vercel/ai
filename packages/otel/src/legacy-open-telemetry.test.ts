@@ -263,7 +263,7 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
       stepTimeMs: 1000,
       responseTimeMs: 1000,
       toolExecutionMs: {},
-      timeToFirstOutputTokenMs: undefined,
+      timeToFirstOutputMs: undefined,
     },
     warnings: undefined,
     request: { body: undefined, messages: [] },
@@ -1132,7 +1132,7 @@ describe('LegacyOpenTelemetry', () => {
             stepTimeMs: 1000,
             responseTimeMs: 1000,
             toolExecutionMs: {},
-            timeToFirstOutputTokenMs: 10,
+            timeToFirstOutputMs: 10,
           },
         }),
       );
@@ -3318,7 +3318,7 @@ describe('LegacyOpenTelemetry integration with streamText stopWhen (2 steps with
             "ai.response.id": "id-1",
             "ai.response.model": "mock-model-id",
             "ai.response.msToFinish": 400,
-            "ai.response.msToFirstChunk": 400,
+            "ai.response.msToFirstChunk": 0,
             "ai.response.text": "Hello, world!",
             "ai.response.timestamp": "1970-01-01T00:00:01.000Z",
             "ai.settings.maxRetries": 2,
@@ -3346,7 +3346,7 @@ describe('LegacyOpenTelemetry integration with streamText stopWhen (2 steps with
           "events": [
             {
               "attributes": {
-                "ai.response.msToFirstChunk": 400,
+                "ai.response.msToFirstChunk": 0,
               },
               "name": "ai.stream.firstChunk",
             },

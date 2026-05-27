@@ -1832,8 +1832,8 @@ class DefaultStreamTextResult<
             outputTokensPerSecond: undefined,
             inputTokensPerSecond: undefined,
             effectiveTotalTokensPerSecond: 0,
-            timeToFirstOutputTokenMs: undefined,
-            timeBetweenOutputTokensMs: undefined,
+            timeToFirstOutputMs: undefined,
+            timeBetweenOutputChunksMs: undefined,
           };
           const toolExecutionMs: Record<string, number> = {};
           let stepResponse: { id: string; timestamp: Date; modelId: string } = {

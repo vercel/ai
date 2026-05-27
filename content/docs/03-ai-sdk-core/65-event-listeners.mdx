@@ -490,7 +490,7 @@ const result = await generateText({
     },
     {
       name: 'performance',
-      type: '{ responseTimeMs: number; effectiveOutputTokensPerSecond: number; outputTokensPerSecond: number | undefined; inputTokensPerSecond: number | undefined; effectiveTotalTokensPerSecond: number; timeToFirstOutputTokenMs: number | undefined; timeBetweenOutputTokensMs?: OutputTokenTimingStats }',
+      type: '{ responseTimeMs: number; effectiveOutputTokensPerSecond: number; outputTokensPerSecond: number | undefined; inputTokensPerSecond: number | undefined; effectiveTotalTokensPerSecond: number; timeToFirstOutputMs: number | undefined; timeBetweenOutputChunksMs?: OutputChunkTimingStats }',
       description: 'Performance metrics for the model call.',
       properties: [
         {
@@ -512,13 +512,13 @@ const result = await generateText({
               name: 'outputTokensPerSecond',
               type: 'number | undefined',
               description:
-                'Number of output tokens per second after the first output token was received. Only available for streaming model calls.',
+                'Number of output tokens per second after the first generated output chunk was received. Only available for streaming model calls.',
             },
             {
               name: 'inputTokensPerSecond',
               type: 'number | undefined',
               description:
-                'Number of input tokens processed per second before the first output token was received. Only available for streaming model calls.',
+                'Number of input tokens processed per second before the first generated output chunk was received. Only available for streaming model calls.',
             },
             {
               name: 'effectiveTotalTokensPerSecond',
@@ -527,16 +527,16 @@ const result = await generateText({
                 'Effective number of input and output tokens per second over the full language model response.',
             },
             {
-              name: 'timeToFirstOutputTokenMs',
+              name: 'timeToFirstOutputMs',
               type: 'number | undefined',
               description:
-                'Time until the first text, reasoning, or tool input delta was received in milliseconds. Only available for streaming model calls.',
+                'Time until the first generated output chunk was received in milliseconds. Only available for streaming model calls.',
             },
             {
-              name: 'timeBetweenOutputTokensMs',
-              type: 'OutputTokenTimingStats | undefined',
+              name: 'timeBetweenOutputChunksMs',
+              type: 'OutputChunkTimingStats | undefined',
               description:
-                'Timing statistics for the gaps between streamed output-token chunks in milliseconds. Only available for streaming model calls with at least two output-token chunks.',
+                'Timing statistics for the gaps between generated output chunks in milliseconds. Only available for streaming model calls with at least two output chunks.',
             },
           ],
         },
@@ -782,13 +782,13 @@ const result = await generateText({
               name: 'outputTokensPerSecond',
               type: 'number | undefined',
               description:
-                'Number of output tokens per second after the first output token was received. Only available for streaming steps.',
+                'Number of output tokens per second after the first generated output chunk was received. Only available for streaming steps.',
             },
             {
               name: 'inputTokensPerSecond',
               type: 'number | undefined',
               description:
-                'Number of input tokens processed per second before the first output token was received. Only available for streaming steps.',
+                'Number of input tokens processed per second before the first generated output chunk was received. Only available for streaming steps.',
             },
             {
               name: 'effectiveTotalTokensPerSecond',
@@ -815,16 +815,16 @@ const result = await generateText({
                 'Time spent executing each client-side tool call in the step in milliseconds, keyed by tool call ID.',
             },
             {
-              name: 'timeToFirstOutputTokenMs',
+              name: 'timeToFirstOutputMs',
               type: 'number | undefined',
               description:
-                'Time until the first text, reasoning, or tool input delta was received in milliseconds. Only available for streaming steps.',
+                'Time until the first generated output chunk was received in milliseconds. Only available for streaming steps.',
             },
             {
-              name: 'timeBetweenOutputTokensMs',
-              type: 'OutputTokenTimingStats | undefined',
+              name: 'timeBetweenOutputChunksMs',
+              type: 'OutputChunkTimingStats | undefined',
               description:
-                'Timing statistics for the gaps between streamed output-token chunks in milliseconds. Only available for streaming steps with at least two output-token chunks.',
+                'Timing statistics for the gaps between generated output chunks in milliseconds. Only available for streaming steps with at least two output chunks.',
             },
           ],
         },

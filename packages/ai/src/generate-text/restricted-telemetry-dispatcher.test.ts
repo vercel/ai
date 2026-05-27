@@ -67,7 +67,7 @@ function createStepResult({
       stepTimeMs: 0,
       responseTimeMs: 0,
       toolExecutionMs: {},
-      timeToFirstOutputTokenMs: undefined,
+      timeToFirstOutputMs: undefined,
     },
     warnings: [],
     request: { messages: [] },
