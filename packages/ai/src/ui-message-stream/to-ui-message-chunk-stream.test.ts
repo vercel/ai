@@ -44,7 +44,7 @@ describe('toUIMessageChunkStream', () => {
           stepTimeMs: 0,
           responseTimeMs: 0,
           toolExecutionMs: {},
-          timeToFirstOutputTokenMs: undefined,
+          timeToFirstOutputMs: undefined,
         },
         finishReason: 'stop',
         rawFinishReason: 'stop',
