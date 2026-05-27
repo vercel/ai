@@ -562,7 +562,8 @@ export function getMessageId(msg: unknown): string | undefined {
 /**
  * Checks if a message is an AI message chunk (works for both class instances and plain objects).
  * For class instances, only AIMessageChunk is matched (not AIMessage).
- * For plain objects from RemoteGraph API, matches type === 'ai'.
+ * For plain objects from RemoteGraph API, matches type === 'ai' (TypeScript langchain-core)
+ * or type === 'AIMessageChunk' (Python langchain-core).
  * For serialized LangChain messages, matches type === 'constructor' with AIMessageChunk in id path.
  *
  * @param msg - The message to check.
@@ -581,9 +582,12 @@ export function isAIMessageChunk(
   if (isPlainMessageObject(msg)) {
     const obj = msg as Record<string, unknown>;
     /**
-     * Direct type === 'ai' (RemoteGraph format)
+     * Direct type from RemoteGraph format. TypeScript langchain-core emits
+     * type === 'ai'; Python langchain-core emits type === 'AIMessageChunk'.
      */
-    if ('type' in obj && obj.type === 'ai') return true;
+    if ('type' in obj && (obj.type === 'ai' || obj.type === 'AIMessageChunk')) {
+      return true;
+    }
     /**
      * Serialized LangChain message format: { lc: 1, type: "constructor", id: ["...", "AIMessageChunk"], kwargs: {...} }
      */
@@ -1395,7 +1399,11 @@ export function processLangGraphEvent(
                 ? (obj.kwargs as Record<string, unknown>)
                 : obj;
 
-              if (obj.type === 'ai' || isSerializedFormat) {
+              if (
+                obj.type === 'ai' ||
+                obj.type === 'AIMessageChunk' ||
+                isSerializedFormat
+              ) {
                 /**
                  * Try tool_calls first (normalized format)
                  */
