@@ -133,21 +133,21 @@ export async function convertToAnthropicPrompt({
 
     switch (type) {
       case 'system': {
-        if (system != null) {
-          throw new UnsupportedFunctionalityError({
-            functionality:
-              'Multiple system messages that are separated by user/assistant messages',
+        if (system == null) {
+          system = block.messages.map(({ content, providerOptions }) => ({
+            type: 'text',
+            text: content,
+            cache_control: validator.getCacheControl(providerOptions, {
+              type: 'system message',
+              canCache: true,
+            }),
+          }));
+        } else {
+          messages.push({
+            role: 'system',
+            content: block.messages.map(m => m.content).join('\n'),
           });
         }
-
-        system = block.messages.map(({ content, providerOptions }) => ({
-          type: 'text',
-          text: content,
-          cache_control: validator.getCacheControl(providerOptions, {
-            type: 'system message',
-            canCache: true,
-          }),
-        }));
 
         break;
       }
