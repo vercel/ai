@@ -1396,6 +1396,52 @@ describe('tool messages', () => {
     });
   });
 
+  it('should convert tool result with content array containing PDF', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-123',
+            toolName: 'document-reader',
+            output: {
+              type: 'content',
+              value: [
+                {
+                  type: 'file',
+                  data: { type: 'data', data: 'base64data' },
+                  mediaType: 'application/pdf',
+                  filename: 'tool-result.pdf',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.messages[0]).toEqual({
+      role: 'user',
+      content: [
+        {
+          toolResult: {
+            toolUseId: 'call-123',
+            content: [
+              {
+                document: {
+                  format: 'pdf',
+                  name: 'tool-result',
+                  source: { bytes: 'base64data' },
+                },
+              },
+            ],
+          },
+        },
+      ],
+    });
+  });
+
   it('should throw error for unsupported image format in tool result content', async () => {
     await expect(
       convertToBedrockChatMessages([
@@ -1425,7 +1471,7 @@ describe('tool messages', () => {
     );
   });
 
-  it('should throw error for unsupported mime type in tool result image content', async () => {
+  it('should throw error for unsupported mime type in tool result file content', async () => {
     await expect(
       convertToBedrockChatMessages([
         {
@@ -1450,7 +1496,7 @@ describe('tool messages', () => {
         },
       ]),
     ).rejects.toThrowErrorMatchingInlineSnapshot(
-      `[AI_UnsupportedFunctionalityError: 'media type: unsupported/mime-type' functionality not supported.]`,
+      `[AI_UnsupportedFunctionalityError: Unsupported file mime type: unsupported/mime-type, expected one of: application/pdf, text/csv, application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, text/html, text/plain, text/markdown]`,
     );
   });
 

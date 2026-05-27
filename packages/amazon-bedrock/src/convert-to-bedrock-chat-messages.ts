@@ -182,6 +182,7 @@ export async function convertToBedrockChatMessages(
                 const output = part.output;
                 switch (output.type) {
                   case 'content': {
+<<<<<<< HEAD:packages/amazon-bedrock/src/convert-to-bedrock-chat-messages.ts
                     toolResultContent = output.value.map(contentPart => {
                       switch (contentPart.type) {
                         case 'text':
@@ -190,9 +191,25 @@ export async function convertToBedrockChatMessages(
                           if (!contentPart.mediaType.startsWith('image/')) {
                             throw new UnsupportedFunctionalityError({
                               functionality: `media type: ${contentPart.mediaType}`,
-                            });
-                          }
+=======
+                    toolResultContent = await Promise.all(
+                      output.value.map(async contentPart => {
+                        switch (contentPart.type) {
+                          case 'text':
+                            return { text: contentPart.text };
+                          case 'file': {
+                            if (contentPart.data.type !== 'data') {
+                              throw new UnsupportedFunctionalityError({
+                                functionality: `tool result file data of type "${contentPart.data.type}"`,
+                              });
+                            }
 
+                            const fullMediaType = resolveFullMediaType({
+                              part: contentPart,
+>>>>>>> 9d5a2992b (fix(amazon-bedrock): support document files in tool results (#15534)):packages/amazon-bedrock/src/convert-to-amazon-bedrock-chat-messages.ts
+                            });
+
+<<<<<<< HEAD:packages/amazon-bedrock/src/convert-to-bedrock-chat-messages.ts
                           const format = getBedrockImageFormat(
                             contentPart.mediaType,
                           );
@@ -210,6 +227,55 @@ export async function convertToBedrockChatMessages(
                         }
                       }
                     });
+=======
+                            if (
+                              getTopLevelMediaType(fullMediaType) !== 'image'
+                            ) {
+                              const enableCitations =
+                                await shouldEnableCitations(
+                                  contentPart.providerOptions,
+                                );
+
+                              return {
+                                document: {
+                                  format:
+                                    getAmazonBedrockDocumentFormat(
+                                      fullMediaType,
+                                    ),
+                                  name: contentPart.filename
+                                    ? stripFileExtension(contentPart.filename)
+                                    : generateDocumentName(),
+                                  source: {
+                                    bytes: convertToBase64(
+                                      contentPart.data.data,
+                                    ),
+                                  },
+                                  ...(enableCitations && {
+                                    citations: { enabled: true },
+                                  }),
+                                },
+                              };
+                            }
+
+                            return {
+                              image: {
+                                format:
+                                  getAmazonBedrockImageFormat(fullMediaType),
+                                source: {
+                                  bytes: convertToBase64(contentPart.data.data),
+                                },
+                              },
+                            };
+                          }
+                          default: {
+                            throw new UnsupportedFunctionalityError({
+                              functionality: `unsupported tool content part type: ${contentPart.type}`,
+                            });
+                          }
+                        }
+                      }),
+                    );
+>>>>>>> 9d5a2992b (fix(amazon-bedrock): support document files in tool results (#15534)):packages/amazon-bedrock/src/convert-to-amazon-bedrock-chat-messages.ts
                     break;
                   }
                   case 'text':
