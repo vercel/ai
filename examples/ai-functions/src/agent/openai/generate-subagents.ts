@@ -36,7 +36,7 @@ const mainAgent = new ToolLoopAgent({
       // alternative: just map the prompt to a string (no message history)
       // prompt: ({ topic }) => `Research the topic: ${topic}.`,
 
-      // by default, subagents return text, but you can also return a structured output
+      // Optional. By default, subagents return text, but you can also return a structured output
       output: Output.array({
         element: z.object({
           title: z.string(),
