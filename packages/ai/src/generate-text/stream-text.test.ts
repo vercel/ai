@@ -42,7 +42,7 @@ import {
 } from 'vitest';
 import { mockSandboxFileStubs } from '../test/mock-sandbox';
 import { z } from 'zod/v4';
-import { Output, type LanguageModelCallEndEvent } from '..';
+import { Output, type LanguageModelCallEndEvent, type Telemetry } from '..';
 import * as logWarningsModule from '../logger/log-warnings';
 import type { Instructions } from '../prompt';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
@@ -21212,13 +21212,26 @@ describe('streamText', () => {
       let result: StreamTextResult<ToolSet, any, never>;
       let onErrorCalls: Array<{ error: unknown }> = [];
       let onAbortCalls: Array<{ steps: StepResult<ToolSet, any>[] }> = [];
+      let telemetryCalls: Array<{ name: string; event?: unknown }> = [];
 
       beforeEach(() => {
         onErrorCalls = [];
         onAbortCalls = [];
+        telemetryCalls = [];
 
         const abortController = new AbortController();
         let pullCalls = 0;
+        const telemetryIntegration: Telemetry = {
+          onAbort: event => {
+            telemetryCalls.push({ name: 'onAbort', event });
+          },
+          onEnd: event => {
+            telemetryCalls.push({ name: 'onEnd', event });
+          },
+          onError: event => {
+            telemetryCalls.push({ name: 'onError', event });
+          },
+        };
 
         result = streamText({
           abortSignal: abortController.signal,
@@ -21227,6 +21240,12 @@ describe('streamText', () => {
           },
           onAbort: event => {
             onAbortCalls.push(event);
+          },
+          telemetry: {
+            integrations: telemetryIntegration,
+          },
+          _internal: {
+            generateCallId: () => 'test-telemetry-call-id',
           },
           model: new MockLanguageModelV4({
             doStream: async () => ({
@@ -21280,6 +21299,25 @@ describe('streamText', () => {
         expect(onAbortCalls).toMatchInlineSnapshot(`
           [
             {
+              "callId": "test-telemetry-call-id",
+              "reason": [AbortError: This operation was aborted],
+              "steps": [],
+            },
+          ]
+        `);
+      });
+
+      it('should call telemetry onAbort but not onEnd or onError when the abort signal is triggered', async () => {
+        await result.consumeStream();
+        expect(
+          telemetryCalls.map(({ name, event }) => ({
+            name,
+            steps: (event as { steps?: unknown[] }).steps,
+          })),
+        ).toMatchInlineSnapshot(`
+          [
+            {
+              "name": "onAbort",
               "steps": [],
             },
           ]
@@ -21511,6 +21549,8 @@ describe('streamText', () => {
         expect(onAbortCalls).toMatchInlineSnapshot(`
           [
             {
+              "callId": "test-telemetry-call-id",
+              "reason": [AbortError: This operation was aborted],
               "steps": [
                 DefaultStepResult {
                   "callId": "test-telemetry-call-id",
@@ -21865,6 +21905,8 @@ describe('streamText', () => {
         expect(onAbortCalls).toMatchInlineSnapshot(`
           [
             {
+              "callId": "test-telemetry-call-id",
+              "reason": [AbortError: This operation was aborted],
               "steps": [],
             },
           ]
