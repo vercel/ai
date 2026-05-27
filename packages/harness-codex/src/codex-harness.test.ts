@@ -28,9 +28,7 @@ describe('createCodex adapter', () => {
     expect(harness.specificationVersion).toBe('harness-v1');
     expect(harness.builtinTools.map(t => t.nativeName)).toEqual([
       'shell',
-      'file_edit',
       'web_search',
-      'todo_list',
     ]);
   });
 

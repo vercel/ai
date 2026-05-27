@@ -13,7 +13,6 @@ export const HARNESS_V1_BUILTIN_TOOL_NAMES = [
   'grep',
   'glob',
   'webSearch',
-  'todoList',
 ] as const;
 
 export type HarnessV1BuiltinToolName =

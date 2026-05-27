@@ -51,9 +51,7 @@ export type CodexHarnessSettings = {
 
 const BUILTIN_TOOLS: ReadonlyArray<HarnessV1BuiltinToolDescriptor> = [
   { nativeName: 'shell', commonName: 'bash' },
-  { nativeName: 'file_edit', commonName: 'edit' },
   { nativeName: 'web_search', commonName: 'webSearch' },
-  { nativeName: 'todo_list', commonName: 'todoList' },
 ];
 
 const BOOTSTRAP_DIR = '/tmp/harness/codex';

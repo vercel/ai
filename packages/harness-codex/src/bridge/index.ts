@@ -387,7 +387,6 @@ type CodexItem = {
   result?: { content?: unknown; structured_content?: unknown } | unknown;
   error?: { message?: string };
   query?: string;
-  items?: ReadonlyArray<{ text: string; completed: boolean }>;
   message?: string;
 };
 
@@ -552,24 +551,6 @@ function translateAndEmit(
         result: item.result ?? null,
       });
     }
-    return;
-  }
-
-  if (item.type === 'todo_list' && event.type === 'item.completed') {
-    ctx.send({
-      type: 'tool-call',
-      toolCallId: id,
-      toolName: 'todoList',
-      nativeName: 'todo_list',
-      input: JSON.stringify({ items: item.items ?? [] }),
-      observeOnly: true,
-    });
-    ctx.send({
-      type: 'tool-result',
-      toolCallId: id,
-      toolName: 'todoList',
-      result: { items: item.items ?? [] },
-    });
     return;
   }
 
