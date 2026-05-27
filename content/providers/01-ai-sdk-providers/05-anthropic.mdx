@@ -241,7 +241,7 @@ import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: anthropic('claude-opus-4-7'),
+  model: anthropic('claude-opus-4-8'),
   prompt: 'Research the pros and cons of Rust vs Go for building CLI tools.',
   providerOptions: {
     anthropic: {
@@ -340,7 +340,7 @@ Starting with `claude-opus-4-7`, thinking content is omitted from the response b
 
 ```ts highlight="5"
 const { text, reasoningText } = await generateText({
-  model: anthropic('claude-opus-4-7'),
+  model: anthropic('claude-opus-4-8'),
   providerOptions: {
     anthropic: {
       thinking: { type: 'adaptive', display: 'summarized' },
@@ -732,7 +732,7 @@ import { anthropic } from '@ai-sdk/anthropic';
 import { generateText, isStepCount } from 'ai';
 
 const result = await generateText({
-  model: anthropic('claude-opus-4-7'),
+  model: anthropic('claude-opus-4-8'),
   tools: {
     bash: anthropic.tools.bash_20250124(),
   },
@@ -994,7 +994,7 @@ const result = await generateText({
     'Build a concurrent worker pool in Go with graceful shutdown. Outline the design first.',
   tools: {
     advisor: anthropic.tools.advisor_20260301({
-      model: 'claude-opus-4-7',
+      model: 'claude-opus-4-8',
       maxUses: 3,
     }),
   },
@@ -1012,7 +1012,7 @@ The advisor tool supports the following configuration options:
 
 - **model** _string_
 
-  Required. The advisor model ID, such as `claude-opus-4-7`. The advisor model must be at least as capable as the executor model.
+  Required. The advisor model ID, such as `claude-opus-4-8`. The advisor model must be at least as capable as the executor model.
 
 - **maxUses** _number_
 
@@ -1567,6 +1567,7 @@ and the `mediaType` should be set to `'application/pdf'`.
 
 | Model               | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search          | Tool Search         | Compaction          |
 | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `claude-opus-4-8`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-opus-4-7`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-opus-4-6`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-sonnet-4-6` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
