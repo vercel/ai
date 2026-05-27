@@ -236,9 +236,13 @@ export class HttpMCPTransport implements MCPTransport {
         if (contentType.includes('application/json')) {
           const data = await response.json();
           const messages: JSONRPCMessage[] = Array.isArray(data)
-            ? data.map((m: unknown) => JSONRPCMessageSchema.parse(m))
+            ? data.map((message: unknown) =>
+                JSONRPCMessageSchema.parse(message),
+              )
             : [JSONRPCMessageSchema.parse(data)];
-          for (const m of messages) this.onmessage?.(m);
+          for (const jsonRpcMessage of messages) {
+            this.onmessage?.(jsonRpcMessage);
+          }
           return;
         }
 
@@ -267,8 +271,8 @@ export class HttpMCPTransport implements MCPTransport {
                 const { event, data } = value;
                 if (event === 'message') {
                   try {
-                    const msg = await parseJSONRPCMessage(data);
-                    this.onmessage?.(msg);
+                    const jsonRpcMessage = await parseJSONRPCMessage(data);
+                    this.onmessage?.(jsonRpcMessage);
                   } catch (error) {
                     const e = new MCPClientError({
                       message:
@@ -415,8 +419,8 @@ export class HttpMCPTransport implements MCPTransport {
 
             if (event === 'message') {
               try {
-                const msg = await parseJSONRPCMessage(data);
-                this.onmessage?.(msg);
+                const jsonRpcMessage = await parseJSONRPCMessage(data);
+                this.onmessage?.(jsonRpcMessage);
               } catch (error) {
                 const e = new MCPClientError({
                   message: 'MCP HTTP Transport Error: Failed to parse message',

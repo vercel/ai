@@ -36,7 +36,7 @@ run(async () => {
       } satisfies GoogleLanguageModelInteractionsOptions,
     },
   });
-  for await (const part of turn1.fullStream) {
+  for await (const part of turn1.stream) {
     if (part.type === 'reasoning-delta') {
       process.stdout.write('\x1b[34m' + part.text + '\x1b[0m');
     } else if (part.type === 'text-delta') {
@@ -65,7 +65,7 @@ run(async () => {
       } satisfies GoogleLanguageModelInteractionsOptions,
     },
   });
-  for await (const part of turn2.fullStream) {
+  for await (const part of turn2.stream) {
     if (part.type === 'reasoning-delta') {
       process.stdout.write('\x1b[34m' + part.text + '\x1b[0m');
     } else if (part.type === 'text-delta') {

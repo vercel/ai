@@ -114,8 +114,8 @@ function getDefaultFilename(
   mediaType: string,
   prefix: string = 'file',
 ): string {
-  const ext = mediaType.split('/')[1] || 'bin';
-  return `${prefix}.${ext}`;
+  const fileExtension = mediaType.split('/')[1] || 'bin';
+  return `${prefix}.${fileExtension}`;
 }
 
 /**
@@ -237,27 +237,27 @@ export function convertUserContent(content: UserContent): HumanMessage {
 
       // Normalize tagged data shape into the legacy bare value this code expects.
       const normalizedData: string | Uint8Array | URL | ArrayBuffer = (() => {
-        const d = rawFilePart.data;
+        const data = rawFilePart.data;
         if (
-          typeof d === 'object' &&
-          d !== null &&
-          !(d instanceof URL) &&
-          !(d instanceof Uint8Array) &&
-          !(d instanceof ArrayBuffer) &&
-          'type' in d
+          typeof data === 'object' &&
+          data !== null &&
+          !(data instanceof URL) &&
+          !(data instanceof Uint8Array) &&
+          !(data instanceof ArrayBuffer) &&
+          'type' in data
         ) {
-          switch (d.type) {
+          switch (data.type) {
             case 'data':
-              return d.data;
+              return data.data;
             case 'url':
-              return d.url;
+              return data.url;
             case 'text':
-              return d.text;
+              return data.text;
             default:
               return '';
           }
         }
-        return d as string | Uint8Array | URL | ArrayBuffer;
+        return data as string | Uint8Array | URL | ArrayBuffer;
       })();
 
       const filePart = {
@@ -620,21 +620,25 @@ export function isAIMessageChunk(
    * Plain object from RemoteGraph API (not a LangChain class instance)
    */
   if (isPlainMessageObject(msg)) {
-    const obj = msg as Record<string, unknown>;
+    const messageRecord = msg as Record<string, unknown>;
     /**
      * Direct type from RemoteGraph format. TypeScript langchain-core emits
      * type === 'ai'; Python langchain-core emits type === 'AIMessageChunk'.
      */
-    if ('type' in obj && (obj.type === 'ai' || obj.type === 'AIMessageChunk')) {
+    if (
+      'type' in messageRecord &&
+      (messageRecord.type === 'ai' || messageRecord.type === 'AIMessageChunk')
+    ) {
       return true;
     }
     /**
      * Serialized LangChain message format: { lc: 1, type: "constructor", id: ["...", "AIMessageChunk"], kwargs: {...} }
      */
     if (
-      obj.type === 'constructor' &&
-      Array.isArray(obj.id) &&
-      (obj.id.includes('AIMessageChunk') || obj.id.includes('AIMessage'))
+      messageRecord.type === 'constructor' &&
+      Array.isArray(messageRecord.id) &&
+      (messageRecord.id.includes('AIMessageChunk') ||
+        messageRecord.id.includes('AIMessage'))
     ) {
       return true;
     }
@@ -656,18 +660,18 @@ export function isToolMessageType(
    * Plain object from RemoteGraph API (not a LangChain class instance)
    */
   if (isPlainMessageObject(msg)) {
-    const obj = msg as Record<string, unknown>;
+    const messageRecord = msg as Record<string, unknown>;
     /**
      * Direct type === 'tool' (RemoteGraph format)
      */
-    if ('type' in obj && obj.type === 'tool') return true;
+    if ('type' in messageRecord && messageRecord.type === 'tool') return true;
     /**
      * Serialized LangChain message format
      */
     if (
-      obj.type === 'constructor' &&
-      Array.isArray(obj.id) &&
-      obj.id.includes('ToolMessage')
+      messageRecord.type === 'constructor' &&
+      Array.isArray(messageRecord.id) &&
+      messageRecord.id.includes('ToolMessage')
     ) {
       return true;
     }
@@ -1161,18 +1165,18 @@ export function processLangGraphEvent(
           | undefined;
         if (toolCallChunks?.length) {
           for (const toolCallChunk of toolCallChunks) {
-            const idx = toolCallChunk.index ?? 0;
+            const toolCallIndex = toolCallChunk.index ?? 0;
 
             /**
              * If this chunk has an id, store it for future lookups by index
              */
             if (toolCallChunk.id) {
               toolCallInfoByIndex[msgId] ??= {};
-              toolCallInfoByIndex[msgId][idx] = {
+              toolCallInfoByIndex[msgId][toolCallIndex] = {
                 id: toolCallChunk.id,
                 name:
                   toolCallChunk.name ||
-                  concatChunk?.tool_call_chunks?.[idx]?.name ||
+                  concatChunk?.tool_call_chunks?.[toolCallIndex]?.name ||
                   'unknown',
               };
             }
@@ -1182,8 +1186,8 @@ export function processLangGraphEvent(
              */
             const toolCallId =
               toolCallChunk.id ||
-              toolCallInfoByIndex[msgId]?.[idx]?.id ||
-              concatChunk?.tool_call_chunks?.[idx]?.id;
+              toolCallInfoByIndex[msgId]?.[toolCallIndex]?.id ||
+              concatChunk?.tool_call_chunks?.[toolCallIndex]?.id;
 
             /**
              * Skip if we don't have a proper tool call ID - we'll handle it in values
@@ -1194,8 +1198,8 @@ export function processLangGraphEvent(
 
             const toolName =
               toolCallChunk.name ||
-              toolCallInfoByIndex[msgId]?.[idx]?.name ||
-              concatChunk?.tool_call_chunks?.[idx]?.name ||
+              toolCallInfoByIndex[msgId]?.[toolCallIndex]?.name ||
+              concatChunk?.tool_call_chunks?.[toolCallIndex]?.name ||
               'unknown';
 
             /**
@@ -1425,23 +1429,23 @@ export function processLangGraphEvent(
               /**
                * For plain objects from RemoteGraph API or serialized LangChain messages
                */
-              const obj = msg as Record<string, unknown>;
+              const messageRecord = msg as Record<string, unknown>;
 
               /**
                * Determine the data source (handle both direct and serialized formats)
                */
               const isSerializedFormat =
-                obj.type === 'constructor' &&
-                Array.isArray(obj.id) &&
-                ((obj.id as string[]).includes('AIMessageChunk') ||
-                  (obj.id as string[]).includes('AIMessage'));
+                messageRecord.type === 'constructor' &&
+                Array.isArray(messageRecord.id) &&
+                ((messageRecord.id as string[]).includes('AIMessageChunk') ||
+                  (messageRecord.id as string[]).includes('AIMessage'));
               const dataSource = isSerializedFormat
-                ? (obj.kwargs as Record<string, unknown>)
-                : obj;
+                ? (messageRecord.kwargs as Record<string, unknown>)
+                : messageRecord;
 
               if (
-                obj.type === 'ai' ||
-                obj.type === 'AIMessageChunk' ||
+                messageRecord.type === 'ai' ||
+                messageRecord.type === 'AIMessageChunk' ||
                 isSerializedFormat
               ) {
                 /**

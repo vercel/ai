@@ -3,7 +3,7 @@ import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const { fullStream } = streamText({
+  const { stream } = streamText({
     model: xai.responses('grok-4-fast-non-reasoning'),
     tools: {
       web_search: xai.tools.webSearch({
@@ -17,7 +17,7 @@ run(async () => {
 
   console.log('searching x.ai with image understanding...\n');
 
-  for await (const part of fullStream) {
+  for await (const part of stream) {
     switch (part.type) {
       case 'tool-call':
         if (part.providerExecuted) {

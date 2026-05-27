@@ -826,9 +826,12 @@ function getMediaTypeFromUrl(
 ): string {
   try {
     const pathname = new URL(url).pathname;
-    const ext = pathname.split('.').pop()?.toLowerCase();
-    if (ext && Object.hasOwn(URL_EXTENSION_TO_MEDIA_TYPE, ext)) {
-      return URL_EXTENSION_TO_MEDIA_TYPE[ext];
+    const fileExtension = pathname.split('.').pop()?.toLowerCase();
+    if (
+      fileExtension &&
+      Object.hasOwn(URL_EXTENSION_TO_MEDIA_TYPE, fileExtension)
+    ) {
+      return URL_EXTENSION_TO_MEDIA_TYPE[fileExtension];
     }
   } catch {
     // ignore URL parse errors
