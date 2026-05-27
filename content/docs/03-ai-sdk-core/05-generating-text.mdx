@@ -278,15 +278,33 @@ const result = streamText({
 
 When using `streamText`, you can provide an `onChunk` callback that is triggered for each chunk of the stream.
 
-It receives the following chunk types:
+It receives all stream part types from `fullStream`, including:
 
-- `text`
-- `reasoning`
+- `start`
+- `start-step`
+- `text-start`
+- `text-delta`
+- `text-end`
+- `reasoning-start`
+- `reasoning-delta`
+- `reasoning-end`
+- `custom`
 - `source`
+- `file`
+- `reasoning-file`
 - `tool-call`
 - `tool-input-start`
 - `tool-input-delta`
+- `tool-input-end`
 - `tool-result`
+- `tool-error`
+- `tool-output-denied`
+- `tool-approval-request`
+- `tool-approval-response`
+- `finish-step`
+- `finish`
+- `abort`
+- `error`
 - `raw`
 
 ```tsx highlight="6-11"
@@ -298,7 +316,7 @@ const result = streamText({
   prompt: 'Invent a new holiday and describe its traditions.',
   onChunk({ chunk }) {
     // implement your own logic here, e.g.:
-    if (chunk.type === 'text') {
+    if (chunk.type === 'text-delta') {
       console.log(chunk.text);
     }
   },

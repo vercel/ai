@@ -622,6 +622,32 @@ const result = await rerank({
 });
 ```
 
+### `streamText` `onChunk` Receives All Stream Parts
+
+In AI SDK 7, `streamText` calls `onChunk` for every `TextStreamPart` emitted by
+the stream. In AI SDK 6, `onChunk` only received a subset of stream parts such as
+text deltas, reasoning deltas, sources, tool calls, tool input deltas, tool
+results, custom parts, and raw chunks.
+
+Update handlers that assume the old subset to guard the chunk types they process:
+
+```tsx filename="AI SDK 7"
+const result = streamText({
+  model: yourModel,
+  prompt: 'Hello',
+  onChunk({ chunk }) {
+    if (chunk.type === 'text-delta') {
+      console.log(chunk.text);
+    }
+  },
+});
+```
+
+`onChunk` can now also receive lifecycle, boundary, and terminal parts such as
+`start`, `start-step`, `text-start`, `text-end`, `reasoning-start`,
+`reasoning-end`, `tool-input-end`, `finish-step`, `finish`, `abort`, and
+`error`.
+
 ### Streaming: Move `includeRawChunks` to `include.rawChunks`
 
 The top-level `includeRawChunks` option on `streamText` is deprecated in AI SDK 7. Move it into the `include` options object as `rawChunks`.
