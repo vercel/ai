@@ -59,7 +59,7 @@ const transcript = await transcribe({
 When `audio` is a URL, the SDK downloads the file with a default **2 GiB** size limit.
 You can customize this using `createDownload`:
 
-```ts highlight="1,8"
+```ts highlight="1,7"
 import { experimental_transcribe as transcribe, createDownload } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
@@ -72,7 +72,7 @@ const transcript = await transcribe({
 
 You can also provide a fully custom download function:
 
-```ts highlight="6-12"
+```ts highlight="7-13"
 import { experimental_transcribe as transcribe } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
@@ -115,7 +115,7 @@ that you can use to abort the transcription process or set a timeout.
 
 This is particularly useful when combined with URL downloads to prevent long-running requests:
 
-```ts highlight="8"
+```ts highlight="7"
 import { openai } from '@ai-sdk/openai';
 import { experimental_transcribe as transcribe } from 'ai';
 

@@ -65,7 +65,7 @@ When `runCommand` is called, the agent returns a `tool-approval-request` instead
 
 Use a per-tool approval function when the decision depends on the parsed tool input. The function receives the typed input plus `toolCallId`, `messages`, `toolContext`, and `runtimeContext`.
 
-```ts highlight="22-25"
+```ts highlight="17-24"
 import { ToolLoopAgent, tool } from 'ai';
 __PROVIDER_IMPORT__;
 import { z } from 'zod';
@@ -99,7 +99,7 @@ In this example, non-admin users are denied automatically, large payments requir
 
 Pass a function directly as `toolApproval` when approval depends on the full tool call, shared state across tools, or the complete tool set. This is called a `GenericToolApprovalFunction`.
 
-```ts highlight="17-28"
+```ts highlight="13-23"
 const agent = new ToolLoopAgent({
   model: __MODEL__,
   tools: {
@@ -175,7 +175,7 @@ Manual approval requires two calls:
 4. Add a `tool-approval-response` to the messages.
 5. Call the agent again with the updated messages.
 
-```ts highlight="11-18,21-28"
+```ts highlight="11-18,21-24,26"
 import { type ModelMessage, type ToolApprovalResponse } from 'ai';
 
 const messages: ModelMessage[] = [{ role: 'user', content: 'Delete temp.txt' }];

@@ -20,7 +20,7 @@ Function tools and dynamic tools contain several core elements:
 
 The `tools` parameter of `generateText` and `streamText` is an object that has the tool names as keys and the tools as values:
 
-```ts highlight="6-17"
+```ts highlight="7-18"
 import { z } from 'zod';
 import { generateText, tool, isStepCount } from 'ai';
 __PROVIDER_IMPORT__;
@@ -169,7 +169,7 @@ The older `needsApproval` property on `tool()` definitions is deprecated. Existi
 
 ### Configure `toolApproval`
 
-```ts highlight="8-10"
+```ts highlight="4-6"
 const result = await generateText({
   model: __MODEL__,
   tools: { runCommand },
@@ -413,7 +413,7 @@ In the following example, there are two steps:
    1. The tool result is sent to the model.
    1. The model generates a response considering the tool result.
 
-```ts highlight="18-19"
+```ts highlight="19"
 import { z } from 'zod';
 import { generateText, tool, isStepCount } from 'ai';
 __PROVIDER_IMPORT__;
@@ -447,7 +447,7 @@ It contains all the text, tool calls, tool results, per-step `performance`, and 
 
 #### Example: Extract tool results from all steps
 
-```ts highlight="3,9-10"
+```ts highlight="4,11"
 import { generateText } from 'ai';
 __PROVIDER_IMPORT__;
 
@@ -772,7 +772,7 @@ It supports the following settings:
 - `none`: the model must not call tools
 - `{ type: 'tool', toolName: string (typed) }`: the model must call the specified tool
 
-```ts highlight="18"
+```ts highlight="19"
 import { z } from 'zod';
 import { generateText, tool } from 'ai';
 __PROVIDER_IMPORT__;
@@ -876,7 +876,7 @@ const result = await generateText({
 The abort signals from `generateText` and `streamText` are forwarded to the tool execution.
 You can access them in the second parameter of the `execute` function and e.g. abort long-running computations or forward them to fetch calls inside tools.
 
-```ts highlight="6,11,14"
+```ts highlight="7,12,15"
 import { z } from 'zod';
 import { generateText, tool } from 'ai';
 __PROVIDER_IMPORT__;
@@ -983,7 +983,7 @@ between prompt context, runtime context, and tool context, see
 Tool context often contains server-side values such as API keys, access tokens, or internal identifiers.
 Use `telemetry.includeToolsContext` to include selected top-level context properties in telemetry integrations:
 
-```ts highlight="24-30"
+```ts highlight="29-35"
 const weatherTool = tool({
   description: 'Get the weather in a location',
   inputSchema: z.object({
@@ -1045,7 +1045,7 @@ The following tool input lifecycle hooks are available:
 
 ### Example
 
-```ts highlight="15-23"
+```ts highlight="16-24"
 import { streamText, tool } from 'ai';
 __PROVIDER_IMPORT__;
 import { z } from 'zod';
@@ -1338,7 +1338,7 @@ the AI SDK provides the `activeTools` property.
 It is an array of tool names that are currently active.
 By default, the value is `undefined` and all tools are active.
 
-```ts highlight="7"
+```ts highlight="8"
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 __PROVIDER_IMPORT__;

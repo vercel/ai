@@ -375,7 +375,7 @@ To solve this, you can enable multi-step tool calls using `stopWhen`. By default
 
 Modify your `app/api/chat/route.ts` file to include the `stopWhen` condition:
 
-```tsx filename="app/api/chat/route.ts" highlight="16"
+```tsx filename="app/api/chat/route.ts" highlight="6,17,33-35"
 import {
   streamText,
   UIMessage,

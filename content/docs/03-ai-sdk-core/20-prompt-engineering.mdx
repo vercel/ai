@@ -134,7 +134,7 @@ console.log(result.warnings);
 You can inspect the input messages that were sent to the model for the final step using `request.messages`.
 Set `include.requestMessages` to `true` to include these messages in step results.
 
-```ts highlight="6"
+```ts highlight="4,7"
 const result = await generateText({
   model: __MODEL__,
   prompt: 'Hello, world!',

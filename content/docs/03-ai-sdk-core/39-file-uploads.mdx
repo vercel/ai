@@ -41,7 +41,7 @@ const { text } = await generateText({
 
 As a shorthand, you can pass a provider instance directly to `api` instead of calling `.files()` explicitly — the SDK will call `.files()` for you:
 
-```ts highlight="3"
+```ts highlight="2"
 const { providerReference } = await uploadFile({
   api: openai, // shorthand for openai.files()
   data: fs.readFileSync('./photo.png'),
@@ -80,7 +80,7 @@ Use the `providerReference` in a file content part with its media type:
 Some providers accept additional options through `providerOptions`.
 For example, OpenAI requires a `purpose` field:
 
-```ts highlight="5-9"
+```ts highlight="6-10"
 import { openai, type OpenAIFilesOptions } from '@ai-sdk/openai';
 
 const { providerReference } = await uploadFile({
