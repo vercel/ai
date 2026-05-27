@@ -2248,7 +2248,7 @@ class DefaultStreamTextResult<
     );
   }
 
-  get fullStream(): AsyncIterableStream<TextStreamPart<TOOLS>> {
+  get stream(): AsyncIterableStream<TextStreamPart<TOOLS>> {
     return createAsyncIterableStream(
       this.teeStream().pipeThrough(
         new TransformStream<
@@ -2263,10 +2263,14 @@ class DefaultStreamTextResult<
     );
   }
 
+  get fullStream(): AsyncIterableStream<TextStreamPart<TOOLS>> {
+    return this.stream;
+  }
+
   async consumeStream(options?: ConsumeStreamOptions): Promise<void> {
     try {
       await consumeStream({
-        stream: this.fullStream,
+        stream: this.stream,
         onError: options?.onError,
       });
     } catch (error) {
@@ -2358,7 +2362,7 @@ class DefaultStreamTextResult<
       return tool?.type === 'dynamic' ? true : undefined;
     };
 
-    const baseStream = this.fullStream.pipeThrough(
+    const baseStream = this.stream.pipeThrough(
       new TransformStream<
         TextStreamPart<TOOLS>,
         UIMessageChunk<
