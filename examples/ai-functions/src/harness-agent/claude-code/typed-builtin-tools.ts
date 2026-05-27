@@ -3,6 +3,7 @@ import { claudeCode } from '@ai-sdk/harness-claude-code';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { tool } from 'ai';
 import { z } from 'zod';
+import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 
 /*
@@ -38,25 +39,7 @@ run(async () => {
         'Use the `today` tool, then create a file `notes.md` containing the date you got back.',
     });
 
-    for await (const part of result.fullStream) {
-      if (part.type === 'tool-call' && !part.dynamic) {
-        // Statically-typed call: `toolName` narrows to the union of harness
-        // builtins + user tools; `input` narrows per tool to its schema.
-        if (part.toolName === 'write') {
-          // part.input is { file_path: string; content: string; ... }
-          console.log(
-            `[write] ${part.input.file_path} (${part.input.content.length} chars)`,
-          );
-        } else if (part.toolName === 'today') {
-          console.log('[today] called');
-        } else {
-          console.log(`[${part.toolName}] called`);
-        }
-      } else if (part.type === 'text-delta') {
-        process.stdout.write(part.text);
-      }
-    }
-    console.log();
+    await printFullStream({ result });
   } catch (err) {
     exitCode = 1;
     console.error('[example] failed:', err);

@@ -3,6 +3,7 @@ import { codex } from '@ai-sdk/harness-codex';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { tool } from 'ai';
 import { z } from 'zod';
+import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 
 /*
@@ -36,22 +37,7 @@ run(async () => {
         'Call the `echo` tool with the message "hello", then run `uname -a` and tell me the kernel.',
     });
 
-    for await (const part of result.fullStream) {
-      if (part.type === 'tool-call' && !part.dynamic) {
-        if (part.toolName === 'bash') {
-          // part.input is { command: string }
-          console.log(`[bash] ${part.input.command}`);
-        } else if (part.toolName === 'echo') {
-          // part.input is { message: string }
-          console.log(`[echo] ${part.input.message}`);
-        } else {
-          console.log(`[${part.toolName}] called`);
-        }
-      } else if (part.type === 'text-delta') {
-        process.stdout.write(part.text);
-      }
-    }
-    console.log();
+    await printFullStream({ result });
   } catch (err) {
     exitCode = 1;
     console.error('[example] failed:', err);
