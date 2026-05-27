@@ -7,7 +7,8 @@ import {
   type SpanOptions,
   type Tracer,
 } from '@opentelemetry/api';
-import type { GenerateTextEndEvent, Telemetry } from 'ai';
+import { streamText, type GenerateTextEndEvent, type Telemetry } from 'ai';
+import { MockLanguageModelV4 } from 'ai/test';
 import { OpenTelemetry, type EnrichSpan } from './open-telemetry';
 
 type MockSpan = Span & {
@@ -1467,6 +1468,83 @@ describe('OpenTelemetry', () => {
               "code": 2,
               "message": "something went wrong",
             },
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('abort', () => {
+    it('closes streamText spans when AbortController aborts the stream', async () => {
+      const abortController = new AbortController();
+      let pullCalls = 0;
+
+      const result = streamText({
+        abortSignal: abortController.signal,
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: new ReadableStream({
+              pull(controller) {
+                switch (pullCalls++) {
+                  case 0:
+                    controller.enqueue({
+                      type: 'stream-start',
+                      warnings: [],
+                    });
+                    break;
+                  case 1:
+                    controller.enqueue({
+                      type: 'text-start',
+                      id: '1',
+                    });
+                    break;
+                  case 2:
+                    controller.enqueue({
+                      type: 'text-delta',
+                      id: '1',
+                      delta: 'Hello',
+                    });
+                    break;
+                  case 3:
+                    abortController.abort();
+                    controller.error(
+                      new DOMException(
+                        'The user aborted a request.',
+                        'AbortError',
+                      ),
+                    );
+                    break;
+                }
+              },
+            }),
+          }),
+        }),
+        prompt: 'test-input',
+        telemetry: {
+          integrations: integration,
+        },
+      });
+
+      await result.consumeStream();
+
+      expect(
+        tracer.spans.map(span => ({
+          name: span.name,
+          ended: span.ended,
+        })),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "ended": true,
+            "name": "invoke_agent mock-model-id",
+          },
+          {
+            "ended": true,
+            "name": "step 1",
+          },
+          {
+            "ended": true,
+            "name": "chat mock-model-id",
           },
         ]
       `);
