@@ -310,10 +310,11 @@ jobs:
           ATTEMPTS=3
           PER_ATTEMPT_TIMEOUT=10m
           for attempt in $(seq 1 "$ATTEMPTS"); do
-            if timeout "$PER_ATTEMPT_TIMEOUT" pnpm exec playwright install --with-deps; then
+            STATUS=0
+            timeout "$PER_ATTEMPT_TIMEOUT" pnpm exec playwright install --with-deps || STATUS=$?
+            if [ "$STATUS" -eq 0 ]; then
               break
             fi
-            STATUS=$?
             if [ "$attempt" -eq "$ATTEMPTS" ]; then
               echo "::error::playwright install failed after $ATTEMPTS attempts (last exit code: $STATUS)"
               exit 1
