@@ -1,20 +1,26 @@
 import {
-  tool,
+  Output,
   ToolLoopAgent,
-  type ToolSet,
   type FlexibleSchema,
   type InferToolSetContext,
   type LanguageModel,
+  type OutputInterface,
   type Tool,
+  type ToolSet,
 } from 'ai';
 
-export function subagent<INPUT, TOOLS extends ToolSet = {}>({
+export function subagent<
+  INPUT,
+  TOOLS extends ToolSet = {},
+  OUTPUT extends OutputInterface = OutputInterface<string, string, never>,
+>({
   model,
   description,
   instructions,
   tools,
   prompt,
   inputSchema,
+  output = Output.text() as unknown as OUTPUT,
   toolsContext,
 }: {
   model: LanguageModel;
@@ -22,13 +28,15 @@ export function subagent<INPUT, TOOLS extends ToolSet = {}>({
   tools: TOOLS;
   toolsContext?: InferToolSetContext<TOOLS>;
   inputSchema: FlexibleSchema<INPUT>;
+  output?: OUTPUT;
   instructions: string | ((options: INPUT) => string);
   prompt: string | ((options: INPUT) => string);
-}): Tool<INPUT, string> {
+}): Tool<INPUT, OUTPUT> {
   const agent = new ToolLoopAgent({
     model,
     tools,
     toolsContext,
+    output,
     callOptionsSchema: inputSchema,
     prepareCall: ({ options, ...rest }: any) => ({
       ...rest,
@@ -40,15 +48,15 @@ export function subagent<INPUT, TOOLS extends ToolSet = {}>({
     }),
   } as any);
 
-  return tool({
+  return {
     description,
     inputSchema,
-    execute: async options => {
+    execute: async (options: INPUT) => {
       const result = await agent.generate({
         prompt: '',
         options: options as any,
       });
-      return result.text;
+      return result.output;
     },
-  });
+  } as unknown as Tool<INPUT, OUTPUT>;
 }

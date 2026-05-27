@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { ToolLoopAgent } from 'ai';
+import { Output, ToolLoopAgent } from 'ai';
 import { z } from 'zod';
 import { print } from '../../lib/print';
 import { run } from '../../lib/run';
@@ -17,7 +17,14 @@ const mainAgent = new ToolLoopAgent({
       }),
 
       model: openai('gpt-5-mini'),
-      instructions: 'You are a helpful researcher.',
+      output: Output.array({
+        element: z.object({
+          title: z.string(),
+          description: z.string(),
+          url: z.string(),
+        }),
+      }),
+      instructions: 'You are a helpful news researcher.',
       prompt: ({ topic }) => `Research the topic: ${topic}.`,
       tools: {
         websearch: openai.tools.webSearch(),
