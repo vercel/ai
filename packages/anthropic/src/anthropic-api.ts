@@ -23,7 +23,7 @@ export type AnthropicCacheControl = {
 
 export interface AnthropicSystemMessage {
   role: 'system';
-  content: string;
+  content: Array<AnthropicTextContent>;
 }
 
 export interface AnthropicUserMessage {

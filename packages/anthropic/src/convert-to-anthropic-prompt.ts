@@ -133,20 +133,20 @@ export async function convertToAnthropicPrompt({
 
     switch (type) {
       case 'system': {
+        const content = block.messages.map(({ content, providerOptions }) => ({
+          type: 'text' as const,
+          text: content,
+          cache_control: validator.getCacheControl(providerOptions, {
+            type: 'system message',
+            canCache: true,
+          }),
+        }));
+
         if (system == null) {
-          system = block.messages.map(({ content, providerOptions }) => ({
-            type: 'text',
-            text: content,
-            cache_control: validator.getCacheControl(providerOptions, {
-              type: 'system message',
-              canCache: true,
-            }),
-          }));
+          system = content;
         } else {
-          messages.push({
-            role: 'system',
-            content: block.messages.map(m => m.content).join('\n'),
-          });
+          messages.push({ role: 'system', content });
+          betas.add('mid-conversation-system-2026-04-07');
         }
 
         break;
