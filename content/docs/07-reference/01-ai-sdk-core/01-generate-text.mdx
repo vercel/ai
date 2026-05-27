@@ -1343,7 +1343,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'performance',
-              type: '{ responseTimeMs: number; effectiveOutputTokensPerSecond: number; outputTokensPerSecond: number | undefined; inputTokensPerSecond: number | undefined; effectiveTotalTokensPerSecond: number; timeToFirstOutputTokenMs: number | undefined }',
+              type: '{ responseTimeMs: number; effectiveOutputTokensPerSecond: number; outputTokensPerSecond: number | undefined; inputTokensPerSecond: number | undefined; effectiveTotalTokensPerSecond: number; timeToFirstOutputTokenMs: number | undefined; timeBetweenOutputTokensMs?: OutputTokenTimingStats }',
               description: 'Performance metrics for the model call.',
               properties: [
                 {
@@ -1365,13 +1365,13 @@ To see `generateText` in action, check out [these examples](#examples).
                       name: 'outputTokensPerSecond',
                       type: 'number | undefined',
                       description:
-                        'Number of output tokens per second after the first output token was received. Only available for streaming model calls.',
+                        'Number of output tokens per second after the first output token was received. For `generateText`, this is `undefined` because the response is not streamed.',
                     },
                     {
                       name: 'inputTokensPerSecond',
                       type: 'number | undefined',
                       description:
-                        'Number of input tokens processed per second before the first output token was received. Only available for streaming model calls.',
+                        'Number of input tokens processed per second before the first output token was received. For `generateText`, this is `undefined` because the response is not streamed.',
                     },
                     {
                       name: 'effectiveTotalTokensPerSecond',
@@ -1383,7 +1383,13 @@ To see `generateText` in action, check out [these examples](#examples).
                       name: 'timeToFirstOutputTokenMs',
                       type: 'number | undefined',
                       description:
-                        'Time until the first text, reasoning, or tool input delta was received in milliseconds. Only available for streaming model calls.',
+                        'Time until the first text, reasoning, or tool input delta was received in milliseconds. For `generateText`, this is `undefined` because the response is not streamed.',
+                    },
+                    {
+                      name: 'timeBetweenOutputTokensMs',
+                      type: 'OutputTokenTimingStats | undefined',
+                      description:
+                        'Timing statistics for the gaps between streamed output-token chunks in milliseconds. For `generateText`, this is `undefined` because the response is not streamed.',
                     },
                   ],
                 },
@@ -1715,13 +1721,13 @@ To see `generateText` in action, check out [these examples](#examples).
                       name: 'outputTokensPerSecond',
                       type: 'number | undefined',
                       description:
-                        'Number of output tokens per second after the first output token was received. Only available for streaming steps.',
+                        'Number of output tokens per second after the first output token was received. For `generateText`, this is `undefined` because the response is not streamed.',
                     },
                     {
                       name: 'inputTokensPerSecond',
                       type: 'number | undefined',
                       description:
-                        'Number of input tokens processed per second before the first output token was received. Only available for streaming steps.',
+                        'Number of input tokens processed per second before the first output token was received. For `generateText`, this is `undefined` because the response is not streamed.',
                     },
                     {
                       name: 'effectiveTotalTokensPerSecond',
@@ -1751,7 +1757,13 @@ To see `generateText` in action, check out [these examples](#examples).
                       name: 'timeToFirstOutputTokenMs',
                       type: 'number | undefined',
                       description:
-                        'Time until the first text, reasoning, or tool input delta was received in milliseconds. Only available for streaming steps.',
+                        'Time until the first text, reasoning, or tool input delta was received in milliseconds. For `generateText`, this is `undefined` because the response is not streamed.',
+                    },
+                    {
+                      name: 'timeBetweenOutputTokensMs',
+                      type: 'OutputTokenTimingStats | undefined',
+                      description:
+                        'Timing statistics for the gaps between streamed output-token chunks in milliseconds. For `generateText`, this is `undefined` because the response is not streamed.',
                     },
                   ],
                 },

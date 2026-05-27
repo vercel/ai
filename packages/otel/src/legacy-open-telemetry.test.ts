@@ -1780,6 +1780,7 @@ function mockTwoStepStreamTextTelemetryNow() {
     600,
     1000,
     1000,
+    1000,
     1400,
     1400,
     1400,
