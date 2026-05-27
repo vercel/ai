@@ -1,5 +1,8 @@
-import { describe, expect, it } from 'vitest';
-import { convertToGoogleGenerativeAIMessages } from './convert-to-google-generative-ai-messages';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  convertToGoogleGenerativeAIMessages,
+  SKIP_THOUGHT_SIGNATURE_VALIDATOR,
+} from './convert-to-google-generative-ai-messages';
 
 describe('system messages', () => {
   it('should store system message in system instruction', async () => {
@@ -1240,5 +1243,196 @@ describe('server tool combination round-trip', () => {
       },
       thoughtSignature: undefined,
     });
+  });
+});
+
+describe('Gemini 3 missing thoughtSignature mitigation', () => {
+  const promptWithToolCallMissingSignature = [
+    { role: 'user' as const, content: [{ type: 'text' as const, text: 'hi' }] },
+    {
+      role: 'assistant' as const,
+      content: [
+        {
+          type: 'tool-call' as const,
+          toolCallId: 'tc_1',
+          toolName: 'weather',
+          input: { location: 'SF' },
+        },
+      ],
+    },
+    {
+      role: 'tool' as const,
+      content: [
+        {
+          type: 'tool-result' as const,
+          toolCallId: 'tc_1',
+          toolName: 'weather',
+          output: { type: 'json' as const, value: { temperature: 72 } },
+        },
+      ],
+    },
+  ];
+
+  it('injects skip_thought_signature_validator and emits a warning for Gemini 3 when a tool-call has no signature', () => {
+    const onWarning = vi.fn();
+    const result = convertToGoogleGenerativeAIMessages(
+      promptWithToolCallMissingSignature,
+      { isGemini3Model: true, onWarning },
+    );
+
+    const assistant = result.contents.find(c => c.role === 'model');
+    expect(assistant?.parts[0]).toMatchObject({
+      functionCall: { id: 'tc_1', name: 'weather', args: { location: 'SF' } },
+      thoughtSignature: SKIP_THOUGHT_SIGNATURE_VALIDATOR,
+    });
+    expect(onWarning).toHaveBeenCalledTimes(1);
+    expect(onWarning.mock.calls[0][0]).toMatchObject({
+      type: 'other',
+      message: expect.stringContaining('skip_thought_signature_validator'),
+    });
+    expect(onWarning.mock.calls[0][0].message).toContain('`weather`');
+  });
+
+  it('does NOT inject the sentinel for non-Gemini-3 models', () => {
+    const onWarning = vi.fn();
+    const result = convertToGoogleGenerativeAIMessages(
+      promptWithToolCallMissingSignature,
+      { isGemini3Model: false, onWarning },
+    );
+
+    const assistant = result.contents.find(c => c.role === 'model');
+    expect(assistant?.parts[0]).toMatchObject({
+      functionCall: { id: 'tc_1', name: 'weather', args: { location: 'SF' } },
+      thoughtSignature: undefined,
+    });
+    expect(onWarning).not.toHaveBeenCalled();
+  });
+
+  it('does NOT inject the sentinel when a real signature is present under `google`', () => {
+    const onWarning = vi.fn();
+    const result = convertToGoogleGenerativeAIMessages(
+      [
+        { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_1',
+              toolName: 'weather',
+              input: { location: 'SF' },
+              providerOptions: { google: { thoughtSignature: 'real_sig' } },
+            },
+          ],
+        },
+      ],
+      { isGemini3Model: true, onWarning },
+    );
+
+    const assistant = result.contents.find(c => c.role === 'model');
+    expect(assistant?.parts[0]).toMatchObject({
+      thoughtSignature: 'real_sig',
+    });
+    expect(onWarning).not.toHaveBeenCalled();
+  });
+
+  it('does NOT inject the sentinel when a real signature is present under `vertex` (Vertex provider, gateway failover)', () => {
+    const onWarning = vi.fn();
+    const result = convertToGoogleGenerativeAIMessages(
+      [
+        { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_1',
+              toolName: 'weather',
+              input: { location: 'SF' },
+              providerOptions: { vertex: { thoughtSignature: 'vertex_sig' } },
+            },
+          ],
+        },
+      ],
+      {
+        isGemini3Model: true,
+        providerOptionsName: 'vertex',
+        onWarning,
+      },
+    );
+
+    const assistant = result.contents.find(c => c.role === 'model');
+    expect(assistant?.parts[0]).toMatchObject({
+      thoughtSignature: 'vertex_sig',
+    });
+    expect(onWarning).not.toHaveBeenCalled();
+  });
+
+  it('does NOT inject the sentinel when a real signature is present under `googleVertex`', () => {
+    const onWarning = vi.fn();
+    const result = convertToGoogleGenerativeAIMessages(
+      [
+        { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_1',
+              toolName: 'weather',
+              input: { location: 'SF' },
+              providerOptions: {
+                googleVertex: { thoughtSignature: 'google_vertex_sig' },
+              },
+            },
+          ],
+        },
+      ],
+      { isGemini3Model: true, onWarning },
+    );
+
+    const assistant = result.contents.find(c => c.role === 'model');
+    expect(assistant?.parts[0]).toMatchObject({
+      thoughtSignature: 'google_vertex_sig',
+    });
+    expect(onWarning).not.toHaveBeenCalled();
+  });
+
+  it('emits one warning per request listing each affected tool name (parallel calls without signatures)', () => {
+    const onWarning = vi.fn();
+    convertToGoogleGenerativeAIMessages(
+      [
+        { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_1',
+              toolName: 'weather',
+              input: { location: 'SF' },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_2',
+              toolName: 'weather',
+              input: { location: 'NYC' },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_3',
+              toolName: 'search',
+              input: { query: 'q' },
+            },
+          ],
+        },
+      ],
+      { isGemini3Model: true, onWarning },
+    );
+
+    expect(onWarning).toHaveBeenCalledTimes(1);
+    expect(onWarning.mock.calls[0][0].message).toContain('3 ');
+    expect(onWarning.mock.calls[0][0].message).toContain('`weather`');
+    expect(onWarning.mock.calls[0][0].message).toContain('`search`');
   });
 });
