@@ -70,6 +70,7 @@ export interface TelemetryDispatcher {
   onRerankEnd?: Callback<RerankingModelCallEndEvent>;
   onEnd?: Callback<OperationEndEvent>;
   onError?: Callback<unknown>;
+  executeLanguageModelCall?: Telemetry['executeLanguageModelCall'];
   executeTool?: Telemetry['executeTool'];
 }
 
@@ -200,6 +201,19 @@ export interface Telemetry {
    * Use this to record error details on telemetry spans and set error status.
    */
   onError?: Callback<unknown>;
+
+  /**
+   * Optionally runs the language model call in a telemetry-integration-specific context. This enables
+   * auto-instrumented model provider requests to become children of the current
+   * model-call span.
+   *
+   * @param options.callId - The call ID of the generation.
+   * @param options.execute - The function that performs the model call.
+   */
+  executeLanguageModelCall?: <T>(options: {
+    callId: string;
+    execute: () => PromiseLike<T>;
+  }) => PromiseLike<T>;
 
   /**
    * Optionally runs the tool execute function in a telemetry-integration-specific context. This enables

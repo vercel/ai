@@ -1685,6 +1685,8 @@ class DefaultStreamTextResult<
               download,
               output,
               callId,
+              executeLanguageModelCallInTelemetryContext:
+                telemetryDispatcher.executeLanguageModelCall,
               toolsContext,
               experimental_sandbox: stepSandbox,
               onLanguageModelCallStart: filterNullable(
