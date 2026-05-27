@@ -187,12 +187,20 @@ export async function convertToBedrockChatMessages(
                         switch (contentPart.type) {
                           case 'text':
                             return { text: contentPart.text };
-                          case 'image-data':
+                          case 'image-data': {
+                            return {
+                              image: {
+                                format: getBedrockImageFormat(
+                                  contentPart.mediaType,
+                                ),
+                                source: {
+                                  bytes: convertToBase64(contentPart.data),
+                                },
+                              },
+                            };
+                          }
                           case 'file-data': {
-                            if (
-                              getTopLevelMediaType(contentPart.mediaType) !==
-                              'image'
-                            ) {
+                            if (!contentPart.mediaType.startsWith('image/')) {
                               const enableCitations =
                                 await shouldEnableCitations(
                                   contentPart.providerOptions,
@@ -390,10 +398,6 @@ function isBedrockImageFormat(format: string): format is BedrockImageFormat {
   return Object.values(BEDROCK_IMAGE_MIME_TYPES).includes(
     format as BedrockImageFormat,
   );
-}
-
-function getTopLevelMediaType(mediaType: string): string {
-  return mediaType.split('/')[0];
 }
 
 function getBedrockImageFormat(mimeType?: string): BedrockImageFormat {
