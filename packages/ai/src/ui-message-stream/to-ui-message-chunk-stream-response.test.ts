@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import type { TextStreamPart } from '../generate-text/stream-text-result';
 import type { LanguageModelUsage } from '../types/usage';
 import type { UIMessage } from '../ui/ui-messages';
-import { toUIMessageStreamResponse } from './to-ui-message-stream-response';
+import { toUIMessageChunkStreamResponse } from './to-ui-message-chunk-stream-response';
 
 const testUsage: LanguageModelUsage = {
   inputTokens: 1,
@@ -23,7 +23,7 @@ const testUsage: LanguageModelUsage = {
   },
 };
 
-describe('toUIMessageStreamResponse', () => {
+describe('toUIMessageChunkStreamResponse', () => {
   it('converts a text stream to a UI message stream response', async () => {
     const parts: TextStreamPart<{}>[] = [
       { type: 'start' },
@@ -38,7 +38,7 @@ describe('toUIMessageStreamResponse', () => {
       },
     ];
 
-    const response = toUIMessageStreamResponse({
+    const response = toUIMessageChunkStreamResponse({
       status: 200,
       stream: convertArrayToReadableStream(parts),
       originalMessages: [

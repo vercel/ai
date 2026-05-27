@@ -15,7 +15,7 @@ import type { UIMessageStreamResponseInit } from './ui-message-stream-response-i
  * The stream is converted to UI message chunks and then transformed to
  * Server-Sent Events (SSE) format.
  */
-export function toUIMessageStreamResponse<
+export function toUIMessageChunkStreamResponse<
   TOOLS extends ToolSet,
   UI_MESSAGE extends UIMessage,
 >({

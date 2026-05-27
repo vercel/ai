@@ -1373,9 +1373,9 @@ return result.toUIMessageStreamResponse({ originalMessages });
 ```
 
 ```tsx filename="AI SDK 7"
-import { toUIMessageStreamResponse } from 'ai';
+import { toUIMessageChunkStreamResponse } from 'ai';
 
-const uiStream = toUIMessageStream({
+return toUIMessageChunkStreamResponse({
   stream: result.fullStream,
   generateMessageId,
   originalMessages,

@@ -44,12 +44,12 @@ export function toUIMessageChunk<
   }: ToUIMessageChunkOptions<TOOLS, UI_MESSAGE> = {},
 ): InferUIMessageChunk<UI_MESSAGE> | undefined {
   // TODO simplify once dynamic is no longer needed for invalid tool inputs
-  const isDynamic = (p: { toolName: string; dynamic?: boolean }) => {
-    const tool = tools?.[p.toolName];
+  const isDynamic = (toolPart: { toolName: string; dynamic?: boolean }) => {
+    const tool = tools?.[toolPart.toolName];
 
     // provider-executed, dynamic tools are not listed in the tools object
     if (tool == null) {
-      return p.dynamic;
+      return toolPart.dynamic;
     }
 
     return tool?.type === 'dynamic' ? true : undefined;
