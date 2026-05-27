@@ -174,7 +174,7 @@ export interface BedrockImageBlock {
 export interface BedrockToolResultBlock {
   toolResult: {
     toolUseId: string;
-    content: Array<BedrockTextBlock | BedrockImageBlock>;
+    content: Array<BedrockTextBlock | BedrockImageBlock | BedrockDocumentBlock>;
   };
 }
 

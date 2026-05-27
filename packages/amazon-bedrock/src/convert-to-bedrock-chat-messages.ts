@@ -182,34 +182,69 @@ export async function convertToBedrockChatMessages(
                 const output = part.output;
                 switch (output.type) {
                   case 'content': {
-                    toolResultContent = output.value.map(contentPart => {
-                      switch (contentPart.type) {
-                        case 'text':
-                          return { text: contentPart.text };
-                        case 'image-data':
-                          if (!contentPart.mediaType.startsWith('image/')) {
+                    toolResultContent = await Promise.all(
+                      output.value.map(async contentPart => {
+                        switch (contentPart.type) {
+                          case 'text':
+                            return { text: contentPart.text };
+                          case 'image-data': {
+                            return {
+                              image: {
+                                format: getBedrockImageFormat(
+                                  contentPart.mediaType,
+                                ),
+                                source: {
+                                  bytes: convertToBase64(contentPart.data),
+                                },
+                              },
+                            };
+                          }
+                          case 'file-data': {
+                            if (!contentPart.mediaType.startsWith('image/')) {
+                              const enableCitations =
+                                await shouldEnableCitations(
+                                  contentPart.providerOptions,
+                                );
+
+                              return {
+                                document: {
+                                  format: getBedrockDocumentFormat(
+                                    contentPart.mediaType,
+                                  ),
+                                  name:
+                                    'filename' in contentPart &&
+                                    contentPart.filename
+                                      ? stripFileExtension(contentPart.filename)
+                                      : generateDocumentName(),
+                                  source: {
+                                    bytes: convertToBase64(contentPart.data),
+                                  },
+                                  ...(enableCitations && {
+                                    citations: { enabled: true },
+                                  }),
+                                },
+                              };
+                            }
+
+                            return {
+                              image: {
+                                format: getBedrockImageFormat(
+                                  contentPart.mediaType,
+                                ),
+                                source: {
+                                  bytes: convertToBase64(contentPart.data),
+                                },
+                              },
+                            };
+                          }
+                          default: {
                             throw new UnsupportedFunctionalityError({
-                              functionality: `media type: ${contentPart.mediaType}`,
+                              functionality: `unsupported tool content part type: ${contentPart.type}`,
                             });
                           }
-
-                          const format = getBedrockImageFormat(
-                            contentPart.mediaType,
-                          );
-
-                          return {
-                            image: {
-                              format,
-                              source: { bytes: contentPart.data },
-                            },
-                          };
-                        default: {
-                          throw new UnsupportedFunctionalityError({
-                            functionality: `unsupported tool content part type: ${contentPart.type}`,
-                          });
                         }
-                      }
-                    });
+                      }),
+                    );
                     break;
                   }
                   case 'text':
