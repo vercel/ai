@@ -35,7 +35,7 @@ export function mockHarness(options: {
   return {
     specificationVersion: 'harness-v1',
     harnessId: 'mock',
-    builtinTools: [],
+    builtinTools: {},
     doStart: async startOpts => {
       // Per-session conversation history. `HarnessAgent`'s caller passes one
       // new user-message prompt per call; we accumulate prior assistant + tool
@@ -129,7 +129,7 @@ function translateBackward(
           typeof part.input === 'string'
             ? part.input
             : JSON.stringify(part.input),
-        observeOnly: true, // streamText already executed it
+        providerExecuted: true, // streamText already executed it
       };
     case 'tool-result':
       return {

@@ -22,19 +22,19 @@ describe('translate', () => {
     });
   });
 
-  it('preserves observeOnly and nativeName on tool-call', () => {
+  it('preserves providerExecuted and nativeName on tool-call', () => {
     const out = translate({
       type: 'tool-call',
       toolCallId: 'c1',
       toolName: 'bash',
       input: '{}',
       nativeName: 'Bash',
-      observeOnly: true,
+      providerExecuted: true,
     });
     expect(out).toMatchObject({
       type: 'tool-call',
       nativeName: 'Bash',
-      observeOnly: true,
+      providerExecuted: true,
     });
   });
 

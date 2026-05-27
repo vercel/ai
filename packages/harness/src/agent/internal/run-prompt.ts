@@ -4,6 +4,7 @@ import type {
   HarnessV1PromptControl,
   HarnessV1SandboxSession,
   HarnessV1Session,
+  HarnessV1StreamPart,
   HarnessV1ToolSpec,
 } from '../../v1';
 import { toHarnessStream } from './to-harness-stream';
@@ -12,7 +13,8 @@ import {
   type Context,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
-import type { ContentPart } from 'ai';
+import type { LanguageModelV4ToolCall } from '@ai-sdk/provider';
+import { parseToolCall, type ContentPart, type TextStreamPart } from 'ai';
 import { HarnessStreamTextResult } from './harness-stream-text-result';
 import { translateStreamPart } from './translate-stream-part';
 
@@ -82,6 +84,16 @@ export function runPrompt<
           result.enqueue(part);
         }
 
+        // Tool-call validation lives here (not in translateStreamPart) because
+        // schema parsing is async and needs the merged tool set in scope.
+        if (value.type === 'tool-call') {
+          const parsed = await validateToolCall<TOOLS>({
+            event: value,
+            tools: input.tools,
+          });
+          result.enqueue(parsed);
+        }
+
         // Drive step boundaries.
         if (value.type === 'finish-step') {
           result.finishStep({
@@ -93,7 +105,7 @@ export function runPrompt<
         }
 
         // Execute host-side tools when the harness asks for one.
-        if (value.type === 'tool-call' && !value.observeOnly) {
+        if (value.type === 'tool-call' && !value.providerExecuted) {
           await maybeExecuteHostTool({
             event: value,
             tools: input.tools,
@@ -165,6 +177,48 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
       isError: true,
     });
   }
+}
+
+/*
+ * Validate an inbound `tool-call` event against the merged tool set's schema
+ * using the AI SDK's canonical `parseToolCall`. Returns an AI SDK `tool-call`
+ * stream part with parsed input on success, or a `dynamic + invalid: true`
+ * part on failure (unknown tool, schema mismatch, malformed JSON).
+ *
+ * The harness `tool-call` event is structurally a `LanguageModelV4ToolCall`
+ * (plus an optional harness-only `nativeName`). `providerExecuted` already
+ * lives on the V4 type — `true` for adapter builtins (Claude Code's `Bash`,
+ * Codex's `shell`), false/undefined for host tools — and is passed through
+ * to the AI SDK part by `parseToolCall`.
+ */
+export async function validateToolCall<TOOLS extends ToolSet>(args: {
+  event: Extract<HarnessV1StreamPart, { type: 'tool-call' }>;
+  tools: TOOLS;
+}): Promise<TextStreamPart<TOOLS>> {
+  const { event, tools } = args;
+  const toolCall: LanguageModelV4ToolCall = {
+    type: 'tool-call',
+    toolCallId: event.toolCallId,
+    toolName: event.toolName,
+    input: event.input,
+    ...(event.providerExecuted !== undefined
+      ? { providerExecuted: event.providerExecuted }
+      : {}),
+    ...(event.providerMetadata !== undefined
+      ? { providerMetadata: event.providerMetadata }
+      : {}),
+  };
+
+  const parsed = await parseToolCall<TOOLS>({
+    toolCall,
+    tools,
+    repairToolCall: undefined,
+    refineToolInput: undefined,
+    instructions: undefined,
+    messages: [],
+  });
+
+  return parsed as TextStreamPart<TOOLS>;
 }
 
 // keep import bound so unused-but-needed type stays cited

@@ -11,10 +11,14 @@ export type {
 } from './harness-v1-call-options';
 export type { HarnessV1CallWarning } from './harness-v1-call-warning';
 export type {
-  HarnessV1BuiltinToolDescriptor,
+  HarnessV1BuiltinTool,
   HarnessV1BuiltinToolName,
 } from './harness-v1-builtin-tool';
-export { HARNESS_V1_BUILTIN_TOOL_NAMES } from './harness-v1-builtin-tool';
+export {
+  HARNESS_V1_BUILTIN_TOOL_NAMES,
+  HARNESS_V1_BUILTIN_TOOLS,
+  commonTool,
+} from './harness-v1-builtin-tool';
 export type { HarnessV1Metadata } from './harness-v1-metadata';
 export type { HarnessV1Prompt } from './harness-v1-prompt';
 export type { HarnessV1ResumeState } from './harness-v1-resume-state';

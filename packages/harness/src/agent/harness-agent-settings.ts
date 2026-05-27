@@ -13,11 +13,16 @@ import type { ToolSet } from '@ai-sdk/provider-utils';
  * `AgentCallParameters` / `AgentStreamParameters` passed to `generate` /
  * `stream` and are not duplicated here.
  */
-export type HarnessAgentSettings<TOOLS extends ToolSet = ToolSet> = {
+export type HarnessAgentSettings<
+  THarness extends HarnessV1<any> = HarnessV1,
+  TUserTools extends ToolSet = {},
+> = {
   /**
-   * The harness adapter driving the underlying agent runtime.
+   * The harness adapter driving the underlying agent runtime. Its
+   * `builtinTools` are merged with the user-defined `tools` and exposed to
+   * AI SDK consumers in the typed `tool-call` stream.
    */
-  readonly harness: HarnessV1;
+  readonly harness: THarness;
 
   /**
    * Stable identifier for this agent instance. Exposed via `agent.id`.
@@ -26,12 +31,15 @@ export type HarnessAgentSettings<TOOLS extends ToolSet = ToolSet> = {
   readonly id?: string;
 
   /**
-   * Tools available to the underlying runtime. The agent forwards each tool
-   * to the harness as a `HarnessV1ToolSpec`; when the runtime calls one,
-   * the agent executes `tool.execute()` on the host and submits the result
-   * back to the harness.
+   * Tools available to the underlying runtime in addition to the harness's
+   * own builtins. The agent forwards each tool to the harness as a
+   * `HarnessV1ToolSpec`; when the runtime calls one, the agent executes
+   * `tool.execute()` on the host and submits the result back to the harness.
+   *
+   * User tools take precedence over harness builtins on key collision —
+   * declare a tool with the same name as a builtin to override.
    */
-  readonly tools?: TOOLS;
+  readonly tools?: TUserTools;
 
   /**
    * Skills made available to the underlying runtime for the lifetime of

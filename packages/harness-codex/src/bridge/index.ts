@@ -514,7 +514,7 @@ function translateAndEmit(
         toolName: toCommonName(nativeName),
         nativeName,
         input: JSON.stringify({ command: item.command ?? '' }),
-        observeOnly: true,
+        providerExecuted: true,
       });
     } else if (event.type === 'item.completed') {
       ctx.send({
@@ -540,7 +540,7 @@ function translateAndEmit(
         toolName: item.tool ?? 'unknown',
         ...(isHostTool ? {} : { nativeName: item.tool ?? 'unknown' }),
         input: JSON.stringify(item.arguments ?? {}),
-        observeOnly: !isHostTool,
+        providerExecuted: !isHostTool,
       });
     } else if (event.type === 'item.completed') {
       ctx.send({
@@ -562,7 +562,7 @@ function translateAndEmit(
         toolName: toCommonName(nativeName),
         nativeName,
         input: JSON.stringify({ query: item.query ?? '' }),
-        observeOnly: true,
+        providerExecuted: true,
       });
     } else if (event.type === 'item.completed') {
       ctx.send({
@@ -738,7 +738,7 @@ async function startToolRelay({
         toolCallId: requestId,
         toolName,
         input: JSON.stringify(input ?? {}),
-        observeOnly: false,
+        providerExecuted: false,
       });
 
       const { output, isError } = await pending;

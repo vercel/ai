@@ -72,7 +72,7 @@ export const outboundMessageSchema = z.discriminatedUnion('type', [
     toolName: z.string(),
     input: z.string(),
     nativeName: z.string().optional(),
-    observeOnly: z.boolean().optional(),
+    providerExecuted: z.boolean().optional(),
     harnessMetadata: harnessMetadataSchema.optional(),
   }),
 

@@ -1,4 +1,5 @@
 import type {
+  HarnessV1,
   HarnessV1Prompt,
   HarnessV1ResumeState,
   HarnessV1ToolSpec,
@@ -14,6 +15,18 @@ import type {
 import type { HarnessAgentSettings } from './harness-agent-settings';
 import { runPrompt } from './internal/run-prompt';
 import { SessionManager } from './internal/session-manager';
+
+/** Extract the builtin tool set type from a `HarnessV1<...>` parameter. */
+type BuiltinToolsOf<H> = H extends HarnessV1<infer T> ? T : never;
+
+/**
+ * Type-level merge of a harness's builtin tools with user-defined tools.
+ * User tools override builtins on key collision.
+ */
+export type HarnessAllTools<
+  THarness extends HarnessV1<any>,
+  TUserTools extends ToolSet,
+> = Omit<BuiltinToolsOf<THarness>, keyof TUserTools> & TUserTools;
 
 /**
  * AI SDK `Agent` implementation that drives a third-party agent runtime
@@ -38,20 +51,38 @@ import { SessionManager } from './internal/session-manager';
  *    calls via `experimental_sandbox`.
  */
 export class HarnessAgent<
-  TOOLS extends ToolSet = {},
+  THarness extends HarnessV1<any> = HarnessV1,
+  TUserTools extends ToolSet = {},
   RUNTIME_CONTEXT extends Context = Context,
-> implements Agent<never, TOOLS, RUNTIME_CONTEXT, never> {
+> implements Agent<
+  never,
+  HarnessAllTools<THarness, TUserTools>,
+  RUNTIME_CONTEXT,
+  never
+> {
   readonly version = 'agent-v1' as const;
   readonly id: string | undefined;
-  readonly tools: TOOLS;
 
-  private readonly settings: HarnessAgentSettings<TOOLS>;
+  /**
+   * Merged tool set exposed to AI SDK consumers: harness builtins +
+   * user-defined tools, with user tools overriding builtins on key
+   * collision. Built once at construction time so the typed surface is
+   * stable across calls.
+   */
+  readonly tools: HarnessAllTools<THarness, TUserTools>;
+
+  private readonly settings: HarnessAgentSettings<THarness, TUserTools>;
+  private readonly userTools: TUserTools;
   private readonly sessions: SessionManager;
 
-  constructor(settings: HarnessAgentSettings<TOOLS>) {
+  constructor(settings: HarnessAgentSettings<THarness, TUserTools>) {
     this.settings = settings;
     this.id = settings.id;
-    this.tools = settings.tools ?? ({} as TOOLS);
+    this.userTools = settings.tools ?? ({} as TUserTools);
+    this.tools = {
+      ...settings.harness.builtinTools,
+      ...this.userTools,
+    } as HarnessAllTools<THarness, TUserTools>;
     this.sessions = new SessionManager({
       harness: settings.harness,
       sessionId: settings.sessionId,
@@ -72,16 +103,36 @@ export class HarnessAgent<
   }
 
   async generate(
-    options: AgentCallParameters<never, TOOLS, RUNTIME_CONTEXT>,
-  ): Promise<GenerateTextResult<TOOLS, RUNTIME_CONTEXT, never>> {
+    options: AgentCallParameters<
+      never,
+      HarnessAllTools<THarness, TUserTools>,
+      RUNTIME_CONTEXT
+    >,
+  ): Promise<
+    GenerateTextResult<
+      HarnessAllTools<THarness, TUserTools>,
+      RUNTIME_CONTEXT,
+      never
+    >
+  > {
     const { result, done } = await this._startTurn(options);
     await done;
     return await this._toGenerateResult(result);
   }
 
   async stream(
-    options: AgentStreamParameters<never, TOOLS, RUNTIME_CONTEXT>,
-  ): Promise<StreamTextResult<TOOLS, RUNTIME_CONTEXT, never>> {
+    options: AgentStreamParameters<
+      never,
+      HarnessAllTools<THarness, TUserTools>,
+      RUNTIME_CONTEXT
+    >,
+  ): Promise<
+    StreamTextResult<
+      HarnessAllTools<THarness, TUserTools>,
+      RUNTIME_CONTEXT,
+      never
+    >
+  > {
     const { result } = await this._startTurn(options);
     return result;
   }
@@ -106,8 +157,16 @@ export class HarnessAgent<
 
   private async _startTurn(
     options:
-      | AgentCallParameters<never, TOOLS, RUNTIME_CONTEXT>
-      | AgentStreamParameters<never, TOOLS, RUNTIME_CONTEXT>,
+      | AgentCallParameters<
+          never,
+          HarnessAllTools<THarness, TUserTools>,
+          RUNTIME_CONTEXT
+        >
+      | AgentStreamParameters<
+          never,
+          HarnessAllTools<THarness, TUserTools>,
+          RUNTIME_CONTEXT
+        >,
   ) {
     const session = await this.sessions.getSession({
       abortSignal: options.abortSignal,
@@ -120,7 +179,7 @@ export class HarnessAgent<
     // cast to RUNTIME_CONTEXT, which is correct for the default Context type.
     const runtimeContext = {} as RUNTIME_CONTEXT;
 
-    return runPrompt<TOOLS, RUNTIME_CONTEXT>({
+    return runPrompt<HarnessAllTools<THarness, TUserTools>, RUNTIME_CONTEXT>({
       harness: this.settings.harness,
       session,
       prompt,
@@ -154,10 +213,15 @@ export class HarnessAgent<
     throw new Error('HarnessAgent: either `prompt` or `messages` is required.');
   }
 
+  /*
+   * Wire-format projection of user-defined tools only. Harness builtins are
+   * executed by the runtime and the bridge already knows about them — we
+   * never re-declare them over the wire.
+   */
   private _toToolSpecs(): HarnessV1ToolSpec[] {
     const specs: HarnessV1ToolSpec[] = [];
     for (const [name, tool] of Object.entries(
-      this.tools as Record<string, unknown>,
+      this.userTools as Record<string, unknown>,
     )) {
       const t = tool as {
         description?: string;
@@ -179,8 +243,18 @@ export class HarnessAgent<
   }
 
   private async _toGenerateResult(
-    streamResult: StreamTextResult<TOOLS, RUNTIME_CONTEXT, never>,
-  ): Promise<GenerateTextResult<TOOLS, RUNTIME_CONTEXT, never>> {
+    streamResult: StreamTextResult<
+      HarnessAllTools<THarness, TUserTools>,
+      RUNTIME_CONTEXT,
+      never
+    >,
+  ): Promise<
+    GenerateTextResult<
+      HarnessAllTools<THarness, TUserTools>,
+      RUNTIME_CONTEXT,
+      never
+    >
+  > {
     // Await everything in parallel; the stream is already drained by the time
     // generate() calls this helper (done has resolved).
     const [

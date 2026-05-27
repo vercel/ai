@@ -36,6 +36,7 @@ export type {
   InferPartialOutput as InferStreamOutput,
 } from './output-utils';
 export type { PrepareStepFunction, PrepareStepResult } from './prepare-step';
+export { parseToolCall } from './parse-tool-call';
 export { pruneMessages } from './prune-messages';
 export type { ReasoningFileOutput, ReasoningOutput } from './reasoning-output';
 export { smoothStream, type ChunkDetector } from './smooth-stream';

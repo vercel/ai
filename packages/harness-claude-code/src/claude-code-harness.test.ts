@@ -24,14 +24,37 @@ describe('createClaudeCode adapter', () => {
     const harness = createClaudeCode();
     expect(harness.harnessId).toBe('claude-code');
     expect(harness.specificationVersion).toBe('harness-v1');
-    expect(harness.builtinTools.map(t => t.nativeName)).toEqual([
-      'Read',
-      'Write',
-      'Edit',
-      'Bash',
-      'Glob',
-      'Grep',
+    expect(Object.keys(harness.builtinTools)).toEqual([
+      'read',
+      'write',
+      'edit',
+      'bash',
+      'glob',
+      'grep',
+      'webSearch',
+      'WebFetch',
+      'NotebookEdit',
+      'TodoWrite',
+      'Agent',
+      'TaskCreate',
+      'TaskGet',
+      'TaskUpdate',
+      'TaskList',
+      'TaskStop',
+      'TaskOutput',
+      'ListMcpResources',
+      'ReadMcpResource',
+      'ExitPlanMode',
+      'EnterWorktree',
+      'ExitWorktree',
+      'AskUserQuestion',
     ]);
+    expect(harness.builtinTools.read.nativeName).toBe('Read');
+    expect(harness.builtinTools.read.commonName).toBe('read');
+    // WebFetch has no cross-harness common equivalent — its key is the
+    // native name directly, so the entry intentionally omits both
+    // `nativeName` and `commonName`.
+    expect(harness.builtinTools.WebFetch).toBeDefined();
   });
 
   it('throws HarnessCapabilityUnsupportedError when no sandbox handle is provided', async () => {

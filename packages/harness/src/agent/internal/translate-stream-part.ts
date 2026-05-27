@@ -11,8 +11,9 @@ import { generateId, type ToolSet } from '@ai-sdk/provider-utils';
  * `LanguageModelV4ToolApprovalRequest`, `LanguageModelV4FinishReason`,
  * `LanguageModelV4Usage`) flow through unchanged. The adapters are:
  *   - `harnessMetadata` → `providerMetadata`
- *   - harness-only `nativeName` / `observeOnly` on tool calls are dropped
- *     (host consumers don't see them; they are an internal adapter signal)
+ *   - tool-call events are not translated here — validation against the
+ *     merged tool set is async and handled by `validateToolCall` in
+ *     `run-prompt.ts`
  *   - the harness `raw` part is forwarded as the AI SDK `raw` part
  *
  * Returns an array of zero or more AI SDK parts. Most harness events project
@@ -88,11 +89,12 @@ export function translateStreamPart<TOOLS extends ToolSet>(
         } as TextStreamPart<TOOLS>,
       ];
 
-    case 'tool-call': {
-      // Strip the harness-only fields before forwarding.
-      const { nativeName: _n, observeOnly: _o, ...rest } = event;
-      return [rest as TextStreamPart<TOOLS>];
-    }
+    case 'tool-call':
+      // Tool-call validation is async (it parses input against the tool's
+      // schema) and lives in `run-prompt.ts` where the merged tool set is in
+      // scope. The translator returns nothing here — the run-prompt loop
+      // handles the emission.
+      return [];
 
     case 'tool-approval-request':
       return [

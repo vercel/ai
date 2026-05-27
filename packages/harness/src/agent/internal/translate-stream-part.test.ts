@@ -3,24 +3,16 @@ import { describe, expect, it } from 'vitest';
 import { translateStreamPart } from './translate-stream-part';
 
 describe('translateStreamPart', () => {
-  it('forwards a tool-call after stripping harness-only fields', () => {
+  it('returns no parts for a tool-call event (validation is handled by run-prompt)', () => {
     const out = translateStreamPart<ToolSet>({
       type: 'tool-call',
       toolCallId: 'c1',
       toolName: 'bash',
       input: '{"command":"ls"}',
       nativeName: 'Bash',
-      observeOnly: true,
+      providerExecuted: true,
     });
-    expect(out).toHaveLength(1);
-    expect(out[0]).toMatchObject({
-      type: 'tool-call',
-      toolCallId: 'c1',
-      toolName: 'bash',
-      input: '{"command":"ls"}',
-    });
-    expect(out[0]).not.toHaveProperty('nativeName');
-    expect(out[0]).not.toHaveProperty('observeOnly');
+    expect(out).toHaveLength(0);
   });
 
   it('fans file-change out into a dynamic provider-executed tool-call + tool-result pair', () => {

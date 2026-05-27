@@ -1,6 +1,5 @@
-import type { FlexibleSchema } from '@ai-sdk/provider-utils';
+import type { FlexibleSchema, ToolSet } from '@ai-sdk/provider-utils';
 import type { HarnessV1Bootstrap } from './harness-v1-bootstrap';
-import type { HarnessV1BuiltinToolDescriptor } from './harness-v1-builtin-tool';
 import type { HarnessV1StartOptions } from './harness-v1-call-options';
 import type { HarnessV1Session } from './harness-v1-session';
 
@@ -17,7 +16,7 @@ import type { HarnessV1Session } from './harness-v1-session';
  * `HarnessCapabilityUnsupportedError` from the method that needs the
  * capability.
  */
-export type HarnessV1 = {
+export type HarnessV1<TBuiltinTools extends ToolSet = ToolSet> = {
   /**
    * Spec version this adapter implements. Always the literal `'harness-v1'`.
    */
@@ -31,10 +30,15 @@ export type HarnessV1 = {
   readonly harnessId: string;
 
   /**
-   * Descriptors for tools that the adapter's underlying runtime exposes
-   * natively. Pure introspection — see `HarnessV1BuiltinToolDescriptor`.
+   * Tools the adapter's underlying runtime exposes natively, as a `ToolSet`
+   * keyed by what the bridge emits on `tool-call` events
+   * (`commonName ?? nativeName`). Each entry is a `HarnessV1BuiltinTool`
+   * (a `Tool` plus harness-specific `nativeName` / `commonName` metadata).
+   *
+   * The agent merges this with consumer-supplied user tools when validating
+   * inbound tool calls and when typing the consumer-facing stream.
    */
-  readonly builtinTools: ReadonlyArray<HarnessV1BuiltinToolDescriptor>;
+  readonly builtinTools: TBuiltinTools;
 
   /**
    * Optional schema for the payload returned by

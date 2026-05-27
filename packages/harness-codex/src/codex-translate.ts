@@ -30,8 +30,8 @@ export function translate(message: OutboundMessage): HarnessV1StreamPart {
         ...(message.nativeName !== undefined
           ? { nativeName: message.nativeName }
           : {}),
-        ...(message.observeOnly !== undefined
-          ? { observeOnly: message.observeOnly }
+        ...(message.providerExecuted !== undefined
+          ? { providerExecuted: message.providerExecuted }
           : {}),
         ...(message.harnessMetadata !== undefined
           ? { harnessMetadata: message.harnessMetadata }

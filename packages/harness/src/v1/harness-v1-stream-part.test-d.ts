@@ -46,14 +46,14 @@ test('text/reasoning variants are structurally assignable to V4 (modulo metadata
 });
 
 test('tool variants reuse V4 primitives verbatim', () => {
-  // tool-call is the V4 type plus optional `nativeName` / `observeOnly`. A
-  // value matching V4 must therefore satisfy the harness variant.
+  // tool-call is the V4 type plus optional `nativeName`. A value matching V4
+  // must therefore satisfy the harness variant.
   expectTypeOf<LanguageModelV4ToolCall>().toMatchTypeOf<
     HPartByType<'tool-call'>
   >();
   // The reverse direction must also hold on the V4-defined fields.
   expectTypeOf<
-    Omit<HPartByType<'tool-call'>, 'nativeName' | 'observeOnly'>
+    Omit<HPartByType<'tool-call'>, 'nativeName'>
   >().toMatchTypeOf<LanguageModelV4ToolCall>();
 
   // tool-approval-request and tool-result are direct re-uses.

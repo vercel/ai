@@ -2,10 +2,11 @@ import { randomBytes } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import {
+  commonTool,
   HarnessCapabilityUnsupportedError,
   type HarnessV1,
   type HarnessV1Bootstrap,
-  type HarnessV1BuiltinToolDescriptor,
+  type HarnessV1BuiltinTool,
   type HarnessV1PromptControl,
   type HarnessV1SandboxHandle,
   type HarnessV1Session,
@@ -14,10 +15,12 @@ import {
 } from '@ai-sdk/harness';
 import {
   safeParseJSON,
+  tool,
   type Experimental_Sandbox,
   type Experimental_SandboxProcess,
 } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
+import { z } from 'zod';
 import {
   resolveClaudeCodeEnv,
   type ClaudeCodeAuthOptions,
@@ -54,27 +57,284 @@ export type ClaudeCodeHarnessSettings = {
   readonly startupTimeoutMs?: number;
 };
 
-const BUILTIN_TOOLS: ReadonlyArray<HarnessV1BuiltinToolDescriptor> = [
-  { nativeName: 'Read', commonName: 'read' },
-  { nativeName: 'Write', commonName: 'write' },
-  { nativeName: 'Edit', commonName: 'edit' },
-  { nativeName: 'Bash', commonName: 'bash' },
-  { nativeName: 'Glob', commonName: 'glob' },
-  { nativeName: 'Grep', commonName: 'grep' },
-];
+/*
+ * Every native tool the Claude Code CLI can invoke, declared as a `ToolSet`
+ * keyed by what the bridge emits as `toolName` on the wire
+ * (`commonName ?? nativeName`). Schemas transcribed from
+ * `@anthropic-ai/claude-agent-sdk`'s `agentSdkTypes.d.ts`.
+ *
+ * `MCP` (the generic proxy tool inside the Claude Code SDK) is intentionally
+ * omitted — the bridge filters out `mcp__harness-tools__*` tool names before
+ * emitting them, and other MCP invocations come through with their own
+ * server-tool names rather than the literal `'Mcp'` token.
+ */
+const CLAUDE_CODE_BUILTIN_TOOLS = {
+  read: commonTool('read', {
+    nativeName: 'Read',
+    description: 'Read file contents (text, image, PDF, notebook)',
+    inputSchema: z.object({
+      file_path: z.string(),
+      offset: z.number().optional(),
+      limit: z.number().optional(),
+      pages: z.string().optional(),
+    }),
+  }),
+  write: commonTool('write', {
+    nativeName: 'Write',
+    description: 'Overwrite or create a file at an absolute path',
+    inputSchema: z.object({
+      file_path: z.string(),
+      content: z.string(),
+    }),
+  }),
+  edit: commonTool('edit', {
+    nativeName: 'Edit',
+    description: 'Edit a file by exact string replacement',
+    inputSchema: z.object({
+      file_path: z.string(),
+      old_string: z.string(),
+      new_string: z.string(),
+      replace_all: z.boolean().optional(),
+    }),
+  }),
+  bash: commonTool('bash', {
+    nativeName: 'Bash',
+    description: 'Execute a shell command, optionally in background',
+    inputSchema: z.object({
+      command: z.string(),
+      timeout: z.number().optional(),
+      description: z.string().optional(),
+      run_in_background: z.boolean().optional(),
+      dangerouslyDisableSandbox: z.boolean().optional(),
+    }),
+  }),
+  glob: commonTool('glob', {
+    nativeName: 'Glob',
+    description: 'Fast file-pattern search using glob syntax',
+    inputSchema: z.object({
+      pattern: z.string(),
+      path: z.string().optional(),
+    }),
+  }),
+  grep: commonTool('grep', {
+    nativeName: 'Grep',
+    description: 'Regex search over file contents via ripgrep',
+    inputSchema: z.object({
+      pattern: z.string(),
+      path: z.string().optional(),
+      glob: z.string().optional(),
+      output_mode: z
+        .enum(['content', 'files_with_matches', 'count'])
+        .optional(),
+      '-B': z.number().optional(),
+      '-A': z.number().optional(),
+      '-C': z.number().optional(),
+      context: z.number().optional(),
+      '-n': z.boolean().optional(),
+      '-i': z.boolean().optional(),
+      '-o': z.boolean().optional(),
+      type: z.string().optional(),
+      head_limit: z.number().optional(),
+      offset: z.number().optional(),
+      multiline: z.boolean().optional(),
+    }),
+  }),
+  webSearch: commonTool('webSearch', {
+    nativeName: 'WebSearch',
+    description: 'Issue web search queries with optional domain filters',
+    inputSchema: z.object({
+      query: z.string(),
+      allowed_domains: z.array(z.string()).optional(),
+      blocked_domains: z.array(z.string()).optional(),
+    }),
+  }),
+
+  WebFetch: tool({
+    description: 'Fetch a URL and run a prompt against its content',
+    inputSchema: z.object({
+      url: z.string(),
+      prompt: z.string(),
+    }),
+  }),
+  NotebookEdit: tool({
+    description: 'Edit, insert, or delete a Jupyter notebook cell',
+    inputSchema: z.object({
+      notebook_path: z.string(),
+      new_source: z.string(),
+      cell_id: z.string().optional(),
+      cell_type: z.enum(['code', 'markdown']).optional(),
+      edit_mode: z.enum(['replace', 'insert', 'delete']).optional(),
+    }),
+  }),
+  TodoWrite: tool({
+    description: 'Replace the session todo list',
+    inputSchema: z.object({
+      todos: z.array(
+        z.object({
+          content: z.string(),
+          status: z.enum(['pending', 'in_progress', 'completed']),
+          activeForm: z.string(),
+        }),
+      ),
+    }),
+  }),
+  Agent: tool({
+    description: 'Spawn a subagent with a task',
+    inputSchema: z.object({
+      description: z.string(),
+      prompt: z.string(),
+      subagent_type: z.string().optional(),
+      model: z.enum(['sonnet', 'opus', 'haiku']).optional(),
+      run_in_background: z.boolean().optional(),
+      name: z.string().optional(),
+      team_name: z.string().optional(),
+      mode: z
+        .enum([
+          'acceptEdits',
+          'auto',
+          'bypassPermissions',
+          'default',
+          'dontAsk',
+          'plan',
+        ])
+        .optional(),
+      isolation: z.literal('worktree').optional(),
+    }),
+  }),
+  TaskCreate: tool({
+    description: 'Create a task in the session-local task list',
+    inputSchema: z.object({
+      subject: z.string(),
+      description: z.string(),
+      activeForm: z.string().optional(),
+      metadata: z.record(z.unknown()).optional(),
+    }),
+  }),
+  TaskGet: tool({
+    description: 'Retrieve a task by id',
+    inputSchema: z.object({ taskId: z.string() }),
+  }),
+  TaskUpdate: tool({
+    description: 'Update fields of an existing task',
+    inputSchema: z.object({
+      taskId: z.string(),
+      subject: z.string().optional(),
+      description: z.string().optional(),
+      activeForm: z.string().optional(),
+      status: z
+        .union([
+          z.enum(['pending', 'in_progress', 'completed']),
+          z.literal('deleted'),
+        ])
+        .optional(),
+      addBlocks: z.array(z.string()).optional(),
+      addBlockedBy: z.array(z.string()).optional(),
+      owner: z.string().optional(),
+      metadata: z.record(z.unknown()).optional(),
+    }),
+  }),
+  TaskList: tool({
+    description: 'Return all tasks in the session-local task list',
+    inputSchema: z.object({}),
+  }),
+  TaskStop: tool({
+    description: 'Stop a running background task by id',
+    inputSchema: z.object({
+      task_id: z.string().optional(),
+      shell_id: z.string().optional(),
+    }),
+  }),
+  TaskOutput: tool({
+    description: 'Poll for output from a background task',
+    inputSchema: z.object({
+      task_id: z.string(),
+      block: z.boolean(),
+      timeout: z.number(),
+    }),
+  }),
+  ListMcpResources: tool({
+    description: 'List resources available from MCP servers',
+    inputSchema: z.object({ server: z.string().optional() }),
+  }),
+  ReadMcpResource: tool({
+    description: 'Read a specific MCP resource by URI',
+    inputSchema: z.object({ server: z.string(), uri: z.string() }),
+  }),
+  ExitPlanMode: tool({
+    description: 'Exit plan mode with optional permission approvals',
+    inputSchema: z
+      .object({
+        allowedPrompts: z
+          .array(
+            z.object({
+              tool: z.literal('Bash'),
+              prompt: z.string(),
+            }),
+          )
+          .optional(),
+      })
+      .passthrough(),
+  }),
+  EnterWorktree: tool({
+    description: 'Create or enter an isolated git worktree',
+    inputSchema: z.object({
+      name: z.string().optional(),
+      path: z.string().optional(),
+    }),
+  }),
+  ExitWorktree: tool({
+    description: 'Exit the current worktree session',
+    inputSchema: z.object({
+      action: z.enum(['keep', 'remove']),
+      discard_changes: z.boolean().optional(),
+    }),
+  }),
+  AskUserQuestion: tool({
+    description: 'Ask the user multiple-choice questions via a structured UI',
+    inputSchema: z.object({
+      questions: z
+        .array(
+          z.object({
+            question: z.string(),
+            header: z.string(),
+            options: z.array(
+              z.object({
+                label: z.string(),
+                description: z.string(),
+                preview: z.string().optional(),
+              }),
+            ),
+            multiSelect: z.boolean(),
+          }),
+        )
+        .min(1)
+        .max(4),
+      answers: z.record(z.string()).optional(),
+      annotations: z
+        .record(
+          z.object({
+            preview: z.string().optional(),
+            notes: z.string().optional(),
+          }),
+        )
+        .optional(),
+      metadata: z.object({ source: z.string().optional() }).optional(),
+    }),
+  }),
+} as const satisfies Record<string, HarnessV1BuiltinTool<any, any>>;
 
 const BOOTSTRAP_DIR = '/tmp/harness/claude-code';
 const SESSION_DIR_PREFIX = '/tmp/harness/sessions/claude-code';
 
 export function createClaudeCode(
   settings: ClaudeCodeHarnessSettings = {},
-): HarnessV1 {
+): HarnessV1<typeof CLAUDE_CODE_BUILTIN_TOOLS> {
   let cachedBootstrap: HarnessV1Bootstrap | undefined;
 
   return {
     specificationVersion: 'harness-v1',
     harnessId: 'claude-code',
-    builtinTools: BUILTIN_TOOLS,
+    builtinTools: CLAUDE_CODE_BUILTIN_TOOLS,
     getBootstrap: async () => {
       if (cachedBootstrap != null) return cachedBootstrap;
       const [pkg, lock, bridge] = await Promise.all([

@@ -2,10 +2,11 @@ import { randomBytes } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import {
+  commonTool,
   HarnessCapabilityUnsupportedError,
   type HarnessV1,
   type HarnessV1Bootstrap,
-  type HarnessV1BuiltinToolDescriptor,
+  type HarnessV1BuiltinTool,
   type HarnessV1PromptControl,
   type HarnessV1SandboxHandle,
   type HarnessV1Session,
@@ -17,6 +18,7 @@ import {
   type Experimental_SandboxProcess,
 } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
+import { z } from 'zod';
 import { resolveCodexEnv, type CodexAuthOptions } from './codex-auth';
 import { BridgeChannel } from './codex-bridge-channel';
 import { bridgeReadySchema } from './codex-bridge-protocol';
@@ -49,21 +51,41 @@ export type CodexHarnessSettings = {
   readonly startupTimeoutMs?: number;
 };
 
-const BUILTIN_TOOLS: ReadonlyArray<HarnessV1BuiltinToolDescriptor> = [
-  { nativeName: 'shell', commonName: 'bash' },
-  { nativeName: 'web_search', commonName: 'webSearch' },
-];
+/*
+ * Every native tool the Codex CLI can invoke as a model-callable tool,
+ * declared as a `ToolSet` keyed by what the bridge emits as `toolName` on
+ * the wire (`commonName ?? nativeName`). Schemas reflect the `ThreadItem`
+ * union in `@openai/codex-sdk`'s `dist/index.d.ts`.
+ *
+ * Codex's other native operations (`apply_patch`, todo planning) surface
+ * only as side-effect events (`file_change`, `todo_list`) and are not
+ * model-callable tools — they don't appear here.
+ */
+const CODEX_BUILTIN_TOOLS = {
+  bash: commonTool('bash', {
+    nativeName: 'shell',
+    description: 'Execute a shell command',
+    inputSchema: z.object({ command: z.string() }),
+  }),
+  webSearch: commonTool('webSearch', {
+    nativeName: 'web_search',
+    description: 'Search the web',
+    inputSchema: z.object({ query: z.string() }),
+  }),
+} as const satisfies Record<string, HarnessV1BuiltinTool<any, any>>;
 
 const BOOTSTRAP_DIR = '/tmp/harness/codex';
 const SESSION_DIR_PREFIX = '/tmp/harness/sessions/codex';
 
-export function createCodex(settings: CodexHarnessSettings = {}): HarnessV1 {
+export function createCodex(
+  settings: CodexHarnessSettings = {},
+): HarnessV1<typeof CODEX_BUILTIN_TOOLS> {
   let cachedBootstrap: HarnessV1Bootstrap | undefined;
 
   return {
     specificationVersion: 'harness-v1',
     harnessId: 'codex',
-    builtinTools: BUILTIN_TOOLS,
+    builtinTools: CODEX_BUILTIN_TOOLS,
     getBootstrap: async () => {
       if (cachedBootstrap != null) return cachedBootstrap;
       const [pkg, lock, bridge, hostToolMcp] = await Promise.all([

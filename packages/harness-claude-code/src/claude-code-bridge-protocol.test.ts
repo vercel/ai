@@ -25,7 +25,7 @@ describe('outboundMessageSchema', () => {
       toolName: 'bash',
       input: '{"command":"ls"}',
       nativeName: 'Bash',
-      observeOnly: true,
+      providerExecuted: true,
     },
     {
       type: 'tool-result',

@@ -22,6 +22,7 @@ const NATIVE_TO_COMMON: Readonly<Record<string, HarnessV1BuiltinToolName>> = {
   Bash: 'bash',
   Glob: 'glob',
   Grep: 'grep',
+  WebSearch: 'webSearch',
 };
 
 function toCommonName(nativeName: string): HarnessV1BuiltinToolName | string {
@@ -250,7 +251,7 @@ async function runTurn({
             toolCallId,
             toolName: tool.name,
             input: JSON.stringify(input),
-            observeOnly: false,
+            providerExecuted: false,
           });
           const { output, isError } = await pending;
           send({
@@ -382,7 +383,7 @@ async function runTurn({
               toolName: toCommonName(block.name),
               nativeName: block.name,
               input: JSON.stringify(block.input ?? {}),
-              observeOnly: true,
+              providerExecuted: true,
             });
           }
         }

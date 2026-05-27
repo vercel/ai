@@ -26,10 +26,11 @@ describe('createCodex adapter', () => {
     const harness = createCodex();
     expect(harness.harnessId).toBe('codex');
     expect(harness.specificationVersion).toBe('harness-v1');
-    expect(harness.builtinTools.map(t => t.nativeName)).toEqual([
-      'shell',
-      'web_search',
-    ]);
+    expect(Object.keys(harness.builtinTools)).toEqual(['bash', 'webSearch']);
+    expect(harness.builtinTools.bash.nativeName).toBe('shell');
+    expect(harness.builtinTools.bash.commonName).toBe('bash');
+    expect(harness.builtinTools.webSearch.nativeName).toBe('web_search');
+    expect(harness.builtinTools.webSearch.commonName).toBe('webSearch');
   });
 
   it('throws HarnessCapabilityUnsupportedError when no sandbox handle is provided', async () => {

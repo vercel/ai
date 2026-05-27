@@ -50,16 +50,16 @@ export type HarnessV1StreamPart =
 
   // Tool calls, approvals, results — reuse V4 primitives.
   //
-  // `nativeName` and `observeOnly` are harness-only extensions on `tool-call`:
-  //  - `nativeName` lets adapters surface the runtime's name for a builtin
-  //    when it differs from `toolName` (e.g. `toolName: 'bash'`,
-  //    `nativeName: 'Bash'`).
-  //  - `observeOnly: true` signals the host should not execute this call —
-  //    the adapter has already produced or will produce the result itself
-  //    (used by tool-interception flows).
+  // `nativeName` is the only harness-only extension on `tool-call`. It lets
+  // adapters surface the runtime's native name for a builtin when it differs
+  // from the wire `toolName` (e.g. `toolName: 'bash'`, `nativeName: 'Bash'`).
+  //
+  // Whether the call was executed by the underlying runtime (Claude Code's
+  // built-in `Bash`, Codex's `shell`) vs. needs host dispatch is signalled by
+  // the standard `providerExecuted` field on `LanguageModelV4ToolCall` —
+  // `true` for runtime-executed builtins, false/undefined for host tools.
   | (LanguageModelV4ToolCall & {
       nativeName?: string;
-      observeOnly?: boolean;
     })
   | LanguageModelV4ToolApprovalRequest
   | LanguageModelV4ToolResult

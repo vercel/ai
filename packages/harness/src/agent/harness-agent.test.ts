@@ -61,7 +61,7 @@ function mockHarness(options: {
     harness: {
       specificationVersion: 'harness-v1',
       harnessId: 'mock',
-      builtinTools: [],
+      builtinTools: {},
       doStart: async () => session,
     },
     prompts,
