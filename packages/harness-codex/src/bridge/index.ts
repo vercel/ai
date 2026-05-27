@@ -7,6 +7,7 @@
 // the shim POSTs each tool call to the relay, which emits `tool-call` to
 // the host over WS and waits for the matching `tool-result`.
 
+import type { HarnessV1BuiltinToolName } from '@ai-sdk/harness';
 import { randomUUID } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
 import { createServer, type Server } from 'node:http';
@@ -20,6 +21,20 @@ import {
 import { argv, env as procEnv, stdout } from 'node:process';
 
 const PROTOCOL_VERSION = 1;
+
+/*
+ * Native Codex tool name → cross-harness common name. Tools outside this map
+ * (e.g. MCP tools the model invokes by name) have no common equivalent; their
+ * native name is forwarded as-is on `tool-call` events.
+ */
+const NATIVE_TO_COMMON: Readonly<Record<string, HarnessV1BuiltinToolName>> = {
+  shell: 'bash',
+  web_search: 'webSearch',
+};
+
+function toCommonName(nativeName: string): HarnessV1BuiltinToolName | string {
+  return NATIVE_TO_COMMON[nativeName] ?? nativeName;
+}
 
 const args = parseArgs(argv.slice(2));
 const workdir = args.workdir;
@@ -491,12 +506,13 @@ function translateAndEmit(
   }
 
   if (item.type === 'command_execution') {
+    const nativeName = 'shell';
     if (event.type === 'item.started') {
       ctx.send({
         type: 'tool-call',
         toolCallId: id,
-        toolName: 'bash',
-        nativeName: 'shell',
+        toolName: toCommonName(nativeName),
+        nativeName,
         input: JSON.stringify({ command: item.command ?? '' }),
         observeOnly: true,
       });
@@ -504,7 +520,7 @@ function translateAndEmit(
       ctx.send({
         type: 'tool-result',
         toolCallId: id,
-        toolName: 'bash',
+        toolName: toCommonName(nativeName),
         result: {
           exitCode: item.exit_code ?? null,
           output: item.aggregated_output ?? '',
@@ -538,12 +554,13 @@ function translateAndEmit(
   }
 
   if (item.type === 'web_search') {
+    const nativeName = 'web_search';
     if (event.type === 'item.started') {
       ctx.send({
         type: 'tool-call',
         toolCallId: id,
-        toolName: 'webSearch',
-        nativeName: 'web_search',
+        toolName: toCommonName(nativeName),
+        nativeName,
         input: JSON.stringify({ query: item.query ?? '' }),
         observeOnly: true,
       });
@@ -551,7 +568,7 @@ function translateAndEmit(
       ctx.send({
         type: 'tool-result',
         toolCallId: id,
-        toolName: 'webSearch',
+        toolName: toCommonName(nativeName),
         result: item.result ?? null,
       });
     }

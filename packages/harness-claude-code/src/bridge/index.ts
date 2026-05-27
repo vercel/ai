@@ -3,11 +3,30 @@
 // host generates a one-shot token and writes it to env.json along with the
 // resolved auth env. The bridge enforces the token on every WS connection.
 
+import type { HarnessV1BuiltinToolName } from '@ai-sdk/harness';
 import { randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { argv, env as procEnv, stdout } from 'node:process';
 
 const PROTOCOL_VERSION = 1;
+
+/*
+ * Native Claude Code tool name → cross-harness common name. Tools outside this
+ * map (e.g. `WebFetch`, `NotebookEdit`) have no common equivalent; their
+ * native name is forwarded as-is on `tool-call` events.
+ */
+const NATIVE_TO_COMMON: Readonly<Record<string, HarnessV1BuiltinToolName>> = {
+  Read: 'read',
+  Write: 'write',
+  Edit: 'edit',
+  Bash: 'bash',
+  Glob: 'glob',
+  Grep: 'grep',
+};
+
+function toCommonName(nativeName: string): HarnessV1BuiltinToolName | string {
+  return NATIVE_TO_COMMON[nativeName] ?? nativeName;
+}
 
 const args = parseArgs(argv.slice(2));
 const workdir = args.workdir;
@@ -360,7 +379,7 @@ async function runTurn({
             send({
               type: 'tool-call',
               toolCallId: block.id,
-              toolName: block.name,
+              toolName: toCommonName(block.name),
               nativeName: block.name,
               input: JSON.stringify(block.input ?? {}),
               observeOnly: true,
@@ -376,13 +395,13 @@ async function runTurn({
             block.type === 'tool_result' &&
             typeof block.tool_use_id === 'string'
           ) {
-            const toolName =
+            const nativeName =
               nativeToolCallNames.get(block.tool_use_id) ?? 'unknown';
             nativeToolCallNames.delete(block.tool_use_id);
             send({
               type: 'tool-result',
               toolCallId: block.tool_use_id,
-              toolName,
+              toolName: toCommonName(nativeName),
               result: stringifyContent(block.content),
               isError: !!block.is_error,
             });
