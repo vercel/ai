@@ -78,8 +78,9 @@ export function runPrompt<
         if (value == null) continue;
 
         // Forward to consumer as soon as possible.
-        const translated = translateStreamPart<TOOLS>(value);
-        if (translated != null) result.enqueue(translated);
+        for (const part of translateStreamPart<TOOLS>(value)) {
+          result.enqueue(part);
+        }
 
         // Drive step boundaries.
         if (value.type === 'finish-step') {

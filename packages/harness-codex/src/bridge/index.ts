@@ -388,6 +388,10 @@ type CodexItem = {
   error?: { message?: string };
   query?: string;
   message?: string;
+  changes?: ReadonlyArray<{
+    path: string;
+    kind: 'add' | 'delete' | 'update';
+  }>;
 };
 
 function extractMcpToolCallResult(item: CodexItem): unknown {
@@ -549,6 +553,22 @@ function translateAndEmit(
         toolCallId: id,
         toolName: 'webSearch',
         result: item.result ?? null,
+      });
+    }
+    return;
+  }
+
+  if (item.type === 'file_change' && event.type === 'item.completed') {
+    for (const change of item.changes ?? []) {
+      ctx.send({
+        type: 'file-change',
+        event:
+          change.kind === 'add'
+            ? 'create'
+            : change.kind === 'delete'
+              ? 'delete'
+              : 'modify',
+        path: change.path,
       });
     }
     return;

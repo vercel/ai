@@ -61,6 +61,22 @@ describe('BridgeChannel', () => {
     expect(captured).toHaveLength(1);
   });
 
+  it('routes file-change events to their listener', async () => {
+    const fake = makeFakeSocket();
+    const channel = new BridgeChannel(fake.socket);
+    const events: Array<{ event: string; path: string }> = [];
+    channel.on('file-change', evt =>
+      events.push({ event: evt.event, path: evt.path }),
+    );
+    fake.deliver({ type: 'file-change', event: 'create', path: 'notes.md' });
+    fake.deliver({ type: 'file-change', event: 'delete', path: 'old.txt' });
+    await flush();
+    expect(events).toEqual([
+      { event: 'create', path: 'notes.md' },
+      { event: 'delete', path: 'old.txt' },
+    ]);
+  });
+
   it('serialises and sends inbound messages', () => {
     const fake = makeFakeSocket();
     const channel = new BridgeChannel(fake.socket);

@@ -80,6 +80,18 @@ export type HarnessV1StreamPart =
       harnessMetadata?: HarnessV1Metadata;
     }
 
+  // Workspace file mutation that occurred through an opaque underlying
+  // mechanism (one with no visible `tool-call` carrying the same data, e.g.
+  // Codex's internal `apply_patch`). Emitted per changed path. Path-only by
+  // design — when the mutation goes through a visible tool call, the
+  // tool-call/tool-result pair already carries the information.
+  | {
+      type: 'file-change';
+      event: 'create' | 'modify' | 'delete';
+      path: string;
+      harnessMetadata?: HarnessV1Metadata;
+    }
+
   // Errors. Multiple may be emitted in a single turn.
   | { type: 'error'; error: unknown }
 

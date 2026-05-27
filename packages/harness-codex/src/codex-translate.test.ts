@@ -38,6 +38,19 @@ describe('translate', () => {
     });
   });
 
+  it('passes file-change through unchanged', () => {
+    const out = translate({
+      type: 'file-change',
+      event: 'create',
+      path: 'notes.md',
+    });
+    expect(out).toEqual({
+      type: 'file-change',
+      event: 'create',
+      path: 'notes.md',
+    });
+  });
+
   it('passes finish-step and finish through', () => {
     const usage = { inputTokens: { total: 1 }, outputTokens: { total: 2 } };
     const step = translate({

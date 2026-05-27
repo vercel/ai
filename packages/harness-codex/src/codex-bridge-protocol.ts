@@ -99,6 +99,13 @@ export const outboundMessageSchema = z.discriminatedUnion('type', [
     harnessMetadata: harnessMetadataSchema.optional(),
   }),
 
+  z.object({
+    type: z.literal('file-change'),
+    event: z.enum(['create', 'modify', 'delete']),
+    path: z.string(),
+    harnessMetadata: harnessMetadataSchema.optional(),
+  }),
+
   z.object({ type: z.literal('error'), error: z.unknown() }),
   z.object({ type: z.literal('raw'), rawValue: z.unknown() }),
 ]);

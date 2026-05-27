@@ -337,6 +337,7 @@ function createSession({
         'reasoning-end',
         'tool-call',
         'tool-result',
+        'file-change',
         'finish-step',
         'raw',
       ] as const;

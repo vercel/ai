@@ -1,0 +1,83 @@
+import type { TextStreamPart, ToolSet } from 'ai';
+import { describe, expect, it } from 'vitest';
+import { translateStreamPart } from './translate-stream-part';
+
+describe('translateStreamPart', () => {
+  it('forwards a tool-call after stripping harness-only fields', () => {
+    const out = translateStreamPart<ToolSet>({
+      type: 'tool-call',
+      toolCallId: 'c1',
+      toolName: 'bash',
+      input: '{"command":"ls"}',
+      nativeName: 'Bash',
+      observeOnly: true,
+    });
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({
+      type: 'tool-call',
+      toolCallId: 'c1',
+      toolName: 'bash',
+      input: '{"command":"ls"}',
+    });
+    expect(out[0]).not.toHaveProperty('nativeName');
+    expect(out[0]).not.toHaveProperty('observeOnly');
+  });
+
+  it('fans file-change out into a dynamic provider-executed tool-call + tool-result pair', () => {
+    const out = translateStreamPart<ToolSet>({
+      type: 'file-change',
+      event: 'create',
+      path: 'notes.md',
+    });
+    expect(out).toHaveLength(2);
+
+    const call = out[0] as Extract<
+      TextStreamPart<ToolSet>,
+      { type: 'tool-call' }
+    >;
+    const result = out[1] as Extract<
+      TextStreamPart<ToolSet>,
+      { type: 'tool-result' }
+    >;
+
+    expect(call.type).toBe('tool-call');
+    expect(call.toolName).toBe('fileChange');
+    expect(call.input).toEqual({ event: 'create', path: 'notes.md' });
+    expect(call.dynamic).toBe(true);
+    expect(call.providerExecuted).toBe(true);
+
+    expect(result.type).toBe('tool-result');
+    expect(result.toolName).toBe('fileChange');
+    expect(result.output).toEqual({ event: 'create', path: 'notes.md' });
+    expect(result.dynamic).toBe(true);
+    expect(result.providerExecuted).toBe(true);
+
+    // The synthetic pair shares one tool-call id.
+    expect(result.toolCallId).toBe(call.toolCallId);
+    expect(call.toolCallId).toMatch(/^harness-file-change-/);
+  });
+
+  it('returns empty for events consumed internally (stream-start, finish-step, finish)', () => {
+    expect(translateStreamPart<ToolSet>({ type: 'stream-start' })).toEqual([]);
+    expect(
+      translateStreamPart<ToolSet>({
+        type: 'finish-step',
+        finishReason: { unified: 'stop', raw: 'stop' },
+        usage: {
+          inputTokens: { total: 0 },
+          outputTokens: { total: 0 },
+        } as never,
+      } as never),
+    ).toEqual([]);
+    expect(
+      translateStreamPart<ToolSet>({
+        type: 'finish',
+        finishReason: { unified: 'stop', raw: 'stop' },
+        totalUsage: {
+          inputTokens: { total: 0 },
+          outputTokens: { total: 0 },
+        } as never,
+      } as never),
+    ).toEqual([]);
+  });
+});

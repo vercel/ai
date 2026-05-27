@@ -97,4 +97,8 @@ test('discriminated union narrows on `type`', () => {
   if (part.type === 'finish') {
     expectTypeOf(part.totalUsage).toEqualTypeOf<LanguageModelV4Usage>();
   }
+  if (part.type === 'file-change') {
+    expectTypeOf(part.event).toEqualTypeOf<'create' | 'modify' | 'delete'>();
+    expectTypeOf(part.path).toEqualTypeOf<string>();
+  }
 });

@@ -43,6 +43,9 @@ describe('outboundMessageSchema', () => {
       finishReason: { unified: 'stop', raw: 'stop' },
       totalUsage: usage,
     },
+    { type: 'file-change', event: 'create', path: 'notes.md' },
+    { type: 'file-change', event: 'modify', path: 'src/lib.ts' },
+    { type: 'file-change', event: 'delete', path: 'old.txt' },
     { type: 'error', error: 'boom' },
     { type: 'raw', rawValue: { hello: 'world' } },
   ];
