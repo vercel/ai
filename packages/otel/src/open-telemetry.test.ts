@@ -7,6 +7,11 @@ import {
   type SpanOptions,
   type Tracer,
 } from '@opentelemetry/api';
+import {
+  BasicTracerProvider,
+  InMemorySpanExporter,
+  SimpleSpanProcessor,
+} from '@opentelemetry/sdk-trace-base';
 import type { GenerateTextEndEvent, Telemetry } from 'ai';
 import { OpenTelemetry, type EnrichSpan } from './open-telemetry';
 
@@ -77,6 +82,24 @@ function createMockTracer(): MockTracer {
     startActiveSpan: vi.fn() as Tracer['startActiveSpan'],
   };
   return tracer;
+}
+
+function createSdkTracer() {
+  const exporter = new InMemorySpanExporter();
+  const provider = new BasicTracerProvider({
+    spanProcessors: [new SimpleSpanProcessor(exporter)],
+  });
+
+  return {
+    exporter,
+    tracer: provider.getTracer('test-tracer'),
+  };
+}
+
+function getExportedSpan(exporter: InMemorySpanExporter, name: string) {
+  const span = exporter.getFinishedSpans().find(span => span.name === name);
+  expect(span).toBeDefined();
+  return span!;
 }
 
 function getStartSpanAttributes(
@@ -1118,6 +1141,56 @@ describe('OpenTelemetry', () => {
   });
 
   describe('supplemental attributes', () => {
+    it('exports flat runtime context attribute keys', () => {
+      const sdkTrace = createSdkTracer();
+      integration = new OpenTelemetry({
+        tracer: sdkTrace.tracer,
+        runtimeContext: true,
+      });
+
+      integration.onStart!(
+        makeOnStartEvent({
+          runtimeContext: { 'foo.bar': 'baz' },
+        }),
+      );
+      integration.onEnd!(makeFinishEvent());
+
+      const rootSpan = getExportedSpan(sdkTrace.exporter, 'invoke_agent gpt-4');
+      expect({
+        'ai.settings.context.foo.bar':
+          rootSpan.attributes['ai.settings.context.foo.bar'],
+      }).toMatchInlineSnapshot(`
+        {
+          "ai.settings.context.foo.bar": "baz",
+        }
+      `);
+    });
+
+    it('exports nested runtime context attributes', () => {
+      const sdkTrace = createSdkTracer();
+      integration = new OpenTelemetry({
+        tracer: sdkTrace.tracer,
+        runtimeContext: true,
+      });
+
+      integration.onStart!(
+        makeOnStartEvent({
+          runtimeContext: { foo: { bar: 'baz' } },
+        }),
+      );
+      integration.onEnd!(makeFinishEvent());
+
+      const rootSpan = getExportedSpan(sdkTrace.exporter, 'invoke_agent gpt-4');
+      expect({
+        'ai.settings.context.foo.bar':
+          rootSpan.attributes['ai.settings.context.foo.bar'],
+      }).toMatchInlineSnapshot(`
+        {
+          "ai.settings.context.foo.bar": "baz",
+        }
+      `);
+    });
+
     it('emits supplemental AI SDK attributes on existing spans when enabled', () => {
       integration = new OpenTelemetry({
         tracer,
