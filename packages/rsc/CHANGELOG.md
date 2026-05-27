@@ -1,5 +1,12 @@
 # @ai-sdk/rsc
 
+## 3.0.0-canary.155
+
+### Patch Changes
+
+- Updated dependencies [594029e]
+  - ai@7.0.0-canary.154
+
 ## 3.0.0-canary.154
 
 ### Patch Changes

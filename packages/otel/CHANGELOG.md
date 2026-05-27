@@ -1,5 +1,13 @@
 # @ai-sdk/otel
 
+## 1.0.0-canary.100
+
+### Patch Changes
+
+- 594029e: feat(ai): wrap the model call in telemetry context
+- Updated dependencies [594029e]
+  - ai@7.0.0-canary.154
+
 ## 1.0.0-canary.99
 
 ### Patch Changes
