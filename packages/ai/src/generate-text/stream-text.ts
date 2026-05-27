@@ -241,6 +241,29 @@ export type StreamTextOnAbortCallback<
    * Details for all previously finished steps.
    */
   readonly steps: StepResult<TOOLS, RUNTIME_CONTEXT>[];
+  /**
+   * Token usage for the current (aborted) step.
+   * undefined if the provider had not yet sent usage data before the abort.
+   */
+  readonly usage?: LanguageModelUsage;
+  /**
+   * Aggregated token usage across all completed steps plus the current step.
+   * undefined if no usage data was received before the abort.
+   */
+  readonly totalUsage?: LanguageModelUsage;
+  /**
+   * The input messages for the most recently started step: initial messages
+   * plus all prior completed step response messages. Empty array if abort
+   * fires before the first step starts. Use with your own tokenizer to
+   * estimate prompt token cost when provider usage is unavailable.
+   */
+  readonly inputMessages: ModelMessage[];
+  /**
+   * The text that was actively being streamed in the current step at abort
+   * time. undefined if no text was being streamed. Resets at each step
+   * boundary. Use with your own tokenizer to estimate completion token cost.
+   */
+  readonly partialText?: string;
 }>;
 
 /**
@@ -952,6 +975,8 @@ class DefaultStreamTextResult<
     let recordedFinishReason: FinishReason | undefined = undefined;
     let recordedRawFinishReason: string | undefined = undefined;
     let recordedTotalUsage: LanguageModelUsage | undefined = undefined;
+    let currentStepUsage: LanguageModelUsage | undefined = undefined;
+    let completedStepsUsage: LanguageModelUsage | undefined = undefined;
     let recordedRequest: Omit<LanguageModelRequestMetadata, 'messages'> = {};
     let recordedRequestMessages: Array<ModelMessage> = [];
     let recordedWarnings: Array<CallWarning> = [];
@@ -959,6 +984,7 @@ class DefaultStreamTextResult<
     const initialResponseMessages: Array<ResponseMessage> = [];
     let stepMessagesForNextStep: Array<ModelMessage> | undefined;
     let currentStepMessages: Array<ModelMessage> = [];
+    let currentStepInputMessages: ModelMessage[] = [];
 
     // Track provider-executed tool calls that support deferred results
     // (e.g., code_execution in programmatic tool calling scenarios).
@@ -973,6 +999,9 @@ class DefaultStreamTextResult<
         providerMetadata: ProviderMetadata | undefined;
       }
     > = {};
+
+    // Text accumulated before eventProcessor, used by abort() to report partialText.
+    let pullLevelTextContent: Record<string, string> = {};
 
     let activeReasoningContent: Record<
       string,
@@ -1298,8 +1327,41 @@ class DefaultStreamTextResult<
 
       async pull(controller) {
         // abort handling:
-        function abort() {
-          onAbort?.({ steps: recordedSteps });
+        async function abort() {
+          // Snapshot mutable step-state immediately — these values may be
+          // mutated or reset by async pipeline operations (e.g. currentStepUsage
+          // is set to undefined at line ~1977 after a step finishes), so they
+          // must be read before any await.
+          const snapshotStepUsage = currentStepUsage;
+          const snapshotCompletedStepsUsage = completedStepsUsage;
+          const snapshotInputMessages = currentStepInputMessages;
+          const snapshotSteps = recordedSteps;
+
+          // Wait for all pending microtasks to settle before reading
+          // pullLevelTextContent. When abort fires, a text-delta chunk may be
+          // blocked by backpressure in intermediate TransformStream layers.
+          // The abort error propagation releases that backpressure, letting
+          // the normalizer's transform (and onStreamChunk) finally run — but
+          // only after several microtask cycles. A macrotask boundary ensures
+          // those microtasks have all completed before we capture partial text.
+          await new Promise<void>(resolve => setTimeout(resolve, 0));
+
+          const totalUsage =
+            snapshotStepUsage != null || snapshotCompletedStepsUsage != null
+              ? addLanguageModelUsage(
+                  snapshotCompletedStepsUsage ?? createNullLanguageModelUsage(),
+                  snapshotStepUsage ?? createNullLanguageModelUsage(),
+                )
+              : undefined;
+          const partialText =
+            Object.values(pullLevelTextContent).join('') || undefined;
+          onAbort?.({
+            steps: snapshotSteps,
+            usage: snapshotStepUsage,
+            totalUsage,
+            inputMessages: snapshotInputMessages,
+            partialText,
+          });
           controller.enqueue({
             type: 'abort',
             // The `reason` is usually of type DOMException, but it can also be of any type,
@@ -1321,14 +1383,14 @@ class DefaultStreamTextResult<
           }
 
           if (abortSignal?.aborted) {
-            abort();
+            await abort();
             return;
           }
 
           controller.enqueue(value);
         } catch (error) {
           if (isAbortError(error) && abortSignal?.aborted) {
-            abort();
+            await abort();
           } else {
             controller.error(error);
           }
@@ -1604,6 +1666,7 @@ class DefaultStreamTextResult<
             ...initialMessages,
             ...initialResponseMessages,
           ];
+          currentStepInputMessages = stepInputMessages;
 
           const prepareStepResult = await prepareStep?.({
             model,
@@ -1833,8 +1896,6 @@ class DefaultStreamTextResult<
                     case 'file':
                     case 'custom':
                     case 'source':
-                    case 'text-start':
-                    case 'text-end':
                     case 'reasoning-start':
                     case 'reasoning-end':
                     case 'reasoning-delta':
@@ -1843,6 +1904,16 @@ class DefaultStreamTextResult<
                     case 'tool-input-end':
                     case 'tool-input-delta':
                     case 'tool-approval-request': {
+                      controller.enqueue(chunk);
+                      break;
+                    }
+
+                    case 'text-start': {
+                      controller.enqueue(chunk);
+                      break;
+                    }
+
+                    case 'text-end': {
                       controller.enqueue(chunk);
                       break;
                     }
@@ -1901,6 +1972,7 @@ class DefaultStreamTextResult<
                       // Note: tool executions might not be finished yet when the finish event is emitted.
                       // store usage and finish reason for promises and onFinish callback:
                       stepUsage = chunk.usage;
+                      currentStepUsage = chunk.usage;
                       stepFinishReason = chunk.finishReason;
                       stepRawFinishReason = chunk.rawFinishReason;
                       stepProviderMetadata = chunk.providerMetadata;
@@ -1968,6 +2040,10 @@ class DefaultStreamTextResult<
                   controller.enqueue(finishStepPart);
 
                   const combinedUsage = addLanguageModelUsage(usage, stepUsage);
+
+                  // track cumulative usage of completed steps for the onAbort callback:
+                  completedStepsUsage = combinedUsage;
+                  currentStepUsage = undefined;
 
                   // wait for the step to be fully processed by the event processor
                   // to ensure that the recorded steps are complete:

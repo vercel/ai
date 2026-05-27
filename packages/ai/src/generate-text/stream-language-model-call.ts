@@ -262,6 +262,14 @@ export async function streamLanguageModelCall<
   onStart?: (args: {
     promptMessages: LanguageModelV4Prompt;
   }) => Promise<void> | void;
+
+  /**
+   * Called synchronously for each normalized stream chunk as it exits the
+   * normalizer transform, before the chunk enters any downstream buffer.
+   * Callers can use this to track state (e.g. partial text) that must be
+   * reliably captured even when downstream buffers are discarded on abort.
+   */
+  onStreamChunk?: (chunk: LanguageModelStreamPart<TOOLS>) => void;
 } & Prompt &
   LanguageModelCallOptions): Promise<{
   stream: AsyncIterableStream<LanguageModelStreamPart<TOOLS>>;
@@ -700,10 +708,12 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
         }
 
         case 'stream-start': {
-          controller.enqueue({
-            type: 'model-call-start',
+          const modelCallStartChunk = {
+            type: 'model-call-start' as const,
             warnings: chunk.warnings,
-          });
+          };
+          onStreamChunk?.(modelCallStartChunk);
+          controller.enqueue(modelCallStartChunk);
           break;
         }
 

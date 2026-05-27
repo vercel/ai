@@ -459,6 +459,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
       raw: undefined,
     };
     let usage: OpenAIChatUsage | undefined = undefined;
+    let finishSent = false;
     let metadataExtracted = false;
     let isActiveText = false;
 
@@ -545,6 +546,25 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
               providerMetadata.openai.logprobs = choice.logprobs.content;
             }
 
+            // Emit finish chunk early when usage data arrives so it is available
+            // if the stream is aborted before it closes naturally.
+            // Must be before the `choice?.delta == null` guard because OpenAI
+            // sends usage in a chunk with empty choices (no delta).
+            if (value.usage != null && !finishSent) {
+              // Close active text first to preserve event ordering: text-end before finish.
+              if (isActiveText) {
+                controller.enqueue({ type: 'text-end', id: '0' });
+                isActiveText = false;
+              }
+              controller.enqueue({
+                type: 'finish',
+                finishReason,
+                usage: convertOpenAIChatUsage(usage!),
+                ...(providerMetadata != null ? { providerMetadata } : {}),
+              });
+              finishSent = true;
+            }
+
             if (choice?.delta == null) {
               return;
             }
@@ -591,12 +611,15 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
             toolCallTracker.flush();
 
-            controller.enqueue({
-              type: 'finish',
-              finishReason,
-              usage: convertOpenAIChatUsage(usage),
-              ...(providerMetadata != null ? { providerMetadata } : {}),
-            });
+            if (!finishSent) {
+              controller.enqueue({
+                type: 'finish',
+                finishReason,
+                usage: convertOpenAIChatUsage(usage),
+                ...(providerMetadata != null ? { providerMetadata } : {}),
+              });
+              finishSent = true;
+            }
           },
         }),
       ),
