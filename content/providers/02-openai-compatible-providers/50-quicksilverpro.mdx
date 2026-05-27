@@ -1,0 +1,114 @@
+---
+title: QuickSilver Pro
+description: Use the QuickSilver Pro OpenAI-compatible API with the AI SDK.
+---
+
+# QuickSilver Pro Provider
+
+[QuickSilver Pro](https://quicksilverpro.io) is an OpenAI-compatible inference
+API for open-source large language models — DeepSeek V3, DeepSeek R1, and
+Qwen3.5-35B-A3B.
+
+## Setup
+
+The QuickSilver Pro provider is available via the `@ai-sdk/openai-compatible`
+module. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/openai-compatible" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/openai-compatible" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/openai-compatible" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add @ai-sdk/openai-compatible" dark />
+  </Tab>
+</Tabs>
+
+### QuickSilver Pro Setup
+
+Get an API key from the [QuickSilver Pro dashboard](https://quicksilverpro.io/dashboard)
+and export it:
+
+```bash
+export QUICKSILVERPRO_API_KEY=sk-...
+```
+
+## Provider Instance
+
+To use QuickSilver Pro, create a custom provider instance with the
+`createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const quicksilverpro = createOpenAICompatible({
+  name: 'quicksilverpro',
+  baseURL: 'https://api.quicksilverpro.io/v1',
+  apiKey: process.env.QUICKSILVERPRO_API_KEY,
+});
+```
+
+## Language Models
+
+You can interact with QuickSilver Pro language models using a provider
+instance. The first argument is the model id.
+
+```ts
+const model = quicksilverpro('deepseek-v3');
+```
+
+Supported model ids:
+
+- `deepseek-v3` — general-purpose chat, coding, structured JSON (131K context)
+- `deepseek-r1` — reasoning, math, logic (131K context)
+- `qwen3.5-35b` — long-context RAG and summarization (262K context, 3B active MoE)
+
+### Example
+
+You can use QuickSilver Pro language models to generate text with the
+`generateText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const quicksilverpro = createOpenAICompatible({
+  name: 'quicksilverpro',
+  baseURL: 'https://api.quicksilverpro.io/v1',
+  apiKey: process.env.QUICKSILVERPRO_API_KEY,
+});
+
+const { text } = await generateText({
+  model: quicksilverpro('deepseek-v3'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+QuickSilver Pro language models can also generate text in a streaming fashion
+with the `streamText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const quicksilverpro = createOpenAICompatible({
+  name: 'quicksilverpro',
+  baseURL: 'https://api.quicksilverpro.io/v1',
+  apiKey: process.env.QUICKSILVERPRO_API_KEY,
+});
+
+const result = streamText({
+  model: quicksilverpro('deepseek-v3'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
