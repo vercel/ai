@@ -19,7 +19,6 @@ import type {
   GenerateObjectStartEvent,
   GenerateObjectStepEndEvent,
   GenerateObjectStepStartEvent,
-  StreamTextChunkEvent,
   GenerateTextEndEvent,
   GenerateTextStartEvent,
   GenerateTextStepEndEvent,
@@ -173,6 +172,26 @@ export class LegacyOpenTelemetry implements Telemetry {
     }
 
     return context.with(toolSpanEntry.context, execute);
+  }
+
+  /**
+   * Runs the provider `doGenerate`/`doStream` call with the active legacy
+   * model-call context.
+   */
+  executeLanguageModelCall<T>({
+    callId,
+    execute,
+  }: {
+    callId: string;
+    execute: () => PromiseLike<T>;
+  }): PromiseLike<T> {
+    const stepContext = this.getCallState(callId)?.stepContext;
+
+    if (stepContext == null) {
+      return execute();
+    }
+
+    return context.with(stepContext, execute);
   }
 
   onStart(
@@ -640,6 +659,7 @@ export class LegacyOpenTelemetry implements Telemetry {
     if (!state?.stepSpan) return;
 
     const { telemetry } = state;
+    const isStreamText = state.operationId === 'ai.streamText';
 
     state.stepSpan.setAttributes(
       selectAttributes(telemetry, {
@@ -686,6 +706,15 @@ export class LegacyOpenTelemetry implements Telemetry {
         'ai.response.providerMetadata': event.providerMetadata
           ? JSON.stringify(event.providerMetadata)
           : undefined,
+        'ai.response.msToFirstChunk': isStreamText
+          ? event.performance.timeToFirstOutputTokenMs
+          : undefined,
+        'ai.response.msToFinish': isStreamText
+          ? event.performance.responseTimeMs
+          : undefined,
+        'ai.response.avgOutputTokensPerSecond': isStreamText
+          ? event.performance.effectiveOutputTokensPerSecond
+          : undefined,
 
         'ai.usage.inputTokens': event.usage.inputTokens,
         'ai.usage.outputTokens': event.usage.outputTokens,
@@ -712,6 +741,21 @@ export class LegacyOpenTelemetry implements Telemetry {
         'gen_ai.usage.output_tokens': event.usage.outputTokens,
       }),
     );
+
+    if (isStreamText && event.performance.timeToFirstOutputTokenMs != null) {
+      state.stepSpan.addEvent('ai.stream.firstChunk', {
+        'ai.response.msToFirstChunk':
+          event.performance.timeToFirstOutputTokenMs,
+      });
+    }
+
+    if (isStreamText) {
+      state.stepSpan.addEvent('ai.stream.finish', {
+        'ai.response.msToFinish': event.performance.responseTimeMs,
+        'ai.response.avgOutputTokensPerSecond':
+          event.performance.effectiveOutputTokensPerSecond,
+      });
+    }
 
     state.stepSpan.end();
     state.stepSpan = undefined;
@@ -1041,39 +1085,6 @@ export class LegacyOpenTelemetry implements Telemetry {
 
     span.end();
     state.rerankSpan = undefined;
-  }
-
-  onChunk(event: StreamTextChunkEvent<ToolSet>): void {
-    const chunk = event.chunk as {
-      type: string;
-      callId?: unknown;
-      attributes?: unknown;
-    };
-
-    if (typeof chunk.callId !== 'string') {
-      return;
-    }
-
-    if (
-      chunk.type !== 'ai.stream.firstChunk' &&
-      chunk.type !== 'ai.stream.finish'
-    ) {
-      return;
-    }
-
-    const state = this.getCallState(chunk.callId);
-    if (!state?.stepSpan) return;
-
-    const attributes = Object.fromEntries(
-      Object.entries(
-        (chunk.attributes as Record<string, unknown>) ?? {},
-      ).filter(([, value]) => value != null),
-    ) as Attributes;
-
-    state.stepSpan.addEvent(chunk.type, attributes);
-    if (Object.keys(attributes).length > 0) {
-      state.stepSpan.setAttributes(attributes);
-    }
   }
 
   onError(error: unknown): void {

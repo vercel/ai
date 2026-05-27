@@ -83,6 +83,29 @@ describe('amazon-bedrock-anthropic-provider', () => {
     );
   });
 
+  it.each([
+    'anthropic.claude-opus-4-7',
+    'us.anthropic.claude-opus-4-7',
+    'eu.anthropic.claude-opus-4-7',
+  ])(
+    'should disable native structured output for %s (Bedrock rejects output_config.format)',
+    modelId => {
+      const provider = createAmazonBedrockAnthropic({
+        region: 'us-east-1',
+        accessKeyId: 'test-key',
+        secretAccessKey: 'test-secret',
+      });
+      provider(modelId as Parameters<typeof provider>[0]);
+
+      expect(AnthropicLanguageModel).toHaveBeenCalledWith(
+        modelId,
+        expect.objectContaining({
+          supportsNativeStructuredOutput: false,
+        }),
+      );
+    },
+  );
+
   it('should throw an error when using new keyword', () => {
     const provider = createAmazonBedrockAnthropic({
       region: 'us-east-1',

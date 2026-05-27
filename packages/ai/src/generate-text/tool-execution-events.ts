@@ -77,7 +77,7 @@ type BaseToolExecutionEndFields = {
   readonly callId: string;
 
   /** Execution time of the tool call in milliseconds. */
-  readonly durationMs: number;
+  readonly toolExecutionMs: number;
 
   /**
    * Messages that were sent to the language model to initiate the response that contained the tool call.

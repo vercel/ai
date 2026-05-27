@@ -18,7 +18,6 @@ import type {
   GenerateObjectStartEvent,
   GenerateObjectStepEndEvent,
   GenerateObjectStepStartEvent,
-  StreamTextChunkEvent,
   GenerateTextEndEvent,
   GenerateTextStartEvent,
   GenerateTextStepEndEvent,
@@ -155,6 +154,27 @@ export class OpenTelemetry implements Telemetry {
     }
 
     return context.with(toolSpanEntry.context, execute);
+  }
+
+  /**
+   * Runs the provider `doGenerate`/`doStream` call with the active model-call
+   * context.
+   */
+  executeLanguageModelCall<T>({
+    callId,
+    execute,
+  }: {
+    callId: string;
+    execute: () => PromiseLike<T>;
+  }): PromiseLike<T> {
+    const state = this.getCallState(callId);
+    const modelCallContext = state?.inferenceContext ?? state?.stepContext;
+
+    if (modelCallContext == null) {
+      return execute();
+    }
+
+    return context.with(modelCallContext, execute);
   }
 
   onStart(
@@ -1196,10 +1216,6 @@ export class OpenTelemetry implements Telemetry {
 
     span.end();
     state.rerankSpan = undefined;
-  }
-
-  onChunk(_event: StreamTextChunkEvent<ToolSet>): void {
-    // No-op: streaming chunk events are not part of the GenAI SemConv.
   }
 
   onError(error: unknown): void {

@@ -1691,6 +1691,150 @@ describe('assistant messages', () => {
     expect(warnings).toMatchInlineSnapshot(`[]`);
   });
 
+  it('should convert anthropic web_search tool call with error result (error-json string)', async () => {
+    const warnings: SharedV4Warning[] = [];
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              input: {
+                query: 'test query',
+              },
+              providerExecuted: true,
+              toolCallId: 'srvtoolu_error1',
+              toolName: 'web_search',
+              type: 'tool-call',
+            },
+            {
+              output: {
+                type: 'error-json',
+                value: JSON.stringify({
+                  type: 'web_search_tool_result_error',
+                  errorCode: 'invalid_tool_input',
+                }),
+              },
+              toolCallId: 'srvtoolu_error1',
+              toolName: 'web_search',
+              type: 'tool-result',
+            },
+          ],
+        },
+      ],
+      sendReasoning: false,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {},
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "id": "srvtoolu_error1",
+                  "input": {
+                    "query": "test query",
+                  },
+                  "name": "web_search",
+                  "type": "server_tool_use",
+                },
+                {
+                  "cache_control": undefined,
+                  "content": {
+                    "error_code": "invalid_tool_input",
+                    "type": "web_search_tool_result_error",
+                  },
+                  "tool_use_id": "srvtoolu_error1",
+                  "type": "web_search_tool_result",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
+    expect(warnings).toMatchInlineSnapshot(`[]`);
+  });
+
+  it('should convert anthropic web_search tool call with error result (error-json object)', async () => {
+    const warnings: SharedV4Warning[] = [];
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              input: {
+                query: 'test query',
+              },
+              providerExecuted: true,
+              toolCallId: 'srvtoolu_error2',
+              toolName: 'web_search',
+              type: 'tool-call',
+            },
+            {
+              output: {
+                type: 'error-json',
+                value: {
+                  type: 'web_search_tool_result_error',
+                  errorCode: 'max_uses_exceeded',
+                },
+              },
+              toolCallId: 'srvtoolu_error2',
+              toolName: 'web_search',
+              type: 'tool-result',
+            },
+          ],
+        },
+      ],
+      sendReasoning: false,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {},
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "id": "srvtoolu_error2",
+                  "input": {
+                    "query": "test query",
+                  },
+                  "name": "web_search",
+                  "type": "server_tool_use",
+                },
+                {
+                  "cache_control": undefined,
+                  "content": {
+                    "error_code": "max_uses_exceeded",
+                    "type": "web_search_tool_result_error",
+                  },
+                  "tool_use_id": "srvtoolu_error2",
+                  "type": "web_search_tool_result",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
+    expect(warnings).toMatchInlineSnapshot(`[]`);
+  });
+
   it('should convert anthropic web_fetch tool call and result parts', async () => {
     const warnings: SharedV4Warning[] = [];
     const result = await convertToAnthropicPrompt({
@@ -3192,6 +3336,109 @@ describe('cache control', () => {
                 {
                   type: 'tool_result',
                   content: '{"test":"test"}',
+                  is_error: undefined,
+                  tool_use_id: 'test',
+                  cache_control: { type: 'ephemeral' },
+                },
+              ],
+            },
+          ],
+        },
+        betas: new Set(),
+      });
+    });
+
+    it('should set cache_control on tool result with output cache control', async () => {
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolName: 'test',
+                toolCallId: 'test',
+                output: {
+                  type: 'text',
+                  value: 'test',
+                  providerOptions: {
+                    anthropic: {
+                      cacheControl: { type: 'ephemeral' },
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result).toEqual({
+        prompt: {
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'tool_result',
+                  content: 'test',
+                  is_error: undefined,
+                  tool_use_id: 'test',
+                  cache_control: { type: 'ephemeral' },
+                },
+              ],
+            },
+          ],
+        },
+        betas: new Set(),
+      });
+    });
+
+    it('should set cache_control on tool result with content output cache control', async () => {
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolName: 'test',
+                toolCallId: 'test',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'text',
+                      text: 'test',
+                      providerOptions: {
+                        anthropic: {
+                          cacheControl: { type: 'ephemeral' },
+                        },
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result).toEqual({
+        prompt: {
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'tool_result',
+                  content: [{ type: 'text', text: 'test' }],
                   is_error: undefined,
                   tool_use_id: 'test',
                   cache_control: { type: 'ephemeral' },

@@ -53,6 +53,46 @@ export type LanguageModelCallEndEvent<TOOLS extends ToolSet = ToolSet> =
 
     /** The provider-returned response id for this model call. */
     readonly responseId: string;
+
+    /** Performance metrics for the model call. */
+    readonly performance: {
+      /** Time spent waiting for the language model response in milliseconds. */
+      readonly responseTimeMs: number;
+
+      /**
+       * Effective number of output tokens per second over the full language
+       * model response.
+       */
+      readonly effectiveOutputTokensPerSecond: number;
+
+      /**
+       * Number of output tokens per second after the first output token was
+       * received.
+       *
+       * Only available for streaming calls.
+       */
+      readonly outputTokensPerSecond: number | undefined;
+
+      /**
+       * Number of input tokens processed per second before the first output
+       * token was received.
+       *
+       * Only available for streaming calls.
+       */
+      readonly inputTokensPerSecond: number | undefined;
+
+      /**
+       * Effective number of input and output tokens per second over the full
+       * language model response.
+       */
+      readonly effectiveTotalTokensPerSecond: number;
+
+      /**
+       * Time until the first text, reasoning, or tool input delta was received
+       * in milliseconds.
+       */
+      readonly timeToFirstOutputTokenMs: number | undefined;
+    };
   };
 
 /**

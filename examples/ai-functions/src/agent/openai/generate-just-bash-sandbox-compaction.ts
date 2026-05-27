@@ -7,19 +7,8 @@ import {
 import { run } from '../../lib/run';
 import { anthropic } from '@ai-sdk/anthropic';
 import { JustBashSandbox } from '../../sandbox/just-bash-sandbox';
-import { Bash, OverlayFs } from 'just-bash';
+import { Sandbox } from 'just-bash';
 import { openai } from '@ai-sdk/openai';
-
-const overlay = new OverlayFs({
-  root: process.cwd(),
-});
-
-const sandbox = new JustBashSandbox(
-  new Bash({
-    fs: overlay,
-    cwd: overlay.getMountPoint(),
-  }),
-);
 
 const COMPACTION_THRESHOLD = 8000;
 const estimateTokens = (messages: ModelMessage[]) => {
@@ -27,12 +16,16 @@ const estimateTokens = (messages: ModelMessage[]) => {
 };
 
 run(async () => {
+  const sandbox = new JustBashSandbox(
+    await Sandbox.create({ overlayRoot: process.cwd() }),
+  );
+
   const result = await generateText({
     model: openai('gpt-5.5'),
     instructions:
       'You have access to a filesystem. Details: ' + sandbox.description,
     prompt: 'Read every .ts file in this directory',
-    sandbox,
+    experimental_sandbox: sandbox,
     tools: {
       bash: anthropic.tools.bash_20250124(),
     },

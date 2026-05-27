@@ -39,7 +39,7 @@ async function main() {
     onToolExecutionEnd: event => {
       console.log('\n--- onToolExecutionEnd ---');
       console.log('Tool:', event.toolCall.toolName);
-      console.log('Duration:', event.durationMs, 'ms');
+      console.log('Duration:', event.toolExecutionMs, 'ms');
       const success = event.toolOutput.type === 'tool-result';
       console.log('Success:', success);
       if (event.toolOutput.type === 'tool-result') {

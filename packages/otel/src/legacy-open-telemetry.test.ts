@@ -12,7 +12,9 @@ import {
 import * as assert from 'node:assert';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
+  context,
   SpanStatusCode,
+  trace,
   type Attributes,
   type Span,
   type SpanOptions,
@@ -252,6 +254,16 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
         reasoningTokens: undefined,
       },
     },
+    performance: {
+      effectiveOutputTokensPerSecond: 20,
+      outputTokensPerSecond: undefined,
+      inputTokensPerSecond: undefined,
+      effectiveTotalTokensPerSecond: 30,
+      stepTimeMs: 1000,
+      responseTimeMs: 1000,
+      toolExecutionMs: {},
+      timeToFirstOutputTokenMs: undefined,
+    },
     warnings: undefined,
     request: { body: undefined, messages: [] },
     response: {
@@ -320,7 +332,7 @@ function makeToolCallFinishEvent(
       input: { query: 'test' },
     },
     abortSignal: undefined,
-    durationMs: 42,
+    toolExecutionMs: 42,
     ...telemetryFields(),
     messages: [],
     toolContext: {},
@@ -352,12 +364,6 @@ function makeToolCallFinishEvent(
       dynamic: false,
     },
   } as Parameters<NonNullable<Telemetry['onToolExecutionEnd']>>[0];
-}
-
-function makeChunkEvent(
-  chunk: Parameters<NonNullable<Telemetry['onChunk']>>[0]['chunk'],
-) {
-  return { chunk } as Parameters<NonNullable<Telemetry['onChunk']>>[0];
 }
 
 describe('LegacyOpenTelemetry', () => {
@@ -483,6 +489,35 @@ describe('LegacyOpenTelemetry', () => {
       const attrs = getStartSpanAttributes(tracer, 1);
       expect(attrs['ai.prompt.tools']).toBeDefined();
       expect(attrs['ai.prompt.toolChoice']).toBeDefined();
+    });
+  });
+
+  describe('executeLanguageModelCall', () => {
+    it('runs the model call inside the active step span context', async () => {
+      let activeSpan: Span | undefined;
+      const contextWithSpy = vi
+        .spyOn(context, 'with')
+        .mockImplementation((nextContext, fn, thisArg, ...args) => {
+          activeSpan = trace.getSpan(nextContext) ?? undefined;
+          return fn.call(thisArg, ...args);
+        });
+
+      try {
+        otelIntegration.onStart!(makeOnStartEvent());
+        otelIntegration.onStepStart!(makeStepStartEvent());
+
+        await expect(
+          otelIntegration.executeLanguageModelCall!({
+            callId,
+            execute: async () => 'result',
+          }),
+        ).resolves.toBe('result');
+
+        const activeSpanRecord = tracer.spans.find(span => span === activeSpan);
+        expect(activeSpanRecord?.name).toBe('ai.generateText.doGenerate');
+      } finally {
+        contextWithSpy.mockRestore();
+      }
     });
   });
 
@@ -858,101 +893,6 @@ describe('LegacyOpenTelemetry', () => {
     });
   });
 
-  describe('onChunk', () => {
-    it('adds event to step span for ai.stream.firstChunk', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
-
-      otelIntegration.onChunk!(
-        makeChunkEvent({
-          type: 'ai.stream.firstChunk',
-          callId,
-          stepNumber: 0,
-          attributes: { 'ai.stream.msToFirstChunk': 42 },
-        }),
-      );
-
-      const stepSpan = tracer.spans[1];
-      expect(stepSpan.addEvent).toHaveBeenCalledWith(
-        'ai.stream.firstChunk',
-        expect.objectContaining({ 'ai.stream.msToFirstChunk': 42 }),
-      );
-    });
-
-    it('adds event to step span for ai.stream.finish', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
-
-      otelIntegration.onChunk!(
-        makeChunkEvent({
-          type: 'ai.stream.finish',
-          callId,
-          stepNumber: 0,
-          attributes: { 'ai.stream.msToFinish': 500 },
-        }),
-      );
-
-      const stepSpan = tracer.spans[1];
-      expect(stepSpan.addEvent).toHaveBeenCalledWith(
-        'ai.stream.finish',
-        expect.objectContaining({ 'ai.stream.msToFinish': 500 }),
-      );
-    });
-
-    it('sets attributes on step span when chunk has attributes', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
-
-      otelIntegration.onChunk!(
-        makeChunkEvent({
-          type: 'ai.stream.firstChunk',
-          callId,
-          stepNumber: 0,
-          attributes: { 'ai.stream.msToFirstChunk': 42 },
-        }),
-      );
-
-      const stepSpan = tracer.spans[1];
-      expect(stepSpan.setAttributes).toHaveBeenCalledWith(
-        expect.objectContaining({ 'ai.stream.msToFirstChunk': 42 }),
-      );
-    });
-
-    it('ignores chunks without callId in the chunk body', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
-
-      otelIntegration.onChunk!(
-        makeChunkEvent({
-          type: 'text-delta',
-          id: 'td-1',
-          text: 'hello',
-        }),
-      );
-
-      const stepSpan = tracer.spans[1];
-      expect(stepSpan.addEvent).not.toHaveBeenCalled();
-    });
-
-    it('does not set attributes when chunk attributes are empty', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
-
-      otelIntegration.onChunk!(
-        makeChunkEvent({
-          type: 'ai.stream.firstChunk',
-          callId,
-          stepNumber: 0,
-          attributes: {},
-        }),
-      );
-
-      const stepSpan = tracer.spans[1];
-      expect(stepSpan.addEvent).toHaveBeenCalled();
-      expect(stepSpan.setAttributes).not.toHaveBeenCalled();
-    });
-  });
-
   describe('onError', () => {
     it('records error on root span and ends it', () => {
       otelIntegration.onStart!(makeOnStartEvent());
@@ -1164,26 +1104,20 @@ describe('LegacyOpenTelemetry', () => {
         makeOnStartEvent({ operationId: 'ai.streamText' }),
       );
       otelIntegration.onStepStart!(makeStepStartEvent());
-
-      otelIntegration.onChunk!(
-        makeChunkEvent({
-          type: 'ai.stream.firstChunk',
-          callId,
-          stepNumber: 0,
-          attributes: { 'ai.stream.msToFirstChunk': 10 },
+      otelIntegration.onStepFinish!(
+        makeStepFinishEvent({
+          performance: {
+            effectiveOutputTokensPerSecond: 20,
+            outputTokensPerSecond: 20.2020202020202,
+            inputTokensPerSecond: 1000,
+            effectiveTotalTokensPerSecond: 30,
+            stepTimeMs: 1000,
+            responseTimeMs: 1000,
+            toolExecutionMs: {},
+            timeToFirstOutputTokenMs: 10,
+          },
         }),
       );
-
-      otelIntegration.onChunk!(
-        makeChunkEvent({
-          type: 'ai.stream.finish',
-          callId,
-          stepNumber: 0,
-          attributes: { 'ai.stream.msToFinish': 200 },
-        }),
-      );
-
-      otelIntegration.onStepFinish!(makeStepFinishEvent());
       otelIntegration.onEnd!(makeFinishEvent());
 
       expect(tracer.spans).toHaveLength(2);
@@ -1809,6 +1743,31 @@ function createStreamTestModel({
   });
 }
 
+function mockTokenStreamTextTelemetryNow() {
+  return mockValues(0, 0, 100, 500, 500);
+}
+
+function mockToolOnlyStreamTextTelemetryNow() {
+  return mockValues(0, 0, 500, 500);
+}
+
+function mockTwoStepStreamTextTelemetryNow() {
+  return mockValues(
+    0,
+    0,
+    100,
+    500,
+    500,
+    600,
+    600,
+    1000,
+    1000,
+    1400,
+    1400,
+    1400,
+  );
+}
+
 describe('LegacyOpenTelemetry integration with streamText', () => {
   let tracer: IntegrationMockTracer;
 
@@ -1824,7 +1783,7 @@ describe('LegacyOpenTelemetry integration with streamText', () => {
         integrations: new LegacyOpenTelemetry({ tracer }),
       },
       _internal: {
-        now: mockValues(0, 100, 500),
+        now: mockTokenStreamTextTelemetryNow(),
       },
     });
 
@@ -1860,7 +1819,7 @@ describe('LegacyOpenTelemetry integration with streamText', () => {
         },
         integrations: new LegacyOpenTelemetry({ tracer }),
       },
-      _internal: { now: mockValues(0, 100, 500) },
+      _internal: { now: mockTokenStreamTextTelemetryNow() },
     });
 
     await result.consumeStream();
@@ -1902,7 +1861,7 @@ describe('LegacyOpenTelemetry integration with streamText', () => {
         isEnabled: true,
         integrations: new LegacyOpenTelemetry({ tracer }),
       },
-      _internal: { now: mockValues(0, 100, 500) },
+      _internal: { now: mockToolOnlyStreamTextTelemetryNow() },
     });
 
     await result.consumeStream();
@@ -1946,7 +1905,7 @@ describe('LegacyOpenTelemetry integration with streamText', () => {
         isEnabled: true,
         integrations: new LegacyOpenTelemetry({ tracer }),
       },
-      _internal: { now: mockValues(0, 100, 500) },
+      _internal: { now: mockToolOnlyStreamTextTelemetryNow() },
     });
 
     await result.consumeStream();
@@ -2012,7 +1971,7 @@ describe('LegacyOpenTelemetry integration with streamText', () => {
         recordOutputs: false,
         integrations: new LegacyOpenTelemetry({ tracer }),
       },
-      _internal: { now: mockValues(0, 100, 500) },
+      _internal: { now: mockToolOnlyStreamTextTelemetryNow() },
     });
 
     await result.consumeStream();
@@ -2057,7 +2016,7 @@ describe('LegacyOpenTelemetry integration with streamText', () => {
         isEnabled: true,
         integrations: new LegacyOpenTelemetry({ tracer }),
       },
-      _internal: { now: mockValues(0, 100, 500) },
+      _internal: { now: mockTokenStreamTextTelemetryNow() },
     });
 
     await result.consumeStream();
@@ -2139,7 +2098,7 @@ describe('LegacyOpenTelemetry integration with streamText', () => {
                 functionId: `sub-agent-${city.toLowerCase()}`,
                 integrations: otelIntegration,
               },
-              _internal: { now: mockValues(0, 100, 500) },
+              _internal: { now: mockTokenStreamTextTelemetryNow() },
               onError: () => {},
             });
 
@@ -2166,7 +2125,7 @@ describe('LegacyOpenTelemetry integration with streamText', () => {
         ],
       },
       _internal: {
-        now: mockValues(0, 100, 500),
+        now: mockToolOnlyStreamTextTelemetryNow(),
         generateId: mockId({ prefix: 'id' }),
         generateCallId: () => 'outer-test-call-id',
       },
@@ -3117,7 +3076,7 @@ describe('LegacyOpenTelemetry integration with streamText stopWhen (2 steps)', (
       },
       stopWhen: isStepCount(3),
       _internal: {
-        now: mockValues(0, 100, 500, 600, 1000),
+        now: mockTwoStepStreamTextTelemetryNow(),
         generateId: mockId({ prefix: 'id' }),
         generateCallId: () => 'test-telemetry-call-id',
       },
@@ -3224,7 +3183,7 @@ describe('LegacyOpenTelemetry integration with streamText stopWhen (2 steps with
       },
       stopWhen: isStepCount(3),
       _internal: {
-        now: mockValues(0, 100, 500, 600, 1000),
+        now: mockTwoStepStreamTextTelemetryNow(),
         generateId: mockId({ prefix: 'id' }),
         generateCallId: () => 'test-telemetry-call-id',
       },
@@ -3460,7 +3419,7 @@ describe('LegacyOpenTelemetry integration with streamText transform', () => {
         isEnabled: true,
         integrations: new LegacyOpenTelemetry({ tracer }),
       },
-      _internal: { now: mockValues(0, 100, 500) },
+      _internal: { now: mockTokenStreamTextTelemetryNow() },
     });
 
     await result.consumeStream();

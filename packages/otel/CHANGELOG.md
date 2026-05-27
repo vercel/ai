@@ -1,5 +1,156 @@
 # @ai-sdk/otel
 
+## 1.0.0-canary.100
+
+### Patch Changes
+
+- 594029e: feat(ai): wrap the model call in telemetry context
+- Updated dependencies [594029e]
+  - ai@7.0.0-canary.154
+
+## 1.0.0-canary.99
+
+### Patch Changes
+
+- Updated dependencies [6c93e36]
+  - ai@7.0.0-canary.153
+
+## 1.0.0-canary.98
+
+### Patch Changes
+
+- ai@7.0.0-canary.152
+
+## 1.0.0-canary.97
+
+### Patch Changes
+
+- ai@7.0.0-canary.151
+
+## 1.0.0-canary.96
+
+### Patch Changes
+
+- ai@7.0.0-canary.150
+
+## 1.0.0-canary.95
+
+### Patch Changes
+
+- Updated dependencies [e3d9c0e]
+  - ai@7.0.0-canary.149
+
+## 1.0.0-canary.94
+
+### Patch Changes
+
+- Updated dependencies [2852a84]
+  - ai@7.0.0-canary.148
+
+## 1.0.0-canary.93
+
+### Patch Changes
+
+- ai@7.0.0-canary.147
+
+## 1.0.0-canary.92
+
+### Patch Changes
+
+- ai@7.0.0-canary.146
+
+## 1.0.0-canary.91
+
+### Patch Changes
+
+- ai@7.0.0-canary.145
+
+## 1.0.0-canary.90
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - ai@7.0.0-canary.144
+  - @ai-sdk/provider@4.0.0-canary.17
+
+## 1.0.0-canary.89
+
+### Patch Changes
+
+- Updated dependencies [a6617c5]
+  - ai@7.0.0-canary.143
+
+## 1.0.0-canary.88
+
+### Patch Changes
+
+- Updated dependencies [62d6481]
+  - ai@7.0.0-canary.142
+
+## 1.0.0-canary.87
+
+### Patch Changes
+
+- Updated dependencies [e3a0419]
+  - ai@7.0.0-canary.141
+
+## 1.0.0-canary.86
+
+### Patch Changes
+
+- ai@7.0.0-canary.140
+
+## 1.0.0-canary.85
+
+### Patch Changes
+
+- 334ae5d: Update step performance metrics with explicit effective, input, output, and total token throughput fields.
+- Updated dependencies [334ae5d]
+- Updated dependencies [28dfa06]
+- Updated dependencies [e93fa91]
+  - ai@7.0.0-canary.139
+
+## 1.0.0-canary.84
+
+### Patch Changes
+
+- ai@7.0.0-canary.138
+
+## 1.0.0-canary.83
+
+### Patch Changes
+
+- 98627e5: feat(ai): remove onChunk event from telemetry
+- 476e1ca: feat(ai): remove telemetry dependency on onChunk callback
+- Updated dependencies [98627e5]
+- Updated dependencies [476e1ca]
+  - ai@7.0.0-canary.137
+
+## 1.0.0-canary.82
+
+### Patch Changes
+
+- Updated dependencies [a7de9c9]
+  - ai@7.0.0-canary.136
+
+## 1.0.0-canary.81
+
+### Patch Changes
+
+- ai@7.0.0-canary.135
+
+## 1.0.0-canary.80
+
+### Patch Changes
+
+- Updated dependencies [ed74dae]
+- Updated dependencies [f4cc8eb]
+- Updated dependencies [e80ada0]
+- Updated dependencies [1dca341]
+- Updated dependencies [2605e5f]
+  - ai@7.0.0-canary.134
+
 ## 1.0.0-canary.79
 
 ### Patch Changes
