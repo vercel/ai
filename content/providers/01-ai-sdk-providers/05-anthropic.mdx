@@ -506,7 +506,7 @@ When compaction occurs, the model generates a summary of the earlier context. Th
 When using `streamText`, you can detect compaction summaries by checking the `providerMetadata` on `text-start` events:
 
 ```ts
-for await (const part of result.fullStream) {
+for await (const part of result.stream) {
   switch (part.type) {
     case 'text-start': {
       const isCompaction =

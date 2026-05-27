@@ -907,7 +907,7 @@ To see `streamText` in action, check out [these examples](#examples).
               name: 'chunk',
               type: 'TextStreamPart<TOOLS>',
               description:
-                'The stream part. This is the same union as `fullStream` and includes `start`, `start-step`, `text-start`, `text-delta`, `text-end`, `reasoning-start`, `reasoning-delta`, `reasoning-end`, `custom`, `source`, `file`, `reasoning-file`, `tool-call`, `tool-input-start`, `tool-input-delta`, `tool-input-end`, `tool-result`, `tool-error`, `tool-output-denied`, `tool-approval-request`, `tool-approval-response`, `finish-step`, `finish`, `abort`, `error`, and `raw`.',
+                'The stream part. This is the same union as `stream` and includes `start`, `start-step`, `text-start`, `text-delta`, `text-end`, `reasoning-start`, `reasoning-delta`, `reasoning-end`, `custom`, `source`, `file`, `reasoning-file`, `tool-call`, `tool-input-start`, `tool-input-delta`, `tool-input-end`, `tool-result`, `tool-error`, `tool-output-denied`, `tool-approval-request`, `tool-approval-response`, `finish-step`, `finish`, `abort`, `error`, and `raw`.',
               properties: [
                 {
                   type: 'TextStreamPart',
@@ -3186,7 +3186,7 @@ To see `streamText` in action, check out [these examples](#examples).
         'The final step. This is a shortcut for `steps.at(-1)`. Automatically consumes the stream.',
     },
     {
-      name: 'fullStream',
+      name: 'stream',
       type: 'AsyncIterable<TextStreamPart<TOOLS>> & ReadableStream<TextStreamPart<TOOLS>>',
       description:
         'A stream with all events, including text deltas, tool calls, tool results, and errors. You can use it as either an AsyncIterable or a ReadableStream. Only errors that stop the stream, such as network errors, are thrown.',
@@ -3862,6 +3862,12 @@ To see `streamText` in action, check out [these examples](#examples).
           ],
         },
       ],
+    },
+    {
+      name: 'fullStream',
+      type: 'AsyncIterable<TextStreamPart<TOOLS>> & ReadableStream<TextStreamPart<TOOLS>>',
+      description:
+        'Deprecated. Use `stream` instead. A stream with all events, including text deltas, tool calls, tool results, and errors.',
     },
     {
       name: 'partialOutputStream',
