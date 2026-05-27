@@ -6,7 +6,7 @@ import { toUIMessageChunk } from './to-ui-message-chunk';
 describe('toUIMessageChunk', () => {
   it('maps text stream parts to UI message chunks', () => {
     expect(
-      toUIMessageChunk<{}, UIMessage>({
+      toUIMessageChunk({
         type: 'text-delta',
         id: 'text-1',
         text: 'hello',
@@ -27,10 +27,8 @@ describe('toUIMessageChunk', () => {
       title: 'Example',
     };
 
-    expect(toUIMessageChunk<{}, UIMessage>(sourcePart)).toBeUndefined();
-    expect(
-      toUIMessageChunk<{}, UIMessage>(sourcePart, { sendSources: true }),
-    ).toEqual({
+    expect(toUIMessageChunk(sourcePart)).toBeUndefined();
+    expect(toUIMessageChunk(sourcePart, { sendSources: true })).toEqual({
       type: 'source-url',
       sourceId: 'source-1',
       url: 'https://example.com',
@@ -40,7 +38,7 @@ describe('toUIMessageChunk', () => {
 
   it('adds start chunk metadata and message id', () => {
     expect(
-      toUIMessageChunk<{}, UIMessage>(
+      toUIMessageChunk(
         { type: 'start' },
         {
           messageMetadata: { model: 'test-model' },

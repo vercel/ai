@@ -25,7 +25,7 @@ describe('pipeTextStreamToUIMessageStreamResponse', () => {
   it('converts a text stream and writes it to ServerResponse', async () => {
     const mockResponse = createMockServerResponse();
 
-    pipeTextStreamToUIMessageStreamResponse<{}, UIMessage>({
+    pipeTextStreamToUIMessageStreamResponse({
       response: mockResponse,
       status: 200,
       headers: {
@@ -94,7 +94,7 @@ describe('pipeTextStreamToUIMessageStreamResponse', () => {
   it('applies UI message stream options while piping', async () => {
     const mockResponse = createMockServerResponse();
 
-    pipeTextStreamToUIMessageStreamResponse<{}, UIMessage>({
+    pipeTextStreamToUIMessageStreamResponse({
       response: mockResponse,
       sendStart: false,
       stream: convertArrayToReadableStream([

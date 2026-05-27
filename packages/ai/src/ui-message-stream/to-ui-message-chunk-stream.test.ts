@@ -59,7 +59,7 @@ describe('toUIMessageChunkStream', () => {
     ];
 
     const chunks = await convertReadableStreamToArray(
-      toUIMessageChunkStream<{}, UIMessage>({
+      toUIMessageChunkStream({
         stream: convertArrayToReadableStream(parts),
         tools: undefined,
       }),
@@ -82,7 +82,7 @@ describe('toUIMessageChunkStream', () => {
     const generateMessageId = vi.fn(() => 'msg-123');
 
     const chunks = await convertReadableStreamToArray(
-      toUIMessageChunkStream<{}, UIMessage>({
+      toUIMessageChunkStream({
         stream: convertArrayToReadableStream(parts),
         tools: undefined,
         generateMessageId,
@@ -107,7 +107,7 @@ describe('toUIMessageChunkStream', () => {
     ];
 
     const chunks = await convertReadableStreamToArray(
-      toUIMessageChunkStream<{}, UIMessage>({
+      toUIMessageChunkStream({
         stream: convertArrayToReadableStream(parts),
         tools: undefined,
         sendStart: false,
@@ -129,7 +129,7 @@ describe('toUIMessageChunkStream', () => {
     ];
 
     const chunks = await convertReadableStreamToArray(
-      toUIMessageChunkStream<{}, UIMessage>({
+      toUIMessageChunkStream({
         stream: convertArrayToReadableStream(parts),
         tools: undefined,
         sendReasoning: false,
@@ -145,7 +145,7 @@ describe('toUIMessageChunkStream', () => {
     ];
 
     const chunks = await convertReadableStreamToArray(
-      toUIMessageChunkStream<{}, UIMessage>({
+      toUIMessageChunkStream({
         stream: convertArrayToReadableStream(parts),
         tools: undefined,
         onError: error => `handled: ${(error as Error).message}`,
@@ -179,7 +179,7 @@ describe('toUIMessageChunkStream', () => {
     const onFinish = vi.fn();
 
     const chunks = await convertReadableStreamToArray(
-      toUIMessageChunkStream<{}, UIMessage>({
+      toUIMessageChunkStream({
         stream: convertArrayToReadableStream(parts),
         tools: undefined,
         originalMessages,

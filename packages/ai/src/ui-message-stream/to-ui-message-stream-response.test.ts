@@ -38,7 +38,7 @@ describe('toUIMessageStreamResponse', () => {
       },
     ];
 
-    const response = toUIMessageStreamResponse<{}, UIMessage>({
+    const response = toUIMessageStreamResponse({
       status: 200,
       stream: convertArrayToReadableStream(parts),
       originalMessages: [

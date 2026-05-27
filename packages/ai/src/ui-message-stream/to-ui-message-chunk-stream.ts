@@ -45,44 +45,42 @@ export function toUIMessageChunkStream<
       : undefined;
 
   const uiMessageChunkStream = stream.pipeThrough(
-    new TransformStream<TextStreamPart<TOOLS>, InferUIMessageChunk<UI_MESSAGE>>(
-      {
-        transform: async (part, controller) => {
-          const messageMetadataValue = messageMetadata?.({ part });
+    new TransformStream({
+      transform: async (part, controller) => {
+        const messageMetadataValue = messageMetadata?.({ part });
 
-          const uiMessageChunk = toUIMessageChunk<TOOLS, UI_MESSAGE>(part, {
-            tools,
-            sendReasoning,
-            sendSources,
-            sendStart,
-            sendFinish,
-            onError,
+        const uiMessageChunk = toUIMessageChunk(part, {
+          tools,
+          sendReasoning,
+          sendSources,
+          sendStart,
+          sendFinish,
+          onError,
+          messageMetadata: messageMetadataValue,
+          responseMessageId,
+        });
+
+        if (uiMessageChunk != null) {
+          controller.enqueue(uiMessageChunk);
+        }
+
+        // start and finish events already include metadata in the converted
+        // chunk; for other part types emit a separate message-metadata chunk
+        if (
+          messageMetadataValue != null &&
+          part.type !== 'start' &&
+          part.type !== 'finish'
+        ) {
+          controller.enqueue({
+            type: 'message-metadata',
             messageMetadata: messageMetadataValue,
-            responseMessageId,
           });
-
-          if (uiMessageChunk != null) {
-            controller.enqueue(uiMessageChunk);
-          }
-
-          // start and finish events already include metadata in the converted
-          // chunk; for other part types emit a separate message-metadata chunk
-          if (
-            messageMetadataValue != null &&
-            part.type !== 'start' &&
-            part.type !== 'finish'
-          ) {
-            controller.enqueue({
-              type: 'message-metadata',
-              messageMetadata: messageMetadataValue,
-            });
-          }
-        },
+        }
       },
-    ),
+    }),
   );
 
-  return handleUIMessageStreamFinish<UI_MESSAGE>({
+  return handleUIMessageStreamFinish({
     stream: uiMessageChunkStream,
     messageId: responseMessageId ?? generateMessageId?.(),
     originalMessages,

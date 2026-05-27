@@ -101,7 +101,7 @@ export async function createAgentUIStream<
     uiMessageStreamOptions.originalMessages ?? validatedMessages;
 
   return createAsyncIterableStream(
-    toUIMessageChunkStream<TOOLS, UI_MESSAGE>({
+    toUIMessageChunkStream({
       ...uiMessageStreamOptions,
       originalMessages,
       stream: result.fullStream,
