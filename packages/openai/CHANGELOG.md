@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.66
+
+### Patch Changes
+
+- c82ab42: feat(openai): forward `web_search_call.action.queries` from Responses API
+
 ## 3.0.65
 
 ### Patch Changes
