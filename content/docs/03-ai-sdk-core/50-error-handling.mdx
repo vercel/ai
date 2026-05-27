@@ -97,7 +97,7 @@ try {
 
 When streams are aborted (e.g., via chat stop button), you may want to perform cleanup operations like updating stored messages in your UI. Use the `onAbort` callback to handle these cases.
 
-The `onAbort` callback is called when a stream is aborted via `AbortSignal`, but `onFinish` is not called. This ensures you can still update your UI state appropriately.
+The `onAbort` callback is called when a stream is aborted via `AbortSignal`, but `onEnd` is not called. This ensures you can still update your UI state appropriately.
 
 ```ts highlight="5-9"
 import { streamText } from 'ai';
@@ -110,7 +110,7 @@ const { textStream } = streamText({
     // Update stored messages or perform cleanup
     console.log('Stream aborted after', steps.length, 'steps');
   },
-  onFinish: ({ steps, totalUsage }) => {
+  onEnd: ({ steps, totalUsage }) => {
     // This is called on normal completion
     console.log('Stream completed normally');
   },

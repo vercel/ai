@@ -217,6 +217,9 @@ export class HttpMCPTransport implements MCPTransport {
 
           const error = new MCPClientError({
             message: errorMessage,
+            statusCode: response.status,
+            url: this.url.href,
+            responseBody: text ?? undefined,
           });
           this.onerror?.(error);
           throw error;
@@ -244,6 +247,8 @@ export class HttpMCPTransport implements MCPTransport {
             const error = new MCPClientError({
               message:
                 'MCP HTTP Transport Error: text/event-stream response without body',
+              statusCode: response.status,
+              url: this.url.href,
             });
             this.onerror?.(error);
             throw error;
@@ -288,6 +293,8 @@ export class HttpMCPTransport implements MCPTransport {
 
         const error = new MCPClientError({
           message: `MCP HTTP Transport Error: Unexpected content type: ${contentType}`,
+          statusCode: response.status,
+          url: this.url.href,
         });
         this.onerror?.(error);
         throw error;
@@ -379,6 +386,8 @@ export class HttpMCPTransport implements MCPTransport {
       if (!response.ok || !response.body) {
         const error = new MCPClientError({
           message: `MCP HTTP Transport Error: GET SSE failed: ${response.status} ${response.statusText}`,
+          statusCode: response.status,
+          url: this.url.href,
         });
         this.onerror?.(error);
         return;

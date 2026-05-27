@@ -33,10 +33,10 @@ run(async () => {
         ],
       },
     ],
-    onFinish({ providerMetadata }) {
+    onFinish({ finalStep }) {
       console.log();
       console.log('=== onFinish ===');
-      console.log(providerMetadata?.anthropic);
+      console.log(finalStep.providerMetadata?.anthropic);
     },
   });
 

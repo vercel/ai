@@ -1,5 +1,33 @@
 # @ai-sdk/langchain
 
+## 3.0.0-canary.155
+
+### Patch Changes
+
+- Updated dependencies [e67d80e]
+- Updated dependencies [6cca112]
+- Updated dependencies [82fc0ab]
+- Updated dependencies [76fd58c]
+  - ai@7.0.0-canary.155
+
+## 3.0.0-canary.154
+
+### Patch Changes
+
+- Updated dependencies [594029e]
+  - ai@7.0.0-canary.154
+
+## 3.0.0-canary.153
+
+### Patch Changes
+
+- 62ae6c7: fix(langchain): recognize Python `AIMessageChunk` plain message objects from RemoteGraph streams
+
+  Python `langchain-core` serializes streaming message chunks with `type: "AIMessageChunk"`, while TypeScript `langchain-core` uses `type: "ai"`. The `toUIMessageStream` adapter previously only matched the TypeScript form, silently dropping text deltas and tool-call events when streaming from Python LangGraph servers via `RemoteGraph`.
+
+- Updated dependencies [6c93e36]
+  - ai@7.0.0-canary.153
+
 ## 3.0.0-canary.152
 
 ### Patch Changes

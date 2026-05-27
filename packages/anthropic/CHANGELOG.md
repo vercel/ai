@@ -1,5 +1,14 @@
 # @ai-sdk/anthropic
 
+## 4.0.0-canary.60
+
+### Patch Changes
+
+- 6c93e36: feat(provider-utils): add `spawnCommand` method to `Experimental_Sandbox` to allow for detached command execution
+- Updated dependencies [6c93e36]
+- Updated dependencies [f617ac2]
+  - @ai-sdk/provider-utils@5.0.0-canary.44
+
 ## 4.0.0-canary.59
 
 ### Patch Changes

@@ -1,5 +1,32 @@
 # @ai-sdk/vue
 
+## 4.0.0-canary.155
+
+### Patch Changes
+
+- e2525c8: fix(vue): forward args in useChat methods
+- Updated dependencies [e67d80e]
+- Updated dependencies [6cca112]
+- Updated dependencies [82fc0ab]
+- Updated dependencies [76fd58c]
+  - ai@7.0.0-canary.155
+
+## 4.0.0-canary.154
+
+### Patch Changes
+
+- Updated dependencies [594029e]
+  - ai@7.0.0-canary.154
+
+## 4.0.0-canary.153
+
+### Patch Changes
+
+- Updated dependencies [6c93e36]
+- Updated dependencies [f617ac2]
+  - @ai-sdk/provider-utils@5.0.0-canary.44
+  - ai@7.0.0-canary.153
+
 ## 4.0.0-canary.152
 
 ### Patch Changes

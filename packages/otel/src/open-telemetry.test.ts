@@ -1,12 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
-  SpanStatusCode,
+  context,
+  trace,
   type Attributes,
   type Span,
   type SpanOptions,
   type Tracer,
 } from '@opentelemetry/api';
-import type { Telemetry } from 'ai';
+import type { GenerateTextEndEvent, Telemetry } from 'ai';
 import { OpenTelemetry, type EnrichSpan } from './open-telemetry';
 
 type MockSpan = Span & {
@@ -246,7 +247,7 @@ function makeLanguageModelCallEndEvent(overrides?: Record<string, unknown>) {
       outputTokensPerSecond: undefined,
       inputTokensPerSecond: undefined,
       effectiveTotalTokensPerSecond: 30,
-      timeToFirstOutputTokenMs: undefined,
+      timeToFirstOutputMs: undefined,
     },
     ...overrides,
   } as Parameters<NonNullable<Telemetry['onLanguageModelCallEnd']>>[0];
@@ -293,7 +294,7 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
       stepTimeMs: 1000,
       responseTimeMs: 1000,
       toolExecutionMs: {},
-      timeToFirstOutputTokenMs: undefined,
+      timeToFirstOutputMs: undefined,
     },
     warnings: undefined,
     request: { body: undefined, messages: [] },
@@ -312,25 +313,42 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
 }
 
 function makeFinishEvent(overrides?: Record<string, unknown>) {
-  return {
-    ...makeStepFinishEvent(),
-    responseMessages: [],
-    steps: [],
-    totalUsage: {
-      inputTokens: 10,
-      outputTokens: 20,
-      totalTokens: 30,
-      inputTokenDetails: {
-        noCacheTokens: undefined,
-        cacheReadTokens: undefined,
-        cacheWriteTokens: undefined,
-      },
-      outputTokenDetails: {
-        textTokens: undefined,
-        reasoningTokens: undefined,
-      },
+  const { usage, ...restOverrides } = overrides ?? {};
+  const stepOverrides = Object.fromEntries(
+    Object.entries(restOverrides).filter(([key]) =>
+      [
+        'providerMetadata',
+        'reasoning',
+        'reasoningText',
+        'request',
+        'response',
+      ].includes(key),
+    ),
+  );
+  const finalStep = makeStepFinishEvent(stepOverrides);
+  const totalUsage = (usage as GenerateTextEndEvent['usage']) ?? {
+    inputTokens: 10,
+    outputTokens: 20,
+    totalTokens: 30,
+    inputTokenDetails: {
+      noCacheTokens: undefined,
+      cacheReadTokens: undefined,
+      cacheWriteTokens: undefined,
     },
-    ...overrides,
+    outputTokenDetails: {
+      textTokens: undefined,
+      reasoningTokens: undefined,
+    },
+  };
+
+  return {
+    ...finalStep,
+    responseMessages: [],
+    steps: [finalStep],
+    finalStep,
+    usage: totalUsage,
+    totalUsage,
+    ...restOverrides,
   } as Parameters<NonNullable<Telemetry['onEnd']>>[0];
 }
 
@@ -557,6 +575,38 @@ describe('OpenTelemetry', () => {
           ],
         }
       `);
+    });
+  });
+
+  describe('executeLanguageModelCall', () => {
+    it('runs the model call inside the active chat span context', async () => {
+      let activeSpan: Span | undefined;
+      const contextWithSpy = vi
+        .spyOn(context, 'with')
+        .mockImplementation((nextContext, fn, thisArg, ...args) => {
+          activeSpan = trace.getSpan(nextContext) ?? undefined;
+          return fn.call(thisArg, ...args);
+        });
+
+      try {
+        integration.onStart!(makeOnStartEvent());
+        integration.onStepStart!(makeStepStartEvent());
+        integration.onLanguageModelCallStart!(
+          makeLanguageModelCallStartEvent(),
+        );
+
+        await expect(
+          integration.executeLanguageModelCall!({
+            callId,
+            execute: async () => 'result',
+          }),
+        ).resolves.toBe('result');
+
+        const activeSpanRecord = tracer.spans.find(span => span === activeSpan);
+        expect(activeSpanRecord?.name).toBe('chat gpt-4');
+      } finally {
+        contextWithSpy.mockRestore();
+      }
     });
   });
 
@@ -1121,7 +1171,7 @@ describe('OpenTelemetry', () => {
       );
       integration.onEnd!(
         makeFinishEvent({
-          totalUsage: detailedUsage,
+          usage: detailedUsage,
           providerMetadata: { openai: { response: 'metadata' } },
         }),
       );

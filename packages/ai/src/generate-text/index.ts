@@ -5,6 +5,7 @@ export { generateText, type GenerateTextInclude } from './generate-text';
 export type {
   GenerateTextEndEvent,
   GenerateTextOnFinishCallback,
+  GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
@@ -39,7 +40,11 @@ export type { PrepareStepFunction, PrepareStepResult } from './prepare-step';
 export { pruneMessages } from './prune-messages';
 export type { ReasoningFileOutput, ReasoningOutput } from './reasoning-output';
 export { smoothStream, type ChunkDetector } from './smooth-stream';
-export type { StepResult, StepResultPerformance } from './step-result';
+export type {
+  OutputChunkTimingStats,
+  StepResult,
+  StepResultPerformance,
+} from './step-result';
 export {
   hasToolCall,
   isLoopFinished,
