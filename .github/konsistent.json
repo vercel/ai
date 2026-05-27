@@ -132,6 +132,7 @@
                 "from": "./${harnessId}-harness"
               }
             ],
+            "exportConstants": ["${harnessId.toCamelCase()}"],
             "exportTypes": [
               {
                 "name": "${harnessId.toPascalCase()}HarnessSettings",
