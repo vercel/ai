@@ -114,8 +114,8 @@ function getDefaultFilename(
   mediaType: string,
   prefix: string = 'file',
 ): string {
-  const ext = mediaType.split('/')[1] || 'bin';
-  return `${prefix}.${ext}`;
+  const fileExtension = mediaType.split('/')[1] || 'bin';
+  return `${prefix}.${fileExtension}`;
 }
 
 /**
