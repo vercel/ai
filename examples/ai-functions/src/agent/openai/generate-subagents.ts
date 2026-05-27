@@ -18,9 +18,15 @@ const mainAgent = new ToolLoopAgent({
       inputSchema: z.object({
         topic: z.string().describe('The topic to research'),
       }),
-      prompt: ({ topic }) => `Research the topic: ${topic}.`,
 
-      model: openai('gpt-5-mini'),
+      prompt: ({ topic }, { messages }) => [
+        ...messages,
+        {
+          role: 'user',
+          content: `Research the topic: ${topic}.`,
+        },
+      ],
+
       output: Output.array({
         element: z.object({
           title: z.string(),
@@ -28,6 +34,9 @@ const mainAgent = new ToolLoopAgent({
           url: z.string(),
         }),
       }),
+
+      model: openai('gpt-5-mini'),
+
       tools: {
         websearch: openai.tools.webSearch(),
       },

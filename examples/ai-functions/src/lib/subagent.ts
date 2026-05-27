@@ -8,6 +8,7 @@ import {
   type OutputInterface,
   type Tool,
   type ToolSet,
+  type ToolExecutionOptions,
 } from 'ai';
 
 export function subagent<
@@ -34,7 +35,10 @@ export function subagent<
   prompt:
     | string
     | Array<ModelMessage>
-    | ((options: INPUT) => string | Array<ModelMessage>);
+    | ((
+        input: INPUT,
+        options: ToolExecutionOptions<never>,
+      ) => string | Array<ModelMessage>);
 }): Tool<INPUT, OUTPUT> {
   const agent = new ToolLoopAgent({
     model,
@@ -44,7 +48,6 @@ export function subagent<
     callOptionsSchema: inputSchema,
     prepareCall: ({ options, ...rest }: any) => ({
       ...rest,
-      prompt: typeof prompt === 'function' ? prompt(options) : prompt,
       instructions:
         typeof instructions === 'function'
           ? instructions(options)
@@ -55,10 +58,10 @@ export function subagent<
   return {
     description,
     inputSchema,
-    execute: async (options: INPUT) => {
+    execute: async (input: INPUT, options: ToolExecutionOptions<never>) => {
       const result = await agent.generate({
-        prompt: '',
-        options: options as any,
+        prompt: typeof prompt === 'function' ? prompt(input, options) : prompt,
+        options: input as any,
       });
       return result.output;
     },
