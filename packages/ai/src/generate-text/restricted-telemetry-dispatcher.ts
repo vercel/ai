@@ -12,6 +12,7 @@ import type {
   TelemetryOptions,
 } from '../telemetry/telemetry-options';
 import type {
+  GenerateTextOnAbortCallback,
   GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
   GenerateTextOnStepFinishCallback,
@@ -38,6 +39,7 @@ export type RestrictedTelemetryDispatcher<
   | 'onStepStart'
   | 'onStepFinish'
   | 'onEnd'
+  | 'onAbort'
   | 'onToolExecutionStart'
   | 'onToolExecutionEnd'
 > & {
@@ -45,6 +47,7 @@ export type RestrictedTelemetryDispatcher<
   onStepStart: GenerateTextOnStepStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
   onStepFinish: GenerateTextOnStepFinishCallback<TOOLS, RUNTIME_CONTEXT>;
   onEnd: GenerateTextOnEndCallback<TOOLS, RUNTIME_CONTEXT>;
+  onAbort?: GenerateTextOnAbortCallback<TOOLS, RUNTIME_CONTEXT>;
   onToolExecutionStart?: OnToolExecutionStartCallback<TOOLS>;
   onToolExecutionEnd?: OnToolExecutionEndCallback<TOOLS>;
 };
@@ -249,6 +252,17 @@ export function createRestrictedTelemetryDispatcher<
           ),
         ),
       ),
+    onAbort: event =>
+      telemetryDispatcher.onAbort?.({
+        ...event,
+        steps: event.steps.map(step =>
+          restrictStepResult({
+            step,
+            includeRuntimeContext,
+            includeToolsContext,
+          }),
+        ),
+      }),
     onToolExecutionStart: event =>
       telemetryDispatcher.onToolExecutionStart?.({
         ...event,
