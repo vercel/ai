@@ -36,6 +36,7 @@ export const webSearchOutputSchema = lazySchema(() =>
           z.object({
             type: z.literal('search'),
             query: z.string().optional(),
+            queries: z.array(z.string()).optional(),
           }),
           z.object({
             type: z.literal('openPage'),
@@ -78,8 +79,16 @@ export const webSearchToolFactory = createProviderExecutedToolFactory<
 
           /**
            * The search query.
+           *
+           * @deprecated Use `queries` instead. The OpenAI Responses API marks
+           * this single-query field as deprecated in favor of `queries`.
            */
           query?: string;
+
+          /**
+           * The search queries the model used.
+           */
+          queries?: string[];
         }
       | {
           /**
