@@ -1,9 +1,21 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { codex } from '@ai-sdk/harness-codex';
+import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
+/*
+ * Skills are domain-specific reference material the agent loads on demand
+ * when it decides — based on the skill's name and description — that the
+ * current task is relevant. They are not system-prompt overrides and do not
+ * auto-fire on every turn. The description has to advertise *when to use
+ * this skill* so the agent can recognise the match.
+ *
+ * This example: a skill teaching the agent a fictional, project-specific
+ * release-notes format. The prompt is a request to draft release notes —
+ * the kind of task the description points at — so the agent pulls the skill
+ * in to know the format.
+ */
 run(async () => {
   const sandbox = createVercelSandbox({
     runtime: 'node24',
@@ -16,12 +28,26 @@ run(async () => {
     sandbox,
     skills: [
       {
-        name: 'haiku-mode',
+        name: 'release-notes-format',
         description:
-          'When the user asks any factual question, reply with a haiku (three lines, 5-7-5 syllables).',
-        content:
-          'Always answer in the form of a haiku: three lines, syllable counts 5, 7, 5. ' +
-          'Do not include explanations outside the haiku.',
+          'Use when the user asks to write, draft, or update release notes. Provides our team-specific format that you will not know otherwise.',
+        content: `# Release notes format
+
+Structure release notes as exactly three top-level sections in this order:
+
+## Highlights
+User-facing new features. One short paragraph per item, present tense.
+Reference PRs inline as bare \`#1234\` (no link).
+
+## Fixes
+Bug fixes only. One bullet per fix, imperative mood ("Fix X" not "Fixed X").
+
+## Breaking changes
+Schema changes, removed APIs, behaviour changes that require migration.
+Each item: a one-line summary followed by a "**Migration:**" sub-bullet.
+Omit this section entirely if there are no breaking changes.
+
+End the document with the version tag on a line by itself, prefixed with \`v\`.`,
       },
     ],
   });
@@ -29,7 +55,8 @@ run(async () => {
   let exitCode = 0;
   try {
     const result = await agent.stream({
-      prompt: 'What is the speed of light?',
+      prompt:
+        'Draft release notes for our next release, v2.4.0. We added a dark mode toggle in #892, fixed an autofocus bug in the search bar in #901, and renamed the `--legacy` CLI flag to `--compat` (old flag removed, no alias).',
     });
     await printFullStream({ result });
   } catch (err) {
