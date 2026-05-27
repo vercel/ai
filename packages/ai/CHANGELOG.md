@@ -1,5 +1,12 @@
 # ai
 
+## 7.0.0-canary.156
+
+### Patch Changes
+
+- 023550e: Deprecate `streamText` result `fullStream` in favor of `stream`.
+- e92fc45: feat(ai): introduce onAbort hook to close telemetry spans
+
 ## 7.0.0-canary.155
 
 ### Patch Changes
