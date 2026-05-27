@@ -237,27 +237,27 @@ export function convertUserContent(content: UserContent): HumanMessage {
 
       // Normalize tagged data shape into the legacy bare value this code expects.
       const normalizedData: string | Uint8Array | URL | ArrayBuffer = (() => {
-        const d = rawFilePart.data;
+        const data = rawFilePart.data;
         if (
-          typeof d === 'object' &&
-          d !== null &&
-          !(d instanceof URL) &&
-          !(d instanceof Uint8Array) &&
-          !(d instanceof ArrayBuffer) &&
-          'type' in d
+          typeof data === 'object' &&
+          data !== null &&
+          !(data instanceof URL) &&
+          !(data instanceof Uint8Array) &&
+          !(data instanceof ArrayBuffer) &&
+          'type' in data
         ) {
-          switch (d.type) {
+          switch (data.type) {
             case 'data':
-              return d.data;
+              return data.data;
             case 'url':
-              return d.url;
+              return data.url;
             case 'text':
-              return d.text;
+              return data.text;
             default:
               return '';
           }
         }
-        return d as string | Uint8Array | URL | ArrayBuffer;
+        return data as string | Uint8Array | URL | ArrayBuffer;
       })();
 
       const filePart = {
