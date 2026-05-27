@@ -619,7 +619,7 @@ function createEmptyPerformance(): StepResult<ToolSet, Context>['performance'] {
     stepTimeMs: 0,
     responseTimeMs: 0,
     toolExecutionMs: {},
-    timeToFirstOutputTokenMs: undefined,
+    timeToFirstOutputMs: undefined,
   };
 }
 
