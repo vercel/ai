@@ -1,11 +1,10 @@
-import type { ToolSet } from '@ai-sdk/provider-utils';
+import type { ToolSet, TypedToolCall } from '@ai-sdk/provider-utils';
 import type { ProviderMetadata } from '../types';
 import type { Source } from '../types/language-model';
 import type { GeneratedFile } from './generated-file';
 import type { ReasoningFileOutput, ReasoningOutput } from './reasoning-output';
 import type { ToolApprovalRequestOutput } from './tool-approval-request-output';
 import type { ToolApprovalResponseOutput } from './tool-approval-response-output';
-import type { TypedToolCall } from './tool-call';
 import type { TypedToolError } from './tool-error';
 import type { TypedToolResult } from './tool-result';
 

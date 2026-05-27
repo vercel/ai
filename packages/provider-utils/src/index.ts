@@ -28,6 +28,7 @@ export * from './get-from-api';
 export { getRuntimeEnvironmentUserAgent } from './get-runtime-environment-user-agent';
 export type { HasRequiredKey } from './has-required-key';
 export { injectJsonInstructionIntoMessages } from './inject-json-instruction';
+export { InvalidToolInputError } from './invalid-tool-input-error';
 export * from './is-abort-error';
 export { isBuffer } from './is-buffer';
 export { isNonNullable } from './is-non-nullable';
@@ -44,6 +45,7 @@ export {
 export { type MaybePromiseLike } from './maybe-promise-like';
 export { mediaTypeToExtension } from './media-type-to-extension';
 export { normalizeHeaders } from './normalize-headers';
+export { NoSuchToolError } from './no-such-tool-error';
 export * from './parse-json';
 export { parseJsonEventStream } from './parse-json-event-stream';
 export { parseProviderOptions } from './parse-provider-options';
@@ -87,6 +89,7 @@ export {
 export { stripFileExtension } from './strip-file-extension';
 export * from './uint8-utils';
 export { validateDownloadUrl } from './validate-download-url';
+export { validateToolCall } from './validate-tool-call';
 export * from './validate-types';
 export { VERSION } from './version';
 export { withUserAgentSuffix } from './with-user-agent-suffix';

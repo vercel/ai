@@ -4,12 +4,12 @@ import type {
   InferToolSetContext,
   ModelMessage,
   ToolSet,
+  TypedToolCall,
 } from '@ai-sdk/provider-utils';
 import type {
   ToolApprovalConfiguration,
   ToolApprovalStatus,
 } from './tool-approval-configuration';
-import type { TypedToolCall } from './tool-call';
 import { validateToolContext } from './validate-tool-context';
 
 /**

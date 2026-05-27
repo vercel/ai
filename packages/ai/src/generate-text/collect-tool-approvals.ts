@@ -3,10 +3,10 @@ import type {
   ToolApprovalRequest,
   ToolApprovalResponse,
   ToolSet,
+  TypedToolCall,
 } from '@ai-sdk/provider-utils';
 import { InvalidToolApprovalError } from '../error/invalid-tool-approval-error';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
-import type { TypedToolCall } from './tool-call';
 import type { TypedToolResult } from './tool-result';
 
 export type CollectedToolApprovals<TOOLS extends ToolSet> = {

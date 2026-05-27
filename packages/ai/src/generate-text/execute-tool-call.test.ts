@@ -1,6 +1,7 @@
 import {
   tool,
   type Experimental_Sandbox as Sandbox,
+  type TypedToolCall,
 } from '@ai-sdk/provider-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mockSandboxFileStubs } from '../test/mock-sandbox';
@@ -8,7 +9,6 @@ import * as z from 'zod/v4';
 import { TypeValidationError } from '../error';
 import { now } from '../util/now';
 import { executeToolCall } from './execute-tool-call';
-import type { TypedToolCall } from './tool-call';
 import type { TypedToolResult } from './tool-result';
 import type {
   ToolExecutionEndEvent,

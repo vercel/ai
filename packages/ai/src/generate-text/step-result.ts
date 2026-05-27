@@ -1,9 +1,12 @@
 import type {
   Context,
+  DynamicToolCall,
   InferToolSetContext,
   ReasoningFilePart,
   ReasoningPart,
+  StaticToolCall,
   ToolSet,
+  TypedToolCall,
 } from '@ai-sdk/provider-utils';
 import type {
   CallWarning,
@@ -22,11 +25,6 @@ import {
   type ReasoningFileOutput,
   type ReasoningOutput,
 } from './reasoning-output';
-import type {
-  DynamicToolCall,
-  StaticToolCall,
-  TypedToolCall,
-} from './tool-call';
 import type {
   DynamicToolResult,
   StaticToolResult,

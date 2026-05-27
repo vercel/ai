@@ -2,14 +2,13 @@ import type {
   LanguageModelV4StreamPart,
   LanguageModelV4Usage,
 } from '@ai-sdk/provider';
-import { tool, type ToolSet } from '@ai-sdk/provider-utils';
+import { NoSuchToolError, tool, type ToolSet } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
-import { NoSuchToolError } from '../error/no-such-tool-error';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import type {
   LanguageModelCallEndEvent,

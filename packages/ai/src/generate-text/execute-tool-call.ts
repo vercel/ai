@@ -7,6 +7,7 @@ import {
   type InferToolSetContext,
   type ModelMessage,
   type ToolSet,
+  type TypedToolCall,
 } from '@ai-sdk/provider-utils';
 import {
   getToolTimeoutMs,
@@ -15,7 +16,6 @@ import {
 import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { notify } from '../util/notify';
 import { now } from '../util/now';
-import type { TypedToolCall } from './tool-call';
 import type { TypedToolError } from './tool-error';
 import type {
   OnToolExecutionEndCallback,

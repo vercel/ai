@@ -1,4 +1,10 @@
-import type { Context, ToolSet } from '@ai-sdk/provider-utils';
+import type {
+  Context,
+  DynamicToolCall,
+  StaticToolCall,
+  ToolSet,
+  TypedToolCall,
+} from '@ai-sdk/provider-utils';
 import type {
   CallWarning,
   FinishReason,
@@ -14,11 +20,6 @@ import type { InferCompleteOutput } from './output-utils';
 import type { ReasoningFileOutput, ReasoningOutput } from './reasoning-output';
 import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
-import type {
-  DynamicToolCall,
-  StaticToolCall,
-  TypedToolCall,
-} from './tool-call';
 import type {
   DynamicToolResult,
   StaticToolResult,

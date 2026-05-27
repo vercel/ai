@@ -13,6 +13,7 @@ import {
   type ModelMessage,
   type ProviderOptions,
   type ToolSet,
+  type TypedToolCall,
 } from '@ai-sdk/provider-utils';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { resolveLanguageModel } from '../model/resolve-model';
@@ -61,7 +62,6 @@ import type {
   TextStreamToolResultPart,
 } from './stream-text-result';
 import { sumTokenCounts } from './sum-token-counts';
-import type { TypedToolCall } from './tool-call';
 import type { ToolCallRepairFunction } from './tool-call-repair-function';
 import type { TypedToolError } from './tool-error';
 import type { ToolInputRefinement } from './tool-input-refinement';

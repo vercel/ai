@@ -1,17 +1,17 @@
 import type { LanguageModelV4ToolCall } from '@ai-sdk/provider';
 import {
   asSchema,
+  InvalidToolInputError,
+  NoSuchToolError,
   safeParseJSON,
-  safeValidateTypes,
+  validateToolCall,
   type InferToolInput,
   type ModelMessage,
   type ToolSet,
+  type TypedToolCall,
 } from '@ai-sdk/provider-utils';
-import { InvalidToolInputError } from '../error/invalid-tool-input-error';
-import { NoSuchToolError } from '../error/no-such-tool-error';
 import { ToolCallRepairError } from '../error/tool-call-repair-error';
 import type { Instructions } from '../prompt';
-import type { DynamicToolCall, TypedToolCall } from './tool-call';
 import type { ToolCallRepairFunction } from './tool-call-repair-function';
 import type { ToolInputRefinement } from './tool-input-refinement';
 
@@ -31,26 +31,15 @@ export async function parseToolCall<TOOLS extends ToolSet>({
   messages: ModelMessage[];
 }): Promise<TypedToolCall<TOOLS>> {
   try {
-    if (tools == null) {
-      // provider-executed dynamic tools are not part of our list of tools:
-      if (toolCall.providerExecuted && toolCall.dynamic) {
-        return await refineParsedToolCallInput({
-          toolCall: await parseProviderExecutedDynamicToolCall(toolCall),
-          refineToolInput,
-        });
-      }
-
-      throw new NoSuchToolError({ toolName: toolCall.toolName });
-    }
-
     try {
       return await refineParsedToolCallInput({
-        toolCall: await doParseToolCall({ toolCall, tools }),
+        toolCall: await validateToolCall({ toolCall, tools }),
         refineToolInput,
       });
     } catch (error) {
       if (
         repairToolCall == null ||
+        tools == null ||
         !(
           NoSuchToolError.isInstance(error) ||
           InvalidToolInputError.isInstance(error)
@@ -87,7 +76,7 @@ export async function parseToolCall<TOOLS extends ToolSet>({
       }
 
       return await refineParsedToolCallInput({
-        toolCall: await doParseToolCall({ toolCall: repairedToolCall, tools }),
+        toolCall: await validateToolCall({ toolCall: repairedToolCall, tools }),
         refineToolInput,
       });
     }
@@ -131,95 +120,4 @@ async function refineParsedToolCallInput<TOOLS extends ToolSet>({
     ...toolCall,
     input: await refine(toolCall.input as InferToolInput<TOOLS[keyof TOOLS]>),
   } as TypedToolCall<TOOLS>;
-}
-
-async function parseProviderExecutedDynamicToolCall(
-  toolCall: LanguageModelV4ToolCall,
-): Promise<DynamicToolCall> {
-  const parseResult =
-    toolCall.input.trim() === ''
-      ? { success: true as const, value: {} }
-      : await safeParseJSON({ text: toolCall.input });
-
-  if (parseResult.success === false) {
-    throw new InvalidToolInputError({
-      toolName: toolCall.toolName,
-      toolInput: toolCall.input,
-      cause: parseResult.error,
-    });
-  }
-
-  return {
-    type: 'tool-call',
-    toolCallId: toolCall.toolCallId,
-    toolName: toolCall.toolName,
-    input: parseResult.value,
-    providerExecuted: true,
-    dynamic: true,
-    providerMetadata: toolCall.providerMetadata,
-  };
-}
-
-async function doParseToolCall<TOOLS extends ToolSet>({
-  toolCall,
-  tools,
-}: {
-  toolCall: LanguageModelV4ToolCall;
-  tools: TOOLS;
-}): Promise<TypedToolCall<TOOLS>> {
-  const toolName = toolCall.toolName as keyof TOOLS & string;
-
-  const tool = tools[toolName];
-
-  if (tool == null) {
-    // provider-executed dynamic tools are not part of our list of tools:
-    if (toolCall.providerExecuted && toolCall.dynamic) {
-      return await parseProviderExecutedDynamicToolCall(toolCall);
-    }
-
-    throw new NoSuchToolError({
-      toolName: toolCall.toolName,
-      availableTools: Object.keys(tools),
-    });
-  }
-
-  const schema = asSchema(tool.inputSchema);
-
-  // when the tool call has no arguments, we try passing an empty object to the schema
-  // (many LLMs generate empty strings for tool calls with no arguments)
-  const parseResult =
-    toolCall.input.trim() === ''
-      ? await safeValidateTypes({ value: {}, schema })
-      : await safeParseJSON({ text: toolCall.input, schema });
-
-  if (parseResult.success === false) {
-    throw new InvalidToolInputError({
-      toolName,
-      toolInput: toolCall.input,
-      cause: parseResult.error,
-    });
-  }
-
-  return tool.type === 'dynamic'
-    ? {
-        type: 'tool-call',
-        toolCallId: toolCall.toolCallId,
-        toolName: toolCall.toolName,
-        input: parseResult.value,
-        providerExecuted: toolCall.providerExecuted,
-        providerMetadata: toolCall.providerMetadata,
-        ...(tool.metadata != null ? { toolMetadata: tool.metadata } : {}),
-        dynamic: true,
-        title: tool.title,
-      }
-    : {
-        type: 'tool-call',
-        toolCallId: toolCall.toolCallId,
-        toolName,
-        input: parseResult.value,
-        providerExecuted: toolCall.providerExecuted,
-        providerMetadata: toolCall.providerMetadata,
-        ...(tool.metadata != null ? { toolMetadata: tool.metadata } : {}),
-        title: tool.title,
-      };
 }

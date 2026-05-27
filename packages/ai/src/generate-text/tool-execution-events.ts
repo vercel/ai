@@ -1,10 +1,11 @@
 import type {
+  DynamicToolCall,
   InferToolContext,
   ModelMessage,
+  StaticToolCall,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import type { Callback } from '../util/callback';
-import type { DynamicToolCall, StaticToolCall } from './tool-call';
 import type { ToolOutput } from './tool-output';
 import type { ValueOf } from '../util/value-of';
 

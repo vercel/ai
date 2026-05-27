@@ -7,8 +7,8 @@ import type {
   ModelMessage,
   ToolExecutionOptions,
   ToolSet,
+  TypedToolCall,
 } from '@ai-sdk/provider-utils';
-import type { TypedToolCall } from './tool-call';
 
 /**
  * The approval status of a tool configuration. This can be one of the following:

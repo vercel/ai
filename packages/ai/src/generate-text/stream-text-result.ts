@@ -1,5 +1,12 @@
 import type { JSONObject } from '@ai-sdk/provider';
-import type { Context, IdGenerator, ToolSet } from '@ai-sdk/provider-utils';
+import type {
+  Context,
+  DynamicToolCall,
+  IdGenerator,
+  StaticToolCall,
+  ToolSet,
+  TypedToolCall,
+} from '@ai-sdk/provider-utils';
 import type { ServerResponse } from 'node:http';
 import type {
   CallWarning,
@@ -29,11 +36,6 @@ import type { ResponseMessage } from './response-message';
 import type { StepResult, StepResultPerformance } from './step-result';
 import type { ToolApprovalRequestOutput } from './tool-approval-request-output';
 import type { ToolApprovalResponseOutput } from './tool-approval-response-output';
-import type {
-  DynamicToolCall,
-  StaticToolCall,
-  TypedToolCall,
-} from './tool-call';
 import type { TypedToolError } from './tool-error';
 import type { StaticToolOutputDenied } from './tool-output-denied';
 import type {

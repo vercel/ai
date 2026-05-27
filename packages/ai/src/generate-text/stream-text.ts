@@ -20,6 +20,7 @@ import {
   type ToolApprovalResponse,
   type ToolContent,
   type ToolSet,
+  type TypedToolCall,
 } from '@ai-sdk/provider-utils';
 import type { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
@@ -137,7 +138,6 @@ import type {
 } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
 import type { ToolApprovalConfiguration } from './tool-approval-configuration';
-import type { TypedToolCall } from './tool-call';
 import type { ToolCallRepairFunction } from './tool-call-repair-function';
 import type {
   OnToolExecutionEndCallback,

@@ -1,7 +1,12 @@
-import { tool, type ModelMessage, type ToolSet } from '@ai-sdk/provider-utils';
+import {
+  tool,
+  type DynamicToolCall,
+  type ModelMessage,
+  type StaticToolCall,
+  type ToolSet,
+} from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
-import type { DynamicToolCall, StaticToolCall } from './tool-call';
 import type { ToolOutput } from './tool-output';
 import type {
   OnToolCallFinishEvent,

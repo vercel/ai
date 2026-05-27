@@ -6,6 +6,7 @@ import type {
   ModelMessage,
   Experimental_Sandbox as Sandbox,
   ToolSet,
+  TypedToolCall,
 } from '@ai-sdk/provider-utils';
 import type { TimeoutConfiguration } from '../prompt/request-options';
 import type { Telemetry } from '../telemetry/telemetry';
@@ -13,7 +14,6 @@ import { executeToolCall } from './execute-tool-call';
 import { resolveToolApproval } from './resolve-tool-approval';
 import type { LanguageModelStreamPart } from './stream-language-model-call';
 import type { ToolApprovalConfiguration } from './tool-approval-configuration';
-import type { TypedToolCall } from './tool-call';
 import type {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,

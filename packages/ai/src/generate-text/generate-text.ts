@@ -15,6 +15,7 @@ import {
   type InferToolSetContext,
   type ProviderOptions,
   type ToolSet,
+  type TypedToolCall,
 } from '@ai-sdk/provider-utils';
 import { NoOutputGeneratedError } from '../error';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
@@ -101,7 +102,6 @@ import { toResponseMessages } from './to-response-messages';
 import type { ToolApprovalConfiguration } from './tool-approval-configuration';
 import type { ToolApprovalRequestOutput } from './tool-approval-request-output';
 import type { ToolApprovalResponseOutput } from './tool-approval-response-output';
-import type { TypedToolCall } from './tool-call';
 import type { ToolCallRepairFunction } from './tool-call-repair-function';
 import type { TypedToolError } from './tool-error';
 import type {

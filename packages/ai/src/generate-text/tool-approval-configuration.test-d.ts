@@ -3,11 +3,11 @@ import {
   type Context,
   type InferToolSetContext,
   type ModelMessage,
+  type TypedToolCall,
 } from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
 import type { ToolApprovalConfiguration } from './tool-approval-configuration';
-import type { TypedToolCall } from './tool-call';
 
 describe('ToolApprovalConfiguration', () => {
   const tools = {

@@ -84,7 +84,7 @@ export type {
   DynamicToolCall,
   StaticToolCall,
   TypedToolCall,
-} from './tool-call';
+} from '@ai-sdk/provider-utils';
 export type { ToolCallRepairFunction } from './tool-call-repair-function';
 export type {
   DynamicToolError,

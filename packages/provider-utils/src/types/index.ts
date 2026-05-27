@@ -49,6 +49,11 @@ export type { ToolApprovalRequest } from './tool-approval-request';
 export type { ToolApprovalResponse } from './tool-approval-response';
 export type { ToolCall } from './tool-call';
 export type {
+  DynamicToolCall,
+  StaticToolCall,
+  TypedToolCall,
+} from './typed-tool-call';
+export type {
   ToolExecuteFunction,
   ToolExecutionOptions,
 } from './tool-execute-function';
