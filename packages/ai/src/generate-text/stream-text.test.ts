@@ -9225,6 +9225,10 @@ describe('streamText', () => {
           },
         },
         prompt: 'test-input',
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
+        },
         onChunk(event) {
           result.push(event.chunk);
         },
@@ -9366,6 +9370,14 @@ describe('streamText', () => {
               "outputTokensPerSecond": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
+              "timeBetweenOutputTokensMs": {
+                "avg": 0,
+                "max": 0,
+                "median": 0,
+                "min": 0,
+                "p10": 0,
+                "p90": 0,
+              },
               "timeToFirstOutputTokenMs": 0,
               "toolExecutionMs": {
                 "2": 0,
@@ -9375,7 +9387,7 @@ describe('streamText', () => {
             "rawFinishReason": "stop",
             "response": {
               "headers": undefined,
-              "id": "aitxt-nKWNUpid2hAhFLgn5pWZwWYh",
+              "id": "id-0",
               "modelId": "mock-model-id",
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
@@ -9425,6 +9437,10 @@ describe('streamText', () => {
       const resultObject = streamText({
         model: modelWithCustom,
         prompt: 'test-input',
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
+        },
         onChunk(event) {
           chunks.push(event.chunk);
         },
@@ -9477,6 +9493,7 @@ describe('streamText', () => {
               "outputTokensPerSecond": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
+              "timeBetweenOutputTokensMs": undefined,
               "timeToFirstOutputTokenMs": 0,
               "toolExecutionMs": {},
             },
@@ -9484,7 +9501,7 @@ describe('streamText', () => {
             "rawFinishReason": "stop",
             "response": {
               "headers": undefined,
-              "id": "aitxt-Wz17DV85ogs7gu8JFG9NNVML",
+              "id": "id-0",
               "modelId": "mock-model-id",
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
@@ -18559,6 +18576,10 @@ describe('streamText', () => {
             },
           },
           prompt: 'test-input',
+          _internal: {
+            generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-telemetry-call-id',
+          },
           onChunk(event) {
             result.push(event.chunk);
           },
@@ -18670,6 +18691,14 @@ describe('streamText', () => {
                 "outputTokensPerSecond": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
+                "timeBetweenOutputTokensMs": {
+                  "avg": 0,
+                  "max": 0,
+                  "median": 0,
+                  "min": 0,
+                  "p10": 0,
+                  "p90": 0,
+                },
                 "timeToFirstOutputTokenMs": 0,
                 "toolExecutionMs": {
                   "call-1": 0,
@@ -18679,7 +18708,7 @@ describe('streamText', () => {
               "rawFinishReason": "stop",
               "response": {
                 "headers": undefined,
-                "id": "aitxt-hh05GtZnR1HKuv6nlhsC4AHU",
+                "id": "id-0",
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
@@ -20379,6 +20408,10 @@ describe('streamText', () => {
         include: {
           rawChunks: true,
         },
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
+        },
         onChunk({ chunk }) {
           onChunkCalls.push(chunk);
         },
@@ -20458,6 +20491,7 @@ describe('streamText', () => {
               "outputTokensPerSecond": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
+              "timeBetweenOutputTokensMs": undefined,
               "timeToFirstOutputTokenMs": 0,
               "toolExecutionMs": {},
             },
