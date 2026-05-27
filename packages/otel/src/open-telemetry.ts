@@ -889,18 +889,20 @@ export class OpenTelemetry implements Telemetry {
     state.rootSpan.setAttributes(
       selectAttributes(telemetry, {
         'gen_ai.response.finish_reasons': [event.finishReason],
-        'gen_ai.usage.input_tokens': event.totalUsage.inputTokens,
-        'gen_ai.usage.output_tokens': event.totalUsage.outputTokens,
+        'gen_ai.usage.input_tokens': event.usage.inputTokens,
+        'gen_ai.usage.output_tokens': event.usage.outputTokens,
         'gen_ai.usage.cache_read.input_tokens':
-          event.totalUsage.inputTokenDetails?.cacheReadTokens,
+          event.usage.inputTokenDetails?.cacheReadTokens,
         'gen_ai.usage.cache_creation.input_tokens':
-          event.totalUsage.inputTokenDetails?.cacheWriteTokens,
+          event.usage.inputTokenDetails?.cacheWriteTokens,
         'gen_ai.output.messages': {
           output: () =>
             JSON.stringify(
               formatOutputMessages({
                 text: event.text ?? undefined,
-                reasoning: event.reasoning as ReadonlyArray<{ text?: string }>,
+                reasoning: event.finalStep.reasoning as ReadonlyArray<{
+                  text?: string;
+                }>,
                 toolCalls: event.toolCalls,
                 files: event.files,
                 finishReason: event.finishReason,
@@ -912,11 +914,11 @@ export class OpenTelemetry implements Telemetry {
           this.supplementalAttributes,
           {
             providerMetadata: {
-              'ai.response.providerMetadata': event.providerMetadata
-                ? JSON.stringify(event.providerMetadata)
+              'ai.response.providerMetadata': event.finalStep.providerMetadata
+                ? JSON.stringify(event.finalStep.providerMetadata)
                 : undefined,
             },
-            usage: getDetailedUsageAttributes(event.totalUsage),
+            usage: getDetailedUsageAttributes(event.usage),
           },
         ),
       }),

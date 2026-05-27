@@ -20,8 +20,8 @@ const result = await generateText({
   experimental_onStart: event => {
     console.log('Generation started:', event.modelId);
   },
-  onFinish: event => {
-    console.log('Generation finished:', event.totalUsage);
+  onEnd: event => {
+    console.log('Generation finished:', event.usage);
   },
 });
 ```
@@ -71,7 +71,7 @@ const result = await generateText({
       description: 'Called when a step (LLM call) completes.',
     },
     {
-      name: 'onFinish',
+      name: 'onEnd',
       type: '(event: GenerateTextEndEvent) => void | Promise<void>',
       description:
         'Called when the entire generation completes (all steps finished).',
@@ -894,7 +894,7 @@ const result = await generateText({
   ]}
 />
 
-#### `onFinish`
+#### `onEnd`
 
 Called when the entire generation completes (all steps finished). Includes aggregated data.
 
@@ -902,9 +902,9 @@ Called when the entire generation completes (all steps finished). Includes aggre
 const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'Hello!',
-  onFinish: event => {
+  onEnd: event => {
     console.log('Total steps:', event.steps.length);
-    console.log('Total tokens:', event.totalUsage.totalTokens);
+    console.log('Total tokens:', event.usage.totalTokens);
     console.log('Final text:', event.text);
   },
 });
@@ -1028,13 +1028,13 @@ const result = await generateText({
       name: 'runtimeContext',
       type: 'CONTEXT',
       description:
-        'The final state of the user-defined shared runtime context object.',
+        'Deprecated. Use `finalStep.runtimeContext` instead. The final state of the user-defined shared runtime context object.',
     },
     {
       name: 'toolsContext',
       type: 'InferToolSetContext<TOOLS>',
       description:
-        'The final state of the per-tool context map passed via `toolsContext`.',
+        'Deprecated. Use `finalStep.toolsContext` instead. The final state of the per-tool context map passed via `toolsContext`.',
     },
     {
       name: 'providerMetadata',
@@ -1349,10 +1349,10 @@ const result = await generateText({
       },
     );
   },
-  onFinish: event => {
+  onEnd: event => {
     console.log(`[${new Date().toISOString()}] Generation complete`, {
       totalSteps: event.steps.length,
-      totalTokens: event.totalUsage.totalTokens,
+      totalTokens: event.usage.totalTokens,
     });
   },
 });

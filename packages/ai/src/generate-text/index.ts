@@ -5,6 +5,7 @@ export { generateText, type GenerateTextInclude } from './generate-text';
 export type {
   GenerateTextEndEvent,
   GenerateTextOnFinishCallback,
+  GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,

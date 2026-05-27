@@ -5,7 +5,7 @@ import { WorkflowAgent } from './workflow-agent.js';
 const model = 'anthropic/claude-sonnet-4-6';
 
 describe('WorkflowAgent types', () => {
-  it('infers runtimeContext in prepareStep and onFinish', () => {
+  it('infers runtimeContext in prepareStep and onEnd', () => {
     new WorkflowAgent({
       model,
       runtimeContext: { userId: 'user-123' },
@@ -15,6 +15,16 @@ describe('WorkflowAgent types', () => {
           runtimeContext: { userId: runtimeContext.userId },
         };
       },
+      onEnd: ({ runtimeContext }) => {
+        expectTypeOf(runtimeContext).toMatchObjectType<{ userId: string }>();
+      },
+    });
+  });
+
+  it('supports onFinish as a deprecated alias', () => {
+    new WorkflowAgent({
+      model,
+      runtimeContext: { userId: 'user-123' },
       onFinish: ({ runtimeContext }) => {
         expectTypeOf(runtimeContext).toMatchObjectType<{ userId: string }>();
       },

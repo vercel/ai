@@ -32,6 +32,7 @@ import {
   rerank,
   type Embedding,
   type EmbeddingModelUsage,
+  type GenerateTextEndEvent,
   type Telemetry,
 } from 'ai';
 import {
@@ -279,25 +280,42 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
 }
 
 function makeFinishEvent(overrides?: Record<string, unknown>) {
-  return {
-    ...makeStepFinishEvent(),
-    responseMessages: [],
-    steps: [],
-    totalUsage: {
-      inputTokens: 10,
-      outputTokens: 20,
-      totalTokens: 30,
-      inputTokenDetails: {
-        noCacheTokens: undefined,
-        cacheReadTokens: undefined,
-        cacheWriteTokens: undefined,
-      },
-      outputTokenDetails: {
-        textTokens: undefined,
-        reasoningTokens: undefined,
-      },
+  const { usage, ...restOverrides } = overrides ?? {};
+  const stepOverrides = Object.fromEntries(
+    Object.entries(restOverrides).filter(([key]) =>
+      [
+        'providerMetadata',
+        'reasoning',
+        'reasoningText',
+        'request',
+        'response',
+      ].includes(key),
+    ),
+  );
+  const finalStep = makeStepFinishEvent(stepOverrides);
+  const totalUsage = (usage as GenerateTextEndEvent['usage']) ?? {
+    inputTokens: 10,
+    outputTokens: 20,
+    totalTokens: 30,
+    inputTokenDetails: {
+      noCacheTokens: undefined,
+      cacheReadTokens: undefined,
+      cacheWriteTokens: undefined,
     },
-    ...overrides,
+    outputTokenDetails: {
+      textTokens: undefined,
+      reasoningTokens: undefined,
+    },
+  };
+
+  return {
+    ...finalStep,
+    responseMessages: [],
+    steps: [finalStep],
+    finalStep,
+    usage: totalUsage,
+    totalUsage,
+    ...restOverrides,
   } as Parameters<NonNullable<Telemetry['onEnd']>>[0];
 }
 
@@ -822,7 +840,7 @@ describe('LegacyOpenTelemetry', () => {
       otelIntegration.onStepFinish!(makeStepFinishEvent());
       otelIntegration.onEnd!(
         makeFinishEvent({
-          totalUsage: {
+          usage: {
             inputTokens: 50,
             outputTokens: 100,
             totalTokens: 150,
@@ -3201,6 +3219,7 @@ describe('LegacyOpenTelemetry integration with streamText stopWhen (2 steps with
             "ai.prompt": "{"messages":[{"role":"user","content":"test-input"}]}",
             "ai.response.finishReason": "stop",
             "ai.response.text": "Hello, world!",
+            "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
             "ai.settings.maxRetries": 2,
             "ai.usage.cachedInputTokens": 0,
             "ai.usage.inputTokenDetails.cacheReadTokens": 0,
