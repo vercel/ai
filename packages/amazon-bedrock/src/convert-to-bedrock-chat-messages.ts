@@ -182,54 +182,16 @@ export async function convertToBedrockChatMessages(
                 const output = part.output;
                 switch (output.type) {
                   case 'content': {
-<<<<<<< HEAD:packages/amazon-bedrock/src/convert-to-bedrock-chat-messages.ts
-                    toolResultContent = output.value.map(contentPart => {
-                      switch (contentPart.type) {
-                        case 'text':
-                          return { text: contentPart.text };
-                        case 'image-data':
-                          if (!contentPart.mediaType.startsWith('image/')) {
-                            throw new UnsupportedFunctionalityError({
-                              functionality: `media type: ${contentPart.mediaType}`,
-=======
                     toolResultContent = await Promise.all(
                       output.value.map(async contentPart => {
                         switch (contentPart.type) {
                           case 'text':
                             return { text: contentPart.text };
-                          case 'file': {
-                            if (contentPart.data.type !== 'data') {
-                              throw new UnsupportedFunctionalityError({
-                                functionality: `tool result file data of type "${contentPart.data.type}"`,
-                              });
-                            }
-
-                            const fullMediaType = resolveFullMediaType({
-                              part: contentPart,
->>>>>>> 9d5a2992b (fix(amazon-bedrock): support document files in tool results (#15534)):packages/amazon-bedrock/src/convert-to-amazon-bedrock-chat-messages.ts
-                            });
-
-<<<<<<< HEAD:packages/amazon-bedrock/src/convert-to-bedrock-chat-messages.ts
-                          const format = getBedrockImageFormat(
-                            contentPart.mediaType,
-                          );
-
-                          return {
-                            image: {
-                              format,
-                              source: { bytes: contentPart.data },
-                            },
-                          };
-                        default: {
-                          throw new UnsupportedFunctionalityError({
-                            functionality: `unsupported tool content part type: ${contentPart.type}`,
-                          });
-                        }
-                      }
-                    });
-=======
+                          case 'image-data':
+                          case 'file-data': {
                             if (
-                              getTopLevelMediaType(fullMediaType) !== 'image'
+                              getTopLevelMediaType(contentPart.mediaType) !==
+                              'image'
                             ) {
                               const enableCitations =
                                 await shouldEnableCitations(
@@ -238,17 +200,16 @@ export async function convertToBedrockChatMessages(
 
                               return {
                                 document: {
-                                  format:
-                                    getAmazonBedrockDocumentFormat(
-                                      fullMediaType,
-                                    ),
-                                  name: contentPart.filename
-                                    ? stripFileExtension(contentPart.filename)
-                                    : generateDocumentName(),
+                                  format: getBedrockDocumentFormat(
+                                    contentPart.mediaType,
+                                  ),
+                                  name:
+                                    'filename' in contentPart &&
+                                    contentPart.filename
+                                      ? stripFileExtension(contentPart.filename)
+                                      : generateDocumentName(),
                                   source: {
-                                    bytes: convertToBase64(
-                                      contentPart.data.data,
-                                    ),
+                                    bytes: convertToBase64(contentPart.data),
                                   },
                                   ...(enableCitations && {
                                     citations: { enabled: true },
@@ -259,10 +220,11 @@ export async function convertToBedrockChatMessages(
 
                             return {
                               image: {
-                                format:
-                                  getAmazonBedrockImageFormat(fullMediaType),
+                                format: getBedrockImageFormat(
+                                  contentPart.mediaType,
+                                ),
                                 source: {
-                                  bytes: convertToBase64(contentPart.data.data),
+                                  bytes: convertToBase64(contentPart.data),
                                 },
                               },
                             };
@@ -275,7 +237,6 @@ export async function convertToBedrockChatMessages(
                         }
                       }),
                     );
->>>>>>> 9d5a2992b (fix(amazon-bedrock): support document files in tool results (#15534)):packages/amazon-bedrock/src/convert-to-amazon-bedrock-chat-messages.ts
                     break;
                   }
                   case 'text':
@@ -429,6 +390,10 @@ function isBedrockImageFormat(format: string): format is BedrockImageFormat {
   return Object.values(BEDROCK_IMAGE_MIME_TYPES).includes(
     format as BedrockImageFormat,
   );
+}
+
+function getTopLevelMediaType(mediaType: string): string {
+  return mediaType.split('/')[0];
 }
 
 function getBedrockImageFormat(mimeType?: string): BedrockImageFormat {

@@ -174,15 +174,7 @@ export interface BedrockImageBlock {
 export interface BedrockToolResultBlock {
   toolResult: {
     toolUseId: string;
-<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-api-types.ts
-    content: Array<BedrockTextBlock | BedrockImageBlock>;
-=======
-    content: Array<
-      | AmazonBedrockTextBlock
-      | AmazonBedrockImageBlock
-      | AmazonBedrockDocumentBlock
-    >;
->>>>>>> 9d5a2992b (fix(amazon-bedrock): support document files in tool results (#15534)):packages/amazon-bedrock/src/amazon-bedrock-api-types.ts
+    content: Array<BedrockTextBlock | BedrockImageBlock | BedrockDocumentBlock>;
   };
 }
 

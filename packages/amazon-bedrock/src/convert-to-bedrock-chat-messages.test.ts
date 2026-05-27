@@ -1397,7 +1397,7 @@ describe('tool messages', () => {
   });
 
   it('should convert tool result with content array containing PDF', async () => {
-    const result = await convertToAmazonBedrockChatMessages([
+    const result = await convertToBedrockChatMessages([
       {
         role: 'tool',
         content: [
@@ -1409,8 +1409,8 @@ describe('tool messages', () => {
               type: 'content',
               value: [
                 {
-                  type: 'file',
-                  data: { type: 'data', data: 'base64data' },
+                  type: 'file-data',
+                  data: 'base64data',
                   mediaType: 'application/pdf',
                   filename: 'tool-result.pdf',
                 },
@@ -1485,7 +1485,7 @@ describe('tool messages', () => {
                 type: 'content',
                 value: [
                   {
-                    type: 'image-data',
+                    type: 'file-data',
                     data: 'base64data',
                     mediaType: 'unsupported/mime-type',
                   },
