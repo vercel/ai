@@ -247,7 +247,7 @@ function makeLanguageModelCallEndEvent(overrides?: Record<string, unknown>) {
       outputTokensPerSecond: undefined,
       inputTokensPerSecond: undefined,
       effectiveTotalTokensPerSecond: 30,
-      timeToFirstOutputTokenMs: undefined,
+      timeToFirstOutputMs: undefined,
     },
     ...overrides,
   } as Parameters<NonNullable<Telemetry['onLanguageModelCallEnd']>>[0];
@@ -294,7 +294,7 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
       stepTimeMs: 1000,
       responseTimeMs: 1000,
       toolExecutionMs: {},
-      timeToFirstOutputTokenMs: undefined,
+      timeToFirstOutputMs: undefined,
     },
     warnings: undefined,
     request: { body: undefined, messages: [] },

@@ -41,7 +41,7 @@ export { pruneMessages } from './prune-messages';
 export type { ReasoningFileOutput, ReasoningOutput } from './reasoning-output';
 export { smoothStream, type ChunkDetector } from './smooth-stream';
 export type {
-  OutputTokenTimingStats,
+  OutputChunkTimingStats,
   StepResult,
   StepResultPerformance,
 } from './step-result';

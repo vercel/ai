@@ -876,7 +876,7 @@ export async function generateText<
                 ),
                 durationMs: responseTimeMs,
               }),
-              timeToFirstOutputTokenMs: undefined,
+              timeToFirstOutputMs: undefined,
             },
           },
           callbacks: [
@@ -1060,7 +1060,7 @@ export async function generateText<
           stepTimeMs,
           responseTimeMs,
           toolExecutionMs,
-          timeToFirstOutputTokenMs: undefined,
+          timeToFirstOutputMs: undefined,
         };
 
         // Track provider-executed tool calls that support deferred results.

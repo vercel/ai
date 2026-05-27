@@ -34,25 +34,25 @@ import type {
 } from './tool-result';
 
 /**
- * Timing statistics for the gaps between streamed output-token chunks.
+ * Timing statistics for the gaps between generated output chunks.
  */
-export type OutputTokenTimingStats = {
-  /** Shortest observed time between output tokens in milliseconds. */
+export type OutputChunkTimingStats = {
+  /** Shortest observed time between output chunks in milliseconds. */
   readonly min: number;
 
-  /** 10th percentile time between output tokens in milliseconds. */
+  /** 10th percentile time between output chunks in milliseconds. */
   readonly p10: number;
 
-  /** Median time between output tokens in milliseconds. */
+  /** Median time between output chunks in milliseconds. */
   readonly median: number;
 
-  /** Average time between output tokens in milliseconds. */
+  /** Average time between output chunks in milliseconds. */
   readonly avg: number;
 
-  /** 90th percentile time between output tokens in milliseconds. */
+  /** 90th percentile time between output chunks in milliseconds. */
   readonly p90: number;
 
-  /** Longest observed time between output tokens in milliseconds. */
+  /** Longest observed time between output chunks in milliseconds. */
   readonly max: number;
 };
 
@@ -69,8 +69,8 @@ export type StepResultPerformance = {
   readonly effectiveOutputTokensPerSecond: number;
 
   /**
-   * Number of output tokens per second after the first output token was
-   * received.
+   * Number of output tokens per second after the first generated output chunk
+   * was received.
    *
    * Only available for streaming steps.
    *
@@ -79,8 +79,8 @@ export type StepResultPerformance = {
   readonly outputTokensPerSecond: number | undefined;
 
   /**
-   * Number of input tokens processed per second before the first output token
-   * was received.
+   * Number of input tokens processed per second before the first generated
+   * output chunk was received.
    *
    * Only available for streaming steps.
    *
@@ -113,20 +113,23 @@ export type StepResultPerformance = {
   readonly toolExecutionMs: Readonly<Record<string, number>>;
 
   /**
-   * Time until the first text, reasoning, or tool input delta was received in
-   * milliseconds.
+   * Time until the first generated output chunk was received in milliseconds.
+   *
+   * This includes text deltas, reasoning deltas, generated files, reasoning
+   * files, tool input deltas, and tool calls.
    *
    * Only available for streaming steps.
    */
-  readonly timeToFirstOutputTokenMs: number | undefined;
+  readonly timeToFirstOutputMs: number | undefined;
 
   /**
-   * Timing statistics for the gaps between streamed output-token chunks in
+   * Timing statistics for the gaps between generated output chunks in
    * milliseconds.
    *
-   * Only available for streaming steps with at least two output-token chunks.
+   * Only available for streaming steps with at least two generated output
+   * chunks.
    */
-  readonly timeBetweenOutputTokensMs?: OutputTokenTimingStats;
+  readonly timeBetweenOutputChunksMs?: OutputChunkTimingStats;
 };
 
 /**

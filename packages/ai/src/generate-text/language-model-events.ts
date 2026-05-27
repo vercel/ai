@@ -5,7 +5,7 @@ import type { LanguageModelUsage } from '../types/usage';
 import type { ContentPart } from './content-part';
 import type { StandardizedPrompt } from '../prompt/standardize-prompt';
 import type { LanguageModelCallOptions } from '../prompt';
-import type { OutputTokenTimingStats } from './step-result';
+import type { OutputChunkTimingStats } from './step-result';
 
 /**
  * Common model information used across callback events.
@@ -67,16 +67,16 @@ export type LanguageModelCallEndEvent<TOOLS extends ToolSet = ToolSet> =
       readonly effectiveOutputTokensPerSecond: number;
 
       /**
-       * Number of output tokens per second after the first output token was
-       * received.
+       * Number of output tokens per second after the first generated output
+       * chunk was received.
        *
        * Only available for streaming calls.
        */
       readonly outputTokensPerSecond: number | undefined;
 
       /**
-       * Number of input tokens processed per second before the first output
-       * token was received.
+       * Number of input tokens processed per second before the first generated
+       * output chunk was received.
        *
        * Only available for streaming calls.
        */
@@ -89,18 +89,18 @@ export type LanguageModelCallEndEvent<TOOLS extends ToolSet = ToolSet> =
       readonly effectiveTotalTokensPerSecond: number;
 
       /**
-       * Time until the first text, reasoning, or tool input delta was received
-       * in milliseconds.
+       * Time until the first generated output chunk was received in
+       * milliseconds.
        */
-      readonly timeToFirstOutputTokenMs: number | undefined;
+      readonly timeToFirstOutputMs: number | undefined;
 
       /**
-       * Timing statistics for the gaps between streamed output-token chunks in
+       * Timing statistics for the gaps between generated output chunks in
        * milliseconds.
        *
-       * Only available for streaming calls with at least two output-token chunks.
+       * Only available for streaming calls with at least two output chunks.
        */
-      readonly timeBetweenOutputTokensMs?: OutputTokenTimingStats;
+      readonly timeBetweenOutputChunksMs?: OutputChunkTimingStats;
     };
   };
 
