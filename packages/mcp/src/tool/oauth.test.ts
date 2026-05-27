@@ -9,6 +9,7 @@ import {
   refreshAuthorization,
   registerClient,
   auth,
+  parseErrorResponse,
   type OAuthClientProvider,
   type AuthResult,
 } from './oauth';
@@ -2348,5 +2349,49 @@ describe('OAuth state validation', () => {
 
     expect(result).toBe('REDIRECT');
     expect(saveState).toHaveBeenCalledWith('MY_STATE_VALUE');
+  });
+});
+
+
+describe('parseErrorResponse', () => {
+  it('parses a same-realm Response (instanceof check would pass)', async () => {
+    const response = new Response(
+      JSON.stringify({
+        error: 'invalid_client',
+        error_description: 'unknown',
+      }),
+      { status: 401 },
+    );
+
+    const err = await parseErrorResponse(response);
+    expect(err.message).toBe('unknown');
+  });
+
+  it('parses a Response-shaped object from a different realm where instanceof Response is false', async () => {
+    // Simulate a Response produced in another realm (different module graph)
+    // by handing in an object that quacks like Response but is not the
+    // global Response constructor. `instanceof Response` returns false here;
+    // the duck-typed implementation must still extract status + body.
+    const crossRealmResponse: unknown = {
+      status: 401,
+      async text() {
+        return JSON.stringify({
+          error: 'invalid_grant',
+          error_description: 'expired',
+        });
+      },
+    };
+
+    expect(crossRealmResponse instanceof Response).toBe(false);
+
+    const err = await parseErrorResponse(crossRealmResponse as Response);
+    expect(err.message).toBe('expired');
+  });
+
+  it('parses a raw body string when given one', async () => {
+    const err = await parseErrorResponse(
+      JSON.stringify({ error: 'invalid_request' }),
+    );
+    expect(err).toBeDefined();
   });
 });

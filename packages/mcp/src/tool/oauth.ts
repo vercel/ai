@@ -586,8 +586,14 @@ function applyPublicAuth(clientId: string, params: URLSearchParams): void {
 export async function parseErrorResponse(
   input: Response | string,
 ): Promise<MCPClientOAuthError> {
-  const statusCode = input instanceof Response ? input.status : undefined;
-  const body = input instanceof Response ? await input.text() : input;
+  // Use a string-vs-not check rather than `instanceof Response` because the
+  // Response constructor differs across Node.js realms (e.g. when the caller
+  // hands us a Response produced by undici inside a different module
+  // graph). `instanceof Response` then silently returns false and we end up
+  // serialising the Response as the literal string "[object Response]".
+  const isResponse = typeof input !== 'string';
+  const statusCode = isResponse ? (input as Response).status : undefined;
+  const body = isResponse ? await (input as Response).text() : input;
 
   try {
     const result = OAuthErrorResponseSchema.parse(
