@@ -80,8 +80,7 @@ export const webSearchToolFactory = createProviderExecutedToolFactory<
           /**
            * The search query.
            *
-           * @deprecated Use `queries` instead. The OpenAI Responses API marks
-           * this single-query field as deprecated in favor of `queries`.
+           * @deprecated Use `queries` instead.
            */
           query?: string;
 
