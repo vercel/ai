@@ -155,6 +155,48 @@ describe('toUIMessageStream', () => {
     expect(chunks).toEqual([{ type: 'error', errorText: 'handled: boom' }]);
   });
 
+  it('emits separate metadata chunks for non-lifecycle parts', async () => {
+    type MetadataUIMessage = UIMessage<{ partType: string }>;
+
+    const chunks = await convertReadableStreamToArray(
+      toUIMessageStream<{}, MetadataUIMessage>({
+        stream: convertArrayToReadableStream([
+          { type: 'start' },
+          { type: 'text-delta', id: 't1', text: 'Hello' },
+          {
+            type: 'finish',
+            finishReason: 'stop',
+            rawFinishReason: 'stop',
+            totalUsage: testUsage,
+          },
+        ] satisfies TextStreamPart<{}>[]),
+        tools: undefined,
+        messageMetadata: ({ part }) => ({ partType: part.type }),
+      }),
+    );
+
+    expect(chunks).toEqual([
+      {
+        type: 'start',
+        messageMetadata: { partType: 'start' },
+      },
+      {
+        type: 'text-delta',
+        id: 't1',
+        delta: 'Hello',
+      },
+      {
+        type: 'message-metadata',
+        messageMetadata: { partType: 'text-delta' },
+      },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        messageMetadata: { partType: 'finish' },
+      },
+    ]);
+  });
+
   it('injects generated message id and calls onFinish', async () => {
     const parts: TextStreamPart<{}>[] = [
       { type: 'start' },
