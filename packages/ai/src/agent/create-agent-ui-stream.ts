@@ -11,7 +11,7 @@ import type { StreamTextTransform } from '../generate-text/stream-text';
 import type { UIMessageStreamOptions } from '../generate-text/stream-text-result';
 import type { TimeoutConfiguration } from '../prompt/request-options';
 import type { InferUIMessageChunk } from '../ui-message-stream';
-import { toUIMessageChunkStream } from '../ui-message-stream/to-ui-message-chunk-stream';
+import { toUIMessageStream } from '../ui-message-stream/to-ui-message-stream';
 import { convertToModelMessages } from '../ui/convert-to-model-messages';
 import type {
   InferUIMessageTools,
@@ -101,7 +101,7 @@ export async function createAgentUIStream<
     uiMessageStreamOptions.originalMessages ?? validatedMessages;
 
   return createAsyncIterableStream(
-    toUIMessageChunkStream({
+    toUIMessageStream({
       ...uiMessageStreamOptions,
       originalMessages,
       stream: result.stream,

@@ -13,7 +13,7 @@ describe('createTextStreamResponse', () => {
       headers: {
         'Custom-Header': 'test',
       },
-      textStream: convertArrayToReadableStream(['test-data']),
+      stream: convertArrayToReadableStream(['test-data']),
     });
 
     // Verify response properties

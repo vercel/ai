@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { TextStreamPart } from '../generate-text/stream-text-result';
 import type { LanguageModelUsage } from '../types/usage';
 import type { UIMessage } from '../ui/ui-messages';
-import { toUIMessageChunkStream } from './to-ui-message-chunk-stream';
+import { toUIMessageStream } from './to-ui-message-stream';
 
 const testUsage: LanguageModelUsage = {
   inputTokens: 1,
@@ -23,7 +23,7 @@ const testUsage: LanguageModelUsage = {
   },
 };
 
-describe('toUIMessageChunkStream', () => {
+describe('toUIMessageStream', () => {
   it('maps text and lifecycle parts to UI message chunks', async () => {
     const parts: TextStreamPart<{}>[] = [
       { type: 'start' },
@@ -59,7 +59,7 @@ describe('toUIMessageChunkStream', () => {
     ];
 
     const chunks = await convertReadableStreamToArray(
-      toUIMessageChunkStream({
+      toUIMessageStream({
         stream: convertArrayToReadableStream(parts),
         tools: undefined,
       }),
@@ -82,7 +82,7 @@ describe('toUIMessageChunkStream', () => {
     const generateMessageId = vi.fn(() => 'msg-123');
 
     const chunks = await convertReadableStreamToArray(
-      toUIMessageChunkStream({
+      toUIMessageStream({
         stream: convertArrayToReadableStream(parts),
         tools: undefined,
         generateMessageId,
@@ -107,7 +107,7 @@ describe('toUIMessageChunkStream', () => {
     ];
 
     const chunks = await convertReadableStreamToArray(
-      toUIMessageChunkStream({
+      toUIMessageStream({
         stream: convertArrayToReadableStream(parts),
         tools: undefined,
         sendStart: false,
@@ -129,7 +129,7 @@ describe('toUIMessageChunkStream', () => {
     ];
 
     const chunks = await convertReadableStreamToArray(
-      toUIMessageChunkStream({
+      toUIMessageStream({
         stream: convertArrayToReadableStream(parts),
         tools: undefined,
         sendReasoning: false,
@@ -145,7 +145,7 @@ describe('toUIMessageChunkStream', () => {
     ];
 
     const chunks = await convertReadableStreamToArray(
-      toUIMessageChunkStream({
+      toUIMessageStream({
         stream: convertArrayToReadableStream(parts),
         tools: undefined,
         onError: error => `handled: ${(error as Error).message}`,
@@ -179,7 +179,7 @@ describe('toUIMessageChunkStream', () => {
     const onFinish = vi.fn();
 
     const chunks = await convertReadableStreamToArray(
-      toUIMessageChunkStream({
+      toUIMessageStream({
         stream: convertArrayToReadableStream(parts),
         tools: undefined,
         originalMessages,

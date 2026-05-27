@@ -1,15 +1,13 @@
 export { createUIMessageStream } from './create-ui-message-stream';
 export { createUIMessageStreamResponse } from './create-ui-message-stream-response';
 export { JsonToSseTransformStream } from './json-to-sse-transform-stream';
-export { pipeTextStreamToUIMessageStreamResponse } from './pipe-text-stream-to-ui-message-stream-response';
 export { pipeUIMessageStreamToResponse } from './pipe-ui-message-stream-to-response';
 export { readUIMessageStream } from './read-ui-message-stream';
 export {
   toUIMessageChunk,
   type ToUIMessageChunkOptions,
 } from './to-ui-message-chunk';
-export { toUIMessageChunkStream } from './to-ui-message-chunk-stream';
-export { toUIMessageChunkStreamResponse } from './to-ui-message-chunk-stream-response';
+export { toUIMessageStream } from './to-ui-message-stream';
 export {
   uiMessageChunkSchema,
   type InferUIMessageChunk,

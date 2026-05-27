@@ -939,14 +939,14 @@ class DefaultStreamObjectResult<
   pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit) {
     pipeTextStreamToResponse({
       response,
-      textStream: this.textStream,
+      stream: this.textStream,
       ...init,
     });
   }
 
   toTextStreamResponse(init?: ResponseInit): Response {
     return createTextStreamResponse({
-      textStream: this.textStream,
+      stream: this.textStream,
       ...init,
     });
   }

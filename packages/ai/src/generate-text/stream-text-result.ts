@@ -358,7 +358,7 @@ export interface StreamTextResult<
    *
    * @returns A UI message stream.
    *
-   * @deprecated Use the standalone `toUIMessageChunkStream` helper from
+   * @deprecated Use the standalone `toUIMessageStream` helper from
    *   `'ai'` with `result.stream` instead. This method will be removed
    *   in the next major release.
    */
@@ -369,9 +369,9 @@ export interface StreamTextResult<
   /**
    * Writes UI message stream output to a Node.js response-like object.
    *
-   * @deprecated Use the standalone `pipeTextStreamToUIMessageStreamResponse`
-   *   helper from `'ai'` with `result.stream` instead. This method will be
-   *   removed in the next major release.
+   * @deprecated Use the standalone `toUIMessageStream` and
+   *   `pipeUIMessageStreamToResponse` helpers from `'ai'` with `result.stream`
+   *   instead. This method will be removed in the next major release.
    */
   pipeUIMessageStreamToResponse<UI_MESSAGE extends UIMessage>(
     response: ServerResponse,
@@ -386,9 +386,9 @@ export interface StreamTextResult<
    * @param response A Node.js response-like object (ServerResponse).
    * @param init Optional headers, status code, and status text.
    *
-   * @deprecated Use the standalone `pipeTextStreamToResponse` helper from
-   *   `'ai'` with `result.textStream` instead. This method will be removed
-   *   in the next major release.
+   * @deprecated Use the standalone `toTextStream` and
+   *   `pipeTextStreamToResponse` helpers from `'ai'` with `result.stream`
+   *   instead. This method will be removed in the next major release.
    */
   pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit): void;
 
@@ -397,9 +397,9 @@ export interface StreamTextResult<
    *
    * @returns A response object.
    *
-   * @deprecated Use the standalone `toUIMessageChunkStreamResponse` helper from
-   *   `'ai'` with `result.stream` instead. This method will be removed
-   *   in the next major release.
+   * @deprecated Use the standalone `toUIMessageStream` and
+   *   `createUIMessageStreamResponse` helpers from `'ai'` with `result.stream`
+   *   instead. This method will be removed in the next major release.
    */
   toUIMessageStreamResponse<UI_MESSAGE extends UIMessage>(
     options?: UIMessageStreamResponseInit & UIMessageStreamOptions<UI_MESSAGE>,
@@ -411,9 +411,9 @@ export interface StreamTextResult<
    * Non-text-delta events are ignored.
    * @param init Optional headers, status code, and status text.
    *
-   * @deprecated Use the standalone `createTextStreamResponse` helper from
-   *   `'ai'` with `result.textStream` instead. This method will be removed
-   *   in the next major release.
+   * @deprecated Use the standalone `toTextStream` and `createTextStreamResponse`
+   *   helpers from `'ai'` with `result.stream` instead. This method will be
+   *   removed in the next major release.
    */
   toTextStreamResponse(init?: ResponseInit): Response;
 }

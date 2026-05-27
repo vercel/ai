@@ -1384,7 +1384,7 @@ const uiStream = result.toUIMessageStream({
 ```
 
 ```tsx filename="AI SDK 7"
-import { streamText, toUIMessageChunkStream } from 'ai';
+import { streamText, toUIMessageStream } from 'ai';
 
 const result = streamText({ model, prompt });
 
@@ -1403,17 +1403,16 @@ return result.toUIMessageStreamResponse({ originalMessages });
 ```
 
 ```tsx filename="AI SDK 7"
-import { toUIMessageChunkStreamResponse } from 'ai';
+import { createUIMessageStreamResponse, toUIMessageStream } from 'ai';
 
-return toUIMessageChunkStreamResponse({
+const uiStream = toUIMessageStream({
   stream: result.stream,
   generateMessageId,
   originalMessages,
   onFinish,
 });
 
-// note to self: use existing `createUiMessageStreamResponse` method
-return createUiMessageStreamResponse({
+return createUIMessageStreamResponse({
   stream: uiStream,
 });
 ```
@@ -1425,7 +1424,7 @@ result.pipeUIMessageStreamToResponse(response, { originalMessages });
 ```
 
 ```tsx filename="AI SDK 7"
-import { pipeTextStreamToUIMessageStreamResponse } from 'ai';
+import { pipeUIMessageStreamToResponse, toUIMessageStream } from 'ai';
 
 const uiStream = toUIMessageStream({
   stream: result.stream,
@@ -1434,7 +1433,7 @@ const uiStream = toUIMessageStream({
   onFinish,
 });
 
-pipeUiMessageStreamToResponse({
+pipeUIMessageStreamToResponse({
   stream: uiStream,
   response,
 });
@@ -1447,13 +1446,10 @@ return result.toTextStreamResponse();
 ```
 
 ```tsx filename="AI SDK 7"
-import { createTextStreamResponse } from 'ai';
+import { createTextStreamResponse, toTextStream } from 'ai';
 
 const textStream = toTextStream({
   stream: result.stream,
-  generateMessageId,
-  originalMessages,
-  onFinish,
 });
 
 return createTextStreamResponse({ stream: textStream });
@@ -1466,13 +1462,10 @@ result.pipeTextStreamToResponse(response);
 ```
 
 ```tsx filename="AI SDK 7"
-import { pipeTextStreamToResponse } from 'ai';
+import { pipeTextStreamToResponse, toTextStream } from 'ai';
 
 const textStream = toTextStream({
   stream: result.stream,
-  generateMessageId,
-  originalMessages,
-  onFinish,
 });
 
 pipeTextStreamToResponse({ response, stream: textStream });

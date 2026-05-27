@@ -14,7 +14,7 @@ describe('pipeTextStreamToResponse', () => {
       headers: {
         'Custom-Header': 'test',
       },
-      textStream: convertArrayToReadableStream(['test-data']),
+      stream: convertArrayToReadableStream(['test-data']),
     });
 
     // Wait for the stream to finish writing

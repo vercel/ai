@@ -15,9 +15,9 @@ import { toUIMessageChunk } from './to-ui-message-chunk';
  * UI message streaming, including response message ID injection and
  * `onFinish` handling.
  */
-export function toUIMessageChunkStream<
-  TOOLS extends ToolSet,
-  UI_MESSAGE extends UIMessage,
+export function toUIMessageStream<
+  TOOLS extends ToolSet = ToolSet,
+  UI_MESSAGE extends UIMessage = UIMessage,
 >({
   stream,
   tools,
