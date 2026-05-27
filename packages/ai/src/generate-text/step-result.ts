@@ -34,6 +34,105 @@ import type {
 } from './tool-result';
 
 /**
+ * Timing statistics for the gaps between generated output chunks.
+ */
+export type OutputChunkTimingStats = {
+  /** Shortest observed time between output chunks in milliseconds. */
+  readonly min: number;
+
+  /** 10th percentile time between output chunks in milliseconds. */
+  readonly p10: number;
+
+  /** Median time between output chunks in milliseconds. */
+  readonly median: number;
+
+  /** Average time between output chunks in milliseconds. */
+  readonly avg: number;
+
+  /** 90th percentile time between output chunks in milliseconds. */
+  readonly p90: number;
+
+  /** Longest observed time between output chunks in milliseconds. */
+  readonly max: number;
+};
+
+/**
+ * Performance metrics for a single step in the generation process.
+ */
+export type StepResultPerformance = {
+  /**
+   * Effective number of output tokens per second over the full language model
+   * response.
+   *
+   * Calculated as `outputTokens / requestSeconds`.
+   */
+  readonly effectiveOutputTokensPerSecond: number;
+
+  /**
+   * Number of output tokens per second after the first generated output chunk
+   * was received.
+   *
+   * Only available for streaming steps.
+   *
+   * Calculated as `outputTokens / outputStreamSeconds`.
+   */
+  readonly outputTokensPerSecond: number | undefined;
+
+  /**
+   * Number of input tokens processed per second before the first generated
+   * output chunk was received.
+   *
+   * Only available for streaming steps.
+   *
+   * Calculated as `inputTokens / ttftSeconds`.
+   */
+  readonly inputTokensPerSecond: number | undefined;
+
+  /**
+   * Effective number of input and output tokens per second over the full
+   * language model response.
+   *
+   * Calculated as `(inputTokens + outputTokens) / requestSeconds`.
+   */
+  readonly effectiveTotalTokensPerSecond: number;
+
+  /**
+   * Total time spent on the step in milliseconds.
+   */
+  readonly stepTimeMs: number;
+
+  /**
+   * Time spent waiting for the language model response in milliseconds.
+   */
+  readonly responseTimeMs: number;
+
+  /**
+   * Time spent executing each client-side tool call in milliseconds, keyed by
+   * tool call ID.
+   */
+  readonly toolExecutionMs: Readonly<Record<string, number>>;
+
+  /**
+   * Time until the first generated output chunk was received in milliseconds.
+   *
+   * This includes text deltas, reasoning deltas, generated files, reasoning
+   * files, tool input deltas, and tool calls.
+   *
+   * Only available for streaming steps.
+   */
+  readonly timeToFirstOutputMs: number | undefined;
+
+  /**
+   * Timing statistics for the gaps between generated output chunks in
+   * milliseconds.
+   *
+   * Only available for streaming steps with at least two generated output
+   * chunks.
+   */
+  readonly timeBetweenOutputChunksMs?: OutputChunkTimingStats;
+};
+
+/**
  * The result of a single step in the generation process.
  */
 export type StepResult<
@@ -150,6 +249,11 @@ export type StepResult<
   readonly usage: LanguageModelUsage;
 
   /**
+   * Performance metrics for the step.
+   */
+  readonly performance: StepResultPerformance;
+
+  /**
    * Warnings from the model provider (e.g. unsupported settings).
    */
   readonly warnings: CallWarning[] | undefined;
@@ -188,6 +292,7 @@ export class DefaultStepResult<
     RUNTIME_CONTEXT
   >['rawFinishReason'];
   readonly usage: StepResult<TOOLS, RUNTIME_CONTEXT>['usage'];
+  readonly performance: StepResult<TOOLS, RUNTIME_CONTEXT>['performance'];
   readonly warnings: StepResult<TOOLS, RUNTIME_CONTEXT>['warnings'];
   readonly request: StepResult<TOOLS, RUNTIME_CONTEXT>['request'];
   readonly response: StepResult<TOOLS, RUNTIME_CONTEXT>['response'];
@@ -207,6 +312,7 @@ export class DefaultStepResult<
     finishReason,
     rawFinishReason,
     usage,
+    performance,
     warnings,
     request,
     response,
@@ -222,6 +328,7 @@ export class DefaultStepResult<
     finishReason: StepResult<TOOLS, RUNTIME_CONTEXT>['finishReason'];
     rawFinishReason: StepResult<TOOLS, RUNTIME_CONTEXT>['rawFinishReason'];
     usage: StepResult<TOOLS, RUNTIME_CONTEXT>['usage'];
+    performance: StepResult<TOOLS, RUNTIME_CONTEXT>['performance'];
     warnings: StepResult<TOOLS, RUNTIME_CONTEXT>['warnings'];
     request: StepResult<TOOLS, RUNTIME_CONTEXT>['request'];
     response: StepResult<TOOLS, RUNTIME_CONTEXT>['response'];
@@ -236,6 +343,7 @@ export class DefaultStepResult<
     this.finishReason = finishReason;
     this.rawFinishReason = rawFinishReason;
     this.usage = usage;
+    this.performance = performance;
     this.warnings = warnings;
     this.request = request;
     this.response = response;

@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`options.experimental_onFinish > should send correct event information 1`] = `
+exports[`options.experimental_onEnd > should send correct event information 1`] = `
 {
   "callId": "test-call-id",
   "embedding": [

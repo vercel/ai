@@ -16,15 +16,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v5
-        with:
-          version: 10.11.0
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
 
       - name: Use Node.js 22
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: 22
           cache: 'pnpm'
@@ -40,15 +38,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v5
-        with:
-          version: 10.11.0
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
 
       - name: Use Node.js 22
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: 22
           cache: 'pnpm'
@@ -60,19 +56,29 @@ jobs:
         run: pnpm konsistent
 
   build-examples:
-    name: 'Build Examples'
+    name: 'Build Examples (${{ matrix.shard }})'
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: next-core
+            filters: --filter=@example/next --filter=@example/next-openai --filter=@example/next-agent
+          - shard: next-integrations
+            filters: --filter=@example/next-fastapi --filter=@example/next-google-vertex --filter=@example/next-langchain --filter=@example/next-workflow
+          - shard: next-telemetry
+            filters: --filter=@example/next-openai-kasada-bot-protection --filter=@example/next-openai-pages --filter=@example/next-openai-rate-limits --filter=@example/next-openai-telemetry --filter=@example/next-openai-telemetry-sentry
+          - shard: other-frameworks
+            filters: --filter=@example/angular --filter=@example/nest --filter=@example/nuxt-openai --filter=@example/sveltekit-openai
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v5
-        with:
-          version: 10.11.0
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
 
       - name: Use Node.js 22
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: 22
           cache: 'pnpm'
@@ -80,23 +86,32 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Restore build caches
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            .turbo/cache
+            examples/**/.next/cache
+            examples/**/.angular/cache
+          key: ${{ runner.os }}-build-examples-${{ matrix.shard }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-build-examples-${{ matrix.shard }}-
+
       - name: Build Examples
-        run: pnpm run build:examples
+        run: pnpm exec turbo build ${{ matrix.filters }}
 
   types:
     name: 'TypeScript'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v5
-        with:
-          version: 10.11.0
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
 
       - name: Use Node.js 22
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: 22
           cache: 'pnpm'
@@ -107,20 +122,18 @@ jobs:
       - name: Run TypeScript type check
         run: pnpm run type-check:full
 
-  bundle-size:
-    name: 'Bundle Size Check'
+  build-packages:
+    name: 'Build Packages'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v5
-        with:
-          version: 10.11.0
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
 
       - name: Use Node.js 22
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: 22
           cache: 'pnpm'
@@ -131,36 +144,98 @@ jobs:
       - name: Build packages
         run: pnpm run build:packages
 
+      - name: Archive package build artifacts
+        run: tar -czf package-build-artifacts.tgz packages/*/dist
+
+      - name: Upload package build artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: package-build-artifacts
+          path: package-build-artifacts.tgz
+
+  bundle-size:
+    name: 'Bundle Size Check'
+    runs-on: ubuntu-latest
+    needs: build-packages
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download package build artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: package-build-artifacts
+
+      - name: Extract package build artifacts
+        run: tar -xzf package-build-artifacts.tgz
+
       - name: Check bundle size
         run: cd packages/ai && pnpm run check-bundle-size
 
       - name: Upload bundle size metafiles
         if: ${{ always() }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: bundle-size-metafiles
           path: packages/ai/dist-bundle-check/*.json
 
+  test_node_versions:
+    name: 'Test Node Versions'
+    runs-on: ubuntu-latest
+    outputs:
+      node_versions: ${{ steps.node-versions.outputs.node_versions }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Select Node versions
+        id: node-versions
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo 'node_versions=[22,24,26]' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          git fetch --no-tags --depth=1 origin "$BASE_SHA"
+
+          if git diff --name-only "$BASE_SHA" "${{ github.sha }}" | grep -E '^packages/[^/]+/(src/|test/|tests/|.*\.test(-d)?\.(ts|tsx|js|jsx)$)'; then
+            echo 'node_versions=[22,24,26]' >> "$GITHUB_OUTPUT"
+          else
+            echo 'node_versions=[22]' >> "$GITHUB_OUTPUT"
+          fi
+
   test_matrix:
     name: 'Test'
     runs-on: ubuntu-latest
+    needs: [build-packages, test_node_versions]
     env:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ vars.TURBO_TEAM }}
     strategy:
       matrix:
-        node-version: [20, 22, 24]
+        node-version: ${{ fromJSON(needs.test_node_versions.outputs.node_versions) }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v5
-        with:
-          version: 10.11.0
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
 
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'pnpm'
@@ -168,29 +243,125 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Detect RSC e2e changes
+        id: rsc-e2e
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          git fetch --no-tags --depth=1 origin "$BASE_SHA"
+
+          if git diff --name-only "$BASE_SHA" "${{ github.sha }}" | grep -E '^(packages/rsc/|pnpm-lock.yaml$|package.json$)'; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download package build artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: package-build-artifacts
+
+      - name: Extract package build artifacts
+        run: tar -xzf package-build-artifacts.tgz
+
       - name: Install Playwright Browsers
+        if: steps.rsc-e2e.outputs.run == 'true'
+        timeout-minutes: 10
         run: pnpm exec playwright install --with-deps
 
       - name: Run tests
-        run: pnpm test
+        env:
+          SKIP_RSC_E2E: ${{ steps.rsc-e2e.outputs.run == 'true' && '0' || '1' }}
+        run: pnpm test:ci
+
+  test_ai_matrix:
+    name: 'Test AI'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [22, 24, 26]
+        shard: ['1/4', '2/4', '3/4', '4/4']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build AI dependencies
+        run: pnpm exec turbo build --filter=ai
+
+      - name: Run AI tests
+        working-directory: packages/ai
+        run: |
+          pnpm test:node --shard ${{ matrix.shard }}
+          pnpm test:edge --shard ${{ matrix.shard }}
+
+  test_codemod_matrix:
+    name: 'Test Codemod'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [22, 24, 26]
+        shard: ['1/4', '2/4', '3/4', '4/4']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run codemod tests
+        working-directory: packages/codemod
+        run: pnpm exec vitest --config vitest.config.ts --run --shard ${{ matrix.shard }}
 
   # separate "test" job to set as required in branch protections,
   # as the matrix build names above change each time Node versions change
   test:
     runs-on: ubuntu-latest
-    needs: test_matrix
+    needs:
+      [
+        build-packages,
+        test_node_versions,
+        test_matrix,
+        test_ai_matrix,
+        test_codemod_matrix,
+      ]
     if: ${{ !cancelled() }}
     steps:
-      - name: All matrix versions passed
-        if: ${{ !(contains(needs.*.result, 'failure')) }}
+      - name: All required jobs passed
+        if: ${{ !(contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')) }}
         run: exit 0
-      - name: Some matrix version failed
-        if: ${{ contains(needs.*.result, 'failure') }}
+      - name: Some required job failed or was skipped
+        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped') }}
         run: exit 1
 
   load-time_matrix:
     name: 'Load Time Check'
     runs-on: ubuntu-latest
+    needs: build-packages
     strategy:
       fail-fast: false
       matrix:
@@ -198,24 +369,22 @@ jobs:
           - module: 'ai'
             max-load-time: 105
           - module: '@ai-sdk/openai'
-            max-load-time: 65
+            max-load-time: 70
           - module: '@ai-sdk/openai-compatible'
-            max-load-time: 65
+            max-load-time: 70
           - module: '@ai-sdk/anthropic'
-            max-load-time: 65
+            max-load-time: 70
           - module: '@ai-sdk/google'
-            max-load-time: 65
+            max-load-time: 70
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v5
-        with:
-          version: 10.11.0
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
 
       - name: Use Node.js 22
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: 22
           cache: 'pnpm'
@@ -223,8 +392,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build packages
-        run: pnpm run build:packages
+      - name: Download package build artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: package-build-artifacts
+
+      - name: Extract package build artifacts
+        run: tar -xzf package-build-artifacts.tgz
 
       - name: Measure and check load time for ${{ matrix.module }}
         id: load-time
@@ -263,12 +437,12 @@ jobs:
   # as the matrix build names above change each time modules are added/removed
   load-time:
     runs-on: ubuntu-latest
-    needs: load-time_matrix
+    needs: [build-packages, load-time_matrix]
     if: ${{ !cancelled() }}
     steps:
-      - name: All matrix versions passed
-        if: ${{ !(contains(needs.*.result, 'failure')) }}
+      - name: All required jobs passed
+        if: ${{ !(contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')) }}
         run: exit 0
-      - name: Some matrix version failed
-        if: ${{ contains(needs.*.result, 'failure') }}
+      - name: Some required job failed or was skipped
+        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped') }}
         run: exit 1

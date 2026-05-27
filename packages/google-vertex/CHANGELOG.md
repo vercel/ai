@@ -1,5 +1,163 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-canary.95
+
+### Patch Changes
+
+- Updated dependencies [6c93e36]
+- Updated dependencies [f617ac2]
+  - @ai-sdk/provider-utils@5.0.0-canary.44
+  - @ai-sdk/anthropic@4.0.0-canary.60
+  - @ai-sdk/google@4.0.0-canary.73
+  - @ai-sdk/openai-compatible@3.0.0-canary.52
+
+## 5.0.0-canary.94
+
+### Patch Changes
+
+- Updated dependencies [9f1e1ba]
+  - @ai-sdk/openai-compatible@3.0.0-canary.51
+
+## 5.0.0-canary.93
+
+### Patch Changes
+
+- Updated dependencies [648705c]
+  - @ai-sdk/anthropic@4.0.0-canary.59
+
+## 5.0.0-canary.92
+
+### Patch Changes
+
+- Updated dependencies [acdbf84]
+  - @ai-sdk/anthropic@4.0.0-canary.58
+
+## 5.0.0-canary.91
+
+### Patch Changes
+
+- Updated dependencies [b71c0d7]
+  - @ai-sdk/google@4.0.0-canary.72
+
+## 5.0.0-canary.90
+
+### Patch Changes
+
+- Updated dependencies [045d2e8]
+  - @ai-sdk/google@4.0.0-canary.71
+
+## 5.0.0-canary.89
+
+### Patch Changes
+
+- Updated dependencies [aeea161]
+  - @ai-sdk/google@4.0.0-canary.70
+
+## 5.0.0-canary.88
+
+### Patch Changes
+
+- Updated dependencies [7f04802]
+  - @ai-sdk/google@4.0.0-canary.69
+
+## 5.0.0-canary.87
+
+### Patch Changes
+
+- 546cefe: feat(provider/google): add `gemini-3.5-flash`
+- Updated dependencies [a2609df]
+- Updated dependencies [546cefe]
+  - @ai-sdk/google@4.0.0-canary.68
+
+## 5.0.0-canary.86
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - @ai-sdk/anthropic@4.0.0-canary.57
+  - @ai-sdk/google@4.0.0-canary.67
+  - @ai-sdk/openai-compatible@3.0.0-canary.50
+  - @ai-sdk/provider-utils@5.0.0-canary.43
+  - @ai-sdk/provider@4.0.0-canary.17
+
+## 5.0.0-canary.85
+
+### Patch Changes
+
+- 42bdfa4: fix(google-vertex): propagate project-id set in provider instance creation
+- Updated dependencies [a6617c5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+  - @ai-sdk/anthropic@4.0.0-canary.56
+  - @ai-sdk/google@4.0.0-canary.66
+  - @ai-sdk/openai-compatible@3.0.0-canary.49
+
+## 5.0.0-canary.84
+
+### Patch Changes
+
+- Updated dependencies [4e825f3]
+  - @ai-sdk/google@4.0.0-canary.65
+
+## 5.0.0-canary.83
+
+### Patch Changes
+
+- Updated dependencies [41da50c]
+  - @ai-sdk/google@4.0.0-canary.64
+
+## 5.0.0-canary.82
+
+### Patch Changes
+
+- Updated dependencies [a464505]
+- Updated dependencies [28dfa06]
+- Updated dependencies [e93fa91]
+  - @ai-sdk/anthropic@4.0.0-canary.55
+  - @ai-sdk/provider-utils@5.0.0-canary.41
+  - @ai-sdk/google@4.0.0-canary.63
+  - @ai-sdk/openai-compatible@3.0.0-canary.48
+
+## 5.0.0-canary.81
+
+### Patch Changes
+
+- Updated dependencies [a7de9c9]
+  - @ai-sdk/provider-utils@5.0.0-canary.40
+  - @ai-sdk/anthropic@4.0.0-canary.54
+  - @ai-sdk/google@4.0.0-canary.62
+  - @ai-sdk/openai-compatible@3.0.0-canary.47
+
+## 5.0.0-canary.80
+
+### Patch Changes
+
+- Updated dependencies [105f95b]
+  - @ai-sdk/provider-utils@5.0.0-canary.39
+  - @ai-sdk/anthropic@4.0.0-canary.53
+  - @ai-sdk/google@4.0.0-canary.61
+  - @ai-sdk/openai-compatible@3.0.0-canary.46
+
+## 5.0.0-canary.79
+
+### Patch Changes
+
+- Updated dependencies [8018480]
+- Updated dependencies [6a26901]
+  - @ai-sdk/anthropic@4.0.0-canary.52
+  - @ai-sdk/google@4.0.0-canary.60
+
+## 5.0.0-canary.78
+
+### Patch Changes
+
+- Updated dependencies [ca446f8]
+- Updated dependencies [db394ab]
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+  - @ai-sdk/google@4.0.0-canary.59
+  - @ai-sdk/anthropic@4.0.0-canary.51
+  - @ai-sdk/openai-compatible@3.0.0-canary.45
+
 ## 5.0.0-canary.77
 
 ### Patch Changes
@@ -1379,13 +1537,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - 32a6c13: Add Google Maps grounding tool support for location-aware Gemini responses
@@ -1417,6 +1575,7 @@
   Added support for combining tool calling with structured outputs in both Amazon Bedrock and Google Vertex Anthropic providers. This allows developers to use tools (like weather lookups, web search, etc.) alongside structured JSON output schemas, enabling multi-step agentic workflows with structured final outputs.
 
   **Amazon Bedrock Changes:**
+
   - Removed incorrect warning that prevented using tools with JSON response format
   - Updated tool choice to use `{ type: 'required' }` instead of specific tool selection when using structured outputs
   - Added `isJsonResponseFromTool` parameter to finish reason mapping
@@ -1425,6 +1584,7 @@
   - Added example files demonstrating the feature
 
   **Google Vertex Anthropic Changes:**
+
   - Inherits support from underlying Anthropic provider implementation
   - Added test coverage to verify the feature works correctly
   - Added example files demonstrating the feature
@@ -1867,13 +2027,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - Updated dependencies [8d9e8ad]
@@ -1960,6 +2120,7 @@
   Added support for combining tool calling with structured outputs in both Amazon Bedrock and Google Vertex Anthropic providers. This allows developers to use tools (like weather lookups, web search, etc.) alongside structured JSON output schemas, enabling multi-step agentic workflows with structured final outputs.
 
   **Amazon Bedrock Changes:**
+
   - Removed incorrect warning that prevented using tools with JSON response format
   - Updated tool choice to use `{ type: 'required' }` instead of specific tool selection when using structured outputs
   - Added `isJsonResponseFromTool` parameter to finish reason mapping
@@ -1968,6 +2129,7 @@
   - Added example files demonstrating the feature
 
   **Google Vertex Anthropic Changes:**
+
   - Inherits support from underlying Anthropic provider implementation
   - Added test coverage to verify the feature works correctly
   - Added example files demonstrating the feature
@@ -2826,7 +2988,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -2839,7 +3001,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -3229,7 +3391,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -3242,7 +3404,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,

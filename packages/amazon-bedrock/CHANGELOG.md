@@ -1,5 +1,118 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.0-canary.70
+
+### Patch Changes
+
+- Updated dependencies [6c93e36]
+- Updated dependencies [f617ac2]
+  - @ai-sdk/provider-utils@5.0.0-canary.44
+  - @ai-sdk/anthropic@4.0.0-canary.60
+  - @ai-sdk/openai@4.0.0-canary.64
+
+## 5.0.0-canary.69
+
+### Patch Changes
+
+- Updated dependencies [648705c]
+  - @ai-sdk/anthropic@4.0.0-canary.59
+
+## 5.0.0-canary.68
+
+### Patch Changes
+
+- Updated dependencies [acdbf84]
+  - @ai-sdk/anthropic@4.0.0-canary.58
+
+## 5.0.0-canary.67
+
+### Patch Changes
+
+- Updated dependencies [17b5597]
+  - @ai-sdk/openai@4.0.0-canary.63
+
+## 5.0.0-canary.66
+
+### Patch Changes
+
+- Updated dependencies [bf837fe]
+  - @ai-sdk/openai@4.0.0-canary.62
+
+## 5.0.0-canary.65
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - @ai-sdk/anthropic@4.0.0-canary.57
+  - @ai-sdk/openai@4.0.0-canary.61
+  - @ai-sdk/provider-utils@5.0.0-canary.43
+  - @ai-sdk/provider@4.0.0-canary.17
+
+## 5.0.0-canary.64
+
+### Patch Changes
+
+- b567a6c: dependency updates
+- Updated dependencies [a6617c5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+  - @ai-sdk/anthropic@4.0.0-canary.56
+  - @ai-sdk/openai@4.0.0-canary.60
+
+## 5.0.0-canary.63
+
+### Patch Changes
+
+- cd27bca: added bedrock mantle provider
+- b555b23: fix(amazon-bedrock): disable native structured output for claude-opus-4-7
+
+## 5.0.0-canary.62
+
+### Patch Changes
+
+- Updated dependencies [a464505]
+- Updated dependencies [28dfa06]
+- Updated dependencies [e93fa91]
+  - @ai-sdk/anthropic@4.0.0-canary.55
+  - @ai-sdk/provider-utils@5.0.0-canary.41
+
+## 5.0.0-canary.61
+
+### Patch Changes
+
+- Updated dependencies [a7de9c9]
+  - @ai-sdk/provider-utils@5.0.0-canary.40
+  - @ai-sdk/anthropic@4.0.0-canary.54
+
+## 5.0.0-canary.60
+
+### Patch Changes
+
+- Updated dependencies [105f95b]
+  - @ai-sdk/provider-utils@5.0.0-canary.39
+  - @ai-sdk/anthropic@4.0.0-canary.53
+
+## 5.0.0-canary.59
+
+### Patch Changes
+
+- Updated dependencies [8018480]
+  - @ai-sdk/anthropic@4.0.0-canary.52
+
+## 5.0.0-canary.58
+
+### Patch Changes
+
+- bcbaae6: fix(bedrock): skip passing unsigned reasoning content
+
+## 5.0.0-canary.57
+
+### Patch Changes
+
+- Updated dependencies [ca446f8]
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+  - @ai-sdk/anthropic@4.0.0-canary.51
+
 ## 5.0.0-canary.56
 
 ### Patch Changes
@@ -1087,6 +1200,7 @@
 - 9ab6ebe: feat(provider/amazon-bedrock): expose stop_sequence in provider metadata
 
   The Bedrock provider now exposes the specific stop sequence that triggered generation to halt via `providerMetadata.bedrock.stopSequence`. This is implemented by:
+
   - Requesting `/stop_sequence` via `additionalModelResponseFieldPaths` in the API call
   - Parsing the value from `additionalModelResponseFields.stop_sequence` in both generate and stream responses
   - Exposing it as `stopSequence` in the provider metadata (returns `null` when no stop sequence was matched)
@@ -1097,13 +1211,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - 2625a04: feat(openai); update spec for mcp approval
@@ -1134,6 +1248,7 @@
   Added support for combining tool calling with structured outputs in both Amazon Bedrock and Google Vertex Anthropic providers. This allows developers to use tools (like weather lookups, web search, etc.) alongside structured JSON output schemas, enabling multi-step agentic workflows with structured final outputs.
 
   **Amazon Bedrock Changes:**
+
   - Removed incorrect warning that prevented using tools with JSON response format
   - Updated tool choice to use `{ type: 'required' }` instead of specific tool selection when using structured outputs
   - Added `isJsonResponseFromTool` parameter to finish reason mapping
@@ -1142,6 +1257,7 @@
   - Added example files demonstrating the feature
 
   **Google Vertex Anthropic Changes:**
+
   - Inherits support from underlying Anthropic provider implementation
   - Added test coverage to verify the feature works correctly
   - Added example files demonstrating the feature
@@ -1232,6 +1348,7 @@
 - 9ab6ebe: feat(provider/amazon-bedrock): expose stop_sequence in provider metadata
 
   The Bedrock provider now exposes the specific stop sequence that triggered generation to halt via `providerMetadata.bedrock.stopSequence`. This is implemented by:
+
   - Requesting `/stop_sequence` via `additionalModelResponseFieldPaths` in the API call
   - Parsing the value from `additionalModelResponseFields.stop_sequence` in both generate and stream responses
   - Exposing it as `stopSequence` in the provider metadata (returns `null` when no stop sequence was matched)
@@ -1492,13 +1609,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - Updated dependencies [8d9e8ad]
@@ -1568,6 +1685,7 @@
   Added support for combining tool calling with structured outputs in both Amazon Bedrock and Google Vertex Anthropic providers. This allows developers to use tools (like weather lookups, web search, etc.) alongside structured JSON output schemas, enabling multi-step agentic workflows with structured final outputs.
 
   **Amazon Bedrock Changes:**
+
   - Removed incorrect warning that prevented using tools with JSON response format
   - Updated tool choice to use `{ type: 'required' }` instead of specific tool selection when using structured outputs
   - Added `isJsonResponseFromTool` parameter to finish reason mapping
@@ -1576,6 +1694,7 @@
   - Added example files demonstrating the feature
 
   **Google Vertex Anthropic Changes:**
+
   - Inherits support from underlying Anthropic provider implementation
   - Added test coverage to verify the feature works correctly
   - Added example files demonstrating the feature

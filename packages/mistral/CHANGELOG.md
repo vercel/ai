@@ -1,5 +1,64 @@
 # @ai-sdk/mistral
 
+## 4.0.0-canary.50
+
+### Patch Changes
+
+- Updated dependencies [6c93e36]
+- Updated dependencies [f617ac2]
+  - @ai-sdk/provider-utils@5.0.0-canary.44
+
+## 4.0.0-canary.49
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - @ai-sdk/provider-utils@5.0.0-canary.43
+  - @ai-sdk/provider@4.0.0-canary.17
+
+## 4.0.0-canary.48
+
+### Patch Changes
+
+- Updated dependencies [a6617c5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+
+## 4.0.0-canary.47
+
+### Patch Changes
+
+- Updated dependencies [28dfa06]
+- Updated dependencies [e93fa91]
+  - @ai-sdk/provider-utils@5.0.0-canary.41
+
+## 4.0.0-canary.46
+
+### Patch Changes
+
+- Updated dependencies [a7de9c9]
+  - @ai-sdk/provider-utils@5.0.0-canary.40
+
+## 4.0.0-canary.45
+
+### Patch Changes
+
+- Updated dependencies [105f95b]
+  - @ai-sdk/provider-utils@5.0.0-canary.39
+
+## 4.0.0-canary.44
+
+### Patch Changes
+
+- 7acf358: fix(mistral): forward `stopSequences` as Mistral's native `stop` parameter
+
+## 4.0.0-canary.43
+
+### Patch Changes
+
+- Updated dependencies [ca446f8]
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+
 ## 4.0.0-canary.42
 
 ### Patch Changes
@@ -546,13 +605,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - 2625a04: feat(openai); update spec for mcp approval
@@ -767,13 +826,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - Updated dependencies [8d9e8ad]
@@ -1123,12 +1182,12 @@
 - 3429644: feat(provider/mistral): `MistralLanguageModelOptions` type
 
   ```ts
-  import { mistral, type MistralLanguageModelOptions } from '@ai-sdk/mistral';
-  import { generateText } from 'ai';
+  import { mistral, type MistralLanguageModelOptions } from "@ai-sdk/mistral";
+  import { generateText } from "ai";
 
   await generateText({
-    model: mistral('open-mistral-7b'),
-    prompt: 'Invent a new holiday and describe its traditions.',
+    model: mistral("open-mistral-7b"),
+    prompt: "Invent a new holiday and describe its traditions.",
     providerOptions: {
       mistral: {
         safePrompt: true,

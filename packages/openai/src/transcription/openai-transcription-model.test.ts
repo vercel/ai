@@ -51,6 +51,21 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should default whisper-1 to verbose_json response format', async () => {
+    prepareJsonFixtureResponse('openai-transcription');
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    expect(await server.calls[0].requestBodyMultipart).toMatchObject({
+      model: 'whisper-1',
+      response_format: 'verbose_json',
+    });
+    expect(result.durationInSeconds).toBe(36.709999084472656);
+  });
+
   it('should pass headers', async () => {
     prepareJsonFixtureResponse('openai-transcription');
 

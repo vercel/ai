@@ -2,9 +2,11 @@ import {
   createJsonResponseHandler,
   delay,
   getFromApi,
+  isAbortError,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { googleFailedResponseHandler } from '../google-error';
+import { cancelGoogleInteraction } from './cancel-google-interaction';
 import {
   googleInteractionsResponseSchema,
   type GoogleInteractionsResponse,
@@ -73,38 +75,55 @@ export async function pollGoogleInteractionUntilTerminal({
   let nextDelayMs = initialDelayMs;
   const url = `${baseURL}/interactions/${encodeURIComponent(interactionId)}`;
 
-  while (true) {
-    if (abortSignal?.aborted) {
-      throw new DOMException('Polling was aborted', 'AbortError');
+  /*
+   * When the caller aborts, fire a best-effort `POST /interactions/{id}/cancel`
+   * so the run stops billing on Google's side. Wrap every exit path that's
+   * triggered by an abort -- the explicit `abortSignal.aborted` check, the
+   * AbortError thrown by `delay()`, and any AbortError thrown by `getFromApi`.
+   */
+  const cancelOnServer = () =>
+    cancelGoogleInteraction({ baseURL, interactionId, headers, fetch });
+
+  try {
+    while (true) {
+      if (abortSignal?.aborted) {
+        await cancelOnServer();
+        throw new DOMException('Polling was aborted', 'AbortError');
+      }
+
+      if (Date.now() - startedAt > timeoutMs) {
+        throw new Error(
+          `google.interactions: timed out polling interaction ${interactionId} after ${timeoutMs}ms.`,
+        );
+      }
+
+      await delay(nextDelayMs, { abortSignal });
+
+      const {
+        value: response,
+        rawValue: rawResponse,
+        responseHeaders,
+      } = await getFromApi({
+        url,
+        headers,
+        failedResponseHandler: googleFailedResponseHandler,
+        successfulResponseHandler: createJsonResponseHandler(
+          googleInteractionsResponseSchema,
+        ),
+        abortSignal,
+        fetch,
+      });
+
+      if (isTerminalStatus(response.status)) {
+        return { response, rawResponse, responseHeaders };
+      }
+
+      nextDelayMs = Math.min(nextDelayMs * 2, maxDelayMs);
     }
-
-    if (Date.now() - startedAt > timeoutMs) {
-      throw new Error(
-        `google.interactions: timed out polling interaction ${interactionId} after ${timeoutMs}ms.`,
-      );
+  } catch (error) {
+    if (isAbortError(error)) {
+      await cancelOnServer();
     }
-
-    await delay(nextDelayMs, { abortSignal });
-
-    const {
-      value: response,
-      rawValue: rawResponse,
-      responseHeaders,
-    } = await getFromApi({
-      url,
-      headers,
-      failedResponseHandler: googleFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(
-        googleInteractionsResponseSchema,
-      ),
-      abortSignal,
-      fetch,
-    });
-
-    if (isTerminalStatus(response.status)) {
-      return { response, rawResponse, responseHeaders };
-    }
-
-    nextDelayMs = Math.min(nextDelayMs * 2, maxDelayMs);
+    throw error;
   }
 }

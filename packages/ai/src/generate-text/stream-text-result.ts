@@ -26,7 +26,7 @@ import type {
 } from './output-utils';
 import type { ReasoningFileOutput, ReasoningOutput } from './reasoning-output';
 import type { ResponseMessage } from './response-message';
-import type { StepResult } from './step-result';
+import type { StepResult, StepResultPerformance } from './step-result';
 import type { ToolApprovalRequestOutput } from './tool-approval-request-output';
 import type { ToolApprovalResponseOutput } from './tool-approval-response-output';
 import type {
@@ -337,7 +337,7 @@ export interface StreamTextResult<
    * Consumes the stream without processing the parts.
    * This is useful to force the stream to finish.
    * It effectively removes the backpressure and allows the stream to finish,
-   * triggering the `onFinish` callback and the promise resolution.
+   * triggering the `onEnd` callback and the promise resolution.
    *
    * If an error occurs, it is passed to the optional `onError` callback.
    */
@@ -502,6 +502,7 @@ export type TextStreamFinishStepPart = {
   type: 'finish-step';
   response: Omit<LanguageModelResponseMetadata, 'messages' | 'body'>;
   usage: LanguageModelUsage;
+  performance: StepResultPerformance;
   finishReason: FinishReason;
   rawFinishReason: string | undefined;
   providerMetadata: ProviderMetadata | undefined;

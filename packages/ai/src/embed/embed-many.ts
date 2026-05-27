@@ -57,7 +57,7 @@ export async function embedMany({
   experimental_telemetry,
   telemetry = experimental_telemetry,
   experimental_onStart: onStart,
-  experimental_onFinish: onFinish,
+  experimental_onEnd: onEnd,
   _internal: { generateCallId = originalGenerateCallId } = {},
 }: {
   /**
@@ -124,7 +124,7 @@ export async function embedMany({
    * Callback that is called when the embedMany operation completes,
    * after all embedding model calls return.
    */
-  experimental_onFinish?: Callback<EmbedEndEvent>;
+  experimental_onEnd?: Callback<EmbedEndEvent>;
 
   /**
    * Internal. For test use only. May change without notice.
@@ -209,13 +209,13 @@ export async function embedMany({
               embeddings,
               usage,
             },
-            callbacks: [telemetryDispatcher.onEmbedFinish],
+            callbacks: [telemetryDispatcher.onEmbedEnd],
           });
 
           return {
             embeddings,
             usage,
-            warnings: modelResponse.warnings,
+            warnings: modelResponse.warnings ?? [],
             providerMetadata: modelResponse.providerMetadata,
             response: modelResponse.response,
           };
@@ -240,7 +240,7 @@ export async function embedMany({
           providerMetadata,
           response: [response],
         },
-        callbacks: [onFinish, telemetryDispatcher.onFinish],
+        callbacks: [onEnd, telemetryDispatcher.onEnd],
       });
 
       return new DefaultEmbedManyResult({
@@ -311,13 +311,13 @@ export async function embedMany({
                 embeddings: chunkEmbeddings,
                 usage,
               },
-              callbacks: [telemetryDispatcher.onEmbedFinish],
+              callbacks: [telemetryDispatcher.onEmbedEnd],
             });
 
             return {
               embeddings: chunkEmbeddings,
               usage,
-              warnings: modelResponse.warnings,
+              warnings: modelResponse.warnings ?? [],
               providerMetadata: modelResponse.providerMetadata,
               response: modelResponse.response,
             };
@@ -366,7 +366,7 @@ export async function embedMany({
         providerMetadata,
         response: responses,
       },
-      callbacks: [onFinish, telemetryDispatcher.onFinish],
+      callbacks: [onEnd, telemetryDispatcher.onEnd],
     });
 
     return new DefaultEmbedManyResult({

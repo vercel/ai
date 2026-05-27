@@ -248,6 +248,19 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
   },
   {
     "finishReason": "stop",
+    "performance": {
+      "effectiveOutputTokensPerSecond": 0,
+      "effectiveTotalTokensPerSecond": 0,
+      "inputTokensPerSecond": 0,
+      "outputTokensPerSecond": 0,
+      "responseTimeMs": 0,
+      "stepTimeMs": 60,
+      "timeBetweenOutputChunksMs": undefined,
+      "timeToFirstOutputMs": 0,
+      "toolExecutionMs": {
+        "call-1": 60,
+      },
+    },
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
     "response": {
@@ -325,6 +338,17 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
   },
   {
     "finishReason": "stop",
+    "performance": {
+      "effectiveOutputTokensPerSecond": 0,
+      "effectiveTotalTokensPerSecond": 0,
+      "inputTokensPerSecond": 0,
+      "outputTokensPerSecond": 0,
+      "responseTimeMs": 0,
+      "stepTimeMs": 0,
+      "timeBetweenOutputChunksMs": undefined,
+      "timeToFirstOutputMs": 0,
+      "toolExecutionMs": {},
+    },
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
     "response": {
@@ -408,6 +432,19 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
   },
   {
     "finishReason": "stop",
+    "performance": {
+      "effectiveOutputTokensPerSecond": 0,
+      "effectiveTotalTokensPerSecond": 0,
+      "inputTokensPerSecond": 0,
+      "outputTokensPerSecond": 0,
+      "responseTimeMs": 0,
+      "stepTimeMs": 0,
+      "timeBetweenOutputChunksMs": undefined,
+      "timeToFirstOutputMs": 0,
+      "toolExecutionMs": {
+        "call-1": 0,
+      },
+    },
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
     "response": {
@@ -761,6 +798,17 @@ exports[`streamText > tools with custom schema > should send tool calls 1`] = `
   },
   {
     "finishReason": "stop",
+    "performance": {
+      "effectiveOutputTokensPerSecond": 25,
+      "effectiveTotalTokensPerSecond": 32.5,
+      "inputTokensPerSecond": 7.5,
+      "outputTokensPerSecond": 0,
+      "responseTimeMs": 400,
+      "stepTimeMs": 500,
+      "timeBetweenOutputChunksMs": undefined,
+      "timeToFirstOutputMs": 400,
+      "toolExecutionMs": {},
+    },
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
     "response": {

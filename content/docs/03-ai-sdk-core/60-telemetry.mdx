@@ -289,7 +289,7 @@ class MyIntegration implements Telemetry {
   async onToolExecutionEnd(event) {
     if (event.toolOutput.type === 'tool-result') {
       console.log(
-        `Tool "${event.toolCall.toolName}" took ${event.durationMs}ms`,
+        `Tool "${event.toolCall.toolName}" took ${event.toolExecutionMs}ms`,
       );
     } else {
       console.error(
@@ -299,8 +299,8 @@ class MyIntegration implements Telemetry {
     }
   }
 
-  async onFinish(event) {
-    console.log('Done. Total tokens:', event.totalUsage.totalTokens);
+  async onEnd(event) {
+    console.log('Done. Total tokens:', event.usage.totalTokens);
   }
 }
 
@@ -353,7 +353,17 @@ export function myIntegration(): Telemetry {
       description: 'Called when a step (LLM call) completes.',
     },
     {
-      name: 'onFinish',
+      name: 'onEmbedEnd',
+      type: '(event: EmbeddingModelCallEndEvent) => void | PromiseLike<void>',
+      description: 'Called when an individual embedding model call completes.',
+    },
+    {
+      name: 'onRerankEnd',
+      type: '(event: RerankingModelCallEndEvent) => void | PromiseLike<void>',
+      description: 'Called when an individual reranking model call completes.',
+    },
+    {
+      name: 'onEnd',
       type: '(event: GenerateTextEndEvent) => void | PromiseLike<void>',
       description:
         'Called when the entire generation completes (all steps finished).',

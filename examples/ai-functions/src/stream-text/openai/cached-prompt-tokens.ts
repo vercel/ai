@@ -149,8 +149,8 @@ function createCompletion() {
         maxCompletionTokens: 100,
       } satisfies OpenAILanguageModelChatOptions,
     },
-    onFinish: ({ usage, providerMetadata }) => {
-      console.log(`metadata:`, providerMetadata);
+    onFinish: ({ finalStep }) => {
+      console.log(`metadata:`, finalStep.providerMetadata);
     },
   });
 }

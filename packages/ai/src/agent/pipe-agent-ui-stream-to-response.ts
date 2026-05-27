@@ -1,7 +1,7 @@
 import type {
   Arrayable,
   Context,
-  Sandbox,
+  Experimental_Sandbox as Sandbox,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import type { ServerResponse } from 'node:http';
@@ -24,7 +24,7 @@ import { createAgentUIStream } from './create-agent-ui-stream';
  * @param uiMessages - The input UI messages.
  * @param abortSignal - Abort signal. Optional.
  * @param timeout - Timeout in milliseconds. Optional.
- * @param sandbox - The sandbox environment that is passed through to tool execution. Optional.
+ * @param experimental_sandbox - The sandbox environment that is passed through to tool execution. Optional.
  * @param options - The options for the agent. Optional.
  * @param experimental_transform - Stream transformations. Optional.
  * @param onStepFinish - Callback that is called when each step is finished. Optional.
@@ -52,7 +52,7 @@ export async function pipeAgentUIStreamToResponse<
   uiMessages: unknown[];
   abortSignal?: AbortSignal;
   timeout?: TimeoutConfiguration<TOOLS>;
-  sandbox?: Sandbox;
+  experimental_sandbox?: Sandbox;
   options?: CALL_OPTIONS;
   experimental_transform?: Arrayable<StreamTextTransform<TOOLS>>;
   onStepFinish?: GenerateTextOnStepFinishCallback<TOOLS>;

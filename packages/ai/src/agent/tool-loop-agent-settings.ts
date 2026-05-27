@@ -10,7 +10,7 @@ import type {
 } from '@ai-sdk/provider-utils';
 import type { ActiveTools } from '../generate-text/active-tools';
 import type {
-  GenerateTextOnFinishCallback,
+  GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
@@ -58,6 +58,16 @@ export type ToolLoopAgentSettings<
      * It can be a string, or, if you need to pass additional provider options (e.g. for caching), a `SystemModelMessage`.
      */
     instructions?: Instructions;
+
+    /**
+     * Whether system messages are allowed in the `prompt` or `messages` fields.
+     *
+     * When disabled, system messages must be provided through the `instructions`
+     * option.
+     *
+     * @default false
+     */
+    allowSystemInMessages?: boolean;
 
     /**
      * The language model to use.
@@ -170,7 +180,14 @@ export type ToolLoopAgentSettings<
     /**
      * Callback that is called when all steps are finished and the response is complete.
      */
-    onFinish?: GenerateTextOnFinishCallback<
+    onEnd?: GenerateTextOnEndCallback<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>;
+
+    /**
+     * Callback that is called when all steps are finished and the response is complete.
+     *
+     * @deprecated Use `onEnd` instead.
+     */
+    onFinish?: GenerateTextOnEndCallback<
       NoInfer<TOOLS>,
       NoInfer<RUNTIME_CONTEXT>
     >;
@@ -255,6 +272,7 @@ export type ToolLoopAgentSettings<
           | 'seed'
           | 'headers'
           | 'instructions'
+          | 'allowSystemInMessages'
           | 'stopWhen'
           | 'telemetry'
           | 'experimental_telemetry'
@@ -287,6 +305,7 @@ export type ToolLoopAgentSettings<
         | 'seed'
         | 'headers'
         | 'instructions'
+        | 'allowSystemInMessages'
         | 'stopWhen'
         | 'telemetry'
         | 'experimental_telemetry'

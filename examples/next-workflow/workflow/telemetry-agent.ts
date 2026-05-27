@@ -18,6 +18,7 @@ import {
 } from 'ai';
 import { getWritable } from 'workflow';
 import { z } from 'zod';
+import { devToolsTelemetry } from '../lib/devtools-bridge';
 import {
   recordTelemetryEvent,
   type TelemetryEventSource,
@@ -79,11 +80,10 @@ function createTelemetryIntegration(telemetryRunId: string) {
     onStepStart: record('onStepStart'),
     onLanguageModelCallStart: record('onLanguageModelCallStart'),
     onLanguageModelCallEnd: record('onLanguageModelCallEnd'),
-    onChunk: record('onChunk'),
     onToolExecutionStart: record('onToolExecutionStart'),
     onToolExecutionEnd: record('onToolExecutionEnd'),
     onStepFinish: record('onStepFinish'),
-    onFinish: record('onFinish'),
+    onEnd: record('onEnd'),
     onError: async error => {
       await recordTelemetryEvent({
         telemetryRunId,
@@ -242,7 +242,10 @@ function createTelemetryOptions({
         requestId: true,
       },
     },
-    integrations: createTelemetryIntegration(telemetryRunId),
+    integrations: [
+      createTelemetryIntegration(telemetryRunId),
+      devToolsTelemetry,
+    ],
   };
 }
 

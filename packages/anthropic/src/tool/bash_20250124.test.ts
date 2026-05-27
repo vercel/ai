@@ -14,9 +14,9 @@ describe('bash_20250124 tool', () => {
         messages: [],
         abortSignal: abortController.signal,
         context: {},
-        sandbox: {
+        experimental_sandbox: {
           description: 'test sandbox',
-          executeCommand: async ({ abortSignal }) => {
+          run: async ({ abortSignal }) => {
             receivedAbortSignal = abortSignal;
 
             return {
@@ -25,6 +25,18 @@ describe('bash_20250124 tool', () => {
               stderr: '',
             };
           },
+          readFile: async () => null,
+          readBinaryFile: async () => null,
+          readTextFile: async () => null,
+          writeFile: async () => {},
+          writeBinaryFile: async () => {},
+          writeTextFile: async () => {},
+          spawn: async () => ({
+            stdout: new ReadableStream<Uint8Array>({ start: c => c.close() }),
+            stderr: new ReadableStream<Uint8Array>({ start: c => c.close() }),
+            wait: async () => ({ exitCode: 0 }),
+            kill: async () => {},
+          }),
         },
       },
     );
