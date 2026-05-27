@@ -5,6 +5,33 @@ import { print } from '../../lib/print';
 import { run } from '../../lib/run';
 import { subagent2 } from '../../lib/subagent2';
 
+const researcherAgent = new ToolLoopAgent({
+  // optional instructions for the subagent
+  instructions: 'You are a helpful news researcher.',
+
+  // subagents have structured inputs (the invoking agent generates the input tool call)
+  callOptionsSchema: z.object({
+    topic: z.string().describe('The topic to research'),
+  }),
+
+  // Optional. By default, subagents return text, but you can also return a structured output
+  output: Output.array({
+    element: z.object({
+      title: z.string(),
+      description: z.string(),
+      url: z.string(),
+    }),
+  }),
+
+  // subagents can have their own model
+  model: openai('gpt-5-mini'),
+
+  // subagents have tools
+  tools: {
+    websearch: openai.tools.webSearch(),
+  },
+});
+
 const mainAgent = new ToolLoopAgent({
   model: openai('gpt-5-mini'),
   instructions: 'You are a helpful assistant.',
@@ -16,32 +43,7 @@ const mainAgent = new ToolLoopAgent({
       description:
         'A helpful researcher that can research topics and questions in depth.',
 
-      agent: new ToolLoopAgent({
-        // optional instructions for the subagent
-        instructions: 'You are a helpful news researcher.',
-
-        // subagents have structured inputs (the invoking agent generates the input tool call)
-        callOptionsSchema: z.object({
-          topic: z.string().describe('The topic to research'),
-        }),
-
-        // Optional. By default, subagents return text, but you can also return a structured output
-        output: Output.array({
-          element: z.object({
-            title: z.string(),
-            description: z.string(),
-            url: z.string(),
-          }),
-        }),
-
-        // subagents can have their own model
-        model: openai('gpt-5-mini'),
-
-        // subagents have tools
-        tools: {
-          websearch: openai.tools.webSearch(),
-        },
-      }),
+      agent: researcherAgent,
 
       // the tool input and message history are mapped to the subagent's prompt
       prompt: ({ topic }, { messages }) => [
