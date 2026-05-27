@@ -31,7 +31,7 @@ export function subagent<
   toolsContext?: InferToolSetContext<TOOLS>;
   inputSchema: FlexibleSchema<INPUT>;
   output?: OUTPUT;
-  instructions: string | ((options: INPUT) => string);
+  instructions?: string | ((options: INPUT) => string);
   prompt:
     | string
     | Array<ModelMessage>
