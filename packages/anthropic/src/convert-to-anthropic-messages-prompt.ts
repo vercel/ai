@@ -157,21 +157,21 @@ export async function convertToAnthropicMessagesPrompt({
 
     switch (type) {
       case 'system': {
-        if (system != null) {
-          throw new UnsupportedFunctionalityError({
-            functionality:
-              'Multiple system messages that are separated by user/assistant messages',
-          });
-        }
-
-        system = block.messages.map(({ content, providerOptions }) => ({
-          type: 'text',
+        const content = block.messages.map(({ content, providerOptions }) => ({
+          type: 'text' as const,
           text: content,
           cache_control: validator.getCacheControl(providerOptions, {
             type: 'system message',
             canCache: true,
           }),
         }));
+
+        if (system == null) {
+          system = content;
+        } else {
+          messages.push({ role: 'system', content });
+          betas.add('mid-conversation-system-2026-04-07');
+        }
 
         break;
       }

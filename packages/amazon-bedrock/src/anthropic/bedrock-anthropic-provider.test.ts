@@ -80,6 +80,9 @@ describe('bedrock-anthropic-provider', () => {
     'anthropic.claude-opus-4-7',
     'us.anthropic.claude-opus-4-7',
     'eu.anthropic.claude-opus-4-7',
+    'anthropic.claude-opus-4-8',
+    'us.anthropic.claude-opus-4-8',
+    'eu.anthropic.claude-opus-4-8',
   ])(
     'should disable native structured output for %s (Bedrock rejects output_config.format)',
     modelId => {
