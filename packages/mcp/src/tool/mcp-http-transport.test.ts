@@ -282,14 +282,10 @@ describe('HttpMCPTransport', () => {
 
     await transport.start();
 
-    while (
-      !(server.calls.length > 0 && server.calls[0].requestMethod === 'GET')
-    ) {
-      await vi.advanceTimersByTimeAsync(0);
-    }
-
-    // Wait for the GET error handler to run
-    await vi.advanceTimersByTimeAsync(0);
+    await vi.waitFor(() => {
+      expect(server.calls[0]?.requestMethod).toBe('GET');
+      expect(captured).toBeInstanceOf(MCPClientError);
+    });
 
     expect(captured).toBeInstanceOf(MCPClientError);
     const error = captured as MCPClientError;
