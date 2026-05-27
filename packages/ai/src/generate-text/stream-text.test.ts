@@ -9174,23 +9174,7 @@ describe('streamText', () => {
   });
 
   describe('options.onChunk', () => {
-    let result: Array<
-      Extract<
-        TextStreamPart<any>,
-        {
-          type:
-            | 'text-delta'
-            | 'reasoning-delta'
-            | 'custom'
-            | 'source'
-            | 'tool-call'
-            | 'tool-input-start'
-            | 'tool-input-delta'
-            | 'tool-result'
-            | 'raw';
-        }
-      >
-    >;
+    let result: Array<TextStreamPart<any>>;
 
     beforeEach(async () => {
       result = [];
@@ -9241,6 +9225,10 @@ describe('streamText', () => {
           },
         },
         prompt: 'test-input',
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
+        },
         onChunk(event) {
           result.push(event.chunk);
         },
@@ -9253,10 +9241,29 @@ describe('streamText', () => {
       expect(result).toMatchInlineSnapshot(`
         [
           {
+            "type": "start",
+          },
+          {
+            "request": {
+              "body": undefined,
+              "messages": undefined,
+            },
+            "type": "start-step",
+            "warnings": [],
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
             "id": "1",
             "providerMetadata": undefined,
             "text": "Hello",
             "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
           },
           {
             "dynamic": false,
@@ -9272,9 +9279,17 @@ describe('streamText', () => {
           },
           {
             "id": "3",
+            "type": "reasoning-start",
+          },
+          {
+            "id": "3",
             "providerMetadata": undefined,
             "text": "Feeling clever",
             "type": "reasoning-delta",
+          },
+          {
+            "id": "3",
+            "type": "reasoning-end",
           },
           {
             "delta": "test",
@@ -9299,6 +9314,10 @@ describe('streamText', () => {
             "url": "https://example.com",
           },
           {
+            "id": "2",
+            "type": "tool-input-end",
+          },
+          {
             "input": {
               "value": "test",
             },
@@ -9315,9 +9334,17 @@ describe('streamText', () => {
           },
           {
             "id": "4",
+            "type": "text-start",
+          },
+          {
+            "id": "4",
             "providerMetadata": undefined,
             "text": " World",
             "type": "text-delta",
+          },
+          {
+            "id": "4",
+            "type": "text-end",
           },
           {
             "dynamic": false,
@@ -9334,6 +9361,72 @@ describe('streamText', () => {
             "toolName": "tool1",
             "type": "tool-result",
           },
+          {
+            "finishReason": "stop",
+            "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeBetweenOutputTokensMs": {
+                "avg": 0,
+                "max": 0,
+                "median": 0,
+                "min": 0,
+                "p10": 0,
+                "p90": 0,
+              },
+              "timeToFirstOutputTokenMs": 0,
+              "toolExecutionMs": {
+                "2": 0,
+              },
+            },
+            "providerMetadata": undefined,
+            "rawFinishReason": "stop",
+            "response": {
+              "headers": undefined,
+              "id": "id-0",
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+            },
+            "type": "finish-step",
+            "usage": {
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": 10,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "totalTokens": 13,
+            },
+          },
+          {
+            "finishReason": "stop",
+            "rawFinishReason": "stop",
+            "totalUsage": {
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": 10,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "totalTokens": 13,
+            },
+            "type": "finish",
+          },
         ]
       `);
     });
@@ -9344,6 +9437,10 @@ describe('streamText', () => {
       const resultObject = streamText({
         model: modelWithCustom,
         prompt: 'test-input',
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
+        },
         onChunk(event) {
           chunks.push(event.chunk);
         },
@@ -9351,21 +9448,101 @@ describe('streamText', () => {
 
       await resultObject.consumeStream();
 
-      expect(chunks).toStrictEqual([
-        {
-          id: '1',
-          providerMetadata: undefined,
-          text: 'Hello!',
-          type: 'text-delta',
-        },
-        {
-          kind: 'openai.compaction',
-          providerMetadata: {
-            openai: { itemId: 'cmp_123' },
+      expect(chunks).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "start",
           },
-          type: 'custom',
-        },
-      ]);
+          {
+            "request": {
+              "body": undefined,
+              "messages": undefined,
+            },
+            "type": "start-step",
+            "warnings": [],
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "Hello!",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "kind": "openai.compaction",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "cmp_123",
+              },
+            },
+            "type": "custom",
+          },
+          {
+            "finishReason": "stop",
+            "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeBetweenOutputTokensMs": undefined,
+              "timeToFirstOutputTokenMs": 0,
+              "toolExecutionMs": {},
+            },
+            "providerMetadata": undefined,
+            "rawFinishReason": "stop",
+            "response": {
+              "headers": undefined,
+              "id": "id-0",
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+            },
+            "type": "finish-step",
+            "usage": {
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "totalTokens": 13,
+            },
+          },
+          {
+            "finishReason": "stop",
+            "rawFinishReason": "stop",
+            "totalUsage": {
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "totalTokens": 13,
+            },
+            "type": "finish",
+          },
+        ]
+      `);
     });
   });
 
@@ -18362,23 +18539,7 @@ describe('streamText', () => {
       });
 
       it('it should send transformed chunks to onChunk', async () => {
-        const result: Array<
-          Extract<
-            TextStreamPart<any>,
-            {
-              type:
-                | 'text-delta'
-                | 'reasoning-delta'
-                | 'custom'
-                | 'source'
-                | 'tool-call'
-                | 'tool-input-start'
-                | 'tool-input-delta'
-                | 'tool-result'
-                | 'raw';
-            }
-          >
-        > = [];
+        const result: Array<TextStreamPart<any>> = [];
 
         const resultObject = streamText({
           model: createTestModel({
@@ -18415,6 +18576,10 @@ describe('streamText', () => {
             },
           },
           prompt: 'test-input',
+          _internal: {
+            generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-telemetry-call-id',
+          },
           onChunk(event) {
             result.push(event.chunk);
           },
@@ -18426,6 +18591,21 @@ describe('streamText', () => {
         expect(result).toMatchInlineSnapshot(`
           [
             {
+              "type": "start",
+            },
+            {
+              "request": {
+                "body": undefined,
+                "messages": undefined,
+              },
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
               "id": "1",
               "providerMetadata": undefined,
               "text": "HELLO",
@@ -18433,9 +18613,17 @@ describe('streamText', () => {
             },
             {
               "id": "2",
+              "type": "reasoning-start",
+            },
+            {
+              "id": "2",
               "providerMetadata": undefined,
               "text": "FEELING CLEVER",
               "type": "reasoning-delta",
+            },
+            {
+              "id": "2",
+              "type": "reasoning-end",
             },
             {
               "dynamic": false,
@@ -18460,6 +18648,10 @@ describe('streamText', () => {
               "type": "tool-input-delta",
             },
             {
+              "id": "call-1",
+              "type": "tool-input-end",
+            },
+            {
               "input": {
                 "value": "TEST",
               },
@@ -18477,6 +18669,10 @@ describe('streamText', () => {
               "type": "text-delta",
             },
             {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
               "dynamic": false,
               "input": {
                 "value": "TEST",
@@ -18485,6 +18681,72 @@ describe('streamText', () => {
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-result",
+            },
+            {
+              "finishReason": "stop",
+              "performance": {
+                "effectiveOutputTokensPerSecond": 0,
+                "effectiveTotalTokensPerSecond": 0,
+                "inputTokensPerSecond": 0,
+                "outputTokensPerSecond": 0,
+                "responseTimeMs": 0,
+                "stepTimeMs": 0,
+                "timeBetweenOutputTokensMs": {
+                  "avg": 0,
+                  "max": 0,
+                  "median": 0,
+                  "min": 0,
+                  "p10": 0,
+                  "p90": 0,
+                },
+                "timeToFirstOutputTokenMs": 0,
+                "toolExecutionMs": {
+                  "call-1": 0,
+                },
+              },
+              "providerMetadata": undefined,
+              "rawFinishReason": "stop",
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "finish-step",
+              "usage": {
+                "inputTokenDetails": {
+                  "cacheReadTokens": undefined,
+                  "cacheWriteTokens": undefined,
+                  "noCacheTokens": 3,
+                },
+                "inputTokens": 3,
+                "outputTokenDetails": {
+                  "reasoningTokens": undefined,
+                  "textTokens": 10,
+                },
+                "outputTokens": 10,
+                "raw": undefined,
+                "totalTokens": 13,
+              },
+            },
+            {
+              "finishReason": "stop",
+              "rawFinishReason": "stop",
+              "totalUsage": {
+                "inputTokenDetails": {
+                  "cacheReadTokens": undefined,
+                  "cacheWriteTokens": undefined,
+                  "noCacheTokens": 3,
+                },
+                "inputTokens": 3,
+                "outputTokenDetails": {
+                  "reasoningTokens": undefined,
+                  "textTokens": 10,
+                },
+                "outputTokens": 10,
+                "totalTokens": 13,
+              },
+              "type": "finish",
             },
           ]
         `);
@@ -20146,6 +20408,10 @@ describe('streamText', () => {
         include: {
           rawChunks: true,
         },
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
+        },
         onChunk({ chunk }) {
           onChunkCalls.push(chunk);
         },
@@ -20155,6 +20421,17 @@ describe('streamText', () => {
 
       expect(onChunkCalls).toMatchInlineSnapshot(`
         [
+          {
+            "type": "start",
+          },
+          {
+            "request": {
+              "body": undefined,
+              "messages": undefined,
+            },
+            "type": "start-step",
+            "warnings": [],
+          },
           {
             "rawValue": {
               "data": "start",
@@ -20193,9 +20470,74 @@ describe('streamText', () => {
           },
           {
             "id": "1",
+            "type": "text-start",
+          },
+          {
+            "id": "1",
             "providerMetadata": undefined,
             "text": "Hello, world!",
             "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeBetweenOutputTokensMs": undefined,
+              "timeToFirstOutputTokenMs": 0,
+              "toolExecutionMs": {},
+            },
+            "providerMetadata": undefined,
+            "rawFinishReason": "stop",
+            "response": {
+              "headers": undefined,
+              "id": "test-id",
+              "modelId": "test-model",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+            },
+            "type": "finish-step",
+            "usage": {
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "totalTokens": 13,
+            },
+          },
+          {
+            "finishReason": "stop",
+            "rawFinishReason": "stop",
+            "totalUsage": {
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "totalTokens": 13,
+            },
+            "type": "finish",
           },
         ]
       `);

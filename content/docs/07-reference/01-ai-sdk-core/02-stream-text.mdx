@@ -898,22 +898,23 @@ To see `streamText` in action, check out [these examples](#examples).
       type: '(event: OnChunkResult) => Promise<void> |void',
       isOptional: true,
       description:
-        'Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.',
+        'Callback that is called for each stream part. The stream processing will pause until the callback promise is resolved.',
       properties: [
         {
           type: 'OnChunkResult',
           parameters: [
             {
               name: 'chunk',
-              type: 'TextStreamPart',
-              description: 'The chunk of the stream.',
+              type: 'TextStreamPart<TOOLS>',
+              description:
+                'The stream part. This is the same union as `fullStream` and includes `start`, `start-step`, `text-start`, `text-delta`, `text-end`, `reasoning-start`, `reasoning-delta`, `reasoning-end`, `custom`, `source`, `file`, `reasoning-file`, `tool-call`, `tool-input-start`, `tool-input-delta`, `tool-input-end`, `tool-result`, `tool-error`, `tool-output-denied`, `tool-approval-request`, `tool-approval-response`, `finish-step`, `finish`, `abort`, `error`, and `raw`.',
               properties: [
                 {
                   type: 'TextStreamPart',
                   parameters: [
                     {
                       name: 'type',
-                      type: "'text'",
+                      type: "'text-delta'",
                       description:
                         'The type to identify the object as text delta.',
                     },
@@ -929,9 +930,9 @@ To see `streamText` in action, check out [these examples](#examples).
                   parameters: [
                     {
                       name: 'type',
-                      type: "'reasoning'",
+                      type: "'reasoning-delta'",
                       description:
-                        'The type to identify the object as reasoning.',
+                        'The type to identify the object as reasoning delta.',
                     },
                     {
                       name: 'text',
@@ -1012,12 +1013,12 @@ To see `streamText` in action, check out [these examples](#examples).
                   parameters: [
                     {
                       name: 'type',
-                      type: "'tool-call-streaming-start'",
+                      type: "'tool-input-start'",
                       description:
-                        'Indicates the start of a tool call streaming. Only available when streaming tool calls.',
+                        'Indicates the start of streamed tool input.',
                     },
                     {
-                      name: 'toolCallId',
+                      name: 'id',
                       type: 'string',
                       description: 'The id of the tool call.',
                     },
@@ -1034,12 +1035,12 @@ To see `streamText` in action, check out [these examples](#examples).
                   parameters: [
                     {
                       name: 'type',
-                      type: "'tool-call-delta'",
+                      type: "'tool-input-delta'",
                       description:
-                        'The type to identify the object as tool call delta. Only available when streaming tool calls.',
+                        'The type to identify the object as streamed tool input delta.',
                     },
                     {
-                      name: 'toolCallId',
+                      name: 'id',
                       type: 'string',
                       description: 'The id of the tool call.',
                     },
@@ -1050,9 +1051,9 @@ To see `streamText` in action, check out [these examples](#examples).
                         'The name of the tool, which typically would be the name of the function.',
                     },
                     {
-                      name: 'argsTextDelta',
+                      name: 'delta',
                       type: 'string',
-                      description: 'The text delta of the tool call arguments.',
+                      description: 'The text delta of the tool input.',
                     },
                   ],
                 },
