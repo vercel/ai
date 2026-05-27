@@ -1,0 +1,147 @@
+---
+title: QuickSilver Pro
+description: Use the QuickSilver Pro OpenAI-compatible API with the AI SDK.
+---
+
+# QuickSilver Pro Provider
+
+[QuickSilver Pro](https://quicksilverpro.io/?ref=VRC7K2M9) provides an OpenAI-compatible API for popular open-source models — DeepSeek V3, DeepSeek R1, and Qwen 3.5 35B A3B. New accounts receive a starter credit on email signup, so you can try the AI SDK integration without a credit card.
+
+## Setup
+
+The QuickSilver Pro provider is available via the `@ai-sdk/openai-compatible` module as it is compatible with the OpenAI API. You can install it with
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/openai-compatible" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/openai-compatible" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/openai-compatible" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @ai-sdk/openai-compatible" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+To use QuickSilver Pro, create an `@ai-sdk/openai-compatible` provider instance pointing at the QSP endpoint:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const quicksilverpro = createOpenAICompatible({
+  name: 'quicksilverpro',
+  baseURL: 'https://api.quicksilverpro.io/v1',
+  apiKey: process.env.QSP_API_KEY,
+});
+```
+
+You can obtain an API key by signing up at [quicksilverpro.io](https://quicksilverpro.io/?ref=VRC7K2M9) and then storing it as `QSP_API_KEY` in your environment.
+
+## Language Models
+
+Use a QSP provider instance to create language models. The first argument is the model id, e.g. `deepseek-v3`.
+
+```ts
+const model = quicksilverpro('deepseek-v3');
+```
+
+The following chat models are currently served:
+
+- `deepseek-v3` — general-purpose, strong at code and conversational tasks
+- `deepseek-r1` — reasoning / chain-of-thought; returns `<think>...</think>` traces
+- `qwen3.5-35b` — Qwen 3.5 35B A3B; strong at long-context and Chinese-language tasks
+
+### Example — `generateText`
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const quicksilverpro = createOpenAICompatible({
+  name: 'quicksilverpro',
+  baseURL: 'https://api.quicksilverpro.io/v1',
+  apiKey: process.env.QSP_API_KEY,
+});
+
+const { text } = await generateText({
+  model: quicksilverpro('deepseek-v3'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+
+console.log(text);
+```
+
+### Example — streaming with `streamText`
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const quicksilverpro = createOpenAICompatible({
+  name: 'quicksilverpro',
+  baseURL: 'https://api.quicksilverpro.io/v1',
+  apiKey: process.env.QSP_API_KEY,
+});
+
+const result = streamText({
+  model: quicksilverpro('deepseek-v3'),
+  prompt: 'Explain the halting problem in three sentences.',
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+### Reasoning Models
+
+QuickSilver Pro exposes the chain-of-thought of `deepseek-r1` in the generated text using the `<think>` tag. Use the `extractReasoningMiddleware` helper to pull the reasoning out and expose it as a separate `reasoning` property on the result:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { wrapLanguageModel, extractReasoningMiddleware, generateText } from 'ai';
+
+const quicksilverpro = createOpenAICompatible({
+  name: 'quicksilverpro',
+  baseURL: 'https://api.quicksilverpro.io/v1',
+  apiKey: process.env.QSP_API_KEY,
+});
+
+const enhancedModel = wrapLanguageModel({
+  model: quicksilverpro('deepseek-r1'),
+  middleware: extractReasoningMiddleware({ tagName: 'think' }),
+});
+
+const { text, reasoningText } = await generateText({
+  model: enhancedModel,
+  prompt: 'Explain the halting problem in three sentences.',
+});
+```
+
+The wrapped model is a drop-in replacement — you can use it with `generateText`, `streamText`, or any other AI SDK function the base provider supports.
+
+### Including model ids for auto-completion
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+type QuickSilverProChatModelIds =
+  | 'deepseek-v3'
+  | 'deepseek-r1'
+  | 'qwen3.5-35b'
+  | (string & {});
+
+const quicksilverpro = createOpenAICompatible<QuickSilverProChatModelIds>({
+  name: 'quicksilverpro',
+  baseURL: 'https://api.quicksilverpro.io/v1',
+  apiKey: process.env.QSP_API_KEY,
+});
+
+// Subsequent calls auto-complete the known model ids while still allowing free-form strings.
+const model = quicksilverpro('deepseek-v3');
+```
