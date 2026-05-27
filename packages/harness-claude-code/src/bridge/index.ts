@@ -227,6 +227,15 @@ async function runTurn({
    */
   const nativeToolCallNames = new Map<string, string>();
 
+  /*
+   * Tool-use ids that originated from the MCP server hosting user-supplied
+   * tools. The MCP handler emits its own `tool-call`/`tool-result` pair with
+   * the user-facing tool name and a synthetic id, so the duplicate
+   * `tool_result` block Claude reports for the underlying native id must be
+   * suppressed.
+   */
+  const mcpToolUseIds = new Set<string>();
+
   const mcpServers: Record<string, unknown> = {};
   if (start.tools && start.tools.length > 0) {
     const server = new mcpModule.McpServer({
@@ -375,7 +384,10 @@ async function runTurn({
             typeof block.name === 'string'
           ) {
             const mcpPrefix = 'mcp__harness-tools__';
-            if (block.name.startsWith(mcpPrefix)) continue;
+            if (block.name.startsWith(mcpPrefix)) {
+              mcpToolUseIds.add(block.id);
+              continue;
+            }
             nativeToolCallNames.set(block.id, block.name);
             send({
               type: 'tool-call',
@@ -396,6 +408,10 @@ async function runTurn({
             block.type === 'tool_result' &&
             typeof block.tool_use_id === 'string'
           ) {
+            if (mcpToolUseIds.has(block.tool_use_id)) {
+              mcpToolUseIds.delete(block.tool_use_id);
+              continue;
+            }
             const nativeName =
               nativeToolCallNames.get(block.tool_use_id) ?? 'unknown';
             nativeToolCallNames.delete(block.tool_use_id);
