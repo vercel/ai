@@ -122,7 +122,7 @@ export class DirectChatTransport<
     >[0]);
 
     // Return the UI message stream
-    return toUIMessageChunkStream<TOOLS, UI_MESSAGE>({
+    return toUIMessageChunkStream({
       ...this.uiMessageStreamOptions,
       stream: result.fullStream,
       tools: this.agent.tools,
