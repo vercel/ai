@@ -17,7 +17,7 @@ run(async () => {
     },
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     if (part.type === 'raw') {
       console.log('raw:', JSON.stringify(part.rawValue));
       continue;
