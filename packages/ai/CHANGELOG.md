@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-canary.154
+
+### Patch Changes
+
+- 594029e: feat(ai): wrap the model call in telemetry context
+
 ## 7.0.0-canary.153
 
 ### Patch Changes
