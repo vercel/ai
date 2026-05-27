@@ -43,7 +43,7 @@ export class ToolLoopAgent<
 > implements Agent<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT, OUTPUT> {
   readonly version = 'agent-v1';
 
-  private readonly settings: ToolLoopAgentSettings<
+  readonly settings: ToolLoopAgentSettings<
     CALL_OPTIONS,
     TOOLS,
     RUNTIME_CONTEXT,
