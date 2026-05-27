@@ -11,7 +11,7 @@ import { toUIMessageChunk } from './to-ui-message-chunk';
 
 /**
  * Converts a stream of `TextStreamPart<TOOLS>` chunks (as emitted by
- * `streamText`'s `fullStream`) into a stream of `UIMessageChunk`s suitable for
+ * `streamText`'s `stream`) into a stream of `UIMessageChunk`s suitable for
  * UI message streaming, including response message ID injection and
  * `onFinish` handling.
  */

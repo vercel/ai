@@ -104,7 +104,7 @@ export async function createAgentUIStream<
     toUIMessageChunkStream({
       ...uiMessageStreamOptions,
       originalMessages,
-      stream: result.fullStream,
+      stream: result.stream,
       tools: agent.tools,
     }),
   );

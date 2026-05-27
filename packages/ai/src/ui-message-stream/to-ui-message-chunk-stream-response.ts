@@ -10,7 +10,7 @@ import type { UIMessageStreamResponseInit } from './ui-message-stream-response-i
 
 /**
  * Creates a Response object from a stream of `TextStreamPart<TOOLS>` chunks (as
- * emitted by `streamText`'s `fullStream`).
+ * emitted by `streamText`'s `stream`).
  *
  * The stream is converted to UI message chunks and then transformed to
  * Server-Sent Events (SSE) format.

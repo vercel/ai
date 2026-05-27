@@ -359,7 +359,7 @@ export interface StreamTextResult<
    * @returns A UI message stream.
    *
    * @deprecated Use the standalone `toUIMessageChunkStream` helper from
-   *   `'ai'` with `result.fullStream` instead. This method will be removed
+   *   `'ai'` with `result.stream` instead. This method will be removed
    *   in the next major release.
    */
   toUIMessageStream<UI_MESSAGE extends UIMessage>(
@@ -370,7 +370,7 @@ export interface StreamTextResult<
    * Writes UI message stream output to a Node.js response-like object.
    *
    * @deprecated Use the standalone `pipeTextStreamToUIMessageStreamResponse`
-   *   helper from `'ai'` with `result.fullStream` instead. This method will be
+   *   helper from `'ai'` with `result.stream` instead. This method will be
    *   removed in the next major release.
    */
   pipeUIMessageStreamToResponse<UI_MESSAGE extends UIMessage>(
@@ -398,7 +398,7 @@ export interface StreamTextResult<
    * @returns A response object.
    *
    * @deprecated Use the standalone `toUIMessageChunkStreamResponse` helper from
-   *   `'ai'` with `result.fullStream` instead. This method will be removed
+   *   `'ai'` with `result.stream` instead. This method will be removed
    *   in the next major release.
    */
   toUIMessageStreamResponse<UI_MESSAGE extends UIMessage>(

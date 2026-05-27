@@ -23,7 +23,7 @@ export type ToUIMessageChunkOptions<
 
 /**
  * Converts a single `TextStreamPart` (as emitted by `streamText`'s
- * `fullStream`) into a `UIMessageChunk`.
+ * `stream`) into a `UIMessageChunk`.
  *
  * Returns `undefined` for stream parts that do not produce UI message chunks.
  */

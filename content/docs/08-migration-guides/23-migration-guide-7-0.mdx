@@ -1369,7 +1369,7 @@ stopWhen: isStepCount(3);
 
 The `toUIMessageStream`, `toUIMessageStreamResponse`, `pipeUIMessageStreamToResponse`, `toTextStreamResponse`, and `pipeTextStreamToResponse` methods on the `streamText` result are now deprecated. They still work in v7 (with deprecation warnings) and will be removed in the next major release.
 
-The equivalent stateless helpers live on the top-level `'ai'` export. Use them directly so the same transformation can be composed over any `fullStream` / `textStream` — not just a `streamText` result.
+The equivalent stateless helpers live on the top-level `'ai'` export. Use them directly so the same transformation can be composed over any `stream` / `textStream` — not just a `streamText` result.
 
 **UI message stream**
 
@@ -1389,7 +1389,7 @@ import { streamText, toUIMessageChunkStream } from 'ai';
 const result = streamText({ model, prompt });
 
 const uiStream = toUIMessageStream({
-  stream: result.fullStream,
+  stream: result.stream,
   generateMessageId,
   originalMessages,
   onFinish,
@@ -1406,7 +1406,7 @@ return result.toUIMessageStreamResponse({ originalMessages });
 import { toUIMessageChunkStreamResponse } from 'ai';
 
 return toUIMessageChunkStreamResponse({
-  stream: result.fullStream,
+  stream: result.stream,
   generateMessageId,
   originalMessages,
   onFinish,
@@ -1428,7 +1428,7 @@ result.pipeUIMessageStreamToResponse(response, { originalMessages });
 import { pipeTextStreamToUIMessageStreamResponse } from 'ai';
 
 const uiStream = toUIMessageStream({
-  stream: result.fullStream,
+  stream: result.stream,
   generateMessageId,
   originalMessages,
   onFinish,
@@ -1450,7 +1450,7 @@ return result.toTextStreamResponse();
 import { createTextStreamResponse } from 'ai';
 
 const textStream = toTextStream({
-  stream: result.stream, // TODO: create separate PR to rename result.fullStream to result.stream
+  stream: result.stream,
   generateMessageId,
   originalMessages,
   onFinish,
@@ -1469,7 +1469,7 @@ result.pipeTextStreamToResponse(response);
 import { pipeTextStreamToResponse } from 'ai';
 
 const textStream = toTextStream({
-  stream: result.stream, // TODO: create separate PR to rename result.fullStream to result.stream
+  stream: result.stream,
   generateMessageId,
   originalMessages,
   onFinish,
