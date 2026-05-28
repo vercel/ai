@@ -127,10 +127,13 @@ export class HarnessStreamTextResult<
     ProviderMetadata | undefined
   >();
 
-  // The driver pushes parts into this controller; consumers read via fullStream.
+  // The driver pushes parts into this controller; consumers read via `stream`.
   private readonly fullStreamController: ReadableStreamDefaultController<
     TextStreamPart<TOOLS>
   >;
+  readonly stream: AsyncIterableStream<TextStreamPart<TOOLS>>;
+  // `fullStream` is the deprecated alias that AI SDK still exposes on the
+  // public interface. Backed by the same underlying stream as `stream`.
   readonly fullStream: AsyncIterableStream<TextStreamPart<TOOLS>>;
   readonly textStream: AsyncIterableStream<string>;
 
@@ -175,7 +178,8 @@ export class HarnessStreamTextResult<
     this.fullStreamController = controllerRef;
 
     const [forFull, forText] = baseStream.tee();
-    this.fullStream = forFull as AsyncIterableStream<TextStreamPart<TOOLS>>;
+    this.stream = forFull as AsyncIterableStream<TextStreamPart<TOOLS>>;
+    this.fullStream = this.stream;
     this.textStream = forText.pipeThrough(
       new TransformStream<TextStreamPart<TOOLS>, string>({
         transform(part, controller) {
