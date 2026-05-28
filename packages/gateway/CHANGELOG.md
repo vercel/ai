@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 3.0.121
+
+### Patch Changes
+
+- 4084fcd: feat(provider/anthropic): add support for `claude-opus-4-8`
+
 ## 3.0.120
 
 ### Patch Changes

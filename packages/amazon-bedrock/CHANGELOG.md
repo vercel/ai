@@ -1,5 +1,13 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.111
+
+### Patch Changes
+
+- 4084fcd: feat(provider/anthropic): add support for `claude-opus-4-8`
+- Updated dependencies [4084fcd]
+  - @ai-sdk/anthropic@3.0.81
+
 ## 4.0.110
 
 ### Patch Changes
