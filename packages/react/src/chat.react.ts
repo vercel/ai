@@ -79,6 +79,13 @@ class ReactChatState<
       ? throttle(onChange, throttleWaitMs)
       : onChange;
     this.#messagesCallbacks.add(callback);
+    // If a stream is already in progress when this subscriber registers (e.g. a
+    // component remounted mid-stream onto an existing Chat), notify it once -
+    // unthrottled - so React's useSyncExternalStore re-reads the snapshot and
+    // catches up on messages that changed before this subscriber existed.
+    if (this.#status === 'streaming' || this.#status === 'submitted') {
+      onChange();
+    }
     return () => {
       this.#messagesCallbacks.delete(callback);
     };
