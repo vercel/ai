@@ -120,7 +120,11 @@ export default function Page() {
       </section>
 
       {isRunning || progressEvents.length > 0 ? (
-        <ProgressPanel events={progressEvents} status={status} />
+        <ProgressPanel
+          events={progressEvents}
+          isRunning={isRunning}
+          status={status}
+        />
       ) : null}
 
       {result ? (
@@ -180,15 +184,25 @@ function PartialBenchmarkView({ runs }: { runs: ApproachResult[] }) {
 
 function ProgressPanel({
   events,
+  isRunning,
   status,
 }: {
   events: BenchmarkProgressEvent[];
+  isRunning: boolean;
   status: string;
 }) {
+  const didFail = events.some(event => event.type === 'benchmark-error');
+
   return (
     <section className="progressPanel">
       <div className="progressHeader">
-        <div className="spinner" />
+        {isRunning ? (
+          <div className="spinner" />
+        ) : (
+          <div className={didFail ? 'statusIcon errorIcon' : 'statusIcon'}>
+            {didFail ? '!' : '✓'}
+          </div>
+        )}
         <div>
           <p className="eyebrow">Progress</p>
           <h2>{status}</h2>

@@ -174,6 +174,25 @@ h3 {
   animation: spin 0.9s linear infinite;
 }
 
+.statusIcon {
+  display: grid;
+  width: 1.5rem;
+  height: 1.5rem;
+  place-items: center;
+  border: 1px solid rgba(159, 255, 198, 0.5);
+  border-radius: 999rem;
+  background: rgba(159, 255, 198, 0.14);
+  color: #9fffc6;
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.errorIcon {
+  border-color: rgba(255, 159, 159, 0.5);
+  background: rgba(255, 159, 159, 0.14);
+  color: #ff9f9f;
+}
+
 .progressList {
   display: grid;
   gap: 0.5rem;
