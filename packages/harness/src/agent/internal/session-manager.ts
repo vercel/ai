@@ -8,228 +8,357 @@ import type {
   HarnessV1Session,
   HarnessV1Skill,
 } from '../../v1';
-import { generateId } from '@ai-sdk/provider-utils';
 import { applyBootstrapRecipe, hashBootstrap } from './bootstrap-recipe';
 import { acquireBridgePort, releaseBridgePort } from './bridge-port-registry';
+import { validateResumeStateData } from './resume-state-validation';
 
 /**
- * Owns the lifecycle of one `HarnessV1Session` on behalf of a `HarnessAgent`.
+ * Per-session runtime state held by {@link SessionManager}. One entry per
+ * sessionId in the manager's internal map.
+ */
+interface SessionEntry {
+  session: HarnessV1Session | null;
+  sandboxHandle: HarnessV1SandboxHandle | null;
+  leasedBridgePort: number | null;
+  startPromise: Promise<HarnessV1Session> | null;
+  stopped: boolean;
+}
+
+/**
+ * Manages the lifecycle of multiple concurrent `HarnessV1Session`s on behalf
+ * of a `HarnessAgent`.
  *
- * On first `getSession()`, if a sandbox provider was supplied, the manager
- * creates the sandbox handle and passes it into `harness.doStart()`. The
- * handle is held for the lifetime of the session and stopped during `close()`.
+ * Sessions are keyed by `sessionId`. The first `getSession({ sessionId })`
+ * for a given id lazily starts the session; subsequent calls with the same
+ * id return the same instance until `close({ sessionId })` or
+ * `detach({ sessionId })` is invoked.
  *
- * Session and handle are sticky: every subsequent `getSession()` call returns
- * the same instances until `close()` or `detach()` is invoked.
+ * Resume path: when `resumeFrom` is supplied, the manager validates the
+ * payload against `harness.resumeStateSchema`, asks the provider for a
+ * handle bound to the existing sandbox via `provider.resume({ sessionId })`,
+ * and threads `resumeFrom` through `harness.doStart`.
  *
- * `close()` and `detach()` are idempotent.
+ * `close` and `detach` are idempotent per sessionId.
  */
 export class SessionManager {
   private readonly harness: HarnessV1;
   private readonly sandboxProvider: HarnessV1SandboxProvider | undefined;
   private readonly skills: ReadonlyArray<HarnessV1Skill> | undefined;
-  private readonly resumeFrom: HarnessV1ResumeState | undefined;
 
-  readonly sessionId: string;
-
-  private session: HarnessV1Session | null = null;
-  private sandboxHandle: HarnessV1SandboxHandle | null = null;
-  private leasedBridgePort: number | null = null;
-  private startPromise: Promise<HarnessV1Session> | null = null;
-  private stopped = false;
+  private readonly entries = new Map<string, SessionEntry>();
 
   constructor(options: {
     harness: HarnessV1;
-    sessionId?: string;
     sandbox?: HarnessV1SandboxProvider;
     skills?: ReadonlyArray<HarnessV1Skill>;
-    resumeFrom?: HarnessV1ResumeState;
   }) {
     this.harness = options.harness;
     this.sandboxProvider = options.sandbox;
     this.skills = options.skills;
-    this.resumeFrom = options.resumeFrom;
-    this.sessionId = options.sessionId ?? generateId();
-  }
-
-  /** The sandbox handle currently in use, if any. */
-  get currentSandboxHandle(): HarnessV1SandboxHandle | null {
-    return this.sandboxHandle;
   }
 
   /**
-   * Return the active session, creating it on first call. Idempotent across
-   * concurrent callers: the second caller awaits the same in-flight start.
+   * Return the sandbox handle currently bound to the given session, if the
+   * session has started. Returns null if the session does not exist yet or
+   * has been closed.
    */
-  async getSession(options?: {
-    abortSignal?: AbortSignal;
-  }): Promise<HarnessV1Session> {
-    if (this.stopped) {
-      throw new Error(
-        `Harness session ${this.sessionId} has been closed and cannot be reused.`,
-      );
-    }
-    if (this.session != null) {
-      return this.session;
-    }
-    if (this.startPromise != null) {
-      return this.startPromise;
-    }
-
-    this.startPromise = (async () => {
-      let sandboxHandle: HarnessV1SandboxHandle | undefined;
-      let recipe: HarnessV1Bootstrap | undefined;
-      let identity: string | undefined;
-
-      if (this.sandboxProvider != null) {
-        if (this.harness.getBootstrap != null) {
-          recipe = await this.harness.getBootstrap({
-            abortSignal: options?.abortSignal,
-          });
-          identity = await hashBootstrap(recipe);
-        }
-
-        const rawHandle = await this.sandboxProvider.create({
-          abortSignal: options?.abortSignal,
-          identity,
-          onFirstCreate:
-            recipe != null && identity != null
-              ? (session, opts) =>
-                  applyBootstrapRecipe(session, recipe!, identity!, opts)
-              : undefined,
-        });
-
-        sandboxHandle = this.applyPortLease(this.sandboxProvider, rawHandle);
-
-        try {
-          if (recipe != null && identity != null) {
-            await applyBootstrapRecipe(
-              sandboxHandle.session,
-              recipe,
-              identity,
-              { abortSignal: options?.abortSignal },
-            );
-          }
-          if (this.sandboxProvider.setup != null) {
-            await this.sandboxProvider.setup({
-              session: sandboxHandle.session,
-              abortSignal: options?.abortSignal,
-            });
-          }
-        } catch (err) {
-          await this.cleanupAfterStartFailure(rawHandle);
-          throw err;
-        }
-      }
-
-      this.sandboxHandle = sandboxHandle ?? null;
-
-      try {
-        const session = await this.harness.doStart({
-          sessionId: this.sessionId,
-          sandboxHandle,
-          skills: this.skills,
-          resumeFrom: this.resumeFrom,
-          abortSignal: options?.abortSignal,
-        });
-        this.session = session;
-        return session;
-      } catch (error) {
-        if (sandboxHandle != null) {
-          await this.cleanupAfterStartFailure(sandboxHandle);
-        }
-        this.sandboxHandle = null;
-        throw error;
-      }
-    })().finally(() => {
-      this.startPromise = null;
-    });
-
-    return this.startPromise;
+  sandboxHandleFor(sessionId: string): HarnessV1SandboxHandle | null {
+    return this.entries.get(sessionId)?.sandboxHandle ?? null;
   }
 
-  async close(): Promise<void> {
-    if (this.stopped) return;
-    this.stopped = true;
-    const session = this.session;
-    const handle = this.sandboxHandle;
-    this.session = null;
-    this.sandboxHandle = null;
+  /**
+   * Return the active session for `sessionId`, creating it on first call.
+   * Concurrent callers for the same id share the in-flight start.
+   *
+   * When `resumeFrom` is supplied the manager reattaches to the existing
+   * sandbox via `provider.resume({ sessionId })` and threads the validated
+   * payload into `harness.doStart`.
+   */
+  async getSession(options: {
+    sessionId: string;
+    resumeFrom?: HarnessV1ResumeState;
+    abortSignal?: AbortSignal;
+  }): Promise<HarnessV1Session> {
+    const { sessionId, resumeFrom, abortSignal } = options;
+    let entry = this.entries.get(sessionId);
+    if (entry == null) {
+      entry = this.createEntry();
+      this.entries.set(sessionId, entry);
+    }
+    if (entry.stopped) {
+      throw new Error(
+        `Harness session ${sessionId} has been closed and cannot be reused.`,
+      );
+    }
+    if (entry.session != null) {
+      return entry.session;
+    }
+    if (entry.startPromise != null) {
+      return entry.startPromise;
+    }
+
+    const currentEntry: SessionEntry = entry;
+    const startPromise = this.startSession({
+      entry: currentEntry,
+      sessionId,
+      resumeFrom,
+      abortSignal,
+    }).finally(() => {
+      currentEntry.startPromise = null;
+    });
+    currentEntry.startPromise = startPromise;
+    return startPromise;
+  }
+
+  /** Close one session. Idempotent. */
+  async close(options: { sessionId: string }): Promise<void> {
+    const entry = this.entries.get(options.sessionId);
+    if (entry == null || entry.stopped) {
+      this.entries.delete(options.sessionId);
+      return;
+    }
+    entry.stopped = true;
+    const session = entry.session;
+    const handle = entry.sandboxHandle;
+    entry.session = null;
+    entry.sandboxHandle = null;
     if (session != null) {
       await Promise.resolve(session.doStop()).catch(() => {});
     }
     if (handle != null) {
       await Promise.resolve(handle.stop()).catch(() => {});
     }
-    this.releasePortLeaseIfAny();
+    this.releasePortLease(options.sessionId, entry);
+    this.entries.delete(options.sessionId);
+  }
+
+  /** Close every active session. Convenience for shutdown paths. */
+  async closeAll(): Promise<void> {
+    const sessionIds = Array.from(this.entries.keys());
+    await Promise.all(sessionIds.map(sessionId => this.close({ sessionId })));
   }
 
   /**
-   * Detach the underlying session, returning a resume payload the caller
-   * can later pass back to a future `HarnessAgent` via `resumeFrom`.
-   * Throws `HarnessCapabilityUnsupportedError` if the active session does
-   * not expose `doDetach`.
+   * Detach one session, returning a resume payload the caller can later
+   * pass back via `resumeFrom`. Throws `HarnessCapabilityUnsupportedError`
+   * if the session does not expose `doDetach`. The sandbox is stopped
+   * (snapshots automatically on persistent providers).
    */
-  async detach(): Promise<HarnessV1ResumeState> {
-    if (this.stopped) {
+  async detach(options: { sessionId: string }): Promise<HarnessV1ResumeState> {
+    const { sessionId } = options;
+    const entry = this.entries.get(sessionId);
+    if (entry == null || entry.stopped) {
       throw new Error(
-        `Harness session ${this.sessionId} has been closed and cannot be detached.`,
+        `Harness session ${sessionId} is not active and cannot be detached.`,
       );
     }
-    const session = await this.getSession();
+    const session = await this.getSession({ sessionId });
     if (session.doDetach == null) {
       throw new HarnessCapabilityUnsupportedError({
         message: `Harness '${this.harness.harnessId}' does not support detach.`,
         harnessId: this.harness.harnessId,
       });
     }
-    const state = await session.doDetach();
-    const handle = this.sandboxHandle;
-    this.stopped = true;
-    this.session = null;
-    this.sandboxHandle = null;
+    const raw = await session.doDetach();
+    const validated = await validateResumeStateData({
+      harness: this.harness,
+      state: raw,
+    });
+    entry.stopped = true;
+    const handle = entry.sandboxHandle;
+    entry.session = null;
+    entry.sandboxHandle = null;
     if (handle != null) {
-      // Detach is "release host without tearing down the runtime" — but the
-      // sandbox is host infrastructure, not the runtime. We stop it.
+      // Detach stops the sandbox so it snapshots; the resume payload is
+      // what binds a future process back to the same resource via
+      // `provider.resume({ sessionId })`.
       await Promise.resolve(handle.stop()).catch(() => {});
     }
-    this.releasePortLeaseIfAny();
-    return state;
+    this.releasePortLease(sessionId, entry);
+    this.entries.delete(sessionId);
+    return validated;
   }
 
-  private applyPortLease(
-    provider: HarnessV1SandboxProvider,
-    handle: HarnessV1SandboxHandle,
-  ): HarnessV1SandboxHandle {
-    const pool = provider.bridgePorts;
+  private createEntry(): SessionEntry {
+    return {
+      session: null,
+      sandboxHandle: null,
+      leasedBridgePort: null,
+      startPromise: null,
+      stopped: false,
+    };
+  }
+
+  private async startSession(input: {
+    entry: SessionEntry;
+    sessionId: string;
+    resumeFrom: HarnessV1ResumeState | undefined;
+    abortSignal: AbortSignal | undefined;
+  }): Promise<HarnessV1Session> {
+    const { entry, sessionId, resumeFrom, abortSignal } = input;
+
+    let validatedResumeFrom: HarnessV1ResumeState | undefined;
+    if (resumeFrom != null) {
+      validatedResumeFrom = await validateResumeStateData({
+        harness: this.harness,
+        state: resumeFrom,
+      });
+    }
+
+    let sandboxHandle: HarnessV1SandboxHandle | undefined;
+    let recipe: HarnessV1Bootstrap | undefined;
+    let identity: string | undefined;
+
+    if (this.sandboxProvider != null) {
+      if (this.harness.getBootstrap != null) {
+        recipe = await this.harness.getBootstrap({ abortSignal });
+        identity = await hashBootstrap(recipe);
+      }
+
+      const rawHandle = await this.acquireSandbox({
+        sessionId,
+        isResume: validatedResumeFrom != null,
+        recipe,
+        identity,
+        abortSignal,
+      });
+
+      sandboxHandle = this.applyPortLease({
+        provider: this.sandboxProvider,
+        handle: rawHandle,
+        sessionId,
+        entry,
+      });
+
+      // On resume the recipe is already baked into the sandbox snapshot;
+      // skip re-applying it and skip the setup hook (it ran on the
+      // original create).
+      if (validatedResumeFrom == null) {
+        try {
+          if (recipe != null && identity != null) {
+            await applyBootstrapRecipe(
+              sandboxHandle.session,
+              recipe,
+              identity,
+              { abortSignal },
+            );
+          }
+          if (this.sandboxProvider.setup != null) {
+            await this.sandboxProvider.setup({
+              session: sandboxHandle.session,
+              abortSignal,
+            });
+          }
+        } catch (err) {
+          await this.cleanupAfterStartFailure({
+            rawHandle,
+            sessionId,
+            entry,
+          });
+          throw err;
+        }
+      }
+    }
+
+    entry.sandboxHandle = sandboxHandle ?? null;
+
+    try {
+      const session = await this.harness.doStart({
+        sessionId,
+        sandboxHandle,
+        skills: this.skills,
+        resumeFrom: validatedResumeFrom,
+        abortSignal,
+      });
+      entry.session = session;
+      return session;
+    } catch (error) {
+      if (sandboxHandle != null) {
+        await this.cleanupAfterStartFailure({
+          rawHandle: sandboxHandle,
+          sessionId,
+          entry,
+        });
+      }
+      entry.sandboxHandle = null;
+      throw error;
+    }
+  }
+
+  private async acquireSandbox(input: {
+    sessionId: string;
+    isResume: boolean;
+    recipe: HarnessV1Bootstrap | undefined;
+    identity: string | undefined;
+    abortSignal: AbortSignal | undefined;
+  }): Promise<HarnessV1SandboxHandle> {
+    const provider = this.sandboxProvider!;
+    if (input.isResume) {
+      if (provider.resume == null) {
+        throw new HarnessCapabilityUnsupportedError({
+          message: `Sandbox provider '${provider.providerId}' does not support resume.`,
+          harnessId: this.harness.harnessId,
+        });
+      }
+      return provider.resume({
+        sessionId: input.sessionId,
+        abortSignal: input.abortSignal,
+      });
+    }
+    return provider.create({
+      sessionId: input.sessionId,
+      abortSignal: input.abortSignal,
+      identity: input.identity,
+      onFirstCreate:
+        input.recipe != null && input.identity != null
+          ? (session, opts) =>
+              applyBootstrapRecipe(
+                session,
+                input.recipe!,
+                input.identity!,
+                opts,
+              )
+          : undefined,
+    });
+  }
+
+  private applyPortLease(input: {
+    provider: HarnessV1SandboxProvider;
+    handle: HarnessV1SandboxHandle;
+    sessionId: string;
+    entry: SessionEntry;
+  }): HarnessV1SandboxHandle {
+    const pool = input.provider.bridgePorts;
     if (pool == null || pool.length === 0) {
-      return handle;
+      return input.handle;
     }
     const port = acquireBridgePort({
-      poolKey: provider,
+      poolKey: input.provider,
       pool,
-      sessionId: this.sessionId,
+      sessionId: input.sessionId,
     });
-    this.leasedBridgePort = port;
-    return narrowHandlePorts(handle, port);
+    input.entry.leasedBridgePort = port;
+    return narrowHandlePorts(input.handle, port);
   }
 
-  private releasePortLeaseIfAny(): void {
-    if (this.leasedBridgePort == null) return;
+  private releasePortLease(sessionId: string, entry: SessionEntry): void {
+    if (entry.leasedBridgePort == null) return;
     if (this.sandboxProvider != null) {
       releaseBridgePort({
         poolKey: this.sandboxProvider,
-        sessionId: this.sessionId,
+        sessionId,
       });
     }
-    this.leasedBridgePort = null;
+    entry.leasedBridgePort = null;
   }
 
-  private async cleanupAfterStartFailure(
-    handle: HarnessV1SandboxHandle,
-  ): Promise<void> {
-    await Promise.resolve(handle.stop()).catch(() => {});
-    this.releasePortLeaseIfAny();
+  private async cleanupAfterStartFailure(input: {
+    rawHandle: HarnessV1SandboxHandle;
+    sessionId: string;
+    entry: SessionEntry;
+  }): Promise<void> {
+    await Promise.resolve(input.rawHandle.stop()).catch(() => {});
+    this.releasePortLease(input.sessionId, input.entry);
   }
 }
 
@@ -238,6 +367,7 @@ function narrowHandlePorts(
   leasedPort: number,
 ): HarnessV1SandboxHandle {
   return {
+    id: handle.id,
     session: handle.session,
     ports: [leasedPort],
     getPortUrl: handle.getPortUrl,

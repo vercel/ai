@@ -67,6 +67,7 @@ describe('createClaudeCode adapter', () => {
   it('throws HarnessCapabilityUnsupportedError when the handle exposes no ports', async () => {
     const harness = createClaudeCode();
     const sandboxHandle = {
+      id: 'test-sandbox',
       session: {} as never,
       ports: [] as ReadonlyArray<number>,
       async getPortUrl() {

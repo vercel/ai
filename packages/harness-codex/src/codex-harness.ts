@@ -8,6 +8,7 @@ import {
   type HarnessV1Bootstrap,
   type HarnessV1BuiltinTool,
   type HarnessV1PromptControl,
+  type HarnessV1ResumeState,
   type HarnessV1SandboxHandle,
   type HarnessV1Session,
   type HarnessV1Skill,
@@ -77,6 +78,15 @@ const CODEX_BUILTIN_TOOLS = {
 const BOOTSTRAP_DIR = '/tmp/harness/codex';
 const SESSION_DIR_PREFIX = '/tmp/harness/sessions/codex';
 
+/**
+ * Schema for the adapter-specific `HarnessV1ResumeState.data` payload Codex
+ * produces. The `threadId` is what `codex.resumeThread(...)` requires; the
+ * sandbox lookup is handled separately via `provider.resume({ sessionId })`.
+ */
+const codexResumeStateSchema = z.object({
+  threadId: z.string().optional(),
+});
+
 export function createCodex(
   settings: CodexHarnessSettings = {},
 ): HarnessV1<typeof CODEX_BUILTIN_TOOLS> {
@@ -86,6 +96,7 @@ export function createCodex(
     specificationVersion: 'harness-v1',
     harnessId: 'codex',
     builtinTools: CODEX_BUILTIN_TOOLS,
+    resumeStateSchema: codexResumeStateSchema,
     getBootstrap: async () => {
       if (cachedBootstrap != null) return cachedBootstrap;
       const [pkg, lock, bridge, hostToolMcp] = await Promise.all([
@@ -118,6 +129,15 @@ export function createCodex(
     doStart: async startOpts => {
       const handle = requireHandle(startOpts.sandboxHandle);
       const { session } = handle;
+      const isResume = startOpts.resumeFrom != null;
+      const resumeThreadId =
+        isResume && typeof startOpts.resumeFrom?.data === 'object'
+          ? (startOpts.resumeFrom.data as { threadId?: unknown }).threadId
+          : undefined;
+      const resumeThreadIdString =
+        typeof resumeThreadId === 'string' && resumeThreadId.length > 0
+          ? resumeThreadId
+          : undefined;
 
       const sessionDir = `${SESSION_DIR_PREFIX}/${startOpts.sessionId}`;
       const port = resolveBridgePort(handle, settings.port);
@@ -128,11 +148,16 @@ export function createCodex(
         BRIDGE_WS_PORT: String(port),
       };
 
-      await session.run({
-        command: `mkdir -p ${sessionDir}`,
-        abortSignal: startOpts.abortSignal,
-      });
+      if (!isResume) {
+        await session.run({
+          command: `mkdir -p ${sessionDir}`,
+          abortSignal: startOpts.abortSignal,
+        });
+      }
 
+      // Always refresh env.json — the bridge process is brand new (whether
+      // first start or resume), so it needs the current token + port. The
+      // session dir already exists across the snapshot/resume cycle.
       await session.writeTextFile({
         path: `${sessionDir}/env.json`,
         content: JSON.stringify(env),
@@ -165,6 +190,7 @@ export function createCodex(
         model: settings.model,
         reasoningEffort: settings.reasoningEffort,
         webSearch: settings.webSearch,
+        resumeThreadId: resumeThreadIdString,
       });
     },
   };
@@ -320,6 +346,7 @@ function createSession({
   model,
   reasoningEffort,
   webSearch,
+  resumeThreadId,
 }: {
   sessionId: string;
   channel: BridgeChannel;
@@ -328,9 +355,15 @@ function createSession({
   model: string | undefined;
   reasoningEffort: 'low' | 'medium' | 'high' | undefined;
   webSearch: boolean | undefined;
+  resumeThreadId: string | undefined;
 }): HarnessV1Session {
   let stopped = false;
   let stopPromise: Promise<void> | undefined;
+  // Sent once on the first prompt after a cross-process resume so the
+  // bridge takes the `codex.resumeThread(...)` branch. Cleared after the
+  // first send — subsequent turns within this bridge process use the
+  // bridge-cached threadState.
+  let pendingResumeThreadId = resumeThreadId;
 
   return {
     sessionId,
@@ -426,8 +459,8 @@ function createSession({
         }
       }
 
-      channel.send({
-        type: 'start',
+      const startMessage = {
+        type: 'start' as const,
         promptMessages: promptOpts.prompt as unknown[],
         instructions: promptOpts.instructions,
         tools: (promptOpts.tools ?? []).map(t => ({
@@ -447,7 +480,12 @@ function createSession({
               })),
             }
           : {}),
-      });
+        ...(pendingResumeThreadId
+          ? { resumeThreadId: pendingResumeThreadId }
+          : {}),
+      };
+      pendingResumeThreadId = undefined;
+      channel.send(startMessage);
 
       const control: HarnessV1PromptControl = {
         submitToolResult: async input => {
@@ -492,6 +530,61 @@ function createSession({
         }
       })();
       return stopPromise;
+    },
+    doDetach: async () => {
+      if (stopped) {
+        throw new Error(
+          `codex session ${sessionId} is already stopped; cannot detach.`,
+        );
+      }
+      stopped = true;
+      const data = await new Promise<unknown>((resolve, reject) => {
+        const timer = setTimeout(() => {
+          unsub();
+          reject(
+            new Error(
+              `codex session ${sessionId} did not reply to detach within 5s.`,
+            ),
+          );
+        }, 5000);
+        timer.unref?.();
+        const unsub = channel.on('detach-state', msg => {
+          clearTimeout(timer);
+          unsub();
+          resolve(msg.data);
+        });
+        try {
+          channel.send({ type: 'detach' });
+        } catch (err) {
+          clearTimeout(timer);
+          unsub();
+          reject(err);
+        }
+      });
+
+      let stopTimer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        await Promise.race([
+          proc.wait(),
+          new Promise<void>(resolve => {
+            stopTimer = setTimeout(resolve, 5000);
+            stopTimer.unref?.();
+          }),
+        ]);
+      } finally {
+        if (stopTimer) clearTimeout(stopTimer);
+        try {
+          await proc.kill();
+        } catch {}
+        channel.close();
+      }
+
+      const payload: HarnessV1ResumeState = {
+        harnessId: 'codex',
+        specificationVersion: 'harness-v1',
+        data: (data ?? {}) as HarnessV1ResumeState['data'],
+      };
+      return payload;
     },
   };
 }

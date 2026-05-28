@@ -8,6 +8,7 @@ import {
   type HarnessV1Bootstrap,
   type HarnessV1BuiltinTool,
   type HarnessV1PromptControl,
+  type HarnessV1ResumeState,
   type HarnessV1SandboxHandle,
   type HarnessV1Session,
   type HarnessV1Skill,
@@ -326,6 +327,15 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
 const BOOTSTRAP_DIR = '/tmp/harness/claude-code';
 const SESSION_DIR_PREFIX = '/tmp/harness/sessions/claude-code';
 
+/**
+ * Schema for the adapter-specific portion of `HarnessV1ResumeState.data`
+ * produced by Claude Code's `doDetach`. The payload is structurally empty:
+ * the framework derives the sandbox via `provider.resume({ sessionId })`,
+ * and the Claude SDK's `{ continue: true }` flag rehydrates the thread
+ * from the workdir (preserved in the sandbox snapshot).
+ */
+const claudeCodeResumeStateSchema = z.object({}).passthrough();
+
 export function createClaudeCode(
   settings: ClaudeCodeHarnessSettings = {},
 ): HarnessV1<typeof CLAUDE_CODE_BUILTIN_TOOLS> {
@@ -335,6 +345,7 @@ export function createClaudeCode(
     specificationVersion: 'harness-v1',
     harnessId: 'claude-code',
     builtinTools: CLAUDE_CODE_BUILTIN_TOOLS,
+    resumeStateSchema: claudeCodeResumeStateSchema,
     getBootstrap: async () => {
       if (cachedBootstrap != null) return cachedBootstrap;
       const [pkg, lock, bridge] = await Promise.all([
@@ -365,6 +376,7 @@ export function createClaudeCode(
     doStart: async startOpts => {
       const handle = requireHandle(startOpts.sandboxHandle);
       const { session } = handle;
+      const isResume = startOpts.resumeFrom != null;
 
       const sessionDir = `${SESSION_DIR_PREFIX}/${startOpts.sessionId}`;
       const port = resolveBridgePort(handle, settings.port);
@@ -375,22 +387,36 @@ export function createClaudeCode(
         BRIDGE_WS_PORT: String(port),
       };
 
-      await session.run({
-        command: `mkdir -p ${sessionDir}`,
-        abortSignal: startOpts.abortSignal,
-      });
+      // The session dir, env.json and any skill files are already present
+      // in the sandbox from the prior session — preserved across the
+      // detach/snapshot/resume cycle by the persistent sandbox. Skip the
+      // re-write on resume so we don't churn disk for no reason.
+      if (!isResume) {
+        await session.run({
+          command: `mkdir -p ${sessionDir}`,
+          abortSignal: startOpts.abortSignal,
+        });
 
-      await session.writeTextFile({
-        path: `${sessionDir}/env.json`,
-        content: JSON.stringify(env),
-        abortSignal: startOpts.abortSignal,
-      });
+        await session.writeTextFile({
+          path: `${sessionDir}/env.json`,
+          content: JSON.stringify(env),
+          abortSignal: startOpts.abortSignal,
+        });
 
-      if (startOpts.skills && startOpts.skills.length > 0) {
-        await writeSkills({
-          sandbox: session,
-          workdir: sessionDir,
-          skills: startOpts.skills,
+        if (startOpts.skills && startOpts.skills.length > 0) {
+          await writeSkills({
+            sandbox: session,
+            workdir: sessionDir,
+            skills: startOpts.skills,
+            abortSignal: startOpts.abortSignal,
+          });
+        }
+      } else {
+        // Rewrite env.json with a fresh token/port for this resume — the
+        // bridge process is brand new and needs a token the host owns.
+        await session.writeTextFile({
+          path: `${sessionDir}/env.json`,
+          content: JSON.stringify(env),
           abortSignal: startOpts.abortSignal,
         });
       }
@@ -420,6 +446,10 @@ export function createClaudeCode(
         model: settings.model,
         maxTurns: settings.maxTurns,
         thinking: settings.thinking,
+        // On resume, the first prompt against this bridge is a continuation
+        // of the prior conversation. The bridge passes `continue: true` to
+        // the Claude SDK so the cached workdir state is rehydrated.
+        isResume,
       });
     },
   };
@@ -602,6 +632,7 @@ function createSession({
   model,
   maxTurns,
   thinking,
+  isResume,
 }: {
   sessionId: string;
   channel: BridgeChannel;
@@ -609,9 +640,15 @@ function createSession({
   model: string | undefined;
   maxTurns: number | undefined;
   thinking: 'off' | 'on' | 'adaptive' | undefined;
+  isResume: boolean;
 }): HarnessV1Session {
   let stopped = false;
   let stopPromise: Promise<void> | undefined;
+  // Set on the first prompt sent after a cross-process resume so the
+  // bridge tells the Claude SDK to continue rather than start a fresh
+  // thread. Cleared after the first turn — subsequent turns within this
+  // bridge process are continuations by default.
+  let pendingResumeFlag = isResume;
 
   return {
     sessionId,
@@ -706,8 +743,8 @@ function createSession({
         }
       }
 
-      channel.send({
-        type: 'start',
+      const startMessage = {
+        type: 'start' as const,
         promptMessages: promptOpts.prompt as unknown[],
         instructions: promptOpts.instructions,
         tools: (promptOpts.tools ?? []).map(t => ({
@@ -718,7 +755,10 @@ function createSession({
         model,
         maxTurns,
         thinking,
-      });
+        ...(pendingResumeFlag ? { continue: true } : {}),
+      };
+      pendingResumeFlag = false;
+      channel.send(startMessage);
 
       const control: HarnessV1PromptControl = {
         submitToolResult: async input => {
@@ -763,6 +803,67 @@ function createSession({
         }
       })();
       return stopPromise;
+    },
+    doDetach: async () => {
+      if (stopped) {
+        throw new Error(
+          `claude-code session ${sessionId} is already stopped; cannot detach.`,
+        );
+      }
+      stopped = true;
+      // Wait for the bridge to acknowledge with `detach-state` before
+      // tearing down the process. Bound by a timeout — a hung bridge
+      // shouldn't block the host indefinitely.
+      const data = await new Promise<unknown>((resolve, reject) => {
+        const timer = setTimeout(() => {
+          unsub();
+          reject(
+            new Error(
+              `claude-code session ${sessionId} did not reply to detach within 5s.`,
+            ),
+          );
+        }, 5000);
+        timer.unref?.();
+        const unsub = channel.on('detach-state', msg => {
+          clearTimeout(timer);
+          unsub();
+          resolve(msg.data);
+        });
+        try {
+          channel.send({ type: 'detach' });
+        } catch (err) {
+          clearTimeout(timer);
+          unsub();
+          reject(err);
+        }
+      });
+
+      // The bridge exits itself ~50ms after sending detach-state. Give
+      // it a moment, then ensure the process is reaped and the channel
+      // closed.
+      let stopTimer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        await Promise.race([
+          proc.wait(),
+          new Promise<void>(resolve => {
+            stopTimer = setTimeout(resolve, 5000);
+            stopTimer.unref?.();
+          }),
+        ]);
+      } finally {
+        if (stopTimer) clearTimeout(stopTimer);
+        try {
+          await proc.kill();
+        } catch {}
+        channel.close();
+      }
+
+      const payload: HarnessV1ResumeState = {
+        harnessId: 'claude-code',
+        specificationVersion: 'harness-v1',
+        data: (data ?? {}) as HarnessV1ResumeState['data'],
+      };
+      return payload;
     },
   };
 }

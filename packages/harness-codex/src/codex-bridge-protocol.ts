@@ -108,6 +108,14 @@ export const outboundMessageSchema = z.discriminatedUnion('type', [
 
   z.object({ type: z.literal('error'), error: z.unknown() }),
   z.object({ type: z.literal('raw'), rawValue: z.unknown() }),
+
+  // Bridge's reply to an inbound `detach` request. Carries the
+  // adapter-specific payload (Codex: `{ threadId }`) the host wraps into
+  // `HarnessV1ResumeState`.
+  z.object({
+    type: z.literal('detach-state'),
+    data: z.unknown(),
+  }),
 ]);
 
 export type OutboundMessage = z.infer<typeof outboundMessageSchema>;
@@ -138,6 +146,11 @@ export const inboundMessageSchema = z.discriminatedUnion('type', [
         }),
       )
       .optional(),
+    // Resume signal. When supplied, the bridge calls
+    // `codex.resumeThread(resumeThreadId, …)` instead of starting a fresh
+    // thread. The host sources the id from the `HarnessV1ResumeState.data`
+    // payload it cached from a prior `agent.detach`.
+    resumeThreadId: z.string().optional(),
   }),
   z.object({
     type: z.literal('tool-result'),
@@ -148,6 +161,8 @@ export const inboundMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('user-message'), text: z.string() }),
   z.object({ type: z.literal('abort') }),
   z.object({ type: z.literal('shutdown') }),
+  // Detach: bridge replies with `detach-state` ({ threadId }) and exits.
+  z.object({ type: z.literal('detach') }),
 ]);
 
 export type InboundMessage = z.infer<typeof inboundMessageSchema>;

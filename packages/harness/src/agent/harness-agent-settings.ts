@@ -1,6 +1,5 @@
 import type {
   HarnessV1,
-  HarnessV1ResumeState,
   HarnessV1SandboxProvider,
   HarnessV1Skill,
 } from '../v1';
@@ -62,17 +61,4 @@ export type HarnessAgentSettings<
    * `Experimental_Sandbox` so tools cannot reach the infra surface.
    */
   readonly sandbox?: HarnessV1SandboxProvider;
-
-  /**
-   * Stable identifier for the underlying harness session. When omitted,
-   * a UUID is generated on first use.
-   */
-  readonly sessionId?: string;
-
-  /**
-   * Optional payload returned by a prior `agent.detach()` (or a manual
-   * `session.doDetach()`). When present, the harness reattaches to the
-   * existing session on its first call instead of starting a fresh one.
-   */
-  readonly resumeFrom?: HarnessV1ResumeState;
 };

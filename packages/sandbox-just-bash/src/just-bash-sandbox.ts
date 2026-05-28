@@ -59,6 +59,7 @@ export class JustBashSandboxProvider implements HarnessV1SandboxProvider {
   }
 
   create = async (options?: {
+    sessionId?: string;
     abortSignal?: AbortSignal;
     identity?: string;
     onFirstCreate?: (

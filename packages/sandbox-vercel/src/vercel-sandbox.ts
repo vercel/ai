@@ -46,8 +46,13 @@ export type VercelSandboxSettings = HarnessV1ProviderSettings &
 
 const VERCEL_PROVIDER_ID = 'vercel-sandbox';
 const TEMPLATE_NAME_PREFIX = 'ai-sdk-harness';
+const SESSION_NAME_PREFIX = 'ai-sdk-harness-session';
 const SNAPSHOT_POLL_INTERVAL_MS = 500;
 const SNAPSHOT_POLL_TIMEOUT_MS = 30_000;
+
+function sessionSandboxName(sessionId: string): string {
+  return `${SESSION_NAME_PREFIX}-${sessionId}`;
+}
 
 export function createVercelSandbox(
   settings: VercelSandboxSettings = {} as VercelSandboxSettings,
@@ -80,6 +85,7 @@ export class VercelSandboxProvider implements HarnessV1SandboxProvider {
   }
 
   create = async (options?: {
+    sessionId?: string;
     abortSignal?: AbortSignal;
     identity?: string;
     onFirstCreate?: (
@@ -113,9 +119,18 @@ export class VercelSandboxProvider implements HarnessV1SandboxProvider {
     const identity = options?.identity;
     const onFirstCreate = options?.onFirstCreate;
 
+    // When sessionId is supplied, name the per-session sandbox
+    // deterministically so a future `resume({ sessionId })` can locate
+    // it via `Sandbox.get({ name })`. Absent sessionId (e.g. prewarm),
+    // fall back to Vercel's auto-naming.
+    const sessionNameOverride = options?.sessionId
+      ? { name: sessionSandboxName(options.sessionId) }
+      : {};
+
     if (identity == null || onFirstCreate == null) {
       const sandbox = await Sandbox.create({
         ...baseParams,
+        ...sessionNameOverride,
         ...(options?.abortSignal ? { signal: options.abortSignal } : {}),
       });
       return new VercelSandboxHandle({ sandbox, ownsLifecycle: true });
@@ -167,9 +182,31 @@ export class VercelSandboxProvider implements HarnessV1SandboxProvider {
     const fork = await Sandbox.create({
       ...forkParams,
       source: { type: 'snapshot', snapshotId },
+      ...sessionNameOverride,
       ...(options?.abortSignal ? { signal: options.abortSignal } : {}),
     });
     return new VercelSandboxHandle({ sandbox: fork, ownsLifecycle: true });
+  };
+
+  resume = async (options: {
+    sessionId: string;
+    abortSignal?: AbortSignal;
+  }): Promise<HarnessV1SandboxHandle> => {
+    options.abortSignal?.throwIfAborted();
+
+    // Wrap-existing case: caller owns the sandbox. Same handle as create.
+    if ('sandbox' in this.settings && this.settings.sandbox != null) {
+      return new VercelSandboxHandle({
+        sandbox: this.settings.sandbox,
+        ownsLifecycle: false,
+      });
+    }
+
+    const sandbox = await Sandbox.get({
+      name: sessionSandboxName(options.sessionId),
+      ...(options.abortSignal ? { signal: options.abortSignal } : {}),
+    });
+    return new VercelSandboxHandle({ sandbox, ownsLifecycle: true });
   };
 }
 

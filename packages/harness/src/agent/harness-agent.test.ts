@@ -77,7 +77,6 @@ describe('HarnessAgent', () => {
     expect(agent.version).toBe('agent-v1');
     expect(agent.id).toBe('a1');
     expect(agent.harnessId).toBe('mock');
-    expect(typeof agent.sessionId).toBe('string');
     expect(agent.tools).toEqual({});
   });
 
@@ -305,20 +304,17 @@ describe('HarnessAgent', () => {
     });
 
     const agent = new HarnessAgent({ harness });
-    await agent.generate({ prompt: 'one' });
-    await agent.generate({ prompt: 'two' });
+    const first = await agent.generate({ prompt: 'one' });
+    const second = await agent.generate({ prompt: 'two' });
 
+    // Both calls reuse the same default session.
+    expect(first.sessionId).toBe(second.sessionId);
     expect(prompts).toHaveLength(2);
     // doStop is only called on close(), not between turns.
     expect(doStop).not.toHaveBeenCalled();
 
-    await agent.close();
+    await agent.close({ sessionId: first.sessionId });
     expect(doStop).toHaveBeenCalledTimes(1);
-
-    // After close, further generate() calls should fail.
-    await expect(agent.generate({ prompt: 'three' })).rejects.toThrow(
-      /closed/i,
-    );
   });
 
   test('detach() throws when the harness session does not support it', async () => {

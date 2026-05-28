@@ -16,6 +16,7 @@ const VERCEL_PROVIDER_ID = 'vercel-sandbox';
  * ownership).
  */
 export class VercelSandboxHandle implements HarnessV1SandboxHandle {
+  readonly id: string;
   readonly session: VercelSandboxSession;
   private readonly sandbox: Sandbox;
   private readonly ownsLifecycle: boolean;
@@ -23,6 +24,7 @@ export class VercelSandboxHandle implements HarnessV1SandboxHandle {
   constructor(input: { sandbox: Sandbox; ownsLifecycle: boolean }) {
     this.sandbox = input.sandbox;
     this.ownsLifecycle = input.ownsLifecycle;
+    this.id = input.sandbox.name;
     this.session = new VercelSandboxSession(input.sandbox);
   }
 

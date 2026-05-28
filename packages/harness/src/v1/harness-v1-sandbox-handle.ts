@@ -11,6 +11,17 @@ import type { HarnessV1SandboxSession } from './harness-v1-sandbox-session';
  */
 export interface HarnessV1SandboxHandle {
   /**
+   * Stable identifier for the underlying sandbox resource. Used by the
+   * harness session manager as the durable lookup key for cross-process
+   * resume — the framework persists this on the resume payload so a future
+   * process can call `HarnessV1SandboxProvider.resume?({ sessionId })` and
+   * reach the same resource. Providers populate it from their native
+   * identifier (Vercel: the sandbox name; just-bash: a UUID minted at
+   * create time).
+   */
+  readonly id: string;
+
+  /**
    * Tool-safe view of the sandbox, typed as `Experimental_Sandbox`. Pass this
    * to any code that should not be able to stop the sandbox or change its
    * network policy.

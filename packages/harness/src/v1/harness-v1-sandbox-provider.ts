@@ -55,6 +55,15 @@ export interface HarnessV1SandboxProvider {
   readonly bridgePorts?: ReadonlyArray<number>;
 
   readonly create: (options?: {
+    /**
+     * Stable per-session identifier. When supplied, the provider names the
+     * underlying resource deterministically so a future call to `resume`
+     * (potentially from a different process) can find the same sandbox.
+     * Omitted from prewarm and other paths that don't need a resumable
+     * resource — in that case the provider falls back to its native
+     * auto-naming.
+     */
+    sessionId?: string;
     abortSignal?: AbortSignal;
     /**
      * Stable identity for snapshot-based reuse. Providers that support
@@ -78,5 +87,21 @@ export interface HarnessV1SandboxProvider {
       session: HarnessV1SandboxSession,
       opts: { abortSignal?: AbortSignal },
     ) => Promise<void>;
+  }) => PromiseLike<HarnessV1SandboxHandle>;
+
+  /**
+   * Reattach to an existing sandbox previously created with the same
+   * `sessionId`. Optional — providers that cannot rehydrate by id (e.g.
+   * just-bash) omit this; the harness throws
+   * `HarnessCapabilityUnsupportedError` when resume is attempted against
+   * them.
+   *
+   * The provider derives the sandbox identifier from `sessionId` using the
+   * same deterministic naming scheme it used in `create`. Returns a handle
+   * bound to the existing resource.
+   */
+  readonly resume?: (options: {
+    sessionId: string;
+    abortSignal?: AbortSignal;
   }) => PromiseLike<HarnessV1SandboxHandle>;
 }

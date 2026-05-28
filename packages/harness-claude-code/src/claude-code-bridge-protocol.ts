@@ -101,6 +101,13 @@ export const outboundMessageSchema = z.discriminatedUnion('type', [
 
   z.object({ type: z.literal('error'), error: z.unknown() }),
   z.object({ type: z.literal('raw'), rawValue: z.unknown() }),
+
+  // Bridge's reply to an inbound `detach` request. Carries the
+  // adapter-specific payload the host serializes into `HarnessV1ResumeState`.
+  z.object({
+    type: z.literal('detach-state'),
+    data: z.unknown(),
+  }),
 ]);
 
 export type OutboundMessage = z.infer<typeof outboundMessageSchema>;
@@ -122,6 +129,10 @@ export const inboundMessageSchema = z.discriminatedUnion('type', [
     model: z.string().optional(),
     maxTurns: z.number().optional(),
     thinking: z.enum(['off', 'on', 'adaptive']).optional(),
+    // Resume signal. When true, the bridge passes `{ continue: true }` to
+    // the Claude SDK so the in-workdir thread state is rehydrated. The
+    // host sets this on the first prompt after a cross-process resume.
+    continue: z.boolean().optional(),
   }),
   z.object({
     type: z.literal('tool-result'),
@@ -132,6 +143,10 @@ export const inboundMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('user-message'), text: z.string() }),
   z.object({ type: z.literal('abort') }),
   z.object({ type: z.literal('shutdown') }),
+  // Detach the current session: the bridge replies with `detach-state`
+  // carrying any adapter-specific payload it has cached, then exits. The
+  // host wraps the reply into `HarnessV1ResumeState`.
+  z.object({ type: z.literal('detach') }),
 ]);
 
 export type InboundMessage = z.infer<typeof inboundMessageSchema>;

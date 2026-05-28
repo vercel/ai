@@ -5,8 +5,9 @@
 
 import type { HarnessV1BuiltinToolName } from '@ai-sdk/harness';
 import { randomUUID } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
-import { argv, env as procEnv, stdout } from 'node:process';
+import { existsSync } from 'node:fs';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { argv, env as procEnv, pid, stdout } from 'node:process';
 
 const PROTOCOL_VERSION = 1;
 
@@ -35,6 +36,17 @@ if (!workdir) {
   emitFatal('Missing --workdir argument.');
 }
 
+const bridgeStateDir = `${workdir}/bridge-state`;
+const startConfigPath = `${bridgeStateDir}/start-config.json`;
+const rerunStartConfigPath = `${bridgeStateDir}/rerun-start-config.json`;
+const bridgeMetaPath = `${bridgeStateDir}/bridge-meta.json`;
+
+try {
+  await mkdir(bridgeStateDir, { recursive: true });
+} catch {
+  // Best-effort; if we can't write state files the bridge still runs.
+}
+
 try {
   const envFile = JSON.parse(
     await readFile(`${workdir}/env.json`, 'utf8'),
@@ -45,6 +57,42 @@ try {
 }
 
 const expectedToken = procEnv.BRIDGE_CHANNEL_TOKEN ?? '';
+
+type BridgeState = 'init' | 'waiting' | 'running' | 'draining' | 'done';
+let currentBoundPort = 0;
+
+async function writeBridgeMeta(state: BridgeState): Promise<void> {
+  const meta = {
+    type: 'claude-code',
+    protocolVersion: PROTOCOL_VERSION,
+    port: currentBoundPort,
+    state,
+    pid,
+  };
+  try {
+    await writeFile(bridgeMetaPath, JSON.stringify(meta));
+  } catch {
+    // Best-effort — resilience metadata, not load-bearing for the active turn.
+  }
+}
+
+async function writeStartConfig(start: unknown): Promise<void> {
+  try {
+    const serialized = JSON.stringify(start);
+    await writeFile(startConfigPath, serialized);
+    // `rerun-start-config.json` is the frozen copy: written once on the
+    // first start, never overwritten. Future `rerun`-mode recovery
+    // restores it back over `start-config.json` to re-run the original
+    // turn from scratch when a bridge died mid-stream.
+    if (!existsSync(rerunStartConfigPath)) {
+      await writeFile(rerunStartConfigPath, serialized);
+    }
+  } catch {
+    // Best-effort.
+  }
+}
+
+void writeBridgeMeta('init');
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const { WebSocketServer } = (await import('ws')) as any;
@@ -65,6 +113,8 @@ let activeSocket: WSConnection | undefined;
 wss.on('listening', () => {
   const addr = wss.address();
   const port = typeof addr === 'object' && addr ? addr.port : 0;
+  currentBoundPort = port;
+  void writeBridgeMeta('waiting');
   stdout.write(
     JSON.stringify({
       type: 'bridge-ready',
@@ -81,6 +131,10 @@ wss.on('connection', (ws: WSConnection, req: { url?: string }) => {
     return;
   }
   if (activeSocket) {
+    // TODO(§9): accept replacement connections instead of rejecting. When the
+    // bridge survives WS close (also §9), a second host reconnect should
+    // close the prior `activeSocket` and adopt the new one. For now the
+    // bridge holds a single connection at a time.
     ws.close(1013, 'bridge already has an active host connection');
     return;
   }
@@ -107,6 +161,7 @@ type StartMessage = {
   model?: string;
   maxTurns?: number;
   thinking?: 'off' | 'on' | 'adaptive';
+  continue?: boolean;
 };
 
 type InboundMessage =
@@ -119,7 +174,8 @@ type InboundMessage =
     }
   | { type: 'user-message'; text: string }
   | { type: 'abort' }
-  | { type: 'shutdown' };
+  | { type: 'shutdown' }
+  | { type: 'detach' };
 
 function wireSocket(ws: WSConnection): void {
   const pendingToolResults = new Map<
@@ -151,6 +207,8 @@ function wireSocket(ws: WSConnection): void {
       case 'start': {
         const firstTurn = isFirstTurn;
         isFirstTurn = false;
+        void writeStartConfig(parsed);
+        void writeBridgeMeta('running');
         runTurn({
           start: parsed,
           send,
@@ -160,9 +218,13 @@ function wireSocket(ws: WSConnection): void {
           onAbortCtl: ctl => {
             turnAbort = ctl;
           },
-        }).catch(err => {
-          send({ type: 'error', error: serialiseError(err) });
-        });
+        })
+          .catch(err => {
+            send({ type: 'error', error: serialiseError(err) });
+          })
+          .finally(() => {
+            void writeBridgeMeta('waiting');
+          });
         return;
       }
       case 'tool-result': {
@@ -180,6 +242,7 @@ function wireSocket(ws: WSConnection): void {
         turnAbort?.abort();
         return;
       case 'shutdown':
+        void writeBridgeMeta('done');
         try {
           ws.close(1000, 'shutdown');
         } finally {
@@ -187,14 +250,52 @@ function wireSocket(ws: WSConnection): void {
           setTimeout(() => process.exit(0), 1000).unref();
         }
         return;
+      case 'detach':
+        // Claude Code's session state lives in the workdir on the sandbox
+        // filesystem (the Claude SDK reads/writes it via `cwd`); the
+        // `{ continue: true }` flag on resume rehydrates the thread. So
+        // the detach payload is structurally empty — the framework still
+        // wraps it in `HarnessV1ResumeState` for transport.
+        void writeBridgeMeta('done');
+        send({ type: 'detach-state', data: {} });
+        // Allow the message to flush before tearing down.
+        setTimeout(() => {
+          try {
+            ws.close(1000, 'detach');
+          } finally {
+            wss.close(() => process.exit(0));
+            setTimeout(() => process.exit(0), 1000).unref();
+          }
+        }, 50).unref?.();
+        return;
     }
   });
 
   ws.on('close', () => {
     activeSocket = undefined;
+    // TODO(§9): keep the bridge process alive across WS disconnects so a
+    // future host process can reattach via §9's `{type:'resume',
+    // lastSeenEventId}` wire message and replay buffered events from the
+    // in-memory event log. Today we abort the active turn — mid-turn state
+    // is lost on disconnect; only between-turn cross-process resume works.
     turnAbort?.abort();
   });
 }
+
+// TODO(§9): event log persistence. The bridge does not yet write
+// `${bridgeStateDir}/event-log.ndjson` with monotonic event IDs. When that
+// lands, paired with the bridge-side `{type:'resume', lastSeenEventId}`
+// handler, the host can recover mid-turn state without re-running the
+// prompt. Until then, recovery from a dead bridge means a full rerun from
+// `rerun-start-config.json`.
+
+// TODO(§9): event IDs on every outbound message. Pair with the event log
+// above so `replayEventsToClient(ws, afterId)` can slice the log on resume.
+
+// TODO(§9): `BRIDGE_REPLAY_FROM_DISK=1` startup mode. When the host
+// respawns the bridge for disk-replay recovery, the bridge should read
+// `start-config.json` from disk and skip waiting for a WS `start`, then
+// reload the event log into memory so the resume message can replay it.
 
 type Emit = (msg: Record<string, unknown>) => void;
 
@@ -302,7 +403,11 @@ async function runTurn({
       ...(start.maxTurns !== undefined ? { maxTurns: start.maxTurns } : {}),
       ...(start.thinking ? { thinking: start.thinking } : {}),
       includePartialMessages: true,
-      ...(firstTurn ? {} : { continue: true }),
+      // Continuation rule: the host can force-continue (resume after a
+      // cross-process detach) by setting `start.continue: true`; otherwise
+      // we continue every subsequent turn after the first one in this
+      // bridge process.
+      ...(start.continue === true || !firstTurn ? { continue: true } : {}),
       permissionMode: 'bypassPermissions',
       allowDangerouslySkipPermissions: true,
       mcpServers,
