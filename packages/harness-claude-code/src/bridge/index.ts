@@ -151,7 +151,7 @@ type WSConnection = {
 
 type StartMessage = {
   type: 'start';
-  promptMessages: ReadonlyArray<unknown>;
+  prompt: string;
   instructions?: string;
   tools?: ReadonlyArray<{
     name: string;
@@ -385,12 +385,10 @@ async function runTurn({
     };
   }
 
-  const userMessage = extractUserText(start.promptMessages);
-
   send({ type: 'stream-start' });
 
   const queryInput = makeQueryInput({
-    initialUserMessage: userMessage,
+    initialUserMessage: start.prompt,
     pendingUserMessages,
     abortSignal: abortCtl.signal,
   });
@@ -768,31 +766,6 @@ function defaultUsage(): Record<string, unknown> {
     inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
     outputTokens: { total: 0, text: 0 },
   };
-}
-
-function extractUserText(messages: ReadonlyArray<unknown>): string {
-  const parts: string[] = [];
-  for (const msg of messages) {
-    if (!msg || typeof msg !== 'object') continue;
-    const m = msg as { role?: string; content?: unknown };
-    if (m.role !== 'user') continue;
-    if (typeof m.content === 'string') {
-      parts.push(m.content);
-    } else if (Array.isArray(m.content)) {
-      for (const c of m.content) {
-        if (
-          c &&
-          typeof c === 'object' &&
-          'type' in c &&
-          (c as { type: string }).type === 'text'
-        ) {
-          const text = (c as { text?: unknown }).text;
-          if (typeof text === 'string') parts.push(text);
-        }
-      }
-    }
-  }
-  return parts.join('\n\n');
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

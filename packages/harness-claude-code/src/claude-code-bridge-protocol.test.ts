@@ -65,7 +65,7 @@ describe('inboundMessageSchema', () => {
     expect(() =>
       inboundMessageSchema.parse({
         type: 'start',
-        promptMessages: [{ role: 'user', content: 'hi' }],
+        prompt: 'hi',
         tools: [{ name: 'deploy' }],
         model: 'claude-sonnet-4-5',
         maxTurns: 5,

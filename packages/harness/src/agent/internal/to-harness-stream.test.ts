@@ -67,7 +67,7 @@ describe('toHarnessStream', () => {
 
     const { stream } = await toHarnessStream({
       session,
-      prompt: [{ role: 'user', content: [{ type: 'text', text: 'hi' }] }],
+      prompt: { role: 'user', content: [{ type: 'text', text: 'hi' }] },
     });
 
     const parts = await collect(stream);
@@ -89,7 +89,7 @@ describe('toHarnessStream', () => {
 
     const { control } = await toHarnessStream({
       session,
-      prompt: [{ role: 'user', content: [{ type: 'text', text: 'hi' }] }],
+      prompt: { role: 'user', content: [{ type: 'text', text: 'hi' }] },
     });
 
     await control.submitToolResult({ toolCallId: 'c1', output: 'ok' });
@@ -119,7 +119,7 @@ describe('toHarnessStream', () => {
 
     const { stream } = await toHarnessStream({
       session,
-      prompt: [{ role: 'user', content: [{ type: 'text', text: 'hi' }] }],
+      prompt: { role: 'user', content: [{ type: 'text', text: 'hi' }] },
     });
 
     // Trigger the failure after the stream is wired up. This mirrors how a
@@ -150,16 +150,17 @@ describe('toHarnessStream', () => {
 
     await toHarnessStream({
       session,
-      prompt: [{ role: 'user', content: [{ type: 'text', text: 'hi' }] }],
+      prompt: { role: 'user', content: [{ type: 'text', text: 'hi' }] },
       tools: [{ name: 'myTool' }],
       instructions: 'be brief',
     });
 
     expect(doPrompt).toHaveBeenCalledTimes(1);
     const arg = doPrompt.mock.calls[0]![0]!;
-    expect(arg.prompt).toEqual([
-      { role: 'user', content: [{ type: 'text', text: 'hi' }] },
-    ]);
+    expect(arg.prompt).toEqual({
+      role: 'user',
+      content: [{ type: 'text', text: 'hi' }],
+    });
     expect(arg.tools).toEqual([{ name: 'myTool' }]);
     expect(arg.instructions).toBe('be brief');
     expect(typeof arg.emit).toBe('function');
@@ -183,7 +184,7 @@ describe('toHarnessStream', () => {
 
     await toHarnessStream({
       session,
-      prompt: [{ role: 'user', content: [{ type: 'text', text: 'hi' }] }],
+      prompt: { role: 'user', content: [{ type: 'text', text: 'hi' }] },
       abortSignal: ac.signal,
     });
 

@@ -1,12 +1,11 @@
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import type { UserModelMessage } from '@ai-sdk/provider-utils';
 
 /**
  * Prompt shape passed to `HarnessV1Session.doPrompt`.
  *
- * Aliases `LanguageModelV4Prompt` from `@ai-sdk/provider` — harness adapters
- * receive the same structured message-array shape that V4 language models
- * receive. Defining it under a harness-owned name keeps the spec self-
- * contained and gives us room to extend later if a harness-specific prompt
- * shape becomes necessary.
+ * A harness session represents an ongoing third-party agent runtime that
+ * owns its own conversation history. Each prompt turn carries only the
+ * fresh user input for that turn, either as a plain string or as a single
+ * `UserModelMessage`.
  */
-export type HarnessV1Prompt = LanguageModelV4Prompt;
+export type HarnessV1Prompt = string | UserModelMessage;

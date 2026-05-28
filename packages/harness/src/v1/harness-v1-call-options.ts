@@ -55,9 +55,9 @@ export type HarnessV1StartOptions = {
  */
 export type HarnessV1PromptOptions = {
   /**
-   * Conversation input for this turn, in the V4 language-model prompt
-   * shape. `HarnessAgent` normalizes caller-supplied prompts (string or
-   * message array) into this shape before invoking the session.
+   * Fresh input for this turn — either a plain string or a single
+   * `ModelMessage`. The harness session owns its own conversation history,
+   * so prior turns are never replayed across the contract.
    */
   readonly prompt: HarnessV1Prompt;
 

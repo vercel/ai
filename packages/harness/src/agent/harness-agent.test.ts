@@ -317,6 +317,84 @@ describe('HarnessAgent', () => {
     expect(doStop).toHaveBeenCalledTimes(1);
   });
 
+  test('normalizes prompt input — string passes through, message array is reduced to the last user message', async () => {
+    function finishOnly(): HarnessV1StreamPart[] {
+      return [
+        {
+          type: 'finish-step',
+          finishReason: { unified: 'stop', raw: undefined },
+          usage: {
+            inputTokens: {
+              total: undefined,
+              noCache: undefined,
+              cacheRead: undefined,
+              cacheWrite: undefined,
+            },
+            outputTokens: {
+              total: undefined,
+              text: undefined,
+              reasoning: undefined,
+            },
+          },
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: undefined },
+          totalUsage: {
+            inputTokens: {
+              total: undefined,
+              noCache: undefined,
+              cacheRead: undefined,
+              cacheWrite: undefined,
+            },
+            outputTokens: {
+              total: undefined,
+              text: undefined,
+              reasoning: undefined,
+            },
+          },
+        },
+      ];
+    }
+
+    const { harness, prompts } = mockHarness({ script: finishOnly });
+    const agent = new HarnessAgent({ harness });
+
+    await agent.generate({ prompt: 'plain string' });
+    await agent.generate({
+      messages: [
+        { role: 'system', content: 'be terse' },
+        { role: 'user', content: 'older user turn — dropped' },
+        { role: 'assistant', content: 'older assistant turn — dropped' },
+        { role: 'user', content: 'latest user turn' },
+      ],
+    });
+    await agent.generate({
+      prompt: [
+        { role: 'user', content: 'discarded' },
+        { role: 'assistant', content: 'discarded too' },
+        { role: 'user', content: [{ type: 'text', text: 'final turn' }] },
+      ],
+    });
+
+    expect(prompts).toEqual([
+      'plain string',
+      { role: 'user', content: 'latest user turn' },
+      { role: 'user', content: [{ type: 'text', text: 'final turn' }] },
+    ]);
+
+    await expect(
+      agent.generate({
+        messages: [
+          { role: 'system', content: 'no user message here' },
+          { role: 'assistant', content: 'nothing for the harness to run' },
+        ],
+      }),
+    ).rejects.toThrow(/at least one `role: "user"` entry/);
+
+    await agent.close();
+  });
+
   test('detach() throws when the harness session does not support it', async () => {
     const { harness } = mockHarness({ script: () => [] });
     const agent = new HarnessAgent({ harness });

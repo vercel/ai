@@ -68,7 +68,7 @@ describe('inboundMessageSchema', () => {
     expect(() =>
       inboundMessageSchema.parse({
         type: 'start',
-        promptMessages: [{ role: 'user', content: 'hi' }],
+        prompt: 'hi',
         tools: [{ name: 'deploy' }],
         model: 'gpt-5.1',
         reasoningEffort: 'high',
