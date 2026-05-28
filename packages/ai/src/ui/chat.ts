@@ -757,7 +757,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     } finally {
       try {
         this.onFinish?.({
-          message: this.activeResponse!.state.message,
+          message: this.activeResponse?.state.message,
           messages: this.state.messages,
           isAbort,
           isDisconnect,
