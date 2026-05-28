@@ -4,6 +4,13 @@
 
 ### Patch Changes
 
+- Updated dependencies [bcce2dd]
+  - ai@7.0.0-canary.158
+
+## 0.0.1-canary.0
+
+### Patch Changes
+
 - ai@7.0.0-canary.157
 
 ## 0.0.1-canary.0
