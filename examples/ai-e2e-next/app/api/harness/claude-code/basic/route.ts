@@ -3,6 +3,7 @@ import {
   loadHarnessSession,
   saveHarnessSession,
 } from '@/util/harness-session-store';
+import { createUIMessageStreamResponse, toUIMessageStream } from 'ai';
 
 /*
  * REST endpoint demonstrating cross-process harness session resume.
@@ -54,7 +55,8 @@ export async function POST(request: Request) {
 
   const result = await claudeCodeHarnessAgent.stream({ session, prompt });
 
-  return result.toUIMessageStreamResponse({
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
     consumeSseStream: async ({ stream }) => {
       console.log(`[CSS ${Date.now()}] consumeSseStream invoked`);
       try {
