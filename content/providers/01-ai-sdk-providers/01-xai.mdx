@@ -215,9 +215,13 @@ console.log('Citations:', sources);
 
   Exclude specified domains from search (max 5). Cannot be used with `allowedDomains`.
 
+- **enableImageSearch** _boolean_
+
+  Allow the model to perform image search as a separate Web Search mode when images are useful for the answer. The model can choose between regular web search and image search; responses can include Markdown image embeds when relevant.
+
 - **enableImageUnderstanding** _boolean_
 
-  Enable the model to view and analyze images found during search. Increases token usage.
+  Enable the model to view and analyze images found during search. Increases token usage. To allow explicitly searching for images, use `enableImageSearch`.
 
 ### X Search Tool
 

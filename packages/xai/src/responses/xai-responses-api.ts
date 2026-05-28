@@ -79,6 +79,7 @@ export type XaiResponsesTool =
       type: 'web_search';
       allowed_domains?: string[];
       excluded_domains?: string[];
+      enable_image_search?: boolean;
       enable_image_understanding?: boolean;
     }
   | {
