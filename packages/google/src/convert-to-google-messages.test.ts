@@ -138,7 +138,6 @@ describe('thought signatures with vertex providerOptionsName', () => {
                   "args": {
                     "location": "London",
                   },
-                  "id": "call1",
                   "name": "getWeather",
                 },
                 "thoughtSignature": "sig3",
@@ -176,7 +175,6 @@ describe('thought signatures with vertex providerOptionsName', () => {
 
     expect(result.contents[0].parts[0]).toEqual({
       functionCall: {
-        id: 'call1',
         name: 'getWeather',
         args: { location: 'London' },
       },
@@ -207,7 +205,6 @@ describe('thought signatures with vertex providerOptionsName', () => {
 
     expect(result.contents[0].parts[0]).toEqual({
       functionCall: {
-        id: 'call1',
         name: 'getWeather',
         args: { location: 'London' },
       },
