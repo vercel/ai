@@ -4,6 +4,11 @@ export { JsonToSseTransformStream } from './json-to-sse-transform-stream';
 export { pipeUIMessageStreamToResponse } from './pipe-ui-message-stream-to-response';
 export { readUIMessageStream } from './read-ui-message-stream';
 export {
+  toUIMessageChunk,
+  type ToUIMessageChunkOptions,
+} from './to-ui-message-chunk';
+export { toUIMessageStream } from './to-ui-message-stream';
+export {
   uiMessageChunkSchema,
   type InferUIMessageChunk,
   type UIMessageChunk,
