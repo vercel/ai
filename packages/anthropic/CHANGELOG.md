@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.81
+
+### Patch Changes
+
+- 4084fcd: feat(provider/anthropic): add support for `claude-opus-4-8`
+
 ## 3.0.80
 
 ### Patch Changes
