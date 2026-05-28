@@ -9,6 +9,7 @@ test('Experimental_Sandbox exposes spawn returning a process handle', () => {
   expectTypeOf<Parameters<Experimental_Sandbox['spawn']>[0]>().toEqualTypeOf<{
     command: string;
     workingDirectory?: string;
+    env?: Record<string, string>;
     abortSignal?: AbortSignal;
   }>();
   expectTypeOf<

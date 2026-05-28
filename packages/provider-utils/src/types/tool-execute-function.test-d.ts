@@ -22,6 +22,7 @@ describe('tool execute function types', () => {
     expectTypeOf<Parameters<Sandbox['run']>[0]>().toEqualTypeOf<{
       command: string;
       workingDirectory?: string;
+      env?: Record<string, string>;
       abortSignal?: AbortSignal;
     }>();
   });

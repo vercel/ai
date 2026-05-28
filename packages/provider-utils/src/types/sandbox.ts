@@ -24,6 +24,15 @@ export type Experimental_Sandbox = {
     workingDirectory?: string;
 
     /**
+     * Environment variables to set for this command. Merged with the
+     * sandbox's default environment; values here take precedence on collisions.
+     * Implementations that cannot apply per-command environment overrides
+     * (e.g. in-process sandboxes that share the host's environment) may
+     * ignore this option.
+     */
+    env?: Record<string, string>;
+
+    /**
      * Signal that can be used to abort the command.
      */
     abortSignal?: AbortSignal;
@@ -204,6 +213,15 @@ export type Experimental_Sandbox = {
      * Working directory to execute the command in.
      */
     workingDirectory?: string;
+
+    /**
+     * Environment variables to set for this process. Merged with the
+     * sandbox's default environment; values here take precedence on collisions.
+     * Implementations that cannot apply per-process environment overrides
+     * (e.g. in-process sandboxes that share the host's environment) may
+     * ignore this option.
+     */
+    env?: Record<string, string>;
 
     /**
      * Signal that can be used to abort the process. When aborted, the process
