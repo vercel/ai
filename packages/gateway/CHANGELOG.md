@@ -1,5 +1,12 @@
 # @ai-sdk/gateway
 
+## 2.0.94
+
+### Patch Changes
+
+- 0e2aaaa: feat(provider/anthropic): add support for `claude-opus-4-8`
+- 8fc77c6: Backport: chore(provider/gateway): update gateway model settings files
+
 ## 2.0.93
 
 ### Patch Changes
