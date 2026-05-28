@@ -1855,7 +1855,10 @@ function getModelCapabilities(modelId: string): {
   rejectsSamplingParameters: boolean;
   isKnownModel: boolean;
 } {
-  if (modelId.includes('claude-opus-4-7')) {
+  if (
+    modelId.includes('claude-opus-4-8') ||
+    modelId.includes('claude-opus-4-7')
+  ) {
     return {
       maxOutputTokens: 128000,
       supportsStructuredOutput: true,

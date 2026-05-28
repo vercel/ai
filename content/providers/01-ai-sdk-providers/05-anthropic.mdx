@@ -289,7 +289,7 @@ import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: anthropic('claude-opus-4-7'),
+  model: anthropic('claude-opus-4-8'),
   prompt: 'Research the pros and cons of Rust vs Go for building CLI tools.',
   providerOptions: {
     anthropic: {
@@ -365,7 +365,7 @@ Starting with `claude-opus-4-7`, thinking content is omitted from the response b
 
 ```ts highlight="5"
 const { text, reasoningText } = await generateText({
-  model: anthropic('claude-opus-4-7'),
+  model: anthropic('claude-opus-4-8'),
   providerOptions: {
     anthropic: {
       thinking: { type: 'adaptive', display: 'summarized' },
@@ -1141,6 +1141,7 @@ and the `mediaType` should be set to `'application/pdf'`.
 
 | Model                      | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search          | Tool Search         | Compaction          |
 | -------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `claude-opus-4-8`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-opus-4-7`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-opus-4-6`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-sonnet-4-6`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |

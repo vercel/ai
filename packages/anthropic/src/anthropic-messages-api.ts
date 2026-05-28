@@ -11,12 +11,20 @@ export type AnthropicMessagesPrompt = {
   messages: AnthropicMessage[];
 };
 
-export type AnthropicMessage = AnthropicUserMessage | AnthropicAssistantMessage;
+export type AnthropicMessage =
+  | AnthropicUserMessage
+  | AnthropicAssistantMessage
+  | AnthropicSystemMessage;
 
 export type AnthropicCacheControl = {
   type: 'ephemeral';
   ttl?: '5m' | '1h';
 };
+
+export interface AnthropicSystemMessage {
+  role: 'system';
+  content: Array<AnthropicTextContent>;
+}
 
 export interface AnthropicUserMessage {
   role: 'user';
