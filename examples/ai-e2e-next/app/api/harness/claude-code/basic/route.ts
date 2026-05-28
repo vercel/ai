@@ -21,6 +21,7 @@ import {
  *      against the in-flight turn.
  */
 export async function POST(request: Request) {
+  console.log(`[POST ${Date.now()}] entered`);
   const body = (await request.json()) as {
     id?: string;
     messages: Array<{
@@ -54,6 +55,7 @@ export async function POST(request: Request) {
 
   return result.toUIMessageStreamResponse({
     consumeSseStream: async ({ stream }) => {
+      console.log(`[CSS ${Date.now()}] consumeSseStream invoked`);
       try {
         const reader = stream.getReader();
         while (true) {
@@ -64,16 +66,19 @@ export async function POST(request: Request) {
         // Reader errors are surfaced through the stream itself; we still
         // need to detach so the sandbox state is preserved.
       }
+      console.log(`[CSS ${Date.now()}] drain done, calling detach`);
 
       try {
         const state = await claudeCodeHarnessAgent.detach({
           sessionId: result.sessionId,
         });
+        console.log(`[CSS ${Date.now()}] detach returned, calling save`);
         await saveHarnessSession({
           chatId,
           sessionId: result.sessionId,
           state,
         });
+        console.log(`[CSS ${Date.now()}] save returned`);
       } catch (err) {
         console.error('[harness-claude-code] failed to detach + save:', err);
       }

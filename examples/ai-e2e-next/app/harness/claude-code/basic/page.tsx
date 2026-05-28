@@ -4,8 +4,9 @@ import type { ClaudeCodeHarnessAgentMessage } from '@/agent/harness/claude-code-
 import { Response } from '@/components/ai-elements/response';
 import ChatInput from '@/components/chat-input';
 import DynamicToolView from '@/components/tool/dynamic-tool-view';
-import HarnessBashView from '@/components/tool/harness-bash-view';
+import HarnessBashToolView from '@/components/tool/harness-bash-tool-view';
 import HarnessFileToolView from '@/components/tool/harness-file-tool-view';
+import HarnessToolView from '@/components/tool/harness-tool-view';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { useEffect, useState } from 'react';
@@ -61,7 +62,7 @@ function Chat({ chatId, onReset }: { chatId: string; onReset: () => void }) {
     });
 
   return (
-    <div className="flex flex-col pt-12 pb-24 mx-auto w-full max-w-md stretch">
+    <div className="flex flex-col pt-12 pb-24 mx-auto w-full max-w-5xl stretch">
       <h1 className="mb-2 text-xl font-bold">Harness — Claude Code</h1>
       <p className="mb-4 text-xs text-gray-500">
         chat id: <code>{chatId}</code>
@@ -99,7 +100,22 @@ function Chat({ chatId, onReset }: { chatId: string; onReset: () => void }) {
                 return null;
               }
               case 'tool-bash': {
-                return <HarnessBashView invocation={part} key={index} />;
+                return <HarnessBashToolView invocation={part} key={index} />;
+              }
+              case 'tool-Agent': {
+                return (
+                  <HarnessToolView
+                    key={index}
+                    toolName="Agent"
+                    toolArg={part.input?.subagent_type}
+                    state={part.state}
+                    output={
+                      part.state === 'output-available'
+                        ? part.output
+                        : undefined
+                    }
+                  />
+                );
               }
               case 'tool-read':
               case 'tool-write':
@@ -141,7 +157,11 @@ function Chat({ chatId, onReset }: { chatId: string; onReset: () => void }) {
         className="fixed inset-x-0 bottom-0 h-32 bg-gradient-to-t from-white to-transparent pointer-events-none"
       />
 
-      <ChatInput status={status} onSubmit={text => sendMessage({ text })} />
+      <ChatInput
+        status={status}
+        maxWidth="5xl"
+        onSubmit={text => sendMessage({ text })}
+      />
     </div>
   );
 }

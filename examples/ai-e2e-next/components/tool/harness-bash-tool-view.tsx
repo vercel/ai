@@ -1,33 +1,40 @@
+'use client';
+
 import type { claudeCode } from '@ai-sdk/harness-claude-code';
 import type { UIToolInvocation } from 'ai';
+import CollapsibleOutput from './collapsible-output';
+import ToolSpinner from './tool-spinner';
 
 type BashInvocation = UIToolInvocation<typeof claudeCode.builtinTools.bash>;
 
-export default function HarnessBashView({
+const PRE_CLASS =
+  'overflow-x-auto px-2 py-1.5 font-mono text-sm text-black whitespace-pre-wrap bg-gray-100 rounded-lg border border-gray-300';
+const PRE_CLASS_ERROR =
+  'overflow-x-auto px-2 py-1.5 font-mono text-sm text-red-600 whitespace-pre-wrap bg-red-50 rounded-lg border border-red-300';
+
+export default function HarnessBashToolView({
   invocation,
 }: {
   invocation: BashInvocation;
 }) {
   const command = invocation.input?.command ?? '';
+  const running =
+    invocation.state === 'input-streaming' ||
+    invocation.state === 'input-available';
 
+  return (
+    <div className="relative mb-2 text-sm text-gray-500">
+      {running && <ToolSpinner />}
+      <div>
+        <strong>Bash</strong>(<code>{command}</code>)
+      </div>
+      <BashOutput invocation={invocation} />
+    </div>
+  );
+}
+
+function BashOutput({ invocation }: { invocation: BashInvocation }) {
   switch (invocation.state) {
-    case 'input-streaming':
-    case 'input-available':
-      return (
-        <div className="p-2 mb-2 bg-white rounded-xl border border-gray-300 shadow-lg">
-          <div className="px-6 py-3 bg-gray-100 rounded-t-xl border-b border-gray-300">
-            <div className="overflow-hidden tracking-wide text-black whitespace-nowrap text-xxs font-small text-ellipsis">
-              Running Shell Command
-            </div>
-          </div>
-          <div className="p-6">
-            <pre className="overflow-x-auto p-4 text-sm text-black whitespace-pre-wrap bg-gray-100 rounded-lg border border-gray-300">
-              {command}
-            </pre>
-          </div>
-        </div>
-      );
-
     case 'output-available': {
       const output = invocation.output;
       const isString = typeof output === 'string';
@@ -47,81 +54,63 @@ export default function HarnessBashView({
       const exitCode =
         typeof exitCodeRaw === 'number' ? exitCodeRaw : undefined;
 
+      const hasBoth = !!stdout && !!stderr;
+
+      if (!stdout && !stderr && exitCode === undefined) {
+        return null;
+      }
+
       return (
-        <div className="p-2 mb-2 bg-white rounded-xl border border-gray-300 shadow-lg">
-          <div className="px-6 py-3 bg-gray-100 rounded-t-xl border-b border-gray-300">
-            <div className="overflow-hidden tracking-wide text-black whitespace-nowrap text-xxs font-small text-ellipsis">
-              Shell Execution Result
+        <div className="mt-1 ml-4 space-y-2">
+          {exitCode !== undefined && exitCode !== 0 && (
+            <div className="text-sm font-medium text-red-600">
+              Exit code: {exitCode}
             </div>
-          </div>
+          )}
 
-          <div className="p-6 space-y-2">
+          {stdout && (
             <div>
-              <div className="mb-2 text-sm font-medium text-black">
-                Command:
-              </div>
-              <pre className="overflow-x-auto p-4 text-sm text-black whitespace-pre-wrap bg-gray-100 rounded-lg border border-gray-300">
-                {command}
-              </pre>
+              {hasBoth && (
+                <div className="mb-1 text-xs font-medium text-black">
+                  Output
+                </div>
+              )}
+              <CollapsibleOutput content={stdout} className={PRE_CLASS} />
             </div>
+          )}
 
-            {exitCode !== undefined && exitCode !== 0 && (
-              <div className="p-3 bg-red-50 border border-red-300 rounded-lg">
-                <div className="text-sm font-medium text-red-600">
-                  Exit Code: {exitCode}
+          {stderr && (
+            <div>
+              {hasBoth && (
+                <div className="mb-1 text-xs font-medium text-red-600">
+                  Error
                 </div>
-              </div>
-            )}
-
-            {stdout && (
-              <div>
-                <div className="mb-2 text-sm font-medium text-black">
-                  Output:
-                </div>
-                <pre className="overflow-x-auto p-3 font-mono text-sm text-black whitespace-pre-wrap bg-gray-100 rounded-lg border border-gray-300">
-                  {stdout}
-                </pre>
-              </div>
-            )}
-
-            {stderr && (
-              <div>
-                <div className="mb-2 text-sm font-medium text-black">
-                  Error:
-                </div>
-                <pre className="overflow-x-auto p-3 font-mono text-sm text-red-600 whitespace-pre-wrap bg-red-50 rounded-lg border border-red-300">
-                  {stderr}
-                </pre>
-              </div>
-            )}
-          </div>
+              )}
+              <CollapsibleOutput content={stderr} className={PRE_CLASS_ERROR} />
+            </div>
+          )}
         </div>
       );
     }
 
     case 'output-denied':
       return (
-        <div className="p-2 mb-2 bg-white rounded-xl border border-gray-300 shadow-lg">
-          <div className="p-6">
-            <div className="mb-2 text-sm font-medium text-black">Command:</div>
-            <pre className="overflow-x-auto p-4 text-sm text-black whitespace-pre-wrap bg-gray-100 rounded-lg border border-gray-300">
-              {command}
-            </pre>
-            <div className="mt-4 text-sm font-medium text-red-600">
-              Execution was denied by user.
-            </div>
-          </div>
+        <div className="mt-1 ml-4 text-sm font-medium text-red-600">
+          Execution was denied by user.
         </div>
       );
 
     case 'output-error':
       return (
-        <div className="p-2 mb-2 bg-red-50 rounded-xl border border-red-300 shadow-lg">
-          <div className="p-6">
-            <div className="mb-2 text-sm font-medium text-red-600">Error:</div>
-            <div className="text-sm text-black">{invocation.errorText}</div>
-          </div>
+        <div className="mt-1 ml-4">
+          <CollapsibleOutput
+            content={invocation.errorText ?? 'Unknown error'}
+            className={PRE_CLASS_ERROR}
+          />
         </div>
       );
+
+    default:
+      return null;
   }
 }

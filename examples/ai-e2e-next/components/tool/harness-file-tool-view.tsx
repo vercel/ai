@@ -1,5 +1,6 @@
 import type { HARNESS_V1_BUILTIN_TOOLS } from '@ai-sdk/harness';
 import type { UIToolInvocation } from 'ai';
+import ToolSpinner from './tool-spinner';
 
 type FileToolPart =
   | ({ type: 'tool-read' } & UIToolInvocation<
@@ -13,9 +14,9 @@ type FileToolPart =
     >);
 
 const LABELS = {
-  'tool-read': { progress: 'Reading file', done: 'Read file' },
-  'tool-write': { progress: 'Writing file', done: 'Wrote file' },
-  'tool-edit': { progress: 'Editing file', done: 'Edited file' },
+  'tool-read': 'Read',
+  'tool-write': 'Write',
+  'tool-edit': 'Edit',
 } as const;
 
 export default function HarnessFileToolView({
@@ -27,12 +28,13 @@ export default function HarnessFileToolView({
     return null;
   }
 
-  const { progress, done } = LABELS[invocation.type];
-  const label = invocation.state === 'output-available' ? done : progress;
+  const label = LABELS[invocation.type];
+  const running = invocation.state !== 'output-available';
 
   return (
-    <div className="text-sm text-gray-500">
-      {label} <code>{invocation.input.file_path}</code>
+    <div className="relative mb-2 text-sm text-gray-500">
+      {running && <ToolSpinner />}
+      <strong>{label}</strong>(<code>{invocation.input.file_path}</code>)
     </div>
   );
 }
