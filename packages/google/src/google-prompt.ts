@@ -32,6 +32,12 @@ export type GoogleContentPart =
       thoughtSignature?: string;
     }
   | {
+      executableCode: { language: string; code: string };
+    }
+  | {
+      codeExecutionResult: { outcome: string; output: string };
+    }
+  | {
       functionResponse: {
         id?: string;
         name: string;

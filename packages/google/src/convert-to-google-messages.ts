@@ -189,6 +189,66 @@ function appendLegacyToolResultParts(
   }
 }
 
+function parsePotentialJsonValue(value: unknown): unknown {
+  if (typeof value !== 'string') {
+    return value;
+  }
+
+  try {
+    return JSON.parse(value);
+  } catch {
+    return undefined;
+  }
+}
+
+function asExecutableCode(value: unknown):
+  | {
+      language: string;
+      code: string;
+    }
+  | undefined {
+  const parsedValue = parsePotentialJsonValue(value);
+
+  if (
+    parsedValue != null &&
+    typeof parsedValue === 'object' &&
+    'language' in parsedValue &&
+    typeof parsedValue.language === 'string' &&
+    'code' in parsedValue &&
+    typeof parsedValue.code === 'string'
+  ) {
+    return {
+      language: parsedValue.language,
+      code: parsedValue.code,
+    };
+  }
+
+  return undefined;
+}
+
+function asCodeExecutionResult(
+  output: LanguageModelV4ToolResultOutput,
+): { outcome: string; output: string } | undefined {
+  const value = output.type === 'json' ? output.value : undefined;
+
+  if (
+    value != null &&
+    typeof value === 'object' &&
+    'outcome' in value &&
+    typeof value.outcome === 'string'
+  ) {
+    return {
+      outcome: value.outcome,
+      output:
+        'output' in value && typeof value.output === 'string'
+          ? value.output
+          : '',
+    };
+  }
+
+  return undefined;
+}
+
 export function convertToGoogleMessages(
   prompt: LanguageModelV4Prompt,
   options?: {
@@ -448,6 +508,17 @@ export function convertToGoogleMessages(
                 }
 
                 case 'tool-call': {
+                  if (
+                    part.providerExecuted === true &&
+                    part.toolName === 'code_execution'
+                  ) {
+                    const executableCode = asExecutableCode(part.input);
+
+                    if (executableCode != null) {
+                      return { executableCode };
+                    }
+                  }
+
                   const serverToolCallId =
                     providerOpts?.serverToolCallId != null
                       ? String(providerOpts.serverToolCallId)
@@ -489,6 +560,16 @@ export function convertToGoogleMessages(
                 }
 
                 case 'tool-result': {
+                  if (part.toolName === 'code_execution') {
+                    const codeExecutionResult = asCodeExecutionResult(
+                      part.output,
+                    );
+
+                    if (codeExecutionResult != null) {
+                      return { codeExecutionResult };
+                    }
+                  }
+
                   const serverToolCallId =
                     providerOpts?.serverToolCallId != null
                       ? String(providerOpts.serverToolCallId)
