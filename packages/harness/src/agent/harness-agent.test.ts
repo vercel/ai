@@ -118,7 +118,8 @@ describe('HarnessAgent', () => {
     });
 
     const agent = new HarnessAgent({ harness });
-    const result = await agent.generate({ prompt: 'hi' });
+    const session = await agent.createSession();
+    const result = await agent.generate({ session, prompt: 'hi' });
 
     expect(result.text).toBe('Hello, world.');
     expect(result.finishReason).toBe('stop');
@@ -133,7 +134,7 @@ describe('HarnessAgent', () => {
     expect(result.responseMessages).toHaveLength(1);
     expect(result.responseMessages[0]!.role).toBe('assistant');
 
-    await agent.close();
+    await session.close();
   });
 
   test('stream() returns a result whose fullStream emits translated parts', async () => {
@@ -179,23 +180,20 @@ describe('HarnessAgent', () => {
     });
 
     const agent = new HarnessAgent({ harness });
-    const result = await agent.stream({ prompt: 'hi' });
+    const session = await agent.createSession();
+    const result = await agent.stream({ session, prompt: 'hi' });
 
     const types: string[] = [];
     for await (const part of result.fullStream) {
       types.push(part.type);
     }
 
-    // The harness emits stream-start, text-delta, finish-step, finish.
-    // The agent: drops stream-start, forwards text-delta, emits its own
-    // finish-step at the boundary, then a finish-step pass-through is
-    // suppressed by the translator. Final agent-emitted finish closes.
     expect(types).toContain('text-delta');
     expect(types).toContain('finish-step');
     expect(types).toContain('finish');
     expect(await result.text).toBe('Hi');
 
-    await agent.close();
+    await session.close();
   });
 
   test('host-side tools are executed and the result is submitted back', async () => {
@@ -251,7 +249,8 @@ describe('HarnessAgent', () => {
     });
 
     const agent = new HarnessAgent({ harness, tools: { echo } });
-    const result = await agent.generate({ prompt: 'go' });
+    const session = await agent.createSession();
+    const result = await agent.generate({ session, prompt: 'go' });
 
     expect(toolResults).toEqual([
       { toolCallId: 'c1', output: { echoed: 'ping' } },
@@ -259,10 +258,10 @@ describe('HarnessAgent', () => {
     expect(result.toolCalls).toHaveLength(1);
     expect(result.toolCalls[0]!.toolName).toBe('echo');
 
-    await agent.close();
+    await session.close();
   });
 
-  test('reuses the session across multiple generate() calls (sticky session)', async () => {
+  test('a single session can drive multiple generate() turns', async () => {
     const { harness, prompts, doStop } = mockHarness({
       script: () => [
         { type: 'text-delta', id: 't', delta: 'ok' },
@@ -304,17 +303,30 @@ describe('HarnessAgent', () => {
     });
 
     const agent = new HarnessAgent({ harness });
-    const first = await agent.generate({ prompt: 'one' });
-    const second = await agent.generate({ prompt: 'two' });
+    const session = await agent.createSession();
+    await agent.generate({ session, prompt: 'one' });
+    await agent.generate({ session, prompt: 'two' });
 
-    // Both calls reuse the same default session.
-    expect(first.sessionId).toBe(second.sessionId);
     expect(prompts).toHaveLength(2);
-    // doStop is only called on close(), not between turns.
+    // doStop is only called on close, not between turns.
     expect(doStop).not.toHaveBeenCalled();
 
-    await agent.close({ sessionId: first.sessionId });
+    await session.close();
     expect(doStop).toHaveBeenCalledTimes(1);
+  });
+
+  test('session.close() is idempotent and rejects further turns', async () => {
+    const { harness, doStop } = mockHarness({ script: () => [] });
+    const agent = new HarnessAgent({ harness });
+    const session = await agent.createSession();
+
+    await session.close();
+    await session.close();
+    expect(doStop).toHaveBeenCalledTimes(1);
+
+    await expect(
+      agent.generate({ session, prompt: 'after close' }),
+    ).rejects.toThrow(/has been closed/);
   });
 
   test('normalizes prompt input — string passes through, message array is reduced to the last user message', async () => {
@@ -359,9 +371,11 @@ describe('HarnessAgent', () => {
 
     const { harness, prompts } = mockHarness({ script: finishOnly });
     const agent = new HarnessAgent({ harness });
+    const session = await agent.createSession();
 
-    await agent.generate({ prompt: 'plain string' });
+    await agent.generate({ session, prompt: 'plain string' });
     await agent.generate({
+      session,
       messages: [
         { role: 'system', content: 'be terse' },
         { role: 'user', content: 'older user turn — dropped' },
@@ -370,6 +384,7 @@ describe('HarnessAgent', () => {
       ],
     });
     await agent.generate({
+      session,
       prompt: [
         { role: 'user', content: 'discarded' },
         { role: 'assistant', content: 'discarded too' },
@@ -385,6 +400,7 @@ describe('HarnessAgent', () => {
 
     await expect(
       agent.generate({
+        session,
         messages: [
           { role: 'system', content: 'no user message here' },
           { role: 'assistant', content: 'nothing for the harness to run' },
@@ -392,14 +408,14 @@ describe('HarnessAgent', () => {
       }),
     ).rejects.toThrow(/at least one `role: "user"` entry/);
 
-    await agent.close();
+    await session.close();
   });
 
-  test('detach() throws when the harness session does not support it', async () => {
+  test('session.detach() throws when the harness session does not support it', async () => {
     const { harness } = mockHarness({ script: () => [] });
     const agent = new HarnessAgent({ harness });
-    // Force lazy start so the session exists.
-    await agent.generate({ prompt: 'hi' }).catch(() => {});
-    await expect(agent.detach()).rejects.toThrow(/does not support detach/i);
+    const session = await agent.createSession();
+    await expect(session.detach()).rejects.toThrow(/does not support detach/i);
+    await session.close();
   });
 });

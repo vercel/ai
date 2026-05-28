@@ -27,27 +27,32 @@ run(async () => {
   let resumeState: HarnessV1ResumeState;
   {
     const agent = new HarnessAgent({ harness: claudeCode, sandbox });
+    const session = await agent.createSession();
+    sessionId = session.sessionId;
     console.log('--- turn 1 ---');
     const result = await agent.stream({
+      session,
       prompt: 'My name is Felix. Remember it.',
     });
-    sessionId = result.sessionId;
     await printFullStream({ result });
-    resumeState = await agent.detach({ sessionId });
+    resumeState = await session.detach();
     console.log('[detached] resume state:', JSON.stringify(resumeState));
   }
 
   // Turn 2: brand-new agent instance, only the persisted state survives.
   {
     const agent = new HarnessAgent({ harness: claudeCode, sandbox });
-    console.log('--- turn 2 (resumed) ---');
-    const result = await agent.stream({
-      prompt: 'What is my name? Answer in one word.',
+    const session = await agent.createSession({
       sessionId,
       resumeFrom: resumeState,
     });
+    console.log('--- turn 2 (resumed) ---');
+    const result = await agent.stream({
+      session,
+      prompt: 'What is my name? Answer in one word.',
+    });
     await printFullStream({ result });
-    await agent.close({ sessionId });
+    await session.close();
   }
 
   process.exit(0);

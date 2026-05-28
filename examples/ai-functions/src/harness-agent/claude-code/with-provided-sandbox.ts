@@ -18,8 +18,10 @@ run(async () => {
   });
 
   let exitCode = 0;
+  const session = await agent.createSession();
   try {
     const result = await agent.stream({
+      session,
       prompt: 'In one sentence, what is the capital of France?',
     });
 
@@ -31,7 +33,7 @@ run(async () => {
     exitCode = 1;
     console.error('[example] failed:', err);
   } finally {
-    await agent.close();
+    await session.close();
     await sandbox.stop().catch(() => {});
     process.exit(exitCode);
   }

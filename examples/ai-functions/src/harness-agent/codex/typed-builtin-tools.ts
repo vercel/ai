@@ -31,8 +31,10 @@ run(async () => {
   });
 
   let exitCode = 0;
+  const session = await agent.createSession();
   try {
     const result = await agent.stream({
+      session,
       prompt:
         'Call the `echo` tool with the message "hello", then run `uname -a` and tell me the kernel.',
     });
@@ -42,7 +44,7 @@ run(async () => {
     exitCode = 1;
     console.error('[example] failed:', err);
   } finally {
-    await agent.close();
+    await session.close();
     process.exit(exitCode);
   }
 });

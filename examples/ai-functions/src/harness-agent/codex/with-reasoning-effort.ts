@@ -16,8 +16,10 @@ run(async () => {
   });
 
   let exitCode = 0;
+  const session = await agent.createSession();
   try {
     const result = await agent.stream({
+      session,
       prompt:
         'Plan a multi-step path from A to B where A=(0,0) and B=(3,4) on a grid, moving only N/S/E/W. ' +
         'Explain your reasoning, then give the final path.',
@@ -27,7 +29,7 @@ run(async () => {
     exitCode = 1;
     console.error('[example] failed:', err);
   } finally {
-    await agent.close();
+    await session.close();
     process.exit(exitCode);
   }
 });

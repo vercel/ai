@@ -18,8 +18,10 @@ run(async () => {
     }),
   });
 
+  const session = await agent.createSession();
   try {
     const result = await agent.stream({
+      session,
       prompt:
         'Find all roots of f(x) = x^3 - 6x^2 + 11x - 6 and explain your reasoning.',
     });
@@ -34,6 +36,6 @@ run(async () => {
     console.log();
     console.log('usage:', await result.usage);
   } finally {
-    await agent.close();
+    await session.close();
   }
 });

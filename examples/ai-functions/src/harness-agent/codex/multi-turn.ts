@@ -16,15 +16,18 @@ run(async () => {
   });
 
   let exitCode = 0;
+  const session = await agent.createSession();
   try {
     console.log('--- turn 1 ---');
     const first = await agent.stream({
+      session,
       prompt: 'My name is Felix. Remember it.',
     });
     await printFullStream({ result: first });
 
     console.log('--- turn 2 ---');
     const second = await agent.stream({
+      session,
       prompt: 'What is my name? Answer in one word.',
     });
     await printFullStream({ result: second });
@@ -32,7 +35,7 @@ run(async () => {
     exitCode = 1;
     console.error('[example] failed:', err);
   } finally {
-    await agent.close();
+    await session.close();
     process.exit(exitCode);
   }
 });

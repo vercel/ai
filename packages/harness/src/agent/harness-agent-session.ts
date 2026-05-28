@@ -1,0 +1,168 @@
+import { HarnessCapabilityUnsupportedError } from '../errors/harness-capability-unsupported-error';
+import type {
+  HarnessV1,
+  HarnessV1ResumeState,
+  HarnessV1SandboxHandle,
+  HarnessV1SandboxProvider,
+  HarnessV1Session,
+} from '../v1';
+import { releaseBridgePort } from './internal/bridge-port-registry';
+import { validateResumeStateData } from './internal/resume-state-validation';
+
+/**
+ * Live harness session held by the caller.
+ *
+ * Created by {@link import('./harness-agent').HarnessAgent.createSession}.
+ * Owns the underlying `HarnessV1Session`, the sandbox handle (when the
+ * agent has a sandbox provider), and the bridge-port lease (when the
+ * provider wraps a caller-provided sandbox with a port pool).
+ *
+ * Pass the instance back to `agent.generate` / `agent.stream` on every
+ * call; tear it down with `close()` or `detach()`.
+ *
+ * Both lifecycle methods are idempotent. After either has resolved, the
+ * session is unusable — any subsequent `generate`/`stream` call against
+ * it throws.
+ */
+export class HarnessAgentSession {
+  /**
+   * Stable identifier the harness adapter saw in `doStart`. The same
+   * string callers persist when they intend to resume the session in a
+   * future process.
+   */
+  readonly sessionId: string;
+
+  private readonly harness: HarnessV1;
+  private readonly sandboxProvider: HarnessV1SandboxProvider | undefined;
+  private underlyingSession: HarnessV1Session | null;
+  private sandboxHandle: HarnessV1SandboxHandle | null;
+  private leasedBridgePort: number | null;
+  private stopped = false;
+
+  constructor(options: {
+    sessionId: string;
+    harness: HarnessV1;
+    underlyingSession: HarnessV1Session;
+    sandboxHandle: HarnessV1SandboxHandle | null;
+    sandboxProvider: HarnessV1SandboxProvider | undefined;
+    leasedBridgePort: number | null;
+  }) {
+    this.sessionId = options.sessionId;
+    this.harness = options.harness;
+    this.underlyingSession = options.underlyingSession;
+    this.sandboxHandle = options.sandboxHandle;
+    this.sandboxProvider = options.sandboxProvider;
+    this.leasedBridgePort = options.leasedBridgePort;
+  }
+
+  /**
+   * Underlying adapter session driven by `agent.stream` / `agent.generate`.
+   * Throws once the session has been closed or detached.
+   *
+   * @internal — accessed only by the agent's turn driver.
+   */
+  getUnderlyingSession(): HarnessV1Session {
+    if (this.stopped || this.underlyingSession == null) {
+      throw new Error(
+        `Harness session ${this.sessionId} has been closed and cannot be reused.`,
+      );
+    }
+    return this.underlyingSession;
+  }
+
+  /**
+   * Active sandbox handle, when the agent's provider produced one.
+   *
+   * @internal — accessed only by the agent's turn driver.
+   */
+  getSandboxHandle(): HarnessV1SandboxHandle | null {
+    return this.sandboxHandle;
+  }
+
+  /**
+   * Tear down the session without preserving resume state. Stops the
+   * underlying adapter session and the sandbox handle, then releases any
+   * leased bridge port. Idempotent.
+   */
+  async close(): Promise<void> {
+    if (this.stopped) return;
+    this.stopped = true;
+    const session = this.underlyingSession;
+    const handle = this.sandboxHandle;
+    this.underlyingSession = null;
+    this.sandboxHandle = null;
+    this.releasePortLease();
+    if (session != null) {
+      await Promise.resolve(session.doStop()).catch(() => {});
+    }
+    if (handle != null) {
+      await Promise.resolve(handle.stop()).catch(() => {});
+    }
+  }
+
+  /**
+   * Detach the session, returning a payload the caller can persist and
+   * later pass to `agent.createSession({ sessionId, resumeFrom })` to
+   * reconnect. Stops the sandbox (snapshots automatically on persistent
+   * providers).
+   *
+   * Throws `HarnessCapabilityUnsupportedError` if the adapter does not
+   * implement `doDetach`. Cleanup runs unconditionally — if `doDetach`
+   * throws, the session is still marked stopped and the sandbox is
+   * stopped before the original error is rethrown.
+   */
+  async detach(): Promise<HarnessV1ResumeState> {
+    if (this.stopped || this.underlyingSession == null) {
+      throw new Error(
+        `Harness session ${this.sessionId} is not active and cannot be detached.`,
+      );
+    }
+    const session = this.underlyingSession;
+    if (session.doDetach == null) {
+      throw new HarnessCapabilityUnsupportedError({
+        message: `Harness '${this.harness.harnessId}' does not support detach.`,
+        harnessId: this.harness.harnessId,
+      });
+    }
+
+    const cleanup = (): HarnessV1SandboxHandle | null => {
+      this.stopped = true;
+      const handle = this.sandboxHandle;
+      this.underlyingSession = null;
+      this.sandboxHandle = null;
+      this.releasePortLease();
+      return handle;
+    };
+
+    let raw: unknown;
+    try {
+      raw = await session.doDetach();
+    } catch (err) {
+      const handle = cleanup();
+      if (handle != null) {
+        await Promise.resolve(handle.stop()).catch(() => {});
+      }
+      throw err;
+    }
+    const validated = await validateResumeStateData({
+      harness: this.harness,
+      state: raw as HarnessV1ResumeState,
+    });
+    const handle = cleanup();
+    if (handle != null) {
+      await Promise.resolve(handle.stop()).catch(() => {});
+    }
+    return validated;
+  }
+
+  private releasePortLease(): void {
+    if (this.leasedBridgePort == null) return;
+    if (this.sandboxProvider != null) {
+      releaseBridgePort({
+        poolKey: this.sandboxProvider,
+        sessionId: this.sessionId,
+      });
+    }
+    this.leasedBridgePort = null;
+  }
+}

@@ -16,8 +16,10 @@ run(async () => {
   });
 
   let exitCode = 0;
+  const session = await agent.createSession();
   try {
     const result = await agent.stream({
+      session,
       prompt:
         'Search the web for the latest version of Node.js and report it back.',
     });
@@ -26,7 +28,7 @@ run(async () => {
     exitCode = 1;
     console.error('[example] failed:', err);
   } finally {
-    await agent.close();
+    await session.close();
     process.exit(exitCode);
   }
 });

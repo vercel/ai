@@ -53,8 +53,10 @@ End the document with the version tag on a line by itself, prefixed with \`v\`.`
   });
 
   let exitCode = 0;
+  const session = await agent.createSession();
   try {
     const result = await agent.stream({
+      session,
       prompt:
         'Draft release notes for our next release, v2.4.0. We added a dark mode toggle in #892, fixed an autofocus bug in the search bar in #901, and renamed the `--legacy` CLI flag to `--compat` (old flag removed, no alias).',
     });
@@ -63,7 +65,7 @@ End the document with the version tag on a line by itself, prefixed with \`v\`.`
     exitCode = 1;
     console.error('[example] failed:', err);
   } finally {
-    await agent.close();
+    await session.close();
     process.exit(exitCode);
   }
 });

@@ -16,8 +16,10 @@ run(async () => {
   });
 
   let exitCode = 0;
+  const session = await agent.createSession();
   try {
     const result = await agent.stream({
+      session,
       prompt: 'Run `uname -a` and tell me what kernel this sandbox is running.',
     });
     await printFullStream({ result });
@@ -25,7 +27,7 @@ run(async () => {
     exitCode = 1;
     console.error('[example] failed:', err);
   } finally {
-    await agent.close();
+    await session.close();
     process.exit(exitCode);
   }
 });

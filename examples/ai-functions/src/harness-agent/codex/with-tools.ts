@@ -32,8 +32,10 @@ run(async () => {
   });
 
   let exitCode = 0;
+  const session = await agent.createSession();
   try {
     const result = await agent.stream({
+      session,
       prompt:
         'What is the weather in Paris and Reykjavik? Use the `weather` tool, then summarize in one sentence.',
     });
@@ -45,7 +47,7 @@ run(async () => {
     exitCode = 1;
     console.error('[example] failed:', err);
   } finally {
-    await agent.close();
+    await session.close();
     process.exit(exitCode);
   }
 });

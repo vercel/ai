@@ -47,11 +47,12 @@ export async function POST(request: Request) {
 
   const stored = await loadHarnessSession(chatId);
 
-  const result = await claudeCodeHarnessAgent.stream({
-    prompt,
+  const session = await claudeCodeHarnessAgent.createSession({
     sessionId: stored?.sessionId,
     resumeFrom: stored?.state,
   });
+
+  const result = await claudeCodeHarnessAgent.stream({ session, prompt });
 
   return result.toUIMessageStreamResponse({
     consumeSseStream: async ({ stream }) => {
@@ -69,13 +70,11 @@ export async function POST(request: Request) {
       console.log(`[CSS ${Date.now()}] drain done, calling detach`);
 
       try {
-        const state = await claudeCodeHarnessAgent.detach({
-          sessionId: result.sessionId,
-        });
+        const state = await session.detach();
         console.log(`[CSS ${Date.now()}] detach returned, calling save`);
         await saveHarnessSession({
           chatId,
-          sessionId: result.sessionId,
+          sessionId: session.sessionId,
           state,
         });
         console.log(`[CSS ${Date.now()}] save returned`);

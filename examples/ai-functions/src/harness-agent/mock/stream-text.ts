@@ -8,8 +8,10 @@ run(async () => {
     harness: mockHarness({ model: anthropic('claude-opus-4-7') }),
   });
 
+  const session = await agent.createSession();
   try {
     const result = await agent.stream({
+      session,
       prompt: 'Recite the first sentence of "A Tale of Two Cities".',
     });
 
@@ -22,6 +24,6 @@ run(async () => {
     console.log('usage:', await result.usage);
     console.log('steps:', (await result.steps).length);
   } finally {
-    await agent.close();
+    await session.close();
   }
 });

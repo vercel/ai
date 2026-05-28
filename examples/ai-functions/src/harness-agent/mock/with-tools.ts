@@ -31,8 +31,10 @@ run(async () => {
     tools,
   });
 
+  const session = await agent.createSession();
   try {
     const result = await agent.generate({
+      session,
       prompt:
         'What is the weather in Paris and Reykjavik? Use the tool, then summarize.',
     });
@@ -42,6 +44,6 @@ run(async () => {
     console.log('steps:', result.steps.length);
     console.log('finishReason:', result.finishReason);
   } finally {
-    await agent.close();
+    await session.close();
   }
 });

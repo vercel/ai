@@ -1,8 +1,11 @@
+import { HarnessCapabilityUnsupportedError } from '../errors/harness-capability-unsupported-error';
 import type {
   HarnessV1,
+  HarnessV1Bootstrap,
   HarnessV1Prompt,
   HarnessV1ResumeState,
-  HarnessV1Session,
+  HarnessV1SandboxHandle,
+  HarnessV1SandboxProvider,
   HarnessV1ToolSpec,
 } from '../v1';
 import {
@@ -20,8 +23,17 @@ import type {
   StreamTextResult,
 } from 'ai';
 import type { HarnessAgentSettings } from './harness-agent-settings';
+import { HarnessAgentSession } from './harness-agent-session';
+import {
+  applyBootstrapRecipe,
+  hashBootstrap,
+} from './internal/bootstrap-recipe';
+import {
+  acquireBridgePort,
+  releaseBridgePort,
+} from './internal/bridge-port-registry';
+import { validateResumeStateData } from './internal/resume-state-validation';
 import { runPrompt } from './internal/run-prompt';
-import { SessionManager } from './internal/session-manager';
 
 /** Extract the builtin tool set type from a `HarnessV1<...>` parameter. */
 type BuiltinToolsOf<H> = H extends HarnessV1<infer T> ? T : never;
@@ -36,41 +48,17 @@ export type HarnessAllTools<
 > = Omit<BuiltinToolsOf<THarness>, keyof TUserTools> & TUserTools;
 
 /**
- * Per-call options accepted by `HarnessAgent.generate` / `HarnessAgent.stream`
- * in addition to the AI SDK base parameters. Supplying `sessionId` signals a
- * resume call against an existing harness session; the corresponding
- * `resumeFrom` payload is the `HarnessV1ResumeState` previously returned by
- * `agent.detach({ sessionId })`.
+ * Required `session` extension on every `HarnessAgent.generate` /
+ * `HarnessAgent.stream` call. The agent operates exclusively on the
+ * `HarnessAgentSession` the caller passes in — it owns no session
+ * state of its own.
  */
 export interface HarnessAgentCallExtensions {
   /**
-   * Identifier of the harness session this call targets. Omit for a fresh
-   * session — the agent generates one and surfaces it on the result. Supply
-   * on subsequent calls (multi-turn within one process, or cross-process
-   * resume) to address the same session.
+   * Active session returned by `agent.createSession(...)`. Drives the
+   * underlying harness adapter for this turn.
    */
-  sessionId?: string;
-  /**
-   * Resume payload from a prior `agent.detach()`. Must be supplied together
-   * with `sessionId` when continuing a session in a fresh process; the
-   * framework validates it against `harness.resumeStateSchema` before
-   * handing it to the adapter.
-   */
-  resumeFrom?: HarnessV1ResumeState;
-}
-
-/**
- * Fields the harness adds to each `StreamTextResult` / `GenerateTextResult`
- * returned by `generate` / `stream`. The agent guarantees `sessionId` so the
- * caller can persist it for a future resume.
- */
-export interface HarnessAgentCallResultExtensions {
-  /**
-   * Identifier of the session this call ran against. Either the value the
-   * caller supplied on the options, or the framework-generated id on a
-   * first call.
-   */
-  sessionId: string;
+  session: HarnessAgentSession;
 }
 
 /**
@@ -78,27 +66,29 @@ export interface HarnessAgentCallResultExtensions {
  * through a `HarnessV1` adapter (Claude Code, Codex, …).
  *
  * Behaviour summary:
- *  - **Multi-session.** The agent is constructed once at module scope; each
- *    `generate()` / `stream()` call addresses a session by `sessionId`.
- *    Calls without an explicit id reuse a single auto-generated default
- *    session, preserving multi-turn ergonomics for one-shot scripts.
- *  - **Cross-process resume.** Supply `sessionId` + `resumeFrom` on the
- *    call to continue a session previously detached via
- *    `agent.detach({ sessionId })`. The framework validates the resume
- *    payload against the harness's `resumeStateSchema` and asks the
- *    sandbox provider for a handle bound to the existing resource.
- *  - **Pull-based result.** Both `generate()` and `stream()` surface the
- *    standard AI SDK shapes (`GenerateTextResult`, `StreamTextResult`)
- *    plus a `sessionId` field so callers can persist it.
+ *  - **Stateless definition.** Construct once at module scope. The agent
+ *    holds the harness adapter, the merged tool surface, the sandbox
+ *    provider and other config — never a live session. Per-call data
+ *    (prompt, abort signal, the `HarnessAgentSession`) lives on
+ *    `generate()` / `stream()`.
+ *  - **Explicit sessions.** Callers spawn sessions with
+ *    `agent.createSession(...)`, pass the returned
+ *    `HarnessAgentSession` on every `generate` / `stream`, and tear it
+ *    down via `session.close()` or `session.detach()`.
+ *  - **Cross-process resume.** `createSession({ sessionId, resumeFrom })`
+ *    reattaches to a sandbox previously detached via
+ *    `session.detach()`. The framework validates `resumeFrom` against
+ *    the harness's `resumeStateSchema` before handing it to the adapter.
  *  - **Host tool execution.** User tools passed in `settings.tools` are
- *    executed on the host whenever the underlying runtime calls them; the
- *    result is fed back to the harness via `submitToolResult`. Adapter
- *    builtin tools (e.g. Claude Code's `Bash`) pass through untouched.
- *  - **Sandbox propagation.** `settings.sandbox` is a sandbox provider. On
- *    session start, the agent calls `provider.create()` (or `resume()`)
- *    and passes the resulting handle into `doStart`. The handle's
- *    `session` (a tool-safe `Experimental_Sandbox` view) is also handed to
- *    user-tool `execute()` calls via `experimental_sandbox`.
+ *    executed on the host whenever the underlying runtime calls them;
+ *    the result is fed back to the harness via `submitToolResult`.
+ *    Adapter builtin tools (e.g. Claude Code's `Bash`) pass through
+ *    untouched.
+ *  - **Sandbox propagation.** `settings.sandbox` is a sandbox provider.
+ *    On `createSession`, the agent calls `provider.create()` (or
+ *    `resume()`) and passes the resulting handle into `doStart`. The
+ *    handle's `session` (a tool-safe `Experimental_Sandbox` view) is
+ *    handed to user-tool `execute()` calls via `experimental_sandbox`.
  */
 export class HarnessAgent<
   THarness extends HarnessV1<any> = HarnessV1,
@@ -123,8 +113,6 @@ export class HarnessAgent<
 
   private readonly settings: HarnessAgentSettings<THarness, TUserTools>;
   private readonly userTools: TUserTools;
-  private readonly sessions: SessionManager;
-  private defaultSessionId: string | undefined;
 
   constructor(settings: HarnessAgentSettings<THarness, TUserTools>) {
     this.settings = settings;
@@ -134,16 +122,136 @@ export class HarnessAgent<
       ...settings.harness.builtinTools,
       ...this.userTools,
     } as HarnessAllTools<THarness, TUserTools>;
-    this.sessions = new SessionManager({
-      harness: settings.harness,
-      sandbox: settings.sandbox,
-      skills: settings.skills,
-    });
   }
 
   /** Identifier of the harness backing this agent. */
   get harnessId(): string {
     return this.settings.harness.harnessId;
+  }
+
+  /**
+   * Start a fresh session, or reattach to one previously detached via
+   * `session.detach()`. The returned `HarnessAgentSession` must be
+   * passed to subsequent `generate` / `stream` calls; closing it with
+   * `session.close()` releases the sandbox and bridge-port lease.
+   */
+  async createSession(options?: {
+    /**
+     * Optional stable identifier for the underlying sandbox/session.
+     * When omitted the agent generates one. Supply the original
+     * `session.sessionId` together with `resumeFrom` to reattach a
+     * previously detached session across processes.
+     */
+    sessionId?: string;
+    /**
+     * Resume payload returned by a prior `session.detach()`. Must be
+     * accompanied by the original `sessionId`; the framework
+     * validates it against `harness.resumeStateSchema` before handing
+     * it to the adapter.
+     */
+    resumeFrom?: HarnessV1ResumeState;
+    abortSignal?: AbortSignal;
+  }): Promise<HarnessAgentSession> {
+    const sessionId = options?.sessionId ?? generateId();
+    const resumeFrom = options?.resumeFrom;
+    const abortSignal = options?.abortSignal;
+    const harness = this.settings.harness;
+    const sandboxProvider = this.settings.sandbox;
+
+    let validatedResumeFrom: HarnessV1ResumeState | undefined;
+    if (resumeFrom != null) {
+      validatedResumeFrom = await validateResumeStateData({
+        harness,
+        state: resumeFrom,
+      });
+    }
+
+    let sandboxHandle: HarnessV1SandboxHandle | undefined;
+    let leasedBridgePort: number | null = null;
+    let recipe: HarnessV1Bootstrap | undefined;
+    let identity: string | undefined;
+
+    if (sandboxProvider != null) {
+      if (harness.getBootstrap != null) {
+        recipe = await harness.getBootstrap({ abortSignal });
+        identity = await hashBootstrap(recipe);
+      }
+
+      const rawHandle = await this._acquireSandbox({
+        sandboxProvider,
+        sessionId,
+        isResume: validatedResumeFrom != null,
+        recipe,
+        identity,
+        abortSignal,
+      });
+
+      const leased = applyPortLease({
+        provider: sandboxProvider,
+        handle: rawHandle,
+        sessionId,
+      });
+      sandboxHandle = leased.handle;
+      leasedBridgePort = leased.port;
+
+      // On resume the recipe is already baked into the sandbox snapshot;
+      // skip re-applying it and skip the setup hook (it ran on the
+      // original create).
+      if (validatedResumeFrom == null) {
+        try {
+          if (recipe != null && identity != null) {
+            await applyBootstrapRecipe(
+              sandboxHandle.session,
+              recipe,
+              identity,
+              { abortSignal },
+            );
+          }
+          if (sandboxProvider.setup != null) {
+            await sandboxProvider.setup({
+              session: sandboxHandle.session,
+              abortSignal,
+            });
+          }
+        } catch (err) {
+          await cleanupAfterStartFailure({
+            sandboxProvider,
+            rawHandle,
+            sessionId,
+            leasedBridgePort,
+          });
+          throw err;
+        }
+      }
+    }
+
+    try {
+      const underlyingSession = await harness.doStart({
+        sessionId,
+        sandboxHandle,
+        skills: this.settings.skills,
+        resumeFrom: validatedResumeFrom,
+        abortSignal,
+      });
+      return new HarnessAgentSession({
+        sessionId,
+        harness,
+        underlyingSession,
+        sandboxHandle: sandboxHandle ?? null,
+        sandboxProvider,
+        leasedBridgePort,
+      });
+    } catch (error) {
+      if (sandboxHandle != null) {
+        await cleanupAfterStartFailure({
+          sandboxProvider: sandboxProvider!,
+          rawHandle: sandboxHandle,
+          sessionId,
+          leasedBridgePort,
+        });
+      }
+      throw error;
+    }
   }
 
   async generate(
@@ -158,13 +266,11 @@ export class HarnessAgent<
       HarnessAllTools<THarness, TUserTools>,
       RUNTIME_CONTEXT,
       never
-    > &
-      HarnessAgentCallResultExtensions
+    >
   > {
-    const { result, done, sessionId } = await this._startTurn(options);
+    const { result, done } = this._runTurn(options);
     await done;
-    const generateResult = await this._toGenerateResult(result);
-    return Object.assign(generateResult, { sessionId });
+    return this._toGenerateResult(result);
   }
 
   async stream(
@@ -179,50 +285,15 @@ export class HarnessAgent<
       HarnessAllTools<THarness, TUserTools>,
       RUNTIME_CONTEXT,
       never
-    > &
-      HarnessAgentCallResultExtensions
+    >
   > {
-    const { result, sessionId } = await this._startTurn(options);
-    return Object.assign(result, { sessionId });
-  }
-
-  /**
-   * Tear down a session. Stops the sandbox without preserving resume
-   * state. Idempotent.
-   *
-   * `sessionId` defaults to the auto-generated default session — the one
-   * implicitly used by `stream` / `generate` calls that omit `sessionId`.
-   */
-  async close(options?: { sessionId?: string }): Promise<void> {
-    const sessionId = options?.sessionId ?? this.defaultSessionId;
-    if (sessionId == null) return;
-    await this.sessions.close({ sessionId });
-  }
-
-  /**
-   * Detach a session and return a payload for later resume. Stops the
-   * sandbox (snapshots automatically on persistent providers) — a future
-   * `stream` / `generate` call with the same `sessionId` and this payload
-   * as `resumeFrom` resumes against the same resource.
-   *
-   * Throws `HarnessCapabilityUnsupportedError` if the harness does not
-   * support detach.
-   */
-  async detach(options?: {
-    sessionId?: string;
-  }): Promise<HarnessV1ResumeState> {
-    const sessionId = options?.sessionId ?? this.defaultSessionId;
-    if (sessionId == null) {
-      throw new Error(
-        'HarnessAgent.detach(): no active default session and no sessionId provided.',
-      );
-    }
-    return this.sessions.detach({ sessionId });
+    const { result } = this._runTurn(options);
+    return result;
   }
 
   // ─── Internals ──────────────────────────────────────────────────────
 
-  private async _startTurn(
+  private _runTurn(
     options: (
       | AgentCallParameters<
           never,
@@ -236,20 +307,15 @@ export class HarnessAgent<
         >
     ) &
       HarnessAgentCallExtensions,
-  ): Promise<{
-    sessionId: string;
-    session: HarnessV1Session;
+  ): {
     result: ReturnType<
       typeof runPrompt<HarnessAllTools<THarness, TUserTools>, RUNTIME_CONTEXT>
     >['result'];
     done: Promise<void>;
-  }> {
-    const sessionId = this._resolveSessionId(options.sessionId);
-    const session = await this.sessions.getSession({
-      sessionId,
-      resumeFrom: options.resumeFrom,
-      abortSignal: options.abortSignal,
-    });
+  } {
+    const session = options.session;
+    const underlyingSession = session.getUnderlyingSession();
+    const sandboxHandle = session.getSandboxHandle();
 
     const prompt = this._normalizePrompt(options);
     const toolSpecs = this._toToolSpecs();
@@ -258,34 +324,55 @@ export class HarnessAgent<
     // cast to RUNTIME_CONTEXT, which is correct for the default Context type.
     const runtimeContext = {} as RUNTIME_CONTEXT;
 
-    const { result, done } = runPrompt<
-      HarnessAllTools<THarness, TUserTools>,
-      RUNTIME_CONTEXT
-    >({
+    return runPrompt<HarnessAllTools<THarness, TUserTools>, RUNTIME_CONTEXT>({
       harness: this.settings.harness,
-      session,
+      session: underlyingSession,
       prompt,
       instructions: this.settings.instructions,
       tools: this.tools,
       toolSpecs,
-      sandboxSession: this.sessions.sandboxHandleFor(sessionId)?.session,
+      sandboxSession: sandboxHandle?.session,
       runtimeContext,
       abortSignal: options.abortSignal,
     });
-
-    return { sessionId, session, result, done };
   }
 
-  /**
-   * Resolve the per-call sessionId. Explicit value wins; otherwise the
-   * default session is initialized on first call and reused.
-   */
-  private _resolveSessionId(explicit: string | undefined): string {
-    if (explicit != null) return explicit;
-    if (this.defaultSessionId == null) {
-      this.defaultSessionId = generateId();
+  private async _acquireSandbox(input: {
+    sandboxProvider: HarnessV1SandboxProvider;
+    sessionId: string;
+    isResume: boolean;
+    recipe: HarnessV1Bootstrap | undefined;
+    identity: string | undefined;
+    abortSignal: AbortSignal | undefined;
+  }): Promise<HarnessV1SandboxHandle> {
+    const { sandboxProvider } = input;
+    if (input.isResume) {
+      if (sandboxProvider.resume == null) {
+        throw new HarnessCapabilityUnsupportedError({
+          message: `Sandbox provider '${sandboxProvider.providerId}' does not support resume.`,
+          harnessId: this.settings.harness.harnessId,
+        });
+      }
+      return sandboxProvider.resume({
+        sessionId: input.sessionId,
+        abortSignal: input.abortSignal,
+      });
     }
-    return this.defaultSessionId;
+    return sandboxProvider.create({
+      sessionId: input.sessionId,
+      abortSignal: input.abortSignal,
+      identity: input.identity,
+      onFirstCreate:
+        input.recipe != null && input.identity != null
+          ? (session, opts) =>
+              applyBootstrapRecipe(
+                session,
+                input.recipe!,
+                input.identity!,
+                opts,
+              )
+          : undefined,
+    });
   }
 
   /*
@@ -436,5 +523,60 @@ export class HarnessAgent<
       providerMetadata,
       output: undefined as never,
     };
+  }
+}
+
+/*
+ * Bridge-port leasing helper. Returns the narrowed handle plus the leased
+ * port (or null when the provider has no port pool). Kept here rather than
+ * on the session so the lease is established as part of session start —
+ * the session only needs to release it on close/detach.
+ */
+function applyPortLease(input: {
+  provider: HarnessV1SandboxProvider;
+  handle: HarnessV1SandboxHandle;
+  sessionId: string;
+}): { handle: HarnessV1SandboxHandle; port: number | null } {
+  const pool = input.provider.bridgePorts;
+  if (pool == null || pool.length === 0) {
+    return { handle: input.handle, port: null };
+  }
+  const port = acquireBridgePort({
+    poolKey: input.provider,
+    pool,
+    sessionId: input.sessionId,
+  });
+  return { handle: narrowHandlePorts(input.handle, port), port };
+}
+
+function narrowHandlePorts(
+  handle: HarnessV1SandboxHandle,
+  leasedPort: number,
+): HarnessV1SandboxHandle {
+  return {
+    id: handle.id,
+    session: handle.session,
+    ports: [leasedPort],
+    getPortUrl: handle.getPortUrl,
+    stop: handle.stop,
+    ...(handle.setNetworkPolicy != null
+      ? { setNetworkPolicy: handle.setNetworkPolicy }
+      : {}),
+    ...(handle.setPorts != null ? { setPorts: handle.setPorts } : {}),
+  };
+}
+
+async function cleanupAfterStartFailure(input: {
+  sandboxProvider: HarnessV1SandboxProvider;
+  rawHandle: HarnessV1SandboxHandle;
+  sessionId: string;
+  leasedBridgePort: number | null;
+}): Promise<void> {
+  await Promise.resolve(input.rawHandle.stop()).catch(() => {});
+  if (input.leasedBridgePort != null) {
+    releaseBridgePort({
+      poolKey: input.sandboxProvider,
+      sessionId: input.sessionId,
+    });
   }
 }

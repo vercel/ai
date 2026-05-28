@@ -8,14 +8,16 @@ run(async () => {
     harness: mockHarness({ model: anthropic('claude-opus-4-7') }),
   });
 
+  const session = await agent.createSession();
   try {
     const result = await agent.generate({
+      session,
       prompt: 'In one sentence, what is the capital of France?',
     });
     console.log('text:', result.text);
     console.log('finishReason:', result.finishReason);
     console.log('usage:', result.usage);
   } finally {
-    await agent.close();
+    await session.close();
   }
 });
