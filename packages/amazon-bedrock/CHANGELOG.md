@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.110
+
+### Patch Changes
+
+- 20971fc: fix(amazon-bedrock): support document files in tool results
+
 ## 4.0.109
 
 ### Patch Changes

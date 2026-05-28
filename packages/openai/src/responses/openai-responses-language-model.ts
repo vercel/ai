@@ -2247,7 +2247,11 @@ function mapWebSearchOutput(
   switch (action.type) {
     case 'search':
       return {
-        action: { type: 'search', query: action.query ?? undefined },
+        action: {
+          type: 'search',
+          query: action.query ?? undefined,
+          ...(action.queries != null && { queries: action.queries }),
+        },
         // include sources when provided by the Responses API (behind include flag)
         ...(action.sources != null && { sources: action.sources }),
       };

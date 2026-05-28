@@ -248,6 +248,36 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Download package build artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: package-build-artifacts
+
+      - name: Extract package build artifacts
+        run: tar -xzf package-build-artifacts.tgz
+
+      - name: Run tests
+        env:
+          SKIP_RSC_E2E: '1'
+        run: pnpm test:ci
+
+  test_rsc_e2e:
+    name: 'Test RSC e2e'
+    runs-on: ubuntu-latest
+    needs: build-packages
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
       - name: Detect RSC e2e changes
         id: rsc-e2e
         run: |
@@ -265,23 +295,46 @@ jobs:
             echo "run=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Install dependencies
+        if: steps.rsc-e2e.outputs.run == 'true'
+        run: pnpm install --frozen-lockfile
+
       - name: Download package build artifacts
+        if: steps.rsc-e2e.outputs.run == 'true'
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: package-build-artifacts
 
       - name: Extract package build artifacts
+        if: steps.rsc-e2e.outputs.run == 'true'
         run: tar -xzf package-build-artifacts.tgz
 
       - name: Install Playwright Browsers
         if: steps.rsc-e2e.outputs.run == 'true'
-        timeout-minutes: 10
-        run: pnpm exec playwright install --with-deps
+        run: |
+          ATTEMPTS=3
+          PER_ATTEMPT_TIMEOUT=10m
+          for attempt in $(seq 1 "$ATTEMPTS"); do
+            STATUS=0
+            timeout "$PER_ATTEMPT_TIMEOUT" pnpm exec playwright install --with-deps || STATUS=$?
+            if [ "$STATUS" -eq 0 ]; then
+              break
+            fi
+            if [ "$attempt" -eq "$ATTEMPTS" ]; then
+              echo "::error::playwright install failed after $ATTEMPTS attempts (last exit code: $STATUS)"
+              exit 1
+            fi
+            if [ "$STATUS" -eq 124 ]; then
+              echo "Attempt $attempt timed out after ${PER_ATTEMPT_TIMEOUT}, retrying..."
+            else
+              echo "Attempt $attempt failed with exit code $STATUS, retrying..."
+            fi
+          done
 
-      - name: Run tests
-        env:
-          SKIP_RSC_E2E: ${{ steps.rsc-e2e.outputs.run == 'true' && '0' || '1' }}
-        run: pnpm test:ci
+      - name: Run RSC e2e tests
+        if: steps.rsc-e2e.outputs.run == 'true'
+        working-directory: packages/rsc
+        run: pnpm test:e2e
 
   test_ai_matrix:
     name: 'Test AI'
@@ -355,6 +408,7 @@ jobs:
         build-packages,
         test_node_versions,
         test_matrix,
+        test_rsc_e2e,
         test_ai_matrix,
         test_codemod_matrix,
       ]
