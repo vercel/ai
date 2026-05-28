@@ -390,6 +390,22 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 providerMetadata: chunk.providerMetadata,
                 state: 'streaming',
               };
+              // PATCH: O(N²)→O(N) text accumulation via _chunks + lazy getter.
+              // See https://github.com/vercel/ai/issues/<NEW> for context.
+              (textPart as any)._chunks = [textPart.text || ''];
+              Object.defineProperty(textPart, 'text', {
+                get(): string {
+                  const c = (this as any)._chunks;
+                  return c.length === 1
+                    ? c[0]
+                    : ((this as any)._chunks = [c.join('')])[0];
+                },
+                set(v: string) {
+                  (this as any)._chunks = [v];
+                },
+                enumerable: true,
+                configurable: true,
+              });
               state.activeTextParts[chunk.id] = textPart;
               state.message.parts.push(textPart);
               write();
@@ -407,7 +423,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                     `Ensure a "text-start" chunk is sent before any "text-delta" chunks.`,
                 });
               }
-              textPart.text += chunk.delta;
+              // PATCH: see text-start above — chunks instead of += to avoid O(N²).
+              (textPart as any)._chunks.push(chunk.delta);
               textPart.providerMetadata =
                 chunk.providerMetadata ?? textPart.providerMetadata;
               write();
@@ -451,6 +468,21 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 providerMetadata: chunk.providerMetadata,
                 state: 'streaming',
               };
+              // PATCH: O(N²)→O(N) reasoning accumulation via _chunks + lazy getter.
+              (reasoningPart as any)._chunks = [reasoningPart.text || ''];
+              Object.defineProperty(reasoningPart, 'text', {
+                get(): string {
+                  const c = (this as any)._chunks;
+                  return c.length === 1
+                    ? c[0]
+                    : ((this as any)._chunks = [c.join('')])[0];
+                },
+                set(v: string) {
+                  (this as any)._chunks = [v];
+                },
+                enumerable: true,
+                configurable: true,
+              });
               state.activeReasoningParts[chunk.id] = reasoningPart;
               state.message.parts.push(reasoningPart);
               write();
@@ -468,7 +500,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                     `Ensure a "reasoning-start" chunk is sent before any "reasoning-delta" chunks.`,
                 });
               }
-              reasoningPart.text += chunk.delta;
+              // PATCH: see reasoning-start above — chunks instead of += to avoid O(N²).
+              (reasoningPart as any)._chunks.push(chunk.delta);
               reasoningPart.providerMetadata =
                 chunk.providerMetadata ?? reasoningPart.providerMetadata;
               write();

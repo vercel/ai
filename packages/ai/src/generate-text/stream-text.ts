@@ -1035,7 +1035,25 @@ class DefaultStreamTextResult<
             return;
           }
 
-          activeText.text += part.text;
+          // PATCH: O(N²)→O(N) text accumulation. Init _chunks lazily; replace .text
+          // with a lazy getter that materializes from the chunks array on read.
+          if (!(activeText as any)._chunks) {
+            (activeText as any)._chunks = [activeText.text || ''];
+            Object.defineProperty(activeText, 'text', {
+              get(): string {
+                const c = (this as any)._chunks;
+                return c.length === 1
+                  ? c[0]
+                  : ((this as any)._chunks = [c.join('')])[0];
+              },
+              set(v: string) {
+                (this as any)._chunks = [v];
+              },
+              enumerable: true,
+              configurable: true,
+            });
+          }
+          (activeText as any)._chunks.push(part.text);
           activeText.providerMetadata =
             part.providerMetadata ?? activeText.providerMetadata;
         }
@@ -1084,7 +1102,24 @@ class DefaultStreamTextResult<
             return;
           }
 
-          activeReasoning.text += part.text;
+          // PATCH: O(N²)→O(N) reasoning accumulation. Same pattern as activeText above.
+          if (!(activeReasoning as any)._chunks) {
+            (activeReasoning as any)._chunks = [activeReasoning.text || ''];
+            Object.defineProperty(activeReasoning, 'text', {
+              get(): string {
+                const c = (this as any)._chunks;
+                return c.length === 1
+                  ? c[0]
+                  : ((this as any)._chunks = [c.join('')])[0];
+              },
+              set(v: string) {
+                (this as any)._chunks = [v];
+              },
+              enumerable: true,
+              configurable: true,
+            });
+          }
+          (activeReasoning as any)._chunks.push(part.text);
           activeReasoning.providerMetadata =
             part.providerMetadata ?? activeReasoning.providerMetadata;
         }
