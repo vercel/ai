@@ -146,7 +146,7 @@ type WSConnection = {
 
 type StartMessage = {
   type: 'start';
-  promptMessages: ReadonlyArray<unknown>;
+  prompt: string;
   instructions?: string;
   tools?: ReadonlyArray<{
     name: string;
@@ -424,7 +424,7 @@ async function runTurn({
   send({ type: 'stream-start' });
 
   const userMessage = composeUserMessage({
-    text: extractUserText(start.promptMessages),
+    text: start.prompt,
     instructions: start.instructions,
     skills: start.skills,
     // Temporary workaround for upstream codex MCP-tool bug — see ./cli-relay.ts
@@ -745,31 +745,6 @@ function composeUserMessage({
   if (toolUsageBlock) blocks.push(toolUsageBlock);
   blocks.push(text);
   return blocks.join('\n\n');
-}
-
-function extractUserText(messages: ReadonlyArray<unknown>): string {
-  const parts: string[] = [];
-  for (const msg of messages) {
-    if (!msg || typeof msg !== 'object') continue;
-    const m = msg as { role?: string; content?: unknown };
-    if (m.role !== 'user') continue;
-    if (typeof m.content === 'string') {
-      parts.push(m.content);
-    } else if (Array.isArray(m.content)) {
-      for (const c of m.content) {
-        if (
-          c &&
-          typeof c === 'object' &&
-          'type' in c &&
-          (c as { type: string }).type === 'text'
-        ) {
-          const text = (c as { text?: unknown }).text;
-          if (typeof text === 'string') parts.push(text);
-        }
-      }
-    }
-  }
-  return parts.join('\n\n');
 }
 
 /**

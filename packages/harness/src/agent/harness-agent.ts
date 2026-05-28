@@ -9,6 +9,7 @@ import {
   asSchema,
   generateId,
   type Context,
+  type ModelMessage,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import type {
@@ -287,23 +288,32 @@ export class HarnessAgent<
     return this.defaultSessionId;
   }
 
+  /*
+   * Reduce AI SDK input to the single user message the harness should run
+   * for this turn. The harness session owns prior-turn state (system
+   * prompt, assistant turns, tool results) — we never replay it. A bare
+   * string is forwarded as-is; a message array is collapsed to its last
+   * `role: 'user'` entry. Inputs whose only messages are non-user (system,
+   * assistant, tool) have no fresh user input and are rejected.
+   */
   private _normalizePrompt(options: {
-    prompt?: string | unknown[];
-    messages?: unknown[];
+    prompt?: string | ModelMessage[];
+    messages?: ModelMessage[];
   }): HarnessV1Prompt {
     if (typeof options.prompt === 'string') {
-      return [
-        {
-          role: 'user',
-          content: [{ type: 'text', text: options.prompt }],
-        },
-      ];
+      return options.prompt;
     }
-    if (Array.isArray(options.prompt)) {
-      return options.prompt as HarnessV1Prompt;
-    }
-    if (Array.isArray(options.messages)) {
-      return options.messages as HarnessV1Prompt;
+    const messages = Array.isArray(options.prompt)
+      ? options.prompt
+      : options.messages;
+    if (Array.isArray(messages)) {
+      for (let i = messages.length - 1; i >= 0; i--) {
+        const message = messages[i];
+        if (message?.role === 'user') return message;
+      }
+      throw new Error(
+        'HarnessAgent: messages must contain at least one `role: "user"` entry.',
+      );
     }
     throw new Error('HarnessAgent: either `prompt` or `messages` is required.');
   }

@@ -123,7 +123,7 @@ export type OutboundMessage = z.infer<typeof outboundMessageSchema>;
 export const inboundMessageSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('start'),
-    promptMessages: z.array(z.unknown()),
+    prompt: z.string(),
     instructions: z.string().optional(),
     tools: z
       .array(
