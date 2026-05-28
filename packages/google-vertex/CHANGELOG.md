@@ -1,5 +1,13 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-canary.97
+
+### Patch Changes
+
+- e02f041: feat(provider/anthropic): add support for `claude-opus-4-8`
+- Updated dependencies [e02f041]
+  - @ai-sdk/anthropic@4.0.0-canary.61
+
 ## 5.0.0-canary.96
 
 ### Patch Changes
