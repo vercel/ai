@@ -11,6 +11,26 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { GoogleVertexMaasModelId } from './google-vertex-maas-options';
 
+const DEFAULT_LLAMA_4_MAX_TOKENS = 4096;
+
+function transformGoogleVertexMaasRequestBody(
+  args: Record<string, unknown>,
+): Record<string, unknown> {
+  if (
+    typeof args.model === 'string' &&
+    args.model.startsWith('meta/llama-4-') &&
+    args.max_tokens == null &&
+    args.max_completion_tokens == null
+  ) {
+    return {
+      ...args,
+      max_tokens: DEFAULT_LLAMA_4_MAX_TOKENS,
+    };
+  }
+
+  return args;
+}
+
 export interface GoogleVertexMaasProvider extends OpenAICompatibleProvider<
   GoogleVertexMaasModelId,
   string,
@@ -92,6 +112,7 @@ export function createGoogleVertexMaas(
       name: 'vertex.maas',
       baseURL: loadBaseURL(),
       fetch: options.fetch,
+      transformRequestBody: transformGoogleVertexMaasRequestBody,
     }));
 
   const provider = (modelId: GoogleVertexMaasModelId) => getProvider()(modelId);

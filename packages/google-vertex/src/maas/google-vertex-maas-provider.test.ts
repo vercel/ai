@@ -154,6 +154,95 @@ describe('google-vertex-maas-provider', () => {
     );
   });
 
+  it('should add default max_tokens for Llama 4 models when no max token setting is provided', () => {
+    const provider = createGoogleVertexMaas({
+      project: 'test-project',
+      location: 'global',
+    });
+
+    provider('meta/llama-4-scout-17b-16e-instruct-maas');
+
+    const [{ transformRequestBody }] = vi.mocked(createOpenAICompatible).mock
+      .calls[0];
+
+    expect(
+      transformRequestBody?.({
+        model: 'meta/llama-4-scout-17b-16e-instruct-maas',
+        messages: [],
+      }),
+    ).toMatchInlineSnapshot(`
+      {
+        "max_tokens": 4096,
+        "messages": [],
+        "model": "meta/llama-4-scout-17b-16e-instruct-maas",
+      }
+    `);
+  });
+
+  it('should preserve explicit max token settings for Llama 4 models', () => {
+    const provider = createGoogleVertexMaas({
+      project: 'test-project',
+      location: 'global',
+    });
+
+    provider('meta/llama-4-maverick-17b-128e-instruct-maas');
+
+    const [{ transformRequestBody }] = vi.mocked(createOpenAICompatible).mock
+      .calls[0];
+
+    expect(
+      transformRequestBody?.({
+        model: 'meta/llama-4-maverick-17b-128e-instruct-maas',
+        max_tokens: 1024,
+        messages: [],
+      }),
+    ).toMatchInlineSnapshot(`
+      {
+        "max_tokens": 1024,
+        "messages": [],
+        "model": "meta/llama-4-maverick-17b-128e-instruct-maas",
+      }
+    `);
+
+    expect(
+      transformRequestBody?.({
+        model: 'meta/llama-4-maverick-17b-128e-instruct-maas',
+        max_completion_tokens: 2048,
+        messages: [],
+      }),
+    ).toMatchInlineSnapshot(`
+      {
+        "max_completion_tokens": 2048,
+        "messages": [],
+        "model": "meta/llama-4-maverick-17b-128e-instruct-maas",
+      }
+    `);
+  });
+
+  it('should not add default max_tokens for non-Llama 4 models', () => {
+    const provider = createGoogleVertexMaas({
+      project: 'test-project',
+      location: 'global',
+    });
+
+    provider('deepseek-ai/deepseek-v3.2-maas');
+
+    const [{ transformRequestBody }] = vi.mocked(createOpenAICompatible).mock
+      .calls[0];
+
+    expect(
+      transformRequestBody?.({
+        model: 'deepseek-ai/deepseek-v3.2-maas',
+        messages: [],
+      }),
+    ).toMatchInlineSnapshot(`
+      {
+        "messages": [],
+        "model": "deepseek-ai/deepseek-v3.2-maas",
+      }
+    `);
+  });
+
   it('should construct correct URL with trailing slash removed from baseURL', () => {
     const provider = createGoogleVertexMaas({
       project: 'test-project',
