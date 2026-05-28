@@ -1,5 +1,11 @@
 # @ai-sdk/svelte
 
+## 5.0.0-canary.157
+
+### Patch Changes
+
+- ai@7.0.0-canary.157
+
 ## 5.0.0-canary.156
 
 ### Patch Changes
