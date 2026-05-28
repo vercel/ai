@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-canary.159
+
+### Patch Changes
+
+- b5092f5: fix(ai): do not re-validate tool input for output-error parts in validateUIMessages
+
 ## 7.0.0-canary.158
 
 ### Patch Changes
