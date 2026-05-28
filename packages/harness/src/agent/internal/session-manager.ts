@@ -159,24 +159,45 @@ export class SessionManager {
         harnessId: this.harness.harnessId,
       });
     }
-    const raw = await session.doDetach();
-    const validated = await validateResumeStateData({
-      harness: this.harness,
-      state: raw,
-    });
+
     /*
      * Drop the entry from the map BEFORE the slow `handle.stop()` snapshot
      * call. Otherwise a concurrent caller (cross-process REST where the
      * next request arrives while the previous turn's stop is still
      * in flight) would hit the `stopped` guard in `getSession` instead of
      * being routed through a fresh resume.
+     *
+     * Cleanup happens unconditionally — even if `doDetach` throws (e.g.
+     * the bridge's WS closed mid-turn and the adapter can no longer
+     * round-trip a detach message). Leaving the entry in the map would
+     * wedge future calls to this sessionId; the caller still gets the
+     * original error, but the manager state is consistent.
      */
-    entry.stopped = true;
-    const handle = entry.sandboxHandle;
-    entry.session = null;
-    entry.sandboxHandle = null;
-    this.releasePortLease(sessionId, entry);
-    this.entries.delete(sessionId);
+    const cleanup = (): HarnessV1SandboxHandle | null => {
+      entry.stopped = true;
+      const handle = entry.sandboxHandle;
+      entry.session = null;
+      entry.sandboxHandle = null;
+      this.releasePortLease(sessionId, entry);
+      this.entries.delete(sessionId);
+      return handle;
+    };
+
+    let raw: unknown;
+    try {
+      raw = await session.doDetach();
+    } catch (err) {
+      const handle = cleanup();
+      if (handle != null) {
+        await Promise.resolve(handle.stop()).catch(() => {});
+      }
+      throw err;
+    }
+    const validated = await validateResumeStateData({
+      harness: this.harness,
+      state: raw,
+    });
+    const handle = cleanup();
     if (handle != null) {
       // Detach stops the sandbox so it snapshots; the resume payload is
       // what binds a future process back to the same resource via

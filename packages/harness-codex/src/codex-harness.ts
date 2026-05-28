@@ -296,7 +296,16 @@ async function waitForBridgeReady({
   } finally {
     reader.releaseLock();
     void drainRest(proc.stdout);
-    void drainRest(proc.stderr);
+    /*
+     * Bridge stderr is the only diagnostic channel for what happens
+     * inside the sandbox once the bridge is running (uncaught
+     * exceptions, Codex SDK errors, network failures). Forward it
+     * line-by-line to the host console so a mid-turn bridge crash can
+     * be inspected from `pnpm dev` logs without redeploying. The
+     * bridge itself writes nothing to stderr in steady state, so this
+     * is silent on the happy path.
+     */
+    void forwardBridgeStderr(proc.stderr);
   }
 }
 
@@ -316,6 +325,27 @@ function lineDecoder() {
       return lines;
     },
   };
+}
+
+async function forwardBridgeStderr(
+  stream: ReadableStream<Uint8Array>,
+): Promise<void> {
+  try {
+    const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) return;
+      if (value) {
+        const trimmed = value.endsWith('\n') ? value.slice(0, -1) : value;
+        if (trimmed.length > 0) {
+          // eslint-disable-next-line no-console
+          console.log(`[bridge stderr] ${trimmed}`);
+        }
+      }
+    }
+  } catch {
+    // Reader errors are non-fatal — best-effort diagnostic only.
+  }
 }
 
 async function drainRest(stream: ReadableStream<Uint8Array>): Promise<void> {
@@ -544,29 +574,41 @@ function createSession({
         );
       }
       stopped = true;
-      const data = await new Promise<unknown>((resolve, reject) => {
-        const timer = setTimeout(() => {
-          unsub();
-          reject(
-            new Error(
-              `codex session ${sessionId} did not reply to detach within 5s.`,
-            ),
-          );
-        }, 5000);
-        timer.unref?.();
-        const unsub = channel.on('detach-state', msg => {
-          clearTimeout(timer);
-          unsub();
-          resolve(msg.data);
-        });
-        try {
-          channel.send({ type: 'detach' });
-        } catch (err) {
-          clearTimeout(timer);
-          unsub();
-          reject(err);
-        }
-      });
+      /*
+       * If the bridge's channel already closed (e.g. mid-turn WS drop)
+       * there is no one to ack a `detach` message. Synthesize an empty
+       * payload — the workdir is still captured by the sandbox snapshot
+       * during the subsequent `handle.stop()`, so the next turn can
+       * resume the filesystem state. The trade-off: we lose
+       * `threadId`, so the codex CLI starts a fresh thread on the
+       * preserved workdir rather than resuming the prior conversation
+       * inside Codex's runtime. Ability to continue beats throwing.
+       */
+      const data: unknown = channel.isClosed()
+        ? {}
+        : await new Promise<unknown>((resolve, reject) => {
+            const timer = setTimeout(() => {
+              unsub();
+              reject(
+                new Error(
+                  `codex session ${sessionId} did not reply to detach within 5s.`,
+                ),
+              );
+            }, 5000);
+            timer.unref?.();
+            const unsub = channel.on('detach-state', msg => {
+              clearTimeout(timer);
+              unsub();
+              resolve(msg.data);
+            });
+            try {
+              channel.send({ type: 'detach' });
+            } catch (err) {
+              clearTimeout(timer);
+              unsub();
+              reject(err);
+            }
+          });
 
       let stopTimer: ReturnType<typeof setTimeout> | undefined;
       try {
