@@ -25,10 +25,12 @@ export class VercelSandboxSession implements Experimental_Sandbox {
   async run({
     command,
     workingDirectory,
+    env,
     abortSignal,
   }: {
     command: string;
     workingDirectory?: string;
+    env?: Record<string, string>;
     abortSignal?: AbortSignal;
   }): Promise<{ exitCode: number; stdout: string; stderr: string }> {
     abortSignal?.throwIfAborted();
@@ -37,6 +39,7 @@ export class VercelSandboxSession implements Experimental_Sandbox {
       cmd: 'bash',
       args: ['-c', command],
       ...(workingDirectory !== undefined ? { cwd: workingDirectory } : {}),
+      ...(env !== undefined ? { env } : {}),
       ...(abortSignal !== undefined ? { signal: abortSignal } : {}),
     });
 
@@ -55,10 +58,12 @@ export class VercelSandboxSession implements Experimental_Sandbox {
   async spawn({
     command,
     workingDirectory,
+    env,
     abortSignal,
   }: {
     command: string;
     workingDirectory?: string;
+    env?: Record<string, string>;
     abortSignal?: AbortSignal;
   }): Promise<Experimental_SandboxProcess> {
     abortSignal?.throwIfAborted();
@@ -68,6 +73,7 @@ export class VercelSandboxSession implements Experimental_Sandbox {
       args: ['-c', command],
       detached: true,
       ...(workingDirectory !== undefined ? { cwd: workingDirectory } : {}),
+      ...(env !== undefined ? { env } : {}),
       ...(abortSignal !== undefined ? { signal: abortSignal } : {}),
     });
 

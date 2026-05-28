@@ -325,8 +325,20 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
   }),
 } as const satisfies Record<string, HarnessV1BuiltinTool<any, any>>;
 
+/*
+ * Bootstrap lives in /tmp because it's pure derived state — the harness can
+ * reinstall the CLI and bridge files on any fresh sandbox from the recipe.
+ * Persistence comes from the sandbox provider's snapshot, not the path.
+ *
+ * Per-session paths live under the Vercel sandbox persistent mount
+ * (`/vercel/sandbox`) so the workdir's CLI state (Claude's
+ * `~/.claude/projects/<dir>/*.jsonl` thread history is keyed by working
+ * directory) and the bridge state files survive the detach -> snapshot ->
+ * resume cycle.
+ */
 const BOOTSTRAP_DIR = '/tmp/harness/claude-code';
-const SESSION_DIR_PREFIX = '/tmp/harness/sessions/claude-code';
+const SESSION_DATA_DIR_PREFIX = '/vercel/sandbox/.agent-runs';
+const WORKDIR_PREFIX = '/vercel/sandbox/claude-code';
 
 /**
  * Schema for the adapter-specific portion of `HarnessV1ResumeState.data`
@@ -379,7 +391,9 @@ export function createClaudeCode(
       const { session } = handle;
       const isResume = startOpts.resumeFrom != null;
 
-      const sessionDir = `${SESSION_DIR_PREFIX}/${startOpts.sessionId}`;
+      const sessionDataDir = `${SESSION_DATA_DIR_PREFIX}/${startOpts.sessionId}`;
+      const bridgeStateDir = `${sessionDataDir}/bridge`;
+      const workDir = `${WORKDIR_PREFIX}-${startOpts.sessionId}`;
       const port = resolveBridgePort(handle, settings.port);
       const token = randomBytes(32).toString('hex');
       const env = {
@@ -388,42 +402,32 @@ export function createClaudeCode(
         BRIDGE_WS_PORT: String(port),
       };
 
-      // The session dir, env.json and any skill files are already present
-      // in the sandbox from the prior session — preserved across the
-      // detach/snapshot/resume cycle by the persistent sandbox. Skip the
-      // re-write on resume so we don't churn disk for no reason.
+      /*
+       * On resume the workdir, skill files, and bridge-state directory are
+       * already present in the sandbox snapshot, so skip the rewrite. The
+       * env values are sent fresh on every spawn below — `BRIDGE_CHANNEL_TOKEN`
+       * rotates per start, so resume processes still get a token the host
+       * owns.
+       */
       if (!isResume) {
         await session.run({
-          command: `mkdir -p ${sessionDir}`,
-          abortSignal: startOpts.abortSignal,
-        });
-
-        await session.writeTextFile({
-          path: `${sessionDir}/env.json`,
-          content: JSON.stringify(env),
+          command: `mkdir -p ${workDir} ${bridgeStateDir}`,
           abortSignal: startOpts.abortSignal,
         });
 
         if (startOpts.skills && startOpts.skills.length > 0) {
           await writeSkills({
             sandbox: session,
-            workdir: sessionDir,
+            workdir: workDir,
             skills: startOpts.skills,
             abortSignal: startOpts.abortSignal,
           });
         }
-      } else {
-        // Rewrite env.json with a fresh token/port for this resume — the
-        // bridge process is brand new and needs a token the host owns.
-        await session.writeTextFile({
-          path: `${sessionDir}/env.json`,
-          content: JSON.stringify(env),
-          abortSignal: startOpts.abortSignal,
-        });
       }
 
       const proc = await session.spawn({
-        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${sessionDir}`,
+        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${workDir} --bridge-state-dir ${bridgeStateDir}`,
+        env,
         abortSignal: startOpts.abortSignal,
       });
 

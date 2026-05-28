@@ -122,14 +122,14 @@ export class SessionManager {
     const handle = entry.sandboxHandle;
     entry.session = null;
     entry.sandboxHandle = null;
+    this.releasePortLease(options.sessionId, entry);
+    this.entries.delete(options.sessionId);
     if (session != null) {
       await Promise.resolve(session.doStop()).catch(() => {});
     }
     if (handle != null) {
       await Promise.resolve(handle.stop()).catch(() => {});
     }
-    this.releasePortLease(options.sessionId, entry);
-    this.entries.delete(options.sessionId);
   }
 
   /** Close every active session. Convenience for shutdown paths. */
@@ -164,18 +164,25 @@ export class SessionManager {
       harness: this.harness,
       state: raw,
     });
+    /*
+     * Drop the entry from the map BEFORE the slow `handle.stop()` snapshot
+     * call. Otherwise a concurrent caller (cross-process REST where the
+     * next request arrives while the previous turn's stop is still
+     * in flight) would hit the `stopped` guard in `getSession` instead of
+     * being routed through a fresh resume.
+     */
     entry.stopped = true;
     const handle = entry.sandboxHandle;
     entry.session = null;
     entry.sandboxHandle = null;
+    this.releasePortLease(sessionId, entry);
+    this.entries.delete(sessionId);
     if (handle != null) {
       // Detach stops the sandbox so it snapshots; the resume payload is
       // what binds a future process back to the same resource via
       // `provider.resume({ sessionId })`.
       await Promise.resolve(handle.stop()).catch(() => {});
     }
-    this.releasePortLease(sessionId, entry);
-    this.entries.delete(sessionId);
     return validated;
   }
 

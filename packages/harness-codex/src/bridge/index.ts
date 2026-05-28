@@ -10,7 +10,7 @@
 import type { HarnessV1BuiltinToolName } from '@ai-sdk/harness';
 import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { createServer, type Server } from 'node:http';
 // Temporary workaround for upstream codex MCP-tool bug — see ./cli-relay.ts
 import {
@@ -39,12 +39,15 @@ function toCommonName(nativeName: string): HarnessV1BuiltinToolName | string {
 
 const args = parseArgs(argv.slice(2));
 const workdir = args.workdir;
+const bridgeStateDir = args.bridgeStateDir;
 if (!workdir) {
   emitFatal('Missing --workdir argument.');
 }
+if (!bridgeStateDir) {
+  emitFatal('Missing --bridge-state-dir argument.');
+}
 const bootstrapDir = args.bootstrapDir ?? workdir;
 
-const bridgeStateDir = `${workdir}/bridge-state`;
 const startConfigPath = `${bridgeStateDir}/start-config.json`;
 const rerunStartConfigPath = `${bridgeStateDir}/rerun-start-config.json`;
 const bridgeMetaPath = `${bridgeStateDir}/bridge-meta.json`;
@@ -53,15 +56,6 @@ try {
   await mkdir(bridgeStateDir, { recursive: true });
 } catch {
   // Best-effort.
-}
-
-try {
-  const envFile = JSON.parse(
-    await readFile(`${workdir}/env.json`, 'utf8'),
-  ) as Record<string, string>;
-  for (const [k, v] of Object.entries(envFile)) procEnv[k] = v;
-} catch (err) {
-  emitFatal(`Failed to load env.json: ${(err as Error).message}`);
 }
 
 const expectedToken = procEnv.BRIDGE_CHANNEL_TOKEN ?? '';
@@ -854,12 +848,19 @@ function closeServer(server: Server): void {
 
 function parseArgs(args: string[]): {
   workdir?: string;
+  bridgeStateDir?: string;
   bootstrapDir?: string;
 } {
-  const out: { workdir?: string; bootstrapDir?: string } = {};
+  const out: {
+    workdir?: string;
+    bridgeStateDir?: string;
+    bootstrapDir?: string;
+  } = {};
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--workdir' && i + 1 < args.length) {
       out.workdir = args[++i];
+    } else if (args[i] === '--bridge-state-dir' && i + 1 < args.length) {
+      out.bridgeStateDir = args[++i];
     } else if (args[i] === '--bootstrap-dir' && i + 1 < args.length) {
       out.bootstrapDir = args[++i];
     }

@@ -1,12 +1,13 @@
 // Long-running bridge that runs inside a sandbox alongside the `claude` CLI.
 // Talks to the host over WebSocket on a sandbox-proxied loopback port. The
-// host generates a one-shot token and writes it to env.json along with the
-// resolved auth env. The bridge enforces the token on every WS connection.
+// host injects auth env (and a one-shot `BRIDGE_CHANNEL_TOKEN`) via the
+// sandbox's spawn env; this process reads them straight from `process.env`.
+// The bridge enforces the token on every WS connection.
 
 import type { HarnessV1BuiltinToolName } from '@ai-sdk/harness';
 import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { argv, env as procEnv, pid, stdout } from 'node:process';
 
 const PROTOCOL_VERSION = 1;
@@ -32,11 +33,14 @@ function toCommonName(nativeName: string): HarnessV1BuiltinToolName | string {
 
 const args = parseArgs(argv.slice(2));
 const workdir = args.workdir;
+const bridgeStateDir = args.bridgeStateDir;
 if (!workdir) {
   emitFatal('Missing --workdir argument.');
 }
+if (!bridgeStateDir) {
+  emitFatal('Missing --bridge-state-dir argument.');
+}
 
-const bridgeStateDir = `${workdir}/bridge-state`;
 const startConfigPath = `${bridgeStateDir}/start-config.json`;
 const rerunStartConfigPath = `${bridgeStateDir}/rerun-start-config.json`;
 const bridgeMetaPath = `${bridgeStateDir}/bridge-meta.json`;
@@ -45,15 +49,6 @@ try {
   await mkdir(bridgeStateDir, { recursive: true });
 } catch {
   // Best-effort; if we can't write state files the bridge still runs.
-}
-
-try {
-  const envFile = JSON.parse(
-    await readFile(`${workdir}/env.json`, 'utf8'),
-  ) as Record<string, string>;
-  for (const [k, v] of Object.entries(envFile)) procEnv[k] = v;
-} catch (err) {
-  emitFatal(`Failed to load env.json: ${(err as Error).message}`);
 }
 
 const expectedToken = procEnv.BRIDGE_CHANNEL_TOKEN ?? '';
@@ -817,11 +812,16 @@ function jsonSchemaToZodShape(
   return shape;
 }
 
-function parseArgs(args: string[]): { workdir?: string } {
-  const out: { workdir?: string } = {};
+function parseArgs(args: string[]): {
+  workdir?: string;
+  bridgeStateDir?: string;
+} {
+  const out: { workdir?: string; bridgeStateDir?: string } = {};
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--workdir' && i + 1 < args.length) {
       out.workdir = args[++i];
+    } else if (args[i] === '--bridge-state-dir' && i + 1 < args.length) {
+      out.bridgeStateDir = args[++i];
     }
   }
   return out;

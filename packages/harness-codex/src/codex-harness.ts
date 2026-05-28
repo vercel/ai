@@ -76,8 +76,19 @@ const CODEX_BUILTIN_TOOLS = {
   }),
 } as const satisfies Record<string, HarnessV1BuiltinTool<any, any>>;
 
+/*
+ * Bootstrap lives in /tmp because it's pure derived state — the harness can
+ * reinstall the CLI and bridge files on any fresh sandbox from the recipe.
+ * Persistence comes from the sandbox provider's snapshot, not the path.
+ *
+ * Per-session paths live under the Vercel sandbox persistent mount
+ * (`/vercel/sandbox`) so the workdir's contents (the codex CLI shim and any
+ * files the agent edits) and the bridge state files survive the detach ->
+ * snapshot -> resume cycle.
+ */
 const BOOTSTRAP_DIR = '/tmp/harness/codex';
-const SESSION_DIR_PREFIX = '/tmp/harness/sessions/codex';
+const SESSION_DATA_DIR_PREFIX = '/vercel/sandbox/.agent-runs';
+const WORKDIR_PREFIX = '/vercel/sandbox/codex';
 
 /**
  * Schema for the adapter-specific `HarnessV1ResumeState.data` payload Codex
@@ -140,7 +151,9 @@ export function createCodex(
           ? resumeThreadId
           : undefined;
 
-      const sessionDir = `${SESSION_DIR_PREFIX}/${startOpts.sessionId}`;
+      const sessionDataDir = `${SESSION_DATA_DIR_PREFIX}/${startOpts.sessionId}`;
+      const bridgeStateDir = `${sessionDataDir}/bridge`;
+      const workDir = `${WORKDIR_PREFIX}-${startOpts.sessionId}`;
       const port = resolveBridgePort(handle, settings.port);
       const token = randomBytes(32).toString('hex');
       const env = {
@@ -151,22 +164,14 @@ export function createCodex(
 
       if (!isResume) {
         await session.run({
-          command: `mkdir -p ${sessionDir}`,
+          command: `mkdir -p ${workDir} ${bridgeStateDir}`,
           abortSignal: startOpts.abortSignal,
         });
       }
 
-      // Always refresh env.json — the bridge process is brand new (whether
-      // first start or resume), so it needs the current token + port. The
-      // session dir already exists across the snapshot/resume cycle.
-      await session.writeTextFile({
-        path: `${sessionDir}/env.json`,
-        content: JSON.stringify(env),
-        abortSignal: startOpts.abortSignal,
-      });
-
       const proc = await session.spawn({
-        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${sessionDir} --bootstrap-dir ${BOOTSTRAP_DIR}`,
+        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${workDir} --bridge-state-dir ${bridgeStateDir} --bootstrap-dir ${BOOTSTRAP_DIR}`,
+        env,
         abortSignal: startOpts.abortSignal,
       });
 
