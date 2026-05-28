@@ -1,0 +1,47 @@
+{
+  "name": "ai-sdk-code-mode",
+  "version": "1.0.0",
+  "description": "QuickJS-backed code mode tool for AI SDK",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "bench": "pnpm build && node benchmark/three-roundtrips.mjs",
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "test": "pnpm build && vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "validate": "pnpm typecheck && pnpm test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "^11.2.2",
+      "onFail": "download"
+    }
+  },
+  "type": "module",
+  "dependencies": {
+    "@ai-sdk/provider-utils": "^4.0.27",
+    "ai": "^6.0.191",
+    "quickjs-emscripten": "^0.32.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.7"
+  }
+}

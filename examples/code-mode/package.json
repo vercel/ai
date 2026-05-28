@@ -1,0 +1,28 @@
+{
+  "name": "@example/code-mode",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "prepare:code-mode": "node scripts/prepare-code-mode.mjs",
+    "dev": "pnpm prepare:code-mode && next dev",
+    "build": "pnpm prepare:code-mode && next build",
+    "start": "next start",
+    "type-check": "pnpm prepare:code-mode && tsc --noEmit"
+  },
+  "dependencies": {
+    "@ai-sdk/provider-utils": "workspace:*",
+    "ai": "workspace:*",
+    "ai-sdk-code-mode": "link:./vendor/ai-sdk-code-mode",
+    "next": "^15.5.18",
+    "quickjs-emscripten": "^0.32.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.19",
+    "@types/react": "^18.3.28",
+    "@types/react-dom": "^18.3.7",
+    "typescript": "5.8.3"
+  }
+}

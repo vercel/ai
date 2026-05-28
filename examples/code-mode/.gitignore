@@ -1,0 +1,4 @@
+.next
+next-env.d.ts
+tsconfig.tsbuildinfo
+vendor/ai-sdk-code-mode/dist
