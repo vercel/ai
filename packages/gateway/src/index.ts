@@ -44,3 +44,11 @@ export {
 } from './errors';
 export type { GatewayErrorResponse } from './errors';
 export { VERSION } from './version';
+
+// xAI Live Search config builder (not a tool — see file header)
+export { xaiSearchParameters } from './xai-search-parameters';
+export type {
+  XaiSearchParameters,
+  XaiSearchParametersConfig,
+  XaiSearchSource,
+} from './xai-search-parameters';
