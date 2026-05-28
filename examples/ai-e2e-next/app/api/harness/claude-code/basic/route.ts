@@ -1,28 +1,21 @@
 import { claudeCodeHarnessAgent } from '@/agent/harness/claude-code-agent';
 import {
-  loadHarnessSession,
-  saveHarnessSession,
-} from '@/util/harness-session-store';
+  getHarnessSession,
+  setHarnessSession,
+} from '@/util/harness-session-registry';
 import { createUIMessageStreamResponse, toUIMessageStream } from 'ai';
 
 /*
- * REST endpoint demonstrating cross-process harness session resume.
+ * REST endpoint for the harness chat example.
  *
- * Flow per request:
- *   1. `useChat` POSTs `{ id: chatId, messages }`.
- *   2. We look up any persisted `{ sessionId, state }` for this chatId.
- *   3. Extract the most recent user message text and stream a turn.
- *      Presence of stored state turns this into a resume against the
- *      same sandbox; absence creates a fresh session.
- *   4. Detach + persist runs inside `consumeSseStream`, which tees the
- *      response body and resolves only after the stream has fully
- *      ended. `after()` is unsuitable here because it can fire as soon
- *      as the route returns the `Response` object — long before the
- *      bridge has produced any turn events — which would race detach
- *      against the in-flight turn.
+ * `useChat` POSTs `{ id: chatId, messages }`. One harness session is kept warm
+ * per chat (see `harness-session-registry`): the first message of a chat
+ * creates a session and registers it; every later message reuses the same live
+ * session. The sandbox stays up between turns, so work the agent did earlier
+ * (e.g. a cloned repo) is still there on the next message — no detach, snapshot,
+ * or resume per turn.
  */
 export async function POST(request: Request) {
-  console.log(`[POST ${Date.now()}] entered`);
   const body = (await request.json()) as {
     id?: string;
     messages: Array<{
@@ -46,43 +39,15 @@ export async function POST(request: Request) {
     return new Response('Missing user message', { status: 400 });
   }
 
-  const stored = await loadHarnessSession(chatId);
-
-  const session = await claudeCodeHarnessAgent.createSession({
-    sessionId: stored?.sessionId,
-    resumeFrom: stored?.state,
-  });
+  let session = getHarnessSession(chatId);
+  if (session == null) {
+    session = await claudeCodeHarnessAgent.createSession();
+    setHarnessSession(chatId, session);
+  }
 
   const result = await claudeCodeHarnessAgent.stream({ session, prompt });
 
   return createUIMessageStreamResponse({
     stream: toUIMessageStream({ stream: result.stream }),
-    consumeSseStream: async ({ stream }) => {
-      console.log(`[CSS ${Date.now()}] consumeSseStream invoked`);
-      try {
-        const reader = stream.getReader();
-        while (true) {
-          const { done } = await reader.read();
-          if (done) break;
-        }
-      } catch {
-        // Reader errors are surfaced through the stream itself; we still
-        // need to detach so the sandbox state is preserved.
-      }
-      console.log(`[CSS ${Date.now()}] drain done, calling detach`);
-
-      try {
-        const state = await session.detach();
-        console.log(`[CSS ${Date.now()}] detach returned, calling save`);
-        await saveHarnessSession({
-          chatId,
-          sessionId: session.sessionId,
-          state,
-        });
-        console.log(`[CSS ${Date.now()}] save returned`);
-      } catch (err) {
-        console.error('[harness-claude-code] failed to detach + save:', err);
-      }
-    },
   });
 }

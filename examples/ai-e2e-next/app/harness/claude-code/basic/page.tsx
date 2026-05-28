@@ -77,13 +77,17 @@ function Chat({ chatId, onReset }: { chatId: string; onReset: () => void }) {
           {message.parts.map((part, index) => {
             switch (part.type) {
               case 'text': {
-                return <Response key={index}>{part.text}</Response>;
+                return (
+                  <Response key={index} className="mb-2">
+                    {part.text}
+                  </Response>
+                );
               }
               case 'reasoning': {
                 return (
                   <Response
                     key={index}
-                    className="italic text-gray-500 whitespace-pre-wrap"
+                    className="italic text-gray-500 whitespace-pre-wrap mb-2"
                   >
                     {part.text}
                   </Response>
@@ -94,7 +98,12 @@ function Chat({ chatId, onReset }: { chatId: string; onReset: () => void }) {
                 if (part.mediaType.startsWith('image/')) {
                   return (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img key={index} src={part.url} alt="Generated image" />
+                    <img
+                      key={index}
+                      src={part.url}
+                      alt="Generated image"
+                      className="mb-2"
+                    />
                   );
                 }
                 return null;
