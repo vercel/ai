@@ -10,6 +10,7 @@ export const webSearchArgsSchema = lazySchema(() =>
     z.object({
       allowedDomains: z.array(z.string()).max(5).optional(),
       excludedDomains: z.array(z.string()).max(5).optional(),
+      enableImageSearch: z.boolean().optional(),
       enableImageUnderstanding: z.boolean().optional(),
     }),
   ),
@@ -43,6 +44,7 @@ const webSearchToolFactory = createProviderToolFactoryWithOutputSchema<
   {
     allowedDomains?: string[];
     excludedDomains?: string[];
+    enableImageSearch?: boolean;
     enableImageUnderstanding?: boolean;
   }
 >({

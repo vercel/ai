@@ -865,13 +865,14 @@ describe('XaiResponsesLanguageModel', () => {
               name: 'web_search',
               args: {
                 allowedDomains: ['wikipedia.org'],
+                enableImageSearch: true,
                 enableImageUnderstanding: true,
               },
             },
           ],
         });
 
-        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        expect(await server.calls[1].requestBodyJson).toMatchInlineSnapshot(`
           {
             "input": [
               {
@@ -887,6 +888,11 @@ describe('XaiResponsesLanguageModel', () => {
             "model": "grok-4-fast-non-reasoning",
             "tools": [
               {
+                "allowed_domains": [
+                  "wikipedia.org",
+                ],
+                "enable_image_search": true,
+                "enable_image_understanding": true,
                 "type": "web_search",
               },
             ],
