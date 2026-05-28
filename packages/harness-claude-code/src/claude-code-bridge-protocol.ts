@@ -27,6 +27,17 @@ const harnessMetadataSchema = z.record(
 );
 
 export const outboundMessageSchema = z.discriminatedUnion('type', [
+  // Sent unconditionally by the bridge the instant it accepts an
+  // authenticated WS connection. The host waits for it before sending
+  // its first `start` message, because some sandbox runtimes (notably
+  // Vercel) complete the upstream WS handshake with the host long
+  // before the underlying connection is actually wired through to the
+  // sandbox-side bridge process — anything the host sends in that gap
+  // is silently dropped.
+  z.object({
+    type: z.literal('bridge-hello'),
+  }),
+
   z.object({
     type: z.literal('stream-start'),
     warnings: z.array(z.unknown()).optional(),

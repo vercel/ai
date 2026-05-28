@@ -131,14 +131,20 @@ wss.on('connection', (ws: WSConnection, req: { url?: string }) => {
     return;
   }
   if (activeSocket) {
-    // TODO(§9): accept replacement connections instead of rejecting. When the
-    // bridge survives WS close (also §9), a second host reconnect should
-    // close the prior `activeSocket` and adopt the new one. For now the
-    // bridge holds a single connection at a time.
     ws.close(1013, 'bridge already has an active host connection');
     return;
   }
   activeSocket = ws;
+  // Hello-then-listen: tell the host that the end-to-end WS connection
+  // is actually live before it tries to send `start`. Required because
+  // some sandbox runtimes complete the host-side handshake before the
+  // connection is forwarded to us.
+  try {
+    ws.send(JSON.stringify({ type: 'bridge-hello' }));
+  } catch {
+    // Best-effort. If the hello cannot be sent the host will eventually
+    // time out waiting for it and report a clear error.
+  }
   wireSocket(ws);
 });
 
@@ -193,9 +199,10 @@ function wireSocket(ws: WSConnection): void {
   };
 
   ws.on('message', async raw => {
+    const text = Buffer.from(raw).toString('utf8');
     let parsed: InboundMessage;
     try {
-      parsed = JSON.parse(Buffer.from(raw).toString('utf8')) as InboundMessage;
+      parsed = JSON.parse(text) as InboundMessage;
     } catch (err) {
       send({
         type: 'error',

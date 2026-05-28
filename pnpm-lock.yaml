@@ -99,6 +99,12 @@ importers:
       '@ai-sdk/groq':
         specifier: workspace:*
         version: link:../../packages/groq
+      '@ai-sdk/harness':
+        specifier: workspace:*
+        version: link:../../packages/harness
+      '@ai-sdk/harness-claude-code':
+        specifier: workspace:*
+        version: link:../../packages/harness-claude-code
       '@ai-sdk/mcp':
         specifier: workspace:*
         version: link:../../packages/mcp
@@ -126,6 +132,9 @@ importers:
       '@ai-sdk/rsc':
         specifier: workspace:*
         version: link:../../packages/rsc
+      '@ai-sdk/sandbox-vercel':
+        specifier: workspace:*
+        version: link:../../packages/sandbox-vercel
       '@ai-sdk/valibot':
         specifier: workspace:*
         version: link:../../packages/valibot

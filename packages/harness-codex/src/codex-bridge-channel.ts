@@ -18,6 +18,14 @@ type Listener<T extends EventType> = (
  * inbound messages until a listener for their type is registered, so callers
  * that subscribe asynchronously do not miss early frames (e.g. the first
  * `tool-call` arriving before `doPrompt` finishes wiring up its handlers).
+ *
+ * Inbound dispatch is serialised through a promise chain so a `close` event
+ * that arrives on the same microtask as the final `finish` message does not
+ * fire close handlers until the message has been dispatched. The bridge can
+ * legitimately send `finish` and then immediately close the connection (we
+ * do exactly that on detach); without serialisation the close handler races
+ * `finish` and reports a spurious "bridge closed before the turn finished"
+ * error.
  */
 export class BridgeChannel {
   private readonly listeners = new Map<EventType, Set<Listener<EventType>>>();
@@ -26,19 +34,27 @@ export class BridgeChannel {
     (code: number, reason: string) => void
   >();
   private closed = false;
+  private dispatchChain: Promise<void> = Promise.resolve();
 
   constructor(private readonly ws: WebSocket) {
     this.ws.on('message', raw => {
       const text = typeof raw === 'string' ? raw : raw.toString('utf8');
-      void this.handleIncoming(text);
+      this.enqueue(() => this.handleIncoming(text));
     });
     this.ws.on('close', (code, reason) => {
       this.closed = true;
-      for (const h of this.onCloseHandlers) h(code, reason.toString('utf8'));
+      const reasonText = reason.toString('utf8');
+      this.enqueue(() => {
+        for (const h of this.onCloseHandlers) h(code, reasonText);
+      });
     });
     this.ws.on('error', err => {
-      this.dispatch({ type: 'error', error: err });
+      this.enqueue(() => this.dispatch({ type: 'error', error: err }));
     });
+  }
+
+  private enqueue(work: () => void | Promise<void>): void {
+    this.dispatchChain = this.dispatchChain.then(work);
   }
 
   on<T extends EventType>(type: T, listener: Listener<T>): () => void {

@@ -431,12 +431,15 @@ export function createClaudeCode(
         timeoutMs: settings.startupTimeoutMs ?? 120_000,
         abortSignal: startOpts.abortSignal,
       });
+      void drainRest(proc.stdout);
+      void drainRest(proc.stderr);
 
       const wsUrl =
         (await handle.getPortUrl({ port: boundPort, protocol: 'ws' })) +
         `?agent_bridge_token=${encodeURIComponent(token)}`;
 
       const ws = await openWebSocket(wsUrl);
+      await waitForBridgeHello(ws, settings.startupTimeoutMs ?? 120_000);
       const channel = new BridgeChannel(ws);
 
       return createSession({
@@ -576,8 +579,6 @@ async function waitForBridgeReady({
     }
   } finally {
     reader.releaseLock();
-    void drainRest(proc.stdout);
-    void drainRest(proc.stderr);
   }
 }
 
@@ -607,6 +608,72 @@ async function drainRest(stream: ReadableStream<Uint8Array>): Promise<void> {
       if (done) return;
     }
   } catch {}
+}
+
+/**
+ * Wait for the bridge's `bridge-hello` message to arrive on the freshly
+ * opened WebSocket before any other host-side code touches it.
+ *
+ * Some sandbox runtimes (Vercel in particular) complete the WS upgrade
+ * with the host long before the connection is actually forwarded to the
+ * sandbox-side bridge. Anything sent in that gap is silently dropped —
+ * including the `start` message we send next. The bridge emits
+ * `bridge-hello` the instant it accepts the connection, so receiving it
+ * is the only reliable evidence that the end-to-end link is live.
+ */
+async function waitForBridgeHello(
+  ws: WebSocket,
+  timeoutMs: number,
+): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    let settled = false;
+    const cleanup = () => {
+      ws.off('message', onMessage);
+      ws.off('close', onClose);
+      ws.off('error', onError);
+      if (timer) clearTimeout(timer);
+    };
+    const settle = (err?: unknown) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      if (err) reject(err);
+      else resolve();
+    };
+    const onMessage = (raw: unknown) => {
+      try {
+        const text =
+          typeof raw === 'string'
+            ? raw
+            : (raw as Buffer | ArrayBufferLike).toString
+              ? (raw as Buffer).toString('utf8')
+              : String(raw);
+        const parsed = JSON.parse(text) as { type?: unknown };
+        if (parsed?.type === 'bridge-hello') settle();
+      } catch {
+        // Ignore malformed frames while waiting.
+      }
+    };
+    const onClose = () => {
+      settle(
+        new Error('claude-code bridge closed before sending bridge-hello'),
+      );
+    };
+    const onError = (err: Error) => settle(err);
+    const timer = setTimeout(
+      () =>
+        settle(
+          new Error(
+            `claude-code bridge did not send bridge-hello within ${timeoutMs}ms`,
+          ),
+        ),
+      timeoutMs,
+    );
+    timer.unref?.();
+    ws.on('message', onMessage);
+    ws.on('close', onClose);
+    ws.on('error', onError);
+  });
 }
 
 function openWebSocket(url: string): Promise<WebSocket> {

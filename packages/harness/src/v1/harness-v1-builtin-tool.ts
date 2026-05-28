@@ -14,10 +14,12 @@ export const HARNESS_V1_BUILTIN_TOOLS = {
   read: tool({
     description: 'Read file contents',
     inputSchema: z.object({ file_path: z.string() }),
+    outputSchema: z.unknown(),
   }),
   write: tool({
     description: 'Write content to a file',
     inputSchema: z.object({ file_path: z.string(), content: z.string() }),
+    outputSchema: z.unknown(),
   }),
   edit: tool({
     description: 'Edit a file by replacing text',
@@ -26,22 +28,27 @@ export const HARNESS_V1_BUILTIN_TOOLS = {
       old_string: z.string(),
       new_string: z.string(),
     }),
+    outputSchema: z.unknown(),
   }),
   bash: tool({
     description: 'Execute a shell command',
     inputSchema: z.object({ command: z.string() }),
+    outputSchema: z.unknown(),
   }),
   grep: tool({
     description: 'Search file contents with regex',
     inputSchema: z.object({ pattern: z.string() }),
+    outputSchema: z.unknown(),
   }),
   glob: tool({
     description: 'Find files matching a glob pattern',
     inputSchema: z.object({ pattern: z.string() }),
+    outputSchema: z.unknown(),
   }),
   webSearch: tool({
     description: 'Search the web',
     inputSchema: z.object({ query: z.string() }),
+    outputSchema: z.unknown(),
   }),
 } as const;
 

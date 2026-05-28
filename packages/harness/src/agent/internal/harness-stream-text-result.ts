@@ -9,6 +9,7 @@ import {
 import {
   addLanguageModelUsage,
   asLanguageModelUsage,
+  createAsyncIterableStream,
   createNullLanguageModelUsage,
   DefaultStepResult,
   toResponseMessages,
@@ -17,16 +18,20 @@ import type {
   LanguageModelV4FinishReason,
   LanguageModelV4Usage,
 } from '@ai-sdk/provider';
-import type {
-  CallWarning,
-  ContentPart,
-  FinishReason,
-  GenerateTextResult,
-  LanguageModelUsage,
-  ProviderMetadata,
-  StepResult,
-  StreamTextResult,
-  TextStreamPart,
+import {
+  createUIMessageStreamResponse,
+  type CallWarning,
+  type ContentPart,
+  type FinishReason,
+  type GenerateTextResult,
+  type InferUIMessageChunk,
+  type LanguageModelUsage,
+  type ProviderMetadata,
+  type StepResult,
+  type StreamTextResult,
+  type TextStreamPart,
+  type UIMessage,
+  type UIMessageChunk,
 } from 'ai';
 
 type StreamProp<
@@ -557,18 +562,35 @@ export class HarnessStreamTextResult<
     }
   }
 
-  toUIMessageStream(): never {
-    throw notSupportedYet('toUIMessageStream');
+  toUIMessageStream<UI_MESSAGE extends UIMessage>(): AsyncIterableStream<
+    InferUIMessageChunk<UI_MESSAGE>
+  > {
+    return createAsyncIterableStream(
+      this.fullStream.pipeThrough(buildUIMessageChunkTransform<TOOLS>()),
+    ) as AsyncIterableStream<InferUIMessageChunk<UI_MESSAGE>>;
   }
+
   pipeUIMessageStreamToResponse(): never {
     throw notSupportedYet('pipeUIMessageStreamToResponse');
   }
+
   pipeTextStreamToResponse(): never {
     throw notSupportedYet('pipeTextStreamToResponse');
   }
-  toUIMessageStreamResponse(): never {
-    throw notSupportedYet('toUIMessageStreamResponse');
+
+  toUIMessageStreamResponse<UI_MESSAGE extends UIMessage>(
+    init: ResponseInit & {
+      consumeSseStream?: (options: {
+        stream: ReadableStream<string>;
+      }) => PromiseLike<void> | void;
+    } = {},
+  ): Response {
+    return createUIMessageStreamResponse({
+      stream: this.toUIMessageStream<UI_MESSAGE>(),
+      ...init,
+    });
   }
+
   toTextStreamResponse(): never {
     throw notSupportedYet('toTextStreamResponse');
   }
@@ -641,3 +663,152 @@ export type _GenerateTextResultMarker<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context,
 > = GenerateTextResult<TOOLS, RUNTIME_CONTEXT, never>;
+
+/**
+ * TextStreamPart → UIMessageChunk transform, scoped to the subset of parts
+ * `translate-stream-part.ts` actually emits from the harness wire. Mirrors
+ * the shape of AI SDK's `DefaultStreamTextResult.toUIMessageStream` without
+ * the extra callbacks (`originalMessages`, `onFinish`, `messageMetadata`,
+ * `generateMessageId`) consumers of the harness do not pass through today.
+ *
+ * Unknown / unhandled part types are silently dropped rather than throwing
+ * the exhaustive-check error AI SDK does, so newly-added `TextStreamPart`
+ * variants don't break the harness pipeline before they're wired here.
+ */
+function buildUIMessageChunkTransform<TOOLS extends ToolSet>(): TransformStream<
+  TextStreamPart<TOOLS>,
+  UIMessageChunk
+> {
+  return new TransformStream<TextStreamPart<TOOLS>, UIMessageChunk>({
+    transform(part, controller) {
+      switch (part.type) {
+        case 'start': {
+          controller.enqueue({ type: 'start' });
+          break;
+        }
+        case 'start-step': {
+          controller.enqueue({ type: 'start-step' });
+          break;
+        }
+        case 'finish-step': {
+          controller.enqueue({ type: 'finish-step' });
+          break;
+        }
+        case 'finish': {
+          controller.enqueue({
+            type: 'finish',
+            ...('finishReason' in part && part.finishReason != null
+              ? { finishReason: part.finishReason }
+              : {}),
+          });
+          break;
+        }
+        case 'text-start': {
+          controller.enqueue({ type: 'text-start', id: part.id });
+          break;
+        }
+        case 'text-delta': {
+          controller.enqueue({
+            type: 'text-delta',
+            id: part.id,
+            delta: part.text,
+          });
+          break;
+        }
+        case 'text-end': {
+          controller.enqueue({ type: 'text-end', id: part.id });
+          break;
+        }
+        case 'reasoning-start': {
+          controller.enqueue({ type: 'reasoning-start', id: part.id });
+          break;
+        }
+        case 'reasoning-delta': {
+          controller.enqueue({
+            type: 'reasoning-delta',
+            id: part.id,
+            delta: part.text,
+          });
+          break;
+        }
+        case 'reasoning-end': {
+          controller.enqueue({ type: 'reasoning-end', id: part.id });
+          break;
+        }
+        case 'tool-call': {
+          if (part.invalid) {
+            controller.enqueue({
+              type: 'tool-input-error',
+              toolCallId: part.toolCallId,
+              toolName: part.toolName,
+              input: part.input,
+              errorText:
+                part.error instanceof Error
+                  ? part.error.message
+                  : String(part.error),
+              ...(part.providerExecuted != null
+                ? { providerExecuted: part.providerExecuted }
+                : {}),
+            });
+          } else {
+            controller.enqueue({
+              type: 'tool-input-available',
+              toolCallId: part.toolCallId,
+              toolName: part.toolName,
+              input: part.input,
+              ...(part.providerExecuted != null
+                ? { providerExecuted: part.providerExecuted }
+                : {}),
+            });
+          }
+          break;
+        }
+        case 'tool-result': {
+          controller.enqueue({
+            type: 'tool-output-available',
+            toolCallId: part.toolCallId,
+            output: part.output,
+            ...(part.providerExecuted != null
+              ? { providerExecuted: part.providerExecuted }
+              : {}),
+          });
+          break;
+        }
+        case 'tool-error': {
+          controller.enqueue({
+            type: 'tool-output-error',
+            toolCallId: part.toolCallId,
+            errorText:
+              part.error instanceof Error
+                ? part.error.message
+                : typeof part.error === 'string'
+                  ? part.error
+                  : JSON.stringify(part.error),
+            ...(part.providerExecuted != null
+              ? { providerExecuted: part.providerExecuted }
+              : {}),
+          });
+          break;
+        }
+        case 'error': {
+          controller.enqueue({
+            type: 'error',
+            errorText:
+              part.error instanceof Error
+                ? part.error.message
+                : typeof part.error === 'string'
+                  ? part.error
+                  : JSON.stringify(part.error),
+          });
+          break;
+        }
+        default: {
+          // Skip parts we don't translate yet (raw, file, source, abort,
+          // tool-input-start/delta/end, tool-approval-*, etc.). They're
+          // available on `fullStream` for consumers that want them.
+          break;
+        }
+      }
+    },
+  });
+}
