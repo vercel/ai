@@ -199,7 +199,7 @@ const result = streamText({
 });
 
 // Stream reasoning and text separately
-for await (const part of result.fullStream) {
+for await (const part of result.stream) {
   if (part.type === 'reasoning') {
     console.log(part.textDelta);
   } else if (part.type === 'text-delta') {

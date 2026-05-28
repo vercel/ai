@@ -279,7 +279,7 @@ const result = streamText({
 
 When using `streamText`, you can provide an `onChunk` callback that is triggered for each chunk of the stream.
 
-It receives all stream part types from `fullStream`, including:
+It receives all stream part types from `stream`, including:
 
 - `start`
 - `start-step`
@@ -422,11 +422,11 @@ The available lifecycle callbacks are:
 - **`onToolExecutionEnd`**: Called right after a tool's `execute` function completes or errors. Receives the tool call object, `toolExecutionMs`, and a `toolOutput` discriminated union (`type: 'tool-result'` with `output`, or `type: 'tool-error'` with `error`).
 - **`onStepFinish`**: Called after each step finishes. Receives the finish reason, usage, and other step details.
 
-### `fullStream` property
+### `stream` property
 
-You can read a stream with all events using the `fullStream` property.
+You can read a stream with all events using the `stream` property.
 This can be useful if you want to implement your own UI or handle the stream in a different way.
-Here is an example of how to use the `fullStream` property:
+Here is an example of how to use the `stream` property:
 
 ```tsx
 import { streamText } from 'ai';
@@ -446,7 +446,7 @@ const result = streamText({
   prompt: 'What are some San Francisco tourist attractions?',
 });
 
-for await (const part of result.fullStream) {
+for await (const part of result.stream) {
   switch (part.type) {
     case 'start': {
       // handle start of stream
@@ -735,7 +735,7 @@ for (const source of result.sources) {
 }
 ```
 
-When you use `streamText`, you can access the sources using the `fullStream` property:
+When you use `streamText`, you can access the sources using the `stream` property:
 
 ```tsx
 const result = streamText({
@@ -746,7 +746,7 @@ const result = streamText({
   prompt: 'List the top 5 San Francisco news from the past week.',
 });
 
-for await (const part of result.fullStream) {
+for await (const part of result.stream) {
   if (part.type === 'source' && part.sourceType === 'url') {
     console.log('ID:', part.id);
     console.log('Title:', part.title);

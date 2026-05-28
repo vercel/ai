@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 4.0.0-canary.74
+
+### Patch Changes
+
+- a8d70b6: fix(google): auto-inject `skip_thought_signature_validator` for Gemini 3 tool-call replays without a signature
+
 ## 4.0.0-canary.73
 
 ### Patch Changes

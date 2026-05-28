@@ -285,6 +285,26 @@ export type GenerateTextEndEvent<
   readonly finalStep: StepResult<TOOLS, RUNTIME_CONTEXT>;
 };
 
+/**
+ * Event passed to the telemetry `onAbort` callback.
+ *
+ * Called when a streaming text generation operation is aborted before it
+ * completes.
+ */
+export type GenerateTextAbortEvent<
+  TOOLS extends ToolSet = ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+> = {
+  /** Unique identifier for this generation call, used to correlate events. */
+  readonly callId: string;
+
+  /** Details for all previously finished steps. */
+  readonly steps: StepResult<TOOLS, RUNTIME_CONTEXT>[];
+
+  /** The abort reason from the AbortSignal, when one is available. */
+  readonly reason?: unknown;
+};
+
 /** @deprecated Use `GenerateTextStartEvent` instead. */
 export type OnStartEvent<
   TOOLS extends ToolSet = ToolSet,
@@ -367,6 +387,19 @@ export type GenerateTextOnEndCallback<
   TOOLS extends ToolSet = ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
 > = Callback<GenerateTextEndEvent<TOOLS, RUNTIME_CONTEXT>>;
+
+/**
+ * Callback that is set using the telemetry `onAbort` option.
+ *
+ * Called when a streaming text generation operation is aborted before it
+ * completes.
+ *
+ * @param event - The abort event, including finished steps and abort reason.
+ */
+export type GenerateTextOnAbortCallback<
+  TOOLS extends ToolSet = ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+> = Callback<GenerateTextAbortEvent<TOOLS, RUNTIME_CONTEXT>>;
 
 /**
  * Callback that is set using the `onFinish` option.

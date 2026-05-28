@@ -11,12 +11,20 @@ export type AnthropicPrompt = {
   messages: AnthropicMessage[];
 };
 
-export type AnthropicMessage = AnthropicUserMessage | AnthropicAssistantMessage;
+export type AnthropicMessage =
+  | AnthropicUserMessage
+  | AnthropicAssistantMessage
+  | AnthropicSystemMessage;
 
 export type AnthropicCacheControl = {
   type: 'ephemeral';
   ttl?: '5m' | '1h';
 };
+
+export interface AnthropicSystemMessage {
+  role: 'system';
+  content: Array<AnthropicTextContent>;
+}
 
 export interface AnthropicUserMessage {
   role: 'user';
@@ -24,6 +32,7 @@ export interface AnthropicUserMessage {
     | AnthropicTextContent
     | AnthropicImageContent
     | AnthropicDocumentContent
+    | AnthropicContainerUploadContent
     | AnthropicToolResultContent
   >;
 }
@@ -111,6 +120,12 @@ export interface AnthropicDocumentContent {
   context?: string;
   citations?: { enabled: boolean };
   cache_control: AnthropicCacheControl | undefined;
+}
+
+export interface AnthropicContainerUploadContent {
+  type: 'container_upload';
+  file_id: string;
+  cache_control?: never;
 }
 
 /**
