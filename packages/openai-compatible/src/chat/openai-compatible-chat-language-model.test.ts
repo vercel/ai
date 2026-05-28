@@ -786,6 +786,61 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should omit tools and warn when tools are not supported', async () => {
+    prepareJsonResponse({ content: '' });
+
+    const provider = createOpenAICompatible({
+      baseURL: 'https://my.api.com/v1/',
+      name: 'test-provider',
+      supportsTools: false,
+    });
+
+    const result = await provider('grok-3').doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          inputSchema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      toolChoice: {
+        type: 'tool',
+        toolName: 'test-tool',
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "grok-3",
+      }
+    `);
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "feature": "tools",
+          "type": "unsupported",
+        },
+        {
+          "feature": "toolChoice",
+          "type": "unsupported",
+        },
+      ]
+    `);
+  });
+
   it('should pass headers', async () => {
     prepareJsonResponse({ content: '' });
 

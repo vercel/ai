@@ -2124,6 +2124,12 @@ The following models are available through the MaaS provider. You can also pass 
 | `moonshotai/kimi-k2-thinking-maas`             | Moonshot |
 
 <Note>
+  `meta/llama-4-scout-17b-16e-instruct-maas` does not support AI SDK tool calls
+  through the Vertex MaaS OpenAI-compatible endpoint. Tool definitions are
+  omitted for this model, and a warning is returned when tools are provided.
+</Note>
+
+<Note>
   Model availability depends on your Google Cloud project and region. Check the
   [Vertex AI Model
   Garden](https://console.cloud.google.com/vertex-ai/model-garden) for the

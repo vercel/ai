@@ -11,6 +11,10 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { GoogleVertexMaasModelId } from './google-vertex-maas-options';
 
+const modelsWithoutToolSupport = new Set<string>([
+  'meta/llama-4-scout-17b-16e-instruct-maas',
+]);
+
 export interface GoogleVertexMaasProvider extends OpenAICompatibleProvider<
   GoogleVertexMaasModelId,
   string,
@@ -92,6 +96,7 @@ export function createGoogleVertexMaas(
       name: 'vertex.maas',
       baseURL: loadBaseURL(),
       fetch: options.fetch,
+      supportsTools: modelId => !modelsWithoutToolSupport.has(modelId),
     }));
 
   const provider = (modelId: GoogleVertexMaasModelId) => getProvider()(modelId);

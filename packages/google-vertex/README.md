@@ -287,6 +287,8 @@ const { text } = await generateText({
 });
 ```
 
+`meta/llama-4-scout-17b-16e-instruct-maas` does not support AI SDK tool calls through the Vertex MaaS OpenAI-compatible endpoint. Tool definitions are omitted for this model, and a warning is returned when tools are provided.
+
 ## Documentation
 
 Please check out the **[Google Vertex provider](https://ai-sdk.dev/providers/ai-sdk-providers/google-vertex)** for more information.

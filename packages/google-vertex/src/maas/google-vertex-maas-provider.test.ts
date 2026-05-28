@@ -154,6 +154,40 @@ describe('google-vertex-maas-provider', () => {
     );
   });
 
+  it('should disable tools for Llama 4 Scout', () => {
+    const provider = createGoogleVertexMaas({
+      project: 'test-project',
+    });
+
+    provider('meta/llama-4-scout-17b-16e-instruct-maas');
+
+    const [{ supportsTools }] = vi.mocked(createOpenAICompatible).mock.calls[0];
+    if (typeof supportsTools !== 'function') {
+      throw new Error('Expected supportsTools to be a function');
+    }
+
+    expect(supportsTools('meta/llama-4-scout-17b-16e-instruct-maas')).toBe(
+      false,
+    );
+  });
+
+  it('should keep tools enabled for Llama 4 Maverick', () => {
+    const provider = createGoogleVertexMaas({
+      project: 'test-project',
+    });
+
+    provider('meta/llama-4-maverick-17b-128e-instruct-maas');
+
+    const [{ supportsTools }] = vi.mocked(createOpenAICompatible).mock.calls[0];
+    if (typeof supportsTools !== 'function') {
+      throw new Error('Expected supportsTools to be a function');
+    }
+
+    expect(supportsTools('meta/llama-4-maverick-17b-128e-instruct-maas')).toBe(
+      true,
+    );
+  });
+
   it('should construct correct URL with trailing slash removed from baseURL', () => {
     const provider = createGoogleVertexMaas({
       project: 'test-project',

@@ -73,6 +73,11 @@ export type OpenAICompatibleChatConfig = {
   supportsStructuredOutputs?: boolean;
 
   /**
+   * Whether the model supports tools.
+   */
+  supportsTools?: boolean;
+
+  /**
    * The supported URLs for the model.
    */
   supportedUrls?: () => LanguageModelV4['supportedUrls'];
@@ -247,14 +252,30 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
       });
     }
 
-    const {
-      tools: openaiTools,
-      toolChoice: openaiToolChoice,
-      toolWarnings,
-    } = prepareTools({
-      tools,
-      toolChoice,
-    });
+    const supportsTools = this.config.supportsTools ?? true;
+
+    let openaiTools: ReturnType<typeof prepareTools>['tools'] | undefined;
+    let openaiToolChoice:
+      | ReturnType<typeof prepareTools>['toolChoice']
+      | undefined;
+    let toolWarnings: SharedV4Warning[] = [];
+
+    if (supportsTools) {
+      const preparedTools = prepareTools({
+        tools,
+        toolChoice,
+      });
+      openaiTools = preparedTools.tools;
+      openaiToolChoice = preparedTools.toolChoice;
+      toolWarnings = preparedTools.toolWarnings;
+    } else {
+      if (tools?.length) {
+        warnings.push({ type: 'unsupported', feature: 'tools' });
+      }
+      if (toolChoice != null) {
+        warnings.push({ type: 'unsupported', feature: 'toolChoice' });
+      }
+    }
 
     const metadataKey = resolveProviderOptionsKey(
       this.providerOptionsName,

@@ -92,6 +92,11 @@ export interface OpenAICompatibleProviderSettings {
   supportsStructuredOutputs?: boolean;
 
   /**
+   * Whether chat models support tools. Defaults to true.
+   */
+  supportsTools?: boolean | ((modelId: string) => boolean);
+
+  /**
    * Optional function to transform the request body before sending it to the API.
    * This is useful for proxy providers that may require a different request format
    * than the official OpenAI API.
@@ -172,6 +177,10 @@ export function createOpenAICompatible<
       ...getCommonModelConfig('chat'),
       includeUsage: options.includeUsage,
       supportsStructuredOutputs: options.supportsStructuredOutputs,
+      supportsTools:
+        typeof options.supportsTools === 'function'
+          ? options.supportsTools(modelId)
+          : options.supportsTools,
       supportedUrls: options.supportedUrls,
       transformRequestBody: options.transformRequestBody,
       metadataExtractor: options.metadataExtractor,
