@@ -408,7 +408,7 @@ You can combine multiple server-side tools for comprehensive research:
 import { xai } from '@ai-sdk/xai';
 import { streamText } from 'ai';
 
-const { fullStream } = streamText({
+const { stream } = streamText({
   model: xai.responses('grok-4.20-non-reasoning'),
   prompt: 'Research AI safety developments and calculate risk metrics',
   tools: {
@@ -425,7 +425,7 @@ const { fullStream } = streamText({
   },
 });
 
-for await (const part of fullStream) {
+for await (const part of stream) {
   if (part.type === 'text-delta') {
     process.stdout.write(part.text);
   } else if (part.type === 'source' && part.sourceType === 'url') {

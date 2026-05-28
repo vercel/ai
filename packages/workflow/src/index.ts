@@ -18,6 +18,7 @@ export {
   type PrepareStepResult,
   type ProviderOptions,
   type WorkflowAgentOnAbortCallback,
+  type WorkflowAgentOnEndCallback,
   type WorkflowAgentOnErrorCallback,
   type WorkflowAgentOnFinishCallback,
   type WorkflowAgentOnStepFinishCallback,

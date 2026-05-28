@@ -306,6 +306,16 @@ export interface StreamTextResult<
    * You can use it as either an AsyncIterable or a ReadableStream.
    * Only errors that stop the stream, such as network errors, are thrown.
    */
+  readonly stream: AsyncIterableStream<TextStreamPart<TOOLS>>;
+
+  /**
+   * A stream with all events, including text deltas, tool calls, tool results, and
+   * errors.
+   * You can use it as either an AsyncIterable or a ReadableStream.
+   * Only errors that stop the stream, such as network errors, are thrown.
+   *
+   * @deprecated Use `stream` instead.
+   */
   readonly fullStream: AsyncIterableStream<TextStreamPart<TOOLS>>;
 
   /**
@@ -337,7 +347,7 @@ export interface StreamTextResult<
    * Consumes the stream without processing the parts.
    * This is useful to force the stream to finish.
    * It effectively removes the backpressure and allows the stream to finish,
-   * triggering the `onFinish` callback and the promise resolution.
+   * triggering the `onEnd` callback and the promise resolution.
    *
    * If an error occurs, it is passed to the optional `onError` callback.
    */

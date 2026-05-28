@@ -15,6 +15,7 @@ export type TelemetryDiagnosticEventType =
   | 'onRerankStart'
   | 'onRerankEnd'
   | 'onEnd'
+  | 'onAbort'
   | 'onError';
 
 export type TelemetryDiagnosticChannelMessage<EVENT = unknown> = {

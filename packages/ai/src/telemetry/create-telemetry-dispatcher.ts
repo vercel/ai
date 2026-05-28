@@ -138,6 +138,7 @@ export function createTelemetryDispatcher({
     onRerankStart: mergeTelemetryCallback('onRerankStart'),
     onRerankEnd: mergeTelemetryCallback('onRerankEnd'),
     onEnd: mergeTelemetryCallback('onEnd'),
+    onAbort: mergeTelemetryCallback('onAbort'),
     onError: mergeTelemetryCallback('onError'),
 
     executeLanguageModelCall:

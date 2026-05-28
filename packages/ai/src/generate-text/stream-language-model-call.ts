@@ -41,6 +41,7 @@ import { now as originalNow } from '../util/now';
 import { calculateTokensPerSecond } from './calculate-tokens-per-second';
 import type { ContentPart } from './content-part';
 import { DefaultGeneratedFileWithType } from './generated-file';
+import type { OutputChunkTimingStats } from './step-result';
 import type {
   OnLanguageModelCallEndCallback,
   OnLanguageModelCallStartCallback,
@@ -111,7 +112,8 @@ export type LanguageModelStreamPart<TOOLS extends ToolSet = ToolSet> =
         outputTokensPerSecond: number | undefined;
         inputTokensPerSecond: number | undefined;
         effectiveTotalTokensPerSecond: number;
-        timeToFirstOutputTokenMs: number | undefined;
+        timeToFirstOutputMs: number | undefined;
+        timeBetweenOutputChunksMs?: OutputChunkTimingStats;
       };
     }
   | {
@@ -410,15 +412,27 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   const textPartIndexes = new Map<string, number>();
   const reasoningPartIndexes = new Map<string, number>();
   let responseId = generateId();
-  let timeToFirstOutputTokenMs: number | undefined;
+  let timeToFirstOutputMs: number | undefined;
+  let previousOutputChunkTimestampMs: number | undefined;
+  const timeBetweenOutputChunksMs: number[] = [];
 
   return new TransformStream<
     LanguageModelV4StreamPart,
     LanguageModelStreamPart<TOOLS>
   >({
     async transform(chunk, controller) {
-      if (timeToFirstOutputTokenMs == null && isChunkWithTokens(chunk)) {
-        timeToFirstOutputTokenMs = now() - callStartTimestampMs;
+      if (isOutputChunk(chunk)) {
+        const outputChunkTimestampMs = now();
+
+        if (timeToFirstOutputMs == null) {
+          timeToFirstOutputMs = outputChunkTimestampMs - callStartTimestampMs;
+        } else if (previousOutputChunkTimestampMs != null) {
+          timeBetweenOutputChunksMs.push(
+            outputChunkTimestampMs - previousOutputChunkTimestampMs,
+          );
+        }
+
+        previousOutputChunkTimestampMs = outputChunkTimestampMs;
       }
 
       switch (chunk.type) {
@@ -538,24 +552,28 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
               durationMs: responseTimeMs,
             }),
             outputTokensPerSecond:
-              timeToFirstOutputTokenMs == null
+              timeToFirstOutputMs == null
                 ? undefined
                 : calculateTokensPerSecond({
                     tokens: usage.outputTokens,
-                    durationMs: responseTimeMs - timeToFirstOutputTokenMs,
+                    durationMs: responseTimeMs - timeToFirstOutputMs,
                   }),
             inputTokensPerSecond:
-              timeToFirstOutputTokenMs == null
+              timeToFirstOutputMs == null
                 ? undefined
                 : calculateTokensPerSecond({
                     tokens: usage.inputTokens,
-                    durationMs: timeToFirstOutputTokenMs,
+                    durationMs: timeToFirstOutputMs,
                   }),
             effectiveTotalTokensPerSecond: calculateTokensPerSecond({
               tokens: sumTokenCounts(usage.inputTokens, usage.outputTokens),
               durationMs: responseTimeMs,
             }),
-            timeToFirstOutputTokenMs,
+            timeToFirstOutputMs,
+            timeBetweenOutputChunksMs:
+              timeBetweenOutputChunksMs.length > 0
+                ? calculateOutputChunkTimingStats(timeBetweenOutputChunksMs)
+                : undefined,
           };
 
           await notify({
@@ -732,16 +750,42 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
 }
 
 /**
- * Returns true for streamed deltas that contain generated output tokens.
- * Used to measure time-to-first-token for text, reasoning, and streamed tool
- * input.
+ * Returns true for chunks that contain generated model output.
+ * Used to measure time-to-first-output for text, reasoning, generated files,
+ * and tool calls.
  */
-function isChunkWithTokens(chunk: LanguageModelV4StreamPart): boolean {
+function isOutputChunk(chunk: LanguageModelV4StreamPart): boolean {
   return (
     (chunk.type === 'text-delta' && chunk.delta.length > 0) ||
     (chunk.type === 'reasoning-delta' && chunk.delta.length > 0) ||
-    (chunk.type === 'tool-input-delta' && chunk.delta.length > 0)
+    (chunk.type === 'tool-input-delta' && chunk.delta.length > 0) ||
+    chunk.type === 'file' ||
+    chunk.type === 'reasoning-file' ||
+    chunk.type === 'tool-call'
   );
+}
+
+function calculateOutputChunkTimingStats(
+  timingsMs: number[],
+): OutputChunkTimingStats {
+  const sortedTimingsMs = [...timingsMs].sort((a, b) => a - b);
+  const sum = timingsMs.reduce((sum, timingMs) => sum + timingMs, 0);
+
+  return {
+    min: sortedTimingsMs[0],
+    p10: calculateNearestRankPercentile(sortedTimingsMs, 0.1),
+    median: calculateNearestRankPercentile(sortedTimingsMs, 0.5),
+    avg: sum / timingsMs.length,
+    p90: calculateNearestRankPercentile(sortedTimingsMs, 0.9),
+    max: sortedTimingsMs[sortedTimingsMs.length - 1],
+  };
+}
+
+function calculateNearestRankPercentile(
+  sortedValues: number[],
+  percentile: number,
+): number {
+  return sortedValues[Math.ceil(percentile * sortedValues.length) - 1];
 }
 
 /**

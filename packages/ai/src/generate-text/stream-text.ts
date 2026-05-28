@@ -98,7 +98,7 @@ import {
   type ActiveToolSubset,
 } from './filter-active-tools';
 import type {
-  GenerateTextOnFinishCallback,
+  GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
@@ -118,7 +118,11 @@ import type { PrepareStepFunction } from './prepare-step';
 import { convertToReasoningOutputs } from './reasoning-output';
 import type { ResponseMessage } from './response-message';
 import { createRestrictedTelemetryDispatcher } from './restricted-telemetry-dispatcher';
-import { DefaultStepResult, type StepResult } from './step-result';
+import {
+  DefaultStepResult,
+  type StepResult,
+  type StepResultPerformance,
+} from './step-result';
 import {
   isStepCount,
   isStopConditionMet,
@@ -211,21 +215,7 @@ export type StreamTextOnErrorCallback = Callback<{
  * @param event - The event that is passed to the callback.
  */
 export type StreamTextOnChunkCallback<TOOLS extends ToolSet> = (event: {
-  chunk: Extract<
-    TextStreamPart<TOOLS>,
-    {
-      type:
-        | 'text-delta'
-        | 'reasoning-delta'
-        | 'custom'
-        | 'source'
-        | 'tool-call'
-        | 'tool-input-start'
-        | 'tool-input-delta'
-        | 'tool-result'
-        | 'raw';
-    }
-  >;
+  chunk: TextStreamPart<TOOLS>;
 }) => PromiseLike<void> | void;
 
 /**
@@ -293,7 +283,8 @@ export type StreamTextOnAbortCallback<
  * @param onToolExecutionEnd - Callback invoked after each tool execution completes.
  * @param experimental_onToolCallFinish - Deprecated alias for `onToolExecutionEnd`.
  * @param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
- * @param onFinish - Callback that is called when all steps are finished and the response is complete.
+ * @param onEnd - Callback that is called when all steps are finished and the response is complete.
+ * @param onFinish - Deprecated alias for `onEnd`.
  *
  * @returns
  * A result object for accessing different stream types and additional information.
@@ -334,6 +325,7 @@ export function streamText<
     console.error(error);
   },
   onFinish,
+  onEnd = onFinish,
   onAbort,
   onStepFinish,
   experimental_onStart: onStart,
@@ -493,7 +485,17 @@ export function streamText<
      *
      * The usage is the combined usage of all steps.
      */
-    onFinish?: GenerateTextOnFinishCallback<
+    onEnd?: GenerateTextOnEndCallback<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>;
+
+    /**
+     * Callback that is called when the LLM response and all request tool executions
+     * (for tools that have an `execute` function) are finished.
+     *
+     * The usage is the combined usage of all steps.
+     *
+     * @deprecated Use `onEnd` instead.
+     */
+    onFinish?: GenerateTextOnEndCallback<
       NoInfer<TOOLS>,
       NoInfer<RUNTIME_CONTEXT>
     >;
@@ -642,7 +644,7 @@ export function streamText<
     timeout,
     onChunk,
     onError,
-    onFinish,
+    onEnd,
     onAbort,
     onStepFinish,
     onStart,
@@ -840,7 +842,7 @@ class DefaultStreamTextResult<
     timeout,
     onChunk,
     onError,
-    onFinish,
+    onEnd,
     onAbort,
     onStepFinish,
     onStart,
@@ -897,9 +899,9 @@ class DefaultStreamTextResult<
     // callbacks:
     onChunk: undefined | StreamTextOnChunkCallback<TOOLS>;
     onError: StreamTextOnErrorCallback;
-    onFinish:
+    onEnd:
       | undefined
-      | GenerateTextOnFinishCallback<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>;
+      | GenerateTextOnEndCallback<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>;
     onAbort:
       | undefined
       | StreamTextOnAbortCallback<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>;
@@ -992,19 +994,7 @@ class DefaultStreamTextResult<
 
         const { part } = chunk;
 
-        if (
-          part.type === 'text-delta' ||
-          part.type === 'reasoning-delta' ||
-          part.type === 'custom' ||
-          part.type === 'source' ||
-          part.type === 'tool-call' ||
-          part.type === 'tool-result' ||
-          part.type === 'tool-input-start' ||
-          part.type === 'tool-input-delta' ||
-          part.type === 'raw'
-        ) {
-          await onChunk?.({ chunk: part });
-        }
+        await onChunk?.({ chunk: part });
 
         if (part.type === 'error') {
           await onError({ error: wrapGatewayError(part.error) });
@@ -1237,9 +1227,25 @@ class DefaultStreamTextResult<
           // aggregate results:
           self._steps.resolve(recordedSteps);
 
-          // call onFinish callback:
+          // call onEnd callback:
           const finalStep = recordedSteps[recordedSteps.length - 1];
+          const content = recordedSteps.flatMap(step => step.content);
           const files = recordedSteps.flatMap(step => step.files);
+          const sources = recordedSteps.flatMap(step => step.sources);
+          const toolCalls = recordedSteps.flatMap(step => step.toolCalls);
+          const staticToolCalls = recordedSteps.flatMap(
+            step => step.staticToolCalls,
+          );
+          const dynamicToolCalls = recordedSteps.flatMap(
+            step => step.dynamicToolCalls,
+          );
+          const toolResults = recordedSteps.flatMap(step => step.toolResults);
+          const staticToolResults = recordedSteps.flatMap(
+            step => step.staticToolResults,
+          );
+          const dynamicToolResults = recordedSteps.flatMap(
+            step => step.dynamicToolResults,
+          );
           const warnings = recordedSteps.flatMap(step => step.warnings ?? []);
 
           await notify({
@@ -1251,31 +1257,32 @@ class DefaultStreamTextResult<
               runtimeContext: finalStep.runtimeContext,
               finishReason: finalStep.finishReason,
               rawFinishReason: finalStep.rawFinishReason,
+              usage: totalUsage,
               totalUsage,
-              usage: finalStep.usage,
-              content: finalStep.content,
+              content,
               text: finalStep.text,
-              reasoningText: finalStep.reasoningText,
               reasoning: finalStep.reasoning,
+              reasoningText: finalStep.reasoningText,
               files,
-              sources: finalStep.sources,
-              toolCalls: finalStep.toolCalls,
-              staticToolCalls: finalStep.staticToolCalls,
-              dynamicToolCalls: finalStep.dynamicToolCalls,
-              toolResults: finalStep.toolResults,
-              staticToolResults: finalStep.staticToolResults,
-              dynamicToolResults: finalStep.dynamicToolResults,
-              request: finalStep.request,
-              response: finalStep.response,
+              sources,
+              toolCalls,
+              staticToolCalls,
+              dynamicToolCalls,
+              toolResults,
+              staticToolResults,
+              dynamicToolResults,
               responseMessages: [
                 ...initialResponseMessages,
                 ...recordedSteps.flatMap(step => step.response.messages),
               ],
               warnings,
+              request: finalStep.request,
+              response: finalStep.response,
               providerMetadata: finalStep.providerMetadata,
               steps: recordedSteps,
+              finalStep,
             },
-            callbacks: [onFinish, telemetryDispatcher.onEnd],
+            callbacks: [onEnd, telemetryDispatcher.onEnd],
           });
         } catch (error) {
           controller.error(error);
@@ -1298,8 +1305,17 @@ class DefaultStreamTextResult<
 
       async pull(controller) {
         // abort handling:
-        function abort() {
-          onAbort?.({ steps: recordedSteps });
+        async function abort() {
+          await notify({
+            event: {
+              callId,
+              steps: recordedSteps,
+              ...(abortSignal?.reason !== undefined
+                ? { reason: abortSignal.reason }
+                : {}),
+            },
+            callbacks: [onAbort, telemetryDispatcher.onAbort],
+          });
           controller.enqueue({
             type: 'abort',
             // The `reason` is usually of type DOMException, but it can also be of any type,
@@ -1321,14 +1337,14 @@ class DefaultStreamTextResult<
           }
 
           if (abortSignal?.aborted) {
-            abort();
+            await abort();
             return;
           }
 
           controller.enqueue(value);
         } catch (error) {
           if (isAbortError(error) && abortSignal?.aborted) {
-            abort();
+            await abort();
           } else {
             controller.error(error);
           }
@@ -1790,13 +1806,19 @@ class DefaultStreamTextResult<
           let stepUsage: LanguageModelUsage = createNullLanguageModelUsage();
           let stepProviderMetadata: ProviderMetadata | undefined;
           let stepFirstChunk = true;
-          let responseTimeMs = 0;
-          let effectiveOutputTokensPerSecond = 0;
-          let outputTokensPerSecond: number | undefined;
-          let inputTokensPerSecond: number | undefined;
-          let effectiveTotalTokensPerSecond = 0;
+          let modelCallPerformance: Omit<
+            StepResultPerformance,
+            'stepTimeMs' | 'toolExecutionMs'
+          > = {
+            responseTimeMs: 0,
+            effectiveOutputTokensPerSecond: 0,
+            outputTokensPerSecond: undefined,
+            inputTokensPerSecond: undefined,
+            effectiveTotalTokensPerSecond: 0,
+            timeToFirstOutputMs: undefined,
+            timeBetweenOutputChunksMs: undefined,
+          };
           const toolExecutionMs: Record<string, number> = {};
-          let timeToFirstOutputTokenMs: number | undefined;
           let stepResponse: { id: string; timestamp: Date; modelId: string } = {
             id: generateId(),
             timestamp: new Date(),
@@ -1856,7 +1878,7 @@ class DefaultStreamTextResult<
 
                     case 'tool-call': {
                       controller.enqueue(chunk);
-                      // store tool calls for onFinish callback and toolCalls promise:
+                      // store tool calls for onEnd callback and toolCalls promise:
                       stepToolCalls.push(chunk);
                       break;
                     }
@@ -1899,22 +1921,12 @@ class DefaultStreamTextResult<
 
                     case 'model-call-end': {
                       // Note: tool executions might not be finished yet when the finish event is emitted.
-                      // store usage and finish reason for promises and onFinish callback:
+                      // store usage and finish reason for promises and onEnd callback:
                       stepUsage = chunk.usage;
                       stepFinishReason = chunk.finishReason;
                       stepRawFinishReason = chunk.rawFinishReason;
                       stepProviderMetadata = chunk.providerMetadata;
-                      responseTimeMs = chunk.performance.responseTimeMs;
-                      effectiveOutputTokensPerSecond =
-                        chunk.performance.effectiveOutputTokensPerSecond;
-                      outputTokensPerSecond =
-                        chunk.performance.outputTokensPerSecond;
-                      inputTokensPerSecond =
-                        chunk.performance.inputTokensPerSecond;
-                      effectiveTotalTokensPerSecond =
-                        chunk.performance.effectiveTotalTokensPerSecond;
-                      timeToFirstOutputTokenMs =
-                        chunk.performance.timeToFirstOutputTokenMs;
+                      modelCallPerformance = chunk.performance;
 
                       break;
                     }
@@ -1939,7 +1951,7 @@ class DefaultStreamTextResult<
                   }
                 },
 
-                // invoke onFinish callback and resolve toolResults promise when the stream is about to close:
+                // invoke onEnd callback and resolve toolResults promise when the stream is about to close:
                 async flush(controller) {
                   const stepTimeMs = now() - stepStartTimestampMs;
 
@@ -1950,13 +1962,8 @@ class DefaultStreamTextResult<
                     usage: stepUsage,
                     performance: {
                       stepTimeMs,
-                      responseTimeMs,
-                      effectiveOutputTokensPerSecond,
-                      outputTokensPerSecond,
-                      inputTokensPerSecond,
-                      effectiveTotalTokensPerSecond,
                       toolExecutionMs,
-                      timeToFirstOutputTokenMs,
+                      ...modelCallPerformance,
                     },
                     providerMetadata: stepProviderMetadata,
                     response: {
@@ -2250,7 +2257,7 @@ class DefaultStreamTextResult<
     );
   }
 
-  get fullStream(): AsyncIterableStream<TextStreamPart<TOOLS>> {
+  get stream(): AsyncIterableStream<TextStreamPart<TOOLS>> {
     return createAsyncIterableStream(
       this.teeStream().pipeThrough(
         new TransformStream<
@@ -2265,10 +2272,14 @@ class DefaultStreamTextResult<
     );
   }
 
+  get fullStream(): AsyncIterableStream<TextStreamPart<TOOLS>> {
+    return this.stream;
+  }
+
   async consumeStream(options?: ConsumeStreamOptions): Promise<void> {
     try {
       await consumeStream({
-        stream: this.fullStream,
+        stream: this.stream,
         onError: options?.onError,
       });
     } catch (error) {
@@ -2360,7 +2371,7 @@ class DefaultStreamTextResult<
       return tool?.type === 'dynamic' ? true : undefined;
     };
 
-    const baseStream = this.fullStream.pipeThrough(
+    const baseStream = this.stream.pipeThrough(
       new TransformStream<
         TextStreamPart<TOOLS>,
         UIMessageChunk<

@@ -24,6 +24,7 @@ export interface AnthropicUserMessage {
     | AnthropicTextContent
     | AnthropicImageContent
     | AnthropicDocumentContent
+    | AnthropicContainerUploadContent
     | AnthropicToolResultContent
   >;
 }
@@ -111,6 +112,12 @@ export interface AnthropicDocumentContent {
   context?: string;
   citations?: { enabled: boolean };
   cache_control: AnthropicCacheControl | undefined;
+}
+
+export interface AnthropicContainerUploadContent {
+  type: 'container_upload';
+  file_id: string;
+  cache_control?: never;
 }
 
 /**

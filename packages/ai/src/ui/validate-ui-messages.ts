@@ -23,6 +23,8 @@ const toolMetadataSchema: z.ZodType<JSONObject> = z.record(
   jsonValueSchema.optional(),
 );
 
+const providerReferenceSchema = z.record(z.string(), z.string());
+
 const uiMessagesSchema = lazySchema(() =>
   zodSchema(
     z
@@ -71,6 +73,7 @@ const uiMessagesSchema = lazySchema(() =>
                   mediaType: z.string(),
                   filename: z.string().optional(),
                   url: z.string(),
+                  providerReference: providerReferenceSchema.optional(),
                   providerMetadata: providerMetadataSchema.optional(),
                 }),
                 z.object({
