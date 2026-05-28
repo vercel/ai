@@ -39,7 +39,7 @@ run(async () => {
     });
 
     process.stdout.write('\nAssistant: ');
-    for await (const chunk of result.fullStream) {
+    for await (const chunk of result.stream) {
       switch (chunk.type) {
         case 'tool-call': {
           process.stdout.write('\x1b[33m');

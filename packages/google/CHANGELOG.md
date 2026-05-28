@@ -1,5 +1,25 @@
 # @ai-sdk/google
 
+## 4.0.0-canary.74
+
+### Patch Changes
+
+- a8d70b6: fix(google): auto-inject `skip_thought_signature_validator` for Gemini 3 tool-call replays without a signature
+
+## 4.0.0-canary.73
+
+### Patch Changes
+
+- Updated dependencies [6c93e36]
+- Updated dependencies [f617ac2]
+  - @ai-sdk/provider-utils@5.0.0-canary.44
+
+## 4.0.0-canary.72
+
+### Patch Changes
+
+- b71c0d7: feat(provider/google): support Google search grounding when using `generateImage` with Gemini
+
 ## 4.0.0-canary.71
 
 ### Patch Changes

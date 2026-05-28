@@ -1,9 +1,16 @@
 import { isAbsolute, join } from 'node:path';
 import { Readable } from 'node:stream';
-import { extractLines } from '@ai-sdk/provider-utils';
+import {
+  extractLines,
+  type Experimental_SandboxProcess,
+} from '@ai-sdk/provider-utils';
 import { type Experimental_Sandbox as Sandbox } from 'ai';
-import type { Sandbox as VercelSandboxSDK } from '@vercel/sandbox';
-import { bytesToStream, collectStream } from './lib/stream-utils';
+import type { Command, Sandbox as VercelSandboxSDK } from '@vercel/sandbox';
+import {
+  bytesToStream,
+  collectStream,
+  collectStreamToString,
+} from './lib/stream-utils';
 
 const rootDirectory = '/vercel/sandbox';
 
@@ -18,7 +25,7 @@ export class VercelSandbox implements Sandbox {
     return isAbsolute(path) ? path : join(rootDirectory, path);
   }
 
-  async runCommand({
+  async run({
     command,
     workingDirectory,
     abortSignal,
@@ -27,31 +34,40 @@ export class VercelSandbox implements Sandbox {
     workingDirectory?: string;
     abortSignal?: AbortSignal;
   }) {
-    const sandboxCommand = await this.sandbox.runCommand({
+    const proc = await this.spawn({
+      command,
+      workingDirectory,
+      abortSignal,
+    });
+
+    const [stdout, stderr, { exitCode }] = await Promise.all([
+      collectStreamToString(proc.stdout),
+      collectStreamToString(proc.stderr),
+      proc.wait(),
+    ]);
+
+    return { exitCode, stdout, stderr };
+  }
+
+  async spawn({
+    command,
+    workingDirectory,
+    abortSignal,
+  }: {
+    command: string;
+    workingDirectory?: string;
+    abortSignal?: AbortSignal;
+  }): Promise<Experimental_SandboxProcess> {
+    abortSignal?.throwIfAborted();
+
+    const live = await this.sandbox.runCommand({
       cmd: 'bash',
       args: ['-c', command],
       cwd: workingDirectory ?? rootDirectory,
       detached: true,
     });
 
-    const abortCommand = () => void sandboxCommand.kill('SIGTERM');
-    if (abortSignal?.aborted) {
-      abortCommand();
-    } else {
-      abortSignal?.addEventListener('abort', abortCommand, { once: true });
-    }
-
-    try {
-      const result = await sandboxCommand.wait();
-
-      return {
-        exitCode: result.exitCode,
-        stdout: await result.stdout(),
-        stderr: await result.stderr(),
-      };
-    } finally {
-      abortSignal?.removeEventListener('abort', abortCommand);
-    }
+    return createSandboxProcess(live, abortSignal);
   }
 
   async readFile({
@@ -161,4 +177,72 @@ export class VercelSandbox implements Sandbox {
   get description() {
     return `Vercel Sandbox ID: ${this.sandbox.sandboxId}\nRoot directory: ${rootDirectory}`;
   }
+}
+
+function createSandboxProcess(
+  command: Command,
+  abortSignal: AbortSignal | undefined,
+): Experimental_SandboxProcess {
+  const encoder = new TextEncoder();
+  const controllers: {
+    stdout?: ReadableStreamDefaultController<Uint8Array>;
+    stderr?: ReadableStreamDefaultController<Uint8Array>;
+  } = {};
+
+  const stdout = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controllers.stdout = controller;
+    },
+  });
+
+  const stderr = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controllers.stderr = controller;
+    },
+  });
+
+  const drained = (async () => {
+    try {
+      const iterator = abortSignal
+        ? command.logs({ signal: abortSignal })
+        : command.logs();
+      for await (const message of iterator) {
+        const target =
+          message.stream === 'stdout' ? controllers.stdout : controllers.stderr;
+        target?.enqueue(encoder.encode(message.data));
+      }
+      controllers.stdout?.close();
+      controllers.stderr?.close();
+    } catch (error) {
+      controllers.stdout?.error(error);
+      controllers.stderr?.error(error);
+    }
+  })();
+
+  const abortCommand = () => void command.kill('SIGTERM');
+  if (abortSignal?.aborted) {
+    abortCommand();
+  } else {
+    abortSignal?.addEventListener('abort', abortCommand, { once: true });
+  }
+
+  return {
+    stdout,
+    stderr,
+    async wait(): Promise<{ exitCode: number }> {
+      try {
+        const finished = await command.wait();
+        await drained;
+        if (abortSignal?.aborted) {
+          throw abortSignal.reason ?? new DOMException('Aborted', 'AbortError');
+        }
+        return { exitCode: finished.exitCode };
+      } finally {
+        abortSignal?.removeEventListener('abort', abortCommand);
+      }
+    },
+    async kill(): Promise<void> {
+      await command.kill('SIGTERM');
+    },
+  };
 }

@@ -12,7 +12,7 @@ export type Experimental_Sandbox = {
   /**
    * Run a command in the sandbox.
    */
-  readonly runCommand: (options: {
+  readonly run: (options: {
     /**
      * Command to execute in the sandbox.
      */
@@ -186,4 +186,59 @@ export type Experimental_Sandbox = {
      */
     abortSignal?: AbortSignal;
   }) => PromiseLike<void>;
+
+  /**
+   * Spawn a long-running process in the sandbox. Returns immediately with a
+   * handle that streams stdout/stderr, can be waited on, and can be killed.
+   *
+   * `run` is conceptually a thin wrapper over this primitive: spawn,
+   * collect both streams to strings, await `wait()`, return the result.
+   */
+  readonly spawn: (options: {
+    /**
+     * Command to execute in the sandbox.
+     */
+    command: string;
+
+    /**
+     * Working directory to execute the command in.
+     */
+    workingDirectory?: string;
+
+    /**
+     * Signal that can be used to abort the process. When aborted, the process
+     * is killed and `wait()` rejects with the abort reason.
+     */
+    abortSignal?: AbortSignal;
+  }) => PromiseLike<Experimental_SandboxProcess>;
+};
+
+/**
+ * Handle to a long-running process started via `Experimental_Sandbox.spawn`.
+ */
+export type Experimental_SandboxProcess = {
+  /**
+   * Process identifier, if the sandbox implementation exposes one.
+   */
+  readonly pid?: number;
+
+  /**
+   * Stream of bytes written by the process to standard output.
+   */
+  readonly stdout: ReadableStream<Uint8Array>;
+
+  /**
+   * Stream of bytes written by the process to standard error.
+   */
+  readonly stderr: ReadableStream<Uint8Array>;
+
+  /**
+   * Resolve when the process exits, yielding its exit code.
+   */
+  wait(): PromiseLike<{ exitCode: number }>;
+
+  /**
+   * Terminate the process. Idempotent.
+   */
+  kill(): PromiseLike<void>;
 };

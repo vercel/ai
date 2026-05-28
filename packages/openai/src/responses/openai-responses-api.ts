@@ -750,6 +750,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
                 z.object({
                   type: z.literal('search'),
                   query: z.string().nullish(),
+                  queries: z.array(z.string()).nullish(),
                   sources: z
                     .array(
                       z.discriminatedUnion('type', [
@@ -1147,6 +1148,7 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
                   z.object({
                     type: z.literal('search'),
                     query: z.string().nullish(),
+                    queries: z.array(z.string()).nullish(),
                     sources: z
                       .array(
                         z.discriminatedUnion('type', [

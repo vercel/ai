@@ -141,7 +141,7 @@ export type GenerateTextStepEndEvent<
 > = StepResult<TOOLS, RUNTIME_CONTEXT>;
 
 /**
- * Event passed to the `onFinish` callback.
+ * Event passed to the `onEnd` callback.
  *
  * Called when the entire generation completes (all steps finished).
  * Includes the final step's result along with aggregated data from all steps.
@@ -149,15 +149,160 @@ export type GenerateTextStepEndEvent<
 export type GenerateTextEndEvent<
   TOOLS extends ToolSet = ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
-> = Omit<StepResult<TOOLS, RUNTIME_CONTEXT>, 'performance'> & {
+> = {
+  /** Unique identifier for this generation call, used to correlate events. */
+  readonly callId: string;
+
+  /** Zero-based index of the final step. */
+  readonly stepNumber: number;
+
+  /** Information about the model that produced the final step. */
+  readonly model: StepResult<TOOLS, RUNTIME_CONTEXT>['model'];
+
+  /**
+   * Tool context from the final step.
+   *
+   * @deprecated Use `finalStep.toolsContext` instead.
+   */
+  readonly toolsContext: InferToolSetContext<TOOLS>;
+
+  /**
+   * Runtime context from the final step.
+   *
+   * @deprecated Use `finalStep.runtimeContext` instead.
+   */
+  readonly runtimeContext: RUNTIME_CONTEXT;
+
+  /** The content that was generated in all steps. */
+  readonly content: StepResult<TOOLS, RUNTIME_CONTEXT>['content'];
+
+  /** The text that was generated in the final step. */
+  readonly text: StepResult<TOOLS, RUNTIME_CONTEXT>['text'];
+
+  /**
+   * The reasoning that was generated in the final step.
+   *
+   * @deprecated Use `finalStep.reasoning` instead.
+   */
+  readonly reasoning: StepResult<TOOLS, RUNTIME_CONTEXT>['reasoning'];
+
+  /**
+   * The reasoning text that was generated in the final step.
+   *
+   * @deprecated Use `finalStep.reasoningText` instead.
+   */
+  readonly reasoningText: StepResult<TOOLS, RUNTIME_CONTEXT>['reasoningText'];
+
+  /** Files that were generated in all steps. */
+  readonly files: StepResult<TOOLS, RUNTIME_CONTEXT>['files'];
+
+  /** Sources that were used as references in all steps. */
+  readonly sources: StepResult<TOOLS, RUNTIME_CONTEXT>['sources'];
+
+  /** Tool calls that were made in all steps. */
+  readonly toolCalls: StepResult<TOOLS, RUNTIME_CONTEXT>['toolCalls'];
+
+  /** Static tool calls that were made in all steps. */
+  readonly staticToolCalls: StepResult<
+    TOOLS,
+    RUNTIME_CONTEXT
+  >['staticToolCalls'];
+
+  /** Dynamic tool calls that were made in all steps. */
+  readonly dynamicToolCalls: StepResult<
+    TOOLS,
+    RUNTIME_CONTEXT
+  >['dynamicToolCalls'];
+
+  /** Tool results that were generated in all steps. */
+  readonly toolResults: StepResult<TOOLS, RUNTIME_CONTEXT>['toolResults'];
+
+  /** Static tool results that were generated in all steps. */
+  readonly staticToolResults: StepResult<
+    TOOLS,
+    RUNTIME_CONTEXT
+  >['staticToolResults'];
+
+  /** Dynamic tool results that were generated in all steps. */
+  readonly dynamicToolResults: StepResult<
+    TOOLS,
+    RUNTIME_CONTEXT
+  >['dynamicToolResults'];
+
+  /** The unified reason why the generation finished. Taken from the final step. */
+  readonly finishReason: StepResult<TOOLS, RUNTIME_CONTEXT>['finishReason'];
+
+  /** The raw reason why the generation finished. Taken from the final step. */
+  readonly rawFinishReason: StepResult<
+    TOOLS,
+    RUNTIME_CONTEXT
+  >['rawFinishReason'];
+
+  /** Aggregated token usage across all steps. */
+  readonly usage: LanguageModelUsage;
+
+  /**
+   * Aggregated token usage across all steps.
+   *
+   * @deprecated Use `usage` instead.
+   */
+  readonly totalUsage: LanguageModelUsage;
+
+  /** Warnings from the model provider in all steps. */
+  readonly warnings: StepResult<TOOLS, RUNTIME_CONTEXT>['warnings'];
+
+  /**
+   * Additional request information from the final step.
+   *
+   * @deprecated Use `finalStep.request` instead.
+   */
+  readonly request: StepResult<TOOLS, RUNTIME_CONTEXT>['request'];
+
+  /**
+   * Additional response information from the final step.
+   *
+   * @deprecated Use `finalStep.response` instead.
+   */
+  readonly response: StepResult<TOOLS, RUNTIME_CONTEXT>['response'];
+
+  /**
+   * Additional provider-specific metadata from the final step.
+   *
+   * @deprecated Use `finalStep.providerMetadata` instead.
+   */
+  readonly providerMetadata: StepResult<
+    TOOLS,
+    RUNTIME_CONTEXT
+  >['providerMetadata'];
+
   /** The response messages that were generated during the call. */
   readonly responseMessages: ResponseMessage[];
 
   /** Array containing results from all steps in the generation. */
   readonly steps: StepResult<TOOLS, RUNTIME_CONTEXT>[];
 
-  /** Aggregated token usage across all steps. */
-  readonly totalUsage: LanguageModelUsage;
+  /** The final step. This is a shortcut for `steps.at(-1)`. */
+  readonly finalStep: StepResult<TOOLS, RUNTIME_CONTEXT>;
+};
+
+/**
+ * Event passed to the telemetry `onAbort` callback.
+ *
+ * Called when a streaming text generation operation is aborted before it
+ * completes.
+ */
+export type GenerateTextAbortEvent<
+  TOOLS extends ToolSet = ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+> = {
+  /** Unique identifier for this generation call, used to correlate events. */
+  readonly callId: string;
+
+  /** Details for all previously finished steps. */
+  readonly steps: StepResult<TOOLS, RUNTIME_CONTEXT>[];
+
+  /** The abort reason from the AbortSignal, when one is available. */
+  readonly reason?: unknown;
 };
 
 /** @deprecated Use `GenerateTextStartEvent` instead. */
@@ -230,7 +375,7 @@ export type GenerateTextOnStepFinishCallback<
 > = Callback<GenerateTextStepEndEvent<TOOLS, RUNTIME_CONTEXT>>;
 
 /**
- * Callback that is set using the `onFinish` option.
+ * Callback that is set using the `onEnd` option.
  *
  * Called when the entire generation completes (all steps finished).
  * The event includes the final step's result properties along with
@@ -238,7 +383,30 @@ export type GenerateTextOnStepFinishCallback<
  *
  * @param event - The final result along with aggregated step data.
  */
-export type GenerateTextOnFinishCallback<
+export type GenerateTextOnEndCallback<
   TOOLS extends ToolSet = ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
 > = Callback<GenerateTextEndEvent<TOOLS, RUNTIME_CONTEXT>>;
+
+/**
+ * Callback that is set using the telemetry `onAbort` option.
+ *
+ * Called when a streaming text generation operation is aborted before it
+ * completes.
+ *
+ * @param event - The abort event, including finished steps and abort reason.
+ */
+export type GenerateTextOnAbortCallback<
+  TOOLS extends ToolSet = ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+> = Callback<GenerateTextAbortEvent<TOOLS, RUNTIME_CONTEXT>>;
+
+/**
+ * Callback that is set using the `onFinish` option.
+ *
+ * @deprecated Use `GenerateTextOnEndCallback` instead.
+ */
+export type GenerateTextOnFinishCallback<
+  TOOLS extends ToolSet = ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+> = GenerateTextOnEndCallback<TOOLS, RUNTIME_CONTEXT>;

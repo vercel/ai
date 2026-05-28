@@ -51,7 +51,7 @@ const finishChunk = {
     outputTokensPerSecond: undefined,
     inputTokensPerSecond: undefined,
     effectiveTotalTokensPerSecond: 0,
-    timeToFirstOutputTokenMs: undefined,
+    timeToFirstOutputMs: undefined,
   },
 };
 
@@ -116,7 +116,7 @@ describe('executeToolsFromStream', () => {
               "inputTokensPerSecond": undefined,
               "outputTokensPerSecond": undefined,
               "responseTimeMs": 0,
-              "timeToFirstOutputTokenMs": undefined,
+              "timeToFirstOutputMs": undefined,
             },
             "rawFinishReason": "stop",
             "type": "model-call-end",
@@ -205,7 +205,7 @@ describe('executeToolsFromStream', () => {
               "inputTokensPerSecond": undefined,
               "outputTokensPerSecond": undefined,
               "responseTimeMs": 0,
-              "timeToFirstOutputTokenMs": undefined,
+              "timeToFirstOutputMs": undefined,
             },
             "rawFinishReason": "stop",
             "type": "model-call-end",
@@ -247,7 +247,7 @@ describe('executeToolsFromStream', () => {
   it('should pass sandbox to tool execution', async () => {
     const sandbox = {
       description: 'test sandbox',
-      runCommand: vi.fn(async () => ({
+      run: vi.fn(async () => ({
         exitCode: 0,
         stdout: 'ok',
         stderr: '',
@@ -433,7 +433,7 @@ describe('executeToolsFromStream', () => {
               "inputTokensPerSecond": undefined,
               "outputTokensPerSecond": undefined,
               "responseTimeMs": 0,
-              "timeToFirstOutputTokenMs": undefined,
+              "timeToFirstOutputMs": undefined,
             },
             "rawFinishReason": "stop",
             "type": "model-call-end",
@@ -563,7 +563,7 @@ describe('executeToolsFromStream', () => {
               "inputTokensPerSecond": undefined,
               "outputTokensPerSecond": undefined,
               "responseTimeMs": 0,
-              "timeToFirstOutputTokenMs": undefined,
+              "timeToFirstOutputMs": undefined,
             },
             "rawFinishReason": "stop",
             "type": "model-call-end",
@@ -1228,7 +1228,7 @@ describe('executeToolsFromStream', () => {
               "inputTokensPerSecond": undefined,
               "outputTokensPerSecond": undefined,
               "responseTimeMs": 0,
-              "timeToFirstOutputTokenMs": undefined,
+              "timeToFirstOutputMs": undefined,
             },
             "rawFinishReason": "stop",
             "type": "model-call-end",
@@ -1324,7 +1324,7 @@ describe('executeToolsFromStream', () => {
               "inputTokensPerSecond": undefined,
               "outputTokensPerSecond": undefined,
               "responseTimeMs": 0,
-              "timeToFirstOutputTokenMs": undefined,
+              "timeToFirstOutputMs": undefined,
             },
             "rawFinishReason": "stop",
             "type": "model-call-end",
