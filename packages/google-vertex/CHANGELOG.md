@@ -1,5 +1,65 @@
 # @ai-sdk/google-vertex
 
+## 3.0.139
+
+### Patch Changes
+
+- 00a1e93: feat(provider/google): add `gemini-3.5-flash`
+- Updated dependencies [00a1e93]
+  - @ai-sdk/google@2.0.74
+
+## 3.0.138
+
+### Patch Changes
+
+- Updated dependencies [f081ba8]
+  - @ai-sdk/google@2.0.73
+
+## 3.0.137
+
+### Patch Changes
+
+- 5ee88f6: fix(google-vertex): include CJS output for xai sub-module build
+
+## 3.0.136
+
+### Patch Changes
+
+- cb61408: feat(vertex): add grok models to vertex provider
+- Updated dependencies [cb61408]
+  - @ai-sdk/openai-compatible@1.0.39
+
+## 3.0.135
+
+### Patch Changes
+
+- a8ff5b9: feat(provider/google-vertex): allow overriding Vertex Anthropic auth token generation
+
+## 3.0.134
+
+### Patch Changes
+
+- 783fa6c: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [783fa6c]
+- Updated dependencies [8ddc817]
+  - @ai-sdk/openai-compatible@1.0.38
+  - @ai-sdk/provider-utils@3.0.25
+  - @ai-sdk/anthropic@2.0.79
+  - @ai-sdk/provider@2.0.3
+  - @ai-sdk/google@2.0.72
+
+## 3.0.133
+
+### Patch Changes
+
+- 0a00b9b: trigger release for all packages after provenance setup
+- Updated dependencies [0a00b9b]
+  - @ai-sdk/anthropic@2.0.78
+  - @ai-sdk/google@2.0.71
+  - @ai-sdk/openai-compatible@1.0.37
+  - @ai-sdk/provider@2.0.2
+  - @ai-sdk/provider-utils@3.0.24
+
 ## 3.0.132
 
 ### Patch Changes

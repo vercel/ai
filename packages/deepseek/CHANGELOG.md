@@ -1,5 +1,36 @@
 # @ai-sdk/deepseek
 
+## 1.0.41
+
+### Patch Changes
+
+- 535383e: Accept `thinking.type: 'adaptive'` and the full `reasoningEffort` enum (`low`, `medium`, `high`, `xhigh`, `max`) for the DeepSeek provider.
+
+## 1.0.40
+
+### Patch Changes
+
+- 9fd0d1a: feat(provider/deepseek): add DeepSeek V4 reasoning effort support
+
+## 1.0.39
+
+### Patch Changes
+
+- 783fa6c: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [783fa6c]
+  - @ai-sdk/provider-utils@3.0.25
+  - @ai-sdk/provider@2.0.3
+
+## 1.0.38
+
+### Patch Changes
+
+- 0a00b9b: trigger release for all packages after provenance setup
+- 0f11a7a: fix(provider/deepseek): preserve reasoning_content for deepseek-v4 in multi-turn requests
+- Updated dependencies [0a00b9b]
+  - @ai-sdk/provider@2.0.2
+  - @ai-sdk/provider-utils@3.0.24
+
 ## 1.0.37
 
 ### Patch Changes

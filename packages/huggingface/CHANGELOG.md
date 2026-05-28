@@ -1,5 +1,32 @@
 # @ai-sdk/huggingface
 
+## 0.0.22
+
+### Patch Changes
+
+- Updated dependencies [cb61408]
+  - @ai-sdk/openai-compatible@1.0.39
+
+## 0.0.21
+
+### Patch Changes
+
+- 783fa6c: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [783fa6c]
+  - @ai-sdk/openai-compatible@1.0.38
+  - @ai-sdk/provider-utils@3.0.25
+  - @ai-sdk/provider@2.0.3
+
+## 0.0.20
+
+### Patch Changes
+
+- 0a00b9b: trigger release for all packages after provenance setup
+- Updated dependencies [0a00b9b]
+  - @ai-sdk/openai-compatible@1.0.37
+  - @ai-sdk/provider@2.0.2
+  - @ai-sdk/provider-utils@3.0.24
+
 ## 0.0.19
 
 ### Patch Changes

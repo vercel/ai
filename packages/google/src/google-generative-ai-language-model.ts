@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV2,
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
@@ -9,10 +9,10 @@ import {
   SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
-  InferValidator,
-  ParseResult,
-  Resolvable,
+  type FetchFunction,
+  type InferValidator,
+  type ParseResult,
+  type Resolvable,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
@@ -28,9 +28,9 @@ import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-opena
 import { convertToGoogleGenerativeAIMessages } from './convert-to-google-generative-ai-messages';
 import { getModelPath } from './get-model-path';
 import { googleFailedResponseHandler } from './google-error';
-import { GoogleGenerativeAIContentPart } from './google-generative-ai-prompt';
+import type { GoogleGenerativeAIContentPart } from './google-generative-ai-prompt';
 import {
-  GoogleGenerativeAIModelId,
+  type GoogleGenerativeAIModelId,
   googleGenerativeAIProviderOptions,
   VertexServiceTierMap,
 } from './google-generative-ai-options';
@@ -286,7 +286,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       } else if ('functionCall' in part) {
         content.push({
           type: 'tool-call' as const,
-          toolCallId: this.config.generateId(),
+          toolCallId: part.functionCall.id ?? this.config.generateId(),
           toolName: part.functionCall.name,
           input: JSON.stringify(part.functionCall.args),
           providerMetadata: part.thoughtSignature
@@ -694,7 +694,7 @@ function getToolCallsFromParts({
     part => 'functionCall' in part,
   ) as Array<
     GoogleGenerativeAIContentPart & {
-      functionCall: { name: string; args: unknown };
+      functionCall: { id?: string | null; name: string; args: unknown };
       thoughtSignature?: string | null;
     }
   >;
@@ -703,7 +703,7 @@ function getToolCallsFromParts({
     ? undefined
     : functionCallParts.map(part => ({
         type: 'tool-call' as const,
-        toolCallId: generateId(),
+        toolCallId: part.functionCall.id ?? generateId(),
         toolName: part.functionCall.name,
         args: JSON.stringify(part.functionCall.args),
         providerMetadata: part.thoughtSignature
@@ -897,6 +897,7 @@ const getContentSchema = () =>
           // note: order matters since text can be fully empty
           z.object({
             functionCall: z.object({
+              id: z.string().nullish(),
               name: z.string(),
               args: z.unknown(),
             }),

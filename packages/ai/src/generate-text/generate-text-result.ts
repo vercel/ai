@@ -1,20 +1,24 @@
-import { CallWarning, FinishReason, ProviderMetadata } from '../types';
-import { Source } from '../types/language-model';
-import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
-import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
-import { LanguageModelUsage } from '../types/usage';
-import { ContentPart } from './content-part';
-import { GeneratedFile } from './generated-file';
-import { ReasoningOutput } from './reasoning-output';
-import { ResponseMessage } from './response-message';
-import { StepResult } from './step-result';
-import { DynamicToolCall, StaticToolCall, TypedToolCall } from './tool-call';
-import {
+import type { CallWarning, FinishReason, ProviderMetadata } from '../types';
+import type { Source } from '../types/language-model';
+import type { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
+import type { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
+import type { LanguageModelUsage } from '../types/usage';
+import type { ContentPart } from './content-part';
+import type { GeneratedFile } from './generated-file';
+import type { ReasoningOutput } from './reasoning-output';
+import type { ResponseMessage } from './response-message';
+import type { StepResult } from './step-result';
+import type {
+  DynamicToolCall,
+  StaticToolCall,
+  TypedToolCall,
+} from './tool-call';
+import type {
   DynamicToolResult,
   StaticToolResult,
   TypedToolResult,
 } from './tool-result';
-import { ToolSet } from './tool-set';
+import type { ToolSet } from './tool-set';
 
 /**
 The result of a `generateText` call.

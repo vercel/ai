@@ -1,5 +1,105 @@
 # ai
 
+## 5.0.192
+
+### Patch Changes
+
+- Updated dependencies [544fbab]
+- Updated dependencies [1bdb6f7]
+  - @ai-sdk/gateway@2.0.93
+
+## 5.0.191
+
+### Patch Changes
+
+- Updated dependencies [f6b2222]
+  - @ai-sdk/gateway@2.0.92
+
+## 5.0.190
+
+### Patch Changes
+
+- Updated dependencies [00a1e93]
+  - @ai-sdk/gateway@2.0.91
+
+## 5.0.189
+
+### Patch Changes
+
+- Updated dependencies [1269e58]
+  - @ai-sdk/gateway@2.0.90
+
+## 5.0.188
+
+### Patch Changes
+
+- 1760d76: fix URL of hero animation in README
+
+## 5.0.187
+
+### Patch Changes
+
+- Updated dependencies [e676093]
+  - @ai-sdk/gateway@2.0.89
+
+## 5.0.186
+
+### Patch Changes
+
+- Updated dependencies [c261259]
+  - @ai-sdk/gateway@2.0.88
+
+## 5.0.185
+
+### Patch Changes
+
+- Updated dependencies [f668fe8]
+- Updated dependencies [80e2f83]
+  - @ai-sdk/gateway@2.0.87
+
+## 5.0.184
+
+### Patch Changes
+
+- cb911d2: fix(ai): add allowSystemInMessages option and warn by default when system messages are found in prompt or messages
+
+## 5.0.183
+
+### Patch Changes
+
+- Updated dependencies [8dd759d]
+  - @ai-sdk/gateway@2.0.86
+
+## 5.0.182
+
+### Patch Changes
+
+- Updated dependencies [8374557]
+  - @ai-sdk/gateway@2.0.85
+
+## 5.0.181
+
+### Patch Changes
+
+- 783fa6c: chore: ensure consistent import handling and avoid import duplicates or cycles
+- c327fb9: fix(mcp): prevent prototype pollution by using secureJsonParse
+- Updated dependencies [783fa6c]
+  - @ai-sdk/provider-utils@3.0.25
+  - @ai-sdk/provider@2.0.3
+  - @ai-sdk/gateway@2.0.84
+
+## 5.0.180
+
+### Patch Changes
+
+- 0a00b9b: trigger release for all packages after provenance setup
+- Updated dependencies [0a00b9b]
+- Updated dependencies [c30c710]
+- Updated dependencies [11c7bdd]
+  - @ai-sdk/gateway@2.0.83
+  - @ai-sdk/provider@2.0.2
+  - @ai-sdk/provider-utils@3.0.24
+
 ## 5.0.179
 
 ### Patch Changes

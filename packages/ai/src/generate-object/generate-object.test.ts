@@ -1,6 +1,6 @@
 import {
+  type LanguageModelV2CallWarning,
   JSONParseError,
-  LanguageModelV2CallWarning,
   TypeValidationError,
 } from '@ai-sdk/provider';
 import { jsonSchema } from '@ai-sdk/provider-utils';

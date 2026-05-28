@@ -1,5 +1,81 @@
 # @ai-sdk/gateway
 
+## 2.0.93
+
+### Patch Changes
+
+- 544fbab: Add `qwen3.7-max` model ID to Alibaba and AI Gateway.
+- 1bdb6f7: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.92
+
+### Patch Changes
+
+- f6b2222: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.91
+
+### Patch Changes
+
+- 00a1e93: feat(provider/google): add `gemini-3.5-flash`
+
+## 2.0.90
+
+### Patch Changes
+
+- 1269e58: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.89
+
+### Patch Changes
+
+- e676093: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.88
+
+### Patch Changes
+
+- c261259: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.87
+
+### Patch Changes
+
+- f668fe8: Backport: chore(provider/gateway): update gateway model settings files
+- 80e2f83: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.86
+
+### Patch Changes
+
+- 8dd759d: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.85
+
+### Patch Changes
+
+- 8374557: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.84
+
+### Patch Changes
+
+- 783fa6c: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [783fa6c]
+  - @ai-sdk/provider-utils@3.0.25
+  - @ai-sdk/provider@2.0.3
+
+## 2.0.83
+
+### Patch Changes
+
+- 0a00b9b: trigger release for all packages after provenance setup
+- c30c710: Backport: chore(provider/gateway): update gateway model settings files
+- 11c7bdd: feat(provider/openai): add gpt-image-2 model support
+- Updated dependencies [0a00b9b]
+  - @ai-sdk/provider@2.0.2
+  - @ai-sdk/provider-utils@3.0.24
+
 ## 2.0.82
 
 ### Patch Changes

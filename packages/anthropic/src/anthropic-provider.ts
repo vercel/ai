@@ -1,10 +1,10 @@
 import {
-  LanguageModelV2,
+  type LanguageModelV2,
+  type ProviderV2,
   NoSuchModelError,
-  ProviderV2,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
+  type FetchFunction,
   generateId,
   loadApiKey,
   loadOptionalSetting,
@@ -13,7 +13,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { VERSION } from './version';
 import { AnthropicMessagesLanguageModel } from './anthropic-messages-language-model';
-import { AnthropicMessagesModelId } from './anthropic-messages-options';
+import type { AnthropicMessagesModelId } from './anthropic-messages-options';
 import { anthropicTools } from './anthropic-tools';
 
 export interface AnthropicProvider extends ProviderV2 {

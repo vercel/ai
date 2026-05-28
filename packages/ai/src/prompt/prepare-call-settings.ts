@@ -1,5 +1,5 @@
 import { InvalidArgumentError } from '../error/invalid-argument-error';
-import { CallSettings } from './call-settings';
+import type { CallSettings } from './call-settings';
 
 /**
  * Validates call settings and returns a new object with limited values.

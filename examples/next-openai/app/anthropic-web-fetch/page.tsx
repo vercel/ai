@@ -4,7 +4,7 @@ import ChatInput from '@/components/chat-input';
 import AnthropicWebFetchView from '@/components/tool/anthropic-web-fetch-view';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { AnthropicWebFetchMessage } from '../api/anthropic-web-fetch/route';
+import type { AnthropicWebFetchMessage } from '../api/anthropic-web-fetch/route';
 
 export default function TestAnthropicWebFetch() {
   const { status, sendMessage, messages } = useChat<AnthropicWebFetchMessage>({

@@ -1,7 +1,7 @@
 import { createBedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
 import { streamText } from 'ai';
 import 'dotenv/config';
-import { AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import type { AnthropicProviderOptions } from '@ai-sdk/anthropic';
 
 const bedrockAnthropic = createBedrockAnthropic();
 

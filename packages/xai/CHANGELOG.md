@@ -1,5 +1,51 @@
 # @ai-sdk/xai
 
+## 2.0.73
+
+### Patch Changes
+
+- b3c2af5: fix reasoning-start dedupe on multi-summary-part responses to prevent xai 400 on continuation requests
+- a455654: surface full xai error detail in APICallError.message instead of falling back to http status text
+
+## 2.0.72
+
+### Patch Changes
+
+- Updated dependencies [cb61408]
+  - @ai-sdk/openai-compatible@1.0.39
+
+## 2.0.71
+
+### Patch Changes
+
+- c10963d: feat(provider/xai): support non-image file parts (PDF, text, CSV) in the Responses API via `input_file` + `file_url`
+
+  The xAI Responses API accepts `{ type: 'input_file', file_url }` for non-image documents (see https://docs.x.ai/docs/guides/chat-with-files), but the AI SDK xAI Responses provider previously threw `UnsupportedFunctionalityError` for any file part whose `mediaType` did not start with `image/`.
+
+  When a file part is passed with `data: URL` and a non-image media type, the provider now emits `{ type: 'input_file', file_url }`. `application/pdf` and `text/*` are also added to `supportedUrls` so the SDK does not download them to bytes before reaching the converter.
+
+  Inline-byte (base64) inputs for non-image media types continue to throw, since xAI's Responses API requires either a public URL or a pre-uploaded `file_id` for non-image documents.
+
+## 2.0.70
+
+### Patch Changes
+
+- 783fa6c: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [783fa6c]
+  - @ai-sdk/openai-compatible@1.0.38
+  - @ai-sdk/provider-utils@3.0.25
+  - @ai-sdk/provider@2.0.3
+
+## 2.0.69
+
+### Patch Changes
+
+- 0a00b9b: trigger release for all packages after provenance setup
+- Updated dependencies [0a00b9b]
+  - @ai-sdk/openai-compatible@1.0.37
+  - @ai-sdk/provider@2.0.2
+  - @ai-sdk/provider-utils@3.0.24
+
 ## 2.0.68
 
 ### Patch Changes

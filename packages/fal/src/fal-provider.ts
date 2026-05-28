@@ -1,20 +1,20 @@
 import {
-  ImageModelV2,
+  type ImageModelV2,
+  type ProviderV2,
+  type SpeechModelV2,
+  type TranscriptionModelV2,
   NoSuchModelError,
-  ProviderV2,
-  SpeechModelV2,
-  TranscriptionModelV2,
 } from '@ai-sdk/provider';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {
+  type FetchFunction,
   withoutTrailingSlash,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { FalImageModel } from './fal-image-model';
-import { FalImageModelId } from './fal-image-settings';
-import { FalTranscriptionModelId } from './fal-transcription-options';
+import type { FalImageModelId } from './fal-image-settings';
+import type { FalTranscriptionModelId } from './fal-transcription-options';
 import { FalTranscriptionModel } from './fal-transcription-model';
-import { FalSpeechModelId } from './fal-speech-settings';
+import type { FalSpeechModelId } from './fal-speech-settings';
 import { FalSpeechModel } from './fal-speech-model';
 import { VERSION } from './version';
 

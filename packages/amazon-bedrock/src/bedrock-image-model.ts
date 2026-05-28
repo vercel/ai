@@ -1,7 +1,7 @@
-import { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
+import type { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
 import {
-  FetchFunction,
-  Resolvable,
+  type FetchFunction,
+  type Resolvable,
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
@@ -9,7 +9,7 @@ import {
   resolve,
 } from '@ai-sdk/provider-utils';
 import {
-  BedrockImageModelId,
+  type BedrockImageModelId,
   modelMaxImagesPerCall,
 } from './bedrock-image-settings';
 import { BedrockErrorSchema } from './bedrock-error';

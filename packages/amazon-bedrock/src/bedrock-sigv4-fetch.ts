@@ -1,5 +1,5 @@
 import {
-  FetchFunction,
+  type FetchFunction,
   combineHeaders,
   normalizeHeaders,
   withUserAgentSuffix,

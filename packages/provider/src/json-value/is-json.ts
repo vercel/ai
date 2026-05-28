@@ -1,4 +1,4 @@
-import { JSONArray, JSONObject, JSONValue } from './json-value';
+import type { JSONArray, JSONObject, JSONValue } from './json-value';
 
 export function isJSONValue(value: unknown): value is JSONValue {
   if (

@@ -1,7 +1,7 @@
 {
   "name": "@ai-sdk/gateway",
   "private": false,
-  "version": "2.0.82",
+  "version": "2.0.93",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -57,7 +57,8 @@
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vercel/ai.git"
+    "url": "https://github.com/vercel/ai",
+    "directory": "packages/gateway"
   },
   "bugs": {
     "url": "https://github.com/vercel/ai/issues"

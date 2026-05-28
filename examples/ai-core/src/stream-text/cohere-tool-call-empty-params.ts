@@ -1,9 +1,9 @@
 import { cohere } from '@ai-sdk/cohere';
 import {
+  type ModelMessage,
+  type ToolCallPart,
+  type ToolResultPart,
   streamText,
-  ModelMessage,
-  ToolCallPart,
-  ToolResultPart,
   tool,
 } from 'ai';
 import 'dotenv/config';

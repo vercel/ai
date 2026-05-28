@@ -1,9 +1,9 @@
 import {
+  type JSONValue,
+  type LanguageModelV2ToolResultOutput,
   getErrorMessage,
-  JSONValue,
-  LanguageModelV2ToolResultOutput,
 } from '@ai-sdk/provider';
-import { Tool } from '@ai-sdk/provider-utils';
+import type { Tool } from '@ai-sdk/provider-utils';
 
 export function createToolModelOutput({
   output,

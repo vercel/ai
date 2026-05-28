@@ -1,4 +1,4 @@
-import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+import { type OpenAIResponsesProviderOptions, openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { run } from '../lib/run';
 

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/prodia",
-  "version": "0.0.7",
+  "version": "0.0.9",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -53,7 +53,8 @@
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vercel/ai.git"
+    "url": "https://github.com/vercel/ai",
+    "directory": "packages/prodia"
   },
   "bugs": {
     "url": "https://github.com/vercel/ai/issues"

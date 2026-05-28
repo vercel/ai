@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/svelte",
-  "version": "3.0.179",
+  "version": "3.0.192",
   "license": "Apache-2.0",
   "scripts": {
     "build": "pnpm prepack",
@@ -73,7 +73,7 @@
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vercel/ai.git",
+    "url": "https://github.com/vercel/ai",
     "directory": "packages/svelte"
   },
   "bugs": {
@@ -82,5 +82,8 @@
   "keywords": [
     "ai",
     "svelte"
-  ]
+  ],
+  "engines": {
+    "node": ">=18"
+  }
 }

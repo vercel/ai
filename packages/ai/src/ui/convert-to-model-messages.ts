@@ -1,21 +1,25 @@
-import {
+import type {
   AssistantContent,
   FilePart,
   ModelMessage,
   TextPart,
   ToolResultPart,
 } from '@ai-sdk/provider-utils';
-import { ToolSet } from '../generate-text/tool-set';
+import type { ToolSet } from '../generate-text/tool-set';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { MessageConversionError } from '../prompt/message-conversion-error';
 import {
-  DataUIPart,
-  DynamicToolUIPart,
-  FileUIPart,
+  type DataUIPart,
+  type DynamicToolUIPart,
+  type FileUIPart,
+  type InferUIMessageData,
+  type InferUIMessageTools,
+  type ReasoningUIPart,
+  type TextUIPart,
+  type ToolUIPart,
+  type UIMessage,
   getToolName,
   getToolOrDynamicToolName,
-  InferUIMessageData,
-  InferUIMessageTools,
   isDataUIPart,
   isDynamicToolUIPart,
   isFileUIPart,
@@ -23,10 +27,6 @@ import {
   isTextUIPart,
   isToolOrDynamicToolUIPart,
   isToolUIPart,
-  ReasoningUIPart,
-  TextUIPart,
-  ToolUIPart,
-  UIMessage,
 } from './ui-messages';
 
 /**

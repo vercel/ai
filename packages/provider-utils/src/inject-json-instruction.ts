@@ -1,4 +1,4 @@
-import {
+import type {
   JSONSchema7,
   LanguageModelV2Message,
   LanguageModelV2Prompt,

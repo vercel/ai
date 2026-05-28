@@ -1,5 +1,91 @@
 # @ai-sdk/svelte
 
+## 3.0.192
+
+### Patch Changes
+
+- ai@5.0.192
+
+## 3.0.191
+
+### Patch Changes
+
+- ai@5.0.191
+
+## 3.0.190
+
+### Patch Changes
+
+- ai@5.0.190
+
+## 3.0.189
+
+### Patch Changes
+
+- ai@5.0.189
+
+## 3.0.188
+
+### Patch Changes
+
+- Updated dependencies [1760d76]
+  - ai@5.0.188
+
+## 3.0.187
+
+### Patch Changes
+
+- ai@5.0.187
+
+## 3.0.186
+
+### Patch Changes
+
+- ai@5.0.186
+
+## 3.0.185
+
+### Patch Changes
+
+- ai@5.0.185
+
+## 3.0.184
+
+### Patch Changes
+
+- Updated dependencies [cb911d2]
+  - ai@5.0.184
+
+## 3.0.183
+
+### Patch Changes
+
+- ai@5.0.183
+
+## 3.0.182
+
+### Patch Changes
+
+- ai@5.0.182
+
+## 3.0.181
+
+### Patch Changes
+
+- Updated dependencies [783fa6c]
+- Updated dependencies [c327fb9]
+  - @ai-sdk/provider-utils@3.0.25
+  - ai@5.0.181
+
+## 3.0.180
+
+### Patch Changes
+
+- 0a00b9b: trigger release for all packages after provenance setup
+- Updated dependencies [0a00b9b]
+  - ai@5.0.180
+  - @ai-sdk/provider-utils@3.0.24
+
 ## 3.0.179
 
 ### Patch Changes

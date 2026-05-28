@@ -1,20 +1,20 @@
 import {
-  FetchFunction,
-  InferSchema,
+  type FetchFunction,
+  type InferSchema,
   isAbortError,
   safeValidateTypes,
 } from '@ai-sdk/provider-utils';
 import {
+  type DeepPartial,
+  type Schema,
   asSchema,
-  DeepPartial,
   isDeepEqualData,
   parsePartialJson,
-  Schema,
 } from 'ai';
 import { useCallback, useId, useRef, useState } from 'react';
 import useSWR from 'swr';
-import * as z3 from 'zod/v3';
-import * as z4 from 'zod/v4';
+import type * as z3 from 'zod/v3';
+import type * as z4 from 'zod/v4';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;

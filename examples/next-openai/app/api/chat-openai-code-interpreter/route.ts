@@ -1,11 +1,11 @@
-import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+import { type OpenAIResponsesProviderOptions, openai } from '@ai-sdk/openai';
 import {
+  type InferUITools,
+  type ToolSet,
+  type UIDataTypes,
+  type UIMessage,
   convertToModelMessages,
-  InferUITools,
   streamText,
-  ToolSet,
-  UIDataTypes,
-  UIMessage,
   validateUIMessages,
 } from 'ai';
 

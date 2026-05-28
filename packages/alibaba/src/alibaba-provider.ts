@@ -4,31 +4,21 @@ import {
   type ProviderV2,
 } from '@ai-sdk/provider';
 import {
-  createJsonErrorResponseHandler,
   type FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
 import { AlibabaLanguageModel } from './alibaba-chat-language-model';
 import type { AlibabaChatModelId } from './alibaba-chat-options';
+import {
+  type AlibabaErrorData,
+  alibabaFailedResponseHandler,
+} from './alibaba-error';
 import { VERSION } from './version';
 
-export type AlibabaErrorData = z.infer<typeof alibabaErrorDataSchema>;
-
-const alibabaErrorDataSchema = z.object({
-  error: z.object({
-    message: z.string(),
-    code: z.string().nullish(),
-    type: z.string().nullish(),
-  }),
-});
-
-export const alibabaFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: alibabaErrorDataSchema,
-  errorToMessage: data => data.error.message,
-});
+export type { AlibabaErrorData };
+export { alibabaFailedResponseHandler };
 
 export interface AlibabaProvider extends ProviderV2 {
   (modelId: AlibabaChatModelId): LanguageModelV2;

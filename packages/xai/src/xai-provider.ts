@@ -1,32 +1,33 @@
 import {
+  type ProviderErrorStructure,
   OpenAICompatibleImageModel,
-  ProviderErrorStructure,
 } from '@ai-sdk/openai-compatible';
 import {
-  ImageModelV2,
-  LanguageModelV2,
+  type ImageModelV2,
+  type LanguageModelV2,
+  type ProviderV2,
   NoSuchModelError,
-  ProviderV2,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
+  type FetchFunction,
   generateId,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { XaiChatLanguageModel } from './xai-chat-language-model';
-import { XaiChatModelId } from './xai-chat-options';
-import { XaiErrorData, xaiErrorDataSchema } from './xai-error';
-import { XaiImageModelId } from './xai-image-settings';
+import type { XaiChatModelId } from './xai-chat-options';
+import { type XaiErrorData, xaiErrorDataSchema } from './xai-error';
+import type { XaiImageModelId } from './xai-image-settings';
 import { XaiResponsesLanguageModel } from './responses/xai-responses-language-model';
-import { XaiResponsesModelId } from './responses/xai-responses-options';
+import type { XaiResponsesModelId } from './responses/xai-responses-options';
 import { xaiTools } from './tool';
 import { VERSION } from './version';
 
 const xaiErrorStructure: ProviderErrorStructure<XaiErrorData> = {
   errorSchema: xaiErrorDataSchema,
-  errorToMessage: data => data.error.message,
+  errorToMessage: data =>
+    'code' in data ? `${data.code}: ${data.error}` : data.error.message,
 };
 
 export interface XaiProvider extends ProviderV2 {

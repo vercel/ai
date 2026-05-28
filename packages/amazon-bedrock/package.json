@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/amazon-bedrock",
-  "version": "3.0.97",
+  "version": "3.0.99",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -63,7 +63,8 @@
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vercel/ai.git"
+    "url": "https://github.com/vercel/ai",
+    "directory": "packages/amazon-bedrock"
   },
   "bugs": {
     "url": "https://github.com/vercel/ai/issues"

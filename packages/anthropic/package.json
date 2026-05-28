@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/anthropic",
-  "version": "2.0.77",
+  "version": "2.0.79",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -60,7 +60,8 @@
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vercel/ai.git"
+    "url": "https://github.com/vercel/ai",
+    "directory": "packages/anthropic"
   },
   "bugs": {
     "url": "https://github.com/vercel/ai/issues"

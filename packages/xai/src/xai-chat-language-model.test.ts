@@ -1,4 +1,4 @@
-import { LanguageModelV2Prompt } from '@ai-sdk/provider';
+import type { LanguageModelV2Prompt } from '@ai-sdk/provider';
 import { describe, it, expect, vi } from 'vitest';
 
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';

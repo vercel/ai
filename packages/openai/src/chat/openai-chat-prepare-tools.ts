@@ -1,9 +1,9 @@
 import {
-  LanguageModelV2CallOptions,
-  LanguageModelV2CallWarning,
+  type LanguageModelV2CallOptions,
+  type LanguageModelV2CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import {
+import type {
   OpenAIChatToolChoice,
   OpenAIChatFunctionTool,
 } from './openai-chat-api';

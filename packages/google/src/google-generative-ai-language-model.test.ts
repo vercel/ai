@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV2Prompt,
   LanguageModelV2ProviderDefinedTool,
 } from '@ai-sdk/provider';
@@ -10,7 +10,7 @@ import {
   getUrlContextMetadataSchema,
 } from './google-generative-ai-language-model';
 
-import {
+import type {
   GoogleGenerativeAIGroundingMetadata,
   GoogleGenerativeAIUrlContextMetadata,
 } from './google-generative-ai-prompt';

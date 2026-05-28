@@ -1,4 +1,4 @@
-import { LanguageModelV2StreamPart } from '@ai-sdk/provider';
+import type { LanguageModelV2StreamPart } from '@ai-sdk/provider';
 import { delay } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,

@@ -1,5 +1,24 @@
 # @ai-sdk/anthropic
 
+## 2.0.79
+
+### Patch Changes
+
+- 783fa6c: chore: ensure consistent import handling and avoid import duplicates or cycles
+- 8ddc817: feat(anthropic): sanitize the unsupported JSON schema validation properties
+- Updated dependencies [783fa6c]
+  - @ai-sdk/provider-utils@3.0.25
+  - @ai-sdk/provider@2.0.3
+
+## 2.0.78
+
+### Patch Changes
+
+- 0a00b9b: trigger release for all packages after provenance setup
+- Updated dependencies [0a00b9b]
+  - @ai-sdk/provider@2.0.2
+  - @ai-sdk/provider-utils@3.0.24
+
 ## 2.0.77
 
 ### Patch Changes

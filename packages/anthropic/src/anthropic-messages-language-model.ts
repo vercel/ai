@@ -1,47 +1,48 @@
 import {
+  type JSONObject,
+  type LanguageModelV2,
+  type LanguageModelV2CallWarning,
+  type LanguageModelV2Content,
+  type LanguageModelV2FinishReason,
+  type LanguageModelV2FunctionTool,
+  type LanguageModelV2Prompt,
+  type LanguageModelV2Source,
+  type LanguageModelV2StreamPart,
+  type LanguageModelV2Usage,
+  type SharedV2ProviderMetadata,
   APICallError,
-  JSONObject,
-  LanguageModelV2,
-  LanguageModelV2CallWarning,
-  LanguageModelV2Content,
-  LanguageModelV2FinishReason,
-  LanguageModelV2FunctionTool,
-  LanguageModelV2Prompt,
-  LanguageModelV2Source,
-  LanguageModelV2StreamPart,
-  LanguageModelV2Usage,
-  SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
+  type FetchFunction,
+  type InferValidator,
+  type ParseResult,
+  type Resolvable,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
-  FetchFunction,
   generateId,
-  InferValidator,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
-  Resolvable,
   resolve,
 } from '@ai-sdk/provider-utils';
 import { anthropicFailedResponseHandler } from './anthropic-error';
-import { AnthropicMessageMetadata } from './anthropic-message-metadata';
+import type { AnthropicMessageMetadata } from './anthropic-message-metadata';
 import {
-  AnthropicContainer,
+  type AnthropicContainer,
+  type AnthropicReasoningMetadata,
+  type Citation,
   anthropicMessagesChunkSchema,
   anthropicMessagesResponseSchema,
-  AnthropicReasoningMetadata,
-  Citation,
 } from './anthropic-messages-api';
 import {
-  AnthropicMessagesModelId,
+  type AnthropicMessagesModelId,
   anthropicProviderOptions,
 } from './anthropic-messages-options';
 import { prepareTools } from './anthropic-prepare-tools';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { CacheControlValidator } from './get-cache-control';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
+import { sanitizeJsonSchema } from './sanitize-json-schema';
 
 function createCitationSource(
   citation: Citation,
@@ -333,7 +334,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
             responseFormat.schema != null && {
               format: {
                 type: 'json_schema',
-                schema: responseFormat.schema,
+                schema: sanitizeJsonSchema(responseFormat.schema),
               },
             }),
         },
@@ -350,16 +351,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       ...(anthropicOptions?.metadata?.userId != null && {
         metadata: { user_id: anthropicOptions.metadata.userId },
       }),
-
-      // structured output:
-      ...(useStructuredOutput &&
-        responseFormat?.type === 'json' &&
-        responseFormat.schema != null && {
-          output_format: {
-            type: 'json_schema',
-            schema: responseFormat.schema,
-          },
-        }),
 
       // container with agent skills:
       ...(anthropicOptions?.container && {

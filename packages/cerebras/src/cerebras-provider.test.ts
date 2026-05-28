@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+import { type Mock, describe, it, expect, vi, beforeEach } from 'vitest';
 import { createCerebras } from './cerebras-provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';

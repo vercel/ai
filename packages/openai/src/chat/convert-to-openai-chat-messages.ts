@@ -1,9 +1,9 @@
 import {
-  LanguageModelV2CallWarning,
-  LanguageModelV2Prompt,
+  type LanguageModelV2CallWarning,
+  type LanguageModelV2Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { OpenAIChatPrompt } from './openai-chat-prompt';
+import type { OpenAIChatPrompt } from './openai-chat-prompt';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
 
 export function convertToOpenAIChatMessages({

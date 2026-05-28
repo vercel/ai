@@ -1,31 +1,31 @@
 import {
+  type JSONObject,
+  type JSONSchema7,
+  type JSONValue,
   isJSONArray,
   isJSONObject,
-  JSONObject,
-  JSONSchema7,
-  JSONValue,
   TypeValidationError,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
+  type FlexibleSchema,
+  type Schema,
+  type ValidationResult,
   asSchema,
-  FlexibleSchema,
   safeValidateTypes,
-  Schema,
-  ValidationResult,
 } from '@ai-sdk/provider-utils';
 import { NoObjectGeneratedError } from '../error/no-object-generated-error';
-import {
+import type {
   FinishReason,
   LanguageModelResponseMetadata,
   LanguageModelUsage,
 } from '../types';
 import {
-  AsyncIterableStream,
+  type AsyncIterableStream,
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
-import { DeepPartial } from '../util/deep-partial';
-import { ObjectStreamPart } from './stream-object-result';
+import type { DeepPartial } from '../util/deep-partial';
+import type { ObjectStreamPart } from './stream-object-result';
 
 export interface OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM> {
   readonly type: 'object' | 'array' | 'enum' | 'no-schema';

@@ -1,10 +1,10 @@
 import {
-  TranscriptionModelV2,
-  ProviderV2,
+  type TranscriptionModelV2,
+  type ProviderV2,
   NoSuchModelError,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
+  type FetchFunction,
   loadApiKey,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';

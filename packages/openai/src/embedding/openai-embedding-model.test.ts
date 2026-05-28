@@ -1,4 +1,4 @@
-import { EmbeddingModelV2Embedding } from '@ai-sdk/provider';
+import type { EmbeddingModelV2Embedding } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { createOpenAI } from '../openai-provider';
 import { describe, it, expect, vi } from 'vitest';

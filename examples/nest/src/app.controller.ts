@@ -5,7 +5,7 @@ import {
   streamText,
   pipeUIMessageStreamToResponse,
 } from 'ai';
-import { Response } from 'express';
+import type { Response } from 'express';
 
 @Controller()
 export class AppController {

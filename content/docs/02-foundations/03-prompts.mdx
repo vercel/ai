@@ -45,6 +45,15 @@ const result = await generateText({
 System prompts are the initial set of instructions given to models that help guide and constrain the models' behaviors and responses.
 You can set system prompts using the `system` property.
 System prompts work with both the `prompt` and the `messages` properties.
+System messages in `prompt` or `messages` are allowed by default with a warning; use the `system` property for system instructions, set `allowSystemInMessages: true` when you need to send existing message histories that contain system messages, or set `allowSystemInMessages: false` to reject them.
+
+<Note type="warning">
+  System messages in `prompt` or `messages` can create a prompt injection
+  attack risk, where users can override or set the system prompt by injecting
+  system messages. Ideally, provide system instructions through the `system`
+  option instead. Set `allowSystemInMessages: true` to suppress the warning, or
+  `allowSystemInMessages: false` to throw an error.
+</Note>
 
 ```ts highlight="3-6"
 const result = await generateText({
@@ -58,11 +67,6 @@ const result = await generateText({
     `Please suggest the best tourist activities for me to do.`,
 });
 ```
-
-<Note>
-  When you use a message prompt, you can also use system messages instead of a
-  system prompt.
-</Note>
 
 ## Message Prompts
 
@@ -118,10 +122,9 @@ const { text } = await generateText({
 For granular control over applying provider options at the message level, you can pass `providerOptions` to the message object:
 
 ```ts
-import { ModelMessage } from 'ai';
-
-const messages: ModelMessage[] = [
-  {
+const result = await generateText({
+  model: __MODEL__,
+  system: {
     role: 'system',
     content: 'Cached system message',
     providerOptions: {
@@ -129,7 +132,8 @@ const messages: ModelMessage[] = [
       anthropic: { cacheControl: { type: 'ephemeral' } },
     },
   },
-];
+  prompt: 'Invent a new holiday and describe its traditions.',
+});
 ```
 
 #### Message Part Level

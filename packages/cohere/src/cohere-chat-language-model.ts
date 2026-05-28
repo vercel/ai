@@ -1,16 +1,16 @@
 import {
-  LanguageModelV2,
+  type LanguageModelV2,
+  type LanguageModelV2Content,
+  type LanguageModelV2FinishReason,
+  type LanguageModelV2StreamPart,
+  type LanguageModelV2Usage,
   LanguageModelV2CallWarning,
-  LanguageModelV2Content,
-  LanguageModelV2FinishReason,
   LanguageModelV2Prompt,
-  LanguageModelV2StreamPart,
-  LanguageModelV2Usage,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
-  ParseResult,
+  type FetchFunction,
+  type ParseResult,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
@@ -20,7 +20,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
-  CohereChatModelId,
+  type CohereChatModelId,
   cohereChatModelOptions,
 } from './cohere-chat-options';
 import { cohereFailedResponseHandler } from './cohere-error';
@@ -41,8 +41,8 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
 
   readonly modelId: CohereChatModelId;
 
-  readonly supportedUrls = {
-    // No URLs are supported.
+  readonly supportedUrls: Record<string, RegExp[]> = {
+    'image/*': [/^https?:\/\/.*$/],
   };
 
   private readonly config: CohereChatConfig;
@@ -83,7 +83,7 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
       messages: chatPrompt,
       documents: cohereDocuments,
       warnings: promptWarnings,
-    } = convertToCohereChatPrompt(prompt);
+    } = await convertToCohereChatPrompt(prompt);
 
     const {
       tools: cohereTools,

@@ -1,47 +1,47 @@
 import {
+  type LanguageModelV2,
+  type LanguageModelV2CallWarning,
+  type LanguageModelV2Content,
+  type LanguageModelV2FinishReason,
+  type LanguageModelV2ProviderDefinedTool,
+  type LanguageModelV2StreamPart,
+  type LanguageModelV2Usage,
+  type SharedV2ProviderMetadata,
   APICallError,
-  LanguageModelV2,
-  LanguageModelV2CallWarning,
-  LanguageModelV2Content,
-  LanguageModelV2FinishReason,
-  LanguageModelV2ProviderDefinedTool,
-  LanguageModelV2StreamPart,
-  LanguageModelV2Usage,
-  SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
+  type InferValidator,
+  type ParseResult,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
-  InferValidator,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { OpenAIConfig } from '../openai-config';
+import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
-import {
+import type {
   codeInterpreterInputSchema,
   codeInterpreterOutputSchema,
 } from '../tool/code-interpreter';
-import { fileSearchOutputSchema } from '../tool/file-search';
-import { imageGenerationOutputSchema } from '../tool/image-generation';
-import { localShellInputSchema } from '../tool/local-shell';
-import { webSearchOutputSchema } from '../tool/web-search';
+import type { fileSearchOutputSchema } from '../tool/file-search';
+import type { imageGenerationOutputSchema } from '../tool/image-generation';
+import type { localShellInputSchema } from '../tool/local-shell';
+import type { webSearchOutputSchema } from '../tool/web-search';
 import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
 import {
-  OpenAIResponsesChunk,
+  type OpenAIResponsesChunk,
+  type OpenAIResponsesIncludeOptions,
+  type OpenAIResponsesIncludeValue,
+  type OpenAIResponsesLogprobs,
+  type OpenAIResponsesWebSearchAction,
   openaiResponsesChunkSchema,
-  OpenAIResponsesIncludeOptions,
-  OpenAIResponsesIncludeValue,
-  OpenAIResponsesLogprobs,
   openaiResponsesResponseSchema,
-  OpenAIResponsesWebSearchAction,
 } from './openai-responses-api';
 import {
-  OpenAIResponsesModelId,
+  type OpenAIResponsesModelId,
   openaiResponsesProviderOptionsSchema,
   TOP_LOGPROBS_MAX,
 } from './openai-responses-options';

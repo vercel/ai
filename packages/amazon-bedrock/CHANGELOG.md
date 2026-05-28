@@ -1,5 +1,26 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.99
+
+### Patch Changes
+
+- 783fa6c: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [783fa6c]
+- Updated dependencies [8ddc817]
+  - @ai-sdk/provider-utils@3.0.25
+  - @ai-sdk/anthropic@2.0.79
+  - @ai-sdk/provider@2.0.3
+
+## 3.0.98
+
+### Patch Changes
+
+- 0a00b9b: trigger release for all packages after provenance setup
+- Updated dependencies [0a00b9b]
+  - @ai-sdk/anthropic@2.0.78
+  - @ai-sdk/provider@2.0.2
+  - @ai-sdk/provider-utils@3.0.24
+
 ## 3.0.97
 
 ### Patch Changes

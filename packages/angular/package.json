@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/angular",
-  "version": "1.0.179",
+  "version": "1.0.192",
   "description": "Angular implementation of ai-sdk.",
   "license": "Apache-2.0",
   "main": "dist/index.cjs",
@@ -46,5 +46,19 @@
   },
   "engines": {
     "node": ">=18"
-  }
+  },
+  "homepage": "https://ai-sdk.dev/docs",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vercel/ai",
+    "directory": "packages/angular"
+  },
+  "bugs": {
+    "url": "https://github.com/vercel/ai/issues"
+  },
+  "sideEffects": false,
+  "keywords": [
+    "ai",
+    "angular"
+  ]
 }

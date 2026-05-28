@@ -1,26 +1,26 @@
 import {
+  type LanguageModelV2,
+  type LanguageModelV2CallWarning,
   getErrorMessage,
-  LanguageModelV2,
-  LanguageModelV2CallWarning,
 } from '@ai-sdk/provider';
 import {
+  type IdGenerator,
+  type ProviderOptions,
   createIdGenerator,
   DelayedPromise,
-  IdGenerator,
   isAbortError,
-  ProviderOptions,
 } from '@ai-sdk/provider-utils';
-import { Span } from '@opentelemetry/api';
-import { ServerResponse } from 'node:http';
+import type { Span } from '@opentelemetry/api';
+import type { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
 import { NoOutputSpecifiedError } from '../error/no-output-specified-error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
-import { CallSettings } from '../prompt/call-settings';
+import type { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
-import { Prompt } from '../prompt/prompt';
+import type { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
@@ -29,64 +29,67 @@ import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import type { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { createTextStreamResponse } from '../text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../text-stream/pipe-text-stream-to-response';
-import { LanguageModelRequestMetadata } from '../types';
-import {
+import type { LanguageModelRequestMetadata } from '../types';
+import type {
   CallWarning,
   FinishReason,
   LanguageModel,
   ToolChoice,
 } from '../types/language-model';
-import { ProviderMetadata } from '../types/provider-metadata';
-import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
-import { UIMessage } from '../ui';
+import type { ProviderMetadata } from '../types/provider-metadata';
+import { type LanguageModelUsage, addLanguageModelUsage } from '../types/usage';
+import type { UIMessage } from '../ui';
 import { createUIMessageStreamResponse } from '../ui-message-stream/create-ui-message-stream-response';
 import { getResponseUIMessageId } from '../ui-message-stream/get-response-ui-message-id';
 import { handleUIMessageStreamFinish } from '../ui-message-stream/handle-ui-message-stream-finish';
 import { pipeUIMessageStreamToResponse } from '../ui-message-stream/pipe-ui-message-stream-to-response';
-import {
+import type {
   InferUIMessageChunk,
   UIMessageChunk,
 } from '../ui-message-stream/ui-message-chunks';
-import { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
-import { InferUIMessageData, InferUIMessageMetadata } from '../ui/ui-messages';
+import type { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
+import type {
+  InferUIMessageData,
+  InferUIMessageMetadata,
+} from '../ui/ui-messages';
 import { asArray } from '../util/as-array';
 import {
-  AsyncIterableStream,
+  type AsyncIterableStream,
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
 import { consumeStream } from '../util/consume-stream';
 import { createStitchableStream } from '../util/create-stitchable-stream';
-import { DownloadFunction } from '../util/download/download-function';
+import type { DownloadFunction } from '../util/download/download-function';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
-import { ContentPart } from './content-part';
-import { Output } from './output';
-import { PrepareStepFunction } from './prepare-step';
-import { ResponseMessage } from './response-message';
+import type { ContentPart } from './content-part';
+import type { Output } from './output';
+import type { PrepareStepFunction } from './prepare-step';
+import type { ResponseMessage } from './response-message';
 import {
+  type SingleRequestTextStreamPart,
   runToolsTransformation,
-  SingleRequestTextStreamPart,
 } from './run-tools-transformation';
-import { DefaultStepResult, StepResult } from './step-result';
+import { type StepResult, DefaultStepResult } from './step-result';
 import {
+  type StopCondition,
   isStopConditionMet,
   stepCountIs,
-  StopCondition,
 } from './stop-condition';
-import {
+import type {
   ConsumeStreamOptions,
   StreamTextResult,
   TextStreamPart,
   UIMessageStreamOptions,
 } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
-import { TypedToolCall } from './tool-call';
-import { ToolCallRepairFunction } from './tool-call-repair-function';
-import { ToolOutput } from './tool-output';
-import { ToolSet } from './tool-set';
+import type { TypedToolCall } from './tool-call';
+import type { ToolCallRepairFunction } from './tool-call-repair-function';
+import type { ToolOutput } from './tool-output';
+import type { ToolSet } from './tool-set';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -234,6 +237,7 @@ export function streamText<
   system,
   prompt,
   messages,
+  allowSystemInMessages,
   maxRetries,
   abortSignal,
   headers,
@@ -415,6 +419,7 @@ Internal. For test use only. May change without notice.
     system,
     prompt,
     messages,
+    allowSystemInMessages,
     tools,
     toolChoice,
     transforms: asArray(transform),
@@ -586,6 +591,7 @@ class DefaultStreamTextResult<
     system,
     prompt,
     messages,
+    allowSystemInMessages,
     tools,
     toolChoice,
     transforms,
@@ -616,6 +622,7 @@ class DefaultStreamTextResult<
     system: Prompt['system'];
     prompt: Prompt['prompt'];
     messages: Prompt['messages'];
+    allowSystemInMessages: Prompt['allowSystemInMessages'];
     tools: TOOLS | undefined;
     toolChoice: ToolChoice<TOOLS> | undefined;
     transforms: Array<StreamTextTransform<TOOLS>>;
@@ -1074,6 +1081,7 @@ class DefaultStreamTextResult<
             system,
             prompt,
             messages,
+            allowSystemInMessages,
           } as Prompt);
 
           const stepInputMessages = [

@@ -1,5 +1,30 @@
 # @ai-sdk/openai
 
+## 2.0.106
+
+### Patch Changes
+
+- 3a7454a: chore(provider/openai): add type for image model options for type-safe processing
+
+## 2.0.105
+
+### Patch Changes
+
+- 783fa6c: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [783fa6c]
+  - @ai-sdk/provider-utils@3.0.25
+  - @ai-sdk/provider@2.0.3
+
+## 2.0.104
+
+### Patch Changes
+
+- 0a00b9b: trigger release for all packages after provenance setup
+- 11c7bdd: feat(provider/openai): add gpt-image-2 model support
+- Updated dependencies [0a00b9b]
+  - @ai-sdk/provider@2.0.2
+  - @ai-sdk/provider-utils@3.0.24
+
 ## 2.0.103
 
 ### Patch Changes

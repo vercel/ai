@@ -1,40 +1,41 @@
 import {
-  APICallError,
+  type APICallError,
+  type LanguageModelV2,
+  type LanguageModelV2CallWarning,
+  type LanguageModelV2Content,
+  type LanguageModelV2FinishReason,
+  type LanguageModelV2StreamPart,
+  type LanguageModelV2Usage,
+  type SharedV2ProviderMetadata,
   InvalidResponseDataError,
-  LanguageModelV2,
-  LanguageModelV2CallWarning,
-  LanguageModelV2Content,
-  LanguageModelV2FinishReason,
-  LanguageModelV2StreamPart,
-  SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
+  type FetchFunction,
+  type ParseResult,
+  type ResponseHandler,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
-  FetchFunction,
   generateId,
   isParsableJson,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
-  ResponseHandler,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { convertToOpenAICompatibleChatMessages } from './convert-to-openai-compatible-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAICompatibleFinishReason } from './map-openai-compatible-finish-reason';
 import {
-  OpenAICompatibleChatModelId,
+  type OpenAICompatibleChatModelId,
   openaiCompatibleProviderOptions,
   OpenAICompatibleProviderOptions,
 } from './openai-compatible-chat-options';
 import {
+  type ProviderErrorStructure,
   defaultOpenAICompatibleErrorStructure,
-  ProviderErrorStructure,
 } from '../openai-compatible-error';
-import { MetadataExtractor } from './openai-compatible-metadata-extractor';
+import type { MetadataExtractor } from './openai-compatible-metadata-extractor';
 import { prepareTools } from './openai-compatible-prepare-tools';
 
 export type OpenAICompatibleChatConfig = {
@@ -55,6 +56,21 @@ export type OpenAICompatibleChatConfig = {
    * The supported URLs for the model.
    */
   supportedUrls?: () => LanguageModelV2['supportedUrls'];
+
+  /**
+   * Optional function to transform the request body before sending it to the API.
+   * This is useful for proxy providers that may require a different request format
+   * than the official OpenAI API.
+   */
+  transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
+
+  /**
+   * Optional usage converter for OpenAI-compatible providers with different
+   * token accounting semantics.
+   */
+  convertUsage?: (
+    usage: z.infer<typeof openaiCompatibleTokenUsageSchema>,
+  ) => LanguageModelV2Usage;
 };
 
 export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
@@ -95,6 +111,19 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
 
   get supportedUrls() {
     return this.config.supportedUrls?.() ?? {};
+  }
+
+  private transformRequestBody(args: Record<string, any>): Record<string, any> {
+    return this.config.transformRequestBody?.(args) ?? args;
+  }
+
+  private convertUsage(
+    usage: z.infer<typeof openaiCompatibleTokenUsageSchema>,
+  ): LanguageModelV2Usage {
+    return (
+      this.config.convertUsage?.(usage) ??
+      convertOpenAICompatibleChatUsage(usage)
+    );
   }
 
   private async getArgs({
@@ -213,7 +242,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
     const { args, warnings } = await this.getArgs({ ...options });
 
-    const body = JSON.stringify(args);
+    const transformedArgs = this.transformRequestBody(args);
+    const body = JSON.stringify(transformedArgs);
 
     const {
       responseHeaders,
@@ -225,7 +255,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
         modelId: this.modelId,
       }),
       headers: combineHeaders(this.config.headers(), options.headers),
-      body: args,
+      body: transformedArgs,
       failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         OpenAICompatibleChatResponseSchema,
@@ -286,16 +316,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
     return {
       content,
       finishReason: mapOpenAICompatibleFinishReason(choice.finish_reason),
-      usage: {
-        inputTokens: responseBody.usage?.prompt_tokens ?? undefined,
-        outputTokens: responseBody.usage?.completion_tokens ?? undefined,
-        totalTokens: responseBody.usage?.total_tokens ?? undefined,
-        reasoningTokens:
-          responseBody.usage?.completion_tokens_details?.reasoning_tokens ??
-          undefined,
-        cachedInputTokens:
-          responseBody.usage?.prompt_tokens_details?.cached_tokens ?? undefined,
-      },
+      usage: this.convertUsage(responseBody.usage),
       providerMetadata,
       request: { body },
       response: {
@@ -312,7 +333,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
     const { args, warnings } = await this.getArgs({ ...options });
 
-    const body = {
+    const body = this.transformRequestBody({
       ...args,
       stream: true,
 
@@ -320,7 +341,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
       stream_options: this.config.includeUsage
         ? { include_usage: true }
         : undefined,
-    };
+    });
 
     const metadataExtractor =
       this.config.metadataExtractor?.createStreamExtractor();
@@ -376,10 +397,14 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
       },
       totalTokens: undefined,
     };
+    let lastUsage: z.infer<typeof openaiCompatibleTokenUsageSchema> = undefined;
     let isFirstChunk = true;
     const providerOptionsName = this.providerOptionsName;
     let isActiveReasoning = false;
     let isActiveText = false;
+    const convertUsage = (
+      usage: z.infer<typeof openaiCompatibleTokenUsageSchema>,
+    ) => this.convertUsage(usage);
 
     return {
       stream: response.pipeThrough(
@@ -425,6 +450,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
             }
 
             if (value.usage != null) {
+              lastUsage = value.usage;
               const {
                 prompt_tokens,
                 completion_tokens,
@@ -678,15 +704,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage: {
-                inputTokens: usage.promptTokens ?? undefined,
-                outputTokens: usage.completionTokens ?? undefined,
-                totalTokens: usage.totalTokens ?? undefined,
-                reasoningTokens:
-                  usage.completionTokensDetails.reasoningTokens ?? undefined,
-                cachedInputTokens:
-                  usage.promptTokensDetails.cachedTokens ?? undefined,
-              },
+              usage: convertUsage(lastUsage),
               providerMetadata,
             });
           },
@@ -717,6 +735,19 @@ const openaiCompatibleTokenUsageSchema = z
       .nullish(),
   })
   .nullish();
+
+function convertOpenAICompatibleChatUsage(
+  usage: z.infer<typeof openaiCompatibleTokenUsageSchema>,
+): LanguageModelV2Usage {
+  return {
+    inputTokens: usage?.prompt_tokens ?? undefined,
+    outputTokens: usage?.completion_tokens ?? undefined,
+    totalTokens: usage?.total_tokens ?? undefined,
+    reasoningTokens:
+      usage?.completion_tokens_details?.reasoning_tokens ?? undefined,
+    cachedInputTokens: usage?.prompt_tokens_details?.cached_tokens ?? undefined,
+  };
+}
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency

@@ -1,13 +1,13 @@
 import {
-  LanguageModelV2,
+  type LanguageModelV2,
+  type ProviderV2,
   NoSuchModelError,
-  ProviderV2,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
+  type FetchFunction,
+  type Resolvable,
   loadOptionalSetting,
   loadSetting,
-  Resolvable,
   resolve,
   withoutTrailingSlash,
   withUserAgentSuffix,
@@ -17,12 +17,12 @@ import {
   AnthropicMessagesLanguageModel,
 } from '@ai-sdk/anthropic/internal';
 import {
-  BedrockCredentials,
+  type BedrockCredentials,
   createApiKeyFetchFunction,
   createSigV4FetchFunction,
 } from '../bedrock-sigv4-fetch';
 import { createBedrockAnthropicFetch } from './bedrock-anthropic-fetch';
-import { BedrockAnthropicModelId } from './bedrock-anthropic-options';
+import type { BedrockAnthropicModelId } from './bedrock-anthropic-options';
 import { VERSION } from '../version';
 
 // Bedrock requires newer tool versions than the default Anthropic SDK versions

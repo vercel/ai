@@ -10,7 +10,7 @@ import {
   experimental_createMCPClient as createMCPClient,
   ElicitationRequestSchema,
 } from '@ai-sdk/mcp';
-import { MCPElicitationUIMessage } from './types';
+import type { MCPElicitationUIMessage } from './types';
 import { createPendingElicitation } from './elicitation-store';
 
 // Allow streaming responses up to 30 seconds

@@ -1,5 +1,92 @@
 # @ai-sdk/react
 
+## 2.0.194
+
+### Patch Changes
+
+- ai@5.0.192
+
+## 2.0.193
+
+### Patch Changes
+
+- ai@5.0.191
+
+## 2.0.192
+
+### Patch Changes
+
+- ai@5.0.190
+
+## 2.0.191
+
+### Patch Changes
+
+- ai@5.0.189
+
+## 2.0.190
+
+### Patch Changes
+
+- Updated dependencies [1760d76]
+  - ai@5.0.188
+
+## 2.0.189
+
+### Patch Changes
+
+- ai@5.0.187
+
+## 2.0.188
+
+### Patch Changes
+
+- ai@5.0.186
+
+## 2.0.187
+
+### Patch Changes
+
+- ai@5.0.185
+
+## 2.0.186
+
+### Patch Changes
+
+- Updated dependencies [cb911d2]
+  - ai@5.0.184
+
+## 2.0.185
+
+### Patch Changes
+
+- ai@5.0.183
+
+## 2.0.184
+
+### Patch Changes
+
+- ai@5.0.182
+
+## 2.0.183
+
+### Patch Changes
+
+- 783fa6c: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [783fa6c]
+- Updated dependencies [c327fb9]
+  - @ai-sdk/provider-utils@3.0.25
+  - ai@5.0.181
+
+## 2.0.182
+
+### Patch Changes
+
+- 0a00b9b: trigger release for all packages after provenance setup
+- Updated dependencies [0a00b9b]
+  - ai@5.0.180
+  - @ai-sdk/provider-utils@3.0.24
+
 ## 2.0.181
 
 ### Patch Changes

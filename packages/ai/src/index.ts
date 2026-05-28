@@ -1,3 +1,5 @@
+import './global';
+
 // re-exports:
 export { createGateway, gateway, type GatewayModelId } from '@ai-sdk/gateway';
 export {
@@ -39,6 +41,3 @@ export * from './util';
 
 // telemetry types:
 export type { TelemetrySettings } from './telemetry/telemetry-settings';
-
-// import globals
-import './global';

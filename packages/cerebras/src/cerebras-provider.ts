@@ -1,18 +1,20 @@
-import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import {
-  LanguageModelV2,
+  OpenAICompatibleChatLanguageModel,
+  type ProviderErrorStructure,
+} from '@ai-sdk/openai-compatible';
+import {
+  type LanguageModelV2,
+  type ProviderV2,
   NoSuchModelError,
-  ProviderV2,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
+  type FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
-import { CerebrasChatModelId } from './cerebras-chat-options';
+import type { CerebrasChatModelId } from './cerebras-chat-options';
 import { z } from 'zod/v4';
-import { ProviderErrorStructure } from '@ai-sdk/openai-compatible';
 import { VERSION } from './version';
 
 // Add error schema and structure

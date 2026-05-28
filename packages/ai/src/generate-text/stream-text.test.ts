@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV2,
   LanguageModelV2CallOptions,
   LanguageModelV2CallWarning,
@@ -8,12 +8,12 @@ import {
   SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
+  type ModelMessage,
+  type Tool,
   delay,
   dynamicTool,
   jsonSchema,
-  ModelMessage,
   tool,
-  Tool,
 } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
@@ -39,11 +39,11 @@ import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
 import { mockValues } from '../test/mock-values';
 import { object, text } from './output';
-import { StepResult } from './step-result';
+import type { StepResult } from './step-result';
 import { stepCountIs } from './stop-condition';
 import { streamText } from './stream-text';
-import { StreamTextResult, TextStreamPart } from './stream-text-result';
-import { ToolSet } from './tool-set';
+import type { StreamTextResult, TextStreamPart } from './stream-text-result';
+import type { ToolSet } from './tool-set';
 
 const defaultSettings = () =>
   ({
@@ -3236,16 +3236,6 @@ describe('streamText', () => {
                 timestamp: new Date(),
               });
               controller.enqueue({ type: 'text-start', id: '1' });
-              controller.enqueue({
-                type: 'text-delta',
-                id: '1',
-                delta: 'Hello',
-              });
-              controller.enqueue({
-                type: 'text-delta',
-                id: '1',
-                delta: ' world',
-              });
 
               await new Promise(resolve => setTimeout(resolve, 10));
 
@@ -3253,7 +3243,7 @@ describe('streamText', () => {
                 controller.enqueue({
                   type: 'text-delta',
                   id: '1',
-                  delta: ' from AI',
+                  delta: 'Hello world from AI',
                 });
                 controller.enqueue({ type: 'text-end', id: '1' });
                 controller.enqueue({
