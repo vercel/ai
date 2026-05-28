@@ -1,0 +1,322 @@
+---
+title: Qgrid
+description: Learn how to use the Qgrid provider to access OpenAI and Anthropic models through subscription token pooling.
+---
+
+# Qgrid Provider
+
+The [@cartanova/qgrid-ai-sdk](https://github.com/cartanova-ai/Qgrid) provider implements the AI SDK's `LanguageModelV3` specification, letting you use OpenAI and Anthropic models through [Qgrid](https://github.com/cartanova-ai/Qgrid) — an LLM proxy server that pools subscription tokens into an HTTP API.
+
+Qgrid routes requests to [Codex app-server](https://github.com/openai/codex) for OpenAI models and [Claude CLI](https://github.com/anthropics/claude-code) for Anthropic models. Standard AI SDK functions like `generateText`, `streamText`, and `generateObject` work out of the box.
+
+OpenAI models are the recommended path: they support tool calling, multi-turn conversations, and streaming. Anthropic models are limited to single-turn text generation and structured output (see [Model Capabilities](#model-capabilities)).
+
+<Note>
+  The Anthropic backend relies on the Claude CLI `-p` (print) flag, which is
+  subject to upcoming changes in Claude's subscription policy — as of June 18,
+  2026, it requires a paid Claude plan, and access terms may change further. See
+  [Claude plan requirements](https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan)
+  for the latest details. For production use, OpenAI models are recommended.
+</Note>
+
+## Setup
+
+### 1. Start the Qgrid server
+
+Qgrid requires PostgreSQL. Make sure it is installed and running before proceeding.
+
+```bash
+npm i -g @cartanova/qgrid-cli
+qgrid
+```
+
+The server starts on `http://localhost:44900` by default. Open the dashboard in your browser, go to the **Tokens** tab, and register your OpenAI or Anthropic subscription tokens.
+
+**Team use:** Point the server at a shared PostgreSQL database. Each team member registers their own subscription tokens, and Qgrid pools them so requests are distributed across everyone's tokens — each member still runs models on their own machine, but usage is balanced across the shared pool.
+
+**Dashboard:** The dashboard provides detailed request-level metrics — tool calling traces, conversation history, token usage breakdowns, and cache hit rates — so you can inspect exactly what your agents are doing.
+
+#### Server environment variables
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `QGRID_DB_HOST` | `localhost` | PostgreSQL host |
+| `QGRID_DB_PORT` | `5432` | PostgreSQL port |
+| `QGRID_DB_USER` | `postgres` | PostgreSQL user |
+| `QGRID_DB_PASSWORD` | `postgres` | PostgreSQL password |
+| `QGRID_DB_NAME` | `qgrid` | PostgreSQL database name |
+| `QGRID_WORKERS_PER_TOKEN` | `3` | Codex app-server workers per OpenAI token (max 5 — in most cases, additional workers beyond this don't improve throughput as CPU cores become the bottleneck) |
+
+### 2. Install the AI SDK provider
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @cartanova/qgrid-ai-sdk" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @cartanova/qgrid-ai-sdk" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @cartanova/qgrid-ai-sdk" dark />
+  </Tab>
+</Tabs>
+
+**Peer dependencies**: `ai@^6.0.0`, `@ai-sdk/provider@^3.0.0`
+
+## Provider Instance
+
+Create a model by calling the `qgrid` factory with a model ID:
+
+```ts
+import { qgrid } from '@cartanova/qgrid-ai-sdk';
+
+const model = qgrid('openai/gpt-5.4-mini');
+```
+
+The provider connects to `http://localhost:44900` by default. Override with the `QGRID_URL` environment variable or the `serverUrl` option:
+
+```ts
+const model = qgrid('openai/gpt-5.4-mini', {
+  serverUrl: 'http://your-qgrid-server:44900',
+  defaultEffort: 'medium', // reasoning effort, defaults to "low"
+});
+```
+
+## Language Models
+
+Qgrid routes to the appropriate backend based on the model prefix:
+
+```ts
+// OpenAI (via Codex app-server — supports tool calling and multi-turn)
+const model = qgrid('openai/gpt-5.4-mini');
+
+// Anthropic (via Claude CLI — single-turn only, no tool calling)
+const model = qgrid('anthropic/claude-sonnet-4-7');
+```
+
+### Text Generation
+
+```ts
+import { qgrid } from '@cartanova/qgrid-ai-sdk';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: qgrid('openai/gpt-5.4-mini'),
+  prompt: 'Explain TypeScript generics.',
+});
+```
+
+### Streaming
+
+```ts
+import { qgrid } from '@cartanova/qgrid-ai-sdk';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: qgrid('openai/gpt-5.4-mini'),
+  prompt: 'Write a short story about AI.',
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+### Tool Calling
+
+Tool calling is available for OpenAI models only. It works through structured output emulation on the Qgrid server — the AI SDK manages the tool execution loop, and Qgrid handles each turn's LLM call.
+
+```ts
+import { qgrid } from '@cartanova/qgrid-ai-sdk';
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+const { text } = await generateText({
+  model: qgrid('openai/gpt-5.4-mini'),
+  prompt: 'What is the weather in Seoul?',
+  tools: {
+    getWeather: tool({
+      description: 'Get current weather for a city',
+      parameters: z.object({ city: z.string() }),
+      execute: async ({ city }) => ({
+        temperature: 22,
+        condition: 'sunny',
+      }),
+    }),
+  },
+});
+```
+
+### Structured Output
+
+The top-level schema must be an `object` type. For OpenAI models, the schema is enforced server-side via the Codex app-server's JSON schema support. For Anthropic models, the schema is enforced through prompt-based instruction on the Claude CLI backend.
+
+```ts
+import { qgrid } from '@cartanova/qgrid-ai-sdk';
+import { generateText, Output } from 'ai';
+import { z } from 'zod';
+
+const { output } = await generateText({
+  model: qgrid('openai/gpt-5.4'),
+  prompt: 'Extract metadata from this paper...',
+  output: Output.object({
+    schema: z.object({
+      title: z.string(),
+      authors: z.array(z.string()),
+      keyFindings: z.array(z.string()),
+    }),
+  }),
+});
+```
+
+### Provider Options
+
+Provider options are passed through to the Codex app-server (OpenAI models only). `temperature`, `maxOutputTokens`, and other sampling parameters are not supported.
+
+```ts
+import { qgrid } from '@cartanova/qgrid-ai-sdk';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: qgrid('openai/gpt-5.4'),
+  prompt: 'Analyze this problem.',
+  providerOptions: {
+    openai: {
+      reasoningEffort: 'high',
+      reasoningSummary: 'concise',
+      textVerbosity: 'medium',
+    },
+  },
+});
+```
+
+| Option | Values | Description |
+| --- | --- | --- |
+| **reasoningEffort** | `'none'` \| `'minimal'` \| `'low'` \| `'medium'` \| `'high'` \| `'xhigh'` | Reasoning depth for reasoning models |
+| **reasoningSummary** | `'auto'` \| `'concise'` \| `'detailed'` \| `'none'` | Reasoning summary output style (Responses API) |
+| **textVerbosity** | `'low'` \| `'medium'` \| `'high'` | Response verbosity level |
+
+### Provider Metadata
+
+Each response includes `providerMetadata.qgrid` with request-level details:
+
+```ts
+const result = await generateText({
+  model: qgrid('openai/gpt-5.4-mini'),
+  prompt: 'Hello!',
+});
+
+const { model, tokenName, durationMs, costUsd } =
+  result.steps[0].providerMetadata.qgrid;
+```
+
+| Field | Type | Description |
+| --- | --- | --- |
+| **model** | `string` | Actual model name used by the server |
+| **tokenName** | `string \| null` | Subscription token that handled the request |
+| **durationMs** | `number` | Server-side processing time in milliseconds |
+| **costUsd** | `number` | Estimated cost in USD |
+
+### Model Capabilities
+
+| Model                          | Tool Calling        | Multi-turn          | Structured Output   | Streaming           |
+| ------------------------------ | ------------------- | ------------------- | ------------------- | ------------------- |
+| `openai/gpt-5.5`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `openai/gpt-5.4`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `openai/gpt-5.4-mini`         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `openai/gpt-5.2`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `openai/gpt-5.3-codex`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `openai/gpt-5.3-codex-spark`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `anthropic/claude-opus-4-7`    | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `anthropic/claude-opus-4-6`    | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `anthropic/claude-opus-4-5`    | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `anthropic/claude-opus-4-1`    | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `anthropic/claude-opus-4`      | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `anthropic/claude-sonnet-4-7`  | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `anthropic/claude-sonnet-4-6`  | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `anthropic/claude-sonnet-4-5`  | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `anthropic/claude-sonnet-4`    | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `anthropic/claude-haiku-4-5`   | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+
+<Note>
+  Anthropic models via Claude CLI are limited to single-turn text generation and
+  structured output. Tool calling and multi-turn conversations require OpenAI
+  models.
+</Note>
+
+## Telemetry Logger
+
+The Qgrid SDK includes a telemetry logger that works with **any** AI SDK provider — not just `qgrid()`. Add one line to record every request to the Qgrid dashboard:
+
+```ts
+import { google } from '@ai-sdk/google';
+import { createQgridLogger } from '@cartanova/qgrid-ai-sdk';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: google('gemini-3-flash'),
+  prompt: 'Hello!',
+  experimental_telemetry: createQgridLogger(),
+});
+```
+
+The logger records generate steps, tool calls, token usage, cache hits, cost, and duration. When used with the `qgrid()` provider, it is automatically suppressed to avoid duplicate logging.
+
+All options are optional:
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| **serverUrl** | `string` | `QGRID_URL` env or `http://localhost:44900` | Qgrid server URL |
+| **projectName** | `string` | `QGRID_PROJECT_NAME` env | Project name shown in dashboard |
+| **tokenName** | `string` | `QGRID_TOKEN_NAME` env or `"external"` | Token name for attribution |
+| **staleRunTimeoutMs** | `number` | 30 minutes | Timeout for runs that never receive `onFinish`. Set to `0` to disable |
+| **onLogError** | `function` | `console.warn` | Callback for logging failures. Receives an `Error` |
+
+## How It Works
+
+The AI SDK provider translates `generateText`/`streamText` calls into HTTP requests to the Qgrid server. The server dispatches to the appropriate backend based on the model prefix.
+
+![Qgrid Architecture](https://raw.githubusercontent.com/cartanova-ai/Qgrid/main/assets/qgrid-architecture.en.svg)
+
+### OpenAI (`openai/...`)
+
+Qgrid maintains a pool of persistent [Codex app-server](https://github.com/openai/codex) worker processes, each communicating via JSON-RPC over stdio.
+
+1. The provider sends the prompt, tools, and options to `POST /api/qgrid/query`
+2. The server selects an idle worker via round-robin
+3. The worker calls Codex's `turn/start` RPC with the prompt, output schema, and conversation history
+4. For **tool calling**, the server wraps available tools into a structured output JSON schema — the model chooses between `"answer"` and `"tool_call"`, and the response is parsed back into AI SDK tool-call content
+5. For **streaming**, a two-phase protocol is used: `POST /api/qgrid/prepareStream` returns a `streamId`, then `GET /api/qgrid/queryStream?streamId=...` delivers SSE events
+
+### Why structured output emulation instead of native tool calling?
+
+Codex app-server supports native dynamic tool calling, where Codex controls the agent loop — it decides when to call tools and automatically feeds results back to the model. However, Qgrid uses Codex purely as a text generation engine, not as an agent runtime. The AI SDK caller owns the loop: it decides which tools to execute, what context to add, and when to stop.
+
+Using native tool calling would require the Qgrid server to relay tool execution requests back to the SDK caller (reverse-RPC through reverse-RPC), adding unnecessary complexity. It would also mean holding a worker for multiple turns per request, reducing pool throughput. Since the current use case only needs simple function call → result patterns, JSON schema emulation is sufficient and keeps each request stateless at one turn per worker.
+
+### Anthropic (`anthropic/...`)
+
+Each request spawns a fresh `claude -p` process for single-turn generation.
+
+1. The server selects a token via least-used round-robin
+2. A Claude CLI process is spawned with `--output-format stream-json`, isolated via a dedicated config directory
+3. For **structured output**, the `--json-schema` flag is passed and the response is parsed from the `structured_output` field
+4. The process exits after producing a result — no persistent connection, which is why multi-turn and tool calling are not supported
+
+### Token pooling
+
+Both backends support multiple subscription tokens. The server tracks usage per token and distributes requests evenly. Anthropic tokens are refreshed preemptively when approaching expiration. OpenAI tokens each spawn multiple workers (configurable via `QGRID_WORKERS_PER_TOKEN`) for concurrent requests.
+
+## Requirements
+
+- Node.js 20 or higher
+- PostgreSQL 14 or higher
+- [Codex CLI](https://github.com/openai/codex) for OpenAI models
+- [Claude Code CLI](https://github.com/anthropics/claude-code) for Anthropic models
+
+## Additional Resources
+
+- [Qgrid Repository](https://github.com/cartanova-ai/Qgrid)
+- [Qgrid Documentation](https://github.com/cartanova-ai/Qgrid#readme)
+- [@cartanova/qgrid-ai-sdk on npm](https://www.npmjs.com/package/@cartanova/qgrid-ai-sdk)
+- [Sonamu](https://github.com/cartanova-ai/sonamu) — the backend framework powering the Qgrid server
