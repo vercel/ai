@@ -215,6 +215,21 @@ describe('streamText types', () => {
     });
   });
 
+  describe('stream', () => {
+    it('should infer stream part type', () => {
+      const result = streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello, world!',
+      });
+
+      const stream: AsyncIterableStream<unknown> = result.stream;
+
+      expectTypeOf<typeof stream>().toEqualTypeOf<
+        AsyncIterableStream<unknown>
+      >();
+    });
+  });
+
   describe('elementStream', () => {
     it('should infer element type for array output', async () => {
       const result = streamText({

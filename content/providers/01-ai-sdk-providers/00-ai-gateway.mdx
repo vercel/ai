@@ -325,7 +325,7 @@ console.log(`Prompt tokens: ${generation.promptTokens}`);
 console.log(`Completion tokens: ${generation.completionTokens}`);
 ```
 
-With `streamText`, you can capture the generation ID from the first chunk via `fullStream`:
+With `streamText`, you can capture the generation ID from the first chunk via `stream`:
 
 ```ts
 import { gateway, streamText } from 'ai';
@@ -337,7 +337,7 @@ const result = streamText({
 
 let generationId: string | undefined;
 
-for await (const part of result.fullStream) {
+for await (const part of result.stream) {
   if (!generationId && part.providerMetadata?.gateway?.generationId) {
     generationId = part.providerMetadata.gateway.generationId as string;
     console.log(`Generation ID (early): ${generationId}`);
@@ -548,7 +548,7 @@ const result = streamText({
   },
 });
 
-for await (const part of result.fullStream) {
+for await (const part of result.stream) {
   switch (part.type) {
     case 'text-delta':
       process.stdout.write(part.text);
@@ -653,7 +653,7 @@ const result = streamText({
   },
 });
 
-for await (const part of result.fullStream) {
+for await (const part of result.stream) {
   switch (part.type) {
     case 'text-delta':
       process.stdout.write(part.text);

@@ -70,7 +70,7 @@ run(async () => {
       stopWhen: isStepCount(5),
     });
 
-    for await (const chunk of result.fullStream) {
+    for await (const chunk of result.stream) {
       switch (chunk.type) {
         case 'text-start': {
           process.stdout.write('\nAssistant:\n');

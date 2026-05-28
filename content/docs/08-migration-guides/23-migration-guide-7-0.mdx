@@ -243,6 +243,36 @@ The same rename applies to `streamText`, `Agent.generate()`,
 accepted as a deprecated alias. When both `onEnd` and `onFinish` are provided,
 `onEnd` takes precedence.
 
+#### `StreamTextResult.fullStream` Renamed to `stream`
+
+The full event stream returned by `streamText` has been renamed from
+`fullStream` to `stream`.
+
+```tsx filename="AI SDK 6"
+const result = streamText({
+  model: yourModel,
+  prompt: 'Hello!',
+});
+
+for await (const part of result.fullStream) {
+  console.log(part);
+}
+```
+
+```tsx filename="AI SDK 7"
+const result = streamText({
+  model: yourModel,
+  prompt: 'Hello!',
+});
+
+for await (const part of result.stream) {
+  console.log(part);
+}
+```
+
+The `fullStream` property is still available as a deprecated alias for
+`stream`.
+
 ### Prompt Messages: System Messages in `prompt` or `messages` Are Rejected by Default
 
 AI SDK 7 rejects system messages in the `prompt` or `messages` fields by default. System instructions should usually be passed with the top-level `instructions` option.

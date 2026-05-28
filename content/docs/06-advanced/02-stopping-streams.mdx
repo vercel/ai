@@ -123,7 +123,7 @@ This is particularly useful for:
 You can also handle abort events directly in the stream using the `abort` stream part:
 
 ```tsx highlight="8-12"
-for await (const part of result.fullStream) {
+for await (const part of result.stream) {
   switch (part.type) {
     case 'text-delta':
       // Handle text delta content
