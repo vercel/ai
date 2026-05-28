@@ -1,4 +1,4 @@
-export const AI_SDK_TELEMETRY_TRACING_CHANNEL = 'aisdk.telemetry';
+export const AI_SDK_TELEMETRY_TRACING_CHANNEL = 'aisdk:telemetry';
 
 export type TelemetryTracingEventType =
   | 'onStart'
