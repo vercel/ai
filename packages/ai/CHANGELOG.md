@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.193
+
+### Patch Changes
+
+- af580ea: fix(ai): do not re-validate tool input for output-error parts in validateUIMessages
+
 ## 6.0.192
 
 ### Patch Changes
