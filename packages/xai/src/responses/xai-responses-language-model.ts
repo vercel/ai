@@ -228,6 +228,40 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       ...(options.previousResponseId != null && {
         previous_response_id: options.previousResponseId,
       }),
+      // search parameters (Live Search). When set, this overrides the
+      // `web_search` provider tool on the Responses API.
+      ...(options.searchParameters != null && {
+        search_parameters: {
+          mode: options.searchParameters.mode,
+          return_citations: options.searchParameters.returnCitations,
+          from_date: options.searchParameters.fromDate,
+          to_date: options.searchParameters.toDate,
+          max_search_results: options.searchParameters.maxSearchResults,
+          sources: options.searchParameters.sources?.map(source => ({
+            type: source.type,
+            ...(source.type === 'web' && {
+              country: source.country,
+              excluded_websites: source.excludedWebsites,
+              allowed_websites: source.allowedWebsites,
+              safe_search: source.safeSearch,
+            }),
+            ...(source.type === 'x' && {
+              excluded_x_handles: source.excludedXHandles,
+              included_x_handles: source.includedXHandles ?? source.xHandles,
+              post_favorite_count: source.postFavoriteCount,
+              post_view_count: source.postViewCount,
+            }),
+            ...(source.type === 'news' && {
+              country: source.country,
+              excluded_websites: source.excludedWebsites,
+              safe_search: source.safeSearch,
+            }),
+            ...(source.type === 'rss' && {
+              links: source.links,
+            }),
+          })),
+        },
+      }),
     };
 
     if (xaiTools && xaiTools.length > 0) {

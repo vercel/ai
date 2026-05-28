@@ -655,6 +655,130 @@ describe('XaiResponsesLanguageModel', () => {
           });
         });
 
+        it('searchParameters', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast-non-reasoning',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                searchParameters: {
+                  mode: 'on',
+                  returnCitations: true,
+                  fromDate: '2024-01-01',
+                  toDate: '2024-12-31',
+                  maxSearchResults: 10,
+                },
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.search_parameters).toStrictEqual({
+            mode: 'on',
+            return_citations: true,
+            from_date: '2024-01-01',
+            to_date: '2024-12-31',
+            max_search_results: 10,
+          });
+        });
+
+        it('searchParameters with sources array', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast-non-reasoning',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                searchParameters: {
+                  mode: 'on',
+                  sources: [
+                    {
+                      type: 'web',
+                      country: 'US',
+                      excludedWebsites: ['example.com'],
+                      safeSearch: false,
+                    },
+                    {
+                      type: 'x',
+                      includedXHandles: ['grok'],
+                      excludedXHandles: ['openai'],
+                      postFavoriteCount: 5,
+                      postViewCount: 50,
+                    },
+                    {
+                      type: 'news',
+                      country: 'GB',
+                    },
+                    {
+                      type: 'rss',
+                      links: ['https://status.x.ai/feed.xml'],
+                    },
+                  ],
+                },
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.search_parameters.mode).toBe('on');
+          expect(requestBody.search_parameters.sources).toStrictEqual([
+            {
+              type: 'web',
+              country: 'US',
+              excluded_websites: ['example.com'],
+              safe_search: false,
+            },
+            {
+              type: 'x',
+              excluded_x_handles: ['openai'],
+              included_x_handles: ['grok'],
+              post_favorite_count: 5,
+              post_view_count: 50,
+            },
+            {
+              type: 'news',
+              country: 'GB',
+            },
+            {
+              type: 'rss',
+              links: ['https://status.x.ai/feed.xml'],
+            },
+          ]);
+        });
+
+        it('omits search_parameters when not provided', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast-non-reasoning',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.search_parameters).toBeUndefined();
+        });
+
         it('logprobs and topLogprobs', async () => {
           prepareJsonResponse({
             id: 'resp_123',
