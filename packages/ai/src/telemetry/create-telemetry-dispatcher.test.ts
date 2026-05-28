@@ -33,6 +33,7 @@ describe('createTelemetryDispatcher', () => {
     expect(telemetry.onRerankStart).toBeDefined();
     expect(telemetry.onRerankEnd).toBeDefined();
     expect(telemetry.onEnd).toBeDefined();
+    expect(telemetry.onAbort).toBeDefined();
     expect(telemetry.onError).toBeDefined();
     expect(telemetry.executeLanguageModelCall).toBeUndefined();
     expect(telemetry.executeTool).toBeUndefined();
@@ -153,6 +154,7 @@ describe('createTelemetryDispatcher', () => {
       onRerankStart: vi.fn(),
       onRerankEnd: vi.fn(),
       onEnd: vi.fn(),
+      onAbort: vi.fn(),
       onError: vi.fn(),
     };
 
@@ -174,6 +176,7 @@ describe('createTelemetryDispatcher', () => {
     await telemetry.onRerankStart!(dummyEvent);
     await telemetry.onRerankEnd!(dummyEvent);
     await telemetry.onEnd!(dummyEvent);
+    await telemetry.onAbort!(dummyEvent);
     await telemetry.onError!(dummyEvent);
 
     expect(integration.onStart).toHaveBeenCalledOnce();
@@ -190,6 +193,7 @@ describe('createTelemetryDispatcher', () => {
     expect(integration.onRerankStart).toHaveBeenCalledOnce();
     expect(integration.onRerankEnd).toHaveBeenCalledOnce();
     expect(integration.onEnd).toHaveBeenCalledOnce();
+    expect(integration.onAbort).toHaveBeenCalledOnce();
     expect(integration.onError).toHaveBeenCalledOnce();
   });
 
@@ -219,6 +223,7 @@ describe('createTelemetryDispatcher', () => {
         onRerankStart: vi.fn(),
         onRerankEnd: vi.fn(),
         onEnd: vi.fn(),
+        onAbort: vi.fn(),
         onError: vi.fn(),
         executeLanguageModelCall: async ({ execute }) => execute(),
         executeTool: async ({ execute }) => execute(),
@@ -240,6 +245,7 @@ describe('createTelemetryDispatcher', () => {
       expect(telemetry.onRerankStart).toBeUndefined();
       expect(telemetry.onRerankEnd).toBeUndefined();
       expect(telemetry.onEnd).toBeUndefined();
+      expect(telemetry.onAbort).toBeUndefined();
       expect(telemetry.onError).toBeUndefined();
       expect(telemetry.executeLanguageModelCall).toBeUndefined();
       expect(telemetry.executeTool).toBeUndefined();

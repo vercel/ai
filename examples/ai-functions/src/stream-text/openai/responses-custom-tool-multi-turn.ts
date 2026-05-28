@@ -23,7 +23,7 @@ run(async () => {
     stopWhen: isStepCount(3),
   });
 
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     switch (chunk.type) {
       case 'tool-call': {
         console.log(`Tool call: ${chunk.toolName}`);

@@ -1,5 +1,21 @@
 # @ai-sdk/otel
 
+## 1.0.0-canary.103
+
+### Patch Changes
+
+- ai@7.0.0-canary.157
+
+## 1.0.0-canary.102
+
+### Patch Changes
+
+- 1e200eb: fix(otel): ensure nested context object creates separate attribute
+- e92fc45: feat(ai): introduce onAbort hook to close telemetry spans
+- Updated dependencies [023550e]
+- Updated dependencies [e92fc45]
+  - ai@7.0.0-canary.156
+
 ## 1.0.0-canary.101
 
 ### Patch Changes

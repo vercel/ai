@@ -222,9 +222,10 @@ export async function convertToOpenAIResponsesInput({
         for (const part of content) {
           switch (part.type) {
             case 'text': {
-              const providerOpts = part.providerOptions?.[providerOptionsName];
-              const id = providerOpts?.itemId as string | undefined;
-              const phase = providerOpts?.phase as
+              const providerOptions =
+                part.providerOptions?.[providerOptionsName];
+              const id = providerOptions?.itemId as string | undefined;
+              const phase = providerOptions?.phase as
                 | 'commentary'
                 | 'final_answer'
                 | null
@@ -607,9 +608,9 @@ export async function convertToOpenAIResponsesInput({
 
             case 'custom': {
               if (part.kind === 'openai.compaction') {
-                const providerOpts =
+                const providerOptions =
                   part.providerOptions?.[providerOptionsName];
-                const id = providerOpts?.itemId as string | undefined;
+                const id = providerOptions?.itemId as string | undefined;
 
                 if (hasConversation && id != null) {
                   break;
@@ -620,7 +621,7 @@ export async function convertToOpenAIResponsesInput({
                   break;
                 }
 
-                const encryptedContent = providerOpts?.encryptedContent as
+                const encryptedContent = providerOptions?.encryptedContent as
                   | string
                   | undefined;
 

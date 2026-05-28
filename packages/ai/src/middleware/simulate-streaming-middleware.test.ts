@@ -77,7 +77,7 @@ describe('simulateStreamingMiddleware', () => {
       ...DEFAULT_SETTINGs,
     });
 
-    expect(await convertAsyncIterableToArray(result.fullStream))
+    expect(await convertAsyncIterableToArray(result.stream))
       .toMatchInlineSnapshot(`
         [
           {
@@ -193,7 +193,7 @@ describe('simulateStreamingMiddleware', () => {
       ...DEFAULT_SETTINGs,
     });
 
-    expect(await convertAsyncIterableToArray(result.fullStream))
+    expect(await convertAsyncIterableToArray(result.stream))
       .toMatchInlineSnapshot(`
         [
           {
@@ -343,7 +343,7 @@ describe('simulateStreamingMiddleware', () => {
       ...DEFAULT_SETTINGs,
     });
 
-    expect(await convertAsyncIterableToArray(result.fullStream))
+    expect(await convertAsyncIterableToArray(result.stream))
       .toMatchInlineSnapshot(`
         [
           {
@@ -524,7 +524,7 @@ describe('simulateStreamingMiddleware', () => {
       ...DEFAULT_SETTINGs,
     });
 
-    expect(await convertAsyncIterableToArray(result.fullStream))
+    expect(await convertAsyncIterableToArray(result.stream))
       .toMatchInlineSnapshot(`
         [
           {
@@ -705,7 +705,7 @@ describe('simulateStreamingMiddleware', () => {
       ...DEFAULT_SETTINGs,
     });
 
-    expect(await convertAsyncIterableToArray(result.fullStream))
+    expect(await convertAsyncIterableToArray(result.stream))
       .toMatchInlineSnapshot(`
         [
           {
@@ -844,7 +844,7 @@ describe('simulateStreamingMiddleware', () => {
       ...DEFAULT_SETTINGs,
     });
 
-    expect(await convertAsyncIterableToArray(result.fullStream))
+    expect(await convertAsyncIterableToArray(result.stream))
       .toMatchInlineSnapshot(`
         [
           {
@@ -957,9 +957,7 @@ describe('simulateStreamingMiddleware', () => {
       ...DEFAULT_SETTINGs,
     });
 
-    expect(
-      await convertAsyncIterableToArray(result.fullStream),
-    ).toMatchSnapshot();
+    expect(await convertAsyncIterableToArray(result.stream)).toMatchSnapshot();
   });
 
   it('should pass through warnings from the model', async () => {

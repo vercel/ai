@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 4.0.0-canary.93
+
+### Patch Changes
+
+- e02f041: feat(provider/anthropic): add support for `claude-opus-4-8`
+
 ## 4.0.0-canary.92
 
 ### Patch Changes

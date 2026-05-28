@@ -13,7 +13,7 @@ run(async () => {
     onError: console.error,
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     if (part.type === 'reasoning-delta') {
       process.stdout.write('\x1b[34m' + part.text + '\x1b[0m');
     } else if (part.type === 'text-delta') {
