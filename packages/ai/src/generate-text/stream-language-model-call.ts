@@ -316,16 +316,18 @@ export async function streamLanguageModelCall<
     callbacks: onStart,
   });
 
+  const languageModelCallStartEvent = {
+    callId: effectiveCallId,
+    provider: resolvedModel.provider,
+    modelId: resolvedModel.modelId,
+    instructions: standardizedPrompt.instructions,
+    messages: standardizedPrompt.messages,
+    tools: stepTools,
+    ...callSettings,
+  };
+
   await notify({
-    event: {
-      callId: effectiveCallId,
-      provider: resolvedModel.provider,
-      modelId: resolvedModel.modelId,
-      instructions: standardizedPrompt.instructions,
-      messages: standardizedPrompt.messages,
-      tools: stepTools,
-      ...callSettings,
-    },
+    event: languageModelCallStartEvent,
     callbacks: onLanguageModelCallStart,
   });
 
@@ -337,6 +339,7 @@ export async function streamLanguageModelCall<
     request,
   } = await executeLanguageModelCallInTelemetryContext({
     callId: effectiveCallId,
+    event: languageModelCallStartEvent,
     execute: async () =>
       await resolvedModel.doStream({
         ...callSettings,

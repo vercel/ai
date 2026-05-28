@@ -1,6 +1,6 @@
-export const AI_SDK_TELEMETRY_DIAGNOSTIC_CHANNEL = 'aisdk:telemetry';
+export const AI_SDK_TELEMETRY_TRACING_CHANNEL = 'aisdk.telemetry';
 
-export type TelemetryDiagnosticEventType =
+export type TelemetryTracingEventType =
   | 'onStart'
   | 'onStepStart'
   | 'onLanguageModelCallStart'
@@ -16,9 +16,11 @@ export type TelemetryDiagnosticEventType =
   | 'onRerankEnd'
   | 'onEnd'
   | 'onAbort'
-  | 'onError';
+  | 'onError'
+  | 'executeLanguageModelCall'
+  | 'executeTool';
 
-export type TelemetryDiagnosticChannelMessage<EVENT = unknown> = {
-  readonly type: TelemetryDiagnosticEventType;
+export type TelemetryTracingChannelMessage<EVENT = unknown> = {
+  readonly type: TelemetryTracingEventType;
   readonly event: EVENT;
 };

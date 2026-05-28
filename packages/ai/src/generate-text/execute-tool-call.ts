@@ -66,6 +66,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   executeToolInTelemetryContext?: <T>(params: {
     callId: string;
     toolCallId: string;
+    event?: ToolExecutionStartEvent<TOOLS>;
     execute: () => PromiseLike<T>;
   }) => PromiseLike<T>;
 }): Promise<
@@ -115,6 +116,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
     await executeToolInTelemetryContext({
       callId,
       toolCallId,
+      event: baseCallbackEvent as ToolExecutionStartEvent<TOOLS>,
       execute: async () => {
         const startTime = now();
         try {

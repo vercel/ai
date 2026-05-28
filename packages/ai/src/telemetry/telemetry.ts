@@ -220,6 +220,7 @@ export interface Telemetry {
    */
   executeLanguageModelCall?: <T>(options: {
     callId: string;
+    event?: InferTelemetryEvent<LanguageModelCallStartEvent>;
     execute: () => PromiseLike<T>;
   }) => PromiseLike<T>;
 
@@ -235,6 +236,7 @@ export interface Telemetry {
   executeTool?: <T>(options: {
     callId: string;
     toolCallId: string;
+    event?: InferTelemetryEvent<ToolExecutionStartEvent>;
     execute: () => PromiseLike<T>;
   }) => PromiseLike<T>;
 }
