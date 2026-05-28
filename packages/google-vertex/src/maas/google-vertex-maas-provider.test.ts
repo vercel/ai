@@ -77,7 +77,7 @@ describe('google-vertex-maas-provider', () => {
       expect.objectContaining({
         name: 'vertex.maas',
         baseURL:
-          'https://aiplatform.googleapis.com/v1/projects/test-project/locations/us-central1/endpoints/openapi',
+          'https://us-central1-aiplatform.googleapis.com/v1/projects/test-project/locations/us-central1/endpoints/openapi',
       }),
     );
   });
@@ -181,7 +181,7 @@ describe('google-vertex-maas-provider', () => {
     expect(createOpenAICompatible).toHaveBeenCalledWith(
       expect.objectContaining({
         baseURL:
-          'https://aiplatform.googleapis.com/v1/projects/test-project/locations/us-central1/endpoints/openapi',
+          'https://us-central1-aiplatform.googleapis.com/v1/projects/test-project/locations/us-central1/endpoints/openapi',
       }),
     );
   });

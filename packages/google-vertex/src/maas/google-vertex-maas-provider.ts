@@ -75,12 +75,18 @@ export function createGoogleVertexMaas(
       description: 'Google Vertex project',
     });
 
-  // Construct base URL: https://aiplatform.googleapis.com/v1/projects/{project}/locations/{location}/endpoints/openapi
+  // Construct base URL:
+  // - global: https://aiplatform.googleapis.com/v1/projects/{project}/locations/global/endpoints/openapi
+  // - regional: https://{location}-aiplatform.googleapis.com/v1/projects/{project}/locations/{location}/endpoints/openapi
   const constructBaseURL = () => {
     const projectId = loadProject();
     const location = loadLocation() ?? 'global';
+    const host =
+      location === 'global'
+        ? 'aiplatform.googleapis.com'
+        : `${location}-aiplatform.googleapis.com`;
 
-    return `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/endpoints/openapi`;
+    return `https://${host}/v1/projects/${projectId}/locations/${location}/endpoints/openapi`;
   };
 
   const loadBaseURL = () =>
