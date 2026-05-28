@@ -169,6 +169,13 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
     );
   }
 
+  private shouldTreatReasoningAsText(): boolean {
+    return (
+      this.provider === 'vertex.maas.chat' &&
+      this.modelId === 'meta/llama-4-scout-17b-16e-instruct-maas'
+    );
+  }
+
   private async getArgs({
     prompt,
     maxOutputTokens,
@@ -532,6 +539,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
     let isFirstChunk = true;
     let isActiveReasoning = false;
     let isActiveText = false;
+    const shouldTreatReasoningAsText = this.shouldTreatReasoningAsText();
     const convertUsage = (
       usage: z.infer<typeof openaiCompatibleTokenUsageSchema>,
     ) => this.convertUsage(usage);
@@ -621,7 +629,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
 
             // enqueue reasoning before text deltas:
             const reasoningContent = delta.reasoning_content ?? delta.reasoning;
-            if (reasoningContent) {
+            if (reasoningContent && !shouldTreatReasoningAsText) {
               if (!isActiveReasoning) {
                 controller.enqueue({
                   type: 'reasoning-start',
@@ -637,7 +645,11 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
               });
             }
 
-            if (delta.content) {
+            const textContent =
+              delta.content ||
+              (shouldTreatReasoningAsText ? reasoningContent : undefined);
+
+            if (textContent) {
               // end active reasoning block before text starts
               if (isActiveReasoning) {
                 controller.enqueue({
@@ -655,7 +667,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
               controller.enqueue({
                 type: 'text-delta',
                 id: 'txt-0',
-                delta: delta.content,
+                delta: textContent,
               });
             }
 

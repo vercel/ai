@@ -1825,6 +1825,44 @@ describe('doStream', () => {
     ]);
   });
 
+  it('should treat Vertex MaaS Llama 4 Scout reasoning_content deltas as text', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1702657020,"model":"meta/llama-4-scout-17b-16e-instruct-maas",` +
+          `"choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"stream"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1702657020,"model":"meta/llama-4-scout-17b-16e-instruct-maas",` +
+          `"choices":[{"index":0,"delta":{"content":"-ok"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1702657020,"model":"meta/llama-4-scout-17b-16e-instruct-maas",` +
+          `"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const model = new OpenAICompatibleChatLanguageModel(
+      'meta/llama-4-scout-17b-16e-instruct-maas',
+      {
+        provider: 'vertex.maas.chat',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+      },
+    );
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const textDeltas = (await convertReadableStreamToArray(stream)).filter(
+      e => e.type === 'text-delta',
+    );
+
+    expect(textDeltas).toStrictEqual([
+      { type: 'text-delta', delta: 'stream', id: 'txt-0' },
+      { type: 'text-delta', delta: '-ok', id: 'txt-0' },
+    ]);
+  });
+
   it('should respect the includeUsage option', async () => {
     prepareStreamResponse({
       content: ['Hello', ', ', 'World!'],
