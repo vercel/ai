@@ -35,11 +35,24 @@ describe('createTelemetryDispatcher', () => {
     expect(telemetry.onEnd).toBeDefined();
     expect(telemetry.onAbort).toBeDefined();
     expect(telemetry.onError).toBeDefined();
-    expect(telemetry.executeLanguageModelCall).toBeUndefined();
-    expect(telemetry.executeTool).toBeUndefined();
+    expect(telemetry.executeLanguageModelCall).toBeDefined();
+    expect(telemetry.executeTool).toBeDefined();
 
     await expect(telemetry.onStart!(dummyEvent)).resolves.toBeUndefined();
     await expect(telemetry.onError!(dummyEvent)).resolves.toBeUndefined();
+    await expect(
+      telemetry.executeLanguageModelCall!({
+        callId: 'call-1',
+        execute: async () => 'result',
+      }),
+    ).resolves.toBe('result');
+    await expect(
+      telemetry.executeTool!({
+        callId: 'call-1',
+        toolCallId: 'tool-1',
+        execute: async () => 'result',
+      }),
+    ).resolves.toBe('result');
   });
 
   it('accepts a single integration', async () => {
@@ -433,12 +446,17 @@ describe('createTelemetryDispatcher', () => {
   });
 
   describe('executeLanguageModelCall', () => {
-    it('returns undefined when no integrations implement executeLanguageModelCall', () => {
+    it('passes through when no integrations implement executeLanguageModelCall', async () => {
       const telemetry = createTelemetryDispatcher({
         telemetry: { integrations: { onStart: vi.fn() } },
       });
 
-      expect(telemetry.executeLanguageModelCall).toBeUndefined();
+      await expect(
+        telemetry.executeLanguageModelCall!({
+          callId: 'call-1',
+          execute: async () => 'result',
+        }),
+      ).resolves.toBe('result');
     });
 
     it('wraps execute with a single integration', async () => {
@@ -496,12 +514,18 @@ describe('createTelemetryDispatcher', () => {
   });
 
   describe('executeTool', () => {
-    it('returns undefined when no integrations implement executeTool', () => {
+    it('passes through when no integrations implement executeTool', async () => {
       const telemetry = createTelemetryDispatcher({
         telemetry: { integrations: { onStart: vi.fn() } },
       });
 
-      expect(telemetry.executeTool).toBeUndefined();
+      await expect(
+        telemetry.executeTool!({
+          callId: 'call-1',
+          toolCallId: 'tool-1',
+          execute: async () => 'result',
+        }),
+      ).resolves.toBe('result');
     });
 
     it('wraps execute with a single integration', async () => {

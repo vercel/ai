@@ -848,6 +848,20 @@ describe('executeToolCall', () => {
 
       expect(executeToolInTelemetryContext).toHaveBeenCalledWith({
         callId: 'test-telemetry-call-id',
+        event: {
+          callId: 'test-telemetry-call-id',
+          messages: [],
+          toolCall: {
+            dynamic: false,
+            input: {
+              value: 'test',
+            },
+            toolCallId: 'my-call-id',
+            toolName: 'testTool',
+            type: 'tool-call',
+          },
+          toolContext: undefined,
+        },
         toolCallId: 'my-call-id',
         execute: expect.any(Function),
       });
