@@ -20,6 +20,8 @@ import type {
   AgentCallParameters,
   AgentStreamParameters,
   GenerateTextResult,
+  ReasoningFileOutput,
+  ReasoningOutput,
   StreamTextResult,
 } from 'ai';
 import type { HarnessAgentSettings } from './harness-agent-settings';
@@ -447,82 +449,138 @@ export class HarnessAgent<
       never
     >
   > {
-    // Await everything in parallel; the stream is already drained by the time
-    // generate() calls this helper (done has resolved).
-    const [
-      content,
-      text,
-      reasoning,
-      reasoningText,
-      files,
-      sources,
-      toolCalls,
-      staticToolCalls,
-      dynamicToolCalls,
-      toolResults,
-      staticToolResults,
-      dynamicToolResults,
-      finishReason,
-      rawFinishReason,
-      usage,
-      warnings,
-      steps,
-      finalStep,
-      request,
-      response,
-      responseMessages,
-      providerMetadata,
-    ] = await Promise.all([
-      streamResult.content,
-      streamResult.text,
-      streamResult.reasoning,
-      streamResult.reasoningText,
-      streamResult.files,
-      streamResult.sources,
-      streamResult.toolCalls,
-      streamResult.staticToolCalls,
-      streamResult.dynamicToolCalls,
-      streamResult.toolResults,
-      streamResult.staticToolResults,
-      streamResult.dynamicToolResults,
-      streamResult.finishReason,
-      streamResult.rawFinishReason,
-      streamResult.usage,
-      streamResult.warnings,
+    // The stream is already drained by the time generate() calls this helper
+    // (done has resolved). `steps` is the single source of truth the result
+    // derives everything else from, mirroring core's `generateText` result.
+    const [steps, usage, responseMessages] = await Promise.all([
       streamResult.steps,
-      streamResult.finalStep,
-      streamResult.request,
-      streamResult.response,
+      streamResult.usage,
       streamResult.responseMessages,
-      streamResult.providerMetadata,
     ]);
 
-    return {
-      content,
-      text,
-      reasoning,
-      reasoningText,
-      files,
-      sources,
-      toolCalls,
-      staticToolCalls,
-      dynamicToolCalls,
-      toolResults,
-      staticToolResults,
-      dynamicToolResults,
-      finishReason,
-      rawFinishReason,
-      usage,
-      totalUsage: usage,
-      warnings,
-      steps,
-      finalStep,
-      request,
-      response,
-      responseMessages,
-      providerMetadata,
-      output: undefined as never,
-    };
+    return new HarnessGenerateTextResult<
+      HarnessAllTools<THarness, TUserTools>,
+      RUNTIME_CONTEXT
+    >({ steps, usage, responseMessages });
+  }
+}
+
+/*
+ * `GenerateTextResult` view over a drained `streamText` run. Non-deprecated
+ * members derive from `steps` (the single source of truth), and the deprecated
+ * members are exposed as getters that delegate to `finalStep` / `usage`.
+ * Implementing the deprecated members as getters — rather than assigning them
+ * in an object literal — keeps construction free of deprecated-property usage,
+ * matching how core's `generateText` builds its result.
+ */
+class HarnessGenerateTextResult<
+  TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context,
+> implements GenerateTextResult<TOOLS, RUNTIME_CONTEXT, never> {
+  readonly steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, never>['steps'];
+  readonly usage: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, never>['usage'];
+  readonly responseMessages: GenerateTextResult<
+    TOOLS,
+    RUNTIME_CONTEXT,
+    never
+  >['responseMessages'];
+  readonly output = undefined as never;
+
+  constructor(options: {
+    steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, never>['steps'];
+    usage: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, never>['usage'];
+    responseMessages: GenerateTextResult<
+      TOOLS,
+      RUNTIME_CONTEXT,
+      never
+    >['responseMessages'];
+  }) {
+    this.steps = options.steps;
+    this.usage = options.usage;
+    this.responseMessages = options.responseMessages;
+  }
+
+  get finalStep() {
+    return this.steps.at(-1)!;
+  }
+
+  get content() {
+    return this.steps.flatMap(step => step.content);
+  }
+
+  get text() {
+    return this.finalStep.text;
+  }
+
+  get files() {
+    return this.steps.flatMap(step => step.files);
+  }
+
+  get sources() {
+    return this.steps.flatMap(step => step.sources);
+  }
+
+  get toolCalls() {
+    return this.steps.flatMap(step => step.toolCalls);
+  }
+
+  get staticToolCalls() {
+    return this.steps.flatMap(step => step.staticToolCalls);
+  }
+
+  get dynamicToolCalls() {
+    return this.steps.flatMap(step => step.dynamicToolCalls);
+  }
+
+  get toolResults() {
+    return this.steps.flatMap(step => step.toolResults);
+  }
+
+  get staticToolResults() {
+    return this.steps.flatMap(step => step.staticToolResults);
+  }
+
+  get dynamicToolResults() {
+    return this.steps.flatMap(step => step.dynamicToolResults);
+  }
+
+  get finishReason() {
+    return this.finalStep.finishReason;
+  }
+
+  get rawFinishReason() {
+    return this.finalStep.rawFinishReason;
+  }
+
+  get warnings() {
+    return this.steps.flatMap(step => step.warnings ?? []);
+  }
+
+  get reasoning() {
+    return this.finalStep.content.filter(
+      (part): part is ReasoningOutput | ReasoningFileOutput =>
+        part.type === 'reasoning' || part.type === 'reasoning-file',
+    );
+  }
+
+  get reasoningText() {
+    return this.finalStep.reasoningText;
+  }
+
+  get totalUsage() {
+    return this.usage;
+  }
+
+  get request() {
+    return this.finalStep.request;
+  }
+
+  get response() {
+    return this.finalStep.response;
+  }
+
+  get providerMetadata() {
+    return this.finalStep.providerMetadata;
   }
 }
 
