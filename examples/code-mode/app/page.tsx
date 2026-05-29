@@ -5,7 +5,6 @@ import type {
   ApproachResult,
   BenchmarkResponse,
   BenchmarkProgressEvent,
-  DiffPart,
   ToolTrace,
 } from '@/lib/types';
 
@@ -172,6 +171,7 @@ function PartialBenchmarkView({ runs }: { runs: ApproachResult[] }) {
           </p>
         </article>
       </section>
+      <InspectionPanel runs={runs} />
 
       <section className="comparisonGrid">
         {runs.map(run => (
@@ -208,12 +208,81 @@ function ProgressPanel({
           <h2>{status}</h2>
         </div>
       </div>
-      <ol className="progressList">
-        {events.map((event, index) => (
-          <li key={index}>{formatProgressEvent(event)}</li>
-        ))}
-      </ol>
+      <ProgressWaterfall events={events} />
     </section>
+  );
+}
+
+function ProgressWaterfall({ events }: { events: BenchmarkProgressEvent[] }) {
+  const rows = buildWaterfallRows(events);
+  const maxMs = Math.max(...rows.map(row => row.totalMs), 1);
+
+  return (
+    <div className="waterfall">
+      <div className="waterfallScale" aria-hidden>
+        <span>0ms</span>
+        <span>{formatMs(maxMs / 2)}</span>
+        <span>{formatMs(maxMs)}</span>
+      </div>
+      {rows.map(row => (
+        <article className="waterfallScenario" key={row.id}>
+          <div className="waterfallScenarioHeader">
+            <div>
+              <strong>{row.label}</strong>
+              <span>{row.totalMs > 0 ? formatMs(row.totalMs) : 'waiting'}</span>
+            </div>
+            <span className={`waterfallStatus ${row.status}`}>
+              {row.status}
+            </span>
+          </div>
+
+          <WaterfallLane
+            label="Model"
+            maxMs={maxMs}
+            segments={row.modelSegments}
+          />
+          <WaterfallLane
+            label="Tools"
+            maxMs={maxMs}
+            segments={row.toolSegments}
+          />
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function WaterfallLane({
+  label,
+  maxMs,
+  segments,
+}: {
+  label: string;
+  maxMs: number;
+  segments: WaterfallSegment[];
+}) {
+  return (
+    <div className="waterfallLane">
+      <span className="waterfallLaneLabel">{label}</span>
+      <div className="waterfallTrack">
+        {segments.length === 0 ? (
+          <span className="waterfallEmpty">Waiting for data</span>
+        ) : null}
+        {segments.map(segment => (
+          <span
+            className={`waterfallSegment ${segment.kind}`}
+            key={segment.id}
+            style={{
+              left: `${(segment.startMs / maxMs) * 100}%`,
+              width: `${Math.max(1.5, (segment.durationMs / maxMs) * 100)}%`,
+            }}
+            title={`${segment.label}: ${formatMs(segment.durationMs)}`}
+          >
+            {segment.shortLabel}
+          </span>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -228,28 +297,83 @@ function BenchmarkView({ result }: { result: BenchmarkResponse }) {
           <MetricCard key={run.id} run={run} maxTotalMs={maxTotalMs} />
         ))}
       </section>
+      <InspectionPanel runs={result.runs} />
 
       <section className="comparisonGrid">
         {result.runs.map(run => (
           <RunDetails key={run.id} run={run} />
         ))}
       </section>
-
-      <section className="panel">
-        <div className="sectionHeader">
-          <div>
-            <p className="eyebrow">Final output</p>
-            <h2>Word Diff</h2>
-          </div>
-          <p className="muted">
-            Red text appears only in direct tools. Green text appears only in
-            code mode.
-          </p>
-        </div>
-        <DiffView diff={result.diff} />
-      </section>
     </>
   );
+}
+
+function InspectionPanel({ runs }: { runs: ApproachResult[] }) {
+  return (
+    <section className="panel inspectionPanel">
+      <details>
+        <summary>
+          <div>
+            <p className="eyebrow">Inspect</p>
+            <h2>Prompts And Tool Definitions</h2>
+          </div>
+          <span className="pill">Toggle</span>
+        </summary>
+        <div className="inspectionRuns">
+          {runs.map(run => (
+            <article className="inspectionRun" key={run.id}>
+              <h3>{run.label}</h3>
+
+              <h4>Prompt Sent To The Model</h4>
+              <HighlightedCode
+                language="markdown"
+                value={run.inspection.prompt}
+              />
+
+              <h4>Tool Definitions Sent To The Model</h4>
+              <div className="toolDefinitionList">
+                {run.inspection.toolDefinitions.map(toolDefinition => (
+                  <details key={toolDefinition.name}>
+                    <summary>{toolDefinition.name}</summary>
+                    <ToolDescription value={toolDefinition.description} />
+                    <HighlightedCode
+                      language="json"
+                      value={JSON.stringify(
+                        {
+                          inputSchema: toolDefinition.inputSchema,
+                          outputSchema: toolDefinition.outputSchema,
+                        },
+                        null,
+                        2,
+                      )}
+                    />
+                  </details>
+                ))}
+              </div>
+
+              {run.inspection.generatedCode ? (
+                <>
+                  <h4>Generated Code</h4>
+                  <HighlightedCode
+                    language="ts"
+                    value={run.inspection.generatedCode}
+                  />
+                </>
+              ) : null}
+            </article>
+          ))}
+        </div>
+      </details>
+    </section>
+  );
+}
+
+function ToolDescription({ value }: { value: string }) {
+  if (!value.includes('\n') && !value.includes('`')) {
+    return <p className="muted">{value}</p>;
+  }
+
+  return <HighlightedCode language="markdown" value={value} />;
 }
 
 async function readProgressStream(
@@ -283,21 +407,143 @@ async function readProgressStream(
   }
 }
 
-function formatProgressEvent(event: BenchmarkProgressEvent): string {
-  switch (event.type) {
-    case 'benchmark-start':
-      return `Started ${event.caseId} with ${event.model}`;
-    case 'approach-start':
-      return `Started ${event.label}`;
-    case 'step-finish':
-      return `${event.label}: step ${event.step.stepNumber + 1} finished with ${event.step.toolCalls.length} tool call(s)`;
-    case 'approach-done':
-      return `${event.run.label} finished in ${formatMs(event.run.totalMs)}`;
-    case 'benchmark-done':
-      return 'Final metrics and diff are ready';
-    case 'benchmark-error':
-      return `Error: ${event.error}`;
+type WaterfallSegment = {
+  id: string;
+  kind: 'model' | 'tool';
+  label: string;
+  shortLabel: string;
+  startMs: number;
+  durationMs: number;
+};
+
+type WaterfallRow = {
+  id: ApproachResult['id'];
+  label: string;
+  status: 'pending' | 'running' | 'done' | 'error';
+  totalMs: number;
+  modelSegments: WaterfallSegment[];
+  toolSegments: WaterfallSegment[];
+};
+
+function buildWaterfallRows(events: BenchmarkProgressEvent[]): WaterfallRow[] {
+  const rows: WaterfallRow[] = [
+    createWaterfallRow('direct-tools', 'Direct AI SDK tools'),
+    createWaterfallRow('code-mode', 'Code mode tool'),
+  ];
+  const rowsById = new Map(rows.map(row => [row.id, row]));
+
+  for (const event of events) {
+    switch (event.type) {
+      case 'approach-start': {
+        const row = rowsById.get(event.runId);
+        if (row != null) {
+          row.status = 'running';
+        }
+        break;
+      }
+      case 'step-finish': {
+        const row = rowsById.get(event.runId);
+        if (row == null) {
+          break;
+        }
+
+        row.status = 'running';
+        row.modelSegments = [
+          ...row.modelSegments.filter(
+            segment => segment.id !== `step-${event.step.stepNumber}`,
+          ),
+          {
+            id: `step-${event.step.stepNumber}`,
+            kind: 'model' as const,
+            label: `Step ${event.step.stepNumber + 1}`,
+            shortLabel: `S${event.step.stepNumber + 1}`,
+            startMs: row.modelSegments
+              .filter(segment => segment.id !== `step-${event.step.stepNumber}`)
+              .reduce((sum, segment) => sum + segment.durationMs, 0),
+            durationMs: event.step.performance.stepTimeMs,
+          },
+        ].sort((a, b) => a.startMs - b.startMs);
+        row.toolSegments = event.hostToolTrace.map(call => ({
+          id: `tool-${call.id}`,
+          kind: 'tool' as const,
+          label: call.toolName,
+          shortLabel: call.toolName.replace(/[a-z]/g, '').slice(0, 3) || 'T',
+          startMs: call.startMs,
+          durationMs: call.durationMs,
+        }));
+        row.totalMs = Math.max(
+          row.totalMs,
+          ...row.modelSegments.map(
+            segment => segment.startMs + segment.durationMs,
+          ),
+          ...row.toolSegments.map(
+            segment => segment.startMs + segment.durationMs,
+          ),
+        );
+        break;
+      }
+      case 'approach-done': {
+        const row = rowsById.get(event.run.id);
+        if (row == null) {
+          break;
+        }
+
+        row.status = 'done';
+        row.totalMs = event.run.totalMs;
+        row.modelSegments = event.run.steps.reduce<WaterfallSegment[]>(
+          (segments, step) => {
+            const startMs = segments.reduce(
+              (sum, segment) => sum + segment.durationMs,
+              0,
+            );
+            segments.push({
+              id: `step-${step.stepNumber}`,
+              kind: 'model' as const,
+              label: `Step ${step.stepNumber + 1}`,
+              shortLabel: `S${step.stepNumber + 1}`,
+              startMs,
+              durationMs: step.performance.stepTimeMs,
+            });
+            return segments;
+          },
+          [],
+        );
+        row.toolSegments = event.run.hostToolTrace.map(call => ({
+          id: `tool-${call.id}`,
+          kind: 'tool' as const,
+          label: call.toolName,
+          shortLabel: call.toolName.replace(/[a-z]/g, '').slice(0, 3) || 'T',
+          startMs: call.startMs,
+          durationMs: call.durationMs,
+        }));
+        break;
+      }
+      case 'benchmark-error': {
+        for (const row of rows) {
+          if (row.status === 'running') {
+            row.status = 'error';
+          }
+        }
+        break;
+      }
+    }
   }
+
+  return rows;
+}
+
+function createWaterfallRow(
+  id: ApproachResult['id'],
+  label: string,
+): WaterfallRow {
+  return {
+    id,
+    label,
+    status: 'pending',
+    totalMs: 0,
+    modelSegments: [],
+    toolSegments: [],
+  };
 }
 
 function MetricCard({
@@ -338,7 +584,7 @@ function MetricCard({
 
 function RunDetails({ run }: { run: ApproachResult }) {
   return (
-    <section className="panel">
+    <section className="panel runPanel">
       <div className="sectionHeader">
         <div>
           <p className="eyebrow">{run.id}</p>
@@ -448,18 +694,6 @@ function ToolTimeline({
   );
 }
 
-function DiffView({ diff }: { diff: DiffPart[] }) {
-  return (
-    <div className="diff">
-      {diff.map((part, index) => (
-        <span className={part.type} key={`${part.type}-${index}`}>
-          {part.value}
-        </span>
-      ))}
-    </div>
-  );
-}
-
 function Metric({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
@@ -471,6 +705,181 @@ function Metric({ label, value }: { label: string; value: React.ReactNode }) {
 
 function JsonPreview({ value }: { value: unknown }) {
   return <pre className="json">{JSON.stringify(value, null, 2)}</pre>;
+}
+
+function HighlightedCode({
+  language,
+  value,
+}: {
+  language: 'json' | 'markdown' | 'ts';
+  value: string;
+}) {
+  const children =
+    language === 'json'
+      ? highlightJson(value)
+      : language === 'markdown'
+        ? highlightMarkdown(value)
+        : highlightTypeScript(value);
+
+  return <pre className="inspectionPre syntaxPre">{children}</pre>;
+}
+
+function highlightMarkdown(value: string): React.ReactNode[] {
+  const nodes: React.ReactNode[] = [];
+  const lines = value.split('\n');
+
+  lines.forEach((line, lineIndex) => {
+    const heading = /^(#{1,6}\s)(.*)$/.exec(line);
+    const fence = /^(```.*)$/.exec(line);
+    const bullet = /^(\s*(?:[-*]|\d+\.)\s)(.*)$/.exec(line);
+
+    if (heading) {
+      nodes.push(
+        <span className="tokenPunctuation" key={`${lineIndex}-prefix`}>
+          {heading[1]}
+        </span>,
+        <span className="tokenHeading" key={`${lineIndex}-heading`}>
+          {heading[2]}
+        </span>,
+      );
+    } else if (fence) {
+      nodes.push(
+        <span className="tokenCodeFence" key={`${lineIndex}-fence`}>
+          {fence[1]}
+        </span>,
+      );
+    } else if (bullet) {
+      nodes.push(
+        <span className="tokenPunctuation" key={`${lineIndex}-bullet`}>
+          {bullet[1]}
+        </span>,
+        ...highlightMarkdownInline(bullet[2], `${lineIndex}-text`),
+      );
+    } else {
+      nodes.push(...highlightMarkdownInline(line, `${lineIndex}-text`));
+    }
+
+    if (lineIndex < lines.length - 1) {
+      nodes.push('\n');
+    }
+  });
+
+  return nodes;
+}
+
+function highlightMarkdownInline(
+  value: string,
+  keyPrefix: string,
+): React.ReactNode[] {
+  return tokenize(
+    value,
+    /(`[^`]*`|\*\*[^*]+\*\*)/g,
+    (token, key) => {
+      if (token.startsWith('`')) {
+        return (
+          <span className="tokenInlineCode" key={key}>
+            {token}
+          </span>
+        );
+      }
+      return (
+        <span className="tokenStrong" key={key}>
+          {token}
+        </span>
+      );
+    },
+    keyPrefix,
+  );
+}
+
+function highlightJson(value: string): React.ReactNode[] {
+  return tokenize(
+    value,
+    /("(?:\\.|[^"\\])*"(?=\s*:)|"(?:\\.|[^"\\])*"|true|false|null|-?\d+(?:\.\d+)?|[{}[\],:])/g,
+    (token, key, index, source) => {
+      const className = token.startsWith('"')
+        ? source
+            .slice(index + token.length)
+            .trimStart()
+            .startsWith(':')
+          ? 'tokenKey'
+          : 'tokenString'
+        : /^(true|false|null)$/.test(token)
+          ? 'tokenLiteral'
+          : /^-?\d/.test(token)
+            ? 'tokenNumber'
+            : 'tokenPunctuation';
+
+      return (
+        <span className={className} key={key}>
+          {token}
+        </span>
+      );
+    },
+  );
+}
+
+function highlightTypeScript(value: string): React.ReactNode[] {
+  return tokenize(
+    value,
+    /(\/\/.*|\/\*[\s\S]*?\*\/|`(?:\\[\s\S]|[^`\\])*`|'(?:\\.|[^'\\])*'|"(?:\\.|[^"\\])*"|\b(?:async|await|const|let|var|return|if|else|true|false|null|undefined|Promise|all|map)\b|\b\d+(?:\.\d+)?\b|[{}()[\].,;:])/g,
+    (token, key) => {
+      const className =
+        token.startsWith('//') || token.startsWith('/*')
+          ? 'tokenComment'
+          : /^["'`]/.test(token)
+            ? 'tokenString'
+            : /^(true|false|null|undefined)$/.test(token)
+              ? 'tokenLiteral'
+              : /^(async|await|const|let|var|return|if|else|Promise|all|map)$/.test(
+                    token,
+                  )
+                ? 'tokenKeyword'
+                : /^-?\d/.test(token)
+                  ? 'tokenNumber'
+                  : 'tokenPunctuation';
+
+      return (
+        <span className={className} key={key}>
+          {token}
+        </span>
+      );
+    },
+  );
+}
+
+function tokenize(
+  value: string,
+  expression: RegExp,
+  renderToken: (
+    token: string,
+    key: string,
+    index: number,
+    source: string,
+  ) => React.ReactNode,
+  keyPrefix = 'token',
+): React.ReactNode[] {
+  const nodes: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  expression.lastIndex = 0;
+
+  while ((match = expression.exec(value)) !== null) {
+    if (match.index > lastIndex) {
+      nodes.push(value.slice(lastIndex, match.index));
+    }
+
+    nodes.push(
+      renderToken(match[0], `${keyPrefix}-${match.index}`, match.index, value),
+    );
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < value.length) {
+    nodes.push(value.slice(lastIndex));
+  }
+
+  return nodes;
 }
 
 function formatMs(value: number): string {

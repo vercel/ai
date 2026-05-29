@@ -59,6 +59,19 @@ export type StepSummary = {
   toolErrors: ToolErrorSummary[];
 };
 
+export type ToolDefinitionSummary = {
+  name: string;
+  description: string;
+  inputSchema: JsonValue;
+  outputSchema?: JsonValue;
+};
+
+export type RunInspection = {
+  prompt: string;
+  toolDefinitions: ToolDefinitionSummary[];
+  generatedCode?: string;
+};
+
 export type ApproachResult = {
   id: ApproachId;
   label: string;
@@ -67,6 +80,7 @@ export type ApproachResult = {
   finalText: string;
   finishReason: string;
   usage: UsageSummary;
+  inspection: RunInspection;
   steps: StepSummary[];
   hostToolTrace: ToolTrace[];
   metrics: {

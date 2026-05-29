@@ -1,14 +1,20 @@
 import { generateText, isStepCount } from 'ai';
 import type * as CodeMode from 'ai-sdk-code-mode';
 import { diffWords } from './diff';
-import { buildCasePrompt, createSupportTools } from './scenario';
+import {
+  buildCasePrompt,
+  createSupportTools,
+  supportToolDefinitions,
+} from './scenario';
 import type {
   ApproachId,
   BenchmarkProgressEvent,
   ApproachResult,
   BenchmarkResponse,
   JsonValue,
+  RunInspection,
   StepSummary,
+  ToolDefinitionSummary,
   UsageSummary,
 } from './types';
 
@@ -25,10 +31,16 @@ export async function runBenchmark({
 }): Promise<BenchmarkResponse> {
   const prompt = buildCasePrompt(caseId);
   onProgress?.({ type: 'benchmark-start', caseId, model, prompt });
-  const direct = await runDirectTools({ caseId, model, prompt, onProgress });
-  onProgress?.({ type: 'approach-done', run: direct });
-  const codeMode = await runWithCodeMode({ caseId, model, prompt, onProgress });
-  onProgress?.({ type: 'approach-done', run: codeMode });
+  const [direct, codeMode] = await Promise.all([
+    runDirectTools({ caseId, model, prompt, onProgress }).then(run => {
+      onProgress?.({ type: 'approach-done', run });
+      return run;
+    }),
+    runWithCodeMode({ caseId, model, prompt, onProgress }).then(run => {
+      onProgress?.({ type: 'approach-done', run });
+      return run;
+    }),
+  ]);
 
   const result = {
     caseId,
@@ -59,6 +71,13 @@ async function runDirectTools({
   const label = 'Direct AI SDK tools';
 
   onProgress?.({ type: 'approach-start', runId: id, label });
+  const runPrompt = [
+    prompt,
+    '',
+    'Implementation note: use the individual tools directly. Work efficiently, and use parallel tool calls when the model can safely do so.',
+    `The case id is ${caseId}.`,
+    'In your final Metrics note, say: "Implementation: direct tools."',
+  ].join('\n');
 
   const result = await generateText({
     model,
@@ -76,13 +95,7 @@ async function runDirectTools({
         hostToolTrace: [...trace],
       });
     },
-    prompt: [
-      prompt,
-      '',
-      'Implementation note: use the individual tools directly. Work efficiently, and use parallel tool calls when the model can safely do so.',
-      `The case id is ${caseId}.`,
-      'In your final Metrics note, say: "Implementation: direct tools."',
-    ].join('\n'),
+    prompt: runPrompt,
   });
 
   return summarizeRun({
@@ -93,6 +106,10 @@ async function runDirectTools({
     endedAt: performance.now(),
     result: result as any,
     trace,
+    inspection: {
+      prompt: runPrompt,
+      toolDefinitions: supportToolDefinitions,
+    },
   });
 }
 
@@ -119,6 +136,32 @@ async function runWithCodeMode({
       maxInFlightBridgeRequests: 8,
     },
   });
+  const runPrompt = [
+    prompt,
+    '',
+    'Implementation note: use the codeMode tool exactly once for all data gathering and deterministic JSON transformation.',
+    `The case id is ${caseId}.`,
+    'The JavaScript inside codeMode should follow this shape:',
+    '```ts',
+    `const supportCase = await tools.getCase({ caseId: ${JSON.stringify(caseId)} });`,
+    'const [customer, order, previousTickets, policySearch] = await Promise.all([',
+    '  tools.getCustomer({ customerId: supportCase.customerId }),',
+    '  tools.getOrder({ orderId: supportCase.orderId }),',
+    '  tools.listPreviousTickets({ customerId: supportCase.customerId }),',
+    '  tools.searchPolicies({ query: supportCase.issue, limit: 3 }),',
+    ']);',
+    'const policies = await Promise.all(',
+    '  policySearch.results.map(policy => tools.readPolicy({ id: policy.id })),',
+    ');',
+    'const refund = await tools.calculateRefund({',
+    '  orderId: order.id,',
+    '  policyIds: policies.map(policy => policy.id),',
+    '});',
+    'return { supportCase, customer, order, previousTickets, policies, refund };',
+    '```',
+    'After codeMode returns, write the final customer-facing answer from the structured result.',
+    'In your final Metrics note, say: "Implementation: code mode."',
+  ].join('\n');
 
   const result = await generateText({
     model,
@@ -144,32 +187,7 @@ async function runWithCodeMode({
         hostToolTrace: [...trace],
       });
     },
-    prompt: [
-      prompt,
-      '',
-      'Implementation note: use the codeMode tool exactly once for all data gathering and deterministic JSON transformation.',
-      `The case id is ${caseId}.`,
-      'The JavaScript inside codeMode should follow this shape:',
-      '```ts',
-      `const supportCase = await tools.getCase({ caseId: ${JSON.stringify(caseId)} });`,
-      'const [customer, order, previousTickets, policySearch] = await Promise.all([',
-      '  tools.getCustomer({ customerId: supportCase.customerId }),',
-      '  tools.getOrder({ orderId: supportCase.orderId }),',
-      '  tools.listPreviousTickets({ customerId: supportCase.customerId }),',
-      '  tools.searchPolicies({ query: supportCase.issue, limit: 3 }),',
-      ']);',
-      'const policies = await Promise.all(',
-      '  policySearch.results.map(policy => tools.readPolicy({ id: policy.id })),',
-      ');',
-      'const refund = await tools.calculateRefund({',
-      '  orderId: order.id,',
-      '  policyIds: policies.map(policy => policy.id),',
-      '});',
-      'return { supportCase, customer, order, previousTickets, policies, refund };',
-      '```',
-      'After codeMode returns, write the final customer-facing answer from the structured result.',
-      'In your final Metrics note, say: "Implementation: code mode."',
-    ].join('\n'),
+    prompt: runPrompt,
   });
 
   return summarizeRun({
@@ -180,6 +198,10 @@ async function runWithCodeMode({
     endedAt: performance.now(),
     result: result as any,
     trace,
+    inspection: {
+      prompt: runPrompt,
+      toolDefinitions: [toCodeModeToolDefinition(codeMode)],
+    },
   });
 }
 
@@ -203,6 +225,7 @@ function summarizeRun({
   endedAt,
   result,
   trace,
+  inspection,
 }: {
   id: ApproachId;
   label: string;
@@ -211,6 +234,7 @@ function summarizeRun({
   endedAt: number;
   result: any;
   trace: ApproachResult['hostToolTrace'];
+  inspection: RunInspection;
 }): ApproachResult {
   const steps: StepSummary[] = result.steps.map(toStepSummary);
   const modelResponseMs = steps.reduce(
@@ -235,6 +259,10 @@ function summarizeRun({
     finalText: result.text,
     finishReason: result.finishReason,
     usage: toUsageSummary(result.usage),
+    inspection: {
+      ...inspection,
+      generatedCode: inspection.generatedCode ?? extractGeneratedCode(result),
+    },
     steps,
     hostToolTrace: trace,
     metrics: {
@@ -246,6 +274,41 @@ function summarizeRun({
       toolExecutionMs: round(toolExecutionMs),
     },
   };
+}
+
+function toCodeModeToolDefinition(codeMode: {
+  description?: unknown;
+}): ToolDefinitionSummary {
+  const description =
+    typeof codeMode.description === 'string'
+      ? codeMode.description
+      : 'Execute code in code mode.';
+
+  return {
+    name: 'codeMode',
+    description,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        js: {
+          type: 'string',
+          description:
+            'JavaScript or type-stripped TypeScript source to execute.',
+        },
+      },
+      required: ['js'],
+      additionalProperties: false,
+    },
+  };
+}
+
+function extractGeneratedCode(result: any): string | undefined {
+  const codeModeToolCall = result.toolCalls.find(
+    (toolCall: any) => toolCall.toolName === 'codeMode',
+  );
+  const input = codeModeToolCall?.input;
+
+  return typeof input?.js === 'string' ? input.js : undefined;
 }
 
 function toStepSummary(step: any): StepSummary {

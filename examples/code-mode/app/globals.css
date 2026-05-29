@@ -96,6 +96,12 @@ h3 {
   font-size: 0.95rem;
 }
 
+h4 {
+  margin: 1rem 0 0.5rem;
+  color: #bfbfbf;
+  font-size: 0.86rem;
+}
+
 .lede {
   max-width: 52rem;
   color: #c8c8c8;
@@ -193,22 +199,134 @@ h3 {
   color: #ff9f9f;
 }
 
-.progressList {
-  display: grid;
-  gap: 0.5rem;
-  max-height: 12rem;
-  overflow: auto;
-  margin: 1rem 0 0;
-  padding-left: 1.25rem;
-  color: #c8c8c8;
-}
-
-.progressList li::marker {
-  color: #93a4ff;
-}
-
 .pendingCard {
   border-style: dashed;
+}
+
+.waterfall {
+  display: grid;
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.waterfallScale {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  padding-left: 5.5rem;
+  color: #8e8e8e;
+  font-size: 0.75rem;
+}
+
+.waterfallScale span:nth-child(2) {
+  text-align: center;
+}
+
+.waterfallScale span:nth-child(3) {
+  text-align: right;
+}
+
+.waterfallScenario {
+  display: grid;
+  gap: 0.5rem;
+  border: 1px solid #242424;
+  border-radius: 1rem;
+  background: #0b0b0b;
+  padding: 0.85rem;
+}
+
+.waterfallScenarioHeader {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.waterfallScenarioHeader div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: baseline;
+}
+
+.waterfallScenarioHeader span {
+  color: #999;
+}
+
+.waterfallStatus {
+  border: 1px solid #303030;
+  border-radius: 999rem;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+.waterfallStatus.running {
+  border-color: rgba(147, 164, 255, 0.45);
+  color: #bcc6ff;
+}
+
+.waterfallStatus.done {
+  border-color: rgba(159, 255, 198, 0.45);
+  color: #9fffc6;
+}
+
+.waterfallStatus.error {
+  border-color: rgba(255, 159, 159, 0.45);
+  color: #ff9f9f;
+}
+
+.waterfallLane {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr;
+  gap: 1rem;
+  align-items: center;
+}
+
+.waterfallLaneLabel {
+  color: #a8a8a8;
+  font-size: 0.78rem;
+}
+
+.waterfallTrack {
+  position: relative;
+  min-height: 1.8rem;
+  overflow: hidden;
+  border-radius: 0.65rem;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px)
+      0 0 / 25% 100%,
+    #151515;
+}
+
+.waterfallEmpty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #686868;
+  font-size: 0.75rem;
+}
+
+.waterfallSegment {
+  position: absolute;
+  top: 0.3rem;
+  bottom: 0.3rem;
+  overflow: hidden;
+  border-radius: 0.45rem;
+  color: #050505;
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1.2rem;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.waterfallSegment.model {
+  background: #93a4ff;
+}
+
+.waterfallSegment.tool {
+  background: #9fffc6;
 }
 
 .summary,
@@ -217,6 +335,21 @@ h3 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
   margin-top: 1rem;
+}
+
+.comparisonGrid {
+  align-items: stretch;
+  grid-auto-rows: auto;
+}
+
+.runPanel {
+  display: grid;
+  grid-row: span 7;
+  grid-template-rows: subgrid;
+}
+
+.runPanel h3 {
+  align-self: end;
 }
 
 .metricCard,
@@ -297,6 +430,96 @@ dd {
   gap: 0.55rem;
 }
 
+.inspectionPanel {
+  margin-top: 1rem;
+}
+
+.inspectionPanel > details {
+  border: 0;
+  padding: 0;
+}
+
+.inspectionPanel > details > summary {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  list-style: none;
+}
+
+.inspectionPanel > details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.inspectionRuns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.inspectionRun {
+  min-width: 0;
+  border: 1px solid #282828;
+  border-radius: 1rem;
+  background: #0b0b0b;
+  padding: 1rem;
+}
+
+.inspectionRun h3 {
+  margin-top: 0;
+}
+
+.inspectionPre {
+  overflow: auto;
+  max-height: 22rem;
+  border: 1px solid #242424;
+  border-radius: 0.9rem;
+  background: #090909;
+  color: #e9e9e9;
+  padding: 1rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.syntaxPre {
+  color: #cfd3dc;
+}
+
+.tokenHeading,
+.tokenKey {
+  color: #93a4ff;
+}
+
+.tokenStrong,
+.tokenKeyword {
+  color: #ffcf8a;
+}
+
+.tokenInlineCode,
+.tokenCodeFence,
+.tokenString {
+  color: #9fffc6;
+}
+
+.tokenLiteral,
+.tokenNumber {
+  color: #ffb3d1;
+}
+
+.tokenComment {
+  color: #7d8590;
+}
+
+.tokenPunctuation {
+  color: #a7adba;
+}
+
+.toolDefinitionList {
+  display: grid;
+  gap: 0.5rem;
+}
+
 .timelineRow {
   display: grid;
   grid-template-columns: 8.5rem 1fr 4rem;
@@ -364,8 +587,7 @@ summary {
 
 .answer,
 .errorBox,
-.json,
-.diff {
+.json {
   overflow: auto;
   border: 1px solid #242424;
   border-radius: 0.9rem;
@@ -391,22 +613,6 @@ summary {
   font-size: 0.75rem;
 }
 
-.diff {
-  margin-top: 1rem;
-  padding: 1.25rem;
-}
-
-.diff .added {
-  background: rgba(83, 255, 159, 0.2);
-  color: #b8ffd6;
-}
-
-.diff .removed {
-  background: rgba(255, 99, 99, 0.2);
-  color: #ffbaba;
-  text-decoration: line-through;
-}
-
 @keyframes spin {
   to {
     transform: rotate(360deg);
@@ -415,8 +621,13 @@ summary {
 
 @media (max-width: 900px) {
   .summary,
-  .comparisonGrid {
+  .comparisonGrid,
+  .inspectionRuns {
     grid-template-columns: 1fr;
+  }
+
+  .runPanel {
+    display: block;
   }
 
   .metrics,

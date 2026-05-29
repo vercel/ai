@@ -1,6 +1,6 @@
 import { tool } from 'ai';
 import { z } from 'zod/v4';
-import type { JsonValue, ToolTrace } from './types';
+import type { JsonValue, ToolDefinitionSummary, ToolTrace } from './types';
 
 const cases = {
   case_1842: {
@@ -72,6 +72,143 @@ const previousTickets = {
     },
   ],
 };
+
+export const supportToolDefinitions: ToolDefinitionSummary[] = [
+  {
+    name: 'getCase',
+    description: 'Get a support case by id.',
+    inputSchema: objectSchema({ caseId: { type: 'string' } }, ['caseId']),
+    outputSchema: objectSchema(
+      {
+        id: { type: 'string' },
+        customerId: { type: 'string' },
+        orderId: { type: 'string' },
+        subject: { type: 'string' },
+        issue: { type: 'string' },
+        openedAt: { type: 'string' },
+      },
+      ['id', 'customerId', 'orderId', 'subject', 'issue', 'openedAt'],
+    ),
+  },
+  {
+    name: 'getCustomer',
+    description: 'Get customer profile and support tier.',
+    inputSchema: objectSchema({ customerId: { type: 'string' } }, [
+      'customerId',
+    ]),
+    outputSchema: objectSchema(
+      {
+        id: { type: 'string' },
+        name: { type: 'string' },
+        tier: { type: 'string' },
+        email: { type: 'string' },
+        signedUpAt: { type: 'string' },
+      },
+      ['id', 'name', 'tier', 'email', 'signedUpAt'],
+    ),
+  },
+  {
+    name: 'getOrder',
+    description: 'Get order status, delivery date, and purchase total.',
+    inputSchema: objectSchema({ orderId: { type: 'string' } }, ['orderId']),
+    outputSchema: objectSchema(
+      {
+        id: { type: 'string' },
+        customerId: { type: 'string' },
+        product: { type: 'string' },
+        total: { type: 'number' },
+        status: { type: 'string' },
+        deliveredAt: { type: 'string' },
+      },
+      ['id', 'customerId', 'product', 'total', 'status', 'deliveredAt'],
+    ),
+  },
+  {
+    name: 'searchPolicies',
+    description: 'Search support policies by query.',
+    inputSchema: objectSchema(
+      {
+        query: { type: 'string' },
+        limit: { type: 'integer', minimum: 1, maximum: 10 },
+      },
+      ['query'],
+    ),
+    outputSchema: objectSchema(
+      {
+        results: {
+          type: 'array',
+          items: objectSchema(
+            {
+              id: { type: 'string' },
+              title: { type: 'string' },
+              score: { type: 'number' },
+            },
+            ['id', 'title', 'score'],
+          ),
+        },
+      },
+      ['results'],
+    ),
+  },
+  {
+    name: 'readPolicy',
+    description: 'Read a policy by id.',
+    inputSchema: objectSchema({ id: { type: 'string' } }, ['id']),
+    outputSchema: objectSchema(
+      {
+        id: { type: 'string' },
+        title: { type: 'string' },
+        excerpt: { type: 'string' },
+      },
+      ['id', 'title', 'excerpt'],
+    ),
+  },
+  {
+    name: 'listPreviousTickets',
+    description: 'List recent support tickets for a customer.',
+    inputSchema: objectSchema({ customerId: { type: 'string' } }, [
+      'customerId',
+    ]),
+    outputSchema: objectSchema(
+      {
+        tickets: {
+          type: 'array',
+          items: objectSchema(
+            {
+              id: { type: 'string' },
+              subject: { type: 'string' },
+              status: { type: 'string' },
+              sentiment: { type: 'string' },
+            },
+            ['id', 'subject', 'status', 'sentiment'],
+          ),
+        },
+      },
+      ['tickets'],
+    ),
+  },
+  {
+    name: 'calculateRefund',
+    description:
+      'Calculate refund eligibility and amount from order and policy ids.',
+    inputSchema: objectSchema(
+      {
+        orderId: { type: 'string' },
+        policyIds: { type: 'array', items: { type: 'string' } },
+      },
+      ['orderId', 'policyIds'],
+    ),
+    outputSchema: objectSchema(
+      {
+        eligible: { type: 'boolean' },
+        amount: { type: 'number' },
+        reason: { type: 'string' },
+        policyIds: { type: 'array', items: { type: 'string' } },
+      },
+      ['eligible', 'amount', 'reason', 'policyIds'],
+    ),
+  },
+];
 
 type TraceState = {
   startedAt: number;
@@ -319,4 +456,16 @@ function getRequired<T>(
     throw new Error(message);
   }
   return value;
+}
+
+function objectSchema(
+  properties: Record<string, JsonValue>,
+  required: string[],
+): JsonValue {
+  return {
+    type: 'object',
+    properties,
+    required,
+    additionalProperties: false,
+  };
 }
