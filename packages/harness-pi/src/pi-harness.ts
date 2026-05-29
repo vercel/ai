@@ -1,0 +1,144 @@
+import {
+  commonTool,
+  HarnessCapabilityUnsupportedError,
+  type HarnessV1,
+  type HarnessV1BuiltinTool,
+} from '@ai-sdk/harness';
+import { tool } from '@ai-sdk/provider-utils';
+import { z } from 'zod';
+import type { PiAuthOptions } from './pi-auth';
+import { piResumeStateSchema } from './pi-resume-state';
+import { createPiSession, type PiThinkingLevel } from './pi-session';
+
+/**
+ * Configuration knobs for `createPi`. Pi runs as an in-process Node library
+ * (no bridge), so there's no `port` or `startupTimeoutMs` to set.
+ */
+export type PiHarnessSettings = {
+  /** Where Pi sources API keys / gateway credentials from. */
+  readonly auth?: PiAuthOptions;
+  /**
+   * Pi model id (or name). Leaving this unset falls back to the AI Gateway
+   * default when `AI_GATEWAY_API_KEY` / `VERCEL_OIDC_TOKEN` is set, and to
+   * Pi's own resolution otherwise.
+   */
+  readonly model?: string;
+  /**
+   * Pi's extended-thinking budget level. Maps directly to the SDK's
+   * `thinkingLevel` option on `createAgentSession`.
+   */
+  readonly thinkingLevel?: PiThinkingLevel;
+};
+
+const PI_BUILTIN_TOOLS = {
+  read: commonTool('read', {
+    nativeName: 'read',
+    description: 'Read file contents.',
+    inputSchema: z.object({
+      file_path: z.string(),
+    }),
+  }),
+  write: commonTool('write', {
+    nativeName: 'write',
+    description: 'Overwrite or create a file.',
+    inputSchema: z.object({
+      file_path: z.string(),
+      content: z.string(),
+    }),
+  }),
+  edit: commonTool('edit', {
+    nativeName: 'edit',
+    description: 'Edit a file by exact string replacement.',
+    inputSchema: z.object({
+      file_path: z.string(),
+      old_string: z.string(),
+      new_string: z.string(),
+    }),
+  }),
+  bash: commonTool('bash', {
+    nativeName: 'bash',
+    description: 'Execute a shell command in the sandbox.',
+    inputSchema: z.object({
+      command: z.string(),
+      timeout: z.number().optional(),
+    }),
+  }),
+  grep: commonTool('grep', {
+    nativeName: 'grep',
+    description: 'Search file contents with regex.',
+    inputSchema: z.object({
+      pattern: z.string(),
+      path: z.string().optional(),
+      glob: z.string().optional(),
+      ignoreCase: z.boolean().optional(),
+      literal: z.boolean().optional(),
+      context: z.number().optional(),
+      limit: z.number().optional(),
+    }),
+  }),
+  glob: commonTool('glob', {
+    nativeName: 'find',
+    description: 'Find files matching a glob pattern.',
+    inputSchema: z.object({
+      pattern: z.string(),
+      path: z.string().optional(),
+      limit: z.number().optional(),
+    }),
+  }),
+  ls: {
+    ...tool({
+      description: 'List directory entries.',
+      inputSchema: z.object({
+        path: z.string().optional(),
+        limit: z.number().optional(),
+      }),
+      outputSchema: z.unknown(),
+    }),
+    nativeName: 'ls',
+  } as HarnessV1BuiltinTool,
+} as const satisfies Record<string, HarnessV1BuiltinTool<any, any>>;
+
+export function createPi(
+  settings: PiHarnessSettings = {},
+): HarnessV1<typeof PI_BUILTIN_TOOLS> {
+  return {
+    specificationVersion: 'harness-v1',
+    harnessId: 'pi',
+    builtinTools: PI_BUILTIN_TOOLS,
+    resumeStateSchema: piResumeStateSchema,
+    doStart: async startOpts => {
+      if (startOpts.sandboxHandle == null) {
+        throw new HarnessCapabilityUnsupportedError({
+          harnessId: 'pi',
+          message:
+            'The pi harness requires a sandbox provider. Pass `sandbox` to the HarnessAgent constructor.',
+        });
+      }
+
+      const resumeData = startOpts.resumeFrom?.data as
+        | { sessionFileName?: string }
+        | undefined;
+
+      return createPiSession({
+        sessionId: startOpts.sessionId,
+        sandboxHandle: startOpts.sandboxHandle,
+        sessionWorkDir: startOpts.sessionWorkDir,
+        skills: startOpts.skills ?? [],
+        settings: {
+          ...(settings.auth ? { auth: settings.auth } : {}),
+          ...(settings.model ? { model: settings.model } : {}),
+          ...(settings.thinkingLevel
+            ? { thinkingLevel: settings.thinkingLevel }
+            : {}),
+        },
+        isResume: startOpts.resumeFrom != null,
+        ...(resumeData?.sessionFileName
+          ? { resumeSessionFileName: resumeData.sessionFileName }
+          : {}),
+        ...(startOpts.abortSignal
+          ? { abortSignal: startOpts.abortSignal }
+          : {}),
+      });
+    },
+  };
+}

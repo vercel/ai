@@ -30,6 +30,7 @@
     { "path": "packages/harness" },
     { "path": "packages/harness-claude-code" },
     { "path": "packages/harness-codex" },
+    { "path": "packages/harness-pi" },
     { "path": "packages/huggingface" },
     { "path": "packages/hume" },
     { "path": "packages/klingai" },
