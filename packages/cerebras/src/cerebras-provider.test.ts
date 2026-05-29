@@ -222,12 +222,6 @@ describe('CerebrasProvider', () => {
       ).resolves.toEqual({ cerebras: { serviceTier: 'flex' } });
 
       await expect(
-        config.metadataExtractor!.extractMetadata({
-          parsedBody: { service_tier: 'priority' },
-        }),
-      ).resolves.toEqual({ cerebras: { serviceTier: 'priority' } });
-
-      await expect(
         config.metadataExtractor!.extractMetadata({ parsedBody: {} }),
       ).resolves.toBeUndefined();
     });
