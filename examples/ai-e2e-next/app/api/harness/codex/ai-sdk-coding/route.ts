@@ -1,4 +1,4 @@
-import { aiSdkCodingCodexHarnessAgent } from '@/agent/harness/ai-sdk-coding-codex-agent';
+import { aiSdkCodingCodexHarnessAgent } from '@/agent/harness/codex/ai-sdk-coding-agent';
 import {
   getHarnessSession,
   setHarnessSession,

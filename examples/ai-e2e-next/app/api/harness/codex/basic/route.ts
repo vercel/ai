@@ -1,4 +1,4 @@
-import { codexHarnessAgent } from '@/agent/harness/codex-agent';
+import { codexHarnessAgent } from '@/agent/harness/codex/basic-agent';
 import {
   getHarnessSession,
   setHarnessSession,

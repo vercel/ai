@@ -1,4 +1,4 @@
-import { claudeCodeHarnessAgent } from '@/agent/harness/claude-code-agent';
+import { claudeCodeHarnessAgent } from '@/agent/harness/claude-code/basic-agent';
 import {
   getHarnessSession,
   setHarnessSession,

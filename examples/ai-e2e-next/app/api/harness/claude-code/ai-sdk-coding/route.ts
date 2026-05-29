@@ -1,4 +1,4 @@
-import { aiSdkCodingHarnessAgent } from '@/agent/harness/ai-sdk-coding-agent';
+import { aiSdkCodingHarnessAgent } from '@/agent/harness/claude-code/ai-sdk-coding-agent';
 import {
   getHarnessSession,
   setHarnessSession,

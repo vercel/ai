@@ -1,6 +1,6 @@
 'use client';
 
-import type { ClaudeCodeHarnessAgentMessage } from '@/agent/harness/claude-code-agent';
+import type { ClaudeCodeHarnessAgentMessage } from '@/agent/harness/claude-code/basic-agent';
 import { Response } from '@/components/ai-elements/response';
 import ChatInput from '@/components/chat-input';
 import DynamicToolView from '@/components/tool/dynamic-tool-view';

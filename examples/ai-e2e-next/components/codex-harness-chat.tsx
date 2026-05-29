@@ -1,6 +1,6 @@
 'use client';
 
-import type { CodexHarnessAgentMessage } from '@/agent/harness/codex-agent';
+import type { CodexHarnessAgentMessage } from '@/agent/harness/codex/basic-agent';
 import { Response } from '@/components/ai-elements/response';
 import ChatInput from '@/components/chat-input';
 import DynamicToolView from '@/components/tool/dynamic-tool-view';
