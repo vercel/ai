@@ -17,6 +17,7 @@ const VERCEL_PROVIDER_ID = 'vercel-sandbox';
  */
 export class VercelSandboxHandle implements HarnessV1SandboxHandle {
   readonly id: string;
+  readonly defaultWorkingDirectory: string;
   readonly session: VercelSandboxSession;
   private readonly sandbox: Sandbox;
   private readonly ownsLifecycle: boolean;
@@ -25,6 +26,7 @@ export class VercelSandboxHandle implements HarnessV1SandboxHandle {
     this.sandbox = input.sandbox;
     this.ownsLifecycle = input.ownsLifecycle;
     this.id = input.sandbox.name;
+    this.defaultWorkingDirectory = input.sandbox.currentSession().cwd;
     this.session = new VercelSandboxSession(input.sandbox);
   }
 

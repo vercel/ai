@@ -44,6 +44,7 @@ describe('createCodex adapter', () => {
     const harness = createCodex();
     const sandboxHandle = {
       id: 'test-sandbox',
+      defaultWorkingDirectory: '/vercel/sandbox',
       session: {} as never,
       ports: [] as ReadonlyArray<number>,
       async getPortUrl() {
@@ -52,7 +53,11 @@ describe('createCodex adapter', () => {
       async stop() {},
     };
     await expect(
-      harness.doStart({ sessionId: 's1', sandboxHandle }),
+      harness.doStart({
+        sessionId: 's1',
+        sandboxHandle,
+        sessionWorkDir: '/vercel/sandbox/codex-s1',
+      }),
     ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
   });
 

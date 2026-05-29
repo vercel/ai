@@ -169,6 +169,7 @@ export class HarnessAgent<
     }
 
     let sandboxHandle: HarnessV1SandboxHandle | undefined;
+    let sessionWorkDir: string | undefined;
     let leasedBridgePort: number | null = null;
     let recipe: HarnessV1Bootstrap | undefined;
     let identity: string | undefined;
@@ -195,6 +196,7 @@ export class HarnessAgent<
       });
       sandboxHandle = leased.handle;
       leasedBridgePort = leased.port;
+      sessionWorkDir = `${sandboxHandle.defaultWorkingDirectory}/${harness.harnessId}-${sessionId}`;
 
       // On resume the recipe is already baked into the sandbox snapshot;
       // skip re-applying it and skip the setup hook (it ran on the
@@ -209,9 +211,16 @@ export class HarnessAgent<
               { abortSignal },
             );
           }
+          // Create the session work dir before `setup` so the hook can
+          // operate against it (e.g. clone a repo into it).
+          await sandboxHandle.session.run({
+            command: `mkdir -p ${sessionWorkDir}`,
+            abortSignal,
+          });
           if (sandboxProvider.setup != null) {
             await sandboxProvider.setup({
               session: sandboxHandle.session,
+              sessionWorkDir,
               abortSignal,
             });
           }
@@ -228,13 +237,17 @@ export class HarnessAgent<
     }
 
     try {
-      const underlyingSession = await harness.doStart({
+      const baseStartOptions = {
         sessionId,
-        sandboxHandle,
         skills: this.settings.skills,
         resumeFrom: validatedResumeFrom,
         abortSignal,
-      });
+      };
+      const underlyingSession = await harness.doStart(
+        sandboxHandle != null && sessionWorkDir != null
+          ? { ...baseStartOptions, sandboxHandle, sessionWorkDir }
+          : baseStartOptions,
+      );
       return new HarnessAgentSession({
         sessionId,
         harness,
@@ -613,6 +626,7 @@ function narrowHandlePorts(
 ): HarnessV1SandboxHandle {
   return {
     id: handle.id,
+    defaultWorkingDirectory: handle.defaultWorkingDirectory,
     session: handle.session,
     ports: [leasedPort],
     getPortUrl: handle.getPortUrl,

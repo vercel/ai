@@ -23,6 +23,7 @@ function makeMockSandbox(overrides: Partial<MockSpies> = {}) {
     runCommand,
     stop,
     routes,
+    currentSession: () => ({ cwd: '/vercel/sandbox' }),
   } as unknown as Sandbox;
   return { sandbox, spies: { domain, update, runCommand, stop, routes } };
 }

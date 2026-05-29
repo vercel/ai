@@ -22,6 +22,19 @@ export interface HarnessV1SandboxHandle {
   readonly id: string;
 
   /**
+   * The sandbox's default working directory — the absolute path that
+   * `session.run`/`session.spawn` resolve relative commands against when no
+   * `workingDirectory` is given. Read from the live sandbox (it is
+   * provider-specific and configurable at create time: Vercel defaults to
+   * `/vercel/sandbox`, just-bash to `/home/user`), never hardcoded.
+   *
+   * The framework composes each session's working directory underneath this
+   * path (`<defaultWorkingDirectory>/<harnessId>-<sessionId>`) so adapters do
+   * not bake a provider-specific base into their own paths.
+   */
+  readonly defaultWorkingDirectory: string;
+
+  /**
    * Tool-safe view of the sandbox, typed as `Experimental_Sandbox`. Pass this
    * to any code that should not be able to stop the sandbox or change its
    * network policy.

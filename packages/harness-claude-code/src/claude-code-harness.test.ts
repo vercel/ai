@@ -48,6 +48,7 @@ describe('createClaudeCode adapter', () => {
       'EnterWorktree',
       'ExitWorktree',
       'AskUserQuestion',
+      'Skill',
     ]);
     expect(harness.builtinTools.read.nativeName).toBe('Read');
     expect(harness.builtinTools.read.commonName).toBe('read');
@@ -68,6 +69,7 @@ describe('createClaudeCode adapter', () => {
     const harness = createClaudeCode();
     const sandboxHandle = {
       id: 'test-sandbox',
+      defaultWorkingDirectory: '/vercel/sandbox',
       session: {} as never,
       ports: [] as ReadonlyArray<number>,
       async getPortUrl() {
@@ -76,7 +78,11 @@ describe('createClaudeCode adapter', () => {
       async stop() {},
     };
     await expect(
-      harness.doStart({ sessionId: 's1', sandboxHandle }),
+      harness.doStart({
+        sessionId: 's1',
+        sandboxHandle,
+        sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      }),
     ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
   });
 

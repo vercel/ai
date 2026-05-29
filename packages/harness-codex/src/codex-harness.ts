@@ -81,14 +81,13 @@ const CODEX_BUILTIN_TOOLS = {
  * reinstall the CLI and bridge files on any fresh sandbox from the recipe.
  * Persistence comes from the sandbox provider's snapshot, not the path.
  *
- * Per-session paths live under the Vercel sandbox persistent mount
- * (`/vercel/sandbox`) so the workdir's contents (the codex CLI shim and any
- * files the agent edits) and the bridge state files survive the detach ->
- * snapshot -> resume cycle.
+ * The session work dir (`startOpts.sessionWorkDir`) and the bridge-state dir
+ * derived from `handle.defaultWorkingDirectory` both live under the sandbox's
+ * default working directory — the provider's persistent mount — so the
+ * workdir's contents (the codex CLI shim and any files the agent edits) and
+ * the bridge state files survive the detach -> snapshot -> resume cycle.
  */
 const BOOTSTRAP_DIR = '/tmp/harness/codex';
-const SESSION_DATA_DIR_PREFIX = '/vercel/sandbox/.agent-runs';
-const WORKDIR_PREFIX = '/vercel/sandbox/codex';
 
 /**
  * Schema for the adapter-specific `HarnessV1ResumeState.data` payload Codex
@@ -139,7 +138,16 @@ export function createCodex(
       return cachedBootstrap;
     },
     doStart: async startOpts => {
-      const handle = requireHandle(startOpts.sandboxHandle);
+      // `sandboxHandle` and `sessionWorkDir` are coupled in
+      // `HarnessV1StartOptions`, so this one check narrows both.
+      if (startOpts.sandboxHandle == null) {
+        throw new HarnessCapabilityUnsupportedError({
+          harnessId: 'codex',
+          message:
+            'The codex harness requires a sandbox provider. Pass `sandbox` to the HarnessAgent constructor.',
+        });
+      }
+      const handle = startOpts.sandboxHandle;
       const { session } = handle;
       const isResume = startOpts.resumeFrom != null;
       const resumeThreadId =
@@ -151,9 +159,9 @@ export function createCodex(
           ? resumeThreadId
           : undefined;
 
-      const sessionDataDir = `${SESSION_DATA_DIR_PREFIX}/${startOpts.sessionId}`;
+      const workDir = startOpts.sessionWorkDir;
+      const sessionDataDir = `${handle.defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
       const bridgeStateDir = `${sessionDataDir}/bridge`;
-      const workDir = `${WORKDIR_PREFIX}-${startOpts.sessionId}`;
       const port = resolveBridgePort(handle, settings.port);
       const token = randomBytes(32).toString('hex');
       const env = {
@@ -200,19 +208,6 @@ export function createCodex(
       });
     },
   };
-}
-
-function requireHandle(
-  handle: HarnessV1SandboxHandle | undefined,
-): HarnessV1SandboxHandle {
-  if (!handle) {
-    throw new HarnessCapabilityUnsupportedError({
-      harnessId: 'codex',
-      message:
-        'The codex harness requires a sandbox provider. Pass `sandbox` to the HarnessAgent constructor.',
-    });
-  }
-  return handle;
 }
 
 function resolveBridgePort(

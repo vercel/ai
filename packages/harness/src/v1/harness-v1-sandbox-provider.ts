@@ -18,9 +18,17 @@ export interface HarnessV1ProviderSettings {
    * binaries), use the provider's native primitive (e.g. Vercel's
    * `source: { type: 'git' }`) or pre-build a sandbox externally and pass
    * it via the wrap-existing settings branch.
+   *
+   * `sessionWorkDir` is the directory the agent runs in for this session —
+   * the same path the harness adapter operates against. It is created before
+   * `setup` runs. The `session` here defaults its commands to the sandbox
+   * root, so to act on the agent's workspace pass `sessionWorkDir` explicitly
+   * (e.g. `session.run({ command: 'git clone … .', workingDirectory:
+   * sessionWorkDir })`).
    */
   readonly setup?: (opts: {
     readonly session: HarnessV1SandboxSession;
+    readonly sessionWorkDir: string;
     readonly abortSignal?: AbortSignal;
   }) => Promise<void>;
 }

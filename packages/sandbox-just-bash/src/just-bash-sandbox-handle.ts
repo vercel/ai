@@ -25,6 +25,7 @@ export class JustBashSandboxHandle implements HarnessV1SandboxHandle {
    * `HarnessV1SandboxHandle.id` contract.
    */
   readonly id: string;
+  readonly defaultWorkingDirectory: string;
   readonly session: JustBashSandboxSession;
   private readonly sandbox: Sandbox;
   private readonly ownsLifecycle: boolean;
@@ -33,6 +34,7 @@ export class JustBashSandboxHandle implements HarnessV1SandboxHandle {
     this.sandbox = input.sandbox;
     this.ownsLifecycle = input.ownsLifecycle;
     this.id = randomUUID();
+    this.defaultWorkingDirectory = input.sandbox.bashEnvInstance.getCwd();
     this.session = new JustBashSandboxSession(input.sandbox);
   }
 
