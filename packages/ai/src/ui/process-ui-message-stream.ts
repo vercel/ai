@@ -391,8 +391,15 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 state: 'streaming',
               };
               // PATCH: O(N²)→O(N) text accumulation via _chunks + lazy getter.
-              // See https://github.com/vercel/ai/issues/<NEW> for context.
-              (textPart as any)._chunks = [textPart.text || ''];
+              // See https://github.com/vercel/ai/issues/15670 for context.
+              // _chunks is non-enumerable so it doesn't leak through
+              // JSON.stringify / structuredClone / spread to consumers.
+              Object.defineProperty(textPart, '_chunks', {
+                value: [textPart.text || ''],
+                writable: true,
+                enumerable: false,
+                configurable: true,
+              });
               Object.defineProperty(textPart, 'text', {
                 get(): string {
                   const c = (this as any)._chunks;
@@ -469,7 +476,14 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 state: 'streaming',
               };
               // PATCH: O(N²)→O(N) reasoning accumulation via _chunks + lazy getter.
-              (reasoningPart as any)._chunks = [reasoningPart.text || ''];
+              // _chunks is non-enumerable so it doesn't leak through
+              // JSON.stringify / structuredClone / spread to consumers.
+              Object.defineProperty(reasoningPart, '_chunks', {
+                value: [reasoningPart.text || ''],
+                writable: true,
+                enumerable: false,
+                configurable: true,
+              });
               Object.defineProperty(reasoningPart, 'text', {
                 get(): string {
                   const c = (this as any)._chunks;

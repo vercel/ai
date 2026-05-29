@@ -1037,8 +1037,15 @@ class DefaultStreamTextResult<
 
           // PATCH: O(N²)→O(N) text accumulation. Init _chunks lazily; replace .text
           // with a lazy getter that materializes from the chunks array on read.
+          // _chunks is non-enumerable so it doesn't leak through
+          // JSON.stringify / structuredClone / spread to consumers.
           if (!(activeText as any)._chunks) {
-            (activeText as any)._chunks = [activeText.text || ''];
+            Object.defineProperty(activeText, '_chunks', {
+              value: [activeText.text || ''],
+              writable: true,
+              enumerable: false,
+              configurable: true,
+            });
             Object.defineProperty(activeText, 'text', {
               get(): string {
                 const c = (this as any)._chunks;
@@ -1104,7 +1111,12 @@ class DefaultStreamTextResult<
 
           // PATCH: O(N²)→O(N) reasoning accumulation. Same pattern as activeText above.
           if (!(activeReasoning as any)._chunks) {
-            (activeReasoning as any)._chunks = [activeReasoning.text || ''];
+            Object.defineProperty(activeReasoning, '_chunks', {
+              value: [activeReasoning.text || ''],
+              writable: true,
+              enumerable: false,
+              configurable: true,
+            });
             Object.defineProperty(activeReasoning, 'text', {
               get(): string {
                 const c = (this as any)._chunks;
