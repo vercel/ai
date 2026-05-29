@@ -248,8 +248,14 @@ The following optional provider options are available for Google Generative AI m
 - **serviceTier** _'standard' | 'flex' | 'priority'_
 
   Optional. The service tier to use for the request.
-  Set to 'flex' for 50% cheaper processing at the cost of increased latency.
-  Set to 'priority' for ultra-low latency at a 75-100% price premium over 'standard'.
+  Set to `'flex'` for 50% cheaper processing at the cost of increased latency.
+  Set to `'priority'` for ultra-low latency at a 75-100% price premium over `'standard'`.
+
+  Because Priority can be gracefully downgraded to Standard under load, the
+  tier the request actually ran on is surfaced on
+  `result.providerMetadata.google.serviceTier`. See
+  [Priority inference](https://ai.google.dev/gemini-api/docs/priority-inference)
+  and [Flex inference](https://ai.google.dev/gemini-api/docs/flex-inference).
 
 - **threshold** _string_
 
@@ -1090,8 +1096,9 @@ The following Zod features are known to not work with Google Generative AI:
 
 The [Gemini Interactions API](https://ai.google.dev/gemini-api/docs/interactions)
 (`POST /v1beta/interactions`) is a separate Google endpoint with server-side
-state, unified content blocks, first-class built-in tools, agent presets, and
-native multimodal image output. It is reached via the `google.interactions(...)`
+state, unified content blocks, first-class built-in tools, agent presets,
+managed agents that run in a sandboxed Linux environment, and native
+multimodal image output. It is reached via the `google.interactions(...)`
 factory:
 
 ```ts
@@ -1104,10 +1111,12 @@ const { text } = await generateText({
 });
 ```
 
-`google.interactions(...)` accepts either a model ID string (e.g.
-`'gemini-2.5-flash'`, `'gemini-3-pro-preview'`) or `{ agent: <name> }` to use
-a Gemini [agent preset](#agent-presets). The returned model can be passed to
-`generateText` and `streamText` like any other AI SDK language model.
+`google.interactions(...)` accepts a model ID string (e.g.
+`'gemini-2.5-flash'`, `'gemini-3-pro-preview'`), `{ agent: <name> }` to use
+a Gemini [agent preset](#agent-presets), or `{ managedAgent: <name> }` to
+invoke a [managed agent](#managed-agents) you created on Google's side.
+The returned model can be passed to `generateText` and `streamText` like
+any other AI SDK language model.
 
 <Note>
   Use `google(...)` for the standard `:generateContent` /
@@ -1212,6 +1221,22 @@ The following optional provider options are available:
 
   Alternative to the AI SDK `system` message. If both are set, the AI SDK
   `system` message wins and a warning is emitted.
+
+- **background** _boolean_
+
+  Run the interaction in the background. Required for agents whose
+  server-side workflow cannot complete within a single request/response;
+  rejected by agents that only support synchronous calls. When `true`,
+  the POST returns a non-terminal status and the SDK polls
+  `GET /interactions/{id}` until the work completes.
+
+- **environment** _string \| object_
+
+  Sandbox environment configuration for [managed agents](#managed-agents).
+  Pass `'remote'` to provision a fresh sandbox, an `environment_id`
+  string to reuse an existing one, or an object of the form
+  `{ type: 'remote', sources?, network? }` to preload files and/or
+  constrain outbound traffic. Only applies to agent calls.
 
 - **pollingTimeoutMs** _number_
 
@@ -1466,7 +1491,10 @@ Pass `{ agent: <name> }` to target a Gemini agent preset. The factory
 type-checks the agent name against the supported set:
 
 ```ts
-import { google } from '@ai-sdk/google';
+import {
+  google,
+  type GoogleLanguageModelInteractionsOptions,
+} from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const result = await generateText({
@@ -1475,27 +1503,142 @@ const result = await generateText({
   }),
   prompt:
     'Briefly summarize the most-cited papers on retrieval-augmented generation since 2024 (2-3 sentences).',
+  providerOptions: {
+    google: {
+      background: true,
+    } satisfies GoogleLanguageModelInteractionsOptions,
+  },
 });
 ```
 
-Agent calls run with `background: true` on the wire and the SDK polls the
-`GET /interactions/{id}` endpoint internally until the interaction
-completes. The default polling timeout is 30 minutes; raise it via
+Whether an agent runs synchronously or in the background depends on the
+agent. Long-running presets (such as the `deep-research-*` family)
+require `background: true` — the POST returns a non-terminal status and
+the SDK polls `GET /interactions/{id}` internally until the interaction
+completes. Other agents accept synchronous calls only and will reject
+`background: true`. Set the flag explicitly via
+`providerOptions.google.background`.
+
+The default polling timeout is 30 minutes; raise it via
 `pollingTimeoutMs` for slower agents:
 
 ```ts
+import {
+  google,
+  type GoogleLanguageModelInteractionsOptions,
+} from '@ai-sdk/google';
+import { generateText } from 'ai';
+
 await generateText({
   model: google.interactions({ agent: 'deep-research-max-preview-04-2026' }),
   prompt: 'Produce a long-form research brief on ...',
   providerOptions: {
     google: {
+      background: true,
       pollingTimeoutMs: 60 * 60 * 1000, // 1 hour
-    },
+    } satisfies GoogleLanguageModelInteractionsOptions,
   },
 });
 ```
 
 Agents also chain through `previousInteractionId` like model-id calls.
+
+### Managed Agents
+
+[Managed agents](https://ai.google.dev/gemini-api/docs/agents) run inside a
+sandboxed Linux environment provisioned per interaction. Pass the `environment`
+provider option to control how the sandbox is set up; the option is only
+accepted on agent calls.
+
+The simplest form provisions a fresh sandbox:
+
+```ts
+import {
+  google,
+  type GoogleLanguageModelInteractionsOptions,
+} from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: google.interactions({ agent: 'antigravity-preview-05-2026' }),
+  prompt: 'What is 2 + 2?',
+  providerOptions: {
+    google: {
+      environment: 'remote',
+    } satisfies GoogleLanguageModelInteractionsOptions,
+  },
+});
+```
+
+`environment` accepts three shapes:
+
+- `'remote'` — provision a fresh sandbox for this call.
+- any other string — an `environment_id` to reuse, forking the previous
+  sandbox so its filesystem and installed packages persist.
+- an object — provision a fresh sandbox and optionally preload `sources`
+  and/or constrain outbound traffic via `network`:
+
+```ts
+import {
+  google,
+  type GoogleLanguageModelInteractionsOptions,
+} from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+await generateText({
+  model: google.interactions({ agent: 'antigravity-preview-05-2026' }),
+  prompt:
+    'Read the file at /data/note.txt and tell me exactly what it contains.',
+  providerOptions: {
+    google: {
+      environment: {
+        type: 'remote',
+        sources: [
+          {
+            type: 'inline',
+            content: 'hello from the AI SDK example\n',
+            target: '/data/note.txt',
+          },
+        ],
+      },
+    } satisfies GoogleLanguageModelInteractionsOptions,
+  },
+});
+```
+
+Three source types are supported: `inline` (write a string into the
+sandbox at `target`), `repository` (clone a git repository — pass the
+URL as `source`), and `gcs` (mount a Google Cloud Storage prefix).
+
+The `network` field accepts the string `'disabled'` to block all
+outbound traffic, or an object with an `allowlist` array whose entries
+each carry a `domain` plus an optional `transform` array of header
+objects to inject into matching requests.
+
+#### Custom managed agents
+
+For user-defined agents that you created on Google's side via the
+Gemini API's `/v1beta/agents` endpoint, pass the agent's name through the dedicated
+`managedAgent` factory shape instead of `agent` (which only accepts
+known preset names):
+
+```ts
+import {
+  google,
+  type GoogleLanguageModelInteractionsOptions,
+} from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: google.interactions({ managedAgent: 'my-custom-agent' }),
+  prompt: 'Hello!',
+  providerOptions: {
+    google: {
+      environment: 'remote',
+    } satisfies GoogleLanguageModelInteractionsOptions,
+  },
+});
+```
 
 ### Streaming
 
@@ -1521,22 +1664,6 @@ for await (const textPart of result.textStream) {
 const googleMetadata = (await result.providerMetadata)?.google;
 console.log('Interaction id:', googleMetadata?.interactionId);
 ```
-
-### Runnable Examples
-
-Paired `generateText` + `streamText` examples live under:
-
-- `examples/ai-functions/src/generate-text/google/interactions-*.ts`
-- `examples/ai-functions/src/stream-text/google/interactions-*.ts`
-
-Notable examples: `interactions-basic`, `interactions-multi-turn-stateful`,
-`interactions-multi-turn-stateless`, `interactions-tool-call`,
-`interactions-google-search`, `interactions-image-output`,
-`interactions-image-output-modify`, `interactions-image-base64`,
-`interactions-image-reference`, `interactions-image-url`,
-`interactions-pdf`, `interactions-structured-output`,
-`interactions-service-tier`, `interactions-agent-single-turn`, and
-`interactions-agent-multi-turn`.
 
 ## Gemma Models
 
@@ -1767,6 +1894,29 @@ const { image } = await generateImage({
   directly with `generateText()`. See [Image Outputs](#image-outputs) for
   details.
 </Note>
+
+#### Google Search Grounding
+
+Gemini image models support [Google Search grounding](#google-search) through `providerOptions.google.googleSearch`. The value matches the args of `google.tools.googleSearch(...)`; pass `{}` to enable with defaults, or `{ searchTypes: { imageSearch: {} } }` to ground on reference photos.
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateImage } from 'ai';
+
+const result = await generateImage({
+  model: google.image('gemini-3.1-flash-image-preview'),
+  prompt:
+    'Search for live footage of the 2026 Super Bowl halftime show artist, then generate a close-up in space.',
+  providerOptions: {
+    google: {
+      googleSearch: { searchTypes: { imageSearch: {} } },
+    },
+  },
+});
+
+// Grounding metadata is forwarded onto the image result:
+console.log(result.providerMetadata?.google?.groundingMetadata);
+```
 
 #### Gemini Image Model Capabilities
 
