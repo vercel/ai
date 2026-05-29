@@ -255,6 +255,7 @@ export class HarnessAgent<
         sandboxHandle: sandboxHandle ?? null,
         sandboxProvider,
         leasedBridgePort,
+        sessionWorkDir,
       });
     } catch (error) {
       if (sandboxHandle != null) {
@@ -331,6 +332,7 @@ export class HarnessAgent<
     const session = options.session;
     const underlyingSession = session.getUnderlyingSession();
     const sandboxHandle = session.getSandboxHandle();
+    const sessionWorkDir = session.getSessionWorkDir();
 
     const prompt = this._normalizePrompt(options);
     const toolSpecs = this._toToolSpecs();
@@ -347,6 +349,7 @@ export class HarnessAgent<
       tools: this.tools,
       toolSpecs,
       sandboxSession: sandboxHandle?.session,
+      sessionWorkDir,
       runtimeContext,
       abortSignal: options.abortSignal,
     });
