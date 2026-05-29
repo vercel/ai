@@ -1,6 +1,7 @@
-import type {
-  LanguageModelV4Prompt,
-  LanguageModelV4StreamPart,
+import {
+  InvalidArgumentError,
+  type LanguageModelV4Prompt,
+  type LanguageModelV4StreamPart,
 } from '@ai-sdk/provider';
 import fs from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
@@ -411,6 +412,76 @@ describe('service tiers', () => {
 
       const finish = chunks.find(chunk => chunk.type === 'finish');
       expect(finish?.providerMetadata?.cerebras?.serviceTier).toBe('flex');
+    });
+  });
+
+  describe('option validation', () => {
+    function createModel() {
+      const { fetch } = createRecordingJsonFetchMock(
+        SERVICE_TIER_RESPONSE_BODY,
+      );
+      return createCerebras({ apiKey: 'test-api-key', fetch })('gpt-oss-120b');
+    }
+
+    it('rejects a queueThreshold below the valid range', async () => {
+      await expect(
+        createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: { cerebras: { queueThreshold: 5 } },
+        }),
+      ).rejects.toThrow(InvalidArgumentError);
+    });
+
+    it('rejects a queueThreshold above the valid range', async () => {
+      await expect(
+        createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: { cerebras: { queueThreshold: 25_000 } },
+        }),
+      ).rejects.toThrow(InvalidArgumentError);
+    });
+
+    it('rejects a non-integer queueThreshold', async () => {
+      await expect(
+        createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: { cerebras: { queueThreshold: 100.5 } },
+        }),
+      ).rejects.toThrow(InvalidArgumentError);
+    });
+
+    it('accepts the inclusive queueThreshold boundaries', async () => {
+      await expect(
+        createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: { cerebras: { queueThreshold: 50 } },
+        }),
+      ).resolves.toBeDefined();
+
+      await expect(
+        createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: { cerebras: { queueThreshold: 20_000 } },
+        }),
+      ).resolves.toBeDefined();
+    });
+
+    it('rejects an unknown serviceTier value', async () => {
+      await expect(
+        createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: { cerebras: { serviceTier: 'turbo' } },
+        }),
+      ).rejects.toThrow(InvalidArgumentError);
+    });
+
+    it('rejects invalid options on the streaming path too', async () => {
+      await expect(
+        createModel().doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: { cerebras: { queueThreshold: 5 } },
+        }),
+      ).rejects.toThrow(InvalidArgumentError);
     });
   });
 });
