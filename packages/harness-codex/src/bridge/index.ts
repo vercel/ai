@@ -570,9 +570,20 @@ function translateAndEmit(
   const id = item.id ?? randomUUID();
 
   if (item.type === 'agent_message' && typeof item.text === 'string') {
+    /*
+     * The presence of `id` in `textByItem` — not the `item.started` event —
+     * marks the text part as opened. Codex does not guarantee an
+     * `item.started` event carrying text precedes the first `item.updated`
+     * with text, so keying the `text-start` off the event type can emit a
+     * `text-delta` for a part that was never opened. Opening lazily on the
+     * first event with text keeps `text-start` before any `text-delta`.
+     */
+    if (!ctx.textByItem.has(id)) {
+      ctx.send({ type: 'text-start', id });
+      ctx.textByItem.set(id, '');
+    }
     const last = ctx.textByItem.get(id) ?? '';
     const next = item.text;
-    if (event.type === 'item.started') ctx.send({ type: 'text-start', id });
     if (next.length > last.length) {
       ctx.send({ type: 'text-delta', id, delta: next.slice(last.length) });
       ctx.textByItem.set(id, next);
@@ -582,10 +593,12 @@ function translateAndEmit(
   }
 
   if (item.type === 'reasoning' && typeof item.text === 'string') {
+    if (!ctx.reasoningByItem.has(id)) {
+      ctx.send({ type: 'reasoning-start', id });
+      ctx.reasoningByItem.set(id, '');
+    }
     const last = ctx.reasoningByItem.get(id) ?? '';
     const next = item.text;
-    if (event.type === 'item.started')
-      ctx.send({ type: 'reasoning-start', id });
     if (next.length > last.length) {
       ctx.send({ type: 'reasoning-delta', id, delta: next.slice(last.length) });
       ctx.reasoningByItem.set(id, next);
