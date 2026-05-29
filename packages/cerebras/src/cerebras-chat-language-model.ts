@@ -55,32 +55,6 @@ export class CerebrasChatLanguageModel
     return new CerebrasChatLanguageModel(options.modelId, options.config);
   }
 
-  /**
-   * Injects the `queue_threshold` header from the `queueThreshold` provider
-   * option. Cerebras only evaluates it for `flex`/`auto` requests.
-   */
-  private async applyQueueThresholdHeader(
-    options: LanguageModelV4CallOptions,
-  ): Promise<LanguageModelV4CallOptions> {
-    const cerebrasOptions = await parseProviderOptions({
-      provider: 'cerebras',
-      providerOptions: options.providerOptions,
-      schema: cerebrasChatProviderOptions,
-    });
-
-    if (cerebrasOptions?.queueThreshold == null) {
-      return options;
-    }
-
-    return {
-      ...options,
-      headers: {
-        ...options.headers,
-        queue_threshold: String(cerebrasOptions.queueThreshold),
-      },
-    };
-  }
-
   async doGenerate(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4GenerateResult> {
@@ -165,6 +139,28 @@ export class CerebrasChatLanguageModel
           },
         }),
       ),
+    };
+  }
+
+  private async applyQueueThresholdHeader(
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4CallOptions> {
+    const cerebrasOptions = await parseProviderOptions({
+      provider: 'cerebras',
+      providerOptions: options.providerOptions,
+      schema: cerebrasChatProviderOptions,
+    });
+
+    if (cerebrasOptions?.queueThreshold == null) {
+      return options;
+    }
+
+    return {
+      ...options,
+      headers: {
+        ...options.headers,
+        queue_threshold: String(cerebrasOptions.queueThreshold),
+      },
     };
   }
 }
