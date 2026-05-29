@@ -4,6 +4,13 @@
 
 ### Patch Changes
 
+- Updated dependencies [af580ea]
+  - ai@6.0.193
+
+## 0.0.1
+
+### Patch Changes
+
 - ai@6.0.192
 
 ## 0.0.1

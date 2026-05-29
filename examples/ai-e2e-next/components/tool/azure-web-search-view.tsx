@@ -1,10 +1,10 @@
 import type { azure } from '@ai-sdk/azure';
 import type { UIToolInvocation } from 'ai';
 
-export default function AzureWebSearchPreviewView({
+export default function AzureWebSearchView({
   invocation,
 }: {
-  invocation: UIToolInvocation<ReturnType<typeof azure.tools.webSearchPreview>>;
+  invocation: UIToolInvocation<ReturnType<typeof azure.tools.webSearch>>;
 }) {
   switch (invocation.state) {
     case 'input-available': {

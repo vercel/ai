@@ -1,5 +1,12 @@
 # @ai-sdk/langchain
 
+## 2.0.200
+
+### Patch Changes
+
+- Updated dependencies [af580ea]
+  - ai@6.0.193
+
 ## 2.0.199
 
 ### Patch Changes

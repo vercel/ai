@@ -1058,7 +1058,10 @@ describe('validateUIMessages', () => {
       });
     });
 
-    it('should validate tool input when state is output-error and there is input', async () => {
+    it('should not re-validate tool input when state is output-error', async () => {
+      // A tool call that failed with an invalid-input error keeps its (invalid)
+      // input. Re-validating it on replay would throw a TypeValidationError and
+      // crash follow-up messages, so output-error input is intentionally skipped.
       const messages = await validateUIMessages<TestMessage>({
         messages: [
           {
@@ -1069,9 +1072,9 @@ describe('validateUIMessages', () => {
                 type: 'tool-foo',
                 toolCallId: '1',
                 state: 'output-error',
-                input: { foo: 'bar' },
-                errorText: 'Tool execution failed',
-                providerExecuted: true,
+                input: { foo: 123 } as unknown as { foo: string },
+                errorText: 'AI_InvalidToolInputError',
+                providerExecuted: false,
               },
             ],
           },
@@ -1088,11 +1091,11 @@ describe('validateUIMessages', () => {
             "id": "1",
             "parts": [
               {
-                "errorText": "Tool execution failed",
+                "errorText": "AI_InvalidToolInputError",
                 "input": {
-                  "foo": "bar",
+                  "foo": 123,
                 },
-                "providerExecuted": true,
+                "providerExecuted": false,
                 "state": "output-error",
                 "toolCallId": "1",
                 "type": "tool-foo",
