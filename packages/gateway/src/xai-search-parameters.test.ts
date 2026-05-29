@@ -5,24 +5,24 @@ import {
 } from './xai-search-parameters';
 
 describe('xaiSearchParameters', () => {
-  it('defaults mode to "auto" when no config is passed', () => {
+  it('defaults mode to "on" when no config is passed', () => {
     const result = xaiSearchParameters();
-    expect(result).toEqual({ mode: 'auto' });
+    expect(result).toEqual({ mode: 'on' });
   });
 
-  it('defaults mode to "auto" when only other fields are set', () => {
+  it('defaults mode to "on" when only other fields are set', () => {
     const result = xaiSearchParameters({ maxSearchResults: 5 });
-    expect(result).toEqual({ mode: 'auto', maxSearchResults: 5 });
+    expect(result).toEqual({ mode: 'on', maxSearchResults: 5 });
   });
 
   it('preserves an explicit mode over the default', () => {
-    expect(xaiSearchParameters({ mode: 'on' }).mode).toBe('on');
+    expect(xaiSearchParameters({ mode: 'auto' }).mode).toBe('auto');
     expect(xaiSearchParameters({ mode: 'off' }).mode).toBe('off');
   });
 
   it('treats explicit mode: undefined the same as omitted', () => {
     const result = xaiSearchParameters({ mode: undefined });
-    expect(result.mode).toBe('auto');
+    expect(result.mode).toBe('on');
   });
 
   it('passes through all optional fields verbatim', () => {
@@ -44,6 +44,7 @@ describe('xaiSearchParameters', () => {
 
   it('passes through the sources discriminated union for all four types', () => {
     const result = xaiSearchParameters({
+      mode: 'on',
       sources: [
         {
           type: 'web',
@@ -82,6 +83,6 @@ describe('xaiSearchParameters', () => {
     const result: XaiSearchParameters = xaiSearchParameters({
       maxSearchResults: 3,
     });
-    expect(result.mode).toBe('auto');
+    expect(result.mode).toBe('on');
   });
 });

@@ -76,8 +76,9 @@ export type XaiSearchSource =
 export interface XaiSearchParametersConfig {
   /**
    * Search mode preference.
-   * - `'auto'` (default): the model decides whether to search.
-   * - `'on'`: always invoke Live Search.
+   * - `'on'` (default): always invoke Live Search. Matches xAI's documented
+   *   default for `search_parameters.mode`.
+   * - `'auto'`: the model decides whether to search.
    * - `'off'`: disable Live Search (equivalent to omitting `searchParameters`).
    */
   mode?: 'auto' | 'off' | 'on';
@@ -122,7 +123,7 @@ export interface XaiSearchParameters extends JSONObject {
 
 /**
  * Build a typed `searchParameters` object for xAI Grok models, with `mode`
- * defaulted to `'auto'`.
+ * defaulted to `'on'` (xAI's documented default for `search_parameters.mode`).
  *
  * This is a config builder, not an AI SDK tool: xAI Live Search is
  * provider-native and dispatched automatically by xAI when relevant. Pass the
@@ -162,5 +163,5 @@ export interface XaiSearchParameters extends JSONObject {
 export function xaiSearchParameters(
   config: XaiSearchParametersConfig = {},
 ): XaiSearchParameters {
-  return { ...config, mode: config.mode ?? 'auto' };
+  return { ...config, mode: config.mode ?? 'on' };
 }
