@@ -536,12 +536,29 @@ async function runTurn({
             const nativeName =
               nativeToolCallNames.get(block.tool_use_id) ?? 'unknown';
             nativeToolCallNames.delete(block.tool_use_id);
+            const toolName = toCommonName(nativeName);
+            const isError = !!block.is_error;
+            const content = stringifyContent(block.content);
+            /*
+             * Claude Code's Bash tool does not report the command's real
+             * numeric exit code — the SDK exposes only stdout/stderr text and
+             * an is_error flag. Consumers (and the example UI) render bash
+             * failures from an `exitCode` field on a structured result, the
+             * shape Codex's shell tool provides natively. To match it, derive
+             * a binary code from is_error: 1 on failure, 0 on success. This is
+             * a stand-in for failed/succeeded, not the process's true exit
+             * status.
+             */
+            const result =
+              toolName === 'bash'
+                ? { exitCode: isError ? 1 : 0, stdout: content }
+                : content;
             send({
               type: 'tool-result',
               toolCallId: block.tool_use_id,
-              toolName: toCommonName(nativeName),
-              result: stringifyContent(block.content),
-              isError: !!block.is_error,
+              toolName,
+              result,
+              isError,
             });
           }
         }
