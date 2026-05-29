@@ -9,13 +9,34 @@ import { VercelSandboxHandle } from './vercel-sandbox-handle';
 import { VercelSandboxSession } from './vercel-sandbox-session';
 
 /**
+ * Flattens an intersection of object types into a single object type so the
+ * resolved shape displays as its named properties rather than a chain of
+ * `A & B & C`.
+ */
+type Prettify<T> = { [K in keyof T]: T[K] } & {};
+
+/**
+ * Distributes `Omit` across each member of a union instead of collapsing the
+ * union to its common keys. `Sandbox.create`'s parameter is a union (a
+ * git/tarball/no-source create variant and a snapshot-source create variant),
+ * so a plain `Omit` would discard keys absent from any one member (e.g.
+ * `runtime`, which the snapshot variant lacks) and merge the `source` shapes.
+ * Applying `Omit` per-member preserves every variant intact; the `Prettify`
+ * wrapper collapses each member's intersections into a readable object shape.
+ */
+type DistributiveOmit<T, K extends keyof any> = T extends unknown
+  ? Prettify<Omit<T, K>>
+  : never;
+
+/**
  * Parameters forwarded to `@vercel/sandbox`'s `Sandbox.create` when creating
  * a sandbox from scratch. Aliased directly from the underlying SDK so the
  * full surface — every option Vercel supports, including its native
  * `NetworkPolicy` — is available without us re-declaring it.
  */
-type VercelSandboxCreateParams = NonNullable<
-  Parameters<typeof Sandbox.create>[0]
+type VercelSandboxCreateParams = DistributiveOmit<
+  NonNullable<Parameters<typeof Sandbox.create>[0]>,
+  'onResume'
 >;
 
 /**

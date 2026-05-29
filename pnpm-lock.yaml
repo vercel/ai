@@ -105,6 +105,9 @@ importers:
       '@ai-sdk/harness-claude-code':
         specifier: workspace:*
         version: link:../../packages/harness-claude-code
+      '@ai-sdk/harness-codex':
+        specifier: workspace:*
+        version: link:../../packages/harness-codex
       '@ai-sdk/mcp':
         specifier: workspace:*
         version: link:../../packages/mcp
@@ -166,8 +169,8 @@ importers:
         specifier: ^0.26.0
         version: 0.26.0
       '@vercel/sandbox':
-        specifier: ^2.0.0-beta.20
-        version: 2.0.0-beta.20
+        specifier: ^2.0.1
+        version: 2.0.1
       ai:
         specifier: workspace:*
         version: link:../../packages/ai
@@ -416,8 +419,8 @@ importers:
         specifier: ^1.7.0
         version: 1.7.0(valibot@1.1.0(typescript@5.8.3))
       '@vercel/sandbox':
-        specifier: ^2.0.0-beta.20
-        version: 2.0.0-beta.20
+        specifier: ^2.0.1
+        version: 2.0.1
       ai:
         specifier: workspace:*
         version: link:../../packages/ai
@@ -3235,8 +3238,8 @@ importers:
         specifier: workspace:*
         version: link:../../tools/tsconfig
       '@vercel/sandbox':
-        specifier: ^2.0.0-beta.20
-        version: 2.0.0-beta.20
+        specifier: ^2.0.1
+        version: 2.0.1
       tsup:
         specifier: ^8.5.1
         version: 8.5.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(jiti@2.7.0)(postcss@8.5.14)(tsx@4.22.0)(typescript@5.8.3)(yaml@2.9.0)
@@ -11156,8 +11159,8 @@ packages:
     resolution: {integrity: sha512-wo+jCycmCX078vQSbkX+RcLvySONDCK0f9aQp5UMKQD1+B+xKt3YVbIYbZukvoHQpbm5nnk6If+ADSeK/PmCgQ==}
     engines: {node: '>=20.0.0'}
 
-  '@vercel/sandbox@2.0.0-beta.20':
-    resolution: {integrity: sha512-un86NbcvGT4pX66X6uTH+aL6Hi0xVXiDrRIlTbNOTApugZysBdySKtwzB9xpQSrmYtk8nvW7HUd8X4Z1tBtKWA==}
+  '@vercel/sandbox@2.0.1':
+    resolution: {integrity: sha512-Q1PZVcTORgEMWAK63ga5h3Yfb5EIGpZAn25nJBw0bwA6Gu8rp7em58/OnpjduXsT408hhY6QP63ACWPM3acYPg==}
 
   '@vitejs/plugin-basic-ssl@2.1.0':
     resolution: {integrity: sha512-dOxxrhgyDIEUADhb/8OlV9JIqYLgos03YorAueTIeOUskLJSEsfwCByjbu98ctXitUN3znXKp0bYD/WHSudCeA==}
@@ -29367,11 +29370,12 @@ snapshots:
       mixpart: 0.0.5
       picocolors: 1.1.1
 
-  '@vercel/sandbox@2.0.0-beta.20':
+  '@vercel/sandbox@2.0.1':
     dependencies:
       '@vercel/oidc': 3.2.0
       '@workflow/serde': 4.1.0-beta.2
       async-retry: 1.3.3
+      jose: 6.2.3
       jsonlines: 0.1.1
       ms: 2.1.3
       picocolors: 1.1.1

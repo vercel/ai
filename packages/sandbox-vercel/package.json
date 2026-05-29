@@ -39,12 +39,12 @@
     "@ai-sdk/provider-utils": "workspace:*"
   },
   "peerDependencies": {
-    "@vercel/sandbox": "^2.0.0-beta.20"
+    "@vercel/sandbox": "^2.0.1"
   },
   "devDependencies": {
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
-    "@vercel/sandbox": "^2.0.0-beta.20",
+    "@vercel/sandbox": "^2.0.1",
     "tsup": "^8.5.1",
     "typescript": "5.8.3"
   },
