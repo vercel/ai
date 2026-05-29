@@ -1,4 +1,7 @@
-import { cerebras, type CerebrasChatProviderOptions } from '@ai-sdk/cerebras';
+import {
+  cerebras,
+  type CerebrasLanguageModelChatOptions,
+} from '@ai-sdk/cerebras';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
@@ -12,7 +15,7 @@ run(async () => {
         serviceTier: 'auto',
         // Reject the request if the expected flex queue time exceeds 200ms.
         queueThreshold: 200,
-      } satisfies CerebrasChatProviderOptions,
+      } satisfies CerebrasLanguageModelChatOptions,
     },
   });
 

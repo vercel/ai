@@ -13,7 +13,7 @@ import {
   WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
 import {
-  cerebrasChatProviderOptions,
+  cerebrasLanguageModelChatOptions,
   type CerebrasChatModelId,
 } from './cerebras-chat-language-model-options';
 
@@ -148,7 +148,7 @@ export class CerebrasChatLanguageModel
     const cerebrasOptions = await parseProviderOptions({
       provider: 'cerebras',
       providerOptions: options.providerOptions,
-      schema: cerebrasChatProviderOptions,
+      schema: cerebrasLanguageModelChatOptions,
     });
 
     if (cerebrasOptions?.queueThreshold == null) {

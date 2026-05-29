@@ -2,7 +2,7 @@ import { z } from 'zod/v4';
 
 export type { CerebrasChatModelId } from './cerebras-chat-options';
 
-export const cerebrasChatProviderOptions = z.object({
+export const cerebrasLanguageModelChatOptions = z.object({
   /**
    * Controls the processing priority of the request.
    *
@@ -26,6 +26,6 @@ export const cerebrasChatProviderOptions = z.object({
   queueThreshold: z.number().int().min(50).max(20000).optional(),
 });
 
-export type CerebrasChatProviderOptions = z.infer<
-  typeof cerebrasChatProviderOptions
+export type CerebrasLanguageModelChatOptions = z.infer<
+  typeof cerebrasLanguageModelChatOptions
 >;
