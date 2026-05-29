@@ -1,6 +1,12 @@
 import type { Sandbox } from '@vercel/sandbox';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createVercelSandbox } from './vercel-sandbox';
+
+const { createMock } = vi.hoisted(() => ({ createMock: vi.fn() }));
+
+vi.mock('@vercel/sandbox', () => ({
+  Sandbox: { create: createMock },
+}));
 
 type MockSpies = {
   domain: ReturnType<typeof vi.fn>;
@@ -202,5 +208,32 @@ describe('createVercelSandbox (wrap existing)', () => {
       const provider = createVercelSandbox({ sandbox, setup });
       expect(provider.setup).toBe(setup);
     });
+  });
+});
+
+describe('createVercelSandbox (create from scratch)', () => {
+  beforeEach(() => {
+    createMock.mockReset();
+  });
+
+  it('applies a 30 minute default timeout when none is provided', async () => {
+    const { sandbox } = makeMockSandbox();
+    createMock.mockResolvedValueOnce(sandbox);
+
+    await createVercelSandbox({}).create();
+
+    expect(createMock).toHaveBeenCalledTimes(1);
+    expect(createMock.mock.calls[0][0]).toMatchObject({
+      timeout: 30 * 60 * 1_000,
+    });
+  });
+
+  it('respects an explicitly provided timeout', async () => {
+    const { sandbox } = makeMockSandbox();
+    createMock.mockResolvedValueOnce(sandbox);
+
+    await createVercelSandbox({ timeout: 60_000 }).create();
+
+    expect(createMock.mock.calls[0][0]).toMatchObject({ timeout: 60_000 });
   });
 });

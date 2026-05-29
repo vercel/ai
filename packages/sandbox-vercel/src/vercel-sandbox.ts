@@ -65,6 +65,12 @@ export type VercelSandboxSettings = HarnessV1ProviderSettings &
       })
   );
 
+/**
+ * 30 minutes. The `@vercel/sandbox` SDK defaults to 5 minutes which is
+ * too short for multi-step workflows — the VM expires between steps.
+ */
+const DEFAULT_SANDBOX_TIMEOUT_MS = 30 * 60 * 1_000;
+
 const VERCEL_PROVIDER_ID = 'vercel-sandbox';
 const TEMPLATE_NAME_PREFIX = 'ai-sdk-harness';
 const SESSION_NAME_PREFIX = 'ai-sdk-harness-session';
@@ -135,7 +141,10 @@ export class VercelSandboxProvider implements HarnessV1SandboxProvider {
       name: explicitName,
       ...createParams
     } = settings;
-    const baseParams: BaseCreateSandboxParams = createParams;
+    const baseParams: BaseCreateSandboxParams = {
+      ...createParams,
+      timeout: createParams.timeout ?? DEFAULT_SANDBOX_TIMEOUT_MS,
+    };
 
     const identity = options?.identity;
     const onFirstCreate = options?.onFirstCreate;
