@@ -19,6 +19,17 @@ export const aiSdkCodingHarnessAgent = new HarnessAgent({
           `Failed to clone vercel/ai (exit ${result.exitCode}): ${result.stderr}`,
         );
       }
+
+      const installResult = await session.run({
+        command: 'pnpm install',
+        workingDirectory: sessionWorkDir,
+        abortSignal,
+      });
+      if (installResult.exitCode !== 0) {
+        throw new Error(
+          `Failed to install dependencies (exit ${installResult.exitCode}): ${installResult.stderr}`,
+        );
+      }
     },
   }),
 });
