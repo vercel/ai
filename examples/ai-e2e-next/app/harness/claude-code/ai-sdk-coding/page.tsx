@@ -3,9 +3,9 @@
 import ClaudeCodeHarnessChat from '@/components/claude-code-harness-chat';
 import { useEffect, useState } from 'react';
 
-const STORAGE_KEY = 'harness-claude-code-basic-chat-id';
+const STORAGE_KEY = 'harness-claude-code-ai-sdk-coding-chat-id';
 
-export default function HarnessClaudeCodePage() {
+export default function HarnessClaudeCodeAiSdkCodingPage() {
   const [chatId, setChatId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -26,8 +26,8 @@ export default function HarnessClaudeCodePage() {
   return (
     <ClaudeCodeHarnessChat
       chatId={chatId}
-      apiRoute="/api/harness/claude-code/basic"
-      exampleLabel="Basic"
+      apiRoute="/api/harness/claude-code/ai-sdk-coding"
+      exampleLabel="AI SDK Checkout"
       onReset={() => {
         window.localStorage.removeItem(STORAGE_KEY);
         window.location.reload();

@@ -3,11 +3,23 @@ import { claudeCode } from '@ai-sdk/harness-claude-code';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import type { InferUITools, UIMessage } from 'ai';
 
-export const claudeCodeHarnessAgent = new HarnessAgent({
+export const aiSdkCodingHarnessAgent = new HarnessAgent({
   harness: claudeCode,
   sandbox: createVercelSandbox({
     runtime: 'node24',
     ports: [4000],
+    setup: async ({ session, sessionWorkDir, abortSignal }) => {
+      const result = await session.run({
+        command: 'git clone --depth 1 https://github.com/vercel/ai.git .',
+        workingDirectory: sessionWorkDir,
+        abortSignal,
+      });
+      if (result.exitCode !== 0) {
+        throw new Error(
+          `Failed to clone vercel/ai (exit ${result.exitCode}): ${result.stderr}`,
+        );
+      }
+    },
   }),
 });
 
@@ -20,12 +32,12 @@ export const claudeCodeHarnessAgent = new HarnessAgent({
  * through the `tools` field side-steps the issue while preserving the same
  * concrete UIMessage shape.
  *
- * TODO: revert to `InferAgentUIMessage<typeof claudeCodeHarnessAgent>` once
+ * TODO: revert to `InferAgentUIMessage<typeof aiSdkCodingHarnessAgent>` once
  * `session` is supported natively as part of `AgentCallParameters`, so the
  * intersection in HarnessAgent's generate/stream parameters can be dropped.
  */
-export type ClaudeCodeHarnessAgentMessage = UIMessage<
+export type AiSdkCodingHarnessAgentMessage = UIMessage<
   unknown,
   never,
-  InferUITools<typeof claudeCodeHarnessAgent.tools>
+  InferUITools<typeof aiSdkCodingHarnessAgent.tools>
 >;

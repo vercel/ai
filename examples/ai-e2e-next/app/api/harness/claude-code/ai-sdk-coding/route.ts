@@ -1,4 +1,4 @@
-import { claudeCodeHarnessAgent } from '@/agent/harness/claude-code-agent';
+import { aiSdkCodingHarnessAgent } from '@/agent/harness/ai-sdk-coding-agent';
 import {
   getHarnessSession,
   setHarnessSession,
@@ -31,11 +31,11 @@ export async function POST(request: Request) {
 
   let session = getHarnessSession(chatId);
   if (session == null) {
-    session = await claudeCodeHarnessAgent.createSession();
+    session = await aiSdkCodingHarnessAgent.createSession();
     setHarnessSession(chatId, session);
   }
 
-  const result = await claudeCodeHarnessAgent.stream({ session, prompt });
+  const result = await aiSdkCodingHarnessAgent.stream({ session, prompt });
 
   return createUIMessageStreamResponse({
     stream: toUIMessageStream({ stream: result.stream }),
