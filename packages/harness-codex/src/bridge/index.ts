@@ -21,6 +21,26 @@ import {
 } from './cli-relay';
 import { argv, env as procEnv, pid, stdout } from 'node:process';
 
+/*
+ * CONSTRAINT — the third-party imports below are NEVER bundled into the
+ * compiled `bridge/index.mjs`. They are declared `external` in
+ * tsup.config.ts and resolved at runtime from the node_modules that this
+ * bridge installs *inside the sandbox* from `src/bridge/package.json` (and
+ * its pinned `pnpm-lock.yaml`). That bridge package.json — NOT this host
+ * package — is the single source of truth for these packages and their
+ * versions; the published `@ai-sdk/harness-codex` package does not provide
+ * them at runtime.
+ *
+ * When adding or changing a third-party import here you MUST keep all three
+ * in sync, or the bridge will either get the dependency bundled in or fail
+ * to resolve it in the sandbox:
+ *   1. the import statement below,
+ *   2. the `external` array in tsup.config.ts, and
+ *   3. the dependency entry in `src/bridge/package.json`.
+ */
+import * as codexSdkModule from '@openai/codex-sdk';
+import { WebSocketServer } from 'ws';
+
 const PROTOCOL_VERSION = 1;
 
 /*
@@ -93,9 +113,7 @@ async function writeStartConfig(start: unknown): Promise<void> {
 void writeBridgeMeta('init');
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const { WebSocketServer } = (await import('ws')) as any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const codexSdk = (await import('@openai/codex-sdk')) as any;
+const codexSdk = codexSdkModule as any;
 
 const bridgeWsPort = parseInt(procEnv.BRIDGE_WS_PORT ?? '0', 10);
 const wss = new WebSocketServer({ port: bridgeWsPort, host: '0.0.0.0' });
