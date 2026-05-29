@@ -38,6 +38,67 @@ function createJsonFixtureFetchMock(filename: string) {
   );
 }
 
+function createRecordingJsonFetchMock(body: unknown) {
+  const calls: { init: RequestInit | undefined }[] = [];
+  const fetch = vi.fn(
+    (_input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+      calls.push({ init });
+      return Promise.resolve(
+        new Response(JSON.stringify(body), {
+          headers: { 'content-type': 'application/json' },
+        }),
+      );
+    },
+  );
+  return { fetch, calls };
+}
+
+function createRecordingStreamFetchMock(chunks: unknown[]) {
+  const calls: { init: RequestInit | undefined }[] = [];
+  const fetch = vi.fn(
+    (_input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+      calls.push({ init });
+      const body = [
+        ...chunks.map(chunk => `data: ${JSON.stringify(chunk)}\n\n`),
+        'data: [DONE]\n\n',
+      ].join('');
+      return Promise.resolve(
+        new Response(body, {
+          headers: { 'content-type': 'text/event-stream' },
+        }),
+      );
+    },
+  );
+  return { fetch, calls };
+}
+
+const SERVICE_TIER_RESPONSE_BODY = {
+  id: 'chatcmpl-test',
+  model: 'gpt-oss-120b',
+  choices: [
+    {
+      message: { role: 'assistant', content: 'blue' },
+      finish_reason: 'stop',
+    },
+  ],
+  usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+};
+
+const SERVICE_TIER_STREAM_CHUNKS = [
+  {
+    id: 'chatcmpl-test',
+    model: 'gpt-oss-120b',
+    choices: [{ delta: { role: 'assistant', content: 'blue' } }],
+  },
+  {
+    id: 'chatcmpl-test',
+    model: 'gpt-oss-120b',
+    choices: [{ delta: {}, finish_reason: 'stop' }],
+    usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+    service_tier_used: 'flex',
+  },
+];
+
 function createStreamFixtureFetchMock(filename: string) {
   const chunks = fs
     .readFileSync(`src/fixtures/${filename}.chunks.txt`, 'utf8')
@@ -248,6 +309,108 @@ describe('doStream', () => {
           },
         ]
       `);
+    });
+  });
+});
+
+describe('service tiers', () => {
+  describe('doGenerate', () => {
+    it('sends service_tier in the body and the queue_threshold header', async () => {
+      const { fetch, calls } = createRecordingJsonFetchMock(
+        SERVICE_TIER_RESPONSE_BODY,
+      );
+      const model = createCerebras({ apiKey: 'test-api-key', fetch })(
+        'gpt-oss-120b',
+      );
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          cerebras: { serviceTier: 'flex', queueThreshold: 200 },
+        },
+      });
+
+      const init = calls[0].init!;
+      const body = JSON.parse(init.body as string);
+      expect(body.service_tier).toBe('flex');
+      // camelCase passthrough keys must not leak into the body:
+      expect(body.serviceTier).toBeUndefined();
+      expect(body.queueThreshold).toBeUndefined();
+
+      const headers = new Headers(init.headers as HeadersInit);
+      expect(headers.get('queue_threshold')).toBe('200');
+    });
+
+    it('omits the queue_threshold header when queueThreshold is not set', async () => {
+      const { fetch, calls } = createRecordingJsonFetchMock(
+        SERVICE_TIER_RESPONSE_BODY,
+      );
+      const model = createCerebras({ apiKey: 'test-api-key', fetch })(
+        'gpt-oss-120b',
+      );
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: { cerebras: { serviceTier: 'auto' } },
+      });
+
+      const headers = new Headers(calls[0].init!.headers as HeadersInit);
+      expect(headers.get('queue_threshold')).toBeNull();
+    });
+
+    it('exposes the effective service tier from service_tier_used', async () => {
+      const { fetch } = createRecordingJsonFetchMock({
+        ...SERVICE_TIER_RESPONSE_BODY,
+        service_tier_used: 'flex',
+      });
+      const model = createCerebras({ apiKey: 'test-api-key', fetch })(
+        'gpt-oss-120b',
+      );
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: { cerebras: { serviceTier: 'auto' } },
+      });
+
+      expect(result.providerMetadata?.cerebras?.serviceTier).toBe('flex');
+    });
+
+    it('does not set serviceTier metadata when the response omits it', async () => {
+      const { fetch } = createRecordingJsonFetchMock(
+        SERVICE_TIER_RESPONSE_BODY,
+      );
+      const model = createCerebras({ apiKey: 'test-api-key', fetch })(
+        'gpt-oss-120b',
+      );
+
+      const result = await model.doGenerate({ prompt: TEST_PROMPT });
+
+      expect(result.providerMetadata?.cerebras?.serviceTier).toBeUndefined();
+    });
+  });
+
+  describe('doStream', () => {
+    it('sends the queue_threshold header and exposes the effective tier', async () => {
+      const { fetch, calls } = createRecordingStreamFetchMock(
+        SERVICE_TIER_STREAM_CHUNKS,
+      );
+      const model = createCerebras({ apiKey: 'test-api-key', fetch })(
+        'gpt-oss-120b',
+      );
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          cerebras: { serviceTier: 'flex', queueThreshold: 150 },
+        },
+      });
+      const chunks = await convertStreamToArray(stream);
+
+      const headers = new Headers(calls[0].init!.headers as HeadersInit);
+      expect(headers.get('queue_threshold')).toBe('150');
+
+      const finish = chunks.find(chunk => chunk.type === 'finish');
+      expect(finish?.providerMetadata?.cerebras?.serviceTier).toBe('flex');
     });
   });
 });

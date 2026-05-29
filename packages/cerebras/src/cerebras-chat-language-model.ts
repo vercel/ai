@@ -7,11 +7,15 @@ import type {
   LanguageModelV4StreamResult,
 } from '@ai-sdk/provider';
 import {
+  parseProviderOptions,
   serializeModelOptions,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
-import type { CerebrasChatModelId } from './cerebras-chat-language-model-options';
+import {
+  cerebrasChatProviderOptions,
+  type CerebrasChatModelId,
+} from './cerebras-chat-language-model-options';
 
 type CerebrasChatConfig = ConstructorParameters<
   typeof OpenAICompatibleChatLanguageModel
@@ -51,10 +55,38 @@ export class CerebrasChatLanguageModel
     return new CerebrasChatLanguageModel(options.modelId, options.config);
   }
 
+  /**
+   * Injects the `queue_threshold` header from the `queueThreshold` provider
+   * option. Cerebras only evaluates it for `flex`/`auto` requests.
+   */
+  private async applyQueueThresholdHeader(
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4CallOptions> {
+    const cerebrasOptions = await parseProviderOptions({
+      provider: 'cerebras',
+      providerOptions: options.providerOptions,
+      schema: cerebrasChatProviderOptions,
+    });
+
+    if (cerebrasOptions?.queueThreshold == null) {
+      return options;
+    }
+
+    return {
+      ...options,
+      headers: {
+        ...options.headers,
+        queue_threshold: String(cerebrasOptions.queueThreshold),
+      },
+    };
+  }
+
   async doGenerate(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4GenerateResult> {
-    const result = await super.doGenerate(options);
+    const result = await super.doGenerate(
+      await this.applyQueueThresholdHeader(options),
+    );
 
     if (
       !isStructuredOutputWithToolCallsFinishReason({
@@ -83,7 +115,9 @@ export class CerebrasChatLanguageModel
   async doStream(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4StreamResult> {
-    const result = await super.doStream(options);
+    const result = await super.doStream(
+      await this.applyQueueThresholdHeader(options),
+    );
     let hasText = false;
 
     return {
