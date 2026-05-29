@@ -1888,6 +1888,105 @@ describe('AnthropicLanguageModel', () => {
       });
     });
 
+    it('should default disableParallelToolUse to true for json tool responses with other tools', async () => {
+      prepareJsonFixtureResponse('anthropic-json-other-tool.1');
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'function',
+            name: 'get-weather',
+            description: 'Get the weather in a location',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                location: { type: 'string' },
+              },
+              required: ['location'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+        providerOptions: {
+          anthropic: {
+            structuredOutputMode: 'jsonTool',
+          } satisfies AnthropicLanguageModelOptions,
+        },
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: {
+              weather: { type: 'string' },
+              temperature: { type: 'number' },
+            },
+            required: ['weather', 'temperature'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        tool_choice: {
+          type: 'any',
+          disable_parallel_tool_use: true,
+        },
+      });
+    });
+
+    it('should respect disableParallelToolUse false for json tool responses with other tools', async () => {
+      prepareJsonFixtureResponse('anthropic-json-other-tool.1');
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'function',
+            name: 'get-weather',
+            description: 'Get the weather in a location',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                location: { type: 'string' },
+              },
+              required: ['location'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+        providerOptions: {
+          anthropic: {
+            structuredOutputMode: 'jsonTool',
+            disableParallelToolUse: false,
+          } satisfies AnthropicLanguageModelOptions,
+        },
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: {
+              weather: { type: 'string' },
+              temperature: { type: 'number' },
+            },
+            required: ['weather', 'temperature'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        tool_choice: {
+          type: 'any',
+          disable_parallel_tool_use: false,
+        },
+      });
+    });
+
     it('should pass headers', async () => {
       prepareJsonFixtureResponse('anthropic-text');
 
