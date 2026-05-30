@@ -55,8 +55,8 @@ async function main() {
       console.log('Input tokens:', event.usage.inputTokens);
       console.log('Output tokens:', event.usage.outputTokens);
     },
-    onFinish: event => {
-      console.log('\n--- onFinish ---');
+    onEnd: event => {
+      console.log('\n--- onEnd ---');
       console.log('Total steps:', event.steps.length);
       console.log('Total input tokens:', event.usage.inputTokens);
       console.log('Total output tokens:', event.usage.outputTokens);

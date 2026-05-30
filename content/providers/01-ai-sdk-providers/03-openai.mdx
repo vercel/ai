@@ -391,7 +391,7 @@ const result = streamText({
   tools: {
     // ...
   },
-  onFinish: () => wsFetch.close(), // close the WebSocket when done
+  onEnd: () => wsFetch.close(), // close the WebSocket when done
 });
 ```
 
