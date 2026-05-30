@@ -15,7 +15,8 @@ OpenAI models are the recommended path: they support tool calling, multi-turn co
   The Anthropic backend relies on the Claude CLI `-p` (print) flag, which is
   subject to upcoming changes in Claude's subscription policy — as of June 18,
   2026, it requires a paid Claude plan, and access terms may change further. See
-  [Claude plan requirements](https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan)
+  [Claude plan
+  requirements](https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan)
   for the latest details. For production use, OpenAI models are recommended.
 </Note>
 
@@ -38,14 +39,14 @@ The server starts on `http://localhost:44900` by default. Open the dashboard in 
 
 #### Server environment variables
 
-| Variable | Default | Description |
-| --- | --- | --- |
-| `QGRID_DB_HOST` | `localhost` | PostgreSQL host |
-| `QGRID_DB_PORT` | `5432` | PostgreSQL port |
-| `QGRID_DB_USER` | `postgres` | PostgreSQL user |
-| `QGRID_DB_PASSWORD` | `postgres` | PostgreSQL password |
-| `QGRID_DB_NAME` | `qgrid` | PostgreSQL database name |
-| `QGRID_WORKERS_PER_TOKEN` | `3` | Codex app-server workers per OpenAI token (max 5 — in most cases, additional workers beyond this don't improve throughput as CPU cores become the bottleneck) |
+| Variable                  | Default     | Description                                                                                                                                                   |
+| ------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `QGRID_DB_HOST`           | `localhost` | PostgreSQL host                                                                                                                                               |
+| `QGRID_DB_PORT`           | `5432`      | PostgreSQL port                                                                                                                                               |
+| `QGRID_DB_USER`           | `postgres`  | PostgreSQL user                                                                                                                                               |
+| `QGRID_DB_PASSWORD`       | `postgres`  | PostgreSQL password                                                                                                                                           |
+| `QGRID_DB_NAME`           | `qgrid`     | PostgreSQL database name                                                                                                                                      |
+| `QGRID_WORKERS_PER_TOKEN` | `3`         | Codex app-server workers per OpenAI token (max 5 — in most cases, additional workers beyond this don't improve throughput as CPU cores become the bottleneck) |
 
 ### 2. Install the AI SDK provider
 
@@ -190,11 +191,11 @@ const { text } = await generateText({
 });
 ```
 
-| Option | Values | Description |
-| --- | --- | --- |
-| **reasoningEffort** | `'none'` \| `'minimal'` \| `'low'` \| `'medium'` \| `'high'` \| `'xhigh'` | Reasoning depth for reasoning models |
-| **reasoningSummary** | `'auto'` \| `'concise'` \| `'detailed'` \| `'none'` | Reasoning summary output style (Responses API) |
-| **textVerbosity** | `'low'` \| `'medium'` \| `'high'` | Response verbosity level |
+| Option               | Values                                                                    | Description                                    |
+| -------------------- | ------------------------------------------------------------------------- | ---------------------------------------------- |
+| **reasoningEffort**  | `'none'` \| `'minimal'` \| `'low'` \| `'medium'` \| `'high'` \| `'xhigh'` | Reasoning depth for reasoning models           |
+| **reasoningSummary** | `'auto'` \| `'concise'` \| `'detailed'` \| `'none'`                       | Reasoning summary output style (Responses API) |
+| **textVerbosity**    | `'low'` \| `'medium'` \| `'high'`                                         | Response verbosity level                       |
 
 ### Provider Metadata
 
@@ -210,33 +211,33 @@ const { model, tokenName, durationMs, costUsd } =
   result.steps[0].providerMetadata.qgrid;
 ```
 
-| Field | Type | Description |
-| --- | --- | --- |
-| **model** | `string` | Actual model name used by the server |
-| **tokenName** | `string \| null` | Subscription token that handled the request |
-| **durationMs** | `number` | Server-side processing time in milliseconds |
-| **costUsd** | `number` | Estimated cost in USD |
+| Field          | Type             | Description                                 |
+| -------------- | ---------------- | ------------------------------------------- |
+| **model**      | `string`         | Actual model name used by the server        |
+| **tokenName**  | `string \| null` | Subscription token that handled the request |
+| **durationMs** | `number`         | Server-side processing time in milliseconds |
+| **costUsd**    | `number`         | Estimated cost in USD                       |
 
 ### Model Capabilities
 
-| Model                          | Tool Calling        | Multi-turn          | Structured Output   | Streaming           |
-| ------------------------------ | ------------------- | ------------------- | ------------------- | ------------------- |
+| Model                         | Tool Calling        | Multi-turn          | Structured Output   | Streaming           |
+| ----------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
 | `openai/gpt-5.5`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `openai/gpt-5.4`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `openai/gpt-5.4-mini`         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `openai/gpt-5.2`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `openai/gpt-5.3-codex`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `openai/gpt-5.3-codex-spark`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `anthropic/claude-opus-4-7`    | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `anthropic/claude-opus-4-6`    | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `anthropic/claude-opus-4-5`    | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `anthropic/claude-opus-4-1`    | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `anthropic/claude-opus-4`      | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `anthropic/claude-sonnet-4-7`  | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `anthropic/claude-sonnet-4-6`  | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `anthropic/claude-sonnet-4-5`  | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `anthropic/claude-sonnet-4`    | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `anthropic/claude-haiku-4-5`   | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `anthropic/claude-opus-4-7`   | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `anthropic/claude-opus-4-6`   | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `anthropic/claude-opus-4-5`   | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `anthropic/claude-opus-4-1`   | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `anthropic/claude-opus-4`     | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `anthropic/claude-sonnet-4-7` | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `anthropic/claude-sonnet-4-6` | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `anthropic/claude-sonnet-4-5` | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `anthropic/claude-sonnet-4`   | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `anthropic/claude-haiku-4-5`  | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   Anthropic models via Claude CLI are limited to single-turn text generation and
@@ -264,13 +265,13 @@ The logger records generate steps, tool calls, token usage, cache hits, cost, an
 
 All options are optional:
 
-| Option | Type | Default | Description |
-| --- | --- | --- | --- |
-| **serverUrl** | `string` | `QGRID_URL` env or `http://localhost:44900` | Qgrid server URL |
-| **projectName** | `string` | `QGRID_PROJECT_NAME` env | Project name shown in dashboard |
-| **tokenName** | `string` | `QGRID_TOKEN_NAME` env or `"external"` | Token name for attribution |
-| **staleRunTimeoutMs** | `number` | 30 minutes | Timeout for runs that never receive `onFinish`. Set to `0` to disable |
-| **onLogError** | `function` | `console.warn` | Callback for logging failures. Receives an `Error` |
+| Option                | Type       | Default                                     | Description                                                           |
+| --------------------- | ---------- | ------------------------------------------- | --------------------------------------------------------------------- |
+| **serverUrl**         | `string`   | `QGRID_URL` env or `http://localhost:44900` | Qgrid server URL                                                      |
+| **projectName**       | `string`   | `QGRID_PROJECT_NAME` env                    | Project name shown in dashboard                                       |
+| **tokenName**         | `string`   | `QGRID_TOKEN_NAME` env or `"external"`      | Token name for attribution                                            |
+| **staleRunTimeoutMs** | `number`   | 30 minutes                                  | Timeout for runs that never receive `onFinish`. Set to `0` to disable |
+| **onLogError**        | `function` | `console.warn`                              | Callback for logging failures. Receives an `Error`                    |
 
 ## How It Works
 
@@ -287,6 +288,17 @@ Qgrid maintains a pool of persistent [Codex app-server](https://github.com/opena
 3. The worker calls Codex's `turn/start` RPC with the prompt, output schema, and conversation history
 4. For **tool calling**, the server wraps available tools into a structured output JSON schema — the model chooses between `"answer"` and `"tool_call"`, and the response is parsed back into AI SDK tool-call content
 5. For **streaming**, a two-phase protocol is used: `POST /api/qgrid/prepareStream` returns a `streamId`, then `GET /api/qgrid/queryStream?streamId=...` delivers SSE events
+
+<Note>
+  Qgrid strips the Codex app-server's built-in agent harness. Its built-in tools
+  (shell, web search, file operations, and others) and the auto-injected
+  instruction blocks (permissions, environment context, skills) are disabled via
+  the worker's `config.toml`. Each request runs with a minimal system prompt and
+  no environment, so the model behaves like a plain text-generation endpoint
+  rather than a coding agent. This keeps input-token overhead low and prevents
+  the model from invoking unrelated built-in tools — the only tools it sees are
+  the ones you pass through the AI SDK.
+</Note>
 
 ### Why structured output emulation instead of native tool calling?
 
