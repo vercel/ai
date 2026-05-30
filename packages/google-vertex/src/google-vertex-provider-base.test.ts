@@ -378,4 +378,42 @@ describe('google-vertex-provider-base', () => {
       }),
     );
   });
+
+  it('should use multi-region REP URL for us location', () => {
+    const provider = createGoogleVertex({
+      project: 'test-project',
+      location: 'us',
+    });
+    provider('test-model-id');
+
+    expect(GoogleLanguageModel).toHaveBeenCalledWith(
+      'test-model-id',
+      expect.objectContaining({
+        provider: 'google.vertex.chat',
+        baseURL:
+          'https://aiplatform.us.rep.googleapis.com/v1beta1/projects/test-project/locations/us/publishers/google',
+        headers: expect.any(Function),
+        generateId: expect.any(Function),
+      }),
+    );
+  });
+
+  it('should use multi-region REP URL for eu location', () => {
+    const provider = createGoogleVertex({
+      project: 'test-project',
+      location: 'eu',
+    });
+    provider('test-model-id');
+
+    expect(GoogleLanguageModel).toHaveBeenCalledWith(
+      'test-model-id',
+      expect.objectContaining({
+        provider: 'google.vertex.chat',
+        baseURL:
+          'https://aiplatform.eu.rep.googleapis.com/v1beta1/projects/test-project/locations/eu/publishers/google',
+        headers: expect.any(Function),
+        generateId: expect.any(Function),
+      }),
+    );
+  });
 });
