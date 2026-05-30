@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const { embedding, usage, warnings } = await embed({
-    model: google.embeddingModel('gemini-embedding-2-preview'),
+    model: google.embeddingModel('gemini-embedding-2'),
     value: 'sunny day at the beach',
   });
 
