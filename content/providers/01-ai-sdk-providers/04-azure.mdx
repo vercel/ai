@@ -584,13 +584,13 @@ const result = await generateText({
 });
 ```
 
-
 ##### Hosted Container (auto)
 
 Set `environment.type` to `'containerAuto'` to run commands in an OpenAI-hosted container. No `execute` callback is needed — Azure OpenAI handles execution server-side:
 
 <Note type="warning">
-  The Azure OpenAI Responses API shell tool currently does not support `networkPolicy`.
+  The Azure OpenAI Responses API shell tool currently does not support
+  `networkPolicy`.
 </Note>
 
 ```ts
@@ -654,9 +654,9 @@ For local execution (default or `type: 'local'`), your execute function must ret
 [Skills](https://platform.openai.com/docs/guides/tools-skills) are versioned bundles of files with a `SKILL.md` manifest that extend the shell tool's capabilities. They can be attached to both `containerAuto` and `local` environments.
 
 <Note type="warning">
-  The Azure OpenAI Responses API shell tool currently does not support using Skills by `skill_id`.
+  The Azure OpenAI Responses API shell tool currently does not support using
+  Skills by `skill_id`.
 </Note>
-
 
 **Local skills** point to a directory on disk containing a `SKILL.md` file:
 
