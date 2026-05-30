@@ -1,0 +1,81 @@
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import path from 'node:path';
+import type { Experimental_Sandbox } from '@ai-sdk/provider-utils';
+import { z } from 'zod';
+
+/**
+ * Schema for the adapter-specific portion of `HarnessV1ResumeState.data`
+ * produced by Pi's `doDetach`. Carries the basename (including extension)
+ * of the Pi session file. The actual session bytes live in the sandbox
+ * under `${sessionWorkDir}/.pi-sessions/<sessionFileName>` so they survive
+ * cross-process resume via the sandbox snapshot.
+ */
+export const piResumeStateSchema = z
+  .object({
+    sessionFileName: z.string().optional(),
+  })
+  .passthrough();
+
+export type PiResumeStateData = z.infer<typeof piResumeStateSchema>;
+
+const PI_SESSIONS_DIR = '.pi-sessions';
+
+/**
+ * Copy the Pi session file from the host's local mirror to a stable location
+ * inside the sandbox workspace. Called during `doDetach` so the session
+ * survives a sandbox snapshot.
+ */
+export async function persistSessionFileToSandbox(args: {
+  readonly sandbox: Experimental_Sandbox;
+  readonly sessionWorkDir: string;
+  readonly localSessionDir: string;
+  readonly sessionFileName: string;
+  readonly abortSignal?: AbortSignal;
+}): Promise<void> {
+  const localPath = path.join(args.localSessionDir, args.sessionFileName);
+  const content = await readFile(localPath);
+  const remotePath = path.posix.join(
+    args.sessionWorkDir,
+    PI_SESSIONS_DIR,
+    args.sessionFileName,
+  );
+  // Ensure the parent dir exists in the sandbox before writing.
+  await args.sandbox.run({
+    command: `mkdir -p ${path.posix.dirname(remotePath)}`,
+    ...(args.abortSignal ? { abortSignal: args.abortSignal } : {}),
+  });
+  await args.sandbox.writeBinaryFile({
+    path: remotePath,
+    content,
+    ...(args.abortSignal ? { abortSignal: args.abortSignal } : {}),
+  });
+}
+
+/**
+ * Pull a previously persisted Pi session file from the sandbox into a fresh
+ * local mirror dir. Called during `doStart` on the resume path before Pi is
+ * initialised. Returns the absolute path of the local session file or
+ * `undefined` if the sandbox copy is missing.
+ */
+export async function pullSessionFileFromSandbox(args: {
+  readonly sandbox: Experimental_Sandbox;
+  readonly sessionWorkDir: string;
+  readonly localSessionDir: string;
+  readonly sessionFileName: string;
+  readonly abortSignal?: AbortSignal;
+}): Promise<string | undefined> {
+  const remotePath = path.posix.join(
+    args.sessionWorkDir,
+    PI_SESSIONS_DIR,
+    args.sessionFileName,
+  );
+  const bytes = await args.sandbox.readBinaryFile({
+    path: remotePath,
+    ...(args.abortSignal ? { abortSignal: args.abortSignal } : {}),
+  });
+  if (!bytes) return undefined;
+  await mkdir(args.localSessionDir, { recursive: true });
+  const localPath = path.join(args.localSessionDir, args.sessionFileName);
+  await writeFile(localPath, bytes);
+  return localPath;
+}

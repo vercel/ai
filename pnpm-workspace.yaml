@@ -10,3 +10,5 @@ minimumReleaseAgeExclude:
   - '@ai-sdk/*'
   - 'ai'
   - '@vercel/sandbox'
+  - '@earendil-works/*'
+  - '@mariozechner/*'

@@ -11,6 +11,24 @@ const nextConfig = {
   env: {
     WS_NO_BUFFER_UTIL: '1',
   },
+  /*
+   * The Pi harness (`@ai-sdk/harness-pi`) runs the agent in-process, so its
+   * dependency `@earendil-works/pi-coding-agent` (and transitively
+   * `@earendil-works/pi-ai`) would otherwise be pulled into the server route
+   * bundle. `@earendil-works/pi-ai` deliberately obfuscates its Node builtin
+   * loads to dodge bundler static analysis — it concatenates the specifier
+   * (`"node:" + "fs"`) and loads it through a dynamic `import(specifier)`.
+   * Webpack cannot see the literal, so it compiles the call into a context
+   * module with no Node builtins, and at runtime `import("node:fs")` (also
+   * `node:os`, `node:path`) fails with `Cannot find module`. Externalizing the
+   * package makes Node load it natively, where the dynamic import resolves
+   * normally. This also requires `@earendil-works/pi-coding-agent` to be a
+   * direct dependency of this app (not only a peer of `harness-pi`) so the
+   * externalized import is resolvable from the app at runtime. Claude Code and
+   * Codex avoid all of this because they run as sandbox subprocesses and are
+   * never imported into the bundle.
+   */
+  serverExternalPackages: ['@earendil-works/pi-coding-agent'],
 };
 
 module.exports = nextConfig;
