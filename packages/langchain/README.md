@@ -47,7 +47,7 @@ const langchainMessages = await toBaseMessages(uiMessages);
 
 const langchainStream = await graph.stream(
   { messages: langchainMessages },
-  { streamMode: ['values', 'messages'] },
+  { streamMode: ['values', 'messages', 'tools'] },
 );
 
 // Convert to UI message stream response
@@ -55,6 +55,8 @@ return createUIMessageStreamResponse({
   stream: toUIMessageStream(langchainStream),
 });
 ```
+
+Use the `tools` stream mode when you want to stream LangGraph tool progress. The adapter converts `on_tool_event` events to preliminary tool output (`preliminary: true`) and the final `on_tool_end` event to final tool output.
 
 ### Streaming with Callbacks
 
@@ -240,13 +242,14 @@ Converts a LangChain/LangGraph stream to an AI SDK `UIMessageStream`.
 **Supported stream types:**
 
 - **Model streams** - Direct `AIMessageChunk` streams from `model.stream()`
-- **LangGraph streams** - Streams with `streamMode: ['values', 'messages']`
+- **LangGraph streams** - Streams with `streamMode: ['values', 'messages']`, or `['values', 'messages', 'tools']` for tool progress
 - **streamEvents** - Event streams from `agent.streamEvents()` or `model.streamEvents()`
 
 **Supported LangGraph stream events:**
 
 - `messages` - Streaming message chunks (text, tool calls)
 - `values` - State updates that finalize pending message chunks
+- `tools` - Tool progress events (`on_tool_event` emits preliminary tool output with `preliminary: true`, final `on_tool_end` emits final output)
 - `custom` - Custom data events (emitted as `data-{type}` chunks)
 
 **Supported streamEvents events:**

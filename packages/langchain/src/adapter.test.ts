@@ -2010,6 +2010,151 @@ describe('toUIMessageStream with streamEvents', () => {
   });
 });
 
+describe('toUIMessageStream with LangGraph tools stream mode', () => {
+  it('should handle full tools stream sequence', async () => {
+    const inputStream = convertArrayToReadableStream([
+      [
+        'tools',
+        {
+          event: 'on_tool_start',
+          toolCallId: 'call-weather',
+          name: 'get_weather',
+          input: { city: 'SF' },
+        },
+      ],
+      [
+        'tools',
+        {
+          event: 'on_tool_event',
+          toolCallId: 'call-weather',
+          name: 'get_weather',
+          data: { status: 'loading', message: 'Fetching weather' },
+        },
+      ],
+      [
+        'tools',
+        {
+          event: 'on_tool_end',
+          toolCallId: 'call-weather',
+          name: 'get_weather',
+          output: { temperature: 72, condition: 'sunny' },
+        },
+      ],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "start",
+        },
+        {
+          "dynamic": true,
+          "toolCallId": "call-weather",
+          "toolName": "get_weather",
+          "type": "tool-input-start",
+        },
+        {
+          "dynamic": true,
+          "input": {
+            "city": "SF",
+          },
+          "toolCallId": "call-weather",
+          "toolName": "get_weather",
+          "type": "tool-input-available",
+        },
+        {
+          "output": {
+            "message": "Fetching weather",
+            "status": "loading",
+          },
+          "preliminary": true,
+          "toolCallId": "call-weather",
+          "type": "tool-output-available",
+        },
+        {
+          "output": {
+            "condition": "sunny",
+            "temperature": 72,
+          },
+          "toolCallId": "call-weather",
+          "type": "tool-output-available",
+        },
+        {
+          "type": "finish",
+        },
+      ]
+    `);
+  });
+
+  it('should dedupe tool-input-available across mixed messages, values, and tools events', async () => {
+    const streamedChunk = {
+      content: '',
+      id: 'ai-msg-1',
+      type: 'ai',
+      tool_call_chunks: [
+        {
+          id: 'call-weather',
+          name: 'get_weather',
+          args: '{"city":"SF"}',
+          index: 0,
+        },
+      ],
+    };
+
+    const valuesData = {
+      messages: [
+        {
+          content: '',
+          id: 'ai-msg-1',
+          type: 'ai',
+          tool_calls: [
+            {
+              id: 'call-weather',
+              name: 'get_weather',
+              args: { city: 'SF' },
+            },
+          ],
+        },
+      ],
+    };
+
+    const inputStream = convertArrayToReadableStream([
+      ['messages', [streamedChunk]],
+      [
+        'tools',
+        {
+          event: 'on_tool_start',
+          toolCallId: 'call-weather',
+          name: 'get_weather',
+          input: { city: 'SF' },
+        },
+      ],
+      ['values', valuesData],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+    const toolInputAvailableEvents = result.filter(
+      event => event.type === 'tool-input-available',
+    );
+
+    expect(toolInputAvailableEvents).toEqual([
+      {
+        type: 'tool-input-available',
+        toolCallId: 'call-weather',
+        toolName: 'get_weather',
+        input: { city: 'SF' },
+        dynamic: true,
+      },
+    ]);
+  });
+});
+
 describe('toUIMessageStream LangGraph finish events', () => {
   it('should emit finish event for LangGraph streams', async () => {
     const valuesData = {

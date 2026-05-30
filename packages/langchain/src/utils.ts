@@ -1162,6 +1162,18 @@ export function extractImageOutputs(
   return toolOutputs.filter(isImageGenerationOutput);
 }
 
+function formatToolError(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+
+  try {
+    const serialized = JSON.stringify(error);
+    return serialized ?? String(error);
+  } catch {
+    return String(error);
+  }
+}
+
 /**
  * Processes a LangGraph event and emits UI message chunks.
  *
@@ -1183,6 +1195,7 @@ export function processLangGraphEvent(
     messageReasoningIds,
     toolCallInfoByIndex,
     emittedToolCallsByKey,
+    emittedToolInputs,
   } = state;
   const [type, data] = parseLangGraphEvent(event);
 
@@ -1372,17 +1385,19 @@ export function processLangGraphEvent(
              * Set dynamic: true to enable HITL approval requests
              */
             if (!messageSeen[msgId]?.tool?.[toolCallId]) {
-              controller.enqueue({
-                type: 'tool-input-start',
-                toolCallId: toolCallId,
-                toolName: toolName,
-                dynamic: true,
-              });
-
               messageSeen[msgId] ??= {};
               messageSeen[msgId].tool ??= {};
               messageSeen[msgId].tool![toolCallId] = true;
-              emittedToolCalls.add(toolCallId);
+
+              if (!emittedToolCalls.has(toolCallId)) {
+                emittedToolCalls.add(toolCallId);
+                controller.enqueue({
+                  type: 'tool-input-start',
+                  toolCallId: toolCallId,
+                  toolName: toolName,
+                  dynamic: true,
+                });
+              }
             }
 
             /**
@@ -1508,6 +1523,87 @@ export function processLangGraphEvent(
       return;
     }
 
+    case 'tools': {
+      if (data == null || typeof data !== 'object' || Array.isArray(data)) {
+        return;
+      }
+
+      const payload = data as {
+        event?: unknown;
+        name?: unknown;
+        input?: unknown;
+        data?: unknown;
+        output?: unknown;
+        error?: unknown;
+        toolCallId?: unknown;
+      };
+      const toolCallId =
+        typeof payload.toolCallId === 'string' ? payload.toolCallId : undefined;
+      const toolName =
+        typeof payload.name === 'string' ? payload.name : 'unknown';
+
+      if (!toolCallId) return;
+
+      switch (payload.event) {
+        case 'on_tool_start': {
+          const toolCallKey = `${toolName}:${JSON.stringify(payload.input)}`;
+          emittedToolCallsByKey.set(toolCallKey, toolCallId);
+
+          if (!emittedToolCalls.has(toolCallId)) {
+            emittedToolCalls.add(toolCallId);
+            controller.enqueue({
+              type: 'tool-input-start',
+              toolCallId,
+              toolName,
+              dynamic: true,
+            });
+          }
+
+          if (!emittedToolInputs.has(toolCallId)) {
+            emittedToolInputs.add(toolCallId);
+            controller.enqueue({
+              type: 'tool-input-available',
+              toolCallId,
+              toolName,
+              input: payload.input,
+              dynamic: true,
+            });
+          }
+          break;
+        }
+
+        case 'on_tool_event': {
+          controller.enqueue({
+            type: 'tool-output-available',
+            toolCallId,
+            output: payload.data,
+            preliminary: true,
+          });
+          break;
+        }
+
+        case 'on_tool_end': {
+          controller.enqueue({
+            type: 'tool-output-available',
+            toolCallId,
+            output: payload.output,
+          });
+          break;
+        }
+
+        case 'on_tool_error': {
+          controller.enqueue({
+            type: 'tool-output-error',
+            toolCallId,
+            errorText: formatToolError(payload.error),
+          });
+          break;
+        }
+      }
+
+      return;
+    }
+
     case 'values': {
       /**
        * Finalize all pending message chunks
@@ -1526,13 +1622,16 @@ export function processLangGraphEvent(
               // Store mapping for HITL interrupt lookup
               const toolCallKey = `${toolCall.name}:${JSON.stringify(toolCall.args)}`;
               emittedToolCallsByKey.set(toolCallKey, toolCallId);
-              controller.enqueue({
-                type: 'tool-input-available',
-                toolCallId,
-                toolName: toolCall.name,
-                input: toolCall.args,
-                dynamic: true,
-              });
+              if (!emittedToolInputs.has(toolCallId)) {
+                emittedToolInputs.add(toolCallId);
+                controller.enqueue({
+                  type: 'tool-input-available',
+                  toolCallId,
+                  toolName: toolCall.name,
+                  input: toolCall.args,
+                  dynamic: true,
+                });
+              }
             }
           }
         }
@@ -1694,6 +1793,7 @@ export function processLangGraphEvent(
                     toolName: toolCall.name,
                     dynamic: true,
                   });
+                  emittedToolInputs.add(toolCall.id);
                   controller.enqueue({
                     type: 'tool-input-available',
                     toolCallId: toolCall.id,
@@ -1827,6 +1927,7 @@ export function processLangGraphEvent(
                   toolName,
                   dynamic: true,
                 });
+                emittedToolInputs.add(toolCallId);
                 controller.enqueue({
                   type: 'tool-input-available',
                   toolCallId,

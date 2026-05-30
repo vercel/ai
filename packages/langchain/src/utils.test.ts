@@ -942,6 +942,7 @@ describe('processLangGraphEvent', () => {
     >,
     messageConcat: {} as Record<string, AIMessageChunk>,
     emittedToolCalls: new Set<string>(),
+    emittedToolInputs: new Set<string>(),
     emittedImages: new Set<string>(),
     emittedReasoningIds: new Set<string>(),
     messageReasoningIds: {} as Record<string, string>,
@@ -1132,6 +1133,225 @@ describe('processLangGraphEvent', () => {
         id: undefined,
         transient: true,
         data: [1, 2, 3, { type: 'ignored' }],
+      },
+    ]);
+  });
+
+  it('should handle tools stream on_tool_start with input chunks', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processLangGraphEvent(
+      [
+        'tools',
+        {
+          event: 'on_tool_start',
+          toolCallId: 'call-weather',
+          name: 'get_weather',
+          input: { city: 'SF' },
+        },
+      ],
+      state,
+      controller,
+    );
+
+    expect(chunks).toEqual([
+      {
+        type: 'tool-input-start',
+        toolCallId: 'call-weather',
+        toolName: 'get_weather',
+        dynamic: true,
+      },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'call-weather',
+        toolName: 'get_weather',
+        input: { city: 'SF' },
+        dynamic: true,
+      },
+    ]);
+  });
+
+  it('should handle tools stream preliminary on_tool_event', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processLangGraphEvent(
+      [
+        'tools',
+        {
+          event: 'on_tool_event',
+          toolCallId: 'call-weather',
+          name: 'get_weather',
+          data: { status: 'loading', message: 'Fetching weather' },
+        },
+      ],
+      state,
+      controller,
+    );
+
+    expect(chunks).toEqual([
+      {
+        type: 'tool-output-available',
+        toolCallId: 'call-weather',
+        output: { status: 'loading', message: 'Fetching weather' },
+        preliminary: true,
+      },
+    ]);
+  });
+
+  it('should handle tools stream multiple preliminary chunks', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processLangGraphEvent(
+      [
+        'tools',
+        {
+          event: 'on_tool_event',
+          toolCallId: 'call-weather',
+          name: 'get_weather',
+          data: { status: 'loading' },
+        },
+      ],
+      state,
+      controller,
+    );
+    processLangGraphEvent(
+      [
+        'tools',
+        {
+          event: 'on_tool_event',
+          toolCallId: 'call-weather',
+          name: 'get_weather',
+          data: { status: 'success', temperature: 72 },
+        },
+      ],
+      state,
+      controller,
+    );
+
+    expect(chunks).toEqual([
+      {
+        type: 'tool-output-available',
+        toolCallId: 'call-weather',
+        output: { status: 'loading' },
+        preliminary: true,
+      },
+      {
+        type: 'tool-output-available',
+        toolCallId: 'call-weather',
+        output: { status: 'success', temperature: 72 },
+        preliminary: true,
+      },
+    ]);
+  });
+
+  it('should handle tools stream final on_tool_end without preliminary chunks', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processLangGraphEvent(
+      [
+        'tools',
+        {
+          event: 'on_tool_end',
+          toolCallId: 'call-weather',
+          name: 'get_weather',
+          output: { temperature: 72 },
+        },
+      ],
+      state,
+      controller,
+    );
+
+    expect(chunks).toEqual([
+      {
+        type: 'tool-output-available',
+        toolCallId: 'call-weather',
+        output: { temperature: 72 },
+      },
+    ]);
+  });
+
+  it('should handle tools stream on_tool_error', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processLangGraphEvent(
+      [
+        'tools',
+        {
+          event: 'on_tool_error',
+          toolCallId: 'call-weather',
+          name: 'get_weather',
+          error: new Error('Weather API failed'),
+        },
+      ],
+      state,
+      controller,
+    );
+
+    expect(chunks).toEqual([
+      {
+        type: 'tool-output-error',
+        toolCallId: 'call-weather',
+        errorText: 'Weather API failed',
+      },
+    ]);
+  });
+
+  it('should handle tools stream namespace tuple form', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processLangGraphEvent(
+      [
+        ['agent:run-1', 'tools:run-2'],
+        'tools',
+        {
+          event: 'on_tool_end',
+          toolCallId: 'call-weather',
+          name: 'get_weather',
+          output: 'Sunny',
+        },
+      ],
+      state,
+      controller,
+    );
+
+    expect(chunks).toEqual([
+      {
+        type: 'tool-output-available',
+        toolCallId: 'call-weather',
+        output: 'Sunny',
+      },
+    ]);
+  });
+
+  it('should keep custom events as data-* chunks when tools events are supported', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processLangGraphEvent(
+      ['custom', { type: 'progress', step: 'tools', complete: false }],
+      state,
+      controller,
+    );
+
+    expect(chunks).toEqual([
+      {
+        type: 'data-progress',
+        id: undefined,
+        transient: true,
+        data: { type: 'progress', step: 'tools', complete: false },
       },
     ]);
   });
