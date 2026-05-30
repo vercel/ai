@@ -1,5 +1,5 @@
 import { azure } from '@ai-sdk/azure';
-import { streamText } from 'ai';
+import { isStepCount, streamText } from 'ai';
 import { readFileSync } from 'fs';
 import { run } from '../../lib/run';
 import { saveRawChunks } from '../../lib/save-raw-chunks';
@@ -30,6 +30,7 @@ run(async () => {
         },
       }),
     },
+    stopWhen: isStepCount(20),
     prompt:
       'You are trapped and lost on a lonely island in 1895. Find a way to get rescued!',
   });

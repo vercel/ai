@@ -30,9 +30,9 @@ run(async () => {
         },
       }),
     },
+    stopWhen: isStepCount(20),
     prompt:
       'You are trapped and lost on a lonely island in 1895. Find a way to get rescued!',
-    stopWhen: isStepCount(20),
   });
 
   console.log('Result:', result.text);

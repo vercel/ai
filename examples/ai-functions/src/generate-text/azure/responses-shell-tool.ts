@@ -1,5 +1,5 @@
 import { azure } from '@ai-sdk/azure';
-import { generateText } from 'ai';
+import { generateText, isStepCount } from 'ai';
 import { executeShellCommand } from '../../lib/shell-executor';
 import { run } from '../../lib/run';
 
@@ -14,11 +14,11 @@ run(async () => {
               executeShellCommand(command, action.timeoutMs),
             ),
           );
-
           return { output: outputs };
         },
       }),
     },
+    stopWhen: isStepCount(20),
     prompt:
       'Create a file in my current directory called dec1.txt with the text: THIS WORKS!',
   });

@@ -1,5 +1,5 @@
 import { azure } from '@ai-sdk/azure';
-import { streamText } from 'ai';
+import { isStepCount, streamText } from 'ai';
 import { executeShellCommand } from '../../lib/shell-executor';
 import { run } from '../../lib/run';
 
@@ -19,6 +19,7 @@ run(async () => {
         },
       }),
     },
+    stopWhen: isStepCount(20),
     prompt: 'List the files in my current directory',
   });
 

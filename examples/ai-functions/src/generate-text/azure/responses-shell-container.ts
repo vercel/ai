@@ -1,5 +1,5 @@
 import { azure } from '@ai-sdk/azure';
-import { generateText } from 'ai';
+import { generateText, isStepCount } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
@@ -12,6 +12,7 @@ run(async () => {
         },
       }),
     },
+    stopWhen: isStepCount(20),
     prompt:
       'Print "Hello from container!" and show the system info using uname -a',
   });
