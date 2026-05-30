@@ -1,5 +1,14 @@
 # @ai-sdk/xai
 
+## 3.0.93
+
+### Patch Changes
+
+- 165d531: deprecate searchParameters (xai live search) in favor of web_search/x_search agent tools
+- 4d53460: feat(provider/xai): add `enableImageSearch` to the xAI Web Search tool
+
+  The xAI Responses API supports `enable_image_search` on Web Search tools. `xai.tools.webSearch()` now accepts `enableImageSearch` and sends it through to the API as `enable_image_search`.
+
 ## 3.0.92
 
 ### Patch Changes

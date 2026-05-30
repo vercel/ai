@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 1.0.45
+
+### Patch Changes
+
+- ec5fceb: fix(mcp): respond to ping requests with an empty result per JSON-RPC spec (closes #6282)
+
 ## 1.0.44
 
 ### Patch Changes

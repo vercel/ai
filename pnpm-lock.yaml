@@ -93,7 +93,7 @@ importers:
         specifier: 3.0.39
         version: link:../../packages/groq
       '@ai-sdk/mcp':
-        specifier: 1.0.44
+        specifier: 1.0.45
         version: link:../../packages/mcp
       '@ai-sdk/mistral':
         specifier: 3.0.37
@@ -117,7 +117,7 @@ importers:
         specifier: 2.0.28
         version: link:../../packages/valibot
       '@ai-sdk/xai':
-        specifier: 3.0.92
+        specifier: 3.0.93
         version: link:../../packages/xai
       '@modelcontextprotocol/sdk':
         specifier: ^1.26.0
