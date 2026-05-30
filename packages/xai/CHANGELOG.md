@@ -1,5 +1,14 @@
 # @ai-sdk/xai
 
+## 4.0.0-canary.69
+
+### Patch Changes
+
+- 23f9d72: deprecate searchParameters (xai live search) in favor of web_search/x_search agent tools
+- 1dbecd7: feat(provider/xai): add `enableImageSearch` to the xAI Web Search tool
+
+  The xAI Responses API supports `enable_image_search` on Web Search tools. `xai.tools.webSearch()` now accepts `enableImageSearch` and sends it through to the API as `enable_image_search`.
+
 ## 4.0.0-canary.68
 
 ### Patch Changes
