@@ -1,5 +1,13 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-canary.98
+
+### Patch Changes
+
+- 00a0f36: feat(google, google-vertex): added `gemini-embedding-2`, `deep-research-max-preview-04-2026` and `deep-research-preview-04-2026`
+- Updated dependencies [00a0f36]
+  - @ai-sdk/google@4.0.0-canary.75
+
 ## 5.0.0-canary.97
 
 ### Patch Changes
