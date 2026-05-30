@@ -1,5 +1,14 @@
 # @ai-sdk/xai
 
+## 4.0.0-canary.68
+
+### Patch Changes
+
+- Updated dependencies [6c93e36]
+- Updated dependencies [f617ac2]
+  - @ai-sdk/provider-utils@5.0.0-canary.44
+  - @ai-sdk/openai-compatible@3.0.0-canary.52
+
 ## 4.0.0-canary.67
 
 ### Patch Changes

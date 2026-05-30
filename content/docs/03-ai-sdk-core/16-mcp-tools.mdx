@@ -131,7 +131,7 @@ After initialization, you should close the MCP client based on your usage patter
 - For short-lived usage (e.g., single requests), close the client when the response is finished
 - For long-running clients (e.g., command line apps), keep the client open but ensure it's closed when the application terminates
 
-When streaming responses, you can close the client when the LLM response has finished. For example, when using `streamText`, you should use the `onFinish` callback:
+When streaming responses, you can close the client when the LLM response has finished. For example, when using `streamText`, you should use the `onEnd` callback:
 
 ```typescript
 const mcpClient = await createMCPClient({
@@ -144,7 +144,7 @@ const result = await streamText({
   model: __MODEL__,
   tools,
   prompt: 'What is the weather in Brooklyn, New York?',
-  onFinish: async () => {
+  onEnd: async () => {
     await mcpClient.close();
   },
 });

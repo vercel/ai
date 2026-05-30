@@ -66,7 +66,7 @@ export async function POST(req: Request) {
       model: openai('gpt-4o-mini'),
       tools,
       messages: await convertToModelMessages(messages),
-      onFinish: async () => {
+      onEnd: async () => {
         await client.close();
       },
     });

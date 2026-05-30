@@ -5,7 +5,7 @@ export async function printFullStream({
 }: {
   result: StreamTextResult<any, any, any>;
 }) {
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     switch (chunk.type) {
       case 'tool-call': {
         console.log(
