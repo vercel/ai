@@ -2,14 +2,18 @@ import type {
   Context,
   InferToolContext,
   InferToolSetContext,
-  SensitiveContext,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
 import type { TelemetryDispatcher } from '../telemetry/telemetry';
-import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import type {
-  GenerateTextOnFinishCallback,
+  IncludedContext,
+  IncludedToolsContext,
+  TelemetryOptions,
+} from '../telemetry/telemetry-options';
+import type {
+  GenerateTextOnAbortCallback,
+  GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
@@ -34,71 +38,76 @@ export type RestrictedTelemetryDispatcher<
   | 'onStart'
   | 'onStepStart'
   | 'onStepFinish'
-  | 'onFinish'
+  | 'onEnd'
+  | 'onAbort'
   | 'onToolExecutionStart'
   | 'onToolExecutionEnd'
 > & {
   onStart: GenerateTextOnStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
   onStepStart: GenerateTextOnStepStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
   onStepFinish: GenerateTextOnStepFinishCallback<TOOLS, RUNTIME_CONTEXT>;
-  onFinish: GenerateTextOnFinishCallback<TOOLS, RUNTIME_CONTEXT>;
+  onEnd: GenerateTextOnEndCallback<TOOLS, RUNTIME_CONTEXT>;
+  onAbort?: GenerateTextOnAbortCallback<TOOLS, RUNTIME_CONTEXT>;
   onToolExecutionStart?: OnToolExecutionStartCallback<TOOLS>;
   onToolExecutionEnd?: OnToolExecutionEndCallback<TOOLS>;
 };
 
 /**
- * Returns a shallow copy of the runtime context with top-level properties
- * marked as sensitive removed.
+ * Returns a shallow copy of the runtime context with only top-level
+ * properties marked for telemetry inclusion.
  */
-function filterContext<CONTEXT extends Context>({
+function filterIncludedContext<CONTEXT extends Context>({
   context,
-  sensitiveContext,
+  includeContext,
 }: {
   context: CONTEXT;
-  sensitiveContext: SensitiveContext<CONTEXT>;
+  includeContext: IncludedContext<CONTEXT>;
 }): Context {
-  return sensitiveContext == null
-    ? context
-    : Object.fromEntries(
-        Object.entries(context).filter(
-          ([key]) => sensitiveContext[key as keyof CONTEXT] !== true,
-        ),
-      );
+  if (context == null) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(context).filter(
+      ([key]) => includeContext?.[key as keyof CONTEXT] === true,
+    ),
+  );
 }
 
 /**
- * Creates a copy of a step result whose runtime context has sensitive
- * top-level properties removed before it is sent to telemetry integrations.
+ * Creates a copy of a step result whose runtime context only contains
+ * top-level properties marked for telemetry inclusion.
  */
 function restrictStepResult<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context,
 >({
   step,
-  tools,
-  sensitiveRuntimeContext,
+  includeRuntimeContext,
+  includeToolsContext,
 }: {
   step: StepResult<TOOLS, RUNTIME_CONTEXT>;
-  tools: TOOLS | undefined;
-  sensitiveRuntimeContext: SensitiveContext<RUNTIME_CONTEXT>;
+  includeRuntimeContext: IncludedContext<RUNTIME_CONTEXT>;
+  includeToolsContext: IncludedToolsContext<TOOLS>;
 }) {
   return new DefaultStepResult({
     callId: step.callId,
     stepNumber: step.stepNumber,
     provider: step.model.provider,
     modelId: step.model.modelId,
-    runtimeContext: filterContext({
+    runtimeContext: filterIncludedContext({
       context: step.runtimeContext,
-      sensitiveContext: sensitiveRuntimeContext,
+      includeContext: includeRuntimeContext,
     }),
     toolsContext: filterToolsContext({
-      tools,
       toolsContext: step.toolsContext,
+      includeToolsContext,
     }),
     content: step.content,
     finishReason: step.finishReason,
     rawFinishReason: step.rawFinishReason,
     usage: step.usage,
+    performance: step.performance,
     warnings: step.warnings,
     request: step.request,
     response: step.response,
@@ -107,56 +116,59 @@ function restrictStepResult<
 }
 
 /**
- * Returns a shallow copy of the tools context with sensitive top-level
- * properties removed for each tool that marks them as sensitive.
+ * Returns a shallow copy of the tools context with only top-level properties
+ * marked for telemetry inclusion for each tool.
  */
 function filterToolsContext<TOOLS extends ToolSet>({
-  tools,
   toolsContext,
+  includeToolsContext,
 }: {
-  tools: TOOLS | undefined;
   toolsContext: InferToolSetContext<TOOLS>;
+  includeToolsContext: IncludedToolsContext<TOOLS>;
 }): InferToolSetContext<TOOLS> {
-  if (tools == null) {
-    return toolsContext;
+  if (includeToolsContext == null) {
+    return {} as InferToolSetContext<TOOLS>;
   }
 
   return Object.fromEntries(
     Object.entries(toolsContext).map(([toolName, toolContext]) => [
       toolName,
       filterToolContext({
-        tools,
         toolName,
         toolContext,
+        includeToolsContext,
       }),
     ]),
   ) as InferToolSetContext<TOOLS>;
 }
 
 function filterToolContext<TOOLS extends ToolSet>({
-  tools,
   toolName,
   toolContext,
+  includeToolsContext,
 }: {
-  tools: TOOLS | undefined;
   toolName: string;
   toolContext: unknown;
+  includeToolsContext: IncludedToolsContext<TOOLS>;
 }) {
-  const sensitiveToolContext = tools?.[toolName]?.sensitiveContext as
-    | SensitiveContext<InferToolContext<TOOLS[typeof toolName]>>
-    | undefined;
+  const includeToolContext = (
+    includeToolsContext as
+      | Record<
+          string,
+          IncludedContext<InferToolContext<TOOLS[typeof toolName]>>
+        >
+      | undefined
+  )?.[toolName];
 
-  return sensitiveToolContext == null
-    ? toolContext
-    : filterContext({
-        context: toolContext as InferToolContext<TOOLS[typeof toolName]>,
-        sensitiveContext: sensitiveToolContext,
-      });
+  return filterIncludedContext({
+    context: toolContext as InferToolContext<TOOLS[typeof toolName]>,
+    includeContext: includeToolContext,
+  });
 }
 
 /**
- * Creates a telemetry dispatcher that redacts configured runtime context
- * properties from text-generation lifecycle events before dispatching them.
+ * Creates a telemetry dispatcher that only includes configured runtime context
+ * properties in text-generation lifecycle events before dispatching them.
  */
 export function createRestrictedTelemetryDispatcher<
   TOOLS extends ToolSet,
@@ -164,12 +176,12 @@ export function createRestrictedTelemetryDispatcher<
   OUTPUT extends Output,
 >({
   telemetry,
-  tools,
-  sensitiveRuntimeContext,
+  includeRuntimeContext,
+  includeToolsContext,
 }: {
-  telemetry?: TelemetryOptions;
-  tools?: TOOLS | undefined;
-  sensitiveRuntimeContext: SensitiveContext<RUNTIME_CONTEXT>;
+  telemetry?: TelemetryOptions<RUNTIME_CONTEXT, TOOLS>;
+  includeRuntimeContext: IncludedContext<RUNTIME_CONTEXT>;
+  includeToolsContext?: IncludedToolsContext<TOOLS>;
 }): RestrictedTelemetryDispatcher<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
   const telemetryDispatcher = createTelemetryDispatcher({ telemetry });
 
@@ -178,69 +190,95 @@ export function createRestrictedTelemetryDispatcher<
     onStart: event =>
       telemetryDispatcher.onStart?.({
         ...event,
-        runtimeContext: filterContext({
+        runtimeContext: filterIncludedContext({
           context: event.runtimeContext,
-          sensitiveContext: sensitiveRuntimeContext,
+          includeContext: includeRuntimeContext,
         }),
         toolsContext: filterToolsContext({
-          tools,
           toolsContext: event.toolsContext,
+          includeToolsContext,
         }),
       }),
     onStepStart: event =>
       telemetryDispatcher.onStepStart?.({
         ...event,
-        runtimeContext: filterContext({
+        runtimeContext: filterIncludedContext({
           context: event.runtimeContext,
-          sensitiveContext: sensitiveRuntimeContext,
+          includeContext: includeRuntimeContext,
         }),
         steps: event.steps.map(step =>
-          restrictStepResult({ step, tools, sensitiveRuntimeContext }),
+          restrictStepResult({
+            step,
+            includeRuntimeContext,
+            includeToolsContext,
+          }),
         ),
         toolsContext: filterToolsContext({
-          tools,
           toolsContext: event.toolsContext,
+          includeToolsContext,
         }),
       }),
     onStepFinish: event =>
       telemetryDispatcher.onStepFinish?.(
         restrictStepResult({
           step: event,
-          tools,
-          sensitiveRuntimeContext,
+          includeRuntimeContext,
+          includeToolsContext,
         }),
       ),
-    onFinish: event =>
-      telemetryDispatcher.onFinish?.({
-        ...event,
-        runtimeContext: filterContext({
-          context: event.runtimeContext,
-          sensitiveContext: sensitiveRuntimeContext,
-        }),
-        steps: event.steps.map(step =>
-          restrictStepResult({ step, tools, sensitiveRuntimeContext }),
+    onEnd: event =>
+      telemetryDispatcher.onEnd?.(
+        ((restrictedSteps: StepResult<TOOLS, Context>[]) => {
+          return {
+            ...event,
+            runtimeContext: filterIncludedContext({
+              context: event.runtimeContext,
+              includeContext: includeRuntimeContext,
+            }),
+            steps: restrictedSteps,
+            finalStep: restrictedSteps.at(-1)!,
+            toolsContext: filterToolsContext({
+              toolsContext: event.toolsContext,
+              includeToolsContext,
+            }),
+          };
+        })(
+          event.steps.map(step =>
+            restrictStepResult({
+              step,
+              includeRuntimeContext,
+              includeToolsContext,
+            }),
+          ),
         ),
-        toolsContext: filterToolsContext({
-          tools,
-          toolsContext: event.toolsContext,
-        }),
+      ),
+    onAbort: event =>
+      telemetryDispatcher.onAbort?.({
+        ...event,
+        steps: event.steps.map(step =>
+          restrictStepResult({
+            step,
+            includeRuntimeContext,
+            includeToolsContext,
+          }),
+        ),
       }),
     onToolExecutionStart: event =>
       telemetryDispatcher.onToolExecutionStart?.({
         ...event,
         toolContext: filterToolContext({
-          tools,
           toolName: event.toolCall.toolName,
           toolContext: event.toolContext,
+          includeToolsContext,
         }),
       }),
     onToolExecutionEnd: event =>
       telemetryDispatcher.onToolExecutionEnd?.({
         ...event,
         toolContext: filterToolContext({
-          tools,
           toolName: event.toolCall.toolName,
           toolContext: event.toolContext,
+          includeToolsContext,
         }),
       }),
   };

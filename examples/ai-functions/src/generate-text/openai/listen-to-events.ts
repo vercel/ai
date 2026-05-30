@@ -31,15 +31,15 @@ async function main() {
       console.log('Step:', event.steps.length);
       console.log('Message count:', event.messages.length);
     },
-    experimental_onToolExecutionStart: event => {
+    onToolExecutionStart: event => {
       console.log('\n--- onToolExecutionStart ---');
       console.log('Tool:', event.toolCall.toolName);
       console.log('Input:', JSON.stringify(event.toolCall.input));
     },
-    experimental_onToolExecutionEnd: event => {
+    onToolExecutionEnd: event => {
       console.log('\n--- onToolExecutionEnd ---');
       console.log('Tool:', event.toolCall.toolName);
-      console.log('Duration:', event.durationMs, 'ms');
+      console.log('Duration:', event.toolExecutionMs, 'ms');
       const success = event.toolOutput.type === 'tool-result';
       console.log('Success:', success);
       if (event.toolOutput.type === 'tool-result') {
@@ -58,8 +58,8 @@ async function main() {
     onFinish: event => {
       console.log('\n--- onFinish ---');
       console.log('Total steps:', event.steps.length);
-      console.log('Total input tokens:', event.totalUsage.inputTokens);
-      console.log('Total output tokens:', event.totalUsage.outputTokens);
+      console.log('Total input tokens:', event.usage.inputTokens);
+      console.log('Total output tokens:', event.usage.outputTokens);
       console.log('Final text:', event.text);
     },
   });

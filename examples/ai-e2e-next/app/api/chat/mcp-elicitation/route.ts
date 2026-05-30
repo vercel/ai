@@ -89,7 +89,7 @@ async function processMessages(
           console.log('TOOL RESULTS:', JSON.stringify(toolResults, null, 2));
         }
       },
-      system:
+      instructions:
         'You are a helpful assistant. When asked to register a user, use the register_user tool.',
       messages: await convertToModelMessages(messages),
       onFinish: async () => {

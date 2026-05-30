@@ -12,6 +12,7 @@ export type GoogleUsageMetadata = {
   cachedContentTokenCount?: number | null;
   thoughtsTokenCount?: number | null;
   trafficType?: string | null;
+  serviceTier?: string | null;
   promptTokensDetails?: GoogleTokenDetail[] | null;
   candidatesTokensDetails?: GoogleTokenDetail[] | null;
 };

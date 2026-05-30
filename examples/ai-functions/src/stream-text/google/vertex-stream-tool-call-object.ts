@@ -25,10 +25,12 @@ run(async () => {
         }),
       },
     },
-    includeRawChunks: true,
+    include: {
+      rawChunks: true,
+    },
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'tool-input-start':
         console.log(`\n[tool-input-start] ${part.toolName} (${part.id})`);

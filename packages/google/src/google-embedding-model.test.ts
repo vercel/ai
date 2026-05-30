@@ -16,23 +16,29 @@ const testValues = ['sunny day at the beach', 'rainy day in the city'];
 
 const provider = createGoogle({ apiKey: 'test-api-key' });
 const model = provider.embeddingModel('gemini-embedding-001');
+const multimodalModel = provider.embeddingModel('gemini-embedding-2-preview');
 
 const URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:something';
+const MULTIMODAL_URL =
+  'https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2-preview:something';
 
 const server = createTestServer({
   [URL]: {},
+  [MULTIMODAL_URL]: {},
 });
 
 describe('GoogleEmbeddingModel', () => {
   function prepareBatchJsonResponse({
     embeddings = dummyEmbeddings,
     headers,
+    url = URL,
   }: {
     embeddings?: EmbeddingModelV4Embedding[];
     headers?: Record<string, string>;
+    url?: typeof URL | typeof MULTIMODAL_URL;
   } = {}) {
-    server.urls[URL].response = {
+    server.urls[url].response = {
       type: 'json-value',
       headers,
       body: {
@@ -44,11 +50,13 @@ describe('GoogleEmbeddingModel', () => {
   function prepareSingleJsonResponse({
     embeddings = dummyEmbeddings,
     headers,
+    url = URL,
   }: {
     embeddings?: EmbeddingModelV4Embedding[];
     headers?: Record<string, string>;
+    url?: typeof URL | typeof MULTIMODAL_URL;
   } = {}) {
-    server.urls[URL].response = {
+    server.urls[url].response = {
       type: 'json-value',
       headers,
       body: {
@@ -428,6 +436,93 @@ describe('GoogleEmbeddingModel', () => {
         ],
       }
     `);
+  });
+
+  it('should merge fileData content for single embedding', async () => {
+    prepareSingleJsonResponse({ url: MULTIMODAL_URL });
+
+    await multimodalModel.doEmbed({
+      values: [testValues[0]],
+      providerOptions: {
+        google: {
+          content: [
+            [
+              {
+                fileData: {
+                  fileUri: 'gs://bucket/video.mp4',
+                  mimeType: 'video/mp4',
+                },
+              },
+            ],
+          ],
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      content: {
+        parts: [
+          { text: 'sunny day at the beach' },
+          {
+            fileData: {
+              fileUri: 'gs://bucket/video.mp4',
+              mimeType: 'video/mp4',
+            },
+          },
+        ],
+      },
+      model: 'models/gemini-embedding-2-preview',
+    });
+  });
+
+  it('should merge fileData content for batch embedding', async () => {
+    prepareBatchJsonResponse({ url: MULTIMODAL_URL });
+
+    await multimodalModel.doEmbed({
+      values: testValues,
+      providerOptions: {
+        google: {
+          content: [
+            [
+              {
+                fileData: {
+                  fileUri: 'gs://bucket/video.mp4',
+                  mimeType: 'video/mp4',
+                },
+              },
+            ],
+            null,
+          ],
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      requests: [
+        {
+          content: {
+            parts: [
+              { text: 'sunny day at the beach' },
+              {
+                fileData: {
+                  fileUri: 'gs://bucket/video.mp4',
+                  mimeType: 'video/mp4',
+                },
+              },
+            ],
+            role: 'user',
+          },
+          model: 'models/gemini-embedding-2-preview',
+        },
+        {
+          content: {
+            parts: [{ text: 'rainy day in the city' }],
+            role: 'user',
+          },
+          model: 'models/gemini-embedding-2-preview',
+        },
+      ],
+    });
   });
 
   it('should throw error when content length does not match values length', async () => {

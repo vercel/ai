@@ -29,6 +29,9 @@ run(async () => {
   console.log('\n=== USAGE ===');
   console.log('Input tokens:', result.usage.inputTokens);
   console.log('Output tokens:', result.usage.outputTokens);
-  console.log('Reasoning tokens:', result.usage.reasoningTokens || 0);
+  console.log(
+    'Reasoning tokens:',
+    result.usage.outputTokenDetails.reasoningTokens || 0,
+  );
   console.log('Total tokens:', result.usage.totalTokens);
 });

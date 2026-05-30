@@ -120,13 +120,11 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
       warnings.push({ type: 'unsupported', feature: 'presencePenalty' });
     }
 
-    if (stopSequences != null) {
-      warnings.push({ type: 'unsupported', feature: 'stopSequences' });
-    }
-
     const supportsReasoningEffort =
       this.modelId === 'mistral-small-latest' ||
-      this.modelId === 'mistral-small-2603';
+      this.modelId === 'mistral-small-2603' ||
+      this.modelId === 'mistral-medium-3' ||
+      this.modelId === 'mistral-medium-3.5';
 
     let resolvedReasoningEffort: string | undefined;
     if (supportsReasoningEffort) {
@@ -178,6 +176,7 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
       max_tokens: maxOutputTokens,
       temperature,
       top_p: topP,
+      stop: stopSequences,
       random_seed: seed,
       reasoning_effort: resolvedReasoningEffort,
 
@@ -577,6 +576,13 @@ const mistralUsageSchema = z.object({
   prompt_tokens: z.number(),
   completion_tokens: z.number(),
   total_tokens: z.number(),
+  num_cached_tokens: z.number().nullish(),
+  prompt_tokens_details: z
+    .object({ cached_tokens: z.number().nullish() })
+    .nullish(),
+  prompt_token_details: z
+    .object({ cached_tokens: z.number().nullish() })
+    .nullish(),
 });
 
 // limited version of the schema, focussed on what is needed for the implementation

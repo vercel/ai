@@ -1,5 +1,8 @@
-import { describe, expect, it } from 'vitest';
-import { convertToGoogleMessages } from './convert-to-google-messages';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  convertToGoogleMessages,
+  SKIP_THOUGHT_SIGNATURE_VALIDATOR,
+} from './convert-to-google-messages';
 
 describe('system messages', () => {
   it('should store system message in system instruction', async () => {
@@ -71,6 +74,7 @@ describe('thought signatures', () => {
                   "args": {
                     "value": "test",
                   },
+                  "id": "call1",
                   "name": "test",
                 },
                 "thoughtSignature": "sig3",
@@ -134,6 +138,7 @@ describe('thought signatures with vertex providerOptionsName', () => {
                   "args": {
                     "location": "London",
                   },
+                  "id": "call1",
                   "name": "getWeather",
                 },
                 "thoughtSignature": "sig3",
@@ -171,6 +176,7 @@ describe('thought signatures with vertex providerOptionsName', () => {
 
     expect(result.contents[0].parts[0]).toEqual({
       functionCall: {
+        id: 'call1',
         name: 'getWeather',
         args: { location: 'London' },
       },
@@ -201,6 +207,7 @@ describe('thought signatures with vertex providerOptionsName', () => {
 
     expect(result.contents[0].parts[0]).toEqual({
       functionCall: {
+        id: 'call1',
         name: 'getWeather',
         args: { location: 'London' },
       },
@@ -258,6 +265,7 @@ describe('thought signatures with google providerOptionsName (gateway failover)'
                   "args": {
                     "location": "London",
                   },
+                  "id": "call1",
                   "name": "getWeather",
                 },
                 "thoughtSignature": "sig3",
@@ -295,6 +303,7 @@ describe('thought signatures with google providerOptionsName (gateway failover)'
 
     expect(result.contents[0].parts[0]).toEqual({
       functionCall: {
+        id: 'call1',
         name: 'getWeather',
         args: { location: 'London' },
       },
@@ -322,6 +331,7 @@ describe('thought signatures with google providerOptionsName (gateway failover)'
 
     expect(result.contents[0].parts[0]).toEqual({
       functionCall: {
+        id: 'call1',
         name: 'getWeather',
         args: { location: 'London' },
       },
@@ -634,6 +644,7 @@ describe('tool messages', () => {
           parts: [
             {
               functionResponse: {
+                id: 'testCallId',
                 name: 'testFunction',
                 response: {
                   name: 'testFunction',
@@ -664,8 +675,8 @@ describe('tool messages', () => {
                   text: 'Here is the generated image:',
                 },
                 {
-                  type: 'file-data',
-                  data: 'base64encodedimagedata',
+                  type: 'file',
+                  data: { type: 'data', data: 'base64encodedimagedata' },
                   mediaType: 'image/jpeg',
                 },
               ],
@@ -683,6 +694,7 @@ describe('tool messages', () => {
           parts: [
             {
               functionResponse: {
+                id: 'testCallId',
                 name: 'imageGenerator',
                 response: {
                   name: 'imageGenerator',
@@ -717,8 +729,8 @@ describe('tool messages', () => {
               type: 'content',
               value: [
                 {
-                  type: 'file-data',
-                  data: 'base64pdfdata',
+                  type: 'file',
+                  data: { type: 'data', data: 'base64pdfdata' },
                   mediaType: 'application/pdf',
                   filename: 'report.pdf',
                 },
@@ -731,6 +743,7 @@ describe('tool messages', () => {
 
     expect(result.contents[0].parts[0]).toEqual({
       functionResponse: {
+        id: 'testCallId',
         name: 'documentReader',
         response: {
           name: 'documentReader',
@@ -761,8 +774,11 @@ describe('tool messages', () => {
               type: 'content',
               value: [
                 {
-                  type: 'file-url',
-                  url: 'data:image/png;base64,base64pngdata',
+                  type: 'file',
+                  data: {
+                    type: 'url',
+                    url: new URL('data:image/png;base64,base64pngdata'),
+                  },
                   mediaType: 'image/png',
                 },
               ],
@@ -774,6 +790,7 @@ describe('tool messages', () => {
 
     expect(result.contents[0].parts[0]).toEqual({
       functionResponse: {
+        id: 'testCallId',
         name: 'imageGenerator',
         response: {
           name: 'imageGenerator',
@@ -804,8 +821,11 @@ describe('tool messages', () => {
               type: 'content',
               value: [
                 {
-                  type: 'file-url',
-                  url: 'https://example.com/image.png',
+                  type: 'file',
+                  data: {
+                    type: 'url',
+                    url: new URL('https://example.com/image.png'),
+                  },
                   mediaType: 'image/png',
                 },
               ],
@@ -817,11 +837,11 @@ describe('tool messages', () => {
 
     expect(result.contents[0].parts[0]).toEqual({
       functionResponse: {
+        id: 'testCallId',
         name: 'imageGenerator',
         response: {
           name: 'imageGenerator',
-          content:
-            '{"type":"file-url","url":"https://example.com/image.png","mediaType":"image/png"}',
+          content: `{"type":"file","data":{"type":"url","url":"https://example.com/image.png"},"mediaType":"image/png"}`,
         },
       },
     });
@@ -840,8 +860,11 @@ describe('tool messages', () => {
               type: 'content',
               value: [
                 {
-                  type: 'file-url',
-                  url: 'https://example.com/report.pdf',
+                  type: 'file',
+                  data: {
+                    type: 'url',
+                    url: new URL('https://example.com/report.pdf'),
+                  },
                   mediaType: 'application/pdf',
                 },
               ],
@@ -853,11 +876,11 @@ describe('tool messages', () => {
 
     expect(result.contents[0].parts[0]).toEqual({
       functionResponse: {
+        id: 'testCallId',
         name: 'documentReader',
         response: {
           name: 'documentReader',
-          content:
-            '{"type":"file-url","url":"https://example.com/report.pdf","mediaType":"application/pdf"}',
+          content: `{"type":"file","data":{"type":"url","url":"https://example.com/report.pdf"},"mediaType":"application/pdf"}`,
         },
       },
     });
@@ -881,13 +904,13 @@ describe('tool messages', () => {
                     text: 'Here is the generated image:',
                   },
                   {
-                    type: 'file-data',
-                    data: 'base64encodedimagedata',
+                    type: 'file',
+                    data: { type: 'data', data: 'base64encodedimagedata' },
                     mediaType: 'image/jpeg',
                   },
                   {
-                    type: 'file-data',
-                    data: 'base64pdfdata',
+                    type: 'file',
+                    data: { type: 'data', data: 'base64pdfdata' },
                     mediaType: 'application/pdf',
                     filename: 'report.pdf',
                   },
@@ -903,6 +926,7 @@ describe('tool messages', () => {
     expect(result.contents[0].parts).toEqual([
       {
         functionResponse: {
+          id: 'testCallId',
           name: 'imageGenerator',
           response: {
             name: 'imageGenerator',
@@ -920,7 +944,7 @@ describe('tool messages', () => {
         text: 'Tool executed successfully and returned this image as a response',
       },
       {
-        text: '{"type":"file-data","data":"base64pdfdata","mediaType":"application/pdf","filename":"report.pdf"}',
+        text: `{"type":"file","data":{"type":"data","data":"base64pdfdata"},"mediaType":"application/pdf","filename":"report.pdf"}`,
       },
     ]);
   });
@@ -939,13 +963,19 @@ describe('tool messages', () => {
                 type: 'content',
                 value: [
                   {
-                    type: 'file-url',
-                    url: 'https://example.com/image.png',
+                    type: 'file',
+                    data: {
+                      type: 'url',
+                      url: new URL('https://example.com/image.png'),
+                    },
                     mediaType: 'image/png',
                   },
                   {
-                    type: 'file-url',
-                    url: 'https://example.com/report.pdf',
+                    type: 'file',
+                    data: {
+                      type: 'url',
+                      url: new URL('https://example.com/report.pdf'),
+                    },
                     mediaType: 'application/pdf',
                   },
                 ],
@@ -959,10 +989,10 @@ describe('tool messages', () => {
 
     expect(result.contents[0].parts).toEqual([
       {
-        text: '{"type":"file-url","url":"https://example.com/image.png","mediaType":"image/png"}',
+        text: `{"type":"file","data":{"type":"url","url":"https://example.com/image.png"},"mediaType":"image/png"}`,
       },
       {
-        text: '{"type":"file-url","url":"https://example.com/report.pdf","mediaType":"application/pdf"}',
+        text: `{"type":"file","data":{"type":"url","url":"https://example.com/report.pdf"},"mediaType":"application/pdf"}`,
       },
     ]);
   });
@@ -1353,6 +1383,7 @@ describe('parallel tool calls', () => {
 
     expect(result.contents[0].parts[0]).toEqual({
       functionCall: {
+        id: 'call1',
         args: { city: 'paris' },
         name: 'checkweather',
       },
@@ -1361,6 +1392,7 @@ describe('parallel tool calls', () => {
 
     expect(result.contents[0].parts[1]).toEqual({
       functionCall: {
+        id: 'call2',
         args: { city: 'london' },
         name: 'checkweather',
       },
@@ -1403,6 +1435,7 @@ describe('tool results with thought signatures', () => {
 
     expect(result.contents[0].parts[0]).toEqual({
       functionCall: {
+        id: 'call1',
         args: { userId: '123' },
         name: 'readdata',
       },
@@ -1411,6 +1444,7 @@ describe('tool results with thought signatures', () => {
 
     expect(result.contents[1].parts[0]).toEqual({
       functionResponse: {
+        id: 'call1',
         name: 'readdata',
         response: {
           content: 'file not found',
@@ -1473,6 +1507,7 @@ describe('server tool combination round-trip', () => {
 
     expect(result.contents[0].parts[0]).toEqual({
       functionCall: {
+        id: 'tc-1',
         name: 'weather',
         args: { location: 'SF' },
       },
@@ -1601,6 +1636,197 @@ describe('server tool combination round-trip', () => {
       },
       thoughtSignature: undefined,
     });
+  });
+});
+
+describe('Gemini 3 missing thoughtSignature mitigation', () => {
+  const promptWithToolCallMissingSignature = [
+    { role: 'user' as const, content: [{ type: 'text' as const, text: 'hi' }] },
+    {
+      role: 'assistant' as const,
+      content: [
+        {
+          type: 'tool-call' as const,
+          toolCallId: 'tc_1',
+          toolName: 'weather',
+          input: { location: 'SF' },
+        },
+      ],
+    },
+    {
+      role: 'tool' as const,
+      content: [
+        {
+          type: 'tool-result' as const,
+          toolCallId: 'tc_1',
+          toolName: 'weather',
+          output: { type: 'json' as const, value: { temperature: 72 } },
+        },
+      ],
+    },
+  ];
+
+  it('injects skip_thought_signature_validator and emits a warning for Gemini 3 when a tool-call has no signature', () => {
+    const onWarning = vi.fn();
+    const result = convertToGoogleMessages(promptWithToolCallMissingSignature, {
+      isGemini3Model: true,
+      onWarning,
+    });
+
+    const assistant = result.contents.find(c => c.role === 'model');
+    expect(assistant?.parts[0]).toMatchObject({
+      functionCall: { id: 'tc_1', name: 'weather', args: { location: 'SF' } },
+      thoughtSignature: SKIP_THOUGHT_SIGNATURE_VALIDATOR,
+    });
+    expect(onWarning).toHaveBeenCalledTimes(1);
+    expect(onWarning.mock.calls[0][0]).toMatchObject({
+      type: 'other',
+      message: expect.stringContaining('skip_thought_signature_validator'),
+    });
+    expect(onWarning.mock.calls[0][0].message).toContain('`weather`');
+  });
+
+  it('does NOT inject the sentinel for non-Gemini-3 models', () => {
+    const onWarning = vi.fn();
+    const result = convertToGoogleMessages(promptWithToolCallMissingSignature, {
+      isGemini3Model: false,
+      onWarning,
+    });
+
+    const assistant = result.contents.find(c => c.role === 'model');
+    expect(assistant?.parts[0]).toMatchObject({
+      functionCall: { id: 'tc_1', name: 'weather', args: { location: 'SF' } },
+      thoughtSignature: undefined,
+    });
+    expect(onWarning).not.toHaveBeenCalled();
+  });
+
+  it('does NOT inject the sentinel when a real signature is present under `google`', () => {
+    const onWarning = vi.fn();
+    const result = convertToGoogleMessages(
+      [
+        { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_1',
+              toolName: 'weather',
+              input: { location: 'SF' },
+              providerOptions: { google: { thoughtSignature: 'real_sig' } },
+            },
+          ],
+        },
+      ],
+      { isGemini3Model: true, onWarning },
+    );
+
+    const assistant = result.contents.find(c => c.role === 'model');
+    expect(assistant?.parts[0]).toMatchObject({
+      thoughtSignature: 'real_sig',
+    });
+    expect(onWarning).not.toHaveBeenCalled();
+  });
+
+  it('does NOT inject the sentinel when a real signature is present under `vertex`', () => {
+    const onWarning = vi.fn();
+    const result = convertToGoogleMessages(
+      [
+        { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_1',
+              toolName: 'weather',
+              input: { location: 'SF' },
+              providerOptions: { vertex: { thoughtSignature: 'vertex_sig' } },
+            },
+          ],
+        },
+      ],
+      {
+        isGemini3Model: true,
+        providerOptionsNames: ['googleVertex', 'vertex'],
+        onWarning,
+      },
+    );
+
+    const assistant = result.contents.find(c => c.role === 'model');
+    expect(assistant?.parts[0]).toMatchObject({
+      thoughtSignature: 'vertex_sig',
+    });
+    expect(onWarning).not.toHaveBeenCalled();
+  });
+
+  it('does NOT inject the sentinel when a real signature is present under `googleVertex`', () => {
+    const onWarning = vi.fn();
+    const result = convertToGoogleMessages(
+      [
+        { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_1',
+              toolName: 'weather',
+              input: { location: 'SF' },
+              providerOptions: {
+                googleVertex: { thoughtSignature: 'google_vertex_sig' },
+              },
+            },
+          ],
+        },
+      ],
+      { isGemini3Model: true, onWarning },
+    );
+
+    const assistant = result.contents.find(c => c.role === 'model');
+    expect(assistant?.parts[0]).toMatchObject({
+      thoughtSignature: 'google_vertex_sig',
+    });
+    expect(onWarning).not.toHaveBeenCalled();
+  });
+
+  it('emits one warning per request listing each affected tool name', () => {
+    const onWarning = vi.fn();
+    convertToGoogleMessages(
+      [
+        { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_1',
+              toolName: 'weather',
+              input: { location: 'SF' },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_2',
+              toolName: 'weather',
+              input: { location: 'NYC' },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_3',
+              toolName: 'search',
+              input: { query: 'q' },
+            },
+          ],
+        },
+      ],
+      { isGemini3Model: true, onWarning },
+    );
+
+    expect(onWarning).toHaveBeenCalledTimes(1);
+    expect(onWarning.mock.calls[0][0].message).toContain('3 ');
+    expect(onWarning.mock.calls[0][0].message).toContain('`weather`');
+    expect(onWarning.mock.calls[0][0].message).toContain('`search`');
   });
 });
 

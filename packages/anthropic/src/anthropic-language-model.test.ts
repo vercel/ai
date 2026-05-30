@@ -3856,6 +3856,178 @@ describe('AnthropicLanguageModel', () => {
       });
     });
 
+    describe('advisor tool', () => {
+      describe('with fixture', () => {
+        let result: LanguageModelV4GenerateResult;
+
+        beforeEach(async () => {
+          prepareJsonFixtureResponse('anthropic-advisor-20260301.1');
+
+          result = await provider('claude-sonnet-4-6').doGenerate({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider',
+                id: 'anthropic.advisor_20260301',
+                name: 'advisor',
+                args: { model: 'claude-opus-4-7' },
+              },
+            ],
+          });
+        });
+
+        it('should send the advisor tool in the request body', async () => {
+          expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+            {
+              "max_tokens": 128000,
+              "messages": [
+                {
+                  "content": [
+                    {
+                      "text": "Hello",
+                      "type": "text",
+                    },
+                  ],
+                  "role": "user",
+                },
+              ],
+              "model": "claude-sonnet-4-6",
+              "tools": [
+                {
+                  "model": "claude-opus-4-7",
+                  "name": "advisor",
+                  "type": "advisor_20260301",
+                },
+              ],
+            }
+          `);
+        });
+
+        it('should parse advisor calls and results as provider-executed tool parts', () => {
+          const advisorToolCall = result.content.find(
+            part => part.type === 'tool-call' && part.toolName === 'advisor',
+          );
+          expect(advisorToolCall).toMatchInlineSnapshot(`
+            {
+              "input": "{}",
+              "providerExecuted": true,
+              "toolCallId": "srvtoolu_01H51YYF9DTtdAHfcxxTs1NV",
+              "toolName": "advisor",
+              "type": "tool-call",
+            }
+          `);
+
+          const advisorToolResult = result.content.find(
+            part => part.type === 'tool-result' && part.toolName === 'advisor',
+          );
+          expect(advisorToolResult).toMatchObject({
+            type: 'tool-result',
+            toolCallId: 'srvtoolu_01H51YYF9DTtdAHfcxxTs1NV',
+            toolName: 'advisor',
+            result: {
+              type: 'advisor_result',
+              text: expect.stringContaining('Deliver design outline first'),
+            },
+          });
+        });
+
+        it('should expose advisor usage iterations in provider metadata', () => {
+          expect(result.providerMetadata?.anthropic?.iterations)
+            .toMatchInlineSnapshot(`
+            [
+              {
+                "inputTokens": 1051,
+                "outputTokens": 35,
+                "type": "message",
+              },
+              {
+                "inputTokens": 2728,
+                "model": "claude-opus-4-7",
+                "outputTokens": 874,
+                "type": "advisor_message",
+              },
+              {
+                "inputTokens": 1363,
+                "outputTokens": 3165,
+                "type": "message",
+              },
+            ]
+          `);
+        });
+      });
+
+      it('should emit a tool-call for the advisor server_tool_use so it round-trips on follow-up turns', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            type: 'message',
+            id: 'msg_advisor',
+            model: 'claude-sonnet-4-6',
+            role: 'assistant',
+            content: [
+              {
+                type: 'server_tool_use',
+                id: 'srvtoolu_advisor_1',
+                name: 'advisor',
+                input: {},
+              },
+              {
+                type: 'advisor_tool_result',
+                tool_use_id: 'srvtoolu_advisor_1',
+                content: {
+                  type: 'advisor_result',
+                  text: 'Outline the design first; pick Submit semantics upfront.',
+                },
+              },
+              {
+                type: 'text',
+                text: 'Here is the design outline...',
+              },
+            ],
+            stop_reason: 'end_turn',
+            usage: { input_tokens: 10, output_tokens: 20 },
+          },
+        };
+
+        const result = await provider('claude-sonnet-4-6').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.advisor_20260301',
+              name: 'advisor',
+              args: { model: 'claude-opus-4-7' },
+            },
+          ],
+        });
+
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": "{}",
+              "providerExecuted": true,
+              "toolCallId": "srvtoolu_advisor_1",
+              "toolName": "advisor",
+              "type": "tool-call",
+            },
+            {
+              "result": {
+                "text": "Outline the design first; pick Submit semantics upfront.",
+                "type": "advisor_result",
+              },
+              "toolCallId": "srvtoolu_advisor_1",
+              "toolName": "advisor",
+              "type": "tool-result",
+            },
+            {
+              "text": "Here is the design outline...",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+    });
+
     describe('mcp servers', () => {
       it('should send request body with include and tool', async () => {
         prepareJsonFixtureResponse('anthropic-mcp.1');
@@ -3929,6 +4101,185 @@ describe('AnthropicLanguageModel', () => {
         });
 
         expect(result.content).toMatchSnapshot();
+      });
+    });
+
+    describe('code execution file uploads', () => {
+      it('should send container upload content with code execution tool and parse results', async () => {
+        prepareJsonFixtureResponse('anthropic-code-execution-file-upload.1');
+
+        const result = await model.doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Analyze this CSV data.',
+                },
+                {
+                  type: 'file',
+                  mediaType: 'text/csv',
+                  data: {
+                    type: 'reference',
+                    reference: { anthropic: 'file-csv-12345' },
+                  },
+                  providerOptions: {
+                    anthropic: {
+                      containerUpload: true,
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.code_execution_20250825',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Analyze this CSV data.",
+                    "type": "text",
+                  },
+                  {
+                    "file_id": "file-csv-12345",
+                    "type": "container_upload",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+            "tools": [
+              {
+                "name": "code_execution",
+                "type": "code_execution_20250825",
+              },
+            ],
+          }
+        `);
+
+        expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+          {
+            "anthropic-beta": "files-api-2025-04-14,code-execution-2025-08-25",
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+            "x-api-key": "test-api-key",
+          }
+        `);
+
+        expect(result.content).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              type: 'tool-call',
+              toolCallId: 'srvtoolu_01Bxt8MXPF5wYdD7KH2HLPzR',
+              toolName: 'code_execution',
+              input:
+                '{"type":"text_editor_code_execution","command":"view","path":"$INPUT_DIR/sample.csv"}',
+              providerExecuted: true,
+            }),
+            expect.objectContaining({
+              type: 'tool-result',
+              toolCallId: 'srvtoolu_01Bxt8MXPF5wYdD7KH2HLPzR',
+              toolName: 'code_execution',
+              result: expect.objectContaining({
+                type: 'text_editor_code_execution_view_result',
+                content: expect.stringContaining(
+                  'month,revenue,expenses,profit',
+                ),
+              }),
+            }),
+            expect.objectContaining({
+              type: 'tool-call',
+              toolCallId: 'srvtoolu_0142vFu9QyCKuFZ2X14zqBLR',
+              toolName: 'code_execution',
+              providerExecuted: true,
+            }),
+            expect.objectContaining({
+              type: 'tool-result',
+              toolCallId: 'srvtoolu_0142vFu9QyCKuFZ2X14zqBLR',
+              toolName: 'code_execution',
+              result: expect.objectContaining({
+                type: 'bash_code_execution_result',
+                stdout: expect.stringContaining('Total Profit: $35400'),
+              }),
+            }),
+          ]),
+        );
+
+        expect(result.providerMetadata?.anthropic?.container).toMatchObject({
+          id: 'container_011CbJPykM9av9Vj1cQkVu87',
+        });
+      });
+
+      it('should send container id for a follow-up code execution turn', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await model.doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Use the uploaded CSV from the existing container.',
+                },
+              ],
+            },
+          ],
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.code_execution_20250825',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+          providerOptions: {
+            anthropic: {
+              container: {
+                id: 'container_12345',
+              },
+            } satisfies AnthropicLanguageModelOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "container": "container_12345",
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Use the uploaded CSV from the existing container.",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+            "tools": [
+              {
+                "name": "code_execution",
+                "type": "code_execution_20250825",
+              },
+            ],
+          }
+        `);
       });
     });
 
@@ -4894,7 +5245,6 @@ describe('AnthropicLanguageModel', () => {
       `);
       expect(await server.calls[0].requestHeaders).toMatchInlineSnapshot(`
         {
-          "anthropic-beta": "effort-2025-11-24",
           "anthropic-version": "2023-06-01",
           "content-type": "application/json",
           "x-api-key": "test-api-key",
@@ -8246,6 +8596,137 @@ describe('AnthropicLanguageModel', () => {
         `);
       });
     });
+
+    describe('code execution file uploads', () => {
+      it('should stream container upload code execution results', async () => {
+        prepareChunksFixtureResponse('anthropic-code-execution-file-upload.1');
+
+        const result = await model.doStream({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Analyze this CSV data.',
+                },
+                {
+                  type: 'file',
+                  mediaType: 'text/csv',
+                  data: {
+                    type: 'reference',
+                    reference: { anthropic: 'file-csv-12345' },
+                  },
+                  providerOptions: {
+                    anthropic: {
+                      containerUpload: true,
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.code_execution_20250825',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(result.stream);
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Analyze this CSV data.",
+                    "type": "text",
+                  },
+                  {
+                    "file_id": "file-csv-12345",
+                    "type": "container_upload",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+            "stream": true,
+            "tools": [
+              {
+                "name": "code_execution",
+                "type": "code_execution_20250825",
+              },
+            ],
+          }
+        `);
+
+        expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+          {
+            "anthropic-beta": "files-api-2025-04-14,code-execution-2025-08-25",
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+            "x-api-key": "test-api-key",
+          }
+        `);
+
+        expect(parts).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              type: 'tool-call',
+              toolCallId: 'srvtoolu_01UAM7DM8XEfNwyddFNKpVp2',
+              toolName: 'code_execution',
+              input: expect.stringContaining('$INPUT_DIR/sample.csv'),
+              providerExecuted: true,
+            }),
+            expect.objectContaining({
+              type: 'tool-result',
+              toolCallId: 'srvtoolu_01UAM7DM8XEfNwyddFNKpVp2',
+              toolName: 'code_execution',
+              result: expect.objectContaining({
+                type: 'text_editor_code_execution_view_result',
+                content: expect.stringContaining(
+                  'month,revenue,expenses,profit',
+                ),
+              }),
+            }),
+            expect.objectContaining({
+              type: 'tool-call',
+              toolCallId: 'srvtoolu_01P2RuXQdkVngtqpdr2dQhv2',
+              toolName: 'code_execution',
+              input: expect.stringContaining('python /tmp/analyze_data.py'),
+              providerExecuted: true,
+            }),
+            expect.objectContaining({
+              type: 'tool-result',
+              toolCallId: 'srvtoolu_01P2RuXQdkVngtqpdr2dQhv2',
+              toolName: 'code_execution',
+              result: expect.objectContaining({
+                type: 'bash_code_execution_result',
+                stdout: expect.stringContaining('Total Profit: $35,400.00'),
+              }),
+            }),
+            expect.objectContaining({
+              type: 'finish',
+              providerMetadata: {
+                anthropic: expect.objectContaining({
+                  container: expect.objectContaining({
+                    id: 'container_011CbJQ7DqpL337rdwQ76jnu',
+                  }),
+                }),
+              },
+            }),
+          ]),
+        );
+      });
+    });
+
     describe('mcp servers', () => {
       it('should stream code execution tool results', async () => {
         prepareChunksFixtureResponse('anthropic-mcp.1');
@@ -8900,6 +9381,92 @@ describe('AnthropicLanguageModel', () => {
         expect(
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
+      });
+    });
+
+    describe('advisor tool', () => {
+      let result: LanguageModelV4StreamResult;
+      let parts: LanguageModelV4StreamPart[];
+
+      beforeEach(async () => {
+        prepareChunksFixtureResponse('anthropic-advisor-20250301.1');
+
+        result = await provider('claude-sonnet-4-6').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.advisor_20260301',
+              name: 'advisor',
+              args: { model: 'claude-opus-4-7' },
+            },
+          ],
+        });
+        parts = await convertReadableStreamToArray(result.stream);
+      });
+
+      it('should emit the advisor server_tool_use as a provider-executed tool call', () => {
+        const advisorToolCall = parts.find(
+          part => part.type === 'tool-call' && part.toolName === 'advisor',
+        );
+
+        expect(advisorToolCall).toMatchInlineSnapshot(`
+          {
+            "input": "{}",
+            "providerExecuted": true,
+            "toolCallId": "srvtoolu_01R6zRtm9VnRaSJUVkGK9zvM",
+            "toolName": "advisor",
+            "type": "tool-call",
+          }
+        `);
+      });
+
+      it('should emit the fully formed advisor result before executor text resumes', () => {
+        const advisorToolResultIndex = parts.findIndex(
+          part => part.type === 'tool-result' && part.toolName === 'advisor',
+        );
+        const nextTextStartIndex = parts.findIndex(
+          (part, index) =>
+            index > advisorToolResultIndex && part.type === 'text-start',
+        );
+
+        expect(advisorToolResultIndex).toBeGreaterThan(-1);
+        expect(nextTextStartIndex).toBeGreaterThan(advisorToolResultIndex);
+        expect(parts[advisorToolResultIndex]).toMatchObject({
+          type: 'tool-result',
+          toolCallId: 'srvtoolu_01R6zRtm9VnRaSJUVkGK9zvM',
+          toolName: 'advisor',
+          result: {
+            type: 'advisor_result',
+            text: expect.stringContaining('Concurrent Worker Pool in Go'),
+          },
+        });
+      });
+
+      it('should expose advisor usage iterations on the finish part', () => {
+        const finishPart = parts.find(part => part.type === 'finish');
+
+        expect(finishPart?.providerMetadata?.anthropic?.iterations)
+          .toMatchInlineSnapshot(`
+            [
+              {
+                "inputTokens": 1051,
+                "outputTokens": 35,
+                "type": "message",
+              },
+              {
+                "inputTokens": 2728,
+                "model": "claude-opus-4-7",
+                "outputTokens": 3880,
+                "type": "advisor_message",
+              },
+              {
+                "inputTokens": 3676,
+                "outputTokens": 3356,
+                "type": "message",
+              },
+            ]
+          `);
       });
     });
 
@@ -9805,6 +10372,19 @@ describe('AnthropicLanguageModel', () => {
 });
 
 describe('getModelCapabilities', () => {
+  it('should return correct capabilities for claude-opus-4-8', () => {
+    expect(getModelCapabilities('claude-opus-4-8')).toMatchInlineSnapshot(`
+      {
+        "isKnownModel": true,
+        "maxOutputTokens": 128000,
+        "rejectsSamplingParameters": true,
+        "supportsAdaptiveThinking": true,
+        "supportsStructuredOutput": true,
+        "supportsXhighEffort": true,
+      }
+    `);
+  });
+
   it('should return correct capabilities for claude-opus-4-7', () => {
     expect(getModelCapabilities('claude-opus-4-7')).toMatchInlineSnapshot(`
       {

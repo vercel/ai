@@ -844,6 +844,107 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should not send item references for reasoning items when previousResponseId is set', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Hello' }],
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'reasoning',
+                  text: 'Let me think...',
+                  providerOptions: {
+                    openai: { itemId: 'rs_existing_123' },
+                  },
+                },
+              ],
+            },
+          ],
+          providerOptions: {
+            openai: {
+              previousResponseId: 'resp_123',
+              store: true,
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-4o',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          previous_response_id: 'resp_123',
+          store: true,
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should not send item references for function calls when previousResponseId is set', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'What is the weather?' }],
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_123',
+                  toolName: 'weather',
+                  input: { location: 'San Francisco' },
+                  providerOptions: {
+                    openai: { itemId: 'fc_existing_123' },
+                  },
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call_123',
+                  toolName: 'weather',
+                  output: { type: 'json', value: { temp: 72 } },
+                },
+              ],
+            },
+          ],
+          providerOptions: {
+            openai: {
+              previousResponseId: 'resp_123',
+              store: true,
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-4o',
+          input: [
+            {
+              role: 'user',
+              content: [{ type: 'input_text', text: 'What is the weather?' }],
+            },
+            {
+              type: 'function_call_output',
+              call_id: 'call_123',
+              output: '{"temp":72}',
+            },
+          ],
+          previous_response_id: 'resp_123',
+          store: true,
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
       it('should send metadata provider option', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
@@ -2630,6 +2731,84 @@ describe('OpenAIResponsesLanguageModel', () => {
             ?.namespace,
         ).toBeUndefined();
       });
+
+      it('should send full tools list and allowed_tools tool_choice when allowedTools provider option is set', async () => {
+        await createModel('gpt-4o').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: TEST_TOOLS,
+          providerOptions: {
+            openai: {
+              allowedTools: { toolNames: ['weather'], mode: 'auto' },
+            },
+          },
+        });
+
+        const body = (await server.calls[0].requestBodyJson) as {
+          tools: Array<{ type: string; name: string }>;
+          tool_choice: unknown;
+        };
+
+        expect(body.tools.map(t => t.name)).toEqual([
+          'weather',
+          'cityAttractions',
+        ]);
+        expect(body.tool_choice).toEqual({
+          type: 'allowed_tools',
+          mode: 'auto',
+          tools: [{ type: 'function', name: 'weather' }],
+        });
+      });
+
+      it('should send allowed_tools with required mode when allowedTools.mode is required', async () => {
+        await createModel('gpt-4o').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: TEST_TOOLS,
+          providerOptions: {
+            openai: {
+              allowedTools: {
+                toolNames: ['weather', 'cityAttractions'],
+                mode: 'required',
+              },
+            },
+          },
+        });
+
+        const body = (await server.calls[0].requestBodyJson) as {
+          tool_choice: unknown;
+        };
+
+        expect(body.tool_choice).toEqual({
+          type: 'allowed_tools',
+          mode: 'required',
+          tools: [
+            { type: 'function', name: 'weather' },
+            { type: 'function', name: 'cityAttractions' },
+          ],
+        });
+      });
+
+      it('should override request-level toolChoice when allowedTools is set', async () => {
+        await createModel('gpt-4o').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: TEST_TOOLS,
+          toolChoice: { type: 'required' },
+          providerOptions: {
+            openai: {
+              allowedTools: { toolNames: ['weather'] },
+            },
+          },
+        });
+
+        const body = (await server.calls[0].requestBodyJson) as {
+          tool_choice: unknown;
+        };
+
+        expect(body.tool_choice).toEqual({
+          type: 'allowed_tools',
+          mode: 'auto',
+          tools: [{ type: 'function', name: 'weather' }],
+        });
+      });
     });
 
     describe('code interpreter tool', () => {
@@ -3822,6 +4001,93 @@ describe('OpenAIResponsesLanguageModel', () => {
           type: 'tool-result',
           toolName: 'webSearch',
           result: {},
+        });
+      });
+
+      it('should forward web_search_call.action.queries to tool-result', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_queries',
+            object: 'response',
+            created_at: 1741631111,
+            status: 'completed',
+            error: null,
+            incomplete_details: null,
+            instructions: null,
+            max_output_tokens: null,
+            model: 'gpt-4o',
+            output: [
+              {
+                type: 'web_search_call',
+                id: 'ws_queries',
+                status: 'completed',
+                action: {
+                  type: 'search',
+                  query: 'sf news',
+                  queries: ['sf news', 'bay area tech'],
+                },
+              },
+              {
+                type: 'message',
+                id: 'msg_done',
+                status: 'completed',
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'output_text',
+                    text: 'Here is what I found.',
+                    annotations: [],
+                  },
+                ],
+              },
+            ],
+            usage: {
+              input_tokens: 10,
+              output_tokens: 5,
+              total_tokens: 15,
+            },
+            previous_response_id: null,
+            parallel_tool_calls: true,
+            reasoning: { effort: null, summary: null },
+            store: true,
+            temperature: 0,
+            text: { format: { type: 'text' } },
+            tool_choice: 'auto',
+            tools: [{ type: 'web_search', search_context_size: 'medium' }],
+            top_p: 1,
+            truncation: 'disabled',
+            user: null,
+            metadata: {},
+          },
+        };
+
+        const result = await createModel('gpt-4o').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.web_search',
+              name: 'webSearch',
+              args: {},
+            },
+          ],
+        });
+
+        const webSearchResultPart = result.content.find(
+          part => part.type === 'tool-result',
+        );
+
+        expect(webSearchResultPart).toMatchObject({
+          type: 'tool-result',
+          toolName: 'webSearch',
+          result: {
+            action: {
+              type: 'search',
+              query: 'sf news',
+              queries: ['sf news', 'bay area tech'],
+            },
+          },
         });
       });
     });

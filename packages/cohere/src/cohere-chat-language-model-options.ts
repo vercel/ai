@@ -4,6 +4,7 @@ import { z } from 'zod/v4';
 export type CohereChatModelId =
   | 'command-a-03-2025'
   | 'command-a-reasoning-08-2025'
+  | 'command-a-vision-07-2025'
   | 'command-r7b-12-2024'
   | 'command-r-plus-04-2024'
   | 'command-r-plus'
@@ -35,4 +36,17 @@ export const cohereLanguageModelChatOptions = z.object({
 
 export type CohereLanguageModelChatOptions = z.infer<
   typeof cohereLanguageModelChatOptions
+>;
+
+export const cohereImagePartProviderOptions = z.object({
+  /**
+   * Image fidelity level passed through as `image_url.detail` on the Cohere chat API.
+   *
+   * @see https://docs.cohere.com/docs/image-inputs
+   */
+  detail: z.enum(['auto', 'low', 'high']).optional(),
+});
+
+export type CohereImagePartProviderOptions = z.infer<
+  typeof cohereImagePartProviderOptions
 >;

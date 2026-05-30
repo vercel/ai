@@ -233,6 +233,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     } = await prepareResponsesTools({
       tools,
       toolChoice,
+      allowedTools: openaiOptions?.allowedTools ?? undefined,
       toolNameMapping,
       customProviderToolNames,
     });
@@ -248,8 +249,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             : modelCapabilities.systemMessageMode),
         providerOptionsName,
         fileIdPrefixes: this.config.fileIdPrefixes,
+        passThroughUnsupportedFiles:
+          openaiOptions?.passThroughUnsupportedFiles ?? false,
         store: openaiOptions?.store ?? true,
         hasConversation: openaiOptions?.conversation != null,
+        hasPreviousResponseId: openaiOptions?.previousResponseId != null,
         hasLocalShellTool: hasOpenAITool('openai.local_shell'),
         hasShellTool: hasOpenAITool('openai.shell'),
         hasApplyPatchTool: hasOpenAITool('openai.apply_patch'),
@@ -2298,7 +2302,11 @@ function mapWebSearchOutput(
   switch (action.type) {
     case 'search':
       return {
-        action: { type: 'search', query: action.query ?? undefined },
+        action: {
+          type: 'search',
+          query: action.query ?? undefined,
+          ...(action.queries != null && { queries: action.queries }),
+        },
         // include sources when provided by the Responses API (behind include flag)
         ...(action.sources != null && { sources: action.sources }),
       };

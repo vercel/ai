@@ -3,8 +3,9 @@ import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
 import {
   Output,
-  type GenerateTextOnFinishCallback,
+  type GenerateTextOnEndCallback,
   type ToolApprovalConfiguration,
+  type ToolInputRefinement,
 } from '../generate-text';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import type { AsyncIterableStream } from '../util/async-iterable-stream';
@@ -15,7 +16,7 @@ import { ToolLoopAgent } from './tool-loop-agent';
 describe('ToolLoopAgent', () => {
   describe('onFinish callback type compatibility', () => {
     it('should allow StreamTextOnFinishCallback where ToolLoopAgentOnFinishCallback is expected', () => {
-      const streamTextCallback: GenerateTextOnFinishCallback<
+      const streamTextCallback: GenerateTextOnEndCallback<
         {},
         {}
       > = async event => {
@@ -24,23 +25,30 @@ describe('ToolLoopAgent', () => {
       };
 
       expectTypeOf(streamTextCallback).toMatchTypeOf<
-        GenerateTextOnFinishCallback<{}>
+        GenerateTextOnEndCallback<{}>
       >();
     });
 
-    it('should allow ToolLoopAgentOnFinishCallback where GenerateTextOnFinishCallback is expected', () => {
-      const agentCallback: GenerateTextOnFinishCallback<{}> = async event => {
+    it('should allow ToolLoopAgentOnFinishCallback where GenerateTextOnEndCallback is expected', () => {
+      const agentCallback: GenerateTextOnEndCallback<{}> = async event => {
         const runtimeContext: unknown = event.runtimeContext;
         runtimeContext;
       };
 
       expectTypeOf(agentCallback).toMatchTypeOf<
-        GenerateTextOnFinishCallback<{}, {}>
+        GenerateTextOnEndCallback<{}, {}>
       >();
     });
   });
 
   describe('generate', () => {
+    it('should accept include', async () => {
+      new ToolLoopAgent({
+        model: new MockLanguageModelV4(),
+        include: { requestMessages: true },
+      });
+    });
+
     it('should not allow system prompt', async () => {
       const agent = new ToolLoopAgent({
         model: new MockLanguageModelV4(),
@@ -110,9 +118,18 @@ describe('ToolLoopAgent', () => {
             return 'user-approval';
           },
         },
+        experimental_refineToolInput: {
+          testTool: input => {
+            expectTypeOf(input).toEqualTypeOf<{ value: string }>();
+            return { value: input.value.trim() };
+          },
+        },
         prepareCall: options => {
           expectTypeOf(options.toolApproval).toEqualTypeOf<
             ToolApprovalConfiguration<typeof tools, Context> | undefined
+          >();
+          expectTypeOf(options.experimental_refineToolInput).toEqualTypeOf<
+            ToolInputRefinement<typeof tools> | undefined
           >();
 
           return {
@@ -236,24 +253,64 @@ describe('ToolLoopAgent', () => {
       });
     });
 
-    it('should accept sensitiveRuntimeContext for runtimeContext keys', async () => {
+    it('should accept includeRuntimeContext for runtimeContext keys', async () => {
       new ToolLoopAgent<never, {}, { userId: string; requestId: string }>({
         model: new MockLanguageModelV4(),
         runtimeContext: { userId: 'user-123', requestId: 'request-123' },
-        sensitiveRuntimeContext: {
-          userId: true,
-          requestId: false,
+        telemetry: {
+          includeRuntimeContext: {
+            userId: true,
+            requestId: false,
+          },
         },
       });
     });
 
-    it('should reject unknown sensitiveRuntimeContext keys', async () => {
+    it('should accept includeToolsContext for toolsContext keys', async () => {
+      new ToolLoopAgent<never, typeof twoToolsWithContext>({
+        model: new MockLanguageModelV4(),
+        tools: twoToolsWithContext,
+        toolsContext: {
+          weather: { weatherApiKey: 'key' },
+          db: { dbUrl: 'url' },
+        },
+        telemetry: {
+          includeToolsContext: {
+            weather: { weatherApiKey: true },
+            db: { dbUrl: false },
+          },
+        },
+      });
+    });
+
+    it('should reject unknown includeToolsContext keys', async () => {
+      new ToolLoopAgent<never, typeof twoToolsWithContext>({
+        model: new MockLanguageModelV4(),
+        tools: twoToolsWithContext,
+        toolsContext: {
+          weather: { weatherApiKey: 'key' },
+          db: { dbUrl: 'url' },
+        },
+        telemetry: {
+          includeToolsContext: {
+            weather: {
+              // @ts-expect-error includeToolsContext only supports tool context properties
+              unknown: true,
+            },
+          },
+        },
+      });
+    });
+
+    it('should reject unknown includeRuntimeContext keys', async () => {
       new ToolLoopAgent<never, {}, { userId: string }>({
         model: new MockLanguageModelV4(),
         runtimeContext: { userId: 'user-123' },
-        sensitiveRuntimeContext: {
-          // @ts-expect-error sensitiveRuntimeContext only supports runtimeContext properties
-          unknown: true,
+        telemetry: {
+          includeRuntimeContext: {
+            // @ts-expect-error includeRuntimeContext only supports runtimeContext properties
+            unknown: true,
+          },
         },
       });
     });
@@ -326,13 +383,17 @@ describe('ToolLoopAgent', () => {
     });
 
     describe('prepareCall', () => {
-      it('should expose sensitiveRuntimeContext type', async () => {
+      it('should expose includeRuntimeContext type', async () => {
         new ToolLoopAgent<never, {}, { userId: string; requestId: string }>({
           model: new MockLanguageModelV4(),
           runtimeContext: { userId: 'user-123', requestId: 'request-123' },
-          sensitiveRuntimeContext: { userId: true },
+          telemetry: {
+            includeRuntimeContext: { userId: true },
+          },
           prepareCall: options => {
-            expectTypeOf(options.sensitiveRuntimeContext).toEqualTypeOf<
+            expectTypeOf(
+              options.telemetry?.includeRuntimeContext,
+            ).toEqualTypeOf<
               | {
                   userId?: boolean | undefined;
                   requestId?: boolean | undefined;

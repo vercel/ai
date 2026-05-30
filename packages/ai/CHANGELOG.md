@@ -1,5 +1,383 @@
 # ai
 
+## 7.0.0-canary.159
+
+### Patch Changes
+
+- b5092f5: fix(ai): do not re-validate tool input for output-error parts in validateUIMessages
+
+## 7.0.0-canary.158
+
+### Patch Changes
+
+- bcce2dd: feat(stream-text): expose standalone stream transformation helpers and deprecate the equivalent `streamText` result methods.
+
+  The new `toUIMessageChunk` and `toUIMessageStream` helpers let you convert a `streamText` `stream` (or any compatible `ReadableStream<TextStreamPart<TOOLS>>`) into UI message chunks without going through the result object — useful for custom transports, tests, and other producers of `TextStreamPart`.
+
+  `result.toUIMessageStreamResponse(options)` and `result.pipeUIMessageStreamToResponse(response, options)` can migrate by passing `toUIMessageStream({ stream: result.stream, ...options })` to `createUIMessageStreamResponse` or `pipeUIMessageStreamToResponse`.
+
+  The new `toTextStream` helper extracts text deltas from a `streamText` `stream`, so `result.toTextStreamResponse(options)` and `result.pipeTextStreamToResponse(response, options)` can migrate to `createTextStreamResponse({ stream: toTextStream({ stream: result.stream }), ...options })` and `pipeTextStreamToResponse({ response, stream: toTextStream({ stream: result.stream }), ...options })`.
+
+  `result.toUIMessageStream`, `result.toUIMessageStreamResponse`, `result.pipeUIMessageStreamToResponse`, `result.toTextStreamResponse`, and `result.pipeTextStreamToResponse` are now `@deprecated`. They still work in v7 and will be removed in the next major release. Migration snippets are in the v6 → v7 migration guide.
+
+## 7.0.0-canary.157
+
+### Patch Changes
+
+- Updated dependencies [e02f041]
+  - @ai-sdk/gateway@4.0.0-canary.93
+
+## 7.0.0-canary.156
+
+### Patch Changes
+
+- 023550e: Deprecate `streamText` result `fullStream` in favor of `stream`.
+- e92fc45: feat(ai): introduce onAbort hook to close telemetry spans
+
+## 7.0.0-canary.155
+
+### Patch Changes
+
+- e67d80e: fix: rename onFinish to onEnd
+- 6cca112: feat: add timeBetweenOutputTokensMs stats
+- 82fc0ab: fix(ai): pass all stream text parts to `onChunk`
+- 76fd58c: fix: consider file outputs and tool calls for time to first output
+
+## 7.0.0-canary.154
+
+### Patch Changes
+
+- 594029e: feat(ai): wrap the model call in telemetry context
+
+## 7.0.0-canary.153
+
+### Patch Changes
+
+- 6c93e36: feat(provider-utils): add `spawnCommand` method to `Experimental_Sandbox` to allow for detached command execution
+- Updated dependencies [6c93e36]
+- Updated dependencies [f617ac2]
+  - @ai-sdk/provider-utils@5.0.0-canary.44
+  - @ai-sdk/gateway@4.0.0-canary.92
+
+## 7.0.0-canary.152
+
+### Patch Changes
+
+- Updated dependencies [d4d4a5e]
+  - @ai-sdk/gateway@4.0.0-canary.91
+
+## 7.0.0-canary.151
+
+### Patch Changes
+
+- Updated dependencies [8b811d8]
+  - @ai-sdk/gateway@4.0.0-canary.90
+
+## 7.0.0-canary.150
+
+### Patch Changes
+
+- Updated dependencies [bba5250]
+- Updated dependencies [94c6edc]
+  - @ai-sdk/gateway@4.0.0-canary.89
+
+## 7.0.0-canary.149
+
+### Patch Changes
+
+- e3d9c0e: Add `allowSystemInMessages` option to `ToolLoopAgent`.
+
+  This exposes the same option that exists on `streamText` and `generateText`, whether `role: "system"` messages are allowed in the `prompt` or `messages` fields. When unset, system messages are rejected because they can create a prompt injection attack risk. Ideally, use the `instructions` option instead. Set to `true` to allow system messages, or `false` to explicitly reject them.
+
+  ```ts
+  const agent = new ToolLoopAgent({
+    model,
+    allowSystemInMessages: true,
+  });
+
+  await agent.generate({
+    messages: [
+      { role: "system", content: "Server context" },
+      { role: "user", content: "Hello" },
+    ],
+  });
+  ```
+
+  The option can also be returned from `prepareCall` for dynamic per-call configuration.
+
+## 7.0.0-canary.148
+
+### Patch Changes
+
+- 2852a84: fix(ai): make input optional on input-streaming UIMessagePart variants
+
+## 7.0.0-canary.147
+
+### Patch Changes
+
+- Updated dependencies [accaca0]
+  - @ai-sdk/gateway@4.0.0-canary.88
+
+## 7.0.0-canary.146
+
+### Patch Changes
+
+- Updated dependencies [bf837fe]
+  - @ai-sdk/gateway@4.0.0-canary.87
+
+## 7.0.0-canary.145
+
+### Patch Changes
+
+- Updated dependencies [546cefe]
+  - @ai-sdk/gateway@4.0.0-canary.86
+
+## 7.0.0-canary.144
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - @ai-sdk/gateway@4.0.0-canary.85
+  - @ai-sdk/provider-utils@5.0.0-canary.43
+  - @ai-sdk/provider@4.0.0-canary.17
+
+## 7.0.0-canary.143
+
+### Patch Changes
+
+- a6617c5: feat(provider-utils): add `readFile` and `writeFile` plus convenience wrappers to `Experimental_Sandbox` abstraction
+- Updated dependencies [a6617c5]
+- Updated dependencies [032c4a5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+  - @ai-sdk/gateway@4.0.0-canary.84
+
+## 7.0.0-canary.142
+
+### Patch Changes
+
+- 62d6481: Post-publish release notifications now link to each package’s GitHub release and npm page.
+
+## 7.0.0-canary.141
+
+### Patch Changes
+
+- e3a0419: fix(ai): default missing embedding warnings to an empty array
+
+## 7.0.0-canary.140
+
+### Patch Changes
+
+- Updated dependencies [1d6fb7f]
+  - @ai-sdk/gateway@4.0.0-canary.83
+
+## 7.0.0-canary.139
+
+### Patch Changes
+
+- 334ae5d: Update step performance metrics with explicit effective, input, output, and total token throughput fields.
+- 28dfa06: fix: support tools with optional context
+- e93fa91: rename Sandbox.executeCommand to Sandbox.runCommand
+- Updated dependencies [28dfa06]
+- Updated dependencies [e93fa91]
+  - @ai-sdk/provider-utils@5.0.0-canary.41
+  - @ai-sdk/gateway@4.0.0-canary.82
+
+## 7.0.0-canary.138
+
+### Patch Changes
+
+- Updated dependencies [67c4011]
+  - @ai-sdk/gateway@4.0.0-canary.81
+
+## 7.0.0-canary.137
+
+### Patch Changes
+
+- 98627e5: feat(ai): remove onChunk event from telemetry
+- 476e1ca: feat(ai): remove telemetry dependency on onChunk callback
+
+## 7.0.0-canary.136
+
+### Patch Changes
+
+- a7de9c9: fix: make sandbox experimental
+- Updated dependencies [a7de9c9]
+  - @ai-sdk/provider-utils@5.0.0-canary.40
+  - @ai-sdk/gateway@4.0.0-canary.80
+
+## 7.0.0-canary.135
+
+### Patch Changes
+
+- Updated dependencies [105f95b]
+  - @ai-sdk/provider-utils@5.0.0-canary.39
+  - @ai-sdk/gateway@4.0.0-canary.79
+
+## 7.0.0-canary.134
+
+### Patch Changes
+
+- ed74dae: fix(ui): make `input` optional on `output-error` tool and dynamic-tool UI message parts
+
+  `validateUIMessages` rejected persisted assistant messages whose `output-error` tool parts had no `input` key. This happened for any errored tool call where the SDK set `input: undefined` (e.g. `NoSuchToolError` / `InvalidToolInputError`): JSON serialization stripped the `undefined` value, and Zod 4.4+ treats a missing `z.unknown()` key as a validation failure (previously it was implicitly optional). The schema now matches the runtime shape produced by `process-ui-message-stream`, so reloading a thread that contains an errored tool call no longer throws `AI_TypeValidationError`.
+
+- f4cc8eb: feat: add performance statistics
+- e80ada0: fix(ai): download tool-result file URLs
+- 1dca341: fix: rename telemetry onFinish to onEnd
+- 2605e5f: fix test mocks to return the first array-backed result on the first call
+
+## 7.0.0-canary.133
+
+### Patch Changes
+
+- 38ca8dc: fix(gateway): enable retry support for gateway errors
+- 6d76710: fix URL of hero animation in README
+- Updated dependencies [38ca8dc]
+- Updated dependencies [8b7af75]
+  - @ai-sdk/gateway@4.0.0-canary.78
+
+## 7.0.0-canary.132
+
+### Patch Changes
+
+- eaf849f: Rename rerank telemetry finish callback to `onRerankEnd`.
+- 8565dcb: fix: rename onEmbedFinish to onEmbedEnd
+
+## 7.0.0-canary.131
+
+### Patch Changes
+
+- b67525f: feat: instructions as prepareStep input
+- ca446f8: feat: flexible tool descriptions
+- bcacd48: fix(ai): accumulative properties on StreamTextResult, GenerateTextResult
+- Updated dependencies [ca446f8]
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+  - @ai-sdk/gateway@4.0.0-canary.77
+
+## 7.0.0-canary.130
+
+### Patch Changes
+
+- Updated dependencies [5f380c0]
+  - @ai-sdk/gateway@4.0.0-canary.76
+
+## 7.0.0-canary.129
+
+### Patch Changes
+
+- d1b3786: fix(ai): deprecate properties on result that have moved to finalStep
+
+## 7.0.0-canary.128
+
+### Patch Changes
+
+- Updated dependencies [d848405]
+  - @ai-sdk/provider-utils@5.0.0-canary.37
+  - @ai-sdk/gateway@4.0.0-canary.75
+
+## 7.0.0-canary.127
+
+### Patch Changes
+
+- e95e38d: fix: Make `generateText` and `streamText` result `usage` report total usage across all steps and deprecate `totalUsage`.
+- 016e877: feat(ai): add `instructions` as the primary prompt option and deprecate `system`
+- ca99fea: feat: expose `finalStep` on text generation results
+- d775a57: feat: introduce Instructions type
+- 538c12b: feat: use instructions on ToolCallRepairFunction, parseToolCall, and events
+- Updated dependencies [ca39020]
+  - @ai-sdk/provider-utils@5.0.0-canary.36
+  - @ai-sdk/gateway@4.0.0-canary.74
+
+## 7.0.0-canary.126
+
+### Patch Changes
+
+- Updated dependencies [f634bac]
+  - @ai-sdk/provider-utils@5.0.0-canary.35
+  - @ai-sdk/gateway@4.0.0-canary.73
+
+## 7.0.0-canary.125
+
+### Major Changes
+
+- 31f69de: fix(ai): carry prepareStep message overrides forward across steps
+- 7c71ac6: fix(ai): limit response messages in StepResult to messages created in that step
+
+### Patch Changes
+
+- fd4f578: fix(ai): exclude request and response bodies from text generation results by default to reduce memory usage.
+- c0c8ca2: fix(ai): remove deprecated LanguageModelUsage properties
+- 5faf71c: feat: introduce responseMessages on GenerateTextResult and StreamTextResult
+- 69254e0: feat(ai): add toolMetadata for tool specific metdata
+- 3015fc3: feat: sandbox shell execution abstraction
+- eee1166: feat(ai): expose initial and response messages in prepareStep
+- 7dbf992: feat(ai): allow prepareStep to override sandbox per step
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+  - @ai-sdk/provider-utils@5.0.0-canary.34
+  - @ai-sdk/gateway@4.0.0-canary.72
+
+## 7.0.0-canary.124
+
+### Patch Changes
+
+- 69aeb0e: feat: add deprecated tool call lifecycle callback aliases for AI SDK 6 compatibility.
+- 48e92f3: feat: make include stable
+
+## 7.0.0-canary.123
+
+### Patch Changes
+
+- 7392266: feat: move includeRawChunks to include.rawChunks
+- 4bb4dbc: feat: introduce include.requestMessage option for step request message storage opt-in
+
+## 7.0.0-canary.122
+
+### Patch Changes
+
+- 79b2468: feat: add request.messages to StepResult
+- c22750c: fix(ai): move onToolExecutionStart and onToolExecutionEnd to stable
+
+## 7.0.0-canary.121
+
+### Patch Changes
+
+- 2427d88: feat(ai): change Tool.sensitiveContext to telemetry.includeToolsContext and make it opt-in
+- 5588abd: feat(ai): add experimental_refineToolInput option to ToolLoopAgent, generateText, streamText
+- 6dd6b83: feat(ai): change sensitiveRuntimeContext to telemetry.includeRuntimeContext and make it opt-in
+- Updated dependencies [2427d88]
+  - @ai-sdk/provider-utils@5.0.0-canary.33
+  - @ai-sdk/gateway@4.0.0-canary.71
+
+## 7.0.0-canary.120
+
+### Major Changes
+
+- 5463d0d: feat(provider): align tool result output content file part types with top-level message file part types
+
+### Patch Changes
+
+- Updated dependencies [5463d0d]
+  - @ai-sdk/provider-utils@5.0.0-canary.32
+  - @ai-sdk/provider@4.0.0-canary.16
+  - @ai-sdk/gateway@4.0.0-canary.70
+
+## 7.0.0-canary.119
+
+### Patch Changes
+
+- Updated dependencies [8e53eb7]
+  - @ai-sdk/gateway@4.0.0-canary.69
+
+## 7.0.0-canary.118
+
+### Patch Changes
+
+- 47e65d6: fix(ai): tag step/chunk timeout aborts with `TimeoutError` reason
+
+  When `timeout: { stepMs }` or `timeout: { chunkMs }` fires, the abort reason is now a `TimeoutError` `DOMException`, matching what `AbortSignal.timeout()` produces natively. Consumers can distinguish a framework timeout from a user-initiated cancel via `signal.reason.name === 'TimeoutError'`.
+
 ## 7.0.0-canary.117
 
 ### Patch Changes
@@ -1496,7 +1874,6 @@
 ### Patch Changes
 
 - 2dc9bfa: fix(ai): handle provider-executed tools and tool-approval-response in validation
-
   - Skip validation for tool calls with `providerExecuted: true` (deferred results)
   - Map approvalId to toolCallId for proper tool-approval-response handling
   - Filter out empty tool messages after content filtering

@@ -115,5 +115,29 @@ describe.runIf(isNodeRuntime())(
       ]
     `);
     });
+
+    it('publishes rerank end events', async () => {
+      const event = { callId: 'diagnostic-channel-rerank-end' };
+
+      const messages = await collectDiagnosticChannelMessages(async () => {
+        const telemetry = createTelemetryDispatcher({});
+
+        await telemetry.onRerankEnd!(event as any);
+      });
+
+      expect(messages).toMatchInlineSnapshot(`
+      [
+        {
+          "event": {
+            "callId": "diagnostic-channel-rerank-end",
+            "functionId": undefined,
+            "recordInputs": undefined,
+            "recordOutputs": undefined,
+          },
+          "type": "onRerankEnd",
+        },
+      ]
+    `);
+    });
   },
 );

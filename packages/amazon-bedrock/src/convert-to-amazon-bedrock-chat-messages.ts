@@ -45,6 +45,18 @@ function getCachePoint(
   return { cachePoint: cachePointConfig };
 }
 
+function pushCachePoint(
+  content:
+    | AmazonBedrockUserMessage['content']
+    | AmazonBedrockAssistantMessage['content'],
+  providerMetadata: SharedV4ProviderMetadata | undefined,
+) {
+  const cachePoint = getCachePoint(providerMetadata);
+  if (cachePoint) {
+    content.push(cachePoint);
+  }
+}
+
 async function shouldEnableCitations(
   providerMetadata: SharedV4ProviderMetadata | undefined,
 ): Promise<boolean> {
@@ -201,6 +213,8 @@ export async function convertToAmazonBedrockChatMessages(
                     break;
                   }
                 }
+
+                pushCachePoint(amazonBedrockContent, part.providerOptions);
               }
 
               break;
@@ -215,34 +229,69 @@ export async function convertToAmazonBedrockChatMessages(
                 const output = part.output;
                 switch (output.type) {
                   case 'content': {
-                    toolResultContent = output.value.map(contentPart => {
-                      switch (contentPart.type) {
-                        case 'text':
-                          return { text: contentPart.text };
-                        case 'file-data':
-                          if (!contentPart.mediaType.startsWith('image/')) {
+                    toolResultContent = await Promise.all(
+                      output.value.map(async contentPart => {
+                        switch (contentPart.type) {
+                          case 'text':
+                            return { text: contentPart.text };
+                          case 'file': {
+                            if (contentPart.data.type !== 'data') {
+                              throw new UnsupportedFunctionalityError({
+                                functionality: `tool result file data of type "${contentPart.data.type}"`,
+                              });
+                            }
+
+                            const fullMediaType = resolveFullMediaType({
+                              part: contentPart,
+                            });
+
+                            if (
+                              getTopLevelMediaType(fullMediaType) !== 'image'
+                            ) {
+                              const enableCitations =
+                                await shouldEnableCitations(
+                                  contentPart.providerOptions,
+                                );
+
+                              return {
+                                document: {
+                                  format:
+                                    getAmazonBedrockDocumentFormat(
+                                      fullMediaType,
+                                    ),
+                                  name: contentPart.filename
+                                    ? stripFileExtension(contentPart.filename)
+                                    : generateDocumentName(),
+                                  source: {
+                                    bytes: convertToBase64(
+                                      contentPart.data.data,
+                                    ),
+                                  },
+                                  ...(enableCitations && {
+                                    citations: { enabled: true },
+                                  }),
+                                },
+                              };
+                            }
+
+                            return {
+                              image: {
+                                format:
+                                  getAmazonBedrockImageFormat(fullMediaType),
+                                source: {
+                                  bytes: convertToBase64(contentPart.data.data),
+                                },
+                              },
+                            };
+                          }
+                          default: {
                             throw new UnsupportedFunctionalityError({
-                              functionality: `media type: ${contentPart.mediaType}`,
+                              functionality: `unsupported tool content part type: ${contentPart.type}`,
                             });
                           }
-
-                          const format = getAmazonBedrockImageFormat(
-                            contentPart.mediaType,
-                          );
-
-                          return {
-                            image: {
-                              format,
-                              source: { bytes: contentPart.data },
-                            },
-                          };
-                        default: {
-                          throw new UnsupportedFunctionalityError({
-                            functionality: `unsupported tool content part type: ${contentPart.type}`,
-                          });
                         }
-                      }
-                    });
+                      }),
+                    );
                     break;
                   }
                   case 'text':
@@ -269,6 +318,7 @@ export async function convertToAmazonBedrockChatMessages(
                     content: toolResultContent,
                   },
                 });
+                pushCachePoint(amazonBedrockContent, part.providerOptions);
               }
 
               break;
@@ -279,10 +329,7 @@ export async function convertToAmazonBedrockChatMessages(
             }
           }
 
-          const cachePoint = getCachePoint(providerOptions);
-          if (cachePoint) {
-            amazonBedrockContent.push(cachePoint);
-          }
+          pushCachePoint(amazonBedrockContent, providerOptions);
         }
 
         messages.push({ role: 'user', content: amazonBedrockContent });
@@ -361,35 +408,11 @@ export async function convertToAmazonBedrockChatMessages(
                       },
                     },
                   });
-                } else if (
-                  part.providerOptions == null ||
-                  Object.keys(part.providerOptions).every(
-                    k => k === 'bedrock' || k === 'amazonBedrock',
-                  )
-                ) {
-                  // No foreign-provider metadata — preserve text. This covers
-                  // the prefill case where the caller hand-crafts a reasoning
-                  // block without a signature. Forwarding reasoning that was
-                  // signed by a different provider (e.g. anthropic) would
-                  // cause Bedrock to reject with
-                  // `thinking.signature: Field required`, so we drop those.
-                  // trim the last text part if it's the last message in the
-                  // block because Bedrock does not allow trailing whitespace
-                  // in pre-filled assistant responses
-                  amazonBedrockContent.push({
-                    reasoningContent: {
-                      reasoningText: {
-                        text: trimIfLast(
-                          isLastBlock,
-                          isLastMessage,
-                          isLastContentPart,
-                          part.text,
-                        ),
-                      },
-                    },
-                  });
                 }
-
+                // Unsigned reasoning is intentionally not replayed. Some
+                // Bedrock models (for example OpenAI gpt-oss) return reasoning
+                // without a signature; sending it back in multi-turn tool use
+                // can leak raw reasoning into the visible response.
                 break;
               }
 
@@ -404,11 +427,10 @@ export async function convertToAmazonBedrockChatMessages(
                 break;
               }
             }
+
+            pushCachePoint(amazonBedrockContent, part.providerOptions);
           }
-          const cachePoint = getCachePoint(message.providerOptions);
-          if (cachePoint) {
-            amazonBedrockContent.push(cachePoint);
-          }
+          pushCachePoint(amazonBedrockContent, message.providerOptions);
         }
 
         messages.push({ role: 'assistant', content: amazonBedrockContent });

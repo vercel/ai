@@ -3,7 +3,9 @@ import { z } from 'zod/v4';
 import type { FlexibleSchema } from '../schema';
 import type { ToolResultOutput } from './content-part';
 import type { Context } from './context';
+import type { ExecutableTool } from './executable-tool';
 import type { ModelMessage } from './model-message';
+import type { Experimental_Sandbox as Sandbox } from './sandbox';
 import {
   dynamicTool,
   tool,
@@ -32,7 +34,14 @@ describe('DynamicTool', () => {
       outputSchema: z.string(),
     };
 
-    expectTypeOf(aTool.description).toEqualTypeOf<string | undefined>();
+    expectTypeOf(aTool.description).toEqualTypeOf<
+      | string
+      | ((options: {
+          context: Context;
+          experimental_sandbox?: Sandbox;
+        }) => string)
+      | undefined
+    >();
     expectTypeOf(aTool.strict).toEqualTypeOf<boolean | undefined>();
     expectTypeOf(aTool.inputExamples).toEqualTypeOf<
       Array<{ input: { location: string } }> | undefined
@@ -545,7 +554,9 @@ describe('tool helper', () => {
       });
 
       expectTypeOf(aTool).toEqualTypeOf<
-        Tool<{ number: number }, 'test', z.infer<typeof contextSchema>>
+        ExecutableTool<
+          Tool<{ number: number }, 'test', z.infer<typeof contextSchema>>
+        >
       >();
     });
 
@@ -589,10 +600,10 @@ describe('tool helper', () => {
       });
 
       expectTypeOf(aTool).toEqualTypeOf<
-        Tool<{ number: number }, 'test', Context>
+        ExecutableTool<Tool<{ number: number }, 'test', Context>>
       >();
-      expectTypeOf(aTool.execute).toExtend<
-        ToolExecuteFunction<{ number: number }, 'test', Context> | undefined
+      expectTypeOf(aTool.execute).toEqualTypeOf<
+        ToolExecuteFunction<{ number: number }, 'test', Context>
       >();
       expectTypeOf(aTool.execute).not.toEqualTypeOf<undefined>();
       expectTypeOf(aTool.inputSchema).toEqualTypeOf<
@@ -609,10 +620,10 @@ describe('tool helper', () => {
       });
 
       expectTypeOf(aTool).toEqualTypeOf<
-        Tool<{ number: number }, 'test', Context>
+        ExecutableTool<Tool<{ number: number }, 'test', Context>>
       >();
       expectTypeOf(aTool.execute).toEqualTypeOf<
-        ToolExecuteFunction<{ number: number }, 'test', Context> | undefined
+        ToolExecuteFunction<{ number: number }, 'test', Context>
       >();
       expectTypeOf(aTool.inputSchema).toEqualTypeOf<
         FlexibleSchema<{ number: number }>

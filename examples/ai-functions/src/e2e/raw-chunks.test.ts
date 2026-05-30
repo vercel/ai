@@ -16,30 +16,34 @@ describe('Raw Chunks E2E Tests', () => {
 
   providers.forEach(({ name, model }) => {
     describe(`${name} Provider`, () => {
-      it('should include raw chunks when includeRawChunks is enabled', async () => {
+      it('should include raw chunks when include.rawChunks is enabled', async () => {
         const result = streamText({
           model,
           prompt: 'Say hello!',
-          includeRawChunks: true,
+          include: {
+            rawChunks: true,
+          },
         });
 
         const chunks = [];
-        for await (const chunk of result.fullStream) {
+        for await (const chunk of result.stream) {
           chunks.push(chunk);
         }
 
         expect(chunks.filter(chunk => chunk.type === 'raw')).toHaveLength(1);
       });
 
-      it('should not include raw chunks when includeRawChunks is disabled', async () => {
+      it('should not include raw chunks when include.rawChunks is disabled', async () => {
         const result = streamText({
           model,
           prompt: 'Say hello!',
-          includeRawChunks: false,
+          include: {
+            rawChunks: false,
+          },
         });
 
         const chunks = [];
-        for await (const chunk of result.fullStream) {
+        for await (const chunk of result.stream) {
           chunks.push(chunk);
         }
 
@@ -50,11 +54,13 @@ describe('Raw Chunks E2E Tests', () => {
         const result = streamText({
           model,
           prompt: 'Say hello!',
-          includeRawChunks: true,
+          include: {
+            rawChunks: true,
+          },
         });
 
         const chunks = [];
-        for await (const chunk of result.fullStream) {
+        for await (const chunk of result.stream) {
           chunks.push(chunk);
         }
 

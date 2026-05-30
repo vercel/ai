@@ -58,8 +58,10 @@ export async function convertToOpenAIResponsesInput({
   systemMessageMode,
   providerOptionsName,
   fileIdPrefixes,
+  passThroughUnsupportedFiles = false,
   store,
   hasConversation = false,
+  hasPreviousResponseId = false,
   hasLocalShellTool = false,
   hasShellTool = false,
   hasApplyPatchTool = false,
@@ -71,8 +73,10 @@ export async function convertToOpenAIResponsesInput({
   providerOptionsName: string;
   /** @deprecated Use provider references instead. */
   fileIdPrefixes?: readonly string[];
+  passThroughUnsupportedFiles?: boolean;
   store: boolean;
   hasConversation?: boolean; // when true, skip assistant messages that already have item IDs
+  hasPreviousResponseId?: boolean; // when true, skip reasoning and function-call items that already exist in the previous response chain
   hasLocalShellTool?: boolean;
   hasShellTool?: boolean;
   hasApplyPatchTool?: boolean;
@@ -178,7 +182,10 @@ export async function convertToOpenAIResponsesInput({
                       }
 
                       const fullMediaType = resolveFullMediaType({ part });
-                      if (fullMediaType !== 'application/pdf') {
+                      if (
+                        fullMediaType !== 'application/pdf' &&
+                        !passThroughUnsupportedFiles
+                      ) {
                         throw new UnsupportedFunctionalityError({
                           functionality: `file part media type ${fullMediaType}`,
                         });
@@ -190,8 +197,12 @@ export async function convertToOpenAIResponsesInput({
                         isFileId(part.data.data, fileIdPrefixes)
                           ? { file_id: part.data.data }
                           : {
-                              filename: part.filename ?? `part-${index}.pdf`,
-                              file_data: `data:application/pdf;base64,${convertToBase64(part.data.data)}`,
+                              filename:
+                                part.filename ??
+                                (fullMediaType === 'application/pdf'
+                                  ? `part-${index}.pdf`
+                                  : `part-${index}`),
+                              file_data: `data:${fullMediaType};base64,${convertToBase64(part.data.data)}`,
                             }),
                       };
                     }
@@ -211,9 +222,10 @@ export async function convertToOpenAIResponsesInput({
         for (const part of content) {
           switch (part.type) {
             case 'text': {
-              const providerOpts = part.providerOptions?.[providerOptionsName];
-              const id = providerOpts?.itemId as string | undefined;
-              const phase = providerOpts?.phase as
+              const providerOptions =
+                part.providerOptions?.[providerOptionsName];
+              const id = providerOptions?.itemId as string | undefined;
+              const phase = providerOptions?.phase as
                 | 'commentary'
                 | 'final_answer'
                 | null
@@ -298,6 +310,9 @@ export async function convertToOpenAIResponsesInput({
               }
 
               if (store && id != null) {
+                if (hasPreviousResponseId) {
+                  break;
+                }
                 input.push({ type: 'item_reference', id });
                 break;
               }
@@ -496,7 +511,10 @@ export async function convertToOpenAIResponsesInput({
 
               const reasoningId = providerOptions?.itemId;
 
-              if (hasConversation && reasoningId != null) {
+              if (
+                (hasConversation || hasPreviousResponseId) &&
+                reasoningId != null
+              ) {
                 break;
               }
 
@@ -590,9 +608,9 @@ export async function convertToOpenAIResponsesInput({
 
             case 'custom': {
               if (part.kind === 'openai.compaction') {
-                const providerOpts =
+                const providerOptions =
                   part.providerOptions?.[providerOptionsName];
-                const id = providerOpts?.itemId as string | undefined;
+                const id = providerOptions?.itemId as string | undefined;
 
                 if (hasConversation && id != null) {
                   break;
@@ -603,7 +621,7 @@ export async function convertToOpenAIResponsesInput({
                   break;
                 }
 
-                const encryptedContent = providerOpts?.encryptedContent as
+                const encryptedContent = providerOptions?.encryptedContent as
                   | string
                   | undefined;
 
@@ -767,29 +785,50 @@ export async function convertToOpenAIResponsesInput({
                     switch (item.type) {
                       case 'text':
                         return { type: 'input_text' as const, text: item.text };
-                      case 'file-data':
-                        if (item.mediaType.startsWith('image/')) {
+                      case 'file': {
+                        const topLevel = getTopLevelMediaType(item.mediaType);
+                        const imageDetail =
+                          item.providerOptions?.[providerOptionsName]
+                            ?.imageDetail;
+
+                        if (item.data.type === 'data') {
+                          const fullMediaType = resolveFullMediaType({
+                            part: item,
+                          });
+                          if (topLevel === 'image') {
+                            return {
+                              type: 'input_image' as const,
+                              image_url: `data:${fullMediaType};base64,${convertToBase64(item.data.data)}`,
+                              detail: imageDetail,
+                            };
+                          }
                           return {
-                            type: 'input_image' as const,
-                            image_url: `data:${item.mediaType};base64,${item.data}`,
+                            type: 'input_file' as const,
+                            filename: item.filename ?? 'data',
+                            file_data: `data:${fullMediaType};base64,${convertToBase64(item.data.data)}`,
                           };
                         }
-                        return {
-                          type: 'input_file' as const,
-                          filename: item.filename ?? 'data',
-                          file_data: `data:${item.mediaType};base64,${item.data}`,
-                        };
-                      case 'file-url':
-                        if (item.mediaType.startsWith('image/')) {
+
+                        if (item.data.type === 'url') {
+                          if (topLevel === 'image') {
+                            return {
+                              type: 'input_image' as const,
+                              image_url: item.data.url.toString(),
+                              detail: imageDetail,
+                            };
+                          }
                           return {
-                            type: 'input_image' as const,
-                            image_url: item.url,
+                            type: 'input_file' as const,
+                            file_url: item.data.url.toString(),
                           };
                         }
-                        return {
-                          type: 'input_file' as const,
-                          file_url: item.url,
-                        };
+
+                        warnings.push({
+                          type: 'other',
+                          message: `unsupported custom tool content part type: ${item.type} with data type: ${item.data.type}`,
+                        });
+                        return undefined;
+                      }
                       default:
                         warnings.push({
                           type: 'other',
@@ -832,31 +871,49 @@ export async function convertToOpenAIResponsesInput({
                       return { type: 'input_text' as const, text: item.text };
                     }
 
-                    case 'file-data': {
-                      if (item.mediaType.startsWith('image/')) {
-                        return {
-                          type: 'input_image' as const,
-                          image_url: `data:${item.mediaType};base64,${item.data}`,
-                        };
-                      }
-                      return {
-                        type: 'input_file' as const,
-                        filename: item.filename ?? 'data',
-                        file_data: `data:${item.mediaType};base64,${item.data}`,
-                      };
-                    }
+                    case 'file': {
+                      const topLevel = getTopLevelMediaType(item.mediaType);
+                      const imageDetail =
+                        item.providerOptions?.[providerOptionsName]
+                          ?.imageDetail;
 
-                    case 'file-url': {
-                      if (item.mediaType.startsWith('image/')) {
+                      if (item.data.type === 'data') {
+                        const fullMediaType = resolveFullMediaType({
+                          part: item,
+                        });
+                        if (topLevel === 'image') {
+                          return {
+                            type: 'input_image' as const,
+                            image_url: `data:${fullMediaType};base64,${convertToBase64(item.data.data)}`,
+                            detail: imageDetail,
+                          };
+                        }
                         return {
-                          type: 'input_image' as const,
-                          image_url: item.url,
+                          type: 'input_file' as const,
+                          filename: item.filename ?? 'data',
+                          file_data: `data:${fullMediaType};base64,${convertToBase64(item.data.data)}`,
                         };
                       }
-                      return {
-                        type: 'input_file' as const,
-                        file_url: item.url,
-                      };
+
+                      if (item.data.type === 'url') {
+                        if (topLevel === 'image') {
+                          return {
+                            type: 'input_image' as const,
+                            image_url: item.data.url.toString(),
+                            detail: imageDetail,
+                          };
+                        }
+                        return {
+                          type: 'input_file' as const,
+                          file_url: item.data.url.toString(),
+                        };
+                      }
+
+                      warnings.push({
+                        type: 'other',
+                        message: `unsupported tool content part type: ${item.type} with data type: ${item.data.type}`,
+                      });
+                      return undefined;
                     }
 
                     default: {

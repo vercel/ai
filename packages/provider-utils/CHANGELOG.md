@@ -1,5 +1,93 @@
 # @ai-sdk/provider-utils
 
+## 5.0.0-canary.44
+
+### Patch Changes
+
+- 6c93e36: feat(provider-utils): add `spawnCommand` method to `Experimental_Sandbox` to allow for detached command execution
+- f617ac2: feat(provider-utils): narrow `tool()` return type to `ExecutableTool<...>` when `execute` is provided
+
+## 5.0.0-canary.43
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - @ai-sdk/provider@4.0.0-canary.17
+
+## 5.0.0-canary.42
+
+### Patch Changes
+
+- a6617c5: feat(provider-utils): add `readFile` and `writeFile` plus convenience wrappers to `Experimental_Sandbox` abstraction
+
+## 5.0.0-canary.41
+
+### Patch Changes
+
+- 28dfa06: fix: support tools with optional context
+- e93fa91: rename Sandbox.executeCommand to Sandbox.runCommand
+
+## 5.0.0-canary.40
+
+### Patch Changes
+
+- a7de9c9: fix: make sandbox experimental
+
+## 5.0.0-canary.39
+
+### Patch Changes
+
+- 105f95b: Ensure the default empty tool input schema includes `type: "object"` for OpenAI-compatible providers that require object schemas.
+
+## 5.0.0-canary.38
+
+### Patch Changes
+
+- ca446f8: feat: flexible tool descriptions
+
+## 5.0.0-canary.37
+
+### Patch Changes
+
+- d848405: feat: add optional `abortSignal` parameters to sandbox command execution
+
+## 5.0.0-canary.36
+
+### Patch Changes
+
+- ca39020: Add an optional `workingDirectory` parameter to sandbox command execution.
+
+## 5.0.0-canary.35
+
+### Patch Changes
+
+- f634bac: feat(mcp): add new McpProviderMetadata type
+
+## 5.0.0-canary.34
+
+### Patch Changes
+
+- 69254e0: feat(ai): add toolMetadata for tool specific metdata
+- 3015fc3: feat: sandbox shell execution abstraction
+
+## 5.0.0-canary.33
+
+### Patch Changes
+
+- 2427d88: feat(ai): change Tool.sensitiveContext to telemetry.includeToolsContext and make it opt-in
+
+## 5.0.0-canary.32
+
+### Major Changes
+
+- 5463d0d: feat(provider): align tool result output content file part types with top-level message file part types
+
+### Patch Changes
+
+- Updated dependencies [5463d0d]
+  - @ai-sdk/provider@4.0.0-canary.16
+
 ## 5.0.0-canary.31
 
 ### Patch Changes

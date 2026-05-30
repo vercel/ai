@@ -20,8 +20,8 @@ const result = await generateText({
   experimental_onStart: event => {
     console.log('Generation started:', event.modelId);
   },
-  onFinish: event => {
-    console.log('Generation finished:', event.totalUsage);
+  onEnd: event => {
+    console.log('Generation finished:', event.usage);
   },
 });
 ```
@@ -56,12 +56,12 @@ const result = await generateText({
         'Called after the model response has been normalized and parsed, but before any client-side tool execution begins.',
     },
     {
-      name: 'experimental_onToolExecutionStart',
+      name: 'onToolExecutionStart',
       type: '(event: ToolExecutionStartEvent) => void | Promise<void>',
       description: "Called when a tool's execute function is about to run.",
     },
     {
-      name: 'experimental_onToolExecutionEnd',
+      name: 'onToolExecutionEnd',
       type: '(event: ToolExecutionEndEvent) => void | Promise<void>',
       description: "Called when a tool's execute function completes or errors.",
     },
@@ -71,7 +71,7 @@ const result = await generateText({
       description: 'Called when a step (LLM call) completes.',
     },
     {
-      name: 'onFinish',
+      name: 'onEnd',
       type: '(event: GenerateTextEndEvent) => void | Promise<void>',
       description:
         'Called when the entire generation completes (all steps finished).',
@@ -94,7 +94,7 @@ For multi-step text generations that use tools, the callback order is typically
         'Called when the embedding operation begins, before the embedding model is called.',
     },
     {
-      name: 'experimental_onFinish',
+      name: 'experimental_onEnd',
       type: '(event: EmbedEndEvent) => void | Promise<void>',
       description:
         'Called when the embedding operation completes, after the embedding model returns.',
@@ -113,7 +113,7 @@ For multi-step text generations that use tools, the callback order is typically
         'Called when the reranking operation begins, before the reranking model is called.',
     },
     {
-      name: 'experimental_onFinish',
+      name: 'experimental_onEnd',
       type: '(event: RerankEndEvent) => void | Promise<void>',
       description:
         'Called when the reranking operation completes, after the reranking model returns.',
@@ -153,9 +153,9 @@ const result = await generateText({
       description: 'The specific model identifier (e.g., "gpt-4o").',
     },
     {
-      name: 'system',
-      type: 'string | SystemModelMessage | Array<SystemModelMessage> | undefined',
-      description: 'The system message(s) provided to the model.',
+      name: 'instructions',
+      type: 'Instructions | undefined',
+      description: 'The instructions provided to the model.',
     },
     {
       name: 'messages',
@@ -249,7 +249,7 @@ const result = await generateText({
     },
     {
       name: 'include',
-      type: '{ requestBody?: boolean; responseBody?: boolean } | undefined',
+      type: '{ requestBody?: boolean; requestMessages?: boolean; responseBody?: boolean } | undefined',
       description:
         'Settings for controlling what data is included in step results.',
     },
@@ -301,9 +301,9 @@ const result = await generateText({
       description: 'The specific model identifier (e.g., "gpt-4o").',
     },
     {
-      name: 'system',
-      type: 'string | SystemModelMessage | Array<SystemModelMessage> | undefined',
-      description: 'The system message for this step.',
+      name: 'instructions',
+      type: 'Instructions | undefined',
+      description: 'The instructions provided to the model for this step.',
     },
     {
       name: 'messages',
@@ -363,7 +363,7 @@ const result = await generateText({
     },
     {
       name: 'include',
-      type: '{ requestBody?: boolean; responseBody?: boolean } | undefined',
+      type: '{ requestBody?: boolean; requestMessages?: boolean; responseBody?: boolean } | undefined',
       description:
         'Settings for controlling what data is included in step results.',
     },
@@ -415,6 +415,11 @@ const result = await generateText({
       name: 'modelId',
       type: 'string',
       description: 'The specific model identifier for this model call.',
+    },
+    {
+      name: 'instructions',
+      type: 'Instructions | undefined',
+      description: 'The instructions that will be sent to the model.',
     },
     {
       name: 'messages',
@@ -478,10 +483,69 @@ const result = await generateText({
       description:
         'The content parts produced by the model call (text, reasoning, files, tool calls, etc.).',
     },
+    {
+      name: 'responseId',
+      type: 'string',
+      description: 'The provider-returned response ID for this model call.',
+    },
+    {
+      name: 'performance',
+      type: '{ responseTimeMs: number; effectiveOutputTokensPerSecond: number; outputTokensPerSecond: number | undefined; inputTokensPerSecond: number | undefined; effectiveTotalTokensPerSecond: number; timeToFirstOutputMs: number | undefined; timeBetweenOutputChunksMs?: OutputChunkTimingStats }',
+      description: 'Performance metrics for the model call.',
+      properties: [
+        {
+          type: 'LanguageModelCallPerformance',
+          parameters: [
+            {
+              name: 'responseTimeMs',
+              type: 'number',
+              description:
+                'Time spent waiting for the language model response in milliseconds.',
+            },
+            {
+              name: 'effectiveOutputTokensPerSecond',
+              type: 'number',
+              description:
+                'Effective number of output tokens per second over the full language model response.',
+            },
+            {
+              name: 'outputTokensPerSecond',
+              type: 'number | undefined',
+              description:
+                'Number of output tokens per second after the first generated output chunk was received. Only available for streaming model calls.',
+            },
+            {
+              name: 'inputTokensPerSecond',
+              type: 'number | undefined',
+              description:
+                'Number of input tokens processed per second before the first generated output chunk was received. Only available for streaming model calls.',
+            },
+            {
+              name: 'effectiveTotalTokensPerSecond',
+              type: 'number',
+              description:
+                'Effective number of input and output tokens per second over the full language model response.',
+            },
+            {
+              name: 'timeToFirstOutputMs',
+              type: 'number | undefined',
+              description:
+                'Time until the first generated output chunk was received in milliseconds. Only available for streaming model calls.',
+            },
+            {
+              name: 'timeBetweenOutputChunksMs',
+              type: 'OutputChunkTimingStats | undefined',
+              description:
+                'Timing statistics for the gaps between generated output chunks in milliseconds. Only available for streaming model calls with at least two output chunks.',
+            },
+          ],
+        },
+      ],
+    },
   ]}
 />
 
-#### `experimental_onToolExecutionStart`
+#### `onToolExecutionStart`
 
 Called before a tool's `execute` function runs.
 
@@ -490,7 +554,7 @@ const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'What is the weather?',
   tools: { getWeather },
-  experimental_onToolExecutionStart: event => {
+  onToolExecutionStart: event => {
     console.log('Tool:', event.toolCall.toolName);
     console.log('Input:', event.toolCall.input);
   },
@@ -502,7 +566,8 @@ const result = await generateText({
     {
       name: 'callId',
       type: 'string',
-      description: 'Unique identifier for this generation call, used to correlate events.',
+      description:
+        'Unique identifier for this generation call, used to correlate events.',
     },
     {
       name: 'toolCall',
@@ -551,7 +616,7 @@ const result = await generateText({
   ]}
 />
 
-#### `experimental_onToolExecutionEnd`
+#### `onToolExecutionEnd`
 
 Called after a tool's `execute` function completes or errors. The `toolOutput` field is a discriminated union: check `toolOutput.type` to determine whether it is a `'tool-result'` (success) or `'tool-error'` (failure).
 
@@ -560,9 +625,9 @@ const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'What is the weather?',
   tools: { getWeather },
-  experimental_onToolExecutionEnd: event => {
+  onToolExecutionEnd: event => {
     console.log('Tool:', event.toolCall.toolName);
-    console.log('Duration:', event.durationMs, 'ms');
+    console.log('Duration:', event.toolExecutionMs, 'ms');
 
     if (event.toolOutput.type === 'tool-result') {
       console.log('Output:', event.toolOutput.output);
@@ -578,7 +643,8 @@ const result = await generateText({
     {
       name: 'callId',
       type: 'string',
-      description: 'Unique identifier for this generation call, used to correlate events.',
+      description:
+        'Unique identifier for this generation call, used to correlate events.',
     },
     {
       name: 'toolCall',
@@ -613,7 +679,7 @@ const result = await generateText({
       ],
     },
     {
-      name: 'durationMs',
+      name: 'toolExecutionMs',
       type: 'number',
       description: 'Execution time of the tool call in milliseconds.',
     },
@@ -699,6 +765,72 @@ const result = await generateText({
       ],
     },
     {
+      name: 'performance',
+      type: 'StepResultPerformance',
+      description: 'Timing and throughput metrics for the step.',
+      properties: [
+        {
+          type: 'StepResultPerformance',
+          parameters: [
+            {
+              name: 'effectiveOutputTokensPerSecond',
+              type: 'number',
+              description:
+                'Effective number of output tokens per second over the full language model response.',
+            },
+            {
+              name: 'outputTokensPerSecond',
+              type: 'number | undefined',
+              description:
+                'Number of output tokens per second after the first generated output chunk was received. Only available for streaming steps.',
+            },
+            {
+              name: 'inputTokensPerSecond',
+              type: 'number | undefined',
+              description:
+                'Number of input tokens processed per second before the first generated output chunk was received. Only available for streaming steps.',
+            },
+            {
+              name: 'effectiveTotalTokensPerSecond',
+              type: 'number',
+              description:
+                'Effective number of input and output tokens per second over the full language model response.',
+            },
+            {
+              name: 'stepTimeMs',
+              type: 'number',
+              description:
+                'Total time spent on the step, including language model response time and tool execution time, in milliseconds.',
+            },
+            {
+              name: 'responseTimeMs',
+              type: 'number',
+              description:
+                'Time spent waiting for the language model response in milliseconds.',
+            },
+            {
+              name: 'toolExecutionMs',
+              type: 'Readonly<Record<string, number>>',
+              description:
+                'Time spent executing each client-side tool call in the step in milliseconds, keyed by tool call ID.',
+            },
+            {
+              name: 'timeToFirstOutputMs',
+              type: 'number | undefined',
+              description:
+                'Time until the first generated output chunk was received in milliseconds. Only available for streaming steps.',
+            },
+            {
+              name: 'timeBetweenOutputChunksMs',
+              type: 'OutputChunkTimingStats | undefined',
+              description:
+                'Timing statistics for the gaps between generated output chunks in milliseconds. Only available for streaming steps with at least two output chunks.',
+            },
+          ],
+        },
+      ],
+    },
+    {
       name: 'text',
       type: 'string',
       description: 'The generated text.',
@@ -746,13 +878,14 @@ const result = await generateText({
     {
       name: 'request',
       type: 'LanguageModelRequestMetadata',
-      description: 'Additional request information.',
+      description:
+        'Additional request information, including the messages sent to the model and the request body when available.',
     },
     {
       name: 'response',
       type: 'LanguageModelResponseMetadata',
       description:
-        'Additional response information including id, modelId, timestamp, headers, and messages.',
+        'Additional response information including id, modelId, timestamp, headers, body, and messages.',
     },
     {
       name: 'runtimeContext',
@@ -763,8 +896,7 @@ const result = await generateText({
     {
       name: 'toolsContext',
       type: 'InferToolSetContext<TOOLS>',
-      description:
-        'Per-tool context map for the generation step.',
+      description: 'Per-tool context map for the generation step.',
     },
     {
       name: 'providerMetadata',
@@ -774,7 +906,7 @@ const result = await generateText({
   ]}
 />
 
-#### `onFinish`
+#### `onEnd`
 
 Called when the entire generation completes (all steps finished). Includes aggregated data.
 
@@ -782,9 +914,9 @@ Called when the entire generation completes (all steps finished). Includes aggre
 const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'Hello!',
-  onFinish: event => {
+  onEnd: event => {
     console.log('Total steps:', event.steps.length);
-    console.log('Total tokens:', event.totalUsage.totalTokens);
+    console.log('Total tokens:', event.usage.totalTokens);
     console.log('Final text:', event.text);
   },
 });
@@ -895,24 +1027,26 @@ const result = await generateText({
     {
       name: 'request',
       type: 'LanguageModelRequestMetadata',
-      description: 'Additional request information from the final step.',
+      description:
+        'Additional request information from the final step, including the messages sent to the model and the request body when available.',
     },
     {
       name: 'response',
       type: 'LanguageModelResponseMetadata',
-      description: 'Additional response information from the final step.',
+      description:
+        'Additional response information from the final step, including id, modelId, timestamp, headers, body, and messages.',
     },
     {
       name: 'runtimeContext',
       type: 'CONTEXT',
       description:
-        'The final state of the user-defined shared runtime context object.',
+        'Deprecated. Use `finalStep.runtimeContext` instead. The final state of the user-defined shared runtime context object.',
     },
     {
       name: 'toolsContext',
       type: 'InferToolSetContext<TOOLS>',
       description:
-        'The final state of the per-tool context map passed via `toolsContext`.',
+        'Deprecated. Use `finalStep.toolsContext` instead. The final state of the per-tool context map passed via `toolsContext`.',
     },
     {
       name: 'providerMetadata',
@@ -988,7 +1122,7 @@ const result = await embed({
   ]}
 />
 
-#### `experimental_onFinish`
+#### `experimental_onEnd`
 
 Called when the embedding operation completes. For `embed`, `embedding` is a single vector and `response` is a single response object. For `embedMany`, `embedding` is an array of vectors and `response` is an array of response objects (one per chunk).
 
@@ -998,7 +1132,7 @@ import { embedMany } from 'ai';
 const result = await embedMany({
   model: openai.embedding('text-embedding-3-small'),
   values: ['sunny day at the beach', 'rainy afternoon in the city'],
-  experimental_onFinish: event => {
+  experimental_onEnd: event => {
     console.log('Operation:', event.operationId);
     console.log('Usage:', event.usage);
   },
@@ -1133,7 +1267,7 @@ const result = await rerank({
   ]}
 />
 
-#### `experimental_onFinish`
+#### `experimental_onEnd`
 
 Called when the reranking operation completes, after the reranking model returns.
 
@@ -1144,7 +1278,7 @@ const result = await rerank({
   model: cohere.reranking('rerank-v3.5'),
   documents: ['sunny day at the beach', 'rainy afternoon in the city'],
   query: 'talk about rain',
-  experimental_onFinish: event => {
+  experimental_onEnd: event => {
     console.log('Operation:', event.operationId);
     console.log('Rankings:', event.ranking.length);
   },
@@ -1227,10 +1361,10 @@ const result = await generateText({
       },
     );
   },
-  onFinish: event => {
+  onEnd: event => {
     console.log(`[${new Date().toISOString()}] Generation complete`, {
       totalSteps: event.steps.length,
-      totalTokens: event.totalUsage.totalTokens,
+      totalTokens: event.usage.totalTokens,
     });
   },
 });
@@ -1245,13 +1379,13 @@ const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'What is the weather?',
   tools: { getWeather },
-  experimental_onToolExecutionStart: event => {
+  onToolExecutionStart: event => {
     console.log(`Tool "${event.toolCall.toolName}" starting...`);
   },
-  experimental_onToolExecutionEnd: event => {
+  onToolExecutionEnd: event => {
     if (event.toolOutput.type === 'tool-result') {
       console.log(
-        `Tool "${event.toolCall.toolName}" completed in ${event.durationMs}ms`,
+        `Tool "${event.toolCall.toolName}" completed in ${event.toolExecutionMs}ms`,
       );
     } else {
       console.error(
@@ -1277,7 +1411,7 @@ const result = await embedMany({
       valueCount: Array.isArray(event.value) ? event.value.length : 1,
     });
   },
-  experimental_onFinish: event => {
+  experimental_onEnd: event => {
     console.log(`Embedding complete (${event.operationId})`, {
       tokens: event.usage.tokens,
     });

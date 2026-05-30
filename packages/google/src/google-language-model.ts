@@ -43,7 +43,6 @@ import { getModelPath } from './get-model-path';
 import { googleFailedResponseHandler } from './google-error';
 import {
   googleLanguageModelOptions,
-  VertexServiceTierMap,
   type GoogleLanguageModelOptions,
   type GoogleModelId,
 } from './google-language-model-options';
@@ -183,17 +182,52 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       });
     }
 
-    // Vertex API requires another service tier format.
-    let sanitizedServiceTier: string | undefined = googleOptions?.serviceTier;
     if (googleOptions?.serviceTier && isVertexProvider) {
-      sanitizedServiceTier = VertexServiceTierMap[googleOptions.serviceTier];
+      warnings.push({
+        type: 'other',
+        message:
+          "'serviceTier' is a Gemini API option and is not supported on Vertex AI. " +
+          "Use 'sharedRequestType' (and optionally 'requestType') instead. See " +
+          'https://docs.cloud.google.com/vertex-ai/generative-ai/docs/priority-paygo',
+      });
+    }
+    if (
+      (googleOptions?.sharedRequestType || googleOptions?.requestType) &&
+      !isVertexProvider
+    ) {
+      warnings.push({
+        type: 'other',
+        message:
+          "'sharedRequestType' and 'requestType' are Vertex AI options and " +
+          `are ignored with the current Google provider (${this.config.provider}).`,
+      });
     }
 
+    const vertexPaygoHeaders: Record<string, string> | undefined =
+      isVertexProvider &&
+      (googleOptions?.sharedRequestType || googleOptions?.requestType)
+        ? {
+            ...(googleOptions.sharedRequestType && {
+              'X-Vertex-AI-LLM-Shared-Request-Type':
+                googleOptions.sharedRequestType,
+            }),
+            ...(googleOptions.requestType && {
+              'X-Vertex-AI-LLM-Request-Type': googleOptions.requestType,
+            }),
+          }
+        : undefined;
+    const bodyServiceTier = isVertexProvider
+      ? undefined
+      : googleOptions?.serviceTier;
+
     const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
-    const supportsFunctionResponseParts = this.modelId.startsWith('gemini-3');
+    const isGemini3Model = /^gemini-3[.-]/.test(this.modelId);
+    const supportsFunctionResponseParts = isGemini3Model;
 
     const { contents, systemInstruction } = convertToGoogleMessages(prompt, {
       isGemmaModel,
+      isGemini3Model,
+      onWarning: warning => warnings.push(warning),
       providerOptionsNames,
       supportsFunctionResponseParts,
     });
@@ -288,17 +322,18 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         toolConfig,
         cachedContent: googleOptions?.cachedContent,
         labels: googleOptions?.labels,
-        serviceTier: sanitizedServiceTier,
+        serviceTier: bodyServiceTier,
       },
       warnings: [...warnings, ...toolWarnings],
       providerOptionsNames,
+      extraHeaders: vertexPaygoHeaders,
     };
   }
 
   async doGenerate(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4GenerateResult> {
-    const { args, warnings, providerOptionsNames } =
+    const { args, warnings, providerOptionsNames, extraHeaders } =
       await this.getArgs(options);
     const wrapProviderMetadata = (payload: Record<string, unknown>) =>
       Object.fromEntries(
@@ -308,6 +343,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     const mergedHeaders = combineHeaders(
       this.config.headers ? await resolve(this.config.headers) : undefined,
       options.headers,
+      extraHeaders,
     );
 
     const {
@@ -384,16 +420,12 @@ export class GoogleLanguageModel implements LanguageModelV4 {
             providerMetadata: thoughtSignatureMetadata,
           });
         }
-      } else if (
-        'functionCall' in part &&
-        part.functionCall.name != null &&
-        part.functionCall.args != null
-      ) {
+      } else if ('functionCall' in part && part.functionCall.name != null) {
         content.push({
           type: 'tool-call' as const,
-          toolCallId: this.config.generateId(),
+          toolCallId: part.functionCall.id ?? this.config.generateId(),
           toolName: part.functionCall.name,
-          input: JSON.stringify(part.functionCall.args),
+          input: JSON.stringify(part.functionCall.args ?? {}),
           providerMetadata: part.thoughtSignature
             ? wrapProviderMetadata({
                 thoughtSignature: part.thoughtSignature,
@@ -489,7 +521,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         safetyRatings: candidate.safetyRatings ?? null,
         usageMetadata: usageMetadata ?? null,
         finishMessage: candidate.finishMessage ?? null,
-        serviceTier: response.serviceTier ?? null,
+        serviceTier: usageMetadata?.serviceTier ?? null,
       } satisfies GoogleProviderMetadata),
       request: { body: args },
       response: {
@@ -503,10 +535,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
   async doStream(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4StreamResult> {
-    const { args, warnings, providerOptionsNames } = await this.getArgs(
-      options,
-      { isStreaming: true },
-    );
+    const { args, warnings, providerOptionsNames, extraHeaders } =
+      await this.getArgs(options, { isStreaming: true });
     const wrapProviderMetadata = (payload: Record<string, unknown>) =>
       Object.fromEntries(
         providerOptionsNames.map(name => [name, payload]),
@@ -515,6 +545,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     const headers = combineHeaders(
       this.config.headers ? await resolve(this.config.headers) : undefined,
       options.headers,
+      extraHeaders,
     );
 
     const { responseHeaders, value: response } = await postJsonToApi({
@@ -537,7 +568,6 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     let providerMetadata: SharedV4ProviderMetadata | undefined = undefined;
     let lastGroundingMetadata: GroundingMetadataSchema | null = null;
     let lastUrlContextMetadata: UrlContextMetadataSchema | null = null;
-    let serviceTier: string | null = null;
 
     const generateId = this.config.generateId;
     let hasToolCalls = false;
@@ -560,6 +590,42 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       accumulator: GoogleJSONAccumulator;
       providerMetadata?: SharedV4ProviderMetadata;
     }> = [];
+
+    const finishActiveStreamingToolCall = (
+      controller: TransformStreamDefaultController<LanguageModelV4StreamPart>,
+    ) => {
+      const active = activeStreamingToolCalls.pop();
+      if (active == null) {
+        return;
+      }
+
+      const { finalJSON, closingDelta } = active.accumulator.finalize();
+
+      if (closingDelta.length > 0) {
+        controller.enqueue({
+          type: 'tool-input-delta',
+          id: active.toolCallId,
+          delta: closingDelta,
+          providerMetadata: active.providerMetadata,
+        });
+      }
+
+      controller.enqueue({
+        type: 'tool-input-end',
+        id: active.toolCallId,
+        providerMetadata: active.providerMetadata,
+      });
+
+      controller.enqueue({
+        type: 'tool-call',
+        toolCallId: active.toolCallId,
+        toolName: active.toolName,
+        input: finalJSON,
+        providerMetadata: active.providerMetadata,
+      });
+
+      hasToolCalls = true;
+    };
 
     return {
       stream: response.pipeThrough(
@@ -587,10 +653,6 @@ export class GoogleLanguageModel implements LanguageModelV4 {
 
             if (usageMetadata != null) {
               usage = usageMetadata;
-            }
-
-            if (value.serviceTier != null) {
-              serviceTier = value.serviceTier;
             }
 
             const candidate = value.candidates?.[0];
@@ -829,13 +891,17 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                   part.functionCall.name != null &&
                   part.functionCall.args != null &&
                   part.functionCall.partialArgs == null;
+                // Single-chunk no-args call: `{ name: 'X' }` with no `args`,
+                // `partialArgs`, or `willContinue`. Carries `thoughtSignature`.
+                const isNoArgsCompleteCall =
+                  part.functionCall.name != null &&
+                  part.functionCall.args == null &&
+                  part.functionCall.partialArgs == null &&
+                  part.functionCall.willContinue !== true;
 
                 if (isStreamingChunk) {
-                  if (
-                    part.functionCall.name != null &&
-                    part.functionCall.willContinue === true
-                  ) {
-                    const toolCallId = generateId();
+                  if (part.functionCall.name != null) {
+                    const toolCallId = part.functionCall.id ?? generateId();
                     const accumulator = new GoogleJSONAccumulator();
                     activeStreamingToolCalls.push({
                       toolCallId,
@@ -852,9 +918,10 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                     });
 
                     if (part.functionCall.partialArgs != null) {
-                      const { textDelta } = accumulator.processPartialArgs(
-                        part.functionCall.partialArgs as PartialArg[],
-                      );
+                      const partialArgs = part.functionCall
+                        .partialArgs as PartialArg[];
+                      const { textDelta } =
+                        accumulator.processPartialArgs(partialArgs);
                       if (textDelta.length > 0) {
                         controller.enqueue({
                           type: 'tool-input-delta',
@@ -862,6 +929,12 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                           delta: textDelta,
                           providerMetadata: providerMeta,
                         });
+                      }
+                      if (
+                        part.functionCall.willContinue !== true &&
+                        partialArgs.every(arg => arg.willContinue !== true)
+                      ) {
+                        finishActiveStreamingToolCall(controller);
                       }
                     }
                   } else if (
@@ -872,9 +945,10 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                       activeStreamingToolCalls[
                         activeStreamingToolCalls.length - 1
                       ];
-                    const { textDelta } = active.accumulator.processPartialArgs(
-                      part.functionCall.partialArgs as PartialArg[],
-                    );
+                    const partialArgs = part.functionCall
+                      .partialArgs as PartialArg[];
+                    const { textDelta } =
+                      active.accumulator.processPartialArgs(partialArgs);
                     if (textDelta.length > 0) {
                       controller.enqueue({
                         type: 'tool-input-delta',
@@ -883,41 +957,20 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                         providerMetadata: providerMeta,
                       });
                     }
+                    if (
+                      part.functionCall.willContinue !== true &&
+                      partialArgs.every(arg => arg.willContinue !== true)
+                    ) {
+                      finishActiveStreamingToolCall(controller);
+                    }
                   }
                 } else if (
                   isTerminalChunk &&
                   activeStreamingToolCalls.length > 0
                 ) {
-                  const active = activeStreamingToolCalls.pop()!;
-                  const { finalJSON, closingDelta } =
-                    active.accumulator.finalize();
-
-                  if (closingDelta.length > 0) {
-                    controller.enqueue({
-                      type: 'tool-input-delta',
-                      id: active.toolCallId,
-                      delta: closingDelta,
-                      providerMetadata: active.providerMetadata,
-                    });
-                  }
-
-                  controller.enqueue({
-                    type: 'tool-input-end',
-                    id: active.toolCallId,
-                    providerMetadata: active.providerMetadata,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallId: active.toolCallId,
-                    toolName: active.toolName,
-                    input: finalJSON,
-                    providerMetadata: active.providerMetadata,
-                  });
-
-                  hasToolCalls = true;
+                  finishActiveStreamingToolCall(controller);
                 } else if (isCompleteCall) {
-                  const toolCallId = generateId();
+                  const toolCallId = part.functionCall.id ?? generateId();
                   const toolName = part.functionCall.name!;
                   const args =
                     typeof part.functionCall.args === 'string'
@@ -953,6 +1006,32 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                   });
 
                   hasToolCalls = true;
+                } else if (isNoArgsCompleteCall) {
+                  const toolCallId = part.functionCall.id ?? generateId();
+                  const toolName = part.functionCall.name!;
+
+                  controller.enqueue({
+                    type: 'tool-input-start',
+                    id: toolCallId,
+                    toolName,
+                    providerMetadata: providerMeta,
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-input-end',
+                    id: toolCallId,
+                    providerMetadata: providerMeta,
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallId,
+                    toolName,
+                    input: '{}',
+                    providerMetadata: providerMeta,
+                  });
+
+                  hasToolCalls = true;
                 }
               }
             }
@@ -973,7 +1052,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                 safetyRatings: candidate.safetyRatings ?? null,
                 usageMetadata: usageMetadata ?? null,
                 finishMessage: candidate.finishMessage ?? null,
-                serviceTier,
+                serviceTier: usage?.serviceTier ?? null,
               } satisfies GoogleProviderMetadata);
             }
           },
@@ -1304,6 +1383,7 @@ const getContentSchema = () =>
           // note: order matters since text can be fully empty
           z.object({
             functionCall: z.object({
+              id: z.string().nullish(),
               name: z.string().nullish(),
               args: z.unknown().nullish(),
               partialArgs: z.array(partialArgSchema).nullish(),
@@ -1385,6 +1465,7 @@ const usageSchema = z.object({
   totalTokenCount: z.number().nullish(),
   // https://cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1/GenerateContentResponse#TrafficType
   trafficType: z.string().nullish(),
+  serviceTier: z.string().nullish(),
   // https://ai.google.dev/api/generate-content#Modality
   promptTokensDetails: tokenDetailsSchema,
   candidatesTokensDetails: tokenDetailsSchema,
@@ -1423,7 +1504,6 @@ const responseSchema = lazySchema(() =>
           safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
         })
         .nullish(),
-      serviceTier: z.string().nullish(),
     }),
   ),
 );
@@ -1472,7 +1552,6 @@ const chunkSchema = lazySchema(() =>
           safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
         })
         .nullish(),
-      serviceTier: z.string().nullish(),
     }),
   ),
 );

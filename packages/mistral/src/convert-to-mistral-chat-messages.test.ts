@@ -265,8 +265,8 @@ describe('tool calls', () => {
               value: [
                 { type: 'text', text: 'Here is the result:' },
                 {
-                  type: 'file-data',
-                  data: 'base64data',
+                  type: 'file',
+                  data: { type: 'data', data: 'base64data' },
                   mediaType: 'image/png',
                 },
               ],
@@ -294,7 +294,7 @@ describe('tool calls', () => {
           ],
         },
         {
-          "content": "[{"type":"text","text":"Here is the result:"},{"type":"file-data","data":"base64data","mediaType":"image/png"}]",
+          "content": "[{"type":"text","text":"Here is the result:"},{"type":"file","data":{"type":"data","data":"base64data"},"mediaType":"image/png"}]",
           "name": "image-tool",
           "role": "tool",
           "tool_call_id": "tool-call-id-3",

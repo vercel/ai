@@ -6,7 +6,7 @@ import { run } from '../../lib/run';
 run(async () => {
   const result = streamText({
     model: azure.responses('gpt-5-mini'), // use your own deployment
-    system: 'You are a helpful assistant.',
+    instructions: 'You are a helpful assistant.',
     prompt:
       'Tell me about the debate over Taqueria La Cumbre and El Farolito and who created the San Francisco Mission-style burrito.',
     providerOptions: {
@@ -18,7 +18,7 @@ run(async () => {
     },
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     if (part.type === 'reasoning-delta') {
       process.stdout.write('\x1b[34m' + part.text + '\x1b[0m');
     } else if (part.type === 'text-delta') {
@@ -29,5 +29,5 @@ run(async () => {
   console.log();
   console.log('Finish reason:', await result.finishReason);
   console.log('Usage:', await result.usage);
-  console.log('Provider metadata:', await result.providerMetadata);
+  console.log('Provider metadata:', (await result.finalStep).providerMetadata);
 });

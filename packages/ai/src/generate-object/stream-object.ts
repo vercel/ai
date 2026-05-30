@@ -314,6 +314,7 @@ export function streamObject<
   const {
     model,
     output = 'object',
+    instructions,
     system,
     prompt,
     messages,
@@ -372,6 +373,7 @@ export function streamObject<
     maxRetries,
     abortSignal,
     outputStrategy,
+    instructions,
     system,
     prompt,
     messages,
@@ -403,10 +405,12 @@ class DefaultStreamObjectResult<
     ProviderMetadata | undefined
   >();
   private readonly _warnings = new DelayedPromise<CallWarning[] | undefined>();
-  private readonly _request =
-    new DelayedPromise<LanguageModelRequestMetadata>();
-  private readonly _response =
-    new DelayedPromise<LanguageModelResponseMetadata>();
+  private readonly _request = new DelayedPromise<
+    Omit<LanguageModelRequestMetadata, 'messages'>
+  >();
+  private readonly _response = new DelayedPromise<
+    Omit<LanguageModelResponseMetadata, 'messages'>
+  >();
   private readonly _finishReason = new DelayedPromise<FinishReason>();
 
   private readonly baseStream: ReadableStream<ObjectStreamPart<PARTIAL>>;
@@ -425,6 +429,7 @@ class DefaultStreamObjectResult<
     maxRetries: maxRetriesArg,
     abortSignal,
     outputStrategy,
+    instructions,
     system,
     prompt,
     messages,
@@ -450,6 +455,7 @@ class DefaultStreamObjectResult<
     maxRetries: number | undefined;
     abortSignal: AbortSignal | undefined;
     outputStrategy: OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM>;
+    instructions: Prompt['instructions'];
     system: Prompt['system'];
     prompt: Prompt['prompt'];
     messages: Prompt['messages'];
@@ -512,7 +518,7 @@ class DefaultStreamObjectResult<
           operationId: 'ai.streamObject' as const,
           provider: model.provider,
           modelId: model.modelId,
-          system,
+          system: instructions ?? system,
           prompt,
           messages,
           maxOutputTokens: callSettings.maxOutputTokens,
@@ -538,6 +544,7 @@ class DefaultStreamObjectResult<
       });
 
       const standardizedPrompt = await standardizePrompt({
+        instructions,
         system,
         prompt,
         messages,
@@ -811,7 +818,7 @@ class DefaultStreamObjectResult<
                     },
                     providerMetadata,
                   },
-                  callbacks: [onFinish, telemetryDispatcher.onFinish],
+                  callbacks: [onFinish, telemetryDispatcher.onEnd],
                 });
               } catch (error) {
                 controller.enqueue({ type: 'error', error });
@@ -932,14 +939,14 @@ class DefaultStreamObjectResult<
   pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit) {
     pipeTextStreamToResponse({
       response,
-      textStream: this.textStream,
+      stream: this.textStream,
       ...init,
     });
   }
 
   toTextStreamResponse(init?: ResponseInit): Response {
     return createTextStreamResponse({
-      textStream: this.textStream,
+      stream: this.textStream,
       ...init,
     });
   }

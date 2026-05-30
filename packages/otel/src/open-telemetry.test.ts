@@ -1,13 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
-  SpanStatusCode,
+  context,
+  trace,
   type Attributes,
   type Span,
   type SpanOptions,
   type Tracer,
 } from '@opentelemetry/api';
-import type { Telemetry } from 'ai';
-import { OpenTelemetry } from './open-telemetry';
+import {
+  BasicTracerProvider,
+  InMemorySpanExporter,
+  SimpleSpanProcessor,
+} from '@opentelemetry/sdk-trace-base';
+import { streamText, type GenerateTextEndEvent, type Telemetry } from 'ai';
+import { MockLanguageModelV4 } from 'ai/test';
+import { OpenTelemetry, type EnrichSpan } from './open-telemetry';
 
 type MockSpan = Span & {
   name: string;
@@ -76,6 +83,24 @@ function createMockTracer(): MockTracer {
     startActiveSpan: vi.fn() as Tracer['startActiveSpan'],
   };
   return tracer;
+}
+
+function createSdkTracer() {
+  const exporter = new InMemorySpanExporter();
+  const provider = new BasicTracerProvider({
+    spanProcessors: [new SimpleSpanProcessor(exporter)],
+  });
+
+  return {
+    exporter,
+    tracer: provider.getTracer('test-tracer'),
+  };
+}
+
+function getExportedSpan(exporter: InMemorySpanExporter, name: string) {
+  const span = exporter.getFinishedSpans().find(span => span.name === name);
+  expect(span).toBeDefined();
+  return span!;
 }
 
 function getStartSpanAttributes(
@@ -152,7 +177,7 @@ function makeOnStartEvent(overrides?: Record<string, unknown>) {
     operationId: 'ai.generateText',
     provider: model.provider,
     modelId: model.modelId,
-    system: undefined,
+    instructions: undefined,
     messages: [{ role: 'user', content: 'Hello' }],
     tools: undefined,
     toolChoice: undefined,
@@ -186,7 +211,7 @@ function makeStepStartEvent(overrides?: Record<string, unknown>) {
     provider: model.provider,
     modelId: model.modelId,
     stepNumber: 0,
-    system: undefined,
+    instructions: undefined,
     messages: [],
     tools: undefined,
     toolChoice: undefined,
@@ -211,6 +236,7 @@ function makeLanguageModelCallStartEvent(overrides?: Record<string, unknown>) {
     callId,
     provider: model.provider,
     modelId: model.modelId,
+    instructions: undefined,
     messages: [],
     tools: undefined,
     ...overrides,
@@ -227,8 +253,6 @@ function makeLanguageModelCallEndEvent(overrides?: Record<string, unknown>) {
       inputTokens: 10,
       outputTokens: 20,
       totalTokens: 30,
-      reasoningTokens: undefined,
-      cachedInputTokens: undefined,
       inputTokenDetails: {
         noCacheTokens: undefined,
         cacheReadTokens: undefined,
@@ -241,6 +265,14 @@ function makeLanguageModelCallEndEvent(overrides?: Record<string, unknown>) {
     },
     content: [{ type: 'text', text: 'Hello world' }],
     responseId: 'test-response-id',
+    performance: {
+      responseTimeMs: 1000,
+      effectiveOutputTokensPerSecond: 20,
+      outputTokensPerSecond: undefined,
+      inputTokensPerSecond: undefined,
+      effectiveTotalTokensPerSecond: 30,
+      timeToFirstOutputMs: undefined,
+    },
     ...overrides,
   } as Parameters<NonNullable<Telemetry['onLanguageModelCallEnd']>>[0];
 }
@@ -268,8 +300,6 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
       inputTokens: 10,
       outputTokens: 20,
       totalTokens: 30,
-      reasoningTokens: undefined,
-      cachedInputTokens: undefined,
       inputTokenDetails: {
         noCacheTokens: undefined,
         cacheReadTokens: undefined,
@@ -280,8 +310,18 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
         reasoningTokens: undefined,
       },
     },
+    performance: {
+      effectiveOutputTokensPerSecond: 20,
+      outputTokensPerSecond: undefined,
+      inputTokensPerSecond: undefined,
+      effectiveTotalTokensPerSecond: 30,
+      stepTimeMs: 1000,
+      responseTimeMs: 1000,
+      toolExecutionMs: {},
+      timeToFirstOutputMs: undefined,
+    },
     warnings: undefined,
-    request: { body: undefined },
+    request: { body: undefined, messages: [] },
     response: {
       id: 'resp-1',
       modelId: 'gpt-4-0613',
@@ -297,27 +337,43 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
 }
 
 function makeFinishEvent(overrides?: Record<string, unknown>) {
-  return {
-    ...makeStepFinishEvent(),
-    steps: [],
-    totalUsage: {
-      inputTokens: 10,
-      outputTokens: 20,
-      totalTokens: 30,
-      reasoningTokens: undefined,
-      cachedInputTokens: undefined,
-      inputTokenDetails: {
-        noCacheTokens: undefined,
-        cacheReadTokens: undefined,
-        cacheWriteTokens: undefined,
-      },
-      outputTokenDetails: {
-        textTokens: undefined,
-        reasoningTokens: undefined,
-      },
+  const { usage, ...restOverrides } = overrides ?? {};
+  const stepOverrides = Object.fromEntries(
+    Object.entries(restOverrides).filter(([key]) =>
+      [
+        'providerMetadata',
+        'reasoning',
+        'reasoningText',
+        'request',
+        'response',
+      ].includes(key),
+    ),
+  );
+  const finalStep = makeStepFinishEvent(stepOverrides);
+  const totalUsage = (usage as GenerateTextEndEvent['usage']) ?? {
+    inputTokens: 10,
+    outputTokens: 20,
+    totalTokens: 30,
+    inputTokenDetails: {
+      noCacheTokens: undefined,
+      cacheReadTokens: undefined,
+      cacheWriteTokens: undefined,
     },
-    ...overrides,
-  } as Parameters<NonNullable<Telemetry['onFinish']>>[0];
+    outputTokenDetails: {
+      textTokens: undefined,
+      reasoningTokens: undefined,
+    },
+  };
+
+  return {
+    ...finalStep,
+    responseMessages: [],
+    steps: [finalStep],
+    finalStep,
+    usage: totalUsage,
+    totalUsage,
+    ...restOverrides,
+  } as Parameters<NonNullable<Telemetry['onEnd']>>[0];
 }
 
 function makeToolCallStartEvent(overrides?: Record<string, unknown>) {
@@ -351,7 +407,7 @@ function makeToolCallFinishEvent(
       input: { query: 'test' },
     },
     abortSignal: undefined,
-    durationMs: 42,
+    toolExecutionMs: 42,
     ...telemetryFields(),
     messages: [],
     toolContext: {},
@@ -417,8 +473,10 @@ describe('OpenTelemetry', () => {
       `);
     });
 
-    it('sets system_instructions when system is provided', () => {
-      integration.onStart!(makeOnStartEvent({ system: 'You are helpful' }));
+    it('sets system_instructions when instructions are provided', () => {
+      integration.onStart!(
+        makeOnStartEvent({ instructions: 'You are helpful' }),
+      );
 
       const attrs = getStartSpanAttributes(tracer, 0);
       expect(parseJsonAttributes(attrs, 'gen_ai.system_instructions'))
@@ -541,6 +599,38 @@ describe('OpenTelemetry', () => {
           ],
         }
       `);
+    });
+  });
+
+  describe('executeLanguageModelCall', () => {
+    it('runs the model call inside the active chat span context', async () => {
+      let activeSpan: Span | undefined;
+      const contextWithSpy = vi
+        .spyOn(context, 'with')
+        .mockImplementation((nextContext, fn, thisArg, ...args) => {
+          activeSpan = trace.getSpan(nextContext) ?? undefined;
+          return fn.call(thisArg, ...args);
+        });
+
+      try {
+        integration.onStart!(makeOnStartEvent());
+        integration.onStepStart!(makeStepStartEvent());
+        integration.onLanguageModelCallStart!(
+          makeLanguageModelCallStartEvent(),
+        );
+
+        await expect(
+          integration.executeLanguageModelCall!({
+            callId,
+            execute: async () => 'result',
+          }),
+        ).resolves.toBe('result');
+
+        const activeSpanRecord = tracer.spans.find(span => span === activeSpan);
+        expect(activeSpanRecord?.name).toBe('chat gpt-4');
+      } finally {
+        contextWithSpy.mockRestore();
+      }
     });
   });
 
@@ -669,8 +759,6 @@ describe('OpenTelemetry', () => {
             inputTokens: 100,
             outputTokens: 50,
             totalTokens: 150,
-            reasoningTokens: 10,
-            cachedInputTokens: 30,
             inputTokenDetails: {
               noCacheTokens: 70,
               cacheReadTokens: 20,
@@ -689,8 +777,6 @@ describe('OpenTelemetry', () => {
             inputTokens: 100,
             outputTokens: 50,
             totalTokens: 150,
-            reasoningTokens: 10,
-            cachedInputTokens: 30,
             inputTokenDetails: {
               noCacheTokens: 70,
               cacheReadTokens: 20,
@@ -804,12 +890,12 @@ describe('OpenTelemetry', () => {
     });
   });
 
-  describe('onFinish (generateText)', () => {
+  describe('onEnd (generateText)', () => {
     it('sets total usage and output on root span', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
       integration.onStepFinish!(makeStepFinishEvent());
-      integration.onFinish!(makeFinishEvent());
+      integration.onEnd!(makeFinishEvent());
 
       expect(serializeSpan(tracer.spans[0], tracer)).toMatchInlineSnapshot(`
         {
@@ -839,7 +925,7 @@ describe('OpenTelemetry', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
       integration.onStepFinish!(makeStepFinishEvent());
-      integration.onFinish!(makeFinishEvent());
+      integration.onEnd!(makeFinishEvent());
 
       const rootSpan = tracer.spans[0];
       expect(parseJsonAttributes(rootSpan.attributes, 'gen_ai.output.messages'))
@@ -935,47 +1021,177 @@ describe('OpenTelemetry', () => {
     });
   });
 
-  describe('onChunk (streaming events)', () => {
-    it('is a no-op for stream chunk events', () => {
-      integration.onStart!(makeOnStartEvent());
-      integration.onStepStart!(makeStepStartEvent());
-      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+  describe('enrichSpan', () => {
+    it('adds custom attributes to created spans', () => {
+      const enrichSpan = vi.fn<EnrichSpan>(({ spanType, runtimeContext }) => {
+        const userId = runtimeContext?.userId;
 
-      integration.onChunk!({
-        chunk: {
-          type: 'ai.stream.firstChunk',
-          callId,
-          stepNumber: 0,
-          attributes: {
-            'ai.stream.msToFirstChunk': 150,
-          },
-        },
+        return {
+          'custom.span_type': spanType,
+          ...(typeof userId === 'string' ? { 'custom.user_id': userId } : {}),
+          'gen_ai.operation.name': 'custom_operation',
+        };
       });
 
-      const chatSpan = tracer.spans[2];
-      expect(chatSpan.events).toMatchInlineSnapshot(`[]`);
+      integration = new OpenTelemetry({
+        tracer,
+        enrichSpan,
+      });
+
+      integration.onStart!(
+        makeOnStartEvent({
+          runtimeContext: { userId: 'root-user' },
+        }),
+      );
+      integration.onStepStart!(
+        makeStepStartEvent({
+          runtimeContext: { userId: 'step-user' },
+        }),
+      );
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onToolExecutionStart!(makeToolCallStartEvent());
+
+      expect(tracer.spans.map(span => getSpanStartAttributes(tracer, span)))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "custom.span_type": "operation",
+            "custom.user_id": "root-user",
+            "gen_ai.input.messages": "[{"role":"user","parts":[{"type":"text","content":"Hello"}]}]",
+            "gen_ai.operation.name": "invoke_agent",
+            "gen_ai.provider.name": "openai",
+            "gen_ai.request.max_tokens": 100,
+            "gen_ai.request.model": "gpt-4",
+            "gen_ai.request.temperature": 0.7,
+          },
+          {
+            "custom.span_type": "step",
+            "custom.user_id": "step-user",
+            "gen_ai.operation.name": "agent_step",
+          },
+          {
+            "custom.span_type": "languageModel",
+            "custom.user_id": "step-user",
+            "gen_ai.operation.name": "chat",
+            "gen_ai.provider.name": "openai",
+            "gen_ai.request.max_tokens": 100,
+            "gen_ai.request.model": "gpt-4",
+            "gen_ai.request.temperature": 0.7,
+          },
+          {
+            "custom.span_type": "tool",
+            "custom.user_id": "step-user",
+            "gen_ai.operation.name": "execute_tool",
+            "gen_ai.tool.call.arguments": "{"query":"test"}",
+            "gen_ai.tool.call.id": "tool-call-1",
+            "gen_ai.tool.name": "myTool",
+            "gen_ai.tool.type": "function",
+          },
+        ]
+      `);
+
+      expect(enrichSpan.mock.calls.map(([args]) => args)).toEqual([
+        {
+          callId,
+          operationId: 'ai.generateText',
+          runtimeContext: { userId: 'root-user' },
+          spanType: 'operation',
+        },
+        {
+          callId,
+          operationId: 'ai.generateText',
+          runtimeContext: { userId: 'step-user' },
+          spanType: 'step',
+        },
+        {
+          callId,
+          operationId: 'ai.generateText',
+          runtimeContext: { userId: 'step-user' },
+          spanType: 'languageModel',
+        },
+        {
+          callId,
+          operationId: 'ai.generateText',
+          runtimeContext: { userId: 'step-user' },
+          spanType: 'tool',
+        },
+      ]);
     });
 
-    it('does not emit events for stream finish', () => {
-      integration.onStart!(makeOnStartEvent());
-      integration.onStepStart!(makeStepStartEvent());
-      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
-
-      integration.onChunk!({
-        chunk: {
-          type: 'ai.stream.finish',
-          callId,
-          stepNumber: 0,
-          attributes: {},
+    it('ignores enrichment callback errors', () => {
+      integration = new OpenTelemetry({
+        tracer,
+        enrichSpan: () => {
+          throw new Error('custom attribute failure');
         },
       });
 
-      const chatSpan = tracer.spans[2];
-      expect(chatSpan.events).toMatchInlineSnapshot(`[]`);
+      integration.onStart!(makeOnStartEvent());
+
+      expect(getStartSpanAttributes(tracer, 0)).toMatchInlineSnapshot(`
+        {
+          "gen_ai.input.messages": "[{"role":"user","parts":[{"type":"text","content":"Hello"}]}]",
+          "gen_ai.operation.name": "invoke_agent",
+          "gen_ai.provider.name": "openai",
+          "gen_ai.request.max_tokens": 100,
+          "gen_ai.request.model": "gpt-4",
+          "gen_ai.request.temperature": 0.7,
+        }
+      `);
     });
   });
 
   describe('supplemental attributes', () => {
+    it('exports flat runtime context attribute keys', () => {
+      const sdkTrace = createSdkTracer();
+      integration = new OpenTelemetry({
+        tracer: sdkTrace.tracer,
+        runtimeContext: true,
+      });
+
+      integration.onStart!(
+        makeOnStartEvent({
+          runtimeContext: { 'foo.bar': 'baz' },
+        }),
+      );
+      integration.onEnd!(makeFinishEvent());
+
+      const rootSpan = getExportedSpan(sdkTrace.exporter, 'invoke_agent gpt-4');
+      expect({
+        'ai.settings.context.foo.bar':
+          rootSpan.attributes['ai.settings.context.foo.bar'],
+      }).toMatchInlineSnapshot(`
+        {
+          "ai.settings.context.foo.bar": "baz",
+        }
+      `);
+    });
+
+    it('exports nested runtime context attributes', () => {
+      const sdkTrace = createSdkTracer();
+      integration = new OpenTelemetry({
+        tracer: sdkTrace.tracer,
+        runtimeContext: true,
+      });
+
+      integration.onStart!(
+        makeOnStartEvent({
+          runtimeContext: { foo: { bar: 'baz' } },
+        }),
+      );
+      integration.onEnd!(makeFinishEvent());
+
+      const rootSpan = getExportedSpan(sdkTrace.exporter, 'invoke_agent gpt-4');
+      expect({
+        'ai.settings.context.foo.bar':
+          rootSpan.attributes['ai.settings.context.foo.bar'],
+      }).toMatchInlineSnapshot(`
+        {
+          "ai.settings.context.foo.bar": "baz",
+        }
+      `);
+    });
+
     it('emits supplemental AI SDK attributes on existing spans when enabled', () => {
       integration = new OpenTelemetry({
         tracer,
@@ -993,8 +1209,6 @@ describe('OpenTelemetry', () => {
         inputTokens: 10,
         outputTokens: 20,
         totalTokens: 30,
-        reasoningTokens: 5,
-        cachedInputTokens: 2,
         inputTokenDetails: {
           noCacheTokens: 7,
           cacheReadTokens: 2,
@@ -1029,9 +1243,9 @@ describe('OpenTelemetry', () => {
           providerMetadata: { openai: { response: 'metadata' } },
         }),
       );
-      integration.onFinish!(
+      integration.onEnd!(
         makeFinishEvent({
-          totalUsage: detailedUsage,
+          usage: detailedUsage,
           providerMetadata: { openai: { response: 'metadata' } },
         }),
       );
@@ -1151,7 +1365,7 @@ describe('OpenTelemetry', () => {
       integration.onToolExecutionStart!(makeToolCallStartEvent());
       integration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
       integration.onStepFinish!(makeStepFinishEvent());
-      integration.onFinish!(makeFinishEvent());
+      integration.onEnd!(makeFinishEvent());
 
       expect(serializeTrace(tracer)).toMatchInlineSnapshot(`
         [
@@ -1234,7 +1448,7 @@ describe('OpenTelemetry', () => {
       integration.onToolExecutionStart!(makeToolCallStartEvent());
       integration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
       integration.onStepFinish!(makeStepFinishEvent());
-      integration.onFinish!(makeFinishEvent());
+      integration.onEnd!(makeFinishEvent());
 
       expect(serializeTrace(tracer)).toMatchInlineSnapshot(`
         [
@@ -1333,6 +1547,83 @@ describe('OpenTelemetry', () => {
     });
   });
 
+  describe('abort', () => {
+    it('closes streamText spans when AbortController aborts the stream', async () => {
+      const abortController = new AbortController();
+      let pullCalls = 0;
+
+      const result = streamText({
+        abortSignal: abortController.signal,
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: new ReadableStream({
+              pull(controller) {
+                switch (pullCalls++) {
+                  case 0:
+                    controller.enqueue({
+                      type: 'stream-start',
+                      warnings: [],
+                    });
+                    break;
+                  case 1:
+                    controller.enqueue({
+                      type: 'text-start',
+                      id: '1',
+                    });
+                    break;
+                  case 2:
+                    controller.enqueue({
+                      type: 'text-delta',
+                      id: '1',
+                      delta: 'Hello',
+                    });
+                    break;
+                  case 3:
+                    abortController.abort();
+                    controller.error(
+                      new DOMException(
+                        'The user aborted a request.',
+                        'AbortError',
+                      ),
+                    );
+                    break;
+                }
+              },
+            }),
+          }),
+        }),
+        prompt: 'test-input',
+        telemetry: {
+          integrations: integration,
+        },
+      });
+
+      await result.consumeStream();
+
+      expect(
+        tracer.spans.map(span => ({
+          name: span.name,
+          ended: span.ended,
+        })),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "ended": true,
+            "name": "invoke_agent mock-model-id",
+          },
+          {
+            "ended": true,
+            "name": "step 1",
+          },
+          {
+            "ended": true,
+            "name": "chat mock-model-id",
+          },
+        ]
+      `);
+    });
+  });
+
   describe('full lifecycle', () => {
     it('creates correct span hierarchy for multi-step tool loop', () => {
       integration.onStart!(makeOnStartEvent());
@@ -1382,7 +1673,7 @@ describe('OpenTelemetry', () => {
       integration.onLanguageModelCallEnd!(makeLanguageModelCallEndEvent());
       integration.onStepFinish!(makeStepFinishEvent({ stepNumber: 1 }));
 
-      integration.onFinish!(makeFinishEvent());
+      integration.onEnd!(makeFinishEvent());
 
       expect(
         tracer.spans.map(s => ({
@@ -1425,7 +1716,7 @@ describe('OpenTelemetry', () => {
       integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
       integration.onLanguageModelCallEnd!(makeLanguageModelCallEndEvent());
       integration.onStepFinish!(makeStepFinishEvent());
-      integration.onFinish!(makeFinishEvent());
+      integration.onEnd!(makeFinishEvent());
 
       expect(serializeTrace(tracer)).toMatchInlineSnapshot(`
         [
@@ -1513,7 +1804,7 @@ describe('OpenTelemetry', () => {
       integration.onLanguageModelCallEnd!(makeLanguageModelCallEndEvent());
       integration.onStepFinish!(makeStepFinishEvent({ stepNumber: 1 }));
 
-      integration.onFinish!(makeFinishEvent());
+      integration.onEnd!(makeFinishEvent());
 
       expect(serializeTrace(tracer)).toMatchInlineSnapshot(`
         [
@@ -1619,7 +1910,7 @@ describe('OpenTelemetry', () => {
       integration.onToolExecutionStart!(makeToolCallStartEvent());
       integration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
       integration.onStepFinish!(makeStepFinishEvent());
-      integration.onFinish!(makeFinishEvent());
+      integration.onEnd!(makeFinishEvent());
 
       for (const span of tracer.spans) {
         for (const key of Object.keys(span.attributes)) {
