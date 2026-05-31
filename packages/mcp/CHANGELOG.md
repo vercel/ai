@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 2.0.0-canary.56
+
+### Patch Changes
+
+- dcefad3: fix(mcp): respond to ping requests with an empty result per JSON-RPC spec (closes #6282)
+
 ## 2.0.0-canary.55
 
 ### Patch Changes
