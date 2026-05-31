@@ -1,5 +1,13 @@
 # @ai-sdk/quiverai
 
+## 2.0.0-canary.1
+
+### Patch Changes
+
+- Updated dependencies [6c93e36]
+- Updated dependencies [f617ac2]
+  - @ai-sdk/provider-utils@5.0.0-canary.44
+
 ## 2.0.0-canary.0
 
 ### Major Changes

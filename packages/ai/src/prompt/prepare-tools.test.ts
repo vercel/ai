@@ -237,7 +237,7 @@ describe('prepareTools', () => {
   it('resolves function descriptions from toolsContext and sandbox', async () => {
     const sandbox: Sandbox = {
       description: 'test-sandbox',
-      runCommand: async () => ({
+      run: async () => ({
         exitCode: 0,
         stdout: '',
         stderr: '',

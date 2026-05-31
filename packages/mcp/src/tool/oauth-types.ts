@@ -32,11 +32,11 @@ export const SafeUrlSchema = z
   })
   .refine(
     url => {
-      const u = new URL(url);
+      const parsedUrl = new URL(url);
       return (
-        u.protocol !== 'javascript:' &&
-        u.protocol !== 'data:' &&
-        u.protocol !== 'vbscript:'
+        parsedUrl.protocol !== 'javascript:' &&
+        parsedUrl.protocol !== 'data:' &&
+        parsedUrl.protocol !== 'vbscript:'
       );
     },
     { message: 'URL cannot use javascript:, data:, or vbscript: scheme' },

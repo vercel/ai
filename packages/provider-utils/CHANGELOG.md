@@ -1,5 +1,12 @@
 # @ai-sdk/provider-utils
 
+## 5.0.0-canary.44
+
+### Patch Changes
+
+- 6c93e36: feat(provider-utils): add `spawnCommand` method to `Experimental_Sandbox` to allow for detached command execution
+- f617ac2: feat(provider-utils): narrow `tool()` return type to `ExecutableTool<...>` when `execute` is provided
+
 ## 5.0.0-canary.43
 
 ### Patch Changes

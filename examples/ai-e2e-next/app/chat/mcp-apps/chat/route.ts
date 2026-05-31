@@ -47,7 +47,7 @@ export async function POST(req: Request) {
         console.log('[mcp-apps/chat] model finish', {
           finishReason: event.finishReason,
           text: event.text,
-          totalUsage: event.totalUsage,
+          totalUsage: event.usage,
           stepCount: event.steps.length,
         });
         await client.close();
