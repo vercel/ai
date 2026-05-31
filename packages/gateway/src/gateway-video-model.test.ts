@@ -26,6 +26,8 @@ const createTestModel = (
 describe('GatewayVideoModel', () => {
   const server = createTestServer({
     'https://api.test.com/video-model': {},
+    'https://api.test.com/video-model/start': {},
+    'https://api.test.com/video-model/status': {},
   });
 
   describe('constructor', () => {
@@ -845,6 +847,226 @@ describe('GatewayVideoModel', () => {
           providerOptions: { fal: { enhanceImage: true } },
         });
       });
+    });
+  });
+
+  describe('doStart', () => {
+    it('should call the Gateway start endpoint and return an operation', async () => {
+      server.urls['https://api.test.com/video-model/start'].response = {
+        type: 'json-value',
+        body: {
+          operation: { gatewayJobId: 'job_123' },
+          warnings: [{ type: 'other', message: 'queued' }],
+          providerMetadata: {
+            gateway: { asyncJob: { jobId: 'job_123', status: 'queued' } },
+          },
+        },
+      };
+
+      const result = await createTestModel().doStart?.({
+        prompt: 'A beautiful sunset over mountains',
+        image: undefined,
+        n: 1,
+        aspectRatio: '16:9',
+        resolution: '1280x720',
+        duration: 5,
+        fps: 24,
+        seed: 123,
+        providerOptions: { gateway: { tags: ['async'] } },
+        webhookUrl: 'https://example.com/webhook',
+      });
+
+      expect(result?.operation).toEqual({ gatewayJobId: 'job_123' });
+      expect(result?.warnings).toEqual([{ type: 'other', message: 'queued' }]);
+      expect(result?.providerMetadata).toEqual({
+        gateway: { asyncJob: { jobId: 'job_123', status: 'queued' } },
+      });
+      expect(result?.response.modelId).toBe(TEST_MODEL_ID);
+      expect(result?.response.timestamp).toBeInstanceOf(Date);
+      expect(result?.response.headers).toBeDefined();
+
+      const call = server.calls[0];
+      expect(call.requestHeaders).toMatchObject({
+        authorization: 'Bearer test-token',
+        'ai-video-model-specification-version': '3',
+        'ai-model-id': TEST_MODEL_ID,
+      });
+      await expect(call.requestBodyJson).resolves.toEqual({
+        prompt: 'A beautiful sunset over mountains',
+        n: 1,
+        aspectRatio: '16:9',
+        resolution: '1280x720',
+        duration: 5,
+        fps: 24,
+        seed: 123,
+        providerOptions: { gateway: { tags: ['async'] } },
+        webhookUrl: 'https://example.com/webhook',
+      });
+    });
+
+    it('should omit optional fields and webhookUrl when not provided', async () => {
+      server.urls['https://api.test.com/video-model/start'].response = {
+        type: 'json-value',
+        body: { operation: { gatewayJobId: 'job_123' } },
+      };
+
+      const result = await createTestModel().doStart?.({
+        prompt: 'A beautiful sunset over mountains',
+        image: undefined,
+        n: 1,
+        aspectRatio: undefined,
+        resolution: undefined,
+        duration: undefined,
+        fps: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      // warnings defaults to an empty array when omitted by the gateway
+      expect(result?.warnings).toEqual([]);
+      await expect(server.calls[0].requestBodyJson).resolves.toEqual({
+        prompt: 'A beautiful sunset over mountains',
+        n: 1,
+        providerOptions: {},
+      });
+    });
+
+    it('should pass abort signal to fetch', async () => {
+      server.urls['https://api.test.com/video-model/start'].response = {
+        type: 'json-value',
+        body: { operation: { gatewayJobId: 'job_123' } },
+      };
+
+      const abortController = new AbortController();
+      await createTestModel().doStart?.({
+        prompt: 'Test prompt',
+        image: undefined,
+        n: 1,
+        aspectRatio: undefined,
+        resolution: undefined,
+        duration: undefined,
+        fps: undefined,
+        seed: undefined,
+        providerOptions: {},
+        abortSignal: abortController.signal,
+      });
+
+      expect(server.calls.length).toBe(1);
+    });
+
+    it('should map gateway errors', async () => {
+      server.urls['https://api.test.com/video-model/start'].response = {
+        type: 'error',
+        status: 400,
+        body: JSON.stringify({
+          error: { message: 'Invalid request', code: 'invalid_request' },
+        }),
+      };
+
+      await expect(
+        createTestModel().doStart?.({
+          prompt: 'Test prompt',
+          image: undefined,
+          n: 1,
+          aspectRatio: undefined,
+          resolution: undefined,
+          duration: undefined,
+          fps: undefined,
+          seed: undefined,
+          providerOptions: {},
+        }),
+      ).rejects.toThrow();
+    });
+  });
+
+  describe('doStatus', () => {
+    it('should return pending status', async () => {
+      server.urls['https://api.test.com/video-model/status'].response = {
+        type: 'json-value',
+        body: {
+          status: 'pending',
+          providerMetadata: {
+            gateway: { asyncJob: { jobId: 'job_123', status: 'running' } },
+          },
+        },
+      };
+
+      const result = await createTestModel().doStatus?.({
+        operation: { gatewayJobId: 'job_123' },
+      });
+
+      expect(result).toMatchObject({
+        status: 'pending',
+        providerMetadata: {
+          gateway: { asyncJob: { jobId: 'job_123', status: 'running' } },
+        },
+      });
+      await expect(server.calls[0].requestBodyJson).resolves.toEqual({
+        operation: { gatewayJobId: 'job_123' },
+      });
+    });
+
+    it('should return completed videos', async () => {
+      server.urls['https://api.test.com/video-model/status'].response = {
+        type: 'json-value',
+        body: {
+          status: 'completed',
+          videos: [
+            { type: 'base64', data: 'base64-video-1', mediaType: 'video/mp4' },
+          ],
+          warnings: [{ type: 'other', message: 'complete' }],
+          providerMetadata: {
+            gateway: { asyncJob: { jobId: 'job_123', status: 'completed' } },
+          },
+        },
+      };
+
+      const result = await createTestModel().doStatus?.({
+        operation: { gatewayJobId: 'job_123' },
+      });
+
+      expect(result).toMatchObject({
+        status: 'completed',
+        videos: [
+          { type: 'base64', data: 'base64-video-1', mediaType: 'video/mp4' },
+        ],
+        warnings: [{ type: 'other', message: 'complete' }],
+      });
+    });
+
+    it('should return error status', async () => {
+      server.urls['https://api.test.com/video-model/status'].response = {
+        type: 'json-value',
+        body: {
+          status: 'error',
+          error: 'Async video job failed',
+        },
+      };
+
+      const result = await createTestModel().doStatus?.({
+        operation: { gatewayJobId: 'job_123' },
+      });
+
+      expect(result).toMatchObject({
+        status: 'error',
+        error: 'Async video job failed',
+      });
+    });
+
+    it('should map gateway errors', async () => {
+      server.urls['https://api.test.com/video-model/status'].response = {
+        type: 'error',
+        status: 401,
+        body: JSON.stringify({
+          error: { message: 'Unauthorized', code: 'unauthorized' },
+        }),
+      };
+
+      await expect(
+        createTestModel().doStatus?.({
+          operation: { gatewayJobId: 'job_123' },
+        }),
+      ).rejects.toThrow();
     });
   });
 });
