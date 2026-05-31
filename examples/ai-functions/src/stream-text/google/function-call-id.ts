@@ -29,7 +29,7 @@ run(async () => {
     stopWhen: isStepCount(1),
   });
 
-  for await (const part of turn1.fullStream) {
+  for await (const part of turn1.stream) {
     if (part.type === 'tool-call') {
       console.log(
         `Turn 1 tool call (${part.toolCallId}): ${part.toolName}`,
@@ -61,7 +61,7 @@ run(async () => {
   });
 
   console.log('\nTurn 2 text:');
-  for await (const part of turn2.fullStream) {
+  for await (const part of turn2.stream) {
     if (part.type === 'text-delta') {
       process.stdout.write(part.text);
     }

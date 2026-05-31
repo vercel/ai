@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/otel",
-  "version": "1.0.0-canary.101",
+  "version": "1.0.0-canary.105",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -40,6 +40,7 @@
   },
   "devDependencies": {
     "@ai-sdk/provider-utils": "workspace:*",
+    "@opentelemetry/sdk-trace-base": "2.7.1",
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8.5.1",

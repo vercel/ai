@@ -1,5 +1,17 @@
 # @ai-sdk/google
 
+## 4.0.0-canary.75
+
+### Patch Changes
+
+- 00a0f36: feat(google, google-vertex): added `gemini-embedding-2`, `deep-research-max-preview-04-2026` and `deep-research-preview-04-2026`
+
+## 4.0.0-canary.74
+
+### Patch Changes
+
+- a8d70b6: fix(google): auto-inject `skip_thought_signature_validator` for Gemini 3 tool-call replays without a signature
+
 ## 4.0.0-canary.73
 
 ### Patch Changes
