@@ -2394,6 +2394,34 @@ describe('ToolLoopAgent', () => {
         `);
       });
 
+      it('should call legacy experimental_onToolCallStart from generate method', async () => {
+        const calls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: createToolCallMockModel(),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async ({ value }: { value: string }) =>
+                `${value}-result`,
+            }),
+          },
+        });
+
+        await agent.generate({
+          prompt: 'test',
+          experimental_onToolCallStart: async () => {
+            calls.push('legacy');
+          },
+        });
+
+        expect(calls).toMatchInlineSnapshot(`
+          [
+            "legacy",
+          ]
+        `);
+      });
+
       it('should call both constructor and method in correct order', async () => {
         const calls: string[] = [];
 
@@ -2596,6 +2624,36 @@ describe('ToolLoopAgent', () => {
         expect(calls).toMatchInlineSnapshot(`
           [
             "method",
+          ]
+        `);
+      });
+
+      it('should call legacy experimental_onToolCallStart from stream method', async () => {
+        const calls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: createToolCallStreamMockModel(),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async ({ value }: { value: string }) =>
+                `${value}-result`,
+            }),
+          },
+        });
+
+        const result = await agent.stream({
+          prompt: 'test',
+          experimental_onToolCallStart: async () => {
+            calls.push('legacy');
+          },
+        });
+
+        await result.consumeStream();
+
+        expect(calls).toMatchInlineSnapshot(`
+          [
+            "legacy",
           ]
         `);
       });
@@ -2821,6 +2879,34 @@ describe('ToolLoopAgent', () => {
         `);
       });
 
+      it('should call legacy experimental_onToolCallFinish from generate method', async () => {
+        const calls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: createToolCallMockModel(),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async ({ value }: { value: string }) =>
+                `${value}-result`,
+            }),
+          },
+        });
+
+        await agent.generate({
+          prompt: 'test',
+          experimental_onToolCallFinish: async () => {
+            calls.push('legacy');
+          },
+        });
+
+        expect(calls).toMatchInlineSnapshot(`
+          [
+            "legacy",
+          ]
+        `);
+      });
+
       it('should call both constructor and method in correct order', async () => {
         const calls: string[] = [];
 
@@ -3034,6 +3120,36 @@ describe('ToolLoopAgent', () => {
         expect(calls).toMatchInlineSnapshot(`
           [
             "method",
+          ]
+        `);
+      });
+
+      it('should call legacy experimental_onToolCallFinish from stream method', async () => {
+        const calls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: createToolCallStreamMockModel(),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async ({ value }: { value: string }) =>
+                `${value}-result`,
+            }),
+          },
+        });
+
+        const result = await agent.stream({
+          prompt: 'test',
+          experimental_onToolCallFinish: async () => {
+            calls.push('legacy');
+          },
+        });
+
+        await result.consumeStream();
+
+        expect(calls).toMatchInlineSnapshot(`
+          [
+            "legacy",
           ]
         `);
       });

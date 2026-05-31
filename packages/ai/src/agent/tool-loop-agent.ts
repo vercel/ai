@@ -189,6 +189,8 @@ export class ToolLoopAgent<
     experimental_onStepStart,
     onToolExecutionStart,
     onToolExecutionEnd,
+    experimental_onToolCallStart,
+    experimental_onToolCallFinish,
     onStepEnd,
     onStepFinish,
     onFinish,
@@ -221,10 +223,12 @@ export class ToolLoopAgent<
       onToolExecutionStart: mergeCallbacks(
         this.settings.onToolExecutionStart,
         onToolExecutionStart,
+        experimental_onToolCallStart,
       ),
       onToolExecutionEnd: mergeCallbacks(
         this.settings.onToolExecutionEnd,
         onToolExecutionEnd,
+        experimental_onToolCallFinish,
       ),
       onStepEnd: mergeCallbacks(
         this.settings.onStepEnd ?? this.settings.onStepFinish,
@@ -253,6 +257,8 @@ export class ToolLoopAgent<
     experimental_onStepStart,
     onToolExecutionStart,
     onToolExecutionEnd,
+    experimental_onToolCallStart,
+    experimental_onToolCallFinish,
     onStepEnd,
     onStepFinish,
     onFinish,
@@ -286,10 +292,12 @@ export class ToolLoopAgent<
       onToolExecutionStart: mergeCallbacks(
         this.settings.onToolExecutionStart,
         onToolExecutionStart,
+        experimental_onToolCallStart,
       ),
       onToolExecutionEnd: mergeCallbacks(
         this.settings.onToolExecutionEnd,
         onToolExecutionEnd,
+        experimental_onToolCallFinish,
       ),
       onStepEnd: mergeCallbacks(
         this.settings.onStepEnd ?? this.settings.onStepFinish,

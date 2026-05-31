@@ -98,6 +98,23 @@ describe('ToolLoopAgent', () => {
       expectTypeOf<typeof output>().toEqualTypeOf<{ value: string }>();
     });
 
+    it('should accept legacy tool call callbacks', async () => {
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4(),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+          }),
+        },
+      });
+
+      await agent.generate({
+        prompt: 'Hello, world!',
+        experimental_onToolCallStart: async () => {},
+        experimental_onToolCallFinish: async () => {},
+      });
+    });
+
     it('should type toolApproval in settings and prepareCall', () => {
       const tools = {
         testTool: tool({
@@ -228,6 +245,23 @@ describe('ToolLoopAgent', () => {
         onStepStart: event => {
           expectTypeOf(event.runtimeContext).toEqualTypeOf<Context>();
         },
+      });
+    });
+
+    it('should accept legacy tool call callbacks', async () => {
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4(),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+          }),
+        },
+      });
+
+      await agent.stream({
+        prompt: 'Hello, world!',
+        experimental_onToolCallStart: async () => {},
+        experimental_onToolCallFinish: async () => {},
       });
     });
   });
