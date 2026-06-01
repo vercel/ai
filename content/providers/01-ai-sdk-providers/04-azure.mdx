@@ -46,6 +46,26 @@ const azure = createAzure({
 });
 ```
 
+For Microsoft Entra ID authentication, you can provide an Azure AD token provider.
+Install `@azure/identity` separately if you want to use its credential helpers:
+
+```ts
+import { createAzure } from '@ai-sdk/azure';
+import {
+  DefaultAzureCredential,
+  getBearerTokenProvider,
+} from '@azure/identity';
+
+const credential = new DefaultAzureCredential();
+const scope = 'https://cognitiveservices.azure.com/.default';
+const azureADTokenProvider = getBearerTokenProvider(credential, scope);
+
+const azure = createAzure({
+  resourceName: 'your-resource-name',
+  azureADTokenProvider,
+});
+```
+
 You can use the following optional settings to customize the OpenAI provider instance:
 
 - **resourceName** _string_
@@ -60,6 +80,11 @@ You can use the following optional settings to customize the OpenAI provider ins
 
   API key that is being sent using the `api-key` header.
   It defaults to the `AZURE_API_KEY` environment variable.
+
+- **azureADTokenProvider** _() => Promise&lt;string&gt;_
+
+  Microsoft Entra ID token provider that returns an access token to be sent using the `Authorization` header.
+  When provided, this is used instead of `apiKey`.
 
 - **apiVersion** _string_
 

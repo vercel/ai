@@ -187,6 +187,67 @@ describe('responses (default language model)', () => {
       );
     });
 
+    it('should use azureADTokenProvider for Microsoft Entra ID auth', async () => {
+      prepareJsonResponse();
+
+      const provider = createAzure({
+        resourceName: 'test-resource',
+        azureADTokenProvider: async () => 'test-azure-ad-token',
+      });
+
+      await provider('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+        {
+          "authorization": "Bearer test-azure-ad-token",
+          "content-type": "application/json",
+        }
+      `);
+      expect(server.calls[0].requestUserAgent).toContain(
+        `ai-sdk/azure/0.0.0-test`,
+      );
+    });
+
+    it('should call azureADTokenProvider for every request', async () => {
+      prepareJsonResponse();
+
+      let tokenCount = 0;
+      const azureADTokenProvider = vi.fn(async () => `token-${++tokenCount}`);
+      const provider = createAzure({
+        resourceName: 'test-resource',
+        azureADTokenProvider,
+      });
+
+      await provider('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+      await provider('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(azureADTokenProvider).toHaveBeenCalledTimes(2);
+      expect(server.calls[0].requestHeaders.authorization).toBe(
+        'Bearer token-1',
+      );
+      expect(server.calls[1].requestHeaders.authorization).toBe(
+        'Bearer token-2',
+      );
+    });
+
+    it('should reject explicit apiKey with azureADTokenProvider', () => {
+      expect(() =>
+        createAzure({
+          resourceName: 'test-resource',
+          apiKey: 'test-api-key',
+          azureADTokenProvider: async () => 'test-azure-ad-token',
+        }),
+      ).toThrow(
+        'Both apiKey and azureADTokenProvider were provided. Please use only one authentication method.',
+      );
+    });
+
     it('should use the baseURL correctly', async () => {
       prepareJsonResponse();
 
