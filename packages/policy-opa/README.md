@@ -244,9 +244,9 @@ function deniedForAction(name: string, args: string[]): string | undefined {
 
 const toolApproval = ({ toolCall }) => {
   if (toolCall.toolName === 'bash') {
-    const [name, ...args] = (toolCall.input as { cmd: string }).cmd.split(
-      /\s+/,
-    );
+    const [name, ...args] = (
+      toolCall.input as { command: string }
+    ).command.split(/\s+/);
     const reason = deniedForAction(name, args);
     if (reason) return { type: 'denied', reason };
   }
@@ -300,8 +300,8 @@ const bashApproval = opaPolicy({
   client,
   path: 'agent/action/decision',
   toInput: ({ toolCall }) => {
-    const cmd = (toolCall.input as { cmd: string }).cmd;
-    const [bin, ...rest] = cmd.split(/\s+/);
+    const { command } = toolCall.input as { command: string };
+    const [bin, ...rest] = command.split(/\s+/);
     return { kind: bin, args: rest };
   },
 });
@@ -388,25 +388,79 @@ const browserApproval = opaPolicy({
 });
 ```
 
-### Shell dispatcher
+### Shell tool: gating git subcommands
+
+A `bash` tool (such as [vercel-labs/bash-tool](https://github.com/vercel-labs/bash-tool), input `{ command }`) can run any git operation, so the model could route a `git clone` or `git push` through it and skip a granular `git` rule. Gate it by parsing the command down to a git subcommand and deciding on that — and **deny anything you cannot reduce to a single clean git invocation**. Bash is adversarial to parse, so "can't prove it's safe" means "deny".
 
 ```ts
+// Returns the git invocation, or null if `command` is not a single clean git
+// command. Shell metacharacters (&& || ; | redirects, subshells, substitution)
+// return null so the policy fails closed.
+function parseGitInvocation(command: string) {
+  if (/[;&|<>`$(){}\\\n]/.test(command)) return null;
+  const tokens = command.trim().split(/\s+/);
+  if (tokens[0] !== 'git' || tokens.length < 2) return null;
+  const [, subcommand, ...args] = tokens;
+  return { subcommand, args };
+}
+
 const bashApproval = opaPolicy({
   client,
   path: 'agent/action/decision',
   toInput: ({ toolCall }) => {
-    const cmd = (toolCall.input as { cmd: string }).cmd;
-    const [bin, ...args] = cmd.split(/\s+/);
-    return { kind: bin, args };
+    const { command } = toolCall.input as { command: string };
+    const git = parseGitInvocation(command);
+    // Unparseable / non-git → kind:'bash' → the policy default-denies it.
+    return git
+      ? { kind: 'git', subcommand: git.subcommand, args: git.args }
+      : { kind: 'bash', command };
   },
 });
 ```
 
-For a more thorough job, run the command through a shell-aware tokenizer (e.g. `shell-quote`) so quoted arguments and pipelines don't collapse to whitespace splits.
+The matching Rego allows only read-only git and denies the rest by default:
+
+```rego
+package agent.action
+
+import rego.v1
+
+git_read_only := {"status", "log", "diff", "show", "branch"}
+
+# Default deny covers clone, push, pull, fetch, reset, and every kind:"bash"
+# the parser refused to vouch for.
+default decision := {"decision": "deny", "reason": "command not permitted by policy"}
+
+decision := {"decision": "allow"} if {
+	input.kind == "git"
+	git_read_only[input.subcommand]
+}
+
+decision := {"decision": "deny", "reason": msg} if {
+	input.kind == "git"
+	not git_read_only[input.subcommand]
+	msg := sprintf("git %s is not permitted (read-only git only)", [input.subcommand])
+}
+```
+
+A granular `git` tool shares the exact same rule, varying only in how it derives the action:
+
+```ts
+const gitApproval = opaPolicy({
+  client,
+  path: 'agent/action/decision',
+  toInput: ({ toolCall }) => {
+    const args = (toolCall.input as { args: string[] }).args;
+    return { kind: 'git', subcommand: args[0], args: args.slice(1) };
+  },
+});
+```
+
+So `git status` is allowed on both surfaces, `git clone …` is denied on both, and `cd /tmp && git clone …` (a compound bash command) is denied because the parser refuses it. A complete, runnable version — `policy.rego`, `policy_test.rego` (run with `opa test`), the parser and its tests, and a `generateText` demo — lives in [`examples/git-in-bash`](./examples/git-in-bash). For a stricter parser, swap the regex for a shell-aware tokenizer (e.g. `shell-quote`).
 
 ### The honest limitation
 
-This approach gates dispatch at the model's call boundary: the agent asks to run `bash 'git push'`, the policy sees `{ kind: 'git', args: ['push'] }`, the call is denied before `bash.execute` is ever invoked. What it does **not** defend against is a tool that, once approved, performs additional side effects beyond what its input describes. If `bash.execute` runs `cmd` and then _also_ sends a side-channel HTTP request, no policy at the call boundary can stop it.
+This approach gates dispatch at the model's call boundary: the agent asks to run `bash 'git push'`, the policy sees `{ kind: 'git', args: ['push'] }`, the call is denied before `bash.execute` is ever invoked. What it does **not** defend against is a tool that, once approved, performs additional side effects beyond what its input describes. If `bash.execute` runs `command` and then _also_ sends a side-channel HTTP request, no policy at the call boundary can stop it.
 
 The framework's job here is to give you one obvious place to write per-action authorization for the cases this design covers. For stronger guarantees against arbitrary side effects, run untrusted execution in an out-of-band sandbox (Vercel Sandbox, Firecracker, containers) and treat the sandbox boundary, not the tool boundary, as the trust frontier.
 
