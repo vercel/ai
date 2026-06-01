@@ -264,7 +264,15 @@ export class XaiVideoModel implements VideoModelV4 {
       }
     }
 
-    return { body, warnings, xaiOptions, isEdit, isExtension, hasReferenceImages, effectiveMode };
+    return {
+      body,
+      warnings,
+      xaiOptions,
+      isEdit,
+      isExtension,
+      hasReferenceImages,
+      effectiveMode,
+    };
   }
 
   async doStart(
@@ -348,9 +356,15 @@ export class XaiVideoModel implements VideoModelV4 {
     }
 
     if (statusResponse.status === 'failed') {
+      const errorDetails =
+        statusResponse.error?.message ?? statusResponse.error?.code;
+
       return {
         status: 'error' as const,
-        error: 'Video generation failed.',
+        error:
+          errorDetails != null
+            ? `Video generation failed: ${errorDetails}`
+            : 'Video generation failed.',
         response: {
           timestamp: currentDate,
           modelId: this.modelId,

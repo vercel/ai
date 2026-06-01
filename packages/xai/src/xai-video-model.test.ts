@@ -866,6 +866,9 @@ describe('XaiVideoModel', () => {
           status: 'failed',
           model: 'grok-imagine-video',
           progress: 0,
+          error: {
+            message: 'Content policy violation',
+          },
         },
       };
 
@@ -879,7 +882,9 @@ describe('XaiVideoModel', () => {
 
       expect(result.status).toBe('error');
       if (result.status === 'error') {
-        expect(result.error).toBe('Video generation failed.');
+        expect(result.error).toBe(
+          'Video generation failed: Content policy violation',
+        );
       }
 
       // Reset
