@@ -36,6 +36,10 @@ export const outboundMessageSchema = z.discriminatedUnion('type', [
   // is silently dropped.
   z.object({
     type: z.literal('bridge-hello'),
+    // Reconnect diagnostics (§9): the bridge's lifecycle state and the highest
+    // event `seq` it has emitted, so a reconnecting host knows what to expect.
+    state: z.string().optional(),
+    lastSeq: z.number().optional(),
   }),
 
   z.object({
@@ -154,6 +158,9 @@ export const inboundMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('user-message'), text: z.string() }),
   z.object({ type: z.literal('abort') }),
   z.object({ type: z.literal('shutdown') }),
+  // Reconnect (§9): after re-establishing the socket, the host asks the bridge
+  // to replay every buffered event with `seq > lastSeenEventId`.
+  z.object({ type: z.literal('resume'), lastSeenEventId: z.number() }),
   // Detach the current session: the bridge replies with `detach-state`
   // carrying any adapter-specific payload it has cached, then exits. The
   // host wraps the reply into `HarnessV1ResumeState`.

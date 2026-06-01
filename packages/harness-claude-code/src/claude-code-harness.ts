@@ -27,9 +27,16 @@ import {
   resolveClaudeCodeEnv,
   type ClaudeCodeAuthOptions,
 } from './claude-code-auth';
-import { BridgeChannel } from './claude-code-bridge-channel';
-import { bridgeReadySchema } from './claude-code-bridge-protocol';
+import { SandboxChannel } from '@ai-sdk/harness/channel';
+import {
+  bridgeReadySchema,
+  outboundMessageSchema,
+  type InboundMessage,
+  type OutboundMessage,
+} from './claude-code-bridge-protocol';
 import { translate } from './claude-code-translate';
+
+type ClaudeCodeChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 
 export type ClaudeCodeHarnessSettings = {
   readonly auth?: ClaudeCodeAuthOptions;
@@ -467,9 +474,20 @@ export function createClaudeCode(
         (await handle.getPortUrl({ port: boundPort, protocol: 'ws' })) +
         `?agent_bridge_token=${encodeURIComponent(token)}`;
 
-      const ws = await openWebSocket(wsUrl);
-      await waitForBridgeHello(ws, settings.startupTimeoutMs ?? 120_000);
-      const channel = new BridgeChannel(ws);
+      // The bridge stays alive across WS disconnects (§9): the channel reopens
+      // a socket (re-running the `bridge-hello` handshake) and asks the bridge
+      // to replay missed events on every transient drop. The same URL + token
+      // are reused — the bridge keeps its bound port and token for its lifetime.
+      const connect = async (): Promise<WebSocket> => {
+        const ws = await openWebSocket(wsUrl);
+        await waitForBridgeHello(ws, settings.startupTimeoutMs ?? 120_000);
+        return ws;
+      };
+      const channel: ClaudeCodeChannel = new SandboxChannel({
+        connect,
+        outboundSchema: outboundMessageSchema,
+      });
+      await channel.open();
 
       return createSession({
         sessionId: startOpts.sessionId,
@@ -739,7 +757,7 @@ function createSession({
   isResume,
 }: {
   sessionId: string;
-  channel: BridgeChannel;
+  channel: ClaudeCodeChannel;
   proc: Experimental_SandboxProcess;
   model: string | undefined;
   maxTurns: number | undefined;
@@ -884,6 +902,9 @@ function createSession({
       if (stopped) return stopPromise;
       stopped = true;
       stopPromise = (async () => {
+        // Tell the channel we are tearing down so the bridge's post-shutdown
+        // socket close finalises instead of triggering a reconnect.
+        channel.beginClose();
         try {
           if (!channel.isClosed()) {
             channel.send({ type: 'shutdown' });
@@ -923,6 +944,9 @@ function createSession({
        * snapshot during the subsequent `handle.stop()`), so we lose
        * nothing by skipping the round-trip.
        */
+      // Tell the channel we are tearing down so the bridge's post-detach
+      // socket close finalises instead of triggering a reconnect.
+      channel.beginClose();
       const data: unknown = channel.isClosed()
         ? {}
         : await new Promise<unknown>((resolve, reject) => {

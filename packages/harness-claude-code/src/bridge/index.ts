@@ -1,14 +1,17 @@
 // Long-running bridge that runs inside a sandbox alongside the `claude` CLI.
-// Talks to the host over WebSocket on a sandbox-proxied loopback port. The
-// host injects auth env (and a one-shot `BRIDGE_CHANNEL_TOKEN`) via the
-// sandbox's spawn env; this process reads them straight from `process.env`.
-// The bridge enforces the token on every WS connection.
+// The generic transport — WebSocket server, token auth, single-flight
+// reconnect, the in-memory event log + `seq`, resume replay, and the
+// lifecycle/meta files — lives in the shared `@ai-sdk/harness/bridge` runtime.
+// This file supplies only the Claude-specific turn driver.
 
+import {
+  runBridge,
+  type BridgeEvent,
+  type BridgeTurn,
+} from '@ai-sdk/harness/bridge';
 import type { HarnessV1BuiltinToolName } from '@ai-sdk/harness';
 import { randomUUID } from 'node:crypto';
-import { existsSync } from 'node:fs';
-import { mkdir, writeFile } from 'node:fs/promises';
-import { argv, env as procEnv, pid, stdout } from 'node:process';
+import { argv, stdout } from 'node:process';
 
 /*
  * CONSTRAINT — the third-party imports below are NEVER bundled into the
@@ -29,7 +32,6 @@ import { argv, env as procEnv, pid, stdout } from 'node:process';
  */
 import * as claudeAgentSdk from '@anthropic-ai/claude-agent-sdk';
 import * as mcpServerModule from '@modelcontextprotocol/sdk/server/mcp.js';
-import { WebSocketServer } from 'ws';
 import { z } from 'zod';
 
 const PROTOCOL_VERSION = 1;
@@ -63,108 +65,10 @@ if (!bridgeStateDir) {
   emitFatal('Missing --bridge-state-dir argument.');
 }
 
-const startConfigPath = `${bridgeStateDir}/start-config.json`;
-const rerunStartConfigPath = `${bridgeStateDir}/rerun-start-config.json`;
-const bridgeMetaPath = `${bridgeStateDir}/bridge-meta.json`;
-
-try {
-  await mkdir(bridgeStateDir, { recursive: true });
-} catch {
-  // Best-effort; if we can't write state files the bridge still runs.
-}
-
-const expectedToken = procEnv.BRIDGE_CHANNEL_TOKEN ?? '';
-
-type BridgeState = 'init' | 'waiting' | 'running' | 'draining' | 'done';
-let currentBoundPort = 0;
-
-async function writeBridgeMeta(state: BridgeState): Promise<void> {
-  const meta = {
-    type: 'claude-code',
-    protocolVersion: PROTOCOL_VERSION,
-    port: currentBoundPort,
-    state,
-    pid,
-  };
-  try {
-    await writeFile(bridgeMetaPath, JSON.stringify(meta));
-  } catch {
-    // Best-effort — resilience metadata, not load-bearing for the active turn.
-  }
-}
-
-async function writeStartConfig(start: unknown): Promise<void> {
-  try {
-    const serialized = JSON.stringify(start);
-    await writeFile(startConfigPath, serialized);
-    // `rerun-start-config.json` is the frozen copy: written once on the
-    // first start, never overwritten. Future `rerun`-mode recovery
-    // restores it back over `start-config.json` to re-run the original
-    // turn from scratch when a bridge died mid-stream.
-    if (!existsSync(rerunStartConfigPath)) {
-      await writeFile(rerunStartConfigPath, serialized);
-    }
-  } catch {
-    // Best-effort.
-  }
-}
-
-void writeBridgeMeta('init');
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const claudeSdk = claudeAgentSdk as any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mcpModule = mcpServerModule as any;
-
-const bridgeWsPort = parseInt(procEnv.BRIDGE_WS_PORT ?? '0', 10);
-const wss = new WebSocketServer({ port: bridgeWsPort, host: '0.0.0.0' });
-
-let activeSocket: WSConnection | undefined;
-
-wss.on('listening', () => {
-  const addr = wss.address();
-  const port = typeof addr === 'object' && addr ? addr.port : 0;
-  currentBoundPort = port;
-  void writeBridgeMeta('waiting');
-  stdout.write(
-    JSON.stringify({
-      type: 'bridge-ready',
-      protocolVersion: PROTOCOL_VERSION,
-      port,
-    }) + '\n',
-  );
-});
-
-wss.on('connection', (ws: WSConnection, req: { url?: string }) => {
-  const url = new URL(req.url ?? '/', 'http://localhost');
-  if (url.searchParams.get('agent_bridge_token') !== expectedToken) {
-    ws.close(1008, 'unauthorized');
-    return;
-  }
-  if (activeSocket) {
-    ws.close(1013, 'bridge already has an active host connection');
-    return;
-  }
-  activeSocket = ws;
-  // Hello-then-listen: tell the host that the end-to-end WS connection
-  // is actually live before it tries to send `start`. Required because
-  // some sandbox runtimes complete the host-side handshake before the
-  // connection is forwarded to us.
-  try {
-    ws.send(JSON.stringify({ type: 'bridge-hello' }));
-  } catch {
-    // Best-effort. If the hello cannot be sent the host will eventually
-    // time out waiting for it and report a clear error.
-  }
-  wireSocket(ws);
-});
-
-type WSConnection = {
-  on(event: 'message', listener: (data: ArrayBufferLike) => void): void;
-  on(event: 'close', listener: () => void): void;
-  send(data: string): void;
-  close(code?: number, reason?: string): void;
-};
 
 type StartMessage = {
   type: 'start';
@@ -181,162 +85,31 @@ type StartMessage = {
   continue?: boolean;
 };
 
-type InboundMessage =
-  | StartMessage
-  | {
-      type: 'tool-result';
-      toolCallId: string;
-      output: unknown;
-      isError?: boolean;
-    }
-  | { type: 'user-message'; text: string }
-  | { type: 'abort' }
-  | { type: 'shutdown' }
-  | { type: 'detach' };
-
-function wireSocket(ws: WSConnection): void {
-  const pendingToolResults = new Map<
-    string,
-    (output: { output: unknown; isError?: boolean }) => void
-  >();
-  const pendingUserMessages: string[] = [];
-  let turnAbort: AbortController | undefined;
-  let isFirstTurn = true;
-
-  const send = (msg: Record<string, unknown>) => {
-    try {
-      ws.send(JSON.stringify(msg));
-    } catch {}
-  };
-
-  ws.on('message', async raw => {
-    const text = Buffer.from(raw).toString('utf8');
-    let parsed: InboundMessage;
-    try {
-      parsed = JSON.parse(text) as InboundMessage;
-    } catch (err) {
-      send({
-        type: 'error',
-        error: `protocol parse error: ${(err as Error).message}`,
-      });
-      return;
-    }
-    switch (parsed.type) {
-      case 'start': {
-        const firstTurn = isFirstTurn;
-        isFirstTurn = false;
-        void writeStartConfig(parsed);
-        void writeBridgeMeta('running');
-        runTurn({
-          start: parsed,
-          send,
-          pendingToolResults,
-          pendingUserMessages,
-          firstTurn,
-          onAbortCtl: ctl => {
-            turnAbort = ctl;
-          },
-        })
-          .catch(err => {
-            send({ type: 'error', error: serialiseError(err) });
-          })
-          .finally(() => {
-            void writeBridgeMeta('waiting');
-          });
-        return;
-      }
-      case 'tool-result': {
-        const resolver = pendingToolResults.get(parsed.toolCallId);
-        if (resolver) {
-          pendingToolResults.delete(parsed.toolCallId);
-          resolver({ output: parsed.output, isError: parsed.isError });
-        }
-        return;
-      }
-      case 'user-message':
-        pendingUserMessages.push(parsed.text);
-        return;
-      case 'abort':
-        turnAbort?.abort();
-        return;
-      case 'shutdown':
-        void writeBridgeMeta('done');
-        try {
-          ws.close(1000, 'shutdown');
-        } finally {
-          wss.close(() => process.exit(0));
-          setTimeout(() => process.exit(0), 1000).unref();
-        }
-        return;
-      case 'detach':
-        // Claude Code's session state lives in the workdir on the sandbox
-        // filesystem (the Claude SDK reads/writes it via `cwd`); the
-        // `{ continue: true }` flag on resume rehydrates the thread. So
-        // the detach payload is structurally empty — the framework still
-        // wraps it in `HarnessV1ResumeState` for transport.
-        void writeBridgeMeta('done');
-        send({ type: 'detach-state', data: {} });
-        // Allow the message to flush before tearing down.
-        setTimeout(() => {
-          try {
-            ws.close(1000, 'detach');
-          } finally {
-            wss.close(() => process.exit(0));
-            setTimeout(() => process.exit(0), 1000).unref();
-          }
-        }, 50).unref?.();
-        return;
-    }
-  });
-
-  ws.on('close', () => {
-    activeSocket = undefined;
-    // TODO(§9): keep the bridge process alive across WS disconnects so a
-    // future host process can reattach via §9's `{type:'resume',
-    // lastSeenEventId}` wire message and replay buffered events from the
-    // in-memory event log. Today we abort the active turn — mid-turn state
-    // is lost on disconnect; only between-turn cross-process resume works.
-    turnAbort?.abort();
-  });
-}
-
-// TODO(§9): event log persistence. The bridge does not yet write
-// `${bridgeStateDir}/event-log.ndjson` with monotonic event IDs. When that
-// lands, paired with the bridge-side `{type:'resume', lastSeenEventId}`
-// handler, the host can recover mid-turn state without re-running the
-// prompt. Until then, recovery from a dead bridge means a full rerun from
-// `rerun-start-config.json`.
-
-// TODO(§9): event IDs on every outbound message. Pair with the event log
-// above so `replayEventsToClient(ws, afterId)` can slice the log on resume.
-
-// TODO(§9): `BRIDGE_REPLAY_FROM_DISK=1` startup mode. When the host
-// respawns the bridge for disk-replay recovery, the bridge should read
-// `start-config.json` from disk and skip waiting for a WS `start`, then
-// reload the event log into memory so the resume message can replay it.
+await runBridge<StartMessage>({
+  bridgeType: 'claude-code',
+  protocolVersion: PROTOCOL_VERSION,
+  bridgeStateDir,
+  onStart: runTurn,
+  // Claude Code's session state lives in the workdir on the sandbox filesystem
+  // (captured by the sandbox snapshot on stop); the resume payload is empty.
+  onDetach: () => ({}),
+});
 
 type Emit = (msg: Record<string, unknown>) => void;
 
-async function runTurn({
-  start,
-  send,
-  pendingToolResults,
-  pendingUserMessages,
-  firstTurn,
-  onAbortCtl,
-}: {
-  start: StartMessage;
-  send: Emit;
-  pendingToolResults: Map<
-    string,
-    (output: { output: unknown; isError?: boolean }) => void
-  >;
-  pendingUserMessages: string[];
-  firstTurn: boolean;
-  onAbortCtl: (ctl: AbortController) => void;
-}): Promise<void> {
+async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+  const emit: Emit = msg => turn.emit(msg as BridgeEvent);
+
+  // Local controller for the Claude query. Aborted either by the host (via the
+  // shared runtime's `turn.abortSignal`) or by us on a terminal error.
   const abortCtl = new AbortController();
-  onAbortCtl(abortCtl);
+  if (turn.abortSignal.aborted) {
+    abortCtl.abort();
+  } else {
+    turn.abortSignal.addEventListener('abort', () => abortCtl.abort(), {
+      once: true,
+    });
+  }
 
   /*
    * Map of native tool-use id → tool name. Claude assistant messages emit
@@ -369,20 +142,15 @@ async function runTurn({
         shape,
         async (input: Record<string, unknown>) => {
           const toolCallId = randomUUID();
-          const pending = new Promise<{ output: unknown; isError?: boolean }>(
-            resolve => {
-              pendingToolResults.set(toolCallId, resolve);
-            },
-          );
-          send({
+          emit({
             type: 'tool-call',
             toolCallId,
             toolName: tool.name,
             input: JSON.stringify(input),
             providerExecuted: false,
           });
-          const { output, isError } = await pending;
-          send({
+          const { output, isError } = await turn.requestToolResult(toolCallId);
+          emit({
             type: 'tool-result',
             toolCallId,
             toolName: tool.name,
@@ -403,11 +171,11 @@ async function runTurn({
     };
   }
 
-  send({ type: 'stream-start' });
+  emit({ type: 'stream-start' });
 
   const queryInput = makeQueryInput({
     initialUserMessage: start.prompt,
-    pendingUserMessages,
+    pendingUserMessages: turn.pendingUserMessages,
     abortSignal: abortCtl.signal,
   });
 
@@ -423,7 +191,7 @@ async function runTurn({
       // cross-process detach) by setting `start.continue: true`; otherwise
       // we continue every subsequent turn after the first one in this
       // bridge process.
-      ...(start.continue === true || !firstTurn ? { continue: true } : {}),
+      ...(start.continue === true || !turn.firstTurn ? { continue: true } : {}),
       permissionMode: 'bypassPermissions',
       allowDangerouslySkipPermissions: true,
       mcpServers,
@@ -447,7 +215,7 @@ async function runTurn({
     if (!normalized || emittedTerminalError || emittedTerminalFinish) return;
     observedTerminalError = normalized;
     emittedTerminalError = true;
-    send({ type: 'error', error: normalized });
+    emit({ type: 'error', error: normalized });
     abortCtl.abort();
   };
 
@@ -493,7 +261,7 @@ async function runTurn({
       }
 
       if (type === 'stream_event') {
-        handleStreamEvent(msg.event, partialBlocks, send);
+        handleStreamEvent(msg.event, partialBlocks, emit);
         continue;
       }
 
@@ -510,7 +278,7 @@ async function runTurn({
               continue;
             }
             nativeToolCallNames.set(block.id, block.name);
-            send({
+            emit({
               type: 'tool-call',
               toolCallId: block.id,
               toolName: toCommonName(block.name),
@@ -553,7 +321,7 @@ async function runTurn({
               toolName === 'bash'
                 ? { exitCode: isError ? 1 : 0, stdout: content }
                 : content;
-            send({
+            emit({
               type: 'tool-result',
               toolCallId: block.tool_use_id,
               toolName,
@@ -582,7 +350,7 @@ async function runTurn({
             typeof msg.total_cost_usd === 'number'
               ? { 'claude-code': { costUsd: msg.total_cost_usd } }
               : undefined;
-          send({
+          emit({
             type: 'finish-step',
             finishReason: { unified: 'stop', raw: 'stop' },
             usage: harnessUsage ?? defaultUsage(),
@@ -601,7 +369,7 @@ async function runTurn({
     }
   } catch (err) {
     if (!(abortCtl.signal.aborted && emittedTerminalError)) {
-      send({ type: 'error', error: serialiseError(err) });
+      emit({ type: 'error', error: serialiseError(err) });
     }
     return;
   }
@@ -609,7 +377,7 @@ async function runTurn({
   if (emittedTerminalError) return;
   emittedTerminalFinish = true;
   void emittedTerminalFinish;
-  send({
+  emit({
     type: 'finish',
     finishReason: { unified: 'stop', raw: 'stop' },
     totalUsage: stepUsage ?? defaultUsage(),

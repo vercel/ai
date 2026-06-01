@@ -22,9 +22,16 @@ import {
 import { WebSocket } from 'ws';
 import { z } from 'zod';
 import { resolveCodexEnv, type CodexAuthOptions } from './codex-auth';
-import { BridgeChannel } from './codex-bridge-channel';
-import { bridgeReadySchema } from './codex-bridge-protocol';
+import { SandboxChannel } from '@ai-sdk/harness/channel';
+import {
+  bridgeReadySchema,
+  outboundMessageSchema,
+  type InboundMessage,
+  type OutboundMessage,
+} from './codex-bridge-protocol';
 import { translate } from './codex-translate';
+
+type CodexChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 
 export type CodexHarnessSettings = {
   readonly auth?: CodexAuthOptions;
@@ -193,8 +200,16 @@ export function createCodex(
         (await handle.getPortUrl({ port: boundPort, protocol: 'ws' })) +
         `?agent_bridge_token=${encodeURIComponent(token)}`;
 
-      const ws = await openWebSocket(wsUrl);
-      const channel = new BridgeChannel(ws);
+      // The bridge stays alive across WS disconnects (§9): the channel reopens
+      // a socket and asks the bridge to replay missed events on every transient
+      // drop. The same URL + token are reused — the bridge keeps its bound port
+      // and token for its lifetime.
+      const connect = (): Promise<WebSocket> => openWebSocket(wsUrl);
+      const channel: CodexChannel = new SandboxChannel({
+        connect,
+        outboundSchema: outboundMessageSchema,
+      });
+      await channel.open();
 
       return createSession({
         sessionId: startOpts.sessionId,
@@ -380,7 +395,7 @@ function createSession({
   resumeThreadId,
 }: {
   sessionId: string;
-  channel: BridgeChannel;
+  channel: CodexChannel;
   proc: Experimental_SandboxProcess;
   skills: ReadonlyArray<HarnessV1Skill> | undefined;
   model: string | undefined;
@@ -538,6 +553,9 @@ function createSession({
       if (stopped) return stopPromise;
       stopped = true;
       stopPromise = (async () => {
+        // Tell the channel we are tearing down so the bridge's post-shutdown
+        // socket close finalises instead of triggering a reconnect.
+        channel.beginClose();
         try {
           if (!channel.isClosed()) {
             channel.send({ type: 'shutdown' });
@@ -579,6 +597,9 @@ function createSession({
        * preserved workdir rather than resuming the prior conversation
        * inside Codex's runtime. Ability to continue beats throwing.
        */
+      // Tell the channel we are tearing down so the bridge's post-detach
+      // socket close finalises instead of triggering a reconnect.
+      channel.beginClose();
       const data: unknown = channel.isClosed()
         ? {}
         : await new Promise<unknown>((resolve, reject) => {

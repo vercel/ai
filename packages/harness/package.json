@@ -11,6 +11,8 @@
     "dist/**/*",
     "src",
     "agent",
+    "channel",
+    "bridge",
     "!src/**/*.test.ts",
     "!src/**/*.test-d.ts",
     "!src/**/__snapshots__",
@@ -39,6 +41,16 @@
       "types": "./dist/agent/index.d.ts",
       "import": "./dist/agent/index.js",
       "default": "./dist/agent/index.js"
+    },
+    "./channel": {
+      "types": "./dist/channel/index.d.ts",
+      "import": "./dist/channel/index.js",
+      "default": "./dist/channel/index.js"
+    },
+    "./bridge": {
+      "types": "./dist/bridge/index.d.ts",
+      "import": "./dist/bridge/index.js",
+      "default": "./dist/bridge/index.js"
     }
   },
   "dependencies": {
@@ -46,11 +58,21 @@
     "@ai-sdk/provider-utils": "workspace:*",
     "ai": "workspace:*"
   },
+  "peerDependencies": {
+    "ws": "^8.20.1"
+  },
+  "peerDependenciesMeta": {
+    "ws": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@types/node": "22.19.19",
+    "@types/ws": "^8.5.13",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8.5.1",
     "typescript": "5.8.3",
+    "ws": "^8.20.1",
     "zod": "3.25.76"
   },
   "engines": {

@@ -19,6 +19,11 @@ export default defineConfig([
     dts: false,
     sourcemap: true,
     platform: 'node',
+    // The shared bridge runtime (`@ai-sdk/harness/bridge`) must be INLINED —
+    // the sandbox only installs the bridge's own deps, so a bare import would
+    // not resolve there. tsup externalizes package.json deps by default, hence
+    // the explicit override.
+    noExternal: ['@ai-sdk/harness'],
     external: [
       '@openai/codex-sdk',
       '@openai/codex',

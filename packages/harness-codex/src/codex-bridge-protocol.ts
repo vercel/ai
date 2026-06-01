@@ -27,6 +27,16 @@ const harnessMetadataSchema = z.record(
 );
 
 export const outboundMessageSchema = z.discriminatedUnion('type', [
+  // Sent by the bridge the instant it accepts an authenticated WS connection.
+  // The Codex host does not block on it (no startup handshake), but it must be
+  // a valid frame because the shared bridge runtime emits it on every accept,
+  // including reconnects.
+  z.object({
+    type: z.literal('bridge-hello'),
+    state: z.string().optional(),
+    lastSeq: z.number().optional(),
+  }),
+
   z.object({
     type: z.literal('stream-start'),
     warnings: z.array(z.unknown()).optional(),
@@ -161,6 +171,9 @@ export const inboundMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('user-message'), text: z.string() }),
   z.object({ type: z.literal('abort') }),
   z.object({ type: z.literal('shutdown') }),
+  // Reconnect (§9): after re-establishing the socket, the host asks the bridge
+  // to replay every buffered event with `seq > lastSeenEventId`.
+  z.object({ type: z.literal('resume'), lastSeenEventId: z.number() }),
   // Detach: bridge replies with `detach-state` ({ threadId }) and exits.
   z.object({ type: z.literal('detach') }),
 ]);
