@@ -351,6 +351,11 @@ export async function createPiSession(
   const sessionImpl: HarnessV1Session = {
     sessionId: input.sessionId,
 
+    // Pi has no bridge to attach to and no on-disk event log to replay; its
+    // only recovery is restoring the session file on a fresh/snapshotted
+    // sandbox, i.e. the `rerun` equivalent.
+    recoveryMode: input.isResume ? 'rerun' : 'cold',
+
     doPrompt: async (
       promptOpts: HarnessV1PromptOptions,
     ): Promise<HarnessV1PromptControl> => {
@@ -518,6 +523,38 @@ export async function createPiSession(
       piSession = undefined;
       workspaceVfs.unmount();
       await rm(hostRoot, { recursive: true, force: true });
+
+      return {
+        harnessId: HARNESS_ID,
+        specificationVersion: 'harness-v1',
+        data: sessionFileName ? { sessionFileName } : {},
+      };
+    },
+
+    doGetResumeHandle: async (): Promise<HarnessV1ResumeState> => {
+      if (stopped) {
+        throw new Error('Pi session has been stopped.');
+      }
+      /*
+       * Non-destructive: copy the current Pi session journal into the sandbox
+       * so a future process can pull it after `provider.resume({ sessionId })`,
+       * but leave this session running (no dispose/unmount/teardown). The
+       * journal is appended to the same file across turns, so calling this
+       * after each turn keeps the sandbox copy current.
+       */
+      if (sessionFileName) {
+        try {
+          await persistSessionFileToSandbox({
+            sandbox,
+            sessionWorkDir: input.sessionWorkDir,
+            hostSessionDir,
+            sessionFileName,
+          });
+        } catch {
+          // Best-effort: a failed copy leaves the previously persisted journal
+          // in place, so resume returns to a slightly older (still valid) state.
+        }
+      }
 
       return {
         harnessId: HARNESS_ID,

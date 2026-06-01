@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import {
+  classifyDiskLog,
   commonTool,
   HarnessCapabilityUnsupportedError,
   type HarnessV1,
@@ -9,6 +10,7 @@ import {
   type HarnessV1BuiltinTool,
   type HarnessV1Prompt,
   type HarnessV1PromptControl,
+  type HarnessV1RecoveryMode,
   type HarnessV1ResumeState,
   type HarnessV1SandboxHandle,
   type HarnessV1Session,
@@ -97,13 +99,30 @@ const CODEX_BUILTIN_TOOLS = {
 const BOOTSTRAP_DIR = '/tmp/harness/codex';
 
 /**
+ * Live bridge coordinates carried by `getResumeHandle()`. A future process uses
+ * them to reopen a socket to the still-running bridge (`attach`) instead of
+ * re-spawning it. Absent on a `detach()` payload (that stops the bridge).
+ */
+const bridgeCoordsSchema = z.object({
+  port: z.number(),
+  token: z.string(),
+  lastSeenEventId: z.number(),
+  sandboxId: z.string().optional(),
+});
+
+/**
  * Schema for the adapter-specific `HarnessV1ResumeState.data` payload Codex
- * produces. The `threadId` is what `codex.resumeThread(...)` requires; the
- * sandbox lookup is handled separately via `provider.resume({ sessionId })`.
+ * produces. `threadId` is what `codex.resumeThread(...)` requires for the
+ * replay/rerun rungs; the sandbox lookup is handled separately via
+ * `provider.resume({ sessionId })`. `bridge` carries live coordinates for
+ * cross-process `attach` (present only on `getResumeHandle()` payloads).
  */
 const codexResumeStateSchema = z.object({
   threadId: z.string().optional(),
+  bridge: bridgeCoordsSchema.optional(),
 });
+
+type CodexBridgeCoords = z.infer<typeof bridgeCoordsSchema>;
 
 export function createCodex(
   settings: CodexHarnessSettings = {},
@@ -156,28 +175,96 @@ export function createCodex(
       }
       const handle = startOpts.sandboxHandle;
       const { session } = handle;
+      const sandboxId = handle.id;
       const isResume = startOpts.resumeFrom != null;
-      const resumeThreadId =
+      const resumeData =
         isResume && typeof startOpts.resumeFrom?.data === 'object'
-          ? (startOpts.resumeFrom.data as { threadId?: unknown }).threadId
+          ? (startOpts.resumeFrom.data as {
+              threadId?: unknown;
+              bridge?: CodexBridgeCoords;
+            })
           : undefined;
+      const resumeThreadId = resumeData?.threadId;
       const resumeThreadIdString =
         typeof resumeThreadId === 'string' && resumeThreadId.length > 0
           ? resumeThreadId
           : undefined;
+      const coords = resumeData?.bridge;
 
       const workDir = startOpts.sessionWorkDir;
       const sessionDataDir = `${handle.defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
       const bridgeStateDir = `${sessionDataDir}/bridge`;
+      const timeoutMs = settings.startupTimeoutMs ?? 120_000;
+
+      /*
+       * Rung 1 — ATTACH. With live coordinates, reopen a socket to the
+       * still-running bridge and replay everything past the persisted cursor.
+       * No spawn, no fresh token. If the bridge is gone the open throws and we
+       * fall through to a spawn-based recovery.
+       */
+      if (coords) {
+        try {
+          const attachUrl =
+            (await handle.getPortUrl({ port: coords.port, protocol: 'ws' })) +
+            `?agent_bridge_token=${encodeURIComponent(coords.token)}`;
+          const attachChannel: CodexChannel = new SandboxChannel({
+            connect: () => openWebSocket(attachUrl),
+            outboundSchema: outboundMessageSchema,
+            initialLastSeenEventId: coords.lastSeenEventId,
+          });
+          await attachChannel.open({ resume: true });
+          return createSession({
+            sessionId: startOpts.sessionId,
+            channel: attachChannel,
+            // The live bridge was spawned by another process; no process handle.
+            proc: undefined,
+            skills: startOpts.skills,
+            model: settings.model,
+            reasoningEffort: settings.reasoningEffort,
+            webSearch: settings.webSearch,
+            resumeThreadId: resumeThreadIdString,
+            recoveryMode: 'attach',
+            bridgePort: coords.port,
+            bridgeToken: coords.token,
+            sandboxId,
+          });
+        } catch {
+          // Bridge no longer reachable — recover by respawning below.
+        }
+      }
+
+      /*
+       * Rungs 2/3 — REPLAY vs RERUN. Respawn the bridge. `replay` is only sound
+       * when the resume payload carried live coordinates (`getResumeHandle`),
+       * because those include the cursor the on-disk log is replayed *from*. A
+       * payload without coordinates — e.g. from a destructive `detach()` — has
+       * no cursor, so replaying a finished turn from seq 0 would re-deliver it
+       * into the next turn. Those resumes always `rerun` (the bridge takes the
+       * `codex.resumeThread(threadId)` branch).
+       */
+      let recoveryMode: HarnessV1RecoveryMode = isResume ? 'rerun' : 'cold';
+      if (coords) {
+        const logRaw = await Promise.resolve(
+          session.readTextFile({
+            path: `${bridgeStateDir}/event-log.ndjson`,
+            abortSignal: startOpts.abortSignal,
+          }),
+        ).catch(() => null);
+        if ((await classifyDiskLog(logRaw)) === 'replay') {
+          recoveryMode = 'replay';
+        }
+      }
+
       const port = resolveBridgePort(handle, settings.port);
       const token = randomBytes(32).toString('hex');
       const env = {
         ...resolveCodexEnv(settings.auth),
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),
+        ...(recoveryMode === 'replay' ? { BRIDGE_REPLAY_FROM_DISK: '1' } : {}),
       };
 
-      if (!isResume) {
+      if (recoveryMode === 'cold') {
         await session.run({
           command: `mkdir -p ${workDir} ${bridgeStateDir}`,
           abortSignal: startOpts.abortSignal,
@@ -192,7 +279,7 @@ export function createCodex(
 
       const { port: boundPort } = await waitForBridgeReady({
         proc,
-        timeoutMs: settings.startupTimeoutMs ?? 120_000,
+        timeoutMs,
         abortSignal: startOpts.abortSignal,
       });
 
@@ -200,16 +287,19 @@ export function createCodex(
         (await handle.getPortUrl({ port: boundPort, protocol: 'ws' })) +
         `?agent_bridge_token=${encodeURIComponent(token)}`;
 
-      // The bridge stays alive across WS disconnects (§9): the channel reopens
-      // a socket and asks the bridge to replay missed events on every transient
-      // drop. The same URL + token are reused — the bridge keeps its bound port
-      // and token for its lifetime.
-      const connect = (): Promise<WebSocket> => openWebSocket(wsUrl);
       const channel: CodexChannel = new SandboxChannel({
-        connect,
+        connect: () => openWebSocket(wsUrl),
         outboundSchema: outboundMessageSchema,
+        // In replay mode the respawned bridge reloaded the finished turn from
+        // disk; seed the cursor and resume so it streams the tail (incl.
+        // `finish`).
+        ...(recoveryMode === 'replay'
+          ? { initialLastSeenEventId: coords?.lastSeenEventId ?? 0 }
+          : {}),
       });
-      await channel.open();
+      await channel.open(
+        recoveryMode === 'replay' ? { resume: true } : undefined,
+      );
 
       return createSession({
         sessionId: startOpts.sessionId,
@@ -220,7 +310,10 @@ export function createCodex(
         reasoningEffort: settings.reasoningEffort,
         webSearch: settings.webSearch,
         resumeThreadId: resumeThreadIdString,
-        isResume,
+        recoveryMode,
+        bridgePort: boundPort,
+        bridgeToken: token,
+        sandboxId,
       });
     },
   };
@@ -394,34 +487,59 @@ function createSession({
   reasoningEffort,
   webSearch,
   resumeThreadId,
-  isResume,
+  recoveryMode,
+  bridgePort,
+  bridgeToken,
+  sandboxId,
 }: {
   sessionId: string;
   channel: CodexChannel;
-  proc: Experimental_SandboxProcess;
+  /** Undefined on `attach` — the live bridge was spawned by another process. */
+  proc: Experimental_SandboxProcess | undefined;
   skills: ReadonlyArray<HarnessV1Skill> | undefined;
   model: string | undefined;
   reasoningEffort: 'low' | 'medium' | 'high' | undefined;
   webSearch: boolean | undefined;
   resumeThreadId: string | undefined;
-  isResume: boolean;
+  recoveryMode: HarnessV1RecoveryMode;
+  bridgePort: number;
+  bridgeToken: string;
+  sandboxId: string;
 }): HarnessV1Session {
   let stopped = false;
   let stopPromise: Promise<void> | undefined;
-  // Sent once on the first prompt after a cross-process resume so the
-  // bridge takes the `codex.resumeThread(...)` branch. Cleared after the
-  // first send — subsequent turns within this bridge process use the
-  // bridge-cached threadState.
-  let pendingResumeThreadId = resumeThreadId;
+  /*
+   * Send the persisted threadId on the first prompt only when the bridge was
+   * respawned (rerun/replay) so it takes the `codex.resumeThread(...)` branch.
+   * An `attach`ed bridge already holds its threadState in memory and continues
+   * on its own, so it needs no seed.
+   */
+  let pendingResumeThreadId =
+    recoveryMode === 'rerun' || recoveryMode === 'replay'
+      ? resumeThreadId
+      : undefined;
   /*
    * Instructions are prepended to the first user message of a fresh session
-   * only. A resumed session already carried them in its original first
-   * message (preserved in the persisted thread), so it starts "applied".
+   * only. A resumed session (attach/replay/rerun) already carried them in its
+   * original first message (preserved in the persisted thread), so it starts
+   * "applied".
    */
-  let instructionsApplied = isResume;
+  let instructionsApplied = recoveryMode !== 'cold';
+
+  /*
+   * Latest codex thread id, cached from the bridge's `bridge-thread`
+   * announcements. Seeded from a resume payload so `getResumeHandle()` reports
+   * a thread id even before this process has run a turn. Read live by
+   * `doGetResumeHandle` for the replay/rerun fallback.
+   */
+  let latestThreadId = resumeThreadId;
+  channel.on('bridge-thread', msg => {
+    latestThreadId = msg.threadId;
+  });
 
   return {
     sessionId,
+    recoveryMode,
     doPrompt: async promptOpts => {
       let pendingResolve: (() => void) | undefined;
       let pendingReject: ((err: unknown) => void) | undefined;
@@ -576,17 +694,19 @@ function createSession({
         } catch {}
         let stopTimer: ReturnType<typeof setTimeout> | undefined;
         try {
-          await Promise.race([
-            proc.wait(),
-            new Promise<void>(resolve => {
-              stopTimer = setTimeout(resolve, 5000);
-              stopTimer.unref?.();
-            }),
-          ]);
+          if (proc) {
+            await Promise.race([
+              proc.wait(),
+              new Promise<void>(resolve => {
+                stopTimer = setTimeout(resolve, 5000);
+                stopTimer.unref?.();
+              }),
+            ]);
+          }
         } finally {
           if (stopTimer) clearTimeout(stopTimer);
           try {
-            await proc.kill();
+            await proc?.kill();
           } catch {}
           channel.close();
         }
@@ -641,17 +761,19 @@ function createSession({
 
       let stopTimer: ReturnType<typeof setTimeout> | undefined;
       try {
-        await Promise.race([
-          proc.wait(),
-          new Promise<void>(resolve => {
-            stopTimer = setTimeout(resolve, 5000);
-            stopTimer.unref?.();
-          }),
-        ]);
+        if (proc) {
+          await Promise.race([
+            proc.wait(),
+            new Promise<void>(resolve => {
+              stopTimer = setTimeout(resolve, 5000);
+              stopTimer.unref?.();
+            }),
+          ]);
+        }
       } finally {
         if (stopTimer) clearTimeout(stopTimer);
         try {
-          await proc.kill();
+          await proc?.kill();
         } catch {}
         channel.close();
       }
@@ -660,6 +782,33 @@ function createSession({
         harnessId: 'codex',
         specificationVersion: 'harness-v1',
         data: (data ?? {}) as HarnessV1ResumeState['data'],
+      };
+      return payload;
+    },
+    doGetResumeHandle: () => {
+      if (stopped) {
+        throw new Error(
+          `codex session ${sessionId} is stopped; cannot read a resume handle.`,
+        );
+      }
+      /*
+       * Non-destructive: capture the live bridge coordinates (for `attach`)
+       * plus the latest thread id (for the replay/rerun fallback) without
+       * tearing anything down. Both are read live, so this stays accurate when
+       * called again after more turns.
+       */
+      const payload: HarnessV1ResumeState = {
+        harnessId: 'codex',
+        specificationVersion: 'harness-v1',
+        data: {
+          ...(latestThreadId ? { threadId: latestThreadId } : {}),
+          bridge: {
+            port: bridgePort,
+            token: bridgeToken,
+            lastSeenEventId: channel.lastSeenEventId,
+            sandboxId,
+          },
+        },
       };
       return payload;
     },

@@ -1,6 +1,7 @@
 import { HarnessCapabilityUnsupportedError } from '../errors/harness-capability-unsupported-error';
 import type {
   HarnessV1,
+  HarnessV1RecoveryMode,
   HarnessV1ResumeState,
   HarnessV1SandboxHandle,
   HarnessV1SandboxProvider,
@@ -40,6 +41,14 @@ export class HarnessAgentSession {
   private leasedBridgePort: number | null;
   private stopped = false;
 
+  /**
+   * How this session was (re)established — `'cold'` for a fresh start, or
+   * `'attach'` / `'replay'` / `'rerun'` for the resume rungs. `undefined` when
+   * the adapter does not report it. Captured at construction so it survives
+   * `close()` / `detach()`.
+   */
+  readonly recoveryMode: HarnessV1RecoveryMode | undefined;
+
   constructor(options: {
     sessionId: string;
     harness: HarnessV1;
@@ -56,6 +65,7 @@ export class HarnessAgentSession {
     this.sandboxProvider = options.sandboxProvider;
     this.leasedBridgePort = options.leasedBridgePort;
     this.sessionWorkDir = options.sessionWorkDir;
+    this.recoveryMode = options.underlyingSession.recoveryMode;
   }
 
   /**
@@ -167,6 +177,32 @@ export class HarnessAgentSession {
       await Promise.resolve(handle.stop()).catch(() => {});
     }
     return validated;
+  }
+
+  /**
+   * Capture a resume payload **without** tearing the session down. The sandbox
+   * and bridge keep running, so the returned state carries the live
+   * coordinates a future process needs to *attach* to the still-running bridge
+   * (e.g. via `agent.createSession({ sessionId, resumeFrom })`). Persist it to
+   * a cross-process store (file, Redis, DB) to hand a warm session off between
+   * processes without the recompute a `detach()` → resume would incur.
+   *
+   * The session remains fully usable after this call; it may be invoked
+   * repeatedly to refresh the cursor. Throws
+   * `HarnessCapabilityUnsupportedError` if the adapter does not support
+   * cross-process attach.
+   */
+  async getResumeHandle(): Promise<HarnessV1ResumeState> {
+    if (this.stopped || this.underlyingSession == null) {
+      throw new Error(
+        `Harness session ${this.sessionId} is not active and has no resume handle.`,
+      );
+    }
+    const raw = await this.underlyingSession.doGetResumeHandle();
+    return validateResumeStateData({
+      harness: this.harness,
+      state: raw as HarnessV1ResumeState,
+    });
   }
 
   private releasePortLease(): void {

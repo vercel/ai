@@ -252,4 +252,39 @@ describe('SandboxChannel', () => {
     await vi.waitFor(() => expect(closes.length).toBe(1));
     expect(closes[0]).toBe(1006);
   });
+
+  it('seeds lastSeenEventId and advances it as events arrive', async () => {
+    const connector = makeConnector();
+    const channel = new SandboxChannel<Outbound, Inbound>({
+      connect: connector.connect,
+      outboundSchema,
+      initialLastSeenEventId: 7,
+    });
+    expect(channel.lastSeenEventId).toBe(7);
+    await channel.open();
+    channel.on('text-delta', () => {});
+    connector.current().deliver({ type: 'text-delta', id: 'm', delta: 'x' }, 9);
+    await flush();
+    expect(channel.lastSeenEventId).toBe(9);
+  });
+
+  it('open({ resume: true }) sends a resume frame with the seeded cursor', async () => {
+    const connector = makeConnector();
+    const channel = new SandboxChannel<Outbound, Inbound>({
+      connect: connector.connect,
+      outboundSchema,
+      initialLastSeenEventId: 4,
+    });
+    await channel.open({ resume: true });
+    expect(connector.current().sent).toContainEqual(
+      JSON.stringify({ type: 'resume', lastSeenEventId: 4 }),
+    );
+  });
+
+  it('open() without resume sends no resume frame', async () => {
+    const connector = makeConnector();
+    const channel = makeChannel(connector);
+    await channel.open();
+    expect(connector.current().sent).toEqual([]);
+  });
 });

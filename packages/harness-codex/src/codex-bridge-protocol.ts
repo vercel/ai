@@ -126,6 +126,14 @@ export const outboundMessageSchema = z.discriminatedUnion('type', [
     type: z.literal('detach-state'),
     data: z.unknown(),
   }),
+
+  // Proactive thread-id announcement, emitted when the codex SDK reports
+  // `thread.started`. Lets the host cache the id so `getResumeHandle()` can
+  // include it (for the replay/rerun fallback) without a destructive round-trip.
+  z.object({
+    type: z.literal('bridge-thread'),
+    threadId: z.string(),
+  }),
 ]);
 
 export type OutboundMessage = z.infer<typeof outboundMessageSchema>;

@@ -27,6 +27,11 @@ function fakeSession(script: HarnessV1StreamPart[]): HarnessV1Session {
       return control;
     },
     doStop: async () => {},
+    doGetResumeHandle: () => ({
+      harnessId: 'fake',
+      specificationVersion: 'harness-v1',
+      data: {},
+    }),
   };
 }
 

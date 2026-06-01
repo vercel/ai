@@ -257,6 +257,8 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         typeof event.thread_id === 'string'
       ) {
         threadState.id = event.thread_id;
+        // Announce to the host so it can cache the id for getResumeHandle.
+        emit({ type: 'bridge-thread', threadId: event.thread_id });
       }
       // Temporary workaround for upstream codex MCP-tool bug — see ./cli-relay.ts
       if (

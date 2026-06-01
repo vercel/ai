@@ -46,6 +46,14 @@ export interface SandboxChannelOptions<TOut> {
   reconnect?: SandboxChannelReconnectOptions;
 
   onDebug?: (event: SandboxChannelDebugEvent) => void;
+
+  /**
+   * Seed the host-side cursor before the first connect. Pass the
+   * `lastSeenEventId` persisted from a prior process so the bridge replays only
+   * events past it when this channel opens with `{ resume: true }` — the
+   * cross-process attach handshake. Defaults to `0` (fresh session).
+   */
+  initialLastSeenEventId?: number;
 }
 
 type EventTypeOf<TOut extends { type: string }> = TOut['type'];
@@ -104,7 +112,7 @@ export class SandboxChannel<
   private closing = false;
   /** Channel is fully torn down; `send` throws and `onClose` has fired. */
   private terminal = false;
-  private lastSeenEventId = 0;
+  private _lastSeenEventId = 0;
   private readonly pendingSends: string[] = [];
   private dispatchChain: Promise<void> = Promise.resolve();
 
@@ -115,14 +123,30 @@ export class SandboxChannel<
     this.maxElapsedMs = options.reconnect?.maxElapsedMs ?? 30_000;
     this.initialDelayMs = options.reconnect?.initialDelayMs ?? 50;
     this.maxDelayMs = options.reconnect?.maxDelayMs ?? 2_000;
+    this._lastSeenEventId = options.initialLastSeenEventId ?? 0;
+  }
+
+  /**
+   * Highest bridge event `seq` this channel has observed. Persist it (e.g. via
+   * the adapter's resume handle) so a future process can seed
+   * {@link SandboxChannelOptions.initialLastSeenEventId} and attach.
+   */
+  get lastSeenEventId(): number {
+    return this._lastSeenEventId;
   }
 
   /**
    * Establish the initial connection. A single attempt — startup failures
    * reject so the caller can fail `doStart` cleanly. Reconnect retries apply
    * only to drops after a successful open.
+   *
+   * Pass `{ resume: true }` to attach to a bridge that is already mid-session:
+   * after the socket opens, the channel sends `{ type: 'resume', lastSeenEventId }`
+   * so the bridge replays everything past the seeded cursor. This is the
+   * cross-process attach handshake — identical to what a transient reconnect
+   * does, but triggered by the initial open from a new process.
    */
-  async open(): Promise<void> {
+  async open(opts?: { resume?: boolean }): Promise<void> {
     if (this.terminal) {
       throw new Error('SandboxChannel: cannot open a closed channel.');
     }
@@ -130,6 +154,14 @@ export class SandboxChannel<
     this.wire(ws);
     this.ws = ws;
     this.connected = true;
+    if (opts?.resume) {
+      this.rawSend(
+        JSON.stringify({
+          type: 'resume',
+          lastSeenEventId: this._lastSeenEventId,
+        }),
+      );
+    }
   }
 
   on<T extends EventTypeOf<TOut>>(
@@ -231,7 +263,7 @@ export class SandboxChannel<
       this.onDebug?.({
         event: 'reconnect-attempt',
         attempt,
-        lastSeenEventId: this.lastSeenEventId,
+        lastSeenEventId: this._lastSeenEventId,
       });
       try {
         const ws = await this.connectThunk();
@@ -251,14 +283,14 @@ export class SandboxChannel<
         this.rawSend(
           JSON.stringify({
             type: 'resume',
-            lastSeenEventId: this.lastSeenEventId,
+            lastSeenEventId: this._lastSeenEventId,
           }),
         );
         this.flushPending();
         this.onDebug?.({
           event: 'reconnected',
           attempt,
-          lastSeenEventId: this.lastSeenEventId,
+          lastSeenEventId: this._lastSeenEventId,
         });
         return;
       } catch (cause) {
@@ -267,7 +299,7 @@ export class SandboxChannel<
           this.onDebug?.({
             event: 'reconnect-failed',
             attempts: attempt,
-            lastSeenEventId: this.lastSeenEventId,
+            lastSeenEventId: this._lastSeenEventId,
             cause,
           });
           return;
@@ -321,8 +353,8 @@ export class SandboxChannel<
       } as unknown as TOut);
     }
 
-    if (seq !== undefined && seq > this.lastSeenEventId) {
-      this.lastSeenEventId = seq;
+    if (seq !== undefined && seq > this._lastSeenEventId) {
+      this._lastSeenEventId = seq;
     }
   }
 

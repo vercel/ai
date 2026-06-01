@@ -55,6 +55,11 @@ function mockHarness(options: {
       return control;
     },
     doStop,
+    doGetResumeHandle: () => ({
+      harnessId: 'mock',
+      specificationVersion: 'harness-v1',
+      data: {},
+    }),
   };
 
   return {
@@ -416,6 +421,56 @@ describe('HarnessAgent', () => {
     const agent = new HarnessAgent({ harness });
     const session = await agent.createSession();
     await expect(session.detach()).rejects.toThrow(/does not support detach/i);
+    await session.close();
+  });
+
+  test('getResumeHandle() returns validated coords, surfaces recoveryMode, and leaves the session usable', async () => {
+    const doStop = vi.fn(async () => {});
+    const underlying: HarnessV1Session = {
+      sessionId: 's-attach',
+      recoveryMode: 'attach',
+      doPrompt: async (opts: HarnessV1PromptOptions) => {
+        queueMicrotask(() => opts.emit({ type: 'finish' } as never));
+        return { submitToolResult: async () => {}, done: Promise.resolve() };
+      },
+      doStop,
+      doGetResumeHandle: () => ({
+        harnessId: 'mock',
+        specificationVersion: 'harness-v1',
+        data: { bridge: { port: 5001, token: 't', lastSeenEventId: 3 } },
+      }),
+    };
+    const harness: HarnessV1 = {
+      specificationVersion: 'harness-v1',
+      harnessId: 'mock',
+      builtinTools: {},
+      resumeStateSchema: z.object({
+        bridge: z
+          .object({
+            port: z.number(),
+            token: z.string(),
+            lastSeenEventId: z.number(),
+          })
+          .optional(),
+      }),
+      doStart: async () => underlying,
+    };
+
+    const agent = new HarnessAgent({ harness });
+    const session = await agent.createSession();
+    expect(session.recoveryMode).toBe('attach');
+
+    const handle = await session.getResumeHandle();
+    expect(handle).toEqual({
+      harnessId: 'mock',
+      specificationVersion: 'harness-v1',
+      data: { bridge: { port: 5001, token: 't', lastSeenEventId: 3 } },
+    });
+    // Non-destructive: the session is still active.
+    expect(doStop).not.toHaveBeenCalled();
+    const second = await session.getResumeHandle();
+    expect(second).toEqual(handle);
+
     await session.close();
   });
 });

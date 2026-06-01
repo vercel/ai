@@ -1,6 +1,6 @@
-import { claudeCodeHarnessAgent } from '@/agent/harness/claude-code/basic-agent';
+import { codexDetachHarnessAgent } from '@/agent/harness/codex/detach-agent';
 import {
-  persistResumeState,
+  detachAndPersist,
   resumeOrCreateSession,
 } from '@/util/harness-resume-store';
 import {
@@ -22,14 +22,16 @@ export async function POST(request: Request) {
   const chatId = body.id;
   const messages = await convertToModelMessages(body.messages);
 
-  const session = await resumeOrCreateSession(claudeCodeHarnessAgent, chatId);
+  const session = await resumeOrCreateSession(codexDetachHarnessAgent, chatId);
 
-  const result = await claudeCodeHarnessAgent.stream({ session, messages });
+  const result = await codexDetachHarnessAgent.stream({ session, messages });
 
   return createUIMessageStreamResponse({
     stream: toUIMessageStream({
       stream: result.stream,
-      onFinish: () => persistResumeState(chatId, session),
+      // Detach (and stop the sandbox) at the end of the turn — the next request
+      // resumes from the snapshot in `rerun` mode rather than attaching.
+      onFinish: () => detachAndPersist(chatId, session),
     }),
   });
 }

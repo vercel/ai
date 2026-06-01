@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import {
+  classifyDiskLog,
   commonTool,
   HarnessCapabilityUnsupportedError,
   type HarnessV1,
@@ -9,6 +10,7 @@ import {
   type HarnessV1BuiltinTool,
   type HarnessV1Prompt,
   type HarnessV1PromptControl,
+  type HarnessV1RecoveryMode,
   type HarnessV1ResumeState,
   type HarnessV1SandboxHandle,
   type HarnessV1Session,
@@ -354,13 +356,32 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
 const BOOTSTRAP_DIR = '/tmp/harness/claude-code';
 
 /**
- * Schema for the adapter-specific portion of `HarnessV1ResumeState.data`
- * produced by Claude Code's `doDetach`. The payload is structurally empty:
- * the framework derives the sandbox via `provider.resume({ sessionId })`,
- * and the Claude SDK's `{ continue: true }` flag rehydrates the thread
- * from the workdir (preserved in the sandbox snapshot).
+ * Live bridge coordinates carried by `getResumeHandle()`. A future process
+ * uses them to reopen a socket to the still-running bridge (`attach`) instead
+ * of re-spawning it. Absent on a `detach()` payload (that stops the bridge).
  */
-const claudeCodeResumeStateSchema = z.object({}).passthrough();
+const bridgeCoordsSchema = z.object({
+  port: z.number(),
+  token: z.string(),
+  lastSeenEventId: z.number(),
+  sandboxId: z.string().optional(),
+});
+
+/**
+ * Schema for the adapter-specific portion of `HarnessV1ResumeState.data`.
+ *
+ * A `detach()` payload is structurally empty (`{}`): the framework derives the
+ * sandbox via `provider.resume({ sessionId })`, and the Claude SDK's
+ * `{ continue: true }` flag rehydrates the thread from the workdir (preserved
+ * in the sandbox snapshot). A `getResumeHandle()` payload additionally carries
+ * `bridge` coordinates for cross-process `attach`. `.passthrough()` keeps both
+ * shapes (and older empty payloads) valid.
+ */
+const claudeCodeResumeStateSchema = z
+  .object({ bridge: bridgeCoordsSchema.optional() })
+  .passthrough();
+
+type ClaudeCodeBridgeCoords = z.infer<typeof bridgeCoordsSchema>;
 
 export function createClaudeCode(
   settings: ClaudeCodeHarnessSettings = {},
@@ -411,27 +432,103 @@ export function createClaudeCode(
       }
       const handle = startOpts.sandboxHandle;
       const { session } = handle;
+      const sandboxId = handle.id;
       const isResume = startOpts.resumeFrom != null;
+      const coords = isResume
+        ? (startOpts.resumeFrom?.data as { bridge?: ClaudeCodeBridgeCoords })
+            ?.bridge
+        : undefined;
 
       const workDir = startOpts.sessionWorkDir;
       const sessionDataDir = `${handle.defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
       const bridgeStateDir = `${sessionDataDir}/bridge`;
+      const timeoutMs = settings.startupTimeoutMs ?? 120_000;
+
+      // Builds the `connect` thunk a `SandboxChannel` re-invokes on every
+      // (re)connect: open the socket, then wait for `bridge-hello` so the
+      // end-to-end link is proven live before any frame is sent.
+      const buildConnect = (wsUrl: string) => async (): Promise<WebSocket> => {
+        const ws = await openWebSocket(wsUrl);
+        await waitForBridgeHello(ws, timeoutMs);
+        return ws;
+      };
+
+      /*
+       * Rung 1 — ATTACH. When the resume payload carries live bridge
+       * coordinates, try to reopen a socket to the still-running bridge and
+       * replay everything past the persisted cursor. No spawn, no fresh token
+       * (the existing bridge still authorises the persisted one). If the bridge
+       * is gone the open throws and we fall through to a spawn-based recovery.
+       */
+      if (coords) {
+        try {
+          const attachUrl =
+            (await handle.getPortUrl({ port: coords.port, protocol: 'ws' })) +
+            `?agent_bridge_token=${encodeURIComponent(coords.token)}`;
+          const attachChannel: ClaudeCodeChannel = new SandboxChannel({
+            connect: buildConnect(attachUrl),
+            outboundSchema: outboundMessageSchema,
+            initialLastSeenEventId: coords.lastSeenEventId,
+          });
+          await attachChannel.open({ resume: true });
+          return createSession({
+            sessionId: startOpts.sessionId,
+            channel: attachChannel,
+            // The live bridge was spawned by another process; this one owns no
+            // process handle. `doStop` closes the channel; stopping the sandbox
+            // is the caller's choice.
+            proc: undefined,
+            model: settings.model,
+            maxTurns: settings.maxTurns,
+            thinking: settings.thinking,
+            recoveryMode: 'attach',
+            bridgePort: coords.port,
+            bridgeToken: coords.token,
+            sandboxId,
+          });
+        } catch {
+          // Bridge no longer reachable — recover by respawning below.
+        }
+      }
+
+      /*
+       * Rungs 2/3 — REPLAY vs RERUN. Respawn the bridge. `replay` is only sound
+       * when the resume payload carried live coordinates (`getResumeHandle`),
+       * because those include the cursor the on-disk log is replayed *from*. A
+       * payload without coordinates — e.g. from a destructive `detach()` — has
+       * no cursor, so replaying a finished turn from seq 0 would re-deliver it
+       * into the next turn. Those resumes always `rerun` (the CLI continues its
+       * own thread from the workdir snapshot via `continue: true`).
+       */
+      let recoveryMode: HarnessV1RecoveryMode = isResume ? 'rerun' : 'cold';
+      if (coords) {
+        const logRaw = await Promise.resolve(
+          session.readTextFile({
+            path: `${bridgeStateDir}/event-log.ndjson`,
+            abortSignal: startOpts.abortSignal,
+          }),
+        ).catch(() => null);
+        if ((await classifyDiskLog(logRaw)) === 'replay') {
+          recoveryMode = 'replay';
+        }
+      }
+
       const port = resolveBridgePort(handle, settings.port);
       const token = randomBytes(32).toString('hex');
       const env = {
         ...resolveClaudeCodeEnv(settings.auth),
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),
+        ...(recoveryMode === 'replay' ? { BRIDGE_REPLAY_FROM_DISK: '1' } : {}),
       };
 
       /*
-       * On resume the workdir, skill files, and bridge-state directory are
-       * already present in the sandbox snapshot, so skip the rewrite. The
-       * env values are sent fresh on every spawn below — `BRIDGE_CHANNEL_TOKEN`
-       * rotates per start, so resume processes still get a token the host
-       * owns.
+       * On a fresh (cold) start the workdir, skill files, and bridge-state
+       * directory must be created. On any resume they already exist in the
+       * sandbox snapshot, so skip the rewrite. The env is sent fresh on every
+       * spawn — `BRIDGE_CHANNEL_TOKEN` rotates per start.
        */
-      if (!isResume) {
+      if (recoveryMode === 'cold') {
         await session.run({
           command: `mkdir -p ${workDir} ${bridgeStateDir}`,
           abortSignal: startOpts.abortSignal,
@@ -455,7 +552,7 @@ export function createClaudeCode(
 
       const { port: boundPort } = await waitForBridgeReady({
         proc,
-        timeoutMs: settings.startupTimeoutMs ?? 120_000,
+        timeoutMs,
         abortSignal: startOpts.abortSignal,
       });
       void drainRest(proc.stdout);
@@ -474,20 +571,19 @@ export function createClaudeCode(
         (await handle.getPortUrl({ port: boundPort, protocol: 'ws' })) +
         `?agent_bridge_token=${encodeURIComponent(token)}`;
 
-      // The bridge stays alive across WS disconnects (§9): the channel reopens
-      // a socket (re-running the `bridge-hello` handshake) and asks the bridge
-      // to replay missed events on every transient drop. The same URL + token
-      // are reused — the bridge keeps its bound port and token for its lifetime.
-      const connect = async (): Promise<WebSocket> => {
-        const ws = await openWebSocket(wsUrl);
-        await waitForBridgeHello(ws, settings.startupTimeoutMs ?? 120_000);
-        return ws;
-      };
       const channel: ClaudeCodeChannel = new SandboxChannel({
-        connect,
+        connect: buildConnect(wsUrl),
         outboundSchema: outboundMessageSchema,
+        // In replay mode the respawned bridge reloaded the finished turn from
+        // disk; seed the cursor and resume so it streams the tail (incl.
+        // `finish`) rather than starting empty.
+        ...(recoveryMode === 'replay'
+          ? { initialLastSeenEventId: coords?.lastSeenEventId ?? 0 }
+          : {}),
       });
-      await channel.open();
+      await channel.open(
+        recoveryMode === 'replay' ? { resume: true } : undefined,
+      );
 
       return createSession({
         sessionId: startOpts.sessionId,
@@ -496,10 +592,10 @@ export function createClaudeCode(
         model: settings.model,
         maxTurns: settings.maxTurns,
         thinking: settings.thinking,
-        // On resume, the first prompt against this bridge is a continuation
-        // of the prior conversation. The bridge passes `continue: true` to
-        // the Claude SDK so the cached workdir state is rehydrated.
-        isResume,
+        recoveryMode,
+        bridgePort: boundPort,
+        bridgeToken: token,
+        sandboxId,
       });
     },
   };
@@ -754,32 +850,43 @@ function createSession({
   model,
   maxTurns,
   thinking,
-  isResume,
+  recoveryMode,
+  bridgePort,
+  bridgeToken,
+  sandboxId,
 }: {
   sessionId: string;
   channel: ClaudeCodeChannel;
-  proc: Experimental_SandboxProcess;
+  /** Undefined on `attach` — the live bridge was spawned by another process. */
+  proc: Experimental_SandboxProcess | undefined;
   model: string | undefined;
   maxTurns: number | undefined;
   thinking: 'off' | 'on' | 'adaptive' | undefined;
-  isResume: boolean;
+  recoveryMode: HarnessV1RecoveryMode;
+  bridgePort: number;
+  bridgeToken: string;
+  sandboxId: string;
 }): HarnessV1Session {
   let stopped = false;
   let stopPromise: Promise<void> | undefined;
-  // Set on the first prompt sent after a cross-process resume so the
-  // bridge tells the Claude SDK to continue rather than start a fresh
-  // thread. Cleared after the first turn — subsequent turns within this
-  // bridge process are continuations by default.
-  let pendingResumeFlag = isResume;
+  /*
+   * Force the Claude SDK's `continue: true` on the first prompt only when the
+   * bridge was respawned (rerun/replay): a fresh bridge process treats its
+   * first turn as new, so it must be told to rehydrate the workdir thread. An
+   * `attach`ed bridge is already past its first turn and continues on its own.
+   */
+  let pendingResumeFlag = recoveryMode === 'rerun' || recoveryMode === 'replay';
   /*
    * Instructions are prepended to the first user message of a fresh session
-   * only. A resumed session already carried them in its original first
-   * message (preserved in the workdir snapshot), so it starts "applied".
+   * only. A resumed session (attach/replay/rerun) already carried them in its
+   * original first message (preserved in the workdir snapshot), so it starts
+   * "applied".
    */
-  let instructionsApplied = isResume;
+  let instructionsApplied = recoveryMode !== 'cold';
 
   return {
     sessionId,
+    recoveryMode,
     doPrompt: async promptOpts => {
       let pendingResolve: (() => void) | undefined;
       let pendingReject: ((err: unknown) => void) | undefined;
@@ -923,17 +1030,19 @@ function createSession({
         } catch {}
         let stopTimer: ReturnType<typeof setTimeout> | undefined;
         try {
-          await Promise.race([
-            proc.wait(),
-            new Promise<void>(resolve => {
-              stopTimer = setTimeout(resolve, 5000);
-              stopTimer.unref?.();
-            }),
-          ]);
+          if (proc) {
+            await Promise.race([
+              proc.wait(),
+              new Promise<void>(resolve => {
+                stopTimer = setTimeout(resolve, 5000);
+                stopTimer.unref?.();
+              }),
+            ]);
+          }
         } finally {
           if (stopTimer) clearTimeout(stopTimer);
           try {
-            await proc.kill();
+            await proc?.kill();
           } catch {}
           channel.close();
         }
@@ -989,17 +1098,19 @@ function createSession({
       // closed.
       let stopTimer: ReturnType<typeof setTimeout> | undefined;
       try {
-        await Promise.race([
-          proc.wait(),
-          new Promise<void>(resolve => {
-            stopTimer = setTimeout(resolve, 5000);
-            stopTimer.unref?.();
-          }),
-        ]);
+        if (proc) {
+          await Promise.race([
+            proc.wait(),
+            new Promise<void>(resolve => {
+              stopTimer = setTimeout(resolve, 5000);
+              stopTimer.unref?.();
+            }),
+          ]);
+        }
       } finally {
         if (stopTimer) clearTimeout(stopTimer);
         try {
-          await proc.kill();
+          await proc?.kill();
         } catch {}
         channel.close();
       }
@@ -1008,6 +1119,31 @@ function createSession({
         harnessId: 'claude-code',
         specificationVersion: 'harness-v1',
         data: (data ?? {}) as HarnessV1ResumeState['data'],
+      };
+      return payload;
+    },
+    doGetResumeHandle: () => {
+      if (stopped) {
+        throw new Error(
+          `claude-code session ${sessionId} is stopped; cannot read a resume handle.`,
+        );
+      }
+      /*
+       * Non-destructive: capture the live bridge coordinates so another process
+       * can `attach`. Nothing is torn down — the cursor is read live from the
+       * channel, so this stays accurate if called again after more turns.
+       */
+      const payload: HarnessV1ResumeState = {
+        harnessId: 'claude-code',
+        specificationVersion: 'harness-v1',
+        data: {
+          bridge: {
+            port: bridgePort,
+            token: bridgeToken,
+            lastSeenEventId: channel.lastSeenEventId,
+            sandboxId,
+          },
+        },
       };
       return payload;
     },

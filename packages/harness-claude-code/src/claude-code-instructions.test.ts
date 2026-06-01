@@ -71,6 +71,7 @@ function fakeHandle(): HarnessV1SandboxHandle {
     stop: async () => {},
     session: {
       run: async () => ({ exitCode: 0, stdout: '', stderr: '' }),
+      readTextFile: async () => null,
       spawn: async () => ({
         stdout: readyStream(port),
         stderr: emptyStream(),

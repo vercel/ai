@@ -42,4 +42,26 @@ export type HarnessV1Session = {
    * `HarnessCapabilityUnsupportedError`.
    */
   doDetach?(): PromiseLike<HarnessV1ResumeState>;
+
+  /**
+   * Capture the resume payload **without** tearing anything down. Unlike
+   * `doDetach`, the session, bridge, and sandbox keep running — the returned
+   * state carries whatever a future process needs to resume: live bridge
+   * coordinates to *attach* to a still-running bridge (Claude Code, Codex), or
+   * a pointer to the persisted session state for a snapshot resume (Pi). Safe
+   * to call repeatedly mid-session to refresh the checkpoint.
+   */
+  doGetResumeHandle(): PromiseLike<HarnessV1ResumeState> | HarnessV1ResumeState;
+
+  /**
+   * How this session was (re)established, set by the adapter in `doStart`:
+   * `'cold'` (fresh), `'attach'` (reconnected to a live bridge), `'replay'`
+   * (respawned bridge replaying a finished turn from disk), or `'rerun'`
+   * (fresh bridge continuing the runtime's own thread). Surfaced to callers as
+   * `HarnessAgentSession.recoveryMode`.
+   */
+  readonly recoveryMode?: HarnessV1RecoveryMode;
 };
+
+/** @see HarnessV1Session.recoveryMode */
+export type HarnessV1RecoveryMode = 'cold' | 'attach' | 'replay' | 'rerun';

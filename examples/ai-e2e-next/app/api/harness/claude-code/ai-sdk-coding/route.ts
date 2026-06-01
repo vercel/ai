@@ -1,8 +1,8 @@
 import { aiSdkCodingHarnessAgent } from '@/agent/harness/claude-code/ai-sdk-coding-agent';
 import {
-  getHarnessSession,
-  setHarnessSession,
-} from '@/util/harness-session-registry';
+  persistResumeState,
+  resumeOrCreateSession,
+} from '@/util/harness-resume-store';
 import {
   convertToModelMessages,
   createUIMessageStreamResponse,
@@ -22,15 +22,14 @@ export async function POST(request: Request) {
   const chatId = body.id;
   const messages = await convertToModelMessages(body.messages);
 
-  let session = getHarnessSession(chatId);
-  if (session == null) {
-    session = await aiSdkCodingHarnessAgent.createSession();
-    setHarnessSession(chatId, session);
-  }
+  const session = await resumeOrCreateSession(aiSdkCodingHarnessAgent, chatId);
 
   const result = await aiSdkCodingHarnessAgent.stream({ session, messages });
 
   return createUIMessageStreamResponse({
-    stream: toUIMessageStream({ stream: result.stream }),
+    stream: toUIMessageStream({
+      stream: result.stream,
+      onFinish: () => persistResumeState(chatId, session),
+    }),
   });
 }

@@ -88,6 +88,11 @@ export function mockHarness(options: {
         doStop: async () => {
           // streamText is per-call; nothing persistent to stop.
         },
+        doGetResumeHandle: () => ({
+          harnessId: 'mock',
+          specificationVersion: 'harness-v1',
+          data: {},
+        }),
       };
       return session;
     },

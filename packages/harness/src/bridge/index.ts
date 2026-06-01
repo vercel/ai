@@ -6,8 +6,8 @@
 // the lifecycle/meta files. The adapter supplies only `onStart` (drive its
 // CLI/SDK and translate to wire events) and `onDetach` (its resume payload).
 
-import { mkdir, writeFile } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { appendFile, mkdir, writeFile } from 'node:fs/promises';
+import { existsSync, readFileSync } from 'node:fs';
 import { env as procEnv, pid, stdout } from 'node:process';
 import { WebSocketServer, type WebSocket } from 'ws';
 
@@ -115,6 +115,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
   const bridgeMetaPath = `${bridgeStateDir}/bridge-meta.json`;
   const startConfigPath = `${bridgeStateDir}/start-config.json`;
   const rerunStartConfigPath = `${bridgeStateDir}/rerun-start-config.json`;
+  const eventLogPath = `${bridgeStateDir}/event-log.ndjson`;
 
   try {
     await mkdir(bridgeStateDir, { recursive: true });
@@ -136,6 +137,84 @@ export async function runBridge<TStart extends { type: 'start' }>(
   // memory; the just-finished turn stays replayable until the next `start`.
   let seqCounter = 0;
   let eventLog: Array<{ seq: number; line: string }> = [];
+
+  /*
+   * Disk mirror of the in-memory replay log. The in-memory log is lost when the
+   * bridge process dies; the on-disk `event-log.ndjson` survives in the sandbox
+   * filesystem so a respawned bridge (started with `BRIDGE_REPLAY_FROM_DISK=1`)
+   * can reload the just-interrupted turn and serve a host's resume cursor —
+   * `replay` recovery. Writes are batched on `setImmediate` (single-flight via
+   * `flushPromise`) to keep `emit` off the disk hot path.
+   */
+  let diskBuffer = '';
+  let flushPromise: Promise<void> | null = null;
+
+  const flushEventsToDisk = async (): Promise<void> => {
+    while (diskBuffer.length > 0) {
+      const buf = diskBuffer;
+      diskBuffer = '';
+      await appendFile(eventLogPath, buf).catch(() => {
+        // Best-effort crash-recovery mirror; the in-memory log is the source of
+        // truth for the live connection.
+      });
+    }
+  };
+
+  const scheduleEventFlush = (): void => {
+    if (flushPromise) return;
+    flushPromise = new Promise<void>(resolve => {
+      setImmediate(() => {
+        void flushEventsToDisk().finally(resolve);
+      });
+    }).finally(() => {
+      flushPromise = null;
+      if (diskBuffer.length > 0) {
+        scheduleEventFlush();
+      }
+    });
+  };
+
+  const flushPendingEventsToDisk = async (): Promise<void> => {
+    if (diskBuffer.length > 0 && !flushPromise) {
+      scheduleEventFlush();
+    }
+    // Await each in-flight flush, re-reading `flushPromise` after every await
+    // since a fresh flush may have been scheduled for buffer that arrived while
+    // we waited.
+    let inFlight = flushPromise;
+    while (inFlight) {
+      await inFlight;
+      inFlight = flushPromise;
+    }
+  };
+
+  /*
+   * When respawned for `replay`, reload the previous turn's log from disk before
+   * accepting any connection so the very first `resume{lastSeenEventId}` can be
+   * served the tail (including the terminal `finish`). The seq counter is
+   * restored to the last persisted seq so it stays aligned with the host's
+   * long-lived cursor. The file is NOT truncated in this mode — only a fresh
+   * `start` (next turn) clears it.
+   */
+  const replayFromDisk = procEnv.BRIDGE_REPLAY_FROM_DISK === '1';
+  if (replayFromDisk && existsSync(eventLogPath)) {
+    try {
+      const lines = readFileSync(eventLogPath, 'utf8')
+        .split('\n')
+        .map(line => line.trim())
+        .filter(Boolean);
+      eventLog = lines.map(line => ({
+        seq: (JSON.parse(line) as { seq: number }).seq,
+        line,
+      }));
+      seqCounter = eventLog.at(-1)?.seq ?? 0;
+    } catch {
+      // Corrupt/partial log: fall back to an empty log; the host then degrades
+      // to `rerun` instead of replaying a malformed tail.
+      eventLog = [];
+      seqCounter = 0;
+    }
+  }
 
   const pendingToolResults = new Map<
     string,
@@ -189,6 +268,8 @@ export async function runBridge<TStart extends { type: 'start' }>(
     const seq = ++seqCounter;
     const line = JSON.stringify({ ...event, seq });
     eventLog.push({ seq, line });
+    diskBuffer += `${line}\n`;
+    scheduleEventFlush();
     if (activeSocket?.readyState === WS_OPEN) {
       try {
         activeSocket.send(line);
@@ -217,6 +298,10 @@ export async function runBridge<TStart extends { type: 'start' }>(
         const firstTurn = isFirstTurn;
         isFirstTurn = false;
         eventLog = []; // clear previous turn; keep seqCounter monotonic
+        // Mirror the in-memory clear to disk: the log tracks only the current
+        // turn. Discard any unflushed tail from the prior turn first.
+        diskBuffer = '';
+        void writeFile(eventLogPath, '').catch(() => {});
         turnAbort = new AbortController();
         currentTurnState = 'running';
         void writeStartConfig(msg);
@@ -294,11 +379,15 @@ export async function runBridge<TStart extends { type: 'start' }>(
     const tick = (): void => {
       const drained = ws.bufferedAmount === 0 || ws.readyState !== WS_OPEN;
       if (drained || Date.now() - start >= 5_000) {
-        try {
-          ws.close(code, reason);
-        } finally {
-          exit();
-        }
+        // Flush the on-disk log so a clean shutdown/detach leaves a complete
+        // event-log.ndjson for any later replay recovery.
+        void flushPendingEventsToDisk().finally(() => {
+          try {
+            ws.close(code, reason);
+          } finally {
+            exit();
+          }
+        });
         return;
       }
       setTimeout(tick, 10).unref();

@@ -22,6 +22,11 @@ function makeSession(opts: {
       } as HarnessV1PromptControl;
     },
     doStop: vi.fn(async () => {}),
+    doGetResumeHandle: () => ({
+      harnessId: 'mock',
+      specificationVersion: 'harness-v1',
+      data: {},
+    }),
   };
 }
 
@@ -115,6 +120,11 @@ describe('toHarnessStream', () => {
         } as HarnessV1PromptControl;
       },
       doStop: async () => {},
+      doGetResumeHandle: () => ({
+        harnessId: 'mock',
+        specificationVersion: 'harness-v1',
+        data: {},
+      }),
     };
 
     const { stream } = await toHarnessStream({
@@ -146,6 +156,11 @@ describe('toHarnessStream', () => {
       sessionId: 's',
       doPrompt,
       doStop: async () => {},
+      doGetResumeHandle: () => ({
+        harnessId: 'mock',
+        specificationVersion: 'harness-v1',
+        data: {},
+      }),
     };
 
     await toHarnessStream({
@@ -180,6 +195,11 @@ describe('toHarnessStream', () => {
       sessionId: 's',
       doPrompt,
       doStop: async () => {},
+      doGetResumeHandle: () => ({
+        harnessId: 'mock',
+        specificationVersion: 'harness-v1',
+        data: {},
+      }),
     };
 
     await toHarnessStream({
