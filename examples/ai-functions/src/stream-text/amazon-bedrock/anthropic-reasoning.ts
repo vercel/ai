@@ -7,7 +7,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: amazonBedrock('us.anthropic.claude-opus-4-7'),
+    model: amazonBedrock('us.anthropic.claude-opus-4-8'),
     prompt: 'How many "r"s are in the word "strawberry"?',
     providerOptions: {
       bedrock: {

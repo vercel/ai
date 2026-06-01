@@ -1,5 +1,12 @@
 # @ai-sdk/anthropic-aws
 
+## 1.0.0-canary.2
+
+### Patch Changes
+
+- Updated dependencies [e02f041]
+  - @ai-sdk/anthropic@4.0.0-canary.61
+
 ## 1.0.0-canary.1
 
 ### Patch Changes
