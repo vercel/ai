@@ -1,5 +1,31 @@
 # @ai-sdk/gateway
 
+## 4.0.0-canary.93
+
+### Patch Changes
+
+- e02f041: feat(provider/anthropic): add support for `claude-opus-4-8`
+
+## 4.0.0-canary.92
+
+### Patch Changes
+
+- Updated dependencies [6c93e36]
+- Updated dependencies [f617ac2]
+  - @ai-sdk/provider-utils@5.0.0-canary.44
+
+## 4.0.0-canary.91
+
+### Patch Changes
+
+- d4d4a5e: Add `serviceTier: 'flex' | 'priority'` to `GatewayProviderOptions`.
+
+## 4.0.0-canary.90
+
+### Patch Changes
+
+- 8b811d8: feat(provider/gateway): add optional Vercel team scoping for Gateway authentication. The existing `apiKey` option can be used with AI Gateway API keys, Vercel personal access tokens, and Vercel app access tokens.
+
 ## 4.0.0-canary.89
 
 ### Patch Changes

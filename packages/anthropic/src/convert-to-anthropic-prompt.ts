@@ -41,6 +41,29 @@ function convertBytesDataToString(data: Uint8Array | string): string {
   return new TextDecoder().decode(data);
 }
 
+/**
+ * Extract error information from a provider tool error result value.
+ * Handles both stringified JSON and plain object forms.
+ */
+function extractErrorValue(value: unknown): { errorCode?: string } {
+  try {
+    if (typeof value === 'string') {
+      return JSON.parse(value);
+    } else if (typeof value === 'object' && value !== null) {
+      return value as { errorCode?: string };
+    }
+  } catch {
+    const extractedErrorCode = (value as Record<string, unknown>)?.errorCode;
+    return {
+      errorCode:
+        typeof extractedErrorCode === 'string'
+          ? extractedErrorCode
+          : 'unavailable',
+    };
+  }
+  return {};
+}
+
 export async function convertToAnthropicPrompt({
   prompt,
   sendReasoning,
@@ -76,6 +99,18 @@ export async function convertToAnthropicPrompt({
     return anthropicOptions?.citations?.enabled ?? false;
   }
 
+  async function shouldUseContainerUpload(
+    providerMetadata: SharedV4ProviderMetadata | undefined,
+  ): Promise<boolean> {
+    const anthropicOptions = await parseProviderOptions({
+      provider: 'anthropic',
+      providerOptions: providerMetadata,
+      schema: anthropicFilePartProviderOptions,
+    });
+
+    return anthropicOptions?.containerUpload ?? false;
+  }
+
   async function getDocumentMetadata(
     providerMetadata: SharedV4ProviderMetadata | undefined,
   ): Promise<{ title?: string; context?: string }> {
@@ -98,21 +133,21 @@ export async function convertToAnthropicPrompt({
 
     switch (type) {
       case 'system': {
-        if (system != null) {
-          throw new UnsupportedFunctionalityError({
-            functionality:
-              'Multiple system messages that are separated by user/assistant messages',
-          });
-        }
-
-        system = block.messages.map(({ content, providerOptions }) => ({
-          type: 'text',
+        const content = block.messages.map(({ content, providerOptions }) => ({
+          type: 'text' as const,
           text: content,
           cache_control: validator.getCacheControl(providerOptions, {
             type: 'system message',
             canCache: true,
           }),
         }));
+
+        if (system == null) {
+          system = content;
+        } else {
+          messages.push({ role: 'system', content });
+          betas.add('mid-conversation-system-2026-04-07');
+        }
 
         break;
       }
@@ -164,7 +199,16 @@ export async function convertToAnthropicPrompt({
                         });
                         betas.add('files-api-2025-04-14');
 
-                        if (getTopLevelMediaType(part.mediaType) === 'image') {
+                        if (
+                          await shouldUseContainerUpload(part.providerOptions)
+                        ) {
+                          anthropicContent.push({
+                            type: 'container_upload',
+                            file_id: fileId,
+                          });
+                        } else if (
+                          getTopLevelMediaType(part.mediaType) === 'image'
+                        ) {
                           anthropicContent.push({
                             type: 'image',
                             source: { type: 'file', file_id: fileId },
@@ -952,35 +996,14 @@ export async function convertToAnthropicPrompt({
                   const output = part.output;
 
                   if (output.type === 'error-json') {
-                    let errorValue: { errorCode?: string } = {};
-                    try {
-                      if (typeof output.value === 'string') {
-                        errorValue = JSON.parse(output.value);
-                      } else if (
-                        typeof output.value === 'object' &&
-                        output.value !== null
-                      ) {
-                        errorValue = output.value as typeof errorValue;
-                      }
-                    } catch {
-                      // If parsing fails, treat the value as-is
-                      const extractedErrorCode = (
-                        output.value as Record<string, unknown>
-                      )?.errorCode;
-                      errorValue = {
-                        errorCode:
-                          typeof extractedErrorCode === 'string'
-                            ? extractedErrorCode
-                            : 'unavailable',
-                      };
-                    }
-
                     anthropicContent.push({
                       type: 'web_fetch_tool_result',
                       tool_use_id: part.toolCallId,
                       content: {
                         type: 'web_fetch_tool_result_error',
-                        error_code: errorValue.errorCode ?? 'unavailable',
+                        error_code:
+                          extractErrorValue(output.value).errorCode ??
+                          'unavailable',
                       },
                       cache_control: cacheControl,
                     });
@@ -1034,6 +1057,22 @@ export async function convertToAnthropicPrompt({
 
                 if (providerToolName === 'web_search') {
                   const output = part.output;
+
+                  if (output.type === 'error-json') {
+                    anthropicContent.push({
+                      type: 'web_search_tool_result',
+                      tool_use_id: part.toolCallId,
+                      content: {
+                        type: 'web_search_tool_result_error',
+                        error_code:
+                          extractErrorValue(output.value).errorCode ??
+                          'unavailable',
+                      },
+                      cache_control: cacheControl,
+                    });
+
+                    break;
+                  }
 
                   if (output.type !== 'json') {
                     warnings.push({

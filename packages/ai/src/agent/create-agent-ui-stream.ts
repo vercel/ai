@@ -11,6 +11,7 @@ import type { StreamTextTransform } from '../generate-text/stream-text';
 import type { UIMessageStreamOptions } from '../generate-text/stream-text-result';
 import type { TimeoutConfiguration } from '../prompt/request-options';
 import type { InferUIMessageChunk } from '../ui-message-stream';
+import { toUIMessageStream } from '../ui-message-stream/to-ui-message-stream';
 import { convertToModelMessages } from '../ui/convert-to-model-messages';
 import type {
   InferUIMessageTools,
@@ -18,7 +19,10 @@ import type {
   UIMessage,
 } from '../ui/ui-messages';
 import { validateUIMessages } from '../ui/validate-ui-messages';
-import type { AsyncIterableStream } from '../util/async-iterable-stream';
+import {
+  createAsyncIterableStream,
+  type AsyncIterableStream,
+} from '../util/async-iterable-stream';
 import type { Agent } from './agent';
 
 /**
@@ -92,10 +96,16 @@ export async function createAgentUIStream<
     onStepFinish,
   });
 
-  return result.toUIMessageStream({
-    ...uiMessageStreamOptions,
-    // TODO reading `originalMessages` is here for bc, always use `validatedMessages` in v7
-    originalMessages:
-      uiMessageStreamOptions.originalMessages ?? validatedMessages,
-  });
+  // TODO reading `originalMessages` is here for bc, always use `validatedMessages` in v7
+  const originalMessages =
+    uiMessageStreamOptions.originalMessages ?? validatedMessages;
+
+  return createAsyncIterableStream(
+    toUIMessageStream({
+      ...uiMessageStreamOptions,
+      originalMessages,
+      stream: result.stream,
+      tools: agent.tools,
+    }),
+  );
 }

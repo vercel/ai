@@ -50,6 +50,28 @@ describe('system messages', () => {
       betas: new Set(),
     });
   });
+
+  it('should emit a mid-conversation system message inline and add the beta', async () => {
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        { role: 'system', content: 'initial' },
+        { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+        { role: 'assistant', content: [{ type: 'text', text: 'hello' }] },
+        { role: 'system', content: 'switch tone' },
+        { role: 'user', content: [{ type: 'text', text: 'go' }] },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.system).toEqual([{ type: 'text', text: 'initial' }]);
+    expect(result.prompt.messages).toContainEqual({
+      role: 'system',
+      content: [{ type: 'text', text: 'switch tone' }],
+    });
+    expect(result.betas.has('mid-conversation-system-2026-04-07')).toBe(true);
+  });
 });
 
 describe('user messages', () => {
@@ -719,6 +741,61 @@ describe('user messages', () => {
                   file_id: 'file-txt-12345',
                 },
                 cache_control: undefined,
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      },
+      betas: new Set(['files-api-2025-04-14']),
+    });
+  });
+
+  it('should convert provider referenced file parts to container uploads when requested', async () => {
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'Analyze this data.',
+            },
+            {
+              type: 'file',
+              mediaType: 'text/csv',
+              data: {
+                type: 'reference' as const,
+                reference: { anthropic: 'file-csv-12345' },
+              },
+              providerOptions: {
+                anthropic: {
+                  containerUpload: true,
+                },
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'Analyze this data.',
+                cache_control: undefined,
+              },
+              {
+                type: 'container_upload',
+                file_id: 'file-csv-12345',
               },
             ],
           },
@@ -1678,6 +1755,150 @@ describe('assistant messages', () => {
                     },
                   ],
                   "tool_use_id": "srvtoolu_011cNtbtzFARKPcAcp7w4nh9",
+                  "type": "web_search_tool_result",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
+    expect(warnings).toMatchInlineSnapshot(`[]`);
+  });
+
+  it('should convert anthropic web_search tool call with error result (error-json string)', async () => {
+    const warnings: SharedV4Warning[] = [];
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              input: {
+                query: 'test query',
+              },
+              providerExecuted: true,
+              toolCallId: 'srvtoolu_error1',
+              toolName: 'web_search',
+              type: 'tool-call',
+            },
+            {
+              output: {
+                type: 'error-json',
+                value: JSON.stringify({
+                  type: 'web_search_tool_result_error',
+                  errorCode: 'invalid_tool_input',
+                }),
+              },
+              toolCallId: 'srvtoolu_error1',
+              toolName: 'web_search',
+              type: 'tool-result',
+            },
+          ],
+        },
+      ],
+      sendReasoning: false,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {},
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "id": "srvtoolu_error1",
+                  "input": {
+                    "query": "test query",
+                  },
+                  "name": "web_search",
+                  "type": "server_tool_use",
+                },
+                {
+                  "cache_control": undefined,
+                  "content": {
+                    "error_code": "invalid_tool_input",
+                    "type": "web_search_tool_result_error",
+                  },
+                  "tool_use_id": "srvtoolu_error1",
+                  "type": "web_search_tool_result",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
+    expect(warnings).toMatchInlineSnapshot(`[]`);
+  });
+
+  it('should convert anthropic web_search tool call with error result (error-json object)', async () => {
+    const warnings: SharedV4Warning[] = [];
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              input: {
+                query: 'test query',
+              },
+              providerExecuted: true,
+              toolCallId: 'srvtoolu_error2',
+              toolName: 'web_search',
+              type: 'tool-call',
+            },
+            {
+              output: {
+                type: 'error-json',
+                value: {
+                  type: 'web_search_tool_result_error',
+                  errorCode: 'max_uses_exceeded',
+                },
+              },
+              toolCallId: 'srvtoolu_error2',
+              toolName: 'web_search',
+              type: 'tool-result',
+            },
+          ],
+        },
+      ],
+      sendReasoning: false,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {},
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "id": "srvtoolu_error2",
+                  "input": {
+                    "query": "test query",
+                  },
+                  "name": "web_search",
+                  "type": "server_tool_use",
+                },
+                {
+                  "cache_control": undefined,
+                  "content": {
+                    "error_code": "max_uses_exceeded",
+                    "type": "web_search_tool_result_error",
+                  },
+                  "tool_use_id": "srvtoolu_error2",
                   "type": "web_search_tool_result",
                 },
               ],

@@ -18,6 +18,7 @@ export type AnthropicModelId =
   | 'claude-sonnet-4-6'
   | 'claude-opus-4-6'
   | 'claude-opus-4-7'
+  | 'claude-opus-4-8'
   | (string & {});
 
 /**
@@ -25,6 +26,12 @@ export type AnthropicModelId =
  * These options apply to individual file parts (documents).
  */
 export const anthropicFilePartProviderOptions = z.object({
+  /**
+   * Upload this file into the code execution container instead of sending it as
+   * a normal document or image content block.
+   */
+  containerUpload: z.boolean().optional(),
+
   /**
    * Citation configuration for this document.
    * When enabled, this document will generate citations in the response.

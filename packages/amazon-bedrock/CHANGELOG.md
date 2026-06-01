@@ -1,5 +1,57 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.0-canary.74
+
+### Patch Changes
+
+- Updated dependencies [e776fc7]
+  - @ai-sdk/openai@4.0.0-canary.66
+
+## 5.0.0-canary.73
+
+### Patch Changes
+
+- e02f041: feat(provider/anthropic): add support for `claude-opus-4-8`
+- Updated dependencies [e02f041]
+  - @ai-sdk/anthropic@4.0.0-canary.61
+
+## 5.0.0-canary.72
+
+### Patch Changes
+
+- Updated dependencies [cd3de8b]
+  - @ai-sdk/openai@4.0.0-canary.65
+
+## 5.0.0-canary.71
+
+### Patch Changes
+
+- 9d5a299: fix(amazon-bedrock): support document files in tool results
+
+## 5.0.0-canary.70
+
+### Patch Changes
+
+- Updated dependencies [6c93e36]
+- Updated dependencies [f617ac2]
+  - @ai-sdk/provider-utils@5.0.0-canary.44
+  - @ai-sdk/anthropic@4.0.0-canary.60
+  - @ai-sdk/openai@4.0.0-canary.64
+
+## 5.0.0-canary.69
+
+### Patch Changes
+
+- Updated dependencies [648705c]
+  - @ai-sdk/anthropic@4.0.0-canary.59
+
+## 5.0.0-canary.68
+
+### Patch Changes
+
+- Updated dependencies [acdbf84]
+  - @ai-sdk/anthropic@4.0.0-canary.58
+
 ## 5.0.0-canary.67
 
 ### Patch Changes
