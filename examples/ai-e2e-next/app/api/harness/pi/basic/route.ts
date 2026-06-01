@@ -3,31 +3,24 @@ import {
   getHarnessSession,
   setHarnessSession,
 } from '@/util/harness-session-registry';
-import { createUIMessageStreamResponse, toUIMessageStream } from 'ai';
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  toUIMessageStream,
+  type UIMessage,
+} from 'ai';
 
 export async function POST(request: Request) {
-  const body = (await request.json()) as {
+  const body: {
     id?: string;
-    messages: Array<{
-      role: 'user' | 'assistant' | 'system';
-      parts?: Array<{ type: string; text?: string }>;
-    }>;
-  };
+    messages: UIMessage[];
+  } = await request.json();
 
   if (!body.id) {
     return new Response('Missing chat id', { status: 400 });
   }
   const chatId = body.id;
-
-  const lastUser = [...body.messages].reverse().find(m => m.role === 'user');
-  const prompt =
-    lastUser?.parts
-      ?.filter(p => p.type === 'text')
-      .map(p => p.text ?? '')
-      .join('') ?? '';
-  if (prompt.length === 0) {
-    return new Response('Missing user message', { status: 400 });
-  }
+  const messages = await convertToModelMessages(body.messages);
 
   let session = getHarnessSession(chatId);
   if (session == null) {
@@ -35,7 +28,7 @@ export async function POST(request: Request) {
     setHarnessSession(chatId, session);
   }
 
-  const result = await piHarnessAgent.stream({ session, prompt });
+  const result = await piHarnessAgent.stream({ session, messages });
 
   return createUIMessageStreamResponse({
     stream: toUIMessageStream({ stream: result.stream }),
