@@ -1453,6 +1453,73 @@ describe('experimental_generateVideo', () => {
       expect(result.videos.length).toBe(1);
     });
 
+    it('should timeout when webhook notification is not received', async () => {
+      await expect(
+        experimental_generateVideo({
+          model: new MockVideoModelV4({
+            doGenerate: undefined,
+            handleWebhookOption: async ({ webhook }) => {
+              const { url, received } = await webhook();
+              return { webhookUrl: url, received };
+            },
+            doStart: async () => ({
+              operation: 'op-webhook-timeout',
+              warnings: [],
+              response: {
+                timestamp: new Date(),
+                modelId: 'test-model-id',
+                headers: {},
+              },
+            }),
+            doStatus: async () => {
+              throw new Error('doStatus should not be called');
+            },
+          }),
+          prompt,
+          poll: { timeoutMs: 20 },
+          webhook: async () => ({
+            url: 'https://example.com/webhook',
+            received: new Promise<VideoModelV4OperationWebhook>(() => {}),
+          }),
+        }),
+      ).rejects.toThrow('Video generation timed out after 20ms.');
+    });
+
+    it('should abort while waiting for webhook notification', async () => {
+      const abortController = new AbortController();
+      abortController.abort();
+
+      await expect(
+        experimental_generateVideo({
+          model: new MockVideoModelV4({
+            doGenerate: undefined,
+            handleWebhookOption: async ({ webhook }) => {
+              const { url, received } = await webhook();
+              return { webhookUrl: url, received };
+            },
+            doStart: async () => ({
+              operation: 'op-webhook-abort',
+              warnings: [],
+              response: {
+                timestamp: new Date(),
+                modelId: 'test-model-id',
+                headers: {},
+              },
+            }),
+            doStatus: async () => {
+              throw new Error('doStatus should not be called');
+            },
+          }),
+          prompt,
+          abortSignal: abortController.signal,
+          webhook: async () => ({
+            url: 'https://example.com/webhook',
+            received: new Promise<VideoModelV4OperationWebhook>(() => {}),
+          }),
+        }),
+      ).rejects.toHaveProperty('name', 'AbortError');
+    });
+
     it('should fall back to polling when model has no handleWebhookOption', async () => {
       let statusCallCount = 0;
       let webhookFactoryCalled = false;

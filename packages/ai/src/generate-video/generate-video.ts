@@ -454,7 +454,9 @@ async function executeStartStatusFlow({
   // 1. If webhook and provider supports it, set up the webhook
   const earlyWarnings: Experimental_VideoModelV4Result['warnings'] = [];
   let webhookUrl: string | undefined;
-  let webhookReceived: Promise<Experimental_VideoModelV4OperationWebhook> | undefined;
+  let webhookReceived:
+    | Promise<Experimental_VideoModelV4OperationWebhook>
+    | undefined;
 
   if (webhookFactory != null) {
     if (model.handleWebhookOption != null) {
@@ -488,7 +490,11 @@ async function executeStartStatusFlow({
 
   if (webhookReceived != null) {
     // 3a. Webhook flow: wait for webhook, then get final status
-    await webhookReceived;
+    await waitForWebhook({
+      received: webhookReceived,
+      timeoutMs: pollConfig?.timeoutMs ?? 600_000,
+      abortSignal,
+    });
 
     const statusResult = await model.doStatus!({
       operation: startResult.operation,
@@ -530,6 +536,23 @@ async function executeStartStatusFlow({
   };
 }
 
+async function waitForWebhook({
+  received,
+  timeoutMs,
+  abortSignal,
+}: {
+  received: Promise<Experimental_VideoModelV4OperationWebhook>;
+  timeoutMs: number;
+  abortSignal?: AbortSignal;
+}) {
+  await Promise.race([
+    received,
+    delay(timeoutMs, { abortSignal }).then(() => {
+      throw new Error(`Video generation timed out after ${timeoutMs}ms.`);
+    }),
+  ]);
+}
+
 async function pollUntilComplete({
   model,
   operation,
@@ -543,7 +566,10 @@ async function pollUntilComplete({
   abortSignal?: AbortSignal;
   headers?: Record<string, string | undefined>;
 }): Promise<
-  Extract<Experimental_VideoModelV4OperationStatusResult, { status: 'completed' }>
+  Extract<
+    Experimental_VideoModelV4OperationStatusResult,
+    { status: 'completed' }
+  >
 > {
   const baseInterval = pollConfig?.intervalMs ?? 5000;
   const backoff = pollConfig?.backoff ?? 'none';
@@ -566,7 +592,11 @@ async function pollUntilComplete({
         ? Math.min(baseInterval * Math.pow(2, attempt), 60_000)
         : baseInterval;
 
-    await delay(intervalMs, { abortSignal });
+    await delay(Math.min(intervalMs, timeoutMs - elapsedMs), { abortSignal });
+
+    if (Date.now() - startTime >= timeoutMs) {
+      throw new Error(`Video generation timed out after ${timeoutMs}ms.`);
+    }
 
     attempt++;
 
