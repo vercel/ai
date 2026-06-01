@@ -137,12 +137,14 @@ function report(label: string, result: { responseMessages: unknown }) {
     | { type: string; reason?: string }
     | string
     | undefined;
-  const verdict =
-    typeof output === 'string'
-      ? `allowed → ${output}`
-      : output?.type === 'execution-denied'
-        ? `DENIED → ${output.reason ?? ''}`
-        : 'no tool result';
+  let verdict: string;
+  if (typeof output === 'string') {
+    verdict = `allowed → ${output}`;
+  } else if (output?.type === 'execution-denied') {
+    verdict = `DENIED → ${output.reason ?? ''}`;
+  } else {
+    verdict = 'no tool result';
+  }
   // biome-ignore lint/suspicious/noConsole: example output is the whole point
   console.log(`${label.padEnd(40)} ${verdict}`);
 }

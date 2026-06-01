@@ -6,6 +6,7 @@ import type {
 } from '@ai-sdk/provider-utils';
 import type { ToolApprovalConfiguration } from 'ai';
 import type { PolicyClient } from '../policy-client';
+import { evaluatePolicy } from './evaluate-policy';
 import { normalizeOpaDecision } from './normalize-opa-decision';
 
 /**
@@ -73,22 +74,18 @@ export function opaPolicy<
         runtimeContext,
       } satisfies DefaultOpaInput);
 
-    // Fail closed: a backend error (OPA unreachable, WASM fault, bad path)
-    // must not reject out of the toolApproval callback and abort the run, and
-    // must not be read as "no opinion". Deny so the model sees a structured
-    // result it can reason about. opaCapabilityMiddleware fails closed the
-    // same way.
-    let result: unknown;
-    try {
-      result = await client.evaluate(path, opaInput);
-    } catch (cause) {
+    // Fail closed: a backend error must not be read as "no opinion". Deny so
+    // the model sees a structured result it can reason about, rather than the
+    // error rejecting out of the callback and aborting the run.
+    const outcome = await evaluatePolicy(client, path, opaInput);
+    if (!outcome.ok) {
       return {
         type: 'denied',
-        reason: `policy evaluation failed: ${errorMessage(cause)}`,
+        reason: `policy evaluation failed: ${errorMessage(outcome.error)}`,
       };
     }
 
-    return normalizeOpaDecision(result);
+    return normalizeOpaDecision(outcome.result);
   };
 }
 

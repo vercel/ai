@@ -3,6 +3,7 @@ import type {
   LanguageModelV4Middleware,
 } from '@ai-sdk/provider';
 import type { PolicyClient } from '../policy-client';
+import { evaluatePolicy } from './evaluate-policy';
 
 /**
  * Default OPA input shape passed to the capability-scoping rule.
@@ -79,15 +80,14 @@ export function opaCapabilityMiddleware(opts: {
           providerOptions: params.providerOptions,
         } satisfies DefaultOpaCapabilityInput);
 
-      let result: unknown;
-      try {
-        result = await client.evaluate(path, input);
-      } catch {
-        // Fail closed on evaluator error.
+      // Fail closed on evaluator error or a malformed allowlist: drop all
+      // tools so a misconfiguration never silently widens capabilities.
+      const outcome = await evaluatePolicy(client, path, input);
+      if (!outcome.ok) {
         return { ...params, tools: undefined };
       }
 
-      const allowed = extractAllowedNameSet(result);
+      const allowed = extractAllowedNameSet(outcome.result);
       if (allowed == null) {
         return { ...params, tools: undefined };
       }
