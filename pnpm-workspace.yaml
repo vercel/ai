@@ -9,6 +9,3 @@ minimumReleaseAge: 4320 # 3 days
 minimumReleaseAgeExclude:
   - '@ai-sdk/*'
   - 'ai'
-  - '@vercel/sandbox'
-  - '@earendil-works/*'
-  - '@mariozechner/*'
