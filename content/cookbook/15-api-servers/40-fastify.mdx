@@ -25,7 +25,7 @@ curl -X POST http://localhost:8080
 
 ### UI Message Stream
 
-You can use the `toUIMessageStream` method to get a UI message stream from the result and then pipe it to the response.
+You can use the `toUIMessageStream` helper to convert the result stream to a UI message stream and then send it in the response.
 
 ```ts filename='index.ts'
 import { streamText, toUIMessageStream } from 'ai';

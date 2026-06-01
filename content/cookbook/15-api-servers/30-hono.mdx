@@ -25,7 +25,7 @@ curl -X POST http://localhost:8080
 
 ### UI Message Stream
 
-You can use the `toUIMessageStreamResponse` method to create a properly formatted streaming response.
+You can use `createUIMessageStreamResponse` with `toUIMessageStream` to create a properly formatted streaming response.
 
 ```ts filename='index.ts'
 import { serve } from '@hono/node-server';
@@ -53,7 +53,7 @@ serve({ fetch: app.fetch, port: 8080 });
 
 ### Text Stream
 
-You can use the `toTextStreamResponse` method to return a text stream response.
+You can use `createTextStreamResponse` with `toTextStream` to return a text stream response.
 
 ```ts filename='index.ts'
 import { serve } from '@hono/node-server';

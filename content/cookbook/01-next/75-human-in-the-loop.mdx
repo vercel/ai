@@ -116,7 +116,7 @@ To add a HITL step, you add an approval gate between the tool call and the tool 
 
 Add `needsApproval: true` to the tool definition. The tool keeps its `execute` function, but the SDK pauses execution until the user approves.
 
-```ts filename="app/api/chat/route.ts" highlight="19"
+```ts filename="app/api/chat/route.ts" highlight="20"
 import {
   streamText,
   tool,
@@ -290,7 +290,7 @@ const { messages, addToolApprovalResponse } = useChat({
 
 You can make approval conditional based on the tool's input by providing an async function to `needsApproval`:
 
-```ts filename="app/api/chat/route.ts" highlight="20"
+```ts filename="app/api/chat/route.ts" highlight="23"
 import {
   streamText,
   tool,

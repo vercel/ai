@@ -141,9 +141,9 @@ for await (const part of result.stream) {
 
 ## UI Message Streams
 
-When using `toUIMessageStreamResponse`, you need to handle stream abortion slightly differently. The `onFinish` callback receives an `isAborted` parameter, and you should pass the `consumeStream` function to ensure proper abort handling:
+When using `toUIMessageStream`, you need to handle stream abortion slightly differently. The `onFinish` callback receives an `isAborted` parameter, and you should pass `consumeStream` to `createUIMessageStreamResponse` to ensure proper abort handling:
 
-```tsx highlight="6,21,24-28,30"
+```tsx highlight="3,21,24-30,34"
 import { openai } from '@ai-sdk/openai';
 import {
   consumeStream,

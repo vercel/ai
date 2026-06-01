@@ -11,12 +11,12 @@ I am using [`useChat`](/docs/reference/ai-sdk-ui/use-chat) and I get the error "
 
 ## Background
 
-Error messages from `streamText` are masked by default when using `toDataStreamResponse` for security reasons (secure-by-default).
+Error messages from `streamText` are masked by default when using `toUIMessageStream` for security reasons (secure-by-default).
 This prevents leaking sensitive information to the client.
 
 ## Solution
 
-To forward error details to the client or to log errors, use the `getErrorMessage` function when calling `toDataStreamResponse`.
+To forward error details to the client or to log errors, use the `onError` function when calling `toUIMessageStream`.
 
 ```tsx
 export function errorHandler(error: unknown) {

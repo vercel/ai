@@ -1,13 +1,13 @@
 ---
 title: onFinish not called when stream is aborted
-description: Troubleshooting onFinish callback not executing when streams are aborted with toUIMessageStreamResponse
+description: Troubleshooting onFinish callback not executing when streams are aborted with toUIMessageStream
 ---
 
 # onFinish not called when stream is aborted
 
 ## Issue
 
-When using `toUIMessageStreamResponse` with an `onFinish` callback, the callback may not execute when the stream is aborted. This happens because the abort handler immediately terminates the response, preventing the `onFinish` callback from being triggered.
+When using `toUIMessageStream` with an `onFinish` callback, the callback may not execute when the stream is aborted. This happens because the abort handler immediately terminates the response, preventing the `onFinish` callback from being triggered.
 
 ```tsx
 // Server-side code where onFinish isn't called on abort
@@ -44,7 +44,7 @@ When a stream is aborted, the response is immediately terminated. Without proper
 
 ## Solution
 
-Add `consumeStream` to the `toUIMessageStreamResponse` configuration. This ensures that abort events are properly captured and forwarded to the `onFinish` callback, allowing it to execute even when the stream is aborted.
+Add `consumeSseStream: consumeStream` to the `createUIMessageStreamResponse` configuration. This ensures that abort events are properly captured and forwarded to the `onFinish` callback, allowing it to execute even when the stream is aborted.
 
 ```tsx
 // other imports...

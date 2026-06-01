@@ -38,7 +38,7 @@ export type MyUIMessage = UIMessage<MessageMetadata>;
 
 ### Sending Metadata from the Server
 
-Use the `messageMetadata` callback in `toUIMessageStreamResponse` to send metadata at different streaming stages:
+Use the `messageMetadata` callback in `toUIMessageStream` to send metadata at different streaming stages:
 
 ```ts filename="app/api/chat/route.ts" highlight="16-27"
 import {

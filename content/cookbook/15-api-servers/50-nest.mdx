@@ -16,7 +16,7 @@ The examples show how to implement a Nest.js controller that uses the AI SDK to 
 
 ### UI Message Stream
 
-You can use the `pipeUIMessageStreamToResponse` method to pipe the stream data to the server response.
+You can use the `pipeUIMessageStreamToResponse` helper to pipe the stream data to the server response.
 
 ```ts filename='app.controller.ts'
 import { Controller, Post, Res } from '@nestjs/common';
@@ -98,7 +98,7 @@ export class AppController {
 
 ### Text Stream
 
-You can use the `pipeTextStreamToResponse` method to get a text stream from the result and then pipe it to the response.
+You can use the `pipeTextStreamToResponse` helper with `toTextStream` to pipe a text stream to the response.
 
 ```ts filename='app.controller.ts'
 import { Controller, Post, Res } from '@nestjs/common';

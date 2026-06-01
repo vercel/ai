@@ -743,7 +743,7 @@ With `streamText`, you can control how error messages and usage information are 
 
 By default, the error message is masked for security reasons.
 The default error message is "An error occurred."
-You can forward error messages or send your own error message by providing a `getErrorMessage` function:
+You can forward error messages or send your own error message by providing an `onError` function:
 
 ```ts filename="app/api/chat/route.ts" highlight="21-35"
 import {
@@ -936,7 +936,7 @@ and Anthropic `claude-sonnet-4-5-20250929` support reasoning tokens.
 These tokens are typically sent before the message content.
 You can forward them to the client with the `sendReasoning` option:
 
-```ts filename="app/api/chat/route.ts" highlight="21"
+```ts filename="app/api/chat/route.ts" highlight="20"
 import {
   convertToModelMessages,
   createUIMessageStreamResponse,
@@ -997,7 +997,7 @@ Some providers such as [Perplexity](/providers/ai-sdk-providers/perplexity#sourc
 Currently sources are limited to web pages that ground the response.
 You can forward them to the client with the `sendSources` option:
 
-```ts filename="app/api/chat/route.ts" highlight="21"
+```ts filename="app/api/chat/route.ts" highlight="20"
 import {
   convertToModelMessages,
   createUIMessageStreamResponse,

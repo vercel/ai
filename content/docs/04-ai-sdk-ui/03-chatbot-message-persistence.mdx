@@ -272,7 +272,7 @@ parts, validate them using `validateUIMessages` before processing (see the
 
 </Note>
 
-Storing messages is done in the `onFinish` callback of the `toUIMessageStreamResponse` function.
+Storing messages is done in the `onFinish` callback of the `toUIMessageStream` function.
 `onFinish` receives the complete messages including the new AI response as `UIMessage[]`.
 
 ```tsx filename="app/api/chat/route.ts" highlight="12,17-25"
@@ -347,14 +347,14 @@ However, **for persistence, you need server-side generated IDs** to ensure consi
 
 When implementing persistence, you have two options for generating server-side IDs:
 
-1. **Using `generateMessageId` in `toUIMessageStreamResponse`**
+1. **Using `generateMessageId` in `toUIMessageStream`**
 2. **Setting IDs in your start message part with `createUIMessageStream`**
 
-#### Option 1: Using `generateMessageId` in `toUIMessageStreamResponse`
+#### Option 1: Using `generateMessageId` in `toUIMessageStream`
 
 You can control the ID format by providing ID generators using [`createIdGenerator()`](/docs/reference/ai-sdk-core/create-id-generator):
 
-```tsx filename="app/api/chat/route.ts" highlight="12-18"
+```tsx filename="app/api/chat/route.ts" highlight="18-22"
 import {
   createIdGenerator,
   createUIMessageStreamResponse,
@@ -474,7 +474,7 @@ const {
 
 On the server, you can then load the previous messages and append the new message to the previous messages. If your messages contain tools, metadata, or custom data parts, you should validate them:
 
-```tsx filename="app/api/chat/route.ts" highlight="8-17,20-24"
+```tsx filename="app/api/chat/route.ts" highlight="18-24"
 import {
   convertToModelMessages,
   createUIMessageStreamResponse,
@@ -530,7 +530,7 @@ and then save the result as usual.
 `consumeStream` effectively removes the backpressure,
 meaning that the result is stored even when the client has already disconnected.
 
-```tsx filename="app/api/chat/route.ts" highlight="27-29"
+```tsx filename="app/api/chat/route.ts" highlight="19-21"
 import {
   convertToModelMessages,
   createUIMessageStreamResponse,

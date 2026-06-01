@@ -169,7 +169,7 @@ The older `needsApproval` property on `tool()` definitions is deprecated. Existi
 
 ### Configure `toolApproval`
 
-```ts highlight="8-10"
+```ts highlight="4-6"
 const result = await generateText({
   model: __MODEL__,
   tools: { runCommand },
@@ -1181,7 +1181,7 @@ toolErrors.forEach(toolError => {
 
 `streamText` sends errors as part of the `stream` result. Tool execution errors appear as `tool-error` parts, while other errors appear as `error` parts.
 
-When using `toUIMessageStreamResponse`, you can pass an `onError` function to extract the error message from the error part and forward it as part of the stream response:
+When using `toUIMessageStream`, you can pass an `onError` function to extract the error message from the error part and forward it as part of the stream response:
 
 ```ts
 const result = streamText({

@@ -83,7 +83,7 @@ export default function Chat() {
 We need to adjust the server to receive the custom request format with the chat ID and last message.
 The rest of the message history can be loaded from storage.
 
-```tsx filename='app/api/chat/route.ts' highlight="13,16,17,21"
+```tsx filename='app/api/chat/route.ts' highlight="12,15-16,21"
 import {
   convertToModelMessages,
   createUIMessageStreamResponse,

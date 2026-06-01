@@ -38,11 +38,11 @@ export async function POST(req: Request) {
 
 ## Background
 
-The duplication occurs because `toUIMessageStreamResponse` generates new message IDs for each new message.
+The duplication occurs because UI message streams generate new message IDs for each new message.
 
 ## Solution
 
-Pass the original messages array to `toUIMessageStreamResponse` using the `originalMessages` option. By passing `originalMessages`, the method can reuse existing message IDs instead of generating new ones, ensuring the client properly updates existing messages rather than creating duplicates.
+Pass the original messages array to `toUIMessageStream` using the `originalMessages` option. By passing `originalMessages`, the helper can reuse existing message IDs instead of generating new ones, ensuring the client properly updates existing messages rather than creating duplicates.
 
 ```tsx
 export async function POST(req: Request) {
