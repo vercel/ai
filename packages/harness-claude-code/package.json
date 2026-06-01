@@ -45,6 +45,7 @@
     "@anthropic-ai/claude-agent-sdk": "^0.3.0"
   },
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "1.29.0",
     "@types/node": "22.19.19",
     "@types/ws": "^8.5.13",
     "@vercel/ai-tsconfig": "workspace:*",

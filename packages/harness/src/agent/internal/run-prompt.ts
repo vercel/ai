@@ -17,6 +17,7 @@ import type { LanguageModelV4ToolCall } from '@ai-sdk/provider';
 import { parseToolCall, type ContentPart, type TextStreamPart } from 'ai';
 import { HarnessStreamTextResult } from './harness-stream-text-result';
 import { translateStreamPart } from './translate-stream-part';
+import { stripWorkDir } from './strip-work-dir';
 
 /**
  * Drive one prompt turn end-to-end:
@@ -41,6 +42,7 @@ export function runPrompt<
   tools: TOOLS;
   toolSpecs: HarnessV1ToolSpec[];
   sandboxSession: HarnessV1SandboxSession | undefined;
+  sessionWorkDir: string | undefined;
   runtimeContext: RUNTIME_CONTEXT;
   abortSignal: AbortSignal | undefined;
 }): {
@@ -79,16 +81,24 @@ export function runPrompt<
         if (done) break;
         if (value == null) continue;
 
+        /*
+         * Strip the session working-directory prefix for everything the
+         * consumer sees. The original `value` is kept intact for host tool
+         * execution below — the tools need the absolute path to resolve
+         * against the sandbox root, so the strip is display-only.
+         */
+        const displayValue = stripWorkDir(value, input.sessionWorkDir);
+
         // Forward to consumer as soon as possible.
-        for (const part of translateStreamPart<TOOLS>(value)) {
+        for (const part of translateStreamPart<TOOLS>(displayValue)) {
           result.enqueue(part);
         }
 
         // Tool-call validation lives here (not in translateStreamPart) because
         // schema parsing is async and needs the merged tool set in scope.
-        if (value.type === 'tool-call') {
+        if (displayValue.type === 'tool-call') {
           const parsed = await validateToolCall<TOOLS>({
-            event: value,
+            event: displayValue,
             tools: input.tools,
           });
           result.enqueue(parsed);

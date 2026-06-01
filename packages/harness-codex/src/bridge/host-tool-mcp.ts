@@ -8,19 +8,31 @@
 //   TOOL_RELAY_URL  — http://127.0.0.1:<port> of the bridge relay server
 //   TOOL_RELAY_TOKEN — bearer token required by the relay
 
-export {};
+/*
+ * CONSTRAINT — the third-party imports below are NEVER bundled into the
+ * compiled `bridge/host-tool-mcp.mjs`. They are declared `external` in
+ * tsup.config.ts and resolved at runtime from the node_modules that the
+ * bridge installs *inside the sandbox* from `src/bridge/package.json` (and
+ * its pinned `pnpm-lock.yaml`). That bridge package.json — NOT this host
+ * package — is the single source of truth for these packages and their
+ * versions; the published `@ai-sdk/harness-codex` package does not provide
+ * them at runtime.
+ *
+ * When adding or changing a third-party import here you MUST keep all three
+ * in sync, or this server will either get the dependency bundled in or fail
+ * to resolve it in the sandbox:
+ *   1. the import statement below,
+ *   2. the `external` array in tsup.config.ts, and
+ *   3. the dependency entry in `src/bridge/package.json`.
+ */
+import * as mcpServerModule from '@modelcontextprotocol/sdk/server/mcp.js';
+import * as mcpStdioModule from '@modelcontextprotocol/sdk/server/stdio.js';
+import { z } from 'zod';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const { McpServer } = (await import(
-  '@modelcontextprotocol/sdk/server/mcp.js' as string
-)) as any;
+const { McpServer } = mcpServerModule as any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const { StdioServerTransport } = (await import(
-  '@modelcontextprotocol/sdk/server/stdio.js' as string
-)) as any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const zodModule = (await import('zod')) as any;
-const z = zodModule.z ?? zodModule.default?.z ?? zodModule;
+const { StdioServerTransport } = mcpStdioModule as any;
 
 type ToolSchema = {
   name: string;

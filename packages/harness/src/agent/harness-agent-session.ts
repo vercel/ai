@@ -34,6 +34,7 @@ export class HarnessAgentSession {
 
   private readonly harness: HarnessV1;
   private readonly sandboxProvider: HarnessV1SandboxProvider | undefined;
+  private readonly sessionWorkDir: string | undefined;
   private underlyingSession: HarnessV1Session | null;
   private sandboxHandle: HarnessV1SandboxHandle | null;
   private leasedBridgePort: number | null;
@@ -46,6 +47,7 @@ export class HarnessAgentSession {
     sandboxHandle: HarnessV1SandboxHandle | null;
     sandboxProvider: HarnessV1SandboxProvider | undefined;
     leasedBridgePort: number | null;
+    sessionWorkDir: string | undefined;
   }) {
     this.sessionId = options.sessionId;
     this.harness = options.harness;
@@ -53,6 +55,7 @@ export class HarnessAgentSession {
     this.sandboxHandle = options.sandboxHandle;
     this.sandboxProvider = options.sandboxProvider;
     this.leasedBridgePort = options.leasedBridgePort;
+    this.sessionWorkDir = options.sessionWorkDir;
   }
 
   /**
@@ -77,6 +80,17 @@ export class HarnessAgentSession {
    */
   getSandboxHandle(): HarnessV1SandboxHandle | null {
     return this.sandboxHandle;
+  }
+
+  /**
+   * Working directory the agent runs in for this session, or `undefined` when
+   * the session has no sandbox. Used to strip the prefix from absolute paths in
+   * stream events before they reach consumers.
+   *
+   * @internal — accessed only by the agent's turn driver.
+   */
+  getSessionWorkDir(): string | undefined {
+    return this.sessionWorkDir;
   }
 
   /**

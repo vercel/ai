@@ -10,6 +10,28 @@ import { existsSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { argv, env as procEnv, pid, stdout } from 'node:process';
 
+/*
+ * CONSTRAINT — the third-party imports below are NEVER bundled into the
+ * compiled `bridge/index.mjs`. They are declared `external` in
+ * tsup.config.ts and resolved at runtime from the node_modules that this
+ * bridge installs *inside the sandbox* from `src/bridge/package.json` (and
+ * its pinned `pnpm-lock.yaml`). That bridge package.json — NOT this host
+ * package — is the single source of truth for these packages and their
+ * versions; the published `@ai-sdk/harness-claude-code` package does not
+ * provide them at runtime.
+ *
+ * When adding or changing a third-party import here you MUST keep all three
+ * in sync, or the bridge will either get the dependency bundled in or fail
+ * to resolve it in the sandbox:
+ *   1. the import statement below,
+ *   2. the `external` array in tsup.config.ts, and
+ *   3. the dependency entry in `src/bridge/package.json`.
+ */
+import * as claudeAgentSdk from '@anthropic-ai/claude-agent-sdk';
+import * as mcpServerModule from '@modelcontextprotocol/sdk/server/mcp.js';
+import { WebSocketServer } from 'ws';
+import { z } from 'zod';
+
 const PROTOCOL_VERSION = 1;
 
 /*
@@ -90,15 +112,9 @@ async function writeStartConfig(start: unknown): Promise<void> {
 void writeBridgeMeta('init');
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const { WebSocketServer } = (await import('ws')) as any;
+const claudeSdk = claudeAgentSdk as any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const claudeSdk = (await import('@anthropic-ai/claude-agent-sdk')) as any;
-const mcpModuleSpecifier = '@modelcontextprotocol/sdk/server/mcp.js';
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const mcpModule = (await import(mcpModuleSpecifier)) as any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const zodModule = (await import('zod')) as any;
-const z = zodModule.z ?? zodModule.default?.z ?? zodModule;
+const mcpModule = mcpServerModule as any;
 
 const bridgeWsPort = parseInt(procEnv.BRIDGE_WS_PORT ?? '0', 10);
 const wss = new WebSocketServer({ port: bridgeWsPort, host: '0.0.0.0' });
@@ -520,12 +536,29 @@ async function runTurn({
             const nativeName =
               nativeToolCallNames.get(block.tool_use_id) ?? 'unknown';
             nativeToolCallNames.delete(block.tool_use_id);
+            const toolName = toCommonName(nativeName);
+            const isError = !!block.is_error;
+            const content = stringifyContent(block.content);
+            /*
+             * Claude Code's Bash tool does not report the command's real
+             * numeric exit code — the SDK exposes only stdout/stderr text and
+             * an is_error flag. Consumers (and the example UI) render bash
+             * failures from an `exitCode` field on a structured result, the
+             * shape Codex's shell tool provides natively. To match it, derive
+             * a binary code from is_error: 1 on failure, 0 on success. This is
+             * a stand-in for failed/succeeded, not the process's true exit
+             * status.
+             */
+            const result =
+              toolName === 'bash'
+                ? { exitCode: isError ? 1 : 0, stdout: content }
+                : content;
             send({
               type: 'tool-result',
               toolCallId: block.tool_use_id,
-              toolName: toCommonName(nativeName),
-              result: stringifyContent(block.content),
-              isError: !!block.is_error,
+              toolName,
+              result,
+              isError,
             });
           }
         }
