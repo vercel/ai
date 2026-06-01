@@ -564,7 +564,7 @@ const wrappedModel = wrapLanguageModel({
 await generateText({ model: wrappedModel, tools, toolApproval, prompt });
 ```
 
-The Rego rule at `path` returns either a `string[]` of allowed tool names or `{ tools: string[] }`. Anything in `params.tools` whose `name` (function tools) or `id` (provider tools) is not in the allowlist gets dropped before the model sees the list.
+The Rego rule at `path` returns either a `string[]` of allowed tool names or `{ tools: string[] }`. Function tools are matched by `name`; provider tools are matched by either their dotted `id` (`<provider>.<tool>`) or their bare `name`, so an allowlist authored with the plain name keeps them. Anything not in the allowlist gets dropped before the model sees the list.
 
 Two non-obvious benefits beyond the security one:
 

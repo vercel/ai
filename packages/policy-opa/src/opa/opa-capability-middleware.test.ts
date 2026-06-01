@@ -2,6 +2,7 @@ import type {
   LanguageModelV4,
   LanguageModelV4CallOptions,
   LanguageModelV4FunctionTool,
+  LanguageModelV4ProviderTool,
 } from '@ai-sdk/provider';
 import { describe, expect, it, vi } from 'vitest';
 import type { PolicyClient } from '../policy-client';
@@ -18,6 +19,13 @@ function tool(name: string): LanguageModelV4FunctionTool {
       properties: {},
     } as never,
   };
+}
+
+function providerTool(
+  id: `${string}.${string}`,
+  name: string,
+): LanguageModelV4ProviderTool {
+  return { type: 'provider', id, name, args: {} };
 }
 
 function baseParams(
@@ -53,6 +61,46 @@ describe('opaCapabilityMiddleware', () => {
       t.type === 'function' ? t.name : t.id,
     );
     expect(names).toEqual(['search', 'readDocs']);
+  });
+
+  it('keeps a provider tool whose dotted id is allowlisted', async () => {
+    const mw = opaCapabilityMiddleware({
+      client: stubClient(['openai.web_search_preview']),
+      path: 'agent/tools/allowed',
+    });
+
+    const transformed = await mw.transformParams!({
+      type: 'generate',
+      model: fakeModel,
+      params: baseParams([
+        providerTool('openai.web_search_preview', 'web_search_preview'),
+        providerTool('openai.file_search', 'file_search'),
+      ]),
+    });
+
+    expect(
+      transformed.tools?.map(t => (t.type === 'provider' ? t.id : t.name)),
+    ).toEqual(['openai.web_search_preview']);
+  });
+
+  it('keeps a provider tool whose bare name is allowlisted (not just the id)', async () => {
+    const mw = opaCapabilityMiddleware({
+      client: stubClient(['web_search_preview']),
+      path: 'agent/tools/allowed',
+    });
+
+    const transformed = await mw.transformParams!({
+      type: 'generate',
+      model: fakeModel,
+      params: baseParams([
+        providerTool('openai.web_search_preview', 'web_search_preview'),
+        providerTool('openai.file_search', 'file_search'),
+      ]),
+    });
+
+    expect(
+      transformed.tools?.map(t => (t.type === 'provider' ? t.id : t.name)),
+    ).toEqual(['openai.web_search_preview']);
   });
 
   it('accepts the { tools: [...] } object form', async () => {

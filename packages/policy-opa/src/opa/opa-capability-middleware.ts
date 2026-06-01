@@ -28,8 +28,8 @@ export interface DefaultOpaCapabilityInput {
  *
  * The OPA rule at `path` is expected to return either a `string[]` of allowed
  * tool names, or an object `{ tools: string[] }`. Function tools whose `name`
- * matches and provider tools whose `id` matches are kept; everything else is
- * dropped from `params.tools`.
+ * matches are kept; provider tools whose dotted `id` or bare `name` matches are
+ * kept; everything else is dropped from `params.tools`.
  *
  * On a malformed result (or an OPA error), the middleware **fails closed**:
  * `params.tools` is set to `undefined`, so the model is told it has no tools
@@ -94,8 +94,14 @@ export function opaCapabilityMiddleware(opts: {
 
       let removed = false;
       const filtered = params.tools.filter(t => {
+        // Function tools are keyed by `name`. Provider tools carry both a
+        // dotted `id` (`<provider>.<tool>`) and a bare `name`; match either so
+        // an allowlist authored with the bare name keeps the tool instead of
+        // silently dropping it.
         const keep =
-          t.type === 'function' ? allowed.has(t.name) : allowed.has(t.id);
+          t.type === 'function'
+            ? allowed.has(t.name)
+            : allowed.has(t.id) || allowed.has(t.name);
         if (!keep) removed = true;
         return keep;
       });
