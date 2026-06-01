@@ -1,4 +1,5 @@
-import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import type * as ProviderUtilsModule from '@ai-sdk/provider-utils';
+import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
@@ -10,11 +11,11 @@ vi.mock('./version', () => ({
 }));
 
 vi.mock('@ai-sdk/provider-utils', async importOriginal => {
-  const mod = await importOriginal<typeof import('@ai-sdk/provider-utils')>();
+  const mod = await importOriginal<typeof ProviderUtilsModule>();
   return { ...mod, generateId: () => 'test-reasoning-id' };
 });
 
-const TEST_PROMPT: LanguageModelV3Prompt = [
+const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -57,7 +58,12 @@ describe('doGenerate', () => {
         {
           "messages": [
             {
-              "content": "Hello",
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
               "role": "user",
             },
           ],
@@ -125,6 +131,60 @@ describe('doGenerate', () => {
           },
         }
       `);
+    });
+  });
+
+  describe('top-level reasoning', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('alibaba-text');
+    });
+
+    it('should map top-level reasoning to enable_thinking true with budget', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.enable_thinking).toBe(true);
+      expect(body.thinking_budget).toBeTypeOf('number');
+      expect(body.thinking_budget).toBeGreaterThan(0);
+    });
+
+    it('should map top-level reasoning none to enable_thinking false', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.enable_thinking).toBe(false);
+      expect(body.thinking_budget).toBeUndefined();
+    });
+
+    it('should prefer providerOptions over top-level reasoning', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+        providerOptions: {
+          alibaba: {
+            enableThinking: true,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.enable_thinking).toBe(true);
+    });
+
+    it('should not set thinking when reasoning is not specified', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.enable_thinking).toBeUndefined();
+      expect(body.thinking_budget).toBeUndefined();
     });
   });
 

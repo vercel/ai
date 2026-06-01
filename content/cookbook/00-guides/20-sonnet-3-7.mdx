@@ -6,6 +6,12 @@ tags: ['getting-started']
 
 # Get started with Claude 3.7 Sonnet
 
+<Note type="warning">
+  This guide is deprecated. [Claude 3.7 Sonnet was retired on February 19,
+  2026](https://platform.claude.com/docs/en/about-claude/model-deprecations#2025-10-28-claude-sonnet-3-7-model)
+  and can no longer be used with the Anthropic API.
+</Note>
+
 With the [release of Claude 3.7 Sonnet](https://www.anthropic.com/news/claude-3-7-sonnet), there has never been a better time to start building AI applications, particularly those that require complex reasoning capabilities.
 
 The [AI SDK](/) is a powerful TypeScript toolkit for building AI applications with large language models (LLMs) like Claude 3.7 Sonnet alongside popular frameworks like React, Next.js, Vue, Svelte, Node.js, and more.
@@ -36,11 +42,11 @@ console.log(text); // text response
 The unified interface also means that you can easily switch between providers by changing just two lines of code. For example, to use Claude 3.7 Sonnet via Amazon Bedrock:
 
 ```ts
-import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { amazonBedrock } from '@ai-sdk/amazon-bedrock';
 import { generateText } from 'ai';
 
 const { reasoning, text } = await generateText({
-  model: bedrock('anthropic.claude-3-7-sonnet-20250219-v1:0'),
+  model: amazonBedrock('anthropic.claude-3-7-sonnet-20250219-v1:0'),
   prompt: 'How many people will live in the world in 2040?',
 });
 ```
@@ -86,7 +92,13 @@ Then, create a route handler for the chat endpoint:
 
 ```tsx filename="app/api/chat/route.ts"
 import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
-import { streamText, convertToModelMessages, type UIMessage } from 'ai';
+import {
+  streamText,
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  toUIMessageStream,
+  type UIMessage,
+} from 'ai';
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
@@ -101,15 +113,18 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toUIMessageStreamResponse({
-    sendReasoning: true,
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({
+      stream: result.stream,
+      sendReasoning: true,
+    }),
   });
 }
 ```
 
 <Note>
   You can forward the model's reasoning tokens to the client with
-  `sendReasoning: true` in the `toUIMessageStreamResponse` method.
+  `sendReasoning: true` in the `toUIMessageStream` helper.
 </Note>
 
 Finally, update the root page (`app/page.tsx`) to use the `useChat` hook:
@@ -178,7 +193,7 @@ Ready to dive in? Here's how you can begin:
 
 1. Explore the documentation at [ai-sdk.dev/docs](/docs) to understand the capabilities of the AI SDK.
 2. Check out practical examples at [ai-sdk.dev/examples](/examples) to see the SDK in action.
-3. Dive deeper with advanced guides on topics like Retrieval-Augmented Generation (RAG) at [ai-sdk.dev/docs/guides](/docs/guides).
+3. Dive deeper with advanced guides on topics like Retrieval-Augmented Generation (RAG) at [ai-sdk.dev/docs/guides](/cookbook/guides).
 4. Use ready-to-deploy AI templates at [vercel.com/templates?type=ai](https://vercel.com/templates?type=ai).
 
 Claude 3.7 Sonnet opens new opportunities for reasoning-intensive AI applications. Start building today and leverage the power of advanced reasoning in your AI projects.

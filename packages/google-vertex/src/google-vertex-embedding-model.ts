@@ -1,6 +1,6 @@
 import {
-  EmbeddingModelV3,
   TooManyEmbeddingValuesForCallError,
+  type EmbeddingModelV4,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -8,22 +8,39 @@ import {
   postJsonToApi,
   resolve,
   parseProviderOptions,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { googleVertexFailedResponseHandler } from './google-vertex-error';
 import {
-  GoogleVertexEmbeddingModelId,
   googleVertexEmbeddingModelOptions,
-} from './google-vertex-embedding-options';
-import { GoogleVertexConfig } from './google-vertex-config';
+  type GoogleVertexEmbeddingModelId,
+} from './google-vertex-embedding-model-options';
+import type { GoogleVertexConfig } from './google-vertex-config';
 
-export class GoogleVertexEmbeddingModel implements EmbeddingModelV3 {
-  readonly specificationVersion = 'v3';
+export class GoogleVertexEmbeddingModel implements EmbeddingModelV4 {
+  readonly specificationVersion = 'v4';
   readonly modelId: GoogleVertexEmbeddingModelId;
   readonly maxEmbeddingsPerCall = 2048;
   readonly supportsParallelCalls = true;
 
   private readonly config: GoogleVertexConfig;
+
+  static [WORKFLOW_SERIALIZE](model: GoogleVertexEmbeddingModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: GoogleVertexConfig;
+  }) {
+    return new GoogleVertexEmbeddingModel(options.modelId, options.config);
+  }
 
   get provider(): string {
     return this.config.provider;
@@ -42,14 +59,22 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV3 {
     headers,
     abortSignal,
     providerOptions,
-  }: Parameters<EmbeddingModelV3['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV3['doEmbed']>>
+  }: Parameters<EmbeddingModelV4['doEmbed']>[0]): Promise<
+    Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>
   > {
     let googleOptions = await parseProviderOptions({
-      provider: 'vertex',
+      provider: 'googleVertex',
       providerOptions,
       schema: googleVertexEmbeddingModelOptions,
     });
+
+    if (googleOptions == null) {
+      googleOptions = await parseProviderOptions({
+        provider: 'vertex',
+        providerOptions,
+        schema: googleVertexEmbeddingModelOptions,
+      });
+    }
 
     if (googleOptions == null) {
       googleOptions = await parseProviderOptions({
@@ -71,7 +96,7 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV3 {
     }
 
     const mergedHeaders = combineHeaders(
-      await resolve(this.config.headers),
+      this.config.headers ? await resolve(this.config.headers) : undefined,
       headers,
     );
 

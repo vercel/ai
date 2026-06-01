@@ -18,6 +18,7 @@ const doneStatusResponse = {
     respect_moderation: true,
   },
   model: 'grok-imagine-video',
+  progress: 100,
 };
 
 const defaultOptions = {
@@ -63,6 +64,12 @@ describe('XaiVideoModel', () => {
         body: createVideoResponse,
       },
     },
+    [`${TEST_BASE_URL}/videos/extensions`]: {
+      response: {
+        type: 'json-value',
+        body: createVideoResponse,
+      },
+    },
     [`${TEST_BASE_URL}/videos/req-123`]: {
       response: {
         type: 'json-value',
@@ -77,7 +84,7 @@ describe('XaiVideoModel', () => {
 
       expect(model.provider).toBe('xai.video');
       expect(model.modelId).toBe('grok-imagine-video');
-      expect(model.specificationVersion).toBe('v3');
+      expect(model.specificationVersion).toBe('v4');
       expect(model.maxVideosPerCall).toBe(1);
     });
   });
@@ -147,7 +154,7 @@ describe('XaiVideoModel', () => {
       };
     });
 
-    it('should use edits endpoint for video editing', async () => {
+    it('should use edits endpoint for video editing (legacy videoUrl without mode)', async () => {
       const model = createModel();
 
       await model.doStart({
@@ -161,6 +168,50 @@ describe('XaiVideoModel', () => {
 
       expect(server.calls[0].requestMethod).toBe('POST');
       expect(server.calls[0].requestUrl).toBe(`${TEST_BASE_URL}/videos/edits`);
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        video: { url: 'https://example.com/source-video.mp4' },
+      });
+    });
+
+    it('should use edits endpoint for video editing with explicit mode', async () => {
+      const model = createModel();
+
+      await model.doStart({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            mode: 'edit-video',
+            videoUrl: 'https://example.com/source-video.mp4',
+          },
+        },
+      });
+
+      expect(server.calls[0].requestMethod).toBe('POST');
+      expect(server.calls[0].requestUrl).toBe(`${TEST_BASE_URL}/videos/edits`);
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        video: { url: 'https://example.com/source-video.mp4' },
+      });
+    });
+
+    it('should use extensions endpoint for extend-video mode', async () => {
+      const model = createModel();
+
+      await model.doStart({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            mode: 'extend-video',
+            videoUrl: 'https://example.com/source-video.mp4',
+          },
+        },
+      });
+
+      expect(server.calls[0].requestMethod).toBe('POST');
+      expect(server.calls[0].requestUrl).toBe(
+        `${TEST_BASE_URL}/videos/extensions`,
+      );
       const body = await server.calls[0].requestBodyJson;
       expect(body).toMatchObject({
         video: { url: 'https://example.com/source-video.mp4' },
@@ -241,6 +292,15 @@ describe('XaiVideoModel', () => {
       expect(body).toMatchObject({ resolution: '480p' });
     });
 
+    it('should map SDK resolution 640x480 to 480p', async () => {
+      const model = createModel();
+
+      await model.doStart({ ...defaultOptions, resolution: '640x480' });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({ resolution: '480p' });
+    });
+
     it('should prefer provider option resolution over SDK resolution', async () => {
       const model = createModel();
 
@@ -271,6 +331,21 @@ describe('XaiVideoModel', () => {
           type: 'unsupported',
           feature: 'resolution',
         }),
+      );
+    });
+
+    it('should warn and omit body resolution for completely unknown format', async () => {
+      const model = createModel();
+
+      const result = await model.doStart({
+        ...defaultOptions,
+        resolution: '3840x2160',
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('resolution');
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({ type: 'unsupported', feature: 'resolution' }),
       );
     });
 
@@ -336,6 +411,7 @@ describe('XaiVideoModel', () => {
         duration: 10,
         providerOptions: {
           xai: {
+            mode: 'edit-video',
             videoUrl: 'https://example.com/source-video.mp4',
           },
         },
@@ -357,6 +433,7 @@ describe('XaiVideoModel', () => {
         aspectRatio: '16:9',
         providerOptions: {
           xai: {
+            mode: 'edit-video',
             videoUrl: 'https://example.com/source-video.mp4',
           },
         },
@@ -378,6 +455,7 @@ describe('XaiVideoModel', () => {
         resolution: '1280x720',
         providerOptions: {
           xai: {
+            mode: 'edit-video',
             videoUrl: 'https://example.com/source-video.mp4',
           },
         },
@@ -446,6 +524,7 @@ describe('XaiVideoModel', () => {
         resolution: '1280x720',
         providerOptions: {
           xai: {
+            mode: 'edit-video',
             videoUrl: 'https://example.com/source-video.mp4',
           },
         },
@@ -495,6 +574,205 @@ describe('XaiVideoModel', () => {
         }),
       );
     });
+
+    it('should allow duration in extension mode', async () => {
+      const model = createModel();
+
+      await model.doStart({
+        ...defaultOptions,
+        duration: 6,
+        providerOptions: {
+          xai: {
+            mode: 'extend-video',
+            videoUrl: 'https://example.com/source-video.mp4',
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({ duration: 6 });
+    });
+
+    it('should warn about aspectRatio in extension mode', async () => {
+      const model = createModel();
+
+      const result = await model.doStart({
+        ...defaultOptions,
+        aspectRatio: '16:9',
+        providerOptions: {
+          xai: {
+            mode: 'extend-video',
+            videoUrl: 'https://example.com/source-video.mp4',
+          },
+        },
+      });
+
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'aspectRatio',
+        }),
+      );
+    });
+
+    it('should warn about resolution in extension mode', async () => {
+      const model = createModel();
+
+      const result = await model.doStart({
+        ...defaultOptions,
+        resolution: '1280x720',
+        providerOptions: {
+          xai: {
+            mode: 'extend-video',
+            videoUrl: 'https://example.com/source-video.mp4',
+          },
+        },
+      });
+
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'resolution',
+        }),
+      );
+    });
+
+    it('should omit aspect_ratio and resolution from body in extension mode', async () => {
+      const model = createModel();
+
+      await model.doStart({
+        ...defaultOptions,
+        aspectRatio: '16:9',
+        resolution: '1280x720',
+        providerOptions: {
+          xai: {
+            mode: 'extend-video',
+            videoUrl: 'https://example.com/source-video.mp4',
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('aspect_ratio');
+      expect(body).not.toHaveProperty('resolution');
+    });
+
+    it('should not warn about duration in extension mode', async () => {
+      const model = createModel();
+
+      const result = await model.doStart({
+        ...defaultOptions,
+        duration: 6,
+        providerOptions: {
+          xai: {
+            mode: 'extend-video',
+            videoUrl: 'https://example.com/source-video.mp4',
+          },
+        },
+      });
+
+      expect(result.warnings).not.toContainEqual(
+        expect.objectContaining({ feature: 'duration' }),
+      );
+    });
+
+    it('should warn about provider-level resolution in extension mode', async () => {
+      const model = createModel();
+
+      const result = await model.doStart({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            mode: 'extend-video',
+            videoUrl: 'https://example.com/source-video.mp4',
+            resolution: '720p',
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('resolution');
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'resolution',
+        }),
+      );
+    });
+
+    it('should send reference_images array to /videos/generations with explicit mode', async () => {
+      const model = createModel();
+
+      await model.doStart({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            mode: 'reference-to-video',
+            referenceImageUrls: [
+              'https://example.com/ref1.jpg',
+              'https://example.com/ref2.jpg',
+            ],
+          },
+        },
+      });
+
+      expect(server.calls[0].requestMethod).toBe('POST');
+      expect(server.calls[0].requestUrl).toBe(
+        `${TEST_BASE_URL}/videos/generations`,
+      );
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        reference_images: [
+          { url: 'https://example.com/ref1.jpg' },
+          { url: 'https://example.com/ref2.jpg' },
+        ],
+      });
+    });
+
+    it('should fallback to reference-to-video mode when referenceImageUrls is set without mode', async () => {
+      const model = createModel();
+
+      await model.doStart({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            referenceImageUrls: ['https://example.com/ref1.jpg'],
+          },
+        },
+      });
+
+      expect(server.calls[0].requestUrl).toBe(
+        `${TEST_BASE_URL}/videos/generations`,
+      );
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        reference_images: [{ url: 'https://example.com/ref1.jpg' }],
+      });
+    });
+
+    it('should allow duration and aspectRatio with reference images', async () => {
+      const model = createModel();
+
+      const result = await model.doStart({
+        ...defaultOptions,
+        duration: 8,
+        aspectRatio: '16:9',
+        providerOptions: {
+          xai: {
+            referenceImageUrls: ['https://example.com/ref.jpg'],
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({ duration: 8, aspect_ratio: '16:9' });
+      expect(result.warnings).not.toContainEqual(
+        expect.objectContaining({ feature: 'duration' }),
+      );
+      expect(result.warnings).not.toContainEqual(
+        expect.objectContaining({ feature: 'aspectRatio' }),
+      );
+    });
   });
 
   describe('doStatus', () => {
@@ -518,6 +796,7 @@ describe('XaiVideoModel', () => {
             requestId: 'req-123',
             videoUrl: 'https://vidgen.x.ai/output/video-001.mp4',
             duration: 5,
+            progress: 100,
           },
         });
       }
@@ -579,6 +858,37 @@ describe('XaiVideoModel', () => {
       };
     });
 
+    it('should return error status on failed', async () => {
+      const testDate = new Date('2024-01-01T00:00:00Z');
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: {
+          status: 'failed',
+          model: 'grok-imagine-video',
+          progress: 0,
+        },
+      };
+
+      const model = createModel({
+        currentDate: () => testDate,
+      });
+
+      const result = await model.doStatus({
+        operation: { requestId: 'req-123' },
+      });
+
+      expect(result.status).toBe('error');
+      if (result.status === 'error') {
+        expect(result.error).toBe('Video generation failed.');
+      }
+
+      // Reset
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: doneStatusResponse,
+      };
+    });
+
     it('should throw when video URL missing on done', async () => {
       server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
         type: 'json-value',
@@ -596,6 +906,31 @@ describe('XaiVideoModel', () => {
       ).rejects.toThrow('no video URL');
 
       // Reset
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: doneStatusResponse,
+      };
+    });
+
+    it('should throw when respect_moderation is false', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: {
+          status: 'done',
+          video: {
+            url: '',
+            respect_moderation: false,
+          },
+          model: 'grok-imagine-video',
+        },
+      };
+
+      const model = createModel();
+
+      await expect(
+        model.doStatus({ operation: { requestId: 'req-123' } }),
+      ).rejects.toThrow('content policy violation');
+
       server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
         type: 'json-value',
         body: doneStatusResponse,
@@ -637,6 +972,100 @@ describe('XaiVideoModel', () => {
         authorization: 'Bearer custom-token',
         'x-request-header': 'request-value',
       });
+    });
+
+    it('should include costInUsdTicks when returned in usage', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: {
+          ...doneStatusResponse,
+          usage: { cost_in_usd_ticks: 4000000000 },
+        },
+      };
+
+      const model = createModel();
+      const result = await model.doStatus({
+        operation: { requestId: 'req-123' },
+      });
+
+      expect(result.status).toBe('completed');
+      if (result.status === 'completed') {
+        expect(result.providerMetadata).toStrictEqual({
+          xai: {
+            requestId: 'req-123',
+            videoUrl: 'https://vidgen.x.ai/output/video-001.mp4',
+            duration: 5,
+            progress: 100,
+            costInUsdTicks: 4000000000,
+          },
+        });
+      }
+
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: doneStatusResponse,
+      };
+    });
+
+    it('should omit duration from metadata when absent in response', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: {
+          status: 'done',
+          video: {
+            url: 'https://vidgen.x.ai/output/video-001.mp4',
+            respect_moderation: true,
+            // duration intentionally absent
+          },
+          model: 'grok-imagine-video',
+        },
+      };
+
+      const model = createModel();
+      const result = await model.doStatus({
+        operation: { requestId: 'req-123' },
+      });
+
+      if (result.status === 'completed') {
+        expect(result.providerMetadata?.xai).not.toHaveProperty('duration');
+      }
+
+      // Reset
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: doneStatusResponse,
+      };
+    });
+
+    it('should omit progress from metadata when absent in response', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: {
+          status: 'done',
+          video: {
+            url: 'https://vidgen.x.ai/output/video-001.mp4',
+            duration: 5,
+            respect_moderation: true,
+          },
+          model: 'grok-imagine-video',
+          // progress intentionally absent
+        },
+      };
+
+      const model = createModel();
+      const result = await model.doStatus({
+        operation: { requestId: 'req-123' },
+      });
+
+      if (result.status === 'completed') {
+        expect(result.providerMetadata?.xai).not.toHaveProperty('progress');
+      }
+
+      // Reset
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: doneStatusResponse,
+      };
     });
   });
 });

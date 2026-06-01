@@ -51,6 +51,21 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should default whisper-1 to verbose_json response format', async () => {
+    prepareJsonFixtureResponse('openai-transcription');
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    expect(await server.calls[0].requestBodyMultipart).toMatchObject({
+      model: 'whisper-1',
+      response_format: 'verbose_json',
+    });
+    expect(result.durationInSeconds).toBe(36.709999084472656);
+  });
+
   it('should pass headers', async () => {
     prepareJsonFixtureResponse('openai-transcription');
 
@@ -167,13 +182,11 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBodyMultipart).toMatchInlineSnapshot(`
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body!.file).toBeInstanceOf(File);
+    const { file: _, ...rest } = body!;
+    expect(rest).toMatchInlineSnapshot(`
       {
-        "file": File {
-          Symbol(kHandle): Blob {},
-          Symbol(kLength): 40169,
-          Symbol(kType): "audio/wav",
-        },
         "model": "whisper-1",
         "response_format": "verbose_json",
         "temperature": "0",
@@ -196,13 +209,11 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBodyMultipart).toMatchInlineSnapshot(`
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body!.file).toBeInstanceOf(File);
+    const { file: _, ...rest } = body!;
+    expect(rest).toMatchInlineSnapshot(`
       {
-        "file": File {
-          Symbol(kHandle): Blob {},
-          Symbol(kLength): 40169,
-          Symbol(kType): "audio/wav",
-        },
         "model": "gpt-4o-transcribe",
         "response_format": "json",
         "temperature": "0",
@@ -224,13 +235,11 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBodyMultipart).toMatchInlineSnapshot(`
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body!.file).toBeInstanceOf(File);
+    const { file: _, ...rest } = body!;
+    expect(rest).toMatchInlineSnapshot(`
       {
-        "file": File {
-          Symbol(kHandle): Blob {},
-          Symbol(kLength): 40169,
-          Symbol(kType): "audio/wav",
-        },
         "model": "whisper-1",
         "response_format": "verbose_json",
         "temperature": "0",

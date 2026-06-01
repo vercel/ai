@@ -1,4 +1,4 @@
-import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
   mockId,
@@ -12,7 +12,7 @@ vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
 }));
 
-const TEST_PROMPT: LanguageModelV3Prompt = [
+const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -153,6 +153,28 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should forward stopSequences as the Mistral stop parameter and not warn', async () => {
+    prepareJsonFixtureResponse('mistral-text');
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      stopSequences: ['foo', 'bar'],
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'mistral-small-latest',
+      messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      stop: ['foo', 'bar'],
+    });
+
+    expect(result.warnings).not.toContainEqual(
+      expect.objectContaining({
+        type: 'unsupported',
+        feature: 'stopSequences',
+      }),
+    );
+  });
+
   it('should pass headers', async () => {
     prepareJsonFixtureResponse('mistral-text');
 
@@ -276,8 +298,10 @@ describe('doGenerate', () => {
           ],
           "model": "mistral-small-latest",
           "random_seed": undefined,
+          "reasoning_effort": undefined,
           "response_format": undefined,
           "safe_prompt": undefined,
+          "stop": undefined,
           "temperature": undefined,
           "tool_choice": undefined,
           "tools": undefined,
@@ -320,10 +344,12 @@ describe('doGenerate', () => {
           ],
           "model": "mistral-small-latest",
           "random_seed": undefined,
+          "reasoning_effort": undefined,
           "response_format": {
             "type": "json_object",
           },
           "safe_prompt": undefined,
+          "stop": undefined,
           "temperature": undefined,
           "tool_choice": undefined,
           "tools": undefined,
@@ -368,6 +394,7 @@ describe('doGenerate', () => {
           ],
           "model": "mistral-small-latest",
           "random_seed": undefined,
+          "reasoning_effort": undefined,
           "response_format": {
             "json_schema": {
               "description": undefined,
@@ -385,6 +412,7 @@ describe('doGenerate', () => {
             "type": "json_schema",
           },
           "safe_prompt": undefined,
+          "stop": undefined,
           "temperature": undefined,
           "tool_choice": undefined,
           "tools": undefined,
@@ -684,6 +712,129 @@ describe('doGenerate', () => {
       ]
     `);
   });
+
+  describe('warnings', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('mistral-text');
+    });
+
+    it('should warn about unsupported reasoning for non-supporting models', async () => {
+      const unsupportedModel = provider.chat('mistral-large-latest');
+      const result = await unsupportedModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'medium',
+      });
+
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'reasoning',
+        }),
+      );
+    });
+
+    it('should emit compatibility warning for reasoning medium on supporting model', async () => {
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'medium',
+      });
+
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'compatibility',
+          feature: 'reasoning',
+        }),
+      );
+    });
+
+    it('should not warn for reasoning high on supporting model', async () => {
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+      });
+
+      expect(result.warnings).not.toContainEqual(
+        expect.objectContaining({
+          feature: 'reasoning',
+        }),
+      );
+    });
+  });
+
+  describe('reasoning_effort', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('mistral-text');
+    });
+
+    it('should send reasoning_effort high for reasoning high', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        reasoning_effort: 'high',
+      });
+    });
+
+    it('should send reasoning_effort high for reasoning medium', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'medium',
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        reasoning_effort: 'high',
+      });
+    });
+
+    it('should send reasoning_effort high for reasoning minimal', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'minimal',
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        reasoning_effort: 'high',
+      });
+    });
+
+    it('should send reasoning_effort none for reasoning none', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        reasoning_effort: 'none',
+      });
+    });
+
+    it('should allow provider option to override reasoning', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+        providerOptions: {
+          mistral: { reasoningEffort: 'none' },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        reasoning_effort: 'none',
+      });
+    });
+
+    it('should not send reasoning_effort for non-supporting models', async () => {
+      const unsupportedModel = provider.chat('mistral-large-latest');
+      await unsupportedModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('reasoning_effort');
+    });
+  });
 });
 
 describe('doStream', () => {
@@ -840,8 +991,10 @@ describe('doStream', () => {
           ],
           "model": "mistral-small-latest",
           "random_seed": undefined,
+          "reasoning_effort": undefined,
           "response_format": undefined,
           "safe_prompt": undefined,
+          "stop": undefined,
           "stream": true,
           "temperature": undefined,
           "tool_choice": undefined,
@@ -1261,7 +1414,7 @@ describe('doStream', () => {
 });
 
 describe('tool result format support', () => {
-  it('should handle new LanguageModelV3ToolResultOutput format', async () => {
+  it('should handle new LanguageModelV4ToolResultOutput format', async () => {
     server.urls[CHAT_COMPLETIONS_URL].response = {
       type: 'json-value',
       body: {

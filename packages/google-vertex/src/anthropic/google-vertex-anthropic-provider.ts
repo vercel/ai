@@ -1,25 +1,39 @@
 import {
-  LanguageModelV3,
   NoSuchModelError,
-  ProviderV3,
+  type LanguageModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
-  Resolvable,
   loadOptionalSetting,
   withoutTrailingSlash,
+  type FetchFunction,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
 import {
   anthropicTools,
-  AnthropicMessagesLanguageModel,
+  AnthropicLanguageModel,
 } from '@ai-sdk/anthropic/internal';
-import { GoogleVertexAnthropicMessagesModelId } from './google-vertex-anthropic-messages-options';
+import type { GoogleVertexAnthropicModelId } from './google-vertex-anthropic-options';
+
+type GoogleVertexAnthropicTools = Pick<
+  typeof anthropicTools,
+  | 'bash_20241022'
+  | 'bash_20250124'
+  | 'textEditor_20241022'
+  | 'textEditor_20250124'
+  | 'textEditor_20250429'
+  | 'textEditor_20250728'
+  | 'computer_20241022'
+  | 'webSearch_20250305'
+  | 'toolSearchRegex_20251119'
+  | 'toolSearchBm25_20251119'
+>;
 
 /**
  * Tools supported by Google Vertex Anthropic.
  * This is a subset of the full Anthropic tools - only these are recognized by the Vertex API.
  */
-export const vertexAnthropicTools = {
+export const googleVertexAnthropicTools: GoogleVertexAnthropicTools = {
   /**
    * The bash tool enables Claude to execute shell commands in a persistent bash session,
    * allowing system operations, script execution, and command-line automation.
@@ -78,26 +92,49 @@ export const vertexAnthropicTools = {
    * Creates a web search tool that gives Claude direct access to real-time web content.
    */
   webSearch_20250305: anthropicTools.webSearch_20250305,
+
+  /**
+   * Creates a tool search tool that uses regex patterns to find tools.
+   *
+   * The tool search tool enables Claude to work with hundreds or thousands of tools
+   * by dynamically discovering and loading them on-demand.
+   *
+   * Use `providerOptions: { anthropic: { deferLoading: true } }` on other tools
+   * to mark them for deferred loading.
+   */
+  toolSearchRegex_20251119: anthropicTools.toolSearchRegex_20251119,
+
+  /**
+   * Creates a tool search tool that uses BM25 (natural language) to find tools.
+   *
+   * The tool search tool enables Claude to work with hundreds or thousands of tools
+   * by dynamically discovering and loading them on-demand.
+   *
+   * Use `providerOptions: { anthropic: { deferLoading: true } }` on other tools
+   * to mark them for deferred loading.
+   */
+  toolSearchBm25_20251119: anthropicTools.toolSearchBm25_20251119,
 };
-export interface GoogleVertexAnthropicProvider extends ProviderV3 {
+export interface GoogleVertexAnthropicProvider extends ProviderV4 {
   /**
    * Creates a model for text generation.
    */
-  (modelId: GoogleVertexAnthropicMessagesModelId): LanguageModelV3;
+  (modelId: GoogleVertexAnthropicModelId): LanguageModelV4;
 
   /**
    * Creates a model for text generation.
    */
-  languageModel(modelId: GoogleVertexAnthropicMessagesModelId): LanguageModelV3;
+  languageModel(modelId: GoogleVertexAnthropicModelId): LanguageModelV4;
 
   /**
    * Anthropic tools supported by Google Vertex.
    * Note: Only a subset of Anthropic tools are available on Vertex.
    * Supported tools: bash_20241022, bash_20250124, textEditor_20241022,
    * textEditor_20250124, textEditor_20250429, textEditor_20250728,
-   * computer_20241022, webSearch_20250305
+   * computer_20241022, webSearch_20250305, toolSearchRegex_20251119,
+   * toolSearchBm25_20251119
    */
-  tools: typeof vertexAnthropicTools;
+  tools: typeof googleVertexAnthropicTools;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -137,7 +174,7 @@ export interface GoogleVertexAnthropicProviderSettings {
 /**
  * Create a Google Vertex Anthropic provider instance.
  */
-export function createVertexAnthropic(
+export function createGoogleVertexAnthropic(
   options: GoogleVertexAnthropicProviderSettings = {},
 ): GoogleVertexAnthropicProvider {
   const getBaseURL = () => {
@@ -156,9 +193,9 @@ export function createVertexAnthropic(
     );
   };
 
-  const createChatModel = (modelId: GoogleVertexAnthropicMessagesModelId) =>
-    new AnthropicMessagesLanguageModel(modelId, {
-      provider: 'vertex.anthropic.messages',
+  const createChatModel = (modelId: GoogleVertexAnthropicModelId) =>
+    new AnthropicLanguageModel(modelId, {
+      provider: 'googleVertex.anthropic.messages',
       baseURL: getBaseURL(),
       headers: options.headers ?? {},
       fetch: options.fetch,
@@ -169,7 +206,7 @@ export function createVertexAnthropic(
         }`,
       transformRequestBody: args => {
         // Remove model from args and add anthropic version
-        const { model, ...rest } = args;
+        const { model: _model, ...rest } = args;
         return {
           ...rest,
           anthropic_version: 'vertex-2023-10-16',
@@ -179,9 +216,11 @@ export function createVertexAnthropic(
       supportedUrls: () => ({}),
       // force the use of JSON tool fallback for structured outputs since beta header isn't supported
       supportsNativeStructuredOutput: false,
+      // Vertex Anthropic doesn't support strict mode on tool definitions.
+      supportsStrictTools: false,
     });
 
-  const provider = function (modelId: GoogleVertexAnthropicMessagesModelId) {
+  const provider = function (modelId: GoogleVertexAnthropicModelId) {
     if (new.target) {
       throw new Error(
         'The Anthropic model function cannot be called with the new keyword.',
@@ -191,7 +230,7 @@ export function createVertexAnthropic(
     return createChatModel(modelId);
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.messages = createChatModel;
@@ -204,7 +243,7 @@ export function createVertexAnthropic(
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
 
-  provider.tools = vertexAnthropicTools;
+  provider.tools = googleVertexAnthropicTools;
 
   return provider;
 }

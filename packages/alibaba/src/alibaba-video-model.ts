@@ -1,65 +1,29 @@
 import {
   AISDKError,
-  type Experimental_VideoModelV3 as VideoModelV3,
-  type Experimental_VideoModelV3OperationStartResult as VideoModelV3OperationStartResult,
-  type Experimental_VideoModelV3OperationStatusResult as VideoModelV3OperationStatusResult,
-  type SharedV3ProviderMetadata,
-  type SharedV3Warning,
+  type Experimental_VideoModelV4 as VideoModelV4,
+  type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
+  type Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
+  type SharedV4ProviderMetadata,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertUint8ArrayToBase64,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
-  type FetchFunction,
   getFromApi,
-  lazySchema,
   parseProviderOptions,
   postJsonToApi,
-  type Resolvable,
   resolve,
-  zodSchema,
+  type FetchFunction,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import {
+  alibabaVideoModelOptionsSchema,
+  type AlibabaVideoModelOptions,
+} from './alibaba-video-model-options';
 import type { AlibabaVideoModelId } from './alibaba-video-settings';
-
-export type AlibabaVideoModelOptions = {
-  /** Negative prompt to specify what to avoid (max 500 chars). */
-  negativePrompt?: string | null;
-  /** URL to audio file for audio-video sync (WAV/MP3, 3-30s, max 15MB). */
-  audioUrl?: string | null;
-  /** Enable prompt extension/rewriting for better generation. Defaults to true. */
-  promptExtend?: boolean | null;
-  /** Shot type: 'single' for single-shot or 'multi' for multi-shot narrative. */
-  shotType?: 'single' | 'multi' | null;
-  /** Whether to add watermark to generated video. Defaults to false. */
-  watermark?: boolean | null;
-  /** Enable audio generation (for I2V/R2V models). */
-  audio?: boolean | null;
-  /**
-   * Reference URLs for reference-to-video mode.
-   * Array of URLs to images (0-5) and/or videos (0-3), max 5 total.
-   * Use character identifiers (character1, character2) in prompts to reference them.
-   */
-  referenceUrls?: string[] | null;
-  [key: string]: unknown;
-};
-
-const alibabaVideoModelOptionsSchema = lazySchema(() =>
-  zodSchema(
-    z
-      .object({
-        negativePrompt: z.string().nullish(),
-        audioUrl: z.string().nullish(),
-        promptExtend: z.boolean().nullish(),
-        shotType: z.enum(['single', 'multi']).nullish(),
-        watermark: z.boolean().nullish(),
-        audio: z.boolean().nullish(),
-        referenceUrls: z.array(z.string()).nullish(),
-      })
-      .passthrough(),
-  ),
-);
 
 interface AlibabaVideoModelConfig {
   provider: string;
@@ -129,8 +93,8 @@ function detectMode(modelId: string): 't2v' | 'i2v' | 'r2v' {
   return 't2v';
 }
 
-export class AlibabaVideoModel implements VideoModelV3 {
-  readonly specificationVersion = 'v3';
+export class AlibabaVideoModel implements VideoModelV4 {
+  readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1;
 
   get provider(): string {
@@ -143,14 +107,14 @@ export class AlibabaVideoModel implements VideoModelV3 {
   ) {}
 
   private async buildRequest(
-    options: Parameters<NonNullable<VideoModelV3['doStart']>>[0],
+    options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
   ): Promise<{
     input: Record<string, unknown>;
     parameters: Record<string, unknown>;
-    warnings: SharedV3Warning[];
+    warnings: SharedV4Warning[];
     alibabaOptions: AlibabaVideoModelOptions | undefined;
   }> {
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
     const mode = detectMode(this.modelId);
 
     const alibabaOptions = (await parseProviderOptions({
@@ -276,13 +240,13 @@ export class AlibabaVideoModel implements VideoModelV3 {
   private buildCompletedResult(
     statusResponse: AlibabaVideoTaskStatusResponse,
     responseHeaders: Record<string, string> | undefined,
-    warnings: SharedV3Warning[],
+    warnings: SharedV4Warning[],
     currentDate: Date,
   ): {
     status: 'completed';
     videos: Array<{ type: 'url'; url: string; mediaType: string }>;
-    warnings: SharedV3Warning[];
-    providerMetadata: SharedV3ProviderMetadata;
+    warnings: SharedV4Warning[];
+    providerMetadata: SharedV4ProviderMetadata;
     response: {
       timestamp: Date;
       modelId: string;
@@ -338,8 +302,8 @@ export class AlibabaVideoModel implements VideoModelV3 {
   }
 
   async doStart(
-    options: Parameters<NonNullable<VideoModelV3['doStart']>>[0],
-  ): Promise<VideoModelV3OperationStartResult> {
+    options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
+  ): Promise<VideoModelV4OperationStartResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { input, parameters, warnings } = await this.buildRequest(options);
 
@@ -385,8 +349,8 @@ export class AlibabaVideoModel implements VideoModelV3 {
   }
 
   async doStatus(
-    options: Parameters<NonNullable<VideoModelV3['doStatus']>>[0],
-  ): Promise<VideoModelV3OperationStatusResult> {
+    options: Parameters<NonNullable<VideoModelV4['doStatus']>>[0],
+  ): Promise<VideoModelV4OperationStatusResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { taskId } = options.operation as { taskId: string };
 

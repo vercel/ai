@@ -1,35 +1,28 @@
-import { Experimental_VideoModelV3 as VideoModelV3 } from '@ai-sdk/provider';
+import type { Experimental_VideoModelV3 } from '@ai-sdk/provider';
 import { notImplemented } from './not-implemented';
 
-export class MockVideoModelV3 implements VideoModelV3 {
+export class MockVideoModelV3 implements Experimental_VideoModelV3 {
   readonly specificationVersion = 'v3';
-  readonly provider: VideoModelV3['provider'];
-  readonly modelId: VideoModelV3['modelId'];
-  readonly maxVideosPerCall: VideoModelV3['maxVideosPerCall'];
+  readonly provider: Experimental_VideoModelV3['provider'];
+  readonly modelId: Experimental_VideoModelV3['modelId'];
+  readonly maxVideosPerCall: Experimental_VideoModelV3['maxVideosPerCall'];
 
-  doGenerate: VideoModelV3['doGenerate'];
-  handleWebhookOption: VideoModelV3['handleWebhookOption'];
-  doStart: VideoModelV3['doStart'];
-  doStatus: VideoModelV3['doStatus'];
+  doGenerate: Experimental_VideoModelV3['doGenerate'];
 
-  constructor(
-    options: {
-      provider?: VideoModelV3['provider'];
-      modelId?: VideoModelV3['modelId'];
-      maxVideosPerCall?: VideoModelV3['maxVideosPerCall'];
-      doGenerate?: VideoModelV3['doGenerate'];
-      handleWebhookOption?: VideoModelV3['handleWebhookOption'];
-      doStart?: VideoModelV3['doStart'];
-      doStatus?: VideoModelV3['doStatus'];
-    } = {},
-  ) {
-    this.provider = options.provider ?? 'mock-provider';
-    this.modelId = options.modelId ?? 'mock-model-id';
-    this.maxVideosPerCall = options.maxVideosPerCall ?? 1;
-    this.doGenerate =
-      'doGenerate' in options ? options.doGenerate : notImplemented;
-    this.handleWebhookOption = options.handleWebhookOption;
-    this.doStart = options.doStart;
-    this.doStatus = options.doStatus;
+  constructor({
+    provider = 'mock-provider',
+    modelId = 'mock-model-id',
+    maxVideosPerCall = 1,
+    doGenerate = notImplemented,
+  }: {
+    provider?: Experimental_VideoModelV3['provider'];
+    modelId?: Experimental_VideoModelV3['modelId'];
+    maxVideosPerCall?: Experimental_VideoModelV3['maxVideosPerCall'];
+    doGenerate?: Experimental_VideoModelV3['doGenerate'];
+  } = {}) {
+    this.provider = provider;
+    this.modelId = modelId;
+    this.maxVideosPerCall = maxVideosPerCall;
+    this.doGenerate = doGenerate;
   }
 }

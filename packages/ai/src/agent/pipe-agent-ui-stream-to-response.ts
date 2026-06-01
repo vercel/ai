@@ -1,14 +1,20 @@
-import { ServerResponse } from 'node:http';
-import { StreamTextTransform, UIMessageStreamOptions } from '../generate-text';
-import { Output } from '../generate-text/output';
-import { ToolSet } from '../generate-text/tool-set';
-import { TimeoutConfiguration } from '../prompt/call-settings';
+import type {
+  Arrayable,
+  Context,
+  Experimental_Sandbox as Sandbox,
+  ToolSet,
+} from '@ai-sdk/provider-utils';
+import type { ServerResponse } from 'node:http';
+import type { GenerateTextOnStepFinishCallback } from '../generate-text/generate-text-events';
+import type { Output } from '../generate-text/output';
+import type { StreamTextTransform } from '../generate-text/stream-text';
+import type { UIMessageStreamOptions } from '../generate-text/stream-text-result';
+import type { TimeoutConfiguration } from '../prompt/request-options';
 import { pipeUIMessageStreamToResponse } from '../ui-message-stream';
-import { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
-import { InferUITools, UIMessage } from '../ui/ui-messages';
-import { Agent } from './agent';
+import type { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
+import type { InferUITools, UIMessage } from '../ui/ui-messages';
+import type { Agent } from './agent';
 import { createAgentUIStream } from './create-agent-ui-stream';
-import { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-on-step-finish-callback';
 
 /**
  * Pipes the agent UI message stream to a Node.js ServerResponse object.
@@ -18,6 +24,7 @@ import { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-on-step-fin
  * @param uiMessages - The input UI messages.
  * @param abortSignal - Abort signal. Optional.
  * @param timeout - Timeout in milliseconds. Optional.
+ * @param experimental_sandbox - The sandbox environment that is passed through to tool execution. Optional.
  * @param options - The options for the agent. Optional.
  * @param experimental_transform - Stream transformations. Optional.
  * @param onStepFinish - Callback that is called when each step is finished. Optional.
@@ -29,6 +36,7 @@ import { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-on-step-fin
 export async function pipeAgentUIStreamToResponse<
   CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
+  RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = never,
   MESSAGE_METADATA = unknown,
 >({
@@ -40,15 +48,14 @@ export async function pipeAgentUIStreamToResponse<
   ...options
 }: {
   response: ServerResponse;
-  agent: Agent<CALL_OPTIONS, TOOLS, OUTPUT>;
+  agent: Agent<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT, OUTPUT>;
   uiMessages: unknown[];
   abortSignal?: AbortSignal;
-  timeout?: TimeoutConfiguration;
+  timeout?: TimeoutConfiguration<TOOLS>;
+  experimental_sandbox?: Sandbox;
   options?: CALL_OPTIONS;
-  experimental_transform?:
-    | StreamTextTransform<TOOLS>
-    | Array<StreamTextTransform<TOOLS>>;
-  onStepFinish?: ToolLoopAgentOnStepFinishCallback<TOOLS>;
+  experimental_transform?: Arrayable<StreamTextTransform<TOOLS>>;
+  onStepFinish?: GenerateTextOnStepFinishCallback<TOOLS>;
 } & UIMessageStreamResponseInit &
   UIMessageStreamOptions<
     UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>

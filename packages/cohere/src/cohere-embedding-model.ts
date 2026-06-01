@@ -1,36 +1,53 @@
 import {
-  EmbeddingModelV3,
   TooManyEmbeddingValuesForCallError,
+  type EmbeddingModelV4,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
-  FetchFunction,
   parseProviderOptions,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
-  CohereEmbeddingModelId,
   cohereEmbeddingModelOptions,
-} from './cohere-embedding-options';
+  type CohereEmbeddingModelId,
+} from './cohere-embedding-model-options';
 import { cohereFailedResponseHandler } from './cohere-error';
 
 type CohereEmbeddingConfig = {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
 };
 
-export class CohereEmbeddingModel implements EmbeddingModelV3 {
-  readonly specificationVersion = 'v3';
+export class CohereEmbeddingModel implements EmbeddingModelV4 {
+  readonly specificationVersion = 'v4';
   readonly modelId: CohereEmbeddingModelId;
 
   readonly maxEmbeddingsPerCall = 96;
   readonly supportsParallelCalls = true;
 
   private readonly config: CohereEmbeddingConfig;
+
+  static [WORKFLOW_SERIALIZE](model: CohereEmbeddingModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: CohereEmbeddingModelId;
+    config: CohereEmbeddingConfig;
+  }) {
+    return new CohereEmbeddingModel(options.modelId, options.config);
+  }
 
   constructor(modelId: CohereEmbeddingModelId, config: CohereEmbeddingConfig) {
     this.modelId = modelId;
@@ -46,8 +63,8 @@ export class CohereEmbeddingModel implements EmbeddingModelV3 {
     headers,
     abortSignal,
     providerOptions,
-  }: Parameters<EmbeddingModelV3['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV3['doEmbed']>>
+  }: Parameters<EmbeddingModelV4['doEmbed']>[0]): Promise<
+    Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>
   > {
     const embeddingOptions = await parseProviderOptions({
       provider: 'cohere',
@@ -70,7 +87,7 @@ export class CohereEmbeddingModel implements EmbeddingModelV3 {
       rawValue,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/embed`,
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: combineHeaders(this.config.headers?.(), headers),
       body: {
         model: this.modelId,
         // The AI SDK only supports 'float' embeddings. Note that the Cohere API

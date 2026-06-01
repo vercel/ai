@@ -1,21 +1,21 @@
 import {
-  TranscriptionModelV3,
-  SpeechModelV3,
-  ProviderV3,
   NoSuchModelError,
+  type TranscriptionModelV4,
+  type SpeechModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   loadApiKey,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { ElevenLabsTranscriptionModel } from './elevenlabs-transcription-model';
-import { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-options';
+import type { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-options';
 import { ElevenLabsSpeechModel } from './elevenlabs-speech-model';
-import { ElevenLabsSpeechModelId } from './elevenlabs-speech-options';
+import type { ElevenLabsSpeechModelId } from './elevenlabs-speech-options';
 import { VERSION } from './version';
 
-export interface ElevenLabsProvider extends ProviderV3 {
+export interface ElevenLabsProvider extends ProviderV4 {
   (
     modelId: 'scribe_v1',
     settings?: {},
@@ -26,12 +26,12 @@ export interface ElevenLabsProvider extends ProviderV3 {
   /**
    * Creates a model for transcription.
    */
-  transcription(modelId: ElevenLabsTranscriptionModelId): TranscriptionModelV3;
+  transcription(modelId: ElevenLabsTranscriptionModelId): TranscriptionModelV4;
 
   /**
    * Creates a model for speech generation.
    */
-  speech(modelId: ElevenLabsSpeechModelId): SpeechModelV3;
+  speech(modelId: ElevenLabsSpeechModelId): SpeechModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -98,7 +98,7 @@ export function createElevenLabs(
     };
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
   provider.speech = createSpeechModel;
@@ -135,4 +135,4 @@ export function createElevenLabs(
 /**
  * Default ElevenLabs provider instance.
  */
-export const elevenlabs = createElevenLabs();
+export const elevenLabs = createElevenLabs();

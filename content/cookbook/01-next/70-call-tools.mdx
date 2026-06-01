@@ -101,8 +101,10 @@ import {
   type UIDataTypes,
   type UIMessage,
   convertToModelMessages,
-  stepCountIs,
+  createUIMessageStreamResponse,
+  isStepCount,
   streamText,
+  toUIMessageStream,
   tool,
 } from 'ai';
 import { z } from 'zod';
@@ -138,11 +140,13 @@ export async function POST(req: Request) {
     model: 'openai/gpt-4o',
     system: 'You are a helpful assistant.',
     messages: await convertToModelMessages(messages),
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
     tools,
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 

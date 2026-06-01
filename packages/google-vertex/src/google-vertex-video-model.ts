@@ -1,44 +1,28 @@
 import {
   AISDKError,
-  type Experimental_VideoModelV3 as VideoModelV3,
-  type Experimental_VideoModelV3OperationStartResult as VideoModelV3OperationStartResult,
-  type Experimental_VideoModelV3OperationStatusResult as VideoModelV3OperationStatusResult,
-  type SharedV3ProviderMetadata,
-  type SharedV3Warning,
+  type Experimental_VideoModelV4 as VideoModelV4,
+  type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
+  type Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
+  type SharedV4ProviderMetadata,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertUint8ArrayToBase64,
   createJsonResponseHandler,
-  type FetchFunction,
-  lazySchema,
   parseProviderOptions,
   postJsonToApi,
-  type Resolvable,
   resolve,
-  zodSchema,
+  type FetchFunction,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { googleVertexFailedResponseHandler } from './google-vertex-error';
+import {
+  googleVertexVideoModelOptionsSchema,
+  type GoogleVertexVideoModelOptions,
+} from './google-vertex-video-model-options';
 import type { GoogleVertexVideoModelId } from './google-vertex-video-settings';
-
-export type GoogleVertexVideoModelOptions = {
-  // Video generation options
-  personGeneration?: 'dont_allow' | 'allow_adult' | 'allow_all' | null;
-  negativePrompt?: string | null;
-  generateAudio?: boolean | null;
-
-  // Output configuration
-  gcsOutputDirectory?: string | null;
-
-  // Reference images (for style/asset reference)
-  referenceImages?: Array<{
-    bytesBase64Encoded?: string;
-    gcsUri?: string;
-  }> | null;
-
-  [key: string]: unknown; // For passthrough
-};
 
 interface GoogleVertexVideoModelConfig {
   provider: string;
@@ -51,8 +35,8 @@ interface GoogleVertexVideoModelConfig {
   };
 }
 
-export class GoogleVertexVideoModel implements VideoModelV3 {
-  readonly specificationVersion = 'v3';
+export class GoogleVertexVideoModel implements VideoModelV4 {
+  readonly specificationVersion = 'v4';
 
   get provider(): string {
     return this.config.provider;
@@ -69,20 +53,25 @@ export class GoogleVertexVideoModel implements VideoModelV3 {
   ) {}
 
   private async buildRequest(
-    options: Parameters<NonNullable<VideoModelV3['doStart']>>[0],
+    options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
   ): Promise<{
     instances: Array<Record<string, unknown>>;
     parameters: Record<string, unknown>;
-    warnings: SharedV3Warning[];
-    vertexOptions: GoogleVertexVideoModelOptions | undefined;
+    warnings: SharedV4Warning[];
+    googleVertexOptions: GoogleVertexVideoModelOptions | undefined;
   }> {
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
 
-    const vertexOptions = (await parseProviderOptions({
-      provider: 'vertex',
+    const googleVertexOptions = ((await parseProviderOptions({
+      provider: 'googleVertex',
       providerOptions: options.providerOptions,
       schema: googleVertexVideoModelOptionsSchema,
-    })) as GoogleVertexVideoModelOptions | undefined;
+    })) ??
+      (await parseProviderOptions({
+        provider: 'vertex',
+        providerOptions: options.providerOptions,
+        schema: googleVertexVideoModelOptionsSchema,
+      }))) as GoogleVertexVideoModelOptions | undefined;
 
     const instances: Array<Record<string, unknown>> = [{}];
     const instance = instances[0];
@@ -112,8 +101,8 @@ export class GoogleVertexVideoModel implements VideoModelV3 {
       }
     }
 
-    if (vertexOptions?.referenceImages != null) {
-      instance.referenceImages = vertexOptions.referenceImages;
+    if (googleVertexOptions?.referenceImages != null) {
+      instance.referenceImages = googleVertexOptions.referenceImages;
     }
 
     const parameters: Record<string, unknown> = {
@@ -142,8 +131,8 @@ export class GoogleVertexVideoModel implements VideoModelV3 {
       parameters.seed = options.seed;
     }
 
-    if (vertexOptions != null) {
-      const opts = vertexOptions;
+    if (googleVertexOptions != null) {
+      const opts = googleVertexOptions;
 
       if (
         opts.personGeneration !== undefined &&
@@ -167,6 +156,8 @@ export class GoogleVertexVideoModel implements VideoModelV3 {
       for (const [key, value] of Object.entries(opts)) {
         if (
           ![
+            'pollIntervalMs',
+            'pollTimeoutMs',
             'personGeneration',
             'negativePrompt',
             'generateAudio',
@@ -179,7 +170,7 @@ export class GoogleVertexVideoModel implements VideoModelV3 {
       }
     }
 
-    return { instances, parameters, warnings, vertexOptions };
+    return { instances, parameters, warnings, googleVertexOptions };
   }
 
   private buildCompletedResult({
@@ -190,7 +181,7 @@ export class GoogleVertexVideoModel implements VideoModelV3 {
   }: {
     finalOperation: VertexOperation;
     responseHeaders: Record<string, string> | undefined;
-    warnings: SharedV3Warning[];
+    warnings: SharedV4Warning[];
     currentDate: Date;
   }): {
     status: 'completed';
@@ -198,8 +189,8 @@ export class GoogleVertexVideoModel implements VideoModelV3 {
       | { type: 'base64'; data: string; mediaType: string }
       | { type: 'url'; url: string; mediaType: string }
     >;
-    warnings: SharedV3Warning[];
-    providerMetadata: SharedV3ProviderMetadata;
+    warnings: SharedV4Warning[];
+    providerMetadata: SharedV4ProviderMetadata;
     response: {
       timestamp: Date;
       modelId: string;
@@ -262,17 +253,21 @@ export class GoogleVertexVideoModel implements VideoModelV3 {
         modelId: this.modelId,
         headers: responseHeaders,
       },
-      providerMetadata: {
-        'google-vertex': {
-          videos: videoMetadata,
-        },
-      },
+      providerMetadata: (() => {
+        const payload = { videos: videoMetadata };
+        return {
+          googleVertex: payload,
+          // Legacy keys preserved for backward compatibility.
+          'google-vertex': payload,
+          vertex: payload,
+        };
+      })(),
     };
   }
 
   async doStart(
-    options: Parameters<NonNullable<VideoModelV3['doStart']>>[0],
-  ): Promise<VideoModelV3OperationStartResult> {
+    options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
+  ): Promise<VideoModelV4OperationStartResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
 
     const { instances, parameters, warnings } =
@@ -289,7 +284,7 @@ export class GoogleVertexVideoModel implements VideoModelV3 {
         parameters,
       },
       successfulResponseHandler: createJsonResponseHandler(
-        vertexOperationSchema,
+        googleVertexOperationSchema,
       ),
       failedResponseHandler: googleVertexFailedResponseHandler,
       abortSignal: options.abortSignal,
@@ -316,8 +311,8 @@ export class GoogleVertexVideoModel implements VideoModelV3 {
   }
 
   async doStatus(
-    options: Parameters<NonNullable<VideoModelV3['doStatus']>>[0],
-  ): Promise<VideoModelV3OperationStatusResult> {
+    options: Parameters<NonNullable<VideoModelV4['doStatus']>>[0],
+  ): Promise<VideoModelV4OperationStatusResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { operationName } = options.operation as { operationName: string };
 
@@ -331,7 +326,7 @@ export class GoogleVertexVideoModel implements VideoModelV3 {
         operationName,
       },
       successfulResponseHandler: createJsonResponseHandler(
-        vertexOperationSchema,
+        googleVertexOperationSchema,
       ),
       failedResponseHandler: googleVertexFailedResponseHandler,
       abortSignal: options.abortSignal,
@@ -370,7 +365,7 @@ export class GoogleVertexVideoModel implements VideoModelV3 {
   }
 }
 
-const vertexOperationSchema = z.object({
+const googleVertexOperationSchema = z.object({
   name: z.string().nullish(),
   done: z.boolean().nullish(),
   error: z
@@ -396,27 +391,4 @@ const vertexOperationSchema = z.object({
     .nullish(),
 });
 
-type VertexOperation = z.infer<typeof vertexOperationSchema>;
-
-const googleVertexVideoModelOptionsSchema = lazySchema(() =>
-  zodSchema(
-    z
-      .object({
-        personGeneration: z
-          .enum(['dont_allow', 'allow_adult', 'allow_all'])
-          .nullish(),
-        negativePrompt: z.string().nullish(),
-        generateAudio: z.boolean().nullish(),
-        gcsOutputDirectory: z.string().nullish(),
-        referenceImages: z
-          .array(
-            z.object({
-              bytesBase64Encoded: z.string().nullish(),
-              gcsUri: z.string().nullish(),
-            }),
-          )
-          .nullish(),
-      })
-      .passthrough(),
-  ),
-);
+type VertexOperation = z.infer<typeof googleVertexOperationSchema>;

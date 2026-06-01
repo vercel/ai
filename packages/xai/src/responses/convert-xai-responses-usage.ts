@@ -1,9 +1,9 @@
-import { LanguageModelV3Usage } from '@ai-sdk/provider';
-import { XaiResponsesUsage } from './xai-responses-api';
+import type { LanguageModelV4Usage } from '@ai-sdk/provider';
+import type { XaiResponsesUsage } from './xai-responses-api';
 
 export function convertXaiResponsesUsage(
   usage: XaiResponsesUsage,
-): LanguageModelV3Usage {
+): LanguageModelV4Usage {
   const cacheReadTokens = usage.input_tokens_details?.cached_tokens ?? 0;
   const reasoningTokens = usage.output_tokens_details?.reasoning_tokens ?? 0;
 

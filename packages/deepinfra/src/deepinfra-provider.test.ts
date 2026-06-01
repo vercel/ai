@@ -5,10 +5,9 @@ import {
   OpenAICompatibleCompletionLanguageModel,
   OpenAICompatibleEmbeddingModel,
 } from '@ai-sdk/openai-compatible';
-import { LanguageModelV3, EmbeddingModelV3 } from '@ai-sdk/provider';
+import type { LanguageModelV4, EmbeddingModelV4 } from '@ai-sdk/provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
-import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
-
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 // Add type assertion for the mocked class
 const DeepInfraChatLanguageModelMock =
   DeepInfraChatLanguageModel as unknown as Mock;
@@ -36,17 +35,17 @@ vi.mock('./deepinfra-image-model', () => ({
 }));
 
 describe('DeepInfraProvider', () => {
-  let mockLanguageModel: LanguageModelV3;
-  let mockEmbeddingModel: EmbeddingModelV3;
+  let mockLanguageModel: LanguageModelV4;
+  let mockEmbeddingModel: EmbeddingModelV4;
 
   beforeEach(() => {
     // Mock implementations of models
     mockLanguageModel = {
-      // Add any required methods for LanguageModelV3
-    } as LanguageModelV3;
+      // Add any required methods for LanguageModelV4
+    } as LanguageModelV4;
     mockEmbeddingModel = {
-      // Add any required methods for EmbeddingModelV3
-    } as EmbeddingModelV3;
+      // Add any required methods for EmbeddingModelV4
+    } as EmbeddingModelV4;
 
     // Reset mocks
     vi.clearAllMocks();

@@ -1,50 +1,75 @@
-import {
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
+import type {
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Content,
+  LanguageModelV4FinishReason,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4StreamPart,
+  LanguageModelV4StreamResult,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
-  ParseResult,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  isCustomReasoning,
+  mapReasoningToProviderBudget,
   parseProviderOptions,
+  parseJSON,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type InferSchema,
+  type FetchFunction,
+  type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
-  CohereChatModelId,
-  cohereLanguageModelOptions,
-} from './cohere-chat-options';
+  cohereLanguageModelChatOptions,
+  type CohereChatModelId,
+} from './cohere-chat-language-model-options';
 import { cohereFailedResponseHandler } from './cohere-error';
 import { prepareTools } from './cohere-prepare-tools';
-import { CohereUsageTokens, convertCohereUsage } from './convert-cohere-usage';
+import {
+  convertCohereUsage,
+  type CohereUsageTokens,
+} from './convert-cohere-usage';
 import { convertToCohereChatPrompt } from './convert-to-cohere-chat-prompt';
 import { mapCohereFinishReason } from './map-cohere-finish-reason';
 
 type CohereChatConfig = {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
   generateId: () => string;
 };
 
-export class CohereChatLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3';
+export class CohereChatLanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4';
 
   readonly modelId: CohereChatModelId;
 
-  readonly supportedUrls = {
-    // No URLs are supported.
+  readonly supportedUrls: Record<string, RegExp[]> = {
+    'image/*': [/^https?:\/\/.*$/],
   };
 
   private readonly config: CohereChatConfig;
+
+  static [WORKFLOW_SERIALIZE](model: CohereChatLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: CohereChatModelId;
+    config: CohereChatConfig;
+  }) {
+    return new CohereChatLanguageModel(options.modelId, options.config);
+  }
 
   constructor(modelId: CohereChatModelId, config: CohereChatConfig) {
     this.modelId = modelId;
@@ -66,29 +91,33 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
     stopSequences,
     responseFormat,
     seed,
+    reasoning,
     tools,
     toolChoice,
     providerOptions,
-  }: LanguageModelV3CallOptions) {
-    // Parse provider options
+  }: LanguageModelV4CallOptions) {
+    const warnings: SharedV4Warning[] = [];
+
     const cohereOptions =
       (await parseProviderOptions({
         provider: 'cohere',
         providerOptions,
-        schema: cohereLanguageModelOptions,
+        schema: cohereLanguageModelChatOptions,
       })) ?? {};
 
     const {
       messages: chatPrompt,
       documents: cohereDocuments,
       warnings: promptWarnings,
-    } = convertToCohereChatPrompt(prompt);
+    } = await convertToCohereChatPrompt(prompt);
 
     const {
       tools: cohereTools,
       toolChoice: cohereToolChoice,
       toolWarnings,
     } = prepareTools({ tools, toolChoice });
+
+    warnings.push(...toolWarnings, ...promptWarnings);
 
     return {
       args: {
@@ -121,21 +150,20 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
         // documents for RAG:
         ...(cohereDocuments.length > 0 && { documents: cohereDocuments }),
 
-        // reasoning
-        ...(cohereOptions.thinking && {
-          thinking: {
-            type: cohereOptions.thinking.type ?? 'enabled',
-            token_budget: cohereOptions.thinking.tokenBudget,
-          },
+        // reasoning:
+        ...resolveCohereThinking({
+          reasoning,
+          cohereOptions,
+          warnings,
         }),
       },
-      warnings: [...toolWarnings, ...promptWarnings],
+      warnings,
     };
   }
 
   async doGenerate(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3GenerateResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
     const { args, warnings } = await this.getArgs(options);
 
     const {
@@ -144,7 +172,7 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/chat`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: args,
       failedResponseHandler: cohereFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -154,7 +182,7 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    const content: Array<LanguageModelV3Content> = [];
+    const content: Array<LanguageModelV4Content> = [];
 
     for (const item of response.message.content ?? []) {
       if (item.type === 'text' && item.text.length > 0) {
@@ -219,13 +247,13 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3StreamResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
     const { args, warnings } = await this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/chat`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: { ...args, stream: true },
       failedResponseHandler: cohereFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -235,7 +263,7 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = {
+    let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
       raw: undefined,
     };
@@ -254,13 +282,13 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof cohereChatChunkSchema>>,
-          LanguageModelV3StreamPart
+          LanguageModelV4StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });
           },
 
-          transform(chunk, controller) {
+          async transform(chunk, controller) {
             if (options.includeRawChunks) {
               controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
             }
@@ -385,7 +413,9 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
                     toolCallId: pendingToolCall.id,
                     toolName: pendingToolCall.name,
                     input: JSON.stringify(
-                      JSON.parse(pendingToolCall.arguments?.trim() || '{}'),
+                      await parseJSON({
+                        text: pendingToolCall.arguments?.trim() || '{}',
+                      }),
                     ),
                   });
 
@@ -431,6 +461,46 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
       response: { headers: responseHeaders },
     };
   }
+}
+
+function resolveCohereThinking({
+  reasoning,
+  cohereOptions,
+  warnings,
+}: {
+  reasoning: LanguageModelV4CallOptions['reasoning'];
+  cohereOptions: InferSchema<typeof cohereLanguageModelChatOptions>;
+  warnings: SharedV4Warning[];
+}): { thinking?: { type: string; token_budget?: number } } {
+  if (cohereOptions.thinking) {
+    return {
+      thinking: {
+        type: cohereOptions.thinking.type ?? 'enabled',
+        token_budget: cohereOptions.thinking.tokenBudget,
+      },
+    };
+  }
+
+  if (!isCustomReasoning(reasoning)) {
+    return {};
+  }
+
+  if (reasoning === 'none') {
+    return { thinking: { type: 'disabled' } };
+  }
+
+  const tokenBudget = mapReasoningToProviderBudget({
+    reasoning,
+    maxOutputTokens: 32768,
+    maxReasoningBudget: 32768,
+    warnings,
+  });
+
+  if (tokenBudget == null) {
+    return {};
+  }
+
+  return { thinking: { type: 'enabled', token_budget: tokenBudget } };
 }
 
 const cohereChatResponseSchema = z.object({

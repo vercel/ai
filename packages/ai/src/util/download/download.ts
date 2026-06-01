@@ -2,8 +2,7 @@ import {
   DownloadError,
   readResponseWithSizeLimit,
   DEFAULT_MAX_DOWNLOAD_SIZE,
-} from '@ai-sdk/provider-utils';
-import {
+  validateDownloadUrl,
   withUserAgentSuffix,
   getRuntimeEnvironmentUserAgent,
 } from '@ai-sdk/provider-utils';
@@ -29,6 +28,7 @@ export const download = async ({
   abortSignal?: AbortSignal;
 }) => {
   const urlText = url.toString();
+  validateDownloadUrl(urlText);
   try {
     const response = await fetch(urlText, {
       headers: withUserAgentSuffix(
@@ -38,6 +38,11 @@ export const download = async ({
       ),
       signal: abortSignal,
     });
+
+    // Validate final URL after redirects to prevent SSRF via open redirect
+    if (response.redirected) {
+      validateDownloadUrl(response.url);
+    }
 
     if (!response.ok) {
       throw new DownloadError({

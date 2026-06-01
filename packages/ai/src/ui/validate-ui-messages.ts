@@ -1,22 +1,29 @@
-import { TypeValidationContext, TypeValidationError } from '@ai-sdk/provider';
+import { TypeValidationError, type JSONObject } from '@ai-sdk/provider';
 import {
-  FlexibleSchema,
   lazySchema,
-  StandardSchemaV1,
-  Tool,
   validateTypes,
   zodSchema,
+  type FlexibleSchema,
+  type Tool,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { InvalidArgumentError } from '../error';
+import { jsonValueSchema } from '../types/json-value';
 import { providerMetadataSchema } from '../types/provider-metadata';
-import {
+import type {
   DataUIPart,
   InferUIMessageData,
   InferUIMessageTools,
   ToolUIPart,
   UIMessage,
 } from './ui-messages';
+
+const toolMetadataSchema: z.ZodType<JSONObject> = z.record(
+  z.string(),
+  jsonValueSchema.optional(),
+);
+
+const providerReferenceSchema = z.record(z.string(), z.string());
 
 const uiMessagesSchema = lazySchema(() =>
   zodSchema(
@@ -42,6 +49,11 @@ const uiMessagesSchema = lazySchema(() =>
                   providerMetadata: providerMetadataSchema.optional(),
                 }),
                 z.object({
+                  type: z.literal('custom'),
+                  kind: z.string(),
+                  providerMetadata: providerMetadataSchema.optional(),
+                }),
+                z.object({
                   type: z.literal('source-url'),
                   sourceId: z.string(),
                   url: z.string(),
@@ -61,6 +73,13 @@ const uiMessagesSchema = lazySchema(() =>
                   mediaType: z.string(),
                   filename: z.string().optional(),
                   url: z.string(),
+                  providerReference: providerReferenceSchema.optional(),
+                  providerMetadata: providerMetadataSchema.optional(),
+                }),
+                z.object({
+                  type: z.literal('reasoning-file'),
+                  mediaType: z.string(),
+                  url: z.string(),
                   providerMetadata: providerMetadataSchema.optional(),
                 }),
                 z.object({
@@ -75,6 +94,7 @@ const uiMessagesSchema = lazySchema(() =>
                   type: z.literal('dynamic-tool'),
                   toolName: z.string(),
                   toolCallId: z.string(),
+                  toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('input-streaming'),
                   input: z.unknown().optional(),
                   providerExecuted: z.boolean().optional(),
@@ -87,6 +107,7 @@ const uiMessagesSchema = lazySchema(() =>
                   type: z.literal('dynamic-tool'),
                   toolName: z.string(),
                   toolCallId: z.string(),
+                  toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('input-available'),
                   input: z.unknown(),
                   providerExecuted: z.boolean().optional(),
@@ -99,6 +120,7 @@ const uiMessagesSchema = lazySchema(() =>
                   type: z.literal('dynamic-tool'),
                   toolName: z.string(),
                   toolCallId: z.string(),
+                  toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('approval-requested'),
                   input: z.unknown(),
                   providerExecuted: z.boolean().optional(),
@@ -109,12 +131,14 @@ const uiMessagesSchema = lazySchema(() =>
                     id: z.string(),
                     approved: z.never().optional(),
                     reason: z.never().optional(),
+                    isAutomatic: z.boolean().optional(),
                   }),
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
                   toolName: z.string(),
                   toolCallId: z.string(),
+                  toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('approval-responded'),
                   input: z.unknown(),
                   providerExecuted: z.boolean().optional(),
@@ -125,24 +149,28 @@ const uiMessagesSchema = lazySchema(() =>
                     id: z.string(),
                     approved: z.boolean(),
                     reason: z.string().optional(),
+                    isAutomatic: z.boolean().optional(),
                   }),
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
                   toolName: z.string(),
                   toolCallId: z.string(),
+                  toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('output-available'),
                   input: z.unknown(),
                   providerExecuted: z.boolean().optional(),
                   output: z.unknown(),
                   errorText: z.never().optional(),
                   callProviderMetadata: providerMetadataSchema.optional(),
+                  resultProviderMetadata: providerMetadataSchema.optional(),
                   preliminary: z.boolean().optional(),
                   approval: z
                     .object({
                       id: z.string(),
                       approved: z.literal(true),
                       reason: z.string().optional(),
+                      isAutomatic: z.boolean().optional(),
                     })
                     .optional(),
                 }),
@@ -150,18 +178,21 @@ const uiMessagesSchema = lazySchema(() =>
                   type: z.literal('dynamic-tool'),
                   toolName: z.string(),
                   toolCallId: z.string(),
+                  toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('output-error'),
-                  input: z.unknown(),
+                  input: z.unknown().optional(),
                   rawInput: z.unknown().optional(),
                   providerExecuted: z.boolean().optional(),
                   output: z.never().optional(),
                   errorText: z.string(),
                   callProviderMetadata: providerMetadataSchema.optional(),
+                  resultProviderMetadata: providerMetadataSchema.optional(),
                   approval: z
                     .object({
                       id: z.string(),
                       approved: z.literal(true),
                       reason: z.string().optional(),
+                      isAutomatic: z.boolean().optional(),
                     })
                     .optional(),
                 }),
@@ -169,6 +200,7 @@ const uiMessagesSchema = lazySchema(() =>
                   type: z.literal('dynamic-tool'),
                   toolName: z.string(),
                   toolCallId: z.string(),
+                  toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('output-denied'),
                   input: z.unknown(),
                   providerExecuted: z.boolean().optional(),
@@ -179,11 +211,13 @@ const uiMessagesSchema = lazySchema(() =>
                     id: z.string(),
                     approved: z.literal(false),
                     reason: z.string().optional(),
+                    isAutomatic: z.boolean().optional(),
                   }),
                 }),
                 z.object({
                   type: z.string().startsWith('tool-'),
                   toolCallId: z.string(),
+                  toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('input-streaming'),
                   providerExecuted: z.boolean().optional(),
                   callProviderMetadata: providerMetadataSchema.optional(),
@@ -195,6 +229,7 @@ const uiMessagesSchema = lazySchema(() =>
                 z.object({
                   type: z.string().startsWith('tool-'),
                   toolCallId: z.string(),
+                  toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('input-available'),
                   providerExecuted: z.boolean().optional(),
                   input: z.unknown(),
@@ -206,6 +241,7 @@ const uiMessagesSchema = lazySchema(() =>
                 z.object({
                   type: z.string().startsWith('tool-'),
                   toolCallId: z.string(),
+                  toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('approval-requested'),
                   input: z.unknown(),
                   providerExecuted: z.boolean().optional(),
@@ -216,11 +252,13 @@ const uiMessagesSchema = lazySchema(() =>
                     id: z.string(),
                     approved: z.never().optional(),
                     reason: z.never().optional(),
+                    isAutomatic: z.boolean().optional(),
                   }),
                 }),
                 z.object({
                   type: z.string().startsWith('tool-'),
                   toolCallId: z.string(),
+                  toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('approval-responded'),
                   input: z.unknown(),
                   providerExecuted: z.boolean().optional(),
@@ -231,47 +269,55 @@ const uiMessagesSchema = lazySchema(() =>
                     id: z.string(),
                     approved: z.boolean(),
                     reason: z.string().optional(),
+                    isAutomatic: z.boolean().optional(),
                   }),
                 }),
                 z.object({
                   type: z.string().startsWith('tool-'),
                   toolCallId: z.string(),
+                  toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('output-available'),
                   providerExecuted: z.boolean().optional(),
                   input: z.unknown(),
                   output: z.unknown(),
                   errorText: z.never().optional(),
                   callProviderMetadata: providerMetadataSchema.optional(),
+                  resultProviderMetadata: providerMetadataSchema.optional(),
                   preliminary: z.boolean().optional(),
                   approval: z
                     .object({
                       id: z.string(),
                       approved: z.literal(true),
                       reason: z.string().optional(),
+                      isAutomatic: z.boolean().optional(),
                     })
                     .optional(),
                 }),
                 z.object({
                   type: z.string().startsWith('tool-'),
                   toolCallId: z.string(),
+                  toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('output-error'),
                   providerExecuted: z.boolean().optional(),
-                  input: z.unknown(),
+                  input: z.unknown().optional(),
                   rawInput: z.unknown().optional(),
                   output: z.never().optional(),
                   errorText: z.string(),
                   callProviderMetadata: providerMetadataSchema.optional(),
+                  resultProviderMetadata: providerMetadataSchema.optional(),
                   approval: z
                     .object({
                       id: z.string(),
                       approved: z.literal(true),
                       reason: z.string().optional(),
+                      isAutomatic: z.boolean().optional(),
                     })
                     .optional(),
                 }),
                 z.object({
                   type: z.string().startsWith('tool-'),
                   toolCallId: z.string(),
+                  toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('output-denied'),
                   providerExecuted: z.boolean().optional(),
                   input: z.unknown(),
@@ -282,6 +328,7 @@ const uiMessagesSchema = lazySchema(() =>
                     id: z.string(),
                     approved: z.literal(false),
                     reason: z.string().optional(),
+                    isAutomatic: z.boolean().optional(),
                   }),
                 }),
               ]),
@@ -401,6 +448,15 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
             const toolName = toolPart.type.slice(5);
             const tool = tools[toolName];
 
+            if (
+              !tool &&
+              (toolPart.state === 'output-available' ||
+                toolPart.state === 'output-error' ||
+                toolPart.state === 'output-denied')
+            ) {
+              continue;
+            }
+
             // TODO support dynamic tools
             if (!tool) {
               return {
@@ -418,11 +474,13 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
             }
 
             // Tool input validation
+            // Note: input is intentionally not re-validated for `output-error`
+            // states. A tool call that failed with an invalid-input error keeps
+            // its (invalid) input, and re-validating it on replay would throw a
+            // TypeValidationError that crashes follow-up messages.
             if (
               toolPart.state === 'input-available' ||
-              toolPart.state === 'output-available' ||
-              (toolPart.state === 'output-error' &&
-                toolPart.input !== undefined)
+              toolPart.state === 'output-available'
             ) {
               await validateTypes({
                 value: toolPart.input,

@@ -1,11 +1,11 @@
 import {
   AISDKError,
   APICallError,
-  type Experimental_VideoModelV3 as VideoModelV3,
-  type Experimental_VideoModelV3OperationStartResult as VideoModelV3OperationStartResult,
-  type Experimental_VideoModelV3OperationStatusResult as VideoModelV3OperationStatusResult,
-  type SharedV3ProviderMetadata,
-  type SharedV3Warning,
+  type Experimental_VideoModelV4 as VideoModelV4,
+  type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
+  type Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
+  type SharedV4ProviderMetadata,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -13,46 +13,17 @@ import {
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   getFromApi,
-  lazySchema,
   parseProviderOptions,
   postJsonToApi,
-  zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { FalConfig } from './fal-config';
 import { falErrorDataSchema, falFailedResponseHandler } from './fal-error';
+import {
+  falVideoModelOptionsSchema,
+  type FalVideoModelOptions,
+} from './fal-video-model-options';
 import type { FalVideoModelId } from './fal-video-settings';
-
-export type FalVideoModelOptions = {
-  loop?: boolean | null;
-  motionStrength?: number | null;
-  resolution?: string | null;
-  negativePrompt?: string | null;
-  promptOptimizer?: boolean | null;
-  [key: string]: unknown; // For passthrough
-};
-
-// Provider options schema for FAL video generation
-export const falVideoModelOptionsSchema = lazySchema(() =>
-  zodSchema(
-    z
-      .object({
-        // Video loop - only for Luma models
-        loop: z.boolean().nullish(),
-
-        // Motion strength (provider-specific)
-        motionStrength: z.number().min(0).max(1).nullish(),
-
-        // Resolution (model-specific, e.g., '480p', '720p', '1080p')
-        resolution: z.string().nullish(),
-
-        // Model-specific parameters
-        negativePrompt: z.string().nullish(),
-        promptOptimizer: z.boolean().nullish(),
-      })
-      .passthrough(),
-  ),
-);
 
 interface FalVideoModelConfig extends FalConfig {
   _internal?: {
@@ -60,8 +31,8 @@ interface FalVideoModelConfig extends FalConfig {
   };
 }
 
-export class FalVideoModel implements VideoModelV3 {
-  readonly specificationVersion = 'v3';
+export class FalVideoModel implements VideoModelV4 {
+  readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1; // FAL video models support 1 video at a time
 
   get provider(): string {
@@ -78,17 +49,17 @@ export class FalVideoModel implements VideoModelV3 {
   ) {}
 
   async handleWebhookOption(
-    options: Parameters<NonNullable<VideoModelV3['handleWebhookOption']>>[0],
+    options: Parameters<NonNullable<VideoModelV4['handleWebhookOption']>>[0],
   ) {
     const { url, received } = await options.webhook();
     return { webhookUrl: url, received };
   }
 
   async doStart(
-    options: Parameters<NonNullable<VideoModelV3['doStart']>>[0],
-  ): Promise<VideoModelV3OperationStartResult> {
+    options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
+  ): Promise<VideoModelV4OperationStartResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
 
     const { body } = await this.buildRequestBody(options);
 
@@ -113,8 +84,8 @@ export class FalVideoModel implements VideoModelV3 {
   }
 
   async doStatus(
-    options: Parameters<NonNullable<VideoModelV3['doStatus']>>[0],
-  ): Promise<VideoModelV3OperationStatusResult> {
+    options: Parameters<NonNullable<VideoModelV4['doStatus']>>[0],
+  ): Promise<VideoModelV4OperationStatusResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { responseUrl } = options.operation as { responseUrl: string };
 
@@ -163,7 +134,7 @@ export class FalVideoModel implements VideoModelV3 {
   }
 
   private async buildRequestBody(
-    options: Parameters<NonNullable<VideoModelV3['doStart']>>[0],
+    options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
   ): Promise<{
     body: Record<string, unknown>;
     falOptions: FalVideoModelOptions | undefined;
@@ -254,7 +225,7 @@ export class FalVideoModel implements VideoModelV3 {
         path: queuePath,
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: falFailedResponseHandler,
       successfulResponseHandler:
@@ -291,7 +262,7 @@ export class FalVideoModel implements VideoModelV3 {
         path: responseUrl,
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: combineHeaders(this.config.headers?.(), headers),
       failedResponseHandler: async ({ response, url, requestBodyValues }) => {
         const body = await response.clone().json();
 
@@ -324,13 +295,13 @@ export class FalVideoModel implements VideoModelV3 {
   }: {
     response: FalVideoResponse;
     responseHeaders?: Record<string, string>;
-    warnings: SharedV3Warning[];
+    warnings: SharedV4Warning[];
     currentDate: Date;
   }): {
     status: 'completed';
     videos: Array<{ type: 'url'; url: string; mediaType: string }>;
-    warnings: SharedV3Warning[];
-    providerMetadata: SharedV3ProviderMetadata;
+    warnings: SharedV4Warning[];
+    providerMetadata: SharedV4ProviderMetadata;
     response: {
       timestamp: Date;
       modelId: string;

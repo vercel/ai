@@ -36,6 +36,9 @@
       "path": "../../packages/cerebras"
     },
     {
+      "path": "../../packages/devtools"
+    },
+    {
       "path": "../../packages/elevenlabs"
     },
     {
@@ -99,6 +102,9 @@
       "path": "../../packages/openai-compatible"
     },
     {
+      "path": "../../packages/otel"
+    },
+    {
       "path": "../../packages/perplexity"
     },
     {
@@ -108,6 +114,12 @@
       "path": "../../packages/provider"
     },
     {
+      "path": "../../packages/provider-utils"
+    },
+    {
+      "path": "../../packages/quiverai"
+    },
+    {
       "path": "../../packages/replicate"
     },
     {
@@ -115,6 +127,9 @@
     },
     {
       "path": "../../packages/valibot"
+    },
+    {
+      "path": "../../packages/voyage"
     },
     {
       "path": "../../packages/xai"

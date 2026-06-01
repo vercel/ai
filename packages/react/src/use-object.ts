@@ -1,14 +1,19 @@
 import {
-  FetchFunction,
-  FlexibleSchema,
-  InferSchema,
   isAbortError,
-  Resolvable,
   resolve,
   normalizeHeaders,
   safeValidateTypes,
+  type FetchFunction,
+  type FlexibleSchema,
+  type InferSchema,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
-import { asSchema, DeepPartial, isDeepEqualData, parsePartialJson } from 'ai';
+import {
+  asSchema,
+  isDeepEqualData,
+  parsePartialJson,
+  type DeepPartial,
+} from 'ai';
 import { useCallback, useId, useRef, useState } from 'react';
 import useSWR from 'swr';
 
@@ -153,7 +158,7 @@ function useObject<
   const stop = useCallback(() => {
     try {
       abortControllerRef.current?.abort();
-    } catch (ignored) {
+    } catch {
     } finally {
       setIsLoading(false);
       abortControllerRef.current = null;

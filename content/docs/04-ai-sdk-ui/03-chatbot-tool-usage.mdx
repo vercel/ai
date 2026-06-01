@@ -6,7 +6,7 @@ description: Learn how to use tools with the useChat hook.
 # Chatbot Tool Usage
 
 With [`useChat`](/docs/reference/ai-sdk-ui/use-chat) and [`streamText`](/docs/reference/ai-sdk-core/stream-text), you can use tools in your chatbot application.
-The AI SDK supports three types of tools in this context:
+The AI SDK supports three tool execution patterns in this context:
 
 1. Automatically executed server-side tools
 2. Automatically executed client-side tools
@@ -49,7 +49,13 @@ In this example, we'll use three tools:
 ### API route
 
 ```tsx filename='app/api/chat/route.ts'
-import { convertToModelMessages, streamText, UIMessage } from 'ai';
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+  UIMessage,
+} from 'ai';
 __PROVIDER_IMPORT__;
 import { z } from 'zod';
 
@@ -90,7 +96,9 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 
@@ -363,10 +371,16 @@ For tools that need to run in the browser (updating UI state, accessing browser 
 
 ### Server Setup
 
-Enable approval by setting `needsApproval` on your tool. See [Tool Execution Approval](/docs/ai-sdk-core/tools-and-tool-calling#tool-execution-approval) for configuration options including dynamic approval based on input.
+Enable approval with `toolApproval` on `streamText`. The older
+`needsApproval` property on tools is deprecated. See [Tool Execution Approval](/docs/ai-sdk-core/tools-and-tool-calling#tool-execution-approval) for configuration options including dynamic approval based on input.
 
 ```tsx filename='app/api/chat/route.ts'
-import { streamText, tool } from 'ai';
+import {
+  createUIMessageStreamResponse,
+  streamText,
+  tool,
+  toUIMessageStream,
+} from 'ai';
 __PROVIDER_IMPORT__;
 import { z } from 'zod';
 
@@ -382,22 +396,30 @@ export async function POST(req: Request) {
         inputSchema: z.object({
           city: z.string(),
         }),
-        needsApproval: true,
         execute: async ({ city }) => {
           const weather = await fetchWeather(city);
           return weather;
         },
       }),
     },
+    toolApproval: {
+      getWeather: 'user-approval',
+    },
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 
 ### Client-Side Approval UI
 
-When a tool requires approval, the tool part state is `approval-requested`. Use `addToolApprovalResponse` to approve or deny:
+When a tool requires manual approval, the tool part state is
+`approval-requested`. Automatic approvals and denials also flow through the
+same approval states, but they set `part.approval.isAutomatic === true`, so you
+can render the status without calling `addToolApprovalResponse`. Automatic
+approval decisions can also include `part.approval.reason`.
 
 ```tsx filename='app/page.tsx'
 'use client';
@@ -414,7 +436,15 @@ export default function Chat() {
           {message.parts.map(part => {
             if (part.type === 'tool-getWeather') {
               switch (part.state) {
-                case 'approval-requested':
+                case 'approval-requested': {
+                  if (part.approval.isAutomatic) {
+                    return (
+                      <div key={part.toolCallId}>
+                        Checking approval for {part.input.city}...
+                      </div>
+                    );
+                  }
+
                   return (
                     <div key={part.toolCallId}>
                       <p>Get weather for {part.input.city}?</p>
@@ -440,10 +470,31 @@ export default function Chat() {
                       </button>
                     </div>
                   );
+                }
+                case 'approval-responded':
+                  return (
+                    <div key={part.toolCallId}>
+                      Weather request for {part.input.city} was
+                      {part.approval.isAutomatic ? ' automatically' : ''}{' '}
+                      {part.approval.approved ? 'approved' : 'denied'}.
+                      {part.approval.reason
+                        ? ` Reason: ${part.approval.reason}`
+                        : ''}
+                    </div>
+                  );
                 case 'output-available':
                   return (
                     <div key={part.toolCallId}>
                       Weather in {part.input.city}: {part.output}
+                    </div>
+                  );
+                case 'output-denied':
+                  return (
+                    <div key={part.toolCallId}>
+                      Weather request for {part.input.city} was denied.
+                      {part.approval.reason
+                        ? ` Reason: ${part.approval.reason}`
+                        : ''}
                     </div>
                   );
               }
@@ -456,6 +507,12 @@ export default function Chat() {
   );
 }
 ```
+
+Call `addToolApprovalResponse` only for manual approvals. Automatic approval
+decisions already arrive in the UI stream as `approval-requested` and
+`approval-responded` states, and denied executions continue to `output-denied`.
+If you return a `reason` from an automatic approval or denial, it is available
+as `part.approval.reason`.
 
 ### Auto-Submit After Approval
 
@@ -530,7 +587,9 @@ export async function POST(req: Request) {
     // ...
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 
@@ -603,8 +662,15 @@ message.parts.map((part, index) => {
 You can also use multi-step calls on the server-side with `streamText`.
 This works when all invoked tools have an `execute` function on the server side.
 
-```tsx filename='app/api/chat/route.ts' highlight="15-21,24"
-import { convertToModelMessages, streamText, UIMessage, stepCountIs } from 'ai';
+```tsx filename='app/api/chat/route.ts' highlight="22-28,31"
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  isStepCount,
+  streamText,
+  toUIMessageStream,
+  UIMessage,
+} from 'ai';
 __PROVIDER_IMPORT__;
 import { z } from 'zod';
 
@@ -627,10 +693,12 @@ export async function POST(req: Request) {
         },
       },
     },
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 
@@ -664,8 +732,11 @@ const result = streamText({
   // ...
 });
 
-return result.toUIMessageStreamResponse({
-  onError: errorHandler,
+return createUIMessageStreamResponse({
+  stream: toUIMessageStream({
+    stream: result.stream,
+    onError: errorHandler,
+  }),
 });
 ```
 

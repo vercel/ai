@@ -1,14 +1,13 @@
 import { delay } from '@ai-sdk/provider-utils';
-import { JSONRPCMessage } from './json-rpc-message';
-import { MCPTransport } from './mcp-transport';
+import type { JSONRPCMessage } from './json-rpc-message';
+import type { MCPTransport } from './mcp-transport';
 import {
-  MCPTool,
-  MCPResource,
-  MCPPrompt,
-  GetPromptResult,
-  CallToolResult,
+  LATEST_PROTOCOL_VERSION,
+  type MCPTool,
+  type MCPResource,
+  type MCPPrompt,
+  type CallToolResult,
 } from './types';
-
 const DEFAULT_TOOLS: MCPTool[] = [
   {
     name: 'mock-tool',
@@ -44,7 +43,7 @@ export class MockMCPTransport implements MCPTransport {
   onmessage?: (message: JSONRPCMessage) => void;
   onclose?: () => void;
   onerror?: (error: Error) => void;
-
+  protocolVersion?: string;
   constructor({
     overrideTools = DEFAULT_TOOLS,
     resources = [
@@ -121,6 +120,7 @@ export class MockMCPTransport implements MCPTransport {
         name?: string;
         title?: string;
         mimeType?: string;
+        _meta?: Record<string, unknown>;
       } & ({ text: string } | { blob: string })
     >;
     failOnInvalidToolParams?: boolean;
@@ -158,7 +158,7 @@ export class MockMCPTransport implements MCPTransport {
           jsonrpc: '2.0',
           id: message.id,
           result: this.initializeResult || {
-            protocolVersion: '2025-06-18',
+            protocolVersion: LATEST_PROTOCOL_VERSION,
             serverInfo: {
               name: 'mock-mcp-server',
               version: '1.0.0',

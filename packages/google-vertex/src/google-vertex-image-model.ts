@@ -1,13 +1,12 @@
 import type { GoogleLanguageModelOptions } from '@ai-sdk/google';
-import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
-import {
-  ImageModelV3,
-  ImageModelV3File,
-  LanguageModelV3Prompt,
-  SharedV3Warning,
+import { GoogleLanguageModel } from '@ai-sdk/google/internal';
+import type {
+  ImageModelV4,
+  ImageModelV4File,
+  LanguageModelV4Prompt,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
-  Resolvable,
   combineHeaders,
   convertToBase64,
   convertUint8ArrayToBase64,
@@ -16,10 +15,15 @@ import {
   parseProviderOptions,
   postJsonToApi,
   resolve,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { googleVertexFailedResponseHandler } from './google-vertex-error';
-import { GoogleVertexImageModelId } from './google-vertex-image-settings';
+import { googleVertexImageModelOptionsSchema } from './google-vertex-image-model-options';
+import type { GoogleVertexImageModelId } from './google-vertex-image-settings';
 
 interface GoogleVertexImageModelConfig {
   provider: string;
@@ -33,8 +37,22 @@ interface GoogleVertexImageModelConfig {
 }
 
 // https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images
-export class GoogleVertexImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v3';
+export class GoogleVertexImageModel implements ImageModelV4 {
+  readonly specificationVersion = 'v4';
+
+  static [WORKFLOW_SERIALIZE](model: GoogleVertexImageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: GoogleVertexImageModelConfig;
+  }) {
+    return new GoogleVertexImageModel(options.modelId, options.config);
+  }
 
   get maxImagesPerCall(): number {
     if (isGeminiModel(this.modelId)) {
@@ -53,8 +71,8 @@ export class GoogleVertexImageModel implements ImageModelV3 {
   ) {}
 
   async doGenerate(
-    options: Parameters<ImageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<ImageModelV3['doGenerate']>>> {
+    options: Parameters<ImageModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<ImageModelV4['doGenerate']>>> {
     if (isGeminiModel(this.modelId)) {
       return this.doGenerateGemini(options);
     }
@@ -72,10 +90,10 @@ export class GoogleVertexImageModel implements ImageModelV3 {
     abortSignal,
     files,
     mask,
-  }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV3['doGenerate']>>
+  }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV4['doGenerate']>>
   > {
-    const warnings: Array<SharedV3Warning> = [];
+    const warnings: Array<SharedV4Warning> = [];
 
     if (size != null) {
       warnings.push({
@@ -86,14 +104,20 @@ export class GoogleVertexImageModel implements ImageModelV3 {
       });
     }
 
-    const vertexImageOptions = await parseProviderOptions({
-      provider: 'vertex',
-      providerOptions,
-      schema: googleVertexImageModelOptionsSchema,
-    });
+    const googleVertexImageOptions =
+      (await parseProviderOptions({
+        provider: 'googleVertex',
+        providerOptions,
+        schema: googleVertexImageModelOptionsSchema,
+      })) ??
+      (await parseProviderOptions({
+        provider: 'vertex',
+        providerOptions,
+        schema: googleVertexImageModelOptionsSchema,
+      }));
 
     // Extract edit-specific options from provider options
-    const { edit, ...otherOptions } = vertexImageOptions ?? {};
+    const { edit, ...otherOptions } = googleVertexImageOptions ?? {};
     const { mode: editMode, baseSteps, maskMode, maskDilation } = edit ?? {};
 
     // Build the request body based on whether we're editing or generating
@@ -164,11 +188,14 @@ export class GoogleVertexImageModel implements ImageModelV3 {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { value: response, responseHeaders } = await postJsonToApi({
       url: `${this.config.baseURL}/models/${this.modelId}:predict`,
-      headers: combineHeaders(await resolve(this.config.headers), headers),
+      headers: combineHeaders(
+        this.config.headers ? await resolve(this.config.headers) : undefined,
+        headers,
+      ),
       body,
       failedResponseHandler: googleVertexFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
-        vertexImageResponseSchema,
+        googleVertexImageResponseSchema,
       ),
       abortSignal,
       fetch: this.config.fetch,
@@ -185,8 +212,8 @@ export class GoogleVertexImageModel implements ImageModelV3 {
         modelId: this.modelId,
         headers: responseHeaders,
       },
-      providerMetadata: {
-        vertex: {
+      providerMetadata: (() => {
+        const payload = {
           images:
             response.predictions?.map(prediction => {
               const {
@@ -196,8 +223,9 @@ export class GoogleVertexImageModel implements ImageModelV3 {
 
               return { ...(revisedPrompt != null && { revisedPrompt }) };
             }) ?? [],
-        },
-      },
+        };
+        return { googleVertex: payload, vertex: payload };
+      })(),
     };
   }
 
@@ -212,10 +240,10 @@ export class GoogleVertexImageModel implements ImageModelV3 {
     abortSignal,
     files,
     mask,
-  }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV3['doGenerate']>>
+  }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV4['doGenerate']>>
   > {
-    const warnings: Array<SharedV3Warning> = [];
+    const warnings: Array<SharedV4Warning> = [];
 
     if (mask != null) {
       throw new Error(
@@ -240,7 +268,13 @@ export class GoogleVertexImageModel implements ImageModelV3 {
 
     const userContent: Array<
       | { type: 'text'; text: string }
-      | { type: 'file'; data: string | Uint8Array | URL; mediaType: string }
+      | {
+          type: 'file';
+          data:
+            | { type: 'data'; data: string | Uint8Array }
+            | { type: 'url'; url: URL };
+          mediaType: string;
+        }
     > = [];
 
     if (prompt != null) {
@@ -252,27 +286,30 @@ export class GoogleVertexImageModel implements ImageModelV3 {
         if (file.type === 'url') {
           userContent.push({
             type: 'file',
-            data: new URL(file.url),
+            data: { type: 'url', url: new URL(file.url) },
             mediaType: 'image/*',
           });
         } else {
           userContent.push({
             type: 'file',
-            data:
-              typeof file.data === 'string'
-                ? file.data
-                : new Uint8Array(file.data),
+            data: {
+              type: 'data',
+              data:
+                typeof file.data === 'string'
+                  ? file.data
+                  : new Uint8Array(file.data),
+            },
             mediaType: file.mediaType,
           });
         }
       }
     }
 
-    const languageModelPrompt: LanguageModelV3Prompt = [
+    const languageModelPrompt: LanguageModelV4Prompt = [
       { role: 'user', content: userContent },
     ];
 
-    const languageModel = new GoogleGenerativeAILanguageModel(this.modelId, {
+    const languageModel = new GoogleLanguageModel(this.modelId, {
       provider: this.config.provider,
       baseURL: this.config.baseURL,
       headers: this.config.headers ?? {},
@@ -283,24 +320,27 @@ export class GoogleVertexImageModel implements ImageModelV3 {
       }),
     });
 
+    const userVertexOptions = (providerOptions?.googleVertex ??
+      providerOptions?.vertex) as
+      | Omit<GoogleLanguageModelOptions, 'responseModalities' | 'imageConfig'>
+      | undefined;
+    const innerVertexOptions: GoogleLanguageModelOptions = {
+      responseModalities: ['IMAGE'],
+      imageConfig: aspectRatio
+        ? {
+            aspectRatio: aspectRatio as NonNullable<
+              GoogleLanguageModelOptions['imageConfig']
+            >['aspectRatio'],
+          }
+        : undefined,
+      ...(userVertexOptions ?? {}),
+    };
     const result = await languageModel.doGenerate({
       prompt: languageModelPrompt,
       seed,
       providerOptions: {
-        vertex: {
-          responseModalities: ['IMAGE'],
-          imageConfig: aspectRatio
-            ? {
-                aspectRatio: aspectRatio as NonNullable<
-                  GoogleLanguageModelOptions['imageConfig']
-                >['aspectRatio'],
-              }
-            : undefined,
-          ...((providerOptions?.vertex as Omit<
-            GoogleLanguageModelOptions,
-            'responseModalities' | 'imageConfig'
-          >) ?? {}),
-        } satisfies GoogleLanguageModelOptions,
+        googleVertex: innerVertexOptions,
+        vertex: innerVertexOptions,
       },
       headers,
       abortSignal,
@@ -310,18 +350,24 @@ export class GoogleVertexImageModel implements ImageModelV3 {
 
     const images: string[] = [];
     for (const part of result.content) {
-      if (part.type === 'file' && part.mediaType.startsWith('image/')) {
-        images.push(convertToBase64(part.data));
+      if (
+        part.type === 'file' &&
+        part.mediaType.startsWith('image/') &&
+        part.data.type === 'data'
+      ) {
+        images.push(convertToBase64(part.data.data));
       }
     }
 
+    const geminiPayload = {
+      images: images.map(() => ({})),
+    };
     return {
       images,
       warnings,
       providerMetadata: {
-        vertex: {
-          images: images.map(() => ({})),
-        },
+        googleVertex: geminiPayload,
+        vertex: geminiPayload,
       },
       response: {
         timestamp: currentDate,
@@ -347,7 +393,7 @@ function isGeminiModel(modelId: string): boolean {
 
 // minimal version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const vertexImageResponseSchema = z.object({
+const googleVertexImageResponseSchema = z.object({
   predictions: z
     .array(
       z.object({
@@ -359,83 +405,10 @@ const vertexImageResponseSchema = z.object({
     .nullish(),
 });
 
-const googleVertexImageModelOptionsSchema = z.object({
-  negativePrompt: z.string().nullish(),
-  personGeneration: z
-    .enum(['dont_allow', 'allow_adult', 'allow_all'])
-    .nullish(),
-  safetySetting: z
-    .enum([
-      'block_low_and_above',
-      'block_medium_and_above',
-      'block_only_high',
-      'block_none',
-    ])
-    .nullish(),
-  addWatermark: z.boolean().nullish(),
-  storageUri: z.string().nullish(),
-  sampleImageSize: z.enum(['1K', '2K']).nullish(),
-  /**
-   * Configuration for image editing operations
-   */
-  edit: z
-    .object({
-      /**
-       * An integer that represents the number of sampling steps.
-       * A higher value offers better image quality, a lower value offers better latency.
-       * Try 35 steps to start. If the quality doesn't meet your requirements,
-       * increase the value towards an upper limit of 75.
-       */
-      baseSteps: z.number().nullish(),
-
-      // Edit mode options
-      // https://cloud.google.com/vertex-ai/generative-ai/docs/image/edit-insert-objects
-      mode: z
-        .enum([
-          'EDIT_MODE_INPAINT_INSERTION',
-          'EDIT_MODE_INPAINT_REMOVAL',
-          'EDIT_MODE_OUTPAINT',
-          'EDIT_MODE_CONTROLLED_EDITING',
-          'EDIT_MODE_PRODUCT_IMAGE',
-          'EDIT_MODE_BGSWAP',
-        ])
-        .nullish(),
-
-      /**
-       * The mask mode to use.
-       * - `MASK_MODE_DEFAULT` - Default value for mask mode.
-       * - `MASK_MODE_USER_PROVIDED` - User provided mask. No segmentation needed.
-       * - `MASK_MODE_DETECTION_BOX` - Mask from detected bounding boxes.
-       * - `MASK_MODE_CLOTHING_AREA` - Masks from segmenting the clothing area with open-vocab segmentation.
-       * - `MASK_MODE_PARSED_PERSON` - Masks from segmenting the person body and clothing using the person-parsing model.
-       */
-      maskMode: z
-        .enum([
-          'MASK_MODE_DEFAULT',
-          'MASK_MODE_USER_PROVIDED',
-          'MASK_MODE_DETECTION_BOX',
-          'MASK_MODE_CLOTHING_AREA',
-          'MASK_MODE_PARSED_PERSON',
-        ])
-        .nullish(),
-
-      /**
-       * Optional. A float value between 0 and 1, inclusive, that represents the
-       * percentage of the image width to grow the mask by. Using dilation helps
-       * compensate for imprecise masks. We recommend a value of 0.01.
-       */
-      maskDilation: z.number().nullish(),
-    })
-    .nullish(),
-});
-export type GoogleVertexImageModelOptions = z.infer<
-  typeof googleVertexImageModelOptionsSchema
->;
-
 /**
- * Helper to convert ImageModelV3File data to base64 string
+ * Helper to convert ImageModelV4File data to base64 string
  */
-function getBase64Data(file: ImageModelV3File): string {
+function getBase64Data(file: ImageModelV4File): string {
   if (file.type === 'url') {
     throw new Error(
       'URL-based images are not supported for Google Vertex image editing. Please provide the image data directly.',

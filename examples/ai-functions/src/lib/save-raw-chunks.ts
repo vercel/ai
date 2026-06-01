@@ -1,15 +1,15 @@
-import { StreamTextResult } from 'ai';
+import type { StreamTextResult } from 'ai';
 import fs from 'fs';
 
 export async function saveRawChunks({
   result,
   filename,
 }: {
-  result: StreamTextResult<any, any>;
+  result: StreamTextResult<any, any, any>;
   filename: string;
 }) {
   const rawChunks: unknown[] = [];
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     if (chunk.type === 'raw') {
       rawChunks.push(chunk.rawValue);
     }

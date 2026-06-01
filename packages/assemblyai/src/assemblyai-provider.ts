@@ -1,18 +1,18 @@
 import {
-  TranscriptionModelV3,
-  ProviderV3,
   NoSuchModelError,
+  type TranscriptionModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   loadApiKey,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { AssemblyAITranscriptionModel } from './assemblyai-transcription-model';
-import { AssemblyAITranscriptionModelId } from './assemblyai-transcription-settings';
+import type { AssemblyAITranscriptionModelId } from './assemblyai-transcription-settings';
 import { VERSION } from './version';
 
-export interface AssemblyAIProvider extends ProviderV3 {
+export interface AssemblyAIProvider extends ProviderV4 {
   (
     modelId: 'best',
     settings?: {},
@@ -23,7 +23,7 @@ export interface AssemblyAIProvider extends ProviderV3 {
   /**
    * Creates a model for transcription.
    */
-  transcription(modelId: AssemblyAITranscriptionModelId): TranscriptionModelV3;
+  transcription(modelId: AssemblyAITranscriptionModelId): TranscriptionModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -82,7 +82,7 @@ export function createAssemblyAI(
     };
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
 

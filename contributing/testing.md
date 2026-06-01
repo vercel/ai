@@ -1,6 +1,6 @@
 # Manual Testing
 
-You can use the examples under `/examples/ai-functions` and `/examples/next-openai` for manual testing (command line and web UI).
+You can use the examples under `/examples/ai-functions` and `/examples/ai-e2e-next` for manual testing (command line and web UI).
 
 Ideally you should cover 3 cases for changes or new features:
 

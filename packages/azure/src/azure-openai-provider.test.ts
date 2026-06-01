@@ -1,8 +1,8 @@
-import {
-  EmbeddingModelV3Embedding,
-  LanguageModelV3,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3Prompt,
+import type {
+  EmbeddingModelV4Embedding,
+  LanguageModelV4,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
@@ -18,7 +18,7 @@ vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
 }));
 
-const TEST_PROMPT: LanguageModelV3Prompt = [
+const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -484,7 +484,7 @@ describe('embedding', () => {
     function prepareJsonResponse({
       embeddings = dummyEmbeddings,
     }: {
-      embeddings?: EmbeddingModelV3Embedding[];
+      embeddings?: EmbeddingModelV4Embedding[];
     } = {}) {
       server.urls[
         'https://test-resource.openai.azure.com/openai/v1/embeddings'
@@ -893,7 +893,7 @@ describe('responses', () => {
     it('should handle Azure file IDs with assistant- prefix', async () => {
       prepareJsonFixtureResponse('azure-text.1');
 
-      const TEST_PROMPT_WITH_AZURE_FILE: LanguageModelV3Prompt = [
+      const TEST_PROMPT_WITH_AZURE_FILE: LanguageModelV4Prompt = [
         {
           role: 'user',
           content: [
@@ -901,7 +901,7 @@ describe('responses', () => {
             {
               type: 'file',
               mediaType: 'image/jpeg',
-              data: 'assistant-abc123',
+              data: { type: 'data' as const, data: 'assistant-abc123' },
             },
           ],
         },
@@ -926,7 +926,7 @@ describe('responses', () => {
     it('should handle PDF files with assistant- prefix', async () => {
       prepareJsonFixtureResponse('azure-text.1');
 
-      const TEST_PROMPT_WITH_AZURE_PDF: LanguageModelV3Prompt = [
+      const TEST_PROMPT_WITH_AZURE_PDF: LanguageModelV4Prompt = [
         {
           role: 'user',
           content: [
@@ -934,7 +934,7 @@ describe('responses', () => {
             {
               type: 'file',
               mediaType: 'application/pdf',
-              data: 'assistant-pdf123',
+              data: { type: 'data' as const, data: 'assistant-pdf123' },
             },
           ],
         },
@@ -959,7 +959,7 @@ describe('responses', () => {
     it('should fall back to base64 for non-assistant file IDs', async () => {
       prepareJsonFixtureResponse('azure-text.1');
 
-      const TEST_PROMPT_WITH_OPENAI_FILE: LanguageModelV3Prompt = [
+      const TEST_PROMPT_WITH_OPENAI_FILE: LanguageModelV4Prompt = [
         {
           role: 'user',
           content: [
@@ -967,7 +967,7 @@ describe('responses', () => {
             {
               type: 'file',
               mediaType: 'image/jpeg',
-              data: 'file-abc123',
+              data: { type: 'data' as const, data: 'file-abc123' },
             },
           ],
         },
@@ -1086,7 +1086,7 @@ describe('responses', () => {
     });
 
     describe('code interpreter tool', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('azure-code-interpreter-tool.1');
@@ -1140,7 +1140,7 @@ describe('responses', () => {
     });
 
     describe('file search tool', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
       describe('without results include', () => {
         beforeEach(async () => {
@@ -1294,7 +1294,7 @@ describe('responses', () => {
     });
 
     describe('web search preview tool', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('azure-web-search-preview-tool.1');
@@ -1317,7 +1317,7 @@ describe('responses', () => {
     });
 
     describe('reasoning', async () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      let result: Awaited<ReturnType<LanguageModelV4['doGenerate']>>;
       beforeEach(async () => {
         prepareJsonFixtureResponse('azure-reasoning-encrypted-content.1');
 
@@ -1357,7 +1357,7 @@ describe('responses', () => {
     });
 
     describe('image generation tool', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('azure-image-generation-tool.1');

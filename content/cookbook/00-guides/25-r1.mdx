@@ -47,11 +47,11 @@ The AI SDK abstracts away the differences between model providers, eliminates bo
 At the center of the AI SDK is [AI SDK Core](/docs/ai-sdk-core/overview), which provides a unified API to call any LLM. The code snippet below is all you need to call DeepSeek R1 with the AI SDK:
 
 ```ts
-import { deepseek } from '@ai-sdk/deepseek';
+import { deepSeek } from '@ai-sdk/deepseek';
 import { generateText } from 'ai';
 
 const { reasoningText, text } = await generateText({
-  model: deepseek('deepseek-reasoner'),
+  model: deepSeek('deepseek-reasoner'),
   prompt: 'Explain quantum entanglement.',
 });
 ```
@@ -141,26 +141,35 @@ In a new Next.js application, first install the AI SDK and the DeepSeek provider
 Then, create a route handler for the chat endpoint:
 
 ```tsx filename="app/api/chat/route.ts"
-import { deepseek } from '@ai-sdk/deepseek';
-import { convertToModelMessages, streamText, UIMessage } from 'ai';
+import { deepSeek } from '@ai-sdk/deepseek';
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+  UIMessage,
+} from 'ai';
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: deepseek('deepseek-reasoner'),
+    model: deepSeek('deepseek-reasoner'),
     messages: await convertToModelMessages(messages),
   });
 
-  return result.toUIMessageStreamResponse({
-    sendReasoning: true,
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({
+      stream: result.stream,
+      sendReasoning: true,
+    }),
   });
 }
 ```
 
 <Note>
   You can forward the model's reasoning tokens to the client with
-  `sendReasoning: true` in the `toUIMessageStreamResponse` method.
+  `sendReasoning: true` in the `toUIMessageStream` helper.
 </Note>
 
 Finally, update the root page (`app/page.tsx`) to use the `useChat` hook:
@@ -232,7 +241,7 @@ Ready to dive in? Here's how you can begin:
 
 1. Explore the documentation at [ai-sdk.dev/docs](/docs) to understand the capabilities of the AI SDK.
 2. Check out practical examples at [ai-sdk.dev/examples](/examples) to see the SDK in action.
-3. Dive deeper with advanced guides on topics like Retrieval-Augmented Generation (RAG) at [ai-sdk.dev/docs/guides](/docs/guides).
+3. Dive deeper with advanced guides on topics like Retrieval-Augmented Generation (RAG) at [ai-sdk.dev/docs/guides](/cookbook/guides).
 4. Use ready-to-deploy AI templates at [vercel.com/templates?type=ai](https://vercel.com/templates?type=ai).
 
 DeepSeek R1 opens new opportunities for reasoning-intensive AI applications. Start building today and leverage the power of advanced reasoning in your AI projects.

@@ -1,17 +1,19 @@
 import type {
-  Experimental_VideoModelV3 as VideoModelV3,
-  Experimental_VideoModelV3CallOptions as VideoModelV3CallOptions,
-  Experimental_VideoModelV3File as VideoModelV3File,
-  Experimental_VideoModelV3OperationStatusResult as VideoModelV3StatusResult,
-  Experimental_VideoModelV3OperationWebhook as VideoModelV3Webhook,
-  SharedV3ProviderMetadata as SharedV3ProviderMetadata,
+  Experimental_VideoModelV4,
+  Experimental_VideoModelV4CallOptions,
+  Experimental_VideoModelV4File,
+  Experimental_VideoModelV4Result,
+  Experimental_VideoModelV4OperationStatusResult,
+  Experimental_VideoModelV4OperationWebhook,
+  SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   convertBase64ToUint8Array,
   delay,
-  type DataContent,
-  type ProviderOptions,
   withUserAgentSuffix,
+  type DataContent,
+  detectMediaType,
+  type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { NoVideoGeneratedError } from '../error/no-video-generated-error';
 import {
@@ -23,11 +25,6 @@ import { resolveVideoModel } from '../model/resolve-model';
 import type { VideoModel } from '../types/video-model';
 import type { VideoModelResponseMetadata } from '../types/video-model-response-metadata';
 import type { Warning } from '../types/warning';
-import {
-  detectMediaType,
-  imageMediaTypeSignatures,
-  videoMediaTypeSignatures,
-} from '../util/detect-media-type';
 import { createDownload } from '../util/download/create-download';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
@@ -40,6 +37,54 @@ export type GenerateVideoPrompt =
       image: DataContent;
       text?: string;
     };
+
+/**
+ * Polling configuration for models that support the asynchronous
+ * start/status flow.
+ */
+export type GenerateVideoPollOptions = {
+  /**
+   * Interval between status checks in milliseconds.
+   *
+   * @default 5000
+   */
+  intervalMs?: number;
+
+  /**
+   * Backoff strategy for polling.
+   * - `'none'`: Fixed interval between polls.
+   * - `'exponential'`: Doubles the interval after each poll, capped at 60 seconds.
+   *
+   * @default 'none'
+   */
+  backoff?: 'none' | 'exponential';
+
+  /**
+   * Maximum time to wait for completion in milliseconds.
+   *
+   * @default 600000 (10 minutes)
+   */
+  timeoutMs?: number;
+
+  /**
+   * Callback invoked before each poll attempt.
+   */
+  onAttempt?: (event: {
+    attempt: number;
+    elapsedMs: number;
+  }) => void | PromiseLike<void>;
+};
+
+/**
+ * Webhook factory for models that support the asynchronous start/status flow.
+ *
+ * The factory should return a URL for the provider to send notifications to,
+ * and a `received` promise that resolves when the notification arrives.
+ */
+export type GenerateVideoWebhookFactory = () => PromiseLike<{
+  url: string;
+  received: Promise<Experimental_VideoModelV4OperationWebhook>;
+}>;
 
 /**
  * Generates videos using a video model.
@@ -167,38 +212,7 @@ export async function experimental_generateVideo({
    * start/status flow. When provided and the model implements `doStart`
    * and `doStatus`, the SDK will orchestrate polling automatically.
    */
-  poll?: {
-    /**
-     * Interval between status checks in milliseconds.
-     *
-     * @default 5000
-     */
-    intervalMs?: number;
-
-    /**
-     * Backoff strategy for polling.
-     * - `'none'`: Fixed interval between polls.
-     * - `'exponential'`: Doubles the interval after each poll, capped at 60 seconds.
-     *
-     * @default 'none'
-     */
-    backoff?: 'none' | 'exponential';
-
-    /**
-     * Maximum time to wait for completion in milliseconds.
-     *
-     * @default 600000 (10 minutes)
-     */
-    timeoutMs?: number;
-
-    /**
-     * Callback invoked before each poll attempt.
-     */
-    onAttempt?: (event: {
-      attempt: number;
-      elapsedMs: number;
-    }) => void | PromiseLike<void>;
-  };
+  poll?: GenerateVideoPollOptions;
 
   /**
    * Webhook factory for models that support the asynchronous
@@ -208,10 +222,7 @@ export async function experimental_generateVideo({
    * The factory should return a URL for the provider to send notifications to,
    * and a `received` promise that resolves when the notification arrives.
    */
-  webhook?: () => PromiseLike<{
-    url: string;
-    received: Promise<VideoModelV3Webhook>;
-  }>;
+  webhook?: GenerateVideoWebhookFactory;
 }): Promise<GenerateVideoResult> {
   const model = resolveVideoModel(modelArg);
 
@@ -230,7 +241,7 @@ export async function experimental_generateVideo({
   const maxVideosPerCallWithDefault =
     maxVideosPerCall ?? (await invokeModelMaxVideosPerCall(model)) ?? 1;
 
-  // Determine whether to use start/status flow:
+  // Determine whether to use the start/status flow:
   const hasStartStatus = model.doStart != null && model.doStatus != null;
   const useStartStatus =
     hasStartStatus &&
@@ -267,7 +278,7 @@ export async function experimental_generateVideo({
 
   const results = await Promise.all(
     callVideoCounts.map(async callVideoCount => {
-      const callOptions: VideoModelV3CallOptions = {
+      const callOptions: Experimental_VideoModelV4CallOptions = {
         prompt,
         n: callVideoCount,
         aspectRatio,
@@ -302,7 +313,7 @@ export async function experimental_generateVideo({
   const videos: Array<GeneratedFile> = [];
   const warnings: Array<Warning> = [];
   const responses: Array<VideoModelResponseMetadata> = [];
-  const providerMetadata: SharedV3ProviderMetadata = {};
+  const providerMetadata: SharedV4ProviderMetadata = {};
 
   for (const result of results) {
     for (const videoData of result.videos) {
@@ -322,7 +333,7 @@ export async function experimental_generateVideo({
             (isUsableMediaType(downloadedMediaType) && downloadedMediaType) ||
             detectMediaType({
               data,
-              signatures: videoMediaTypeSignatures,
+              topLevelType: 'video',
             }) ||
             'video/mp4';
 
@@ -350,7 +361,7 @@ export async function experimental_generateVideo({
             videoData.mediaType ||
             detectMediaType({
               data: videoData.data,
-              signatures: videoMediaTypeSignatures,
+              topLevelType: 'video',
             }) ||
             'video/mp4';
 
@@ -433,43 +444,17 @@ async function executeStartStatusFlow({
   abortSignal,
   headers,
 }: {
-  model: VideoModelV3;
-  callOptions: VideoModelV3CallOptions;
-  poll?: {
-    intervalMs?: number;
-    backoff?: 'none' | 'exponential';
-    timeoutMs?: number;
-    onAttempt?: (event: {
-      attempt: number;
-      elapsedMs: number;
-    }) => void | PromiseLike<void>;
-  };
-  webhook?: () => PromiseLike<{
-    url: string;
-    received: Promise<VideoModelV3Webhook>;
-  }>;
+  model: Experimental_VideoModelV4;
+  callOptions: Experimental_VideoModelV4CallOptions;
+  poll?: GenerateVideoPollOptions;
+  webhook?: GenerateVideoWebhookFactory;
   abortSignal?: AbortSignal;
   headers?: Record<string, string | undefined>;
-}): Promise<{
-  videos: Awaited<
-    ReturnType<NonNullable<VideoModelV3['doGenerate']>>
-  >['videos'];
-  warnings: Awaited<
-    ReturnType<NonNullable<VideoModelV3['doGenerate']>>
-  >['warnings'];
-  providerMetadata?: SharedV3ProviderMetadata;
-  response: Awaited<
-    ReturnType<NonNullable<VideoModelV3['doGenerate']>>
-  >['response'];
-}> {
+}): Promise<Experimental_VideoModelV4Result> {
   // 1. If webhook and provider supports it, set up the webhook
-  const earlyWarnings: Array<
-    Awaited<
-      ReturnType<NonNullable<VideoModelV3['doGenerate']>>
-    >['warnings'][number]
-  > = [];
+  const earlyWarnings: Experimental_VideoModelV4Result['warnings'] = [];
   let webhookUrl: string | undefined;
-  let webhookReceived: Promise<VideoModelV3Webhook> | undefined;
+  let webhookReceived: Promise<Experimental_VideoModelV4OperationWebhook> | undefined;
 
   if (webhookFactory != null) {
     if (model.handleWebhookOption != null) {
@@ -497,7 +482,7 @@ async function executeStartStatusFlow({
   const allWarnings = [...earlyWarnings, ...startResult.warnings];
 
   let completedResult: Extract<
-    VideoModelV3StatusResult,
+    Experimental_VideoModelV4OperationStatusResult,
     { status: 'completed' }
   >;
 
@@ -552,20 +537,14 @@ async function pollUntilComplete({
   abortSignal,
   headers,
 }: {
-  model: VideoModelV3;
+  model: Experimental_VideoModelV4;
   operation: unknown;
-  pollConfig?: {
-    intervalMs?: number;
-    backoff?: 'none' | 'exponential';
-    timeoutMs?: number;
-    onAttempt?: (event: {
-      attempt: number;
-      elapsedMs: number;
-    }) => void | PromiseLike<void>;
-  };
+  pollConfig?: GenerateVideoPollOptions;
   abortSignal?: AbortSignal;
   headers?: Record<string, string | undefined>;
-}): Promise<Extract<VideoModelV3StatusResult, { status: 'completed' }>> {
+}): Promise<
+  Extract<Experimental_VideoModelV4OperationStatusResult, { status: 'completed' }>
+> {
   const baseInterval = pollConfig?.intervalMs ?? 5000;
   const backoff = pollConfig?.backoff ?? 'none';
   const timeoutMs = pollConfig?.timeoutMs ?? 600_000;
@@ -613,7 +592,7 @@ async function pollUntilComplete({
 
 function normalizePrompt(promptArg: GenerateVideoPrompt): {
   prompt: string | undefined;
-  image: VideoModelV3File | undefined;
+  image: Experimental_VideoModelV4File | undefined;
 } {
   if (typeof promptArg === 'string') {
     return {
@@ -622,7 +601,7 @@ function normalizePrompt(promptArg: GenerateVideoPrompt): {
     };
   }
 
-  let image: VideoModelV3File | undefined;
+  let image: Experimental_VideoModelV4File | undefined;
 
   if (promptArg.image != null) {
     const dataContent = promptArg.image;
@@ -648,7 +627,7 @@ function normalizePrompt(promptArg: GenerateVideoPrompt): {
         const mediaType =
           detectMediaType({
             data: bytes,
-            signatures: imageMediaTypeSignatures,
+            topLevelType: 'image',
           }) ?? 'image/png';
 
         image = {
@@ -661,7 +640,7 @@ function normalizePrompt(promptArg: GenerateVideoPrompt): {
       const mediaType =
         detectMediaType({
           data: dataContent,
-          signatures: imageMediaTypeSignatures,
+          topLevelType: 'image',
         }) ?? 'image/png';
 
       image = {
@@ -678,7 +657,7 @@ function normalizePrompt(promptArg: GenerateVideoPrompt): {
   };
 }
 
-async function invokeModelMaxVideosPerCall(model: VideoModelV3) {
+async function invokeModelMaxVideosPerCall(model: Experimental_VideoModelV4) {
   if (typeof model.maxVideosPerCall === 'function') {
     return await model.maxVideosPerCall({ modelId: model.modelId });
   }

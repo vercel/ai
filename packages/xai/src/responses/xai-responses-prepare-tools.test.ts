@@ -22,6 +22,7 @@ describe('prepareResponsesTools', () => {
           "tools": [
             {
               "allowed_domains": undefined,
+              "enable_image_search": undefined,
               "enable_image_understanding": undefined,
               "excluded_domains": undefined,
               "type": "web_search",
@@ -52,6 +53,7 @@ describe('prepareResponsesTools', () => {
               "wikipedia.org",
               "example.com",
             ],
+            "enable_image_search": undefined,
             "enable_image_understanding": undefined,
             "excluded_domains": undefined,
             "type": "web_search",
@@ -78,10 +80,38 @@ describe('prepareResponsesTools', () => {
         [
           {
             "allowed_domains": undefined,
+            "enable_image_search": undefined,
             "enable_image_understanding": undefined,
             "excluded_domains": [
               "spam.com",
             ],
+            "type": "web_search",
+          },
+        ]
+      `);
+    });
+
+    it('should prepare web_search tool with image search', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'xai.web_search',
+            name: 'web_search',
+            args: {
+              enableImageSearch: true,
+            },
+          },
+        ],
+      });
+
+      expect(result.tools).toMatchInlineSnapshot(`
+        [
+          {
+            "allowed_domains": undefined,
+            "enable_image_search": true,
+            "enable_image_understanding": undefined,
+            "excluded_domains": undefined,
             "type": "web_search",
           },
         ]
@@ -106,6 +136,7 @@ describe('prepareResponsesTools', () => {
         [
           {
             "allowed_domains": undefined,
+            "enable_image_search": undefined,
             "enable_image_understanding": true,
             "excluded_domains": undefined,
             "type": "web_search",
@@ -421,6 +452,155 @@ describe('prepareResponsesTools', () => {
             "type": "function",
           },
         ]
+      `);
+    });
+  });
+
+  describe('function tools strict mode', () => {
+    it('should pass through strict mode when strict is true', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+            strict: true,
+          },
+        ],
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "description": "A test function",
+              "name": "testFunction",
+              "parameters": {
+                "properties": {},
+                "type": "object",
+              },
+              "strict": true,
+              "type": "function",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should pass through strict mode when strict is false', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+            strict: false,
+          },
+        ],
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "description": "A test function",
+              "name": "testFunction",
+              "parameters": {
+                "properties": {},
+                "type": "object",
+              },
+              "strict": false,
+              "type": "function",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should not include strict when strict is undefined', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+      });
+
+      const tool = result.tools![0];
+      expect(tool).not.toHaveProperty('strict');
+    });
+
+    it('should pass through strict mode for multiple tools with different strict settings', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'strictTool',
+            description: 'A strict tool',
+            inputSchema: { type: 'object', properties: {} },
+            strict: true,
+          },
+          {
+            type: 'function',
+            name: 'nonStrictTool',
+            description: 'A non-strict tool',
+            inputSchema: { type: 'object', properties: {} },
+            strict: false,
+          },
+          {
+            type: 'function',
+            name: 'defaultTool',
+            description: 'A tool without strict setting',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "description": "A strict tool",
+              "name": "strictTool",
+              "parameters": {
+                "properties": {},
+                "type": "object",
+              },
+              "strict": true,
+              "type": "function",
+            },
+            {
+              "description": "A non-strict tool",
+              "name": "nonStrictTool",
+              "parameters": {
+                "properties": {},
+                "type": "object",
+              },
+              "strict": false,
+              "type": "function",
+            },
+            {
+              "description": "A tool without strict setting",
+              "name": "defaultTool",
+              "parameters": {
+                "properties": {},
+                "type": "object",
+              },
+              "type": "function",
+            },
+          ],
+        }
       `);
     });
   });

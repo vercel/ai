@@ -1,4 +1,4 @@
-import { ServerResponse } from 'node:http';
+import type { ServerResponse } from 'node:http';
 import { prepareHeaders } from '../util/prepare-headers';
 import { writeToServerResponse } from '../util/write-to-server-response';
 
@@ -12,17 +12,17 @@ import { writeToServerResponse } from '../util/write-to-server-response';
  * @param options.status - Optional HTTP status code.
  * @param options.statusText - Optional HTTP status text.
  * @param options.headers - Optional response headers.
- * @param options.textStream - The text stream to pipe.
+ * @param options.stream - The text stream to pipe.
  */
 export function pipeTextStreamToResponse({
   response,
   status,
   statusText,
   headers,
-  textStream,
+  stream,
 }: {
   response: ServerResponse;
-  textStream: ReadableStream<string>;
+  stream: ReadableStream<string>;
 } & ResponseInit): void {
   writeToServerResponse({
     response,
@@ -33,6 +33,6 @@ export function pipeTextStreamToResponse({
         'content-type': 'text/plain; charset=utf-8',
       }).entries(),
     ),
-    stream: textStream.pipeThrough(new TextEncoderStream()),
+    stream: stream.pipeThrough(new TextEncoderStream()),
   });
 }

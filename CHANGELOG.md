@@ -6,12 +6,14 @@ You can find the changelogs for the individual packages in their respective `CHA
 
 ### Providers
 
+- [@ai-sdk/alibaba](./packages/alibaba/CHANGELOG.md)
 - [@ai-sdk/amazon-bedrock](./packages/amazon-bedrock/CHANGELOG.md)
 - [@ai-sdk/anthropic](./packages/anthropic/CHANGELOG.md)
 - [@ai-sdk/assemblyai](./packages/assemblyai/CHANGELOG.md)
 - [@ai-sdk/azure](./packages/azure/CHANGELOG.md)
 - [@ai-sdk/baseten](./packages/baseten/CHANGELOG.md)
 - [@ai-sdk/black-forest-labs](./packages/black-forest-labs/CHANGELOG.md)
+- [@ai-sdk/bytedance](./packages/bytedance/CHANGELOG.md)
 - [@ai-sdk/cerebras](./packages/cerebras/CHANGELOG.md)
 - [@ai-sdk/cohere](./packages/cohere/CHANGELOG.md)
 - [@ai-sdk/deepinfra](./packages/deepinfra/CHANGELOG.md)

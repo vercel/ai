@@ -1,5 +1,5 @@
-import { JSONObject, LanguageModelV3FunctionTool } from '@ai-sdk/provider';
-import { LanguageModelMiddleware } from '../types';
+import type { JSONObject, LanguageModelV4FunctionTool } from '@ai-sdk/provider';
+import type { LanguageModelMiddleware } from '../types';
 
 function defaultFormatExample(example: { input: JSONObject }): string {
   return JSON.stringify(example.input);
@@ -52,7 +52,7 @@ export function addToolInputExamplesMiddleware({
   remove?: boolean;
 } = {}): LanguageModelMiddleware {
   return {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     transformParams: async ({ params }) => {
       if (!params.tools?.length) {
         return params;
@@ -78,7 +78,7 @@ export function addToolInputExamplesMiddleware({
           ...tool,
           description: toolDescription,
           inputExamples: remove ? undefined : tool.inputExamples,
-        } satisfies LanguageModelV3FunctionTool;
+        } satisfies LanguageModelV4FunctionTool;
       });
 
       return {

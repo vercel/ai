@@ -1,9 +1,9 @@
 import {
   AISDKError,
-  type Experimental_VideoModelV3 as VideoModelV3,
-  type Experimental_VideoModelV3OperationStartResult as VideoModelV3OperationStartResult,
-  type Experimental_VideoModelV3OperationStatusResult as VideoModelV3OperationStatusResult,
-  type SharedV3Warning,
+  type Experimental_VideoModelV4 as VideoModelV4,
+  type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
+  type Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -11,35 +11,18 @@ import {
   createJsonResponseHandler,
   type FetchFunction,
   getFromApi,
-  lazySchema,
   parseProviderOptions,
   postJsonToApi,
   type Resolvable,
   resolve,
-  zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { replicateFailedResponseHandler } from './replicate-error';
+import {
+  replicateVideoModelOptionsSchema,
+  type ReplicateVideoModelOptions,
+} from './replicate-video-model-options';
 import type { ReplicateVideoModelId } from './replicate-video-settings';
-
-export type ReplicateVideoModelOptions = {
-  // Common video generation options
-  guidance_scale?: number | null;
-  num_inference_steps?: number | null;
-
-  // Stable Video Diffusion specific
-  motion_bucket_id?: number | null;
-  cond_aug?: number | null;
-  decoding_t?: number | null;
-  video_length?: string | null;
-  sizing_strategy?: string | null;
-  frames_per_second?: number | null;
-
-  // MiniMax specific
-  prompt_optimizer?: boolean | null;
-
-  [key: string]: unknown; // For passthrough
-};
 
 interface ReplicateVideoModelConfig {
   provider: string;
@@ -51,8 +34,8 @@ interface ReplicateVideoModelConfig {
   };
 }
 
-export class ReplicateVideoModel implements VideoModelV3 {
-  readonly specificationVersion = 'v3';
+export class ReplicateVideoModel implements VideoModelV4 {
+  readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1; // Replicate video models support 1 video at a time
 
   get provider(): string {
@@ -77,10 +60,10 @@ export class ReplicateVideoModel implements VideoModelV3 {
     providerOptions?: Record<string, Record<string, unknown>>;
   }): Promise<{
     input: Record<string, unknown>;
-    warnings: SharedV3Warning[];
+    warnings: SharedV4Warning[];
     replicateOptions: ReplicateVideoModelOptions | undefined;
   }> {
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
 
     const replicateOptions = (await parseProviderOptions({
       provider: 'replicate',
@@ -167,6 +150,9 @@ export class ReplicateVideoModel implements VideoModelV3 {
       for (const [key, value] of Object.entries(opts)) {
         if (
           ![
+            'pollIntervalMs',
+            'pollTimeoutMs',
+            'maxWaitTimeInSeconds',
             'guidance_scale',
             'num_inference_steps',
             'motion_bucket_id',
@@ -187,15 +173,15 @@ export class ReplicateVideoModel implements VideoModelV3 {
   }
 
   async handleWebhookOption(
-    options: Parameters<NonNullable<VideoModelV3['handleWebhookOption']>>[0],
+    options: Parameters<NonNullable<VideoModelV4['handleWebhookOption']>>[0],
   ) {
     const { url, received } = await options.webhook();
     return { webhookUrl: url, received };
   }
 
   async doStart(
-    options: Parameters<NonNullable<VideoModelV3['doStart']>>[0],
-  ): Promise<VideoModelV3OperationStartResult> {
+    options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
+  ): Promise<VideoModelV4OperationStartResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { input, warnings } = await this.buildInput(options);
 
@@ -242,8 +228,8 @@ export class ReplicateVideoModel implements VideoModelV3 {
   }
 
   async doStatus(
-    options: Parameters<NonNullable<VideoModelV3['doStatus']>>[0],
-  ): Promise<VideoModelV3OperationStatusResult> {
+    options: Parameters<NonNullable<VideoModelV4['doStatus']>>[0],
+  ): Promise<VideoModelV4OperationStatusResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { getUrl } = options.operation as { getUrl: string };
 
@@ -337,21 +323,3 @@ const replicatePredictionSchema = z.object({
     })
     .nullish(),
 });
-
-const replicateVideoModelOptionsSchema = lazySchema(() =>
-  zodSchema(
-    z
-      .object({
-        guidance_scale: z.number().nullish(),
-        num_inference_steps: z.number().nullish(),
-        motion_bucket_id: z.number().nullish(),
-        cond_aug: z.number().nullish(),
-        decoding_t: z.number().nullish(),
-        video_length: z.string().nullish(),
-        sizing_strategy: z.string().nullish(),
-        frames_per_second: z.number().nullish(),
-        prompt_optimizer: z.boolean().nullish(),
-      })
-      .loose(),
-  ),
-);

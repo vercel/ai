@@ -2,6 +2,8 @@
 
 The **[Alibaba provider](https://ai-sdk.dev/providers/ai-sdk-providers/alibaba)** for the [AI SDK](https://ai-sdk.dev/docs) contains language model support for [Alibaba Cloud Model Studio](https://modelstudio.console.alibabacloud.com/), including the Qwen model series with advanced reasoning capabilities.
 
+> **Deploying to Vercel?** With Vercel's AI Gateway you can access Alibaba (and hundreds of models from other providers) — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
+
 ## Setup
 
 The Alibaba provider is available in the `@ai-sdk/alibaba` module. You can install it with
@@ -96,25 +98,34 @@ Alibaba supports both implicit and explicit prompt caching to reduce costs for r
 import { alibaba } from '@ai-sdk/alibaba';
 import { generateText } from 'ai';
 
+const longDocument = '... large document content ...';
+
 const { text, usage } = await generateText({
   model: alibaba('qwen-plus'),
   messages: [
     {
-      role: 'system',
-      content: 'You are a helpful assistant. [... long system prompt ...]',
-      providerMetadata: {
-        alibaba: {
-          cacheControl: { type: 'ephemeral' },
-        },
-      },
-    },
-    {
       role: 'user',
-      content: 'What is the capital of France?',
+      content: [
+        {
+          type: 'text',
+          text: 'Context: Please analyze this document.',
+        },
+        {
+          type: 'text',
+          text: longDocument,
+          providerOptions: {
+            alibaba: {
+              cacheControl: { type: 'ephemeral' },
+            },
+          },
+        },
+      ],
     },
   ],
 });
 ```
+
+**Note:** The minimum content length for a cache block is 1,024 tokens.
 
 ## Documentation
 

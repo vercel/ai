@@ -1,5 +1,5 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { elevenlabs } from '@ai-sdk/elevenlabs';
+import { elevenLabs } from '@ai-sdk/elevenlabs';
 import { fal } from '@ai-sdk/fal';
 import { groq } from '@ai-sdk/groq';
 import { luma } from '@ai-sdk/luma';
@@ -29,8 +29,8 @@ const myAnthropic = customProvider({
 const myOpenAI = customProvider({
   languageModels: {
     // replacement model with custom provider options:
-    'gpt-4': wrapLanguageModel({
-      model: openai('gpt-4'),
+    'gpt-5': wrapLanguageModel({
+      model: openai('gpt-5'),
       middleware: defaultSettingsMiddleware({
         settings: {
           providerOptions: {
@@ -64,7 +64,7 @@ export const registry = createProviderRegistry({
   openai: myOpenAI,
   xai,
   groq,
-  elevenlabs,
+  elevenLabs,
 });
 
 registry.languageModel('anthropic:haiku');
@@ -76,7 +76,7 @@ const registryWithCustomSeparator = createProviderRegistry(
     openai: myOpenAI,
     xai,
     groq,
-    elevenlabs,
+    elevenLabs,
   },
   { separator: ' > ' },
 );

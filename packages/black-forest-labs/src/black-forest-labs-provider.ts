@@ -1,12 +1,16 @@
-import { ImageModelV3, NoSuchModelError, ProviderV3 } from '@ai-sdk/provider';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
+import {
+  NoSuchModelError,
+  type ImageModelV4,
+  type ProviderV4,
+} from '@ai-sdk/provider';
 import {
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { BlackForestLabsImageModel } from './black-forest-labs-image-model';
-import { BlackForestLabsImageModelId } from './black-forest-labs-image-settings';
+import type { BlackForestLabsImageModelId } from './black-forest-labs-image-settings';
 import { VERSION } from './version';
 
 export interface BlackForestLabsProviderSettings {
@@ -42,16 +46,16 @@ export interface BlackForestLabsProviderSettings {
   pollTimeoutMillis?: number;
 }
 
-export interface BlackForestLabsProvider extends ProviderV3 {
+export interface BlackForestLabsProvider extends ProviderV4 {
   /**
    * Creates a model for image generation.
    */
-  image(modelId: BlackForestLabsImageModelId): ImageModelV3;
+  image(modelId: BlackForestLabsImageModelId): ImageModelV4;
 
   /**
    * Creates a model for image generation.
    */
-  imageModel(modelId: BlackForestLabsImageModelId): ImageModelV3;
+  imageModel(modelId: BlackForestLabsImageModelId): ImageModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -96,7 +100,7 @@ export function createBlackForestLabs(
   };
 
   return {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     imageModel: createImageModel,
     image: createImageModel,
     languageModel: (modelId: string) => {

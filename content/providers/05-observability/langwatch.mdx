@@ -70,7 +70,7 @@ The AI SDK supports tracing via Next.js OpenTelemetry integration. By using the 
 First, you need to install the necessary dependencies:
 
 ```bash
-npm install @vercel/otel langwatch @opentelemetry/api-logs @opentelemetry/instrumentation @opentelemetry/sdk-logs
+npm install @vercel/otel langwatch @opentelemetry/api-logs @opentelemetry/instrumentation @opentelemetry/sdk-logs @ai-sdk/otel
 ```
 
 Then, set up the OpenTelemetry for your application, follow one of the tabs below depending whether you are using AI SDK with Next.js or on Node.js:
@@ -94,8 +94,12 @@ module.exports = nextConfig;
 Next, you need to create a file named `instrumentation.ts` (or `.js`) in the **root directory** of the project (or inside `src` folder if using one), with `LangWatchExporter` as the traceExporter:
 
 ```typescript
+import { registerTelemetry } from 'ai';
+import { LegacyOpenTelemetry } from '@ai-sdk/otel';
 import { registerOTel } from '@vercel/otel';
 import { LangWatchExporter } from 'langwatch';
+
+registerTelemetry(new LegacyOpenTelemetry());
 
 export function register() {
   registerOTel({
@@ -107,15 +111,17 @@ export function register() {
 
 (Read more about Next.js OpenTelemetry configuration [on the official guide](https://nextjs.org/docs/app/building-your-application/optimizing/open-telemetry#manual-opentelemetry-configuration))
 
-Finally, enable `experimental_telemetry` tracking on the AI SDK calls you want to trace:
+Finally, enable `telemetry` tracking on the AI SDK calls you want to trace:
 
 ```typescript
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
 const result = await generateText({
   model: openai('gpt-4o-mini'),
   prompt:
     'Explain why a chicken would make a terrible astronaut, be creative and humorous about it.',
-  experimental_telemetry: {
-    isEnabled: true,
+  telemetry: {
     // optional metadata
     metadata: {
       userId: 'myuser-123',

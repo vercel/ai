@@ -1,8 +1,9 @@
+import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { MCPClientError } from '../error/mcp-client-error';
-import { JSONRPCMessage } from './json-rpc-message';
+import type { JSONRPCMessage } from './json-rpc-message';
 import { SseMCPTransport } from './mcp-sse-transport';
 import { HttpMCPTransport } from './mcp-http-transport';
-import { OAuthClientProvider } from './oauth';
+import type { OAuthClientProvider } from './oauth';
 
 /**
  * Transport interface for MCP (Model Context Protocol) communication.
@@ -39,6 +40,11 @@ export interface MCPTransport {
    * Event handler for received messages
    */
   onmessage?: (message: JSONRPCMessage) => void;
+
+  /**
+   * The protocol version negotiated during initialization.
+   */
+  protocolVersion?: string;
 }
 
 export type MCPTransportConfig = {
@@ -58,6 +64,21 @@ export type MCPTransportConfig = {
    * An optional OAuth client provider to use for authentication for MCP servers.
    */
   authProvider?: OAuthClientProvider;
+
+  /**
+   * Controls how HTTP redirects are handled for transport requests.
+   * - `'follow'`: Follow redirects automatically (standard fetch behavior).
+   * - `'error'`: Reject any redirect response with an error.
+   * @default 'error'
+   */
+  redirect?: 'follow' | 'error';
+
+  /**
+   * Optional custom fetch implementation to use for HTTP requests.
+   * Useful for runtimes that need a request-local fetch.
+   * @default globalThis.fetch
+   */
+  fetch?: FetchFunction;
 };
 
 export function createMcpTransport(config: MCPTransportConfig): MCPTransport {

@@ -1,7 +1,7 @@
 import { AISDKError } from '@ai-sdk/provider';
-import { FinishReason } from '../types/language-model';
-import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
-import { LanguageModelUsage } from '../types/usage';
+import type { FinishReason } from '../types/language-model';
+import type { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
+import type { LanguageModelUsage } from '../types/usage';
 
 const name = 'AI_NoObjectGeneratedError';
 const marker = `vercel.ai.error.${name}`;
@@ -29,7 +29,9 @@ export class NoObjectGeneratedError extends AISDKError {
   /**
    * The response metadata.
    */
-  readonly response: LanguageModelResponseMetadata | undefined;
+  readonly response:
+    | Omit<LanguageModelResponseMetadata, 'messages'>
+    | undefined;
 
   /**
    * The usage of the model.
@@ -52,7 +54,7 @@ export class NoObjectGeneratedError extends AISDKError {
     message?: string;
     cause?: Error;
     text?: string;
-    response: LanguageModelResponseMetadata;
+    response: Omit<LanguageModelResponseMetadata, 'messages'>;
     usage: LanguageModelUsage;
     finishReason: FinishReason;
   }) {

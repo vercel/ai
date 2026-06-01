@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { createFireworks } from './fireworks-provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
 import {
@@ -157,6 +157,72 @@ describe('FireworksProvider', () => {
         model: 'test-model',
         messages: [],
         thinking: { type: 'enabled' },
+      });
+    });
+
+    it('should remap reasoning_effort xhigh to high', () => {
+      const provider = createFireworks();
+      provider.chatModel('test-model');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const config = constructorCall[1];
+      const transformRequestBody = config.transformRequestBody;
+
+      const result = transformRequestBody({
+        model: 'test-model',
+        messages: [],
+        reasoning_effort: 'xhigh',
+      });
+
+      expect(result).toEqual({
+        model: 'test-model',
+        messages: [],
+        reasoning_effort: 'high',
+      });
+    });
+
+    it('should remap reasoning_effort minimal to low', () => {
+      const provider = createFireworks();
+      provider.chatModel('test-model');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const config = constructorCall[1];
+      const transformRequestBody = config.transformRequestBody;
+
+      const result = transformRequestBody({
+        model: 'test-model',
+        messages: [],
+        reasoning_effort: 'minimal',
+      });
+
+      expect(result).toEqual({
+        model: 'test-model',
+        messages: [],
+        reasoning_effort: 'low',
+      });
+    });
+
+    it('should pass through supported reasoning_effort values unchanged', () => {
+      const provider = createFireworks();
+      provider.chatModel('test-model');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const config = constructorCall[1];
+      const transformRequestBody = config.transformRequestBody;
+
+      const result = transformRequestBody({
+        model: 'test-model',
+        messages: [],
+        reasoning_effort: 'medium',
+      });
+
+      expect(result).toEqual({
+        model: 'test-model',
+        messages: [],
+        reasoning_effort: 'medium',
       });
     });
 

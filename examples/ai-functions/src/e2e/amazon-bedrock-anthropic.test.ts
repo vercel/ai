@@ -2,28 +2,27 @@ import {
   bedrockAnthropic,
   createBedrockAnthropic,
 } from '@ai-sdk/amazon-bedrock/anthropic';
-import { LanguageModelV3 } from '@ai-sdk/provider';
-import { APICallError, generateText, stepCountIs } from 'ai';
+import type { LanguageModelV3, LanguageModelV4 } from '@ai-sdk/provider';
+import { generateText, isStepCount, type APICallError } from 'ai';
 import 'dotenv/config';
 import fs from 'fs';
 import { describe, expect, it } from 'vitest';
 import {
   createFeatureTestSuite,
   createLanguageModelWithCapabilities,
-  ModelWithCapabilities,
+  type ModelWithCapabilities,
 } from './feature-test-suite';
-
 const createModelObject = (
-  model: LanguageModelV3,
-): { model: LanguageModelV3; modelId: string } => ({
+  model: LanguageModelV4,
+): { model: LanguageModelV4; modelId: string } => ({
   model: model,
   modelId: model.modelId,
 });
 
 const createLanguageModel = (
   modelId: string,
-  additionalTests: ((model: LanguageModelV3) => void)[] = [],
-): ModelWithCapabilities<LanguageModelV3> => {
+  additionalTests: ((model: LanguageModelV4) => void)[] = [],
+): ModelWithCapabilities<LanguageModelV3 | LanguageModelV4> => {
   const model = createBedrockAnthropic({
     region: process.env.AWS_REGION ?? 'us-east-1',
   })(modelId);
@@ -42,8 +41,8 @@ const createLanguageModel = (
 
 const createModelVariants = (
   modelId: string,
-  tests: ((model: LanguageModelV3) => void)[] = [],
-): ModelWithCapabilities<LanguageModelV3>[] => [
+  tests: ((model: LanguageModelV4) => void)[] = [],
+): ModelWithCapabilities<LanguageModelV3 | LanguageModelV4>[] => [
   createLanguageModel(modelId, tests),
 ];
 
@@ -83,7 +82,7 @@ describe('Bedrock Anthropic E2E Tests', () => {
   })();
 });
 
-const stopSequenceTests = (model: LanguageModelV3) => {
+const stopSequenceTests = (model: LanguageModelV4) => {
   it(
     'should return stop_sequence in provider metadata when stopped by stop sequence',
     async () => {
@@ -98,7 +97,7 @@ const stopSequenceTests = (model: LanguageModelV3) => {
       expect(result.finishReason).toBe('stop');
       expect(result.providerMetadata?.anthropic?.stopSequence).toBe('5');
     },
-    { timeout: LONG_TEST_MILLIS },
+    LONG_TEST_MILLIS,
   );
 
   it(
@@ -113,11 +112,11 @@ const stopSequenceTests = (model: LanguageModelV3) => {
       expect(result.text).toBeTruthy();
       expect(result.providerMetadata?.anthropic?.stopSequence).toBeNull();
     },
-    { timeout: LONG_TEST_MILLIS },
+    LONG_TEST_MILLIS,
   );
 };
 
-const toolTests = (model: LanguageModelV3) => {
+const toolTests = (model: LanguageModelV4) => {
   it(
     'should execute computer tool commands',
     async () => {
@@ -131,7 +130,8 @@ const toolTests = (model: LanguageModelV3) => {
               switch (action) {
                 case 'screenshot': {
                   return {
-                    type: 'image',
+                    type: 'file',
+                    mediaType: 'image',
                     data: fs
                       .readFileSync('./data/screenshot-editor.png')
                       .toString('base64'),
@@ -149,9 +149,9 @@ const toolTests = (model: LanguageModelV3) => {
                   typeof output === 'string'
                     ? { type: 'text', text: output }
                     : {
-                        type: 'image-data',
-                        data: output.data,
+                        type: 'file',
                         mediaType: 'image/png',
+                        data: { type: 'data', data: output.data },
                       },
                 ],
               };
@@ -160,7 +160,7 @@ const toolTests = (model: LanguageModelV3) => {
         },
         prompt:
           'How can I switch to dark mode? Take a look at the screen and tell me.',
-        stopWhen: stepCountIs(5),
+        stopWhen: isStepCount(5),
       });
 
       console.log(result.text);
@@ -171,7 +171,7 @@ const toolTests = (model: LanguageModelV3) => {
       );
       expect(result.usage?.totalTokens).toBeGreaterThan(0);
     },
-    { timeout: COMPUTER_USE_TEST_MILLIS },
+    COMPUTER_USE_TEST_MILLIS,
   );
 
   it(
@@ -195,7 +195,7 @@ README.md     build         data          node_modules  package.json  src       
           }),
         },
         prompt: 'List the files in my directory.',
-        stopWhen: stepCountIs(2),
+        stopWhen: isStepCount(2),
       });
 
       expect(result.text).toBeTruthy();
@@ -204,7 +204,7 @@ README.md     build         data          node_modules  package.json  src       
       expect(result.text).toContain('node_modules');
       expect(result.usage?.totalTokens).toBeGreaterThan(0);
     },
-    { timeout: COMPUTER_USE_TEST_MILLIS },
+    COMPUTER_USE_TEST_MILLIS,
   );
 
   it(
@@ -240,13 +240,13 @@ README.md     build         data          node_modules  package.json  src       
           }),
         },
         prompt: 'Update my README file to talk about AI.',
-        stopWhen: stepCountIs(5),
+        stopWhen: isStepCount(5),
       });
 
       expect(result.text).toBeTruthy();
       expect(editorContent).not.toBe('## README\nThis is a test file.');
       expect(result.usage?.totalTokens).toBeGreaterThan(0);
     },
-    { timeout: COMPUTER_USE_TEST_MILLIS },
+    COMPUTER_USE_TEST_MILLIS,
   );
 };

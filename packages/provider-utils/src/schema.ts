@@ -1,6 +1,9 @@
-import { JSONSchema7, TypeValidationError } from '@ai-sdk/provider';
-import { StandardSchemaV1, StandardJSONSchemaV1 } from '@standard-schema/spec';
-import * as z3 from 'zod/v3';
+import { TypeValidationError, type JSONSchema7 } from '@ai-sdk/provider';
+import type {
+  StandardSchemaV1,
+  StandardJSONSchemaV1,
+} from '@standard-schema/spec';
+import type * as z3 from 'zod/v3';
 import * as z4 from 'zod/v4';
 import { addAdditionalPropertiesToJsonSchema } from './add-additional-properties-to-json-schema';
 import { zod3ToJsonSchema } from './to-json-schema/zod3-to-json-schema';
@@ -133,7 +136,11 @@ export function asSchema<OBJECT>(
   schema: FlexibleSchema<OBJECT> | undefined,
 ): Schema<OBJECT> {
   return schema == null
-    ? jsonSchema({ properties: {}, additionalProperties: false })
+    ? jsonSchema({
+        type: 'object',
+        properties: {},
+        additionalProperties: false,
+      })
     : isSchema(schema)
       ? schema
       : '~standard' in schema

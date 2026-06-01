@@ -1,3 +1,6 @@
+// import globals
+import './global';
+
 // re-exports:
 export { createGateway, gateway, type GatewayModelId } from '@ai-sdk/gateway';
 export {
@@ -14,13 +17,15 @@ export {
   type InferSchema,
   type InferToolInput,
   type InferToolOutput,
+  type Experimental_Sandbox,
+  type Experimental_SandboxProcess,
   type Schema,
   type Tool,
   type ToolApprovalRequest,
   type ToolApprovalResponse,
-  type ToolCallOptions,
-  type ToolExecutionOptions,
   type ToolExecuteFunction,
+  type ToolExecutionOptions,
+  type ToolSet,
 } from '@ai-sdk/provider-utils';
 
 // directory exports
@@ -37,15 +42,12 @@ export * from './middleware';
 export * from './prompt';
 export * from './registry';
 export * from './rerank';
+export * from './telemetry';
 export * from './text-stream';
 export * from './transcribe';
 export * from './types';
 export * from './ui';
 export * from './ui-message-stream';
+export * from './upload-file';
+export * from './upload-skill';
 export * from './util';
-
-// telemetry types:
-export type { TelemetrySettings } from './telemetry/telemetry-settings';
-
-// import globals
-import './global';

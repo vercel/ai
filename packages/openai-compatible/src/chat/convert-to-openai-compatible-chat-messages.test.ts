@@ -21,7 +21,10 @@ describe('user messages', () => {
           { type: 'text', text: 'Hello' },
           {
             type: 'file',
-            data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+            data: {
+              type: 'data' as const,
+              data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+            },
             mediaType: 'image/png',
           },
         ],
@@ -50,7 +53,7 @@ describe('user messages', () => {
           { type: 'text', text: 'Hi' },
           {
             type: 'file',
-            data: new Uint8Array([0, 1, 2, 3]),
+            data: { type: 'data' as const, data: new Uint8Array([0, 1, 2, 3]) },
             mediaType: 'image/png',
           },
         ],
@@ -78,7 +81,10 @@ describe('user messages', () => {
         content: [
           {
             type: 'file',
-            data: new URL('https://example.com/image.jpg'),
+            data: {
+              type: 'url' as const,
+              url: new URL('https://example.com/image.jpg'),
+            },
             mediaType: 'image/*',
           },
         ],
@@ -106,7 +112,10 @@ describe('user messages', () => {
           { type: 'text', text: 'Transcribe this audio' },
           {
             type: 'file',
-            data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+            data: {
+              type: 'data' as const,
+              data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+            },
             mediaType: 'audio/wav',
           },
         ],
@@ -134,7 +143,7 @@ describe('user messages', () => {
         content: [
           {
             type: 'file',
-            data: new Uint8Array([0, 1, 2, 3]),
+            data: { type: 'data' as const, data: new Uint8Array([0, 1, 2, 3]) },
             mediaType: 'audio/mp3',
           },
         ],
@@ -161,7 +170,7 @@ describe('user messages', () => {
         content: [
           {
             type: 'file',
-            data: new Uint8Array([0, 1, 2, 3]),
+            data: { type: 'data' as const, data: new Uint8Array([0, 1, 2, 3]) },
             mediaType: 'audio/mpeg',
           },
         ],
@@ -189,7 +198,10 @@ describe('user messages', () => {
           content: [
             {
               type: 'file',
-              data: new URL('https://example.com/audio.wav'),
+              data: {
+                type: 'url' as const,
+                url: new URL('https://example.com/audio.wav'),
+              },
               mediaType: 'audio/wav',
             },
           ],
@@ -206,7 +218,10 @@ describe('user messages', () => {
           content: [
             {
               type: 'file',
-              data: new Uint8Array([0, 1, 2, 3]),
+              data: {
+                type: 'data' as const,
+                data: new Uint8Array([0, 1, 2, 3]),
+              },
               mediaType: 'audio/ogg',
             },
           ],
@@ -223,7 +238,10 @@ describe('user messages', () => {
           { type: 'text', text: 'Summarize this PDF' },
           {
             type: 'file',
-            data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+            data: {
+              type: 'data' as const,
+              data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+            },
             mediaType: 'application/pdf',
           },
         ],
@@ -254,7 +272,7 @@ describe('user messages', () => {
         content: [
           {
             type: 'file',
-            data: new Uint8Array([0, 1, 2, 3]),
+            data: { type: 'data' as const, data: new Uint8Array([0, 1, 2, 3]) },
             mediaType: 'application/pdf',
             filename: 'report.pdf',
           },
@@ -286,7 +304,10 @@ describe('user messages', () => {
           content: [
             {
               type: 'file',
-              data: new URL('https://example.com/document.pdf'),
+              data: {
+                type: 'url' as const,
+                url: new URL('https://example.com/document.pdf'),
+              },
               mediaType: 'application/pdf',
             },
           ],
@@ -295,7 +316,10 @@ describe('user messages', () => {
     ).toThrow("'PDF file parts with URLs' functionality not supported");
   });
 
-  it('should convert messages with text/markdown parts', async () => {
+  it('should convert messages with base64-encoded text/markdown parts', async () => {
+    const markdownText = '# Hello World\n\nThis is **markdown** content.';
+    const base64Data = btoa(markdownText);
+
     const result = convertToOpenAICompatibleChatMessages([
       {
         role: 'user',
@@ -303,7 +327,7 @@ describe('user messages', () => {
           { type: 'text', text: 'Summarize this document' },
           {
             type: 'file',
-            data: '# Hello World\n\nThis is **markdown** content.',
+            data: { type: 'data' as const, data: base64Data },
             mediaType: 'text/markdown',
           },
         ],
@@ -317,7 +341,7 @@ describe('user messages', () => {
           { type: 'text', text: 'Summarize this document' },
           {
             type: 'text',
-            text: '# Hello World\n\nThis is **markdown** content.',
+            text: markdownText,
           },
         ],
       },
@@ -332,7 +356,40 @@ describe('user messages', () => {
         content: [
           {
             type: 'file',
-            data: encoder.encode('Plain text content'),
+            data: {
+              type: 'data' as const,
+              data: encoder.encode('Plain text content'),
+            },
+            mediaType: 'text/plain',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Plain text content',
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should decode base64 string data for text/* file parts', async () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: {
+              type: 'data' as const,
+              data: Buffer.from('Plain text content').toString('base64'),
+            },
             mediaType: 'text/plain',
           },
         ],
@@ -359,7 +416,10 @@ describe('user messages', () => {
         content: [
           {
             type: 'file',
-            data: new URL('https://example.com/readme.md'),
+            data: {
+              type: 'url' as const,
+              url: new URL('https://example.com/readme.md'),
+            },
             mediaType: 'text/markdown',
           },
         ],
@@ -387,13 +447,38 @@ describe('user messages', () => {
           content: [
             {
               type: 'file',
-              data: new Uint8Array([0, 1, 2, 3]),
+              data: {
+                type: 'data' as const,
+                data: new Uint8Array([0, 1, 2, 3]),
+              },
               mediaType: 'video/mp4',
             },
           ],
         },
       ]),
     ).toThrow("'file part media type video/mp4' functionality not supported");
+  });
+
+  it('should throw error for file parts with provider references', async () => {
+    expect(() =>
+      convertToOpenAICompatibleChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: {
+                type: 'reference' as const,
+                reference: { openaiCompatible: 'file-123' },
+              },
+              mediaType: 'image/png',
+            },
+          ],
+        },
+      ]),
+    ).toThrow(
+      "'file parts with provider references' functionality not supported",
+    );
   });
 });
 
@@ -427,7 +512,7 @@ describe('tool calls', () => {
     expect(result).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             type: 'function',
@@ -445,6 +530,25 @@ describe('tool calls', () => {
         tool_call_id: 'quux',
       },
     ]);
+  });
+
+  it('should send empty string content for assistant messages with no tool calls', () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'assistant',
+        content: [{ type: 'text', text: '' }],
+      },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": "",
+          "role": "assistant",
+          "tool_calls": undefined,
+        },
+      ]
+    `);
   });
 
   it('should handle text output type in tool results', () => {
@@ -476,7 +580,7 @@ describe('tool calls', () => {
     expect(result).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             type: 'function',
@@ -602,7 +706,7 @@ describe('provider-specific metadata merging', () => {
     expect(result).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             id: 'call1',
@@ -626,7 +730,7 @@ describe('provider-specific metadata merging', () => {
         content: [
           {
             type: 'file',
-            data: imageUrl,
+            data: { type: 'url' as const, url: imageUrl },
             mediaType: 'image/*',
             providerOptions: {
               openaiCompatible: {
@@ -688,7 +792,10 @@ describe('provider-specific metadata merging', () => {
           },
           {
             type: 'file',
-            data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+            data: {
+              type: 'data' as const,
+              data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+            },
             mediaType: 'image/png',
             providerOptions: {
               openaiCompatible: { alt_text: 'A sample image' },
@@ -861,7 +968,10 @@ describe('provider-specific metadata merging', () => {
           },
           {
             type: 'file',
-            data: Buffer.from([9, 8, 7, 6]).toString('base64'),
+            data: {
+              type: 'data' as const,
+              data: Buffer.from([9, 8, 7, 6]).toString('base64'),
+            },
             mediaType: 'image/png',
             providerOptions: {
               openaiCompatible: { imagePartLevel: 'image-data' },
@@ -969,7 +1079,7 @@ describe('provider-specific metadata merging', () => {
         role: 'assistant',
         cacheControl: { type: 'default' },
         sharedKey: 'assistantLevel',
-        content: '',
+        content: null,
         tool_calls: [
           {
             id: 'collisionToolCall',
@@ -1011,7 +1121,7 @@ describe('Google Gemini thought signatures (OpenAI compatibility)', () => {
     expect(result).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             id: 'function-call-1',
@@ -1104,7 +1214,7 @@ describe('Google Gemini thought signatures (OpenAI compatibility)', () => {
     // Verify both signatures are preserved
     expect(result[1]).toEqual({
       role: 'assistant',
-      content: '',
+      content: null,
       tool_calls: [
         {
           id: 'function-call-1',
@@ -1124,7 +1234,7 @@ describe('Google Gemini thought signatures (OpenAI compatibility)', () => {
 
     expect(result[3]).toEqual({
       role: 'assistant',
-      content: '',
+      content: null,
       tool_calls: [
         {
           id: 'function-call-2',
@@ -1173,7 +1283,7 @@ describe('Google Gemini thought signatures (OpenAI compatibility)', () => {
     expect(result).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             id: 'function-call-paris',
@@ -1220,7 +1330,7 @@ describe('Google Gemini thought signatures (OpenAI compatibility)', () => {
     expect(result).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             id: 'call-1',
@@ -1229,10 +1339,96 @@ describe('Google Gemini thought signatures (OpenAI compatibility)', () => {
               name: 'some_tool',
               arguments: JSON.stringify({ param: 'value' }),
             },
-            // No extra_content field
           },
         ],
       },
     ]);
+  });
+});
+
+describe('top-level-only media type resolution', () => {
+  const pngBase64 = 'iVBORw0KGgo=';
+
+  it('passes full image/png through unchanged for inline data', () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: { type: 'data' as const, data: pngBase64 },
+          },
+        ],
+      },
+    ]);
+
+    expect((result[0].content as unknown[])[0]).toEqual({
+      type: 'image_url',
+      image_url: { url: `data:image/png;base64,${pngBase64}` },
+    });
+  });
+
+  it('detects image subtype from inline bytes for top-level "image"', () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            mediaType: 'image',
+            data: { type: 'data' as const, data: pngBase64 },
+          },
+        ],
+      },
+    ]);
+
+    expect((result[0].content as unknown[])[0]).toEqual({
+      type: 'image_url',
+      image_url: { url: `data:image/png;base64,${pngBase64}` },
+    });
+  });
+
+  it('passes through URL source for top-level-only image (provider accepts raw URL)', () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            mediaType: 'image',
+            data: {
+              type: 'url' as const,
+              url: new URL('https://example.com/x.png'),
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect((result[0].content as unknown[])[0]).toEqual({
+      type: 'image_url',
+      image_url: { url: 'https://example.com/x.png' },
+    });
+  });
+
+  it('normalizes image/* wildcard via detection', () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            mediaType: 'image/*',
+            data: { type: 'data' as const, data: pngBase64 },
+          },
+        ],
+      },
+    ]);
+
+    expect((result[0].content as unknown[])[0]).toEqual({
+      type: 'image_url',
+      image_url: { url: `data:image/png;base64,${pngBase64}` },
+    });
   });
 });

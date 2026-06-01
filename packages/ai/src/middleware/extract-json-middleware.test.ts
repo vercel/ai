@@ -1,4 +1,4 @@
-import { LanguageModelV3Usage } from '@ai-sdk/provider';
+import type { LanguageModelV4Usage } from '@ai-sdk/provider';
 import {
   convertArrayToReadableStream,
   convertAsyncIterableToArray,
@@ -6,10 +6,10 @@ import {
 import { describe, expect, it } from 'vitest';
 import { generateText, streamText } from '../generate-text';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
-import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
+import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { extractJsonMiddleware } from './extract-json-middleware';
 
-const testUsage: LanguageModelV3Usage = {
+const testUsage: LanguageModelV4Usage = {
   inputTokens: {
     total: 5,
     noCache: 5,
@@ -26,7 +26,7 @@ const testUsage: LanguageModelV3Usage = {
 describe('extractJsonMiddleware', () => {
   describe('wrapGenerate', () => {
     it('should strip markdown json fence from text content', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doGenerate() {
           return {
             content: [
@@ -54,7 +54,7 @@ describe('extractJsonMiddleware', () => {
     });
 
     it('should strip markdown fence without json tag', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doGenerate() {
           return {
             content: [
@@ -82,7 +82,7 @@ describe('extractJsonMiddleware', () => {
     });
 
     it('should leave text without fences unchanged', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doGenerate() {
           return {
             content: [
@@ -110,7 +110,7 @@ describe('extractJsonMiddleware', () => {
     });
 
     it('should use custom transform function when provided', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doGenerate() {
           return {
             content: [
@@ -140,7 +140,7 @@ describe('extractJsonMiddleware', () => {
     });
 
     it('should preserve non-text content parts', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doGenerate() {
           return {
             content: [
@@ -181,7 +181,7 @@ describe('extractJsonMiddleware', () => {
 
   describe('wrapStream', () => {
     it('should strip markdown json fence from streamed text', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doStream() {
           return {
             stream: convertArrayToReadableStream([
@@ -218,7 +218,7 @@ describe('extractJsonMiddleware', () => {
     });
 
     it('should strip markdown fence without json tag from streamed text', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doStream() {
           return {
             stream: convertArrayToReadableStream([
@@ -255,7 +255,7 @@ describe('extractJsonMiddleware', () => {
     });
 
     it('should leave text without fences unchanged in stream', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doStream() {
           return {
             stream: convertArrayToReadableStream([
@@ -290,7 +290,7 @@ describe('extractJsonMiddleware', () => {
     });
 
     it('should handle fence split across multiple deltas', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doStream() {
           return {
             stream: convertArrayToReadableStream([
@@ -330,7 +330,7 @@ describe('extractJsonMiddleware', () => {
     });
 
     it('should handle content that starts with backtick but is not a fence', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doStream() {
           return {
             stream: convertArrayToReadableStream([
@@ -365,7 +365,7 @@ describe('extractJsonMiddleware', () => {
     });
 
     it('should pass through non-text chunks unchanged', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doStream() {
           return {
             stream: convertArrayToReadableStream([
@@ -409,15 +409,15 @@ describe('extractJsonMiddleware', () => {
         prompt: 'Generate JSON',
       });
 
-      const fullStream = await convertAsyncIterableToArray(result.fullStream);
-      const toolInputStart = fullStream.find(
+      const stream = await convertAsyncIterableToArray(result.stream);
+      const toolInputStart = stream.find(
         chunk => chunk.type === 'tool-input-start',
       );
       expect(toolInputStart).toBeDefined();
     });
 
     it('should handle multiple text blocks with different IDs', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doStream() {
           return {
             stream: convertArrayToReadableStream([
@@ -455,10 +455,8 @@ describe('extractJsonMiddleware', () => {
         prompt: 'Generate JSON',
       });
 
-      const fullStream = await convertAsyncIterableToArray(result.fullStream);
-      const textDeltas = fullStream.filter(
-        chunk => chunk.type === 'text-delta',
-      );
+      const stream = await convertAsyncIterableToArray(result.stream);
+      const textDeltas = stream.filter(chunk => chunk.type === 'text-delta');
 
       const allText = textDeltas.map(d => d.text).join('');
       expect(allText).toContain('{"first": true}');
@@ -467,7 +465,7 @@ describe('extractJsonMiddleware', () => {
     });
 
     it('should handle text-delta without prior text-start', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doStream() {
           return {
             stream: convertArrayToReadableStream([
@@ -497,15 +495,13 @@ describe('extractJsonMiddleware', () => {
         prompt: 'Generate JSON',
       });
 
-      const fullStream = await convertAsyncIterableToArray(result.fullStream);
-      const textDeltas = fullStream.filter(
-        chunk => chunk.type === 'text-delta',
-      );
+      const stream = await convertAsyncIterableToArray(result.stream);
+      const textDeltas = stream.filter(chunk => chunk.type === 'text-delta');
       expect(textDeltas.length).toBeGreaterThanOrEqual(1);
     });
 
     it('should emit text-start when stream ends while still in prefix phase', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doStream() {
           return {
             stream: convertArrayToReadableStream([
@@ -537,18 +533,16 @@ describe('extractJsonMiddleware', () => {
         prompt: 'Generate JSON',
       });
 
-      const fullStream = await convertAsyncIterableToArray(result.fullStream);
-      const textStarts = fullStream.filter(
-        chunk => chunk.type === 'text-start',
-      );
-      const textEnds = fullStream.filter(chunk => chunk.type === 'text-end');
+      const stream = await convertAsyncIterableToArray(result.stream);
+      const textStarts = stream.filter(chunk => chunk.type === 'text-start');
+      const textEnds = stream.filter(chunk => chunk.type === 'text-end');
 
       expect(textStarts.length).toBe(1);
       expect(textEnds.length).toBe(1);
     });
 
     it('should apply custom transform to streamed content', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doStream() {
           return {
             stream: convertArrayToReadableStream([
@@ -592,7 +586,7 @@ describe('extractJsonMiddleware', () => {
         nested: { values: Array.from({ length: 10 }, (_, i) => i) },
       });
 
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doStream() {
           return {
             stream: convertArrayToReadableStream([
@@ -631,7 +625,7 @@ describe('extractJsonMiddleware', () => {
     it('should handle content arriving character by character', async () => {
       const chars = [...'```json\n{"value": "test"}\n```'];
 
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doStream() {
           return {
             stream: convertArrayToReadableStream([
@@ -670,7 +664,7 @@ describe('extractJsonMiddleware', () => {
     });
 
     it('should handle fence with extra whitespace', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doStream() {
           return {
             stream: convertArrayToReadableStream([
@@ -707,7 +701,7 @@ describe('extractJsonMiddleware', () => {
     });
 
     it('should verify stream output matches expected structure', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doStream() {
           return {
             stream: convertArrayToReadableStream([
@@ -740,20 +734,20 @@ describe('extractJsonMiddleware', () => {
         prompt: 'Generate JSON',
       });
 
-      const fullStream = await convertAsyncIterableToArray(result.fullStream);
+      const stream = await convertAsyncIterableToArray(result.stream);
 
-      expect(fullStream.find(c => c.type === 'start')).toBeDefined();
-      expect(fullStream.find(c => c.type === 'text-start')).toBeDefined();
-      expect(fullStream.find(c => c.type === 'text-end')).toBeDefined();
-      expect(fullStream.find(c => c.type === 'finish')).toBeDefined();
+      expect(stream.find(c => c.type === 'start')).toBeDefined();
+      expect(stream.find(c => c.type === 'text-start')).toBeDefined();
+      expect(stream.find(c => c.type === 'text-end')).toBeDefined();
+      expect(stream.find(c => c.type === 'finish')).toBeDefined();
 
-      const textDeltas = fullStream.filter(c => c.type === 'text-delta');
+      const textDeltas = stream.filter(c => c.type === 'text-delta');
       const combinedText = textDeltas.map(d => d.text).join('');
       expect(combinedText).toBe('{"value": "test"}');
     });
 
     it('should handle empty content between fences', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doStream() {
           return {
             stream: convertArrayToReadableStream([
@@ -788,7 +782,7 @@ describe('extractJsonMiddleware', () => {
     });
 
     it('should handle content starting without backtick quickly switching to streaming', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doStream() {
           return {
             stream: convertArrayToReadableStream([
