@@ -1393,6 +1393,78 @@ describe('experimental_generateVideo', () => {
       ]);
     });
 
+    it('should merge warnings and metadata from pending status results', async () => {
+      let statusCallCount = 0;
+
+      const result = await experimental_generateVideo({
+        model: new MockVideoModelV4({
+          doGenerate: undefined,
+          doStart: async () => ({
+            operation: 'op-1',
+            warnings: [],
+            response: {
+              timestamp: new Date(),
+              modelId: 'test-model-id',
+              headers: {},
+            },
+          }),
+          doStatus: async () => {
+            statusCallCount++;
+
+            if (statusCallCount === 1) {
+              return {
+                status: 'pending' as const,
+                warnings: [
+                  { type: 'other' as const, message: 'pending warning' },
+                ],
+                providerMetadata: {
+                  testProvider: {
+                    requestId: 'req-001',
+                  },
+                },
+                response: {
+                  timestamp: new Date(),
+                  modelId: 'test-model-id',
+                  headers: {},
+                },
+              };
+            }
+
+            return {
+              status: 'completed' as const,
+              videos: [
+                { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+              ],
+              warnings: [{ type: 'other', message: 'completed warning' }],
+              providerMetadata: {
+                testProvider: {
+                  videos: [{ duration: 5 }],
+                },
+              },
+              response: {
+                timestamp: new Date(),
+                modelId: 'test-model-id',
+                headers: {},
+              },
+            };
+          },
+        }),
+        prompt,
+        poll: { intervalMs: 0 },
+      });
+
+      expect(result.warnings).toStrictEqual([
+        { type: 'other', message: 'pending warning' },
+        { type: 'other', message: 'completed warning' },
+      ]);
+      expect(result.providerMetadata).toStrictEqual({
+        testProvider: {
+          requestId: 'req-001',
+          videos: [{ duration: 5 }],
+        },
+      });
+    });
+
     it('should use webhook flow when webhook is provided', async () => {
       let webhookUrlCapture: string | undefined;
       let resolveWebhook: (value: VideoModelV4OperationWebhook) => void;
@@ -1717,9 +1789,9 @@ describe('experimental_generateVideo', () => {
         poll: { intervalMs: 10 },
       });
 
-      // providerMetadata on the result comes from the completed status
       expect(result.providerMetadata).toStrictEqual({
         testProvider: {
+          requestId: 'req-001',
           videos: [{ duration: 5 }],
         },
       });

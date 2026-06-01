@@ -485,6 +485,7 @@ async function executeStartStatusFlow({
   );
 
   const allWarnings = [...earlyWarnings, ...startResult.warnings];
+  let operationProviderMetadata = startResult.providerMetadata;
 
   let completedResult: Extract<
     Experimental_VideoModelV4OperationStatusResult,
@@ -511,6 +512,14 @@ async function executeStartStatusFlow({
       throw new Error(statusResult.error);
     }
 
+    if (statusResult.warnings != null) {
+      allWarnings.push(...statusResult.warnings);
+    }
+    operationProviderMetadata = mergeProviderMetadata(
+      operationProviderMetadata,
+      statusResult.providerMetadata,
+    );
+
     if (statusResult.status !== 'completed') {
       throw new Error(
         'Video generation did not complete after webhook notification.',
@@ -520,7 +529,7 @@ async function executeStartStatusFlow({
     completedResult = statusResult;
   } else {
     // 3b. Polling flow (also used as fallback when webhook not supported)
-    completedResult = await pollUntilComplete({
+    const pollResult = await pollUntilComplete({
       model,
       operation: startResult.operation,
       pollConfig,
@@ -528,16 +537,19 @@ async function executeStartStatusFlow({
       headers,
       retry,
     });
-  }
 
-  if (completedResult.warnings != null) {
-    allWarnings.push(...completedResult.warnings);
+    completedResult = pollResult.result;
+    allWarnings.push(...pollResult.warnings);
+    operationProviderMetadata = mergeProviderMetadata(
+      operationProviderMetadata,
+      pollResult.providerMetadata,
+    );
   }
 
   return {
     videos: completedResult.videos,
     warnings: allWarnings,
-    providerMetadata: completedResult.providerMetadata,
+    providerMetadata: operationProviderMetadata,
     response: completedResult.response,
   };
 }
@@ -559,6 +571,51 @@ async function waitForWebhook({
   ]);
 }
 
+function mergeProviderMetadata(
+  ...metadataList: Array<SharedV4ProviderMetadata | undefined>
+): SharedV4ProviderMetadata | undefined {
+  let merged: SharedV4ProviderMetadata | undefined;
+
+  for (const metadata of metadataList) {
+    if (metadata == null) {
+      continue;
+    }
+
+    merged ??= {};
+
+    for (const [providerName, metadataValue] of Object.entries(metadata)) {
+      const existingMetadata = merged[providerName];
+      if (
+        existingMetadata != null &&
+        typeof existingMetadata === 'object' &&
+        metadataValue != null &&
+        typeof metadataValue === 'object'
+      ) {
+        merged[providerName] = {
+          ...existingMetadata,
+          ...metadataValue,
+        };
+
+        if (
+          'videos' in existingMetadata &&
+          Array.isArray(existingMetadata.videos) &&
+          'videos' in metadataValue &&
+          Array.isArray(metadataValue.videos)
+        ) {
+          (merged[providerName] as { videos: unknown[] }).videos = [
+            ...existingMetadata.videos,
+            ...metadataValue.videos,
+          ];
+        }
+      } else {
+        merged[providerName] = metadataValue;
+      }
+    }
+  }
+
+  return merged;
+}
+
 async function pollUntilComplete({
   model,
   operation,
@@ -573,17 +630,21 @@ async function pollUntilComplete({
   abortSignal?: AbortSignal;
   headers?: Record<string, string | undefined>;
   retry: <OUTPUT>(fn: () => PromiseLike<OUTPUT>) => PromiseLike<OUTPUT>;
-}): Promise<
-  Extract<
+}): Promise<{
+  result: Extract<
     Experimental_VideoModelV4OperationStatusResult,
     { status: 'completed' }
-  >
-> {
+  >;
+  warnings: Experimental_VideoModelV4Result['warnings'];
+  providerMetadata?: SharedV4ProviderMetadata;
+}> {
   const baseInterval = pollConfig?.intervalMs ?? 5000;
   const backoff = pollConfig?.backoff ?? 'none';
   const timeoutMs = pollConfig?.timeoutMs ?? 600_000;
   const onAttempt = pollConfig?.onAttempt;
 
+  const warnings: Experimental_VideoModelV4Result['warnings'] = [];
+  let providerMetadata: SharedV4ProviderMetadata | undefined;
   const startTime = Date.now();
   let attempt = 0;
 
@@ -620,12 +681,24 @@ async function pollUntilComplete({
       }),
     );
 
-    if (statusResult.status === 'completed') {
-      return statusResult;
-    }
-
     if (statusResult.status === 'error') {
       throw new Error(statusResult.error);
+    }
+
+    if (statusResult.warnings != null) {
+      warnings.push(...statusResult.warnings);
+    }
+    providerMetadata = mergeProviderMetadata(
+      providerMetadata,
+      statusResult.providerMetadata,
+    );
+
+    if (statusResult.status === 'completed') {
+      return {
+        result: statusResult,
+        warnings,
+        providerMetadata,
+      };
     }
   }
 }
