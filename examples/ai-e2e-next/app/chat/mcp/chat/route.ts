@@ -1,6 +1,12 @@
 import { openai } from '@ai-sdk/openai';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
-import { convertToModelMessages, isStepCount, streamText } from 'ai';
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  isStepCount,
+  streamText,
+  toUIMessageStream,
+} from 'ai';
 import { createMCPClient } from '@ai-sdk/mcp';
 
 export async function POST(req: Request) {
@@ -38,7 +44,9 @@ export async function POST(req: Request) {
       // },
     });
 
-    return result.toUIMessageStreamResponse();
+    return createUIMessageStreamResponse({
+      stream: toUIMessageStream({ stream: result.stream }),
+    });
   } catch (error) {
     console.error(error);
     return Response.json({ error: 'Unexpected error' }, { status: 500 });
