@@ -3,8 +3,18 @@ import { claudeCode } from '@ai-sdk/harness-claude-code';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import type { InferUITools, UIMessage } from 'ai';
 
+// Default sandbox resources won't allow for a full parallel build of all packages.
+// Not worth bumping all demo sandboxes' resources for just this, we can easily
+// work around this by guiding the harness.
+const instructions = `
+Building all packages at once (e.g. running \`pnpm build\` or \`pnpm build:packages\`)
+will exceed sandbox memory. When asked to do this, use \`turbo build\` directly with a
+lower \`--concurrency=4\` flag.
+`;
+
 export const aiSdkCodingHarnessAgent = new HarnessAgent({
   harness: claudeCode,
+  instructions,
   sandbox: createVercelSandbox({
     runtime: 'node24',
     ports: [4000],
