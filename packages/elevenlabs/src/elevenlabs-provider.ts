@@ -1,8 +1,10 @@
 import {
+  type Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
+  type Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
   NoSuchModelError,
-  type TranscriptionModelV4,
-  type SpeechModelV4,
   type ProviderV4,
+  type SpeechModelV4,
+  type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
@@ -13,6 +15,7 @@ import { ElevenLabsTranscriptionModel } from './elevenlabs-transcription-model';
 import type { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-options';
 import { ElevenLabsSpeechModel } from './elevenlabs-speech-model';
 import type { ElevenLabsSpeechModelId } from './elevenlabs-speech-options';
+import { ElevenLabsRealtimeModel } from './realtime/elevenlabs-realtime-model';
 import { VERSION } from './version';
 
 export interface ElevenLabsProvider extends ProviderV4 {
@@ -32,6 +35,12 @@ export interface ElevenLabsProvider extends ProviderV4 {
    * Creates a model for speech generation.
    */
   speech(modelId: ElevenLabsSpeechModelId): SpeechModelV4;
+
+  /**
+   * Creates an experimental realtime model for bidirectional audio/text conversations.
+   * The modelId corresponds to an ElevenLabs agent_id.
+   */
+  experimental_realtime: RealtimeFactoryV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -92,6 +101,45 @@ export function createElevenLabs(
       fetch: options.fetch,
     });
 
+  const createRealtimeModel = (agentId: string) =>
+    new ElevenLabsRealtimeModel(agentId, {
+      provider: `elevenlabs.realtime`,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
+  const experimentalRealtimeFactory = Object.assign(
+    (agentId: string) => createRealtimeModel(agentId),
+    {
+      getToken: async (tokenOptions: RealtimeFactoryV4GetTokenOptions) => {
+        if ((tokenOptions.sessionConfig?.tools?.length ?? 0) > 0) {
+          // ElevenLabs agents don't accept tool definitions over the
+          // WebSocket — tools must be registered on the agent in the
+          // ElevenLabs dashboard (or via REST), and the `name` of each
+          // dashboard tool must match the SDK-side tool. The SDK only wires
+          // up the client-side execution half of the protocol.
+          console.warn(
+            'AI SDK: `tools` passed to elevenlabs.experimental_realtime.getToken are ignored. ' +
+              'Register the tools on your ElevenLabs agent (matching names + schemas) ' +
+              'and the SDK will execute them when the agent emits client_tool_call.',
+          );
+        }
+
+        const model = createRealtimeModel(tokenOptions.model);
+        const secret = await model.doCreateClientSecret({
+          sessionConfig: tokenOptions.sessionConfig,
+          expiresAfterSeconds: tokenOptions.expiresAfterSeconds,
+        });
+
+        return {
+          token: secret.token,
+          url: secret.url,
+          expiresAt: secret.expiresAt,
+        };
+      },
+    },
+  ) as RealtimeFactoryV4;
+
   const provider = function (modelId: ElevenLabsTranscriptionModelId) {
     return {
       transcription: createTranscriptionModel(modelId),
@@ -103,6 +151,7 @@ export function createElevenLabs(
   provider.transcriptionModel = createTranscriptionModel;
   provider.speech = createSpeechModel;
   provider.speechModel = createSpeechModel;
+  provider.experimental_realtime = experimentalRealtimeFactory;
 
   provider.languageModel = (modelId: string) => {
     throw new NoSuchModelError({

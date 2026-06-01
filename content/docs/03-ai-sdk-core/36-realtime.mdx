@@ -194,10 +194,18 @@ Realtime models are available on providers that expose realtime WebSocket APIs:
 import { openai } from '@ai-sdk/openai';
 import { google } from '@ai-sdk/google';
 import { xai } from '@ai-sdk/xai';
+import { elevenLabs } from '@ai-sdk/elevenlabs';
 
 const openaiModel = openai.experimental_realtime('gpt-realtime');
 const googleModel = google.experimental_realtime(
   'gemini-3.1-flash-live-preview',
 );
 const xaiModel = xai.experimental_realtime('grok-3');
+const elevenlabsModel = elevenLabs.experimental_realtime('your-agent-id');
 ```
+
+<Note>
+  ElevenLabs agents must have tools registered on the agent. Passing
+  `sessionConfig.tools` to `elevenLabs.experimental_realtime.getToken()`
+  currently does not register tools dynamically.
+</Note>
