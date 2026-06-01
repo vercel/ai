@@ -57,11 +57,12 @@ export async function wasmPolicyClient(opts: {
     async evaluate(_path, input) {
       const results = policy.evaluate(input);
       // The WASM SDK returns an array of `{ result }` entries, one per
-      // top-level expression in the entrypoint. An empty array means the
-      // entrypoint produced no value (wrong entrypoint at `opa build` time, or
-      // an undefined decision rule). Throw rather than return undefined so the
-      // caller fails closed instead of silently treating it as "no opinion".
-      if (results.length === 0) {
+      // top-level expression in the entrypoint. A non-array or empty array
+      // means the entrypoint produced no value (wrong entrypoint at
+      // `opa build` time, an undefined decision rule, or a misbehaving
+      // bundle). Throw rather than return undefined so the caller fails closed
+      // instead of silently treating it as "no opinion".
+      if (!Array.isArray(results) || results.length === 0) {
         throw Object.assign(
           new Error(
             'OPA WASM policy produced no result. Check that the bundle was built with the correct entrypoint (`opa build -t wasm -e <path>`).',

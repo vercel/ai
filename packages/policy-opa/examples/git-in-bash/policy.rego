@@ -11,15 +11,20 @@ package agent.action
 
 import rego.v1
 
-# Read-only git subcommands the agent may run.
-git_read_only := {"status", "log", "diff", "show", "branch"}
+# Subcommands that are read-only in every form.
+git_read_only := {"status", "log", "diff", "show"}
 
-# `git remote` is read-only on its own (and with `-v`/`show`), but these
-# subcommands mutate remotes, so they are not.
-remote_mutators := {"add", "remove", "rm", "set-url", "rename", "prune"}
+# `branch` and `remote` are read-only only when listing. With flags like
+# `git branch -D` or `git remote add` they mutate, so a subcommand-level
+# allowlist is too coarse here: we additionally require a listing form. This is
+# the gotcha to remember when allowlisting git — the subcommand alone is not
+# enough once it takes mutating flags.
+git_listing := {"branch", "remote"}
 
-# Default deny covers clone, push, pull, fetch, reset, and every `kind: "bash"`
-# the parser refused to vouch for.
+listing_flags := {"-v", "--verbose", "-l", "--list", "-a", "--all"}
+
+# Default deny covers clone, push, pull, fetch, reset, the mutating branch/remote
+# forms, and every `kind: "bash"` the parser refused to vouch for.
 default decision := {"decision": "deny", "reason": "command not permitted by policy"}
 
 decision := {"decision": "allow"} if {
@@ -29,18 +34,23 @@ decision := {"decision": "allow"} if {
 
 decision := {"decision": "allow"} if {
 	input.kind == "git"
-	input.subcommand == "remote"
-	not remote_is_mutating
+	git_listing[input.subcommand]
+	is_listing
 }
 
-# True only when `git remote` carries a mutating subcommand. Undefined (not
-# true) when `args` is empty or the first arg is read-only like `-v`, so the
-# allow rule above lets `git remote` and `git remote -v` through.
-remote_is_mutating if remote_mutators[input.args[0]]
+# Read-only listing form: no args, or a single listing flag. `git remote update`
+# and `git remote show` (network), `git branch -D` (mutation) all fail this and
+# fall through to the default deny.
+is_listing if count(input.args) == 0
+
+is_listing if {
+	count(input.args) == 1
+	listing_flags[input.args[0]]
+}
 
 decision := {"decision": "deny", "reason": msg} if {
 	input.kind == "git"
 	not git_read_only[input.subcommand]
-	input.subcommand != "remote"
+	not git_listing[input.subcommand]
 	msg := sprintf("git %s is not permitted (read-only git only)", [input.subcommand])
 }

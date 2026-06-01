@@ -94,6 +94,13 @@ export function opaPolicy<
 
 function errorMessage(cause: unknown): string {
   if (cause instanceof Error) return cause.message;
+  if (typeof cause === 'object' && cause !== null) {
+    try {
+      return JSON.stringify(cause);
+    } catch {
+      // Fall through for circular / non-serializable objects.
+    }
+  }
   return String(cause);
 }
 

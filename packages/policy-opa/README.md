@@ -425,7 +425,8 @@ package agent.action
 
 import rego.v1
 
-git_read_only := {"status", "log", "diff", "show", "branch"}
+# Subcommands that are read-only in every form.
+git_read_only := {"status", "log", "diff", "show"}
 
 # Default deny covers clone, push, pull, fetch, reset, and every kind:"bash"
 # the parser refused to vouch for.
@@ -442,6 +443,8 @@ decision := {"decision": "deny", "reason": msg} if {
 	msg := sprintf("git %s is not permitted (read-only git only)", [input.subcommand])
 }
 ```
+
+Note the allowlist is the four subcommands that are read-only in _every_ form. `git branch` and `git remote` are deliberately left out: `git branch -D` deletes and `git remote update` fetches, so a subcommand-level allowlist is too coarse for them — they need an additional listing-form check on their args. The [`examples/git-in-bash`](./examples/git-in-bash) policy shows that check in full.
 
 A granular `git` tool shares the exact same rule, varying only in how it derives the action:
 

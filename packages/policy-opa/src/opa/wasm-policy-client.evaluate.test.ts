@@ -37,4 +37,13 @@ describe('wasmPolicyClient.evaluate', () => {
 
     await expect(client.evaluate('p', {})).resolves.toBe(false);
   });
+
+  it('throws (not a TypeError) when a misbehaving bundle returns a non-array', async () => {
+    nextResults = null as never;
+    const client = await wasmPolicyClient({ wasm: new Uint8Array() });
+
+    await expect(client.evaluate('p', {})).rejects.toThrow(
+      /produced no result/,
+    );
+  });
 });

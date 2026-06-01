@@ -26,7 +26,7 @@ opa test packages/policy-opa/examples/git-in-bash
 ```
 
 ```
-PASS: 8/8
+PASS: 11/11
 ```
 
 ## Run the parser tests
@@ -63,17 +63,25 @@ git clone https://example.com/x.git      DENIED → git clone is not permitted (
 The bash `toInput` (`bashCommandToInput`) turns `{ command }` into the action
 the policy decides on:
 
-| `command`                        | derived OPA input                                     | decision |
-| -------------------------------- | ----------------------------------------------------- | -------- |
-| `git status`                     | `{ kind: "git", subcommand: "status", args: [] }`     | allow    |
-| `git remote -v`                  | `{ kind: "git", subcommand: "remote", args: ["-v"] }` | allow    |
-| `git clone https://x`            | `{ kind: "git", subcommand: "clone", args: [...] }`   | deny     |
-| `cd /tmp && git clone https://x` | `{ kind: "bash", command: "cd /tmp && ..." }`         | deny     |
-| `git status \| sh`               | `{ kind: "bash", command: "git status \| sh" }`       | deny     |
+| `command`                        | derived OPA input                                          | decision |
+| -------------------------------- | ---------------------------------------------------------- | -------- |
+| `git status`                     | `{ kind: "git", subcommand: "status", args: [] }`          | allow    |
+| `git remote -v`                  | `{ kind: "git", subcommand: "remote", args: ["-v"] }`      | allow    |
+| `git remote update`              | `{ kind: "git", subcommand: "remote", args: ["update"] }`  | deny     |
+| `git branch -D feature`          | `{ kind: "git", subcommand: "branch", args: ["-D", ...] }` | deny     |
+| `git clone https://x`            | `{ kind: "git", subcommand: "clone", args: [...] }`        | deny     |
+| `cd /tmp && git clone https://x` | `{ kind: "bash", command: "cd /tmp && ..." }`              | deny     |
+| `git status \| sh`               | `{ kind: "bash", command: "git status \| sh" }`            | deny     |
 
-The last two never become a `git` action: the parser sees shell metacharacters
-(`&&`, `|`, `;`, redirects, subshells, command substitution) and returns `null`,
-so the command is handed to OPA as `kind: "bash"`, which the policy default-denies.
+`branch` and `remote` are allowlisted only in their listing form: `git remote -v`
+is allowed, but `git remote update` (fetches) and `git branch -D` (deletes) are
+denied. A subcommand-level allowlist is too coarse once a subcommand takes
+mutating flags — the policy adds a listing-form check on the args.
+
+The last two rows never become a `git` action: the parser sees shell
+metacharacters (`&&`, `|`, `;`, redirects, subshells, command substitution) and
+returns `null`, so the command is handed to OPA as `kind: "bash"`, which the
+policy default-denies.
 
 ## The honest limitation
 

@@ -19,6 +19,21 @@ test_allow_bare_remote if {
 	decision == {"decision": "allow"} with input as {"kind": "git", "subcommand": "remote", "args": []}
 }
 
+test_allow_bare_branch if {
+	decision == {"decision": "allow"} with input as {"kind": "git", "subcommand": "branch", "args": []}
+}
+
+# `branch` is allowlisted, but `-D` mutates, so the listing check rejects it.
+test_deny_branch_delete if {
+	decision.decision == "deny" with input as {"kind": "git", "subcommand": "branch", "args": ["-D", "feature"]}
+}
+
+# `remote update` fetches from remotes (network + local ref changes); not a
+# listing form, so it is denied despite `remote` being allowlisted.
+test_deny_remote_update if {
+	decision.decision == "deny" with input as {"kind": "git", "subcommand": "remote", "args": ["update"]}
+}
+
 test_deny_clone if {
 	d := decision with input as {"kind": "git", "subcommand": "clone", "args": ["https://example.com/x.git"]}
 	d.decision == "deny"

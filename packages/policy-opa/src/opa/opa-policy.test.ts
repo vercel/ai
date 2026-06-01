@@ -166,6 +166,33 @@ describe('opaPolicy', () => {
     expect(status).toMatchObject({ type: 'denied' });
     expect((status as { reason: string }).reason).toContain('OPA unreachable');
   });
+
+  it('serializes a non-Error throw into the deny reason', async () => {
+    const client: PolicyClient = {
+      async evaluate() {
+        throw { code: 'ERR_TIMEOUT' };
+      },
+    };
+    const approval = opaPolicy({ client, path: 'agent/call/decision' });
+    if (typeof approval !== 'function') throw new Error('expected generic fn');
+
+    const status = await approval({
+      toolCall: {
+        type: 'tool-call',
+        toolCallId: 'call-err',
+        toolName: 'git',
+        input: {},
+        dynamic: false,
+      } as never,
+      tools: undefined,
+      toolsContext: undefined as never,
+      runtimeContext: undefined,
+      messages: [],
+    });
+
+    expect(status).toMatchObject({ type: 'denied' });
+    expect((status as { reason: string }).reason).toContain('ERR_TIMEOUT');
+  });
 });
 
 describe('optionalOpaPolicy', () => {
