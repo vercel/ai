@@ -1,7 +1,35 @@
-import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import {
+  mkdir,
+  readFile,
+  readdir,
+  rm,
+  stat,
+  writeFile,
+} from 'node:fs/promises';
 import path from 'node:path';
 import type { Experimental_Sandbox } from '@ai-sdk/provider-utils';
 import { shellQuote } from './pi-utils';
+
+/*
+ * Pi runs on the host with its working directory pointed at the local mirror,
+ * but the only thing it reads from that directory is its own resource
+ * configuration: the `.pi` directory (skills, prompts, themes, extensions) and
+ * the root-level agent context files (`AGENTS.md` / `CLAUDE.md`). The model
+ * never reads workspace source through the host — file reads, directory
+ * listings, and greps all run as tools against the sandbox. Mirroring the whole
+ * sandbox workspace to the host would therefore copy files Pi never looks at,
+ * one `readBinaryFile` round-trip per file. For a real project that has been
+ * cloned and had its dependencies installed (hundreds of thousands of files
+ * under `node_modules`) that makes session startup take hours. The mirror is
+ * consequently scoped to exactly the paths Pi's resource loader consults.
+ */
+const PI_CONFIG_DIR = '.pi';
+const PI_CONTEXT_FILENAMES = [
+  'AGENTS.md',
+  'AGENTS.MD',
+  'CLAUDE.md',
+  'CLAUDE.MD',
+] as const;
 
 function normalizeRelativePath(inputPath: string): string {
   const normalized = inputPath.split(path.posix.sep).join(path.sep);
@@ -38,8 +66,18 @@ async function listRemoteWorkspaceEntries(
   sandbox: Experimental_Sandbox,
   remoteWorkDir: string,
 ): Promise<{ directories: string[]; files: string[] }> {
+  const contextPredicate = PI_CONTEXT_FILENAMES.map(
+    name => `-name ${shellQuote(name)}`,
+  ).join(' -o ');
+
+  // Enumerate only the `.pi` config subtree plus the root-level context files —
+  // never the rest of the workspace. Entries are tagged `d`/`f` and NUL-joined
+  // exactly like a full-tree walk so the reconcile below is unchanged.
   const listCommand = [
-    "find . -path './.agent-bridge' -prune -o -mindepth 1 \\( -type d -o -type f \\) -print0 |",
+    '{',
+    `  if [ -d ./${PI_CONFIG_DIR} ]; then find ./${PI_CONFIG_DIR} \\( -type d -o -type f \\) -print0; fi;`,
+    `  find . -maxdepth 1 -type f \\( ${contextPredicate} \\) -print0;`,
+    '} |',
     "while IFS= read -r -d '' entry; do",
     '  rel=${entry#./}',
     '  if [ -L "$entry" ]; then',
@@ -72,33 +110,61 @@ async function listRemoteWorkspaceEntries(
   return { directories, files };
 }
 
-async function collectLocalWorkspaceEntries(
+async function pathKind(
+  target: string,
+): Promise<'file' | 'directory' | undefined> {
+  try {
+    const stats = await stat(target);
+    if (stats.isDirectory()) return 'directory';
+    if (stats.isFile()) return 'file';
+    return undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+async function collectLocalSubtree(
   rootDir: string,
-  currentDir = rootDir,
+  currentDir: string,
+  directories: string[],
+  files: string[],
+): Promise<void> {
+  const entries = await readdir(currentDir, { withFileTypes: true });
+  for (const entry of entries) {
+    if (entry.isSymbolicLink()) continue;
+    const absolutePath = path.join(currentDir, entry.name);
+    const relativePath = path.relative(rootDir, absolutePath);
+    if (entry.isDirectory()) {
+      directories.push(relativePath);
+      await collectLocalSubtree(rootDir, absolutePath, directories, files);
+    } else if (entry.isFile()) {
+      files.push(relativePath);
+    }
+  }
+}
+
+/**
+ * Enumerate the locally-mirrored entries that fall within Pi's scope: the
+ * `.pi` config subtree and the root-level context files. Anything else on the
+ * local side (it should not normally exist) is intentionally ignored so the
+ * reconcile below neither copies nor deletes it.
+ */
+async function collectLocalScopedEntries(
+  rootDir: string,
 ): Promise<{ directories: string[]; files: string[] }> {
   const directories: string[] = [];
   const files: string[] = [];
-  const entries = await readdir(currentDir, { withFileTypes: true });
 
-  for (const entry of entries) {
-    const absolutePath = path.join(currentDir, entry.name);
-    const relativePath = path.relative(rootDir, absolutePath);
-    if (relativePath.length === 0) continue;
+  const configDir = path.join(rootDir, PI_CONFIG_DIR);
+  if ((await pathKind(configDir)) === 'directory') {
+    directories.push(PI_CONFIG_DIR);
+    await collectLocalSubtree(rootDir, configDir, directories, files);
+  }
 
-    // `.agent-bridge` is runtime-owned bridge state, not part of Pi's logical
-    // workspace. Skip defensively so a stray local copy never gets treated as
-    // user workspace state.
-    if (relativePath === '.agent-bridge') continue;
-
-    if (entry.isDirectory()) {
-      directories.push(relativePath);
-      const nested = await collectLocalWorkspaceEntries(rootDir, absolutePath);
-      directories.push(...nested.directories);
-      files.push(...nested.files);
-      continue;
+  for (const name of PI_CONTEXT_FILENAMES) {
+    if ((await pathKind(path.join(rootDir, name))) === 'file') {
+      files.push(name);
     }
-
-    files.push(relativePath);
   }
 
   return { directories, files };
@@ -132,7 +198,7 @@ export async function syncLocalWorkspaceFromSandbox(args: {
     sandbox,
     remoteWorkDir,
   );
-  const localEntries = await collectLocalWorkspaceEntries(localWorkDir);
+  const localEntries = await collectLocalScopedEntries(localWorkDir);
   const remoteFiles = new Set(remoteEntries.files);
   const requiredDirectories = buildRequiredDirectories(
     remoteEntries.directories,

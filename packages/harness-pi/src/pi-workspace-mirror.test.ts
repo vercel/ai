@@ -3,7 +3,6 @@ import {
   rmSync,
   writeFileSync,
   mkdirSync,
-  readdirSync,
   existsSync,
   readFileSync,
 } from 'node:fs';
@@ -18,7 +17,11 @@ const remoteWorkDir = '/sandbox/work';
 function makeSandbox(remoteListing: {
   directories: string[];
   files: Record<string, string>;
-}): Experimental_Sandbox {
+}): {
+  sandbox: Experimental_Sandbox;
+  run: ReturnType<typeof vi.fn>;
+  readBinaryFile: ReturnType<typeof vi.fn>;
+} {
   const listOutput = [
     ...remoteListing.directories.map(d => `d\t${d}`),
     ...Object.keys(remoteListing.files).map(f => `f\t${f}`),
@@ -26,14 +29,23 @@ function makeSandbox(remoteListing: {
     .sort()
     .join('\n');
 
-  return {
-    description: 'mock',
-    run: vi.fn(async () => ({ exitCode: 0, stdout: listOutput, stderr: '' })),
-    readBinaryFile: vi.fn(async ({ path: requestedPath }: { path: string }) => {
+  const run = vi.fn(async () => ({
+    exitCode: 0,
+    stdout: listOutput,
+    stderr: '',
+  }));
+  const readBinaryFile = vi.fn(
+    async ({ path: requestedPath }: { path: string }) => {
       const relative = path.posix.relative(remoteWorkDir, requestedPath);
       const content = remoteListing.files[relative];
       return content == null ? null : new TextEncoder().encode(content);
-    }),
+    },
+  );
+
+  const sandbox = {
+    description: 'mock',
+    run,
+    readBinaryFile,
     readFile: vi.fn(),
     readTextFile: vi.fn(),
     writeFile: vi.fn(),
@@ -41,6 +53,8 @@ function makeSandbox(remoteListing: {
     writeTextFile: vi.fn(),
     spawn: vi.fn(),
   } as unknown as Experimental_Sandbox;
+
+  return { sandbox, run, readBinaryFile };
 }
 
 let localWorkDir: string;
@@ -54,62 +68,54 @@ afterEach(() => {
 });
 
 describe('syncLocalWorkspaceFromSandbox', () => {
-  it('creates remote files locally', async () => {
-    const sandbox = makeSandbox({
-      directories: ['src'],
-      files: { 'src/index.ts': 'export {};', 'README.md': '# Hello' },
+  it('mirrors the .pi config subtree and root context files', async () => {
+    const { sandbox } = makeSandbox({
+      directories: ['.pi', '.pi/skills', '.pi/skills/demo'],
+      files: {
+        '.pi/skills/demo/SKILL.md': '# Demo skill',
+        'AGENTS.md': '# Project agents',
+      },
     });
     await syncLocalWorkspaceFromSandbox({
       sandbox,
       remoteWorkDir,
       localWorkDir,
     });
-    expect(readFileSync(path.join(localWorkDir, 'src/index.ts'), 'utf8')).toBe(
-      'export {};',
-    );
-    expect(readFileSync(path.join(localWorkDir, 'README.md'), 'utf8')).toBe(
-      '# Hello',
+    expect(
+      readFileSync(path.join(localWorkDir, '.pi/skills/demo/SKILL.md'), 'utf8'),
+    ).toBe('# Demo skill');
+    expect(readFileSync(path.join(localWorkDir, 'AGENTS.md'), 'utf8')).toBe(
+      '# Project agents',
     );
   });
 
-  it('removes local files that no longer exist remotely', async () => {
-    writeFileSync(path.join(localWorkDir, 'stale.txt'), 'old');
-    const sandbox = makeSandbox({
-      directories: [],
-      files: { 'fresh.txt': 'new' },
-    });
+  it('enumerates only the scoped paths, never the full workspace', async () => {
+    const { sandbox, run } = makeSandbox({ directories: [], files: {} });
     await syncLocalWorkspaceFromSandbox({
       sandbox,
       remoteWorkDir,
       localWorkDir,
     });
-    expect(existsSync(path.join(localWorkDir, 'stale.txt'))).toBe(false);
-    expect(readFileSync(path.join(localWorkDir, 'fresh.txt'), 'utf8')).toBe(
-      'new',
-    );
+
+    const command = (run.mock.calls[0]![0] as { command: string }).command;
+    expect(command).toContain('.pi');
+    expect(command).toContain('AGENTS.md');
+    expect(command).toContain('CLAUDE.md');
+    // The previous full-tree walk used `-mindepth 1`; the scoped walk must not.
+    expect(command).not.toContain('-mindepth 1');
   });
 
-  it('skips writes when content is already up to date', async () => {
-    writeFileSync(path.join(localWorkDir, 'README.md'), '# Hello');
-    const sandbox = makeSandbox({
-      directories: [],
-      files: { 'README.md': '# Hello' },
+  it('leaves out-of-scope local files untouched and never reads them', async () => {
+    mkdirSync(path.join(localWorkDir, 'node_modules', 'pkg'), {
+      recursive: true,
     });
-    await syncLocalWorkspaceFromSandbox({
-      sandbox,
-      remoteWorkDir,
-      localWorkDir,
-    });
-    // No explicit assertion needed beyond it not throwing; the readFileSync
-    // proves the content matches. The Buffer.equals fast-path is exercised.
-    expect(readFileSync(path.join(localWorkDir, 'README.md'), 'utf8')).toBe(
-      '# Hello',
+    writeFileSync(
+      path.join(localWorkDir, 'node_modules', 'pkg', 'index.js'),
+      'module.exports = {};',
     );
-  });
+    writeFileSync(path.join(localWorkDir, 'index.ts'), 'export {};');
 
-  it('removes empty directories that are no longer required', async () => {
-    mkdirSync(path.join(localWorkDir, 'unused', 'deep'), { recursive: true });
-    const sandbox = makeSandbox({
+    const { sandbox, readBinaryFile } = makeSandbox({
       directories: [],
       files: {},
     });
@@ -118,22 +124,57 @@ describe('syncLocalWorkspaceFromSandbox', () => {
       remoteWorkDir,
       localWorkDir,
     });
-    expect(existsSync(path.join(localWorkDir, 'unused'))).toBe(false);
+
+    expect(
+      existsSync(path.join(localWorkDir, 'node_modules', 'pkg', 'index.js')),
+    ).toBe(true);
+    expect(existsSync(path.join(localWorkDir, 'index.ts'))).toBe(true);
+    expect(readBinaryFile).not.toHaveBeenCalled();
   });
 
-  it('ignores the .agent-bridge directory on the local side', async () => {
-    mkdirSync(path.join(localWorkDir, '.agent-bridge'));
-    writeFileSync(path.join(localWorkDir, '.agent-bridge', 'state.json'), '{}');
-    const sandbox = makeSandbox({
-      directories: [],
-      files: {},
+  it('removes stale .pi files that no longer exist remotely', async () => {
+    mkdirSync(path.join(localWorkDir, '.pi', 'skills', 'old'), {
+      recursive: true,
+    });
+    writeFileSync(
+      path.join(localWorkDir, '.pi', 'skills', 'old', 'SKILL.md'),
+      'stale',
+    );
+
+    const { sandbox } = makeSandbox({
+      directories: ['.pi', '.pi/skills', '.pi/skills/new'],
+      files: { '.pi/skills/new/SKILL.md': 'fresh' },
     });
     await syncLocalWorkspaceFromSandbox({
       sandbox,
       remoteWorkDir,
       localWorkDir,
     });
-    expect(existsSync(path.join(localWorkDir, '.agent-bridge'))).toBe(true);
-    expect(readdirSync(localWorkDir)).toContain('.agent-bridge');
+
+    expect(
+      existsSync(path.join(localWorkDir, '.pi', 'skills', 'old', 'SKILL.md')),
+    ).toBe(false);
+    expect(
+      readFileSync(
+        path.join(localWorkDir, '.pi', 'skills', 'new', 'SKILL.md'),
+        'utf8',
+      ),
+    ).toBe('fresh');
+  });
+
+  it('skips writes when scoped content is already up to date', async () => {
+    writeFileSync(path.join(localWorkDir, 'AGENTS.md'), '# Same');
+    const { sandbox } = makeSandbox({
+      directories: [],
+      files: { 'AGENTS.md': '# Same' },
+    });
+    await syncLocalWorkspaceFromSandbox({
+      sandbox,
+      remoteWorkDir,
+      localWorkDir,
+    });
+    expect(readFileSync(path.join(localWorkDir, 'AGENTS.md'), 'utf8')).toBe(
+      '# Same',
+    );
   });
 });
