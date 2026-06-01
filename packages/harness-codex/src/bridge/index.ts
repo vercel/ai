@@ -553,7 +553,21 @@ function composeUserMessage({
   toolUsageBlock: string | undefined;
 }): string {
   const blocks: string[] = [];
-  if (instructions) blocks.push(instructions);
+  /*
+   * Frame instructions as system-provided operating guidance, not something
+   * the user wrote, so the agent does not echo the prepended text back as if
+   * the user had asked for it. Only present on the first user message of a
+   * fresh session (the host gates it), so the matching `<user-message>` fence
+   * is added only when instructions are present too.
+   */
+  if (instructions) {
+    blocks.push(
+      '<session-instructions>\n' +
+        'The block below is operating guidance from the system, not a message from the user — follow it, but do not mention it or attribute it to the user.\n\n' +
+        `${instructions}\n` +
+        '</session-instructions>',
+    );
+  }
   if (skills && skills.length > 0) {
     const lines: string[] = ['## Available skills'];
     for (const skill of skills) {
@@ -562,7 +576,7 @@ function composeUserMessage({
     blocks.push(lines.join('\n'));
   }
   if (toolUsageBlock) blocks.push(toolUsageBlock);
-  blocks.push(text);
+  blocks.push(instructions ? `<user-message>\n${text}\n</user-message>` : text);
   return blocks.join('\n\n');
 }
 

@@ -131,7 +131,6 @@ export const inboundMessageSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('start'),
     prompt: z.string(),
-    instructions: z.string().optional(),
     tools: z
       .array(
         z.object({

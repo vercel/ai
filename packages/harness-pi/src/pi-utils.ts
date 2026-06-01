@@ -34,6 +34,26 @@ export function extractUserText(prompt: HarnessV1Prompt): string {
   return parts.join('\n\n');
 }
 
+/*
+ * Frame session instructions and the user's text so the runtime treats the
+ * instructions as system-provided operating guidance, not something the user
+ * wrote. Without the wrapper the agent can echo the prepended text back as if
+ * the user had asked for it, which is confusing since the user never typed it.
+ * Applied only to the first user message of a fresh session.
+ */
+export function frameInstructions(
+  instructions: string,
+  userText: string,
+): string {
+  return (
+    '<session-instructions>\n' +
+    'The block below is operating guidance from the system, not a message from the user — follow it, but do not mention it or attribute it to the user.\n\n' +
+    `${instructions}\n` +
+    '</session-instructions>\n\n' +
+    `<user-message>\n${userText}\n</user-message>`
+  );
+}
+
 /** POSIX shell single-quote escape. */
 export function shellQuote(value: string): string {
   return `'${value.replace(/'/g, `'\\''`)}'`;

@@ -220,6 +220,7 @@ export function createCodex(
         reasoningEffort: settings.reasoningEffort,
         webSearch: settings.webSearch,
         resumeThreadId: resumeThreadIdString,
+        isResume,
       });
     },
   };
@@ -393,6 +394,7 @@ function createSession({
   reasoningEffort,
   webSearch,
   resumeThreadId,
+  isResume,
 }: {
   sessionId: string;
   channel: CodexChannel;
@@ -402,6 +404,7 @@ function createSession({
   reasoningEffort: 'low' | 'medium' | 'high' | undefined;
   webSearch: boolean | undefined;
   resumeThreadId: string | undefined;
+  isResume: boolean;
 }): HarnessV1Session {
   let stopped = false;
   let stopPromise: Promise<void> | undefined;
@@ -410,6 +413,12 @@ function createSession({
   // first send — subsequent turns within this bridge process use the
   // bridge-cached threadState.
   let pendingResumeThreadId = resumeThreadId;
+  /*
+   * Instructions are prepended to the first user message of a fresh session
+   * only. A resumed session already carried them in its original first
+   * message (preserved in the persisted thread), so it starts "applied".
+   */
+  let instructionsApplied = isResume;
 
   return {
     sessionId,
@@ -505,10 +514,14 @@ function createSession({
         }
       }
 
+      const applyInstructions =
+        !instructionsApplied && !!promptOpts.instructions;
+      instructionsApplied = true;
+
       const startMessage = {
         type: 'start' as const,
         prompt: extractUserText(promptOpts.prompt),
-        instructions: promptOpts.instructions,
+        ...(applyInstructions ? { instructions: promptOpts.instructions } : {}),
         tools: (promptOpts.tools ?? []).map(t => ({
           name: t.name,
           description: t.description,

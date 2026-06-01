@@ -88,9 +88,11 @@ export type HarnessV1PromptOptions = {
   readonly tools?: ReadonlyArray<HarnessV1ToolSpec>;
 
   /**
-   * Free-form system-prompt addendum / instructions for this turn. Concrete
-   * placement (system prompt, user message prefix, file in the working tree)
-   * is up to the adapter.
+   * Free-form instructions for the session. The framework supplies the same
+   * value on every turn; the adapter is responsible for applying it once, by
+   * prepending it to the first user message of a fresh (non-resumed) session.
+   * On a resumed session the adapter must not re-apply it — the original first
+   * message already carried it and lives in the runtime's persisted history.
    */
   readonly instructions?: string;
 

@@ -48,9 +48,9 @@ export type HarnessAgentSettings<
   readonly skills?: ReadonlyArray<HarnessV1Skill>;
 
   /**
-   * Instructions appended to the underlying agent's system prompt.
-   * Adapters decide how to place this (system message, prompt prefix,
-   * file in the working tree).
+   * Instructions for the underlying agent runtime. Adapters prepend this to
+   * the first user message of a fresh session, once — it is not re-applied on
+   * later turns or when resuming a previously detached session.
    */
   readonly instructions?: string;
 

@@ -8,8 +8,8 @@ import type { InferUITools, UIMessage } from 'ai';
 // work around this by guiding the harness.
 const instructions = `
 Building all packages at once (e.g. running \`pnpm build\` or \`pnpm build:packages\`)
-will exceed sandbox memory. When asked to do this, use \`turbo build\` directly with a
-lower \`--concurrency=4\` flag.
+will exceed sandbox memory. When asked to do this, use the corresponding
+\`pnpm exec turbo\` call directly with a lower \`--concurrency=4\` flag.
 `;
 
 export const aiSdkCodingCodexHarnessAgent = new HarnessAgent({

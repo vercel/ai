@@ -2,11 +2,27 @@ import { describe, expect, it } from 'vitest';
 import { HarnessCapabilityUnsupportedError } from '@ai-sdk/harness';
 import {
   extractUserText,
+  frameInstructions,
   renderPiSkillFile,
   safePiMetadataSegment,
   serializeToolOutput,
   shellQuote,
 } from './pi-utils';
+
+describe('frameInstructions', () => {
+  it('wraps instructions as system guidance and fences the user text', () => {
+    const framed = frameInstructions('Use turbo build.', 'do the thing');
+    expect(framed).toContain('<session-instructions>');
+    expect(framed).toContain('Use turbo build.');
+    expect(framed).toContain('</session-instructions>');
+    expect(framed).toContain('<user-message>\ndo the thing\n</user-message>');
+    expect(framed).toMatch(/not a message from the user/i);
+    // Instructions must come before the user message.
+    expect(framed.indexOf('<session-instructions>')).toBeLessThan(
+      framed.indexOf('<user-message>'),
+    );
+  });
+});
 
 describe('extractUserText', () => {
   it('returns the string prompt verbatim', () => {

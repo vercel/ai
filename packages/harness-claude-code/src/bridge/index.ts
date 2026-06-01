@@ -73,7 +73,6 @@ const mcpModule = mcpServerModule as any;
 type StartMessage = {
   type: 'start';
   prompt: string;
-  instructions?: string;
   tools?: ReadonlyArray<{
     name: string;
     description?: string;
@@ -182,7 +181,6 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   const q = claudeSdk.query({
     prompt: queryInput,
     options: {
-      ...(start.instructions ? { customSystemPrompt: start.instructions } : {}),
       ...(start.model ? { model: start.model } : {}),
       ...(start.maxTurns !== undefined ? { maxTurns: start.maxTurns } : {}),
       ...(start.thinking ? { thinking: start.thinking } : {}),

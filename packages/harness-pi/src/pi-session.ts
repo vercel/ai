@@ -40,7 +40,11 @@ import {
   type PiTranslatorState,
 } from './pi-translate';
 import { toolSpecToTypeBoxParameters } from './pi-typebox-adapter';
-import { extractUserText, serializeToolOutput } from './pi-utils';
+import {
+  extractUserText,
+  frameInstructions,
+  serializeToolOutput,
+} from './pi-utils';
 import { PiWorkspaceVfs } from './pi-workspace-vfs';
 import { syncHostWorkspaceFromSandbox } from './pi-workspace-mirror';
 
@@ -196,13 +200,10 @@ export async function createPiSession(
   });
   const resolveModel = createPiModelResolver(modelRegistry, resolverEnv);
 
-  let currentInstructions: string | undefined;
   const resourceLoader = new DefaultResourceLoader({
     cwd: sessionWorkDir,
     agentDir: hostAgentDir,
     settingsManager,
-    systemPromptOverride: base =>
-      [base, currentInstructions].filter(Boolean).join('\n\n') || undefined,
     appendSystemPromptOverride: () => [],
     extensionFactories: [],
     // Pi runs in the host process, so its default resource discovery reaches
@@ -230,6 +231,12 @@ export async function createPiSession(
   let lastToolsSignature: string | undefined;
   let sessionFileName: string | undefined;
   let stopped = false;
+  /*
+   * Instructions are prepended to the first user message of a fresh session
+   * only. A resumed session already carried them in its original first
+   * message (preserved in the persisted session file), so it starts "applied".
+   */
+  let instructionsApplied = input.isResume;
   const pendingToolResults = new Map<string, PendingToolResult>();
 
   // Emit channel set at the start of every doPrompt and cleared on end.
@@ -351,7 +358,12 @@ export async function createPiSession(
         throw new Error('Pi session has been stopped.');
       }
 
-      const text = extractUserText(promptOpts.prompt);
+      let text = extractUserText(promptOpts.prompt);
+      if (!instructionsApplied && promptOpts.instructions) {
+        text = frameInstructions(promptOpts.instructions, text);
+      }
+      instructionsApplied = true;
+
       const userTools = promptOpts.tools ?? [];
       const signature = JSON.stringify(userTools.map(t => t.name).sort());
       const needsRebuild =
@@ -361,7 +373,6 @@ export async function createPiSession(
         lastToolsSignature = signature;
       }
 
-      currentInstructions = promptOpts.instructions;
       await resourceLoader.reload();
       await syncHostWorkspaceFromSandbox({
         sandbox,
