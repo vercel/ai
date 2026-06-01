@@ -1,8 +1,9 @@
-import type {
-  Experimental_VideoModelV4 as VideoModelV4,
-  Experimental_VideoModelV4VideoData as VideoModelV4VideoData,
-  Experimental_VideoModelV4OperationWebhook as VideoModelV4OperationWebhook,
-  SharedV4ProviderMetadata,
+import {
+  APICallError,
+  type Experimental_VideoModelV4 as VideoModelV4,
+  type Experimental_VideoModelV4VideoData as VideoModelV4VideoData,
+  type Experimental_VideoModelV4OperationWebhook as VideoModelV4OperationWebhook,
+  type SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
 import {
@@ -1071,6 +1072,64 @@ describe('experimental_generateVideo', () => {
       });
 
       expect(doGenerateCalled).toBe(false);
+      expect(result.videos.length).toBe(1);
+    });
+
+    it('should retry doStatus without restarting the operation', async () => {
+      let startCallCount = 0;
+      let statusCallCount = 0;
+
+      const result = await experimental_generateVideo({
+        model: new MockVideoModelV4({
+          doGenerate: undefined,
+          doStart: async () => {
+            startCallCount++;
+            return {
+              operation: 'op-1',
+              warnings: [],
+              response: {
+                timestamp: new Date(),
+                modelId: 'test-model-id',
+                headers: {},
+              },
+            };
+          },
+          doStatus: async () => {
+            statusCallCount++;
+
+            if (statusCallCount === 1) {
+              throw new APICallError({
+                message: 'temporary status failure',
+                url: 'https://example.com/status',
+                requestBodyValues: {},
+                statusCode: 500,
+                responseHeaders: {
+                  'retry-after-ms': '0',
+                },
+              });
+            }
+
+            return {
+              status: 'completed' as const,
+              videos: [
+                { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+              ],
+              warnings: [],
+              response: {
+                timestamp: new Date(),
+                modelId: 'test-model-id',
+                headers: {},
+              },
+            };
+          },
+        }),
+        prompt,
+        maxRetries: 1,
+        poll: { intervalMs: 0 },
+      });
+
+      expect(startCallCount).toBe(1);
+      expect(statusCallCount).toBe(2);
       expect(result.videos.length).toBe(1);
     });
 

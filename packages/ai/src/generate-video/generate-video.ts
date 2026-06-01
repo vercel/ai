@@ -293,16 +293,15 @@ export async function experimental_generateVideo({
       };
 
       if (useStartStatus) {
-        return retry(() =>
-          executeStartStatusFlow({
-            model,
-            callOptions,
-            poll,
-            webhook,
-            abortSignal,
-            headers: headersWithUserAgent,
-          }),
-        );
+        return executeStartStatusFlow({
+          model,
+          callOptions,
+          poll,
+          webhook,
+          abortSignal,
+          headers: headersWithUserAgent,
+          retry,
+        });
       }
 
       return retry(() => model.doGenerate!(callOptions));
@@ -443,6 +442,7 @@ async function executeStartStatusFlow({
   webhook: webhookFactory,
   abortSignal,
   headers,
+  retry,
 }: {
   model: Experimental_VideoModelV4;
   callOptions: Experimental_VideoModelV4CallOptions;
@@ -450,6 +450,7 @@ async function executeStartStatusFlow({
   webhook?: GenerateVideoWebhookFactory;
   abortSignal?: AbortSignal;
   headers?: Record<string, string | undefined>;
+  retry: <OUTPUT>(fn: () => PromiseLike<OUTPUT>) => PromiseLike<OUTPUT>;
 }): Promise<Experimental_VideoModelV4Result> {
   // 1. If webhook and provider supports it, set up the webhook
   const earlyWarnings: Experimental_VideoModelV4Result['warnings'] = [];
@@ -476,10 +477,12 @@ async function executeStartStatusFlow({
   }
 
   // 2. Start the generation
-  const startResult = await model.doStart!({
-    ...callOptions,
-    webhookUrl,
-  });
+  const startResult = await retry(() =>
+    model.doStart!({
+      ...callOptions,
+      webhookUrl,
+    }),
+  );
 
   const allWarnings = [...earlyWarnings, ...startResult.warnings];
 
@@ -496,11 +499,13 @@ async function executeStartStatusFlow({
       abortSignal,
     });
 
-    const statusResult = await model.doStatus!({
-      operation: startResult.operation,
-      abortSignal,
-      headers,
-    });
+    const statusResult = await retry(() =>
+      model.doStatus!({
+        operation: startResult.operation,
+        abortSignal,
+        headers,
+      }),
+    );
 
     if (statusResult.status === 'error') {
       throw new Error(statusResult.error);
@@ -521,6 +526,7 @@ async function executeStartStatusFlow({
       pollConfig,
       abortSignal,
       headers,
+      retry,
     });
   }
 
@@ -559,12 +565,14 @@ async function pollUntilComplete({
   pollConfig,
   abortSignal,
   headers,
+  retry,
 }: {
   model: Experimental_VideoModelV4;
   operation: unknown;
   pollConfig?: GenerateVideoPollOptions;
   abortSignal?: AbortSignal;
   headers?: Record<string, string | undefined>;
+  retry: <OUTPUT>(fn: () => PromiseLike<OUTPUT>) => PromiseLike<OUTPUT>;
 }): Promise<
   Extract<
     Experimental_VideoModelV4OperationStatusResult,
@@ -604,11 +612,13 @@ async function pollUntilComplete({
       await onAttempt({ attempt, elapsedMs: Date.now() - startTime });
     }
 
-    const statusResult = await model.doStatus!({
-      operation,
-      abortSignal,
-      headers,
-    });
+    const statusResult = await retry(() =>
+      model.doStatus!({
+        operation,
+        abortSignal,
+        headers,
+      }),
+    );
 
     if (statusResult.status === 'completed') {
       return statusResult;
