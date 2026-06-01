@@ -14,8 +14,12 @@ Vision models such as GPT-4o can process both text and images. In this example, 
 
 The server route uses `convertToModelMessages` to handle the conversion from `UIMessage`s to model messages, which automatically handles multimodal content including images.
 
-```tsx filename='app/api/chat/route.ts' highlight="8,9,23"
-import { createUIMessageStreamResponse, streamText, toUIMessageStream } from 'ai';
+```tsx filename='app/api/chat/route.ts' highlight="12,13"
+import {
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+} from 'ai';
 
 export const maxDuration = 60;
 

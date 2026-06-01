@@ -29,7 +29,11 @@ You can use the `toUIMessageStreamResponse` method to create a properly formatte
 
 ```ts filename='index.ts'
 import { serve } from '@hono/node-server';
-import { createUIMessageStreamResponse, streamText, toUIMessageStream } from 'ai';
+import {
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+} from 'ai';
 import { Hono } from 'hono';
 
 const app = new Hono();

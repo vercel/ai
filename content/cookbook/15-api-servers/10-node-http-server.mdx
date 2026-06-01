@@ -28,7 +28,11 @@ curl -X POST http://localhost:8080
 You can use the `pipeUIMessageStreamToResponse` method to pipe the stream data to the server response.
 
 ```ts filename='index.ts'
-import { pipeUIMessageStreamToResponse, streamText, toUIMessageStream } from 'ai';
+import {
+  pipeUIMessageStreamToResponse,
+  streamText,
+  toUIMessageStream,
+} from 'ai';
 import { createServer } from 'http';
 
 createServer(async (req, res) => {

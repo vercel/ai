@@ -48,7 +48,11 @@ Add `consumeStream` to the `toUIMessageStreamResponse` configuration. This ensur
 
 ```tsx
 // other imports...
-import { consumeStream, createUIMessageStreamResponse, toUIMessageStream } from 'ai';
+import {
+  consumeStream,
+  createUIMessageStreamResponse,
+  toUIMessageStream,
+} from 'ai';
 
 export async function POST(req: Request) {
   const { messages } = await req.json();

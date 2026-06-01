@@ -41,7 +41,11 @@ export default function Page() {
 ```
 
 ```ts filename='app/api/completion/route.ts'
-import { createUIMessageStreamResponse, streamText, toUIMessageStream } from 'ai';
+import {
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+} from 'ai';
 __PROVIDER_IMPORT__;
 
 // Allow streaming responses up to 30 seconds
