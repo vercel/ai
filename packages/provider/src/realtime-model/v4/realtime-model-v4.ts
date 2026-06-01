@@ -80,7 +80,7 @@ export type RealtimeModelV4 = {
    * Browser-side: Returns a message to auto-send back over the WebSocket
    * in response to a raw incoming message, or null if no response is needed.
    *
-   * Used for provider-specific keepalive protocols (e.g. ElevenLabs ping/pong).
+   * Used for provider-specific keepalive protocols (e.g. ping/pong).
    * Called by the session layer before parseServerEvent.
    */
   getHealthCheckResponse?(raw: unknown): unknown | null;

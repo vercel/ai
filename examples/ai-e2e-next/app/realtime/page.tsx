@@ -4,25 +4,11 @@ import { experimental_useRealtime } from '@ai-sdk/react';
 import { openai } from '@ai-sdk/openai';
 import { google } from '@ai-sdk/google';
 import { xai } from '@ai-sdk/xai';
-import { elevenlabs } from '@ai-sdk/elevenlabs';
-import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 
-type Provider = 'openai' | 'google' | 'xai' | 'elevenlabs';
+type Provider = 'openai' | 'google' | 'xai';
 
 type VoiceOption = { id: string; label: string };
-
-const ELEVENLABS_LLM_MODELS = [
-  'gemini-2.5-flash',
-  'gpt-4o',
-  'gpt-4o-mini',
-  'gpt-5',
-  'gpt-5-mini',
-  'claude-sonnet-4',
-  'claude-sonnet-4-5',
-  'claude-haiku-4-5',
-  'gemini-2.0-flash',
-  'gemini-2.5-flash-lite',
-] as const;
 
 function toVoiceOptions(names: string[]): VoiceOption[] {
   return names.map(n => ({ id: n, label: n }));
@@ -34,8 +20,6 @@ const PROVIDER_CONFIG: Record<
     label: string;
     defaultModel: string;
     staticVoices: VoiceOption[];
-    dynamicVoices?: boolean;
-    llmModels?: readonly string[];
     createModel: (
       modelId: string,
     ) => ReturnType<typeof openai.experimental_realtime>;
@@ -83,85 +67,20 @@ const PROVIDER_CONFIG: Record<
     ]),
     createModel: modelId => xai.experimental_realtime(modelId),
   },
-  elevenlabs: {
-    label: 'ElevenLabs',
-    defaultModel: 'agent (env)',
-    staticVoices: [],
-    dynamicVoices: true,
-    llmModels: ELEVENLABS_LLM_MODELS,
-    createModel: modelId => elevenlabs.experimental_realtime(modelId),
-    sessionConfigOverrides: {
-      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
-      outputAudioFormat: { type: 'audio/pcm', rate: 16000 },
-    },
-  },
 };
-
-function useElevenLabsVoices(): {
-  voices: VoiceOption[];
-  loading: boolean;
-} {
-  const [voices, setVoices] = useState<VoiceOption[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    fetch('/api/realtime/elevenlabs-voices')
-      .then(res => res.json())
-      .then((data: { voices: VoiceOption[] }) => {
-        if (!cancelled) {
-          setVoices(data.voices);
-          setLoading(false);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return { voices, loading };
-}
 
 export default function RealtimePage() {
   const [provider, setProvider] = useState<Provider>('openai');
   const [voice, setVoice] = useState(
     PROVIDER_CONFIG.openai.staticVoices[0]?.id ?? '',
   );
-  const [llmModel, setLlmModel] = useState<string | undefined>(undefined);
-  const { voices: elevenLabsVoices, loading: voicesLoading } =
-    useElevenLabsVoices();
 
-  const voicesForProvider = useCallback(
-    (p: Provider): VoiceOption[] => {
-      const cfg = PROVIDER_CONFIG[p];
-      if (cfg.dynamicVoices && elevenLabsVoices.length > 0) {
-        return elevenLabsVoices;
-      }
-      return cfg.staticVoices;
-    },
-    [elevenLabsVoices],
-  );
-
-  const currentVoices = voicesForProvider(provider);
+  const currentVoices = PROVIDER_CONFIG[provider].staticVoices;
 
   const handleProviderChange = (next: Provider) => {
     setProvider(next);
-    const nextVoices = voicesForProvider(next);
-    setVoice(nextVoices[0]?.id ?? '');
-    const models = PROVIDER_CONFIG[next].llmModels;
-    setLlmModel(models ? models[0] : undefined);
+    setVoice(PROVIDER_CONFIG[next].staticVoices[0]?.id ?? '');
   };
-
-  // When ElevenLabs voices finish loading, set the first voice if currently empty
-  useEffect(() => {
-    if (provider === 'elevenlabs' && elevenLabsVoices.length > 0 && !voice) {
-      setVoice(elevenLabsVoices[0].id);
-    }
-  }, [provider, elevenLabsVoices, voice]);
 
   const selectStyle = {
     marginLeft: 8,
@@ -218,12 +137,9 @@ export default function RealtimePage() {
           <select
             value={voice}
             onChange={e => setVoice(e.target.value)}
-            disabled={PROVIDER_CONFIG[provider].dynamicVoices && voicesLoading}
             style={selectStyle}
           >
-            {PROVIDER_CONFIG[provider].dynamicVoices && voicesLoading ? (
-              <option>Loading voices…</option>
-            ) : currentVoices.length === 0 ? (
+            {currentVoices.length === 0 ? (
               <option>No voices available</option>
             ) : (
               currentVoices.map(v => (
@@ -234,23 +150,6 @@ export default function RealtimePage() {
             )}
           </select>
         </label>
-
-        {PROVIDER_CONFIG[provider].llmModels && (
-          <label style={{ fontSize: 13, fontWeight: 500, color: '#475569' }}>
-            LLM
-            <select
-              value={llmModel ?? PROVIDER_CONFIG[provider].llmModels![0]}
-              onChange={e => setLlmModel(e.target.value)}
-              style={selectStyle}
-            >
-              {PROVIDER_CONFIG[provider].llmModels!.map(m => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
 
         <span
           style={{
@@ -265,10 +164,9 @@ export default function RealtimePage() {
       </div>
 
       <RealtimeChat
-        key={`${provider}-${voice}-${llmModel ?? ''}`}
+        key={`${provider}-${voice}`}
         provider={provider}
         voice={voice}
-        llmModel={llmModel}
       />
     </div>
   );
@@ -277,11 +175,9 @@ export default function RealtimePage() {
 function RealtimeChat({
   provider,
   voice,
-  llmModel,
 }: {
   provider: Provider;
   voice: string;
-  llmModel?: string;
 }) {
   const [textInput, setTextInput] = useState('');
   const [showEvents, setShowEvents] = useState(false);
@@ -313,30 +209,13 @@ function RealtimeChat({
       token: `/api/realtime/setup?provider=${provider}`,
     },
     sessionConfig: {
-      // ElevenLabs agents reject any override (voice, prompt/instructions,
-      // …) that isn't explicitly allowed in the dashboard under
-      // Security → Overrides. Configure the prompt and voice on the agent
-      // itself and skip the overrides here.
-      ...(provider === 'elevenlabs'
-        ? {}
-        : {
-            instructions:
-              'You are a helpful assistant. Be concise. ' +
-              'You have access to tools for weather and dice rolling.',
-            inputAudioTranscription: {},
-            voice,
-          }),
+      instructions:
+        'You are a helpful assistant. Be concise. ' +
+        'You have access to tools for weather and dice rolling.',
+      inputAudioTranscription: {},
+      voice,
       turnDetection: { type: 'server-vad' },
       ...config.sessionConfigOverrides,
-      ...(llmModel != null
-        ? {
-            providerOptions: {
-              conversation_config_override: {
-                agent: { prompt: { llm: llmModel } },
-              },
-            },
-          }
-        : {}),
     },
     onEvent: event => {
       if (event.type !== 'audio-delta') {
