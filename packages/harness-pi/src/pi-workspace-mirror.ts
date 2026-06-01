@@ -13,8 +13,8 @@ import { shellQuote } from './pi-utils';
 /*
  * Pi runs on the host with its working directory pointed at the local mirror,
  * but the only thing it reads from that directory is its own resource
- * configuration: the `.pi` directory (skills, prompts, themes, extensions) and
- * the root-level agent context files (`AGENTS.md` / `CLAUDE.md`). The model
+ * configuration: the `.pi` and `.agents` directories (skills, prompts, themes,
+ * extensions) and the root-level agent context files (`AGENTS.md`). The model
  * never reads workspace source through the host — file reads, directory
  * listings, and greps all run as tools against the sandbox. Mirroring the whole
  * sandbox workspace to the host would therefore copy files Pi never looks at,
@@ -22,14 +22,15 @@ import { shellQuote } from './pi-utils';
  * cloned and had its dependencies installed (hundreds of thousands of files
  * under `node_modules`) that makes session startup take hours. The mirror is
  * consequently scoped to exactly the paths Pi's resource loader consults.
+ *
+ * Within those config directories, symlinks are resolved and their targets
+ * copied as real files. `.agents/skills` is frequently a symlink to a `skills`
+ * directory living elsewhere in the workspace; a mirrored symlink would dangle
+ * because its target falls outside the scoped mirror, so the linked content is
+ * walked and copied verbatim instead.
  */
-const PI_CONFIG_DIR = '.pi';
-const PI_CONTEXT_FILENAMES = [
-  'AGENTS.md',
-  'AGENTS.MD',
-  'CLAUDE.md',
-  'CLAUDE.MD',
-] as const;
+const PI_CONFIG_DIRS = ['.pi', '.agents'] as const;
+const PI_CONTEXT_FILENAMES = ['AGENTS.md', 'AGENTS.MD'] as const;
 
 function normalizeRelativePath(inputPath: string): string {
   const normalized = inputPath.split(path.posix.sep).join(path.sep);
@@ -70,19 +71,24 @@ async function listRemoteWorkspaceEntries(
     name => `-name ${shellQuote(name)}`,
   ).join(' -o ');
 
-  // Enumerate only the `.pi` config subtree plus the root-level context files —
-  // never the rest of the workspace. Entries are tagged `d`/`f` and NUL-joined
+  // Enumerate only the `.pi`/`.agents` config subtrees plus the root-level
+  // context files — never the rest of the workspace. `find -L` dereferences
+  // symlinks so that linked targets (e.g. `.agents/skills` pointing elsewhere)
+  // are walked and reported through the symlinked path; the resolved file/dir
+  // types from `[ -d ]`/`[ -f ]` then tag each entry `d`/`f`, NUL-joined
   // exactly like a full-tree walk so the reconcile below is unchanged.
+  const configFinds = PI_CONFIG_DIRS.map(
+    dir =>
+      `  if [ -d ./${dir} ]; then find -L ./${dir} \\( -type d -o -type f \\) -print0; fi;`,
+  );
   const listCommand = [
     '{',
-    `  if [ -d ./${PI_CONFIG_DIR} ]; then find ./${PI_CONFIG_DIR} \\( -type d -o -type f \\) -print0; fi;`,
+    ...configFinds,
     `  find . -maxdepth 1 -type f \\( ${contextPredicate} \\) -print0;`,
     '} |',
     "while IFS= read -r -d '' entry; do",
     '  rel=${entry#./}',
-    '  if [ -L "$entry" ]; then',
-    '    continue',
-    '  elif [ -d "$entry" ]; then',
+    '  if [ -d "$entry" ]; then',
     `    printf 'd\\t%s\\n' "$rel"`,
     '  elif [ -f "$entry" ]; then',
     `    printf 'f\\t%s\\n' "$rel"`,
@@ -145,9 +151,9 @@ async function collectLocalSubtree(
 
 /**
  * Enumerate the locally-mirrored entries that fall within Pi's scope: the
- * `.pi` config subtree and the root-level context files. Anything else on the
- * local side (it should not normally exist) is intentionally ignored so the
- * reconcile below neither copies nor deletes it.
+ * `.pi`/`.agents` config subtrees and the root-level context files. Anything
+ * else on the local side (it should not normally exist) is intentionally
+ * ignored so the reconcile below neither copies nor deletes it.
  */
 async function collectLocalScopedEntries(
   rootDir: string,
@@ -155,10 +161,12 @@ async function collectLocalScopedEntries(
   const directories: string[] = [];
   const files: string[] = [];
 
-  const configDir = path.join(rootDir, PI_CONFIG_DIR);
-  if ((await pathKind(configDir)) === 'directory') {
-    directories.push(PI_CONFIG_DIR);
-    await collectLocalSubtree(rootDir, configDir, directories, files);
+  for (const dir of PI_CONFIG_DIRS) {
+    const configDir = path.join(rootDir, dir);
+    if ((await pathKind(configDir)) === 'directory') {
+      directories.push(dir);
+      await collectLocalSubtree(rootDir, configDir, directories, files);
+    }
   }
 
   for (const name of PI_CONTEXT_FILENAMES) {

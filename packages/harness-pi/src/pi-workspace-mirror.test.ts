@@ -89,6 +89,29 @@ describe('syncLocalWorkspaceFromSandbox', () => {
     );
   });
 
+  it('mirrors the .agents config subtree, resolving symlinked targets', async () => {
+    // `.agents/skills` is a symlink to a `skills` directory elsewhere; `find -L`
+    // resolves it on the sandbox so the listing reports the real files through
+    // the symlinked path.
+    const { sandbox } = makeSandbox({
+      directories: ['.agents', '.agents/skills', '.agents/skills/demo'],
+      files: {
+        '.agents/skills/demo/SKILL.md': '# Linked skill',
+      },
+    });
+    await syncLocalWorkspaceFromSandbox({
+      sandbox,
+      remoteWorkDir,
+      localWorkDir,
+    });
+    expect(
+      readFileSync(
+        path.join(localWorkDir, '.agents/skills/demo/SKILL.md'),
+        'utf8',
+      ),
+    ).toBe('# Linked skill');
+  });
+
   it('enumerates only the scoped paths, never the full workspace', async () => {
     const { sandbox, run } = makeSandbox({ directories: [], files: {} });
     await syncLocalWorkspaceFromSandbox({
@@ -99,8 +122,12 @@ describe('syncLocalWorkspaceFromSandbox', () => {
 
     const command = (run.mock.calls[0]![0] as { command: string }).command;
     expect(command).toContain('.pi');
+    expect(command).toContain('.agents');
     expect(command).toContain('AGENTS.md');
-    expect(command).toContain('CLAUDE.md');
+    expect(command).not.toContain('CLAUDE.md');
+    // Symlinks within the scoped config dirs must be dereferenced so linked
+    // targets are mirrored as real files.
+    expect(command).toContain('find -L');
     // The previous full-tree walk used `-mindepth 1`; the scoped walk must not.
     expect(command).not.toContain('-mindepth 1');
   });
