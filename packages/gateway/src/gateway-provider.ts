@@ -32,11 +32,13 @@ import { GatewayVideoModel } from './gateway-video-model';
 import { GatewayRerankingModel } from './gateway-reranking-model';
 import { GatewaySpeechModel } from './gateway-speech-model';
 import { GatewayTranscriptionModel } from './gateway-transcription-model';
+import { GatewayRealtimeModel } from './gateway-realtime-model';
 import type { GatewayEmbeddingModelId } from './gateway-embedding-model-settings';
 import type { GatewayImageModelId } from './gateway-image-model-settings';
 import type { GatewayRerankingModelId } from './gateway-reranking-model-settings';
 import type { GatewaySpeechModelId } from './gateway-speech-model-settings';
 import type { GatewayTranscriptionModelId } from './gateway-transcription-model-settings';
+import type { GatewayRealtimeModelId } from './gateway-realtime-model-settings';
 import type { GatewayVideoModelId } from './gateway-video-model-settings';
 import { gatewayTools } from './gateway-tools';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
@@ -49,6 +51,8 @@ import type {
   SpeechModelV4,
   TranscriptionModelV4,
   Experimental_VideoModelV4,
+  Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
+  Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
   ProviderV4,
 } from '@ai-sdk/provider';
 import { VERSION } from './version';
@@ -160,6 +164,12 @@ export interface GatewayProvider extends ProviderV4 {
   ): TranscriptionModelV4;
 
   /**
+   * Creates an experimental realtime model for bidirectional audio/text
+   * communication over WebSocket, normalized through the AI Gateway.
+   */
+  experimental_realtime: RealtimeFactoryV4;
+
+  /**
    * Gateway-specific tools executed server-side.
    */
   tools: typeof gatewayTools;
@@ -245,6 +255,19 @@ export function createGateway(
   const getHeaders = async () => {
     try {
       return createAuthHeaders(await getGatewayAuthToken(options));
+    } catch (error) {
+      throw GatewayAuthenticationError.createContextualError({
+        apiKeyProvided: false,
+        oidcTokenProvided: false,
+        statusCode: 401,
+        cause: error,
+      });
+    }
+  };
+
+  const getRealtimeAuthToken = async () => {
+    try {
+      return await getGatewayAuthToken(options);
     } catch (error) {
       throw GatewayAuthenticationError.createContextualError({
         apiKeyProvided: false,
@@ -444,6 +467,28 @@ export function createGateway(
   };
   provider.transcriptionModel = createTranscriptionModel;
   provider.transcription = createTranscriptionModel;
+
+  const createRealtimeModel = (modelId: GatewayRealtimeModelId) =>
+    new GatewayRealtimeModel(modelId, {
+      provider: 'gateway.realtime',
+      baseURL,
+      getAuthToken: getRealtimeAuthToken,
+    });
+  provider.experimental_realtime = Object.assign(
+    (modelId: GatewayRealtimeModelId) => createRealtimeModel(modelId),
+    {
+      getToken: async (tokenOptions: RealtimeFactoryV4GetTokenOptions) => {
+        const model = createRealtimeModel(tokenOptions.model);
+        const secret = await model.doCreateClientSecret();
+        return {
+          token: secret.token,
+          url: secret.url,
+          ...(secret.expiresAt != null && { expiresAt: secret.expiresAt }),
+        };
+      },
+    },
+  ) as RealtimeFactoryV4;
+
   provider.chat = provider.languageModel;
   provider.embedding = provider.embeddingModel;
   provider.image = provider.imageModel;
