@@ -110,6 +110,10 @@ export default function PiHarnessChat({
                 );
               }
               case 'dynamic-tool': {
+                // Pi already emits Write tool calls, so we don't need to surface these dynamic fileChange events, which effectively show the same thing.
+                if (part.toolName === 'fileChange') {
+                  return null;
+                }
                 return <DynamicToolView invocation={part} key={index} />;
               }
             }
