@@ -101,8 +101,10 @@ import { openai } from '@ai-sdk/openai';
 import { readChat, saveChat } from '@util/chat-store';
 import {
   convertToModelMessages,
+  createUIMessageStreamResponse,
   generateId,
   streamText,
+  toUIMessageStream,
   type UIMessage,
 } from 'ai';
 import { after } from 'next/server';
@@ -130,13 +132,16 @@ export async function POST(req: Request) {
     messages: await convertToModelMessages(messages),
   });
 
-  return result.toUIMessageStreamResponse({
-    originalMessages: messages,
-    generateMessageId: generateId,
-    onFinish: ({ messages }) => {
-      // Clear the active stream when finished
-      saveChat({ id, messages, activeStreamId: null });
-    },
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({
+      stream: result.stream,
+      originalMessages: messages,
+      generateMessageId: generateId,
+      onFinish: ({ messages }) => {
+        // Clear the active stream when finished
+        saveChat({ id, messages, activeStreamId: null });
+      },
+    }),
     async consumeSseStream({ stream }) {
       const streamId = generateId();
 

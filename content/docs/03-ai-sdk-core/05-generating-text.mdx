@@ -225,12 +225,12 @@ for await (const textPart of result.textStream) {
 You can use `streamText` on its own or in combination with [AI SDK
 UI](/examples/next-pages/basics/streaming-text-generation) and [AI SDK
 RSC](/examples/next-app/basics/streaming-text-generation).
-The result object contains several helper functions to make the integration into [AI SDK UI](/docs/ai-sdk-ui) easier:
+The `result.stream` can be passed to several standalone helpers to make the integration into [AI SDK UI](/docs/ai-sdk-ui) easier:
 
-- `result.toUIMessageStreamResponse()`: Creates a UI Message stream HTTP response (with tool calls etc.) that can be used in a Next.js App Router API route.
-- `result.pipeUIMessageStreamToResponse()`: Writes UI Message stream delta output to a Node.js response-like object.
-- `result.toTextStreamResponse()`: Creates a simple text stream HTTP response.
-- `result.pipeTextStreamToResponse()`: Writes text delta output to a Node.js response-like object.
+- `createUIMessageStreamResponse({ stream: toUIMessageStream({ stream: result.stream }) })`: Creates a UI Message stream HTTP response (with tool calls etc.) that can be used in a Next.js App Router API route.
+- `pipeUIMessageStreamToResponse({ stream: toUIMessageStream({ stream: result.stream }), response })`: Writes UI Message stream delta output to a Node.js response-like object.
+- `createTextStreamResponse({ stream: toTextStream({ stream: result.stream }) })`: Creates a simple text stream HTTP response.
+- `pipeTextStreamToResponse({ stream: toTextStream({ stream: result.stream }), response })`: Writes text delta output to a Node.js response-like object.
 
 <Note>
   `streamText` is using backpressure and only generates tokens as they are
