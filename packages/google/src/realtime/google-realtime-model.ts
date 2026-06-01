@@ -67,6 +67,9 @@ export class GoogleRealtimeModel implements RealtimeModelV4 {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          // `uses: 0` means no limit is applied to how many times the token can
+          // start a session (per the AuthToken spec). An unset value would
+          // default to 1, which breaks WebSocket reconnects within the session.
           uses: 0,
           expireTime,
           bidiGenerateContentSetup: setupPayload,
