@@ -28,7 +28,7 @@ curl -X POST http://localhost:8080
 You can use the `pipeUIMessageStreamToResponse` method to pipe the stream data to the server response.
 
 ```ts filename='index.ts'
-import { streamText } from 'ai';
+import { pipeUIMessageStreamToResponse, streamText, toUIMessageStream } from 'ai';
 import { createServer } from 'http';
 
 createServer(async (req, res) => {
@@ -37,7 +37,10 @@ createServer(async (req, res) => {
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
-  result.pipeUIMessageStreamToResponse(res);
+  pipeUIMessageStreamToResponse({
+    response: res,
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }).listen(8080);
 ```
 
@@ -50,6 +53,7 @@ import {
   createUIMessageStream,
   pipeUIMessageStreamToResponse,
   streamText,
+  toUIMessageStream,
 } from 'ai';
 import { createServer } from 'http';
 
@@ -74,7 +78,8 @@ createServer(async (req, res) => {
           });
 
           writer.merge(
-            result.toUIMessageStream({
+            toUIMessageStream({
+              stream: result.stream,
               sendStart: false,
               onError: error => {
                 // Error messages are masked by default for security reasons.
@@ -99,7 +104,7 @@ createServer(async (req, res) => {
 You can send a text stream to the client using `pipeTextStreamToResponse`.
 
 ```ts filename='index.ts'
-import { streamText } from 'ai';
+import { pipeTextStreamToResponse, streamText, toTextStream } from 'ai';
 import { createServer } from 'http';
 
 createServer(async (req, res) => {
@@ -108,7 +113,10 @@ createServer(async (req, res) => {
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
-  result.pipeTextStreamToResponse(res);
+  pipeTextStreamToResponse({
+    response: res,
+    stream: toTextStream({ stream: result.stream }),
+  });
 }).listen(8080);
 ```
 

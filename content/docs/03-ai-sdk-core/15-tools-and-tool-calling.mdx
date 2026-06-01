@@ -805,12 +805,13 @@ When tools are called, they receive additional options as a second parameter.
 The ID of the tool call is forwarded to the tool execution.
 You can use it e.g. when sending tool-call related information with stream data.
 
-```ts highlight="14-20"
+```ts highlight="15-21"
 import {
   streamText,
   tool,
   createUIMessageStream,
   createUIMessageStreamResponse,
+  toUIMessageStream,
 } from 'ai';
 
 export async function POST(req: Request) {
@@ -840,7 +841,7 @@ export async function POST(req: Request) {
         },
       });
 
-      writer.merge(result.toUIMessageStream());
+      writer.merge(toUIMessageStream({ stream: result.stream }));
     },
   });
 
@@ -1187,16 +1188,19 @@ const result = streamText({
   // ...
 });
 
-return result.toUIMessageStreamResponse({
-  onError: error => {
-    if (NoSuchToolError.isInstance(error)) {
-      return 'The model tried to call a unknown tool.';
-    } else if (InvalidToolInputError.isInstance(error)) {
-      return 'The model called a tool with invalid inputs.';
-    } else {
-      return 'An unknown error occurred.';
-    }
-  },
+return createUIMessageStreamResponse({
+  stream: toUIMessageStream({
+    stream: result.stream,
+    onError: error => {
+      if (NoSuchToolError.isInstance(error)) {
+        return 'The model tried to call a unknown tool.';
+      } else if (InvalidToolInputError.isInstance(error)) {
+        return 'The model called a tool with invalid inputs.';
+      } else {
+        return 'An unknown error occurred.';
+      }
+    },
+  }),
 });
 ```
 

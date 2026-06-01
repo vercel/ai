@@ -20,7 +20,7 @@ You can use the `pipeUIMessageStreamToResponse` method to pipe the stream data t
 
 ```ts filename='app.controller.ts'
 import { Controller, Post, Res } from '@nestjs/common';
-import { streamText } from 'ai';
+import { pipeUIMessageStreamToResponse, streamText, toUIMessageStream } from 'ai';
 import { Response } from 'express';
 
 @Controller()
@@ -32,7 +32,10 @@ export class AppController {
       prompt: 'Invent a new holiday and describe its traditions.',
     });
 
-    result.pipeUIMessageStreamToResponse(res);
+    pipeUIMessageStreamToResponse({
+      response: res,
+      stream: toUIMessageStream({ stream: result.stream }),
+    });
   }
 }
 ```
@@ -47,6 +50,7 @@ import {
   createUIMessageStream,
   streamText,
   pipeUIMessageStreamToResponse,
+  toUIMessageStream,
 } from 'ai';
 import { Response } from 'express';
 
@@ -71,7 +75,8 @@ export class AppController {
           prompt: 'Invent a new holiday and describe its traditions.',
         });
         writer.merge(
-          result.toUIMessageStream({
+          toUIMessageStream({
+            stream: result.stream,
             sendStart: false,
             onError: error => {
               // Error messages are masked by default for security reasons.
@@ -93,7 +98,7 @@ You can use the `pipeTextStreamToResponse` method to get a text stream from the 
 
 ```ts filename='app.controller.ts'
 import { Controller, Post, Res } from '@nestjs/common';
-import { streamText } from 'ai';
+import { pipeTextStreamToResponse, streamText, toTextStream } from 'ai';
 import { Response } from 'express';
 
 @Controller()
@@ -105,7 +110,10 @@ export class AppController {
       prompt: 'Invent a new holiday and describe its traditions.',
     });
 
-    result.pipeTextStreamToResponse(res);
+    pipeTextStreamToResponse({
+      response: res,
+      stream: toTextStream({ stream: result.stream }),
+    });
   }
 }
 ```

@@ -487,7 +487,13 @@ Create a file at `app/api/chat/route.ts` by running the following command:
 Open the file and add the following code:
 
 ```tsx filename="app/api/chat/route.ts"
-import { convertToModelMessages, streamText, UIMessage } from 'ai';
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+  UIMessage,
+} from 'ai';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -500,7 +506,9 @@ export async function POST(req: Request) {
     messages: await convertToModelMessages(messages),
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 
@@ -514,8 +522,14 @@ While you now have a working agent, it isn't doing anything special.
 
 Let’s add system instructions to refine and restrict the model’s behavior. In this case, you want the model to only use information it has retrieved to generate responses. Update your route handler with the following code:
 
-```tsx filename="app/api/chat/route.ts" highlight="12-14"
-import { convertToModelMessages, streamText, UIMessage } from 'ai';
+```tsx filename="app/api/chat/route.ts" highlight="18-20"
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+  UIMessage,
+} from 'ai';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -531,7 +545,9 @@ export async function POST(req: Request) {
     messages: await convertToModelMessages(messages),
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 
@@ -549,9 +565,16 @@ Let’s see how you can create a tool to give the model the ability to create, e
 
 Update your route handler with the following code:
 
-```tsx filename="app/api/chat/route.ts" highlight="18-29"
+```tsx filename="app/api/chat/route.ts" highlight="25-36"
 import { createResource } from '@/lib/actions/resources';
-import { convertToModelMessages, streamText, tool, UIMessage } from 'ai';
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  streamText,
+  tool,
+  toUIMessageStream,
+  UIMessage,
+} from 'ai';
 import { z } from 'zod';
 
 // Allow streaming responses up to 30 seconds
@@ -580,7 +603,9 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 
@@ -672,12 +697,14 @@ The AI SDK has a feature called [`stopWhen`](/docs/ai-sdk-core/tools-and-tool-ca
 
 Open your root page (`api/chat/route.ts`) and add the following key to the `streamText` configuration object:
 
-```tsx filename="api/chat/route.ts" highlight="8,24"
+```tsx filename="api/chat/route.ts" highlight="10,26"
 import { createResource } from '@/lib/actions/resources';
 import {
   convertToModelMessages,
+  createUIMessageStreamResponse,
   streamText,
   tool,
+  toUIMessageStream,
   UIMessage,
   isStepCount,
 } from 'ai';
@@ -710,7 +737,9 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 
@@ -782,12 +811,14 @@ With that done, it’s onto the final step: creating the tool.
 
 Go back to your route handler (`api/chat/route.ts`) and add a new tool called `getInformation`:
 
-```ts filename="api/chat/route.ts" highlight="11,37-43"
+```ts filename="api/chat/route.ts" highlight="13,39-45"
 import { createResource } from '@/lib/actions/resources';
 import {
   convertToModelMessages,
+  createUIMessageStreamResponse,
   streamText,
   tool,
+  toUIMessageStream,
   UIMessage,
   isStepCount,
 } from 'ai';
@@ -828,7 +859,9 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 

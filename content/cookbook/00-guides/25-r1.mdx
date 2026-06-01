@@ -142,7 +142,13 @@ Then, create a route handler for the chat endpoint:
 
 ```tsx filename="app/api/chat/route.ts"
 import { deepSeek } from '@ai-sdk/deepseek';
-import { convertToModelMessages, streamText, UIMessage } from 'ai';
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+  UIMessage,
+} from 'ai';
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
@@ -152,8 +158,11 @@ export async function POST(req: Request) {
     messages: await convertToModelMessages(messages),
   });
 
-  return result.toUIMessageStreamResponse({
-    sendReasoning: true,
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({
+      stream: result.stream,
+      sendReasoning: true,
+    }),
   });
 }
 ```

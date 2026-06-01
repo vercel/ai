@@ -20,17 +20,20 @@ export async function POST(req: Request) {
     abortSignal: req.signal,
   });
 
-  return result.toUIMessageStreamResponse({
-    onFinish: async ({ isAborted }) => {
-      // This isn't called when the stream is aborted!
-      if (isAborted) {
-        console.log('Stream was aborted');
-        // Handle abort-specific cleanup
-      } else {
-        console.log('Stream completed normally');
-        // Handle normal completion
-      }
-    },
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({
+      stream: result.stream,
+      onFinish: async ({ isAborted }) => {
+        // This isn't called when the stream is aborted!
+        if (isAborted) {
+          console.log('Stream was aborted');
+          // Handle abort-specific cleanup
+        } else {
+          console.log('Stream completed normally');
+          // Handle normal completion
+        }
+      },
+    }),
   });
 }
 ```
@@ -45,7 +48,7 @@ Add `consumeStream` to the `toUIMessageStreamResponse` configuration. This ensur
 
 ```tsx
 // other imports...
-import { consumeStream } from 'ai';
+import { consumeStream, createUIMessageStreamResponse, toUIMessageStream } from 'ai';
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
@@ -56,17 +59,20 @@ export async function POST(req: Request) {
     abortSignal: req.signal,
   });
 
-  return result.toUIMessageStreamResponse({
-    onFinish: async ({ isAborted }) => {
-      // Now this WILL be called even when aborted!
-      if (isAborted) {
-        console.log('Stream was aborted');
-        // Handle abort-specific cleanup
-      } else {
-        console.log('Stream completed normally');
-        // Handle normal completion
-      }
-    },
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({
+      stream: result.stream,
+      onFinish: async ({ isAborted }) => {
+        // Now this WILL be called even when aborted!
+        if (isAborted) {
+          console.log('Stream was aborted');
+          // Handle abort-specific cleanup
+        } else {
+          console.log('Stream completed normally');
+          // Handle normal completion
+        }
+      },
+    }),
     consumeSseStream: consumeStream, // This enables onFinish to be called on abort
   });
 }

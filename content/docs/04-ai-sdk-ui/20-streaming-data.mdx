@@ -49,10 +49,11 @@ In your server-side route handler, you can create a `UIMessageStream` and then p
 ```tsx filename="route.ts"
 import { openai } from '@ai-sdk/openai';
 import {
+  convertToModelMessages,
   createUIMessageStream,
   createUIMessageStreamResponse,
   streamText,
-  convertToModelMessages,
+  toUIMessageStream,
 } from 'ai';
 __PROVIDER_IMPORT__;
 import type { MyUIMessage } from '@/ai/types';
@@ -112,7 +113,7 @@ export async function POST(req: Request) {
         },
       });
 
-      writer.merge(result.toUIMessageStream());
+      writer.merge(toUIMessageStream({ stream: result.stream }));
     },
   });
 
@@ -362,16 +363,19 @@ Message metadata is best for **message-level information** that describes the me
 
 ```ts
 // Server: Send metadata about the message
-return result.toUIMessageStreamResponse({
-  messageMetadata: ({ part }) => {
-    if (part.type === 'finish') {
-      return {
-        model: part.response.modelId,
-        totalTokens: part.totalUsage.totalTokens,
-        createdAt: Date.now(),
-      };
-    }
-  },
+return createUIMessageStreamResponse({
+  stream: toUIMessageStream({
+    stream: result.stream,
+    messageMetadata: ({ part }) => {
+      if (part.type === 'finish') {
+        return {
+          model: part.response.modelId,
+          totalTokens: part.totalUsage.totalTokens,
+          createdAt: Date.now(),
+        };
+      }
+    },
+  }),
 });
 ```
 

@@ -84,7 +84,13 @@ Replace `xxxxxxxxx` with your actual Vercel AI Gateway API key.
 Create a route handler, `src/routes/api/chat.ts` and add the following code:
 
 ```tsx filename="src/routes/api/chat.ts"
-import { streamText, UIMessage, convertToModelMessages } from 'ai';
+import {
+  streamText,
+  UIMessage,
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  toUIMessageStream,
+} from 'ai';
 __PROVIDER_IMPORT__;
 import { createFileRoute } from '@tanstack/react-router';
 
@@ -99,7 +105,9 @@ export const Route = createFileRoute('/api/chat')({
           messages: await convertToModelMessages(messages),
         });
 
-        return result.toUIMessageStreamResponse();
+        return createUIMessageStreamResponse({
+          stream: toUIMessageStream({ stream: result.stream }),
+        });
       },
     },
   },
@@ -254,8 +262,15 @@ Let's enhance your chatbot by adding a simple weather tool.
 
 Modify your `src/routes/api/chat.ts` file to include the new weather tool:
 
-```tsx filename="src/routes/api/chat.ts" highlight="2,13-27"
-import { streamText, UIMessage, convertToModelMessages, tool } from 'ai';
+```tsx filename="src/routes/api/chat.ts" highlight="9,20-34"
+import {
+  streamText,
+  UIMessage,
+  convertToModelMessages,
+  tool,
+  createUIMessageStreamResponse,
+  toUIMessageStream,
+} from 'ai';
 __PROVIDER_IMPORT__;
 import { createFileRoute } from '@tanstack/react-router';
 import { z } from 'zod';
@@ -288,7 +303,9 @@ export const Route = createFileRoute('/api/chat')({
           },
         });
 
-        return result.toUIMessageStreamResponse();
+        return createUIMessageStreamResponse({
+          stream: toUIMessageStream({ stream: result.stream }),
+        });
       },
     },
   },
@@ -391,6 +408,8 @@ import {
   convertToModelMessages,
   tool,
   isStepCount,
+  createUIMessageStreamResponse,
+  toUIMessageStream,
 } from 'ai';
 __PROVIDER_IMPORT__;
 import { createFileRoute } from '@tanstack/react-router';
@@ -425,7 +444,9 @@ export const Route = createFileRoute('/api/chat')({
           },
         });
 
-        return result.toUIMessageStreamResponse();
+        return createUIMessageStreamResponse({
+          stream: toUIMessageStream({ stream: result.stream }),
+        });
       },
     },
   },
@@ -442,13 +463,15 @@ By setting `stopWhen: isStepCount(5)`, you're allowing the model to use up to 5 
 
 Update your `src/routes/api/chat.ts` file to add a new tool to convert the temperature from Fahrenheit to Celsius:
 
-```tsx filename="src/routes/api/chat.ts" highlight="34-47"
+```tsx filename="src/routes/api/chat.ts" highlight="36-49"
 import {
   streamText,
   UIMessage,
   convertToModelMessages,
   tool,
   isStepCount,
+  createUIMessageStreamResponse,
+  toUIMessageStream,
 } from 'ai';
 __PROVIDER_IMPORT__;
 import { createFileRoute } from '@tanstack/react-router';
@@ -497,7 +520,9 @@ export const Route = createFileRoute('/api/chat')({
           },
         });
 
-        return result.toUIMessageStreamResponse();
+        return createUIMessageStreamResponse({
+          stream: toUIMessageStream({ stream: result.stream }),
+        });
       },
     },
   },

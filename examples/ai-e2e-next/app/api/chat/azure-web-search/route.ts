@@ -1,7 +1,9 @@
 import { azure } from '@ai-sdk/azure';
 import {
   convertToModelMessages,
+  createUIMessageStreamResponse,
   streamText,
+  toUIMessageStream,
   type InferUITools,
   type ToolSet,
   type UIDataTypes,
@@ -30,7 +32,10 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toUIMessageStreamResponse({
-    sendSources: true,
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({
+      stream: result.stream,
+      sendSources: true,
+    }),
   });
 }

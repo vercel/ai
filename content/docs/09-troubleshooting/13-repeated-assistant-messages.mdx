@@ -30,7 +30,9 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 
@@ -62,12 +64,15 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toUIMessageStreamResponse({
-    originalMessages: messages, // Pass the original messages here
-    generateMessageId: generateId,
-    onFinish: ({ messages }) => {
-      saveChat({ id, messages });
-    },
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({
+      stream: result.stream,
+      originalMessages: messages, // Pass the original messages here
+      generateMessageId: generateId,
+      onFinish: ({ messages }) => {
+        saveChat({ id, messages });
+      },
+    }),
   });
 }
 ```

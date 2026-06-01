@@ -88,6 +88,8 @@ import {
   type UIMessage,
   convertToModelMessages,
   createGateway,
+  createUIMessageStreamResponse,
+  toUIMessageStream,
 } from 'ai';
 
 import { AI_GATEWAY_API_KEY } from '$env/static/private';
@@ -104,7 +106,9 @@ export async function POST({ request }) {
     messages: await convertToModelMessages(messages),
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 
@@ -252,7 +256,7 @@ Let's enhance your chatbot by adding a simple weather tool.
 
 Modify your `src/routes/api/chat/+server.ts` file to include the new weather tool:
 
-```tsx filename="src/routes/api/chat/+server.ts" highlight="2,3,17-31"
+```tsx filename="src/routes/api/chat/+server.ts" highlight="2,3,19-33"
 import {
   createGateway,
   streamText,
@@ -260,6 +264,8 @@ import {
   convertToModelMessages,
   tool,
   isStepCount,
+  createUIMessageStreamResponse,
+  toUIMessageStream,
 } from 'ai';
 import { z } from 'zod';
 
@@ -292,7 +298,9 @@ export async function POST({ request }) {
     },
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 
@@ -372,7 +380,7 @@ To solve this, you can enable multi-step tool calls using `stopWhen`. By default
 
 Modify your `src/routes/api/chat/+server.ts` file to include the `stopWhen` condition:
 
-```ts filename="src/routes/api/chat/+server.ts" highlight="15"
+```ts filename="src/routes/api/chat/+server.ts" highlight="17"
 import {
   createGateway,
   streamText,
@@ -380,6 +388,8 @@ import {
   convertToModelMessages,
   tool,
   isStepCount,
+  createUIMessageStreamResponse,
+  toUIMessageStream,
 } from 'ai';
 import { z } from 'zod';
 
@@ -413,7 +423,9 @@ export async function POST({ request }) {
     },
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 
@@ -425,7 +437,7 @@ By setting `stopWhen: isStepCount(5)`, you're allowing the model to use up to 5 
 
 Update your `src/routes/api/chat/+server.ts` file to add a new tool to convert the temperature from Fahrenheit to Celsius:
 
-```tsx filename="src/routes/api/chat/+server.ts" highlight="32-45"
+```tsx filename="src/routes/api/chat/+server.ts" highlight="34-47"
 import {
   createGateway,
   streamText,
@@ -433,6 +445,8 @@ import {
   convertToModelMessages,
   tool,
   isStepCount,
+  createUIMessageStreamResponse,
+  toUIMessageStream,
 } from 'ai';
 import { z } from 'zod';
 
@@ -480,7 +494,9 @@ export async function POST({ request }) {
     },
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 

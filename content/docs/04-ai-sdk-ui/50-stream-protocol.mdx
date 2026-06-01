@@ -84,7 +84,13 @@ export default function Chat() {
 ```
 
 ```ts filename='app/api/chat/route.ts'
-import { streamText, UIMessage, convertToModelMessages } from 'ai';
+import {
+  convertToModelMessages,
+  createTextStreamResponse,
+  streamText,
+  toTextStream,
+  UIMessage,
+} from 'ai';
 __PROVIDER_IMPORT__;
 
 // Allow streaming responses up to 30 seconds
@@ -98,7 +104,9 @@ export async function POST(req: Request) {
     messages: await convertToModelMessages(messages),
   });
 
-  return result.toTextStreamResponse();
+  return createTextStreamResponse({
+    stream: toTextStream({ stream: result.stream }),
+  });
 }
 ```
 
@@ -527,7 +535,13 @@ export default function Chat() {
 ```
 
 ```ts filename='app/api/chat/route.ts'
-import { streamText, UIMessage, convertToModelMessages } from 'ai';
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+  UIMessage,
+} from 'ai';
 __PROVIDER_IMPORT__;
 
 // Allow streaming responses up to 30 seconds
@@ -541,6 +555,8 @@ export async function POST(req: Request) {
     messages: await convertToModelMessages(messages),
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```

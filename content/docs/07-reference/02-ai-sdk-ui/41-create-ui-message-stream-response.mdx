@@ -21,6 +21,7 @@ import {
   createUIMessageStream,
   createUIMessageStreamResponse,
   streamText,
+  toUIMessageStream,
 } from 'ai';
 __PROVIDER_IMPORT__;
 
@@ -67,7 +68,7 @@ const response = createUIMessageStreamResponse({
         prompt: 'Say hello',
       });
 
-      writer.merge(result.toUIMessageStream());
+      writer.merge(toUIMessageStream({ stream: result.stream }));
     },
   }),
 });

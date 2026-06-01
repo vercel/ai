@@ -76,7 +76,14 @@ export default function Page() {
 To handle the chat requests and model responses, set up an API route:
 
 ```ts filename="app/api/chat/route.ts"
-import { streamText, convertToModelMessages, UIMessage, isStepCount } from 'ai';
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  isStepCount,
+  streamText,
+  toUIMessageStream,
+  UIMessage,
+} from 'ai';
 __PROVIDER_IMPORT__;
 
 export async function POST(request: Request) {
@@ -89,7 +96,9 @@ export async function POST(request: Request) {
     stopWhen: isStepCount(5),
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 
@@ -127,8 +136,15 @@ In this file, you've created a tool called `weatherTool`. This tool simulates fe
 
 Update the API route to include the tool you've defined:
 
-```ts filename="app/api/chat/route.ts" highlight="3,8,14"
-import { streamText, convertToModelMessages, UIMessage, isStepCount } from 'ai';
+```ts filename="app/api/chat/route.ts" highlight="10,15,21"
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  isStepCount,
+  streamText,
+  toUIMessageStream,
+  UIMessage,
+} from 'ai';
 __PROVIDER_IMPORT__;
 import { tools } from '@/ai/tools';
 
@@ -143,7 +159,9 @@ export async function POST(request: Request) {
     tools,
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 
