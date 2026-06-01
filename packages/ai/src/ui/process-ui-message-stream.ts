@@ -99,6 +99,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   ) => Promise<void>;
   onError: ErrorHandler;
 }): ReadableStream<InferUIMessageChunk<UI_MESSAGE>> {
+  const pendingToolCalls = new Set<Promise<void>>();
+
   return stream.pipeThrough(
     new TransformStream<UIMessageChunk, InferUIMessageChunk<UI_MESSAGE>>({
       async transform(chunk, controller) {
@@ -648,14 +650,31 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
               write();
 
-              // invoke the onToolCall callback if it exists. This is blocking.
-              // In the future we should make this non-blocking, which
-              // requires additional state management for error handling etc.
+              // Execute tool calls in parallel (non-blocking) so multiple
+              // tool calls arriving in the same stream don't serialize.
               // Skip calling onToolCall for provider-executed tools since they are already executed
               if (onToolCall && !chunk.providerExecuted) {
-                await onToolCall({
-                  toolCall: chunk as InferUIMessageToolCall<UI_MESSAGE>,
-                });
+                try {
+                  const result = onToolCall({
+                    toolCall: chunk as InferUIMessageToolCall<UI_MESSAGE>,
+                  });
+                  if (result != null) {
+                    const p = Promise.resolve(result)
+                      .catch((err: unknown) => {
+                        try {
+                          onError(err);
+                        } catch {
+                          // error already routed; swallow re-throws from onError
+                        }
+                      })
+                      .finally(() => {
+                        pendingToolCalls.delete(p);
+                      });
+                    pendingToolCalls.add(p);
+                  }
+                } catch (err: unknown) {
+                  onError(err);
+                }
               }
               break;
             }
@@ -926,6 +945,10 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
           controller.enqueue(chunk as InferUIMessageChunk<UI_MESSAGE>);
         });
+      },
+      async flush() {
+        // Wait for all in-flight tool calls to settle before the stream ends.
+        await Promise.allSettled(pendingToolCalls);
       },
     }),
   );

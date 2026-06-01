@@ -5808,6 +5808,147 @@ describe('processUIMessageStream', () => {
     `);
   });
 
+  it('should execute multiple onToolCall invocations in parallel', async () => {
+    let concurrent = 0;
+    let maxConcurrent = 0;
+
+    const stream = createUIMessageStream([
+      { type: 'start', messageId: 'msg-123' },
+      { type: 'start-step' },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'tool-call-1',
+        toolName: 'tool-name',
+        input: { city: 'London' },
+      },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'tool-call-2',
+        toolName: 'tool-name',
+        input: { city: 'Paris' },
+      },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'tool-call-3',
+        toolName: 'tool-name',
+        input: { city: 'Berlin' },
+      },
+      { type: 'finish-step' },
+      { type: 'finish' },
+    ]);
+
+    state = createStreamingUIMessageState({
+      messageId: 'msg-123',
+      lastMessage: undefined,
+    });
+
+    await consumeStream({
+      stream: processUIMessageStream({
+        stream,
+        onToolCall: async () => {
+          concurrent++;
+          maxConcurrent = Math.max(maxConcurrent, concurrent);
+          // Use a macrotask to ensure the async work doesn't resolve
+          // between transform calls (microtasks could interleave).
+          await new Promise(resolve => setTimeout(resolve, 10));
+          concurrent--;
+        },
+        runUpdateMessageJob,
+        onError: error => {
+          throw error;
+        },
+      }),
+    });
+
+    // With sequential (blocking) execution, maxConcurrent would be 1.
+    // Parallel execution means all 3 are in-flight simultaneously.
+    expect(maxConcurrent).toBe(3);
+  });
+
+  it('should route onToolCall errors to onError without throwing', async () => {
+    const errors: Error[] = [];
+
+    const stream = createUIMessageStream([
+      { type: 'start', messageId: 'msg-123' },
+      { type: 'start-step' },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'tool-call-1',
+        toolName: 'tool-name',
+        input: { city: 'London' },
+      },
+      { type: 'finish-step' },
+      { type: 'finish' },
+    ]);
+
+    state = createStreamingUIMessageState({
+      messageId: 'msg-123',
+      lastMessage: undefined,
+    });
+
+    await consumeStream({
+      stream: processUIMessageStream({
+        stream,
+        onToolCall: async () => {
+          throw new Error('tool execution failed');
+        },
+        runUpdateMessageJob,
+        onError: error => {
+          errors.push(error as Error);
+        },
+      }),
+    });
+
+    expect(errors.length).toBe(1);
+    expect(errors[0].message).toBe('tool execution failed');
+  });
+
+  it('should route synchronous onToolCall throws to onError without crashing', async () => {
+    const errors: Error[] = [];
+
+    const stream = createUIMessageStream([
+      { type: 'start', messageId: 'msg-123' },
+      { type: 'start-step' },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'tool-call-1',
+        toolName: 'tool-name',
+        input: { city: 'London' },
+      },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'tool-call-2',
+        toolName: 'tool-name',
+        input: { city: 'Paris' },
+      },
+      { type: 'finish-step' },
+      { type: 'finish' },
+    ]);
+
+    state = createStreamingUIMessageState({
+      messageId: 'msg-123',
+      lastMessage: undefined,
+    });
+
+    await consumeStream({
+      stream: processUIMessageStream({
+        stream,
+        onToolCall: () => {
+          throw new Error('sync failure');
+        },
+        runUpdateMessageJob,
+        onError: error => {
+          errors.push(error as Error);
+        },
+      }),
+    });
+
+    // Both tool calls should route their errors to onError
+    expect(errors.length).toBe(2);
+    expect(errors[0].message).toBe('sync failure');
+    expect(errors[1].message).toBe('sync failure');
+  });
+
   describe('dynamic tools', () => {
     let onToolCallInvoked: boolean;
 
