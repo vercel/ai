@@ -1,5 +1,13 @@
 # @ai-sdk/mistral
 
+## 4.0.0-canary.50
+
+### Patch Changes
+
+- Updated dependencies [6c93e36]
+- Updated dependencies [f617ac2]
+  - @ai-sdk/provider-utils@5.0.0-canary.44
+
 ## 4.0.0-canary.49
 
 ### Patch Changes

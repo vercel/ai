@@ -29,7 +29,7 @@ run(async () => {
     prompt: 'Search for "hello world"',
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     if (part.type === 'tool-call') {
       console.log(`tool-call: ${part.toolName}(${JSON.stringify(part.input)})`);
     }

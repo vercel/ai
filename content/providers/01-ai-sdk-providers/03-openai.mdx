@@ -317,7 +317,7 @@ const result = streamText({
   },
 });
 
-for await (const part of result.fullStream) {
+for await (const part of result.stream) {
   if (part.type === 'reasoning') {
     console.log(`Reasoning: ${part.textDelta}`);
   } else if (part.type === 'text-delta') {
@@ -609,7 +609,7 @@ const result = streamText({
   },
 });
 
-for await (const part of result.fullStream) {
+for await (const part of result.stream) {
   if (part.type == 'tool-result' && !part.dynamic) {
     const base64Image = part.output.result;
   }
@@ -1161,7 +1161,7 @@ const result = streamText({
   prompt: 'Write a SQL query to get all users older than 25.',
 });
 
-for await (const chunk of result.fullStream) {
+for await (const chunk of result.stream) {
   if (chunk.type === 'tool-call') {
     console.log(`Tool: ${chunk.toolName}`);
     console.log(`Input: ${chunk.input}`);
@@ -1576,7 +1576,7 @@ const result = streamText({
   },
 });
 
-for await (const part of result.fullStream) {
+for await (const part of result.stream) {
   switch (part.type) {
     case 'text-start': {
       const isCompaction = part.providerMetadata?.openai?.type === 'compaction';

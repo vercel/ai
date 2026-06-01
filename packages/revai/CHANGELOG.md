@@ -1,5 +1,13 @@
 # @ai-sdk/revai
 
+## 3.0.0-canary.46
+
+### Patch Changes
+
+- Updated dependencies [6c93e36]
+- Updated dependencies [f617ac2]
+  - @ai-sdk/provider-utils@5.0.0-canary.44
+
 ## 3.0.0-canary.45
 
 ### Patch Changes
