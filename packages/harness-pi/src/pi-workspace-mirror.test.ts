@@ -10,9 +10,9 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import type { Experimental_Sandbox } from '@ai-sdk/provider-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { syncLocalWorkspaceFromSandbox } from './pi-workspace-mirror';
+import { syncHostWorkspaceFromSandbox } from './pi-workspace-mirror';
 
-const remoteWorkDir = '/sandbox/work';
+const sandboxWorkDir = '/sandbox/work';
 
 function makeSandbox(remoteListing: {
   directories: string[];
@@ -36,7 +36,7 @@ function makeSandbox(remoteListing: {
   }));
   const readBinaryFile = vi.fn(
     async ({ path: requestedPath }: { path: string }) => {
-      const relative = path.posix.relative(remoteWorkDir, requestedPath);
+      const relative = path.posix.relative(sandboxWorkDir, requestedPath);
       const content = remoteListing.files[relative];
       return content == null ? null : new TextEncoder().encode(content);
     },
@@ -57,17 +57,17 @@ function makeSandbox(remoteListing: {
   return { sandbox, run, readBinaryFile };
 }
 
-let localWorkDir: string;
+let hostWorkDir: string;
 
 beforeEach(() => {
-  localWorkDir = mkdtempSync(path.join(tmpdir(), 'pi-wmirror-'));
+  hostWorkDir = mkdtempSync(path.join(tmpdir(), 'pi-wmirror-'));
 });
 
 afterEach(() => {
-  rmSync(localWorkDir, { recursive: true, force: true });
+  rmSync(hostWorkDir, { recursive: true, force: true });
 });
 
-describe('syncLocalWorkspaceFromSandbox', () => {
+describe('syncHostWorkspaceFromSandbox', () => {
   it('mirrors the .pi config subtree and root context files', async () => {
     const { sandbox } = makeSandbox({
       directories: ['.pi', '.pi/skills', '.pi/skills/demo'],
@@ -76,15 +76,15 @@ describe('syncLocalWorkspaceFromSandbox', () => {
         'AGENTS.md': '# Project agents',
       },
     });
-    await syncLocalWorkspaceFromSandbox({
+    await syncHostWorkspaceFromSandbox({
       sandbox,
-      remoteWorkDir,
-      localWorkDir,
+      sandboxWorkDir,
+      hostWorkDir,
     });
     expect(
-      readFileSync(path.join(localWorkDir, '.pi/skills/demo/SKILL.md'), 'utf8'),
+      readFileSync(path.join(hostWorkDir, '.pi/skills/demo/SKILL.md'), 'utf8'),
     ).toBe('# Demo skill');
-    expect(readFileSync(path.join(localWorkDir, 'AGENTS.md'), 'utf8')).toBe(
+    expect(readFileSync(path.join(hostWorkDir, 'AGENTS.md'), 'utf8')).toBe(
       '# Project agents',
     );
   });
@@ -99,14 +99,14 @@ describe('syncLocalWorkspaceFromSandbox', () => {
         '.agents/skills/demo/SKILL.md': '# Linked skill',
       },
     });
-    await syncLocalWorkspaceFromSandbox({
+    await syncHostWorkspaceFromSandbox({
       sandbox,
-      remoteWorkDir,
-      localWorkDir,
+      sandboxWorkDir,
+      hostWorkDir,
     });
     expect(
       readFileSync(
-        path.join(localWorkDir, '.agents/skills/demo/SKILL.md'),
+        path.join(hostWorkDir, '.agents/skills/demo/SKILL.md'),
         'utf8',
       ),
     ).toBe('# Linked skill');
@@ -114,10 +114,10 @@ describe('syncLocalWorkspaceFromSandbox', () => {
 
   it('enumerates only the scoped paths, never the full workspace', async () => {
     const { sandbox, run } = makeSandbox({ directories: [], files: {} });
-    await syncLocalWorkspaceFromSandbox({
+    await syncHostWorkspaceFromSandbox({
       sandbox,
-      remoteWorkDir,
-      localWorkDir,
+      sandboxWorkDir,
+      hostWorkDir,
     });
 
     const command = (run.mock.calls[0]![0] as { command: string }).command;
@@ -133,38 +133,38 @@ describe('syncLocalWorkspaceFromSandbox', () => {
   });
 
   it('leaves out-of-scope local files untouched and never reads them', async () => {
-    mkdirSync(path.join(localWorkDir, 'node_modules', 'pkg'), {
+    mkdirSync(path.join(hostWorkDir, 'node_modules', 'pkg'), {
       recursive: true,
     });
     writeFileSync(
-      path.join(localWorkDir, 'node_modules', 'pkg', 'index.js'),
+      path.join(hostWorkDir, 'node_modules', 'pkg', 'index.js'),
       'module.exports = {};',
     );
-    writeFileSync(path.join(localWorkDir, 'index.ts'), 'export {};');
+    writeFileSync(path.join(hostWorkDir, 'index.ts'), 'export {};');
 
     const { sandbox, readBinaryFile } = makeSandbox({
       directories: [],
       files: {},
     });
-    await syncLocalWorkspaceFromSandbox({
+    await syncHostWorkspaceFromSandbox({
       sandbox,
-      remoteWorkDir,
-      localWorkDir,
+      sandboxWorkDir,
+      hostWorkDir,
     });
 
     expect(
-      existsSync(path.join(localWorkDir, 'node_modules', 'pkg', 'index.js')),
+      existsSync(path.join(hostWorkDir, 'node_modules', 'pkg', 'index.js')),
     ).toBe(true);
-    expect(existsSync(path.join(localWorkDir, 'index.ts'))).toBe(true);
+    expect(existsSync(path.join(hostWorkDir, 'index.ts'))).toBe(true);
     expect(readBinaryFile).not.toHaveBeenCalled();
   });
 
   it('removes stale .pi files that no longer exist remotely', async () => {
-    mkdirSync(path.join(localWorkDir, '.pi', 'skills', 'old'), {
+    mkdirSync(path.join(hostWorkDir, '.pi', 'skills', 'old'), {
       recursive: true,
     });
     writeFileSync(
-      path.join(localWorkDir, '.pi', 'skills', 'old', 'SKILL.md'),
+      path.join(hostWorkDir, '.pi', 'skills', 'old', 'SKILL.md'),
       'stale',
     );
 
@@ -172,35 +172,35 @@ describe('syncLocalWorkspaceFromSandbox', () => {
       directories: ['.pi', '.pi/skills', '.pi/skills/new'],
       files: { '.pi/skills/new/SKILL.md': 'fresh' },
     });
-    await syncLocalWorkspaceFromSandbox({
+    await syncHostWorkspaceFromSandbox({
       sandbox,
-      remoteWorkDir,
-      localWorkDir,
+      sandboxWorkDir,
+      hostWorkDir,
     });
 
     expect(
-      existsSync(path.join(localWorkDir, '.pi', 'skills', 'old', 'SKILL.md')),
+      existsSync(path.join(hostWorkDir, '.pi', 'skills', 'old', 'SKILL.md')),
     ).toBe(false);
     expect(
       readFileSync(
-        path.join(localWorkDir, '.pi', 'skills', 'new', 'SKILL.md'),
+        path.join(hostWorkDir, '.pi', 'skills', 'new', 'SKILL.md'),
         'utf8',
       ),
     ).toBe('fresh');
   });
 
   it('skips writes when scoped content is already up to date', async () => {
-    writeFileSync(path.join(localWorkDir, 'AGENTS.md'), '# Same');
+    writeFileSync(path.join(hostWorkDir, 'AGENTS.md'), '# Same');
     const { sandbox } = makeSandbox({
       directories: [],
       files: { 'AGENTS.md': '# Same' },
     });
-    await syncLocalWorkspaceFromSandbox({
+    await syncHostWorkspaceFromSandbox({
       sandbox,
-      remoteWorkDir,
-      localWorkDir,
+      sandboxWorkDir,
+      hostWorkDir,
     });
-    expect(readFileSync(path.join(localWorkDir, 'AGENTS.md'), 'utf8')).toBe(
+    expect(readFileSync(path.join(hostWorkDir, 'AGENTS.md'), 'utf8')).toBe(
       '# Same',
     );
   });

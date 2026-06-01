@@ -2,15 +2,17 @@ import { realpathSync } from 'node:fs';
 import path from 'node:path';
 
 export interface PiPathMapper {
-  readonly localWorkDir: string;
-  readonly remoteWorkDir: string;
+  /** The host-side mirror directory Pi reads/writes through the workspace VFS. */
+  readonly hostWorkDir: string;
+  /** The sandbox-side working directory where tools actually operate. */
+  readonly sandboxWorkDir: string;
   /**
-   * Translate a path the host sees (relative to `localWorkDir`, or absolute
-   * inside it, or already-remote) to the canonical remote path inside the
-   * sandbox. Throws if the path would escape the workspace.
+   * Translate a path the host sees (relative to `hostWorkDir`, or absolute
+   * inside it, or already a sandbox path) to the canonical sandbox path. Throws
+   * if the path would escape the workspace.
    */
-  toRemotePath(inputPath: string): string;
-  /** Translate any path to its POSIX-relative form under `remoteWorkDir`. */
+  toSandboxPath(inputPath: string): string;
+  /** Translate any path to its POSIX-relative form under `sandboxWorkDir`. */
   toRelativePath(inputPath: string): string;
 }
 
@@ -46,51 +48,51 @@ function canonicalizeForContainment(inputPath: string): string {
 }
 
 export function createPiPathMapper(
-  localWorkDir: string,
-  remoteWorkDir: string,
+  hostWorkDir: string,
+  sandboxWorkDir: string,
 ): PiPathMapper {
-  const normalizedLocal = path.resolve(localWorkDir);
-  const normalizedRemote = path.posix.normalize(remoteWorkDir);
-  const canonicalLocal = canonicalizeForContainment(normalizedLocal);
+  const normalizedHost = path.resolve(hostWorkDir);
+  const normalizedSandbox = path.posix.normalize(sandboxWorkDir);
+  const canonicalHost = canonicalizeForContainment(normalizedHost);
 
   return {
-    localWorkDir: normalizedLocal,
-    remoteWorkDir: normalizedRemote,
-    toRemotePath(inputPath: string) {
+    hostWorkDir: normalizedHost,
+    sandboxWorkDir: normalizedSandbox,
+    toSandboxPath(inputPath: string) {
       if (path.posix.isAbsolute(inputPath)) {
         const normalizedInput = path.posix.normalize(inputPath);
-        if (isInsidePosixPath(normalizedRemote, normalizedInput)) {
+        if (isInsidePosixPath(normalizedSandbox, normalizedInput)) {
           return normalizedInput;
         }
       }
 
-      const resolvedLocal = path.isAbsolute(inputPath)
+      const resolvedHost = path.isAbsolute(inputPath)
         ? path.resolve(inputPath)
-        : path.resolve(normalizedLocal, inputPath);
-      const canonicalResolvedLocal = canonicalizeForContainment(resolvedLocal);
+        : path.resolve(normalizedHost, inputPath);
+      const canonicalResolvedHost = canonicalizeForContainment(resolvedHost);
       if (
-        !isInsidePath(normalizedLocal, resolvedLocal) ||
-        !isInsidePath(canonicalLocal, canonicalResolvedLocal)
+        !isInsidePath(normalizedHost, resolvedHost) ||
+        !isInsidePath(canonicalHost, canonicalResolvedHost)
       ) {
         throw new Error(`Pi path escapes the workspace: ${inputPath}`);
       }
 
       const relative = path
-        .relative(normalizedLocal, resolvedLocal)
+        .relative(normalizedHost, resolvedHost)
         .split(path.sep)
         .join('/');
       return relative
-        ? path.posix.join(normalizedRemote, relative)
-        : normalizedRemote;
+        ? path.posix.join(normalizedSandbox, relative)
+        : normalizedSandbox;
     },
     toRelativePath(inputPath: string) {
-      const remotePath = path.posix.isAbsolute(inputPath)
+      const sandboxPath = path.posix.isAbsolute(inputPath)
         ? path.posix.normalize(inputPath)
         : path.posix.join(
-            normalizedRemote,
+            normalizedSandbox,
             inputPath.split(path.sep).join('/'),
           );
-      const relative = path.posix.relative(normalizedRemote, remotePath);
+      const relative = path.posix.relative(normalizedSandbox, sandboxPath);
       return relative || '.';
     },
   };

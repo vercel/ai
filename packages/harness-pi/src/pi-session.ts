@@ -42,10 +42,29 @@ import {
 import { toolSpecToTypeBoxParameters } from './pi-typebox-adapter';
 import { extractUserText, serializeToolOutput } from './pi-utils';
 import { PiWorkspaceVfs } from './pi-workspace-vfs';
-import { syncLocalWorkspaceFromSandbox } from './pi-workspace-mirror';
+import { syncHostWorkspaceFromSandbox } from './pi-workspace-mirror';
 
-const PI_VFS_ROOT = path.join(path.sep, 'vfs', 'pi');
 const HARNESS_ID = 'pi';
+
+/**
+ * Whether a discovered resource path belongs to the session workspace — either
+ * the sandbox-side working directory the model sees (`sessionWorkDir`) or its
+ * host-side mirror (`hostWorkDir`). Pi runs in the host process and would
+ * otherwise surface the host developer's personal skills (`~/.agents/skills`,
+ * `~/.pi/agent/skills`) to the model; those resolve to host paths the
+ * sandbox-backed tools cannot reach, so they are filtered out.
+ */
+function isWithinWorkspace(
+  candidate: string,
+  sessionWorkDir: string,
+  hostWorkDir: string,
+): boolean {
+  const inside = (parent: string, child: string): boolean => {
+    const rel = path.relative(parent, child);
+    return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
+  };
+  return inside(sessionWorkDir, candidate) || inside(hostWorkDir, candidate);
+}
 
 const PI_NATIVE_BUILTIN_NAMES = [
   'read',
@@ -93,23 +112,29 @@ interface PendingToolResult {
 export async function createPiSession(
   input: CreatePiSessionInput,
 ): Promise<HarnessV1Session> {
-  // Local mirror layout under tmpdir. Replace path-separator characters that
-  // would otherwise turn a session id like `2026-05-29T17:54:27` into a
+  // Host-side mirror layout under tmpdir. Replace path-separator characters
+  // that would otherwise turn a session id like `2026-05-29T17:54:27` into a
   // sub-directory tree on disk.
   const safeSessionId = input.sessionId.replace(/[\\/: ]/g, '-');
-  const localRoot = path.join(tmpdir(), 'ai-sdk-harness', 'pi', safeSessionId);
-  const localWorkDir = path.join(localRoot, 'workspace');
-  const localAgentDir = path.join(localRoot, 'agent');
-  const localSessionDir = path.join(localRoot, 'sessions');
+  const hostRoot = path.join(tmpdir(), 'ai-sdk-harness', 'pi', safeSessionId);
+  const hostWorkDir = path.join(hostRoot, 'workspace');
+  const hostAgentDir = path.join(hostRoot, 'agent');
+  const hostSessionDir = path.join(hostRoot, 'sessions');
 
-  const logicalRoot = path.join(PI_VFS_ROOT, safeSessionId);
-  const logicalWorkDir = path.posix.join(logicalRoot, 'workspace');
-  const logicalAgentDir = path.posix.join(logicalRoot, 'agent');
-  const logicalSessionDir = path.posix.join(logicalRoot, 'sessions');
+  // Pi runs in this host process but must behave as though it lives in the
+  // sandbox workspace: its working directory is the real `sessionWorkDir`
+  // (where `setup()` clones and where the sandbox-backed tools operate), so the
+  // paths Pi advertises to the model — most notably the "Current working
+  // directory" line in its system prompt — resolve inside the sandbox. The
+  // workspace VFS maps that sandbox path to the host-side mirror so Pi's own
+  // `fs`-based resource loading (`.pi/`, `AGENTS.md`) still works on the host.
+  // `sessionWorkDir` is a sandbox path (e.g. `/vercel/sandbox/...`) that does
+  // not exist on the host, so it is a safe, collision-free VFS mount point.
+  const sessionWorkDir = input.sessionWorkDir;
 
-  await mkdir(localWorkDir, { recursive: true });
-  await mkdir(localAgentDir, { recursive: true });
-  await mkdir(localSessionDir, { recursive: true });
+  await mkdir(hostWorkDir, { recursive: true });
+  await mkdir(hostAgentDir, { recursive: true });
+  await mkdir(hostSessionDir, { recursive: true });
 
   const sandbox = input.sandboxHandle.session;
 
@@ -125,38 +150,42 @@ export async function createPiSession(
   }
 
   // On resume: pull the Pi session file out of the sandbox into the fresh
-  // local mirror so SessionManager.open can read it.
+  // host mirror so SessionManager.open can read it.
   let resumeSessionFilePath: string | undefined;
   if (input.isResume && input.resumeSessionFileName) {
     resumeSessionFilePath = await pullSessionFileFromSandbox({
       sandbox,
       sessionWorkDir: input.sessionWorkDir,
-      localSessionDir,
+      hostSessionDir,
       sessionFileName: input.resumeSessionFileName,
       ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
     });
   }
 
-  // Snapshot sandbox state into the local mirror BEFORE the VFS goes live so
+  // Snapshot sandbox state into the host mirror BEFORE the VFS goes live so
   // Pi sees the workspace as soon as it boots.
-  await syncLocalWorkspaceFromSandbox({
+  await syncHostWorkspaceFromSandbox({
     sandbox,
-    remoteWorkDir: input.sessionWorkDir,
-    localWorkDir,
+    sandboxWorkDir: input.sessionWorkDir,
+    hostWorkDir,
   });
 
+  // Mount only the workspace: the model's view of the workspace lives at
+  // `sessionWorkDir` and is backed by `hostWorkDir`. The agent and session
+  // directories stay on the real host filesystem (below) — they are host-only
+  // Pi state (auth, model registry, session journal) that must never surface
+  // in the sandbox or the workspace mirror.
   const workspaceVfs = new PiWorkspaceVfs();
-  workspaceVfs.mount(localRoot, logicalRoot);
+  workspaceVfs.mount(hostWorkDir, sessionWorkDir);
 
-  const paths = createPiPathMapper(localWorkDir, input.sessionWorkDir);
+  const paths = createPiPathMapper(hostWorkDir, sessionWorkDir);
 
-  // Pi auth + model registry are global to this Pi session.
-  const authStorage = AuthStorage.create(
-    path.join(logicalAgentDir, 'auth.json'),
-  );
+  // Pi auth + model registry are global to this Pi session. These live on the
+  // real host filesystem (`hostAgentDir`), never in the sandbox/workspace.
+  const authStorage = AuthStorage.create(path.join(hostAgentDir, 'auth.json'));
   const modelRegistry = ModelRegistry.create(
     authStorage,
-    path.join(logicalAgentDir, 'models.json'),
+    path.join(hostAgentDir, 'models.json'),
   );
   const settingsManager = SettingsManager.inMemory();
 
@@ -169,13 +198,29 @@ export async function createPiSession(
 
   let currentInstructions: string | undefined;
   const resourceLoader = new DefaultResourceLoader({
-    cwd: logicalWorkDir,
-    agentDir: logicalAgentDir,
+    cwd: sessionWorkDir,
+    agentDir: hostAgentDir,
     settingsManager,
     systemPromptOverride: base =>
       [base, currentInstructions].filter(Boolean).join('\n\n') || undefined,
     appendSystemPromptOverride: () => [],
     extensionFactories: [],
+    // Pi runs in the host process, so its default resource discovery reaches
+    // the host developer's personal config (`~/.pi/agent/*`, `~/.agents/*`).
+    // The harness does not expose extensions, themes, or prompt templates, so
+    // disable those entirely — this also avoids loading and executing a host
+    // developer's personal Pi extensions inside the server process. Skills are
+    // kept (the harness writes project skills into `.pi/skills`) but filtered
+    // to the workspace so host-home skills never reach the model.
+    noExtensions: true,
+    noThemes: true,
+    noPromptTemplates: true,
+    skillsOverride: base => ({
+      ...base,
+      skills: base.skills.filter(skill =>
+        isWithinWorkspace(skill.filePath, sessionWorkDir, hostWorkDir),
+      ),
+    }),
   });
   await resourceLoader.reload();
 
@@ -250,14 +295,14 @@ export async function createPiSession(
       isFirstBuild && resumeSessionFilePath
         ? SessionManager.open(
             resumeSessionFilePath,
-            logicalSessionDir,
-            logicalWorkDir,
+            hostSessionDir,
+            sessionWorkDir,
           )
-        : SessionManager.create(logicalWorkDir, logicalSessionDir);
+        : SessionManager.create(sessionWorkDir, hostSessionDir);
 
     const { session } = await createAgentSession({
-      cwd: logicalWorkDir,
-      agentDir: logicalAgentDir,
+      cwd: sessionWorkDir,
+      agentDir: hostAgentDir,
       authStorage,
       modelRegistry,
       sessionManager,
@@ -318,10 +363,10 @@ export async function createPiSession(
 
       currentInstructions = promptOpts.instructions;
       await resourceLoader.reload();
-      await syncLocalWorkspaceFromSandbox({
+      await syncHostWorkspaceFromSandbox({
         sandbox,
-        remoteWorkDir: input.sessionWorkDir,
-        localWorkDir,
+        sandboxWorkDir: input.sessionWorkDir,
+        hostWorkDir,
       });
 
       currentEmit = promptOpts.emit;
@@ -430,7 +475,7 @@ export async function createPiSession(
       piSession?.dispose();
       piSession = undefined;
       workspaceVfs.unmount();
-      await rm(localRoot, { recursive: true, force: true });
+      await rm(hostRoot, { recursive: true, force: true });
     },
 
     doDetach: async (): Promise<HarnessV1ResumeState> => {
@@ -447,7 +492,7 @@ export async function createPiSession(
           await persistSessionFileToSandbox({
             sandbox,
             sessionWorkDir: input.sessionWorkDir,
-            localSessionDir,
+            hostSessionDir,
             sessionFileName,
           });
         } catch {
@@ -461,7 +506,7 @@ export async function createPiSession(
       piSession?.dispose();
       piSession = undefined;
       workspaceVfs.unmount();
-      await rm(localRoot, { recursive: true, force: true });
+      await rm(hostRoot, { recursive: true, force: true });
 
       return {
         harnessId: HARNESS_ID,
@@ -537,7 +582,9 @@ function buildBuiltinToolDefinition(
         description: 'Execute a shell command.',
         parameters: Type.Object({
           command: Type.String(),
-          timeout: Type.Optional(Type.Number()),
+          timeout: Type.Optional(
+            Type.Number({ description: 'Timeout in seconds.' }),
+          ),
         }),
         async execute(_id, params, signal) {
           const chunks: Buffer[] = [];

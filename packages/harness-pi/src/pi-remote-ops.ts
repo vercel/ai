@@ -76,7 +76,7 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
     const result = await options.sandbox.run({
       command,
       ...(input.cwd
-        ? { workingDirectory: options.paths.toRemotePath(input.cwd) }
+        ? { workingDirectory: options.paths.toSandboxPath(input.cwd) }
         : {}),
       ...(options.env ? { env: options.env } : {}),
       ...(input.signal ? { abortSignal: input.signal } : {}),
@@ -96,7 +96,7 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
 
   const readBuffer = async (inputPath: string): Promise<Buffer> => {
     const bytes = await options.sandbox.readBinaryFile({
-      path: options.paths.toRemotePath(inputPath),
+      path: options.paths.toSandboxPath(inputPath),
     });
     if (!bytes) {
       throw new Error(`Path not found: ${inputPath}`);
@@ -108,7 +108,7 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
     inputPath: string,
     content: string,
   ): Promise<void> => {
-    const remotePath = options.paths.toRemotePath(inputPath);
+    const remotePath = options.paths.toSandboxPath(inputPath);
     const previous = await options.sandbox.readBinaryFile({ path: remotePath });
     await runShell(`mkdir -p ${shellQuote(path.posix.dirname(remotePath))}`);
     await options.sandbox.writeTextFile({ path: remotePath, content });
@@ -140,7 +140,7 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
     inputPath: string = '.',
     limit: number = 500,
   ): Promise<string[]> => {
-    const remotePath = options.paths.toRemotePath(inputPath);
+    const remotePath = options.paths.toSandboxPath(inputPath);
     const result = await runShell(
       [
         `if [ ! -e ${shellQuote(remotePath)} ]; then echo "__PI_LS_NOT_FOUND__"; exit 2; fi`,
@@ -173,7 +173,7 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
     inputPath: string = '.',
     limit: number = 1_000,
   ): Promise<string[]> => {
-    const remotePath = options.paths.toRemotePath(inputPath);
+    const remotePath = options.paths.toSandboxPath(inputPath);
     const result = await runShell(
       [
         `if [ ! -e ${shellQuote(remotePath)} ]; then echo "__PI_FIND_NOT_FOUND__"; exit 2; fi`,
@@ -217,7 +217,7 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
       limit?: number;
     },
   ): Promise<string> => {
-    const remotePath = options.paths.toRemotePath(input.path ?? '.');
+    const remotePath = options.paths.toSandboxPath(input.path ?? '.');
     const relativeTarget = options.paths.toRelativePath(remotePath);
     const flags = [
       '-R',
@@ -234,7 +234,7 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
     const result = await runShell(
       [
         `if [ ! -e ${shellQuote(remotePath)} ]; then echo "__PI_GREP_NOT_FOUND__"; exit 2; fi`,
-        `cd ${shellQuote(options.paths.remoteWorkDir)}`,
+        `cd ${shellQuote(options.paths.sandboxWorkDir)}`,
         `grep ${flags.map(shellQuote).join(' ')} -- ${shellQuote(pattern)} ${shellQuote(relativeTarget)} 2>/dev/null | head -n ${limit}`,
       ].join('; '),
     );
@@ -260,9 +260,11 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
     },
     async exec(command, cwd, input): Promise<{ exitCode: number | null }> {
       const controller = new AbortController();
+      // `input.timeout` is expressed in seconds (Pi's `bash` tool contract),
+      // so convert to milliseconds for `setTimeout`.
       const timeoutId =
         typeof input.timeout === 'number' && input.timeout > 0
-          ? setTimeout(() => controller.abort(), input.timeout)
+          ? setTimeout(() => controller.abort(), input.timeout * 1000)
           : undefined;
 
       const forwardedSignal = input.signal;

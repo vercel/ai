@@ -65,7 +65,7 @@ async function readCommandOutput(
 
 async function listRemoteWorkspaceEntries(
   sandbox: Experimental_Sandbox,
-  remoteWorkDir: string,
+  sandboxWorkDir: string,
 ): Promise<{ directories: string[]; files: string[] }> {
   const contextPredicate = PI_CONTEXT_FILENAMES.map(
     name => `-name ${shellQuote(name)}`,
@@ -98,7 +98,7 @@ async function listRemoteWorkspaceEntries(
 
   const output = await readCommandOutput(
     sandbox,
-    [`cd ${shellQuote(remoteWorkDir)}`, listCommand].join(' && '),
+    [`cd ${shellQuote(sandboxWorkDir)}`, listCommand].join(' && '),
   );
 
   const directories: string[] = [];
@@ -129,7 +129,7 @@ async function pathKind(
   }
 }
 
-async function collectLocalSubtree(
+async function collectHostSubtree(
   rootDir: string,
   currentDir: string,
   directories: string[],
@@ -142,7 +142,7 @@ async function collectLocalSubtree(
     const relativePath = path.relative(rootDir, absolutePath);
     if (entry.isDirectory()) {
       directories.push(relativePath);
-      await collectLocalSubtree(rootDir, absolutePath, directories, files);
+      await collectHostSubtree(rootDir, absolutePath, directories, files);
     } else if (entry.isFile()) {
       files.push(relativePath);
     }
@@ -155,7 +155,7 @@ async function collectLocalSubtree(
  * else on the local side (it should not normally exist) is intentionally
  * ignored so the reconcile below neither copies nor deletes it.
  */
-async function collectLocalScopedEntries(
+async function collectHostScopedEntries(
   rootDir: string,
 ): Promise<{ directories: string[]; files: string[] }> {
   const directories: string[] = [];
@@ -165,7 +165,7 @@ async function collectLocalScopedEntries(
     const configDir = path.join(rootDir, dir);
     if ((await pathKind(configDir)) === 'directory') {
       directories.push(dir);
-      await collectLocalSubtree(rootDir, configDir, directories, files);
+      await collectHostSubtree(rootDir, configDir, directories, files);
     }
   }
 
@@ -196,34 +196,34 @@ function buildRequiredDirectories(
   return directories;
 }
 
-export async function syncLocalWorkspaceFromSandbox(args: {
+export async function syncHostWorkspaceFromSandbox(args: {
   sandbox: Experimental_Sandbox;
-  remoteWorkDir: string;
-  localWorkDir: string;
+  sandboxWorkDir: string;
+  hostWorkDir: string;
 }): Promise<void> {
-  const { sandbox, remoteWorkDir, localWorkDir } = args;
+  const { sandbox, sandboxWorkDir, hostWorkDir } = args;
   const remoteEntries = await listRemoteWorkspaceEntries(
     sandbox,
-    remoteWorkDir,
+    sandboxWorkDir,
   );
-  const localEntries = await collectLocalScopedEntries(localWorkDir);
+  const hostEntries = await collectHostScopedEntries(hostWorkDir);
   const remoteFiles = new Set(remoteEntries.files);
   const requiredDirectories = buildRequiredDirectories(
     remoteEntries.directories,
     remoteEntries.files,
   );
 
-  for (const relativePath of localEntries.files) {
+  for (const relativePath of hostEntries.files) {
     if (!remoteFiles.has(relativePath)) {
-      await rm(path.join(localWorkDir, relativePath), { force: true });
+      await rm(path.join(hostWorkDir, relativePath), { force: true });
     }
   }
 
-  const removableDirectories = [...localEntries.directories]
+  const removableDirectories = [...hostEntries.directories]
     .filter(p => !requiredDirectories.has(p))
     .sort((a, b) => b.length - a.length);
   for (const relativePath of removableDirectories) {
-    await rm(path.join(localWorkDir, relativePath), {
+    await rm(path.join(hostWorkDir, relativePath), {
       recursive: true,
       force: true,
     });
@@ -232,12 +232,12 @@ export async function syncLocalWorkspaceFromSandbox(args: {
   for (const relativePath of [...requiredDirectories].sort(
     (a, b) => a.length - b.length,
   )) {
-    await mkdir(path.join(localWorkDir, relativePath), { recursive: true });
+    await mkdir(path.join(hostWorkDir, relativePath), { recursive: true });
   }
 
   for (const relativePath of remoteEntries.files) {
     const remotePath = path.posix.join(
-      remoteWorkDir,
+      sandboxWorkDir,
       relativePath.split(path.sep).join('/'),
     );
     const bytes = await sandbox.readBinaryFile({ path: remotePath });
@@ -248,29 +248,29 @@ export async function syncLocalWorkspaceFromSandbox(args: {
     }
     const content = Buffer.from(bytes);
 
-    const localPath = path.join(localWorkDir, relativePath);
+    const hostPath = path.join(hostWorkDir, relativePath);
     let shouldWrite = true;
     try {
-      const existing = await readFile(localPath);
+      const existing = await readFile(hostPath);
       shouldWrite = !existing.equals(content);
     } catch {
       shouldWrite = true;
     }
 
     if (shouldWrite) {
-      await mkdir(path.dirname(localPath), { recursive: true });
-      await writeFile(localPath, content);
+      await mkdir(path.dirname(hostPath), { recursive: true });
+      await writeFile(hostPath, content);
     }
   }
 }
 
-export async function writeLocalWorkspaceFile(
-  localWorkDir: string,
+export async function writeHostWorkspaceFile(
+  hostWorkDir: string,
   relativePath: string,
   content: Buffer,
 ): Promise<void> {
   const normalizedPath = normalizeRelativePath(relativePath);
-  const localPath = path.join(localWorkDir, normalizedPath);
-  await mkdir(path.dirname(localPath), { recursive: true });
-  await writeFile(localPath, content);
+  const hostPath = path.join(hostWorkDir, normalizedPath);
+  await mkdir(path.dirname(hostPath), { recursive: true });
+  await writeFile(hostPath, content);
 }

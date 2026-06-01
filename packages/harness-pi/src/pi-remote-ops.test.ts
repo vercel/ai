@@ -65,12 +65,12 @@ function makeMockSandbox(behaviors: {
   return { sandbox, runCalls, readCalls, writeCalls };
 }
 
-const localWorkDir = '/tmp/pi-test-local';
-const remoteWorkDir = '/sandbox/workspace';
+const hostWorkDir = '/tmp/pi-test-host';
+const sandboxWorkDir = '/sandbox/workspace';
 
 function makeOps(behaviors: Parameters<typeof makeMockSandbox>[0]) {
   const env = makeMockSandbox(behaviors);
-  const paths = createPiPathMapper(localWorkDir, remoteWorkDir);
+  const paths = createPiPathMapper(hostWorkDir, sandboxWorkDir);
   const ops = createPiRemoteOps({ sandbox: env.sandbox, paths });
   return { ...env, paths, ops };
 }
@@ -79,7 +79,7 @@ describe('createPiRemoteOps.readBuffer', () => {
   it('reads via readBinaryFile and returns a Buffer', async () => {
     const env = makeOps({
       readBinary: p =>
-        p === `${remoteWorkDir}/hello.txt`
+        p === `${sandboxWorkDir}/hello.txt`
           ? new TextEncoder().encode('hi')
           : null,
     });
@@ -100,9 +100,9 @@ describe('createPiRemoteOps.writeFile', () => {
     const env = makeOps({ readBinary: () => null });
     await env.ops.writeFile('src/new.ts', 'export {};');
     expect(env.runCalls[0]?.command).toContain('mkdir -p');
-    expect(env.runCalls[0]?.command).toContain(`'${remoteWorkDir}/src'`);
+    expect(env.runCalls[0]?.command).toContain(`'${sandboxWorkDir}/src'`);
     expect(env.writeCalls).toEqual([
-      { path: `${remoteWorkDir}/src/new.ts`, content: 'export {};' },
+      { path: `${sandboxWorkDir}/src/new.ts`, content: 'export {};' },
     ]);
   });
 
@@ -111,7 +111,7 @@ describe('createPiRemoteOps.writeFile', () => {
     const sandboxEnv = makeMockSandbox({ readBinary: () => null });
     const ops = createPiRemoteOps({
       sandbox: sandboxEnv.sandbox,
-      paths: createPiPathMapper(localWorkDir, remoteWorkDir),
+      paths: createPiPathMapper(hostWorkDir, sandboxWorkDir),
       onFileChange,
     });
     await ops.writeFile('a.txt', 'x');
@@ -129,7 +129,7 @@ describe('createPiRemoteOps.writeFile', () => {
     });
     const ops = createPiRemoteOps({
       sandbox: sandboxEnv.sandbox,
-      paths: createPiPathMapper(localWorkDir, remoteWorkDir),
+      paths: createPiPathMapper(hostWorkDir, sandboxWorkDir),
       onFileChange,
     });
     await ops.writeFile('a.txt', 'x');
@@ -149,7 +149,7 @@ describe('createPiRemoteOps.editFile', () => {
     });
     const ops = createPiRemoteOps({
       sandbox: sandboxEnv.sandbox,
-      paths: createPiPathMapper(localWorkDir, remoteWorkDir),
+      paths: createPiPathMapper(hostWorkDir, sandboxWorkDir),
     });
     const result = await ops.editFile('a.txt', 'old text', 'new text');
     expect(result).toBe('new text here, and old text again');
@@ -161,7 +161,7 @@ describe('createPiRemoteOps.editFile', () => {
     });
     const ops = createPiRemoteOps({
       sandbox: sandboxEnv.sandbox,
-      paths: createPiPathMapper(localWorkDir, remoteWorkDir),
+      paths: createPiPathMapper(hostWorkDir, sandboxWorkDir),
     });
     await expect(ops.editFile('a.txt', 'missing', 'x')).rejects.toThrow(
       /not found/,
@@ -232,5 +232,23 @@ describe('createPiRemoteOps.exec', () => {
     });
     expect(result).toEqual({ exitCode: 0 });
     expect(Buffer.concat(chunks).toString('utf8')).toBe('hello\n');
+  });
+
+  it('schedules the abort timeout in seconds, not milliseconds', async () => {
+    const env = makeOps({ run: () => ({ stdout: '', exitCode: 0 }) });
+    const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout');
+    try {
+      await env.ops.exec('echo hi', '.', {
+        onData: () => {},
+        // The model passes the timeout in seconds; a 30-second timeout must be
+        // scheduled 30_000 ms out, not 30 ms (which would abort instantly).
+        timeout: 30,
+      });
+      const delays = setTimeoutSpy.mock.calls.map(call => call[1]);
+      expect(delays).toContain(30_000);
+      expect(delays).not.toContain(30);
+    } finally {
+      setTimeoutSpy.mockRestore();
+    }
   });
 });

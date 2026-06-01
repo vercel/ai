@@ -1,10 +1,14 @@
 /**
- * Pi VFS — global Node `fs` monkey-patch that redirects reads/writes against
- * `/vfs/pi/<sessionId>/...` to a real backing directory on the host.
+ * Pi VFS — global Node `fs` monkey-patch that redirects reads/writes against a
+ * mount point (the session's sandbox working directory, e.g.
+ * `/vercel/sandbox/<harnessId>-<sessionId>/...`) to a real backing directory on
+ * the host. The mount point is a sandbox path that does not exist on the host,
+ * so the redirect never shadows real host files.
  *
  * The mapping is process-global because Pi's upstream runtime reads and
  * writes through the shared `fs` module. Concurrent mounts are supported as
- * long as each instance uses a distinct mount point (we key on session id).
+ * long as each instance uses a distinct mount point (each session's sandbox
+ * working directory is unique).
  *
  * Multi-instance invariants:
  * - Multiple `PiWorkspaceVfs` instances may stay mounted concurrently.

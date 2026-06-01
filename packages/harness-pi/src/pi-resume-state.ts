@@ -28,12 +28,12 @@ const PI_SESSIONS_DIR = '.pi-sessions';
 export async function persistSessionFileToSandbox(args: {
   readonly sandbox: Experimental_Sandbox;
   readonly sessionWorkDir: string;
-  readonly localSessionDir: string;
+  readonly hostSessionDir: string;
   readonly sessionFileName: string;
   readonly abortSignal?: AbortSignal;
 }): Promise<void> {
-  const localPath = path.join(args.localSessionDir, args.sessionFileName);
-  const content = await readFile(localPath);
+  const hostPath = path.join(args.hostSessionDir, args.sessionFileName);
+  const content = await readFile(hostPath);
   const remotePath = path.posix.join(
     args.sessionWorkDir,
     PI_SESSIONS_DIR,
@@ -60,7 +60,7 @@ export async function persistSessionFileToSandbox(args: {
 export async function pullSessionFileFromSandbox(args: {
   readonly sandbox: Experimental_Sandbox;
   readonly sessionWorkDir: string;
-  readonly localSessionDir: string;
+  readonly hostSessionDir: string;
   readonly sessionFileName: string;
   readonly abortSignal?: AbortSignal;
 }): Promise<string | undefined> {
@@ -74,8 +74,8 @@ export async function pullSessionFileFromSandbox(args: {
     ...(args.abortSignal ? { abortSignal: args.abortSignal } : {}),
   });
   if (!bytes) return undefined;
-  await mkdir(args.localSessionDir, { recursive: true });
-  const localPath = path.join(args.localSessionDir, args.sessionFileName);
-  await writeFile(localPath, bytes);
-  return localPath;
+  await mkdir(args.hostSessionDir, { recursive: true });
+  const hostPath = path.join(args.hostSessionDir, args.sessionFileName);
+  await writeFile(hostPath, bytes);
+  return hostPath;
 }
