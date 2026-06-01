@@ -1,3 +1,4 @@
+export type { GoogleVertexModelId } from '../google-vertex-options';
 export {
   createGoogleVertex,
   /** @deprecated Use `createGoogleVertex` instead. */
