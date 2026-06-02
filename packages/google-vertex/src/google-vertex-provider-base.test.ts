@@ -279,6 +279,46 @@ describe('google-vertex-provider-base', () => {
     );
   });
 
+  it('should use multi-region REP URL for us location', () => {
+    const provider = createGoogleVertex({
+      project: 'test-project',
+      location: 'us',
+    });
+    provider('test-model-id');
+
+    expect(vi.mocked(GoogleLanguageModel).mock.calls[0][1])
+      .toMatchInlineSnapshot(`
+        {
+          "baseURL": "https://aiplatform.us.rep.googleapis.com/v1beta1/projects/test-project/locations/us/publishers/google",
+          "fetch": undefined,
+          "generateId": [MockFunction],
+          "headers": [Function],
+          "provider": "google.vertex.chat",
+          "supportedUrls": [Function],
+        }
+      `);
+  });
+
+  it('should use multi-region REP URL for eu location', () => {
+    const provider = createGoogleVertex({
+      project: 'test-project',
+      location: 'eu',
+    });
+    provider('test-model-id');
+
+    expect(vi.mocked(GoogleLanguageModel).mock.calls[0][1])
+      .toMatchInlineSnapshot(`
+        {
+          "baseURL": "https://aiplatform.eu.rep.googleapis.com/v1beta1/projects/test-project/locations/eu/publishers/google",
+          "fetch": undefined,
+          "generateId": [MockFunction],
+          "headers": [Function],
+          "provider": "google.vertex.chat",
+          "supportedUrls": [Function],
+        }
+      `);
+  });
+
   it('should use express mode base URL when apiKey is provided', () => {
     const provider = createGoogleVertex({
       apiKey: 'test-api-key',
