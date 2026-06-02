@@ -1300,6 +1300,40 @@ The following provider options are available:
   model ID as a string if needed.
 </Note>
 
+### Speech Models
+
+You can create [Gemini text-to-speech](https://docs.cloud.google.com/text-to-speech/docs/gemini-tts)
+models that call the Vertex AI API using the `.speech()` factory method. For more on speech
+generation with the AI SDK see [generateSpeech()](/docs/reference/ai-sdk-core/generate-speech).
+
+```ts
+import { googleVertex } from '@ai-sdk/google-vertex';
+import { experimental_generateSpeech as generateSpeech } from 'ai';
+
+const result = await generateSpeech({
+  model: googleVertex.speech('gemini-2.5-flash-tts'),
+  text: 'Hello, world!',
+  voice: 'Kore', // Gemini voice name
+});
+```
+
+The `voice` argument accepts one of Gemini's [30 prebuilt voices](https://ai.google.dev/gemini-api/docs/speech-generation#voices)
+(e.g. `Kore`, `Puck`, `Zephyr`); it defaults to `Kore`. Multi-speaker dialogue is available via
+`providerOptions.googleVertex.multiSpeakerVoiceConfig`.
+
+By default the audio is returned as a playable WAV (Gemini returns raw PCM, which the provider
+wraps). Set `outputFormat: 'pcm'` for the raw signed 16-bit little-endian mono bytes; the sample
+rate is reported in `result.providerMetadata.google.sampleRate`.
+
+#### Speech Model Capabilities
+
+| Model                               | Multi-speaker       | Style via instructions |
+| ----------------------------------- | ------------------- | ---------------------- |
+| `gemini-2.5-flash-tts`              | <Check size={18} /> | <Check size={18} />    |
+| `gemini-2.5-pro-tts`                | <Check size={18} /> | <Check size={18} />    |
+| `gemini-2.5-flash-lite-preview-tts` | <Check size={18} /> | <Check size={18} />    |
+| `gemini-3.1-flash-tts-preview`      | <Check size={18} /> | <Check size={18} />    |
+
 ## Google Vertex Anthropic Provider Usage
 
 The Google Vertex Anthropic provider for the [AI SDK](/docs) offers support for Anthropic's Claude models through the Google Vertex AI APIs. This section provides details on how to set up and use the Google Vertex Anthropic provider.

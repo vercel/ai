@@ -1,9 +1,13 @@
-import { GoogleLanguageModel } from '@ai-sdk/google/internal';
+import {
+  GoogleLanguageModel,
+  GoogleSpeechModel,
+} from '@ai-sdk/google/internal';
 import type {
   Experimental_VideoModelV4,
   ImageModelV4,
   LanguageModelV4,
   ProviderV4,
+  SpeechModelV4,
 } from '@ai-sdk/provider';
 import {
   generateId,
@@ -26,6 +30,7 @@ import type { GoogleVertexModelId } from './google-vertex-options';
 import { googleVertexTools } from './google-vertex-tools';
 import { GoogleVertexVideoModel } from './google-vertex-video-model';
 import type { GoogleVertexVideoModelId } from './google-vertex-video-settings';
+import type { GoogleVertexSpeechModelId } from './google-vertex-speech-model-options';
 
 const EXPRESS_MODE_BASE_URL =
   'https://aiplatform.googleapis.com/v1/publishers/google';
@@ -83,6 +88,16 @@ export interface GoogleVertexProvider extends ProviderV4 {
    * Creates a model for video generation.
    */
   videoModel(modelId: GoogleVertexVideoModelId): Experimental_VideoModelV4;
+
+  /**
+   * Creates a model for speech generation (text-to-speech).
+   */
+  speech(modelId: GoogleVertexSpeechModelId): SpeechModelV4;
+
+  /**
+   * Creates a model for speech generation (text-to-speech).
+   */
+  speechModel(modelId: GoogleVertexSpeechModelId): SpeechModelV4;
 }
 
 export interface GoogleVertexProviderSettings {
@@ -221,6 +236,12 @@ export function createGoogleVertex(
       generateId: options.generateId ?? generateId,
     });
 
+  // Speech reuses @ai-sdk/google's GoogleSpeechModel: it builds
+  // `${baseURL}/models/${modelId}:generateContent` (the same path the Vertex
+  // language model uses) and Gemini TTS returns the same raw-PCM payload here.
+  const createSpeechModel = (modelId: GoogleVertexSpeechModelId) =>
+    new GoogleSpeechModel(modelId, createConfig('speech'));
+
   const provider = function (modelId: GoogleVertexModelId) {
     if (new.target) {
       throw new Error(
@@ -239,6 +260,8 @@ export function createGoogleVertex(
   provider.imageModel = createImageModel;
   provider.video = createVideoModel;
   provider.videoModel = createVideoModel;
+  provider.speech = createSpeechModel;
+  provider.speechModel = createSpeechModel;
   provider.tools = googleVertexTools;
 
   return provider;
