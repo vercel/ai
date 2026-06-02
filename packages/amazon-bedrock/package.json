@@ -49,8 +49,8 @@
     },
     "./mantle": {
       "types": "./dist/mantle/index.d.ts",
-      "import": "./dist/mantle/index.mjs",
-      "require": "./dist/mantle/index.js"
+      "import": "./dist/mantle/index.js",
+      "require": "./dist/mantle/index.cjs"
     }
   },
   "dependencies": {
