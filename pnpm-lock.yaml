@@ -72,7 +72,7 @@ importers:
         specifier: 3.0.81
         version: link:../../packages/anthropic
       '@ai-sdk/azure':
-        specifier: 3.0.68
+        specifier: 3.0.69
         version: link:../../packages/azure
       '@ai-sdk/cohere':
         specifier: 3.0.36
