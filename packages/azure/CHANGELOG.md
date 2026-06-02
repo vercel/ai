@@ -1,5 +1,11 @@
 # @ai-sdk/azure
 
+## 4.0.0-canary.67
+
+### Patch Changes
+
+- 9f4dca0: Add Microsoft Entra ID token provider authentication for Azure OpenAI.
+
 ## 4.0.0-canary.66
 
 ### Patch Changes
