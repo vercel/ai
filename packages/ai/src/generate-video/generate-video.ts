@@ -84,7 +84,7 @@ export type GenerateVideoPollOptions = {
  */
 export type GenerateVideoWebhookFactory = () => PromiseLike<{
   url: string;
-  received: Promise<Experimental_VideoModelV4OperationWebhook>;
+  received: PromiseLike<Experimental_VideoModelV4OperationWebhook>;
 }>;
 
 /**
@@ -431,7 +431,7 @@ async function executeStartStatusFlow({
   const earlyWarnings: Experimental_VideoModelV4Result['warnings'] = [];
   let webhookUrl: string | undefined;
   let webhookReceived:
-    | Promise<Experimental_VideoModelV4OperationWebhook>
+    | PromiseLike<Experimental_VideoModelV4OperationWebhook>
     | undefined;
 
   if (webhookFactory != null) {
@@ -534,7 +534,7 @@ async function waitForWebhook({
   timeoutMs,
   abortSignal,
 }: {
-  received: Promise<Experimental_VideoModelV4OperationWebhook>;
+  received: PromiseLike<Experimental_VideoModelV4OperationWebhook>;
   timeoutMs: number;
   abortSignal?: AbortSignal;
 }) {

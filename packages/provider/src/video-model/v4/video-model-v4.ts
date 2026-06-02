@@ -77,11 +77,11 @@ export type VideoModelV4 = {
   handleWebhookOption?: (options: {
     webhook: () => PromiseLike<{
       url: string;
-      received: Promise<VideoModelV4OperationWebhook>;
+      received: PromiseLike<VideoModelV4OperationWebhook>;
     }>;
   }) => PromiseLike<{
     webhookUrl: string;
-    received: Promise<VideoModelV4OperationWebhook>;
+    received: PromiseLike<VideoModelV4OperationWebhook>;
   }>;
 
   /**
