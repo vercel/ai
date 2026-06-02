@@ -1,5 +1,11 @@
 # @ai-sdk/azure
 
+## 3.0.69
+
+### Patch Changes
+
+- cbc161a: Add Microsoft Entra ID token provider authentication for Azure OpenAI.
+
 ## 3.0.68
 
 ### Patch Changes
