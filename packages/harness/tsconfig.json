@@ -5,7 +5,7 @@
     "rootDir": ".",
     "outDir": "dist"
   },
-  "include": ["index.ts", "src", "agent"],
+  "include": ["index.ts", "src", "agent", "channel", "bridge"],
   "exclude": [
     "dist",
     "build",
