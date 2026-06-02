@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-canary.100
+
+### Patch Changes
+
+- b70f6ec: fix(google-vertex): support for eu/us multi region gemini endpoints
+
 ## 5.0.0-canary.99
 
 ### Patch Changes
