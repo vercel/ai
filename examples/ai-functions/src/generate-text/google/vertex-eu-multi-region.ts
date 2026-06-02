@@ -1,8 +1,8 @@
-import { createGoogleVertex } from '@ai-sdk/google-vertex';
+import { createVertex } from '@ai-sdk/google-vertex';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
-const vertex = createGoogleVertex({
+const vertex = createVertex({
   location: 'us',
 });
 
