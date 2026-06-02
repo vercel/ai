@@ -192,6 +192,52 @@ describe('google-vertex-anthropic-provider', () => {
     );
   });
 
+  it('should use multi-region URL for eu location', () => {
+    const provider = createGoogleVertexAnthropic({
+      project: 'test-project',
+      location: 'eu',
+    });
+    provider('test-model-id');
+
+    expect(vi.mocked(AnthropicLanguageModel).mock.calls[0][1])
+      .toMatchInlineSnapshot(`
+        {
+          "baseURL": "https://aiplatform.eu.rep.googleapis.com/v1/projects/test-project/locations/eu/publishers/anthropic/models",
+          "buildRequestUrl": [Function],
+          "fetch": undefined,
+          "headers": {},
+          "provider": "googleVertex.anthropic.messages",
+          "supportedUrls": [Function],
+          "supportsNativeStructuredOutput": false,
+          "supportsStrictTools": false,
+          "transformRequestBody": [Function],
+        }
+      `);
+  });
+
+  it('should use multi-region URL for us location', () => {
+    const provider = createGoogleVertexAnthropic({
+      project: 'test-project',
+      location: 'us',
+    });
+    provider('test-model-id');
+
+    expect(vi.mocked(AnthropicLanguageModel).mock.calls[0][1])
+      .toMatchInlineSnapshot(`
+        {
+          "baseURL": "https://aiplatform.us.rep.googleapis.com/v1/projects/test-project/locations/us/publishers/anthropic/models",
+          "buildRequestUrl": [Function],
+          "fetch": undefined,
+          "headers": {},
+          "provider": "googleVertex.anthropic.messages",
+          "supportedUrls": [Function],
+          "supportsNativeStructuredOutput": false,
+          "supportsStrictTools": false,
+          "transformRequestBody": [Function],
+        }
+      `);
+  });
+
   it('should support combining tools with structured outputs (inherited from Anthropic)', () => {
     const provider = createVertexAnthropic({
       project: 'test-project',
