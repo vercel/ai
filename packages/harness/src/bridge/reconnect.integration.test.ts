@@ -41,7 +41,6 @@ async function startBridge(
 ): Promise<BridgeHandle> {
   const handle = await runBridge<{ type: 'start' }>({
     bridgeType: 'test',
-    protocolVersion: 1,
     bridgeStateDir: `${process.env.TMPDIR ?? '/tmp'}/harness-reconnect-${Math.floor(performance.now())}`,
     port: 0,
     token: TOKEN,

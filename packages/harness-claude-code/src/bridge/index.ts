@@ -10,6 +10,7 @@ import {
   type BridgeTurn,
 } from '@ai-sdk/harness/bridge';
 import type { HarnessV1BuiltinToolName } from '@ai-sdk/harness';
+import type { StartMessage } from '../claude-code-bridge-protocol';
 import { randomUUID } from 'node:crypto';
 import { argv, stdout } from 'node:process';
 
@@ -33,8 +34,6 @@ import { argv, stdout } from 'node:process';
 import * as claudeAgentSdk from '@anthropic-ai/claude-agent-sdk';
 import * as mcpServerModule from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-
-const PROTOCOL_VERSION = 1;
 
 /*
  * Native Claude Code tool name → cross-harness common name. Tools outside this
@@ -70,23 +69,8 @@ const claudeSdk = claudeAgentSdk as any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mcpModule = mcpServerModule as any;
 
-type StartMessage = {
-  type: 'start';
-  prompt: string;
-  tools?: ReadonlyArray<{
-    name: string;
-    description?: string;
-    inputSchema?: unknown;
-  }>;
-  model?: string;
-  maxTurns?: number;
-  thinking?: 'off' | 'on' | 'adaptive';
-  continue?: boolean;
-};
-
 await runBridge<StartMessage>({
   bridgeType: 'claude-code',
-  protocolVersion: PROTOCOL_VERSION,
   bridgeStateDir,
   onStart: runTurn,
   // Claude Code's session state lives in the workdir on the sandbox filesystem

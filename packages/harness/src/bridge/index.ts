@@ -55,7 +55,6 @@ export interface BridgeTurn {
 export interface RunBridgeOptions<TStart extends { type: 'start' }> {
   /** Identifier written into `bridge-meta.json` (`'claude-code'` / `'codex'`). */
   bridgeType: string;
-  protocolVersion: number;
   /** Directory for `bridge-meta.json` / `start-config.json`. Created if absent. */
   bridgeStateDir: string;
   /** Drive one prompt turn. Rejections surface to the host as an `error` event. */
@@ -106,8 +105,7 @@ export interface BridgeHandle {
 export async function runBridge<TStart extends { type: 'start' }>(
   options: RunBridgeOptions<TStart>,
 ): Promise<BridgeHandle> {
-  const { bridgeType, protocolVersion, bridgeStateDir, onStart, onDetach } =
-    options;
+  const { bridgeType, bridgeStateDir, onStart, onDetach } = options;
   const expectedToken = options.token ?? procEnv.BRIDGE_CHANNEL_TOKEN ?? '';
   const bridgeWsPort =
     options.port ?? parseInt(procEnv.BRIDGE_WS_PORT ?? '0', 10);
@@ -228,7 +226,6 @@ export async function runBridge<TStart extends { type: 'start' }>(
         bridgeMetaPath,
         JSON.stringify({
           type: bridgeType,
-          protocolVersion,
           port: currentBoundPort,
           state,
           pid,
@@ -353,7 +350,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
         currentTurnState = 'done';
         void writeBridgeMeta('done');
         const data = (await onDetach?.()) ?? {};
-        sendControl({ type: 'detach-state', data });
+        sendControl({ type: 'bridge-detach', data });
         drainThenExit(ws, 1000, 'detach');
         return;
       }
@@ -403,7 +400,6 @@ export async function runBridge<TStart extends { type: 'start' }>(
     stdout.write(
       JSON.stringify({
         type: 'bridge-ready',
-        protocolVersion,
         port: currentBoundPort,
       }) + '\n',
     );

@@ -35,14 +35,11 @@ vi.mock('@ai-sdk/harness/channel', () => {
 
 // eslint-disable-next-line import/first
 import { createClaudeCode } from './claude-code-harness';
-// eslint-disable-next-line import/first
-import { PROTOCOL_VERSION } from './claude-code-bridge-protocol';
 
 function readyStream(port: number): ReadableStream<Uint8Array> {
   const line =
     JSON.stringify({
       type: 'bridge-ready',
-      protocolVersion: PROTOCOL_VERSION,
       port,
     }) + '\n';
   return new ReadableStream<Uint8Array>({

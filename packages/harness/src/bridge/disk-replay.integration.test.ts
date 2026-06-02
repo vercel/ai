@@ -72,7 +72,6 @@ describe('runBridge disk replay (§7b)', () => {
     };
     const first: BridgeHandle = await runBridge<{ type: 'start' }>({
       bridgeType: 'test',
-      protocolVersion: 1,
       bridgeStateDir,
       port: 0,
       token: TOKEN,
@@ -114,7 +113,6 @@ describe('runBridge disk replay (§7b)', () => {
     process.env.BRIDGE_REPLAY_FROM_DISK = '1';
     const second: BridgeHandle = await runBridge<{ type: 'start' }>({
       bridgeType: 'test',
-      protocolVersion: 1,
       bridgeStateDir,
       port: 0,
       token: TOKEN,

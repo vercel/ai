@@ -31,7 +31,6 @@ import {
   type InboundMessage,
   type OutboundMessage,
 } from './codex-bridge-protocol';
-import { translate } from './codex-translate';
 
 type CodexChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 
@@ -586,19 +585,19 @@ function createSession({
       for (const type of eventTypes) {
         unsubs.push(
           channel.on(type, msg => {
-            forward(translate(msg));
+            forward(msg);
           }),
         );
       }
       unsubs.push(
         channel.on('finish', msg => {
-          forward(translate(msg));
+          forward(msg);
           settleSuccess();
         }),
       );
       unsubs.push(
         channel.on('error', msg => {
-          forward(translate(msg));
+          forward(msg);
           settleError(msg.error);
         }),
       );
@@ -745,7 +744,7 @@ function createSession({
               );
             }, 5000);
             timer.unref?.();
-            const unsub = channel.on('detach-state', msg => {
+            const unsub = channel.on('bridge-detach', msg => {
               clearTimeout(timer);
               unsub();
               resolve(msg.data);

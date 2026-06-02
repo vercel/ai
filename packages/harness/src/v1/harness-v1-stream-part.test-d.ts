@@ -6,8 +6,12 @@ import type {
   LanguageModelV4ToolResult,
   LanguageModelV4Usage,
 } from '@ai-sdk/provider';
+import type { z } from 'zod/v4';
 import { expectTypeOf, test } from 'vitest';
-import type { HarnessV1StreamPart } from './harness-v1-stream-part';
+import type {
+  HarnessV1StreamPart,
+  harnessV1StreamPartSchema,
+} from './harness-v1-stream-part';
 
 type V4PartByType<T extends LanguageModelV4StreamPart['type']> = Extract<
   LanguageModelV4StreamPart,
@@ -86,6 +90,26 @@ test('error variant matches V4 error variant', () => {
 
 test('raw variant matches V4 raw variant', () => {
   expectTypeOf<HPartByType<'raw'>>().toEqualTypeOf<V4PartByType<'raw'>>();
+});
+
+test('runtime schema infers exactly the hand-written stream-part type', () => {
+  // The single source of truth is the `HarnessV1StreamPart` type; the Zod
+  // schema is its runtime encoding. The pair of `Exclude` assertions below is
+  // bidirectional assignability: every inferred member must be assignable to a
+  // hand-written variant and vice versa, so a renamed/retyped/added/dropped
+  // field surfaces as a non-`never` residue. Assignability (rather than the
+  // invariant-position equality trick) is used deliberately — the schema reuses
+  // a recursive `JSONValue` encoding, which defeats that trick with false
+  // negatives. This also catches upstream `@ai-sdk/provider` V4 tool-shape
+  // drift, since the type references those primitives directly.
+  type Inferred = z.infer<typeof harnessV1StreamPartSchema>;
+  expectTypeOf<Exclude<Inferred, HarnessV1StreamPart>>().toEqualTypeOf<never>();
+  expectTypeOf<Exclude<HarnessV1StreamPart, Inferred>>().toEqualTypeOf<never>();
+
+  // Completeness: the set of `type` discriminants must match exactly, so a
+  // whole variant cannot go missing or extra (which the assignability checks
+  // above can miss for unions).
+  expectTypeOf<Inferred['type']>().toEqualTypeOf<HarnessV1StreamPart['type']>();
 });
 
 test('discriminated union narrows on `type`', () => {

@@ -36,7 +36,6 @@ import {
   type InboundMessage,
   type OutboundMessage,
 } from './claude-code-bridge-protocol';
-import { translate } from './claude-code-translate';
 
 type ClaudeCodeChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 
@@ -918,19 +917,19 @@ function createSession({
       for (const type of eventTypes) {
         unsubs.push(
           channel.on(type, msg => {
-            forward(translate(msg));
+            forward(msg);
           }),
         );
       }
       unsubs.push(
         channel.on('finish', msg => {
-          forward(translate(msg));
+          forward(msg);
           settleSuccess();
         }),
       );
       unsubs.push(
         channel.on('error', msg => {
-          forward(translate(msg));
+          forward(msg);
           settleError(msg.error);
         }),
       );
@@ -1079,7 +1078,7 @@ function createSession({
               );
             }, 5000);
             timer.unref?.();
-            const unsub = channel.on('detach-state', msg => {
+            const unsub = channel.on('bridge-detach', msg => {
               clearTimeout(timer);
               unsub();
               resolve(msg.data);
@@ -1093,7 +1092,7 @@ function createSession({
             }
           });
 
-      // The bridge exits itself ~50ms after sending detach-state. Give
+      // The bridge exits itself ~50ms after sending bridge-detach. Give
       // it a moment, then ensure the process is reaped and the channel
       // closed.
       let stopTimer: ReturnType<typeof setTimeout> | undefined;

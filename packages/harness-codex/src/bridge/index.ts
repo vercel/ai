@@ -16,6 +16,7 @@ import {
   type BridgeTurn,
 } from '@ai-sdk/harness/bridge';
 import type { HarnessV1BuiltinToolName } from '@ai-sdk/harness';
+import type { StartMessage } from '../codex-bridge-protocol';
 import { randomUUID } from 'node:crypto';
 import { writeFile } from 'node:fs/promises';
 import { createServer, type Server } from 'node:http';
@@ -46,8 +47,6 @@ import { argv, env as procEnv, stdout } from 'node:process';
  *   3. the dependency entry in `src/bridge/package.json`.
  */
 import * as codexSdkModule from '@openai/codex-sdk';
-
-const PROTOCOL_VERSION = 1;
 
 /*
  * Native Codex tool name → cross-harness common name. Tools outside this map
@@ -81,29 +80,8 @@ const codexSdk = codexSdkModule as any;
 // returned to the host on `detach` so a future process can resume the thread.
 const threadState: { id: string | undefined } = { id: undefined };
 
-type StartMessage = {
-  type: 'start';
-  prompt: string;
-  instructions?: string;
-  tools?: ReadonlyArray<{
-    name: string;
-    description?: string;
-    inputSchema?: unknown;
-  }>;
-  model?: string;
-  reasoningEffort?: 'low' | 'medium' | 'high';
-  webSearch?: boolean;
-  skills?: ReadonlyArray<{
-    name: string;
-    description: string;
-    content: string;
-  }>;
-  resumeThreadId?: string;
-};
-
 await runBridge<StartMessage>({
   bridgeType: 'codex',
-  protocolVersion: PROTOCOL_VERSION,
   bridgeStateDir,
   onStart: runTurn,
   onDetach: () => (threadState.id ? { threadId: threadState.id } : {}),

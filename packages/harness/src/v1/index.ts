@@ -37,4 +37,41 @@ export type {
 } from './harness-v1-session';
 export type { HarnessV1Skill } from './harness-v1-skill';
 export type { HarnessV1StreamPart } from './harness-v1-stream-part';
+export {
+  harnessV1ErrorPartSchema,
+  harnessV1FileChangePartSchema,
+  harnessV1FinishPartSchema,
+  harnessV1FinishStepPartSchema,
+  harnessV1RawPartSchema,
+  harnessV1ReasoningDeltaPartSchema,
+  harnessV1ReasoningEndPartSchema,
+  harnessV1ReasoningStartPartSchema,
+  harnessV1StreamPartSchema,
+  harnessV1StreamStartPartSchema,
+  harnessV1TextDeltaPartSchema,
+  harnessV1TextEndPartSchema,
+  harnessV1TextStartPartSchema,
+  harnessV1ToolApprovalRequestPartSchema,
+  harnessV1ToolCallPartSchema,
+  harnessV1ToolResultPartSchema,
+} from './harness-v1-stream-part';
+export {
+  harnessV1BridgeAbortInboundSchema,
+  harnessV1BridgeDetachInboundSchema,
+  harnessV1BridgeDetachSchema,
+  harnessV1BridgeHelloSchema,
+  harnessV1BridgeInboundCommandSchemas,
+  harnessV1BridgeOutboundMessageSchema,
+  harnessV1BridgeReadySchema,
+  harnessV1BridgeResumeInboundSchema,
+  harnessV1BridgeShutdownInboundSchema,
+  harnessV1BridgeStartBaseSchema,
+  harnessV1BridgeThreadSchema,
+  harnessV1BridgeToolResultInboundSchema,
+  harnessV1BridgeToolWireSchema,
+  harnessV1BridgeUserMessageInboundSchema,
+  type HarnessV1BridgeOutboundMessage,
+  type HarnessV1BridgeReady,
+  type HarnessV1BridgeToolWire,
+} from './harness-v1-bridge-protocol';
 export type { HarnessV1ToolSpec } from './harness-v1-tool-spec';

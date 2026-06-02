@@ -3,7 +3,6 @@ import {
   bridgeReadySchema,
   inboundMessageSchema,
   outboundMessageSchema,
-  PROTOCOL_VERSION,
 } from './claude-code-bridge-protocol';
 
 describe('outboundMessageSchema', () => {
@@ -100,17 +99,15 @@ describe('bridgeReadySchema', () => {
     expect(() =>
       bridgeReadySchema.parse({
         type: 'bridge-ready',
-        protocolVersion: PROTOCOL_VERSION,
         port: 12345,
       }),
     ).not.toThrow();
   });
 
-  it('rejects mismatched protocol version', () => {
+  it('rejects a non-ready type', () => {
     expect(() =>
       bridgeReadySchema.parse({
-        type: 'bridge-ready',
-        protocolVersion: 99,
+        type: 'nope',
         port: 12345,
       }),
     ).toThrow();

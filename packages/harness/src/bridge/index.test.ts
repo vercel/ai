@@ -16,7 +16,6 @@ async function startBridge(
 ): Promise<BridgeHandle> {
   const handle = await runBridge<{ type: 'start' }>({
     bridgeType: 'test',
-    protocolVersion: 1,
     bridgeStateDir: `${process.env.TMPDIR ?? '/tmp'}/harness-bridge-test-${Math.floor(performance.now())}`,
     port: 0,
     token: TOKEN,
@@ -182,11 +181,10 @@ describe('runBridge', () => {
     expect(replayedSeqs).toEqual([3, 4]);
   });
 
-  it('emits a detach-state payload from onDetach', async () => {
+  it('emits a bridge-detach payload from onDetach', async () => {
     let exited = false;
     const handle = await runBridge<{ type: 'start' }>({
       bridgeType: 'test',
-      protocolVersion: 1,
       bridgeStateDir: `${process.env.TMPDIR ?? '/tmp'}/harness-bridge-detach`,
       port: 0,
       token: TOKEN,
@@ -200,7 +198,7 @@ describe('runBridge', () => {
     const client = await connect(handle.port);
     await client.waitFor(f => f.type === 'bridge-hello');
     client.send({ type: 'detach' });
-    const detach = await client.waitFor(f => f.type === 'detach-state');
+    const detach = await client.waitFor(f => f.type === 'bridge-detach');
     expect(detach.data).toEqual({ threadId: 'th_42' });
     await new Promise(r => setTimeout(r, 50));
     expect(exited).toBe(true);
