@@ -85,7 +85,7 @@ describe('google-vertex-maas-provider', () => {
   });
 
   it('should create a provider with correct base URL for multi-region location', () => {
-    const provider = createGoogleVertexMaas({
+    const provider = createVertexMaas({
       project: 'test-project',
       location: 'eu',
     });
