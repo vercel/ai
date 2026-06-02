@@ -219,7 +219,7 @@ const { video } = await generateVideo({
 
 Video generation is an asynchronous process that can take several minutes to complete. The SDK automatically polls the provider to check if the video is ready. You can configure the polling behavior:
 
-```tsx highlight={"8-12"}
+```tsx highlight={"8-11"}
 import { experimental_generateVideo as generateVideo } from 'ai';
 import { fal } from '@ai-sdk/fal';
 
@@ -230,18 +230,9 @@ const { video } = await generateVideo({
   poll: {
     intervalMs: 5000, // Check every 5 seconds (default)
     timeoutMs: 600000, // Timeout after 10 minutes (default)
-    backoff: 'exponential', // Double interval after each poll, capped at 60s
-    onAttempt: ({ attempt, elapsedMs }) => {
-      console.log(`Poll attempt ${attempt} (${elapsedMs}ms elapsed)`);
-    },
   },
 });
 ```
-
-<Note>
-  For production use, consider using `backoff: 'exponential'` to reduce
-  unnecessary API calls while waiting for longer generations.
-</Note>
 
 ### Custom Headers
 

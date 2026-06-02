@@ -172,26 +172,13 @@ console.log(videos);
               description:
                 'Maximum time to wait for completion in milliseconds. Default: 600000 (10 minutes).',
             },
-            {
-              name: 'backoff',
-              type: "'none' | 'exponential'",
-              isOptional: true,
-              description:
-                "Backoff strategy for polling. 'none' uses a fixed interval. 'exponential' doubles the interval after each poll, capped at 60 seconds. Default: 'none'.",
-            },
-            {
-              name: 'onAttempt',
-              type: '(event: { attempt: number; elapsedMs: number }) => void | PromiseLike<void>',
-              isOptional: true,
-              description: 'Callback invoked before each poll attempt.',
-            },
           ],
         },
       ],
     },
     {
       name: 'webhook',
-      type: '() => PromiseLike<{ url: string; received: Promise<VideoModelV3OperationWebhook> }>',
+      type: '() => PromiseLike<{ url: string; received: PromiseLike<VideoModelV4OperationWebhook> }>',
       isOptional: true,
       description:
         'Webhook factory for providers that support webhook notifications. When provided and the model supports webhooks, the SDK uses the webhook instead of polling. The factory should return a URL for the provider to notify and a `received` promise that resolves when the notification arrives.',

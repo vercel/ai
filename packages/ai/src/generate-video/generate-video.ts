@@ -52,28 +52,11 @@ export type GenerateVideoPollOptions = {
   intervalMs?: number;
 
   /**
-   * Backoff strategy for polling.
-   * - `'none'`: Fixed interval between polls.
-   * - `'exponential'`: Doubles the interval after each poll, capped at 60 seconds.
-   *
-   * @default 'none'
-   */
-  backoff?: 'none' | 'exponential';
-
-  /**
    * Maximum time to wait for completion in milliseconds.
    *
    * @default 600000 (10 minutes)
    */
   timeoutMs?: number;
-
-  /**
-   * Callback invoked before each poll attempt.
-   */
-  onAttempt?: (event: {
-    attempt: number;
-    elapsedMs: number;
-  }) => void | PromiseLike<void>;
 };
 
 /**
@@ -622,15 +605,12 @@ async function pollUntilComplete({
   warnings: Experimental_VideoModelV4Result['warnings'];
   providerMetadata?: SharedV4ProviderMetadata;
 }> {
-  const baseInterval = pollConfig?.intervalMs ?? 5000;
-  const backoff = pollConfig?.backoff ?? 'none';
+  const intervalMs = pollConfig?.intervalMs ?? 5000;
   const timeoutMs = pollConfig?.timeoutMs ?? 600_000;
-  const onAttempt = pollConfig?.onAttempt;
 
   const warnings: Experimental_VideoModelV4Result['warnings'] = [];
   let providerMetadata: SharedV4ProviderMetadata | undefined;
   const startTime = Date.now();
-  let attempt = 0;
 
   while (true) {
     const elapsedMs = Date.now() - startTime;
@@ -639,22 +619,10 @@ async function pollUntilComplete({
       throw new Error(`Video generation timed out after ${timeoutMs}ms.`);
     }
 
-    // Calculate delay for this attempt
-    const intervalMs =
-      backoff === 'exponential'
-        ? Math.min(baseInterval * Math.pow(2, attempt), 60_000)
-        : baseInterval;
-
     await delay(Math.min(intervalMs, timeoutMs - elapsedMs), { abortSignal });
 
     if (Date.now() - startTime >= timeoutMs) {
       throw new Error(`Video generation timed out after ${timeoutMs}ms.`);
-    }
-
-    attempt++;
-
-    if (onAttempt != null) {
-      await onAttempt({ attempt, elapsedMs: Date.now() - startTime });
     }
 
     const statusResult = await retry(() =>

@@ -19,11 +19,7 @@ run(async () => {
     },
     poll: {
       intervalMs: 1000,
-      backoff: 'none',
       timeoutMs: 600_000,
-      onAttempt() {
-        process.stdout.write('.');
-      },
     },
   });
 
