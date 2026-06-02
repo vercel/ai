@@ -4,6 +4,9 @@ on:
   repository_dispatch:
     types: [ai-provider-api-change]
 
+permissions:
+  contents: read
+
 jobs:
   create-issue:
     name: 'Create Issue for Provider API Change'
