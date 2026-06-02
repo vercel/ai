@@ -193,13 +193,13 @@ describe('google-vertex-anthropic-provider', () => {
   });
 
   it('should use multi-region URL for eu location', () => {
-    const provider = createGoogleVertexAnthropic({
+    const provider = createVertexAnthropic({
       project: 'test-project',
       location: 'eu',
     });
     provider('test-model-id');
 
-    expect(vi.mocked(AnthropicLanguageModel).mock.calls[0][1])
+    expect(vi.mocked(AnthropicMessagesLanguageModel).mock.calls[0][1])
       .toMatchInlineSnapshot(`
         {
           "baseURL": "https://aiplatform.eu.rep.googleapis.com/v1/projects/test-project/locations/eu/publishers/anthropic/models",
@@ -216,13 +216,13 @@ describe('google-vertex-anthropic-provider', () => {
   });
 
   it('should use multi-region URL for us location', () => {
-    const provider = createGoogleVertexAnthropic({
+    const provider = createVertexAnthropic({
       project: 'test-project',
       location: 'us',
     });
     provider('test-model-id');
 
-    expect(vi.mocked(AnthropicLanguageModel).mock.calls[0][1])
+    expect(vi.mocked(AnthropicMessagesLanguageModel).mock.calls[0][1])
       .toMatchInlineSnapshot(`
         {
           "baseURL": "https://aiplatform.us.rep.googleapis.com/v1/projects/test-project/locations/us/publishers/anthropic/models",

@@ -1,8 +1,8 @@
-import { createGoogleVertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
+import { createVertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
-const vertexAnthropic = createGoogleVertexAnthropic({
+const vertexAnthropic = createVertexAnthropic({
   location: 'eu',
 });
 
