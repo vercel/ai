@@ -192,6 +192,65 @@ describe('chat', () => {
       );
     });
 
+    it('should use tokenProvider for Microsoft Entra ID auth', async () => {
+      prepareJsonResponse();
+
+      const provider = createAzure({
+        resourceName: 'test-resource',
+        tokenProvider: async () => 'test-azure-ad-token',
+      });
+
+      await provider('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(server.calls[0].requestHeaders).toStrictEqual({
+        authorization: 'Bearer test-azure-ad-token',
+        'content-type': 'application/json',
+      });
+      expect(server.calls[0].requestUserAgent).toContain(
+        `ai-sdk/azure/0.0.0-test`,
+      );
+    });
+
+    it('should call tokenProvider for every request', async () => {
+      prepareJsonResponse();
+
+      let tokenCount = 0;
+      const tokenProvider = vi.fn(async () => `token-${++tokenCount}`);
+      const provider = createAzure({
+        resourceName: 'test-resource',
+        tokenProvider,
+      });
+
+      await provider('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+      await provider('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(tokenProvider).toHaveBeenCalledTimes(2);
+      expect(server.calls[0].requestHeaders.authorization).toBe(
+        'Bearer token-1',
+      );
+      expect(server.calls[1].requestHeaders.authorization).toBe(
+        'Bearer token-2',
+      );
+    });
+
+    it('should reject explicit apiKey with tokenProvider', () => {
+      expect(() =>
+        createAzure({
+          resourceName: 'test-resource',
+          apiKey: 'test-api-key',
+          tokenProvider: async () => 'test-azure-ad-token',
+        }),
+      ).toThrow(
+        'Both apiKey and tokenProvider were provided. Please use only one authentication method.',
+      );
+    });
+
     it('should use the baseURL correctly', async () => {
       prepareJsonResponse();
 
