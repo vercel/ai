@@ -11,6 +11,8 @@ interface GenerateResult {
 
 type RecordableResult = StreamResult | GenerateResult;
 
+const OUTPUT_DIR = 'output';
+
 export function isRecordableResult(value: unknown): value is RecordableResult {
   return (
     value != null &&
@@ -35,6 +37,9 @@ function fixtureBaseName() {
 export async function recordFixture(result: RecordableResult) {
   const name = fixtureBaseName();
 
+  // The output directory is gitignored, so it may not exist on a fresh checkout.
+  fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+
   if (isStreamResult(result)) {
     const steps: string[][] = [];
     for await (const chunk of result.fullStream) {
@@ -46,12 +51,15 @@ export async function recordFixture(result: RecordableResult) {
       }
     }
     steps.forEach((chunks, i) =>
-      fs.writeFileSync(`output/${name}.${i + 1}.chunks.txt`, chunks.join('\n')),
+      fs.writeFileSync(
+        path.join(OUTPUT_DIR, `${name}.${i + 1}.chunks.txt`),
+        chunks.join('\n'),
+      ),
     );
   } else {
     result.steps.forEach((step, i) =>
       fs.writeFileSync(
-        `output/${name}.${i + 1}.json`,
+        path.join(OUTPUT_DIR, `${name}.${i + 1}.json`),
         JSON.stringify(step.response.body, null, 2),
       ),
     );
