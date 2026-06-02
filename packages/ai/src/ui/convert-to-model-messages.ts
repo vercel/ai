@@ -11,6 +11,7 @@ import {
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { MessageConversionError } from '../prompt/message-conversion-error';
+import { splitDataUrl } from '../prompt/split-data-url';
 import {
   CustomContentUIPart,
   DataUIPart,
@@ -32,6 +33,32 @@ import {
   ToolUIPart,
   UIMessage,
 } from './ui-messages';
+
+function convertFileUIPartToModelFilePart(part: FileUIPart): FilePart {
+  let mediaType = part.mediaType;
+  let data: FilePart['data'] = part.providerReference ?? part.url;
+
+  if (part.providerReference == null && part.url.startsWith('data:')) {
+    const { mediaType: dataUrlMediaType, base64Content } = splitDataUrl(
+      part.url,
+    );
+
+    if (dataUrlMediaType != null && base64Content != null) {
+      mediaType = dataUrlMediaType;
+      data = base64Content;
+    }
+  }
+
+  return {
+    type: 'file' as const,
+    mediaType,
+    filename: part.filename,
+    data,
+    ...(part.providerMetadata != null
+      ? { providerOptions: part.providerMetadata }
+      : {}),
+  };
+}
 
 /**
  * Converts an array of UI messages from useChat into an array of ModelMessages that can be used
@@ -110,15 +137,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
 
               // Process file parts
               if (isFileUIPart(part)) {
-                return {
-                  type: 'file' as const,
-                  mediaType: part.mediaType,
-                  filename: part.filename,
-                  data: part.providerReference ?? part.url,
-                  ...(part.providerMetadata != null
-                    ? { providerOptions: part.providerMetadata }
-                    : {}),
-                };
+                return convertFileUIPartToModelFilePart(part);
               }
 
               // Process data parts with converter if provided
@@ -172,15 +191,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                     : {}),
                 } satisfies CustomPart);
               } else if (isFileUIPart(part)) {
-                content.push({
-                  type: 'file' as const,
-                  mediaType: part.mediaType,
-                  filename: part.filename,
-                  data: part.providerReference ?? part.url,
-                  ...(part.providerMetadata != null
-                    ? { providerOptions: part.providerMetadata }
-                    : {}),
-                });
+                content.push(convertFileUIPartToModelFilePart(part));
               } else if (isReasoningFileUIPart(part)) {
                 content.push({
                   type: 'reasoning-file' as const,

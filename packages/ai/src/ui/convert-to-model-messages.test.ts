@@ -193,6 +193,36 @@ describe('convertToModelMessages', () => {
       ]);
     });
 
+    it('should convert user data URL file parts to base64 data', async () => {
+      const result = await convertToModelMessages([
+        {
+          role: 'user',
+          parts: [
+            {
+              type: 'file',
+              mediaType: 'image/jpeg',
+              url: 'data:image/jpeg;base64,/9j/3Q==',
+            },
+            { type: 'text', text: 'Check this image' },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'image/jpeg',
+              data: '/9j/3Q==',
+            },
+            { type: 'text', text: 'Check this image' },
+          ],
+        },
+      ]);
+    });
+
     it('should handle user message file parts with provider metadata', async () => {
       const result = await convertToModelMessages([
         {
@@ -474,7 +504,7 @@ describe('convertToModelMessages', () => {
             {
               type: 'file',
               mediaType: 'image/png',
-              data: 'data:image/png;base64,dGVzdA==',
+              data: 'dGVzdA==',
             },
           ],
         },
@@ -503,7 +533,7 @@ describe('convertToModelMessages', () => {
             {
               type: 'file',
               mediaType: 'image/png',
-              data: 'data:image/png;base64,dGVzdA==',
+              data: 'dGVzdA==',
               filename: 'test.png',
             },
           ],
@@ -535,7 +565,7 @@ describe('convertToModelMessages', () => {
             {
               type: 'file',
               mediaType: 'image/png',
-              data: 'data:image/png;base64,dGVzdA==',
+              data: 'dGVzdA==',
               providerOptions: {
                 testProvider: { signature: 'test-signature' },
               },
