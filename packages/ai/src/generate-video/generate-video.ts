@@ -21,6 +21,7 @@ import {
   type GeneratedFile,
 } from '../generate-text/generated-file';
 import { logWarnings } from '../logger/log-warnings';
+import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { resolveVideoModel } from '../model/resolve-model';
 import type { VideoModel } from '../types/video-model';
 import type { VideoModelResponseMetadata } from '../types/video-model-response-metadata';
@@ -312,7 +313,7 @@ export async function experimental_generateVideo({
   const videos: Array<GeneratedFile> = [];
   const warnings: Array<Warning> = [];
   const responses: Array<VideoModelResponseMetadata> = [];
-  const providerMetadata: SharedV4ProviderMetadata = {};
+  let providerMetadata: SharedV4ProviderMetadata = {};
 
   for (const result of results) {
     for (const videoData of result.videos) {
@@ -384,34 +385,8 @@ export async function experimental_generateVideo({
       providerMetadata: result.providerMetadata,
     });
 
-    if (result.providerMetadata != null) {
-      for (const [providerName, metadata] of Object.entries(
-        result.providerMetadata,
-      )) {
-        const existingMetadata = providerMetadata[providerName];
-        if (existingMetadata != null && typeof existingMetadata === 'object') {
-          providerMetadata[providerName] = {
-            ...existingMetadata,
-            ...metadata,
-          };
-
-          // Merge videos arrays if both exist
-          if (
-            'videos' in existingMetadata &&
-            Array.isArray(existingMetadata.videos) &&
-            'videos' in metadata &&
-            Array.isArray(metadata.videos)
-          ) {
-            (providerMetadata[providerName] as { videos: unknown[] }).videos = [
-              ...existingMetadata.videos,
-              ...metadata.videos,
-            ];
-          }
-        } else {
-          providerMetadata[providerName] = metadata;
-        }
-      }
-    }
+    providerMetadata =
+      mergeProviderMetadata(providerMetadata, result.providerMetadata) ?? {};
   }
 
   if (videos.length === 0) {
@@ -563,12 +538,21 @@ async function waitForWebhook({
   timeoutMs: number;
   abortSignal?: AbortSignal;
 }) {
-  await Promise.race([
-    received,
-    delay(timeoutMs, { abortSignal }).then(() => {
-      throw new Error(`Video generation timed out after ${timeoutMs}ms.`);
-    }),
-  ]);
+  // Cancel the timeout delay once the webhook arrives (or we abort/time out),
+  // so its timer does not keep the event loop alive on the success path.
+  const timeoutController = new AbortController();
+  try {
+    await Promise.race([
+      received,
+      delay(timeoutMs, {
+        abortSignal: mergeAbortSignals(abortSignal, timeoutController.signal),
+      }).then(() => {
+        throw new Error(`Video generation timed out after ${timeoutMs}ms.`);
+      }),
+    ]);
+  } finally {
+    timeoutController.abort();
+  }
 }
 
 function mergeProviderMetadata(
