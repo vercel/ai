@@ -31,8 +31,6 @@ export type {
 } from './google-video-settings';
 export type {
   GoogleSpeechModelOptions,
-  /** @deprecated Use `GoogleSpeechModelOptions` instead. */
-  GoogleSpeechModelOptions as GoogleGenerativeAISpeechProviderOptions,
   GoogleSpeechModelId,
 } from './google-speech-model-options';
 export type { GoogleFilesUploadOptions } from './google-files';

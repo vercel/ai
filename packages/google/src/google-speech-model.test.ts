@@ -214,6 +214,39 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should ignore instructions (with a warning) when multi-speaker is set', async () => {
+    prepareJsonResponse();
+
+    const result = await model.doGenerate({
+      text: 'Joe: Hi. Jane: Hello.',
+      instructions: 'Say cheerfully',
+      providerOptions: {
+        google: {
+          multiSpeakerVoiceConfig: {
+            speakerVoiceConfigs: [
+              {
+                speaker: 'Joe',
+                voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } },
+              },
+              {
+                speaker: 'Jane',
+                voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Puck' } },
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    // instructions are NOT prepended to the multi-speaker transcript.
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      contents: [{ parts: [{ text: 'Joe: Hi. Jane: Hello.' }] }],
+    });
+    expect(result.warnings).toContainEqual(
+      expect.objectContaining({ type: 'unsupported', feature: 'instructions' }),
+    );
+  });
+
   it('should expose sample rate and mime type in provider metadata', async () => {
     prepareJsonResponse();
 

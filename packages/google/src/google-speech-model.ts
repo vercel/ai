@@ -76,14 +76,30 @@ export class GoogleSpeechModel implements SpeechModelV4 {
       schema: googleSpeechProviderOptionsSchema,
     });
 
-    // Gemini honors natural-language style direction expressed in the prompt
-    // text, so map `instructions` onto the spoken content rather than warning.
-    const promptText = instructions ? `${instructions}: ${text}` : text;
-
     // Multi-speaker (provider option) takes precedence over the single voice.
-    const speechConfig = googleOptions?.multiSpeakerVoiceConfig
-      ? { multiSpeakerVoiceConfig: googleOptions.multiSpeakerVoiceConfig }
+    const multiSpeakerVoiceConfig = googleOptions?.multiSpeakerVoiceConfig;
+    const speechConfig = multiSpeakerVoiceConfig
+      ? { multiSpeakerVoiceConfig }
       : { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } };
+
+    // Gemini honors natural-language style direction expressed in the prompt
+    // text, so map `instructions` onto the spoken content. With multi-speaker
+    // the transcript starts with speaker labels (e.g. `Joe: ...`), so prepending
+    // instructions would corrupt that parsing — ignore them there (with a warning).
+    let promptText = text;
+    if (instructions != null) {
+      if (multiSpeakerVoiceConfig) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'instructions',
+          details:
+            'Google Gemini TTS ignores `instructions` when `multiSpeakerVoiceConfig` is set, ' +
+            'because prepending them would break multi-speaker transcript parsing.',
+        });
+      } else {
+        promptText = `${instructions}: ${text}`;
+      }
+    }
 
     if (speed != null) {
       warnings.push({
@@ -152,7 +168,8 @@ export class GoogleSpeechModel implements SpeechModelV4 {
       fetch: this.config.fetch,
     });
 
-    // Extract the first inline audio part from the candidates.
+    // `generateSpeech` returns a single audio result, and Gemini returns one
+    // inline audio part per request, so take the first inline-data part.
     let base64Audio: string | undefined;
     let mimeType: string | undefined;
     for (const candidate of response.candidates ?? []) {
@@ -174,8 +191,12 @@ export class GoogleSpeechModel implements SpeechModelV4 {
         ? convertBase64ToUint8Array(base64Audio)
         : new Uint8Array(0);
 
-    // Default to a playable WAV container. When the audio is empty we return it
-    // as-is so the core `generateSpeech` layer throws `NoSpeechGeneratedError`.
+    // Gemini returns headerless raw PCM (e.g. `audio/L16;rate=24000`). Unlike
+    // providers that return a container format (mp3/opus/wav) directly,
+    // `generateSpeech`'s `detectMediaType` can't identify raw PCM and would
+    // mislabel it `audio/mp3` (not playable), so wrap it in a minimal WAV header
+    // by default; `outputFormat: 'pcm'` returns the raw bytes untouched.
+    // Empty audio is returned as-is so the core layer throws NoSpeechGeneratedError.
     const audio =
       outputFormat === 'pcm' || pcm.length === 0
         ? pcm
