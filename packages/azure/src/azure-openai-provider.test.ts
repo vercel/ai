@@ -187,12 +187,12 @@ describe('responses (default language model)', () => {
       );
     });
 
-    it('should use azureADTokenProvider for Microsoft Entra ID auth', async () => {
+    it('should use tokenProvider for Microsoft Entra ID auth', async () => {
       prepareJsonResponse();
 
       const provider = createAzure({
         resourceName: 'test-resource',
-        azureADTokenProvider: async () => 'test-azure-ad-token',
+        tokenProvider: async () => 'test-azure-ad-token',
       });
 
       await provider('test-deployment').doGenerate({
@@ -210,14 +210,14 @@ describe('responses (default language model)', () => {
       );
     });
 
-    it('should call azureADTokenProvider for every request', async () => {
+    it('should call tokenProvider for every request', async () => {
       prepareJsonResponse();
 
       let tokenCount = 0;
-      const azureADTokenProvider = vi.fn(async () => `token-${++tokenCount}`);
+      const tokenProvider = vi.fn(async () => `token-${++tokenCount}`);
       const provider = createAzure({
         resourceName: 'test-resource',
-        azureADTokenProvider,
+        tokenProvider,
       });
 
       await provider('test-deployment').doGenerate({
@@ -227,7 +227,7 @@ describe('responses (default language model)', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(azureADTokenProvider).toHaveBeenCalledTimes(2);
+      expect(tokenProvider).toHaveBeenCalledTimes(2);
       expect(server.calls[0].requestHeaders.authorization).toBe(
         'Bearer token-1',
       );
@@ -236,15 +236,15 @@ describe('responses (default language model)', () => {
       );
     });
 
-    it('should reject explicit apiKey with azureADTokenProvider', () => {
+    it('should reject explicit apiKey with tokenProvider', () => {
       expect(() =>
         createAzure({
           resourceName: 'test-resource',
           apiKey: 'test-api-key',
-          azureADTokenProvider: async () => 'test-azure-ad-token',
+          tokenProvider: async () => 'test-azure-ad-token',
         }),
       ).toThrow(
-        'Both apiKey and azureADTokenProvider were provided. Please use only one authentication method.',
+        'Both apiKey and tokenProvider were provided. Please use only one authentication method.',
       );
     });
 

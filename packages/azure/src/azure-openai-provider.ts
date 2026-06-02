@@ -121,7 +121,7 @@ export interface AzureOpenAIProviderSettings {
    * (formerly known as Azure Active Directory), which will be invoked
    * on every request.
    */
-  azureADTokenProvider?: (() => Promise<string>) | undefined;
+  tokenProvider?: (() => Promise<string>) | undefined;
 
   /**
    * Custom headers to include in the requests.
@@ -153,18 +153,18 @@ export interface AzureOpenAIProviderSettings {
 export function createAzure(
   options: AzureOpenAIProviderSettings = {},
 ): AzureOpenAIProvider {
-  const azureADTokenProvider = options.azureADTokenProvider;
+  const tokenProvider = options.tokenProvider;
 
-  if (options.apiKey && azureADTokenProvider) {
+  if (options.apiKey && tokenProvider) {
     throw new InvalidArgumentError({
-      argument: 'apiKey/azureADTokenProvider',
+      argument: 'apiKey/tokenProvider',
       message:
-        'Both apiKey and azureADTokenProvider were provided. Please use only one authentication method.',
+        'Both apiKey and tokenProvider were provided. Please use only one authentication method.',
     });
   }
 
   const getHeaders = () => {
-    const authHeaders = azureADTokenProvider
+    const authHeaders = tokenProvider
       ? {}
       : {
           'api-key': loadApiKey({
@@ -183,12 +183,12 @@ export function createAzure(
     );
   };
 
-  const fetch: FetchFunction | undefined = azureADTokenProvider
+  const fetch: FetchFunction | undefined = tokenProvider
     ? async (input, init) => {
         const headers = normalizeHeaders(init?.headers);
 
         if (headers.authorization == null) {
-          headers.authorization = `Bearer ${await azureADTokenProvider()}`;
+          headers.authorization = `Bearer ${await tokenProvider()}`;
         }
 
         return (options.fetch ?? globalThis.fetch)(input, {

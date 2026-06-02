@@ -41,10 +41,10 @@ createFeatureTestSuite({
 describe.skipIf(
   !process.env.AZURE_RESOURCE_NAME || !process.env.AZURE_OPENAI_AD_TOKEN,
 )('Azure OpenAI Microsoft Entra ID E2E Tests', () => {
-  it('should generate text with azureADTokenProvider', async () => {
+  it('should generate text with tokenProvider', async () => {
     const azure = createAzure({
       resourceName: process.env.AZURE_RESOURCE_NAME!,
-      azureADTokenProvider: async () => process.env.AZURE_OPENAI_AD_TOKEN!,
+      tokenProvider: async () => process.env.AZURE_OPENAI_AD_TOKEN!,
     });
 
     const result = await generateText({
