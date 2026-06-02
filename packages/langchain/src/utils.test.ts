@@ -1194,6 +1194,12 @@ describe('processLangGraphEvent', () => {
 
     expect(chunks).toEqual([
       {
+        type: 'tool-input-start',
+        toolCallId: 'call-weather',
+        toolName: 'get_weather',
+        dynamic: true,
+      },
+      {
         type: 'tool-output-available',
         toolCallId: 'call-weather',
         output: { status: 'loading', message: 'Fetching weather' },
@@ -1236,6 +1242,12 @@ describe('processLangGraphEvent', () => {
 
     expect(chunks).toEqual([
       {
+        type: 'tool-input-start',
+        toolCallId: 'call-weather',
+        toolName: 'get_weather',
+        dynamic: true,
+      },
+      {
         type: 'tool-output-available',
         toolCallId: 'call-weather',
         output: { status: 'loading' },
@@ -1271,6 +1283,12 @@ describe('processLangGraphEvent', () => {
 
     expect(chunks).toEqual([
       {
+        type: 'tool-input-start',
+        toolCallId: 'call-weather',
+        toolName: 'get_weather',
+        dynamic: true,
+      },
+      {
         type: 'tool-output-available',
         toolCallId: 'call-weather',
         output: { temperature: 72 },
@@ -1298,6 +1316,12 @@ describe('processLangGraphEvent', () => {
     );
 
     expect(chunks).toEqual([
+      {
+        type: 'tool-input-start',
+        toolCallId: 'call-weather',
+        toolName: 'get_weather',
+        dynamic: true,
+      },
       {
         type: 'tool-output-error',
         toolCallId: 'call-weather',
@@ -1327,6 +1351,12 @@ describe('processLangGraphEvent', () => {
     );
 
     expect(chunks).toEqual([
+      {
+        type: 'tool-input-start',
+        toolCallId: 'call-weather',
+        toolName: 'get_weather',
+        dynamic: true,
+      },
       {
         type: 'tool-output-available',
         toolCallId: 'call-weather',

@@ -2090,6 +2090,40 @@ describe('toUIMessageStream with LangGraph tools stream mode', () => {
     `);
   });
 
+  it('should synthesize tool-input-start before output-only tools events', async () => {
+    const inputStream = convertArrayToReadableStream([
+      [
+        'tools',
+        {
+          event: 'on_tool_end',
+          toolCallId: 'call-weather',
+          name: 'get_weather',
+          output: { temperature: 72 },
+        },
+      ],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(result).toEqual([
+      { type: 'start' },
+      {
+        type: 'tool-input-start',
+        toolCallId: 'call-weather',
+        toolName: 'get_weather',
+        dynamic: true,
+      },
+      {
+        type: 'tool-output-available',
+        toolCallId: 'call-weather',
+        output: { temperature: 72 },
+      },
+      { type: 'finish' },
+    ]);
+  });
+
   it('should dedupe tool-input-available across mixed messages, values, and tools events', async () => {
     const streamedChunk = {
       content: '',

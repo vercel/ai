@@ -1544,20 +1544,24 @@ export function processLangGraphEvent(
 
       if (!toolCallId) return;
 
+      const ensureToolInputStart = () => {
+        if (emittedToolCalls.has(toolCallId)) return;
+
+        emittedToolCalls.add(toolCallId);
+        controller.enqueue({
+          type: 'tool-input-start',
+          toolCallId,
+          toolName,
+          dynamic: true,
+        });
+      };
+
       switch (payload.event) {
         case 'on_tool_start': {
           const toolCallKey = `${toolName}:${JSON.stringify(payload.input)}`;
           emittedToolCallsByKey.set(toolCallKey, toolCallId);
 
-          if (!emittedToolCalls.has(toolCallId)) {
-            emittedToolCalls.add(toolCallId);
-            controller.enqueue({
-              type: 'tool-input-start',
-              toolCallId,
-              toolName,
-              dynamic: true,
-            });
-          }
+          ensureToolInputStart();
 
           if (!emittedToolInputs.has(toolCallId)) {
             emittedToolInputs.add(toolCallId);
@@ -1573,6 +1577,7 @@ export function processLangGraphEvent(
         }
 
         case 'on_tool_event': {
+          ensureToolInputStart();
           controller.enqueue({
             type: 'tool-output-available',
             toolCallId,
@@ -1583,6 +1588,7 @@ export function processLangGraphEvent(
         }
 
         case 'on_tool_end': {
+          ensureToolInputStart();
           controller.enqueue({
             type: 'tool-output-available',
             toolCallId,
@@ -1592,6 +1598,7 @@ export function processLangGraphEvent(
         }
 
         case 'on_tool_error': {
+          ensureToolInputStart();
           controller.enqueue({
             type: 'tool-output-error',
             toolCallId,
