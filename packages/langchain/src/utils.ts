@@ -1544,16 +1544,27 @@ export function processLangGraphEvent(
 
       if (!toolCallId) return;
 
-      const ensureToolInputStart = () => {
-        if (emittedToolCalls.has(toolCallId)) return;
+      const ensureToolInputLifecycle = () => {
+        if (!emittedToolCalls.has(toolCallId)) {
+          emittedToolCalls.add(toolCallId);
+          controller.enqueue({
+            type: 'tool-input-start',
+            toolCallId,
+            toolName,
+            dynamic: true,
+          });
+        }
 
-        emittedToolCalls.add(toolCallId);
-        controller.enqueue({
-          type: 'tool-input-start',
-          toolCallId,
-          toolName,
-          dynamic: true,
-        });
+        if (!emittedToolInputs.has(toolCallId)) {
+          emittedToolInputs.add(toolCallId);
+          controller.enqueue({
+            type: 'tool-input-available',
+            toolCallId,
+            toolName,
+            input: payload.input,
+            dynamic: true,
+          });
+        }
       };
 
       switch (payload.event) {
@@ -1561,23 +1572,12 @@ export function processLangGraphEvent(
           const toolCallKey = `${toolName}:${JSON.stringify(payload.input)}`;
           emittedToolCallsByKey.set(toolCallKey, toolCallId);
 
-          ensureToolInputStart();
-
-          if (!emittedToolInputs.has(toolCallId)) {
-            emittedToolInputs.add(toolCallId);
-            controller.enqueue({
-              type: 'tool-input-available',
-              toolCallId,
-              toolName,
-              input: payload.input,
-              dynamic: true,
-            });
-          }
+          ensureToolInputLifecycle();
           break;
         }
 
         case 'on_tool_event': {
-          ensureToolInputStart();
+          ensureToolInputLifecycle();
           controller.enqueue({
             type: 'tool-output-available',
             toolCallId,
@@ -1588,7 +1588,7 @@ export function processLangGraphEvent(
         }
 
         case 'on_tool_end': {
-          ensureToolInputStart();
+          ensureToolInputLifecycle();
           controller.enqueue({
             type: 'tool-output-available',
             toolCallId,
@@ -1598,7 +1598,7 @@ export function processLangGraphEvent(
         }
 
         case 'on_tool_error': {
-          ensureToolInputStart();
+          ensureToolInputLifecycle();
           controller.enqueue({
             type: 'tool-output-error',
             toolCallId,

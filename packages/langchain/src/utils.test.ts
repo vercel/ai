@@ -1200,6 +1200,13 @@ describe('processLangGraphEvent', () => {
         dynamic: true,
       },
       {
+        type: 'tool-input-available',
+        toolCallId: 'call-weather',
+        toolName: 'get_weather',
+        input: undefined,
+        dynamic: true,
+      },
+      {
         type: 'tool-output-available',
         toolCallId: 'call-weather',
         output: { status: 'loading', message: 'Fetching weather' },
@@ -1248,6 +1255,13 @@ describe('processLangGraphEvent', () => {
         dynamic: true,
       },
       {
+        type: 'tool-input-available',
+        toolCallId: 'call-weather',
+        toolName: 'get_weather',
+        input: undefined,
+        dynamic: true,
+      },
+      {
         type: 'tool-output-available',
         toolCallId: 'call-weather',
         output: { status: 'loading' },
@@ -1289,6 +1303,13 @@ describe('processLangGraphEvent', () => {
         dynamic: true,
       },
       {
+        type: 'tool-input-available',
+        toolCallId: 'call-weather',
+        toolName: 'get_weather',
+        input: undefined,
+        dynamic: true,
+      },
+      {
         type: 'tool-output-available',
         toolCallId: 'call-weather',
         output: { temperature: 72 },
@@ -1320,6 +1341,13 @@ describe('processLangGraphEvent', () => {
         type: 'tool-input-start',
         toolCallId: 'call-weather',
         toolName: 'get_weather',
+        dynamic: true,
+      },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'call-weather',
+        toolName: 'get_weather',
+        input: undefined,
         dynamic: true,
       },
       {
@@ -1355,6 +1383,13 @@ describe('processLangGraphEvent', () => {
         type: 'tool-input-start',
         toolCallId: 'call-weather',
         toolName: 'get_weather',
+        dynamic: true,
+      },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'call-weather',
+        toolName: 'get_weather',
+        input: undefined,
         dynamic: true,
       },
       {

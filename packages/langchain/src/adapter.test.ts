@@ -2090,7 +2090,7 @@ describe('toUIMessageStream with LangGraph tools stream mode', () => {
     `);
   });
 
-  it('should synthesize tool-input-start before output-only tools events', async () => {
+  it('should synthesize tool input lifecycle before output-only tools events', async () => {
     const inputStream = convertArrayToReadableStream([
       [
         'tools',
@@ -2113,6 +2113,13 @@ describe('toUIMessageStream with LangGraph tools stream mode', () => {
         type: 'tool-input-start',
         toolCallId: 'call-weather',
         toolName: 'get_weather',
+        dynamic: true,
+      },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'call-weather',
+        toolName: 'get_weather',
+        input: undefined,
         dynamic: true,
       },
       {
