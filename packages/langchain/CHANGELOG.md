@@ -1,5 +1,11 @@
 # @ai-sdk/langchain
 
+## 3.0.0-canary.161
+
+### Patch Changes
+
+- ai@7.0.0-canary.161
+
 ## 3.0.0-canary.160
 
 ### Patch Changes
