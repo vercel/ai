@@ -29,6 +29,14 @@ export const SKIP_THOUGHT_SIGNATURE_VALIDATOR =
 
 const dataUrlRegex = /^data:([^;,]+);base64,(.+)$/s;
 
+type ToolResultFilePart = Extract<
+  Extract<
+    LanguageModelV4ToolResultOutput,
+    { type: 'content' }
+  >['value'][number],
+  { type: 'file' }
+>;
+
 function parseBase64DataUrl(
   value: string,
 ): { mediaType: string; data: string } | undefined {
@@ -43,23 +51,52 @@ function parseBase64DataUrl(
   };
 }
 
-function convertUrlToolResultPart(
-  url: string,
-): GoogleFunctionResponsePart | undefined {
-  // Per https://ai.google.dev/api/caching#FunctionResponsePart, only inline data is supported.
-  // https://docs.cloud.google.com/vertex-ai/generative-ai/docs/model-reference/function-calling#functionresponsepart suggests that this
-  // may be different for Vertex, but this needs to be confirmed and further tested for both APIs.
+function convertUrlToolResultPart({
+  url,
+  mediaType,
+  displayName,
+  supportsFileData,
+}: {
+  url: string;
+  mediaType?: string;
+  displayName?: string;
+  supportsFileData: boolean;
+}): GoogleFunctionResponsePart | undefined {
+  // Gemini API tool-result URLs are only represented when they are already data URLs.
+  // Vertex functionResponse parts can also reference URL-backed files via fileData.
   const parsedDataUrl = parseBase64DataUrl(url);
-  if (parsedDataUrl == null) {
+  if (parsedDataUrl != null) {
+    return {
+      inlineData: {
+        mimeType: parsedDataUrl.mediaType,
+        data: parsedDataUrl.data,
+      },
+    };
+  }
+
+  if (!supportsFileData || mediaType == null) {
     return undefined;
   }
 
   return {
-    inlineData: {
-      mimeType: parsedDataUrl.mediaType,
-      data: parsedDataUrl.data,
+    fileData: {
+      mimeType: mediaType,
+      fileUri: url,
+      ...(displayName != null ? { displayName } : {}),
     },
   };
+}
+
+function tryResolveFullMediaType(part: ToolResultFilePart): string | undefined {
+  try {
+    return resolveFullMediaType({ part });
+  } catch (error) {
+    if (!UnsupportedFunctionalityError.isInstance(error)) {
+      throw error;
+    }
+
+    return undefined;
+  }
 }
 
 /*
@@ -75,9 +112,11 @@ function appendToolResultParts(
     { type: 'content' }
   >['value'],
   toolCallId?: string,
+  options: { supportsUrlFileData?: boolean } = {},
 ): void {
   const functionResponseParts: GoogleFunctionResponsePart[] = [];
   const responseTextParts: string[] = [];
+  const supportsUrlFileData = options.supportsUrlFileData ?? false;
 
   for (const contentPart of outputValue) {
     switch (contentPart.type) {
@@ -94,9 +133,14 @@ function appendToolResultParts(
             },
           });
         } else if (contentPart.data.type === 'url') {
-          const functionResponsePart = convertUrlToolResultPart(
-            contentPart.data.url.toString(),
-          );
+          const functionResponsePart = convertUrlToolResultPart({
+            url: contentPart.data.url.toString(),
+            mediaType: supportsUrlFileData
+              ? tryResolveFullMediaType(contentPart)
+              : undefined,
+            displayName: contentPart.filename,
+            supportsFileData: supportsUrlFileData,
+          });
 
           if (functionResponsePart != null) {
             functionResponseParts.push(functionResponsePart);
@@ -572,6 +616,7 @@ export function convertToGoogleMessages(
                 part.toolName,
                 output.value,
                 part.toolCallId,
+                { supportsUrlFileData: isVertexLike },
               );
             } else {
               appendLegacyToolResultParts(
