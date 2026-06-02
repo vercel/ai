@@ -205,14 +205,20 @@ describe('google-vertex-anthropic-provider', () => {
     });
     provider('test-model-id');
 
-    expect(AnthropicLanguageModel).toHaveBeenCalledWith(
-      'test-model-id',
-      expect.objectContaining({
-        baseURL:
-          'https://aiplatform.eu.rep.googleapis.com/v1/projects/test-project/locations/eu/publishers/anthropic/models',
-        provider: 'vertex.anthropic.messages',
-      }),
-    );
+    expect(vi.mocked(AnthropicLanguageModel).mock.calls[0][1])
+      .toMatchInlineSnapshot(`
+        {
+          "baseURL": "https://aiplatform.eu.rep.googleapis.com/v1/projects/test-project/locations/eu/publishers/anthropic/models",
+          "buildRequestUrl": [Function],
+          "fetch": undefined,
+          "headers": {},
+          "provider": "googleVertex.anthropic.messages",
+          "supportedUrls": [Function],
+          "supportsNativeStructuredOutput": false,
+          "supportsStrictTools": false,
+          "transformRequestBody": [Function],
+        }
+      `);
   });
 
   it('should use multi-region URL for us location', () => {
@@ -222,14 +228,20 @@ describe('google-vertex-anthropic-provider', () => {
     });
     provider('test-model-id');
 
-    expect(AnthropicLanguageModel).toHaveBeenCalledWith(
-      'test-model-id',
-      expect.objectContaining({
-        baseURL:
-          'https://aiplatform.us.rep.googleapis.com/v1/projects/test-project/locations/us/publishers/anthropic/models',
-        provider: 'vertex.anthropic.messages',
-      }),
-    );
+    expect(vi.mocked(AnthropicLanguageModel).mock.calls[0][1])
+      .toMatchInlineSnapshot(`
+        {
+          "baseURL": "https://aiplatform.us.rep.googleapis.com/v1/projects/test-project/locations/us/publishers/anthropic/models",
+          "buildRequestUrl": [Function],
+          "fetch": undefined,
+          "headers": {},
+          "provider": "googleVertex.anthropic.messages",
+          "supportedUrls": [Function],
+          "supportsNativeStructuredOutput": false,
+          "supportsStrictTools": false,
+          "transformRequestBody": [Function],
+        }
+      `);
   });
 
   it('should support combining tools with structured outputs (inherited from Anthropic)', () => {
