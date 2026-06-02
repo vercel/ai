@@ -1,5 +1,13 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-canary.99
+
+### Patch Changes
+
+- bb93832: fix(vertex-anthropic): support eu/us multi-region anthropic endpoints
+- Updated dependencies [b563707]
+  - @ai-sdk/google@4.0.0-canary.76
+
 ## 5.0.0-canary.98
 
 ### Patch Changes
