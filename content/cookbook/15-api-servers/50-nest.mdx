@@ -16,11 +16,15 @@ The examples show how to implement a Nest.js controller that uses the AI SDK to 
 
 ### UI Message Stream
 
-You can use the `pipeUIMessageStreamToResponse` method to pipe the stream data to the server response.
+You can use the `pipeUIMessageStreamToResponse` helper to pipe the stream data to the server response.
 
 ```ts filename='app.controller.ts'
 import { Controller, Post, Res } from '@nestjs/common';
-import { streamText } from 'ai';
+import {
+  pipeUIMessageStreamToResponse,
+  streamText,
+  toUIMessageStream,
+} from 'ai';
 import { Response } from 'express';
 
 @Controller()
@@ -32,7 +36,10 @@ export class AppController {
       prompt: 'Invent a new holiday and describe its traditions.',
     });
 
-    result.pipeUIMessageStreamToResponse(res);
+    pipeUIMessageStreamToResponse({
+      response: res,
+      stream: toUIMessageStream({ stream: result.stream }),
+    });
   }
 }
 ```
@@ -47,6 +54,7 @@ import {
   createUIMessageStream,
   streamText,
   pipeUIMessageStreamToResponse,
+  toUIMessageStream,
 } from 'ai';
 import { Response } from 'express';
 
@@ -71,7 +79,8 @@ export class AppController {
           prompt: 'Invent a new holiday and describe its traditions.',
         });
         writer.merge(
-          result.toUIMessageStream({
+          toUIMessageStream({
+            stream: result.stream,
             sendStart: false,
             onError: error => {
               // Error messages are masked by default for security reasons.
@@ -89,11 +98,11 @@ export class AppController {
 
 ### Text Stream
 
-You can use the `pipeTextStreamToResponse` method to get a text stream from the result and then pipe it to the response.
+You can use the `pipeTextStreamToResponse` helper with `toTextStream` to pipe a text stream to the response.
 
 ```ts filename='app.controller.ts'
 import { Controller, Post, Res } from '@nestjs/common';
-import { streamText } from 'ai';
+import { pipeTextStreamToResponse, streamText, toTextStream } from 'ai';
 import { Response } from 'express';
 
 @Controller()
@@ -105,7 +114,10 @@ export class AppController {
       prompt: 'Invent a new holiday and describe its traditions.',
     });
 
-    result.pipeTextStreamToResponse(res);
+    pipeTextStreamToResponse({
+      response: res,
+      stream: toTextStream({ stream: result.stream }),
+    });
   }
 }
 ```
