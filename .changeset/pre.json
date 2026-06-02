@@ -197,6 +197,7 @@
     "fix-mcp-iserror-output-schema",
     "fix-mistral-cached-tokens",
     "fix-mistral-stopsequences",
+    "fix-provider-amazon-bedrock-correct-mantle-subpath-exports",
     "fix-ssrf-redirect-bypass",
     "fix-streaming-tool-call-early-finalization",
     "fix-togetherai-seed-unsupported-params",
