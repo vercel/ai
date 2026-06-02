@@ -1954,6 +1954,62 @@ describe('toUIMessageStream with streamEvents', () => {
       ]
     `);
   });
+
+  it('should emit source-url parts for citation annotations and dedupe them', async () => {
+    const inputStream = convertArrayToReadableStream([
+      {
+        event: 'on_chat_model_stream',
+        data: {
+          chunk: {
+            id: 'src-msg-1',
+            content: [
+              {
+                type: 'text',
+                text: 'Answer',
+                annotations: [
+                  {
+                    type: 'citation',
+                    url: 'https://example.com',
+                    title: 'Example',
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      },
+      {
+        event: 'on_chat_model_stream',
+        data: {
+          chunk: {
+            id: 'src-msg-1',
+            content: [
+              {
+                type: 'text',
+                text: ' continued',
+                annotations: [
+                  { type: 'citation', url: 'https://example.com' },
+                ],
+              },
+            ],
+          },
+        },
+      },
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(result.filter(c => c.type === 'source-url')).toEqual([
+      {
+        type: 'source-url',
+        sourceId: 'https://example.com',
+        url: 'https://example.com',
+        title: 'Example',
+      },
+    ]);
+  });
 });
 
 describe('toUIMessageStream LangGraph finish events', () => {

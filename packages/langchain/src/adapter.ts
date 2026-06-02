@@ -18,6 +18,8 @@ import {
   parseLangGraphEvent,
   isToolResultPart,
   extractReasoningFromContentBlocks,
+  extractCitationsFromContentBlocks,
+  emitSourceChunks,
 } from './utils';
 import type { LangGraphEventState } from './types';
 import type { StreamCallbacks } from './stream-callbacks';
@@ -132,6 +134,7 @@ function processStreamEventsEvent(
     textStarted: boolean;
     textMessageId: string | null;
     reasoningMessageId: string | null;
+    emittedSourceIds: Set<string>;
   },
   controller: ReadableStreamDefaultController<UIMessageChunk>,
 ): void {
@@ -240,6 +243,16 @@ function processStreamEventsEvent(
             delta: text,
             id: state.textMessageId ?? state.messageId,
           });
+        }
+
+        const citations = extractCitationsFromContentBlocks(chunk);
+        if (citations.length > 0) {
+          emitSourceChunks(
+            citations,
+            state.messageId,
+            state.emittedSourceIds,
+            controller,
+          );
         }
       }
       break;
@@ -378,6 +391,7 @@ export function toUIMessageStream<TState = unknown>(
     textMessageId: null as string | null,
     /** Track the ID used for reasoning-start to ensure reasoning-end uses the same ID */
     reasoningMessageId: null as string | null,
+    emittedSourceIds: new Set<string>(),
   };
 
   /**
@@ -399,6 +413,7 @@ export function toUIMessageStream<TState = unknown>(
     >,
     currentStep: null as number | null,
     emittedToolCallsByKey: new Map<string, string>(),
+    emittedSourceIds: new Set<string>(),
   };
 
   /**

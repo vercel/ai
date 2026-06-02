@@ -24,7 +24,11 @@ import {
   isImageGenerationOutput,
   extractImageOutputs,
   processLangGraphEvent,
+  isCitationContentBlock,
+  extractCitationsFromContentBlocks,
+  emitSourceChunks,
 } from './utils';
+import type { NormalizedCitation } from './types';
 
 /**
  * Creates a mock ReadableStreamDefaultController for testing
@@ -947,6 +951,7 @@ describe('processLangGraphEvent', () => {
     >,
     currentStep: null as number | null,
     emittedToolCallsByKey: new Map<string, string>(),
+    emittedSourceIds: new Set<string>(),
   });
 
   it('should handle custom events without type field (fallback to data-custom)', () => {
@@ -2051,5 +2056,386 @@ describe('processLangGraphEvent', () => {
       approvalId: toolCallId,
       toolCallId: toolCallId,
     });
+  });
+});
+
+describe('isCitationContentBlock', () => {
+  it('should return true for a citation block', () => {
+    expect(isCitationContentBlock({ type: 'citation', url: 'x' })).toBe(true);
+  });
+
+  it('should return false for non-citation blocks', () => {
+    expect(isCitationContentBlock({ type: 'text', text: 'hi' })).toBe(false);
+    expect(isCitationContentBlock(null)).toBe(false);
+    expect(isCitationContentBlock('citation')).toBe(false);
+  });
+});
+
+describe('extractCitationsFromContentBlocks', () => {
+  it('should extract citation annotations from text content blocks', () => {
+    const msg = new AIMessageChunk({
+      content: [
+        {
+          type: 'text',
+          text: 'The sky is blue.',
+          annotations: [
+            {
+              type: 'citation',
+              url: 'https://example.com/sky',
+              title: 'Why the sky is blue',
+              citedText: 'Rayleigh scattering',
+              startIndex: 0,
+              endIndex: 16,
+            },
+          ],
+        },
+      ],
+      id: 'msg-1',
+    });
+
+    const citations = extractCitationsFromContentBlocks(msg);
+
+    expect(citations).toEqual([
+      {
+        url: 'https://example.com/sky',
+        title: 'Why the sky is blue',
+        source: undefined,
+        citedText: 'Rayleigh scattering',
+        startIndex: 0,
+        endIndex: 16,
+      },
+    ]);
+  });
+
+  it('should return an empty array when annotations are empty', () => {
+    const msg = new AIMessageChunk({
+      content: [{ type: 'text', text: 'No sources.', annotations: [] }],
+      id: 'msg-1',
+    });
+
+    expect(extractCitationsFromContentBlocks(msg)).toEqual([]);
+  });
+
+  it('should return an empty array for plain string content', () => {
+    const msg = new AIMessageChunk({ content: 'just text', id: 'msg-1' });
+
+    expect(extractCitationsFromContentBlocks(msg)).toEqual([]);
+  });
+
+  it('should ignore non-citation annotations', () => {
+    const msg = new AIMessageChunk({
+      content: [
+        {
+          type: 'text',
+          text: 'Hi',
+          annotations: [{ type: 'something-else', value: 1 }],
+        },
+      ],
+      id: 'msg-1',
+    });
+
+    expect(extractCitationsFromContentBlocks(msg)).toEqual([]);
+  });
+
+  it('should extract from serialized LangChain messages (kwargs)', () => {
+    const serialized = {
+      lc: 1,
+      type: 'constructor',
+      id: ['langchain_core', 'messages', 'AIMessageChunk'],
+      kwargs: {
+        content: [
+          {
+            type: 'text',
+            text: 'Hello',
+            annotations: [{ type: 'citation', url: 'https://example.com' }],
+          },
+        ],
+      },
+    };
+
+    expect(extractCitationsFromContentBlocks(serialized)).toEqual([
+      {
+        url: 'https://example.com',
+        title: undefined,
+        source: undefined,
+        citedText: undefined,
+        startIndex: undefined,
+        endIndex: undefined,
+      },
+    ]);
+  });
+});
+
+describe('emitSourceChunks', () => {
+  it('should emit a source-url chunk for citations with a url', () => {
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+    const citations: NormalizedCitation[] = [
+      {
+        url: 'https://example.com/doc',
+        title: 'Doc Title',
+        citedText: 'excerpt',
+        startIndex: 5,
+        endIndex: 12,
+        source: 'web',
+      },
+    ];
+
+    emitSourceChunks(citations, 'msg-1', new Set(), controller);
+
+    expect(chunks).toEqual([
+      {
+        type: 'source-url',
+        sourceId: 'https://example.com/doc',
+        url: 'https://example.com/doc',
+        title: 'Doc Title',
+        providerMetadata: {
+          langchain: {
+            citedText: 'excerpt',
+            startIndex: 5,
+            endIndex: 12,
+            source: 'web',
+          },
+        },
+      },
+    ]);
+  });
+
+  it('should emit a source-document chunk for url-less citations with a title', () => {
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+    const citations: NormalizedCitation[] = [
+      { title: 'Local Doc', citedText: 'quoted text' },
+    ];
+
+    emitSourceChunks(citations, 'msg-1', new Set(), controller);
+
+    expect(chunks).toEqual([
+      {
+        type: 'source-document',
+        sourceId: 'msg-1:Local Doc:quoted text::',
+        mediaType: 'text/plain',
+        title: 'Local Doc',
+        providerMetadata: {
+          langchain: { citedText: 'quoted text' },
+        },
+      },
+    ]);
+  });
+
+  it('should skip url-less citations that have no title or source', () => {
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    emitSourceChunks(
+      [{ citedText: 'orphan excerpt' }],
+      'msg-1',
+      new Set(),
+      controller,
+    );
+
+    expect(chunks).toEqual([]);
+  });
+
+  it('should not collide url-less source ids across differing citation orders', () => {
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+    const emittedSourceIds = new Set<string>();
+
+    emitSourceChunks(
+      [{ title: 'A' }, { title: 'B' }],
+      'msg-1',
+      emittedSourceIds,
+      controller,
+    );
+    // 'B' alone, at index 0 this time: must still be deduped, 'A' must not reappear.
+    emitSourceChunks([{ title: 'B' }], 'msg-1', emittedSourceIds, controller);
+
+    const docs = chunks.filter(
+      c => (c as { type: string }).type === 'source-document',
+    ) as Array<{ title: string }>;
+    expect(docs.map(d => d.title)).toEqual(['A', 'B']);
+  });
+
+  it('should omit providerMetadata when there are no extra fields', () => {
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    emitSourceChunks(
+      [{ url: 'https://example.com' }],
+      'msg-1',
+      new Set(),
+      controller,
+    );
+
+    expect(chunks).toEqual([
+      {
+        type: 'source-url',
+        sourceId: 'https://example.com',
+        url: 'https://example.com',
+      },
+    ]);
+  });
+
+  it('should dedupe by sourceId across calls', () => {
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+    const emittedSourceIds = new Set<string>();
+    const citation: NormalizedCitation = { url: 'https://example.com' };
+
+    emitSourceChunks([citation], 'msg-1', emittedSourceIds, controller);
+    emitSourceChunks([citation], 'msg-1', emittedSourceIds, controller);
+
+    expect(
+      chunks.filter(c => (c as { type: string }).type === 'source-url'),
+    ).toHaveLength(1);
+  });
+});
+
+describe('processModelChunk - sources', () => {
+  it('should emit source-url after text for citation annotations', () => {
+    const chunk = new AIMessageChunk({
+      content: [
+        {
+          type: 'text',
+          text: 'Answer',
+          annotations: [
+            { type: 'citation', url: 'https://example.com', title: 'Ex' },
+          ],
+        },
+      ],
+      id: 'msg-1',
+    });
+    const state = {
+      started: false,
+      messageId: 'default',
+      reasoningStarted: false,
+      textStarted: false,
+    };
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processModelChunk(chunk, state, controller);
+
+    expect(
+      chunks.filter(c => (c as { type: string }).type.startsWith('source-')),
+    ).toEqual([
+      {
+        type: 'source-url',
+        sourceId: 'https://example.com',
+        url: 'https://example.com',
+        title: 'Ex',
+      },
+    ]);
+    // source must come after the text-delta
+    const textIdx = chunks.findIndex(
+      c => (c as { type: string }).type === 'text-delta',
+    );
+    const sourceIdx = chunks.findIndex(
+      c => (c as { type: string }).type === 'source-url',
+    );
+    expect(sourceIdx).toBeGreaterThan(textIdx);
+  });
+
+  it('should emit no source chunks when annotations are empty', () => {
+    const chunk = new AIMessageChunk({
+      content: [{ type: 'text', text: 'Answer', annotations: [] }],
+      id: 'msg-1',
+    });
+    const state = {
+      started: false,
+      messageId: 'default',
+      reasoningStarted: false,
+      textStarted: false,
+    };
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processModelChunk(chunk, state, controller);
+
+    expect(
+      chunks.filter(c =>
+        (c as { type: string }).type.startsWith('source-'),
+      ),
+    ).toHaveLength(0);
+  });
+});
+
+describe('processLangGraphEvent - sources', () => {
+  const createMockState = () => ({
+    messageSeen: {} as Record<
+      string,
+      { text?: boolean; reasoning?: boolean; tool?: Record<string, boolean> }
+    >,
+    messageConcat: {} as Record<string, AIMessageChunk>,
+    emittedToolCalls: new Set<string>(),
+    emittedImages: new Set<string>(),
+    emittedReasoningIds: new Set<string>(),
+    messageReasoningIds: {} as Record<string, string>,
+    toolCallInfoByIndex: {} as Record<
+      string,
+      Record<number, { id: string; name: string }>
+    >,
+    currentStep: null as number | null,
+    emittedToolCallsByKey: new Map<string, string>(),
+    emittedSourceIds: new Set<string>(),
+  });
+
+  it('should emit source-url for citations in a messages event', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    const msg = new AIMessageChunk({
+      content: [
+        {
+          type: 'text',
+          text: 'Hello',
+          annotations: [{ type: 'citation', url: 'https://example.com' }],
+        },
+      ],
+      id: 'msg-1',
+    });
+
+    processLangGraphEvent(['messages', [msg, {}]], state, controller);
+
+    const sourceChunks = chunks.filter(c =>
+      (c as { type: string }).type.startsWith('source-'),
+    );
+    expect(sourceChunks).toEqual([
+      {
+        type: 'source-url',
+        sourceId: 'https://example.com',
+        url: 'https://example.com',
+      },
+    ]);
+  });
+
+  it('should not double-emit a source seen in both messages and values', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    const msg = new AIMessageChunk({
+      content: [
+        {
+          type: 'text',
+          text: 'Hello',
+          annotations: [{ type: 'citation', url: 'https://example.com' }],
+        },
+      ],
+      id: 'msg-1',
+    });
+
+    processLangGraphEvent(['messages', [msg, {}]], state, controller);
+    processLangGraphEvent(
+      ['values', { messages: [msg] }],
+      state,
+      controller,
+    );
+
+    expect(
+      chunks.filter(c => (c as { type: string }).type === 'source-url'),
+    ).toHaveLength(1);
   });
 });
