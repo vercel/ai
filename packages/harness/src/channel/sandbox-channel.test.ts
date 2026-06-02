@@ -287,4 +287,69 @@ describe('SandboxChannel', () => {
     await channel.open();
     expect(connector.current().sent).toEqual([]);
   });
+
+  it('routes sandbox-log/debug-event frames to onDiagnostic, not type listeners', async () => {
+    const diagSchema = z.discriminatedUnion('type', [
+      z.object({
+        type: z.literal('text-delta'),
+        id: z.string(),
+        delta: z.string(),
+      }),
+      z.object({
+        type: z.literal('sandbox-log'),
+        source: z.string(),
+        stream: z.enum(['stdout', 'stderr']),
+        line: z.string(),
+      }),
+      z.object({
+        type: z.literal('debug-event'),
+        level: z.string(),
+        subsystem: z.string(),
+        message: z.string(),
+      }),
+    ]);
+    type DiagOut = z.infer<typeof diagSchema>;
+
+    const connector = makeConnector();
+    const diagnostics: DiagOut[] = [];
+    const channel = new SandboxChannel<DiagOut, Inbound>({
+      connect: connector.connect,
+      outboundSchema: diagSchema,
+      onDiagnostic: e => diagnostics.push(e),
+    });
+    await channel.open();
+
+    // A type listener for sandbox-log must NOT receive the diagnostic frame.
+    const leaked: DiagOut[] = [];
+    channel.on('sandbox-log', e => leaked.push(e));
+    const text: string[] = [];
+    channel.on('text-delta', e => text.push(e.delta));
+
+    connector
+      .current()
+      .deliver(
+        { type: 'sandbox-log', source: 'bridge', stream: 'stdout', line: 'hi' },
+        1,
+      );
+    connector.current().deliver(
+      {
+        type: 'debug-event',
+        level: 'info',
+        subsystem: 'bridge.turn',
+        message: 'started',
+      },
+      2,
+    );
+    connector.current().deliver({ type: 'text-delta', id: 'a', delta: 'x' }, 3);
+    await flush();
+
+    expect(diagnostics.map(d => d.type)).toEqual([
+      'sandbox-log',
+      'debug-event',
+    ]);
+    expect(leaked).toEqual([]);
+    expect(text).toEqual(['x']);
+    // Diagnostics still advance the resume cursor (they carry a seq).
+    expect(channel.lastSeenEventId).toBe(3);
+  });
 });

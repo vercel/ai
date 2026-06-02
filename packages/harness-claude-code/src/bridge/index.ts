@@ -154,7 +154,8 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     };
   }
 
-  emit({ type: 'stream-start' });
+  // `stream-start` is emitted lazily on the first SDK message (below) so it can
+  // carry the model the CLI resolved to, reported on the `system`/`init` message.
 
   const queryInput = makeQueryInput({
     initialUserMessage: start.prompt,
@@ -187,6 +188,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   let observedTerminalError: string | undefined;
   let emittedTerminalError = false;
   let emittedTerminalFinish = false;
+  let streamStarted = false;
   const partialBlocks = new Map<
     number,
     { id: string; kind: 'text' | 'thinking' }
@@ -210,6 +212,23 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       }
 
       const type = msg.type;
+
+      // Emit `stream-start` once, on the first message, carrying the model the
+      // CLI resolved to (the `system`/`init` message reports it — this is the
+      // default model when none was configured).
+      if (!streamStarted) {
+        const initModel =
+          type === 'system' &&
+          msg.subtype === 'init' &&
+          typeof (msg as { model?: unknown }).model === 'string'
+            ? (msg as { model: string }).model
+            : undefined;
+        emit({
+          type: 'stream-start',
+          ...(initModel ? { modelId: initModel } : {}),
+        });
+        streamStarted = true;
+      }
 
       if (
         type === 'auth_status' &&

@@ -29,6 +29,13 @@ export type HarnessV1StreamPart =
   | {
       type: 'stream-start';
       warnings?: ReadonlyArray<HarnessV1CallWarning>;
+      /**
+       * The model the runtime actually resolved to for this turn, when the
+       * adapter learns it at stream start (e.g. Claude Code's `init` message
+       * reports the resolved/default model). Surfaced into telemetry as
+       * `gen_ai.request.model`. Omitted when the adapter doesn't know it here.
+       */
+      modelId?: string;
     }
 
   // Text blocks
@@ -197,6 +204,7 @@ const harnessV1FinishReasonSchema = z.object({
 export const harnessV1StreamStartPartSchema = z.object({
   type: z.literal('stream-start'),
   warnings: z.array(harnessV1CallWarningSchema).readonly().optional(),
+  modelId: z.string().optional(),
 });
 
 export const harnessV1TextStartPartSchema = z.object({

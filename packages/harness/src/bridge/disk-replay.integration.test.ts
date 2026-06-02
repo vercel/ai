@@ -1,4 +1,4 @@
-// End-to-end §7b proof: a bridge writes its turn events to `event-log.ndjson`,
+// End-to-end proof: a bridge writes its turn events to `event-log.ndjson`,
 // the process dies, and a *respawned* bridge started with
 // `BRIDGE_REPLAY_FROM_DISK=1` reloads that log and serves a host's resume cursor
 // — delivering the tail (including the terminal `finish`) the dead bridge never
@@ -58,7 +58,7 @@ async function waitUntil(pred: () => boolean, timeoutMs = 2000): Promise<void> {
   }
 }
 
-describe('runBridge disk replay (§7b)', () => {
+describe('runBridge disk replay', () => {
   it('a respawned bridge replays a finished turn from event-log.ndjson', async () => {
     const bridgeStateDir = `${process.env.TMPDIR ?? '/tmp'}/harness-replay-${Math.floor(performance.now())}`;
     const eventLogPath = `${bridgeStateDir}/event-log.ndjson`;

@@ -199,6 +199,9 @@ export async function createPiSession(
     modelRegistry,
   });
   const resolveModel = createPiModelResolver(modelRegistry, resolverEnv);
+  // Resolve once: deterministic given the configured model. This is the Pi
+  // `Model` object handed to `createAgentSession`.
+  const resolvedModel = resolveModel(input.settings.model);
 
   const resourceLoader = new DefaultResourceLoader({
     cwd: sessionWorkDir,
@@ -294,7 +297,6 @@ export async function createPiSession(
 
     const { customTools, builtinNames } = buildToolDefinitions(userTools);
     const toolNames = customTools.map(t => t.name);
-    const resolvedModel = resolveModel(input.settings.model);
 
     // SessionManager: open the resumed file on the first build of a resumed
     // session; create fresh otherwise.
@@ -350,6 +352,9 @@ export async function createPiSession(
 
   const sessionImpl: HarnessV1Session = {
     sessionId: input.sessionId,
+    // The model Pi actually resolves to (the configured id, or its default when
+    // unset) — `gen_ai.request.model`.
+    ...(resolvedModel?.id ? { modelId: resolvedModel.id } : {}),
 
     // Pi has no bridge to attach to and no on-disk event log to replay; its
     // only recovery is restoring the session file on a fresh/snapshotted

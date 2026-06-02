@@ -14,10 +14,16 @@ import {
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import type { LanguageModelV4ToolCall } from '@ai-sdk/provider';
-import { parseToolCall, type ContentPart, type TextStreamPart } from 'ai';
+import {
+  parseToolCall,
+  type ContentPart,
+  type TelemetryOptions,
+  type TextStreamPart,
+} from 'ai';
 import { HarnessStreamTextResult } from './harness-stream-text-result';
 import { translateStreamPart } from './translate-stream-part';
 import { stripWorkDir } from './strip-work-dir';
+import { createTurnTelemetry, type TurnContentPart } from './turn-telemetry';
 
 /**
  * Drive one prompt turn end-to-end:
@@ -45,6 +51,7 @@ export function runPrompt<
   sessionWorkDir: string | undefined;
   runtimeContext: RUNTIME_CONTEXT;
   abortSignal: AbortSignal | undefined;
+  telemetry?: TelemetryOptions | undefined;
 }): {
   result: HarnessStreamTextResult<TOOLS, RUNTIME_CONTEXT>;
   done: Promise<void>;
@@ -58,6 +65,15 @@ export function runPrompt<
     sessionId: input.session.sessionId,
   });
 
+  const telemetry = createTurnTelemetry({
+    telemetry: input.telemetry,
+    harnessId: input.harness.harnessId,
+    modelId: input.session.modelId,
+    instructions: input.instructions,
+    promptText: promptToText(input.prompt),
+    runtimeContext: input.runtimeContext,
+  });
+
   const done = (async () => {
     let bridge: Awaited<ReturnType<typeof toHarnessStream>>;
     try {
@@ -69,17 +85,53 @@ export function runPrompt<
         abortSignal: input.abortSignal,
       });
     } catch (err) {
+      telemetry.error(err);
       result.fail(err);
       return;
     }
 
     const { stream, control } = bridge;
     const reader = stream.getReader();
+
+    // Accumulate the model's output content per step so telemetry can record
+    // `gen_ai.output.messages` and reporters can log what was actually said.
+    let stepText = '';
+    let stepReasoning = '';
+    let stepToolCalls: TurnContentPart[] = [];
+    const buildStepContent = (): TurnContentPart[] => {
+      const parts: TurnContentPart[] = [];
+      if (stepText) parts.push({ type: 'text', text: stepText });
+      if (stepReasoning) parts.push({ type: 'reasoning', text: stepReasoning });
+      parts.push(...stepToolCalls);
+      return parts;
+    };
+    const resetStepContent = (): void => {
+      stepText = '';
+      stepReasoning = '';
+      stepToolCalls = [];
+    };
+
     try {
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
         if (value == null) continue;
+
+        // Begin the operation span on stream-start, using the runtime-resolved
+        // model the adapter reports (falling back to the session's model).
+        if (value.type === 'stream-start') {
+          telemetry.start(value.modelId ?? input.session.modelId);
+        }
+
+        // Open a step span lazily before the first content of each step.
+        if (
+          value.type !== 'stream-start' &&
+          value.type !== 'finish-step' &&
+          value.type !== 'finish' &&
+          value.type !== 'error'
+        ) {
+          telemetry.ensureStepOpen();
+        }
 
         /*
          * Strip the session working-directory prefix for everything the
@@ -104,8 +156,47 @@ export function runPrompt<
           result.enqueue(parsed);
         }
 
+        // Accumulate output content for telemetry / reporters.
+        if (value.type === 'text-delta') {
+          stepText += value.delta;
+        } else if (value.type === 'reasoning-delta') {
+          stepReasoning += value.delta;
+        }
+
+        // Telemetry: a tool execution begins on its `tool-call`.
+        if (value.type === 'tool-call') {
+          stepToolCalls.push({
+            type: 'tool-call',
+            toolCallId: value.toolCallId,
+            toolName: value.toolName,
+            input: value.input,
+          });
+          telemetry.toolStart({
+            toolCallId: value.toolCallId,
+            toolName: value.toolName,
+            input: value.input,
+          });
+        }
+
+        // Telemetry: close a tool span when its provider-executed result lands.
+        if (value.type === 'tool-result') {
+          telemetry.toolEnd(
+            value.toolCallId,
+            value.isError
+              ? { ok: false, error: value.result }
+              : { ok: true, output: value.result },
+          );
+        }
+
         // Drive step boundaries.
         if (value.type === 'finish-step') {
+          telemetry.stepFinish({
+            finishReason: value.finishReason,
+            usage: value.usage,
+            providerMetadata: value.harnessMetadata,
+            content: buildStepContent(),
+          });
+          resetStepContent();
           result.finishStep({
             finishReason: value.finishReason,
             usage: value.usage,
@@ -114,24 +205,34 @@ export function runPrompt<
           });
         }
 
+        if (value.type === 'finish') {
+          telemetry.end({
+            finishReason: value.finishReason,
+            usage: value.totalUsage,
+          });
+        }
+
         // Execute host-side tools when the harness asks for one.
         if (value.type === 'tool-call' && !value.providerExecuted) {
-          await maybeExecuteHostTool({
+          const outcome = await maybeExecuteHostTool({
             event: value,
             tools: input.tools,
             sandboxSession: input.sandboxSession,
             abortSignal: input.abortSignal,
             control,
           });
+          telemetry.toolEnd(value.toolCallId, outcome);
         }
 
         if (value.type === 'error') {
+          telemetry.error(value.error);
           result.fail(value.error);
           return;
         }
       }
       await result.finish();
     } catch (err) {
+      telemetry.error(err);
       result.fail(err);
     } finally {
       reader.releaseLock();
@@ -147,13 +248,17 @@ export function runPrompt<
   return { result, done };
 }
 
+type HostToolOutcome =
+  | { ok: true; output: unknown }
+  | { ok: false; error: unknown };
+
 async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
   event: { toolCallId: string; toolName: string; input: string };
   tools: TOOLS;
   sandboxSession: HarnessV1SandboxSession | undefined;
   abortSignal: AbortSignal | undefined;
   control: HarnessV1PromptControl;
-}): Promise<void> {
+}): Promise<HostToolOutcome> {
   const tool = (input.tools as Record<string, unknown>)[input.event.toolName] as
     | {
         execute?: (
@@ -166,7 +271,7 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
       }
     | undefined;
 
-  if (tool?.execute == null) return;
+  if (tool?.execute == null) return { ok: true, output: undefined };
 
   const parsed = await safeParseJSON({ text: input.event.input });
   const args = parsed.success ? parsed.value : input.event.input;
@@ -180,12 +285,14 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
       toolCallId: input.event.toolCallId,
       output,
     });
+    return { ok: true, output };
   } catch (err) {
     await input.control.submitToolResult({
       toolCallId: input.event.toolCallId,
       output: { error: String(err) },
       isError: true,
     });
+    return { ok: false, error: err };
   }
 }
 
@@ -229,6 +336,25 @@ export async function validateToolCall<TOOLS extends ToolSet>(args: {
   });
 
   return parsed as TextStreamPart<TOOLS>;
+}
+
+/** Best-effort plain text of the turn's prompt, for telemetry input messages. */
+function promptToText(prompt: HarnessV1Prompt): string {
+  if (typeof prompt === 'string') return prompt;
+  const content = (prompt as { content?: unknown }).content;
+  if (typeof content === 'string') return content;
+  if (Array.isArray(content)) {
+    return content
+      .filter(
+        (part): part is { type: 'text'; text: string } =>
+          typeof part === 'object' &&
+          part != null &&
+          (part as { type?: unknown }).type === 'text',
+      )
+      .map(part => part.text)
+      .join('');
+  }
+  return '';
 }
 
 // keep import bound so unused-but-needed type stays cited

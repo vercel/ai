@@ -16,6 +16,61 @@ export type BridgeState = 'init' | 'waiting' | 'running' | 'draining' | 'done';
 /** Outbound turn event the adapter emits. `seq` is added by the runtime. */
 export type BridgeEvent = Record<string, unknown> & { type: string };
 
+export type BridgeDebugLevel = 'error' | 'warn' | 'info' | 'debug' | 'trace';
+
+/**
+ * Per-session diagnostics config. The host resolves it from settings +
+ * env and sends it on `start.debug`; the bridge gates console capture and
+ * structured `debug-event`s on it. When disabled, nothing is captured or
+ * emitted and no `seq` is consumed.
+ */
+export interface BridgeDebugConfig {
+  enabled?: boolean;
+  level?: BridgeDebugLevel;
+  subsystems?: string[];
+}
+
+const DEBUG_LEVEL_WEIGHT: Record<BridgeDebugLevel, number> = {
+  error: 0,
+  warn: 1,
+  info: 2,
+  debug: 3,
+  trace: 4,
+};
+
+/** Exact-or-dotted-prefix subsystem match (`'bridge'` matches `'bridge.turn'`). */
+function subsystemMatches(
+  filters: string[] | undefined,
+  subsystem: string,
+): boolean {
+  if (!filters || filters.length === 0) return true;
+  return filters.some(
+    filter => subsystem === filter || subsystem.startsWith(`${filter}.`),
+  );
+}
+
+function formatBridgeError(err: unknown): {
+  name?: string;
+  message: string;
+  stack?: string;
+} {
+  if (err instanceof Error) {
+    return { name: err.name, message: err.message, stack: err.stack };
+  }
+  return { message: String(err) };
+}
+
+function parseEnvList(value: string | undefined): string[] | undefined {
+  if (!value) return undefined;
+  const items = value
+    .split(',')
+    .map(item => item.trim())
+    .filter(Boolean);
+  return items.length > 0 ? items : undefined;
+}
+
+const ENV_TRUTHY = new Set(['1', 'true', 'yes', 'on']);
+
 /**
  * Per-turn surface handed to {@link RunBridgeOptions.onStart}. The adapter
  * drives its runtime against these primitives; the runtime owns the transport.
@@ -50,6 +105,20 @@ export interface BridgeTurn {
 
   /** True for the first turn since this bridge process started. */
   readonly firstTurn: boolean;
+
+  /**
+   * Emit a structured diagnostic. Gated by the session's debug level +
+   * subsystem filter; a no-op when diagnostics are disabled. Adapters use this
+   * for runtime-level instrumentation; raw `console.*` output is captured and
+   * forwarded automatically.
+   */
+  bridgeLog(input: {
+    level?: BridgeDebugLevel;
+    subsystem: string;
+    message: string;
+    attrs?: Record<string, unknown>;
+    error?: unknown;
+  }): void;
 }
 
 export interface RunBridgeOptions<TStart extends { type: 'start' }> {
@@ -128,6 +197,14 @@ export async function runBridge<TStart extends { type: 'start' }>(
   let isFirstTurn = true;
   let turnAbort: AbortController | undefined;
   let currentUserMessages: string[] | undefined;
+
+  // Diagnostics. Resolved per turn from `start.debug` with a sandbox-side
+  // env fallback; gates console capture + structured `debug-event`s.
+  let debugConfig: BridgeDebugConfig | undefined;
+  let consoleCaptureInstalled = false;
+  const envDebugEnabled = ENV_TRUTHY.has(
+    (procEnv.HARNESS_DEBUG ?? '').toLowerCase(),
+  );
 
   // Replay log. `seq` is monotonic across the whole process — never reset —
   // because the host's `SandboxChannel` cursor (`lastSeenEventId`) lives across
@@ -285,6 +362,80 @@ export async function runBridge<TStart extends { type: 'start' }>(
     }
   };
 
+  // ─── diagnostics ──────────────────────────────────────────────
+  const shouldEmitDebugEvent = (
+    level: BridgeDebugLevel,
+    subsystem: string,
+  ): boolean => {
+    if (!debugConfig?.enabled) return false;
+    const threshold = debugConfig.level ?? 'debug';
+    if (DEBUG_LEVEL_WEIGHT[level] > DEBUG_LEVEL_WEIGHT[threshold]) return false;
+    return subsystemMatches(debugConfig.subsystems, subsystem);
+  };
+
+  /*
+   * Forward sandbox console output. We line-buffer the original writers (kept so
+   * output still reaches the real fds) and emit one `sandbox-log` per complete
+   * line. `emit` never writes to stdout/stderr, so there is no recursion.
+   * Installed lazily the first time a turn enables diagnostics; once installed,
+   * capture is gated per-write on `debugConfig.enabled` so a later turn can
+   * disable it. Console capture is independent of the subsystem/level filter.
+   */
+  const rawStdoutWrite = process.stdout.write.bind(process.stdout);
+  const rawStderrWrite = process.stderr.write.bind(process.stderr);
+  const installConsoleCapture = (): void => {
+    if (consoleCaptureInstalled) return;
+    consoleCaptureInstalled = true;
+    const buffers: { stdout: string; stderr: string } = {
+      stdout: '',
+      stderr: '',
+    };
+    const patch =
+      (stream: 'stdout' | 'stderr', raw: typeof process.stdout.write) =>
+      (chunk: unknown, encoding?: unknown, cb?: unknown): boolean => {
+        if (debugConfig?.enabled) {
+          try {
+            const enc = typeof encoding === 'string' ? encoding : 'utf8';
+            const text =
+              typeof chunk === 'string'
+                ? chunk
+                : Buffer.from(chunk as Uint8Array).toString(
+                    enc as BufferEncoding,
+                  );
+            const combined = buffers[stream] + text.replace(/\r\n/g, '\n');
+            const parts = combined.split('\n');
+            buffers[stream] = parts.pop() ?? '';
+            for (const line of parts) {
+              const trimmed = line.replace(/\s+$/, '');
+              if (trimmed) {
+                emit({
+                  type: 'sandbox-log',
+                  source: bridgeType,
+                  stream,
+                  line: trimmed,
+                });
+              }
+            }
+          } catch {
+            // Never let capture break real output.
+          }
+        }
+        return (raw as (c: unknown, e?: unknown, cb?: unknown) => boolean)(
+          chunk,
+          encoding,
+          cb,
+        );
+      };
+    process.stdout.write = patch(
+      'stdout',
+      rawStdoutWrite,
+    ) as typeof process.stdout.write;
+    process.stderr.write = patch(
+      'stderr',
+      rawStderrWrite,
+    ) as typeof process.stderr.write;
+  };
+
   // ─── inbound routing ────────────────────────────────────────────────
   const handleInbound = async (
     msg: TStart | InboundControl,
@@ -303,6 +454,19 @@ export async function runBridge<TStart extends { type: 'start' }>(
         currentTurnState = 'running';
         void writeStartConfig(msg);
         void writeBridgeMeta('running');
+        const startDebug = (msg as { debug?: BridgeDebugConfig }).debug;
+        debugConfig = {
+          enabled: startDebug?.enabled ?? envDebugEnabled,
+          level:
+            startDebug?.level ??
+            (procEnv.HARNESS_DEBUG_LEVEL as BridgeDebugLevel | undefined),
+          subsystems:
+            startDebug?.subsystems ??
+            parseEnvList(procEnv.HARNESS_DEBUG_SUBSYSTEMS),
+        };
+        if (debugConfig.enabled) {
+          installConsoleCapture();
+        }
         const turn: BridgeTurn = {
           emit,
           requestToolResult: toolCallId =>
@@ -312,6 +476,20 @@ export async function runBridge<TStart extends { type: 'start' }>(
           pendingUserMessages: [],
           abortSignal: turnAbort.signal,
           firstTurn,
+          bridgeLog: input => {
+            const level = input.level ?? 'debug';
+            if (!shouldEmitDebugEvent(level, input.subsystem)) return;
+            emit({
+              type: 'debug-event',
+              level,
+              subsystem: input.subsystem,
+              message: input.message,
+              ...(input.attrs ? { attrs: input.attrs } : {}),
+              ...(input.error !== undefined
+                ? { error: formatBridgeError(input.error) }
+                : {}),
+            });
+          },
         };
         currentUserMessages = turn.pendingUserMessages;
         try {

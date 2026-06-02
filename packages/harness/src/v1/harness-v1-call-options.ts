@@ -1,9 +1,29 @@
+import type {
+  HarnessV1DebugConfig,
+  HarnessV1Diagnostic,
+} from './harness-v1-diagnostic';
 import type { HarnessV1Prompt } from './harness-v1-prompt';
 import type { HarnessV1ResumeState } from './harness-v1-resume-state';
 import type { HarnessV1SandboxHandle } from './harness-v1-sandbox-handle';
 import type { HarnessV1Skill } from './harness-v1-skill';
 import type { HarnessV1StreamPart } from './harness-v1-stream-part';
 import type { HarnessV1ToolSpec } from './harness-v1-tool-spec';
+
+/**
+ * Diagnostics wiring the framework hands to an adapter's `doStart`. `report` is
+ * the general emission sink: a bridge adapter normalizes each wire frame into a
+ * `HarnessV1Diagnostic` (via `harnessV1DiagnosticFromBridgeFrame`) and calls it;
+ * a non-bridge adapter constructs a `HarnessV1Diagnostic` from its host-side
+ * logs/errors and calls it directly. `debug` gates what the adapter emits.
+ * Absent when the consumer has not enabled diagnostics.
+ */
+export type HarnessV1Observability = {
+  /** Per-session debug config gating what the adapter captures/emits. */
+  readonly debug?: HarnessV1DebugConfig;
+
+  /** General emission sink — any adapter reports a `HarnessV1Diagnostic` here. */
+  readonly report?: (diagnostic: HarnessV1Diagnostic) => void;
+};
 
 /**
  * Options passed to `HarnessV1.doStart`.
@@ -42,6 +62,14 @@ export type HarnessV1StartOptions = {
    * any spawned processes or network calls.
    */
   readonly abortSignal?: AbortSignal;
+
+  /**
+   * Diagnostics wiring. The framework populates this; the adapter only
+   * forwards `observability.onDiagnostic` into its `SandboxChannel` and
+   * `observability.debug` into the bridge `start` message. Absent when the
+   * consumer has not enabled diagnostics.
+   */
+  readonly observability?: HarnessV1Observability;
 } & (
   | {
       /**

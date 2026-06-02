@@ -5,4 +5,6 @@ export type {
   BridgeEvent,
   BridgeState,
   BridgeHandle,
+  BridgeDebugConfig,
+  BridgeDebugLevel,
 } from '../src/bridge';

@@ -4,9 +4,11 @@ import { fileURLToPath } from 'node:url';
 import {
   classifyDiskLog,
   commonTool,
+  harnessV1DiagnosticFromBridgeFrame,
   HarnessCapabilityUnsupportedError,
   type HarnessV1,
   type HarnessV1Bootstrap,
+  type HarnessV1DebugConfig,
   type HarnessV1BuiltinTool,
   type HarnessV1Prompt,
   type HarnessV1PromptControl,
@@ -443,6 +445,20 @@ export function createClaudeCode(
       const bridgeStateDir = `${sessionDataDir}/bridge`;
       const timeoutMs = settings.startupTimeoutMs ?? 120_000;
 
+      // Normalize each forwarded bridge diagnostics frame into the general
+      // `HarnessV1Diagnostic` and report it. The adapter does no telemetry work
+      // beyond this transport→emission mapping.
+      const report = startOpts.observability?.report;
+      const onDiagnostic = report
+        ? (frame: Parameters<typeof harnessV1DiagnosticFromBridgeFrame>[0]) =>
+            report(
+              harnessV1DiagnosticFromBridgeFrame(frame, {
+                sessionId: startOpts.sessionId,
+                timestamp: Date.now(),
+              }),
+            )
+        : undefined;
+
       // Builds the `connect` thunk a `SandboxChannel` re-invokes on every
       // (re)connect: open the socket, then wait for `bridge-hello` so the
       // end-to-end link is proven live before any frame is sent.
@@ -468,6 +484,7 @@ export function createClaudeCode(
             connect: buildConnect(attachUrl),
             outboundSchema: outboundMessageSchema,
             initialLastSeenEventId: coords.lastSeenEventId,
+            onDiagnostic,
           });
           await attachChannel.open({ resume: true });
           return createSession({
@@ -484,6 +501,7 @@ export function createClaudeCode(
             bridgePort: coords.port,
             bridgeToken: coords.token,
             sandboxId,
+            debug: startOpts.observability?.debug,
           });
         } catch {
           // Bridge no longer reachable — recover by respawning below.
@@ -573,6 +591,7 @@ export function createClaudeCode(
       const channel: ClaudeCodeChannel = new SandboxChannel({
         connect: buildConnect(wsUrl),
         outboundSchema: outboundMessageSchema,
+        onDiagnostic,
         // In replay mode the respawned bridge reloaded the finished turn from
         // disk; seed the cursor and resume so it streams the tail (incl.
         // `finish`) rather than starting empty.
@@ -595,6 +614,7 @@ export function createClaudeCode(
         bridgePort: boundPort,
         bridgeToken: token,
         sandboxId,
+        debug: startOpts.observability?.debug,
       });
     },
   };
@@ -853,6 +873,7 @@ function createSession({
   bridgePort,
   bridgeToken,
   sandboxId,
+  debug,
 }: {
   sessionId: string;
   channel: ClaudeCodeChannel;
@@ -865,6 +886,7 @@ function createSession({
   bridgePort: number;
   bridgeToken: string;
   sandboxId: string;
+  debug: HarnessV1DebugConfig | undefined;
 }): HarnessV1Session {
   let stopped = false;
   let stopPromise: Promise<void> | undefined;
@@ -886,6 +908,7 @@ function createSession({
   return {
     sessionId,
     recoveryMode,
+    modelId: model,
     doPrompt: async promptOpts => {
       let pendingResolve: (() => void) | undefined;
       let pendingReject: ((err: unknown) => void) | undefined;
@@ -994,6 +1017,7 @@ function createSession({
         model,
         maxTurns,
         thinking,
+        ...(debug ? { debug } : {}),
         ...(pendingResumeFlag ? { continue: true } : {}),
       };
       pendingResumeFlag = false;

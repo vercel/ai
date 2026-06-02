@@ -20,6 +20,14 @@ export type HarnessV1Session = {
   readonly sessionId: string;
 
   /**
+   * The model id the underlying runtime is configured to use, if the adapter
+   * knows it (e.g. from its settings). Surfaced into telemetry as
+   * `gen_ai.request.model` and the trace span labels. Omitted when the adapter
+   * defers to the runtime's own default and has no concrete id.
+   */
+  readonly modelId?: string;
+
+  /**
    * Run one prompt turn. Returns a control handle the host uses to feed
    * tool results, approvals, and user messages back into the turn while it
    * is in flight. The handle's `done` promise resolves when the turn ends.

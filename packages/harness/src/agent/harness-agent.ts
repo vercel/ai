@@ -34,6 +34,7 @@ import {
   acquireBridgePort,
   releaseBridgePort,
 } from './internal/bridge-port-registry';
+import { buildObservability } from './internal/resolve-observability';
 import { validateResumeStateData } from './internal/resume-state-validation';
 import { runPrompt } from './internal/run-prompt';
 
@@ -242,6 +243,7 @@ export class HarnessAgent<
         skills: this.settings.skills,
         resumeFrom: validatedResumeFrom,
         abortSignal,
+        observability: buildObservability({ settings: this.settings }),
       };
       const underlyingSession = await harness.doStart(
         sandboxHandle != null && sessionWorkDir != null
@@ -352,6 +354,7 @@ export class HarnessAgent<
       sessionWorkDir,
       runtimeContext,
       abortSignal: options.abortSignal,
+      telemetry: this.settings.telemetry,
     });
   }
 

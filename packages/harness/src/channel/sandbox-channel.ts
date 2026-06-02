@@ -48,6 +48,17 @@ export interface SandboxChannelOptions<TOut> {
   onDebug?: (event: SandboxChannelDebugEvent) => void;
 
   /**
+   * Sink for forwarded bridge diagnostics — `sandbox-log` (captured
+   * console lines) and `debug-event` (structured) frames. When set, these
+   * frame types are routed here instead of the per-type listener dispatch, so
+   * they never reach the consumer's stream. Typed to the diagnostic members of
+   * `TOut`, so it is a no-op union for channels whose protocol has none.
+   */
+  onDiagnostic?: (
+    event: Extract<TOut, { type: 'sandbox-log' | 'debug-event' }>,
+  ) => void;
+
+  /**
    * Seed the host-side cursor before the first connect. Pass the
    * `lastSeenEventId` persisted from a prior process so the bridge replays only
    * events past it when this channel opens with `{ resume: true }` — the
@@ -77,7 +88,7 @@ const sleep = (ms: number): Promise<void> =>
  * arrives on the same microtask as the final `finish` message does not fire
  * close handlers until the message has been dispatched.
  *
- * Survives transient disconnects (§9). The bridge keeps running and
+ * Survives transient disconnects. The bridge keeps running and
  * accumulates events in an in-memory log keyed by a monotonic `seq`; on an
  * unexpected socket drop this channel re-invokes `connect`, re-wires the new
  * socket, and asks the bridge to replay everything past `lastSeenEventId`. The
@@ -102,6 +113,9 @@ export class SandboxChannel<
   private readonly onDebug:
     | ((event: SandboxChannelDebugEvent) => void)
     | undefined;
+  private readonly onDiagnostic:
+    | ((event: Extract<TOut, { type: 'sandbox-log' | 'debug-event' }>) => void)
+    | undefined;
   private readonly maxElapsedMs: number;
   private readonly initialDelayMs: number;
   private readonly maxDelayMs: number;
@@ -120,6 +134,7 @@ export class SandboxChannel<
     this.connectThunk = options.connect;
     this.outboundSchema = options.outboundSchema;
     this.onDebug = options.onDebug;
+    this.onDiagnostic = options.onDiagnostic;
     this.maxElapsedMs = options.reconnect?.maxElapsedMs ?? 30_000;
     this.initialDelayMs = options.reconnect?.initialDelayMs ?? 50;
     this.maxDelayMs = options.reconnect?.maxDelayMs ?? 2_000;
@@ -359,6 +374,14 @@ export class SandboxChannel<
   }
 
   private dispatch(message: TOut): void {
+    // Diagnostics are routed to their own sink and never enter the
+    // per-type listener/buffer path, so they stay off the consumer stream.
+    if (message.type === 'sandbox-log' || message.type === 'debug-event') {
+      this.onDiagnostic?.(
+        message as Extract<TOut, { type: 'sandbox-log' | 'debug-event' }>,
+      );
+      return;
+    }
     const type = message.type as EventTypeOf<TOut>;
     const set = this.listeners.get(type);
     if (!set || set.size === 0) {

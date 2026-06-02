@@ -5,6 +5,7 @@ export type {
   HarnessV1BootstrapFile,
 } from './harness-v1-bootstrap';
 export type {
+  HarnessV1Observability,
   HarnessV1PromptControl,
   HarnessV1PromptOptions,
   HarnessV1StartOptions,
@@ -57,6 +58,7 @@ export {
 } from './harness-v1-stream-part';
 export {
   harnessV1BridgeAbortInboundSchema,
+  harnessV1BridgeDebugEventSchema,
   harnessV1BridgeDetachInboundSchema,
   harnessV1BridgeDetachSchema,
   harnessV1BridgeHelloSchema,
@@ -64,14 +66,25 @@ export {
   harnessV1BridgeOutboundMessageSchema,
   harnessV1BridgeReadySchema,
   harnessV1BridgeResumeInboundSchema,
+  harnessV1BridgeSandboxLogSchema,
   harnessV1BridgeShutdownInboundSchema,
   harnessV1BridgeStartBaseSchema,
   harnessV1BridgeThreadSchema,
   harnessV1BridgeToolResultInboundSchema,
   harnessV1BridgeToolWireSchema,
   harnessV1BridgeUserMessageInboundSchema,
+  harnessV1DiagnosticFromBridgeFrame,
+  type HarnessV1BridgeDebugEvent,
   type HarnessV1BridgeOutboundMessage,
   type HarnessV1BridgeReady,
+  type HarnessV1BridgeSandboxLog,
   type HarnessV1BridgeToolWire,
 } from './harness-v1-bridge-protocol';
+export {
+  harnessV1DebugConfigSchema,
+  harnessV1DebugLevelSchema,
+  type HarnessV1DebugConfig,
+  type HarnessV1DebugLevel,
+  type HarnessV1Diagnostic,
+} from './harness-v1-diagnostic';
 export type { HarnessV1ToolSpec } from './harness-v1-tool-spec';

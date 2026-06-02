@@ -3,7 +3,12 @@ import type {
   HarnessV1SandboxProvider,
   HarnessV1Skill,
 } from '../v1';
+import type {
+  HarnessDebugConfig,
+  HarnessDiagnostic,
+} from './harness-diagnostics';
 import type { ToolSet } from '@ai-sdk/provider-utils';
+import type { TelemetryOptions } from 'ai';
 
 /**
  * Construction-time settings for a `HarnessAgent`.
@@ -61,4 +66,27 @@ export type HarnessAgentSettings<
    * `Experimental_Sandbox` so tools cannot reach the infra surface.
    */
   readonly sandbox?: HarnessV1SandboxProvider;
+
+  /**
+   * Telemetry configuration. The harness drives AI SDK's pluggable
+   * `Telemetry` integration contract from the turn lifecycle, so a harness turn
+   * appears in a consumer's traces with the same span shape as `streamText`.
+   * Register an integration here (e.g. `@ai-sdk/otel`) or globally via
+   * `registerTelemetry`. The harness itself stays OpenTelemetry-agnostic.
+   */
+  readonly telemetry?: TelemetryOptions;
+
+  /**
+   * Diagnostics configuration. Enables bridge log forwarding (sandbox
+   * console + structured `debug-event`s) and the `HARNESS_DEBUG` stderr default.
+   * Set `{ enabled: true }` to turn it on in code; env vars fill unset fields.
+   */
+  readonly debug?: HarnessDebugConfig;
+
+  /**
+   * Programmatic sink for forwarded bridge diagnostics. Receives every
+   * captured console line and structured event, normalized. Independent of the
+   * stderr default — wire this to capture diagnostics in code.
+   */
+  readonly onLog?: (event: HarnessDiagnostic) => void;
 };

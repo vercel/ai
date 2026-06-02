@@ -1,4 +1,8 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
+import {
+  createFileReporter,
+  createTraceTreeReporter,
+} from '@ai-sdk/harness/observability';
 import { codex } from '@ai-sdk/harness-codex';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import type { InferUITools, UIMessage } from 'ai';
@@ -9,6 +13,16 @@ export const codexHarnessAgent = new HarnessAgent({
     runtime: 'node24',
     ports: [4000],
   }),
+  // Observability wired in code (dev/testing app) — see the claude-code basic
+  // agent for the rationale. Trace tree + diagnostics print to the `pnpm dev`
+  // terminal; the file reporter writes a per-agent `events.jsonl`.
+  debug: { enabled: true },
+  telemetry: {
+    integrations: [
+      createTraceTreeReporter(),
+      createFileReporter({ dir: '.harness-observability/codex/basic' }),
+    ],
+  },
 });
 
 /*

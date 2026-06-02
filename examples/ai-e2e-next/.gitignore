@@ -38,5 +38,6 @@ next-env.d.ts
 # persistence
 .chats
 .harness-sessions
+.harness-observability
 .streams
 .env*

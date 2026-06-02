@@ -5,8 +5,10 @@ import {
   classifyDiskLog,
   commonTool,
   HarnessCapabilityUnsupportedError,
+  harnessV1DiagnosticFromBridgeFrame,
   type HarnessV1,
   type HarnessV1Bootstrap,
+  type HarnessV1DebugConfig,
   type HarnessV1BuiltinTool,
   type HarnessV1Prompt,
   type HarnessV1PromptControl,
@@ -34,11 +36,22 @@ import {
 
 type CodexChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 
+/*
+ * The model the adapter pins when the consumer configures none. The Codex SDK
+ * does not report the model it resolves to at runtime (no model field on any
+ * event), and exposes no default-model constant, so we pin the latest
+ * codex-specialized model available for the bundled `@openai/codex@0.130.0`
+ * (published 2026-05-08): `gpt-5.3-codex` (released 2026-02). Keep this in sync
+ * when bumping the codex SDK/binary. Passing it explicitly makes the resolved
+ * model deterministic and the telemetry (`gen_ai.request.model`) accurate.
+ */
+const DEFAULT_CODEX_MODEL = 'gpt-5.3-codex';
+
 export type CodexHarnessSettings = {
   readonly auth?: CodexAuthOptions;
   /**
-   * OpenAI model id the underlying `codex` CLI should use. Leaving this
-   * unset defers to the CLI's default.
+   * OpenAI model id the underlying `codex` CLI should use. Leaving this unset
+   * pins the adapter default (`DEFAULT_CODEX_MODEL`).
    */
   readonly model?: string;
   /**
@@ -195,6 +208,20 @@ export function createCodex(
       const bridgeStateDir = `${sessionDataDir}/bridge`;
       const timeoutMs = settings.startupTimeoutMs ?? 120_000;
 
+      // Normalize each forwarded bridge diagnostics frame into the general
+      // `HarnessV1Diagnostic` and report it. The adapter does no telemetry work
+      // beyond this transport→emission mapping.
+      const report = startOpts.observability?.report;
+      const onDiagnostic = report
+        ? (frame: Parameters<typeof harnessV1DiagnosticFromBridgeFrame>[0]) =>
+            report(
+              harnessV1DiagnosticFromBridgeFrame(frame, {
+                sessionId: startOpts.sessionId,
+                timestamp: Date.now(),
+              }),
+            )
+        : undefined;
+
       /*
        * Rung 1 — ATTACH. With live coordinates, reopen a socket to the
        * still-running bridge and replay everything past the persisted cursor.
@@ -210,6 +237,7 @@ export function createCodex(
             connect: () => openWebSocket(attachUrl),
             outboundSchema: outboundMessageSchema,
             initialLastSeenEventId: coords.lastSeenEventId,
+            onDiagnostic,
           });
           await attachChannel.open({ resume: true });
           return createSession({
@@ -218,7 +246,7 @@ export function createCodex(
             // The live bridge was spawned by another process; no process handle.
             proc: undefined,
             skills: startOpts.skills,
-            model: settings.model,
+            model: settings.model ?? DEFAULT_CODEX_MODEL,
             reasoningEffort: settings.reasoningEffort,
             webSearch: settings.webSearch,
             resumeThreadId: resumeThreadIdString,
@@ -226,6 +254,7 @@ export function createCodex(
             bridgePort: coords.port,
             bridgeToken: coords.token,
             sandboxId,
+            debug: startOpts.observability?.debug,
           });
         } catch {
           // Bridge no longer reachable — recover by respawning below.
@@ -289,6 +318,7 @@ export function createCodex(
       const channel: CodexChannel = new SandboxChannel({
         connect: () => openWebSocket(wsUrl),
         outboundSchema: outboundMessageSchema,
+        onDiagnostic,
         // In replay mode the respawned bridge reloaded the finished turn from
         // disk; seed the cursor and resume so it streams the tail (incl.
         // `finish`).
@@ -305,7 +335,7 @@ export function createCodex(
         channel,
         proc,
         skills: startOpts.skills,
-        model: settings.model,
+        model: settings.model ?? DEFAULT_CODEX_MODEL,
         reasoningEffort: settings.reasoningEffort,
         webSearch: settings.webSearch,
         resumeThreadId: resumeThreadIdString,
@@ -313,6 +343,7 @@ export function createCodex(
         bridgePort: boundPort,
         bridgeToken: token,
         sandboxId,
+        debug: startOpts.observability?.debug,
       });
     },
   };
@@ -490,6 +521,7 @@ function createSession({
   bridgePort,
   bridgeToken,
   sandboxId,
+  debug,
 }: {
   sessionId: string;
   channel: CodexChannel;
@@ -504,6 +536,7 @@ function createSession({
   bridgePort: number;
   bridgeToken: string;
   sandboxId: string;
+  debug: HarnessV1DebugConfig | undefined;
 }): HarnessV1Session {
   let stopped = false;
   let stopPromise: Promise<void> | undefined;
@@ -539,6 +572,7 @@ function createSession({
   return {
     sessionId,
     recoveryMode,
+    modelId: model,
     doPrompt: async promptOpts => {
       let pendingResolve: (() => void) | undefined;
       let pendingReject: ((err: unknown) => void) | undefined;
@@ -659,6 +693,7 @@ function createSession({
         ...(pendingResumeThreadId
           ? { resumeThreadId: pendingResumeThreadId }
           : {}),
+        ...(debug ? { debug } : {}),
       };
       pendingResumeThreadId = undefined;
       channel.send(startMessage);

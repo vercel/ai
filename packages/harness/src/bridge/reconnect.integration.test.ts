@@ -1,4 +1,4 @@
-// End-to-end §9 proof: the real host-side `SandboxChannel` talking to the real
+// End-to-end proof: the real host-side `SandboxChannel` talking to the real
 // in-sandbox `runBridge` over a loopback WebSocket. A mid-turn socket drop must
 // be invisible to the consumer — the bridge keeps the turn running, the channel
 // reconnects and resumes from its cursor, and every event arrives in order

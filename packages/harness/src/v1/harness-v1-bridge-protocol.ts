@@ -1,5 +1,10 @@
 import { z } from 'zod/v4';
 import {
+  harnessV1DebugConfigSchema,
+  harnessV1DebugLevelSchema,
+  type HarnessV1Diagnostic,
+} from './harness-v1-diagnostic';
+import {
   harnessV1ErrorPartSchema,
   harnessV1FileChangePartSchema,
   harnessV1FinishPartSchema,
@@ -66,12 +71,17 @@ export type HarnessV1BridgeToolWire = z.infer<
  * its runtime-specific configuration (e.g. `thinking`/`continue` for Claude
  * Code, `reasoningEffort`/`webSearch`/`skills`/`resumeThreadId` for Codex) and
  * assembles the final inbound union from the shared command members below.
+ *
+ * `debug` carries the general `HarnessV1DebugConfig` — diagnostics config is not
+ * a bridge concept, it just happens to ride the `start` frame for bridge-backed
+ * adapters.
  */
 export const harnessV1BridgeStartBaseSchema = z.object({
   type: z.literal('start'),
   prompt: z.string(),
   tools: z.array(harnessV1BridgeToolWireSchema).optional(),
   model: z.string().optional(),
+  debug: harnessV1DebugConfigSchema.optional(),
 });
 
 // --- Transport / control frames (outbound, not consumer events) ---
@@ -81,7 +91,7 @@ export const harnessV1BridgeStartBaseSchema = z.object({
  * waits for it before sending `start`/`resume`, because some sandbox runtimes
  * complete the upstream WS handshake before the connection is wired through to
  * the bridge process — anything sent in that gap is dropped. Carries the
- * bridge's lifecycle `state` and highest emitted `seq` for reconnect (§9).
+ * bridge's lifecycle `state` and highest emitted `seq` for reconnect.
  */
 export const harnessV1BridgeHelloSchema = z.object({
   type: z.literal('bridge-hello'),
@@ -105,6 +115,39 @@ export const harnessV1BridgeDetachSchema = z.object({
 export const harnessV1BridgeThreadSchema = z.object({
   type: z.literal('bridge-thread'),
   threadId: z.string(),
+});
+
+// --- Diagnostics frames (outbound, not consumer events) ---
+
+/**
+ * One captured console line from inside the sandbox. The bridge line-buffers
+ * `process.stdout`/`process.stderr` and emits one of these per complete line.
+ * Routed host-side to the diagnostics sink, never to the consumer stream.
+ */
+export const harnessV1BridgeSandboxLogSchema = z.object({
+  type: z.literal('sandbox-log'),
+  source: z.string(),
+  stream: z.enum(['stdout', 'stderr']),
+  line: z.string(),
+});
+
+/**
+ * A structured diagnostic an adapter emits from inside the bridge via
+ * `turn.bridgeLog(...)`. Gated by the session's debug level + subsystem filter.
+ */
+export const harnessV1BridgeDebugEventSchema = z.object({
+  type: z.literal('debug-event'),
+  level: harnessV1DebugLevelSchema,
+  subsystem: z.string(),
+  message: z.string(),
+  attrs: z.record(z.string(), z.unknown()).optional(),
+  error: z
+    .object({
+      name: z.string().optional(),
+      message: z.string(),
+      stack: z.string().optional(),
+    })
+    .optional(),
 });
 
 /**
@@ -133,12 +176,57 @@ export const harnessV1BridgeOutboundMessageSchema = z.discriminatedUnion(
     harnessV1BridgeHelloSchema,
     harnessV1BridgeDetachSchema,
     harnessV1BridgeThreadSchema,
+    harnessV1BridgeSandboxLogSchema,
+    harnessV1BridgeDebugEventSchema,
   ],
 );
 
 export type HarnessV1BridgeOutboundMessage = z.infer<
   typeof harnessV1BridgeOutboundMessageSchema
 >;
+
+export type HarnessV1BridgeSandboxLog = z.infer<
+  typeof harnessV1BridgeSandboxLogSchema
+>;
+
+export type HarnessV1BridgeDebugEvent = z.infer<
+  typeof harnessV1BridgeDebugEventSchema
+>;
+
+/**
+ * Normalize a bridge diagnostics wire frame into the transport-agnostic
+ * `HarnessV1Diagnostic` an adapter reports to the framework. A captured console
+ * line maps `stderr` → `warn` and `stdout` → `info`; a structured event passes
+ * its fields through. This is the seam where the bridge's serialization is
+ * lifted into the general emission shape every harness shares.
+ */
+export function harnessV1DiagnosticFromBridgeFrame(
+  frame: HarnessV1BridgeSandboxLog | HarnessV1BridgeDebugEvent,
+  context: { sessionId?: string; timestamp: number },
+): HarnessV1Diagnostic {
+  if (frame.type === 'sandbox-log') {
+    return {
+      level: frame.stream === 'stderr' ? 'warn' : 'info',
+      message: frame.line,
+      subsystem: `sandbox.log.${frame.source}`,
+      kind: 'log',
+      source: frame.source,
+      stream: frame.stream,
+      sessionId: context.sessionId,
+      timestamp: context.timestamp,
+    };
+  }
+  return {
+    level: frame.level,
+    message: frame.message,
+    subsystem: frame.subsystem,
+    kind: 'event',
+    attrs: frame.attrs,
+    error: frame.error,
+    sessionId: context.sessionId,
+    timestamp: context.timestamp,
+  };
+}
 
 // --- Shared inbound command members (host -> bridge) ---
 
@@ -163,7 +251,7 @@ export const harnessV1BridgeShutdownInboundSchema = z.object({
 });
 
 /**
- * Reconnect (§9): after re-establishing the socket the host asks the bridge to
+ * Reconnect: after re-establishing the socket the host asks the bridge to
  * replay every buffered event with `seq > lastSeenEventId`.
  */
 export const harnessV1BridgeResumeInboundSchema = z.object({
