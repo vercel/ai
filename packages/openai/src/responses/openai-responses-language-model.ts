@@ -487,6 +487,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       toolNameMapping,
       providerOptionsName,
       isShellProviderExecuted,
+      metadata: openaiOptions?.metadata ?? undefined,
     };
   }
 
@@ -500,6 +501,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       toolNameMapping,
       providerOptionsName,
       isShellProviderExecuted,
+      metadata,
     } = await this.getArgs(options);
     const url = this.config.url({
       path: '/responses',
@@ -1039,6 +1041,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         ...(typeof response.service_tier === 'string'
           ? { serviceTier: response.service_tier }
           : {}),
+        ...(metadata != null ? { metadata } : {}),
       } satisfies ResponsesProviderMetadata,
     };
 
@@ -1076,6 +1079,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       webSearchToolName,
       toolNameMapping,
       store,
+      metadata: requestMetadata,
       providerOptionsName,
       isShellProviderExecuted,
     } = await this.getArgs(options);
@@ -2168,6 +2172,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 responseId: responseId,
                 ...(logprobs.length > 0 ? { logprobs } : {}),
                 ...(serviceTier !== undefined ? { serviceTier } : {}),
+                ...(requestMetadata != null
+                  ? { metadata: requestMetadata }
+                  : {}),
               } satisfies ResponsesProviderMetadata,
             };
 
