@@ -2320,6 +2320,82 @@ describe('convertToModelMessages', () => {
       `);
     });
 
+    it('should not throw when an output-denied tool part has no approval (falls back to default message)', async () => {
+      // Regression: a tool part can be in `output-denied` state without an
+      // `approval` object (e.g. denied history rehydrated from storage).
+      // `toolPart.approval.reason` previously threw
+      // "Cannot read properties of undefined (reading 'reason')".
+      const result = await convertToModelMessages([
+        {
+          parts: [
+            {
+              text: 'What is the weather in Tokyo?',
+              type: 'text',
+            },
+          ],
+          role: 'user',
+        },
+        {
+          parts: [
+            {
+              type: 'step-start',
+            },
+            {
+              input: {
+                city: 'Tokyo',
+              },
+              state: 'output-denied',
+              toolCallId: 'call-1',
+              type: 'tool-weather',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "What is the weather in Tokyo?",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "input": {
+                  "city": "Tokyo",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-call",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "error-text",
+                  "value": "Tool call execution denied.",
+                },
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+    });
+
     it('should convert tool output result with approval and follow up text (static tool)', async () => {
       const result = await convertToModelMessages([
         {
