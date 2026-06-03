@@ -12,7 +12,7 @@ import {
   isAbortError,
   type Arrayable,
   type Context,
-  type Experimental_SandboxSession as Sandbox,
+  type Experimental_SandboxSession as SandboxSession,
   type IdGenerator,
   type InferToolSetContext,
   type ModelMessage,
@@ -383,7 +383,7 @@ export function streamText<
     /**
      * The sandbox environment that is passed through to tool execution.
      */
-    experimental_sandbox?: Sandbox;
+    experimental_sandbox?: SandboxSession;
 
     /**
      * Runtime context. Treat runtime context as immutable.
@@ -866,7 +866,7 @@ class DefaultStreamTextResult<
     prompt: Prompt['prompt'];
     messages: Prompt['messages'];
     allowSystemInMessages: Prompt['allowSystemInMessages'];
-    experimental_sandbox: Sandbox | undefined;
+    experimental_sandbox: SandboxSession | undefined;
     tools: TOOLS | undefined;
     toolChoice: ToolChoice<TOOLS> | undefined;
     transforms: Array<StreamTextTransform<TOOLS>>;

@@ -7,7 +7,7 @@ import type {
  * No-op stubs for the file and spawn methods on `Experimental_SandboxSession`,
  * intended to be spread into test fixtures that only care about `run`.
  */
-export const mockSandboxFileStubs: Pick<
+export const mockSandboxSessionFileStubs: Pick<
   Experimental_SandboxSession,
   | 'readFile'
   | 'readBinaryFile'

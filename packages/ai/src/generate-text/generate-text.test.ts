@@ -12,7 +12,7 @@ import {
   jsonSchema,
   tool,
   type ModelMessage,
-  type Experimental_SandboxSession as Sandbox,
+  type Experimental_SandboxSession as SandboxSession,
   type ToolExecuteFunction,
 } from '@ai-sdk/provider-utils';
 import { mockId } from '@ai-sdk/provider-utils/test';
@@ -27,7 +27,7 @@ import {
   vi,
   vitest,
 } from 'vitest';
-import { mockSandboxFileStubs } from '../test/mock-sandbox';
+import { mockSandboxSessionFileStubs } from '../test/mock-sandbox';
 import { z } from 'zod/v4';
 import * as logWarningsModule from '../logger/log-warnings';
 import type { Instructions } from '../prompt';
@@ -8664,9 +8664,9 @@ describe('generateText', () => {
           stdout: 'ok',
           stderr: '',
         })),
-        ...mockSandboxFileStubs,
-      } satisfies Sandbox;
-      let recordedSandbox: Sandbox | undefined;
+        ...mockSandboxSessionFileStubs,
+      } satisfies SandboxSession;
+      let recordedSandbox: SandboxSession | undefined;
 
       await generateText({
         model: new MockLanguageModelV4({
@@ -8729,9 +8729,9 @@ describe('generateText', () => {
           stdout: 'ok',
           stderr: '',
         })),
-        ...mockSandboxFileStubs,
-      } satisfies Sandbox;
-      let capturedSandbox: Sandbox | undefined;
+        ...mockSandboxSessionFileStubs,
+      } satisfies SandboxSession;
+      let capturedSandbox: SandboxSession | undefined;
 
       await generateText({
         model: new MockLanguageModelV4({
@@ -8759,8 +8759,8 @@ describe('generateText', () => {
           stdout: 'ok',
           stderr: '',
         })),
-        ...mockSandboxFileStubs,
-      } satisfies Sandbox;
+        ...mockSandboxSessionFileStubs,
+      } satisfies SandboxSession;
       const stepSandbox = {
         description: 'step sandbox',
         run: vi.fn(async () => ({
@@ -8768,9 +8768,9 @@ describe('generateText', () => {
           stdout: 'ok',
           stderr: '',
         })),
-        ...mockSandboxFileStubs,
-      } satisfies Sandbox;
-      const recordedSandboxes: Array<Sandbox | undefined> = [];
+        ...mockSandboxSessionFileStubs,
+      } satisfies SandboxSession;
+      const recordedSandboxes: Array<SandboxSession | undefined> = [];
       let responseCount = 0;
 
       await generateText({

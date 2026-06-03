@@ -1,7 +1,7 @@
 import type {
   Arrayable,
   Context,
-  Experimental_SandboxSession as Sandbox,
+  Experimental_SandboxSession as SandboxSession,
   Tool,
   ToolSet,
 } from '@ai-sdk/provider-utils';
@@ -62,7 +62,7 @@ export async function createAgentUIStream<
   uiMessages: unknown[];
   abortSignal?: AbortSignal;
   timeout?: TimeoutConfiguration<TOOLS>;
-  experimental_sandbox?: Sandbox;
+  experimental_sandbox?: SandboxSession;
   options?: CALL_OPTIONS;
   experimental_transform?: Arrayable<StreamTextTransform<TOOLS>>;
   onStepFinish?: GenerateTextOnStepFinishCallback<TOOLS>;

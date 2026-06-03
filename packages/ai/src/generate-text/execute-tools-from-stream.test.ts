@@ -1,7 +1,7 @@
 import {
   delay,
   tool,
-  type Experimental_SandboxSession as Sandbox,
+  type Experimental_SandboxSession as SandboxSession,
 } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
@@ -9,7 +9,7 @@ import {
   mockId,
 } from '@ai-sdk/provider-utils/test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { mockSandboxFileStubs } from '../test/mock-sandbox';
+import { mockSandboxSessionFileStubs } from '../test/mock-sandbox';
 import { z } from 'zod/v4';
 import { TypeValidationError } from '../error';
 import { asLanguageModelUsage } from '../types/usage';
@@ -252,9 +252,9 @@ describe('executeToolsFromStream', () => {
         stdout: 'ok',
         stderr: '',
       })),
-      ...mockSandboxFileStubs,
-    } satisfies Sandbox;
-    let receivedSandbox: Sandbox | undefined;
+      ...mockSandboxSessionFileStubs,
+    } satisfies SandboxSession;
+    let receivedSandbox: SandboxSession | undefined;
 
     const tools = {
       sandboxTool: tool({

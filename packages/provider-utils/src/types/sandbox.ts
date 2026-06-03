@@ -1,5 +1,5 @@
 /**
- * Sandbox environment that can execute commands and read/write files.
+ * Sandbox session that can execute commands and read/write files.
  */
 export type Experimental_SandboxSession = {
   /**

@@ -1,6 +1,6 @@
 import type {
   Context,
-  Experimental_SandboxSession as Sandbox,
+  Experimental_SandboxSession as SandboxSession,
   InferToolSetContext,
   ModelMessage,
   ProviderOptions,
@@ -87,7 +87,7 @@ export type PrepareStepFunction<
   /**
    * The sandbox environment that the step is operating in.
    */
-  experimental_sandbox?: Sandbox;
+  experimental_sandbox?: SandboxSession;
 }) =>
   | PromiseLike<PrepareStepResult<TOOLS, RUNTIME_CONTEXT>>
   | PrepareStepResult<TOOLS, RUNTIME_CONTEXT>;
@@ -159,7 +159,7 @@ export type PrepareStepResult<
        *
        * Changing the sandbox will affect tool execution in this step only.
        */
-      experimental_sandbox?: Sandbox;
+      experimental_sandbox?: SandboxSession;
 
       /**
        * Additional provider-specific options for this step.

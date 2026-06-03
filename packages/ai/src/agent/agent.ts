@@ -1,7 +1,7 @@
 import type {
   Arrayable,
   Context,
-  Experimental_SandboxSession as Sandbox,
+  Experimental_SandboxSession as SandboxSession,
   ModelMessage,
   ToolSet,
 } from '@ai-sdk/provider-utils';
@@ -116,7 +116,7 @@ export type AgentCallParameters<
     /**
      * The sandbox environment that is passed through to tool execution.
      */
-    experimental_sandbox?: Sandbox;
+    experimental_sandbox?: SandboxSession;
   };
 
 /**
