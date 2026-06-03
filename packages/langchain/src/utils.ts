@@ -1461,6 +1461,11 @@ export function processLangGraphEvent(
                     input: toolCall.args,
                     dynamic: true,
                   });
+                } else if (toolCall.id && emittedToolCalls.has(toolCall.id)) {
+                  // Register key mapping for tool calls already emitted via messages mode
+                  // so that __interrupt__ handling can match them by key
+                  const toolCallKey = `${toolCall.name}:${JSON.stringify(toolCall.args)}`;
+                  emittedToolCallsByKey.set(toolCallKey, toolCall.id);
                 }
               }
             }
