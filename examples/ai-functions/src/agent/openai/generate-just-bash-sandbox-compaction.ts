@@ -7,7 +7,7 @@ import {
 } from 'ai';
 import { run } from '../../lib/run';
 import { anthropic } from '@ai-sdk/anthropic';
-import { JustBashSandbox } from '../../sandbox/just-bash-sandbox';
+import { JustBashSandboxSession } from '../../sandbox/just-bash-sandbox';
 import { Sandbox } from 'just-bash';
 import { openai } from '@ai-sdk/openai';
 
@@ -39,7 +39,7 @@ const compactMessages: PrepareStepFunction<{
 };
 
 run(async () => {
-  const sandbox = new JustBashSandbox(
+  const sandbox = new JustBashSandboxSession(
     await Sandbox.create({ overlayRoot: process.cwd() }),
   );
 

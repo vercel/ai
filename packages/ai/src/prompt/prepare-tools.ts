@@ -4,7 +4,7 @@ import type {
 } from '@ai-sdk/provider';
 import {
   asSchema,
-  type Experimental_Sandbox as Sandbox,
+  type Experimental_SandboxSession as SandboxSession,
   type InferToolSetContext,
   type Tool,
   type ToolSet,
@@ -18,7 +18,7 @@ export async function prepareTools<TOOLS extends ToolSet>({
 }: {
   tools: TOOLS | undefined;
   toolsContext?: InferToolSetContext<TOOLS>;
-  experimental_sandbox?: Sandbox;
+  experimental_sandbox?: SandboxSession;
 }): Promise<
   Array<LanguageModelV4FunctionTool | LanguageModelV4ProviderTool> | undefined
 > {
@@ -85,7 +85,7 @@ function resolveToolDescription<TOOLS extends ToolSet>({
   tool: Tool;
   toolName: string;
   toolsContext: InferToolSetContext<TOOLS>;
-  experimental_sandbox?: Sandbox;
+  experimental_sandbox?: SandboxSession;
 }): string | undefined {
   return tool.description === undefined
     ? undefined

@@ -7,7 +7,7 @@ import {
 import {
   createIdGenerator,
   type Arrayable,
-  type Experimental_Sandbox as Sandbox,
+  type Experimental_SandboxSession as SandboxSession,
   type IdGenerator,
   type InferToolSetContext,
   type ModelMessage,
@@ -242,9 +242,9 @@ export async function streamLanguageModelCall<
    */
   toolsContext?: InferToolSetContext<TOOLS>;
   /**
-   * Sandbox passed through for resolving tool descriptions that depend on it.
+   * Sandbox session passed through for resolving tool descriptions that depend on it.
    */
-  experimental_sandbox?: Sandbox;
+  experimental_sandbox?: SandboxSession;
   _internal?: {
     generateId?: IdGenerator;
     generateCallId?: IdGenerator;

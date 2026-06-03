@@ -958,7 +958,7 @@ than the experimental sandbox implementation's default working directory. Forwar
 
 The AI SDK forwards your experimental sandbox object but does not create or isolate one for you.
 
-The `Experimental_Sandbox` interface is only a contract. Its isolation guarantees depend on your implementation or experimental sandbox provider. A local implementation that uses
+The `Experimental_SandboxSession` interface is only a contract. Its isolation guarantees depend on your implementation or experimental sandbox provider. A local implementation that uses
 `child_process.exec` with a working directory is not a security boundary because
 commands can still access paths outside that directory. For untrusted commands
 or user-directed coding agents, use a real isolation provider, restrict

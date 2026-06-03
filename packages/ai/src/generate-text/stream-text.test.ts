@@ -18,7 +18,7 @@ import {
   tool,
   type ToolSet,
   type ModelMessage,
-  type Experimental_Sandbox as Sandbox,
+  type Experimental_SandboxSession as SandboxSession,
   type Tool,
   type ToolExecuteFunction,
 } from '@ai-sdk/provider-utils';
@@ -40,7 +40,7 @@ import {
   vi,
   vitest,
 } from 'vitest';
-import { mockSandboxFileStubs } from '../test/mock-sandbox';
+import { mockSandboxSessionFileStubs } from '../test/mock-sandbox';
 import { z } from 'zod/v4';
 import { Output, type LanguageModelCallEndEvent, type Telemetry } from '..';
 import * as logWarningsModule from '../logger/log-warnings';
@@ -22051,9 +22051,9 @@ describe('streamText', () => {
           stdout: 'ok',
           stderr: '',
         })),
-        ...mockSandboxFileStubs,
-      } satisfies Sandbox;
-      let recordedSandbox: Sandbox | undefined;
+        ...mockSandboxSessionFileStubs,
+      } satisfies SandboxSession;
+      let recordedSandbox: SandboxSession | undefined;
 
       const result = streamText({
         model: createTestModel({
@@ -22128,9 +22128,9 @@ describe('streamText', () => {
           stdout: 'ok',
           stderr: '',
         })),
-        ...mockSandboxFileStubs,
-      } satisfies Sandbox;
-      let capturedSandbox: Sandbox | undefined;
+        ...mockSandboxSessionFileStubs,
+      } satisfies SandboxSession;
+      let capturedSandbox: SandboxSession | undefined;
 
       const result = streamText({
         model: new MockLanguageModelV4({
@@ -22169,8 +22169,8 @@ describe('streamText', () => {
           stdout: 'ok',
           stderr: '',
         })),
-        ...mockSandboxFileStubs,
-      } satisfies Sandbox;
+        ...mockSandboxSessionFileStubs,
+      } satisfies SandboxSession;
       const stepSandbox = {
         description: 'step sandbox',
         run: vi.fn(async () => ({
@@ -22178,9 +22178,9 @@ describe('streamText', () => {
           stdout: 'ok',
           stderr: '',
         })),
-        ...mockSandboxFileStubs,
-      } satisfies Sandbox;
-      const recordedSandboxes: Array<Sandbox | undefined> = [];
+        ...mockSandboxSessionFileStubs,
+      } satisfies SandboxSession;
+      const recordedSandboxes: Array<SandboxSession | undefined> = [];
       let responseCount = 0;
 
       const result = streamText({
@@ -26522,7 +26522,7 @@ describe('streamText', () => {
       let result: StreamTextResult<any, any, any>;
       let prompts: LanguageModelV4Prompt[];
       let executeFunction: ToolExecuteFunction<any, any, any>;
-      let sandbox: Sandbox;
+      let sandbox: SandboxSession;
 
       beforeEach(async () => {
         prompts = [];
@@ -26534,7 +26534,7 @@ describe('streamText', () => {
             stdout: 'ok',
             stderr: '',
           })),
-          ...mockSandboxFileStubs,
+          ...mockSandboxSessionFileStubs,
         };
         result = streamText({
           model: new MockLanguageModelV4({

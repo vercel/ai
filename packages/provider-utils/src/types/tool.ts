@@ -10,7 +10,7 @@ import type {
   ToolExecutionOptions,
 } from './tool-execute-function';
 import type { ToolNeedsApprovalFunction } from './tool-needs-approval-function';
-import type { Experimental_Sandbox as Sandbox } from './sandbox';
+import type { Experimental_SandboxSession as SandboxSession } from './sandbox';
 
 /**
  * Helper type to determine the outputSchema and execute function properties of a tool.
@@ -190,7 +190,7 @@ type BaseFunctionTool<
     | string
     | ((options: {
         context: NoInfer<CONTEXT>;
-        experimental_sandbox?: Sandbox;
+        experimental_sandbox?: SandboxSession;
       }) => string);
 
   /**

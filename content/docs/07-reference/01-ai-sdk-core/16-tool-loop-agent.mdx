@@ -693,7 +693,7 @@ const result = await agent.generate({
     },
     {
       name: 'experimental_sandbox',
-      type: 'Experimental_Sandbox',
+      type: 'Experimental_SandboxSession',
       isOptional: true,
       description:
         'Experimental sandbox environment that is passed through to `prepareStep`, tool description functions, and tool execution. Tools can access it from their description function options and execution options.',
@@ -802,7 +802,7 @@ for await (const chunk of stream.textStream) {
     },
     {
       name: 'experimental_sandbox',
-      type: 'Experimental_Sandbox',
+      type: 'Experimental_SandboxSession',
       isOptional: true,
       description:
         'Experimental sandbox environment that is passed through to `prepareStep`, tool description functions, and tool execution. Tools can access it from their description function options and execution options.',

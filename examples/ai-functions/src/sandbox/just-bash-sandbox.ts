@@ -3,7 +3,7 @@ import {
   extractLines,
   type Experimental_SandboxProcess,
 } from '@ai-sdk/provider-utils';
-import { type Experimental_Sandbox as Sandbox } from 'ai';
+import { type Experimental_SandboxSession as SandboxSession } from 'ai';
 import {
   type SandboxCommand,
   type Sandbox as JustBashSandboxSDK,
@@ -14,7 +14,7 @@ import {
   collectStreamToString,
 } from './lib/stream-utils';
 
-export class JustBashSandbox implements Sandbox {
+export class JustBashSandboxSession implements SandboxSession {
   constructor(private readonly sandbox: JustBashSandboxSDK) {}
 
   private resolvePath(path: string): string {

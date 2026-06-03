@@ -4,7 +4,7 @@ import type {
   IdGenerator,
   InferToolSetContext,
   ModelMessage,
-  Experimental_Sandbox as Sandbox,
+  Experimental_SandboxSession as SandboxSession,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import type { TimeoutConfiguration } from '../prompt/request-options';
@@ -54,7 +54,7 @@ export function executeToolsFromStream<
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   timeout?: TimeoutConfiguration<TOOLS>;
-  experimental_sandbox?: Sandbox;
+  experimental_sandbox?: SandboxSession;
   toolsContext: InferToolSetContext<TOOLS>;
   toolApproval?: ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>;
   runtimeContext: RUNTIME_CONTEXT;

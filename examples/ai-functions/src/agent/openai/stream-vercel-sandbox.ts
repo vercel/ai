@@ -1,11 +1,11 @@
 import { Sandbox } from '@vercel/sandbox';
 import { run } from '../../lib/run';
-import { VercelSandbox } from '../../sandbox/vercel-sandbox';
+import { VercelSandboxSession } from '../../sandbox/vercel-sandbox';
 import { sandboxAgent } from './sandbox-agent';
 import { printFullStream } from '../../lib/print-full-stream';
 
 run(async () => {
-  const sandbox = new VercelSandbox(
+  const sandbox = new VercelSandboxSession(
     await Sandbox.create({
       timeout: 5 * 60 * 1000,
       runtime: 'node22',
