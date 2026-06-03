@@ -2303,6 +2303,9 @@ describe('toUIMessageStream HITL interrupt key matching with dual streamMode', (
     expect(approvalEvents[0]).toMatchObject({
       toolCallId: toolCallId,
     });
+  });
+});
+
 describe('toUIMessageStream end-to-end with processUIMessageStream', () => {
   // These tests verify that the adapter output is valid for the client-side
   // processUIMessageStream by feeding real fixture data through both.
