@@ -1,0 +1,13 @@
+{
+  "name": "@vercel/http-proxy-server",
+  "version": "0.0.4",
+  "private": true,
+  "license": "Apache-2.0",
+  "scripts": {
+    "lint": "biome check index.ts package.json tsconfig.json turbo.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "build": "sh scripts/build-binaries.sh",
+    "test": "go test ./...",
+    "build:binaries": "scripts/build-binaries.sh"
+  }
+}

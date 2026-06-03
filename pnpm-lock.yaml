@@ -3626,6 +3626,37 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
 
+  tools/harness-http-proxy:
+    dependencies:
+      '@ai-sdk/harness':
+        specifier: workspace:*
+        version: link:../../packages/harness
+      '@ai-sdk/sandbox-vercel':
+        specifier: workspace:*
+        version: link:../../packages/sandbox-vercel
+    devDependencies:
+      '@types/node':
+        specifier: 22.19.19
+        version: 22.19.19
+      '@types/ws':
+        specifier: ^8.5.13
+        version: 8.18.1
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      '@vercel/sandbox':
+        specifier: ^2.0.1
+        version: 2.0.1
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(jiti@2.7.0)(postcss@8.5.14)(tsx@4.22.0)(typescript@5.8.3)(yaml@2.9.0)
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+      ws:
+        specifier: ^8.20.1
+        version: 8.20.1
+
   tools/konsistent-provider:
     dependencies:
       '@konsistent/convention':
