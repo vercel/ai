@@ -136,6 +136,67 @@ describe('GoogleVertexEmbeddingModel', () => {
       `);
     });
 
+    it('should pass default provider model settings', async () => {
+      const provider = createGoogleVertex({
+        project: 'test-project',
+        location: 'us-central1',
+      });
+
+      await provider
+        .textEmbeddingModel(mockModelId, { outputDimensionality: 1536 })
+        .doEmbed({
+          values: testValues,
+        });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "instances": [
+            {
+              "content": "test text one",
+            },
+            {
+              "content": "test text two",
+            },
+          ],
+          "parameters": {
+            "outputDimensionality": 1536,
+          },
+        }
+      `);
+    });
+
+    it('should prefer per-call provider options over default model settings', async () => {
+      const modelWithDefaultSettings = new GoogleVertexEmbeddingModel(
+        mockModelId,
+        mockConfig,
+        { autoTruncate: true, outputDimensionality: 1536 },
+      );
+
+      await modelWithDefaultSettings.doEmbed({
+        values: testValues,
+        providerOptions: {
+          googleVertex: { outputDimensionality: 768 },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "instances": [
+            {
+              "content": "test text one",
+            },
+            {
+              "content": "test text two",
+            },
+          ],
+          "parameters": {
+            "autoTruncate": true,
+            "outputDimensionality": 768,
+          },
+        }
+      `);
+    });
+
     it('should accept googleVertex as provider options key', async () => {
       await model.doEmbed({
         values: testValues,
