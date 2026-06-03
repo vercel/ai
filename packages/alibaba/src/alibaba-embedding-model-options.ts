@@ -17,18 +17,7 @@ export const alibabaEmbeddingModelOptions = z.object({
    *
    * `text-embedding-v4` also supports 1536 and 2048 dimensions.
    */
-  dimension: z
-    .union([
-      z.literal(64),
-      z.literal(128),
-      z.literal(256),
-      z.literal(512),
-      z.literal(768),
-      z.literal(1024),
-      z.literal(1536),
-      z.literal(2048),
-    ])
-    .optional(),
+  dimension: z.number().optional(),
 
   /**
    * The output vector type. Defaults to `dense`.
