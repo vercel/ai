@@ -574,7 +574,7 @@ describe('ByteDanceVideoModel', () => {
       });
     });
 
-    it('should add last frame image with role', async () => {
+    it('should add last frame image with role and tag the input image as first frame', async () => {
       const model = createBasicModel({
         modelId: 'seedance-1-5-pro-251215',
       });
@@ -601,6 +601,7 @@ describe('ByteDanceVideoModel', () => {
         {
           type: 'image_url',
           image_url: { url: 'https://example.com/first-frame.png' },
+          role: 'first_frame',
         },
         {
           type: 'image_url',
