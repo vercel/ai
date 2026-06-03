@@ -1,0 +1,81 @@
+---
+title: Okahu
+description: Monitor and trace your GenAI application with Okahu and Monocle
+---
+
+# Okahu Observability
+
+[Okahu](https://www.okahu.ai) is an AI observability platform that captures traces and metrics from GenAI application components, automatically discovers relationships between them, and measures application behavior against performance and reliability goals.
+
+Okahu uses [Monocle](https://github.com/monocle2ai/monocle-typescript), an open-source GenAI tracing framework governed as a Linux Foundation AI & Data project. Monocle generates OpenTelemetry-compatible traces with minimal instrumentation code.
+
+## Setup
+
+### Install Monocle
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add monocle2ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install monocle2ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add monocle2ai" dark />
+  </Tab>
+</Tabs>
+
+### Initialize Monocle in your Next.js application
+
+Add Monocle to your `instrumentation.ts` file following the [Next.js instrumentation convention](https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation):
+
+```ts filename="instrumentation.ts"
+import { setupMonocle } from 'monocle2ai';
+
+export function register() {
+  setupMonocle('my-app');
+}
+```
+
+The `setupMonocle` call automatically instruments your application to capture traces. Monocle has native support for the Vercel AI SDK (e.g. `generateText`) and detects providers including OpenAI, Azure OpenAI, Anthropic, and Amazon Bedrock. It also instruments other GenAI frameworks such as Langchain, LlamaIndex, and Google Gemini.
+
+### Configure trace export
+
+Monocle supports exporting traces to multiple destinations. Configure the exporter using environment variables.
+
+<Tabs items={['AWS S3', 'Azure Blob Storage']}>
+
+<Tab>
+
+```bash filename=".env"
+MONOCLE_EXPORTER=s3
+MONOCLE_S3_BUCKET_NAME=your-bucket-name
+MONOCLE_S3_KEY_PREFIX=monocle_trace_
+MONOCLE_AWS_ACCESS_KEY_ID=your-access-key
+MONOCLE_AWS_SECRET_ACCESS_KEY=your-secret-key
+```
+
+</Tab>
+
+<Tab>
+
+```bash filename=".env"
+MONOCLE_EXPORTER=azure
+```
+
+</Tab>
+</Tabs>
+
+### Okahu Cloud
+
+To use [Okahu Cloud](https://portal.okahu.co) for collaborative observability across development and production, sign up at [portal.okahu.co](https://portal.okahu.co) and refer to the [Okahu documentation](https://docs.okahu.ai) to connect your Monocle traces to the Okahu platform.
+
+## Example Application
+
+See the [chatbot-coffee-vercel](https://github.com/okahu-demos/chatbot-coffee-vercel) demo repository for a complete example of a Next.js chatbot instrumented with Monocle and deployed on Vercel.
+
+## Resources
+
+- [Okahu documentation](https://docs.okahu.ai)
+- [Monocle TypeScript SDK](https://github.com/monocle2ai/monocle-typescript)
+- [Okahu Cloud portal](https://portal.okahu.co)
