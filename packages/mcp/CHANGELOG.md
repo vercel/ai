@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 1.0.46
+
+### Patch Changes
+
+- 1f817db: fix(mcp): await addClientAuthentication in token exchange and refresh
+
 ## 1.0.45
 
 ### Patch Changes

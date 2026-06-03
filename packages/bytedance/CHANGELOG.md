@@ -1,5 +1,11 @@
 # @ai-sdk/bytedance
 
+## 1.0.15
+
+### Patch Changes
+
+- 4bebe78: Fix ByteDance video payloads to tag the prompt image as the first frame when a last frame image is provided.
+
 ## 1.0.14
 
 ### Patch Changes
