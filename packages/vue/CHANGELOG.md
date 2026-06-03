@@ -1,5 +1,11 @@
 # @ai-sdk/vue
 
+## 4.0.0-canary.162
+
+### Patch Changes
+
+- ai@7.0.0-canary.162
+
 ## 4.0.0-canary.161
 
 ### Patch Changes

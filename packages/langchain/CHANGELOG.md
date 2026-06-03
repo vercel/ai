@@ -1,5 +1,12 @@
 # @ai-sdk/langchain
 
+## 3.0.0-canary.162
+
+### Patch Changes
+
+- 3711955: fix(langchain): reset streamEvents text between model invocations
+  - ai@7.0.0-canary.162
+
 ## 3.0.0-canary.161
 
 ### Patch Changes
