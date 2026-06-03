@@ -237,10 +237,11 @@ Errors inside integrations are caught and do not break the generation flow.
 
 ### Tracing channel
 
-In Node.js, AI SDK telemetry lifecycle events are also published to the
-`aisdk.telemetry` [tracing channel](https://nodejs.org/api/diagnostics_channel.html#diagnostics_channeltracingchannelnameorchannels).
+In Node.js, AI SDK telemetry lifecycle and execution events are also traced on
+the `aisdk:telemetry` [tracing channel](https://nodejs.org/api/diagnostics_channel.html#diagnostics_channeltracingchannelnameorchannels).
 This lets observability providers subscribe to AI SDK telemetry events without
-requiring users to register a separate telemetry integration.
+requiring users to register a separate telemetry integration, and bind async
+context across provider calls and tool executions.
 
 ```ts
 import { tracingChannel } from 'node:diagnostics_channel';
@@ -262,7 +263,7 @@ tracingChannel(AI_SDK_TELEMETRY_TRACING_CHANNEL).subscribe({
 
 Tracing-channel events follow the same per-call telemetry settings as other
 telemetry integrations. Setting `telemetry: { isEnabled: false }` disables both
-registered integrations and tracing-channel publication for that call.
+registered integrations and tracing-channel events for that call.
 
 ### Building a custom integration
 
