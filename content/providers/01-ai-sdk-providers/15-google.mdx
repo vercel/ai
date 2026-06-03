@@ -1935,3 +1935,80 @@ console.log(result.providerMetadata?.google?.groundingMetadata);
   2K, 4K via `providerOptions.google.imageConfig.imageSize`), and Google Search
   grounding.
 </Note>
+
+## Speech Models
+
+You can create models that call the [Gemini text-to-speech API](https://ai.google.dev/gemini-api/docs/speech-generation)
+using the `.speech()` factory method.
+
+The first argument is the model id e.g. `gemini-2.5-flash-preview-tts`.
+
+```ts
+const model = google.speech('gemini-2.5-flash-preview-tts');
+```
+
+The `voice` argument can be set to one of Gemini's [30 prebuilt voices](https://ai.google.dev/gemini-api/docs/speech-generation#voices)
+e.g. `Kore`, `Puck`, `Zephyr`, or `Charon`. Voice names are case-sensitive. It defaults to `Kore`.
+
+```ts highlight="6"
+import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { google } from '@ai-sdk/google';
+
+const result = await generateSpeech({
+  model: google.speech('gemini-2.5-flash-preview-tts'),
+  text: 'Hello, world!',
+  voice: 'Kore', // Gemini voice name
+});
+```
+
+By default the generated audio is returned as a playable WAV file (`result.audio.mediaType` is
+`audio/wav`). Set `outputFormat: 'pcm'` to receive the raw signed 16-bit little-endian mono PCM
+bytes instead; the sample rate is reported in `result.providerMetadata.google.sampleRate`.
+
+Gemini honors natural-language style direction. The `instructions` argument is prepended to the
+spoken text, so `instructions: 'Say cheerfully'` with `text: 'Hello'` speaks `Say cheerfully: Hello`.
+
+### Multi-speaker audio
+
+For multi-speaker dialogue, pass a `multiSpeakerVoiceConfig` through `providerOptions`. Each speaker
+name must match a name used in the input text. When set, it overrides the top-level `voice`.
+
+```ts highlight="8-23"
+import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { google, type GoogleSpeechModelOptions } from '@ai-sdk/google';
+
+const result = await generateSpeech({
+  model: google.speech('gemini-2.5-flash-preview-tts'),
+  text: 'Joe: How are you? Jane: Doing great, thanks!',
+  providerOptions: {
+    google: {
+      multiSpeakerVoiceConfig: {
+        speakerVoiceConfigs: [
+          {
+            speaker: 'Joe',
+            voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } },
+          },
+          {
+            speaker: 'Jane',
+            voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Puck' } },
+          },
+        ],
+      },
+    } satisfies GoogleSpeechModelOptions,
+  },
+});
+```
+
+<Note>
+  Gemini TTS models do not support the `speed` or `language` options; passing
+  them adds a warning to `result.warnings`. Language is detected automatically
+  from the input text.
+</Note>
+
+### Model Capabilities
+
+| Model                          | Multi-speaker       | Style via instructions |
+| ------------------------------ | ------------------- | ---------------------- |
+| `gemini-2.5-flash-preview-tts` | <Check size={18} /> | <Check size={18} />    |
+| `gemini-2.5-pro-preview-tts`   | <Check size={18} /> | <Check size={18} />    |
+| `gemini-3.1-flash-tts-preview` | <Check size={18} /> | <Check size={18} />    |
