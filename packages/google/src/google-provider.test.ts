@@ -5,6 +5,7 @@ import { GoogleLanguageModel } from './google-language-model';
 import { GoogleEmbeddingModel } from './google-embedding-model';
 import { GoogleImageModel } from './google-image-model';
 import { GoogleVideoModel } from './google-video-model';
+import { GoogleSpeechModel } from './google-speech-model';
 
 // Mock the imported modules using a partial mock to preserve original exports
 vi.mock('@ai-sdk/provider-utils', async importOriginal => {
@@ -29,6 +30,9 @@ vi.mock('./google-image-model', () => ({
 }));
 vi.mock('./google-video-model', () => ({
   GoogleVideoModel: vi.fn(),
+}));
+vi.mock('./google-speech-model', () => ({
+  GoogleSpeechModel: vi.fn(),
 }));
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
@@ -353,6 +357,58 @@ describe('google provider - video', () => {
       'veo-3.1-generate-preview',
       expect.objectContaining({
         generateId: customGenerateId,
+      }),
+    );
+  });
+});
+
+describe('google provider - speech', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should create a speech model with default settings', () => {
+    const provider = createGoogle({
+      apiKey: 'test-api-key',
+    });
+    provider.speech('gemini-2.5-flash-preview-tts');
+
+    expect(GoogleSpeechModel).toHaveBeenCalledWith(
+      'gemini-2.5-flash-preview-tts',
+      expect.objectContaining({
+        provider: 'google.generative-ai.speech',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: expect.any(Function),
+      }),
+    );
+  });
+
+  it('should create a speech model via speechModel()', () => {
+    const provider = createGoogle({
+      apiKey: 'test-api-key',
+    });
+    provider.speechModel('gemini-2.5-pro-preview-tts');
+
+    expect(GoogleSpeechModel).toHaveBeenCalledWith(
+      'gemini-2.5-pro-preview-tts',
+      expect.objectContaining({
+        provider: 'google.generative-ai.speech',
+      }),
+    );
+  });
+
+  it('should use custom baseURL for speech model when provided', () => {
+    const customBaseURL = 'https://custom-endpoint.example.com';
+    const provider = createGoogle({
+      apiKey: 'test-api-key',
+      baseURL: customBaseURL,
+    });
+    provider.speech('gemini-2.5-flash-preview-tts');
+
+    expect(GoogleSpeechModel).toHaveBeenCalledWith(
+      'gemini-2.5-flash-preview-tts',
+      expect.objectContaining({
+        baseURL: customBaseURL,
       }),
     );
   });

@@ -7,6 +7,7 @@ import type {
   ProviderV4,
   Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
   Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
+  SpeechModelV4,
 } from '@ai-sdk/provider';
 import {
   generateId,
@@ -30,6 +31,8 @@ import { GoogleImageModel } from './google-image-model';
 import { GoogleFiles } from './google-files';
 import { GoogleVideoModel } from './google-video-model';
 import type { GoogleVideoModelId } from './google-video-settings';
+import { GoogleSpeechModel } from './google-speech-model';
+import type { GoogleSpeechModelId } from './google-speech-model-options';
 import {
   GoogleInteractionsLanguageModel,
   type GoogleInteractionsModelInput,
@@ -87,6 +90,16 @@ export interface GoogleProvider extends ProviderV4 {
    * Creates a model for video generation.
    */
   videoModel(modelId: GoogleVideoModelId): Experimental_VideoModelV4;
+
+  /**
+   * Creates a model for speech generation (text-to-speech).
+   */
+  speech(modelId: GoogleSpeechModelId): SpeechModelV4;
+
+  /**
+   * Creates a model for speech generation (text-to-speech).
+   */
+  speechModel(modelId: GoogleSpeechModelId): SpeechModelV4;
 
   files(): FilesV4;
 
@@ -236,6 +249,14 @@ export function createGoogle(
       fetch: options.fetch,
     });
 
+  const createSpeechModel = (modelId: GoogleSpeechModelId) =>
+    new GoogleSpeechModel(modelId, {
+      provider: `${providerName}.speech`,
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const experimentalRealtimeFactory = Object.assign(
     (modelId: string) => createRealtimeModel(modelId),
     {
@@ -296,6 +317,8 @@ export function createGoogle(
   provider.videoModel = createVideoModel;
   provider.experimental_realtime = experimentalRealtimeFactory;
   provider.files = createFiles;
+  provider.speech = createSpeechModel;
+  provider.speechModel = createSpeechModel;
   provider.interactions = createInteractionsModel;
   provider.tools = googleTools;
 

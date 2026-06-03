@@ -29,6 +29,10 @@ export type {
   /** @deprecated Use `GoogleVideoModelId` instead. */
   GoogleVideoModelId as GoogleGenerativeAIVideoModelId,
 } from './google-video-settings';
+export type {
+  GoogleSpeechModelOptions,
+  GoogleSpeechModelId,
+} from './google-speech-model-options';
 export type { GoogleFilesUploadOptions } from './google-files';
 export type {
   GoogleLanguageModelInteractionsOptions,
