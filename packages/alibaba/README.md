@@ -66,10 +66,7 @@ console.log('Answer:', text);
 ## Embedding Model Example
 
 ```ts
-import {
-  alibaba,
-  type AlibabaEmbeddingModelOptions,
-} from '@ai-sdk/alibaba';
+import { alibaba, type AlibabaEmbeddingModelOptions } from '@ai-sdk/alibaba';
 import { embed } from 'ai';
 
 const { embedding, usage } = await embed({
