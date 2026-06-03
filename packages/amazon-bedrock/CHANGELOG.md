@@ -1,5 +1,26 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.0-canary.75
+
+### Patch Changes
+
+- 32603d2: fix (provider/amazon-bedrock): correct mantle subpath exports
+
+## 5.0.0-canary.74
+
+### Patch Changes
+
+- Updated dependencies [e776fc7]
+  - @ai-sdk/openai@4.0.0-canary.66
+
+## 5.0.0-canary.73
+
+### Patch Changes
+
+- e02f041: feat(provider/anthropic): add support for `claude-opus-4-8`
+- Updated dependencies [e02f041]
+  - @ai-sdk/anthropic@4.0.0-canary.61
+
 ## 5.0.0-canary.72
 
 ### Patch Changes
