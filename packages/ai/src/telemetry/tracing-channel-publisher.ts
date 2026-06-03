@@ -37,8 +37,9 @@ async function loadDiagnosticsChannel(): Promise<
 
 /**
  * Runs an async operation inside the AI SDK telemetry tracing channel when
- * tracing subscribers exist. Without Node diagnostics-channel support, without
- * tracingChannel support, or without subscribers, this is a direct pass-through.
+ * tracing subscribers may exist. Without Node diagnostics-channel support,
+ * without tracingChannel support, or when the runtime reports no subscribers,
+ * this is a direct pass-through.
  *
  * The execution bookkeeping preserves the original model/tool result or error
  * if tracing itself throws, and prevents falling back by calling `execute` a
@@ -53,7 +54,7 @@ export async function traceTelemetryChannelPromise<T>(
     AI_SDK_TELEMETRY_TRACING_CHANNEL,
   );
 
-  if (tracingChannel?.hasSubscribers !== true) {
+  if (tracingChannel == null || tracingChannel.hasSubscribers === false) {
     return await execute();
   }
 
