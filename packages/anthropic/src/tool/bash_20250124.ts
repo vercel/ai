@@ -1,7 +1,7 @@
 import {
   createProviderDefinedToolFactory,
   lazySchema,
-  type Experimental_Sandbox as Sandbox,
+  type Experimental_SandboxSession as Sandbox,
   type ProviderDefinedTool,
   type Tool,
   type ToolExecuteFunction,

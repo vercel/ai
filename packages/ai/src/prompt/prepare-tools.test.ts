@@ -1,7 +1,7 @@
 import { z } from 'zod/v4';
 import {
   tool,
-  type Experimental_Sandbox as Sandbox,
+  type Experimental_SandboxSession as Sandbox,
   type Tool,
   type ToolSet,
 } from '@ai-sdk/provider-utils';

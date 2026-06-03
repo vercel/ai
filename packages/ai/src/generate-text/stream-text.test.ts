@@ -18,7 +18,7 @@ import {
   tool,
   type ToolSet,
   type ModelMessage,
-  type Experimental_Sandbox as Sandbox,
+  type Experimental_SandboxSession as Sandbox,
   type Tool,
   type ToolExecuteFunction,
 } from '@ai-sdk/provider-utils';

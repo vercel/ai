@@ -1,7 +1,7 @@
 import type {
   Arrayable,
   Context,
-  Experimental_Sandbox as Sandbox,
+  Experimental_SandboxSession as Sandbox,
   Tool,
   ToolSet,
 } from '@ai-sdk/provider-utils';

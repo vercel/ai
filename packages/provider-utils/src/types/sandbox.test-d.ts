@@ -1,18 +1,20 @@
 import { expectTypeOf, test } from 'vitest';
 import type {
-  Experimental_Sandbox,
+  Experimental_SandboxSession,
   Experimental_SandboxProcess,
 } from './sandbox';
 
-test('Experimental_Sandbox exposes spawn returning a process handle', () => {
-  expectTypeOf<Experimental_Sandbox['spawn']>().toBeFunction();
-  expectTypeOf<Parameters<Experimental_Sandbox['spawn']>[0]>().toEqualTypeOf<{
+test('Experimental_SandboxSession exposes spawn returning a process handle', () => {
+  expectTypeOf<Experimental_SandboxSession['spawn']>().toBeFunction();
+  expectTypeOf<
+    Parameters<Experimental_SandboxSession['spawn']>[0]
+  >().toEqualTypeOf<{
     command: string;
     workingDirectory?: string;
     abortSignal?: AbortSignal;
   }>();
   expectTypeOf<
-    Awaited<ReturnType<Experimental_Sandbox['spawn']>>
+    Awaited<ReturnType<Experimental_SandboxSession['spawn']>>
   >().toEqualTypeOf<Experimental_SandboxProcess>();
 });
 

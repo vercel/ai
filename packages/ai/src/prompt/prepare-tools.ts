@@ -4,7 +4,7 @@ import type {
 } from '@ai-sdk/provider';
 import {
   asSchema,
-  type Experimental_Sandbox as Sandbox,
+  type Experimental_SandboxSession as Sandbox,
   type InferToolSetContext,
   type Tool,
   type ToolSet,

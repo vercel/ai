@@ -1,7 +1,7 @@
 /**
  * Sandbox environment that can execute commands and read/write files.
  */
-export type Experimental_Sandbox = {
+export type Experimental_SandboxSession = {
   /**
    * Description of the sandbox environment that can be added to the agent's instructions
    * so that the agent knows about relevant details such as the root directory, exposed
@@ -214,7 +214,7 @@ export type Experimental_Sandbox = {
 };
 
 /**
- * Handle to a long-running process started via `Experimental_Sandbox.spawn`.
+ * Handle to a long-running process started via `Experimental_SandboxSession.spawn`.
  */
 export type Experimental_SandboxProcess = {
   /**

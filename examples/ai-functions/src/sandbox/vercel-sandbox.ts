@@ -4,7 +4,7 @@ import {
   extractLines,
   type Experimental_SandboxProcess,
 } from '@ai-sdk/provider-utils';
-import { type Experimental_Sandbox as Sandbox } from 'ai';
+import { type Experimental_SandboxSession as Sandbox } from 'ai';
 import type { Command, Sandbox as VercelSandboxSDK } from '@vercel/sandbox';
 import {
   bytesToStream,

@@ -1,6 +1,6 @@
 import {
   tool,
-  type Experimental_Sandbox as Sandbox,
+  type Experimental_SandboxSession as Sandbox,
 } from '@ai-sdk/provider-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mockSandboxFileStubs } from '../test/mock-sandbox';

@@ -1,7 +1,7 @@
 import { describe, expectTypeOf, it } from 'vitest';
 import type { Context } from './context';
 import type { ModelMessage } from './model-message';
-import type { Experimental_Sandbox as Sandbox } from './sandbox';
+import type { Experimental_SandboxSession as Sandbox } from './sandbox';
 import type {
   ToolExecuteFunction,
   ToolExecutionOptions,

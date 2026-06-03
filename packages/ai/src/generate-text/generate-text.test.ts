@@ -12,7 +12,7 @@ import {
   jsonSchema,
   tool,
   type ModelMessage,
-  type Experimental_Sandbox as Sandbox,
+  type Experimental_SandboxSession as Sandbox,
   type ToolExecuteFunction,
 } from '@ai-sdk/provider-utils';
 import { mockId } from '@ai-sdk/provider-utils/test';

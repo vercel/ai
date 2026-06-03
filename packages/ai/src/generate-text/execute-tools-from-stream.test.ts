@@ -1,7 +1,7 @@
 import {
   delay,
   tool,
-  type Experimental_Sandbox as Sandbox,
+  type Experimental_SandboxSession as Sandbox,
 } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,

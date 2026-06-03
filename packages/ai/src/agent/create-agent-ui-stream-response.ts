@@ -1,7 +1,7 @@
 import type {
   Arrayable,
   Context,
-  Experimental_Sandbox as Sandbox,
+  Experimental_SandboxSession as Sandbox,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import type { GenerateTextOnStepFinishCallback } from '../generate-text/generate-text-events';

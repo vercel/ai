@@ -1,7 +1,7 @@
 import {
   validateTypes,
   type Context,
-  type Experimental_Sandbox as Sandbox,
+  type Experimental_SandboxSession as Sandbox,
   type ModelMessage,
   type ToolSet,
 } from '@ai-sdk/provider-utils';

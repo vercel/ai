@@ -1,6 +1,6 @@
 import type { LanguageModelV4CallOptions } from '@ai-sdk/provider';
 import {
-  type Experimental_Sandbox as Sandbox,
+  type Experimental_SandboxSession as Sandbox,
   tool,
 } from '@ai-sdk/provider-utils';
 import {

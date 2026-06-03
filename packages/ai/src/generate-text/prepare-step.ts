@@ -1,6 +1,6 @@
 import type {
   Context,
-  Experimental_Sandbox as Sandbox,
+  Experimental_SandboxSession as Sandbox,
   InferToolSetContext,
   ModelMessage,
   ProviderOptions,

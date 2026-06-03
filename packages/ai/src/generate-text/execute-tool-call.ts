@@ -2,7 +2,7 @@ import {
   executeTool,
   isExecutableTool,
   type Arrayable,
-  type Experimental_Sandbox as Sandbox,
+  type Experimental_SandboxSession as Sandbox,
   type InferToolInput,
   type InferToolSetContext,
   type ModelMessage,

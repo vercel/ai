@@ -4,7 +4,7 @@ import type {
   IdGenerator,
   InferToolSetContext,
   ModelMessage,
-  Experimental_Sandbox as Sandbox,
+  Experimental_SandboxSession as Sandbox,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import type { TimeoutConfiguration } from '../prompt/request-options';

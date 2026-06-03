@@ -7,7 +7,7 @@ import {
 import {
   createIdGenerator,
   type Arrayable,
-  type Experimental_Sandbox as Sandbox,
+  type Experimental_SandboxSession as Sandbox,
   type IdGenerator,
   type InferToolSetContext,
   type ModelMessage,
