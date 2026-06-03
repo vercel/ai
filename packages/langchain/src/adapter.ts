@@ -150,8 +150,41 @@ function processStreamEventsEvent(
   switch (event.event) {
     case 'on_chat_model_start': {
       /**
-       * Handle model start - capture message metadata if available
-       * run_id is at event level in v2, but check data for backwards compatibility
+       * End the previous model turn's reasoning stream before a new LLM invocation.
+       * Without this, reasoning-delta chunks from the next turn could attach to the
+       * wrong reasoning part in the UI message stream.
+       */
+      if (state.reasoningStarted) {
+        controller.enqueue({
+          type: 'reasoning-end',
+          id:
+            state.reasoningMessageId != null
+              ? state.reasoningMessageId
+              : state.messageId,
+        });
+        state.reasoningStarted = false;
+        state.reasoningMessageId = null;
+      }
+
+      /**
+       * End the previous model turn's text stream before a new LLM invocation.
+       * The streamEvents adapter otherwise leaves `textStarted` true, so all later
+       * text-delta chunks append to the first text part — tools still grow the parts
+       * array, which breaks chronological order in the assistant message.
+       */
+      if (state.textStarted) {
+        controller.enqueue({
+          type: 'text-end',
+          id:
+            state.textMessageId != null ? state.textMessageId : state.messageId,
+        });
+        state.textStarted = false;
+        state.textMessageId = null;
+      }
+
+      /**
+       * Handle model start — capture message metadata if available.
+       * `run_id` is on the event in streamEvents v2; fall back to `data` for compatibility.
        */
       const runId = event.run_id || (event.data.run_id as string | undefined);
       if (runId) {
