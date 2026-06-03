@@ -187,9 +187,19 @@ export function createGoogleVertexAnthropic(
       environmentVariableName: 'GOOGLE_VERTEX_PROJECT',
     });
 
+    const getHost = () => {
+      if (location === 'global') {
+        return 'aiplatform.googleapis.com';
+      } else if (location === 'eu' || location === 'us') {
+        return `aiplatform.${location}.rep.googleapis.com`;
+      } else {
+        return `${location}-aiplatform.googleapis.com`;
+      }
+    };
+
     return (
       withoutTrailingSlash(options.baseURL) ??
-      `https://${location === 'global' ? '' : location + '-'}aiplatform.googleapis.com/v1/projects/${project}/locations/${location}/publishers/anthropic/models`
+      `https://${getHost()}/v1/projects/${project}/locations/${location}/publishers/anthropic/models`
     );
   };
 

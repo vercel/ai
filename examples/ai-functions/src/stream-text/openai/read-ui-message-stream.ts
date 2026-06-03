@@ -3,6 +3,7 @@ import {
   readUIMessageStream,
   isStepCount,
   streamText,
+  toUIMessageStream,
   tool,
   type Tool,
 } from 'ai';
@@ -40,7 +41,7 @@ run(async () => {
   });
 
   for await (const uiMessage of readUIMessageStream({
-    stream: result.toUIMessageStream(),
+    stream: toUIMessageStream({ stream: result.stream }),
   })) {
     console.clear();
     console.log(JSON.stringify(uiMessage, null, 2));

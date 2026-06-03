@@ -71,7 +71,12 @@ export default function Chat() {
 On the backend, create a route handler that uses `streamText` and returns a `UIMessageStreamResponse`. The tool has an `execute` function that runs automatically when the model calls it.
 
 ```ts filename="app/api/chat/route.ts"
-import { streamText, tool } from 'ai';
+import {
+  streamText,
+  tool,
+  createUIMessageStreamResponse,
+  toUIMessageStream,
+} from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
@@ -95,7 +100,9 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 
@@ -109,8 +116,13 @@ To add a HITL step, you add an approval gate between the tool call and the tool 
 
 Add `needsApproval: true` to the tool definition. The tool keeps its `execute` function, but the SDK pauses execution until the user approves.
 
-```ts filename="app/api/chat/route.ts" highlight="14"
-import { streamText, tool } from 'ai';
+```ts filename="app/api/chat/route.ts" highlight="20"
+import {
+  streamText,
+  tool,
+  createUIMessageStreamResponse,
+  toUIMessageStream,
+} from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
@@ -135,7 +147,9 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 
@@ -276,8 +290,13 @@ const { messages, addToolApprovalResponse } = useChat({
 
 You can make approval conditional based on the tool's input by providing an async function to `needsApproval`:
 
-```ts filename="app/api/chat/route.ts" highlight="15"
-import { streamText, tool } from 'ai';
+```ts filename="app/api/chat/route.ts" highlight="23"
+import {
+  streamText,
+  tool,
+  createUIMessageStreamResponse,
+  toUIMessageStream,
+} from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
@@ -302,7 +321,9 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 
