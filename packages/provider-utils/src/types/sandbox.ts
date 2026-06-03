@@ -58,7 +58,7 @@ type WriteFileOptions<CONTENT> = {
 /**
  * Sandbox session that can execute commands and read/write files.
  */
-export type Experimental_SandboxSession = {
+export type SandboxSession = {
   /**
    * Description of the sandbox environment that can be added to the agent's instructions
    * so that the agent knows about relevant details such as the root directory, exposed
@@ -155,7 +155,7 @@ export type Experimental_SandboxSession = {
    */
   readonly spawn: (
     options: SandboxProcessOptions,
-  ) => PromiseLike<Experimental_SandboxProcess>;
+  ) => PromiseLike<SandboxProcess>;
 
   /**
    * Run a command in the sandbox.
@@ -179,9 +179,9 @@ export type Experimental_SandboxSession = {
 };
 
 /**
- * Handle to a long-running process started via `Experimental_SandboxSession.spawn`.
+ * Handle to a long-running process started via `SandboxSession.spawn`.
  */
-export type Experimental_SandboxProcess = {
+export type SandboxProcess = {
   /**
    * Process identifier, if the sandbox implementation exposes one.
    */
