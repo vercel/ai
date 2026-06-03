@@ -1124,6 +1124,36 @@ describe('exchangeAuthorization', () => {
     const body = mockFetch.mock.calls[0][1].body as URLSearchParams;
     expect(body.get('resource')).toBe('https://mcp.example.com');
   });
+
+  it('awaits async addClientAuthentication before dispatching token request', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => validTokens,
+    });
+
+    const addClientAuthentication = async (
+      _headers: Headers,
+      params: URLSearchParams,
+    ) => {
+      await new Promise(resolve => setTimeout(resolve, 5));
+      params.set('client_id', 'set-by-async-provider');
+      params.set('client_secret', 'secret-by-async-provider');
+    };
+
+    await exchangeAuthorization('https://auth.example.com', {
+      metadata: validMetadata as AuthorizationServerMetadata,
+      clientInformation: validClientInfo,
+      authorizationCode: 'code123',
+      codeVerifier: 'verifier123',
+      redirectUri: 'http://localhost:3000/callback',
+      addClientAuthentication,
+    });
+
+    const body = mockFetch.mock.calls[0][1].body as URLSearchParams;
+    expect(body.get('client_id')).toBe('set-by-async-provider');
+    expect(body.get('client_secret')).toBe('secret-by-async-provider');
+  });
 });
 
 describe('refreshAuthorization', () => {
@@ -1316,6 +1346,34 @@ describe('refreshAuthorization', () => {
 
     const body = mockFetch.mock.calls[0][1].body as URLSearchParams;
     expect(body.get('resource')).toBe('https://mcp.example.com');
+  });
+
+  it('awaits async addClientAuthentication before dispatching refresh request', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => validTokens,
+    });
+
+    const addClientAuthentication = async (
+      _headers: Headers,
+      params: URLSearchParams,
+    ) => {
+      await new Promise(resolve => setTimeout(resolve, 5));
+      params.set('client_id', 'set-by-async-provider');
+      params.set('client_secret', 'secret-by-async-provider');
+    };
+
+    await refreshAuthorization('https://auth.example.com', {
+      metadata: validMetadata as AuthorizationServerMetadata,
+      clientInformation: validClientInfo,
+      refreshToken: 'refresh123',
+      addClientAuthentication,
+    });
+
+    const body = mockFetch.mock.calls[0][1].body as URLSearchParams;
+    expect(body.get('client_id')).toBe('set-by-async-provider');
+    expect(body.get('client_secret')).toBe('secret-by-async-provider');
   });
 });
 
