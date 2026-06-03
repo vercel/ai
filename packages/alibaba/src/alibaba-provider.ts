@@ -78,6 +78,13 @@ export interface AlibabaProviderSettings {
   embeddingBaseURL?: string;
 
   /**
+   * Use a different URL prefix for multimodal embedding API calls.
+   * The multimodal embedding API is only available in the China (Beijing) region.
+   * The default prefix is `https://dashscope.aliyuncs.com/api/v1`.
+   */
+  multimodalEmbeddingBaseURL?: string;
+
+  /**
    * API key that is being sent using the `Authorization` header.
    * It defaults to the `ALIBABA_API_KEY` environment variable.
    */
@@ -121,6 +128,10 @@ export function createAlibaba(
     withoutTrailingSlash(options.embeddingBaseURL) ??
     'https://dashscope-intl.aliyuncs.com/api/v1';
 
+  const multimodalEmbeddingBaseURL =
+    withoutTrailingSlash(options.multimodalEmbeddingBaseURL) ??
+    'https://dashscope.aliyuncs.com/api/v1';
+
   const getHeaders = () =>
     withUserAgentSuffix(
       {
@@ -147,6 +158,7 @@ export function createAlibaba(
     new AlibabaEmbeddingModel(modelId, {
       provider: 'alibaba.embedding',
       baseURL: embeddingBaseURL,
+      multimodalBaseURL: multimodalEmbeddingBaseURL,
       headers: getHeaders,
       fetch: options.fetch,
     });
