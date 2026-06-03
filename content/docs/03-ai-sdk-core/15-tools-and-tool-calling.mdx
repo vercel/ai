@@ -951,9 +951,10 @@ const result = await generateText({
 The experimental sandbox description is not added to the model prompt automatically. If the model should know about details such as the root directory, exposed ports, or public hostname, include `experimental_sandbox.description` in your system prompt,
 instructions, user-visible context, or a tool description function.
 
-`run` also accepts an optional `workingDirectory` and `abortSignal`.
+`run` also accepts an optional `workingDirectory`, `env`, and `abortSignal`.
 Use `workingDirectory` when a tool needs to run a command from a directory other
-than the experimental sandbox implementation's default working directory. Forward
+than the experimental sandbox implementation's default working directory. Use `env`
+to set environment variables for the command. Forward
 `abortSignal` from the tool execution options so the experimental sandbox can cancel the command if the overall operation is aborted or times out.
 
 The AI SDK forwards your experimental sandbox object but does not create or isolate one for you.

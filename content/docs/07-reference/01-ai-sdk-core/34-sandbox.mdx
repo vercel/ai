@@ -33,6 +33,7 @@ type Experimental_SandboxSession = {
   readonly run: (options: {
     command: string;
     workingDirectory?: string;
+    env?: Record<string, string>;
     abortSignal?: AbortSignal;
   }) => PromiseLike<{
     exitCode: number;
@@ -54,7 +55,7 @@ type Experimental_SandboxSession = {
     },
     {
       name: 'run',
-      type: '(options: { command: string; workingDirectory?: string; abortSignal?: AbortSignal }) => PromiseLike<{ exitCode: number; stdout: string; stderr: string }>',
+      type: '(options: { command: string; workingDirectory?: string; env?: Record<string, string>; abortSignal?: AbortSignal }) => PromiseLike<{ exitCode: number; stdout: string; stderr: string }>',
       description:
         'Executes a command in the experimental sandbox and resolves with the command exit code, standard output, and standard error.',
       properties: [
@@ -72,6 +73,12 @@ type Experimental_SandboxSession = {
               type: 'string | undefined',
               description:
                 'Optional working directory to execute the command in. If omitted, the experimental sandbox implementation uses its default working directory.',
+            },
+            {
+              name: 'env',
+              type: 'Record<string, string> | undefined',
+              description:
+                'Optional environment variables to set for the command. Merged with the experimental sandbox default environment, with these values taking precedence. Passing secrets here instead of inlining them into the command avoids leaking them in logs. Implementations that cannot set environment variables reject this option.',
             },
             {
               name: 'abortSignal',
