@@ -148,7 +148,7 @@ function processStreamEventsEvent(
   if (!event.data) return;
 
   switch (event.event) {
-    case "on_chat_model_start": {
+    case 'on_chat_model_start': {
       /**
        * End the previous model turn's reasoning stream before a new LLM invocation.
        * Without this, reasoning-delta chunks from the next turn could attach to the
@@ -156,13 +156,16 @@ function processStreamEventsEvent(
        */
       if (state.reasoningStarted) {
         controller.enqueue({
-          type: "reasoning-end",
-          id: state.reasoningMessageId != null ? state.reasoningMessageId : state.messageId,
+          type: 'reasoning-end',
+          id:
+            state.reasoningMessageId != null
+              ? state.reasoningMessageId
+              : state.messageId,
         });
         state.reasoningStarted = false;
         state.reasoningMessageId = null;
       }
-    
+
       /**
        * End the previous model turn's text stream before a new LLM invocation.
        * The streamEvents adapter otherwise leaves `textStarted` true, so all later
@@ -171,13 +174,14 @@ function processStreamEventsEvent(
        */
       if (state.textStarted) {
         controller.enqueue({
-          type: "text-end",
-          id: state.textMessageId != null ? state.textMessageId : state.messageId,
+          type: 'text-end',
+          id:
+            state.textMessageId != null ? state.textMessageId : state.messageId,
         });
         state.textStarted = false;
         state.textMessageId = null;
       }
-    
+
       /**
        * Handle model start — capture message metadata if available.
        * `run_id` is on the event in streamEvents v2; fall back to `data` for compatibility.
