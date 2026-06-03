@@ -66,7 +66,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   executeToolInTelemetryContext?: <T>(params: {
     callId: string;
     toolCallId: string;
-    event?: ToolExecutionStartEvent<TOOLS>;
+    event?: Omit<ToolExecutionStartEvent<TOOLS>, 'callId'>;
     execute: () => PromiseLike<T>;
   }) => PromiseLike<T>;
 }): Promise<
@@ -89,11 +89,14 @@ export async function executeToolCall<TOOLS extends ToolSet>({
     contextSchema: tool.contextSchema,
   });
 
-  const baseCallbackEvent = {
-    callId,
+  const toolExecutionContext = {
     toolCall,
     messages,
     toolContext: context,
+  };
+  const baseCallbackEvent = {
+    callId,
+    ...toolExecutionContext,
   };
 
   let output: unknown;
@@ -111,12 +114,14 @@ export async function executeToolCall<TOOLS extends ToolSet>({
     // In order to correctly nest telemetry spans within tool calls spans, telemetry integrations need
     // to be able to execute the tool call in a telemetry-integration-specific context.
     //
-    // The call id and the tool call id are provided to the telemetry integration so that it can correctly
-    // identify the parent span.
+    // The start event gives telemetry integrations enough context to identify the parent span.
     await executeToolInTelemetryContext({
       callId,
       toolCallId,
-      event: baseCallbackEvent as ToolExecutionStartEvent<TOOLS>,
+      event: toolExecutionContext as Omit<
+        ToolExecutionStartEvent<TOOLS>,
+        'callId'
+      >,
       execute: async () => {
         const startTime = now();
         try {

@@ -491,7 +491,6 @@ describe('createTelemetryDispatcher', () => {
         async executeLanguageModelCall<T>({
           execute,
         }: {
-          callId: string;
           execute: () => PromiseLike<T>;
         }) {
           this.calls += 1;
@@ -621,13 +620,7 @@ describe('createTelemetryDispatcher', () => {
       class ExecuteToolIntegration implements Telemetry {
         calls = 0;
 
-        async executeTool<T>({
-          execute,
-        }: {
-          callId: string;
-          toolCallId: string;
-          execute: () => PromiseLike<T>;
-        }) {
+        async executeTool<T>({ execute }: { execute: () => PromiseLike<T> }) {
           this.calls += 1;
           return execute();
         }

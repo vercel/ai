@@ -761,14 +761,17 @@ export async function generateText<
           callbacks: [onStepStart, telemetryDispatcher.onStepStart],
         });
 
-        const languageModelCallStartEvent = {
-          callId,
+        const languageModelCallContext = {
           provider: stepModel.provider,
           modelId: stepModel.modelId,
           instructions: stepInstructions,
           messages: stepMessages,
           tools: stepTools,
           ...callSettings,
+        };
+        const languageModelCallStartEvent = {
+          callId,
+          ...languageModelCallContext,
         };
 
         await notify({
@@ -791,7 +794,7 @@ export async function generateText<
         currentModelResponse = await retry(async () => {
           const result = await executeLanguageModelCallInTelemetryContext({
             callId,
-            event: languageModelCallStartEvent,
+            event: languageModelCallContext,
             execute: async () =>
               await stepModel.doGenerate({
                 ...callSettings,

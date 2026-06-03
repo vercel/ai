@@ -216,11 +216,12 @@ export interface Telemetry {
    * model-call span.
    *
    * @param options.callId - The call ID of the generation.
+   * @param options.event - Additional model-call start context, when available.
    * @param options.execute - The function that performs the model call.
    */
   executeLanguageModelCall?: <T>(options: {
     callId: string;
-    event?: InferTelemetryEvent<LanguageModelCallStartEvent>;
+    event?: Omit<InferTelemetryEvent<LanguageModelCallStartEvent>, 'callId'>;
     execute: () => PromiseLike<T>;
   }) => PromiseLike<T>;
 
@@ -231,12 +232,13 @@ export interface Telemetry {
    *
    * @param options.callId - The call ID of the tool call.
    * @param options.toolCallId - The tool call ID.
+   * @param options.event - Additional tool execution start context, when available.
    * @param options.execute - The function to execute.
    */
   executeTool?: <T>(options: {
     callId: string;
     toolCallId: string;
-    event?: InferTelemetryEvent<ToolExecutionStartEvent>;
+    event?: Omit<InferTelemetryEvent<ToolExecutionStartEvent>, 'callId'>;
     execute: () => PromiseLike<T>;
   }) => PromiseLike<T>;
 }

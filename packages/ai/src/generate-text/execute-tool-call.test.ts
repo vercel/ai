@@ -828,6 +828,7 @@ describe('executeToolCall', () => {
       const executeToolInTelemetryContext: <T>(params: {
         callId: string;
         toolCallId: string;
+        event?: Omit<ToolExecutionStartEvent<any>, 'callId'>;
         execute: () => PromiseLike<T>;
       }) => Promise<T> = vi.fn(async ({ execute }) => execute());
 
@@ -848,8 +849,8 @@ describe('executeToolCall', () => {
 
       expect(executeToolInTelemetryContext).toHaveBeenCalledWith({
         callId: 'test-telemetry-call-id',
+        toolCallId: 'my-call-id',
         event: {
-          callId: 'test-telemetry-call-id',
           messages: [],
           toolCall: {
             dynamic: false,
@@ -862,9 +863,11 @@ describe('executeToolCall', () => {
           },
           toolContext: undefined,
         },
-        toolCallId: 'my-call-id',
         execute: expect.any(Function),
       });
+      expect(
+        vi.mocked(executeToolInTelemetryContext).mock.calls[0]![0].event,
+      ).not.toHaveProperty('callId');
     });
 
     it('should measure only the inner execute duration when wrapped in telemetry context', async () => {
@@ -872,6 +875,7 @@ describe('executeToolCall', () => {
       const executeToolInTelemetryContext: <T>(params: {
         callId: string;
         toolCallId: string;
+        event?: Omit<ToolExecutionStartEvent<any>, 'callId'>;
         execute: () => PromiseLike<T>;
       }) => Promise<T> = vi.fn(async ({ execute }) => {
         now(); // simulate wrapper overhead before the tool runs

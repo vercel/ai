@@ -153,15 +153,15 @@ export function createTelemetryDispatcher({
      */
     executeLanguageModelCall: async args => {
       const tracingEvent = augmentEvent(
-        args.event ?? { callId: args.callId },
+        { callId: args.callId, ...args.event },
         telemetryMetadata,
       );
       let execute = args.execute;
       for (const executeWrapper of executeLanguageModelCallWrappers) {
         const innerExecute = execute;
         execute = () => {
-          // Only pass `event` to integrations when the caller provided the full
-          // model-call start event; tracing can fall back to callId-only context.
+          // Only pass `event` to integrations when the caller provided the
+          // additional model-call context.
           const executeArgs =
             args.event == null
               ? { ...args, execute: innerExecute }
@@ -192,15 +192,17 @@ export function createTelemetryDispatcher({
      */
     executeTool: async args => {
       const tracingEvent = augmentEvent(
-        args.event ?? { callId: args.callId, toolCallId: args.toolCallId },
+        args.event == null
+          ? { callId: args.callId, toolCallId: args.toolCallId }
+          : { callId: args.callId, ...args.event },
         telemetryMetadata,
       );
       let execute = args.execute;
       for (const executeWrapper of executeToolWrappers) {
         const innerExecute = execute;
         execute = () => {
-          // Only pass `event` to integrations when the caller provided the full
-          // tool start event; tracing can fall back to callId/toolCallId context.
+          // Only pass `event` to integrations when the caller provided the
+          // additional tool execution context.
           const executeArgs =
             args.event == null
               ? { ...args, execute: innerExecute }

@@ -163,7 +163,6 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
       await telemetry.executeLanguageModelCall!({
         callId: 'language-model-call',
         event: {
-          callId: 'language-model-call',
           provider: 'mock-provider',
           modelId: 'mock-model',
         } as any,
@@ -216,7 +215,6 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
       await telemetry.executeLanguageModelCall!({
         callId: 'language-model-call',
         event: {
-          callId: 'language-model-call',
           provider: 'mock-provider',
           modelId: 'mock-model',
         } as any,
@@ -276,7 +274,6 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
         callId: 'tool-call',
         toolCallId: 'tool-call-id',
         event: {
-          callId: 'tool-call',
           toolCall: {
             type: 'tool-call',
             toolCallId: 'tool-call-id',
