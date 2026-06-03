@@ -4003,6 +4003,93 @@ describe('OpenAIResponsesLanguageModel', () => {
           result: {},
         });
       });
+
+      it('should forward web_search_call.action.queries to tool-result', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_queries',
+            object: 'response',
+            created_at: 1741631111,
+            status: 'completed',
+            error: null,
+            incomplete_details: null,
+            instructions: null,
+            max_output_tokens: null,
+            model: 'gpt-4o',
+            output: [
+              {
+                type: 'web_search_call',
+                id: 'ws_queries',
+                status: 'completed',
+                action: {
+                  type: 'search',
+                  query: 'sf news',
+                  queries: ['sf news', 'bay area tech'],
+                },
+              },
+              {
+                type: 'message',
+                id: 'msg_done',
+                status: 'completed',
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'output_text',
+                    text: 'Here is what I found.',
+                    annotations: [],
+                  },
+                ],
+              },
+            ],
+            usage: {
+              input_tokens: 10,
+              output_tokens: 5,
+              total_tokens: 15,
+            },
+            previous_response_id: null,
+            parallel_tool_calls: true,
+            reasoning: { effort: null, summary: null },
+            store: true,
+            temperature: 0,
+            text: { format: { type: 'text' } },
+            tool_choice: 'auto',
+            tools: [{ type: 'web_search', search_context_size: 'medium' }],
+            top_p: 1,
+            truncation: 'disabled',
+            user: null,
+            metadata: {},
+          },
+        };
+
+        const result = await createModel('gpt-4o').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.web_search',
+              name: 'webSearch',
+              args: {},
+            },
+          ],
+        });
+
+        const webSearchResultPart = result.content.find(
+          part => part.type === 'tool-result',
+        );
+
+        expect(webSearchResultPart).toMatchObject({
+          type: 'tool-result',
+          toolName: 'webSearch',
+          result: {
+            action: {
+              type: 'search',
+              query: 'sf news',
+              queries: ['sf news', 'bay area tech'],
+            },
+          },
+        });
+      });
     });
 
     describe('mcp tool', () => {

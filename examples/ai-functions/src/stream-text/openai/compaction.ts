@@ -254,7 +254,7 @@ run(async () => {
 
   console.log('=== Streaming Response ===\n');
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'text-start': {
         const isCompaction =

@@ -12,7 +12,9 @@ import {
 import * as assert from 'node:assert';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
+  context,
   SpanStatusCode,
+  trace,
   type Attributes,
   type Span,
   type SpanOptions,
@@ -30,6 +32,7 @@ import {
   rerank,
   type Embedding,
   type EmbeddingModelUsage,
+  type GenerateTextEndEvent,
   type Telemetry,
 } from 'ai';
 import {
@@ -260,7 +263,7 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
       stepTimeMs: 1000,
       responseTimeMs: 1000,
       toolExecutionMs: {},
-      timeToFirstOutputTokenMs: undefined,
+      timeToFirstOutputMs: undefined,
     },
     warnings: undefined,
     request: { body: undefined, messages: [] },
@@ -277,25 +280,42 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
 }
 
 function makeFinishEvent(overrides?: Record<string, unknown>) {
-  return {
-    ...makeStepFinishEvent(),
-    responseMessages: [],
-    steps: [],
-    totalUsage: {
-      inputTokens: 10,
-      outputTokens: 20,
-      totalTokens: 30,
-      inputTokenDetails: {
-        noCacheTokens: undefined,
-        cacheReadTokens: undefined,
-        cacheWriteTokens: undefined,
-      },
-      outputTokenDetails: {
-        textTokens: undefined,
-        reasoningTokens: undefined,
-      },
+  const { usage, ...restOverrides } = overrides ?? {};
+  const stepOverrides = Object.fromEntries(
+    Object.entries(restOverrides).filter(([key]) =>
+      [
+        'providerMetadata',
+        'reasoning',
+        'reasoningText',
+        'request',
+        'response',
+      ].includes(key),
+    ),
+  );
+  const finalStep = makeStepFinishEvent(stepOverrides);
+  const totalUsage = (usage as GenerateTextEndEvent['usage']) ?? {
+    inputTokens: 10,
+    outputTokens: 20,
+    totalTokens: 30,
+    inputTokenDetails: {
+      noCacheTokens: undefined,
+      cacheReadTokens: undefined,
+      cacheWriteTokens: undefined,
     },
-    ...overrides,
+    outputTokenDetails: {
+      textTokens: undefined,
+      reasoningTokens: undefined,
+    },
+  };
+
+  return {
+    ...finalStep,
+    responseMessages: [],
+    steps: [finalStep],
+    finalStep,
+    usage: totalUsage,
+    totalUsage,
+    ...restOverrides,
   } as Parameters<NonNullable<Telemetry['onEnd']>>[0];
 }
 
@@ -487,6 +507,35 @@ describe('LegacyOpenTelemetry', () => {
       const attrs = getStartSpanAttributes(tracer, 1);
       expect(attrs['ai.prompt.tools']).toBeDefined();
       expect(attrs['ai.prompt.toolChoice']).toBeDefined();
+    });
+  });
+
+  describe('executeLanguageModelCall', () => {
+    it('runs the model call inside the active step span context', async () => {
+      let activeSpan: Span | undefined;
+      const contextWithSpy = vi
+        .spyOn(context, 'with')
+        .mockImplementation((nextContext, fn, thisArg, ...args) => {
+          activeSpan = trace.getSpan(nextContext) ?? undefined;
+          return fn.call(thisArg, ...args);
+        });
+
+      try {
+        otelIntegration.onStart!(makeOnStartEvent());
+        otelIntegration.onStepStart!(makeStepStartEvent());
+
+        await expect(
+          otelIntegration.executeLanguageModelCall!({
+            callId,
+            execute: async () => 'result',
+          }),
+        ).resolves.toBe('result');
+
+        const activeSpanRecord = tracer.spans.find(span => span === activeSpan);
+        expect(activeSpanRecord?.name).toBe('ai.generateText.doGenerate');
+      } finally {
+        contextWithSpy.mockRestore();
+      }
     });
   });
 
@@ -791,7 +840,7 @@ describe('LegacyOpenTelemetry', () => {
       otelIntegration.onStepFinish!(makeStepFinishEvent());
       otelIntegration.onEnd!(
         makeFinishEvent({
-          totalUsage: {
+          usage: {
             inputTokens: 50,
             outputTokens: 100,
             totalTokens: 150,
@@ -940,6 +989,82 @@ describe('LegacyOpenTelemetry', () => {
     });
   });
 
+  describe('onAbort', () => {
+    it('closes streamText spans when AbortController aborts the stream', async () => {
+      const abortController = new AbortController();
+      let pullCalls = 0;
+
+      const result = streamText({
+        abortSignal: abortController.signal,
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: new ReadableStream({
+              pull(controller) {
+                switch (pullCalls++) {
+                  case 0:
+                    controller.enqueue({
+                      type: 'stream-start',
+                      warnings: [],
+                    });
+                    break;
+                  case 1:
+                    controller.enqueue({
+                      type: 'text-start',
+                      id: '1',
+                    });
+                    break;
+                  case 2:
+                    controller.enqueue({
+                      type: 'text-delta',
+                      id: '1',
+                      delta: 'Hello',
+                    });
+                    break;
+                  case 3:
+                    abortController.abort();
+                    controller.error(
+                      new DOMException(
+                        'The user aborted a request.',
+                        'AbortError',
+                      ),
+                    );
+                    break;
+                }
+              },
+            }),
+          }),
+        }),
+        prompt: 'test-input',
+        telemetry: {
+          integrations: otelIntegration,
+        },
+      });
+
+      await result.consumeStream();
+
+      expect(
+        tracer.spans.map(span => ({
+          name: span.name,
+          ended: span.ended,
+          status: span.status,
+        })),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "ended": true,
+            "name": "ai.streamText",
+            "status": undefined,
+          },
+          {
+            "ended": true,
+            "name": "ai.streamText.doStream",
+            "status": undefined,
+          },
+        ]
+      `);
+    });
+  });
+
   describe('telemetry disabled / recordInputs / recordOutputs', () => {
     it('does not record input attributes when recordInputs is false', () => {
       otelIntegration.onStart!(makeOnStartEvent({ recordInputs: false }));
@@ -1083,7 +1208,7 @@ describe('LegacyOpenTelemetry', () => {
             stepTimeMs: 1000,
             responseTimeMs: 1000,
             toolExecutionMs: {},
-            timeToFirstOutputTokenMs: 10,
+            timeToFirstOutputMs: 10,
           },
         }),
       );
@@ -1729,6 +1854,7 @@ function mockTwoStepStreamTextTelemetryNow() {
     500,
     600,
     600,
+    1000,
     1000,
     1000,
     1400,
@@ -3170,6 +3296,7 @@ describe('LegacyOpenTelemetry integration with streamText stopWhen (2 steps with
             "ai.prompt": "{"messages":[{"role":"user","content":"test-input"}]}",
             "ai.response.finishReason": "stop",
             "ai.response.text": "Hello, world!",
+            "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
             "ai.settings.maxRetries": 2,
             "ai.usage.cachedInputTokens": 0,
             "ai.usage.inputTokenDetails.cacheReadTokens": 0,
@@ -3267,7 +3394,7 @@ describe('LegacyOpenTelemetry integration with streamText stopWhen (2 steps with
             "ai.response.id": "id-1",
             "ai.response.model": "mock-model-id",
             "ai.response.msToFinish": 400,
-            "ai.response.msToFirstChunk": 400,
+            "ai.response.msToFirstChunk": 0,
             "ai.response.text": "Hello, world!",
             "ai.response.timestamp": "1970-01-01T00:00:01.000Z",
             "ai.settings.maxRetries": 2,
@@ -3295,7 +3422,7 @@ describe('LegacyOpenTelemetry integration with streamText stopWhen (2 steps with
           "events": [
             {
               "attributes": {
-                "ai.response.msToFirstChunk": 400,
+                "ai.response.msToFirstChunk": 0,
               },
               "name": "ai.stream.firstChunk",
             },

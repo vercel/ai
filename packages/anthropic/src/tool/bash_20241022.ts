@@ -54,7 +54,7 @@ type Bash20241022OptionsWithNullableExecute<OUTPUT> = Omit<
   execute?: Bash20241022Options<OUTPUT>['execute'] | null;
 };
 
-type Bash20241022DefaultOutput = Awaited<ReturnType<Sandbox['runCommand']>>;
+type Bash20241022DefaultOutput = Awaited<ReturnType<Sandbox['run']>>;
 
 export function bash_20241022(
   options?: Omit<Bash20241022Options<Bash20241022DefaultOutput>, 'execute'> & {
@@ -87,7 +87,7 @@ export function bash_20241022<OUTPUT>(
           throw new Error('Sandbox is not available');
         }
 
-        return await sandbox.runCommand({
+        return await sandbox.run({
           command,
           abortSignal,
         });

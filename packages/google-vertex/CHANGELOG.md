@@ -1,5 +1,53 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-canary.100
+
+### Patch Changes
+
+- b70f6ec: fix(google-vertex): support for eu/us multi region gemini endpoints
+
+## 5.0.0-canary.99
+
+### Patch Changes
+
+- bb93832: fix(vertex-anthropic): support eu/us multi-region anthropic endpoints
+- Updated dependencies [b563707]
+  - @ai-sdk/google@4.0.0-canary.76
+
+## 5.0.0-canary.98
+
+### Patch Changes
+
+- 00a0f36: feat(google, google-vertex): added `gemini-embedding-2`, `deep-research-max-preview-04-2026` and `deep-research-preview-04-2026`
+- Updated dependencies [00a0f36]
+  - @ai-sdk/google@4.0.0-canary.75
+
+## 5.0.0-canary.97
+
+### Patch Changes
+
+- e02f041: feat(provider/anthropic): add support for `claude-opus-4-8`
+- Updated dependencies [e02f041]
+  - @ai-sdk/anthropic@4.0.0-canary.61
+
+## 5.0.0-canary.96
+
+### Patch Changes
+
+- Updated dependencies [a8d70b6]
+  - @ai-sdk/google@4.0.0-canary.74
+
+## 5.0.0-canary.95
+
+### Patch Changes
+
+- Updated dependencies [6c93e36]
+- Updated dependencies [f617ac2]
+  - @ai-sdk/provider-utils@5.0.0-canary.44
+  - @ai-sdk/anthropic@4.0.0-canary.60
+  - @ai-sdk/google@4.0.0-canary.73
+  - @ai-sdk/openai-compatible@3.0.0-canary.52
+
 ## 5.0.0-canary.94
 
 ### Patch Changes

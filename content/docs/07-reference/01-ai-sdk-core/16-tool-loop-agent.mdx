@@ -483,11 +483,17 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
         'Callback invoked after each agent step (LLM/tool call) completes. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first).',
     },
     {
-      name: 'onFinish',
-      type: 'GenerateTextOnFinishCallback',
+      name: 'onEnd',
+      type: 'GenerateTextOnEndCallback',
       isOptional: true,
       description:
         'Callback that is called when all agent steps are finished and the response is complete. Receives step results, total usage, shared `runtimeContext`, and `toolsContext`. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first).',
+    },
+    {
+      name: 'onFinish',
+      type: 'GenerateTextOnEndCallback',
+      isOptional: true,
+      description: 'Deprecated alias for `onEnd`.',
     },
     {
       name: 'runtimeContext',
@@ -735,11 +741,17 @@ const result = await agent.generate({
         'Callback invoked after each agent step (LLM/tool call) completes. If also specified in the constructor, both callbacks are called (constructor first, then this one).',
     },
     {
-      name: 'onFinish',
-      type: 'GenerateTextOnFinishCallback',
+      name: 'onEnd',
+      type: 'GenerateTextOnEndCallback',
       isOptional: true,
       description:
         'Callback that is called when all agent steps are finished and the response is complete. If also specified in the constructor, both callbacks are called (constructor first, then this one).',
+    },
+    {
+      name: 'onFinish',
+      type: 'GenerateTextOnEndCallback',
+      isOptional: true,
+      description: 'Deprecated alias for `onEnd`.',
     },
   ]}
 />
@@ -845,11 +857,17 @@ for await (const chunk of stream.textStream) {
         'Callback invoked after each agent step (LLM/tool call) completes. If also specified in the constructor, both callbacks are called (constructor first, then this one).',
     },
     {
-      name: 'onFinish',
-      type: 'GenerateTextOnFinishCallback',
+      name: 'onEnd',
+      type: 'GenerateTextOnEndCallback',
       isOptional: true,
       description:
         'Callback that is called when all agent steps are finished and the response is complete. If also specified in the constructor, both callbacks are called (constructor first, then this one).',
+    },
+    {
+      name: 'onFinish',
+      type: 'GenerateTextOnEndCallback',
+      isOptional: true,
+      description: 'Deprecated alias for `onEnd`.',
     },
   ]}
 />

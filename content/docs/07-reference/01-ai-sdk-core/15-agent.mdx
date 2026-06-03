@@ -92,7 +92,13 @@ export type AgentCallParameters<CALL_OPTIONS, TOOLS extends ToolSet = {}> = ([
     /**
      * Callback that is called when all steps are finished and the response is complete.
      */
-    onFinish?: GenerateTextOnFinishCallback<TOOLS>;
+    onEnd?: GenerateTextOnEndCallback<TOOLS>;
+    /**
+     * Callback that is called when all steps are finished and the response is complete.
+     *
+     * @deprecated Use `onEnd` instead.
+     */
+    onFinish?: GenerateTextOnEndCallback<TOOLS>;
   };
 
 /**
@@ -172,7 +178,8 @@ Both `generate()` and `stream()` accept an `AgentCallParameters<CALL_OPTIONS, TO
 - `onToolExecutionStart` (optional): Callback invoked right before a tool's execute function runs.
 - `onToolExecutionEnd` (optional): Callback invoked right after a tool's execute function completes or errors.
 - `onStepFinish` (optional): A callback invoked after each agent step (LLM/tool call) completes. Useful for tracking token usage, per-step performance, or logging.
-- `onFinish` (optional): A callback invoked when all steps are finished and the response is complete.
+- `onEnd` (optional): A callback invoked when all steps are finished and the response is complete.
+- `onFinish` (optional): Deprecated alias for `onEnd`.
 
 ## Example: Custom Agent Implementation
 
