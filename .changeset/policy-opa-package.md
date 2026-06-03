@@ -1,5 +1,5 @@
 ---
-'@ai-sdk/policy-opa': patch
+'@ai-sdk/policy-opa': major
 ---
 
 Introduce `@ai-sdk/policy-opa`, an Open Policy Agent adapter for the
