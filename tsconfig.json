@@ -11,6 +11,7 @@
     { "path": "packages/azure" },
     { "path": "packages/black-forest-labs" },
     { "path": "packages/baseten" },
+    { "path": "packages/baidu" },
     { "path": "packages/bytedance" },
     { "path": "packages/cerebras" },
     { "path": "packages/codemod" },

@@ -1,0 +1,24 @@
+{
+  "id": "chatcmpl-baidu-image-1",
+  "object": "chat.completion",
+  "created": 1770774468,
+  "model": "ernie-4.5-turbo-128k",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "A tiny abstract image."
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 18,
+    "completion_tokens": 6,
+    "total_tokens": 24,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "id": "chatcmpl-baidu-tool-1",
+  "object": "chat.completion",
+  "created": 1770774457,
+  "model": "ernie-4.5-turbo-128k",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+          {
+            "id": "call_baidu_weather_1",
+            "type": "function",
+            "function": {
+              "name": "weather",
+              "arguments": "{\"location\":\"Beijing\"}"
+            }
+          }
+        ]
+      },
+      "finish_reason": "tool_calls"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 30,
+    "completion_tokens": 10,
+    "total_tokens": 40,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  }
+}
