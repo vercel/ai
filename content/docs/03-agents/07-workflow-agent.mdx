@@ -393,7 +393,7 @@ console.log(result.output); // { sentiment: 'positive', summary: '...' }
 
 Pass server-side state through the agent loop without putting it into the prompt. Use these instead of the previous `experimental_context` option.
 
-- `runtimeContext` is shared agent state that flows through `prepareStep`, lifecycle callbacks, and `onFinish`. Treat it as immutable; return a new value from `prepareStep` to update it for the current and subsequent steps.
+- `runtimeContext` is shared agent state that flows through `prepareStep`, lifecycle callbacks, and `onEnd`. Treat it as immutable; return a new value from `prepareStep` to update it for the current and subsequent steps.
 - `toolsContext` is a per-tool map keyed by tool name. Each tool's `execute` only sees its own validated entry as `context`. Tools that declare a `contextSchema` validate their entry against the schema before execution.
 
 ```ts filename="workflow/agent-chat.ts"
@@ -417,7 +417,7 @@ const agent = new WorkflowAgent({
     }),
   },
 
-  // Shared agent state — available in `prepareStep`, lifecycle callbacks, and `onFinish`.
+  // Shared agent state — available in `prepareStep`, lifecycle callbacks, and `onEnd`.
   runtimeContext: {
     tenantId: 'tenant_123',
     requestId: 'req_abc',
@@ -505,7 +505,7 @@ const agent = new WorkflowAgent({
     console.log('Step done:', { finishReason });
   },
 
-  onFinish({ steps, totalUsage }) {
+  onEnd({ steps, totalUsage }) {
     console.log(`Completed in ${steps.length} steps`);
   },
 });
@@ -660,7 +660,7 @@ whether approval is required (see [Tool Approval](#tool-approval) above).
 
 ### Everything else
 
-Other options carry over with the same names: `prepareStep`, `onStepFinish`, `onFinish`, `onError`, `toolChoice`, `activeTools`, `timeout`, `experimental_repairToolCall`, and the usual generation settings (`temperature`, `maxOutputTokens`, `topP`, …). `WorkflowAgent` additionally adds `prepareCall` (runs once before the loop) and the `experimental_onStart` / `experimental_onStepStart` / `onToolExecutionStart` / `onToolExecutionEnd` lifecycle callbacks documented above.
+Other options carry over with the same names: `prepareStep`, `onStepFinish`, `onEnd`, `onError`, `toolChoice`, `activeTools`, `timeout`, `experimental_repairToolCall`, and the usual generation settings (`temperature`, `maxOutputTokens`, `topP`, …). `WorkflowAgent` additionally adds `prepareCall` (runs once before the loop) and the `experimental_onStart` / `experimental_onStepStart` / `onToolExecutionStart` / `onToolExecutionEnd` lifecycle callbacks documented above.
 
 ## Next Steps
 

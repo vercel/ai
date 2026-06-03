@@ -517,7 +517,7 @@ const result = streamText({
   },
 });
 
-for await (const part of result.fullStream) {
+for await (const part of result.stream) {
   switch (part.type) {
     case 'tool-input-start':
       console.log(`Tool call started: ${part.toolName}`);
@@ -581,7 +581,7 @@ const result = streamText({
   prompt: 'Explain quantum computing in simple terms.',
 });
 
-for await (const part of result.fullStream) {
+for await (const part of result.stream) {
   if (part.type === 'reasoning') {
     process.stdout.write(`THOUGHT: ${part.textDelta}\n`);
   } else if (part.type === 'text-delta') {
@@ -917,6 +917,7 @@ The following optional provider options are available for Google Vertex AI embed
 | Model                        | Max Values Per Call | Parallel Calls      | Multimodal          |
 | ---------------------------- | ------------------- | ------------------- | ------------------- |
 | `text-embedding-005`         | 2048                | <Check size={18} /> | <Cross size={18} /> |
+| `gemini-embedding-2`         | 2048                | <Check size={18} /> | <Check size={18} /> |
 | `gemini-embedding-2-preview` | 2048                | <Check size={18} /> | <Check size={18} /> |
 
 <Note>

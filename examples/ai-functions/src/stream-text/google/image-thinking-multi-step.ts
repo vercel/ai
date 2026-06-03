@@ -20,7 +20,7 @@ run(async () => {
     providerOptions,
   });
 
-  for await (const part of step1.fullStream) {
+  for await (const part of step1.stream) {
     switch (part.type) {
       case 'reasoning-delta': {
         process.stdout.write('\x1b[34m' + part.text + '\x1b[0m');
@@ -59,7 +59,7 @@ run(async () => {
     providerOptions,
   });
 
-  for await (const part of step2.fullStream) {
+  for await (const part of step2.stream) {
     switch (part.type) {
       case 'reasoning-delta': {
         process.stdout.write('\x1b[34m' + part.text + '\x1b[0m');

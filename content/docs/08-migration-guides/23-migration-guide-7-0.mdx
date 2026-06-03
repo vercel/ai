@@ -213,6 +213,66 @@ const result = await generateText({
 });
 ```
 
+#### `onFinish` Renamed to `onEnd`
+
+The final lifecycle callback for `generateText`, `streamText`, and agents has
+been renamed from `onFinish` to `onEnd`.
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello!',
+  onFinish: ({ text }) => {
+    console.log(text);
+  },
+});
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello!',
+  onEnd: ({ text }) => {
+    console.log(text);
+  },
+});
+```
+
+The same rename applies to `streamText`, `Agent.generate()`,
+`Agent.stream()`, and `ToolLoopAgent` settings. The `onFinish` option is still
+accepted as a deprecated alias. When both `onEnd` and `onFinish` are provided,
+`onEnd` takes precedence.
+
+#### `StreamTextResult.fullStream` Renamed to `stream`
+
+The full event stream returned by `streamText` has been renamed from
+`fullStream` to `stream`.
+
+```tsx filename="AI SDK 6"
+const result = streamText({
+  model: yourModel,
+  prompt: 'Hello!',
+});
+
+for await (const part of result.fullStream) {
+  console.log(part);
+}
+```
+
+```tsx filename="AI SDK 7"
+const result = streamText({
+  model: yourModel,
+  prompt: 'Hello!',
+});
+
+for await (const part of result.stream) {
+  console.log(part);
+}
+```
+
+The `fullStream` property is still available as a deprecated alias for
+`stream`.
+
 ### Prompt Messages: System Messages in `prompt` or `messages` Are Rejected by Default
 
 AI SDK 7 rejects system messages in the `prompt` or `messages` fields by default. System instructions should usually be passed with the top-level `instructions` option.
@@ -591,6 +651,32 @@ const result = await rerank({
   },
 });
 ```
+
+### `streamText` `onChunk` Receives All Stream Parts
+
+In AI SDK 7, `streamText` calls `onChunk` for every `TextStreamPart` emitted by
+the stream. In AI SDK 6, `onChunk` only received a subset of stream parts such as
+text deltas, reasoning deltas, sources, tool calls, tool input deltas, tool
+results, custom parts, and raw chunks.
+
+Update handlers that assume the old subset to guard the chunk types they process:
+
+```tsx filename="AI SDK 7"
+const result = streamText({
+  model: yourModel,
+  prompt: 'Hello',
+  onChunk({ chunk }) {
+    if (chunk.type === 'text-delta') {
+      console.log(chunk.text);
+    }
+  },
+});
+```
+
+`onChunk` can now also receive lifecycle, boundary, and terminal parts such as
+`start`, `start-step`, `text-start`, `text-end`, `reasoning-start`,
+`reasoning-end`, `tool-input-end`, `finish-step`, `finish`, `abort`, and
+`error`.
 
 ### Streaming: Move `includeRawChunks` to `include.rawChunks`
 
@@ -1218,6 +1304,51 @@ console.log(finalStep.response.headers);
 
 The deprecated top-level aliases continue to work in AI SDK 7 so you can migrate incrementally.
 
+### `generateText` and `streamText` `onEnd` Result Properties Changed
+
+The `onEnd` callback for `generateText`, `streamText`, and agents follows
+the same result property changes as `generateText` and `streamText` results:
+
+- `usage` now contains usage across all steps. `totalUsage` is deprecated; use
+  `usage` instead.
+- `content`, `toolCalls`, `toolResults`, `files`, `sources`, and `warnings` now
+  contain values from all steps.
+- Final-step-only properties are available on `finalStep`. The top-level
+  `reasoning`, `reasoningText`, `request`, `response`, and `providerMetadata`
+  properties are deprecated.
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Use a tool, then summarize the result.',
+  stopWhen: stepCountIs(2),
+  onFinish(event) {
+    console.log(event.usage); // final step only
+    console.log(event.totalUsage); // all steps
+    console.log(event.toolCalls); // final step only
+    console.log(event.providerMetadata);
+  },
+});
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Use a tool, then summarize the result.',
+  stopWhen: isStepCount(2),
+  onEnd(event) {
+    console.log(event.finalStep.usage); // final step only
+    console.log(event.usage); // all steps
+    console.log(event.finalStep.toolCalls); // final step only
+    console.log(event.toolCalls); // all steps
+    console.log(event.finalStep.providerMetadata);
+  },
+});
+```
+
+The deprecated top-level aliases on the `onEnd` event continue to work in AI
+SDK 7 so you can migrate incrementally.
+
 ### Stop Condition Helper Rename: `stepCountIs` -> `isStepCount`
 
 Rename imports and usage in tool-loop stop conditions:
@@ -1232,6 +1363,112 @@ stopWhen: stepCountIs(3);
 import { isStepCount } from 'ai';
 
 stopWhen: isStepCount(3);
+```
+
+### `streamText` Response Helpers Deprecated — Use Stateless Helpers
+
+The `toUIMessageStream`, `toUIMessageStreamResponse`, `pipeUIMessageStreamToResponse`, `toTextStreamResponse`, and `pipeTextStreamToResponse` methods on the `streamText` result are now deprecated. They still work in v7 (with deprecation warnings) and will be removed in the next major release.
+
+The equivalent stateless helpers live on the top-level `'ai'` export. Use them directly so the same transformation can be composed over any `stream` / `textStream` — not just a `streamText` result.
+
+**UI message stream**
+
+```tsx filename="AI SDK 6"
+const result = streamText({ model, prompt });
+
+const uiStream = result.toUIMessageStream({
+  originalMessages,
+  generateMessageId,
+  onFinish,
+});
+```
+
+```tsx filename="AI SDK 7"
+import { streamText, toUIMessageStream } from 'ai';
+
+const result = streamText({ model, prompt });
+
+const uiStream = toUIMessageStream({
+  stream: result.stream,
+  generateMessageId,
+  originalMessages,
+  onFinish,
+});
+```
+
+**UI message stream `Response`**
+
+```tsx filename="AI SDK 6"
+return result.toUIMessageStreamResponse({ originalMessages });
+```
+
+```tsx filename="AI SDK 7"
+import { createUIMessageStreamResponse, toUIMessageStream } from 'ai';
+
+const uiStream = toUIMessageStream({
+  stream: result.stream,
+  generateMessageId,
+  originalMessages,
+  onFinish,
+});
+
+return createUIMessageStreamResponse({
+  stream: uiStream,
+});
+```
+
+**Pipe UI message stream to Node.js response**
+
+```tsx filename="AI SDK 6"
+result.pipeUIMessageStreamToResponse(response, { originalMessages });
+```
+
+```tsx filename="AI SDK 7"
+import { pipeUIMessageStreamToResponse, toUIMessageStream } from 'ai';
+
+const uiStream = toUIMessageStream({
+  stream: result.stream,
+  generateMessageId,
+  originalMessages,
+  onFinish,
+});
+
+pipeUIMessageStreamToResponse({
+  stream: uiStream,
+  response,
+});
+```
+
+**Text stream `Response`**
+
+```tsx filename="AI SDK 6"
+return result.toTextStreamResponse();
+```
+
+```tsx filename="AI SDK 7"
+import { createTextStreamResponse, toTextStream } from 'ai';
+
+const textStream = toTextStream({
+  stream: result.stream,
+});
+
+return createTextStreamResponse({ stream: textStream });
+```
+
+**Pipe text stream to Node.js response**
+
+```tsx filename="AI SDK 6"
+result.pipeTextStreamToResponse(response);
+```
+
+```tsx filename="AI SDK 7"
+import { pipeTextStreamToResponse, toTextStream } from 'ai';
+
+const textStream = toTextStream({
+  stream: result.stream,
+});
+
+pipeTextStreamToResponse({ response, stream: textStream });
 ```
 
 ## MCP Package

@@ -19,7 +19,7 @@ run(async () => {
     prompt: 'Write a SQL query to get all users older than 25.',
   });
 
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     switch (chunk.type) {
       case 'tool-call': {
         console.log(

@@ -33,7 +33,9 @@ describe('createTelemetryDispatcher', () => {
     expect(telemetry.onRerankStart).toBeDefined();
     expect(telemetry.onRerankEnd).toBeDefined();
     expect(telemetry.onEnd).toBeDefined();
+    expect(telemetry.onAbort).toBeDefined();
     expect(telemetry.onError).toBeDefined();
+    expect(telemetry.executeLanguageModelCall).toBeUndefined();
     expect(telemetry.executeTool).toBeUndefined();
 
     await expect(telemetry.onStart!(dummyEvent)).resolves.toBeUndefined();
@@ -152,6 +154,7 @@ describe('createTelemetryDispatcher', () => {
       onRerankStart: vi.fn(),
       onRerankEnd: vi.fn(),
       onEnd: vi.fn(),
+      onAbort: vi.fn(),
       onError: vi.fn(),
     };
 
@@ -173,6 +176,7 @@ describe('createTelemetryDispatcher', () => {
     await telemetry.onRerankStart!(dummyEvent);
     await telemetry.onRerankEnd!(dummyEvent);
     await telemetry.onEnd!(dummyEvent);
+    await telemetry.onAbort!(dummyEvent);
     await telemetry.onError!(dummyEvent);
 
     expect(integration.onStart).toHaveBeenCalledOnce();
@@ -189,6 +193,7 @@ describe('createTelemetryDispatcher', () => {
     expect(integration.onRerankStart).toHaveBeenCalledOnce();
     expect(integration.onRerankEnd).toHaveBeenCalledOnce();
     expect(integration.onEnd).toHaveBeenCalledOnce();
+    expect(integration.onAbort).toHaveBeenCalledOnce();
     expect(integration.onError).toHaveBeenCalledOnce();
   });
 
@@ -218,7 +223,10 @@ describe('createTelemetryDispatcher', () => {
         onRerankStart: vi.fn(),
         onRerankEnd: vi.fn(),
         onEnd: vi.fn(),
+        onAbort: vi.fn(),
         onError: vi.fn(),
+        executeLanguageModelCall: async ({ execute }) => execute(),
+        executeTool: async ({ execute }) => execute(),
       };
 
       const telemetry = createTelemetryDispatcher({
@@ -237,13 +245,16 @@ describe('createTelemetryDispatcher', () => {
       expect(telemetry.onRerankStart).toBeUndefined();
       expect(telemetry.onRerankEnd).toBeUndefined();
       expect(telemetry.onEnd).toBeUndefined();
+      expect(telemetry.onAbort).toBeUndefined();
       expect(telemetry.onError).toBeUndefined();
+      expect(telemetry.executeLanguageModelCall).toBeUndefined();
       expect(telemetry.executeTool).toBeUndefined();
     });
 
     it('ignores globally registered integrations when isEnabled is false', () => {
       registerTelemetry({
         onStart: vi.fn(),
+        executeLanguageModelCall: async ({ execute }) => execute(),
         executeTool: async ({ execute }) => execute(),
       });
 
@@ -252,6 +263,7 @@ describe('createTelemetryDispatcher', () => {
       });
 
       expect(telemetry.onStart).toBeUndefined();
+      expect(telemetry.executeLanguageModelCall).toBeUndefined();
       expect(telemetry.executeTool).toBeUndefined();
     });
 
@@ -417,6 +429,69 @@ describe('createTelemetryDispatcher', () => {
       await telemetry.onEnd!(dummyEvent);
 
       expect(instance.calls).toEqual(['start', 'end']);
+    });
+  });
+
+  describe('executeLanguageModelCall', () => {
+    it('returns undefined when no integrations implement executeLanguageModelCall', () => {
+      const telemetry = createTelemetryDispatcher({
+        telemetry: { integrations: { onStart: vi.fn() } },
+      });
+
+      expect(telemetry.executeLanguageModelCall).toBeUndefined();
+    });
+
+    it('wraps execute with a single integration', async () => {
+      const execute = vi.fn().mockResolvedValue('result');
+      let wrapperCalls = 0;
+      const wrapper: Telemetry['executeLanguageModelCall'] = async ({
+        execute,
+      }) => {
+        wrapperCalls += 1;
+        return `wrapped:${await execute()}` as any;
+      };
+
+      const telemetry = createTelemetryDispatcher({
+        telemetry: { integrations: { executeLanguageModelCall: wrapper } },
+      });
+
+      await expect(
+        telemetry.executeLanguageModelCall!({
+          callId: 'call-1',
+          execute,
+        }),
+      ).resolves.toBe('wrapped:result');
+
+      expect(wrapperCalls).toBe(1);
+      expect(execute).toHaveBeenCalledOnce();
+    });
+
+    it('auto-binds class-based executeLanguageModelCall integrations', async () => {
+      class ExecuteLanguageModelCallIntegration implements Telemetry {
+        calls = 0;
+
+        async executeLanguageModelCall<T>({
+          execute,
+        }: {
+          callId: string;
+          execute: () => PromiseLike<T>;
+        }) {
+          this.calls += 1;
+          return execute();
+        }
+      }
+
+      const integration = new ExecuteLanguageModelCallIntegration();
+      const telemetry = createTelemetryDispatcher({
+        telemetry: { integrations: integration },
+      });
+
+      await telemetry.executeLanguageModelCall!({
+        callId: 'call-1',
+        execute: async () => 'done',
+      });
+
+      expect(integration.calls).toBe(1);
     });
   });
 

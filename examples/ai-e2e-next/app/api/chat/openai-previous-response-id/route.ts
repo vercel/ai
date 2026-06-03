@@ -9,6 +9,7 @@ import {
   createUIMessageStreamResponse,
   isStepCount,
   streamText,
+  toUIMessageStream,
   type InferUITools,
   type UIMessage,
 } from 'ai';
@@ -59,7 +60,9 @@ export async function POST(req: Request) {
             previousResponseId,
           } satisfies OpenAILanguageModelResponsesOptions,
         },
-        onFinish: ({ providerMetadata }) => {
+        onFinish: ({ finalStep }) => {
+          const providerMetadata = finalStep.providerMetadata;
+
           if (!!providerMetadata) {
             // Return provider metadata so the client can persist the latest responseId.
             writer.write({
@@ -70,7 +73,7 @@ export async function POST(req: Request) {
           }
         },
       });
-      writer.merge(result.toUIMessageStream());
+      writer.merge(toUIMessageStream({ stream: result.stream }));
     },
   });
 

@@ -47,7 +47,7 @@ const stream = createUIMessageStream({
       prompt: 'Write a haiku about AI',
     });
 
-    writer.merge(result.toUIMessageStream());
+    writer.merge(toUIMessageStream({ stream: result.stream }));
   },
   onError: error => `Custom error: ${error.message}`,
   originalMessages: existingMessages,

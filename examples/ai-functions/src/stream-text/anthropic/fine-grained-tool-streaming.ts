@@ -60,7 +60,7 @@ async function main() {
 
   ts('stream started');
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'reasoning-start':
         ts('[reasoning-start]');
