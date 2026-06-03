@@ -1,7 +1,7 @@
 import {
-  CompletionRequestOptions,
-  UseCompletionOptions,
   callCompletionApi,
+  type CompletionRequestOptions,
+  type UseCompletionOptions,
 } from 'ai';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import useSWR from 'swr';

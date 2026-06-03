@@ -1,11 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { getRuntimeEnvironmentUserAgent } from './get-runtime-environment-user-agent';
 
 // Stabilize provider utils version used inside UA string construction
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
 }));
-
-import { getRuntimeEnvironmentUserAgent } from './get-runtime-environment-user-agent';
 
 describe('getRuntimeEnvironmentUserAgent', () => {
   it('should return the correct user agent for browsers', () => {

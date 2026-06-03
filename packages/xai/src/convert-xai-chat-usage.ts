@@ -1,7 +1,7 @@
-import { LanguageModelV3Usage } from '@ai-sdk/provider';
-import { XaiChatUsage } from './xai-chat-language-model';
+import type { LanguageModelV4Usage } from '@ai-sdk/provider';
+import type { XaiChatUsage } from './xai-chat-language-model';
 
-export function convertXaiChatUsage(usage: XaiChatUsage): LanguageModelV3Usage {
+export function convertXaiChatUsage(usage: XaiChatUsage): LanguageModelV4Usage {
   const cacheReadTokens = usage.prompt_tokens_details?.cached_tokens ?? 0;
   const reasoningTokens =
     usage.completion_tokens_details?.reasoning_tokens ?? 0;

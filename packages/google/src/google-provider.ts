@@ -1,90 +1,124 @@
-import {
-  EmbeddingModelV3,
-  Experimental_VideoModelV3,
-  ImageModelV3,
-  LanguageModelV3,
-  ProviderV3,
+import type {
+  EmbeddingModelV4,
+  Experimental_VideoModelV4,
+  FilesV4,
+  ImageModelV4,
+  LanguageModelV4,
+  ProviderV4,
+  SpeechModelV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   generateId,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { VERSION } from './version';
-import { GoogleGenerativeAIEmbeddingModel } from './google-generative-ai-embedding-model';
-import { GoogleGenerativeAIEmbeddingModelId } from './google-generative-ai-embedding-options';
-import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
-import { GoogleGenerativeAIModelId } from './google-generative-ai-options';
+import { GoogleEmbeddingModel } from './google-embedding-model';
+import type { GoogleEmbeddingModelId } from './google-embedding-model-options';
+import { GoogleLanguageModel } from './google-language-model';
+import type { GoogleModelId } from './google-language-model-options';
 import { googleTools } from './google-tools';
 
+import type {
+  GoogleImageSettings,
+  GoogleImageModelId,
+} from './google-image-settings';
+import { GoogleImageModel } from './google-image-model';
+import { GoogleFiles } from './google-files';
+import { GoogleVideoModel } from './google-video-model';
+import type { GoogleVideoModelId } from './google-video-settings';
+import { GoogleSpeechModel } from './google-speech-model';
+import type { GoogleSpeechModelId } from './google-speech-model-options';
 import {
-  GoogleGenerativeAIImageSettings,
-  GoogleGenerativeAIImageModelId,
-} from './google-generative-ai-image-settings';
-import { GoogleGenerativeAIImageModel } from './google-generative-ai-image-model';
-import { GoogleGenerativeAIVideoModel } from './google-generative-ai-video-model';
-import { GoogleGenerativeAIVideoModelId } from './google-generative-ai-video-settings';
+  GoogleInteractionsLanguageModel,
+  type GoogleInteractionsModelInput,
+} from './interactions/google-interactions-language-model';
+import type { GoogleInteractionsModelId } from './interactions/google-interactions-language-model-options';
+import type { GoogleInteractionsAgentName } from './interactions/google-interactions-agent';
 
-export interface GoogleGenerativeAIProvider extends ProviderV3 {
-  (modelId: GoogleGenerativeAIModelId): LanguageModelV3;
+export interface GoogleProvider extends ProviderV4 {
+  (modelId: GoogleModelId): LanguageModelV4;
 
-  languageModel(modelId: GoogleGenerativeAIModelId): LanguageModelV3;
+  languageModel(modelId: GoogleModelId): LanguageModelV4;
 
-  chat(modelId: GoogleGenerativeAIModelId): LanguageModelV3;
+  chat(modelId: GoogleModelId): LanguageModelV4;
 
   /**
    * Creates a model for image generation.
    */
   image(
-    modelId: GoogleGenerativeAIImageModelId,
-    settings?: GoogleGenerativeAIImageSettings,
-  ): ImageModelV3;
+    modelId: GoogleImageModelId,
+    settings?: GoogleImageSettings,
+  ): ImageModelV4;
 
   /**
    * @deprecated Use `chat()` instead.
    */
-  generativeAI(modelId: GoogleGenerativeAIModelId): LanguageModelV3;
+  generativeAI(modelId: GoogleModelId): LanguageModelV4;
 
   /**
    * Creates a model for text embeddings.
    */
-  embedding(modelId: GoogleGenerativeAIEmbeddingModelId): EmbeddingModelV3;
+  embedding(modelId: GoogleEmbeddingModelId): EmbeddingModelV4;
 
   /**
    * Creates a model for text embeddings.
    */
-  embeddingModel(modelId: GoogleGenerativeAIEmbeddingModelId): EmbeddingModelV3;
+  embeddingModel(modelId: GoogleEmbeddingModelId): EmbeddingModelV4;
 
   /**
    * @deprecated Use `embedding` instead.
    */
-  textEmbedding(modelId: GoogleGenerativeAIEmbeddingModelId): EmbeddingModelV3;
+  textEmbedding(modelId: GoogleEmbeddingModelId): EmbeddingModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
    */
-  textEmbeddingModel(
-    modelId: GoogleGenerativeAIEmbeddingModelId,
-  ): EmbeddingModelV3;
+  textEmbeddingModel(modelId: GoogleEmbeddingModelId): EmbeddingModelV4;
 
   /**
    * Creates a model for video generation.
    */
-  video(modelId: GoogleGenerativeAIVideoModelId): Experimental_VideoModelV3;
+  video(modelId: GoogleVideoModelId): Experimental_VideoModelV4;
 
   /**
    * Creates a model for video generation.
    */
-  videoModel(
-    modelId: GoogleGenerativeAIVideoModelId,
-  ): Experimental_VideoModelV3;
+  videoModel(modelId: GoogleVideoModelId): Experimental_VideoModelV4;
+
+  /**
+   * Creates a model for speech generation (text-to-speech).
+   */
+  speech(modelId: GoogleSpeechModelId): SpeechModelV4;
+
+  /**
+   * Creates a model for speech generation (text-to-speech).
+   */
+  speechModel(modelId: GoogleSpeechModelId): SpeechModelV4;
+
+  files(): FilesV4;
+
+  /**
+   * Creates a language model targeting the Gemini Interactions API
+   * (`POST /v1beta/interactions`). Pass:
+   *   - a model ID (string),
+   *   - `{ agent: <name> }` to use a known Gemini agent preset, or
+   *   - `{ managedAgent: <name> }` to use a user-defined agent created via
+   *     the `/v1beta/agents` endpoint.
+   */
+  interactions(
+    modelIdOrAgent:
+      | GoogleInteractionsModelId
+      | { agent: GoogleInteractionsAgentName }
+      | { managedAgent: string },
+  ): LanguageModelV4;
 
   tools: typeof googleTools;
 }
 
-export interface GoogleGenerativeAIProviderSettings {
+export interface GoogleProviderSettings {
   /**
    * Use a different URL prefix for API calls, e.g. to use proxy servers.
    * The default prefix is `https://generativelanguage.googleapis.com/v1beta`.
@@ -121,11 +155,11 @@ export interface GoogleGenerativeAIProviderSettings {
 }
 
 /**
- * Create a Google Generative AI provider instance.
+ * Create a Google provider instance.
  */
-export function createGoogleGenerativeAI(
-  options: GoogleGenerativeAIProviderSettings = {},
-): GoogleGenerativeAIProvider {
+export function createGoogle(
+  options: GoogleProviderSettings = {},
+): GoogleProvider {
   const baseURL =
     withoutTrailingSlash(options.baseURL) ??
     'https://generativelanguage.googleapis.com/v1beta';
@@ -145,8 +179,8 @@ export function createGoogleGenerativeAI(
       `ai-sdk/google/${VERSION}`,
     );
 
-  const createChatModel = (modelId: GoogleGenerativeAIModelId) =>
-    new GoogleGenerativeAILanguageModel(modelId, {
+  const createChatModel = (modelId: GoogleModelId) =>
+    new GoogleLanguageModel(modelId, {
       provider: providerName,
       baseURL,
       headers: getHeaders,
@@ -166,8 +200,8 @@ export function createGoogleGenerativeAI(
       fetch: options.fetch,
     });
 
-  const createEmbeddingModel = (modelId: GoogleGenerativeAIEmbeddingModelId) =>
-    new GoogleGenerativeAIEmbeddingModel(modelId, {
+  const createEmbeddingModel = (modelId: GoogleEmbeddingModelId) =>
+    new GoogleEmbeddingModel(modelId, {
       provider: providerName,
       baseURL,
       headers: getHeaders,
@@ -175,18 +209,26 @@ export function createGoogleGenerativeAI(
     });
 
   const createImageModel = (
-    modelId: GoogleGenerativeAIImageModelId,
-    settings: GoogleGenerativeAIImageSettings = {},
+    modelId: GoogleImageModelId,
+    settings: GoogleImageSettings = {},
   ) =>
-    new GoogleGenerativeAIImageModel(modelId, settings, {
+    new GoogleImageModel(modelId, settings, {
       provider: providerName,
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
     });
 
-  const createVideoModel = (modelId: GoogleGenerativeAIVideoModelId) =>
-    new GoogleGenerativeAIVideoModel(modelId, {
+  const createFiles = () =>
+    new GoogleFiles({
+      provider: providerName,
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
+  const createVideoModel = (modelId: GoogleVideoModelId) =>
+    new GoogleVideoModel(modelId, {
       provider: providerName,
       baseURL,
       headers: getHeaders,
@@ -194,7 +236,32 @@ export function createGoogleGenerativeAI(
       generateId: options.generateId ?? generateId,
     });
 
-  const provider = function (modelId: GoogleGenerativeAIModelId) {
+  const createSpeechModel = (modelId: GoogleSpeechModelId) =>
+    new GoogleSpeechModel(modelId, {
+      provider: `${providerName}.speech`,
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
+  const createInteractionsModel = (
+    modelIdOrAgent:
+      | GoogleInteractionsModelId
+      | { agent: GoogleInteractionsAgentName }
+      | { managedAgent: string },
+  ) =>
+    new GoogleInteractionsLanguageModel(
+      modelIdOrAgent as GoogleInteractionsModelInput,
+      {
+        provider: `${providerName}.interactions`,
+        baseURL,
+        headers: getHeaders,
+        generateId: options.generateId ?? generateId,
+        fetch: options.fetch,
+      },
+    );
+
+  const provider = function (modelId: GoogleModelId) {
     if (new.target) {
       throw new Error(
         'The Google Generative AI model function cannot be called with the new keyword.',
@@ -204,7 +271,7 @@ export function createGoogleGenerativeAI(
     return createChatModel(modelId);
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.generativeAI = createChatModel;
@@ -216,12 +283,16 @@ export function createGoogleGenerativeAI(
   provider.imageModel = createImageModel;
   provider.video = createVideoModel;
   provider.videoModel = createVideoModel;
+  provider.files = createFiles;
+  provider.speech = createSpeechModel;
+  provider.speechModel = createSpeechModel;
+  provider.interactions = createInteractionsModel;
   provider.tools = googleTools;
 
-  return provider as GoogleGenerativeAIProvider;
+  return provider as GoogleProvider;
 }
 
 /**
  * Default Google Generative AI provider instance.
  */
-export const google = createGoogleGenerativeAI();
+export const google = createGoogle();

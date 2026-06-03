@@ -1,5 +1,10 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { convertToModelMessages, streamText } from 'ai';
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+} from 'ai';
 
 export default defineLazyEventHandler(async () => {
   const openai = createOpenAI({
@@ -14,7 +19,7 @@ export default defineLazyEventHandler(async () => {
 
     // Call the language model
     const result = streamText({
-      model: openai('gpt-4-turbo'),
+      model: openai('gpt-5-mini'),
       messages: await convertToModelMessages(messages),
       async onFinish({ text, toolCalls, toolResults, usage, finishReason }) {
         // implement your own logic here, e.g. for storing messages
@@ -23,6 +28,8 @@ export default defineLazyEventHandler(async () => {
     });
 
     // Respond with the stream
-    return result.toUIMessageStreamResponse();
+    return createUIMessageStreamResponse({
+      stream: toUIMessageStream({ stream: result.stream }),
+    });
   });
 });

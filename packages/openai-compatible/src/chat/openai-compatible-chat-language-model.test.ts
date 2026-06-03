@@ -1,15 +1,12 @@
 import fs from 'fs';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
-import {
-  convertReadableStreamToArray,
-  isNodeVersion,
-} from '@ai-sdk/provider-utils/test';
+import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createOpenAICompatible } from '../openai-compatible-provider';
 import { OpenAICompatibleChatLanguageModel } from './openai-compatible-chat-language-model';
 
-const TEST_PROMPT: LanguageModelV3Prompt = [
+const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -21,7 +18,7 @@ const provider = createOpenAICompatible({
   },
 });
 
-const model = provider('grok-beta');
+const model = provider('grok-3');
 
 const server = createTestServer({
   'https://my.api.com/v1/chat/completions': {},
@@ -60,7 +57,7 @@ function prepareChunksFixtureResponse(
 
 describe('config', () => {
   it('should extract base name from provider string', () => {
-    const model = new OpenAICompatibleChatLanguageModel('gpt-4', {
+    const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
       provider: 'anthropic.beta',
       url: () => '',
       headers: () => ({}),
@@ -70,7 +67,7 @@ describe('config', () => {
   });
 
   it('should handle provider without dot notation', () => {
-    const model = new OpenAICompatibleChatLanguageModel('gpt-4', {
+    const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
       provider: 'openai',
       url: () => '',
       headers: () => ({}),
@@ -80,7 +77,7 @@ describe('config', () => {
   });
 
   it('should return empty for empty provider', () => {
-    const model = new OpenAICompatibleChatLanguageModel('gpt-4', {
+    const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
       provider: '',
       url: () => '',
       headers: () => ({}),
@@ -105,7 +102,7 @@ describe('doGenerate', () => {
     finish_reason = 'stop',
     id = 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
     created = 1711115037,
-    model = 'grok-beta',
+    model = 'grok-3',
     headers,
   }: {
     content?: string;
@@ -278,7 +275,7 @@ describe('doGenerate', () => {
 
   it('should pass user setting to requests', async () => {
     prepareJsonResponse({ content: 'Hello, World!' });
-    const modelWithUser = provider('grok-beta');
+    const modelWithUser = provider('grok-3');
     await modelWithUser.doGenerate({
       prompt: TEST_PROMPT,
       providerOptions: {
@@ -295,7 +292,7 @@ describe('doGenerate', () => {
             "role": "user",
           },
         ],
-        "model": "grok-beta",
+        "model": "grok-3",
       }
     `);
   });
@@ -407,7 +404,7 @@ describe('doGenerate', () => {
             "role": "user",
           },
         ],
-        "model": "grok-beta",
+        "model": "grok-3",
       }
     `);
   });
@@ -415,7 +412,7 @@ describe('doGenerate', () => {
   it('should pass settings', async () => {
     prepareJsonResponse();
 
-    await provider('grok-beta').doGenerate({
+    await provider('grok-3').doGenerate({
       prompt: TEST_PROMPT,
       providerOptions: {
         openaiCompatible: {
@@ -432,7 +429,7 @@ describe('doGenerate', () => {
             "role": "user",
           },
         ],
-        "model": "grok-beta",
+        "model": "grok-3",
         "user": "test-user-id",
       }
     `);
@@ -441,7 +438,7 @@ describe('doGenerate', () => {
   it('should pass settings with deprecated openai-compatible key and emit warning', async () => {
     prepareJsonResponse();
 
-    const result = await provider('grok-beta').doGenerate({
+    const result = await provider('grok-3').doGenerate({
       prompt: TEST_PROMPT,
       providerOptions: {
         'openai-compatible': {
@@ -458,21 +455,26 @@ describe('doGenerate', () => {
             "role": "user",
           },
         ],
-        "model": "grok-beta",
+        "model": "grok-3",
         "user": "test-user-id",
       }
     `);
 
-    expect(result.warnings).toContainEqual({
-      type: 'other',
-      message: `The 'openai-compatible' key in providerOptions is deprecated. Use 'openaiCompatible' instead.`,
-    });
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "message": "Use 'openaiCompatible' instead.",
+          "setting": "providerOptions key 'openai-compatible'",
+          "type": "deprecated",
+        },
+      ]
+    `);
   });
 
   it('should include provider-specific options', async () => {
     prepareJsonResponse();
 
-    await provider('grok-beta').doGenerate({
+    await provider('grok-3').doGenerate({
       providerOptions: {
         'test-provider': {
           someCustomOption: 'test-value',
@@ -489,7 +491,7 @@ describe('doGenerate', () => {
             "role": "user",
           },
         ],
-        "model": "grok-beta",
+        "model": "grok-3",
         "someCustomOption": "test-value",
       }
     `);
@@ -498,7 +500,7 @@ describe('doGenerate', () => {
   it('should not include provider-specific options for different provider', async () => {
     prepareJsonResponse();
 
-    await provider('grok-beta').doGenerate({
+    await provider('grok-3').doGenerate({
       providerOptions: {
         notThisProviderName: {
           someCustomOption: 'test-value',
@@ -515,9 +517,209 @@ describe('doGenerate', () => {
             "role": "user",
           },
         ],
-        "model": "grok-beta",
+        "model": "grok-3",
       }
     `);
+  });
+
+  describe('camelCase provider options', () => {
+    it('should accept camelCase provider options key for hyphenated provider name', async () => {
+      prepareJsonResponse({ content: 'Hello!' });
+
+      await provider('grok-3').doGenerate({
+        providerOptions: {
+          testProvider: {
+            someCustomOption: 'test-value',
+          },
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        someCustomOption: 'test-value',
+      });
+    });
+
+    it('should prefer camelCase options over raw-name options', async () => {
+      prepareJsonResponse({ content: 'Hello!' });
+
+      await provider('grok-3').doGenerate({
+        providerOptions: {
+          'test-provider': {
+            someCustomOption: 'raw-value',
+          },
+          testProvider: {
+            someCustomOption: 'camel-value',
+          },
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        someCustomOption: 'camel-value',
+      });
+    });
+
+    it('should use camelCase metadata key when camelCase provider options are used', async () => {
+      prepareJsonResponse({
+        content: 'Hello!',
+        usage: {
+          prompt_tokens: 20,
+          completion_tokens: 30,
+          total_tokens: 50,
+          completion_tokens_details: {
+            accepted_prediction_tokens: 15,
+          },
+        },
+      });
+
+      const result = await provider('grok-3').doGenerate({
+        providerOptions: {
+          testProvider: { reasoningEffort: 'high' },
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.providerMetadata).toHaveProperty('testProvider');
+      expect(result.providerMetadata).not.toHaveProperty('test-provider');
+      expect(result.providerMetadata!['testProvider']).toMatchObject({
+        acceptedPredictionTokens: 15,
+      });
+    });
+
+    it('should use raw metadata key when raw provider options are used', async () => {
+      prepareJsonResponse({
+        content: 'Hello!',
+        usage: {
+          prompt_tokens: 20,
+          completion_tokens: 30,
+          total_tokens: 50,
+          completion_tokens_details: {
+            accepted_prediction_tokens: 15,
+          },
+        },
+      });
+
+      const result = await provider('grok-3').doGenerate({
+        providerOptions: {
+          'test-provider': { reasoningEffort: 'high' },
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.providerMetadata).toHaveProperty('test-provider');
+      expect(result.providerMetadata!['test-provider']).toMatchObject({
+        acceptedPredictionTokens: 15,
+      });
+    });
+
+    it('should emit deprecated warning when raw provider options key is used', async () => {
+      prepareJsonResponse({ content: 'Hello!' });
+
+      const result = await provider('grok-3').doGenerate({
+        providerOptions: {
+          'test-provider': { reasoningEffort: 'high' },
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "message": "Use 'testProvider' instead.",
+            "setting": "providerOptions key 'test-provider'",
+            "type": "deprecated",
+          },
+        ]
+      `);
+    });
+
+    it('should not emit deprecated warning when camelCase provider options key is used', async () => {
+      prepareJsonResponse({ content: 'Hello!' });
+
+      const result = await provider('grok-3').doGenerate({
+        providerOptions: {
+          testProvider: { reasoningEffort: 'high' },
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.warnings).toMatchInlineSnapshot(`[]`);
+    });
+
+    it('should use raw metadata key when no provider options are passed', async () => {
+      prepareJsonResponse({ content: 'Hello!' });
+
+      const result = await provider('grok-3').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.providerMetadata).toHaveProperty('test-provider');
+    });
+
+    it('should include thought signature in providerMetadata with camelCase key', async () => {
+      prepareJsonResponse({
+        tool_calls: [
+          {
+            id: 'call-1',
+            type: 'function' as const,
+            function: {
+              name: 'test_tool',
+              arguments: '{"arg":"value"}',
+            },
+            extra_content: {
+              google: { thought_signature: '<Sig>' },
+            },
+          },
+        ],
+      });
+
+      const result = await provider('grok-3').doGenerate({
+        providerOptions: { testProvider: {} },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toMatchObject([
+        {
+          type: 'tool-call',
+          providerMetadata: {
+            testProvider: { thoughtSignature: '<Sig>' },
+          },
+        },
+      ]);
+    });
+
+    it('should include thought signature in providerMetadata with raw key', async () => {
+      prepareJsonResponse({
+        tool_calls: [
+          {
+            id: 'call-1',
+            type: 'function' as const,
+            function: {
+              name: 'test_tool',
+              arguments: '{"arg":"value"}',
+            },
+            extra_content: {
+              google: { thought_signature: '<Sig>' },
+            },
+          },
+        ],
+      });
+
+      const result = await provider('grok-3').doGenerate({
+        providerOptions: { 'test-provider': {} },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toMatchObject([
+        {
+          type: 'tool-call',
+          providerMetadata: {
+            'test-provider': { thoughtSignature: '<Sig>' },
+          },
+        },
+      ]);
+    });
   });
 
   it('should pass tools and toolChoice', async () => {
@@ -552,7 +754,7 @@ describe('doGenerate', () => {
             "role": "user",
           },
         ],
-        "model": "grok-beta",
+        "model": "grok-3",
         "tool_choice": {
           "function": {
             "name": "test-tool",
@@ -596,7 +798,7 @@ describe('doGenerate', () => {
       },
     });
 
-    await provider('grok-beta').doGenerate({
+    await provider('grok-3').doGenerate({
       prompt: TEST_PROMPT,
       headers: {
         'Custom-Request-Header': 'request-header-value',
@@ -1000,6 +1202,54 @@ describe('doGenerate', () => {
       expect(body.customOption).toBe('should-be-included');
     });
 
+    it('should pass top-level reasoning as reasoning_effort', async () => {
+      prepareJsonResponse({ content: 'test' });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'medium',
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'medium',
+      );
+    });
+
+    it('should not pass top-level reasoning none as reasoning_effort', async () => {
+      prepareJsonResponse({ content: 'test' });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+      });
+
+      expect(
+        (await server.calls[0].requestBodyJson).reasoning_effort,
+      ).toBeUndefined();
+    });
+
+    it('should prefer providerOptions reasoningEffort over top-level reasoning', async () => {
+      prepareJsonResponse({ content: 'test' });
+
+      const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+      });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'medium',
+        providerOptions: {
+          'test-provider': { reasoningEffort: 'high' },
+        },
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'high',
+      );
+    });
+
     it('should pass textVerbosity setting from providerOptions', async () => {
       prepareJsonResponse({ content: '{"value":"test"}' });
 
@@ -1283,7 +1533,7 @@ describe('doGenerate', () => {
 
     expect(request).toMatchInlineSnapshot(`
       {
-        "body": "{"model":"grok-beta","messages":[{"role":"user","content":"Hello"}]}",
+        "body": "{"model":"grok-3","messages":[{"role":"user","content":"Hello"}]}",
       }
     `);
   });
@@ -1421,7 +1671,7 @@ describe('doGenerate', () => {
           id: 'chatcmpl-test',
           object: 'chat.completion',
           created: 1711115037,
-          model: 'grok-beta',
+          model: 'grok-3',
           choices: [
             {
               index: 0,
@@ -1478,17 +1728,17 @@ describe('doStream', () => {
       type: 'stream-chunks',
       headers,
       chunks: [
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"grok-3",` +
           `"system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
         ...content.map(text => {
           return (
-            `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"grok-beta",` +
+            `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"grok-3",` +
             `"system_fingerprint":null,"choices":[{"index":1,"delta":{"content":"${text}"},"finish_reason":null}]}\n\n`
           );
         }),
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"grok-3",` +
           `"system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"${finish_reason}"}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-3",` +
           `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"${finish_reason}"}],` +
           `"usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
           `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}\n\n`,
@@ -1547,6 +1797,34 @@ describe('doStream', () => {
     `);
   });
 
+  it('should handle empty string role in delta chunks', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1702657020,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"role":"","content":"Hello"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1702657020,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"role":"","content":" World"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1702657020,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const textDeltas = events.filter(e => e.type === 'text-delta');
+
+    expect(textDeltas).toStrictEqual([
+      { type: 'text-delta', delta: 'Hello', id: 'txt-0' },
+      { type: 'text-delta', delta: ' World', id: 'txt-0' },
+    ]);
+  });
+
   it('should respect the includeUsage option', async () => {
     prepareStreamResponse({
       content: ['Hello', ', ', 'World!'],
@@ -1579,15 +1857,15 @@ describe('doStream', () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
       chunks: [
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":"", "reasoning_content":"Let me think"},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":"", "reasoning_content":" about this"},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":"Here's"},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":" my response"},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-3",` +
           `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],` +
           `"usage":{"prompt_tokens":18,"completion_tokens":439}}\n\n`,
         'data: [DONE]\n\n',
@@ -1607,7 +1885,7 @@ describe('doStream', () => {
         },
         {
           "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
-          "modelId": "grok-beta",
+          "modelId": "grok-3",
           "timestamp": 2024-03-25T09:06:38.000Z,
           "type": "response-metadata",
         },
@@ -1682,15 +1960,15 @@ describe('doStream', () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
       chunks: [
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":"", "reasoning":"Let me consider"},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":"", "reasoning":" this carefully"},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":"My answer is"},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":" correct"},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-3",` +
           `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],` +
           `"usage":{"prompt_tokens":18,"completion_tokens":439}}\n\n`,
         'data: [DONE]\n\n',
@@ -1710,7 +1988,7 @@ describe('doStream', () => {
         },
         {
           "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
-          "modelId": "grok-beta",
+          "modelId": "grok-3",
           "timestamp": 2024-03-25T09:06:38.000Z,
           "type": "response-metadata",
         },
@@ -1785,11 +2063,11 @@ describe('doStream', () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
       chunks: [
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":"", "reasoning_content":"From reasoning_content", "reasoning":"From reasoning"},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":"Final response"},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-3",` +
           `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],` +
           `"usage":{"prompt_tokens":18,"completion_tokens":439}}\n\n`,
         'data: [DONE]\n\n',
@@ -1809,7 +2087,7 @@ describe('doStream', () => {
         },
         {
           "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
-          "modelId": "grok-beta",
+          "modelId": "grok-3",
           "timestamp": 2024-03-25T09:06:38.000Z,
           "type": "response-metadata",
         },
@@ -1874,32 +2152,32 @@ describe('doStream', () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
       chunks: [
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
           `"tool_calls":[{"index":0,"id":"call_O17Uplv4lJvD6DVdIvFFeRMw","type":"function","function":{"name":"test-tool","arguments":""}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\\""}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"value"}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\":\\""}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"Spark"}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"le"}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":" Day"}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\"}"}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-3",` +
           `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],` +
           `"usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
           `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}\n\n`,
@@ -1933,7 +2211,7 @@ describe('doStream', () => {
         },
         {
           "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
-          "modelId": "grok-beta",
+          "modelId": "grok-3",
           "timestamp": 2024-03-25T09:06:38.000Z,
           "type": "response-metadata",
         },
@@ -2021,6 +2299,165 @@ describe('doStream', () => {
         },
       ]
     `);
+  });
+
+  it('should stream tool deltas when function.name arrives in a later chunk', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-late-name","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"role":"assistant","content":null},"finish_reason":null}]}\n\n`,
+        // First tool_calls delta carries id and (empty) arguments but no function.name
+        `data: {"id":"chatcmpl-late-name","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"call_late","type":"function","function":{"arguments":""}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        // function.name arrives in the next chunk together with the start of the arguments
+        `data: {"id":"chatcmpl-late-name","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"call_late","type":"function","function":{"name":"test-tool","arguments":"{\\""}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-late-name","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"value"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-late-name","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\":\\"hi\\"}"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-late-name","object":"chat.completion.chunk","created":1729171479,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],` +
+          `"usage":{"prompt_tokens":18,"completion_tokens":10,"total_tokens":28}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          inputSchema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "chatcmpl-late-name",
+          "modelId": "grok-3",
+          "timestamp": 2024-03-25T09:06:38.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "id": "call_late",
+          "toolName": "test-tool",
+          "type": "tool-input-start",
+        },
+        {
+          "delta": "{"",
+          "id": "call_late",
+          "type": "tool-input-delta",
+        },
+        {
+          "delta": "value",
+          "id": "call_late",
+          "type": "tool-input-delta",
+        },
+        {
+          "delta": "":"hi"}",
+          "id": "call_late",
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "call_late",
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{"value":"hi"}",
+          "toolCallId": "call_late",
+          "toolName": "test-tool",
+          "type": "tool-call",
+        },
+        {
+          "finishReason": {
+            "raw": "tool_calls",
+            "unified": "tool-calls",
+          },
+          "providerMetadata": {
+            "test-provider": {},
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 18,
+              "total": 18,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 10,
+              "total": 10,
+            },
+            "raw": {
+              "completion_tokens": 10,
+              "prompt_tokens": 18,
+              "total_tokens": 28,
+            },
+          },
+        },
+      ]
+    `);
+  });
+
+  it('should error when streamed tool call never receives a function.name', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-no-name","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"role":"assistant","content":null},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-no-name","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"call_missing","type":"function","function":{"arguments":"{}"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-no-name","object":"chat.completion.chunk","created":1729171479,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],` +
+          `"usage":{"prompt_tokens":18,"completion_tokens":10,"total_tokens":28}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          inputSchema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    await expect(
+      convertReadableStreamToArray(stream),
+    ).rejects.toThrowErrorMatchingInlineSnapshot(
+      `[AI_InvalidResponseDataError: Expected 'function.name' to be a string.]`,
+    );
   });
 
   it('should stream tool call with thought signature from extra_content', async () => {
@@ -2165,32 +2602,32 @@ describe('doStream', () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
       chunks: [
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
           `"tool_calls":[{"index":0,"id":"call_O17Uplv4lJvD6DVdIvFFeRMw","type":"function","function":{"name":"test-tool","arguments":"{\\""}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"va"}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"lue"}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\":\\""}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"Spark"}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"le"}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":" Day"}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\"}"}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-3",` +
           `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],` +
           `"usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
           `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}\n\n`,
@@ -2224,7 +2661,7 @@ describe('doStream', () => {
         },
         {
           "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
-          "modelId": "grok-beta",
+          "modelId": "grok-3",
           "timestamp": 2024-03-25T09:06:38.000Z,
           "type": "response-metadata",
         },
@@ -2468,11 +2905,11 @@ describe('doStream', () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
       chunks: [
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
           `"tool_calls":[{"index":0,"id":"call_O17Uplv4lJvD6DVdIvFFeRMw","type":"function","function":{"name":"test-tool","arguments":"{\\"value\\":\\"Sparkle Day\\"}"}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-3",` +
           `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],` +
           `"usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
           `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}\n\n`,
@@ -2506,7 +2943,7 @@ describe('doStream', () => {
         },
         {
           "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
-          "modelId": "grok-beta",
+          "modelId": "grok-3",
           "timestamp": 2024-03-25T09:06:38.000Z,
           "type": "response-metadata",
         },
@@ -2570,11 +3007,11 @@ describe('doStream', () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
       chunks: [
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
           `"tool_calls":[{"index":0,"id":"call_O17Uplv4lJvD6DVdIvFFeRMw","type":"function","function":{"name":"test-tool","arguments":""}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-3",` +
           `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],` +
           `"usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
           `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}\n\n`,
@@ -2607,7 +3044,7 @@ describe('doStream', () => {
         },
         {
           "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
-          "modelId": "grok-beta",
+          "modelId": "grok-3",
           "timestamp": 2024-03-25T09:06:38.000Z,
           "type": "response-metadata",
         },
@@ -2714,20 +3151,18 @@ describe('doStream', () => {
     `);
   });
 
-  it.skipIf(isNodeVersion(20))(
-    'should handle unparsable stream parts',
-    async () => {
-      server.urls['https://my.api.com/v1/chat/completions'].response = {
-        type: 'stream-chunks',
-        chunks: [`data: {unparsable}\n\n`, 'data: [DONE]\n\n'],
-      };
+  it('should handle unparsable stream parts', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [`data: {unparsable}\n\n`, 'data: [DONE]\n\n'],
+    };
 
-      const { stream } = await model.doStream({
-        prompt: TEST_PROMPT,
-        includeRawChunks: false,
-      });
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
 
-      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
         [
           {
             "type": "stream-start",
@@ -2735,7 +3170,7 @@ describe('doStream', () => {
           },
           {
             "error": [AI_JSONParseError: JSON parsing failed: Text: {unparsable}.
-        Error message: Expected property name or '}' in JSON at position 1 (line 1 column 2)],
+        Error message: SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)],
             "type": "error",
           },
           {
@@ -2764,8 +3199,7 @@ describe('doStream', () => {
           },
         ]
       `);
-    },
-  );
+  });
 
   it('should pass the messages and the model', async () => {
     prepareStreamResponse({ content: [] });
@@ -2783,7 +3217,7 @@ describe('doStream', () => {
             "role": "user",
           },
         ],
-        "model": "grok-beta",
+        "model": "grok-3",
         "stream": true,
       }
     `);
@@ -2801,7 +3235,7 @@ describe('doStream', () => {
       },
     });
 
-    await provider('grok-beta').doStream({
+    await provider('grok-3').doStream({
       prompt: TEST_PROMPT,
       includeRawChunks: false,
       headers: {
@@ -2822,7 +3256,7 @@ describe('doStream', () => {
   it('should include provider-specific options', async () => {
     prepareStreamResponse({ content: [] });
 
-    await provider('grok-beta').doStream({
+    await provider('grok-3').doStream({
       providerOptions: {
         'test-provider': {
           someCustomOption: 'test-value',
@@ -2840,7 +3274,7 @@ describe('doStream', () => {
             "role": "user",
           },
         ],
-        "model": "grok-beta",
+        "model": "grok-3",
         "someCustomOption": "test-value",
         "stream": true,
       }
@@ -2850,7 +3284,7 @@ describe('doStream', () => {
   it('should not include provider-specific options for different provider', async () => {
     prepareStreamResponse({ content: [] });
 
-    await provider('grok-beta').doStream({
+    await provider('grok-3').doStream({
       providerOptions: {
         notThisProviderName: {
           someCustomOption: 'test-value',
@@ -2868,10 +3302,161 @@ describe('doStream', () => {
             "role": "user",
           },
         ],
-        "model": "grok-beta",
+        "model": "grok-3",
         "stream": true,
       }
     `);
+  });
+
+  describe('camelCase provider options', () => {
+    it('should accept camelCase provider options key for hyphenated provider name', async () => {
+      prepareStreamResponse({ content: [] });
+
+      await provider('grok-3').doStream({
+        providerOptions: {
+          testProvider: {
+            someCustomOption: 'test-value',
+          },
+        },
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        someCustomOption: 'test-value',
+      });
+    });
+
+    it('should prefer camelCase options over raw-name options', async () => {
+      prepareStreamResponse({ content: [] });
+
+      await provider('grok-3').doStream({
+        providerOptions: {
+          'test-provider': { someCustomOption: 'raw-value' },
+          testProvider: { someCustomOption: 'camel-value' },
+        },
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        someCustomOption: 'camel-value',
+      });
+    });
+
+    it('should emit deprecated warning when raw provider options key is used', async () => {
+      prepareStreamResponse({ content: ['Hello'] });
+
+      const { stream } = await provider('grok-3').doStream({
+        providerOptions: {
+          'test-provider': { reasoningEffort: 'high' },
+        },
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const streamStart = parts.find(part => part.type === 'stream-start');
+
+      expect(streamStart?.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "message": "Use 'testProvider' instead.",
+            "setting": "providerOptions key 'test-provider'",
+            "type": "deprecated",
+          },
+        ]
+      `);
+    });
+
+    it('should not emit deprecated warning when camelCase provider options key is used', async () => {
+      prepareStreamResponse({ content: ['Hello'] });
+
+      const { stream } = await provider('grok-3').doStream({
+        providerOptions: {
+          testProvider: { reasoningEffort: 'high' },
+        },
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const streamStart = parts.find(part => part.type === 'stream-start');
+
+      expect(streamStart?.warnings).toMatchInlineSnapshot(`[]`);
+    });
+
+    it('should use camelCase metadata key in finish event when camelCase options are used', async () => {
+      prepareStreamResponse({ content: ['Hello'] });
+
+      const { stream } = await provider('grok-3').doStream({
+        providerOptions: { testProvider: {} },
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const finishPart = parts.find(part => part.type === 'finish');
+
+      expect(finishPart?.providerMetadata).toHaveProperty('testProvider');
+      expect(finishPart?.providerMetadata).not.toHaveProperty('test-provider');
+    });
+
+    it('should use raw metadata key in finish event when raw options are used', async () => {
+      prepareStreamResponse({ content: ['Hello'] });
+
+      const { stream } = await provider('grok-3').doStream({
+        providerOptions: { 'test-provider': {} },
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const finishPart = parts.find(part => part.type === 'finish');
+
+      expect(finishPart?.providerMetadata).toHaveProperty('test-provider');
+    });
+
+    it('should use raw metadata key in finish event when no provider options are passed', async () => {
+      prepareStreamResponse({ content: ['Hello'] });
+
+      const { stream } = await provider('grok-3').doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const finishPart = parts.find(part => part.type === 'finish');
+
+      expect(finishPart?.providerMetadata).toHaveProperty('test-provider');
+    });
+
+    it('should use camelCase metadata key for thought signatures in streamed tool calls', async () => {
+      server.urls['https://my.api.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"chat-id","choices":[{"index":0,"delta":{"role":"assistant","tool_calls":[{"index":0,"id":"call-1","type":"function","function":{"name":"test_tool","arguments":"{\\"a\\":1}"},"extra_content":{"google":{"thought_signature":"<Sig>"}}}]},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chat-id","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":10,"completion_tokens":5,"total_tokens":15}}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await provider('grok-3').doStream({
+        providerOptions: { testProvider: {} },
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const toolCallEvent = parts.find(part => part.type === 'tool-call');
+
+      expect(toolCallEvent).toMatchObject({
+        type: 'tool-call',
+        providerMetadata: {
+          testProvider: { thoughtSignature: '<Sig>' },
+        },
+      });
+    });
   });
 
   it('should send request body', async () => {
@@ -2893,7 +3478,7 @@ describe('doStream', () => {
               "role": "user",
             },
           ],
-          "model": "grok-beta",
+          "model": "grok-3",
           "presence_penalty": undefined,
           "reasoning_effort": undefined,
           "response_format": undefined,
@@ -3116,7 +3701,7 @@ describe('metadata extraction', () => {
         id: 'chatcmpl-123',
         object: 'chat.completion',
         created: 1711115037,
-        model: 'gpt-4',
+        model: 'gpt-5',
         choices: [
           {
             index: 0,
@@ -3130,7 +3715,7 @@ describe('metadata extraction', () => {
       },
     };
 
-    const model = new OpenAICompatibleChatLanguageModel('gpt-4', {
+    const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
       provider: 'test-provider',
       url: () => 'https://my.api.com/v1/chat/completions',
       headers: () => ({}),
@@ -3155,7 +3740,7 @@ describe('metadata extraction', () => {
             "role": "user",
           },
         ],
-        "model": "gpt-4",
+        "model": "gpt-5",
       }
     `);
   });
@@ -3170,7 +3755,7 @@ describe('metadata extraction', () => {
       ],
     };
 
-    const model = new OpenAICompatibleChatLanguageModel('gpt-4', {
+    const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
       provider: 'test-provider',
       url: () => 'https://my.api.com/v1/chat/completions',
       headers: () => ({}),
@@ -3199,7 +3784,7 @@ describe('metadata extraction', () => {
             "role": "user",
           },
         ],
-        "model": "gpt-4",
+        "model": "gpt-5",
         "stream": true,
       }
     `);
@@ -3308,7 +3893,7 @@ describe('transformRequestBody', () => {
         id: 'chatcmpl-test',
         object: 'chat.completion',
         created: 1711115037,
-        model: 'grok-beta',
+        model: 'grok-3',
         choices: [
           {
             index: 0,
@@ -3332,8 +3917,8 @@ describe('transformRequestBody', () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
       chunks: [
-        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1711115037,"model":"grok-beta","choices":[{"index":0,"delta":{"role":"assistant","content":"Hello"},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1711115037,"model":"grok-beta","choices":[{"index":0,"delta":{"content":"!"},"finish_reason":"stop"}],"usage":{"prompt_tokens":4,"completion_tokens":2,"total_tokens":6}}\n\n`,
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1711115037,"model":"grok-3","choices":[{"index":0,"delta":{"role":"assistant","content":"Hello"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1711115037,"model":"grok-3","choices":[{"index":0,"delta":{"content":"!"},"finish_reason":"stop"}],"usage":{"prompt_tokens":4,"completion_tokens":2,"total_tokens":6}}\n\n`,
         'data: [DONE]\n\n',
       ],
     };
@@ -3347,7 +3932,7 @@ describe('transformRequestBody', () => {
 
     prepareTransformJsonResponse();
 
-    const model = new OpenAICompatibleChatLanguageModel('grok-beta', {
+    const model = new OpenAICompatibleChatLanguageModel('grok-3', {
       provider: 'test-provider',
       url: ({ path }) => `https://my.api.com/v1${path}`,
       headers: () => ({}),
@@ -3362,7 +3947,7 @@ describe('transformRequestBody', () => {
     expect(transformFn).toHaveBeenCalledOnce();
     expect(transformFn).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: 'grok-beta',
+        model: 'grok-3',
         messages: [{ role: 'user', content: 'Hello' }],
       }),
     );
@@ -3381,7 +3966,7 @@ describe('transformRequestBody', () => {
 
     prepareTransformStreamResponse();
 
-    const model = new OpenAICompatibleChatLanguageModel('grok-beta', {
+    const model = new OpenAICompatibleChatLanguageModel('grok-3', {
       provider: 'test-provider',
       url: ({ path }) => `https://my.api.com/v1${path}`,
       headers: () => ({}),
@@ -3399,7 +3984,7 @@ describe('transformRequestBody', () => {
     expect(transformFn).toHaveBeenCalledOnce();
     expect(transformFn).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: 'grok-beta',
+        model: 'grok-3',
         messages: [{ role: 'user', content: 'Hello' }],
         stream: true,
       }),
@@ -3414,7 +3999,7 @@ describe('transformRequestBody', () => {
   it('should work without transformRequestBody', async () => {
     prepareTransformJsonResponse();
 
-    const model = new OpenAICompatibleChatLanguageModel('grok-beta', {
+    const model = new OpenAICompatibleChatLanguageModel('grok-3', {
       provider: 'test-provider',
       url: ({ path }) => `https://my.api.com/v1${path}`,
       headers: () => ({}),
@@ -3426,7 +4011,7 @@ describe('transformRequestBody', () => {
 
     const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody).toMatchObject({
-      model: 'grok-beta',
+      model: 'grok-3',
     });
     expect(requestBody).not.toHaveProperty('custom_field');
   });

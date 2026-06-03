@@ -53,6 +53,7 @@
         "SENTRY_AUTH_TOKEN",
         "SENTRY_ORG",
         "SENTRY_PROJECT",
+        "TOGETHER_API_KEY",
         "TOGETHER_AI_API_KEY",
         "VERCEL_API_KEY",
         "VERCEL_DEPLOYMENT_ID",
@@ -71,14 +72,15 @@
         ".vinxi/**"
       ]
     },
-    "lint": {
-      "dependsOn": ["^lint"]
-    },
     "type-check": {
       "dependsOn": ["^build", "build"]
     },
     "test": {
-      "dependsOn": ["^build", "build"]
+      "dependsOn": ["^build", "build"],
+      "env": ["SKIP_RSC_E2E"]
+    },
+    "test:e2e:ci": {
+      "env": ["SKIP_RSC_E2E"]
     },
     "test:update": {
       "dependsOn": ["^build", "build"]
@@ -93,9 +95,16 @@
       "cache": false,
       "persistent": true
     },
-    "prettier-check": {},
     "integration-test": {
       "dependsOn": ["^build", "build"]
+    },
+    "//#konsistent:check": {
+      "dependsOn": ["konsistent-provider#build"],
+      "cache": false
+    },
+    "//#konsistent:validate": {
+      "dependsOn": ["konsistent-provider#build"],
+      "cache": false
     }
   }
 }

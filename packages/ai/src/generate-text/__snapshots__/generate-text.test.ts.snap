@@ -2,74 +2,66 @@
 
 exports[`generateText > options.experimental_onStart > should send correct information with text prompt 1`] = `
 {
-  "abortSignal": undefined,
   "activeTools": undefined,
-  "experimental_context": undefined,
+  "callId": "test-telemetry-call-id",
   "frequencyPenalty": undefined,
-  "functionId": "test-function",
-  "headers": undefined,
-  "include": undefined,
+  "headers": {
+    "user-agent": "ai/0.0.0-test",
+  },
+  "instructions": undefined,
   "maxOutputTokens": undefined,
   "maxRetries": 2,
-  "messages": undefined,
-  "metadata": {
-    "customKey": "customValue",
-  },
-  "model": {
-    "modelId": "mock-model-id",
-    "provider": "mock-provider",
-  },
-  "output": undefined,
-  "presencePenalty": undefined,
-  "prompt": "test-input",
-  "providerOptions": undefined,
-  "seed": undefined,
-  "stopSequences": undefined,
-  "stopWhen": [Function],
-  "system": undefined,
-  "temperature": undefined,
-  "timeout": undefined,
-  "toolChoice": undefined,
-  "tools": undefined,
-  "topK": undefined,
-  "topP": undefined,
-}
-`;
-
-exports[`generateText > options.experimental_onToolCallStart > should be called with correct tool name, id, and input 1`] = `
-{
-  "abortSignal": undefined,
-  "experimental_context": undefined,
-  "functionId": undefined,
   "messages": [
     {
       "content": "test-input",
       "role": "user",
     },
   ],
-  "metadata": undefined,
-  "model": {
-    "modelId": "mock-model-id",
-    "provider": "mock-provider",
-  },
-  "stepNumber": 0,
-  "toolCall": {
-    "input": {
-      "value": "test-arg",
-    },
-    "providerExecuted": undefined,
-    "providerMetadata": undefined,
-    "title": undefined,
-    "toolCallId": "call-1",
-    "toolName": "tool1",
-    "type": "tool-call",
-  },
+  "modelId": "mock-model-id",
+  "operationId": "ai.generateText",
+  "output": undefined,
+  "presencePenalty": undefined,
+  "provider": "mock-provider",
+  "providerOptions": undefined,
+  "reasoning": undefined,
+  "runtimeContext": {},
+  "seed": undefined,
+  "stopSequences": undefined,
+  "temperature": undefined,
+  "timeout": undefined,
+  "toolChoice": undefined,
+  "tools": undefined,
+  "toolsContext": {},
+  "topK": undefined,
+  "topP": undefined,
 }
 `;
 
 exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callbacks > onFinish should send correct information 1`] = `
 {
+  "callId": "test-telemetry-call-id",
   "content": [
+    {
+      "input": {
+        "value": "value",
+      },
+      "providerExecuted": undefined,
+      "providerMetadata": undefined,
+      "title": "Tool One",
+      "toolCallId": "call-1",
+      "toolName": "tool1",
+      "type": "tool-call",
+    },
+    {
+      "dynamic": false,
+      "input": {
+        "value": "value",
+      },
+      "output": "result1",
+      "toolCallId": "call-1",
+      "toolName": "tool1",
+      "type": "tool-result",
+    },
     {
       "text": "Hello, world!",
       "type": "text",
@@ -77,11 +69,78 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
   ],
   "dynamicToolCalls": [],
   "dynamicToolResults": [],
-  "experimental_context": undefined,
   "files": [],
+  "finalStep": DefaultStepResult {
+    "callId": "test-telemetry-call-id",
+    "content": [
+      {
+        "text": "Hello, world!",
+        "type": "text",
+      },
+    ],
+    "finishReason": "stop",
+    "model": {
+      "modelId": "mock-model-id",
+      "provider": "mock-provider",
+    },
+    "performance": {
+      "effectiveOutputTokensPerSecond": 0,
+      "effectiveTotalTokensPerSecond": 0,
+      "inputTokensPerSecond": undefined,
+      "outputTokensPerSecond": undefined,
+      "responseTimeMs": 0,
+      "stepTimeMs": 0,
+      "timeToFirstOutputMs": undefined,
+      "toolExecutionMs": {},
+    },
+    "providerMetadata": undefined,
+    "rawFinishReason": "stop",
+    "request": {
+      "body": undefined,
+      "messages": undefined,
+    },
+    "response": {
+      "body": undefined,
+      "headers": {
+        "custom-response-header": "response-header-value",
+      },
+      "id": "test-id-2-from-model",
+      "messages": [
+        {
+          "content": [
+            {
+              "providerOptions": undefined,
+              "text": "Hello, world!",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+      ],
+      "modelId": "test-response-model-id",
+      "timestamp": 1970-01-01T00:00:10.000Z,
+    },
+    "runtimeContext": {},
+    "stepNumber": 1,
+    "toolsContext": {},
+    "usage": {
+      "inputTokenDetails": {
+        "cacheReadTokens": undefined,
+        "cacheWriteTokens": undefined,
+        "noCacheTokens": 3,
+      },
+      "inputTokens": 3,
+      "outputTokenDetails": {
+        "reasoningTokens": undefined,
+        "textTokens": 10,
+      },
+      "outputTokens": 10,
+      "raw": undefined,
+      "totalTokens": 13,
+    },
+    "warnings": [],
+  },
   "finishReason": "stop",
-  "functionId": undefined,
-  "metadata": undefined,
   "model": {
     "modelId": "mock-model-id",
     "provider": "mock-provider",
@@ -90,7 +149,10 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
   "rawFinishReason": "stop",
   "reasoning": [],
   "reasoningText": undefined,
-  "request": {},
+  "request": {
+    "body": undefined,
+    "messages": undefined,
+  },
   "response": {
     "body": undefined,
     "headers": {
@@ -98,35 +160,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
     },
     "id": "test-id-2-from-model",
     "messages": [
-      {
-        "content": [
-          {
-            "input": {
-              "value": "value",
-            },
-            "providerExecuted": undefined,
-            "providerOptions": undefined,
-            "toolCallId": "call-1",
-            "toolName": "tool1",
-            "type": "tool-call",
-          },
-        ],
-        "role": "assistant",
-      },
-      {
-        "content": [
-          {
-            "output": {
-              "type": "text",
-              "value": "result1",
-            },
-            "toolCallId": "call-1",
-            "toolName": "tool1",
-            "type": "tool-result",
-          },
-        ],
-        "role": "tool",
-      },
       {
         "content": [
           {
@@ -141,12 +174,78 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
     "modelId": "test-response-model-id",
     "timestamp": 1970-01-01T00:00:10.000Z,
   },
+  "responseMessages": [
+    {
+      "content": [
+        {
+          "input": {
+            "value": "value",
+          },
+          "providerExecuted": undefined,
+          "providerOptions": undefined,
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-call",
+        },
+      ],
+      "role": "assistant",
+    },
+    {
+      "content": [
+        {
+          "output": {
+            "type": "text",
+            "value": "result1",
+          },
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-result",
+        },
+      ],
+      "role": "tool",
+    },
+    {
+      "content": [
+        {
+          "providerOptions": undefined,
+          "text": "Hello, world!",
+          "type": "text",
+        },
+      ],
+      "role": "assistant",
+    },
+  ],
+  "runtimeContext": {},
   "sources": [],
-  "staticToolCalls": [],
-  "staticToolResults": [],
+  "staticToolCalls": [
+    {
+      "input": {
+        "value": "value",
+      },
+      "providerExecuted": undefined,
+      "providerMetadata": undefined,
+      "title": "Tool One",
+      "toolCallId": "call-1",
+      "toolName": "tool1",
+      "type": "tool-call",
+    },
+  ],
+  "staticToolResults": [
+    {
+      "dynamic": false,
+      "input": {
+        "value": "value",
+      },
+      "output": "result1",
+      "toolCallId": "call-1",
+      "toolName": "tool1",
+      "type": "tool-result",
+    },
+  ],
   "stepNumber": 1,
   "steps": [
     DefaultStepResult {
+      "callId": "test-telemetry-call-id",
       "content": [
         {
           "input": {
@@ -170,17 +269,29 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
           "type": "tool-result",
         },
       ],
-      "experimental_context": undefined,
       "finishReason": "tool-calls",
-      "functionId": undefined,
-      "metadata": undefined,
       "model": {
         "modelId": "mock-model-id",
         "provider": "mock-provider",
       },
+      "performance": {
+        "effectiveOutputTokensPerSecond": 0,
+        "effectiveTotalTokensPerSecond": 0,
+        "inputTokensPerSecond": undefined,
+        "outputTokensPerSecond": undefined,
+        "responseTimeMs": 0,
+        "stepTimeMs": 0,
+        "timeToFirstOutputMs": undefined,
+        "toolExecutionMs": {
+          "call-1": 0,
+        },
+      },
       "providerMetadata": undefined,
       "rawFinishReason": undefined,
-      "request": {},
+      "request": {
+        "body": undefined,
+        "messages": undefined,
+      },
       "response": {
         "body": undefined,
         "headers": undefined,
@@ -219,9 +330,10 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
         "modelId": "test-response-model-id",
         "timestamp": 1970-01-01T00:00:00.000Z,
       },
+      "runtimeContext": {},
       "stepNumber": 0,
+      "toolsContext": {},
       "usage": {
-        "cachedInputTokens": undefined,
         "inputTokenDetails": {
           "cacheReadTokens": undefined,
           "cacheWriteTokens": undefined,
@@ -234,29 +346,39 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
         },
         "outputTokens": 5,
         "raw": undefined,
-        "reasoningTokens": undefined,
         "totalTokens": 15,
       },
       "warnings": [],
     },
     DefaultStepResult {
+      "callId": "test-telemetry-call-id",
       "content": [
         {
           "text": "Hello, world!",
           "type": "text",
         },
       ],
-      "experimental_context": undefined,
       "finishReason": "stop",
-      "functionId": undefined,
-      "metadata": undefined,
       "model": {
         "modelId": "mock-model-id",
         "provider": "mock-provider",
       },
+      "performance": {
+        "effectiveOutputTokensPerSecond": 0,
+        "effectiveTotalTokensPerSecond": 0,
+        "inputTokensPerSecond": undefined,
+        "outputTokensPerSecond": undefined,
+        "responseTimeMs": 0,
+        "stepTimeMs": 0,
+        "timeToFirstOutputMs": undefined,
+        "toolExecutionMs": {},
+      },
       "providerMetadata": undefined,
       "rawFinishReason": "stop",
-      "request": {},
+      "request": {
+        "body": undefined,
+        "messages": undefined,
+      },
       "response": {
         "body": undefined,
         "headers": {
@@ -264,35 +386,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
         },
         "id": "test-id-2-from-model",
         "messages": [
-          {
-            "content": [
-              {
-                "input": {
-                  "value": "value",
-                },
-                "providerExecuted": undefined,
-                "providerOptions": undefined,
-                "toolCallId": "call-1",
-                "toolName": "tool1",
-                "type": "tool-call",
-              },
-            ],
-            "role": "assistant",
-          },
-          {
-            "content": [
-              {
-                "output": {
-                  "type": "text",
-                  "value": "result1",
-                },
-                "toolCallId": "call-1",
-                "toolName": "tool1",
-                "type": "tool-result",
-              },
-            ],
-            "role": "tool",
-          },
           {
             "content": [
               {
@@ -307,9 +400,10 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
         "modelId": "test-response-model-id",
         "timestamp": 1970-01-01T00:00:10.000Z,
       },
+      "runtimeContext": {},
       "stepNumber": 1,
+      "toolsContext": {},
       "usage": {
-        "cachedInputTokens": undefined,
         "inputTokenDetails": {
           "cacheReadTokens": undefined,
           "cacheWriteTokens": undefined,
@@ -322,17 +416,39 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
         },
         "outputTokens": 10,
         "raw": undefined,
-        "reasoningTokens": undefined,
         "totalTokens": 13,
       },
       "warnings": [],
     },
   ],
   "text": "Hello, world!",
-  "toolCalls": [],
-  "toolResults": [],
+  "toolCalls": [
+    {
+      "input": {
+        "value": "value",
+      },
+      "providerExecuted": undefined,
+      "providerMetadata": undefined,
+      "title": "Tool One",
+      "toolCallId": "call-1",
+      "toolName": "tool1",
+      "type": "tool-call",
+    },
+  ],
+  "toolResults": [
+    {
+      "dynamic": false,
+      "input": {
+        "value": "value",
+      },
+      "output": "result1",
+      "toolCallId": "call-1",
+      "toolName": "tool1",
+      "type": "tool-result",
+    },
+  ],
+  "toolsContext": {},
   "totalUsage": {
-    "cachedInputTokens": undefined,
     "inputTokenDetails": {
       "cacheReadTokens": undefined,
       "cacheWriteTokens": undefined,
@@ -344,25 +460,21 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       "textTokens": 15,
     },
     "outputTokens": 15,
-    "reasoningTokens": undefined,
     "totalTokens": 28,
   },
   "usage": {
-    "cachedInputTokens": undefined,
     "inputTokenDetails": {
       "cacheReadTokens": undefined,
       "cacheWriteTokens": undefined,
-      "noCacheTokens": 3,
+      "noCacheTokens": 13,
     },
-    "inputTokens": 3,
+    "inputTokens": 13,
     "outputTokenDetails": {
       "reasoningTokens": undefined,
-      "textTokens": 10,
+      "textTokens": 15,
     },
-    "outputTokens": 10,
-    "raw": undefined,
-    "reasoningTokens": undefined,
-    "totalTokens": 13,
+    "outputTokens": 15,
+    "totalTokens": 28,
   },
   "warnings": [],
 }
@@ -371,6 +483,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
 exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callbacks > onStepFinish should be called for each step 1`] = `
 [
   DefaultStepResult {
+    "callId": "test-telemetry-call-id",
     "content": [
       {
         "input": {
@@ -394,17 +507,29 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
         "type": "tool-result",
       },
     ],
-    "experimental_context": undefined,
     "finishReason": "tool-calls",
-    "functionId": undefined,
-    "metadata": undefined,
     "model": {
       "modelId": "mock-model-id",
       "provider": "mock-provider",
     },
+    "performance": {
+      "effectiveOutputTokensPerSecond": 0,
+      "effectiveTotalTokensPerSecond": 0,
+      "inputTokensPerSecond": undefined,
+      "outputTokensPerSecond": undefined,
+      "responseTimeMs": 0,
+      "stepTimeMs": 0,
+      "timeToFirstOutputMs": undefined,
+      "toolExecutionMs": {
+        "call-1": 0,
+      },
+    },
     "providerMetadata": undefined,
     "rawFinishReason": undefined,
-    "request": {},
+    "request": {
+      "body": undefined,
+      "messages": undefined,
+    },
     "response": {
       "body": undefined,
       "headers": undefined,
@@ -443,9 +568,10 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
+    "runtimeContext": {},
     "stepNumber": 0,
+    "toolsContext": {},
     "usage": {
-      "cachedInputTokens": undefined,
       "inputTokenDetails": {
         "cacheReadTokens": undefined,
         "cacheWriteTokens": undefined,
@@ -458,29 +584,39 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       },
       "outputTokens": 5,
       "raw": undefined,
-      "reasoningTokens": undefined,
       "totalTokens": 15,
     },
     "warnings": [],
   },
   DefaultStepResult {
+    "callId": "test-telemetry-call-id",
     "content": [
       {
         "text": "Hello, world!",
         "type": "text",
       },
     ],
-    "experimental_context": undefined,
     "finishReason": "stop",
-    "functionId": undefined,
-    "metadata": undefined,
     "model": {
       "modelId": "mock-model-id",
       "provider": "mock-provider",
     },
+    "performance": {
+      "effectiveOutputTokensPerSecond": 0,
+      "effectiveTotalTokensPerSecond": 0,
+      "inputTokensPerSecond": undefined,
+      "outputTokensPerSecond": undefined,
+      "responseTimeMs": 0,
+      "stepTimeMs": 0,
+      "timeToFirstOutputMs": undefined,
+      "toolExecutionMs": {},
+    },
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
-    "request": {},
+    "request": {
+      "body": undefined,
+      "messages": undefined,
+    },
     "response": {
       "body": undefined,
       "headers": {
@@ -488,35 +624,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       },
       "id": "test-id-2-from-model",
       "messages": [
-        {
-          "content": [
-            {
-              "input": {
-                "value": "value",
-              },
-              "providerExecuted": undefined,
-              "providerOptions": undefined,
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-call",
-            },
-          ],
-          "role": "assistant",
-        },
-        {
-          "content": [
-            {
-              "output": {
-                "type": "text",
-                "value": "result1",
-              },
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-result",
-            },
-          ],
-          "role": "tool",
-        },
         {
           "content": [
             {
@@ -531,9 +638,10 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:10.000Z,
     },
+    "runtimeContext": {},
     "stepNumber": 1,
+    "toolsContext": {},
     "usage": {
-      "cachedInputTokens": undefined,
       "inputTokenDetails": {
         "cacheReadTokens": undefined,
         "cacheWriteTokens": undefined,
@@ -546,7 +654,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       },
       "outputTokens": 10,
       "raw": undefined,
-      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
     "warnings": [],
@@ -554,7 +661,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
 ]
 `;
 
-exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > result.response.messages should contain response messages from all steps 1`] = `
+exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > result.responseMessages should contain response messages from all steps 1`] = `
 [
   {
     "content": [
@@ -601,6 +708,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
 exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > result.steps should contain all steps 1`] = `
 [
   DefaultStepResult {
+    "callId": "test-telemetry-call-id",
     "content": [
       {
         "input": {
@@ -624,17 +732,29 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
         "type": "tool-result",
       },
     ],
-    "experimental_context": undefined,
     "finishReason": "tool-calls",
-    "functionId": undefined,
-    "metadata": undefined,
     "model": {
       "modelId": "mock-model-id",
       "provider": "mock-provider",
     },
+    "performance": {
+      "effectiveOutputTokensPerSecond": 0,
+      "effectiveTotalTokensPerSecond": 0,
+      "inputTokensPerSecond": undefined,
+      "outputTokensPerSecond": undefined,
+      "responseTimeMs": 0,
+      "stepTimeMs": 0,
+      "timeToFirstOutputMs": undefined,
+      "toolExecutionMs": {
+        "call-1": 0,
+      },
+    },
     "providerMetadata": undefined,
     "rawFinishReason": undefined,
-    "request": {},
+    "request": {
+      "body": undefined,
+      "messages": undefined,
+    },
     "response": {
       "body": undefined,
       "headers": undefined,
@@ -673,9 +793,10 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
+    "runtimeContext": {},
     "stepNumber": 0,
+    "toolsContext": {},
     "usage": {
-      "cachedInputTokens": undefined,
       "inputTokenDetails": {
         "cacheReadTokens": undefined,
         "cacheWriteTokens": undefined,
@@ -688,29 +809,39 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
       },
       "outputTokens": 5,
       "raw": undefined,
-      "reasoningTokens": undefined,
       "totalTokens": 15,
     },
     "warnings": [],
   },
   DefaultStepResult {
+    "callId": "test-telemetry-call-id",
     "content": [
       {
         "text": "Hello, world!",
         "type": "text",
       },
     ],
-    "experimental_context": undefined,
     "finishReason": "stop",
-    "functionId": undefined,
-    "metadata": undefined,
     "model": {
       "modelId": "mock-model-id",
       "provider": "mock-provider",
     },
+    "performance": {
+      "effectiveOutputTokensPerSecond": 0,
+      "effectiveTotalTokensPerSecond": 0,
+      "inputTokensPerSecond": undefined,
+      "outputTokensPerSecond": undefined,
+      "responseTimeMs": 0,
+      "stepTimeMs": 0,
+      "timeToFirstOutputMs": undefined,
+      "toolExecutionMs": {},
+    },
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
-    "request": {},
+    "request": {
+      "body": undefined,
+      "messages": undefined,
+    },
     "response": {
       "body": undefined,
       "headers": {
@@ -718,35 +849,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
       },
       "id": "test-id-2-from-model",
       "messages": [
-        {
-          "content": [
-            {
-              "input": {
-                "value": "value",
-              },
-              "providerExecuted": undefined,
-              "providerOptions": undefined,
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-call",
-            },
-          ],
-          "role": "assistant",
-        },
-        {
-          "content": [
-            {
-              "output": {
-                "type": "text",
-                "value": "result1",
-              },
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-result",
-            },
-          ],
-          "role": "tool",
-        },
         {
           "content": [
             {
@@ -761,9 +863,10 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:10.000Z,
     },
+    "runtimeContext": {},
     "stepNumber": 1,
+    "toolsContext": {},
     "usage": {
-      "cachedInputTokens": undefined,
       "inputTokenDetails": {
         "cacheReadTokens": undefined,
         "cacheWriteTokens": undefined,
@@ -776,7 +879,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
       },
       "outputTokens": 10,
       "raw": undefined,
-      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
     "warnings": [],
@@ -787,6 +889,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
 exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with prepareStep > onStepFinish should be called for each step 1`] = `
 [
   DefaultStepResult {
+    "callId": "test-telemetry-call-id",
     "content": [
       {
         "input": {
@@ -810,19 +913,29 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
         "type": "tool-result",
       },
     ],
-    "experimental_context": {
-      "context": "state2",
-    },
     "finishReason": "tool-calls",
-    "functionId": undefined,
-    "metadata": undefined,
     "model": {
       "modelId": "mock-model-id",
       "provider": "mock-provider",
     },
+    "performance": {
+      "effectiveOutputTokensPerSecond": 0,
+      "effectiveTotalTokensPerSecond": 0,
+      "inputTokensPerSecond": undefined,
+      "outputTokensPerSecond": undefined,
+      "responseTimeMs": 0,
+      "stepTimeMs": 0,
+      "timeToFirstOutputMs": undefined,
+      "toolExecutionMs": {
+        "call-1": 0,
+      },
+    },
     "providerMetadata": undefined,
     "rawFinishReason": undefined,
-    "request": {},
+    "request": {
+      "body": undefined,
+      "messages": undefined,
+    },
     "response": {
       "body": undefined,
       "headers": undefined,
@@ -861,9 +974,12 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
+    "runtimeContext": {
+      "context": "state2",
+    },
     "stepNumber": 0,
+    "toolsContext": {},
     "usage": {
-      "cachedInputTokens": undefined,
       "inputTokenDetails": {
         "cacheReadTokens": undefined,
         "cacheWriteTokens": undefined,
@@ -876,31 +992,39 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       },
       "outputTokens": 5,
       "raw": undefined,
-      "reasoningTokens": undefined,
       "totalTokens": 15,
     },
     "warnings": [],
   },
   DefaultStepResult {
+    "callId": "test-telemetry-call-id",
     "content": [
       {
         "text": "Hello, world!",
         "type": "text",
       },
     ],
-    "experimental_context": {
-      "context": "state3",
-    },
     "finishReason": "stop",
-    "functionId": undefined,
-    "metadata": undefined,
     "model": {
       "modelId": "mock-model-id",
       "provider": "mock-provider",
     },
+    "performance": {
+      "effectiveOutputTokensPerSecond": 0,
+      "effectiveTotalTokensPerSecond": 0,
+      "inputTokensPerSecond": undefined,
+      "outputTokensPerSecond": undefined,
+      "responseTimeMs": 0,
+      "stepTimeMs": 0,
+      "timeToFirstOutputMs": undefined,
+      "toolExecutionMs": {},
+    },
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
-    "request": {},
+    "request": {
+      "body": undefined,
+      "messages": undefined,
+    },
     "response": {
       "body": undefined,
       "headers": {
@@ -908,35 +1032,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       },
       "id": "test-id-2-from-model",
       "messages": [
-        {
-          "content": [
-            {
-              "input": {
-                "value": "value",
-              },
-              "providerExecuted": undefined,
-              "providerOptions": undefined,
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-call",
-            },
-          ],
-          "role": "assistant",
-        },
-        {
-          "content": [
-            {
-              "output": {
-                "type": "text",
-                "value": "result1",
-              },
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-result",
-            },
-          ],
-          "role": "tool",
-        },
         {
           "content": [
             {
@@ -951,9 +1046,12 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:10.000Z,
     },
+    "runtimeContext": {
+      "context": "state3",
+    },
     "stepNumber": 1,
+    "toolsContext": {},
     "usage": {
-      "cachedInputTokens": undefined,
       "inputTokenDetails": {
         "cacheReadTokens": undefined,
         "cacheWriteTokens": undefined,
@@ -966,7 +1064,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       },
       "outputTokens": 10,
       "raw": undefined,
-      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
     "warnings": [],
@@ -974,7 +1071,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
 ]
 `;
 
-exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with prepareStep > result.response.messages should contain response messages from all steps 1`] = `
+exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with prepareStep > result.responseMessages should contain response messages from all steps 1`] = `
 [
   {
     "content": [
@@ -1021,6 +1118,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
 exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with prepareStep > result.steps should contain all steps 1`] = `
 [
   DefaultStepResult {
+    "callId": "test-telemetry-call-id",
     "content": [
       {
         "input": {
@@ -1044,19 +1142,29 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
         "type": "tool-result",
       },
     ],
-    "experimental_context": {
-      "context": "state2",
-    },
     "finishReason": "tool-calls",
-    "functionId": undefined,
-    "metadata": undefined,
     "model": {
       "modelId": "mock-model-id",
       "provider": "mock-provider",
     },
+    "performance": {
+      "effectiveOutputTokensPerSecond": 0,
+      "effectiveTotalTokensPerSecond": 0,
+      "inputTokensPerSecond": undefined,
+      "outputTokensPerSecond": undefined,
+      "responseTimeMs": 0,
+      "stepTimeMs": 0,
+      "timeToFirstOutputMs": undefined,
+      "toolExecutionMs": {
+        "call-1": 0,
+      },
+    },
     "providerMetadata": undefined,
     "rawFinishReason": undefined,
-    "request": {},
+    "request": {
+      "body": undefined,
+      "messages": undefined,
+    },
     "response": {
       "body": undefined,
       "headers": undefined,
@@ -1095,9 +1203,12 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
+    "runtimeContext": {
+      "context": "state2",
+    },
     "stepNumber": 0,
+    "toolsContext": {},
     "usage": {
-      "cachedInputTokens": undefined,
       "inputTokenDetails": {
         "cacheReadTokens": undefined,
         "cacheWriteTokens": undefined,
@@ -1110,31 +1221,39 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       },
       "outputTokens": 5,
       "raw": undefined,
-      "reasoningTokens": undefined,
       "totalTokens": 15,
     },
     "warnings": [],
   },
   DefaultStepResult {
+    "callId": "test-telemetry-call-id",
     "content": [
       {
         "text": "Hello, world!",
         "type": "text",
       },
     ],
-    "experimental_context": {
-      "context": "state3",
-    },
     "finishReason": "stop",
-    "functionId": undefined,
-    "metadata": undefined,
     "model": {
       "modelId": "mock-model-id",
       "provider": "mock-provider",
     },
+    "performance": {
+      "effectiveOutputTokensPerSecond": 0,
+      "effectiveTotalTokensPerSecond": 0,
+      "inputTokensPerSecond": undefined,
+      "outputTokensPerSecond": undefined,
+      "responseTimeMs": 0,
+      "stepTimeMs": 0,
+      "timeToFirstOutputMs": undefined,
+      "toolExecutionMs": {},
+    },
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
-    "request": {},
+    "request": {
+      "body": undefined,
+      "messages": undefined,
+    },
     "response": {
       "body": undefined,
       "headers": {
@@ -1142,35 +1261,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       },
       "id": "test-id-2-from-model",
       "messages": [
-        {
-          "content": [
-            {
-              "input": {
-                "value": "value",
-              },
-              "providerExecuted": undefined,
-              "providerOptions": undefined,
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-call",
-            },
-          ],
-          "role": "assistant",
-        },
-        {
-          "content": [
-            {
-              "output": {
-                "type": "text",
-                "value": "result1",
-              },
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-result",
-            },
-          ],
-          "role": "tool",
-        },
         {
           "content": [
             {
@@ -1185,9 +1275,12 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:10.000Z,
     },
+    "runtimeContext": {
+      "context": "state3",
+    },
     "stepNumber": 1,
+    "toolsContext": {},
     "usage": {
-      "cachedInputTokens": undefined,
       "inputTokenDetails": {
         "cacheReadTokens": undefined,
         "cacheWriteTokens": undefined,
@@ -1200,7 +1293,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       },
       "outputTokens": 10,
       "raw": undefined,
-      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
     "warnings": [],
@@ -1513,7 +1605,7 @@ exports[`generateText > result.response > should contain response body and heade
 }
 `;
 
-exports[`generateText > result.response.messages > should contain assistant response message and tool message when there are tool calls with results 1`] = `
+exports[`generateText > result.responseMessages > should contain assistant response message and tool message when there are tool calls with results 1`] = `
 [
   {
     "content": [
@@ -1552,7 +1644,7 @@ exports[`generateText > result.response.messages > should contain assistant resp
 ]
 `;
 
-exports[`generateText > result.response.messages > should contain assistant response message when there are no tool calls 1`] = `
+exports[`generateText > result.responseMessages > should contain assistant response message when there are no tool calls 1`] = `
 [
   {
     "content": [
@@ -1567,7 +1659,7 @@ exports[`generateText > result.response.messages > should contain assistant resp
 ]
 `;
 
-exports[`generateText > result.response.messages > should contain reasoning 1`] = `
+exports[`generateText > result.responseMessages > should contain reasoning 1`] = `
 [
   {
     "content": [
@@ -1632,6 +1724,7 @@ exports[`generateText > result.sources > should contain sources 1`] = `
 exports[`generateText > result.steps > should add the reasoning from the model response to the step result 1`] = `
 [
   DefaultStepResult {
+    "callId": "test-telemetry-call-id",
     "content": [
       {
         "providerMetadata": {
@@ -1656,17 +1749,27 @@ exports[`generateText > result.steps > should add the reasoning from the model r
         "type": "text",
       },
     ],
-    "experimental_context": undefined,
     "finishReason": "stop",
-    "functionId": undefined,
-    "metadata": undefined,
     "model": {
       "modelId": "mock-model-id",
       "provider": "mock-provider",
     },
+    "performance": {
+      "effectiveOutputTokensPerSecond": 0,
+      "effectiveTotalTokensPerSecond": 0,
+      "inputTokensPerSecond": undefined,
+      "outputTokensPerSecond": undefined,
+      "responseTimeMs": 0,
+      "stepTimeMs": 0,
+      "timeToFirstOutputMs": undefined,
+      "toolExecutionMs": {},
+    },
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
-    "request": {},
+    "request": {
+      "body": undefined,
+      "messages": undefined,
+    },
     "response": {
       "body": undefined,
       "headers": undefined,
@@ -1704,9 +1807,10 @@ exports[`generateText > result.steps > should add the reasoning from the model r
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
+    "runtimeContext": {},
     "stepNumber": 0,
+    "toolsContext": {},
     "usage": {
-      "cachedInputTokens": undefined,
       "inputTokenDetails": {
         "cacheReadTokens": undefined,
         "cacheWriteTokens": undefined,
@@ -1719,7 +1823,6 @@ exports[`generateText > result.steps > should add the reasoning from the model r
       },
       "outputTokens": 10,
       "raw": undefined,
-      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
     "warnings": [],
@@ -1730,6 +1833,7 @@ exports[`generateText > result.steps > should add the reasoning from the model r
 exports[`generateText > result.steps > should contain files 1`] = `
 [
   DefaultStepResult {
+    "callId": "test-telemetry-call-id",
     "content": [
       {
         "text": "Hello, world!",
@@ -1756,17 +1860,27 @@ exports[`generateText > result.steps > should contain files 1`] = `
         "type": "file",
       },
     ],
-    "experimental_context": undefined,
     "finishReason": "stop",
-    "functionId": undefined,
-    "metadata": undefined,
     "model": {
       "modelId": "mock-model-id",
       "provider": "mock-provider",
     },
+    "performance": {
+      "effectiveOutputTokensPerSecond": 0,
+      "effectiveTotalTokensPerSecond": 0,
+      "inputTokensPerSecond": undefined,
+      "outputTokensPerSecond": undefined,
+      "responseTimeMs": 0,
+      "stepTimeMs": 0,
+      "timeToFirstOutputMs": undefined,
+      "toolExecutionMs": {},
+    },
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
-    "request": {},
+    "request": {
+      "body": undefined,
+      "messages": undefined,
+    },
     "response": {
       "body": undefined,
       "headers": undefined,
@@ -1798,9 +1912,10 @@ exports[`generateText > result.steps > should contain files 1`] = `
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
+    "runtimeContext": {},
     "stepNumber": 0,
+    "toolsContext": {},
     "usage": {
-      "cachedInputTokens": undefined,
       "inputTokenDetails": {
         "cacheReadTokens": undefined,
         "cacheWriteTokens": undefined,
@@ -1813,7 +1928,6 @@ exports[`generateText > result.steps > should contain files 1`] = `
       },
       "outputTokens": 10,
       "raw": undefined,
-      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
     "warnings": [],
@@ -1824,6 +1938,7 @@ exports[`generateText > result.steps > should contain files 1`] = `
 exports[`generateText > result.steps > should contain sources 1`] = `
 [
   DefaultStepResult {
+    "callId": "test-telemetry-call-id",
     "content": [
       {
         "text": "Hello, world!",
@@ -1854,17 +1969,27 @@ exports[`generateText > result.steps > should contain sources 1`] = `
         "url": "https://example.com/2",
       },
     ],
-    "experimental_context": undefined,
     "finishReason": "stop",
-    "functionId": undefined,
-    "metadata": undefined,
     "model": {
       "modelId": "mock-model-id",
       "provider": "mock-provider",
     },
+    "performance": {
+      "effectiveOutputTokensPerSecond": 0,
+      "effectiveTotalTokensPerSecond": 0,
+      "inputTokensPerSecond": undefined,
+      "outputTokensPerSecond": undefined,
+      "responseTimeMs": 0,
+      "stepTimeMs": 0,
+      "timeToFirstOutputMs": undefined,
+      "toolExecutionMs": {},
+    },
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
-    "request": {},
+    "request": {
+      "body": undefined,
+      "messages": undefined,
+    },
     "response": {
       "body": undefined,
       "headers": undefined,
@@ -1884,9 +2009,10 @@ exports[`generateText > result.steps > should contain sources 1`] = `
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
+    "runtimeContext": {},
     "stepNumber": 0,
+    "toolsContext": {},
     "usage": {
-      "cachedInputTokens": undefined,
       "inputTokenDetails": {
         "cacheReadTokens": undefined,
         "cacheWriteTokens": undefined,
@@ -1899,7 +2025,6 @@ exports[`generateText > result.steps > should contain sources 1`] = `
       },
       "outputTokens": 10,
       "raw": undefined,
-      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
     "warnings": [],
@@ -1908,151 +2033,3 @@ exports[`generateText > result.steps > should contain sources 1`] = `
 `;
 
 exports[`generateText > result.text > should generate text 1`] = `[]`;
-
-exports[`generateText > telemetry > should not record any telemetry data when not explicitly enabled 1`] = `[]`;
-
-exports[`generateText > telemetry > should not record telemetry inputs / outputs when disabled 1`] = `
-[
-  {
-    "attributes": {
-      "ai.model.id": "mock-model-id",
-      "ai.model.provider": "mock-provider",
-      "ai.operationId": "ai.generateText",
-      "ai.request.headers.user-agent": "ai/0.0.0-test",
-      "ai.response.finishReason": "stop",
-      "ai.settings.maxRetries": 2,
-      "ai.usage.completionTokens": 10,
-      "ai.usage.promptTokens": 3,
-      "operation.name": "ai.generateText",
-    },
-    "events": [],
-    "name": "ai.generateText",
-  },
-  {
-    "attributes": {
-      "ai.model.id": "mock-model-id",
-      "ai.model.provider": "mock-provider",
-      "ai.operationId": "ai.generateText.doGenerate",
-      "ai.request.headers.user-agent": "ai/0.0.0-test",
-      "ai.response.finishReason": "stop",
-      "ai.response.id": "test-id",
-      "ai.response.model": "mock-model-id",
-      "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
-      "ai.settings.maxRetries": 2,
-      "ai.usage.completionTokens": 10,
-      "ai.usage.promptTokens": 3,
-      "gen_ai.request.model": "mock-model-id",
-      "gen_ai.response.finish_reasons": [
-        "stop",
-      ],
-      "gen_ai.response.id": "test-id",
-      "gen_ai.response.model": "mock-model-id",
-      "gen_ai.system": "mock-provider",
-      "gen_ai.usage.input_tokens": 3,
-      "gen_ai.usage.output_tokens": 10,
-      "operation.name": "ai.generateText.doGenerate",
-    },
-    "events": [],
-    "name": "ai.generateText.doGenerate",
-  },
-  {
-    "attributes": {
-      "ai.operationId": "ai.toolCall",
-      "ai.toolCall.id": "call-1",
-      "ai.toolCall.name": "tool1",
-      "operation.name": "ai.toolCall",
-    },
-    "events": [],
-    "name": "ai.toolCall",
-  },
-]
-`;
-
-exports[`generateText > telemetry > should record telemetry data when enabled 1`] = `
-[
-  {
-    "attributes": {
-      "ai.model.id": "mock-model-id",
-      "ai.model.provider": "mock-provider",
-      "ai.operationId": "ai.generateText",
-      "ai.prompt": "{"prompt":"prompt"}",
-      "ai.request.headers.header1": "value1",
-      "ai.request.headers.header2": "value2",
-      "ai.request.headers.user-agent": "ai/0.0.0-test",
-      "ai.response.finishReason": "stop",
-      "ai.response.providerMetadata": "{"testProvider":{"testKey":"testValue"}}",
-      "ai.response.text": "Hello, world!",
-      "ai.settings.frequencyPenalty": 0.3,
-      "ai.settings.maxRetries": 2,
-      "ai.settings.presencePenalty": 0.4,
-      "ai.settings.stopSequences": [
-        "stop",
-      ],
-      "ai.settings.temperature": 0.5,
-      "ai.settings.topK": 0.1,
-      "ai.settings.topP": 0.2,
-      "ai.telemetry.functionId": "test-function-id",
-      "ai.telemetry.metadata.test1": "value1",
-      "ai.telemetry.metadata.test2": false,
-      "ai.usage.completionTokens": 10,
-      "ai.usage.promptTokens": 3,
-      "operation.name": "ai.generateText test-function-id",
-      "resource.name": "test-function-id",
-    },
-    "events": [],
-    "name": "ai.generateText",
-  },
-  {
-    "attributes": {
-      "ai.model.id": "mock-model-id",
-      "ai.model.provider": "mock-provider",
-      "ai.operationId": "ai.generateText.doGenerate",
-      "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"prompt"}]}]",
-      "ai.request.headers.header1": "value1",
-      "ai.request.headers.header2": "value2",
-      "ai.request.headers.user-agent": "ai/0.0.0-test",
-      "ai.response.finishReason": "stop",
-      "ai.response.id": "test-id-from-model",
-      "ai.response.model": "test-response-model-id",
-      "ai.response.providerMetadata": "{"testProvider":{"testKey":"testValue"}}",
-      "ai.response.text": "Hello, world!",
-      "ai.response.timestamp": "1970-01-01T00:00:10.000Z",
-      "ai.settings.frequencyPenalty": 0.3,
-      "ai.settings.maxRetries": 2,
-      "ai.settings.presencePenalty": 0.4,
-      "ai.settings.stopSequences": [
-        "stop",
-      ],
-      "ai.settings.temperature": 0.5,
-      "ai.settings.topK": 0.1,
-      "ai.settings.topP": 0.2,
-      "ai.telemetry.functionId": "test-function-id",
-      "ai.telemetry.metadata.test1": "value1",
-      "ai.telemetry.metadata.test2": false,
-      "ai.usage.completionTokens": 10,
-      "ai.usage.promptTokens": 3,
-      "gen_ai.request.frequency_penalty": 0.3,
-      "gen_ai.request.model": "mock-model-id",
-      "gen_ai.request.presence_penalty": 0.4,
-      "gen_ai.request.stop_sequences": [
-        "stop",
-      ],
-      "gen_ai.request.temperature": 0.5,
-      "gen_ai.request.top_k": 0.1,
-      "gen_ai.request.top_p": 0.2,
-      "gen_ai.response.finish_reasons": [
-        "stop",
-      ],
-      "gen_ai.response.id": "test-id-from-model",
-      "gen_ai.response.model": "test-response-model-id",
-      "gen_ai.system": "mock-provider",
-      "gen_ai.usage.input_tokens": 3,
-      "gen_ai.usage.output_tokens": 10,
-      "operation.name": "ai.generateText.doGenerate test-function-id",
-      "resource.name": "test-function-id",
-    },
-    "events": [],
-    "name": "ai.generateText.doGenerate",
-  },
-]
-`;

@@ -1,11 +1,12 @@
 import { openai } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
+  createUIMessageStreamResponse,
   streamText,
-  UIMessage,
-  InferUITools,
+  toUIMessageStream,
+  type UIMessage,
+  type InferUITools,
 } from 'ai';
-
 export const maxDuration = 30;
 
 const tools = {
@@ -31,5 +32,7 @@ export async function POST(req: Request) {
     tools,
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }

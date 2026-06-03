@@ -2,26 +2,26 @@ import {
   AIMessage,
   HumanMessage,
   ToolMessage,
-  BaseMessage,
   AIMessageChunk,
-  BaseMessageChunk,
-  ToolCallChunk,
   type ContentBlock,
   type ToolCall,
+  type BaseMessage,
+  type BaseMessageChunk,
+  type ToolCallChunk,
 } from '@langchain/core/messages';
-import {
-  type UIMessageChunk,
-  type ToolResultPart,
-  type AssistantContent,
-  type UserContent,
+import type {
+  UIMessageChunk,
+  ToolResultPart,
+  AssistantContent,
+  UserContent,
 } from 'ai';
 
-import {
-  type LangGraphEventState,
-  type ReasoningContentBlock,
-  type ThinkingContentBlock,
-  type GPT5ReasoningOutput,
-  type ImageGenerationOutput,
+import type {
+  LangGraphEventState,
+  ReasoningContentBlock,
+  ThinkingContentBlock,
+  GPT5ReasoningOutput,
+  ImageGenerationOutput,
 } from './types';
 
 /**
@@ -114,8 +114,8 @@ function getDefaultFilename(
   mediaType: string,
   prefix: string = 'file',
 ): string {
-  const ext = mediaType.split('/')[1] || 'bin';
-  return `${prefix}.${ext}`;
+  const fileExtension = mediaType.split('/')[1] || 'bin';
+  return `${prefix}.${fileExtension}`;
 }
 
 /**
@@ -220,11 +220,51 @@ export function convertUserContent(content: UserContent): HumanMessage {
         });
       }
     } else if (part.type === 'file') {
-      const filePart = part as {
+      const rawFilePart = part as {
         type: 'file';
-        data: string | Uint8Array | URL | ArrayBuffer;
+        data:
+          | string
+          | Uint8Array
+          | URL
+          | ArrayBuffer
+          | { type: 'data'; data: string | Uint8Array | ArrayBuffer }
+          | { type: 'url'; url: URL }
+          | { type: 'reference'; reference: Record<string, string> }
+          | { type: 'text'; text: string };
         mediaType: string;
         filename?: string;
+      };
+
+      // Normalize tagged data shape into the legacy bare value this code expects.
+      const normalizedData: string | Uint8Array | URL | ArrayBuffer = (() => {
+        const data = rawFilePart.data;
+        if (
+          typeof data === 'object' &&
+          data !== null &&
+          !(data instanceof URL) &&
+          !(data instanceof Uint8Array) &&
+          !(data instanceof ArrayBuffer) &&
+          'type' in data
+        ) {
+          switch (data.type) {
+            case 'data':
+              return data.data;
+            case 'url':
+              return data.url;
+            case 'text':
+              return data.text;
+            default:
+              return '';
+          }
+        }
+        return data as string | Uint8Array | URL | ArrayBuffer;
+      })();
+
+      const filePart = {
+        type: 'file' as const,
+        data: normalizedData,
+        mediaType: rawFilePart.mediaType,
+        filename: rawFilePart.filename,
       };
 
       /**
@@ -562,7 +602,8 @@ export function getMessageId(msg: unknown): string | undefined {
 /**
  * Checks if a message is an AI message chunk (works for both class instances and plain objects).
  * For class instances, only AIMessageChunk is matched (not AIMessage).
- * For plain objects from RemoteGraph API, matches type === 'ai'.
+ * For plain objects from RemoteGraph API, matches type === 'ai' (TypeScript langchain-core)
+ * or type === 'AIMessageChunk' (Python langchain-core).
  * For serialized LangChain messages, matches type === 'constructor' with AIMessageChunk in id path.
  *
  * @param msg - The message to check.
@@ -579,18 +620,25 @@ export function isAIMessageChunk(
    * Plain object from RemoteGraph API (not a LangChain class instance)
    */
   if (isPlainMessageObject(msg)) {
-    const obj = msg as Record<string, unknown>;
+    const messageRecord = msg as Record<string, unknown>;
     /**
-     * Direct type === 'ai' (RemoteGraph format)
+     * Direct type from RemoteGraph format. TypeScript langchain-core emits
+     * type === 'ai'; Python langchain-core emits type === 'AIMessageChunk'.
      */
-    if ('type' in obj && obj.type === 'ai') return true;
+    if (
+      'type' in messageRecord &&
+      (messageRecord.type === 'ai' || messageRecord.type === 'AIMessageChunk')
+    ) {
+      return true;
+    }
     /**
      * Serialized LangChain message format: { lc: 1, type: "constructor", id: ["...", "AIMessageChunk"], kwargs: {...} }
      */
     if (
-      obj.type === 'constructor' &&
-      Array.isArray(obj.id) &&
-      (obj.id.includes('AIMessageChunk') || obj.id.includes('AIMessage'))
+      messageRecord.type === 'constructor' &&
+      Array.isArray(messageRecord.id) &&
+      (messageRecord.id.includes('AIMessageChunk') ||
+        messageRecord.id.includes('AIMessage'))
     ) {
       return true;
     }
@@ -612,18 +660,18 @@ export function isToolMessageType(
    * Plain object from RemoteGraph API (not a LangChain class instance)
    */
   if (isPlainMessageObject(msg)) {
-    const obj = msg as Record<string, unknown>;
+    const messageRecord = msg as Record<string, unknown>;
     /**
      * Direct type === 'tool' (RemoteGraph format)
      */
-    if ('type' in obj && obj.type === 'tool') return true;
+    if ('type' in messageRecord && messageRecord.type === 'tool') return true;
     /**
      * Serialized LangChain message format
      */
     if (
-      obj.type === 'constructor' &&
-      Array.isArray(obj.id) &&
-      obj.id.includes('ToolMessage')
+      messageRecord.type === 'constructor' &&
+      Array.isArray(messageRecord.id) &&
+      messageRecord.id.includes('ToolMessage')
     ) {
       return true;
     }
@@ -1021,7 +1069,10 @@ export function processLangGraphEvent(
       if (!msgId) return;
 
       /**
-       * Track LangGraph step changes and emit start-step/finish-step events
+       * Track LangGraph step changes and emit start-step/finish-step events.
+       * Before emitting finish-step, close any open text/reasoning parts so
+       * the client does not receive orphaned deltas after its
+       * activeReasoningParts / activeTextParts have been cleared.
        */
       const langgraphStep =
         typeof metadata?.langgraph_step === 'number'
@@ -1029,6 +1080,17 @@ export function processLangGraphEvent(
           : null;
       if (langgraphStep !== null && langgraphStep !== state.currentStep) {
         if (state.currentStep !== null) {
+          for (const [id, seen] of Object.entries(messageSeen)) {
+            if (seen.text) {
+              controller.enqueue({ type: 'text-end', id });
+            }
+            if (seen.reasoning) {
+              controller.enqueue({ type: 'reasoning-end', id });
+            }
+            delete messageSeen[id];
+            delete messageConcat[id];
+            delete messageReasoningIds[id];
+          }
           controller.enqueue({ type: 'finish-step' });
         }
         controller.enqueue({ type: 'start-step' });
@@ -1103,18 +1165,18 @@ export function processLangGraphEvent(
           | undefined;
         if (toolCallChunks?.length) {
           for (const toolCallChunk of toolCallChunks) {
-            const idx = toolCallChunk.index ?? 0;
+            const toolCallIndex = toolCallChunk.index ?? 0;
 
             /**
              * If this chunk has an id, store it for future lookups by index
              */
             if (toolCallChunk.id) {
               toolCallInfoByIndex[msgId] ??= {};
-              toolCallInfoByIndex[msgId][idx] = {
+              toolCallInfoByIndex[msgId][toolCallIndex] = {
                 id: toolCallChunk.id,
                 name:
                   toolCallChunk.name ||
-                  concatChunk?.tool_call_chunks?.[idx]?.name ||
+                  concatChunk?.tool_call_chunks?.[toolCallIndex]?.name ||
                   'unknown',
               };
             }
@@ -1124,8 +1186,8 @@ export function processLangGraphEvent(
              */
             const toolCallId =
               toolCallChunk.id ||
-              toolCallInfoByIndex[msgId]?.[idx]?.id ||
-              concatChunk?.tool_call_chunks?.[idx]?.id;
+              toolCallInfoByIndex[msgId]?.[toolCallIndex]?.id ||
+              concatChunk?.tool_call_chunks?.[toolCallIndex]?.id;
 
             /**
              * Skip if we don't have a proper tool call ID - we'll handle it in values
@@ -1136,8 +1198,8 @@ export function processLangGraphEvent(
 
             const toolName =
               toolCallChunk.name ||
-              toolCallInfoByIndex[msgId]?.[idx]?.name ||
-              concatChunk?.tool_call_chunks?.[idx]?.name ||
+              toolCallInfoByIndex[msgId]?.[toolCallIndex]?.name ||
+              concatChunk?.tool_call_chunks?.[toolCallIndex]?.name ||
               'unknown';
 
             /**
@@ -1367,21 +1429,25 @@ export function processLangGraphEvent(
               /**
                * For plain objects from RemoteGraph API or serialized LangChain messages
                */
-              const obj = msg as Record<string, unknown>;
+              const messageRecord = msg as Record<string, unknown>;
 
               /**
                * Determine the data source (handle both direct and serialized formats)
                */
               const isSerializedFormat =
-                obj.type === 'constructor' &&
-                Array.isArray(obj.id) &&
-                ((obj.id as string[]).includes('AIMessageChunk') ||
-                  (obj.id as string[]).includes('AIMessage'));
+                messageRecord.type === 'constructor' &&
+                Array.isArray(messageRecord.id) &&
+                ((messageRecord.id as string[]).includes('AIMessageChunk') ||
+                  (messageRecord.id as string[]).includes('AIMessage'));
               const dataSource = isSerializedFormat
-                ? (obj.kwargs as Record<string, unknown>)
-                : obj;
+                ? (messageRecord.kwargs as Record<string, unknown>)
+                : messageRecord;
 
-              if (obj.type === 'ai' || isSerializedFormat) {
+              if (
+                messageRecord.type === 'ai' ||
+                messageRecord.type === 'AIMessageChunk' ||
+                isSerializedFormat
+              ) {
                 /**
                  * Try tool_calls first (normalized format)
                  */

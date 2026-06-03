@@ -1,7 +1,6 @@
-import { JSONSchema7 } from '@ai-sdk/provider';
-import { lazySchema } from '@ai-sdk/provider-utils';
+import type { JSONSchema7 } from '@ai-sdk/provider';
+import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { zodSchema } from '@ai-sdk/provider-utils';
 
 export const openResponsesErrorSchema = lazySchema(() =>
   zodSchema(
@@ -608,7 +607,7 @@ export type Reasoning = {
  */
 export type OpenResponsesRequestBody = {
   /**
-   * The model to use for this request, e.g. 'gpt-5.2'.
+   * The model to use for this request, e.g. 'gpt-5.4'.
    */
   model: string;
 

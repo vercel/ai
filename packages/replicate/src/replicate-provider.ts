@@ -1,14 +1,17 @@
 import {
-  Experimental_VideoModelV3,
   NoSuchModelError,
-  ProviderV3,
+  type Experimental_VideoModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
-import { loadApiKey, withUserAgentSuffix } from '@ai-sdk/provider-utils';
+import {
+  loadApiKey,
+  withUserAgentSuffix,
+  type FetchFunction,
+} from '@ai-sdk/provider-utils';
 import { ReplicateImageModel } from './replicate-image-model';
-import { ReplicateImageModelId } from './replicate-image-settings';
+import type { ReplicateImageModelId } from './replicate-image-settings';
 import { ReplicateVideoModel } from './replicate-video-model';
-import { ReplicateVideoModelId } from './replicate-video-settings';
+import type { ReplicateVideoModelId } from './replicate-video-settings';
 import { VERSION } from './version';
 
 export interface ReplicateProviderSettings {
@@ -36,7 +39,7 @@ export interface ReplicateProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface ReplicateProvider extends ProviderV3 {
+export interface ReplicateProvider extends ProviderV4 {
   /**
    * Creates a Replicate image generation model.
    */
@@ -55,12 +58,12 @@ export interface ReplicateProvider extends ProviderV3 {
   /**
    * Creates a Replicate video generation model.
    */
-  video(modelId: ReplicateVideoModelId): Experimental_VideoModelV3;
+  video(modelId: ReplicateVideoModelId): Experimental_VideoModelV4;
 
   /**
    * Creates a Replicate video generation model.
    */
-  videoModel(modelId: ReplicateVideoModelId): Experimental_VideoModelV3;
+  videoModel(modelId: ReplicateVideoModelId): Experimental_VideoModelV4;
 }
 
 /**
@@ -106,7 +109,7 @@ export function createReplicate(
   };
 
   return {
-    specificationVersion: 'v3' as const,
+    specificationVersion: 'v4' as const,
     image: createImageModel,
     imageModel: createImageModel,
     languageModel: (modelId: string) => {

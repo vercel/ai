@@ -1,60 +1,46 @@
 import {
-  type Experimental_VideoModelV3,
-  type LanguageModelV3,
   NoSuchModelError,
-  type ProviderV3,
+  type Experimental_VideoModelV4,
+  type LanguageModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  createJsonErrorResponseHandler,
-  type FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
-import { AlibabaLanguageModel } from './alibaba-chat-language-model';
-import type { AlibabaChatModelId } from './alibaba-chat-options';
+import { AlibabaChatLanguageModel } from './alibaba-chat-language-model';
+import type { AlibabaChatModelId } from './alibaba-chat-language-model-options';
 import { AlibabaVideoModel } from './alibaba-video-model';
 import type { AlibabaVideoModelId } from './alibaba-video-settings';
 import { VERSION } from './version';
 
-export type AlibabaErrorData = z.infer<typeof alibabaErrorDataSchema>;
+export type { AlibabaErrorData } from './alibaba-error';
+export { alibabaFailedResponseHandler } from './alibaba-error';
 
-const alibabaErrorDataSchema = z.object({
-  error: z.object({
-    message: z.string(),
-    code: z.string().nullish(),
-    type: z.string().nullish(),
-  }),
-});
-
-export const alibabaFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: alibabaErrorDataSchema,
-  errorToMessage: data => data.error.message,
-});
-
-export interface AlibabaProvider extends ProviderV3 {
-  (modelId: AlibabaChatModelId): LanguageModelV3;
+export interface AlibabaProvider extends ProviderV4 {
+  (modelId: AlibabaChatModelId): LanguageModelV4;
 
   /**
    * Creates a model for text generation.
    */
-  languageModel(modelId: AlibabaChatModelId): LanguageModelV3;
+  languageModel(modelId: AlibabaChatModelId): LanguageModelV4;
 
   /**
    * Creates a chat model for text generation.
    */
-  chatModel(modelId: AlibabaChatModelId): LanguageModelV3;
+  chatModel(modelId: AlibabaChatModelId): LanguageModelV4;
 
   /**
    * Creates a model for video generation.
    */
-  video(modelId: AlibabaVideoModelId): Experimental_VideoModelV3;
+  video(modelId: AlibabaVideoModelId): Experimental_VideoModelV4;
 
   /**
    * Creates a model for video generation.
    */
-  videoModel(modelId: AlibabaVideoModelId): Experimental_VideoModelV3;
+  videoModel(modelId: AlibabaVideoModelId): Experimental_VideoModelV4;
 }
 
 export interface AlibabaProviderSettings {
@@ -125,7 +111,7 @@ export function createAlibaba(
     );
 
   const createLanguageModel = (modelId: AlibabaChatModelId) =>
-    new AlibabaLanguageModel(modelId, {
+    new AlibabaChatLanguageModel(modelId, {
       provider: 'alibaba.chat',
       baseURL,
       headers: getHeaders,
@@ -151,7 +137,7 @@ export function createAlibaba(
     return createLanguageModel(modelId);
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.languageModel = createLanguageModel;
   provider.chatModel = createLanguageModel;
   provider.video = createVideoModel;

@@ -1,11 +1,17 @@
-import type { ChatAddToolApproveResponseFunction, DynamicToolUIPart } from 'ai';
+import type {
+  ChatAddToolApproveResponseFunction,
+  ChatRequestOptions,
+  DynamicToolUIPart,
+} from 'ai';
 
 export default function WeatherWithApprovalView({
   invocation,
   addToolApprovalResponse,
+  requestOptions,
 }: {
   invocation: DynamicToolUIPart;
   addToolApprovalResponse: ChatAddToolApproveResponseFunction;
+  requestOptions?: ChatRequestOptions;
 }) {
   switch (invocation.state) {
     case 'approval-requested':
@@ -26,6 +32,7 @@ export default function WeatherWithApprovalView({
                 addToolApprovalResponse({
                   id: invocation.approval.id,
                   approved: true,
+                  options: requestOptions,
                 })
               }
             >
@@ -37,6 +44,7 @@ export default function WeatherWithApprovalView({
                 addToolApprovalResponse({
                   id: invocation.approval.id,
                   approved: false,
+                  options: requestOptions,
                 })
               }
             >

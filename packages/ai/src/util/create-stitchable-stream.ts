@@ -38,7 +38,7 @@ export function createStitchableStream<T>(): {
     if (innerStreamReaders.length === 0) {
       waitForNewStream = createResolvablePromise<void>();
       await waitForNewStream.promise;
-      return processPull();
+      return await processPull();
     }
 
     try {

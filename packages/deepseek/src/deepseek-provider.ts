@@ -1,15 +1,15 @@
 import {
-  LanguageModelV3,
   NoSuchModelError,
-  ProviderV3,
+  type LanguageModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { DeepSeekChatModelId } from './chat/deepseek-chat-options';
+import type { DeepSeekChatModelId } from './chat/deepseek-chat-language-model-options';
 import { DeepSeekChatLanguageModel } from './chat/deepseek-chat-language-model';
 import { VERSION } from './version';
 
@@ -36,21 +36,21 @@ export interface DeepSeekProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface DeepSeekProvider extends ProviderV3 {
+export interface DeepSeekProvider extends ProviderV4 {
   /**
    * Creates a DeepSeek model for text generation.
    */
-  (modelId: DeepSeekChatModelId): LanguageModelV3;
+  (modelId: DeepSeekChatModelId): LanguageModelV4;
 
   /**
    * Creates a DeepSeek model for text generation.
    */
-  languageModel(modelId: DeepSeekChatModelId): LanguageModelV3;
+  languageModel(modelId: DeepSeekChatModelId): LanguageModelV4;
 
   /**
    * Creates a DeepSeek chat model for text generation.
    */
-  chat(modelId: DeepSeekChatModelId): LanguageModelV3;
+  chat(modelId: DeepSeekChatModelId): LanguageModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -90,7 +90,7 @@ export function createDeepSeek(
   const provider = (modelId: DeepSeekChatModelId) =>
     createLanguageModel(modelId);
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.languageModel = createLanguageModel;
   provider.chat = createLanguageModel;
 
@@ -105,4 +105,4 @@ export function createDeepSeek(
   return provider;
 }
 
-export const deepseek = createDeepSeek();
+export const deepSeek = createDeepSeek();

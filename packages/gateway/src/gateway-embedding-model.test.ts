@@ -67,7 +67,7 @@ describe('GatewayEmbeddingModel', () => {
       expect(headers).toMatchObject({
         authorization: 'Bearer test-token',
         'custom-header': 'test-value',
-        'ai-embedding-model-specification-version': '3',
+        'ai-embedding-model-specification-version': '4',
         'ai-model-id': 'openai/text-embedding-3-small',
       });
     });

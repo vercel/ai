@@ -8,11 +8,6 @@
     "analyze-market": "tsx src/analyze-market.ts",
     "analyze-ui-frameworks": "tsx src/analyze-ui-frameworks.ts"
   },
-  "lint-staged": {
-    "*": [
-      "prettier --ignore-unknown --write"
-    ]
-  },
   "devDependencies": {
     "tsx": "4.19.2",
     "typescript": "5.8.3"

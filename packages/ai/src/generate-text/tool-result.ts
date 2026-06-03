@@ -1,7 +1,11 @@
-import { InferToolInput, InferToolOutput } from '@ai-sdk/provider-utils';
-import { ProviderMetadata } from '../types';
-import { ValueOf } from '../../src/util/value-of';
-import { ToolSet } from './tool-set';
+import type { JSONObject } from '@ai-sdk/provider';
+import type {
+  InferToolInput,
+  InferToolOutput,
+  ToolSet,
+} from '@ai-sdk/provider-utils';
+import type { ProviderMetadata } from '../types';
+import type { ValueOf } from '../../src/util/value-of';
 
 export type StaticToolResult<TOOLS extends ToolSet> = ValueOf<{
   [NAME in keyof TOOLS]: {
@@ -12,6 +16,7 @@ export type StaticToolResult<TOOLS extends ToolSet> = ValueOf<{
     output: InferToolOutput<TOOLS[NAME]>;
     providerExecuted?: boolean;
     providerMetadata?: ProviderMetadata;
+    toolMetadata?: JSONObject;
     dynamic?: false | undefined;
     preliminary?: boolean;
     title?: string;
@@ -26,6 +31,7 @@ export type DynamicToolResult = {
   output: unknown;
   providerExecuted?: boolean;
   providerMetadata?: ProviderMetadata;
+  toolMetadata?: JSONObject;
   dynamic: true;
   preliminary?: boolean;
   title?: string;

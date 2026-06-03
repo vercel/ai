@@ -1,16 +1,17 @@
 import {
   openai,
-  OpenaiResponsesProviderMetadata,
-  OpenAILanguageModelResponsesOptions,
+  type OpenaiResponsesProviderMetadata,
+  type OpenAILanguageModelResponsesOptions,
 } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
   createUIMessageStream,
   createUIMessageStreamResponse,
-  InferUITools,
-  stepCountIs,
+  isStepCount,
   streamText,
-  UIMessage,
+  toUIMessageStream,
+  type InferUITools,
+  type UIMessage,
 } from 'ai';
 import { rollDieToolWithProgrammaticCalling } from '@/tool/roll-die-tool-with-programmatic-calling';
 
@@ -49,17 +50,19 @@ export async function POST(req: Request) {
         // Send only the latest user message; OpenAI will fetch prior turns via previousResponseId.
         messages: await convertToModelMessages([message]),
         tools,
-        stopWhen: stepCountIs(20),
+        stopWhen: isStepCount(20),
+        reasoning: 'low',
         providerOptions: {
           openai: {
-            reasoningEffort: 'low',
             reasoningSummary: 'auto',
             store: true,
             // Enable history lookup by passing the responseId from the previous call.
             previousResponseId,
           } satisfies OpenAILanguageModelResponsesOptions,
         },
-        onFinish: ({ providerMetadata }) => {
+        onFinish: ({ finalStep }) => {
+          const providerMetadata = finalStep.providerMetadata;
+
           if (!!providerMetadata) {
             // Return provider metadata so the client can persist the latest responseId.
             writer.write({
@@ -70,7 +73,7 @@ export async function POST(req: Request) {
           }
         },
       });
-      writer.merge(result.toUIMessageStream());
+      writer.merge(toUIMessageStream({ stream: result.stream }));
     },
   });
 

@@ -1,33 +1,30 @@
-import {
-  ImageModelV3,
-  ImageModelV3CallOptions,
-  ImageModelV3File,
-  ImageModelV3ProviderMetadata,
+import type {
+  ImageModelV4,
+  ImageModelV4CallOptions,
+  ImageModelV4File,
+  ImageModelV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   convertBase64ToUint8Array,
-  DataContent,
-  ProviderOptions,
+  detectMediaType,
   withUserAgentSuffix,
+  type DataContent,
+  type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { NoImageGeneratedError } from '../error/no-image-generated-error';
 import {
   DefaultGeneratedFile,
-  GeneratedFile,
+  type GeneratedFile,
 } from '../generate-text/generated-file';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveImageModel } from '../model/resolve-model';
 import type { ImageModel } from '../types/image-model';
-import { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
-import { addImageModelUsage, ImageModelUsage } from '../types/usage';
-import { Warning } from '../types/warning';
-import {
-  detectMediaType,
-  imageMediaTypeSignatures,
-} from '../util/detect-media-type';
+import type { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
+import { addImageModelUsage, type ImageModelUsage } from '../types/usage';
+import type { Warning } from '../types/warning';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
-import { GenerateImageResult } from './generate-image-result';
+import type { GenerateImageResult } from './generate-image-result';
 import { convertDataContentToUint8Array } from '../prompt/data-content';
 import { splitDataUrl } from '../prompt/split-data-url';
 
@@ -168,23 +165,24 @@ export async function generateImage({
   });
 
   const results = await Promise.all(
-    callImageCounts.map(async callImageCount =>
-      retry(() => {
-        const { prompt, files, mask } = normalizePrompt(promptArg);
+    callImageCounts.map(
+      async callImageCount =>
+        await retry(() => {
+          const { prompt, files, mask } = normalizePrompt(promptArg);
 
-        return model.doGenerate({
-          prompt,
-          files,
-          mask,
-          n: callImageCount,
-          abortSignal,
-          headers: headersWithUserAgent,
-          size,
-          aspectRatio,
-          seed,
-          providerOptions: providerOptions ?? {},
-        });
-      }),
+          return model.doGenerate({
+            prompt,
+            files,
+            mask,
+            n: callImageCount,
+            abortSignal,
+            headers: headersWithUserAgent,
+            size,
+            aspectRatio,
+            seed,
+            providerOptions: providerOptions ?? {},
+          });
+        }),
     ),
   );
 
@@ -192,7 +190,7 @@ export async function generateImage({
   const images: Array<DefaultGeneratedFile> = [];
   const warnings: Array<Warning> = [];
   const responses: Array<ImageModelResponseMetadata> = [];
-  const providerMetadata: ImageModelV3ProviderMetadata = {};
+  const providerMetadata: ImageModelV4ProviderMetadata = {};
   let totalUsage: ImageModelUsage = {
     inputTokens: undefined,
     outputTokens: undefined,
@@ -207,7 +205,7 @@ export async function generateImage({
             mediaType:
               detectMediaType({
                 data: image,
-                signatures: imageMediaTypeSignatures,
+                topLevelType: 'image',
               }) ?? 'image/png',
           }),
       ),
@@ -228,10 +226,10 @@ export async function generateImage({
             providerMetadata[providerName] = {
               ...(currentEntry as object),
               ...metadata,
-            } as ImageModelV3ProviderMetadata[string];
+            } as ImageModelV4ProviderMetadata[string];
           } else {
             providerMetadata[providerName] =
-              metadata as ImageModelV3ProviderMetadata[string];
+              metadata as ImageModelV4ProviderMetadata[string];
           }
           const imagesValue = (
             providerMetadata[providerName] as { images?: unknown }
@@ -271,14 +269,14 @@ class DefaultGenerateImageResult implements GenerateImageResult {
   readonly images: Array<GeneratedFile>;
   readonly warnings: Array<Warning>;
   readonly responses: Array<ImageModelResponseMetadata>;
-  readonly providerMetadata: ImageModelV3ProviderMetadata;
+  readonly providerMetadata: ImageModelV4ProviderMetadata;
   readonly usage: ImageModelUsage;
 
   constructor(options: {
     images: Array<GeneratedFile>;
     warnings: Array<Warning>;
     responses: Array<ImageModelResponseMetadata>;
-    providerMetadata: ImageModelV3ProviderMetadata;
+    providerMetadata: ImageModelV4ProviderMetadata;
     usage: ImageModelUsage;
   }) {
     this.images = options.images;
@@ -293,7 +291,7 @@ class DefaultGenerateImageResult implements GenerateImageResult {
   }
 }
 
-async function invokeModelMaxImagesPerCall(model: ImageModelV3) {
+async function invokeModelMaxImagesPerCall(model: ImageModelV4) {
   const isFunction = model.maxImagesPerCall instanceof Function;
 
   if (!isFunction) {
@@ -307,19 +305,19 @@ async function invokeModelMaxImagesPerCall(model: ImageModelV3) {
 
 function normalizePrompt(
   prompt: GenerateImagePrompt,
-): Pick<ImageModelV3CallOptions, 'prompt' | 'files' | 'mask'> {
+): Pick<ImageModelV4CallOptions, 'prompt' | 'files' | 'mask'> {
   if (typeof prompt === 'string') {
     return { prompt, files: undefined, mask: undefined };
   }
 
   return {
     prompt: prompt.text,
-    files: prompt.images.map(toImageModelV3File),
-    mask: prompt.mask ? toImageModelV3File(prompt.mask) : undefined,
+    files: prompt.images.map(toImageModelV4File),
+    mask: prompt.mask ? toImageModelV4File(prompt.mask) : undefined,
   };
 }
 
-function toImageModelV3File(dataContent: DataContent): ImageModelV3File {
+function toImageModelV4File(dataContent: DataContent): ImageModelV4File {
   if (typeof dataContent === 'string' && dataContent.startsWith('http')) {
     return {
       type: 'url',
@@ -341,7 +339,7 @@ function toImageModelV3File(dataContent: DataContent): ImageModelV3File {
           dataUrlMediaType ||
           detectMediaType({
             data: uint8Data,
-            signatures: imageMediaTypeSignatures,
+            topLevelType: 'image',
           }) ||
           'image/png',
       };
@@ -355,7 +353,7 @@ function toImageModelV3File(dataContent: DataContent): ImageModelV3File {
     mediaType:
       detectMediaType({
         data: uint8Data,
-        signatures: imageMediaTypeSignatures,
+        topLevelType: 'image',
       }) || 'image/png',
   };
 }

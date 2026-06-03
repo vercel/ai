@@ -1,14 +1,15 @@
 import type {
-  Experimental_VideoModelV3,
-  Experimental_VideoModelV3CallOptions,
-  Experimental_VideoModelV3File,
-  SharedV3ProviderMetadata,
+  Experimental_VideoModelV4,
+  Experimental_VideoModelV4CallOptions,
+  Experimental_VideoModelV4File,
+  SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   convertBase64ToUint8Array,
-  type DataContent,
-  type ProviderOptions,
   withUserAgentSuffix,
+  type DataContent,
+  detectMediaType,
+  type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { NoVideoGeneratedError } from '../error/no-video-generated-error';
 import {
@@ -20,11 +21,6 @@ import { resolveVideoModel } from '../model/resolve-model';
 import type { VideoModel } from '../types/video-model';
 import type { VideoModelResponseMetadata } from '../types/video-model-response-metadata';
 import type { Warning } from '../types/warning';
-import {
-  detectMediaType,
-  imageMediaTypeSignatures,
-  videoMediaTypeSignatures,
-} from '../util/detect-media-type';
 import { createDownload } from '../util/download/create-download';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
@@ -180,22 +176,23 @@ export async function experimental_generateVideo({
   });
 
   const results = await Promise.all(
-    callVideoCounts.map(async callVideoCount =>
-      retry(() =>
-        model.doGenerate({
-          prompt,
-          n: callVideoCount,
-          aspectRatio,
-          resolution,
-          duration,
-          fps,
-          seed,
-          image,
-          providerOptions: providerOptions ?? {},
-          headers: headersWithUserAgent,
-          abortSignal,
-        } satisfies Experimental_VideoModelV3CallOptions),
-      ),
+    callVideoCounts.map(
+      async callVideoCount =>
+        await retry(() =>
+          model.doGenerate({
+            prompt,
+            n: callVideoCount,
+            aspectRatio,
+            resolution,
+            duration,
+            fps,
+            seed,
+            image,
+            providerOptions: providerOptions ?? {},
+            headers: headersWithUserAgent,
+            abortSignal,
+          } satisfies Experimental_VideoModelV4CallOptions),
+        ),
     ),
   );
 
@@ -203,7 +200,7 @@ export async function experimental_generateVideo({
   const videos: Array<GeneratedFile> = [];
   const warnings: Array<Warning> = [];
   const responses: Array<VideoModelResponseMetadata> = [];
-  const providerMetadata: SharedV3ProviderMetadata = {};
+  const providerMetadata: SharedV4ProviderMetadata = {};
 
   for (const result of results) {
     for (const videoData of result.videos) {
@@ -223,7 +220,7 @@ export async function experimental_generateVideo({
             (isUsableMediaType(downloadedMediaType) && downloadedMediaType) ||
             detectMediaType({
               data,
-              signatures: videoMediaTypeSignatures,
+              topLevelType: 'video',
             }) ||
             'video/mp4';
 
@@ -251,7 +248,7 @@ export async function experimental_generateVideo({
             videoData.mediaType ||
             detectMediaType({
               data: videoData.data,
-              signatures: videoMediaTypeSignatures,
+              topLevelType: 'video',
             }) ||
             'video/mp4';
 
@@ -328,7 +325,7 @@ export async function experimental_generateVideo({
 
 function normalizePrompt(promptArg: GenerateVideoPrompt): {
   prompt: string | undefined;
-  image: Experimental_VideoModelV3File | undefined;
+  image: Experimental_VideoModelV4File | undefined;
 } {
   if (typeof promptArg === 'string') {
     return {
@@ -337,7 +334,7 @@ function normalizePrompt(promptArg: GenerateVideoPrompt): {
     };
   }
 
-  let image: Experimental_VideoModelV3File | undefined;
+  let image: Experimental_VideoModelV4File | undefined;
 
   if (promptArg.image != null) {
     const dataContent = promptArg.image;
@@ -363,7 +360,7 @@ function normalizePrompt(promptArg: GenerateVideoPrompt): {
         const mediaType =
           detectMediaType({
             data: bytes,
-            signatures: imageMediaTypeSignatures,
+            topLevelType: 'image',
           }) ?? 'image/png';
 
         image = {
@@ -376,7 +373,7 @@ function normalizePrompt(promptArg: GenerateVideoPrompt): {
       const mediaType =
         detectMediaType({
           data: dataContent,
-          signatures: imageMediaTypeSignatures,
+          topLevelType: 'image',
         }) ?? 'image/png';
 
       image = {
@@ -393,7 +390,7 @@ function normalizePrompt(promptArg: GenerateVideoPrompt): {
   };
 }
 
-async function invokeModelMaxVideosPerCall(model: Experimental_VideoModelV3) {
+async function invokeModelMaxVideosPerCall(model: Experimental_VideoModelV4) {
   if (typeof model.maxVideosPerCall === 'function') {
     return await model.maxVideosPerCall({ modelId: model.modelId });
   }

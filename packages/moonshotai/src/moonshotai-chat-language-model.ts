@@ -1,15 +1,34 @@
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
-import { OpenAICompatibleChatConfig } from '@ai-sdk/openai-compatible/internal';
+import type { OpenAICompatibleChatConfig } from '@ai-sdk/openai-compatible/internal';
 import {
-  LanguageModelV3CallOptions,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+} from '@ai-sdk/provider-utils';
+import type {
+  LanguageModelV4CallOptions,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4StreamPart,
+  LanguageModelV4StreamResult,
 } from '@ai-sdk/provider';
 import { convertMoonshotAIChatUsage } from './convert-moonshotai-chat-usage';
-import { MoonshotAIChatModelId } from './moonshotai-chat-options';
+import type { MoonshotAIChatModelId } from './moonshotai-chat-options';
 
 export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageModel {
+  static [WORKFLOW_SERIALIZE](model: MoonshotAIChatLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: MoonshotAIChatModelId;
+    config: OpenAICompatibleChatConfig;
+  }) {
+    return new MoonshotAIChatLanguageModel(options.modelId, options.config);
+  }
+
   constructor(
     modelId: MoonshotAIChatModelId,
     config: OpenAICompatibleChatConfig,
@@ -18,8 +37,8 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
   }
 
   async doGenerate(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3GenerateResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
     const result = await super.doGenerate(options);
 
     // @ts-expect-error accessing response body from parent result
@@ -32,16 +51,16 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
   }
 
   async doStream(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3StreamResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
     const result = await super.doStream(options);
 
     return {
       ...result,
       stream: result.stream.pipeThrough(
         new TransformStream<
-          LanguageModelV3StreamPart,
-          LanguageModelV3StreamPart
+          LanguageModelV4StreamPart,
+          LanguageModelV4StreamPart
         >({
           transform(chunk, controller) {
             if (chunk.type === 'finish' && chunk.usage) {

@@ -1,8 +1,11 @@
-import type { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
+import type { GoogleProviderMetadata } from '@ai-sdk/google';
 import type {
   EmbeddingModelV3,
+  EmbeddingModelV4,
   ImageModelV3,
+  ImageModelV4,
   LanguageModelV3,
+  LanguageModelV4,
 } from '@ai-sdk/provider';
 import {
   APICallError,
@@ -11,7 +14,7 @@ import {
   generateImage,
   generateText,
   Output,
-  stepCountIs,
+  isStepCount,
   streamText,
 } from 'ai';
 import fs from 'fs';
@@ -49,35 +52,37 @@ export const defaultChatModelCapabilities: ModelCapabilities = [
 ];
 
 export const createLanguageModelWithCapabilities = (
-  model: LanguageModelV3,
+  model: LanguageModelV3 | LanguageModelV4,
   capabilities: ModelCapabilities = defaultChatModelCapabilities,
-): ModelWithCapabilities<LanguageModelV3> => ({
+): ModelWithCapabilities<LanguageModelV3 | LanguageModelV4> => ({
   model,
   capabilities,
 });
 
 export const createEmbeddingModelWithCapabilities = (
-  model: EmbeddingModelV3,
+  model: EmbeddingModelV3 | EmbeddingModelV4,
   capabilities: ModelCapabilities = ['embedding'],
-): ModelWithCapabilities<EmbeddingModelV3> => ({
+): ModelWithCapabilities<EmbeddingModelV3 | EmbeddingModelV4> => ({
   model,
   capabilities,
 });
 
 export const createImageModelWithCapabilities = (
-  model: ImageModelV3,
+  model: ImageModelV3 | ImageModelV4,
   capabilities: ModelCapabilities = ['imageGeneration'],
-): ModelWithCapabilities<ImageModelV3> => ({
+): ModelWithCapabilities<ImageModelV3 | ImageModelV4> => ({
   model,
   capabilities,
 });
 
 export interface ModelVariants {
-  invalidModel?: LanguageModelV3;
-  languageModels?: ModelWithCapabilities<LanguageModelV3>[];
-  embeddingModels?: ModelWithCapabilities<EmbeddingModelV3>[];
-  invalidImageModel?: ImageModelV3;
-  imageModels?: ModelWithCapabilities<ImageModelV3>[];
+  invalidModel?: LanguageModelV3 | LanguageModelV4;
+  languageModels?: ModelWithCapabilities<LanguageModelV3 | LanguageModelV4>[];
+  embeddingModels?: ModelWithCapabilities<
+    EmbeddingModelV3 | EmbeddingModelV4
+  >[];
+  invalidImageModel?: ImageModelV3 | ImageModelV4;
+  imageModels?: ModelWithCapabilities<ImageModelV3 | ImageModelV4>[];
 }
 
 export interface TestSuiteOptions {
@@ -691,7 +696,7 @@ export function createFeatureTestSuite({
                 });
 
                 const parts = [];
-                for await (const part of result.fullStream) {
+                for await (const part of result.stream) {
                   parts.push(part);
                 }
 
@@ -744,7 +749,7 @@ export function createFeatureTestSuite({
                       },
                     },
                   },
-                  stopWhen: stepCountIs(10),
+                  stopWhen: isStepCount(10),
                 });
 
                 expect(weatherCalls).toBe(1);
@@ -771,9 +776,9 @@ export function createFeatureTestSuite({
                           text: 'Describe the image in detail.',
                         },
                         {
-                          type: 'image',
-                          image:
-                            'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
+                          type: 'file',
+                          mediaType: 'image',
+                          data: 'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
                         },
                       ],
                     },
@@ -799,9 +804,10 @@ export function createFeatureTestSuite({
                           text: 'Describe the image in detail.',
                         },
                         {
-                          type: 'image',
+                          type: 'file',
+                          mediaType: 'image',
                           // TODO(shaper): Some tests omit the .toString() below.
-                          image: fs
+                          data: fs
                             .readFileSync('./data/comic-cat.png')
                             .toString('base64'),
                         },
@@ -828,9 +834,9 @@ export function createFeatureTestSuite({
                           text: 'Describe the image in detail.',
                         },
                         {
-                          type: 'image',
-                          image:
-                            'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
+                          type: 'file',
+                          mediaType: 'image',
+                          data: 'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
                         },
                       ],
                     },
@@ -860,8 +866,9 @@ export function createFeatureTestSuite({
                           text: 'Describe the image in detail.',
                         },
                         {
-                          type: 'image',
-                          image: fs.readFileSync('./data/comic-cat.png'),
+                          type: 'file',
+                          mediaType: 'image',
+                          data: fs.readFileSync('./data/comic-cat.png'),
                         },
                       ],
                     },
@@ -963,7 +970,7 @@ export function createFeatureTestSuite({
                 expect(result.usage?.totalTokens).toBeGreaterThan(0);
 
                 const metadata = result.providerMetadata?.google as
-                  | GoogleGenerativeAIProviderMetadata
+                  | GoogleProviderMetadata
                   | undefined;
                 verifyGroundingMetadata(metadata?.groundingMetadata);
               });
@@ -980,7 +987,7 @@ export function createFeatureTestSuite({
                 }
 
                 const metadata = (await result.providerMetadata)?.google as
-                  | GoogleGenerativeAIProviderMetadata
+                  | GoogleProviderMetadata
                   | undefined;
 
                 const completeText = chunks.join('');
@@ -998,7 +1005,7 @@ export function createFeatureTestSuite({
                 });
 
                 const metadata = result.providerMetadata?.google as
-                  | GoogleGenerativeAIProviderMetadata
+                  | GoogleProviderMetadata
                   | undefined;
                 verifySafetyRatings(metadata?.safetyRatings ?? []);
               });
@@ -1014,7 +1021,7 @@ export function createFeatureTestSuite({
                 }
 
                 const metadata = (await result.providerMetadata)?.google as
-                  | GoogleGenerativeAIProviderMetadata
+                  | GoogleProviderMetadata
                   | undefined;
 
                 verifySafetyRatings(metadata?.safetyRatings ?? []);

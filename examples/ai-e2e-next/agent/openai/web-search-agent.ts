@@ -1,6 +1,8 @@
-import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
-import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
-
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
+import { ToolLoopAgent, type InferAgentUIMessage } from 'ai';
 export const openaiWebSearchAgent = new ToolLoopAgent({
   model: openai('gpt-5-mini'),
   tools: {
@@ -14,9 +16,9 @@ export const openaiWebSearchAgent = new ToolLoopAgent({
       },
     }),
   },
+  reasoning: 'medium',
   providerOptions: {
     openai: {
-      reasoningEffort: 'medium',
       reasoningSummary: 'detailed',
       // store: false,
     } satisfies OpenAILanguageModelResponsesOptions,

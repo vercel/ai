@@ -1,9 +1,11 @@
 export type {
   AlibabaChatModelId,
-  AlibabaLanguageModelOptions,
-  /** @deprecated Use `AlibabaLanguageModelOptions` instead. */
-  AlibabaLanguageModelOptions as AlibabaProviderOptions,
-} from './alibaba-chat-options';
+  AlibabaLanguageModelChatOptions,
+  /** @deprecated Use `AlibabaLanguageModelChatOptions` instead. */
+  AlibabaLanguageModelChatOptions as AlibabaLanguageModelOptions,
+  /** @deprecated Use `AlibabaLanguageModelChatOptions` instead. */
+  AlibabaLanguageModelChatOptions as AlibabaProviderOptions,
+} from './alibaba-chat-language-model-options';
 export type { AlibabaCacheControl } from './alibaba-chat-prompt';
 export {
   type AlibabaProvider,
@@ -15,7 +17,7 @@ export type {
   AlibabaVideoModelOptions,
   /** @deprecated Use `AlibabaVideoModelOptions` instead. */
   AlibabaVideoModelOptions as AlibabaVideoProviderOptions,
-} from './alibaba-video-model';
+} from './alibaba-video-model-options';
 export type { AlibabaVideoModelId } from './alibaba-video-settings';
 export type { AlibabaUsage } from './convert-alibaba-usage';
 export { VERSION } from './version';

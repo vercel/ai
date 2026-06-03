@@ -1,12 +1,12 @@
 import {
   SystemMessage,
-  BaseMessage,
-  AIMessageChunk,
+  type BaseMessage,
+  type AIMessageChunk,
 } from '@langchain/core/messages';
 import {
+  convertToModelMessages,
   type UIMessage,
   type UIMessageChunk,
-  convertToModelMessages,
   type ModelMessage,
 } from 'ai';
 import {
@@ -19,8 +19,8 @@ import {
   isToolResultPart,
   extractReasoningFromContentBlocks,
 } from './utils';
-import { type LangGraphEventState } from './types';
-import { type StreamCallbacks } from './stream-callbacks';
+import type { LangGraphEventState } from './types';
+import type { StreamCallbacks } from './stream-callbacks';
 
 /**
  * Converts AI SDK UIMessages to LangChain BaseMessage objects.
@@ -535,6 +535,20 @@ export function toUIMessageStream<TState = unknown>(
           }
           controller.enqueue({ type: 'finish' });
         } else if (streamType === 'langgraph') {
+          /**
+           * Close any open text/reasoning parts before finishing.
+           * This handles streams without values events (e.g. streamMode: 'messages')
+           * where the values handler never ran to emit *-end events.
+           */
+          for (const [id, seen] of Object.entries(langGraphState.messageSeen)) {
+            if (seen.text) {
+              controller.enqueue({ type: 'text-end', id });
+            }
+            if (seen.reasoning) {
+              controller.enqueue({ type: 'reasoning-end', id });
+            }
+          }
+
           /**
            * Emit finish-step if a step was started
            */

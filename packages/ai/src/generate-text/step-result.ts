@@ -1,28 +1,149 @@
-import { ReasoningPart } from '@ai-sdk/provider-utils';
-import {
+import type {
+  Context,
+  InferToolSetContext,
+  ReasoningFilePart,
+  ReasoningPart,
+  ToolSet,
+} from '@ai-sdk/provider-utils';
+import type {
   CallWarning,
   FinishReason,
   LanguageModelRequestMetadata,
   LanguageModelResponseMetadata,
   ProviderMetadata,
 } from '../types';
-import { Source } from '../types/language-model';
-import { LanguageModelUsage } from '../types/usage';
-import { ContentPart } from './content-part';
-import { GeneratedFile } from './generated-file';
-import { ResponseMessage } from './response-message';
-import { DynamicToolCall, StaticToolCall, TypedToolCall } from './tool-call';
+import type { Source } from '../types/language-model';
+import type { LanguageModelUsage } from '../types/usage';
+import type { ContentPart } from './content-part';
+import type { GeneratedFile } from './generated-file';
+import { asReasoningText } from './reasoning';
 import {
+  convertFromReasoningOutputs,
+  type ReasoningFileOutput,
+  type ReasoningOutput,
+} from './reasoning-output';
+import type {
+  DynamicToolCall,
+  StaticToolCall,
+  TypedToolCall,
+} from './tool-call';
+import type {
   DynamicToolResult,
   StaticToolResult,
   TypedToolResult,
 } from './tool-result';
-import { ToolSet } from './tool-set';
+
+/**
+ * Timing statistics for the gaps between generated output chunks.
+ */
+export type OutputChunkTimingStats = {
+  /** Shortest observed time between output chunks in milliseconds. */
+  readonly min: number;
+
+  /** 10th percentile time between output chunks in milliseconds. */
+  readonly p10: number;
+
+  /** Median time between output chunks in milliseconds. */
+  readonly median: number;
+
+  /** Average time between output chunks in milliseconds. */
+  readonly avg: number;
+
+  /** 90th percentile time between output chunks in milliseconds. */
+  readonly p90: number;
+
+  /** Longest observed time between output chunks in milliseconds. */
+  readonly max: number;
+};
+
+/**
+ * Performance metrics for a single step in the generation process.
+ */
+export type StepResultPerformance = {
+  /**
+   * Effective number of output tokens per second over the full language model
+   * response.
+   *
+   * Calculated as `outputTokens / requestSeconds`.
+   */
+  readonly effectiveOutputTokensPerSecond: number;
+
+  /**
+   * Number of output tokens per second after the first generated output chunk
+   * was received.
+   *
+   * Only available for streaming steps.
+   *
+   * Calculated as `outputTokens / outputStreamSeconds`.
+   */
+  readonly outputTokensPerSecond: number | undefined;
+
+  /**
+   * Number of input tokens processed per second before the first generated
+   * output chunk was received.
+   *
+   * Only available for streaming steps.
+   *
+   * Calculated as `inputTokens / ttftSeconds`.
+   */
+  readonly inputTokensPerSecond: number | undefined;
+
+  /**
+   * Effective number of input and output tokens per second over the full
+   * language model response.
+   *
+   * Calculated as `(inputTokens + outputTokens) / requestSeconds`.
+   */
+  readonly effectiveTotalTokensPerSecond: number;
+
+  /**
+   * Total time spent on the step in milliseconds.
+   */
+  readonly stepTimeMs: number;
+
+  /**
+   * Time spent waiting for the language model response in milliseconds.
+   */
+  readonly responseTimeMs: number;
+
+  /**
+   * Time spent executing each client-side tool call in milliseconds, keyed by
+   * tool call ID.
+   */
+  readonly toolExecutionMs: Readonly<Record<string, number>>;
+
+  /**
+   * Time until the first generated output chunk was received in milliseconds.
+   *
+   * This includes text deltas, reasoning deltas, generated files, reasoning
+   * files, tool input deltas, and tool calls.
+   *
+   * Only available for streaming steps.
+   */
+  readonly timeToFirstOutputMs: number | undefined;
+
+  /**
+   * Timing statistics for the gaps between generated output chunks in
+   * milliseconds.
+   *
+   * Only available for streaming steps with at least two generated output
+   * chunks.
+   */
+  readonly timeBetweenOutputChunksMs?: OutputChunkTimingStats;
+};
 
 /**
  * The result of a single step in the generation process.
  */
-export type StepResult<TOOLS extends ToolSet> = {
+export type StepResult<
+  TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+> = {
+  /**
+   * Unique identifier for the generation call this step belongs to.
+   */
+  readonly callId: string;
+
   /**
    * Zero-based index of this step.
    */
@@ -34,26 +155,20 @@ export type StepResult<TOOLS extends ToolSet> = {
   readonly model: {
     /** The provider of the model. */
     readonly provider: string;
+
     /** The ID of the model. */
     readonly modelId: string;
   };
 
   /**
-   * Identifier from telemetry settings for grouping related operations.
+   * Tool context.
    */
-  readonly functionId: string | undefined;
+  readonly toolsContext: InferToolSetContext<TOOLS>;
 
   /**
-   * Additional metadata from telemetry settings.
+   * The runtime context that was used as input for the step.
    */
-  readonly metadata: Record<string, unknown> | undefined;
-
-  /**
-   * User-defined context object flowing through the generation.
-   *
-   * Experimental (can break in patch releases).
-   */
-  readonly experimental_context: unknown;
+  readonly runtimeContext: RUNTIME_CONTEXT;
 
   /**
    * The content that was generated in the last step.
@@ -61,17 +176,20 @@ export type StepResult<TOOLS extends ToolSet> = {
   readonly content: Array<ContentPart<TOOLS>>;
 
   /**
-   * The generated text.
+   * The generated text. Can be an empty string if the model has not generated any text.
    */
   readonly text: string;
 
   /**
    * The reasoning that was generated during the generation.
    */
-  readonly reasoning: Array<ReasoningPart>;
+  readonly reasoning: Array<ReasoningPart | ReasoningFilePart>;
 
   /**
    * The reasoning text that was generated during the generation.
+   *
+   * It is a concatenation of all reasoning parts (but excluding reasoning file parts).
+   * Can be undefined if the model has only generated text.
    */
   readonly reasoningText: string | undefined;
 
@@ -131,6 +249,11 @@ export type StepResult<TOOLS extends ToolSet> = {
   readonly usage: LanguageModelUsage;
 
   /**
+   * Performance metrics for the step.
+   */
+  readonly performance: StepResultPerformance;
+
+  /**
    * Warnings from the model provider (e.g. unsupported settings).
    */
   readonly warnings: CallWarning[] | undefined;
@@ -143,19 +266,7 @@ export type StepResult<TOOLS extends ToolSet> = {
   /**
    * Additional response information.
    */
-  readonly response: LanguageModelResponseMetadata & {
-    /**
-     * The response messages that were generated during the call.
-     * Response messages can be either assistant messages or tool messages.
-     * They contain a generated id.
-     */
-    readonly messages: Array<ResponseMessage>;
-
-    /**
-     * Response body (available only for providers that use HTTP requests).
-     */
-    body?: unknown;
-  };
+  readonly response: LanguageModelResponseMetadata;
 
   /**
    * Additional provider-specific metadata. They are passed through
@@ -165,61 +276,74 @@ export type StepResult<TOOLS extends ToolSet> = {
   readonly providerMetadata: ProviderMetadata | undefined;
 };
 
-export class DefaultStepResult<TOOLS extends ToolSet>
-  implements StepResult<TOOLS>
-{
-  readonly stepNumber: StepResult<TOOLS>['stepNumber'];
-  readonly model: StepResult<TOOLS>['model'];
-  readonly functionId: StepResult<TOOLS>['functionId'];
-  readonly metadata: StepResult<TOOLS>['metadata'];
-  readonly experimental_context: StepResult<TOOLS>['experimental_context'];
-  readonly content: StepResult<TOOLS>['content'];
-  readonly finishReason: StepResult<TOOLS>['finishReason'];
-  readonly rawFinishReason: StepResult<TOOLS>['rawFinishReason'];
-  readonly usage: StepResult<TOOLS>['usage'];
-  readonly warnings: StepResult<TOOLS>['warnings'];
-  readonly request: StepResult<TOOLS>['request'];
-  readonly response: StepResult<TOOLS>['response'];
-  readonly providerMetadata: StepResult<TOOLS>['providerMetadata'];
+export class DefaultStepResult<
+  TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+> implements StepResult<TOOLS, RUNTIME_CONTEXT> {
+  readonly callId: StepResult<TOOLS, RUNTIME_CONTEXT>['callId'];
+  readonly stepNumber: StepResult<TOOLS, RUNTIME_CONTEXT>['stepNumber'];
+  readonly model: StepResult<TOOLS, RUNTIME_CONTEXT>['model'];
+  readonly toolsContext: StepResult<TOOLS, RUNTIME_CONTEXT>['toolsContext'];
+  readonly runtimeContext: StepResult<TOOLS, RUNTIME_CONTEXT>['runtimeContext'];
+  readonly content: StepResult<TOOLS, RUNTIME_CONTEXT>['content'];
+  readonly finishReason: StepResult<TOOLS, RUNTIME_CONTEXT>['finishReason'];
+  readonly rawFinishReason: StepResult<
+    TOOLS,
+    RUNTIME_CONTEXT
+  >['rawFinishReason'];
+  readonly usage: StepResult<TOOLS, RUNTIME_CONTEXT>['usage'];
+  readonly performance: StepResult<TOOLS, RUNTIME_CONTEXT>['performance'];
+  readonly warnings: StepResult<TOOLS, RUNTIME_CONTEXT>['warnings'];
+  readonly request: StepResult<TOOLS, RUNTIME_CONTEXT>['request'];
+  readonly response: StepResult<TOOLS, RUNTIME_CONTEXT>['response'];
+  readonly providerMetadata: StepResult<
+    TOOLS,
+    RUNTIME_CONTEXT
+  >['providerMetadata'];
 
   constructor({
+    callId,
     stepNumber,
-    model,
-    functionId,
-    metadata,
-    experimental_context,
+    provider,
+    modelId,
+    runtimeContext,
+    toolsContext,
     content,
     finishReason,
     rawFinishReason,
     usage,
+    performance,
     warnings,
     request,
     response,
     providerMetadata,
   }: {
-    stepNumber: StepResult<TOOLS>['stepNumber'];
-    model: StepResult<TOOLS>['model'];
-    functionId: StepResult<TOOLS>['functionId'];
-    metadata: StepResult<TOOLS>['metadata'];
-    experimental_context: StepResult<TOOLS>['experimental_context'];
-    content: StepResult<TOOLS>['content'];
-    finishReason: StepResult<TOOLS>['finishReason'];
-    rawFinishReason: StepResult<TOOLS>['rawFinishReason'];
-    usage: StepResult<TOOLS>['usage'];
-    warnings: StepResult<TOOLS>['warnings'];
-    request: StepResult<TOOLS>['request'];
-    response: StepResult<TOOLS>['response'];
-    providerMetadata: StepResult<TOOLS>['providerMetadata'];
+    callId: StepResult<TOOLS, RUNTIME_CONTEXT>['callId'];
+    stepNumber: StepResult<TOOLS, RUNTIME_CONTEXT>['stepNumber'];
+    provider: StepResult<TOOLS, RUNTIME_CONTEXT>['model']['provider'];
+    modelId: StepResult<TOOLS, RUNTIME_CONTEXT>['model']['modelId'];
+    runtimeContext: StepResult<TOOLS, RUNTIME_CONTEXT>['runtimeContext'];
+    toolsContext: StepResult<TOOLS, RUNTIME_CONTEXT>['toolsContext'];
+    content: StepResult<TOOLS, RUNTIME_CONTEXT>['content'];
+    finishReason: StepResult<TOOLS, RUNTIME_CONTEXT>['finishReason'];
+    rawFinishReason: StepResult<TOOLS, RUNTIME_CONTEXT>['rawFinishReason'];
+    usage: StepResult<TOOLS, RUNTIME_CONTEXT>['usage'];
+    performance: StepResult<TOOLS, RUNTIME_CONTEXT>['performance'];
+    warnings: StepResult<TOOLS, RUNTIME_CONTEXT>['warnings'];
+    request: StepResult<TOOLS, RUNTIME_CONTEXT>['request'];
+    response: StepResult<TOOLS, RUNTIME_CONTEXT>['response'];
+    providerMetadata: StepResult<TOOLS, RUNTIME_CONTEXT>['providerMetadata'];
   }) {
+    this.callId = callId;
     this.stepNumber = stepNumber;
-    this.model = model;
-    this.functionId = functionId;
-    this.metadata = metadata;
-    this.experimental_context = experimental_context;
+    this.model = { provider, modelId };
+    this.runtimeContext = runtimeContext;
+    this.toolsContext = toolsContext;
     this.content = content;
     this.finishReason = finishReason;
     this.rawFinishReason = rawFinishReason;
     this.usage = usage;
+    this.performance = performance;
     this.warnings = warnings;
     this.request = request;
     this.response = response;
@@ -233,14 +357,17 @@ export class DefaultStepResult<TOOLS extends ToolSet>
       .join('');
   }
 
-  get reasoning() {
-    return this.content.filter(part => part.type === 'reasoning');
+  get reasoning(): Array<ReasoningPart | ReasoningFilePart> {
+    return convertFromReasoningOutputs(
+      this.content.filter(
+        (part): part is ReasoningOutput | ReasoningFileOutput =>
+          part.type === 'reasoning' || part.type === 'reasoning-file',
+      ),
+    );
   }
 
   get reasoningText() {
-    return this.reasoning.length === 0
-      ? undefined
-      : this.reasoning.map(part => part.text).join('');
+    return asReasoningText(this.reasoning);
   }
 
   get files() {

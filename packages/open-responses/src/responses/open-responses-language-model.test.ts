@@ -1,6 +1,6 @@
-import {
-  LanguageModelV3GenerateResult,
-  LanguageModelV3Prompt,
+import type {
+  LanguageModelV4GenerateResult,
+  LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
@@ -12,7 +12,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { OpenResponsesLanguageModel } from './open-responses-language-model';
 
 describe('OpenResponsesLanguageModel', () => {
-  const TEST_PROMPT: LanguageModelV3Prompt = [
+  const TEST_PROMPT: LanguageModelV4Prompt = [
     { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
   ];
 
@@ -25,6 +25,7 @@ describe('OpenResponsesLanguageModel', () => {
   function createModel(modelId: string = 'gemma-7b-it') {
     return new OpenResponsesLanguageModel(modelId, {
       provider: 'lmstudio',
+      providerOptionsName: 'lmstudio',
       url: URL,
       headers: () => ({}),
       generateId: mockId(),
@@ -46,7 +47,7 @@ describe('OpenResponsesLanguageModel', () => {
     }
 
     describe('basic generation', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('lmstudio-basic.1');
@@ -70,7 +71,7 @@ describe('OpenResponsesLanguageModel', () => {
     });
 
     describe('request parameters', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('lmstudio-basic.1');
@@ -103,7 +104,7 @@ describe('OpenResponsesLanguageModel', () => {
     });
 
     describe('tools', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('lmstudio-basic.1');
@@ -150,8 +151,193 @@ describe('OpenResponsesLanguageModel', () => {
       });
     });
 
+    describe('top-level reasoning', () => {
+      beforeEach(() => {
+        prepareJsonFixtureResponse('lmstudio-basic.1');
+      });
+
+      it('should map top-level reasoning to reasoning effort', async () => {
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'high',
+        });
+
+        expect((await server.calls[0].requestBodyJson).reasoning).toStrictEqual(
+          { effort: 'high' },
+        );
+      });
+
+      it('should coerce top-level reasoning minimal to low', async () => {
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'minimal',
+        });
+
+        expect((await server.calls[0].requestBodyJson).reasoning).toStrictEqual(
+          { effort: 'low' },
+        );
+      });
+
+      it('should map top-level reasoning none to none', async () => {
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'none',
+        });
+
+        expect((await server.calls[0].requestBodyJson).reasoning).toStrictEqual(
+          { effort: 'none' },
+        );
+      });
+
+      it('should pass xhigh directly', async () => {
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'xhigh',
+        });
+
+        expect((await server.calls[0].requestBodyJson).reasoning).toStrictEqual(
+          { effort: 'xhigh' },
+        );
+      });
+
+      it('should not set reasoning when not specified', async () => {
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(
+          (await server.calls[0].requestBodyJson).reasoning,
+        ).toBeUndefined();
+      });
+    });
+
+    describe('providerOptions reasoning', () => {
+      beforeEach(() => {
+        prepareJsonFixtureResponse('lmstudio-basic.1');
+      });
+
+      it('should send reasoning.summary via providerOptions', async () => {
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            lmstudio: { reasoningSummary: 'detailed' },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+                "type": "message",
+              },
+            ],
+            "model": "gemma-7b-it",
+            "reasoning": {
+              "summary": "detailed",
+            },
+          }
+        `);
+      });
+
+      it('should combine top-level reasoning effort with providerOptions summary', async () => {
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'high',
+          providerOptions: {
+            lmstudio: { reasoningSummary: 'auto' },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+                "type": "message",
+              },
+            ],
+            "model": "gemma-7b-it",
+            "reasoning": {
+              "effort": "high",
+              "summary": "auto",
+            },
+          }
+        `);
+      });
+
+      it('should send reasoning.summary concise via providerOptions', async () => {
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            lmstudio: { reasoningSummary: 'concise' },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+                "type": "message",
+              },
+            ],
+            "model": "gemma-7b-it",
+            "reasoning": {
+              "summary": "concise",
+            },
+          }
+        `);
+      });
+
+      it('should not set reasoning when providerOptions has no reasoning fields', async () => {
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            lmstudio: {},
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+                "type": "message",
+              },
+            ],
+            "model": "gemma-7b-it",
+          }
+        `);
+      });
+    });
+
     describe('tool call parsing', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('lmstudio-tool-call.1');
@@ -300,7 +486,7 @@ describe('OpenResponsesLanguageModel', () => {
       it('should send correct request body with user, assistant tool-call, and tool result', async () => {
         prepareJsonFixtureResponse('lmstudio-basic.1');
 
-        const toolConversationPrompt: LanguageModelV3Prompt = [
+        const toolConversationPrompt: LanguageModelV4Prompt = [
           {
             role: 'user',
             content: [{ type: 'text', text: 'What is the weather in Tokyo?' }],
@@ -353,6 +539,106 @@ describe('OpenResponsesLanguageModel', () => {
         expect(await server.calls[0].requestBodyJson).toMatchSnapshot();
       });
     });
+
+    describe('pdf input file', () => {
+      function getPdfPrompt(): LanguageModelV4Prompt {
+        return [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'What text does this PDF contain? Reply with just the text content, nothing else.',
+              },
+              {
+                type: 'file',
+                data: {
+                  type: 'url',
+                  url: new globalThis.URL(
+                    'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+                  ),
+                },
+                mediaType: 'application/pdf',
+              },
+            ],
+          },
+        ];
+      }
+
+      let result: LanguageModelV4GenerateResult;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('openai-pdf-input-file.1');
+
+        result = await createModel('gpt-4.1-nano').doGenerate({
+          prompt: getPdfPrompt(),
+        });
+      });
+
+      it('should send input_file in request body', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "What text does this PDF contain? Reply with just the text content, nothing else.",
+                    "type": "input_text",
+                  },
+                  {
+                    "file_url": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+                    "type": "input_file",
+                  },
+                ],
+                "role": "user",
+                "type": "message",
+              },
+            ],
+            "model": "gpt-4.1-nano",
+          }
+        `);
+      });
+
+      it('should produce correct content', async () => {
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "text": "Dummy PDF file",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+
+      it('should extract usage correctly', async () => {
+        expect(result.usage).toMatchInlineSnapshot(`
+          {
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 44,
+              "total": 44,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 4,
+              "total": 4,
+            },
+            "raw": {
+              "input_tokens": 44,
+              "input_tokens_details": {
+                "cached_tokens": 0,
+              },
+              "output_tokens": 4,
+              "output_tokens_details": {
+                "reasoning_tokens": 0,
+              },
+              "total_tokens": 48,
+            },
+          }
+        `);
+      });
+    });
   });
 
   describe('doStream', () => {
@@ -398,6 +684,101 @@ describe('OpenResponsesLanguageModel', () => {
         expect(
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
+      });
+    });
+
+    describe('pdf input file', () => {
+      it('should stream content from pdf input', async () => {
+        prepareChunksFixtureResponse('openai-pdf-input-file.1');
+
+        const result = await createModel('gpt-4.1-nano').doStream({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'What text does this PDF contain?',
+                },
+                {
+                  type: 'file',
+                  data: {
+                    type: 'url',
+                    url: new globalThis.URL(
+                      'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+                    ),
+                  },
+                  mediaType: 'application/pdf',
+                },
+              ],
+            },
+          ],
+        });
+
+        expect(await convertReadableStreamToArray(result.stream))
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "stream-start",
+              "warnings": [],
+            },
+            {
+              "id": "msg_051ebd7ab60063870069d4fe8c1b7c8194b701e22f1ef094dd",
+              "type": "text-start",
+            },
+            {
+              "delta": "Dummy",
+              "id": "msg_051ebd7ab60063870069d4fe8c1b7c8194b701e22f1ef094dd",
+              "type": "text-delta",
+            },
+            {
+              "delta": " PDF",
+              "id": "msg_051ebd7ab60063870069d4fe8c1b7c8194b701e22f1ef094dd",
+              "type": "text-delta",
+            },
+            {
+              "delta": " file",
+              "id": "msg_051ebd7ab60063870069d4fe8c1b7c8194b701e22f1ef094dd",
+              "type": "text-delta",
+            },
+            {
+              "id": "msg_051ebd7ab60063870069d4fe8c1b7c8194b701e22f1ef094dd",
+              "type": "text-end",
+            },
+            {
+              "finishReason": {
+                "raw": undefined,
+                "unified": "stop",
+              },
+              "providerMetadata": undefined,
+              "type": "finish",
+              "usage": {
+                "inputTokens": {
+                  "cacheRead": 0,
+                  "cacheWrite": undefined,
+                  "noCache": 44,
+                  "total": 44,
+                },
+                "outputTokens": {
+                  "reasoning": 0,
+                  "text": 4,
+                  "total": 4,
+                },
+                "raw": {
+                  "input_tokens": 44,
+                  "input_tokens_details": {
+                    "cached_tokens": 0,
+                  },
+                  "output_tokens": 4,
+                  "output_tokens_details": {
+                    "reasoning_tokens": 0,
+                  },
+                  "total_tokens": 48,
+                },
+              },
+            },
+          ]
+        `);
       });
     });
   });

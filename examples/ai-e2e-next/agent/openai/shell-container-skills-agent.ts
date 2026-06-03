@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
+import { ToolLoopAgent, type InferAgentUIMessage } from 'ai';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
@@ -8,7 +8,7 @@ const skillZip = readFileSync(
 ).toString('base64');
 
 export const openaiShellContainerSkillsAgent = new ToolLoopAgent({
-  model: openai.responses('gpt-5.2'),
+  model: openai.responses('gpt-5.4'),
   instructions:
     'You have access to a shell tool running in a hosted container. ' +
     'Commands are executed server-side by OpenAI. ' +

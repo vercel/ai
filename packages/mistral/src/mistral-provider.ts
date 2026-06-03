@@ -1,53 +1,53 @@
 import {
-  EmbeddingModelV3,
-  LanguageModelV3,
   NoSuchModelError,
-  ProviderV3,
+  type EmbeddingModelV4,
+  type LanguageModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { MistralChatLanguageModel } from './mistral-chat-language-model';
-import { MistralChatModelId } from './mistral-chat-options';
+import type { MistralChatModelId } from './mistral-chat-language-model-options';
 import { MistralEmbeddingModel } from './mistral-embedding-model';
-import { MistralEmbeddingModelId } from './mistral-embedding-options';
+import type { MistralEmbeddingModelId } from './mistral-embedding-options';
 import { VERSION } from './version';
 
-export interface MistralProvider extends ProviderV3 {
-  (modelId: MistralChatModelId): LanguageModelV3;
+export interface MistralProvider extends ProviderV4 {
+  (modelId: MistralChatModelId): LanguageModelV4;
 
   /**
    * Creates a model for text generation.
    */
-  languageModel(modelId: MistralChatModelId): LanguageModelV3;
+  languageModel(modelId: MistralChatModelId): LanguageModelV4;
 
   /**
    * Creates a model for text generation.
    */
-  chat(modelId: MistralChatModelId): LanguageModelV3;
+  chat(modelId: MistralChatModelId): LanguageModelV4;
 
   /**
    * Creates a model for text embeddings.
    */
-  embedding(modelId: MistralEmbeddingModelId): EmbeddingModelV3;
+  embedding(modelId: MistralEmbeddingModelId): EmbeddingModelV4;
 
   /**
    * Creates a model for text embeddings.
    */
-  embeddingModel: (modelId: MistralEmbeddingModelId) => EmbeddingModelV3;
+  embeddingModel: (modelId: MistralEmbeddingModelId) => EmbeddingModelV4;
 
   /**
    * @deprecated Use `embedding` instead.
    */
-  textEmbedding(modelId: MistralEmbeddingModelId): EmbeddingModelV3;
+  textEmbedding(modelId: MistralEmbeddingModelId): EmbeddingModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
    */
-  textEmbeddingModel(modelId: MistralEmbeddingModelId): EmbeddingModelV3;
+  textEmbeddingModel(modelId: MistralEmbeddingModelId): EmbeddingModelV4;
 }
 
 export interface MistralProviderSettings {
@@ -126,7 +126,7 @@ export function createMistral(
     return createChatModel(modelId);
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.embedding = createEmbeddingModel;

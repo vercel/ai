@@ -23,24 +23,24 @@ const result = await generateText({
 });
 ```
 
-## `maxSteps` → `stopWhen: stepCountIs(n)`
+## `maxSteps` → `stopWhen: isStepCount(n)`
 
 ```typescript
 // ❌ Incorrect
 const result = await generateText({
   model: 'anthropic/claude-opus-4.5',
   tools: { weather },
-  maxSteps: 5, // deprecated: use `stopWhen: stepCountIs(n)` instead
+  maxSteps: 5, // deprecated: use `stopWhen: isStepCount(n)` instead
   prompt: 'What is the weather in NYC?',
 });
 
 // ✅ Correct
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 
 const result = await generateText({
   model: 'anthropic/claude-opus-4.5',
   tools: { weather },
-  stopWhen: stepCountIs(5),
+  stopWhen: isStepCount(5),
   prompt: 'What is the weather in NYC?',
 });
 ```
@@ -169,9 +169,9 @@ const result = await generateText({
 });
 ```
 
-## `toDataStreamResponse` → `toUIMessageStreamResponse`
+## `toDataStreamResponse` → `createUIMessageStreamResponse`
 
-When using `useChat` on the frontend, use `toUIMessageStreamResponse()` instead of `toDataStreamResponse()`. The UI message stream format is designed to work with the chat UI components and handles message state correctly.
+When using `useChat` on the frontend, use `createUIMessageStreamResponse()` with `toUIMessageStream()` instead of `toDataStreamResponse()`. The UI message stream format is designed to work with the chat UI components and handles message state correctly.
 
 ```typescript
 // ❌ Incorrect (when using useChat)
@@ -179,14 +179,16 @@ const result = streamText({
   // config
 });
 
-return result.toDataStreamResponse(); // deprecated for useChat: use toUIMessageStreamResponse
+return result.toDataStreamResponse(); // deprecated for useChat: use createUIMessageStreamResponse
 
 // ✅ Correct
 const result = streamText({
   // config
 });
 
-return result.toUIMessageStreamResponse();
+return createUIMessageStreamResponse({
+  stream: toUIMessageStream({ stream: result.stream }),
+});
 ```
 
 ## Removed managed input state in `useChat`

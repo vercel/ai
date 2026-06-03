@@ -75,7 +75,7 @@ import { aihubmix } from '@aihubmix/ai-sdk-provider';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: aihubmix('claude-3-7-sonnet-20250219'),
+  model: aihubmix('claude-sonnet-4-5-20250929'),
   prompt: 'Explain quantum computing in simple terms.',
 });
 ```
@@ -257,7 +257,7 @@ import { aihubmix } from '@aihubmix/ai-sdk-provider';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: aihubmix('gpt-4'),
+  model: aihubmix('gpt-5'),
   prompt: 'What are the latest developments in AI?',
   tools: {
     webSearchPreview: aihubmix.tools.webSearch({

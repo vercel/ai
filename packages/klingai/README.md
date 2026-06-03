@@ -2,6 +2,8 @@
 
 The **Kling AI provider** for the [AI SDK](https://ai-sdk.dev/docs) contains video model support for the [Kling AI API](https://app.klingai.com/global/dev/document-api/quickStart/productIntroduction/overview).
 
+> **Deploying to Vercel?** With Vercel's AI Gateway you can access Kling AI (and hundreds of models from other providers) — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
+
 ## Setup
 
 The Kling AI provider is available in the `@ai-sdk/klingai` module. You can install it with:

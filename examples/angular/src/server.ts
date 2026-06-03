@@ -1,13 +1,22 @@
-import { type OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
-import { convertToModelMessages, Output, stepCountIs, streamText } from 'ai';
+import type { OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
+import {
+  convertToModelMessages,
+  Output,
+  isStepCount,
+  pipeTextStreamToResponse,
+  pipeUIMessageStreamToResponse,
+  streamText,
+  toTextStream,
+  toUIMessageStream,
+} from 'ai';
 import 'dotenv/config';
-import express, { Request, Response } from 'express';
+import express, { type Request, type Response } from 'express';
 import { z } from 'zod';
 
 const app = express();
 app.use(express.json({ strict: false })); // Allow primitives (for analyze endpoint)
 
-const defaultModel = 'openai/gpt-5.2';
+const defaultModel = 'openai/gpt-5.4';
 
 app.post('/api/chat', async (req: Request, res: Response) => {
   const { messages, selectedModel } = req.body;
@@ -18,7 +27,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
   const result = streamText({
     model: modelId,
     messages: await convertToModelMessages(messages ?? []),
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
     providerOptions: {
       openai: {
         reasoningEffort: 'low',
@@ -40,9 +49,14 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     },
   });
 
-  result.pipeUIMessageStreamToResponse(res, {
-    sendReasoning: true,
-    onError: error => (error instanceof Error ? error.message : String(error)),
+  pipeUIMessageStreamToResponse({
+    response: res,
+    stream: toUIMessageStream({
+      stream: result.stream,
+      sendReasoning: true,
+      onError: error =>
+        error instanceof Error ? error.message : String(error),
+    }),
   });
 });
 
@@ -54,7 +68,10 @@ app.post('/api/completion', async (req: Request, res: Response) => {
     prompt,
   });
 
-  result.pipeTextStreamToResponse(res);
+  pipeTextStreamToResponse({
+    response: res,
+    stream: toTextStream({ stream: result.stream }),
+  });
 });
 
 app.post('/api/analyze', async (req: Request, res: Response) => {
@@ -75,7 +92,10 @@ app.post('/api/analyze', async (req: Request, res: Response) => {
     prompt: `Analyze this content: ${prompt}`,
   });
 
-  result.pipeTextStreamToResponse(res);
+  pipeTextStreamToResponse({
+    response: res,
+    stream: toTextStream({ stream: result.stream }),
+  });
 });
 
 app.listen(3000, () => {

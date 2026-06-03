@@ -1,5 +1,11 @@
 import { openai } from '@ai-sdk/openai';
-import { convertToModelMessages, stepCountIs, streamText } from 'ai';
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  isStepCount,
+  streamText,
+  toUIMessageStream,
+} from 'ai';
 import { createMCPClient } from '@ai-sdk/mcp';
 
 export const maxDuration = 30;
@@ -24,10 +30,12 @@ export async function POST(req: Request) {
       onFinish: async () => {
         await mcpClient.close();
       },
-      stopWhen: stepCountIs(10),
+      stopWhen: isStepCount(10),
     });
 
-    return result.toUIMessageStreamResponse();
+    return createUIMessageStreamResponse({
+      stream: toUIMessageStream({ stream: result.stream }),
+    });
   } catch (error) {
     return new Response('Internal Server Error', { status: 500 });
   }

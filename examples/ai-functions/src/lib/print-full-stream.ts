@@ -1,11 +1,11 @@
-import { StreamTextResult } from 'ai';
+import type { StreamTextResult } from 'ai';
 
 export async function printFullStream({
   result,
 }: {
-  result: StreamTextResult<any, any>;
+  result: StreamTextResult<any, any, any>;
 }) {
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     switch (chunk.type) {
       case 'tool-call': {
         console.log(

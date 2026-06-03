@@ -1,31 +1,30 @@
-import { GoogleErrorData, google as provider } from '@ai-sdk/google';
-import { APICallError, ImageModelV3, LanguageModelV3 } from '@ai-sdk/provider';
+import { google as provider, type GoogleErrorData } from '@ai-sdk/google';
+import type {
+  APICallError,
+  LanguageModelV3,
+  LanguageModelV4,
+} from '@ai-sdk/provider';
 import 'dotenv/config';
 import { expect } from 'vitest';
 import {
-  ModelWithCapabilities,
   createEmbeddingModelWithCapabilities,
   createFeatureTestSuite,
   createLanguageModelWithCapabilities,
   createImageModelWithCapabilities,
   defaultChatModelCapabilities,
+  type ModelWithCapabilities,
 } from './feature-test-suite';
-import { wrapLanguageModel } from 'ai';
-import { defaultSettingsMiddleware } from 'ai';
+import { defaultSettingsMiddleware, wrapLanguageModel } from 'ai';
 
-const createChatModel = (
-  modelId: string,
-): ModelWithCapabilities<LanguageModelV3> =>
+const createChatModel = (modelId: string) =>
   createLanguageModelWithCapabilities(provider.chat(modelId));
 
-const createImageModel = (
-  modelId: string,
-): ModelWithCapabilities<ImageModelV3> =>
+const createImageModel = (modelId: string) =>
   createImageModelWithCapabilities(provider.image(modelId));
 
 const createSearchGroundedModel = (
   modelId: string,
-): ModelWithCapabilities<LanguageModelV3> => {
+): ModelWithCapabilities<LanguageModelV3 | LanguageModelV4> => {
   const model = provider.chat(modelId);
   return {
     model: wrapLanguageModel({
@@ -48,7 +47,7 @@ const createSearchGroundedModel = (
 };
 
 createFeatureTestSuite({
-  name: 'Google Generative AI',
+  name: 'Google',
   models: {
     invalidModel: provider.chat('no-such-model'),
     languageModels: [
@@ -63,6 +62,9 @@ createFeatureTestSuite({
     embeddingModels: [
       createEmbeddingModelWithCapabilities(
         provider.embeddingModel('gemini-embedding-001'),
+      ),
+      createEmbeddingModelWithCapabilities(
+        provider.embeddingModel('gemini-embedding-2-preview'),
       ),
     ],
     imageModels: [createImageModel('imagen-3.0-generate-002')],

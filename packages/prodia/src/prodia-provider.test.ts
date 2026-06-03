@@ -66,7 +66,31 @@ describe('Prodia provider', () => {
     expect(imageModel.provider).toBe('prodia.image');
     expect(imageModel.modelId).toBe('inference.flux-fast.schnell.txt2img.v2');
     expect(imageModel2.modelId).toBe('inference.flux.schnell.txt2img.v2');
-    expect(imageModel.specificationVersion).toBe('v3');
+    expect(imageModel.specificationVersion).toBe('v4');
+  });
+
+  it('creates language models via .languageModel', () => {
+    const provider = createProdia();
+
+    const model = provider.languageModel('inference.nano-banana.img2img.v2');
+
+    expect(model.provider).toBe('prodia.language');
+    expect(model.modelId).toBe('inference.nano-banana.img2img.v2');
+    expect(model.specificationVersion).toBe('v4');
+  });
+
+  it('creates video models via .video and .videoModel', () => {
+    const provider = createProdia();
+
+    const videoModel = provider.video('inference.wan2-2.lightning.txt2vid.v0');
+    const videoModel2 = provider.videoModel(
+      'inference.wan2-2.lightning.img2vid.v0',
+    );
+
+    expect(videoModel.provider).toBe('prodia.video');
+    expect(videoModel.modelId).toBe('inference.wan2-2.lightning.txt2vid.v0');
+    expect(videoModel2.modelId).toBe('inference.wan2-2.lightning.img2vid.v0');
+    expect(videoModel.specificationVersion).toBe('v4');
   });
 
   it('configures baseURL and headers correctly', async () => {
@@ -115,9 +139,6 @@ describe('Prodia provider', () => {
   it('throws NoSuchModelError for unsupported model types', () => {
     const provider = createProdia();
 
-    expect(() => provider.languageModel('some-id')).toThrowError(
-      'No such languageModel',
-    );
     expect(() => provider.embeddingModel('some-id')).toThrowError(
       'No such embeddingModel',
     );

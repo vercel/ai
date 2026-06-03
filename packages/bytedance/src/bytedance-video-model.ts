@@ -1,7 +1,7 @@
 import {
   AISDKError,
-  type Experimental_VideoModelV3,
-  type SharedV3Warning,
+  type Experimental_VideoModelV4,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -29,6 +29,8 @@ export type ByteDanceVideoProviderOptions = {
   draft?: boolean | null;
   lastFrameImage?: string | null;
   referenceImages?: string[] | null;
+  referenceVideos?: string[] | null;
+  referenceAudio?: string[] | null;
   pollIntervalMs?: number | null;
   pollTimeoutMs?: number | null;
   [key: string]: unknown;
@@ -43,6 +45,8 @@ const HANDLED_PROVIDER_OPTIONS = new Set([
   'draft',
   'lastFrameImage',
   'referenceImages',
+  'referenceVideos',
+  'referenceAudio',
   'pollIntervalMs',
   'pollTimeoutMs',
 ]);
@@ -59,6 +63,8 @@ export const byteDanceVideoProviderOptionsSchema = lazySchema(() =>
         draft: z.boolean().nullish(),
         lastFrameImage: z.string().nullish(),
         referenceImages: z.array(z.string()).nullish(),
+        referenceVideos: z.array(z.string()).nullish(),
+        referenceAudio: z.array(z.string()).nullish(),
         pollIntervalMs: z.number().positive().nullish(),
         pollTimeoutMs: z.number().positive().nullish(),
       })
@@ -115,8 +121,8 @@ interface ByteDanceVideoModelConfig extends ByteDanceConfig {
   };
 }
 
-export class ByteDanceVideoModel implements Experimental_VideoModelV3 {
-  readonly specificationVersion = 'v3';
+export class ByteDanceVideoModel implements Experimental_VideoModelV4 {
+  readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1;
 
   get provider(): string {
@@ -129,10 +135,10 @@ export class ByteDanceVideoModel implements Experimental_VideoModelV3 {
   ) {}
 
   async doGenerate(
-    options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_VideoModelV3['doGenerate']>>> {
+    options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<Experimental_VideoModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
 
     const byteDanceOptions = (await parseProviderOptions({
       provider: 'bytedance',
@@ -199,6 +205,34 @@ export class ByteDanceVideoModel implements Experimental_VideoModelV3 {
       }
     }
 
+    // Add reference videos if provided
+    if (
+      byteDanceOptions?.referenceVideos != null &&
+      byteDanceOptions.referenceVideos.length > 0
+    ) {
+      for (const videoUrl of byteDanceOptions.referenceVideos) {
+        content.push({
+          type: 'video_url',
+          video_url: { url: videoUrl },
+          role: 'reference_video',
+        });
+      }
+    }
+
+    // Add reference audio if provided
+    if (
+      byteDanceOptions?.referenceAudio != null &&
+      byteDanceOptions.referenceAudio.length > 0
+    ) {
+      for (const audioUrl of byteDanceOptions.referenceAudio) {
+        content.push({
+          type: 'audio_url',
+          audio_url: { url: audioUrl },
+          role: 'reference_audio',
+        });
+      }
+    }
+
     const body: Record<string, unknown> = {
       model: this.modelId,
       content,
@@ -244,7 +278,6 @@ export class ByteDanceVideoModel implements Experimental_VideoModelV3 {
       if (byteDanceOptions.draft != null) {
         body.draft = byteDanceOptions.draft;
       }
-
       // Pass through any additional options not explicitly handled
       for (const [key, value] of Object.entries(byteDanceOptions)) {
         if (!HANDLED_PROVIDER_OPTIONS.has(key)) {

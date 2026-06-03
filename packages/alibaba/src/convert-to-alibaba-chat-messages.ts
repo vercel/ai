@@ -1,29 +1,35 @@
 import {
-  type LanguageModelV3DataContent,
-  type LanguageModelV3Prompt,
   UnsupportedFunctionalityError,
+  type LanguageModelV4FilePart,
+  type LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
-import { convertToBase64 } from '@ai-sdk/provider-utils';
+import {
+  convertToBase64,
+  getTopLevelMediaType,
+  resolveFullMediaType,
+} from '@ai-sdk/provider-utils';
 import type { AlibabaChatPrompt } from './alibaba-chat-prompt';
 import type { CacheControlValidator } from './get-cache-control';
 
-function formatImageUrl({
-  data,
-  mediaType,
-}: {
-  data: LanguageModelV3DataContent;
-  mediaType: string;
-}): string {
-  return data instanceof URL
-    ? data.toString()
-    : `data:${mediaType};base64,${convertToBase64(data as Uint8Array)}`;
+function formatImageUrl({ part }: { part: LanguageModelV4FilePart }): string {
+  if (part.data.type === 'url') {
+    return part.data.url.toString();
+  }
+
+  if (part.data.type === 'data') {
+    return `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`;
+  }
+
+  throw new UnsupportedFunctionalityError({
+    functionality: `file part data type ${part.data.type}`,
+  });
 }
 
 export function convertToAlibabaChatMessages({
   prompt,
   cacheControlValidator,
 }: {
-  prompt: LanguageModelV3Prompt;
+  prompt: LanguageModelV4Prompt;
   cacheControlValidator?: CacheControlValidator;
 }): AlibabaChatPrompt {
   const messages: AlibabaChatPrompt = [];
@@ -53,26 +59,13 @@ export function convertToAlibabaChatMessages({
       }
 
       case 'user': {
-        const isSinglePart = content.length === 1;
-
-        if (
-          isSinglePart &&
-          content[0].type === 'text' &&
-          !messageCacheControl
-        ) {
-          messages.push({
-            role: 'user',
-            content: content[0].text,
-          });
-          break;
-        }
-
         messages.push({
           role: 'user',
-          content: content.map(part => {
-            const partCacheControl = isSinglePart
-              ? messageCacheControl
-              : cacheControlValidator?.getCacheControl(part.providerOptions);
+          content: content.map((part, index) => {
+            const isLastPart = index === content.length - 1;
+            const partCacheControl =
+              cacheControlValidator?.getCacheControl(part.providerOptions) ??
+              (isLastPart ? messageCacheControl : undefined);
 
             switch (part.type) {
               case 'text': {
@@ -86,25 +79,35 @@ export function convertToAlibabaChatMessages({
               }
 
               case 'file': {
-                if (part.mediaType.startsWith('image/')) {
-                  const mediaType =
-                    part.mediaType === 'image/*'
-                      ? 'image/jpeg'
-                      : part.mediaType;
-
-                  return {
-                    type: 'image_url',
-                    image_url: {
-                      url: formatImageUrl({ data: part.data, mediaType }),
-                    },
-                    ...(partCacheControl
-                      ? { cache_control: partCacheControl }
-                      : {}),
-                  };
-                } else {
-                  throw new UnsupportedFunctionalityError({
-                    functionality: 'Only image file parts are supported',
-                  });
+                switch (part.data.type) {
+                  case 'reference': {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: 'file parts with provider references',
+                    });
+                  }
+                  case 'text': {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: 'text file parts',
+                    });
+                  }
+                  case 'url':
+                  case 'data': {
+                    if (getTopLevelMediaType(part.mediaType) === 'image') {
+                      return {
+                        type: 'image_url',
+                        image_url: {
+                          url: formatImageUrl({ part }),
+                        },
+                        ...(partCacheControl
+                          ? { cache_control: partCacheControl }
+                          : {}),
+                      };
+                    } else {
+                      throw new UnsupportedFunctionalityError({
+                        functionality: 'Only image file parts are supported',
+                      });
+                    }
+                  }
                 }
               }
             }
@@ -163,17 +166,15 @@ export function convertToAlibabaChatMessages({
           r => r.type !== 'tool-approval-response',
         );
 
-        const isSinglePart = toolResponses.length === 1;
-
         for (let i = 0; i < toolResponses.length; i++) {
           const toolResponse = toolResponses[i];
           const output = toolResponse.output;
+          const isLastPart = i === toolResponses.length - 1;
 
-          const partCacheControl = isSinglePart
-            ? messageCacheControl
-            : cacheControlValidator?.getCacheControl(
-                (toolResponse as any).providerOptions,
-              );
+          const partCacheControl =
+            cacheControlValidator?.getCacheControl(
+              toolResponse.providerOptions,
+            ) ?? (isLastPart ? messageCacheControl : undefined);
 
           let contentValue: string;
           switch (output.type) {
@@ -182,7 +183,7 @@ export function convertToAlibabaChatMessages({
               contentValue = output.value;
               break;
             case 'execution-denied':
-              contentValue = output.reason ?? 'Tool execution denied.';
+              contentValue = output.reason ?? 'Tool call execution denied.';
               break;
             case 'content':
             case 'json':

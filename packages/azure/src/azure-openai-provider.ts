@@ -8,84 +8,86 @@ import {
   OpenAITranscriptionModel,
 } from '@ai-sdk/openai/internal';
 import {
-  EmbeddingModelV3,
-  LanguageModelV3,
-  ProviderV3,
-  ImageModelV3,
-  SpeechModelV3,
-  TranscriptionModelV3,
+  InvalidArgumentError,
+  type EmbeddingModelV4,
+  type LanguageModelV4,
+  type ProviderV4,
+  type ImageModelV4,
+  type SpeechModelV4,
+  type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   loadApiKey,
   loadSetting,
+  normalizeHeaders,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { azureOpenaiTools } from './azure-openai-tools';
 import { VERSION } from './version';
 
-export interface AzureOpenAIProvider extends ProviderV3 {
-  (deploymentId: string): LanguageModelV3;
+export interface AzureOpenAIProvider extends ProviderV4 {
+  (deploymentId: string): LanguageModelV4;
 
   /**
    * Creates an Azure OpenAI responses API model for text generation.
    */
-  languageModel(deploymentId: string): LanguageModelV3;
+  languageModel(deploymentId: string): LanguageModelV4;
 
   /**
    * Creates an Azure OpenAI chat model for text generation.
    */
-  chat(deploymentId: string): LanguageModelV3;
+  chat(deploymentId: string): LanguageModelV4;
 
   /**
    * Creates an Azure OpenAI responses API model for text generation.
    */
-  responses(deploymentId: string): LanguageModelV3;
+  responses(deploymentId: string): LanguageModelV4;
 
   /**
    * Creates an Azure OpenAI completion model for text generation.
    */
-  completion(deploymentId: string): LanguageModelV3;
+  completion(deploymentId: string): LanguageModelV4;
 
   /**
    * Creates an Azure OpenAI model for text embeddings.
    */
-  embedding(deploymentId: string): EmbeddingModelV3;
+  embedding(deploymentId: string): EmbeddingModelV4;
 
   /**
    * Creates an Azure OpenAI model for text embeddings.
    */
-  embeddingModel(deploymentId: string): EmbeddingModelV3;
+  embeddingModel(deploymentId: string): EmbeddingModelV4;
 
   /**
    * @deprecated Use `embedding` instead.
    */
-  textEmbedding(deploymentId: string): EmbeddingModelV3;
+  textEmbedding(deploymentId: string): EmbeddingModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
    */
-  textEmbeddingModel(deploymentId: string): EmbeddingModelV3;
+  textEmbeddingModel(deploymentId: string): EmbeddingModelV4;
 
   /**
    * Creates an Azure OpenAI DALL-E model for image generation.
    */
-  image(deploymentId: string): ImageModelV3;
+  image(deploymentId: string): ImageModelV4;
 
   /**
    * Creates an Azure OpenAI DALL-E model for image generation.
    */
-  imageModel(deploymentId: string): ImageModelV3;
+  imageModel(deploymentId: string): ImageModelV4;
 
   /**
    * Creates an Azure OpenAI model for audio transcription.
    */
-  transcription(deploymentId: string): TranscriptionModelV3;
+  transcription(deploymentId: string): TranscriptionModelV4;
 
   /**
    * Creates an Azure OpenAI model for speech generation.
    */
-  speech(deploymentId: string): SpeechModelV3;
+  speech(deploymentId: string): SpeechModelV4;
 
   /**
    * AzureOpenAI-specific tools.
@@ -113,6 +115,13 @@ export interface AzureOpenAIProviderSettings {
    * API key for authenticating requests.
    */
   apiKey?: string;
+
+  /**
+   * A function that returns an access token for Microsoft Entra
+   * (formerly known as Azure Active Directory), which will be invoked
+   * on every request.
+   */
+  tokenProvider?: (() => Promise<string>) | undefined;
 
   /**
    * Custom headers to include in the requests.
@@ -144,17 +153,50 @@ export interface AzureOpenAIProviderSettings {
 export function createAzure(
   options: AzureOpenAIProviderSettings = {},
 ): AzureOpenAIProvider {
+  const tokenProvider = options.tokenProvider;
+
+  if (options.apiKey && tokenProvider) {
+    throw new InvalidArgumentError({
+      argument: 'apiKey/tokenProvider',
+      message:
+        'Both apiKey and tokenProvider were provided. Please use only one authentication method.',
+    });
+  }
+
   const getHeaders = () => {
-    const baseHeaders = {
-      'api-key': loadApiKey({
-        apiKey: options.apiKey,
-        environmentVariableName: 'AZURE_API_KEY',
-        description: 'Azure OpenAI',
-      }),
-      ...options.headers,
-    };
-    return withUserAgentSuffix(baseHeaders, `ai-sdk/azure/${VERSION}`);
+    const authHeaders = tokenProvider
+      ? {}
+      : {
+          'api-key': loadApiKey({
+            apiKey: options.apiKey,
+            environmentVariableName: 'AZURE_API_KEY',
+            description: 'Azure OpenAI',
+          }),
+        };
+
+    return withUserAgentSuffix(
+      {
+        ...authHeaders,
+        ...options.headers,
+      },
+      `ai-sdk/azure/${VERSION}`,
+    );
   };
+
+  const fetch: FetchFunction | undefined = tokenProvider
+    ? async (input, init) => {
+        const headers = normalizeHeaders(init?.headers);
+
+        if (headers.authorization == null) {
+          headers.authorization = `Bearer ${await tokenProvider()}`;
+        }
+
+        return (options.fetch ?? globalThis.fetch)(input, {
+          ...init,
+          headers,
+        });
+      }
+    : options.fetch;
 
   const getResourceName = () =>
     loadSetting({
@@ -188,7 +230,7 @@ export function createAzure(
       provider: 'azure.chat',
       url,
       headers: getHeaders,
-      fetch: options.fetch,
+      fetch,
     });
 
   const createCompletionModel = (modelId: string) =>
@@ -196,7 +238,7 @@ export function createAzure(
       provider: 'azure.completion',
       url,
       headers: getHeaders,
-      fetch: options.fetch,
+      fetch,
     });
 
   const createEmbeddingModel = (modelId: string) =>
@@ -204,7 +246,7 @@ export function createAzure(
       provider: 'azure.embeddings',
       headers: getHeaders,
       url,
-      fetch: options.fetch,
+      fetch,
     });
 
   const createResponsesModel = (modelId: string) =>
@@ -212,7 +254,8 @@ export function createAzure(
       provider: 'azure.responses',
       url,
       headers: getHeaders,
-      fetch: options.fetch,
+      fetch,
+      // Soft-deprecated. TODO: remove in v8
       fileIdPrefixes: ['assistant-'],
     });
 
@@ -221,7 +264,7 @@ export function createAzure(
       provider: 'azure.image',
       url,
       headers: getHeaders,
-      fetch: options.fetch,
+      fetch,
     });
 
   const createTranscriptionModel = (modelId: string) =>
@@ -229,7 +272,7 @@ export function createAzure(
       provider: 'azure.transcription',
       url,
       headers: getHeaders,
-      fetch: options.fetch,
+      fetch,
     });
 
   const createSpeechModel = (modelId: string) =>
@@ -237,7 +280,7 @@ export function createAzure(
       provider: 'azure.speech',
       url,
       headers: getHeaders,
-      fetch: options.fetch,
+      fetch,
     });
 
   const provider = function (deploymentId: string) {
@@ -250,7 +293,7 @@ export function createAzure(
     return createResponsesModel(deploymentId);
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.languageModel = createResponsesModel;
   provider.chat = createChatModel;
   provider.completion = createCompletionModel;

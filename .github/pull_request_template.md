@@ -30,6 +30,7 @@ Do not edit this list. Leave items unchecked that don't apply. If you need to tr
 Please check if the PR fulfills the following requirements:
 -->
 
+- [ ] All commits are signed (PRs with unsigned commits cannot be merged)
 - [ ] Tests have been added / updated (for bug fixes / features)
 - [ ] Documentation has been added / updated (for bug fixes / features)
 - [ ] A _patch_ changeset for relevant packages has been added (for bug fixes / features - run `pnpm changeset` in the project root)

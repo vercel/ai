@@ -1,9 +1,5 @@
-import {
-  anthropic,
-  type AnthropicLanguageModelOptions,
-} from '@ai-sdk/anthropic';
-import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
-
+import { anthropic } from '@ai-sdk/anthropic';
+import { ToolLoopAgent, type InferAgentUIMessage } from 'ai';
 export const anthropicWebSearchAgent = new ToolLoopAgent({
   model: anthropic('claude-sonnet-4-5'),
   tools: {
@@ -17,11 +13,7 @@ export const anthropicWebSearchAgent = new ToolLoopAgent({
       },
     }),
   },
-  providerOptions: {
-    anthropic: {
-      thinking: { type: 'enabled', budgetTokens: 12000 },
-    } satisfies AnthropicLanguageModelOptions,
-  },
+  reasoning: 'medium',
 });
 
 export type AnthropicWebSearchMessage = InferAgentUIMessage<

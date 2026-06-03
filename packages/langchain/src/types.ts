@@ -1,4 +1,4 @@
-import { type AIMessageChunk } from '@langchain/core/messages';
+import type { AIMessageChunk } from '@langchain/core/messages';
 
 /**
  * State for LangGraph event processing

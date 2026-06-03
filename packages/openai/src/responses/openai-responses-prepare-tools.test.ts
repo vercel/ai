@@ -1,4 +1,4 @@
-import { ToolNameMapping } from '@ai-sdk/provider-utils';
+import { NoSuchProviderReferenceError } from '@ai-sdk/provider';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { describe, it, expect } from 'vitest';
 
@@ -877,7 +877,7 @@ describe('prepareResponsesTools', () => {
       `);
     });
 
-    it('should prepare shell tool with containerAuto and skillReference skills', async () => {
+    it('should prepare shell tool with containerAuto and providerReference skills', async () => {
       const result = await prepareResponsesTools({
         tools: [
           {
@@ -890,7 +890,7 @@ describe('prepareResponsesTools', () => {
                 skills: [
                   {
                     type: 'skillReference',
-                    skillId: 'skill_abc',
+                    providerReference: { openai: 'skill_abc' },
                     version: '1.0.0',
                   },
                 ],
@@ -925,6 +925,91 @@ describe('prepareResponsesTools', () => {
           ],
         }
       `);
+    });
+
+    it('should default shell skillReference version to latest when omitted', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.shell',
+            name: 'shell',
+            args: {
+              environment: {
+                type: 'containerAuto',
+                skills: [
+                  {
+                    type: 'skillReference',
+                    providerReference: { openai: 'skill_abc' },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "environment": {
+                "file_ids": undefined,
+                "memory_limit": undefined,
+                "network_policy": undefined,
+                "skills": [
+                  {
+                    "skill_id": "skill_abc",
+                    "type": "skill_reference",
+                    "version": "latest",
+                  },
+                ],
+                "type": "container_auto",
+              },
+              "type": "shell",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should throw when a providerReference cannot be resolved for openai', async () => {
+      try {
+        await prepareResponsesTools({
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.shell',
+              name: 'shell',
+              args: {
+                environment: {
+                  type: 'containerAuto',
+                  skills: [
+                    {
+                      type: 'skillReference',
+                      providerReference: { anthropic: 'skill_abc' },
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+          toolChoice: undefined,
+        });
+
+        expect.unreachable('should have thrown');
+      } catch (error) {
+        expect(NoSuchProviderReferenceError.isInstance(error)).toBe(true);
+        expect((error as NoSuchProviderReferenceError).provider).toBe('openai');
+        expect((error as NoSuchProviderReferenceError).reference).toStrictEqual(
+          {
+            anthropic: 'skill_abc',
+          },
+        );
+      }
     });
 
     it('should prepare shell tool with containerAuto and inline skill', async () => {
@@ -1292,6 +1377,170 @@ describe('prepareResponsesTools', () => {
     });
   });
 
+  describe('custom tool', () => {
+    it('should prepare custom tool with regex format', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.custom',
+            name: 'write_sql',
+            args: {
+              description: 'Write a SQL SELECT query.',
+              format: {
+                type: 'grammar',
+                syntax: 'regex',
+                definition: 'SELECT .+',
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "description": "Write a SQL SELECT query.",
+              "format": {
+                "definition": "SELECT .+",
+                "syntax": "regex",
+                "type": "grammar",
+              },
+              "name": "write_sql",
+              "type": "custom",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should prepare custom tool with lark format', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.custom',
+            name: 'generate_json',
+            args: {
+              format: {
+                type: 'grammar',
+                syntax: 'lark',
+                definition: 'start: "{"  "}"',
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "description": undefined,
+              "format": {
+                "definition": "start: "{"  "}"",
+                "syntax": "lark",
+                "type": "grammar",
+              },
+              "name": "generate_json",
+              "type": "custom",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should handle multiple tools including custom tool', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                input: { type: 'string' },
+              },
+            },
+          },
+          {
+            type: 'provider',
+            id: 'openai.custom',
+            name: 'write_sql',
+            args: {
+              description: 'Write SQL.',
+              format: {
+                type: 'grammar',
+                syntax: 'regex',
+                definition: 'SELECT .+',
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "description": "A test function",
+              "name": "testFunction",
+              "parameters": {
+                "properties": {
+                  "input": {
+                    "type": "string",
+                  },
+                },
+                "type": "object",
+              },
+              "type": "function",
+            },
+            {
+              "description": "Write SQL.",
+              "format": {
+                "definition": "SELECT .+",
+                "syntax": "regex",
+                "type": "grammar",
+              },
+              "name": "write_sql",
+              "type": "custom",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should resolve custom tool choice using tool name', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.custom',
+            name: 'write_sql',
+            args: {},
+          },
+        ],
+        toolChoice: { type: 'tool', toolName: 'write_sql' },
+      });
+
+      expect(result.toolChoice).toStrictEqual({
+        type: 'custom',
+        name: 'write_sql',
+      });
+    });
+  });
+
   describe('apply_patch', () => {
     it('should prepare apply_patch tool', async () => {
       const result = await prepareResponsesTools({
@@ -1398,6 +1647,177 @@ describe('prepareResponsesTools', () => {
           ],
         }
       `);
+    });
+  });
+
+  describe('tool search', () => {
+    it('should prepare tool_search tool', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.tool_search',
+            name: 'toolSearch',
+            args: {},
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "type": "tool_search",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should prepare tool_search alongside function tools with defer_loading', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.tool_search',
+            name: 'toolSearch',
+            args: {},
+          },
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get the current weather',
+            inputSchema: {
+              type: 'object',
+              properties: { location: { type: 'string' } },
+              required: ['location'],
+              additionalProperties: false,
+            },
+            providerOptions: {
+              openai: { deferLoading: true },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "type": "tool_search",
+            },
+            {
+              "defer_loading": true,
+              "description": "Get the current weather",
+              "name": "get_weather",
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "location": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "location",
+                ],
+                "type": "object",
+              },
+              "type": "function",
+            },
+          ],
+        }
+      `);
+    });
+  });
+
+  describe('allowedTools provider option', () => {
+    it('should emit allowed_tools with default auto mode', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get weather',
+            inputSchema: { type: 'object', properties: {} },
+          },
+          {
+            type: 'function',
+            name: 'get_time',
+            description: 'Get time',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+        toolChoice: undefined,
+        allowedTools: { toolNames: ['get_weather'] },
+      });
+
+      expect(result.toolChoice).toEqual({
+        type: 'allowed_tools',
+        mode: 'auto',
+        tools: [{ type: 'function', name: 'get_weather' }],
+      });
+      expect(result.tools).toHaveLength(2);
+    });
+
+    it('should emit allowed_tools with required mode', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get weather',
+            inputSchema: { type: 'object', properties: {} },
+          },
+          {
+            type: 'function',
+            name: 'get_time',
+            description: 'Get time',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+        toolChoice: undefined,
+        allowedTools: {
+          toolNames: ['get_weather', 'get_time'],
+          mode: 'required',
+        },
+      });
+
+      expect(result.toolChoice).toEqual({
+        type: 'allowed_tools',
+        mode: 'required',
+        tools: [
+          { type: 'function', name: 'get_weather' },
+          { type: 'function', name: 'get_time' },
+        ],
+      });
+      expect(result.tools).toHaveLength(2);
+    });
+
+    it('should override request-level toolChoice when allowedTools is set', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get weather',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+        toolChoice: { type: 'required' },
+        allowedTools: { toolNames: ['get_weather'] },
+      });
+
+      expect(result.toolChoice).toEqual({
+        type: 'allowed_tools',
+        mode: 'auto',
+        tools: [{ type: 'function', name: 'get_weather' }],
+      });
     });
   });
 });

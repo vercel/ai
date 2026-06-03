@@ -1,10 +1,10 @@
 import { openai } from '@ai-sdk/openai';
-import { ModelMessage, generateId } from 'ai';
+import { generateId, type ModelMessage } from 'ai';
 import {
-  createAI,
   createStreamableValue,
   getMutableAIState as $getMutableAIState,
   streamUI,
+  type createAI,
 } from '@ai-sdk/rsc';
 import { Message, BotMessage } from './message';
 import { z } from 'zod';
@@ -36,9 +36,9 @@ export async function submitUserMessage(content: string) {
   let textNode: React.ReactNode;
 
   const result = await streamUI({
-    model: openai('gpt-4-turbo'),
+    model: openai('gpt-5-mini'),
     initial: <Message role="assistant">Working on that...</Message>,
-    system: 'You are a weather assistant.',
+    instructions: 'You are a weather assistant.',
     messages: aiState
       .get()
       .messages.map(({ role, content }) => ({ role, content }) as ModelMessage),

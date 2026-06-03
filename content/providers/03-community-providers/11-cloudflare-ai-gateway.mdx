@@ -97,7 +97,7 @@ const openai = createOpenAI({ apiKey: 'openai-api-key' });
 const anthropic = createAnthropic({ apiKey: 'anthropic-api-key' });
 
 const model = aigateway([
-  anthropic('claude-3-5-haiku-20241022'), // Primary model
+  anthropic('claude-haiku-4-5'), // Primary model
   openai('gpt-4o-mini'), // Fallback model
 ]);
 ```

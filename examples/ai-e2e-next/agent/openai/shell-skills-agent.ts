@@ -1,6 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { Sandbox } from '@vercel/sandbox';
-import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
+import { ToolLoopAgent, type InferAgentUIMessage } from 'ai';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
@@ -75,7 +75,7 @@ async function executeShellCommand({
 }
 
 export const openaiShellSkillsAgent = new ToolLoopAgent({
-  model: openai.responses('gpt-5.2'),
+  model: openai.responses('gpt-5.4'),
   instructions:
     'You have access to a shell tool that can execute commands on the local filesystem. ' +
     'You also have access to skills installed locally. ' +

@@ -1,4 +1,4 @@
-import { FetchFunction } from '@ai-sdk/provider-utils';
+import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { TogetherAIImageModel } from './togetherai-image-model';
@@ -62,6 +62,29 @@ describe('doGenerate', () => {
       height: 1024,
       response_format: 'base64',
       additional_param: 'value',
+    });
+  });
+
+  it('should omit seed from request body when seed is undefined', async () => {
+    const model = createBasicModel();
+
+    await model.doGenerate({
+      prompt,
+      files: undefined,
+      mask: undefined,
+      n: 1,
+      size: undefined,
+      seed: undefined,
+      providerOptions: {},
+      aspectRatio: undefined,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody).not.toHaveProperty('seed');
+    expect(requestBody).toStrictEqual({
+      model: 'stabilityai/stable-diffusion-xl',
+      prompt,
+      response_format: 'base64',
     });
   });
 
@@ -281,7 +304,7 @@ describe('constructor', () => {
 
     expect(model.provider).toBe('togetherai');
     expect(model.modelId).toBe('stabilityai/stable-diffusion-xl');
-    expect(model.specificationVersion).toBe('v3');
+    expect(model.specificationVersion).toBe('v4');
     expect(model.maxImagesPerCall).toBe(1);
   });
 });

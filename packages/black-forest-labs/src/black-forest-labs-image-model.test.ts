@@ -1,24 +1,27 @@
-import { FetchFunction } from '@ai-sdk/provider-utils';
+import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { BlackForestLabsImageModel } from './black-forest-labs-image-model';
+import type { BlackForestLabsImageModelId } from './black-forest-labs-image-settings';
 
 const prompt = 'A cute baby sea otter';
 
 function createBasicModel({
+  modelId = 'test-model',
   headers,
   fetch,
   currentDate,
   pollIntervalMillis,
   pollTimeoutMillis,
 }: {
+  modelId?: BlackForestLabsImageModelId;
   headers?: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
   currentDate?: () => Date;
   pollIntervalMillis?: number;
   pollTimeoutMillis?: number;
 } = {}) {
-  return new BlackForestLabsImageModel('test-model', {
+  return new BlackForestLabsImageModel(modelId, {
     provider: 'black-forest-labs.image',
     baseURL: 'https://api.example.com/v1',
     headers: headers ?? (() => ({ 'x-key': 'test-key' })),
@@ -34,6 +37,15 @@ function createBasicModel({
 describe('BlackForestLabsImageModel', () => {
   const server = createTestServer({
     'https://api.example.com/v1/test-model': {
+      response: {
+        type: 'json-value',
+        body: {
+          id: 'req-123',
+          polling_url: 'https://api.example.com/poll',
+        },
+      },
+    },
+    'https://api.example.com/v1/flux-pro-1.0-fill': {
       response: {
         type: 'json-value',
         body: {
@@ -85,6 +97,65 @@ describe('BlackForestLabsImageModel', () => {
         prompt,
         aspect_ratio: '16:9',
         prompt_upsampling: true,
+      });
+    });
+
+    it('uses image field for flux-pro-1.0-fill input images', async () => {
+      const model = createBasicModel({ modelId: 'flux-pro-1.0-fill' });
+
+      await model.doGenerate({
+        prompt,
+        files: [
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: Buffer.from('test-image'),
+          },
+        ],
+        mask: {
+          type: 'file',
+          mediaType: 'image/png',
+          data: Buffer.from('test-mask'),
+        },
+        n: 1,
+        size: undefined,
+        aspectRatio: '1:1',
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        prompt,
+        aspect_ratio: '1:1',
+        image: Buffer.from('test-image').toString('base64'),
+        mask: Buffer.from('test-mask').toString('base64'),
+      });
+    });
+
+    it('uses input_image field for non-fill input images', async () => {
+      const model = createBasicModel();
+
+      await model.doGenerate({
+        prompt,
+        files: [
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: Buffer.from('test-image'),
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: '1:1',
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        prompt,
+        aspect_ratio: '1:1',
+        input_image: Buffer.from('test-image').toString('base64'),
       });
     });
 
@@ -569,7 +640,7 @@ describe('BlackForestLabsImageModel', () => {
 
       expect(model.provider).toBe('black-forest-labs.image');
       expect(model.modelId).toBe('test-model');
-      expect(model.specificationVersion).toBe('v3');
+      expect(model.specificationVersion).toBe('v4');
       expect(model.maxImagesPerCall).toBe(1);
     });
   });

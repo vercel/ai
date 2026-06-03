@@ -54,6 +54,9 @@
       "path": "../../packages/openai"
     },
     {
+      "path": "../../packages/otel"
+    },
+    {
       "path": "../../packages/perplexity"
     },
     {
