@@ -516,48 +516,11 @@ await browserbase.closeSession();`,
     websiteUrl: 'https://www.browserbase.com',
     npmUrl: 'https://www.npmjs.com/package/@browserbasehq/ai-sdk',
   },
-<<<<<<< HEAD
-=======
-  {
-    slug: 'you-search',
-    name: 'You.com',
-    description:
-      "Real-time web search, deep research with cited sources, and webpage content extraction powered by You.com. Search current information with advanced filtering (dates, sites, file types), research topics with configurable effort (lite to exhaustive), and extract full page content in markdown or HTML. Built on You.com's enterprise search API with zero server setup.",
-    packageName: '@youdotcom-oss/ai-sdk-plugin',
-    tags: ['search', 'web', 'extraction', 'research'],
-    apiKeyEnvName: 'YDC_API_KEY',
-    installCommand: {
-      pnpm: 'pnpm add @youdotcom-oss/ai-sdk-plugin',
-      npm: 'npm install @youdotcom-oss/ai-sdk-plugin',
-      yarn: 'yarn add @youdotcom-oss/ai-sdk-plugin',
-      bun: 'bun add @youdotcom-oss/ai-sdk-plugin',
-    },
-    codeExample: `import { generateText, isStepCount } from 'ai';
-import { youSearch, youResearch, youContents } from '@youdotcom-oss/ai-sdk-plugin';
-
-const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-4-5-20250929',
-  prompt: 'Research the latest developments in quantum computing',
-  tools: {
-    search: youSearch(),
-    research: youResearch(),
-    extract: youContents(),
-  },
-  stopWhen: isStepCount(5),
-});
-
-console.log(text);`,
-    docsUrl:
-      'https://github.com/youdotcom-oss/dx-toolkit/tree/main/packages/ai-sdk-plugin#readme',
-    apiKeyUrl: 'https://you.com/platform/api-keys',
-    websiteUrl: 'https://you.com',
-    npmUrl: 'https://www.npmjs.com/package/@youdotcom-oss/ai-sdk-plugin',
-  },
   {
     slug: 'nitrosend',
     name: 'Nitrosend',
     description:
-      'Nitrosend tools for Vercel AI SDK agents — send email and SMS, manage contacts and segments, build flows, run campaigns. Backed by the Nitrosend remote MCP server.',
+      'Nitrosend tools for Vercel AI SDK agents: send email and SMS, manage contacts and segments, build flows, run campaigns. Backed by the Nitrosend remote MCP server.',
     packageName: '@nitrosend/ai-sdk',
     tags: ['email', 'sms', 'marketing', 'mcp', 'automation', 'crm'],
     apiKeyEnvName: 'NITROSEND_API_KEY',
@@ -567,7 +530,7 @@ console.log(text);`,
       yarn: 'yarn add @nitrosend/ai-sdk ai @ai-sdk/mcp zod @ai-sdk/openai',
       bun: 'bun add @nitrosend/ai-sdk ai @ai-sdk/mcp zod @ai-sdk/openai',
     },
-    codeExample: `import { generateText, isStepCount } from 'ai';
+    codeExample: `import { generateText, stepCountIs } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { withNitrosendTools } from '@nitrosend/ai-sdk';
 
@@ -575,7 +538,7 @@ const result = await withNitrosendTools({}, async ({ tools }) => {
   return generateText({
     model: openai('gpt-4o'),
     tools,
-    stopWhen: isStepCount(5),
+    stopWhen: stepCountIs(5),
     prompt: 'Send a welcome email to founder@acme.com from our team.',
   });
 });
@@ -586,5 +549,4 @@ console.log(result.text);`,
     websiteUrl: 'https://nitrosend.com',
     npmUrl: 'https://www.npmjs.com/package/@nitrosend/ai-sdk',
   },
->>>>>>> 6e05a5704 (feat(tools-registry): add Nitrosend (#14992))
 ];
