@@ -6,6 +6,7 @@ test('SandboxSession exposes spawn returning a process handle', () => {
   expectTypeOf<Parameters<SandboxSession['spawn']>[0]>().toEqualTypeOf<{
     command: string;
     workingDirectory?: string;
+    env?: Record<string, string>;
     abortSignal?: AbortSignal;
   }>();
   expectTypeOf<

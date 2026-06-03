@@ -13,6 +13,14 @@ type SandboxProcessOptions = {
   workingDirectory?: string;
 
   /**
+   * Environment variables to set for this command. Merged with the
+   * sandbox's default environment; values here take precedence.
+   * Supporting environment variables as an option is preferable from a
+   * security perspective, e.g. to avoid them leaking in logs.
+   */
+  env?: Record<string, string>;
+
+  /**
    * Signal that can be used to abort the command. When aborted, the running
    * process is killed; for `spawn`, `wait()` rejects with the abort reason.
    */
