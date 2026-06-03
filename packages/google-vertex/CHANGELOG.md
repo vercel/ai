@@ -1,5 +1,25 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-canary.101
+
+### Patch Changes
+
+- ec2e752: fix(google-vertex): support regional endpoints for vertex MaaS
+
+## 5.0.0-canary.100
+
+### Patch Changes
+
+- b70f6ec: fix(google-vertex): support for eu/us multi region gemini endpoints
+
+## 5.0.0-canary.99
+
+### Patch Changes
+
+- bb93832: fix(vertex-anthropic): support eu/us multi-region anthropic endpoints
+- Updated dependencies [b563707]
+  - @ai-sdk/google@4.0.0-canary.76
+
 ## 5.0.0-canary.98
 
 ### Patch Changes

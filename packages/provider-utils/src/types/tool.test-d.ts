@@ -5,7 +5,7 @@ import type { ToolResultOutput } from './content-part';
 import type { Context } from './context';
 import type { ExecutableTool } from './executable-tool';
 import type { ModelMessage } from './model-message';
-import type { Experimental_Sandbox as Sandbox } from './sandbox';
+import type { Experimental_SandboxSession as SandboxSession } from './sandbox';
 import {
   dynamicTool,
   tool,
@@ -38,7 +38,7 @@ describe('DynamicTool', () => {
       | string
       | ((options: {
           context: Context;
-          experimental_sandbox?: Sandbox;
+          experimental_sandbox?: SandboxSession;
         }) => string)
       | undefined
     >();

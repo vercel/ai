@@ -1,12 +1,12 @@
 import { z } from 'zod/v4';
 import {
   tool,
-  type Experimental_Sandbox as Sandbox,
+  type Experimental_SandboxSession as SandboxSession,
   type Tool,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import { describe, expect, it } from 'vitest';
-import { mockSandboxFileStubs } from '../test/mock-sandbox';
+import { mockSandboxSessionFileStubs } from '../test/mock-sandbox';
 import { prepareTools } from './prepare-tools';
 
 const mockTools = {
@@ -235,14 +235,14 @@ describe('prepareTools', () => {
   });
 
   it('resolves function descriptions from toolsContext and sandbox', async () => {
-    const sandbox: Sandbox = {
+    const sandbox: SandboxSession = {
       description: 'test-sandbox',
       run: async () => ({
         exitCode: 0,
         stdout: '',
         stderr: '',
       }),
-      ...mockSandboxFileStubs,
+      ...mockSandboxSessionFileStubs,
     };
 
     const result = await prepareTools({
@@ -259,7 +259,7 @@ describe('prepareTools', () => {
           description: ({
             experimental_sandbox: sandbox,
           }: {
-            experimental_sandbox?: Sandbox;
+            experimental_sandbox?: SandboxSession;
           }) => `Env: ${sandbox?.description ?? 'none'}`,
           inputSchema: z.object({}),
           execute: async () => {},
