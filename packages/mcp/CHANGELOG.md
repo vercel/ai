@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 2.0.0-canary.57
+
+### Patch Changes
+
+- 78e0023: fix(mcp): await addClientAuthentication in token exchange and refresh
+
 ## 2.0.0-canary.56
 
 ### Patch Changes
