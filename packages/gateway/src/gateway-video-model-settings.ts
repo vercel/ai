@@ -25,4 +25,5 @@ export type GatewayVideoModelId =
   | 'klingai/kling-v3.0-motion-control'
   | 'klingai/kling-v3.0-t2v'
   | 'xai/grok-imagine-video'
+  | 'xai/grok-imagine-video-1.5-preview'
   | (string & {});
