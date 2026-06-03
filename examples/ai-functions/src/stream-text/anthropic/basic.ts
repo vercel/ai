@@ -9,9 +9,7 @@ run(async () => {
     model: anthropic('claude-haiku-4-5'),
     prompt: 'Invent a new holiday and describe its traditions.',
     maxRetries: 0,
-    include: {
-      rawChunks: true,
-    },
+    includeRawChunks: true,
   });
 
   printFullStream({ result });

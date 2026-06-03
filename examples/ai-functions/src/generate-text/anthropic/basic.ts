@@ -8,9 +8,6 @@ run(async () => {
     model: anthropic('claude-sonnet-4-0'),
     prompt: 'Invent a new holiday and describe its traditions.',
     maxRetries: 0,
-    include: {
-      responseBody: true,
-    },
   });
 
   print('Content:', result.content);
