@@ -16,7 +16,6 @@ run(async () => {
       'warm soup on a winter evening',
       'bright flowers in a spring garden',
       'long walk through an old town',
-      'fresh coffee in a small cafe',
     ],
     providerOptions: {
       alibaba: {
