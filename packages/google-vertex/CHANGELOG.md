@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 4.0.142
+
+### Patch Changes
+
+- 099de46: fix(google-vertex): support regional endpoints for vertex MaaS
+
 ## 4.0.141
 
 ### Patch Changes
