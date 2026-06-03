@@ -10,7 +10,7 @@ import {
   withUserAgentSuffix,
   type Arrayable,
   type Context,
-  type Experimental_Sandbox as Sandbox,
+  type Experimental_SandboxSession as SandboxSession,
   type IdGenerator,
   type InferToolSetContext,
   type ProviderOptions,
@@ -302,7 +302,7 @@ export async function generateText<
     /**
      * The sandbox environment that is passed through to tool execution.
      */
-    experimental_sandbox?: Sandbox;
+    experimental_sandbox?: SandboxSession;
 
     /**
      * Runtime context. Treat runtime context as immutable.
@@ -1296,7 +1296,7 @@ async function executeTools<TOOLS extends ToolSet>({
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   timeout?: TimeoutConfiguration<TOOLS>;
-  experimental_sandbox?: Sandbox;
+  experimental_sandbox?: SandboxSession;
   toolsContext: InferToolSetContext<TOOLS>;
   onToolExecutionStart?: OnToolExecutionStartCallback<TOOLS>;
   onToolExecutionEnd?: OnToolExecutionEndCallback<TOOLS>;

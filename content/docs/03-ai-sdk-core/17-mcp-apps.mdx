@@ -48,7 +48,12 @@ MCP Apps tools can declare `_meta.ui.visibility`. Tools with `"model"` visibilit
 
 ```ts filename="app/api/chat/route.ts"
 import { splitMCPAppTools } from '@ai-sdk/mcp';
-import { convertToModelMessages, streamText } from 'ai';
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+} from 'ai';
 import { createMCPAppsClient } from './mcp-client';
 import { openai } from '@ai-sdk/openai';
 
@@ -71,7 +76,9 @@ export async function POST(req: Request) {
       },
     });
 
-    return result.toUIMessageStreamResponse();
+    return createUIMessageStreamResponse({
+      stream: toUIMessageStream({ stream: result.stream }),
+    });
   } catch (error) {
     await client.close();
     throw error;

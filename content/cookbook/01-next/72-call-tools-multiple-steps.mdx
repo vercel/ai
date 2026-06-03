@@ -86,8 +86,10 @@ import {
   type UIDataTypes,
   type UIMessage,
   convertToModelMessages,
+  createUIMessageStreamResponse,
   isStepCount,
   streamText,
+  toUIMessageStream,
   tool,
 } from 'ai';
 import { z } from 'zod';
@@ -135,6 +137,8 @@ export async function POST(req: Request) {
     tools,
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
