@@ -9,6 +9,7 @@
     { "path": "packages/anthropic-aws" },
     { "path": "packages/assemblyai" },
     { "path": "packages/azure" },
+    { "path": "packages/azure-ai-foundry" },
     { "path": "packages/black-forest-labs" },
     { "path": "packages/baseten" },
     { "path": "packages/bytedance" },
