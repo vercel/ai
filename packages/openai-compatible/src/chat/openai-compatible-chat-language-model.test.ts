@@ -2756,6 +2756,132 @@ describe('doStream', () => {
     `);
   });
 
+  it('should stream distinct text part IDs for text interrupted by tool calls', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-1","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"role":"assistant","content":"First text"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-1","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"call_1","type":"function","function":{"name":"test-tool","arguments":"{}"}}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-1","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"content":"Second text"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-1","object":"chat.completion.chunk","created":1729171479,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{},"finish_reason":"stop"}],` +
+          `"usage":{"prompt_tokens":10,"completion_tokens":20,"total_tokens":30}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const result = await convertReadableStreamToArray(stream);
+    
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "chatcmpl-1",
+          "modelId": "grok-3",
+          "timestamp": 2024-03-25T09:06:38.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "id": "txt-0",
+          "type": "text-start",
+        },
+        {
+          "delta": "First text",
+          "id": "txt-0",
+          "type": "text-delta",
+        },
+        {
+          "id": "txt-0",
+          "type": "text-end",
+        },
+        {
+          "id": "call_1",
+          "toolName": "test-tool",
+          "type": "tool-input-start",
+        },
+        {
+          "delta": "{}",
+          "id": "call_1",
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "call_1",
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{}",
+          "toolCallId": "call_1",
+          "toolName": "test-tool",
+          "type": "tool-call",
+        },
+        {
+          "id": "txt-1",
+          "type": "text-start",
+        },
+        {
+          "delta": "Second text",
+          "id": "txt-1",
+          "type": "text-delta",
+        },
+        {
+          "id": "txt-1",
+          "type": "text-end",
+        },
+        {
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
+          "providerMetadata": {
+            "test-provider": {},
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 10,
+              "total": 10,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 20,
+              "total": 20,
+            },
+            "raw": {
+              "completion_tokens": 20,
+              "prompt_tokens": 10,
+              "total_tokens": 30,
+            },
+          },
+        },
+      ]
+    `);
+  });
+
   it('should not duplicate tool calls when there is an additional empty chunk after the tool call has been completed', async () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
