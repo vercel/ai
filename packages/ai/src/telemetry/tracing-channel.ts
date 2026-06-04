@@ -4,7 +4,9 @@ export type TelemetryTracingEventType =
   | 'generateText'
   | 'step'
   | 'languageModelCall'
-  | 'executeTool';
+  | 'executeTool'
+  | 'embed'
+  | 'rerank';
 
 export type TelemetryTracingChannelMessage<EVENT = unknown> = {
   readonly type: TelemetryTracingEventType;
