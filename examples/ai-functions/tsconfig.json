@@ -48,6 +48,9 @@
       "path": "../../packages/cohere"
     },
     {
+      "path": "../../packages/crusoe"
+    },
+    {
       "path": "../../packages/deepgram"
     },
     {

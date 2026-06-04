@@ -25,6 +25,7 @@ When adding new packages under `packages`, please ensure they are added to `/tsc
 | `mistral`           | `@ai-sdk/mistral`           | Mistral AI                  |
 | `groq`              | `@ai-sdk/groq`              | Groq                        |
 | `cerebras`          | `@ai-sdk/cerebras`          | Cerebras                    |
+| `crusoe`            | `@ai-sdk/crusoe`            | Crusoe                      |
 | `deepinfra`         | `@ai-sdk/deepinfra`         | DeepInfra                   |
 | `deepseek`          | `@ai-sdk/deepseek`          | DeepSeek                    |
 | `fireworks`         | `@ai-sdk/fireworks`         | Fireworks AI                |

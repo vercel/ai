@@ -13,6 +13,7 @@
     "@ai-sdk/black-forest-labs": "workspace:*",
     "@ai-sdk/bytedance": "workspace:*",
     "@ai-sdk/cerebras": "workspace:*",
+    "@ai-sdk/crusoe": "workspace:*",
     "@ai-sdk/cohere": "workspace:*",
     "@ai-sdk/deepgram": "workspace:*",
     "@ai-sdk/deepinfra": "workspace:*",

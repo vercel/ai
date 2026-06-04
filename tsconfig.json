@@ -15,6 +15,7 @@
     { "path": "packages/cerebras" },
     { "path": "packages/codemod" },
     { "path": "packages/cohere" },
+    { "path": "packages/crusoe" },
     { "path": "packages/deepgram" },
     { "path": "packages/deepinfra" },
     { "path": "packages/deepseek" },

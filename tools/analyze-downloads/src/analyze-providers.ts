@@ -12,6 +12,7 @@ async function main() {
     '@ai-sdk/baseten',
     '@ai-sdk/cerebras',
     '@ai-sdk/cohere',
+    '@ai-sdk/crusoe',
     '@ai-sdk/deepgram',
     '@ai-sdk/deepinfra',
     '@ai-sdk/deepseek',

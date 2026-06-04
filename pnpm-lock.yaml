@@ -262,6 +262,9 @@ importers:
       '@ai-sdk/cohere':
         specifier: workspace:*
         version: link:../../packages/cohere
+      '@ai-sdk/crusoe':
+        specifier: workspace:*
+        version: link:../../packages/crusoe
       '@ai-sdk/deepgram':
         specifier: workspace:*
         version: link:../../packages/deepgram
@@ -1358,7 +1361,7 @@ importers:
         version: 3.5.12
       nuxt:
         specifier: 3.14.159
-        version: 3.14.159(@parcel/watcher@2.5.6)(@types/node@22.19.19)(@upstash/redis@1.38.0)(@vercel/functions@3.6.0(@aws-sdk/credential-provider-web-identity@3.972.13))(aws4fetch@1.0.20)(db0@0.3.4)(eslint@9.39.3(jiti@2.7.0))(ioredis@5.10.1)(less@4.4.0)(lightningcss@1.32.0)(magicast@0.5.3)(optionator@0.9.4)(rollup@4.60.4)(sass@1.90.0)(terser@5.47.1)(typescript@5.9.3)(vite@5.4.21(@types/node@22.19.19)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.47.1))
+        version: 3.14.159(@parcel/watcher@2.5.6)(@types/node@22.19.19)(@upstash/redis@1.38.0)(@vercel/functions@3.6.0(@aws-sdk/credential-provider-web-identity@3.972.13))(aws4fetch@1.0.20)(db0@0.3.4)(encoding@0.1.13)(eslint@9.39.3(jiti@2.7.0))(ioredis@5.10.1)(less@4.4.0)(lightningcss@1.32.0)(magicast@0.5.3)(optionator@0.9.4)(rollup@4.60.4)(sass@1.90.0)(terser@5.47.1)(typescript@5.9.3)(vite@5.4.21(@types/node@22.19.19)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.47.1))
       tailwindcss:
         specifier: 3.4.15
         version: 3.4.15(ts-node@10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.21))(@types/node@22.19.19)(typescript@5.9.3))
@@ -1876,6 +1879,37 @@ importers:
 
   packages/cohere:
     dependencies:
+      '@ai-sdk/provider':
+        specifier: workspace:*
+        version: link:../provider
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../provider-utils
+    devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
+      '@types/node':
+        specifier: 22.19.19
+        version: 22.19.19
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(jiti@2.7.0)(postcss@8.5.14)(tsx@4.22.0)(typescript@5.8.3)(yaml@2.9.0)
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+
+  packages/crusoe:
+    dependencies:
+      '@ai-sdk/openai-compatible':
+        specifier: workspace:*
+        version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: workspace:*
         version: link:../provider
@@ -36133,7 +36167,7 @@ snapshots:
       - '@babel/core'
       - babel-plugin-macros
 
-  nitropack@2.13.4(@upstash/redis@1.38.0)(@vercel/functions@3.6.0(@aws-sdk/credential-provider-web-identity@3.972.13))(aws4fetch@1.0.20):
+  nitropack@2.13.4(@upstash/redis@1.38.0)(@vercel/functions@3.6.0(@aws-sdk/credential-provider-web-identity@3.972.13))(aws4fetch@1.0.20)(encoding@0.1.13):
     dependencies:
       '@cloudflare/kv-asset-handler': 0.4.2
       '@rollup/plugin-alias': 6.0.0(rollup@4.60.4)
@@ -36427,7 +36461,7 @@ snapshots:
 
   nuxi@3.35.2: {}
 
-  nuxt@3.14.159(@parcel/watcher@2.5.6)(@types/node@22.19.19)(@upstash/redis@1.38.0)(@vercel/functions@3.6.0(@aws-sdk/credential-provider-web-identity@3.972.13))(aws4fetch@1.0.20)(db0@0.3.4)(eslint@9.39.3(jiti@2.7.0))(ioredis@5.10.1)(less@4.4.0)(lightningcss@1.32.0)(magicast@0.5.3)(optionator@0.9.4)(rollup@4.60.4)(sass@1.90.0)(terser@5.47.1)(typescript@5.9.3)(vite@5.4.21(@types/node@22.19.19)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.47.1)):
+  nuxt@3.14.159(@parcel/watcher@2.5.6)(@types/node@22.19.19)(@upstash/redis@1.38.0)(@vercel/functions@3.6.0(@aws-sdk/credential-provider-web-identity@3.972.13))(aws4fetch@1.0.20)(db0@0.3.4)(encoding@0.1.13)(eslint@9.39.3(jiti@2.7.0))(ioredis@5.10.1)(less@4.4.0)(lightningcss@1.32.0)(magicast@0.5.3)(optionator@0.9.4)(rollup@4.60.4)(sass@1.90.0)(terser@5.47.1)(typescript@5.9.3)(vite@5.4.21(@types/node@22.19.19)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.47.1)):
     dependencies:
       '@nuxt/devalue': 2.0.2
       '@nuxt/devtools': 1.6.3(rollup@4.60.4)(vite@5.4.21(@types/node@22.19.19)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.47.1))(vue@3.5.13(typescript@5.9.3))
@@ -36464,7 +36498,7 @@ snapshots:
       magic-string: 0.30.21
       mlly: 1.8.2
       nanotar: 0.1.1
-      nitropack: 2.13.4(@upstash/redis@1.38.0)(@vercel/functions@3.6.0(@aws-sdk/credential-provider-web-identity@3.972.13))(aws4fetch@1.0.20)
+      nitropack: 2.13.4(@upstash/redis@1.38.0)(@vercel/functions@3.6.0(@aws-sdk/credential-provider-web-identity@3.972.13))(aws4fetch@1.0.20)(encoding@0.1.13)
       nuxi: 3.35.2
       nypm: 0.3.12
       ofetch: 1.5.1
