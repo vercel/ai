@@ -32,6 +32,7 @@ function scriptedHarness(script: HarnessV1StreamPart[]): HarnessV1 {
       });
       return control;
     },
+    doCompact: async () => {},
     doStop: async () => {},
     doGetResumeHandle: () => ({
       harnessId: 'mock',

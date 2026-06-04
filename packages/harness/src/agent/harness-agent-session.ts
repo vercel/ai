@@ -104,6 +104,20 @@ export class HarnessAgentSession {
   }
 
   /**
+   * Ask the underlying runtime to compact its context. The runtime performs
+   * the compaction itself; when it completes, a `compaction` part appears on
+   * the active (or next) turn's stream. Safe to call between turns for
+   * runtimes whose compaction is session-scoped (e.g. Pi).
+   *
+   * Throws `HarnessCapabilityUnsupportedError` for harnesses that cannot
+   * trigger compaction manually (e.g. Codex, which still auto-compacts under
+   * the hood). Throws if the session has been closed or detached.
+   */
+  async compact(customInstructions?: string): Promise<void> {
+    await this.getUnderlyingSession().doCompact(customInstructions);
+  }
+
+  /**
    * Tear down the session without preserving resume state. Stops the
    * underlying adapter session and the sandbox handle, then releases any
    * leased bridge port. Idempotent.

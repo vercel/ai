@@ -5,6 +5,7 @@ import {
   type HarnessV1Diagnostic,
 } from './harness-v1-diagnostic';
 import {
+  harnessV1CompactionPartSchema,
   harnessV1ErrorPartSchema,
   harnessV1FileChangePartSchema,
   harnessV1FinishPartSchema,
@@ -171,6 +172,7 @@ export const harnessV1BridgeOutboundMessageSchema = z.discriminatedUnion(
     harnessV1FinishStepPartSchema,
     harnessV1FinishPartSchema,
     harnessV1FileChangePartSchema,
+    harnessV1CompactionPartSchema,
     harnessV1ErrorPartSchema,
     harnessV1RawPartSchema,
     harnessV1BridgeHelloSchema,

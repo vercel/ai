@@ -23,6 +23,11 @@ export const piSessionEventSchema = z
     result: z.unknown().optional(),
     content: z.unknown().optional(),
     isError: z.boolean().optional(),
+    // Compaction events (`compaction_start` / `compaction_end`). `result` (a
+    // `CompactionResult`) rides the shared `result` field above; `reason`
+    // distinguishes manual vs automatic (threshold/overflow) compaction.
+    reason: z.string().optional(),
+    aborted: z.boolean().optional(),
     error: z
       .union([
         z.string(),

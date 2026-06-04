@@ -714,6 +714,20 @@ function createSession({
       };
       return control;
     },
+    doCompact: async () => {
+      /*
+       * Codex compacts its context automatically inside the core turn loop
+       * (~90% of the model context window), but the `codex exec` transport this
+       * adapter drives exposes no manual compaction trigger and emits no
+       * compaction event. Manual `compact()` is therefore unsupported; Codex's
+       * own auto-compaction continues to run regardless.
+       */
+      throw new HarnessCapabilityUnsupportedError({
+        message:
+          "Harness 'codex' does not support manual compaction; Codex auto-compacts its context internally.",
+        harnessId: 'codex',
+      });
+    },
     doStop: async () => {
       if (stopped) return stopPromise;
       stopped = true;

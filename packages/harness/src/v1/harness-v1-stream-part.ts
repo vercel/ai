@@ -102,6 +102,19 @@ export type HarnessV1StreamPart =
       harnessMetadata?: HarnessV1Metadata;
     }
 
+  // Context compaction performed by the underlying runtime (Claude Code's
+  // native compaction, Pi's summarization). Observation only — the runtime
+  // owns the compaction; the harness neither implements nor schedules it.
+  // Emitted once, on completion, since `summary`/`tokensAfter` only exist then.
+  | {
+      type: 'compaction';
+      trigger: 'manual' | 'auto';
+      summary: string;
+      tokensBefore?: number;
+      tokensAfter?: number;
+      harnessMetadata?: HarnessV1Metadata;
+    }
+
   // Errors. Multiple may be emitted in a single turn.
   | { type: 'error'; error: unknown }
 
@@ -295,6 +308,15 @@ export const harnessV1FileChangePartSchema = z.object({
   harnessMetadata: harnessV1MetadataSchema.optional(),
 });
 
+export const harnessV1CompactionPartSchema = z.object({
+  type: z.literal('compaction'),
+  trigger: z.enum(['manual', 'auto']),
+  summary: z.string(),
+  tokensBefore: z.number().optional(),
+  tokensAfter: z.number().optional(),
+  harnessMetadata: harnessV1MetadataSchema.optional(),
+});
+
 export const harnessV1ErrorPartSchema = z.object({
   type: z.literal('error'),
   error: z.unknown(),
@@ -325,6 +347,7 @@ export const harnessV1StreamPartSchema = z.discriminatedUnion('type', [
   harnessV1FinishStepPartSchema,
   harnessV1FinishPartSchema,
   harnessV1FileChangePartSchema,
+  harnessV1CompactionPartSchema,
   harnessV1ErrorPartSchema,
   harnessV1RawPartSchema,
 ]);

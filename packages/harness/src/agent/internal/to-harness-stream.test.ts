@@ -21,6 +21,7 @@ function makeSession(opts: {
         done,
       } as HarnessV1PromptControl;
     },
+    doCompact: vi.fn(async () => {}),
     doStop: vi.fn(async () => {}),
     doGetResumeHandle: () => ({
       harnessId: 'mock',
@@ -119,6 +120,7 @@ describe('toHarnessStream', () => {
           done,
         } as HarnessV1PromptControl;
       },
+      doCompact: async () => {},
       doStop: async () => {},
       doGetResumeHandle: () => ({
         harnessId: 'mock',
@@ -155,6 +157,7 @@ describe('toHarnessStream', () => {
     const session: HarnessV1Session = {
       sessionId: 's',
       doPrompt,
+      doCompact: async () => {},
       doStop: async () => {},
       doGetResumeHandle: () => ({
         harnessId: 'mock',
@@ -194,6 +197,7 @@ describe('toHarnessStream', () => {
     const session: HarnessV1Session = {
       sessionId: 's',
       doPrompt,
+      doCompact: async () => {},
       doStop: async () => {},
       doGetResumeHandle: () => ({
         harnessId: 'mock',

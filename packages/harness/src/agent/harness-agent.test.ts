@@ -30,10 +30,12 @@ function mockHarness(options: {
   prompts: HarnessV1PromptOptions['prompt'][];
   toolResults: { toolCallId: string; output: unknown }[];
   doStop: ReturnType<typeof vi.fn>;
+  doCompact: ReturnType<typeof vi.fn>;
 } {
   const prompts: HarnessV1PromptOptions['prompt'][] = [];
   const toolResults: { toolCallId: string; output: unknown }[] = [];
   const doStop = vi.fn(async () => {});
+  const doCompact = vi.fn(async (_customInstructions?: string) => {});
 
   const session: HarnessV1Session = {
     sessionId: 'mock-session-1',
@@ -54,6 +56,7 @@ function mockHarness(options: {
       });
       return control;
     },
+    doCompact,
     doStop,
     doGetResumeHandle: () => ({
       harnessId: 'mock',
@@ -72,6 +75,7 @@ function mockHarness(options: {
     prompts,
     toolResults,
     doStop,
+    doCompact,
   };
 }
 
@@ -424,6 +428,21 @@ describe('HarnessAgent', () => {
     await session.close();
   });
 
+  test('session.compact() forwards to the harness session doCompact, then throws once closed', async () => {
+    const { harness, doCompact } = mockHarness({ script: () => [] });
+    const agent = new HarnessAgent({ harness });
+    const session = await agent.createSession();
+
+    await session.compact();
+    await session.compact('keep the error trace');
+    expect(doCompact).toHaveBeenCalledTimes(2);
+    expect(doCompact).toHaveBeenNthCalledWith(1, undefined);
+    expect(doCompact).toHaveBeenNthCalledWith(2, 'keep the error trace');
+
+    await session.close();
+    await expect(session.compact()).rejects.toThrow(/closed/i);
+  });
+
   test('getResumeHandle() returns validated coords, surfaces recoveryMode, and leaves the session usable', async () => {
     const doStop = vi.fn(async () => {});
     const underlying: HarnessV1Session = {
@@ -433,6 +452,7 @@ describe('HarnessAgent', () => {
         queueMicrotask(() => opts.emit({ type: 'finish' } as never));
         return { submitToolResult: async () => {}, done: Promise.resolve() };
       },
+      doCompact: async () => {},
       doStop,
       doGetResumeHandle: () => ({
         harnessId: 'mock',
