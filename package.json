@@ -9,7 +9,7 @@
     "clean": "turbo clean",
     "dev": "turbo dev --cache=local:r,remote:r --concurrency 25 --continue",
     "prepare": "husky",
-    "update-references": "update-ts-references",
+    "update-references": "update-ts-references && node tools/split-ts-references.mjs",
     "type-check": "tsc --build",
     "type-check:full": "tsc --build tsconfig.with-examples.json",
     "publint": "turbo publint",
