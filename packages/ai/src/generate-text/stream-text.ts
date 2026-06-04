@@ -1415,35 +1415,48 @@ class DefaultStreamTextResult<
         allowSystemInMessages,
       } as Prompt);
 
+      const startEvent = {
+        callId,
+        operationId: 'ai.streamText',
+        provider: model.provider,
+        modelId: model.modelId,
+        instructions: initialPrompt.instructions,
+        messages: initialPrompt.messages,
+        tools,
+        toolChoice,
+        activeTools,
+        toolOrder,
+        maxOutputTokens: callSettings.maxOutputTokens,
+        temperature: callSettings.temperature,
+        topP: callSettings.topP,
+        topK: callSettings.topK,
+        presencePenalty: callSettings.presencePenalty,
+        frequencyPenalty: callSettings.frequencyPenalty,
+        stopSequences: callSettings.stopSequences,
+        seed: callSettings.seed,
+        reasoning: callSettings.reasoning,
+        maxRetries,
+        timeout,
+        headers,
+        providerOptions,
+        output,
+        runtimeContext,
+        toolsContext,
+      };
+
+      // Open the operation-level tracing span. Unlike generateText the work
+      // happens while the stream is consumed, so the span is kept open until
+      // the stream settles (resolved/rejected via the total usage promise).
+      telemetryDispatcher
+        .traceTelemetrySpan?.({
+          type: 'streamText',
+          event: startEvent,
+          execute: () => self._totalUsage.promise.then(() => undefined),
+        })
+        .catch(() => {});
+
       await notify({
-        event: {
-          callId,
-          operationId: 'ai.streamText',
-          provider: model.provider,
-          modelId: model.modelId,
-          instructions: initialPrompt.instructions,
-          messages: initialPrompt.messages,
-          tools,
-          toolChoice,
-          activeTools,
-          toolOrder,
-          maxOutputTokens: callSettings.maxOutputTokens,
-          temperature: callSettings.temperature,
-          topP: callSettings.topP,
-          topK: callSettings.topK,
-          presencePenalty: callSettings.presencePenalty,
-          frequencyPenalty: callSettings.frequencyPenalty,
-          stopSequences: callSettings.stopSequences,
-          seed: callSettings.seed,
-          reasoning: callSettings.reasoning,
-          maxRetries,
-          timeout,
-          headers,
-          providerOptions,
-          output,
-          runtimeContext,
-          toolsContext,
-        },
+        event: startEvent,
         callbacks: [onStart, telemetryDispatcher.onStart],
       });
 
@@ -1513,6 +1526,7 @@ class DefaultStreamTextResult<
                   telemetryDispatcher.onToolExecutionEnd,
                 ),
                 executeToolInTelemetryContext: telemetryDispatcher.executeTool,
+                traceTelemetrySpan: telemetryDispatcher.traceTelemetrySpan,
                 onPreliminaryToolResult: result => {
                   toolExecutionStepStreamController?.enqueue(result);
                 },
@@ -1617,6 +1631,17 @@ class DefaultStreamTextResult<
 
         try {
           stepFinish = new DelayedPromise<void>();
+
+          // Open the step-level tracing span. It is kept open until the step
+          // has been fully processed by the event processor (see flush below).
+          const stepSpanDone = new DelayedPromise<void>();
+          telemetryDispatcher
+            .traceTelemetrySpan?.({
+              type: 'step',
+              event: { callId, stepNumber: currentStep },
+              execute: () => stepSpanDone.promise,
+            })
+            .catch(() => {});
 
           const responseMessagesFromPreviousSteps = recordedSteps.flatMap(
             step => step.response.messages,
@@ -1797,6 +1822,7 @@ class DefaultStreamTextResult<
             ),
 
             executeToolInTelemetryContext: telemetryDispatcher.executeTool,
+            traceTelemetrySpan: telemetryDispatcher.traceTelemetrySpan,
           });
 
           // Conditionally include request.body based on include settings.
@@ -1994,6 +2020,9 @@ class DefaultStreamTextResult<
                   // wait for the step to be fully processed by the event processor
                   // to ensure that the recorded steps are complete:
                   await stepFinish.promise;
+
+                  // close the step-level tracing span now that the step is done:
+                  stepSpanDone.resolve();
 
                   const clientToolCalls = stepToolCalls.filter(
                     toolCall => toolCall.providerExecuted !== true,
