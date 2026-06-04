@@ -22,7 +22,7 @@ import {
 import {
   safeParseJSON,
   tool,
-  type Experimental_Sandbox,
+  type Experimental_SandboxSession,
   type Experimental_SandboxProcess,
 } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
@@ -646,7 +646,7 @@ async function writeSkills({
   skills,
   abortSignal,
 }: {
-  sandbox: Experimental_Sandbox;
+  sandbox: Experimental_SandboxSession;
   workdir: string;
   skills: ReadonlyArray<HarnessV1Skill>;
   abortSignal?: AbortSignal;

@@ -1,7 +1,7 @@
 import { isAbsolute, posix } from 'node:path';
 import {
   extractLines,
-  type Experimental_Sandbox,
+  type Experimental_SandboxSession,
   type Experimental_SandboxProcess,
 } from '@ai-sdk/provider-utils';
 import type { Sandbox, SandboxCommand } from 'just-bash';
@@ -15,7 +15,7 @@ import type { Sandbox, SandboxCommand } from 'just-bash';
  * Produced by `JustBashSandboxHandle.session` — not constructed directly by
  * consumers.
  */
-export class JustBashSandboxSession implements Experimental_Sandbox {
+export class JustBashSandboxSession implements Experimental_SandboxSession {
   constructor(private readonly sandbox: Sandbox) {}
 
   get description(): string {

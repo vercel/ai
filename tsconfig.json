@@ -45,6 +45,7 @@
     { "path": "packages/open-responses" },
     { "path": "packages/otel" },
     { "path": "packages/perplexity" },
+    { "path": "packages/policy-opa" },
     { "path": "packages/provider" },
     { "path": "packages/provider-utils" },
     { "path": "packages/quiverai" },

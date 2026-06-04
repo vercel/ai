@@ -8,7 +8,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import type { Experimental_Sandbox } from '@ai-sdk/provider-utils';
+import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { syncHostWorkspaceFromSandbox } from './pi-workspace-mirror';
 
@@ -18,7 +18,7 @@ function makeSandbox(remoteListing: {
   directories: string[];
   files: Record<string, string>;
 }): {
-  sandbox: Experimental_Sandbox;
+  sandbox: Experimental_SandboxSession;
   run: ReturnType<typeof vi.fn>;
   readBinaryFile: ReturnType<typeof vi.fn>;
 } {
@@ -52,7 +52,7 @@ function makeSandbox(remoteListing: {
     writeBinaryFile: vi.fn(),
     writeTextFile: vi.fn(),
     spawn: vi.fn(),
-  } as unknown as Experimental_Sandbox;
+  } as unknown as Experimental_SandboxSession;
 
   return { sandbox, run, readBinaryFile };
 }

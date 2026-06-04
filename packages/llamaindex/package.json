@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/llamaindex",
-  "version": "3.0.0-canary.160",
+  "version": "3.0.0-canary.163",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,

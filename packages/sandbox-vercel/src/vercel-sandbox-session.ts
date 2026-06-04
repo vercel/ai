@@ -1,7 +1,7 @@
 import { posix } from 'node:path';
 import {
   extractLines,
-  type Experimental_Sandbox,
+  type Experimental_SandboxSession,
   type Experimental_SandboxProcess,
 } from '@ai-sdk/provider-utils';
 import type { Sandbox, Command } from '@vercel/sandbox';
@@ -12,7 +12,7 @@ import type { Sandbox, Command } from '@vercel/sandbox';
  * directly by consumers. The handle owns the lifetime of the underlying
  * sandbox; this class exposes only the tool-safe surface.
  */
-export class VercelSandboxSession implements Experimental_Sandbox {
+export class VercelSandboxSession implements Experimental_SandboxSession {
   constructor(private readonly sandbox: Sandbox) {}
 
   get description(): string {

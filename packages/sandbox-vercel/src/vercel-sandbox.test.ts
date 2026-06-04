@@ -44,7 +44,7 @@ describe('createVercelSandbox (wrap existing)', () => {
     expect(handle.ports).toEqual([3000, 4000]);
   });
 
-  it('handle.session is an Experimental_Sandbox wrapping the underlying', async () => {
+  it('handle.session is an Experimental_SandboxSession wrapping the underlying', async () => {
     const { sandbox, spies } = makeMockSandbox();
     spies.runCommand.mockResolvedValueOnce({
       exitCode: 0,

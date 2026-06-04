@@ -1,6 +1,6 @@
 import path from 'node:path';
 import type { HarnessV1Skill } from '@ai-sdk/harness';
-import type { Experimental_Sandbox } from '@ai-sdk/provider-utils';
+import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
 import { renderPiSkillFile, safePiMetadataSegment } from './pi-utils';
 
 /**
@@ -9,7 +9,7 @@ import { renderPiSkillFile, safePiMetadataSegment } from './pi-utils';
  * the resource loader is reloaded.
  */
 export async function writePiSkills(args: {
-  readonly sandbox: Experimental_Sandbox;
+  readonly sandbox: Experimental_SandboxSession;
   readonly sessionWorkDir: string;
   readonly skills: ReadonlyArray<HarnessV1Skill>;
   readonly abortSignal?: AbortSignal;

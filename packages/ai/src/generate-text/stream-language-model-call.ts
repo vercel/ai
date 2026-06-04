@@ -7,7 +7,7 @@ import {
 import {
   createIdGenerator,
   type Arrayable,
-  type Experimental_Sandbox as Sandbox,
+  type Experimental_SandboxSession as SandboxSession,
   type IdGenerator,
   type InferToolSetContext,
   type ModelMessage,
@@ -65,6 +65,7 @@ import type { TypedToolCall } from './tool-call';
 import type { ToolCallRepairFunction } from './tool-call-repair-function';
 import type { TypedToolError } from './tool-error';
 import type { ToolInputRefinement } from './tool-input-refinement';
+import type { ToolOrder } from './tool-order';
 import type { TypedToolResult } from './tool-result';
 
 const originalGenerateId = createIdGenerator({
@@ -194,6 +195,7 @@ export async function streamLanguageModelCall<
 >({
   model,
   tools,
+  toolOrder,
   output,
   toolChoice,
   prompt,
@@ -225,6 +227,7 @@ export async function streamLanguageModelCall<
 }: {
   model: LanguageModel;
   tools?: TOOLS;
+  toolOrder?: ToolOrder<TOOLS>;
   output?: OUTPUT;
   toolChoice?: ToolChoice<TOOLS>;
   download?: DownloadFunction;
@@ -242,9 +245,9 @@ export async function streamLanguageModelCall<
    */
   toolsContext?: InferToolSetContext<TOOLS>;
   /**
-   * Sandbox passed through for resolving tool descriptions that depend on it.
+   * Sandbox session passed through for resolving tool descriptions that depend on it.
    */
-  experimental_sandbox?: Sandbox;
+  experimental_sandbox?: SandboxSession;
   _internal?: {
     generateId?: IdGenerator;
     generateCallId?: IdGenerator;
@@ -303,6 +306,7 @@ export async function streamLanguageModelCall<
 
   const stepTools = await prepareTools({
     tools,
+    toolOrder,
     toolsContext,
     experimental_sandbox: sandbox,
   });

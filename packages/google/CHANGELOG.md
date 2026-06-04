@@ -1,5 +1,19 @@
 # @ai-sdk/google
 
+## 4.0.0-canary.77
+
+### Patch Changes
+
+- Updated dependencies [ee798eb]
+- Updated dependencies [daf6637]
+  - @ai-sdk/provider-utils@5.0.0-canary.45
+
+## 4.0.0-canary.76
+
+### Patch Changes
+
+- b563707: feat(provider/google): add Gemini text-to-speech (speech) model support
+
 ## 4.0.0-canary.75
 
 ### Patch Changes
