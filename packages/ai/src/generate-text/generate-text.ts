@@ -109,6 +109,7 @@ import type {
   OnToolExecutionStartCallback,
 } from './tool-execution-events';
 import type { ToolInputRefinement } from './tool-input-refinement';
+import type { ToolOrder } from './tool-order';
 import type { ToolOutput } from './tool-output';
 import type { TypedToolResult } from './tool-result';
 import type { ToolsContextParameter } from './tools-context-parameter';
@@ -157,6 +158,7 @@ export type GenerateTextInclude = {
  *
  * @param tools - Tools that are accessible to and can be called by the model. The model needs to support calling tools.
  * @param toolChoice - The tool choice strategy. Default: 'auto'.
+ * @param toolOrder - Controls the order in which tools are sent to the provider. Tools not listed are appended alphabetically.
  *
  * @param system - A system message that will be part of the prompt.
  * @param prompt - A simple text prompt. You can either use `prompt` or `messages` but not both.
@@ -233,6 +235,7 @@ export async function generateText<
   telemetry = experimental_telemetry,
   providerOptions,
   activeTools,
+  toolOrder,
   prepareStep,
   experimental_repairToolCall: repairToolCall,
   experimental_refineToolInput: refineToolInput,
@@ -315,6 +318,15 @@ export async function generateText<
      * changing the tool call and result types in the result.
      */
     activeTools?: ActiveTools<NoInfer<TOOLS>>;
+
+    /**
+     * Controls the order in which tools are sent to the provider.
+     *
+     * The list can be partial. Tools not listed in `toolOrder` are sent after
+     * the listed tools, sorted alphabetically. This can improve provider-side
+     * caching by keeping tool definitions in a stable order.
+     */
+    toolOrder?: ToolOrder<NoInfer<TOOLS>>;
 
     /**
      * Optional specification for parsing structured outputs from the LLM response.
@@ -526,6 +538,7 @@ export async function generateText<
       tools,
       toolChoice,
       activeTools,
+      toolOrder,
       maxOutputTokens: callSettings.maxOutputTokens,
       temperature: callSettings.temperature,
       topP: callSettings.topP,
@@ -716,9 +729,13 @@ export async function generateText<
           tools,
           activeTools: prepareStepResult?.activeTools ?? activeTools,
         });
+        const stepToolOrder = prepareStepResult?.toolOrder ?? toolOrder;
 
         const stepTools = await prepareTools({
           tools: stepActiveTools,
+          toolOrder: stepToolOrder as ToolOrder<
+            ActiveToolSubset<TOOLS, ActiveTools<NoInfer<TOOLS>>>
+          >,
           // active tools context is a subset of the tools context, so we can cast to the unknown type
           toolsContext: toolsContext as unknown as InferToolSetContext<
             ActiveToolSubset<TOOLS, ActiveTools<NoInfer<TOOLS>>>
@@ -749,6 +766,7 @@ export async function generateText<
             tools,
             toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
             activeTools: prepareStepResult?.activeTools ?? activeTools,
+            toolOrder: stepToolOrder,
             steps: [...steps],
             providerOptions: stepProviderOptions,
             output,

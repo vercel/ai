@@ -1355,6 +1355,36 @@ const { text } = await generateText({
 });
 ```
 
+## Tool Order
+
+Some providers include tool definitions in the cached portion of a request.
+If the order of those definitions changes between otherwise similar requests,
+the provider may not be able to reuse the cached prefix as effectively.
+
+Use `toolOrder` when you want a stable provider request shape for caching or
+debugging. The list can be partial: tools listed in `toolOrder` are sent first
+in that order, and any remaining tools are sent afterwards in alphabetical
+order. Tool names are typed from your `tools` object.
+
+```ts highlight="9"
+import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
+
+const { text } = await generateText({
+  model: __MODEL__,
+  tools: myToolSet,
+  toolOrder: ['search', 'readFile'],
+  prompt: 'Summarize the latest project notes.',
+});
+```
+
+`toolOrder` controls only the order of tool definitions sent to the provider.
+It does not force the model to call a tool. Use [`toolChoice`](#tool-choice) to
+control tool selection, and use [`activeTools`](#active-tools) when you want to
+limit which tools are available. When both `activeTools` and `toolOrder` are
+provided, `activeTools` filters the available tools first and `toolOrder`
+orders the remaining tools.
+
 ## Multi-modal Tool Results
 
 <Note type="warning">
