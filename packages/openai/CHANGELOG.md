@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.67
+
+### Patch Changes
+
+- c679fec: feat(provider/azure):web search tool in the Azure OpenAI Responses API.
+
 ## 3.0.66
 
 ### Patch Changes

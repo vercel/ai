@@ -162,13 +162,19 @@ export function createVertex(
     const region = loadVertexLocation();
     const project = loadVertexProject();
 
-    // For global region, use aiplatform.googleapis.com directly
-    // For other regions, use region-aiplatform.googleapis.com
-    const baseHost = `${region === 'global' ? '' : region + '-'}aiplatform.googleapis.com`;
+    const getHost = () => {
+      if (region === 'global') {
+        return 'aiplatform.googleapis.com';
+      } else if (region === 'eu' || region === 'us') {
+        return `aiplatform.${region}.rep.googleapis.com`;
+      } else {
+        return `${region}-aiplatform.googleapis.com`;
+      }
+    };
 
     return (
       withoutTrailingSlash(options.baseURL) ??
-      `https://${baseHost}/v1beta1/projects/${project}/locations/${region}/publishers/google`
+      `https://${getHost()}/v1beta1/projects/${project}/locations/${region}/publishers/google`
     );
   };
 

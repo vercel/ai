@@ -1,5 +1,18 @@
 # @ai-sdk/google-vertex
 
+## 4.0.142
+
+### Patch Changes
+
+- 099de46: fix(google-vertex): support regional endpoints for vertex MaaS
+
+## 4.0.141
+
+### Patch Changes
+
+- 8584f2e: fix(vertex-anthropic): support eu/us multi-region anthropic endpoints
+- e96b286: fix(google-vertex): support for eu/us multi region gemini endpoints
+
 ## 4.0.140
 
 ### Patch Changes

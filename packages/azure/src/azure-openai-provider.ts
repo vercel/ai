@@ -7,17 +7,19 @@ import {
   OpenAISpeechModel,
   OpenAITranscriptionModel,
 } from '@ai-sdk/openai/internal';
-import type {
-  EmbeddingModelV3,
-  LanguageModelV3,
-  ProviderV3,
-  ImageModelV3,
-  SpeechModelV3,
-  TranscriptionModelV3,
+import {
+  InvalidArgumentError,
+  type EmbeddingModelV3,
+  type LanguageModelV3,
+  type ProviderV3,
+  type ImageModelV3,
+  type SpeechModelV3,
+  type TranscriptionModelV3,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
   loadSetting,
+  normalizeHeaders,
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
@@ -115,6 +117,13 @@ export interface AzureOpenAIProviderSettings {
   apiKey?: string;
 
   /**
+   * A function that returns an access token for Microsoft Entra
+   * (formerly known as Azure Active Directory), which will be invoked
+   * on every request.
+   */
+  tokenProvider?: (() => Promise<string>) | undefined;
+
+  /**
    * Custom headers to include in the requests.
    */
   headers?: Record<string, string>;
@@ -144,17 +153,50 @@ export interface AzureOpenAIProviderSettings {
 export function createAzure(
   options: AzureOpenAIProviderSettings = {},
 ): AzureOpenAIProvider {
+  const tokenProvider = options.tokenProvider;
+
+  if (options.apiKey && tokenProvider) {
+    throw new InvalidArgumentError({
+      argument: 'apiKey/tokenProvider',
+      message:
+        'Both apiKey and tokenProvider were provided. Please use only one authentication method.',
+    });
+  }
+
   const getHeaders = () => {
-    const baseHeaders = {
-      'api-key': loadApiKey({
-        apiKey: options.apiKey,
-        environmentVariableName: 'AZURE_API_KEY',
-        description: 'Azure OpenAI',
-      }),
-      ...options.headers,
-    };
-    return withUserAgentSuffix(baseHeaders, `ai-sdk/azure/${VERSION}`);
+    const authHeaders = tokenProvider
+      ? {}
+      : {
+          'api-key': loadApiKey({
+            apiKey: options.apiKey,
+            environmentVariableName: 'AZURE_API_KEY',
+            description: 'Azure OpenAI',
+          }),
+        };
+
+    return withUserAgentSuffix(
+      {
+        ...authHeaders,
+        ...options.headers,
+      },
+      `ai-sdk/azure/${VERSION}`,
+    );
   };
+
+  const fetch: FetchFunction | undefined = tokenProvider
+    ? async (input, init) => {
+        const headers = normalizeHeaders(init?.headers);
+
+        if (headers.authorization == null) {
+          headers.authorization = `Bearer ${await tokenProvider()}`;
+        }
+
+        return (options.fetch ?? globalThis.fetch)(input, {
+          ...init,
+          headers,
+        });
+      }
+    : options.fetch;
 
   const getResourceName = () =>
     loadSetting({
@@ -188,7 +230,7 @@ export function createAzure(
       provider: 'azure.chat',
       url,
       headers: getHeaders,
-      fetch: options.fetch,
+      fetch,
     });
 
   const createCompletionModel = (modelId: string) =>
@@ -196,7 +238,7 @@ export function createAzure(
       provider: 'azure.completion',
       url,
       headers: getHeaders,
-      fetch: options.fetch,
+      fetch,
     });
 
   const createEmbeddingModel = (modelId: string) =>
@@ -204,7 +246,7 @@ export function createAzure(
       provider: 'azure.embeddings',
       headers: getHeaders,
       url,
-      fetch: options.fetch,
+      fetch,
     });
 
   const createResponsesModel = (modelId: string) =>
@@ -212,7 +254,7 @@ export function createAzure(
       provider: 'azure.responses',
       url,
       headers: getHeaders,
-      fetch: options.fetch,
+      fetch,
       fileIdPrefixes: ['assistant-'],
     });
 
@@ -221,7 +263,7 @@ export function createAzure(
       provider: 'azure.image',
       url,
       headers: getHeaders,
-      fetch: options.fetch,
+      fetch,
     });
 
   const createTranscriptionModel = (modelId: string) =>
@@ -229,7 +271,7 @@ export function createAzure(
       provider: 'azure.transcription',
       url,
       headers: getHeaders,
-      fetch: options.fetch,
+      fetch,
     });
 
   const createSpeechModel = (modelId: string) =>
@@ -237,7 +279,7 @@ export function createAzure(
       provider: 'azure.speech',
       url,
       headers: getHeaders,
-      fetch: options.fetch,
+      fetch,
     });
 
   const provider = function (deploymentId: string) {

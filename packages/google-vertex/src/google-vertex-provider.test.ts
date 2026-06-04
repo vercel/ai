@@ -279,6 +279,44 @@ describe('google-vertex-provider', () => {
     );
   });
 
+  it('should use multi-region REP URL for us location', () => {
+    const provider = createVertex({
+      project: 'test-project',
+      location: 'us',
+    });
+    provider('test-model-id');
+
+    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+      'test-model-id',
+      expect.objectContaining({
+        provider: 'google.vertex.chat',
+        baseURL:
+          'https://aiplatform.us.rep.googleapis.com/v1beta1/projects/test-project/locations/us/publishers/google',
+        headers: expect.any(Function),
+        generateId: expect.any(Function),
+      }),
+    );
+  });
+
+  it('should use multi-region REP URL for eu location', () => {
+    const provider = createVertex({
+      project: 'test-project',
+      location: 'eu',
+    });
+    provider('test-model-id');
+
+    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+      'test-model-id',
+      expect.objectContaining({
+        provider: 'google.vertex.chat',
+        baseURL:
+          'https://aiplatform.eu.rep.googleapis.com/v1beta1/projects/test-project/locations/eu/publishers/google',
+        headers: expect.any(Function),
+        generateId: expect.any(Function),
+      }),
+    );
+  });
+
   it('should use express mode base URL when apiKey is provided', () => {
     const provider = createVertex({
       apiKey: 'test-api-key',

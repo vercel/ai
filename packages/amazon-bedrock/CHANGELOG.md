@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.112
+
+### Patch Changes
+
+- 53b002d: added bedrock mantle provider
+
 ## 4.0.111
 
 ### Patch Changes
