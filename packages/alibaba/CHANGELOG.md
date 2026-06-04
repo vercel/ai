@@ -1,5 +1,11 @@
 # @ai-sdk/alibaba
 
+## 0.0.11
+
+### Patch Changes
+
+- 990e4a7: feat(alibaba): add embedding model support
+
 ## 0.0.10
 
 ### Patch Changes
