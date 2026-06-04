@@ -12,7 +12,7 @@ export const RECORD = process.env.RECORD === 'true';
 export const RECORD_ALL = process.env.RECORD_ALL === 'true';
 export const LIVE = process.env.HARNESS_E2E_LIVE === 'true';
 
-export const FIXTURES_DIR = new URL('./fixtures', import.meta.url).pathname;
+export const FIXTURES_DIR = new URL('./__fixtures__', import.meta.url).pathname;
 
 const REPLAY_DUMMY_GATEWAY_KEY = 'replay-gateway-key';
 

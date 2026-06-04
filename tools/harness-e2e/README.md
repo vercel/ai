@@ -70,7 +70,7 @@ is also the first implementor of the root turbo `test:integration` task
 
 Replay is **not hermetic and not sub-second**: it boots a real sandbox VM
 (~30–60s per test) and reaches the Vercel control plane every run. Only the
-*LLM* HTTP is canned — it removes API cost and nondeterminism, not VM latency.
+_LLM_ HTTP is canned — it removes API cost and nondeterminism, not VM latency.
 There is no CI workflow yet.
 
 ## Coverage
