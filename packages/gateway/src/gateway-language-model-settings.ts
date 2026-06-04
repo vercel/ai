@@ -120,6 +120,7 @@ export type GatewayModelId =
   | 'morph/morph-v3-large'
   | 'nvidia/nemotron-3-nano-30b-a3b'
   | 'nvidia/nemotron-3-super-120b-a12b'
+  | 'nvidia/nemotron-3-ultra-550b-a55b'
   | 'nvidia/nemotron-nano-12b-v2-vl'
   | 'nvidia/nemotron-nano-9b-v2'
   | 'openai/gpt-3.5-turbo'

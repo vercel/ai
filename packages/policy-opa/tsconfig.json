@@ -5,10 +5,22 @@
     "rootDir": "src",
     "outDir": "dist"
   },
-  "exclude": ["dist", "build", "node_modules", "tsup.config.ts", "examples"],
+  "exclude": [
+    "dist",
+    "build",
+    "node_modules",
+    "tsup.config.ts",
+    "examples"
+  ],
   "references": [
-    { "path": "../provider" },
-    { "path": "../provider-utils" },
-    { "path": "../ai" }
+    {
+      "path": "../ai"
+    },
+    {
+      "path": "../provider"
+    },
+    {
+      "path": "../provider-utils"
+    }
   ]
 }
