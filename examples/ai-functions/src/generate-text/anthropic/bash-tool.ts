@@ -1,7 +1,7 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateText, isStepCount } from 'ai';
 import { run } from '../../lib/run';
-import { LocalSandbox } from '../../sandbox/local-sandbox';
+import { LocalSandboxSession } from '../../sandbox/local-sandbox';
 
 run(async () => {
   const result = await generateText({
@@ -9,7 +9,7 @@ run(async () => {
     tools: {
       bash: anthropic.tools.bash_20250124(),
     },
-    sandbox: new LocalSandbox({
+    experimental_sandbox: new LocalSandboxSession({
       rootDirectory: `${process.env.HOME}/Downloads`,
     }),
     stopWhen: isStepCount(2),

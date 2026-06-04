@@ -7,7 +7,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: amazonBedrock('us.anthropic.claude-opus-4-7'),
+    model: amazonBedrock('us.anthropic.claude-opus-4-8'),
     prompt: 'How many "r"s are in the word "strawberry"?',
     providerOptions: {
       bedrock: {
@@ -20,7 +20,7 @@ run(async () => {
     },
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     if (part.type === 'reasoning-delta') {
       process.stdout.write('\x1b[34m' + part.text + '\x1b[0m');
     } else if (part.type === 'text-delta') {

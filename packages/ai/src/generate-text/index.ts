@@ -3,20 +3,21 @@ export type { ContentPart } from './content-part';
 export { filterActiveTools as experimental_filterActiveTools } from './filter-active-tools';
 export { generateText, type GenerateTextInclude } from './generate-text';
 export type {
+  GenerateTextAbortEvent,
+  GenerateTextOnAbortCallback,
   GenerateTextEndEvent,
   GenerateTextOnFinishCallback,
+  GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
   GenerateTextStartEvent,
   GenerateTextStepEndEvent,
   GenerateTextStepStartEvent,
-  OnChunkEvent,
   OnFinishEvent,
   OnStartEvent,
   OnStepFinishEvent,
   OnStepStartEvent,
-  StreamTextChunkEvent,
 } from './generate-text-events';
 export type { GenerateTextResult } from './generate-text-result';
 export {
@@ -41,7 +42,11 @@ export type { PrepareStepFunction, PrepareStepResult } from './prepare-step';
 export { pruneMessages } from './prune-messages';
 export type { ReasoningFileOutput, ReasoningOutput } from './reasoning-output';
 export { smoothStream, type ChunkDetector } from './smooth-stream';
-export type { StepResult } from './step-result';
+export type {
+  OutputChunkTimingStats,
+  StepResult,
+  StepResultPerformance,
+} from './step-result';
 export {
   hasToolCall,
   isLoopFinished,
@@ -97,6 +102,7 @@ export type {
   ToolExecutionStartEvent,
 } from './tool-execution-events';
 export type { ToolInputRefinement } from './tool-input-refinement';
+export type { ToolOrder } from './tool-order';
 export type {
   StaticToolOutputDenied,
   TypedToolOutputDenied,

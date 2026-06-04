@@ -35,8 +35,12 @@ import {
 } from './google-interactions-language-model-options';
 import type {
   GoogleInteractionsAgentConfig,
+  GoogleInteractionsEnvironmentSource,
   GoogleInteractionsGenerationConfig,
+  GoogleInteractionsNetworkAllowlistEntry,
+  GoogleInteractionsNetworkConfig,
   GoogleInteractionsRequestBody,
+  GoogleInteractionsResponseFormatEntry,
   GoogleInteractionsTool,
   GoogleInteractionsToolChoice,
 } from './google-interactions-prompt';
@@ -61,7 +65,8 @@ export type GoogleInteractionsConfig = {
 
 export type GoogleInteractionsModelInput =
   | GoogleInteractionsModelId
-  | { agent: string };
+  | { agent: string }
+  | { managedAgent: string };
 
 export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
@@ -104,6 +109,9 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     if (typeof modelOrAgent === 'string') {
       this.modelId = modelOrAgent;
       this.agent = undefined;
+    } else if ('managedAgent' in modelOrAgent) {
+      this.modelId = modelOrAgent.managedAgent;
+      this.agent = modelOrAgent.managedAgent;
     } else {
       this.modelId = modelOrAgent.agent;
       this.agent = modelOrAgent.agent;
@@ -134,7 +142,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
   private async getArgs(options: LanguageModelV4CallOptions) {
     const warnings: Array<SharedV4Warning> = [];
 
-    const opts = await parseProviderOptions({
+    const googleOptions = await parseProviderOptions({
       provider: 'google',
       providerOptions: options.providerOptions,
       schema: googleInteractionsLanguageModelOptions,
@@ -164,28 +172,22 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     }
 
     /*
-     * Structured output mapping (resolves PRD Open Q1).
+     * `response_format` is a polymorphic array of entries. Three sources
+     * contribute, in order:
      *
-     * The Interactions API exposes structured output via two top-level body
-     * fields: `response_mime_type` (always `'application/json'` here) and
-     * `response_format` (typed as `unknown` in the js-genai SDK). Per the
-     * canonical sample at
-     * `googleapis/js-genai/sdk-samples/interactions_structured_output_json.ts`,
-     * `response_format` accepts a **plain JSON Schema** value directly - no
-     * wrapping object, no OpenAPI conversion. The js-genai resource type
-     * (`src/interactions/resources/interactions.ts:1399`) confirms the field is
-     * passed through verbatim. We therefore send the AI SDK
-     * `responseFormat.schema` (a `JSONSchema7`) as-is.
-     *
-     * If a future API revision rejects plain JSON Schema, fall back to
-     * `convertJSONSchemaToOpenAPISchema(...)` (already imported by
-     * `google-language-model.ts`); empirically that has not been needed.
+     *   1. AI SDK call-level `responseFormat: { type: 'json', schema }` →
+     *      `{ type: 'text', mime_type: 'application/json', schema }`.
+     *   2. `providerOptions.google.responseFormat` (primary path) — entries
+     *      are appended verbatim with camelCase → snake_case translation.
+     *   3. `providerOptions.google.imageConfig` (deprecated fallback) — only
+     *      contributes if no `{type:'image'}` entry was already provided via
+     *      sources 1 or 2; emits a deprecation warning when used.
      *
      * Agent calls cannot send `generation_config` and (per the API) cannot
-     * combine with structured output - emit a warning and drop the field.
+     * combine with structured output — emit a warning and drop the field.
      */
-    let responseMimeType: string | undefined;
-    let responseFormat: unknown | undefined;
+    const responseFormatEntries: Array<GoogleInteractionsResponseFormatEntry> =
+      [];
     if (options.responseFormat?.type === 'json') {
       if (isAgent) {
         warnings.push({
@@ -194,9 +196,43 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
             'google.interactions: structured output (responseFormat) is not supported when an agent is set; responseFormat will be ignored.',
         });
       } else {
-        responseMimeType = 'application/json';
-        if (options.responseFormat.schema != null) {
-          responseFormat = options.responseFormat.schema;
+        const entry: GoogleInteractionsResponseFormatEntry = {
+          type: 'text',
+          mime_type: 'application/json',
+          ...(options.responseFormat.schema != null
+            ? { schema: options.responseFormat.schema }
+            : {}),
+        };
+        responseFormatEntries.push(entry);
+      }
+    }
+
+    if (googleOptions?.responseFormat != null) {
+      for (const entry of googleOptions.responseFormat) {
+        if (entry.type === 'text') {
+          responseFormatEntries.push(
+            pruneUndefined({
+              type: 'text' as const,
+              mime_type: entry.mimeType ?? undefined,
+              schema: entry.schema ?? undefined,
+            }),
+          );
+        } else if (entry.type === 'image') {
+          responseFormatEntries.push(
+            pruneUndefined({
+              type: 'image' as const,
+              mime_type: entry.mimeType ?? undefined,
+              aspect_ratio: entry.aspectRatio ?? undefined,
+              image_size: entry.imageSize ?? undefined,
+            }),
+          );
+        } else if (entry.type === 'audio') {
+          responseFormatEntries.push(
+            pruneUndefined({
+              type: 'audio' as const,
+              mime_type: entry.mimeType ?? undefined,
+            }),
+          );
         }
       }
     }
@@ -207,15 +243,16 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
       warnings: convWarnings,
     } = convertToGoogleInteractionsInput({
       prompt: options.prompt,
-      previousInteractionId: opts?.previousInteractionId ?? undefined,
-      store: opts?.store ?? undefined,
-      mediaResolution: opts?.mediaResolution ?? undefined,
+      previousInteractionId: googleOptions?.previousInteractionId ?? undefined,
+      store: googleOptions?.store ?? undefined,
+      mediaResolution: googleOptions?.mediaResolution ?? undefined,
     });
 
     warnings.push(...convWarnings);
 
     let systemInstruction = convertedSystemInstruction;
-    const optionSystemInstruction = opts?.systemInstruction ?? undefined;
+    const optionSystemInstruction =
+      googleOptions?.systemInstruction ?? undefined;
     if (systemInstruction != null && optionSystemInstruction != null) {
       warnings.push({
         type: 'other',
@@ -229,14 +266,13 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     /*
      * The Interactions API splits per-call config into `generation_config`
      * (model branch) and `agent_config` (agent branch); the two are mutually
-     * exclusive. We stay minimal here for TASK-1 - only the AI SDK call-level
-     * generation params and the thinking/imageConfig provider options flow
-     * into `generation_config`. Tool-related fields land here in later tasks.
+     * exclusive. The AI SDK call-level generation params and the thinking /
+     * imageConfig provider options flow into `generation_config`.
      *
-     * When an agent is set, none of these fields are accepted by the API. Per
-     * PRD US 31 we emit a single `LanguageModelV4CallWarning` listing the
-     * dropped field names and continue (do not throw); the agent-only
-     * `agent_config` field supersedes them.
+     * When an agent is set, none of these fields are accepted by the API.
+     * Emit a single `LanguageModelV4CallWarning` listing the dropped field
+     * names and continue (do not throw); the agent-only `agent_config`
+     * field supersedes them.
      */
     let generationConfig: GoogleInteractionsGenerationConfig | undefined;
     if (isAgent) {
@@ -249,11 +285,12 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
       }
       if (options.maxOutputTokens != null)
         droppedFields.push('maxOutputTokens');
-      if (opts?.thinkingLevel != null) droppedFields.push('thinkingLevel');
-      if (opts?.thinkingSummaries != null) {
+      if (googleOptions?.thinkingLevel != null)
+        droppedFields.push('thinkingLevel');
+      if (googleOptions?.thinkingSummaries != null) {
         droppedFields.push('thinkingSummaries');
       }
-      if (opts?.imageConfig != null) droppedFields.push('imageConfig');
+      if (googleOptions?.imageConfig != null) droppedFields.push('imageConfig');
       if (droppedFields.length > 0) {
         warnings.push({
           type: 'other',
@@ -271,76 +308,145 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
             ? options.stopSequences
             : undefined,
         max_output_tokens: options.maxOutputTokens ?? undefined,
-        thinking_level: opts?.thinkingLevel ?? undefined,
-        thinking_summaries: opts?.thinkingSummaries ?? undefined,
-        image_config:
-          opts?.imageConfig != null
-            ? pruneUndefined({
-                aspect_ratio: opts.imageConfig.aspectRatio ?? undefined,
-                image_size: opts.imageConfig.imageSize ?? undefined,
-              })
-            : undefined,
+        thinking_level: googleOptions?.thinkingLevel ?? undefined,
+        thinking_summaries: googleOptions?.thinkingSummaries ?? undefined,
         tool_choice: toolChoiceForBody,
       });
+
+      /*
+       * Deprecated fallback path: `imageConfig` contributes an image entry
+       * only when none was supplied via `responseFormat`. A warning is
+       * always emitted when `imageConfig` is set so callers migrate to the
+       * `responseFormat` shape.
+       */
+      if (googleOptions?.imageConfig != null) {
+        const alreadyHasImageEntry = responseFormatEntries.some(
+          entry => entry.type === 'image',
+        );
+        warnings.push({
+          type: 'other',
+          message: alreadyHasImageEntry
+            ? 'google.interactions: providerOptions.google.imageConfig is deprecated and was ignored because providerOptions.google.responseFormat already supplies an image entry. Use responseFormat exclusively.'
+            : 'google.interactions: providerOptions.google.imageConfig is deprecated. Use providerOptions.google.responseFormat with a { type: "image", ... } entry instead.',
+        });
+        if (!alreadyHasImageEntry) {
+          responseFormatEntries.push({
+            type: 'image',
+            mime_type: 'image/png',
+            ...(googleOptions.imageConfig.aspectRatio != null
+              ? { aspect_ratio: googleOptions.imageConfig.aspectRatio }
+              : {}),
+            ...(googleOptions.imageConfig.imageSize != null
+              ? { image_size: googleOptions.imageConfig.imageSize }
+              : {}),
+          });
+        }
+      }
     }
 
     let agentConfig: GoogleInteractionsAgentConfig | undefined;
-    if (isAgent && opts?.agentConfig != null) {
-      const ac = opts.agentConfig;
-      if (ac.type === 'deep-research') {
+    if (isAgent && googleOptions?.agentConfig != null) {
+      const agentConfigOptions = googleOptions.agentConfig;
+      if (agentConfigOptions.type === 'deep-research') {
         agentConfig = pruneUndefined({
           type: 'deep-research',
-          thinking_summaries: ac.thinkingSummaries ?? undefined,
-          visualization: ac.visualization ?? undefined,
-          collaborative_planning: ac.collaborativePlanning ?? undefined,
+          thinking_summaries: agentConfigOptions.thinkingSummaries ?? undefined,
+          visualization: agentConfigOptions.visualization ?? undefined,
+          collaborative_planning:
+            agentConfigOptions.collaborativePlanning ?? undefined,
         }) as GoogleInteractionsAgentConfig;
-      } else if (ac.type === 'dynamic') {
+      } else if (agentConfigOptions.type === 'dynamic') {
         agentConfig = { type: 'dynamic' };
       }
     }
 
+    let environment: GoogleInteractionsRequestBody['environment'];
+    if (googleOptions?.environment != null) {
+      if (!isAgent) {
+        warnings.push({
+          type: 'other',
+          message:
+            'google.interactions: environment is only supported when an agent is set; environment will be omitted from the request body.',
+        });
+      } else if (typeof googleOptions.environment === 'string') {
+        environment = googleOptions.environment;
+      } else {
+        const environmentOptions = googleOptions.environment;
+        const sources: Array<GoogleInteractionsEnvironmentSource> | undefined =
+          environmentOptions.sources?.map(source => {
+            if (source.type === 'inline') {
+              return {
+                type: 'inline' as const,
+                content: source.content,
+                target: source.target,
+              };
+            }
+            return pruneUndefined({
+              type: source.type,
+              source: source.source,
+              target: source.target ?? undefined,
+            }) as GoogleInteractionsEnvironmentSource;
+          });
+        let network: GoogleInteractionsNetworkConfig | undefined;
+        if (environmentOptions.network === 'disabled') {
+          network = 'disabled';
+        } else if (environmentOptions.network != null) {
+          network = {
+            allowlist: environmentOptions.network.allowlist.map(entry =>
+              pruneUndefined({
+                domain: entry.domain,
+                transform: entry.transform ?? undefined,
+              }),
+            ) as Array<GoogleInteractionsNetworkAllowlistEntry>,
+          };
+        }
+        environment = pruneUndefined({
+          type: 'remote' as const,
+          sources: sources != null && sources.length > 0 ? sources : undefined,
+          network,
+        });
+      }
+    }
+
     /*
-     * Agent calls require `background: true` on the wire — otherwise the API
-     * rejects them with `background=true is required for agent interactions.`
-     * The server returns a non-terminal status (`in_progress`/`requires_action`)
-     * and the final outputs are streamed via `GET /interactions/{id}?stream=true`
-     * (or polled via `GET /interactions/{id}`). This is handled internally in
-     * `doGenerate` / `doStream` so the user-facing surface stays identical to
-     * model-id calls.
-     *
-     * Model-id calls retain their original synchronous behavior — no
-     * `background` field is sent. (No documented model accepts `background:
-     * true` today; revisit when one does.)
+     * `background` is opt-in via `providerOptions.google.background`. Some
+     * agents require it because their server-side workflow cannot complete
+     * within a single request; others reject it. When `background: true`, the
+     * POST returns a non-terminal status and the SDK polls
+     * `GET /interactions/{id}` until the work completes.
      */
     const args: GoogleInteractionsRequestBody = pruneUndefined({
       ...(isAgent ? { agent: this.agent } : { model: this.modelId }),
       input,
       system_instruction: systemInstruction,
       tools: toolsForBody,
-      response_format: responseFormat,
-      response_mime_type: responseMimeType,
+      response_format:
+        responseFormatEntries.length > 0 ? responseFormatEntries : undefined,
       response_modalities:
-        opts?.responseModalities != null
-          ? (opts.responseModalities as Array<
+        googleOptions?.responseModalities != null
+          ? (googleOptions.responseModalities as Array<
               'text' | 'image' | 'audio' | 'video' | 'document'
             >)
           : undefined,
-      previous_interaction_id: opts?.previousInteractionId ?? undefined,
-      service_tier: opts?.serviceTier ?? undefined,
-      store: opts?.store ?? undefined,
+      previous_interaction_id:
+        googleOptions?.previousInteractionId ?? undefined,
+      service_tier: googleOptions?.serviceTier ?? undefined,
+      store: googleOptions?.store ?? undefined,
       generation_config:
         generationConfig != null && Object.keys(generationConfig).length > 0
           ? generationConfig
           : undefined,
       agent_config: agentConfig,
-      ...(isAgent ? { background: true } : {}),
+      environment,
+      background: googleOptions?.background ?? undefined,
     });
 
     return {
       args,
       warnings,
       isAgent,
-      pollingTimeoutMs: opts?.pollingTimeoutMs ?? undefined,
+      isBackground: googleOptions?.background === true,
+      pollingTimeoutMs: googleOptions?.pollingTimeoutMs ?? undefined,
     };
   }
 
@@ -353,6 +459,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     const url = `${this.config.baseURL}/interactions`;
 
     const mergedHeaders = combineHeaders(
+      INTERACTIONS_API_REVISION_HEADER,
       this.config.headers ? await resolve(this.config.headers) : undefined,
       options.headers,
     );
@@ -376,8 +483,8 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     } = postResult;
 
     /*
-     * Agent calls run with `background: true`; the POST returns immediately
-     * with a non-terminal status (`in_progress` / `requires_action`). Poll
+     * Agent calls may return a non-terminal status (`in_progress` /
+     * `requires_action`) when invoked with `background: true`. Poll
      * `GET /interactions/{id}` until terminal so the user-facing surface
      * matches a synchronous call.
      */
@@ -407,7 +514,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
         : undefined;
 
     const { content, hasFunctionCall } = parseGoogleInteractionsOutputs({
-      outputs: response.outputs ?? null,
+      steps: response.steps ?? null,
       generateId: this.config.generateId ?? defaultGenerateId,
       interactionId,
     });
@@ -475,24 +582,25 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
   async doStream(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4StreamResult> {
-    const { args, warnings, isAgent, pollingTimeoutMs } =
+    const { args, warnings, isBackground, pollingTimeoutMs } =
       await this.getArgs(options);
 
     const url = `${this.config.baseURL}/interactions`;
 
     const mergedHeaders = combineHeaders(
+      INTERACTIONS_API_REVISION_HEADER,
       this.config.headers ? await resolve(this.config.headers) : undefined,
       options.headers,
     );
 
     /*
-     * Agent calls require `background: true`, which is incompatible with
-     * `stream: true` on POST. Drive these via POST background -> GET stream
-     * (with terminal-status short-circuit). The user-facing stream surface
-     * stays identical -- text-start / text-delta / text-end / finish parts
-     * are emitted in the same order as a true SSE response.
+     * `background: true` is incompatible with `stream: true` on POST. Drive
+     * background calls via POST background -> GET stream (with terminal-status
+     * short-circuit). The user-facing stream surface stays identical --
+     * text-start / text-delta / text-end / finish parts are emitted in the
+     * same order as a true SSE response.
      */
-    if (isAgent) {
+    if (isBackground) {
       return this.doStreamBackground({
         args,
         warnings,
@@ -648,6 +756,15 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     };
   }
 }
+
+/*
+ * Pins the Interactions API revision the SDK targets. Sent on every request
+ * the model issues so model-id calls, agent calls, polling, SSE reconnects,
+ * and cancellation all hit the same schema.
+ */
+const INTERACTIONS_API_REVISION_HEADER: Record<string, string> = {
+  'Api-Revision': '2026-05-20',
+};
 
 function pruneUndefined<T extends Record<string, unknown>>(obj: T): T {
   const result: Record<string, unknown> = {};

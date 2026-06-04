@@ -35,7 +35,7 @@ run(async () => {
     stopWhen: isStepCount(5),
   });
 
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     switch (chunk.type) {
       case 'text-delta': {
         process.stdout.write(chunk.text);

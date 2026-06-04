@@ -1,11 +1,12 @@
 import { z } from 'zod/v4';
 import {
   tool,
-  type Sandbox,
+  type Experimental_SandboxSession as SandboxSession,
   type Tool,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import { describe, expect, it } from 'vitest';
+import { mockSandboxSessionFileStubs } from '../test/mock-sandbox';
 import { prepareTools } from './prepare-tools';
 
 const mockTools = {
@@ -123,6 +124,69 @@ describe('prepareTools', () => {
     `);
   });
 
+  it('orders tools according to a partial toolOrder and appends omitted tools alphabetically', async () => {
+    const result = await prepareTools({
+      tools: {
+        zebra: tool({
+          description: 'Zebra tool',
+          inputSchema: z.object({}),
+        }),
+        alpha: tool({
+          description: 'Alpha tool',
+          inputSchema: z.object({}),
+        }),
+        providerTool: mockProviderDefinedTool,
+        middle: tool({
+          description: 'Middle tool',
+          inputSchema: z.object({}),
+        }),
+      },
+      toolOrder: ['middle'] as const,
+    });
+
+    expect(result?.map(tool => tool.name)).toEqual([
+      'middle',
+      'alpha',
+      'providerTool',
+      'zebra',
+    ]);
+  });
+
+  it('preserves toolOrder entries before alphabetically sorting the remaining tools', async () => {
+    const result = await prepareTools({
+      tools: {
+        zebra: tool({
+          description: 'Zebra tool',
+          inputSchema: z.object({}),
+        }),
+        alpha: tool({
+          description: 'Alpha tool',
+          inputSchema: z.object({}),
+        }),
+        middle: tool({
+          description: 'Middle tool',
+          inputSchema: z.object({}),
+        }),
+      },
+      toolOrder: ['zebra', 'middle'] as const,
+    });
+
+    expect(result?.map(tool => tool.name)).toEqual([
+      'zebra',
+      'middle',
+      'alpha',
+    ]);
+  });
+
+  it('does not duplicate tools when toolOrder contains duplicate names', async () => {
+    const result = await prepareTools({
+      tools: mockTools,
+      toolOrder: ['tool2', 'tool2'] as const,
+    });
+
+    expect(result?.map(tool => tool.name)).toEqual(['tool2', 'tool1']);
+  });
+
   it('passes through provider options', async () => {
     const result = await prepareTools({
       tools: {
@@ -234,13 +298,14 @@ describe('prepareTools', () => {
   });
 
   it('resolves function descriptions from toolsContext and sandbox', async () => {
-    const sandbox: Sandbox = {
+    const sandbox: SandboxSession = {
       description: 'test-sandbox',
-      executeCommand: async () => ({
+      run: async () => ({
         exitCode: 0,
         stdout: '',
         stderr: '',
       }),
+      ...mockSandboxSessionFileStubs,
     };
 
     const result = await prepareTools({
@@ -254,14 +319,17 @@ describe('prepareTools', () => {
         },
         withSandbox: {
           type: 'dynamic' as const,
-          description: ({ sandbox: sb }: { sandbox?: Sandbox }) =>
-            `Env: ${sb?.description ?? 'none'}`,
+          description: ({
+            experimental_sandbox: sandbox,
+          }: {
+            experimental_sandbox?: SandboxSession;
+          }) => `Env: ${sandbox?.description ?? 'none'}`,
           inputSchema: z.object({}),
           execute: async () => {},
         },
       } as unknown as ToolSet,
       toolsContext: { contextual: { userName: 'Ada' } },
-      sandbox,
+      experimental_sandbox: sandbox,
     });
 
     expect(result).toEqual([

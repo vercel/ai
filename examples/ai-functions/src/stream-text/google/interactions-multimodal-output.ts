@@ -1,4 +1,7 @@
-import { google } from '@ai-sdk/google';
+import {
+  google,
+  type GoogleLanguageModelInteractionsOptions,
+} from '@ai-sdk/google';
 import { streamText } from 'ai';
 import { presentImages } from '../../lib/present-image';
 import { run } from '../../lib/run';
@@ -11,11 +14,11 @@ run(async () => {
     providerOptions: {
       google: {
         responseModalities: ['text', 'image'],
-      },
+      } satisfies GoogleLanguageModelInteractionsOptions,
     },
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'text-delta': {
         process.stdout.write(part.text);
@@ -23,6 +26,7 @@ run(async () => {
       }
       case 'file': {
         if (part.file.mediaType.startsWith('image/')) {
+          process.stdout.write('\n');
           await presentImages([part.file]);
         }
         break;

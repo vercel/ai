@@ -33,7 +33,7 @@ For agents, `runtimeContext` is the shared runtime state that flows through the
 loop. For guidance on `runtimeContext`, `toolsContext`, tool `context`, and
 sensitive context filtering, see [Runtime and Tool
 Context](/docs/ai-sdk-core/runtime-and-tool-context).
-Pass `sandbox` to `generate()` or `stream()` when tools need access to a command
+Pass `experimental_sandbox` to `generate()` or `stream()` when tools need access to a command
 or code execution environment.
 
 To see `ToolLoopAgent` in action, check out [these examples](#examples).
@@ -63,6 +63,13 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
         'Instructions for the agent, usually used for system prompt/context.',
     },
     {
+      name: 'allowSystemInMessages',
+      type: 'boolean',
+      isOptional: true,
+      description:
+        'Whether `role: "system"` messages are allowed in the `prompt` or `messages` fields. When unset, system messages are rejected because they can create a prompt injection attack risk. Ideally, use the `instructions` option instead. Set to `true` to allow system messages, or `false` to explicitly reject them.',
+    },
+    {
       name: 'tools',
       type: 'Record<string, Tool>',
       isOptional: true,
@@ -89,6 +96,13 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       isOptional: true,
       description:
         'Limits the tools that are available for the model to call without changing the tool call and result types in the result. All tools are active by default. Tool names are restricted to the string keys of the tool set.',
+    },
+    {
+      name: 'toolOrder',
+      type: 'ToolOrder<TOOLS>',
+      isOptional: true,
+      description:
+        'Controls the order in which tools are sent to the provider. The list can be partial. Tools not listed in `toolOrder` are sent after the listed tools, sorted alphabetically. Tool names are restricted to the string keys of the tool set.',
     },
     {
       name: 'toolApproval',
@@ -178,6 +192,12 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
               type: 'ActiveTools<TOOLS>',
               description:
                 'Limits which tools are available for the model to call.',
+            },
+            {
+              name: 'toolOrder',
+              type: 'ToolOrder<TOOLS>',
+              description:
+                'Controls the order in which tools are sent to the provider.',
             },
             {
               name: 'maxOutputTokens',
@@ -321,6 +341,12 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
               description: 'Limits which tools are available for this step.',
             },
             {
+              name: 'toolOrder',
+              type: 'ToolOrder<TOOLS>',
+              description:
+                'Controls the order in which tools are sent to the provider for this step.',
+            },
+            {
               name: 'steps',
               type: 'ReadonlyArray<StepResult<TOOLS>>',
               description:
@@ -441,7 +467,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
                 'The full tool call object containing toolName, toolCallId, input, and metadata.',
             },
             {
-              name: 'durationMs',
+              name: 'toolExecutionMs',
               type: 'number',
               description:
                 'The wall-clock duration of the tool execution in milliseconds.',
@@ -476,11 +502,17 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
         'Callback invoked after each agent step (LLM/tool call) completes. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first).',
     },
     {
-      name: 'onFinish',
-      type: 'GenerateTextOnFinishCallback',
+      name: 'onEnd',
+      type: 'GenerateTextOnEndCallback',
       isOptional: true,
       description:
         'Callback that is called when all agent steps are finished and the response is complete. Receives step results, total usage, shared `runtimeContext`, and `toolsContext`. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first).',
+    },
+    {
+      name: 'onFinish',
+      type: 'GenerateTextOnEndCallback',
+      isOptional: true,
+      description: 'Deprecated alias for `onEnd`.',
     },
     {
       name: 'runtimeContext',
@@ -679,11 +711,11 @@ const result = await agent.generate({
         'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, and/or chunkMs properties. The call will be aborted if it takes longer than the specified timeout. Can be used alongside abortSignal.',
     },
     {
-      name: 'sandbox',
-      type: 'Sandbox',
+      name: 'experimental_sandbox',
+      type: 'Experimental_SandboxSession',
       isOptional: true,
       description:
-        'Sandbox environment that is passed through to `prepareStep`, tool description functions, and tool execution. Tools can access it from their description function options and execution options.',
+        'Experimental sandbox environment that is passed through to `prepareStep`, tool description functions, and tool execution. Tools can access it from their description function options and execution options.',
     },
     {
       name: 'options',
@@ -728,11 +760,17 @@ const result = await agent.generate({
         'Callback invoked after each agent step (LLM/tool call) completes. If also specified in the constructor, both callbacks are called (constructor first, then this one).',
     },
     {
-      name: 'onFinish',
-      type: 'GenerateTextOnFinishCallback',
+      name: 'onEnd',
+      type: 'GenerateTextOnEndCallback',
       isOptional: true,
       description:
         'Callback that is called when all agent steps are finished and the response is complete. If also specified in the constructor, both callbacks are called (constructor first, then this one).',
+    },
+    {
+      name: 'onFinish',
+      type: 'GenerateTextOnEndCallback',
+      isOptional: true,
+      description: 'Deprecated alias for `onEnd`.',
     },
   ]}
 />
@@ -782,11 +820,11 @@ for await (const chunk of stream.textStream) {
         'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, and/or chunkMs properties. The call will be aborted if it takes longer than the specified timeout. Can be used alongside abortSignal.',
     },
     {
-      name: 'sandbox',
-      type: 'Sandbox',
+      name: 'experimental_sandbox',
+      type: 'Experimental_SandboxSession',
       isOptional: true,
       description:
-        'Sandbox environment that is passed through to `prepareStep`, tool description functions, and tool execution. Tools can access it from their description function options and execution options.',
+        'Experimental sandbox environment that is passed through to `prepareStep`, tool description functions, and tool execution. Tools can access it from their description function options and execution options.',
     },
     {
       name: 'options',
@@ -838,11 +876,17 @@ for await (const chunk of stream.textStream) {
         'Callback invoked after each agent step (LLM/tool call) completes. If also specified in the constructor, both callbacks are called (constructor first, then this one).',
     },
     {
-      name: 'onFinish',
-      type: 'GenerateTextOnFinishCallback',
+      name: 'onEnd',
+      type: 'GenerateTextOnEndCallback',
       isOptional: true,
       description:
         'Callback that is called when all agent steps are finished and the response is complete. If also specified in the constructor, both callbacks are called (constructor first, then this one).',
+    },
+    {
+      name: 'onFinish',
+      type: 'GenerateTextOnEndCallback',
+      isOptional: true,
+      description: 'Deprecated alias for `onEnd`.',
     },
   ]}
 />

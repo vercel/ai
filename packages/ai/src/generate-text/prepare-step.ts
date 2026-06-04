@@ -1,9 +1,9 @@
 import type {
   Context,
+  Experimental_SandboxSession as SandboxSession,
   InferToolSetContext,
   ModelMessage,
   ProviderOptions,
-  Sandbox,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import type { Instructions } from '../prompt';
@@ -11,6 +11,7 @@ import type { LanguageModel, ToolChoice } from '../types/language-model';
 import type { ActiveTools } from './active-tools';
 import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
+import type { ToolOrder } from './tool-order';
 
 /**
  * Function that you can use to provide different settings for a step.
@@ -87,7 +88,7 @@ export type PrepareStepFunction<
   /**
    * The sandbox environment that the step is operating in.
    */
-  sandbox?: Sandbox;
+  experimental_sandbox?: SandboxSession;
 }) =>
   | PromiseLike<PrepareStepResult<TOOLS, RUNTIME_CONTEXT>>
   | PrepareStepResult<TOOLS, RUNTIME_CONTEXT>;
@@ -118,7 +119,14 @@ export type PrepareStepResult<
       activeTools?: ActiveTools<NoInfer<TOOLS>>;
 
       /**
+       * Optionally override the order in which tools are sent to the provider
+       * for this step.
+       */
+      toolOrder?: ToolOrder<NoInfer<TOOLS>>;
+
+      /**
        * Optionally override the instructions sent to the model for this step.
+       * The override carries forward to later steps.
        */
       instructions?: Instructions;
 
@@ -158,7 +166,7 @@ export type PrepareStepResult<
        *
        * Changing the sandbox will affect tool execution in this step only.
        */
-      sandbox?: Sandbox;
+      experimental_sandbox?: SandboxSession;
 
       /**
        * Additional provider-specific options for this step.

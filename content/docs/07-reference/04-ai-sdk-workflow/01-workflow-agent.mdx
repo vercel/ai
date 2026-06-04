@@ -299,7 +299,8 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
             {
               name: 'durationMs',
               type: 'number',
-              description: 'Tool execution time in milliseconds.',
+              description:
+                'Tool execution time in milliseconds. Workflow agents use `durationMs`; AI SDK Core generation callbacks use `toolExecutionMs`.',
             },
             {
               name: 'messages',
@@ -331,8 +332,8 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
         'Callback invoked after each agent step completes. If also specified in `stream()`, both callbacks fire (constructor first).',
     },
     {
-      name: 'onFinish',
-      type: 'WorkflowAgentOnFinishCallback',
+      name: 'onEnd',
+      type: 'WorkflowAgentOnEndCallback',
       isOptional: true,
       description:
         'Callback called when all agent steps are finished and the response is complete. Receives steps, messages, text, finish reason, total usage, and context. If also specified in `stream()`, both callbacks fire (constructor first).',
@@ -592,11 +593,11 @@ const result = await agent.stream({
         'Per-call onStepFinish callback. If also specified in the constructor, both fire (constructor first).',
     },
     {
-      name: 'onFinish',
-      type: 'WorkflowAgentOnFinishCallback',
+      name: 'onEnd',
+      type: 'WorkflowAgentOnEndCallback',
       isOptional: true,
       description:
-        'Per-call onFinish callback. If also specified in the constructor, both fire (constructor first).',
+        'Per-call onEnd callback. If also specified in the constructor, both fire (constructor first).',
     },
     {
       name: 'onError',
@@ -902,7 +903,7 @@ const result = await agent.stream({
     await trackUsage(usage);
   },
 
-  onFinish({ steps, totalUsage }) {
+  onEnd({ steps, totalUsage }) {
     console.log(
       `Done in ${steps.length} steps, ${totalUsage.totalTokens} tokens`,
     );

@@ -33,7 +33,7 @@ run(async () => {
   const toolCalls: ToolCallPart[] = [];
   const toolResponses: ToolResultPart[] = [];
 
-  for await (const delta of result.fullStream) {
+  for await (const delta of result.stream) {
     console.log(delta);
 
     switch (delta.type) {

@@ -48,19 +48,22 @@ export function annotationToSource({
 }): LanguageModelV4Source | undefined {
   switch (annotation.type) {
     case 'url_citation': {
-      const a = annotation as GoogleInteractionsURLCitation;
-      if (a.url == null || a.url.length === 0) return undefined;
+      const urlCitation = annotation as GoogleInteractionsURLCitation;
+      if (urlCitation.url == null || urlCitation.url.length === 0) {
+        return undefined;
+      }
       return {
         type: 'source',
         sourceType: 'url',
         id: generateId(),
-        url: a.url,
-        ...(a.title != null ? { title: a.title } : {}),
+        url: urlCitation.url,
+        ...(urlCitation.title != null ? { title: urlCitation.title } : {}),
       };
     }
     case 'file_citation': {
-      const a = annotation as GoogleInteractionsFileCitation;
-      const uri = a.document_uri ?? a.source ?? a.file_name;
+      const fileCitation = annotation as GoogleInteractionsFileCitation;
+      const uri =
+        fileCitation.url ?? fileCitation.document_uri ?? fileCitation.file_name;
       if (uri == null || uri.length === 0) return undefined;
       if (uri.startsWith('http://') || uri.startsWith('https://')) {
         return {
@@ -68,29 +71,33 @@ export function annotationToSource({
           sourceType: 'url',
           id: generateId(),
           url: uri,
-          ...(a.file_name != null ? { title: a.file_name } : {}),
+          ...(fileCitation.file_name != null
+            ? { title: fileCitation.file_name }
+            : {}),
         };
       }
-      const filename = a.file_name ?? basename(uri);
+      const filename = fileCitation.file_name ?? basename(uri);
       const mediaType = inferDocMediaType(uri);
       return {
         type: 'source',
         sourceType: 'document',
         id: generateId(),
         mediaType,
-        title: a.file_name ?? filename ?? uri,
+        title: fileCitation.file_name ?? filename ?? uri,
         ...(filename != null ? { filename } : {}),
       };
     }
     case 'place_citation': {
-      const a = annotation as GoogleInteractionsPlaceCitation;
-      if (a.url == null || a.url.length === 0) return undefined;
+      const placeCitation = annotation as GoogleInteractionsPlaceCitation;
+      if (placeCitation.url == null || placeCitation.url.length === 0) {
+        return undefined;
+      }
       return {
         type: 'source',
         sourceType: 'url',
         id: generateId(),
-        url: a.url,
-        ...(a.name != null ? { title: a.name } : {}),
+        url: placeCitation.url,
+        ...(placeCitation.name != null ? { title: placeCitation.name } : {}),
       };
     }
     default:
@@ -176,10 +183,10 @@ export function builtinToolResultToSources({
         const entry = raw as {
           file_name?: string;
           document_uri?: string;
-          source?: string;
+          url?: string;
           title?: string;
         };
-        const uri = entry.document_uri ?? entry.source ?? entry.file_name;
+        const uri = entry.url ?? entry.document_uri ?? entry.file_name;
         if (uri == null || uri.length === 0) continue;
         if (uri.startsWith('http://') || uri.startsWith('https://')) {
           sources.push({

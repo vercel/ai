@@ -4,7 +4,7 @@ import {
 } from '@/agent/openai/sandbox-agent';
 import { createAgentUIStreamResponse } from 'ai';
 import { Sandbox } from '@vercel/sandbox';
-import { VercelSandbox } from '@/sandbox/vercel-sandbox';
+import { VercelSandboxSession } from '@/sandbox/vercel-sandbox';
 
 async function getSandbox(sandboxId?: string) {
   if (sandboxId != null) {
@@ -31,13 +31,13 @@ export async function POST(req: Request) {
 
   const vercelSandbox = await getSandbox(getLatestSandboxId(messages));
 
-  const sandbox = new VercelSandbox(vercelSandbox);
+  const sandbox = new VercelSandboxSession(vercelSandbox);
 
   return createAgentUIStreamResponse({
     agent: sandboxAgent,
     uiMessages: messages,
     originalMessages: messages,
-    sandbox,
+    experimental_sandbox: sandbox,
     messageMetadata: ({ part }) => {
       if (part.type === 'start') {
         return { sandboxId: vercelSandbox.sandboxId };

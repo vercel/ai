@@ -134,7 +134,9 @@ export async function POST(req: Request) {
     // ... other configuration
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 

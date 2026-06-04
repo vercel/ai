@@ -35,7 +35,7 @@ export type EmbedStartEvent = {
 };
 
 /**
- * Event passed to the `onFinish` callback for embed and embedMany operations.
+ * Event passed to the `experimental_onEnd` callback for embed and embedMany operations.
  *
  * Called when the operation completes, after the embedding model returns.
  */

@@ -4,21 +4,24 @@ import type {
 } from '@ai-sdk/provider';
 import {
   asSchema,
+  type Experimental_SandboxSession as SandboxSession,
   type InferToolSetContext,
-  type Sandbox,
   type Tool,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
+import type { ToolOrder } from '../generate-text/tool-order';
 import { isNonEmptyObject } from '../util/is-non-empty-object';
 
 export async function prepareTools<TOOLS extends ToolSet>({
   tools,
+  toolOrder,
   toolsContext = {} as InferToolSetContext<TOOLS>,
-  sandbox,
+  experimental_sandbox: sandbox,
 }: {
   tools: TOOLS | undefined;
+  toolOrder?: ToolOrder<TOOLS>;
   toolsContext?: InferToolSetContext<TOOLS>;
-  sandbox?: Sandbox;
+  experimental_sandbox?: SandboxSession;
 }): Promise<
   Array<LanguageModelV4FunctionTool | LanguageModelV4ProviderTool> | undefined
 > {
@@ -29,7 +32,7 @@ export async function prepareTools<TOOLS extends ToolSet>({
   const languageModelTools: Array<
     LanguageModelV4FunctionTool | LanguageModelV4ProviderTool
   > = [];
-  for (const [name, tool] of Object.entries(tools)) {
+  for (const [name, tool] of orderToolEntries({ tools, toolOrder })) {
     const toolType = tool.type;
 
     switch (toolType) {
@@ -40,7 +43,7 @@ export async function prepareTools<TOOLS extends ToolSet>({
           tool,
           toolName: name,
           toolsContext,
-          sandbox,
+          experimental_sandbox: sandbox,
         });
         const providerOptions = tool.providerOptions;
         const inputExamples = tool.inputExamples;
@@ -76,16 +79,42 @@ export async function prepareTools<TOOLS extends ToolSet>({
   return languageModelTools;
 }
 
+function orderToolEntries<TOOLS extends ToolSet>({
+  tools,
+  toolOrder,
+}: {
+  tools: TOOLS;
+  toolOrder?: ToolOrder<TOOLS>;
+}): Array<[string, Tool]> {
+  if (toolOrder == null) {
+    return Object.entries(tools);
+  }
+
+  const toolEntries = Object.entries(tools);
+
+  const orderedTools = toolEntries
+    .filter(([name]) => toolOrder.includes(name))
+    .sort(
+      ([nameA], [nameB]) => toolOrder.indexOf(nameA) - toolOrder.indexOf(nameB),
+    );
+
+  const unorderedTools = toolEntries
+    .filter(([name]) => !toolOrder.includes(name))
+    .sort(([nameA], [nameB]) => (nameA < nameB ? -1 : nameA > nameB ? 1 : 0));
+
+  return [...orderedTools, ...unorderedTools];
+}
+
 function resolveToolDescription<TOOLS extends ToolSet>({
   tool,
   toolName,
   toolsContext,
-  sandbox,
+  experimental_sandbox: sandbox,
 }: {
   tool: Tool;
   toolName: string;
   toolsContext: InferToolSetContext<TOOLS>;
-  sandbox?: Sandbox;
+  experimental_sandbox?: SandboxSession;
 }): string | undefined {
   return tool.description === undefined
     ? undefined
@@ -93,6 +122,6 @@ function resolveToolDescription<TOOLS extends ToolSet>({
       ? tool.description
       : tool.description({
           context: toolsContext[toolName as keyof InferToolSetContext<TOOLS>],
-          sandbox,
+          experimental_sandbox: sandbox,
         });
 }

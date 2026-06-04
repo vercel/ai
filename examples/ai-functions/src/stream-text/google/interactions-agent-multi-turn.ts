@@ -1,4 +1,7 @@
-import { google } from '@ai-sdk/google';
+import {
+  google,
+  type GoogleLanguageModelInteractionsOptions,
+} from '@ai-sdk/google';
 import { streamText } from 'ai';
 import { cancelOnSigint } from '../../lib/cancel-on-sigint';
 import { run } from '../../lib/run';
@@ -25,13 +28,14 @@ run(async () => {
           type: 'deep-research',
           thinkingSummaries: 'auto',
         },
-      },
+        background: true,
+      } satisfies GoogleLanguageModelInteractionsOptions,
     },
     prompt:
       'List three foundational concepts behind transformer-based language models (one sentence each).',
     abortSignal: ac.signal,
   });
-  for await (const part of turn1.fullStream) {
+  for await (const part of turn1.stream) {
     if (part.type === 'reasoning-delta') {
       process.stdout.write(`\x1b[2m${part.text}\x1b[0m`);
     } else if (part.type === 'text-delta') {
@@ -68,11 +72,12 @@ run(async () => {
           type: 'deep-research',
           thinkingSummaries: 'auto',
         },
-      },
+        background: true,
+      } satisfies GoogleLanguageModelInteractionsOptions,
     },
     abortSignal: ac.signal,
   });
-  for await (const part of turn2.fullStream) {
+  for await (const part of turn2.stream) {
     if (part.type === 'reasoning-delta') {
       process.stdout.write(`\x1b[2m${part.text}\x1b[0m`);
     } else if (part.type === 'text-delta') {

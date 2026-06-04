@@ -5,6 +5,7 @@ import type {
   ImageModelV4,
   LanguageModelV4,
   ProviderV4,
+  SpeechModelV4,
 } from '@ai-sdk/provider';
 import {
   generateId,
@@ -28,6 +29,8 @@ import { GoogleImageModel } from './google-image-model';
 import { GoogleFiles } from './google-files';
 import { GoogleVideoModel } from './google-video-model';
 import type { GoogleVideoModelId } from './google-video-settings';
+import { GoogleSpeechModel } from './google-speech-model';
+import type { GoogleSpeechModelId } from './google-speech-model-options';
 import {
   GoogleInteractionsLanguageModel,
   type GoogleInteractionsModelInput,
@@ -85,17 +88,31 @@ export interface GoogleProvider extends ProviderV4 {
    */
   videoModel(modelId: GoogleVideoModelId): Experimental_VideoModelV4;
 
+  /**
+   * Creates a model for speech generation (text-to-speech).
+   */
+  speech(modelId: GoogleSpeechModelId): SpeechModelV4;
+
+  /**
+   * Creates a model for speech generation (text-to-speech).
+   */
+  speechModel(modelId: GoogleSpeechModelId): SpeechModelV4;
+
   files(): FilesV4;
 
   /**
    * Creates a language model targeting the Gemini Interactions API
-   * (`POST /v1beta/interactions`). Pass either a model ID (string) or
-   * `{ agent: <name> }` to use a Gemini agent preset.
+   * (`POST /v1beta/interactions`). Pass:
+   *   - a model ID (string),
+   *   - `{ agent: <name> }` to use a known Gemini agent preset, or
+   *   - `{ managedAgent: <name> }` to use a user-defined agent created via
+   *     the `/v1beta/agents` endpoint.
    */
   interactions(
     modelIdOrAgent:
       | GoogleInteractionsModelId
-      | { agent: GoogleInteractionsAgentName },
+      | { agent: GoogleInteractionsAgentName }
+      | { managedAgent: string },
   ): LanguageModelV4;
 
   tools: typeof googleTools;
@@ -219,10 +236,19 @@ export function createGoogle(
       generateId: options.generateId ?? generateId,
     });
 
+  const createSpeechModel = (modelId: GoogleSpeechModelId) =>
+    new GoogleSpeechModel(modelId, {
+      provider: `${providerName}.speech`,
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const createInteractionsModel = (
     modelIdOrAgent:
       | GoogleInteractionsModelId
-      | { agent: GoogleInteractionsAgentName },
+      | { agent: GoogleInteractionsAgentName }
+      | { managedAgent: string },
   ) =>
     new GoogleInteractionsLanguageModel(
       modelIdOrAgent as GoogleInteractionsModelInput,
@@ -258,6 +284,8 @@ export function createGoogle(
   provider.video = createVideoModel;
   provider.videoModel = createVideoModel;
   provider.files = createFiles;
+  provider.speech = createSpeechModel;
+  provider.speechModel = createSpeechModel;
   provider.interactions = createInteractionsModel;
   provider.tools = googleTools;
 

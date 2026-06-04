@@ -18,7 +18,7 @@ import type {
   GenerateObjectStartEvent,
   GenerateObjectStepEndEvent,
   GenerateObjectStepStartEvent,
-  StreamTextChunkEvent,
+  GenerateTextAbortEvent,
   GenerateTextEndEvent,
   GenerateTextStartEvent,
   GenerateTextStepEndEvent,
@@ -155,6 +155,27 @@ export class OpenTelemetry implements Telemetry {
     }
 
     return context.with(toolSpanEntry.context, execute);
+  }
+
+  /**
+   * Runs the provider `doGenerate`/`doStream` call with the active model-call
+   * context.
+   */
+  executeLanguageModelCall<T>({
+    callId,
+    execute,
+  }: {
+    callId: string;
+    execute: () => PromiseLike<T>;
+  }): PromiseLike<T> {
+    const state = this.getCallState(callId);
+    const modelCallContext = state?.inferenceContext ?? state?.stepContext;
+
+    if (modelCallContext == null) {
+      return execute();
+    }
+
+    return context.with(modelCallContext, execute);
   }
 
   onStart(
@@ -826,7 +847,7 @@ export class OpenTelemetry implements Telemetry {
     state.stepContext = undefined;
   }
 
-  onFinish(
+  onEnd(
     event:
       | GenerateTextEndEvent<ToolSet>
       | GenerateObjectEndEvent<unknown>
@@ -840,12 +861,12 @@ export class OpenTelemetry implements Telemetry {
       state.operationId === 'ai.embed' ||
       state.operationId === 'ai.embedMany'
     ) {
-      this.onEmbedOperationFinish(event as EmbedEndEvent);
+      this.onEmbedOperationEnd(event as EmbedEndEvent);
       return;
     }
 
     if (state.operationId === 'ai.rerank') {
-      this.onRerankOperationFinish(event as RerankEndEvent);
+      this.onRerankOperationEnd(event as RerankEndEvent);
       return;
     }
 
@@ -853,14 +874,14 @@ export class OpenTelemetry implements Telemetry {
       state.operationId === 'ai.generateObject' ||
       state.operationId === 'ai.streamObject'
     ) {
-      this.onObjectOperationFinish(event as GenerateObjectEndEvent<unknown>);
+      this.onObjectOperationEnd(event as GenerateObjectEndEvent<unknown>);
       return;
     }
 
-    this.onGenerateFinish(event as GenerateTextEndEvent<ToolSet>);
+    this.onGenerateEnd(event as GenerateTextEndEvent<ToolSet>);
   }
 
-  private onGenerateFinish(event: GenerateTextEndEvent<ToolSet>): void {
+  private onGenerateEnd(event: GenerateTextEndEvent<ToolSet>): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan) return;
 
@@ -869,18 +890,20 @@ export class OpenTelemetry implements Telemetry {
     state.rootSpan.setAttributes(
       selectAttributes(telemetry, {
         'gen_ai.response.finish_reasons': [event.finishReason],
-        'gen_ai.usage.input_tokens': event.totalUsage.inputTokens,
-        'gen_ai.usage.output_tokens': event.totalUsage.outputTokens,
+        'gen_ai.usage.input_tokens': event.usage.inputTokens,
+        'gen_ai.usage.output_tokens': event.usage.outputTokens,
         'gen_ai.usage.cache_read.input_tokens':
-          event.totalUsage.inputTokenDetails?.cacheReadTokens,
+          event.usage.inputTokenDetails?.cacheReadTokens,
         'gen_ai.usage.cache_creation.input_tokens':
-          event.totalUsage.inputTokenDetails?.cacheWriteTokens,
+          event.usage.inputTokenDetails?.cacheWriteTokens,
         'gen_ai.output.messages': {
           output: () =>
             JSON.stringify(
               formatOutputMessages({
                 text: event.text ?? undefined,
-                reasoning: event.reasoning as ReadonlyArray<{ text?: string }>,
+                reasoning: event.finalStep.reasoning as ReadonlyArray<{
+                  text?: string;
+                }>,
                 toolCalls: event.toolCalls,
                 files: event.files,
                 finishReason: event.finishReason,
@@ -892,11 +915,11 @@ export class OpenTelemetry implements Telemetry {
           this.supplementalAttributes,
           {
             providerMetadata: {
-              'ai.response.providerMetadata': event.providerMetadata
-                ? JSON.stringify(event.providerMetadata)
+              'ai.response.providerMetadata': event.finalStep.providerMetadata
+                ? JSON.stringify(event.finalStep.providerMetadata)
                 : undefined,
             },
-            usage: getDetailedUsageAttributes(event.totalUsage),
+            usage: getDetailedUsageAttributes(event.usage),
           },
         ),
       }),
@@ -906,9 +929,7 @@ export class OpenTelemetry implements Telemetry {
     this.cleanupCallState(event.callId);
   }
 
-  private onObjectOperationFinish(
-    event: GenerateObjectEndEvent<unknown>,
-  ): void {
+  private onObjectOperationEnd(event: GenerateObjectEndEvent<unknown>): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan) return;
 
@@ -951,7 +972,7 @@ export class OpenTelemetry implements Telemetry {
     this.cleanupCallState(event.callId);
   }
 
-  private onEmbedOperationFinish(event: EmbedEndEvent): void {
+  private onEmbedOperationEnd(event: EmbedEndEvent): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan) return;
 
@@ -1032,7 +1053,7 @@ export class OpenTelemetry implements Telemetry {
     });
   }
 
-  onEmbedFinish(event: EmbeddingModelCallEndEvent): void {
+  onEmbedEnd(event: EmbeddingModelCallEndEvent): void {
     const state = this.getCallState(event.callId);
     if (!state) return;
 
@@ -1129,7 +1150,7 @@ export class OpenTelemetry implements Telemetry {
     });
   }
 
-  private onRerankOperationFinish(event: RerankEndEvent): void {
+  private onRerankOperationEnd(event: RerankEndEvent): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan) return;
 
@@ -1178,7 +1199,7 @@ export class OpenTelemetry implements Telemetry {
     state.rerankSpan = { span: rerankSpan, context: rerankContext };
   }
 
-  onRerankFinish(event: RerankingModelCallEndEvent): void {
+  onRerankEnd(event: RerankingModelCallEndEvent): void {
     const state = this.getCallState(event.callId);
     if (!state?.rerankSpan) return;
 
@@ -1200,8 +1221,39 @@ export class OpenTelemetry implements Telemetry {
     state.rerankSpan = undefined;
   }
 
-  onChunk(_event: StreamTextChunkEvent<ToolSet>): void {
-    // No-op: streaming chunk events are not part of the GenAI SemConv.
+  onAbort(event: GenerateTextAbortEvent<ToolSet>): void {
+    const state = this.getCallState(event.callId);
+    if (!state?.rootSpan) return;
+
+    for (const { span: toolSpan } of state.toolSpans.values()) {
+      toolSpan.end();
+    }
+    state.toolSpans.clear();
+
+    if (state.inferenceSpan) {
+      state.inferenceSpan.end();
+      state.inferenceSpan = undefined;
+      state.inferenceContext = undefined;
+    }
+
+    if (state.stepSpan) {
+      state.stepSpan.end();
+      state.stepSpan = undefined;
+      state.stepContext = undefined;
+    }
+
+    for (const { span: embedSpan } of state.embedSpans.values()) {
+      embedSpan.end();
+    }
+    state.embedSpans.clear();
+
+    if (state.rerankSpan) {
+      state.rerankSpan.span.end();
+      state.rerankSpan = undefined;
+    }
+
+    state.rootSpan.end();
+    this.cleanupCallState(event.callId);
   }
 
   onError(error: unknown): void {

@@ -11,8 +11,8 @@ import { z } from 'zod/v4';
  * Helpers are defined as factories (invoked only inside the exported
  * `lazySchema(() => ...)` callbacks) so no `z.object(...)` / `z.union(...)`
  * runs at module import. Schemas are intentionally narrow on the fields the
- * SDK consumes (text + thought) and lenient (`loose()` / `unknown`) on the
- * rest, so subsequent additions can widen without breaking the basic path.
+ * SDK consumes and lenient (`loose()` / `unknown`) on the rest, so subsequent
+ * additions can widen without breaking the basic path.
  */
 
 const tokenByModalitySchema = () =>
@@ -77,7 +77,7 @@ const annotationSchema = () => {
       type: z.literal('file_citation'),
       file_name: z.string().nullish(),
       document_uri: z.string().nullish(),
-      source: z.string().nullish(),
+      url: z.string().nullish(),
       page_number: z.number().nullish(),
       media_id: z.string().nullish(),
       start_index: z.number().nullish(),
@@ -116,9 +116,10 @@ const thoughtSummaryItemSchema = () =>
     .loose();
 
 /*
- * Catch-all content block schema. Specific variants (`text`, `thought`,
- * `function_call`, built-in tool call/result) are narrowly typed; unknown
- * block types fall through `loose()`.
+ * Content block schemas — these populate the `content` array of a
+ * `model_output` step. Function calls, thoughts, and built-in tool
+ * call/result blocks are top-level step types (see `stepSchema` below), not
+ * content blocks.
  */
 const contentBlockSchema = () => {
   const textContent = z
@@ -126,24 +127,6 @@ const contentBlockSchema = () => {
       type: z.literal('text'),
       text: z.string(),
       annotations: z.array(annotationSchema()).nullish(),
-    })
-    .loose();
-
-  const thoughtContent = z
-    .object({
-      type: z.literal('thought'),
-      signature: z.string().nullish(),
-      summary: z.array(thoughtSummaryItemSchema()).nullish(),
-    })
-    .loose();
-
-  const functionCallContent = z
-    .object({
-      type: z.literal('function_call'),
-      id: z.string(),
-      name: z.string(),
-      arguments: z.record(z.string(), z.unknown()).nullish(),
-      signature: z.string().nullish(),
     })
     .loose();
 
@@ -157,16 +140,81 @@ const contentBlockSchema = () => {
     })
     .loose();
 
-  const builtinToolCall = z
+  return z.union([
+    textContent,
+    imageContent,
+    z.object({ type: z.string() }).loose(),
+  ]);
+};
+
+export type GoogleInteractionsContentBlock = z.infer<
+  ReturnType<typeof contentBlockSchema>
+>;
+
+const BUILTIN_TOOL_CALL_STEP_TYPES = [
+  'google_search_call',
+  'code_execution_call',
+  'url_context_call',
+  'file_search_call',
+  'google_maps_call',
+  'mcp_server_tool_call',
+] as const;
+
+const BUILTIN_TOOL_RESULT_STEP_TYPES = [
+  'google_search_result',
+  'code_execution_result',
+  'url_context_result',
+  'file_search_result',
+  'google_maps_result',
+  'mcp_server_tool_result',
+] as const;
+
+/*
+ * Step schema union — elements of `response.steps[]` and the `step` field on
+ * `step.start` SSE events.
+ *
+ * - `user_input` echoes a turn the client sent; only appears on
+ *   `GET /interactions/{id}` (the full timeline). The SDK skips it.
+ * - `model_output` wraps the model's text/image content in `step.content[]`.
+ * - `function_call`, `thought`, and the built-in `*_call`/`*_result` steps
+ *   carry their payload directly on the step (no `content` indirection).
+ */
+const stepSchema = () => {
+  const userInputStep = z
     .object({
-      type: z.enum([
-        'google_search_call',
-        'code_execution_call',
-        'url_context_call',
-        'file_search_call',
-        'google_maps_call',
-        'mcp_server_tool_call',
-      ]),
+      type: z.literal('user_input'),
+      content: z.array(contentBlockSchema()).nullish(),
+    })
+    .loose();
+
+  const modelOutputStep = z
+    .object({
+      type: z.literal('model_output'),
+      content: z.array(contentBlockSchema()).nullish(),
+    })
+    .loose();
+
+  const functionCallStep = z
+    .object({
+      type: z.literal('function_call'),
+      id: z.string(),
+      name: z.string(),
+      arguments: z.record(z.string(), z.unknown()).nullish(),
+      signature: z.string().nullish(),
+    })
+    .loose();
+
+  const thoughtStep = z
+    .object({
+      type: z.literal('thought'),
+      signature: z.string().nullish(),
+      summary: z.array(thoughtSummaryItemSchema()).nullish(),
+    })
+    .loose();
+
+  const builtinToolCallStep = z
+    .object({
+      type: z.enum(BUILTIN_TOOL_CALL_STEP_TYPES),
       id: z.string(),
       arguments: z.record(z.string(), z.unknown()).nullish(),
       name: z.string().nullish(),
@@ -176,16 +224,9 @@ const contentBlockSchema = () => {
     })
     .loose();
 
-  const builtinToolResult = z
+  const builtinToolResultStep = z
     .object({
-      type: z.enum([
-        'google_search_result',
-        'code_execution_result',
-        'url_context_result',
-        'file_search_result',
-        'google_maps_result',
-        'mcp_server_tool_result',
-      ]),
+      type: z.enum(BUILTIN_TOOL_RESULT_STEP_TYPES),
       call_id: z.string(),
       result: z.unknown().nullish(),
       is_error: z.boolean().nullish(),
@@ -196,19 +237,17 @@ const contentBlockSchema = () => {
     .loose();
 
   return z.union([
-    textContent,
-    imageContent,
-    thoughtContent,
-    functionCallContent,
-    builtinToolCall,
-    builtinToolResult,
+    userInputStep,
+    modelOutputStep,
+    functionCallStep,
+    thoughtStep,
+    builtinToolCallStep,
+    builtinToolResultStep,
     z.object({ type: z.string() }).loose(),
   ]);
 };
 
-export type GoogleInteractionsContentBlock = z.infer<
-  ReturnType<typeof contentBlockSchema>
->;
+export type GoogleInteractionsStep = z.infer<ReturnType<typeof stepSchema>>;
 
 export const googleInteractionsResponseSchema = lazySchema(() =>
   zodSchema(
@@ -225,7 +264,7 @@ export const googleInteractionsResponseSchema = lazySchema(() =>
         status: interactionStatusSchema(),
         model: z.string().nullish(),
         agent: z.string().nullish(),
-        outputs: z.array(contentBlockSchema()).nullish(),
+        steps: z.array(stepSchema()).nullish(),
         usage: usageSchema().nullish(),
         service_tier: z.string().nullish(),
         previous_interaction_id: z.string().nullish(),
@@ -246,9 +285,9 @@ export const googleInteractionsEventSchema = lazySchema(() =>
       const annotation = annotationSchema();
       const thoughtSummaryItem = thoughtSummaryItemSchema();
 
-      const interactionStartEvent = z
+      const interactionCreatedEvent = z
         .object({
-          event_type: z.literal('interaction.start'),
+          event_type: z.literal('interaction.created'),
           event_id: z.string().nullish(),
           interaction: z
             .object({
@@ -266,30 +305,35 @@ export const googleInteractionsEventSchema = lazySchema(() =>
         })
         .loose();
 
-      const contentStartEvent = z
+      /*
+       * `step.start` carries the discriminated step shape under `step`. For
+       * `function_call` steps the `name` is included here; for `thought`
+       * steps the initial `signature` and `summary` arrive here when set.
+       */
+      const stepStartEvent = z
         .object({
-          event_type: z.literal('content.start'),
+          event_type: z.literal('step.start'),
           event_id: z.string().nullish(),
           index: z.number(),
-          content: contentBlockSchema(),
+          step: stepSchema(),
         })
         .loose();
 
-      const contentDeltaText = z
+      const stepDeltaText = z
         .object({
           type: z.literal('text'),
           text: z.string(),
         })
         .loose();
 
-      const contentDeltaThoughtSummary = z
+      const stepDeltaThoughtSummary = z
         .object({
           type: z.literal('thought_summary'),
           content: thoughtSummaryItem.nullish(),
         })
         .loose();
 
-      const contentDeltaThoughtSignature = z
+      const stepDeltaThoughtSignature = z
         .object({
           type: z.literal('thought_signature'),
           signature: z.string().nullish(),
@@ -297,33 +341,40 @@ export const googleInteractionsEventSchema = lazySchema(() =>
         .loose();
 
       /*
-       * `function_call` content deltas carry the entire call (id + name +
-       * arguments) — there is no per-token argument streaming. See js-genai
-       * `src/interactions/resources/interactions.ts` `ContentDelta.FunctionCall`.
+       * `function_call` step deltas stream the JSON arguments as a partial
+       * string. Wire shape:
+       *   { type: 'arguments_delta', arguments: '<partial-json-string>' }
+       * The partial JSON lives in `arguments` (a string), not in a separate
+       * `arguments_delta` field — the discriminator name is the only place
+       * `arguments_delta` appears. Consumers accumulate the substrings and
+       * parse on `step.stop`.
        */
-      const contentDeltaFunctionCall = z
+      const stepDeltaArgumentsDelta = z
         .object({
-          type: z.literal('function_call'),
-          id: z.string(),
-          name: z.string(),
-          arguments: z.record(z.string(), z.unknown()).nullish(),
+          type: z.literal('arguments_delta'),
+          arguments: z.string().nullish(),
+          id: z.string().nullish(),
           signature: z.string().nullish(),
         })
         .loose();
 
-      const contentDeltaTextAnnotation = z
+      /*
+       * URL/file/place-citation deltas. The discriminator is
+       * `text_annotation_delta` (matching the `_delta` suffix used by
+       * `arguments_delta`); `text_annotation` is also accepted as an alias.
+       */
+      const stepDeltaTextAnnotation = z
         .object({
-          type: z.literal('text_annotation'),
+          type: z.enum(['text_annotation_delta', 'text_annotation']),
           annotations: z.array(annotation).nullish(),
         })
         .loose();
 
       /*
-       * `image` content deltas carry the entire image payload (`data` base64 +
-       * `mime_type`, or `uri`) — there is no per-byte streaming. See js-genai
-       * `src/interactions/resources/interactions.ts` `ContentDelta.Image`.
+       * `image` deltas carry the entire payload per delta (`data` base64 +
+       * `mime_type`, or `uri`) — there is no per-byte streaming.
        */
-      const contentDeltaImage = z
+      const stepDeltaImage = z
         .object({
           type: z.literal('image'),
           data: z.string().nullish(),
@@ -334,21 +385,15 @@ export const googleInteractionsEventSchema = lazySchema(() =>
         .loose();
 
       /*
-       * Built-in tool call deltas mirror the same shape as their content-block
-       * counterparts (full payload per delta -- there is no per-token streaming
-       * of arguments). Result deltas carry the populated `result` payload.
+       * Built-in tool call/result step deltas mirror the shape of their step
+       * counterparts (full payload per delta — there is no per-token
+       * streaming of arguments). Result deltas carry the populated `result`
+       * payload.
        */
-      const contentDeltaBuiltinToolCall = z
+      const stepDeltaBuiltinToolCall = z
         .object({
-          type: z.enum([
-            'google_search_call',
-            'code_execution_call',
-            'url_context_call',
-            'file_search_call',
-            'google_maps_call',
-            'mcp_server_tool_call',
-          ]),
-          id: z.string(),
+          type: z.enum(BUILTIN_TOOL_CALL_STEP_TYPES),
+          id: z.string().nullish(),
           arguments: z.record(z.string(), z.unknown()).nullish(),
           name: z.string().nullish(),
           server_name: z.string().nullish(),
@@ -357,17 +402,10 @@ export const googleInteractionsEventSchema = lazySchema(() =>
         })
         .loose();
 
-      const contentDeltaBuiltinToolResult = z
+      const stepDeltaBuiltinToolResult = z
         .object({
-          type: z.enum([
-            'google_search_result',
-            'code_execution_result',
-            'url_context_result',
-            'file_search_result',
-            'google_maps_result',
-            'mcp_server_tool_result',
-          ]),
-          call_id: z.string(),
+          type: z.enum(BUILTIN_TOOL_RESULT_STEP_TYPES),
+          call_id: z.string().nullish(),
           result: z.unknown().nullish(),
           is_error: z.boolean().nullish(),
           name: z.string().nullish(),
@@ -376,49 +414,73 @@ export const googleInteractionsEventSchema = lazySchema(() =>
         })
         .loose();
 
-      const contentDeltaUnknown = z.object({ type: z.string() }).loose();
+      const stepDeltaUnknown = z.object({ type: z.string() }).loose();
 
-      const contentDeltaUnion = z.union([
-        contentDeltaText,
-        contentDeltaImage,
-        contentDeltaThoughtSummary,
-        contentDeltaThoughtSignature,
-        contentDeltaFunctionCall,
-        contentDeltaTextAnnotation,
-        contentDeltaBuiltinToolCall,
-        contentDeltaBuiltinToolResult,
-        contentDeltaUnknown,
+      const stepDeltaUnion = z.union([
+        stepDeltaText,
+        stepDeltaImage,
+        stepDeltaThoughtSummary,
+        stepDeltaThoughtSignature,
+        stepDeltaArgumentsDelta,
+        stepDeltaTextAnnotation,
+        stepDeltaBuiltinToolCall,
+        stepDeltaBuiltinToolResult,
+        stepDeltaUnknown,
       ]);
 
-      const contentDeltaEvent = z
+      const stepDeltaEvent = z
         .object({
-          event_type: z.literal('content.delta'),
+          event_type: z.literal('step.delta'),
           event_id: z.string().nullish(),
           index: z.number(),
-          delta: contentDeltaUnion,
+          delta: stepDeltaUnion,
         })
         .loose();
 
-      const contentStopEvent = z
+      const stepStopEvent = z
         .object({
-          event_type: z.literal('content.stop'),
+          event_type: z.literal('step.stop'),
           event_id: z.string().nullish(),
           index: z.number(),
         })
         .loose();
 
+      /*
+       * Status-transition events. The API emits `interaction.status_update`
+       * for in-progress and requires-action transitions; the more specific
+       * `interaction.in_progress` and `interaction.requires_action` shapes
+       * are accepted so all three route through the same handler.
+       */
       const interactionStatusUpdateEvent = z
         .object({
           event_type: z.literal('interaction.status_update'),
           event_id: z.string().nullish(),
           interaction_id: z.string().nullish(),
-          status,
+          status: status.nullish(),
         })
         .loose();
 
-      const interactionCompleteEvent = z
+      const interactionInProgressEvent = z
         .object({
-          event_type: z.literal('interaction.complete'),
+          event_type: z.literal('interaction.in_progress'),
+          event_id: z.string().nullish(),
+          interaction_id: z.string().nullish(),
+          status: status.nullish(),
+        })
+        .loose();
+
+      const interactionRequiresActionEvent = z
+        .object({
+          event_type: z.literal('interaction.requires_action'),
+          event_id: z.string().nullish(),
+          interaction_id: z.string().nullish(),
+          status: status.nullish(),
+        })
+        .loose();
+
+      const interactionCompletedEvent = z
+        .object({
+          event_type: z.literal('interaction.completed'),
           event_id: z.string().nullish(),
           interaction: z
             .object({
@@ -448,12 +510,14 @@ export const googleInteractionsEventSchema = lazySchema(() =>
       const unknownEvent = z.object({ event_type: z.string() }).loose();
 
       return z.union([
-        interactionStartEvent,
-        contentStartEvent,
-        contentDeltaEvent,
-        contentStopEvent,
+        interactionCreatedEvent,
+        stepStartEvent,
+        stepDeltaEvent,
+        stepStopEvent,
         interactionStatusUpdateEvent,
-        interactionCompleteEvent,
+        interactionInProgressEvent,
+        interactionRequiresActionEvent,
+        interactionCompletedEvent,
         errorEvent,
         unknownEvent,
       ]);

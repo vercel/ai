@@ -1,5 +1,109 @@
 # @ai-sdk/azure
 
+## 4.0.0-canary.68
+
+### Patch Changes
+
+- Updated dependencies [ee798eb]
+- Updated dependencies [61bcdb5]
+- Updated dependencies [daf6637]
+  - @ai-sdk/provider-utils@5.0.0-canary.45
+  - @ai-sdk/openai@4.0.0-canary.67
+
+## 4.0.0-canary.67
+
+### Patch Changes
+
+- 9f4dca0: Add Microsoft Entra ID token provider authentication for Azure OpenAI.
+
+## 4.0.0-canary.66
+
+### Patch Changes
+
+- e776fc7: feat(provider/azure):web search tool in the Azure OpenAI Responses API.
+- Updated dependencies [e776fc7]
+  - @ai-sdk/openai@4.0.0-canary.66
+
+## 4.0.0-canary.65
+
+### Patch Changes
+
+- Updated dependencies [cd3de8b]
+  - @ai-sdk/openai@4.0.0-canary.65
+
+## 4.0.0-canary.64
+
+### Patch Changes
+
+- Updated dependencies [6c93e36]
+- Updated dependencies [f617ac2]
+  - @ai-sdk/provider-utils@5.0.0-canary.44
+  - @ai-sdk/openai@4.0.0-canary.64
+
+## 4.0.0-canary.63
+
+### Patch Changes
+
+- Updated dependencies [17b5597]
+  - @ai-sdk/openai@4.0.0-canary.63
+
+## 4.0.0-canary.62
+
+### Patch Changes
+
+- Updated dependencies [bf837fe]
+  - @ai-sdk/openai@4.0.0-canary.62
+
+## 4.0.0-canary.61
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - @ai-sdk/openai@4.0.0-canary.61
+  - @ai-sdk/provider-utils@5.0.0-canary.43
+  - @ai-sdk/provider@4.0.0-canary.17
+
+## 4.0.0-canary.60
+
+### Patch Changes
+
+- Updated dependencies [a6617c5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+  - @ai-sdk/openai@4.0.0-canary.60
+
+## 4.0.0-canary.59
+
+### Patch Changes
+
+- Updated dependencies [685cec7]
+  - @ai-sdk/openai@4.0.0-canary.59
+
+## 4.0.0-canary.58
+
+### Patch Changes
+
+- Updated dependencies [28dfa06]
+- Updated dependencies [e93fa91]
+  - @ai-sdk/provider-utils@5.0.0-canary.41
+  - @ai-sdk/openai@4.0.0-canary.58
+
+## 4.0.0-canary.57
+
+### Patch Changes
+
+- Updated dependencies [a7de9c9]
+  - @ai-sdk/provider-utils@5.0.0-canary.40
+  - @ai-sdk/openai@4.0.0-canary.57
+
+## 4.0.0-canary.56
+
+### Patch Changes
+
+- Updated dependencies [105f95b]
+  - @ai-sdk/provider-utils@5.0.0-canary.39
+  - @ai-sdk/openai@4.0.0-canary.56
+
 ## 4.0.0-canary.55
 
 ### Patch Changes

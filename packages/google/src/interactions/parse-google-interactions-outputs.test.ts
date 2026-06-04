@@ -1,21 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import { parseGoogleInteractionsOutputs } from './parse-google-interactions-outputs';
-import type { GoogleInteractionsContentBlock } from './google-interactions-api';
+import type { GoogleInteractionsStep } from './google-interactions-api';
 
 describe('parseGoogleInteractionsOutputs', () => {
   const generateId = () => 'gen-id';
 
-  describe('thought blocks', () => {
-    it('emits a reasoning part with providerMetadata.google.signature when the thought block carries a signature', () => {
-      const outputs = [
+  describe('thought steps', () => {
+    it('emits a reasoning part with providerMetadata.google.signature when the thought step carries a signature', () => {
+      const steps = [
         {
           type: 'thought',
           signature: 'thought-sig-AAA',
           summary: [{ type: 'text', text: 'I am thinking.' }],
         },
-      ] as Array<GoogleInteractionsContentBlock>;
+      ] as Array<GoogleInteractionsStep>;
       const { content } = parseGoogleInteractionsOutputs({
-        outputs,
+        steps,
         generateId,
       });
       expect(content).toMatchInlineSnapshot(`
@@ -34,13 +34,16 @@ describe('parseGoogleInteractionsOutputs', () => {
     });
 
     it('stamps providerMetadata.google.interactionId on every output part when interactionId is provided', () => {
-      const outputs = [
+      const steps = [
         {
           type: 'thought',
           signature: 'thought-sig',
           summary: [{ type: 'text', text: 'planning...' }],
         },
-        { type: 'text', text: 'answer' },
+        {
+          type: 'model_output',
+          content: [{ type: 'text', text: 'answer' }],
+        },
         {
           type: 'function_call',
           id: 'call_x',
@@ -48,9 +51,9 @@ describe('parseGoogleInteractionsOutputs', () => {
           arguments: { loc: 'NYC' },
           signature: 'fn-sig',
         },
-      ] as Array<GoogleInteractionsContentBlock>;
+      ] as Array<GoogleInteractionsStep>;
       const { content, hasFunctionCall } = parseGoogleInteractionsOutputs({
-        outputs,
+        steps,
         generateId,
         interactionId: 'v1_test-interaction',
       });
@@ -93,20 +96,41 @@ describe('parseGoogleInteractionsOutputs', () => {
     });
 
     it('omits providerMetadata when no signature and no interactionId are present', () => {
-      const outputs = [
-        { type: 'text', text: 'hello' },
-      ] as Array<GoogleInteractionsContentBlock>;
+      const steps = [
+        {
+          type: 'model_output',
+          content: [{ type: 'text', text: 'hello' }],
+        },
+      ] as Array<GoogleInteractionsStep>;
       const { content } = parseGoogleInteractionsOutputs({
-        outputs,
+        steps,
+        generateId,
+      });
+      expect(content).toEqual([{ type: 'text', text: 'hello' }]);
+    });
+
+    it('skips user_input steps (server echo of client input)', () => {
+      const steps = [
+        {
+          type: 'user_input',
+          content: [{ type: 'text', text: 'hi' }],
+        },
+        {
+          type: 'model_output',
+          content: [{ type: 'text', text: 'hello' }],
+        },
+      ] as Array<GoogleInteractionsStep>;
+      const { content } = parseGoogleInteractionsOutputs({
+        steps,
         generateId,
       });
       expect(content).toEqual([{ type: 'text', text: 'hello' }]);
     });
   });
 
-  describe('function_call blocks', () => {
+  describe('function_call steps', () => {
     it('captures function_call.signature into providerMetadata.google.signature', () => {
-      const outputs = [
+      const steps = [
         {
           type: 'function_call',
           id: 'call_abc',
@@ -114,9 +138,9 @@ describe('parseGoogleInteractionsOutputs', () => {
           arguments: {},
           signature: 'fn-sig-BBB',
         },
-      ] as Array<GoogleInteractionsContentBlock>;
+      ] as Array<GoogleInteractionsStep>;
       const { content } = parseGoogleInteractionsOutputs({
-        outputs,
+        steps,
         generateId,
       });
       expect(content[0]).toMatchObject({
@@ -130,17 +154,22 @@ describe('parseGoogleInteractionsOutputs', () => {
     });
   });
 
-  describe('image blocks', () => {
+  describe('image content in model_output steps', () => {
     it('emits a file content part with mediaType + base64 data when an image block carries inline data', () => {
-      const outputs = [
+      const steps = [
         {
-          type: 'image',
-          mime_type: 'image/png',
-          data: 'aGVsbG8td29ybGQ=',
+          type: 'model_output',
+          content: [
+            {
+              type: 'image',
+              mime_type: 'image/png',
+              data: 'aGVsbG8td29ybGQ=',
+            },
+          ],
         },
-      ] as Array<GoogleInteractionsContentBlock>;
+      ] as Array<GoogleInteractionsStep>;
       const { content } = parseGoogleInteractionsOutputs({
-        outputs,
+        steps,
         generateId,
         interactionId: 'v1_image-out',
       });
@@ -164,15 +193,20 @@ describe('parseGoogleInteractionsOutputs', () => {
     });
 
     it('emits a file content part with a URL data variant when an image block carries a uri', () => {
-      const outputs = [
+      const steps = [
         {
-          type: 'image',
-          mime_type: 'image/jpeg',
-          uri: 'https://example.test/img.jpg',
+          type: 'model_output',
+          content: [
+            {
+              type: 'image',
+              mime_type: 'image/jpeg',
+              uri: 'https://example.test/img.jpg',
+            },
+          ],
         },
-      ] as Array<GoogleInteractionsContentBlock>;
+      ] as Array<GoogleInteractionsStep>;
       const { content } = parseGoogleInteractionsOutputs({
-        outputs,
+        steps,
         generateId,
       });
       expect(content[0]).toMatchObject({
@@ -186,11 +220,14 @@ describe('parseGoogleInteractionsOutputs', () => {
     });
 
     it('skips an image block with neither data nor uri', () => {
-      const outputs = [
-        { type: 'image', mime_type: 'image/png' },
-      ] as Array<GoogleInteractionsContentBlock>;
+      const steps = [
+        {
+          type: 'model_output',
+          content: [{ type: 'image', mime_type: 'image/png' }],
+        },
+      ] as Array<GoogleInteractionsStep>;
       const { content } = parseGoogleInteractionsOutputs({
-        outputs,
+        steps,
         generateId,
       });
       expect(content).toEqual([]);

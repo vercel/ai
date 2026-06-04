@@ -1,5 +1,149 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.0-canary.76
+
+### Patch Changes
+
+- Updated dependencies [ee798eb]
+- Updated dependencies [61bcdb5]
+- Updated dependencies [daf6637]
+  - @ai-sdk/provider-utils@5.0.0-canary.45
+  - @ai-sdk/anthropic@4.0.0-canary.62
+  - @ai-sdk/openai@4.0.0-canary.67
+
+## 5.0.0-canary.75
+
+### Patch Changes
+
+- 32603d2: fix (provider/amazon-bedrock): correct mantle subpath exports
+
+## 5.0.0-canary.74
+
+### Patch Changes
+
+- Updated dependencies [e776fc7]
+  - @ai-sdk/openai@4.0.0-canary.66
+
+## 5.0.0-canary.73
+
+### Patch Changes
+
+- e02f041: feat(provider/anthropic): add support for `claude-opus-4-8`
+- Updated dependencies [e02f041]
+  - @ai-sdk/anthropic@4.0.0-canary.61
+
+## 5.0.0-canary.72
+
+### Patch Changes
+
+- Updated dependencies [cd3de8b]
+  - @ai-sdk/openai@4.0.0-canary.65
+
+## 5.0.0-canary.71
+
+### Patch Changes
+
+- 9d5a299: fix(amazon-bedrock): support document files in tool results
+
+## 5.0.0-canary.70
+
+### Patch Changes
+
+- Updated dependencies [6c93e36]
+- Updated dependencies [f617ac2]
+  - @ai-sdk/provider-utils@5.0.0-canary.44
+  - @ai-sdk/anthropic@4.0.0-canary.60
+  - @ai-sdk/openai@4.0.0-canary.64
+
+## 5.0.0-canary.69
+
+### Patch Changes
+
+- Updated dependencies [648705c]
+  - @ai-sdk/anthropic@4.0.0-canary.59
+
+## 5.0.0-canary.68
+
+### Patch Changes
+
+- Updated dependencies [acdbf84]
+  - @ai-sdk/anthropic@4.0.0-canary.58
+
+## 5.0.0-canary.67
+
+### Patch Changes
+
+- Updated dependencies [17b5597]
+  - @ai-sdk/openai@4.0.0-canary.63
+
+## 5.0.0-canary.66
+
+### Patch Changes
+
+- Updated dependencies [bf837fe]
+  - @ai-sdk/openai@4.0.0-canary.62
+
+## 5.0.0-canary.65
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - @ai-sdk/anthropic@4.0.0-canary.57
+  - @ai-sdk/openai@4.0.0-canary.61
+  - @ai-sdk/provider-utils@5.0.0-canary.43
+  - @ai-sdk/provider@4.0.0-canary.17
+
+## 5.0.0-canary.64
+
+### Patch Changes
+
+- b567a6c: dependency updates
+- Updated dependencies [a6617c5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+  - @ai-sdk/anthropic@4.0.0-canary.56
+  - @ai-sdk/openai@4.0.0-canary.60
+
+## 5.0.0-canary.63
+
+### Patch Changes
+
+- cd27bca: added bedrock mantle provider
+- b555b23: fix(amazon-bedrock): disable native structured output for claude-opus-4-7
+
+## 5.0.0-canary.62
+
+### Patch Changes
+
+- Updated dependencies [a464505]
+- Updated dependencies [28dfa06]
+- Updated dependencies [e93fa91]
+  - @ai-sdk/anthropic@4.0.0-canary.55
+  - @ai-sdk/provider-utils@5.0.0-canary.41
+
+## 5.0.0-canary.61
+
+### Patch Changes
+
+- Updated dependencies [a7de9c9]
+  - @ai-sdk/provider-utils@5.0.0-canary.40
+  - @ai-sdk/anthropic@4.0.0-canary.54
+
+## 5.0.0-canary.60
+
+### Patch Changes
+
+- Updated dependencies [105f95b]
+  - @ai-sdk/provider-utils@5.0.0-canary.39
+  - @ai-sdk/anthropic@4.0.0-canary.53
+
+## 5.0.0-canary.59
+
+### Patch Changes
+
+- Updated dependencies [8018480]
+  - @ai-sdk/anthropic@4.0.0-canary.52
+
 ## 5.0.0-canary.58
 
 ### Patch Changes

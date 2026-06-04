@@ -7,15 +7,15 @@ export type TelemetryDiagnosticEventType =
   | 'onLanguageModelCallEnd'
   | 'onToolExecutionStart'
   | 'onToolExecutionEnd'
-  | 'onChunk'
   | 'onStepFinish'
   | 'onObjectStepStart'
   | 'onObjectStepFinish'
   | 'onEmbedStart'
-  | 'onEmbedFinish'
+  | 'onEmbedEnd'
   | 'onRerankStart'
-  | 'onRerankFinish'
-  | 'onFinish'
+  | 'onRerankEnd'
+  | 'onEnd'
+  | 'onAbort'
   | 'onError';
 
 export type TelemetryDiagnosticChannelMessage<EVENT = unknown> = {

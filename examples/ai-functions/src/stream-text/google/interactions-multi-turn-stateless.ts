@@ -1,4 +1,7 @@
-import { google } from '@ai-sdk/google';
+import {
+  google,
+  type GoogleLanguageModelInteractionsOptions,
+} from '@ai-sdk/google';
 import { streamText, type ModelMessage } from 'ai';
 import { run } from '../../lib/run';
 
@@ -19,7 +22,7 @@ run(async () => {
     model: google.interactions('gemini-2.5-flash'),
     messages,
     providerOptions: {
-      google: { store: false },
+      google: { store: false } satisfies GoogleLanguageModelInteractionsOptions,
     },
   });
   for await (const textPart of turn1.textStream) {
@@ -48,7 +51,7 @@ run(async () => {
     model: google.interactions('gemini-2.5-flash'),
     messages,
     providerOptions: {
-      google: { store: false },
+      google: { store: false } satisfies GoogleLanguageModelInteractionsOptions,
     },
   });
   for await (const textPart of turn2.textStream) {

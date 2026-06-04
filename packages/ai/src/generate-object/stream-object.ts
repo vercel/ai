@@ -818,7 +818,7 @@ class DefaultStreamObjectResult<
                     },
                     providerMetadata,
                   },
-                  callbacks: [onFinish, telemetryDispatcher.onFinish],
+                  callbacks: [onFinish, telemetryDispatcher.onEnd],
                 });
               } catch (error) {
                 controller.enqueue({ type: 'error', error });
@@ -939,14 +939,14 @@ class DefaultStreamObjectResult<
   pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit) {
     pipeTextStreamToResponse({
       response,
-      textStream: this.textStream,
+      stream: this.textStream,
       ...init,
     });
   }
 
   toTextStreamResponse(init?: ResponseInit): Response {
     return createTextStreamResponse({
-      textStream: this.textStream,
+      stream: this.textStream,
       ...init,
     });
   }

@@ -11,6 +11,7 @@ export type GoogleVertexEmbeddingModelId =
   | 'text-embedding-004'
   | 'text-embedding-005'
   | 'gemini-embedding-001'
+  | 'gemini-embedding-2'
   | 'gemini-embedding-2-preview'
   | (string & {});
 

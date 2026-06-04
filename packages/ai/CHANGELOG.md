@@ -1,5 +1,288 @@
 # ai
 
+## 7.0.0-canary.164
+
+### Patch Changes
+
+- Updated dependencies [9876183]
+  - @ai-sdk/gateway@4.0.0-canary.98
+
+## 7.0.0-canary.163
+
+### Patch Changes
+
+- ee798eb: chore(provider-utils): rename `Experimental_Sandbox` to `Experimental_SandboxSession`
+- c907622: Add a `toolOrder` option to control the order in which tools are sent to provider APIs.
+- Updated dependencies [ee798eb]
+- Updated dependencies [daf6637]
+  - @ai-sdk/provider-utils@5.0.0-canary.45
+  - @ai-sdk/gateway@4.0.0-canary.97
+
+## 7.0.0-canary.162
+
+### Patch Changes
+
+- Updated dependencies [83877a1]
+  - @ai-sdk/gateway@4.0.0-canary.96
+
+## 7.0.0-canary.161
+
+### Patch Changes
+
+- Updated dependencies [a3261db]
+  - @ai-sdk/gateway@4.0.0-canary.95
+
+## 7.0.0-canary.160
+
+### Patch Changes
+
+- Updated dependencies [712873e]
+  - @ai-sdk/gateway@4.0.0-canary.94
+
+## 7.0.0-canary.159
+
+### Patch Changes
+
+- b5092f5: fix(ai): do not re-validate tool input for output-error parts in validateUIMessages
+
+## 7.0.0-canary.158
+
+### Patch Changes
+
+- bcce2dd: feat(stream-text): expose standalone stream transformation helpers and deprecate the equivalent `streamText` result methods.
+
+  The new `toUIMessageChunk` and `toUIMessageStream` helpers let you convert a `streamText` `stream` (or any compatible `ReadableStream<TextStreamPart<TOOLS>>`) into UI message chunks without going through the result object — useful for custom transports, tests, and other producers of `TextStreamPart`.
+
+  `result.toUIMessageStreamResponse(options)` and `result.pipeUIMessageStreamToResponse(response, options)` can migrate by passing `toUIMessageStream({ stream: result.stream, ...options })` to `createUIMessageStreamResponse` or `pipeUIMessageStreamToResponse`.
+
+  The new `toTextStream` helper extracts text deltas from a `streamText` `stream`, so `result.toTextStreamResponse(options)` and `result.pipeTextStreamToResponse(response, options)` can migrate to `createTextStreamResponse({ stream: toTextStream({ stream: result.stream }), ...options })` and `pipeTextStreamToResponse({ response, stream: toTextStream({ stream: result.stream }), ...options })`.
+
+  `result.toUIMessageStream`, `result.toUIMessageStreamResponse`, `result.pipeUIMessageStreamToResponse`, `result.toTextStreamResponse`, and `result.pipeTextStreamToResponse` are now `@deprecated`. They still work in v7 and will be removed in the next major release. Migration snippets are in the v6 → v7 migration guide.
+
+## 7.0.0-canary.157
+
+### Patch Changes
+
+- Updated dependencies [e02f041]
+  - @ai-sdk/gateway@4.0.0-canary.93
+
+## 7.0.0-canary.156
+
+### Patch Changes
+
+- 023550e: Deprecate `streamText` result `fullStream` in favor of `stream`.
+- e92fc45: feat(ai): introduce onAbort hook to close telemetry spans
+
+## 7.0.0-canary.155
+
+### Patch Changes
+
+- e67d80e: fix: rename onFinish to onEnd
+- 6cca112: feat: add timeBetweenOutputTokensMs stats
+- 82fc0ab: fix(ai): pass all stream text parts to `onChunk`
+- 76fd58c: fix: consider file outputs and tool calls for time to first output
+
+## 7.0.0-canary.154
+
+### Patch Changes
+
+- 594029e: feat(ai): wrap the model call in telemetry context
+
+## 7.0.0-canary.153
+
+### Patch Changes
+
+- 6c93e36: feat(provider-utils): add `spawnCommand` method to `Experimental_Sandbox` to allow for detached command execution
+- Updated dependencies [6c93e36]
+- Updated dependencies [f617ac2]
+  - @ai-sdk/provider-utils@5.0.0-canary.44
+  - @ai-sdk/gateway@4.0.0-canary.92
+
+## 7.0.0-canary.152
+
+### Patch Changes
+
+- Updated dependencies [d4d4a5e]
+  - @ai-sdk/gateway@4.0.0-canary.91
+
+## 7.0.0-canary.151
+
+### Patch Changes
+
+- Updated dependencies [8b811d8]
+  - @ai-sdk/gateway@4.0.0-canary.90
+
+## 7.0.0-canary.150
+
+### Patch Changes
+
+- Updated dependencies [bba5250]
+- Updated dependencies [94c6edc]
+  - @ai-sdk/gateway@4.0.0-canary.89
+
+## 7.0.0-canary.149
+
+### Patch Changes
+
+- e3d9c0e: Add `allowSystemInMessages` option to `ToolLoopAgent`.
+
+  This exposes the same option that exists on `streamText` and `generateText`, whether `role: "system"` messages are allowed in the `prompt` or `messages` fields. When unset, system messages are rejected because they can create a prompt injection attack risk. Ideally, use the `instructions` option instead. Set to `true` to allow system messages, or `false` to explicitly reject them.
+
+  ```ts
+  const agent = new ToolLoopAgent({
+    model,
+    allowSystemInMessages: true,
+  });
+
+  await agent.generate({
+    messages: [
+      { role: "system", content: "Server context" },
+      { role: "user", content: "Hello" },
+    ],
+  });
+  ```
+
+  The option can also be returned from `prepareCall` for dynamic per-call configuration.
+
+## 7.0.0-canary.148
+
+### Patch Changes
+
+- 2852a84: fix(ai): make input optional on input-streaming UIMessagePart variants
+
+## 7.0.0-canary.147
+
+### Patch Changes
+
+- Updated dependencies [accaca0]
+  - @ai-sdk/gateway@4.0.0-canary.88
+
+## 7.0.0-canary.146
+
+### Patch Changes
+
+- Updated dependencies [bf837fe]
+  - @ai-sdk/gateway@4.0.0-canary.87
+
+## 7.0.0-canary.145
+
+### Patch Changes
+
+- Updated dependencies [546cefe]
+  - @ai-sdk/gateway@4.0.0-canary.86
+
+## 7.0.0-canary.144
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - @ai-sdk/gateway@4.0.0-canary.85
+  - @ai-sdk/provider-utils@5.0.0-canary.43
+  - @ai-sdk/provider@4.0.0-canary.17
+
+## 7.0.0-canary.143
+
+### Patch Changes
+
+- a6617c5: feat(provider-utils): add `readFile` and `writeFile` plus convenience wrappers to `Experimental_Sandbox` abstraction
+- Updated dependencies [a6617c5]
+- Updated dependencies [032c4a5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+  - @ai-sdk/gateway@4.0.0-canary.84
+
+## 7.0.0-canary.142
+
+### Patch Changes
+
+- 62d6481: Post-publish release notifications now link to each package’s GitHub release and npm page.
+
+## 7.0.0-canary.141
+
+### Patch Changes
+
+- e3a0419: fix(ai): default missing embedding warnings to an empty array
+
+## 7.0.0-canary.140
+
+### Patch Changes
+
+- Updated dependencies [1d6fb7f]
+  - @ai-sdk/gateway@4.0.0-canary.83
+
+## 7.0.0-canary.139
+
+### Patch Changes
+
+- 334ae5d: Update step performance metrics with explicit effective, input, output, and total token throughput fields.
+- 28dfa06: fix: support tools with optional context
+- e93fa91: rename Sandbox.executeCommand to Sandbox.runCommand
+- Updated dependencies [28dfa06]
+- Updated dependencies [e93fa91]
+  - @ai-sdk/provider-utils@5.0.0-canary.41
+  - @ai-sdk/gateway@4.0.0-canary.82
+
+## 7.0.0-canary.138
+
+### Patch Changes
+
+- Updated dependencies [67c4011]
+  - @ai-sdk/gateway@4.0.0-canary.81
+
+## 7.0.0-canary.137
+
+### Patch Changes
+
+- 98627e5: feat(ai): remove onChunk event from telemetry
+- 476e1ca: feat(ai): remove telemetry dependency on onChunk callback
+
+## 7.0.0-canary.136
+
+### Patch Changes
+
+- a7de9c9: fix: make sandbox experimental
+- Updated dependencies [a7de9c9]
+  - @ai-sdk/provider-utils@5.0.0-canary.40
+  - @ai-sdk/gateway@4.0.0-canary.80
+
+## 7.0.0-canary.135
+
+### Patch Changes
+
+- Updated dependencies [105f95b]
+  - @ai-sdk/provider-utils@5.0.0-canary.39
+  - @ai-sdk/gateway@4.0.0-canary.79
+
+## 7.0.0-canary.134
+
+### Patch Changes
+
+- ed74dae: fix(ui): make `input` optional on `output-error` tool and dynamic-tool UI message parts
+
+  `validateUIMessages` rejected persisted assistant messages whose `output-error` tool parts had no `input` key. This happened for any errored tool call where the SDK set `input: undefined` (e.g. `NoSuchToolError` / `InvalidToolInputError`): JSON serialization stripped the `undefined` value, and Zod 4.4+ treats a missing `z.unknown()` key as a validation failure (previously it was implicitly optional). The schema now matches the runtime shape produced by `process-ui-message-stream`, so reloading a thread that contains an errored tool call no longer throws `AI_TypeValidationError`.
+
+- f4cc8eb: feat: add performance statistics
+- e80ada0: fix(ai): download tool-result file URLs
+- 1dca341: fix: rename telemetry onFinish to onEnd
+- 2605e5f: fix test mocks to return the first array-backed result on the first call
+
+## 7.0.0-canary.133
+
+### Patch Changes
+
+- 38ca8dc: fix(gateway): enable retry support for gateway errors
+- 6d76710: fix URL of hero animation in README
+- Updated dependencies [38ca8dc]
+- Updated dependencies [8b7af75]
+  - @ai-sdk/gateway@4.0.0-canary.78
+
+## 7.0.0-canary.132
+
+### Patch Changes
+
+- eaf849f: Rename rerank telemetry finish callback to `onRerankEnd`.
+- 8565dcb: fix: rename onEmbedFinish to onEmbedEnd
+
 ## 7.0.0-canary.131
 
 ### Patch Changes
