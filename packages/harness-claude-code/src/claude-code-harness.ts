@@ -1089,7 +1089,14 @@ function createSession({
         pendingResumeFlag = false;
         channel.send({
           type: 'start' as const,
-          prompt: '',
+          /*
+           * A continuation nudge rather than an empty prompt: `continue: true`
+           * rehydrates the prior thread, and this is the new user turn that
+           * drives it forward. It must be non-empty — an empty text block is
+           * rejected by the Anthropic API once the SDK stamps it with
+           * `cache_control`.
+           */
+          prompt: 'Continue.',
           tools: (continueOpts.tools ?? []).map(t => ({
             name: t.name,
             description: t.description,

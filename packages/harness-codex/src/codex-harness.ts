@@ -762,7 +762,14 @@ function createSession({
         pendingResumeThreadId = undefined;
         channel.send({
           type: 'start' as const,
-          prompt: '',
+          /*
+           * A continuation nudge rather than an empty prompt: `resumeThreadId`
+           * rehydrates the prior thread, and this is the new user turn that
+           * drives it forward. Keeping it non-empty avoids handing the runtime
+           * an empty user message (and mirrors the claude-code adapter, where an
+           * empty text block trips the Anthropic API's `cache_control` rule).
+           */
+          prompt: 'Continue.',
           tools: (continueOpts.tools ?? []).map(t => ({
             name: t.name,
             description: t.description,
