@@ -1,5 +1,11 @@
 # @ai-sdk/alibaba
 
+## 1.0.26
+
+### Patch Changes
+
+- bc29fbe: feat(aliababa): add embedding model support
+
 ## 1.0.25
 
 ### Patch Changes
