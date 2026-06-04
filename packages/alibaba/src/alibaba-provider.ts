@@ -1,5 +1,6 @@
 import {
   NoSuchModelError,
+  type EmbeddingModelV4,
   type Experimental_VideoModelV4,
   type LanguageModelV4,
   type ProviderV4,
@@ -12,6 +13,8 @@ import {
 } from '@ai-sdk/provider-utils';
 import { AlibabaChatLanguageModel } from './alibaba-chat-language-model';
 import type { AlibabaChatModelId } from './alibaba-chat-language-model-options';
+import { AlibabaEmbeddingModel } from './alibaba-embedding-model';
+import type { AlibabaEmbeddingModelId } from './alibaba-embedding-model-options';
 import { AlibabaVideoModel } from './alibaba-video-model';
 import type { AlibabaVideoModelId } from './alibaba-video-settings';
 import { VERSION } from './version';
@@ -31,6 +34,16 @@ export interface AlibabaProvider extends ProviderV4 {
    * Creates a chat model for text generation.
    */
   chatModel(modelId: AlibabaChatModelId): LanguageModelV4;
+
+  /**
+   * Creates a model for text embeddings.
+   */
+  embedding(modelId: AlibabaEmbeddingModelId): EmbeddingModelV4;
+
+  /**
+   * Creates a model for text embeddings.
+   */
+  embeddingModel(modelId: AlibabaEmbeddingModelId): EmbeddingModelV4;
 
   /**
    * Creates a model for video generation.
@@ -56,6 +69,20 @@ export interface AlibabaProviderSettings {
    * The default prefix is `https://dashscope-intl.aliyuncs.com`.
    */
   videoBaseURL?: string;
+
+  /**
+   * Use a different URL prefix for embedding API calls.
+   * The embedding API uses the DashScope native endpoint (not the OpenAI-compatible endpoint).
+   * The default prefix is `https://dashscope-intl.aliyuncs.com/api/v1`.
+   */
+  embeddingBaseURL?: string;
+
+  /**
+   * Use a different URL prefix for multimodal embedding API calls.
+   * The multimodal embedding API is only available in the China (Beijing) region.
+   * The default prefix is `https://dashscope.aliyuncs.com/api/v1`.
+   */
+  multimodalEmbeddingBaseURL?: string;
 
   /**
    * API key that is being sent using the `Authorization` header.
@@ -97,6 +124,14 @@ export function createAlibaba(
     withoutTrailingSlash(options.videoBaseURL) ??
     'https://dashscope-intl.aliyuncs.com';
 
+  const embeddingBaseURL =
+    withoutTrailingSlash(options.embeddingBaseURL) ??
+    'https://dashscope-intl.aliyuncs.com/api/v1';
+
+  const multimodalEmbeddingBaseURL =
+    withoutTrailingSlash(options.multimodalEmbeddingBaseURL) ??
+    'https://dashscope.aliyuncs.com/api/v1';
+
   const getHeaders = () =>
     withUserAgentSuffix(
       {
@@ -117,6 +152,15 @@ export function createAlibaba(
       headers: getHeaders,
       fetch: options.fetch,
       includeUsage: options.includeUsage ?? true,
+    });
+
+  const createEmbeddingModel = (modelId: AlibabaEmbeddingModelId) =>
+    new AlibabaEmbeddingModel(modelId, {
+      provider: 'alibaba.embedding',
+      baseURL: embeddingBaseURL,
+      multimodalBaseURL: multimodalEmbeddingBaseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
     });
 
   const createVideoModel = (modelId: AlibabaVideoModelId) =>
@@ -140,15 +184,13 @@ export function createAlibaba(
   provider.specificationVersion = 'v4' as const;
   provider.languageModel = createLanguageModel;
   provider.chatModel = createLanguageModel;
+  provider.embedding = createEmbeddingModel;
+  provider.embeddingModel = createEmbeddingModel;
   provider.video = createVideoModel;
   provider.videoModel = createVideoModel;
 
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
-  };
-
-  provider.embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
   };
 
   return provider;
