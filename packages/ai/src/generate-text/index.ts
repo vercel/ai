@@ -103,6 +103,7 @@ export type {
   ToolExecutionStartEvent,
 } from './tool-execution-events';
 export type { ToolInputRefinement } from './tool-input-refinement';
+export type { ToolOrder } from './tool-order';
 export type {
   StaticToolOutputDenied,
   TypedToolOutputDenied,

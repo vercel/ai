@@ -125,4 +125,10 @@ test('discriminated union narrows on `type`', () => {
     expectTypeOf(part.event).toEqualTypeOf<'create' | 'modify' | 'delete'>();
     expectTypeOf(part.path).toEqualTypeOf<string>();
   }
+  if (part.type === 'compaction') {
+    expectTypeOf(part.trigger).toEqualTypeOf<'manual' | 'auto'>();
+    expectTypeOf(part.summary).toEqualTypeOf<string>();
+    expectTypeOf(part.tokensBefore).toEqualTypeOf<number | undefined>();
+    expectTypeOf(part.tokensAfter).toEqualTypeOf<number | undefined>();
+  }
 });

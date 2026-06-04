@@ -3,7 +3,6 @@ import type {
   HarnessV1,
   HarnessV1ProviderSettings,
   HarnessV1SandboxProvider,
-  HarnessV1SandboxSession,
 } from '@ai-sdk/harness';
 import { HarnessAgent, type HarnessAgentSession } from '@ai-sdk/harness/agent';
 import type { ToolSet } from 'ai';
@@ -37,6 +36,15 @@ export type HarnessSettingsOverride =
   | Record<string, unknown>
   | ((credential: GatewayCredential) => Record<string, unknown>);
 
+/**
+ * The tool-safe sandbox surface the provider `setup` hook hands back (file I/O,
+ * exec, spawn). Derived from the hook's own signature so it tracks the harness
+ * type without us re-importing the underlying provider-utils alias.
+ */
+type CapturedSandbox = Parameters<
+  NonNullable<HarnessV1ProviderSettings['setup']>
+>[0]['session'];
+
 export interface ScenarioContext {
   agent: HarnessAgent<HarnessV1, ToolSet>;
   session: HarnessAgentSession;
@@ -46,7 +54,7 @@ export interface ScenarioContext {
    * Captured via the provider `setup` hook (which runs before the bridge
    * spawn), so it is available for the whole `fn` body.
    */
-  sandbox?: HarnessV1SandboxSession;
+  sandbox?: CapturedSandbox;
   /** The session's working directory, present only when `captureSandbox` was set. */
   sandboxWorkDir?: string;
 }
@@ -73,7 +81,7 @@ interface PreparedScenario {
   /** Record-mode fixture save (single call after all sessions complete). */
   onComplete?: () => Promise<void>;
   teardown: Array<() => Promise<void> | void>;
-  getSandbox: () => HarnessV1SandboxSession | undefined;
+  getSandbox: () => CapturedSandbox | undefined;
   getSandboxWorkDir: () => string | undefined;
 }
 
@@ -111,7 +119,7 @@ async function prepareScenario(
       : opts.harnessSettings;
   const harness = adapter.createHarness(credential, overrides);
 
-  let capturedSandbox: HarnessV1SandboxSession | undefined;
+  let capturedSandbox: CapturedSandbox | undefined;
   let capturedWorkDir: string | undefined;
   const setup: HarnessV1ProviderSettings['setup'] | undefined =
     opts.captureSandbox
@@ -299,7 +307,7 @@ export interface SharedSandboxContext {
   /** Spin up another agent bound to the one shared, proxied sandbox. */
   makeAgent: () => HarnessAgent<HarnessV1, ToolSet>;
   /** Tool-safe surface of the shared sandbox (captured on first session). */
-  getSandbox: () => HarnessV1SandboxSession | undefined;
+  getSandbox: () => CapturedSandbox | undefined;
   /** Working directory of the first captured session. */
   getSandboxWorkDir: () => string | undefined;
 }
@@ -347,7 +355,7 @@ export async function withReplaySharedSandbox(
   const bridgePorts = pairs.map(pair => pair.bridgePort);
   const proxyWsPort = pairs[0].proxyWsPort;
 
-  let capturedSandbox: HarnessV1SandboxSession | undefined;
+  let capturedSandbox: CapturedSandbox | undefined;
   let capturedWorkDir: string | undefined;
   const setup: HarnessV1ProviderSettings['setup'] = async ({
     session: sandboxSession,

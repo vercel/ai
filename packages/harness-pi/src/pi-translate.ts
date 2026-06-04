@@ -273,6 +273,33 @@ export function translatePiEvent(
       ];
     }
 
+    case 'compaction_end': {
+      /*
+       * Pi performs the compaction itself; we observe its result. Skip aborted
+       * or result-less compactions (nothing happened). A result with no summary
+       * still represents a real compaction, so emit it with a placeholder
+       * rather than dropping the event. `reason` is `'manual'` for an explicit
+       * `session.compact()` call, `'threshold'`/`'overflow'` for Pi's automatic
+       * compaction — both map to `'auto'` on the wire. Pi reports `tokensBefore`
+       * but not `tokensAfter`.
+       */
+      if (event.aborted) return [];
+      const result = event.result;
+      if (!result || typeof result !== 'object') return [];
+      const rawSummary = (result as { summary?: unknown }).summary;
+      const summary =
+        typeof rawSummary === 'string' ? rawSummary : '(no summary provided)';
+      const tokensBefore = (result as { tokensBefore?: unknown }).tokensBefore;
+      return [
+        {
+          type: 'compaction',
+          trigger: event.reason === 'manual' ? 'manual' : 'auto',
+          summary,
+          ...(typeof tokensBefore === 'number' ? { tokensBefore } : {}),
+        },
+      ];
+    }
+
     default:
       return [];
   }

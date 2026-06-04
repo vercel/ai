@@ -7,7 +7,7 @@ import {
   writeFile,
 } from 'node:fs/promises';
 import path from 'node:path';
-import type { Experimental_Sandbox } from '@ai-sdk/provider-utils';
+import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
 import { shellQuote } from './pi-utils';
 
 /*
@@ -50,7 +50,7 @@ function normalizeRelativePath(inputPath: string): string {
 }
 
 async function readCommandOutput(
-  sandbox: Experimental_Sandbox,
+  sandbox: Experimental_SandboxSession,
   command: string,
 ): Promise<string> {
   const result = await sandbox.run({ command });
@@ -64,7 +64,7 @@ async function readCommandOutput(
 }
 
 async function listRemoteWorkspaceEntries(
-  sandbox: Experimental_Sandbox,
+  sandbox: Experimental_SandboxSession,
   sandboxWorkDir: string,
 ): Promise<{ directories: string[]; files: string[] }> {
   const contextPredicate = PI_CONTEXT_FILENAMES.map(
@@ -197,7 +197,7 @@ function buildRequiredDirectories(
 }
 
 export async function syncHostWorkspaceFromSandbox(args: {
-  sandbox: Experimental_Sandbox;
+  sandbox: Experimental_SandboxSession;
   sandboxWorkDir: string;
   hostWorkDir: string;
 }): Promise<void> {

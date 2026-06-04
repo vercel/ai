@@ -17,8 +17,8 @@ import { Type } from 'typebox';
 import type {
   HarnessV1PromptControl,
   HarnessV1PromptOptions,
+  HarnessV1NetworkSandboxSession,
   HarnessV1ResumeState,
-  HarnessV1SandboxHandle,
   HarnessV1Session,
   HarnessV1Skill,
   HarnessV1StreamPart,
@@ -100,7 +100,7 @@ export interface PiSessionSettings {
 
 export interface CreatePiSessionInput {
   readonly sessionId: string;
-  readonly sandboxHandle: HarnessV1SandboxHandle;
+  readonly sandboxSession: HarnessV1NetworkSandboxSession;
   readonly sessionWorkDir: string;
   readonly skills: ReadonlyArray<HarnessV1Skill>;
   readonly settings: PiSessionSettings;
@@ -140,7 +140,7 @@ export async function createPiSession(
   await mkdir(hostAgentDir, { recursive: true });
   await mkdir(hostSessionDir, { recursive: true });
 
-  const sandbox = input.sandboxHandle.session;
+  const sandbox = input.sandboxSession.restricted();
 
   // Materialise skills into the sandbox workspace once. The host's VFS will
   // make them visible to Pi's `DefaultResourceLoader` after mount + sync.
@@ -245,6 +245,15 @@ export async function createPiSession(
   // Emit channel set at the start of every doPrompt and cleared on end.
   let currentEmit: ((part: HarnessV1StreamPart) => void) | undefined;
   let translatorState: PiTranslatorState | undefined;
+  /*
+   * Compaction parts produced while no turn is active. Pi's `compact()` aborts
+   * the current turn before it summarizes, so a manually triggered compaction
+   * (and any compaction that lands between turns) emits its `compaction_end`
+   * after `currentEmit` has been cleared. Buffer those parts and flush them on
+   * the next turn's stream so the observation is not lost. Auto-compaction that
+   * runs mid-turn still emits inline via `currentEmit`.
+   */
+  const pendingCompactionParts: HarnessV1StreamPart[] = [];
 
   const remoteOps = createPiRemoteOps({
     sandbox,
@@ -341,11 +350,17 @@ export async function createPiSession(
     });
 
     unsubscribe = piSession.subscribe(rawEvent => {
-      if (!currentEmit || !translatorState) return;
+      if (!translatorState) return;
       const event = parseNativeEvent(rawEvent);
       if (!event) return;
       for (const part of translatePiEvent(event, translatorState)) {
-        currentEmit(part);
+        if (currentEmit) {
+          currentEmit(part);
+        } else if (part.type === 'compaction') {
+          // No active turn: defer compaction observations to the next turn.
+          pendingCompactionParts.push(part);
+        }
+        // Other event types outside a turn have no consumer and are dropped.
       }
     });
   }
@@ -399,6 +414,13 @@ export async function createPiSession(
       });
 
       promptOpts.emit({ type: 'stream-start' });
+
+      // Flush any compaction observed between turns (e.g. a manual
+      // `session.compact()`), which had no active stream to emit on.
+      if (pendingCompactionParts.length > 0) {
+        for (const part of pendingCompactionParts) promptOpts.emit(part);
+        pendingCompactionParts.length = 0;
+      }
 
       const turnPromise = (async () => {
         let terminalError: string | undefined;
@@ -485,6 +507,19 @@ export async function createPiSession(
       };
 
       return control;
+    },
+
+    doCompact: async (customInstructions?: string) => {
+      if (stopped) {
+        throw new Error('Pi session has been stopped.');
+      }
+      /*
+       * Pi owns the compaction. We just request it; the resulting
+       * `compaction_end` event is observed by the session subscription and
+       * translated into a `compaction` stream part. The returned
+       * `CompactionResult` is intentionally discarded here.
+       */
+      await piSession?.compact(customInstructions);
     },
 
     doStop: async () => {

@@ -1,5 +1,5 @@
-import type { HarnessV1SandboxHandle } from './harness-v1-sandbox-handle';
-import type { HarnessV1SandboxSession } from './harness-v1-sandbox-session';
+import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
+import type { HarnessV1NetworkSandboxSession } from './harness-v1-network-sandbox-session';
 
 /**
  * Base type for sandbox-provider settings. Every concrete provider's settings
@@ -27,14 +27,14 @@ export interface HarnessV1ProviderSettings {
    * sessionWorkDir })`).
    */
   readonly setup?: (opts: {
-    readonly session: HarnessV1SandboxSession;
+    readonly session: SandboxSession;
     readonly sessionWorkDir: string;
     readonly abortSignal?: AbortSignal;
   }) => Promise<void>;
 }
 
 /**
- * Provider that produces sandbox handles for harness sessions. Lives at
+ * Provider that produces network sandbox sessions for harness sessions. Lives at
  * module scope as a stable, synchronous object — analogous to
  * `LanguageModelV4` providers, no I/O performed at construction. The actual
  * sandbox is created (or wrapped) when `HarnessAgent` calls `create()`.
@@ -92,10 +92,10 @@ export interface HarnessV1SandboxProvider {
      * idempotent bootstrap post-create instead).
      */
     onFirstCreate?: (
-      session: HarnessV1SandboxSession,
+      session: SandboxSession,
       opts: { abortSignal?: AbortSignal },
     ) => Promise<void>;
-  }) => PromiseLike<HarnessV1SandboxHandle>;
+  }) => PromiseLike<HarnessV1NetworkSandboxSession>;
 
   /**
    * Reattach to an existing sandbox previously created with the same
@@ -105,11 +105,11 @@ export interface HarnessV1SandboxProvider {
    * them.
    *
    * The provider derives the sandbox identifier from `sessionId` using the
-   * same deterministic naming scheme it used in `create`. Returns a handle
-   * bound to the existing resource.
+   * same deterministic naming scheme it used in `create`. Returns a network
+   * sandbox session bound to the existing resource.
    */
   readonly resume?: (options: {
     sessionId: string;
     abortSignal?: AbortSignal;
-  }) => PromiseLike<HarnessV1SandboxHandle>;
+  }) => PromiseLike<HarnessV1NetworkSandboxSession>;
 }

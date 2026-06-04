@@ -21,8 +21,7 @@ run(async () => {
     const result = await agent.stream({
       session,
       prompt:
-        'Plan how to convert miles to kilometres, then give the answer for 26.2 miles. ' +
-        'Show your reasoning briefly.',
+        'Solve this step by step: if f(x) = x^3 - 6x^2 + 11x - 6, find all roots and prove they are correct.',
     });
 
     await printFullStream({ result });

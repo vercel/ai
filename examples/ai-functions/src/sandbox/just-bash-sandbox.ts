@@ -3,7 +3,7 @@ import {
   extractLines,
   type Experimental_SandboxProcess,
 } from '@ai-sdk/provider-utils';
-import { type Experimental_Sandbox as Sandbox } from 'ai';
+import { type Experimental_SandboxSession as SandboxSession } from 'ai';
 import {
   type SandboxCommand,
   type Sandbox as JustBashSandboxSDK,
@@ -14,7 +14,7 @@ import {
   collectStreamToString,
 } from './lib/stream-utils';
 
-export class JustBashSandbox implements Sandbox {
+export class JustBashSandboxSession implements SandboxSession {
   constructor(private readonly sandbox: JustBashSandboxSDK) {}
 
   private resolvePath(path: string): string {
@@ -26,15 +26,18 @@ export class JustBashSandbox implements Sandbox {
   async run({
     command,
     workingDirectory,
+    env,
     abortSignal,
   }: {
     command: string;
     workingDirectory?: string;
+    env?: Record<string, string>;
     abortSignal?: AbortSignal;
   }) {
     const proc = await this.spawn({
       command,
       workingDirectory,
+      env,
       abortSignal,
     });
 
@@ -50,10 +53,12 @@ export class JustBashSandbox implements Sandbox {
   async spawn({
     command,
     workingDirectory,
+    env,
     abortSignal,
   }: {
     command: string;
     workingDirectory?: string;
+    env?: Record<string, string>;
     abortSignal?: AbortSignal;
   }): Promise<Experimental_SandboxProcess> {
     abortSignal?.throwIfAborted();
@@ -63,6 +68,7 @@ export class JustBashSandbox implements Sandbox {
       args: ['-c', command],
       detached: true,
       ...(workingDirectory !== undefined ? { cwd: workingDirectory } : {}),
+      ...(env !== undefined ? { env } : {}),
       ...(abortSignal !== undefined ? { signal: abortSignal } : {}),
     });
 

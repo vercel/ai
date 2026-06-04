@@ -1,12 +1,12 @@
 import path from 'node:path';
-import type { Experimental_Sandbox } from '@ai-sdk/provider-utils';
+import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
 import type { PiPathMapper } from './pi-paths';
 import { shellQuote } from './pi-utils';
 
 export type PiRemoteFileChangeKind = 'create' | 'modify';
 
 export interface PiRemoteOpsOptions {
-  readonly sandbox: Experimental_Sandbox;
+  readonly sandbox: Experimental_SandboxSession;
   readonly paths: PiPathMapper;
   readonly env?: Record<string, string>;
   readonly onFileChange?: (

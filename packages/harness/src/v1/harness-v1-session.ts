@@ -37,6 +37,19 @@ export type HarnessV1Session = {
   ): PromiseLike<HarnessV1PromptControl>;
 
   /**
+   * Request that the underlying runtime compact its context. The runtime owns
+   * the compaction — the harness neither implements nor schedules it; this is
+   * only the trigger. When compaction completes, the adapter surfaces a
+   * `compaction` stream part on the next/active turn.
+   *
+   * Required, but not every runtime can honour it: adapters whose transport
+   * exposes no manual compaction (e.g. Codex over `codex exec`, which still
+   * auto-compacts on its own) throw `HarnessCapabilityUnsupportedError`.
+   * `customInstructions`, when supported, steer the compaction summary.
+   */
+  doCompact(customInstructions?: string): PromiseLike<void>;
+
+  /**
    * Tear down the session. Idempotent. After `doStop`, no further methods
    * on the session may be called.
    */

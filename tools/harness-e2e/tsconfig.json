@@ -4,6 +4,34 @@
     "rootDir": "src",
     "outDir": "dist"
   },
-  "include": ["src"],
-  "exclude": ["node_modules", "dist"]
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ],
+  "references": [
+    {
+      "path": "../../packages/ai"
+    },
+    {
+      "path": "../../packages/harness"
+    },
+    {
+      "path": "../../packages/harness-claude-code"
+    },
+    {
+      "path": "../../packages/harness-codex"
+    },
+    {
+      "path": "../../packages/harness-pi"
+    },
+    {
+      "path": "../../packages/sandbox-vercel"
+    },
+    {
+      "path": "../harness-http-proxy"
+    }
+  ]
 }

@@ -1,5 +1,22 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.0-canary.76
+
+### Patch Changes
+
+- Updated dependencies [ee798eb]
+- Updated dependencies [61bcdb5]
+- Updated dependencies [daf6637]
+  - @ai-sdk/provider-utils@5.0.0-canary.45
+  - @ai-sdk/anthropic@4.0.0-canary.62
+  - @ai-sdk/openai@4.0.0-canary.67
+
+## 5.0.0-canary.75
+
+### Patch Changes
+
+- 32603d2: fix (provider/amazon-bedrock): correct mantle subpath exports
+
 ## 5.0.0-canary.74
 
 ### Patch Changes

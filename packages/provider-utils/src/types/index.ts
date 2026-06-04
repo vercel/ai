@@ -32,8 +32,8 @@ export type { ModelMessage } from './model-message';
 export type { ProviderOptions } from './provider-options';
 export type { ProviderReference } from './provider-reference';
 export type {
-  Experimental_Sandbox,
-  Experimental_SandboxProcess,
+  SandboxSession as Experimental_SandboxSession,
+  SandboxProcess as Experimental_SandboxProcess,
 } from './sandbox';
 export type { SystemModelMessage } from './system-model-message';
 export {

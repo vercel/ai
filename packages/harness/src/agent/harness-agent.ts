@@ -2,9 +2,9 @@ import { HarnessCapabilityUnsupportedError } from '../errors/harness-capability-
 import type {
   HarnessV1,
   HarnessV1Bootstrap,
+  HarnessV1NetworkSandboxSession,
   HarnessV1Prompt,
   HarnessV1ResumeState,
-  HarnessV1SandboxHandle,
   HarnessV1SandboxProvider,
   HarnessV1ToolSpec,
 } from '../v1';
@@ -89,9 +89,10 @@ export interface HarnessAgentCallExtensions {
  *    untouched.
  *  - **Sandbox propagation.** `settings.sandbox` is a sandbox provider.
  *    On `createSession`, the agent calls `provider.create()` (or
- *    `resume()`) and passes the resulting handle into `doStart`. The
- *    handle's `session` (a tool-safe `Experimental_Sandbox` view) is
- *    handed to user-tool `execute()` calls via `experimental_sandbox`.
+ *    `resume()`) and passes the resulting network sandbox session into
+ *    `doStart`. Its `restricted()` view (a tool-safe
+ *    `Experimental_SandboxSession`) is handed to user-tool `execute()` calls
+ *    via `experimental_sandbox`.
  */
 export class HarnessAgent<
   THarness extends HarnessV1<any> = HarnessV1,
@@ -169,9 +170,9 @@ export class HarnessAgent<
       });
     }
 
-    let sandboxHandle: HarnessV1SandboxHandle | undefined;
+    let sandboxSession: HarnessV1NetworkSandboxSession | undefined;
     let sessionWorkDir: string | undefined;
-    let leasedBridgePort: number | null = null;
+    let leasedBridgePort: number | undefined;
     let recipe: HarnessV1Bootstrap | undefined;
     let identity: string | undefined;
 
@@ -181,7 +182,7 @@ export class HarnessAgent<
         identity = await hashBootstrap(recipe);
       }
 
-      const rawHandle = await this._acquireSandbox({
+      sandboxSession = await this._acquireSandbox({
         sandboxProvider,
         sessionId,
         isResume: validatedResumeFrom != null,
@@ -192,12 +193,12 @@ export class HarnessAgent<
 
       const leased = applyPortLease({
         provider: sandboxProvider,
-        handle: rawHandle,
+        sandboxSession,
         sessionId,
       });
-      sandboxHandle = leased.handle;
+      sandboxSession = leased.sandboxSession;
       leasedBridgePort = leased.port;
-      sessionWorkDir = `${sandboxHandle.defaultWorkingDirectory}/${harness.harnessId}-${sessionId}`;
+      sessionWorkDir = `${sandboxSession.defaultWorkingDirectory}/${harness.harnessId}-${sessionId}`;
 
       // On resume the recipe is already baked into the sandbox snapshot;
       // skip re-applying it and skip the setup hook (it ran on the
@@ -206,7 +207,7 @@ export class HarnessAgent<
         try {
           if (recipe != null && identity != null) {
             await applyBootstrapRecipe(
-              sandboxHandle.session,
+              sandboxSession.restricted(),
               recipe,
               identity,
               { abortSignal },
@@ -214,13 +215,13 @@ export class HarnessAgent<
           }
           // Create the session work dir before `setup` so the hook can
           // operate against it (e.g. clone a repo into it).
-          await sandboxHandle.session.run({
+          await sandboxSession.run({
             command: `mkdir -p ${sessionWorkDir}`,
             abortSignal,
           });
           if (sandboxProvider.setup != null) {
             await sandboxProvider.setup({
-              session: sandboxHandle.session,
+              session: sandboxSession.restricted(),
               sessionWorkDir,
               abortSignal,
             });
@@ -228,7 +229,7 @@ export class HarnessAgent<
         } catch (err) {
           await cleanupAfterStartFailure({
             sandboxProvider,
-            rawHandle,
+            sandboxSession,
             sessionId,
             leasedBridgePort,
           });
@@ -246,24 +247,24 @@ export class HarnessAgent<
         observability: buildObservability({ settings: this.settings }),
       };
       const underlyingSession = await harness.doStart(
-        sandboxHandle != null && sessionWorkDir != null
-          ? { ...baseStartOptions, sandboxHandle, sessionWorkDir }
+        sandboxSession != null && sessionWorkDir != null
+          ? { ...baseStartOptions, sandboxSession, sessionWorkDir }
           : baseStartOptions,
       );
       return new HarnessAgentSession({
         sessionId,
         harness,
         underlyingSession,
-        sandboxHandle: sandboxHandle ?? null,
+        sandboxSession,
         sandboxProvider,
         leasedBridgePort,
         sessionWorkDir,
       });
     } catch (error) {
-      if (sandboxHandle != null) {
+      if (sandboxSession != null) {
         await cleanupAfterStartFailure({
           sandboxProvider: sandboxProvider!,
-          rawHandle: sandboxHandle,
+          sandboxSession,
           sessionId,
           leasedBridgePort,
         });
@@ -333,7 +334,7 @@ export class HarnessAgent<
   } {
     const session = options.session;
     const underlyingSession = session.getUnderlyingSession();
-    const sandboxHandle = session.getSandboxHandle();
+    const sandboxSession = session.getSandboxSession();
     const sessionWorkDir = session.getSessionWorkDir();
 
     const prompt = this._normalizePrompt(options);
@@ -350,7 +351,7 @@ export class HarnessAgent<
       instructions: this.settings.instructions,
       tools: this.tools,
       toolSpecs,
-      sandboxSession: sandboxHandle?.session,
+      sandboxSession: sandboxSession?.restricted(),
       sessionWorkDir,
       runtimeContext,
       abortSignal: options.abortSignal,
@@ -365,7 +366,7 @@ export class HarnessAgent<
     recipe: HarnessV1Bootstrap | undefined;
     identity: string | undefined;
     abortSignal: AbortSignal | undefined;
-  }): Promise<HarnessV1SandboxHandle> {
+  }): Promise<HarnessV1NetworkSandboxSession> {
     const { sandboxProvider } = input;
     if (input.isResume) {
       if (sandboxProvider.resume == null) {
@@ -604,53 +605,59 @@ class HarnessGenerateTextResult<
 }
 
 /*
- * Bridge-port leasing helper. Returns the narrowed handle plus the leased
- * port (or null when the provider has no port pool). Kept here rather than
- * on the session so the lease is established as part of session start —
- * the session only needs to release it on close/detach.
+ * Bridge-port leasing helper. Returns the port-narrowed network sandbox session
+ * plus the leased port (or `undefined` when the provider has no port pool). Kept here
+ * rather than on the session so the lease is established as part of session
+ * start — the session only needs to release it on close/detach.
  */
 function applyPortLease(input: {
   provider: HarnessV1SandboxProvider;
-  handle: HarnessV1SandboxHandle;
+  sandboxSession: HarnessV1NetworkSandboxSession;
   sessionId: string;
-}): { handle: HarnessV1SandboxHandle; port: number | null } {
+}): {
+  sandboxSession: HarnessV1NetworkSandboxSession;
+  port: number | undefined;
+} {
   const pool = input.provider.bridgePorts;
   if (pool == null || pool.length === 0) {
-    return { handle: input.handle, port: null };
+    return { sandboxSession: input.sandboxSession, port: undefined };
   }
   const port = acquireBridgePort({
     poolKey: input.provider,
     pool,
     sessionId: input.sessionId,
   });
-  return { handle: narrowHandlePorts(input.handle, port), port };
+  return {
+    sandboxSession: narrowNetworkSessionPorts(input.sandboxSession, port),
+    port,
+  };
 }
 
-function narrowHandlePorts(
-  handle: HarnessV1SandboxHandle,
+/*
+ * Derive a view of the network sandbox session that reports only the leased
+ * port. Implemented as a prototype-delegating overlay so every other member
+ * (file I/O, exec, spawn, lifecycle, `restricted`) forwards to the same live
+ * instance — only `ports` is shadowed.
+ */
+function narrowNetworkSessionPorts(
+  sandboxSession: HarnessV1NetworkSandboxSession,
   leasedPort: number,
-): HarnessV1SandboxHandle {
-  return {
-    id: handle.id,
-    defaultWorkingDirectory: handle.defaultWorkingDirectory,
-    session: handle.session,
-    ports: [leasedPort],
-    getPortUrl: handle.getPortUrl,
-    stop: handle.stop,
-    ...(handle.setNetworkPolicy != null
-      ? { setNetworkPolicy: handle.setNetworkPolicy }
-      : {}),
-    ...(handle.setPorts != null ? { setPorts: handle.setPorts } : {}),
-  };
+): HarnessV1NetworkSandboxSession {
+  return Object.create(sandboxSession, {
+    ports: {
+      value: [leasedPort] as ReadonlyArray<number>,
+      enumerable: true,
+    },
+  }) as HarnessV1NetworkSandboxSession;
 }
 
 async function cleanupAfterStartFailure(input: {
   sandboxProvider: HarnessV1SandboxProvider;
-  rawHandle: HarnessV1SandboxHandle;
+  sandboxSession: HarnessV1NetworkSandboxSession;
   sessionId: string;
-  leasedBridgePort: number | null;
+  leasedBridgePort: number | undefined;
 }): Promise<void> {
-  await Promise.resolve(input.rawHandle.stop()).catch(() => {});
+  await Promise.resolve(input.sandboxSession.stop()).catch(() => {});
   if (input.leasedBridgePort != null) {
     releaseBridgePort({
       poolKey: input.sandboxProvider,

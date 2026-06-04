@@ -4,7 +4,7 @@ import type {
 } from './harness-v1-diagnostic';
 import type { HarnessV1Prompt } from './harness-v1-prompt';
 import type { HarnessV1ResumeState } from './harness-v1-resume-state';
-import type { HarnessV1SandboxHandle } from './harness-v1-sandbox-handle';
+import type { HarnessV1NetworkSandboxSession } from './harness-v1-network-sandbox-session';
 import type { HarnessV1Skill } from './harness-v1-skill';
 import type { HarnessV1StreamPart } from './harness-v1-stream-part';
 import type { HarnessV1ToolSpec } from './harness-v1-tool-spec';
@@ -28,8 +28,8 @@ export type HarnessV1Observability = {
 /**
  * Options passed to `HarnessV1.doStart`.
  *
- * `sandboxHandle` and `sessionWorkDir` are coupled: a session either runs in a
- * sandbox (both present) or it does not (both absent). They are never split,
+ * `sandboxSession` and `sessionWorkDir` are coupled: a session either
+ * runs in a sandbox (both present) or it does not (both absent). They are never split,
  * so an adapter that has narrowed one to be present knows the other is too.
  * Adapters that require a sandbox throw `HarnessCapabilityUnsupportedError`
  * when given the sandbox-less variant.
@@ -73,26 +73,26 @@ export type HarnessV1StartOptions = {
 } & (
   | {
       /**
-       * Sandbox handle the adapter operates against. The handle is owned and
-       * lifecycled by `HarnessAgent`. Adapters use the `session` field for
-       * filesystem/exec/spawn, and the infra methods (`getPortUrl`, `ports`,
-       * `setNetworkPolicy`) for bridge wiring. Adapters must not call `stop()`
-       * themselves; the agent does that during cleanup.
+       * Network sandbox session the adapter operates against. It is owned and
+       * lifecycled by `HarnessAgent`. Adapters call `restricted()` for the
+       * tool-safe filesystem/exec/spawn surface, and use the infra methods
+       * (`getPortUrl`, `ports`, `setNetworkPolicy`) for bridge wiring. Adapters
+       * must not call `stop()` themselves; the agent does that during cleanup.
        */
-      readonly sandboxHandle: HarnessV1SandboxHandle;
+      readonly sandboxSession: HarnessV1NetworkSandboxSession;
 
       /**
        * Absolute path the adapter runs the agent in for this session. Composed
        * by the framework as
-       * `<sandboxHandle.defaultWorkingDirectory>/<harnessId>-<sessionId>` and
-       * created before `doStart`, so the adapter uses it directly instead of
-       * deriving its own provider-specific path.
+       * `<sandboxSession.defaultWorkingDirectory>/<harnessId>-<sessionId>`
+       * and created before `doStart`, so the adapter uses it directly instead
+       * of deriving its own provider-specific path.
        */
       readonly sessionWorkDir: string;
     }
   | {
       /** No sandbox: this adapter runs without one. */
-      readonly sandboxHandle?: undefined;
+      readonly sandboxSession?: undefined;
       readonly sessionWorkDir?: undefined;
     }
 );

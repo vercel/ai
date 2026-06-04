@@ -1,6 +1,6 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
-import type { Experimental_Sandbox } from '@ai-sdk/provider-utils';
+import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 
 /**
@@ -26,7 +26,7 @@ const PI_SESSIONS_DIR = '.pi-sessions';
  * survives a sandbox snapshot.
  */
 export async function persistSessionFileToSandbox(args: {
-  readonly sandbox: Experimental_Sandbox;
+  readonly sandbox: Experimental_SandboxSession;
   readonly sessionWorkDir: string;
   readonly hostSessionDir: string;
   readonly sessionFileName: string;
@@ -58,7 +58,7 @@ export async function persistSessionFileToSandbox(args: {
  * `undefined` if the sandbox copy is missing.
  */
 export async function pullSessionFileFromSandbox(args: {
-  readonly sandbox: Experimental_Sandbox;
+  readonly sandbox: Experimental_SandboxSession;
   readonly sessionWorkDir: string;
   readonly hostSessionDir: string;
   readonly sessionFileName: string;

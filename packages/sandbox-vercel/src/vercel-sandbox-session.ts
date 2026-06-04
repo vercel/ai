@@ -1,19 +1,20 @@
 import { posix } from 'node:path';
 import {
   extractLines,
-  type Experimental_Sandbox,
+  type Experimental_SandboxSession,
   type Experimental_SandboxProcess,
 } from '@ai-sdk/provider-utils';
 import type { Sandbox, Command } from '@vercel/sandbox';
 
 /**
- * `Experimental_Sandbox` implementation backed by a `@vercel/sandbox` `Sandbox`
- * instance. Produced by `VercelSandboxHandle.session` — not constructed
- * directly by consumers. The handle owns the lifetime of the underlying
- * sandbox; this class exposes only the tool-safe surface.
+ * `Experimental_SandboxSession` implementation backed by a `@vercel/sandbox`
+ * `Sandbox` instance. This is the tool-safe surface (file I/O, exec, spawn);
+ * it is what `VercelNetworkSandboxSession.restricted()` returns and is not
+ * constructed directly by consumers. The network sandbox session owns the
+ * lifetime of the underlying sandbox.
  */
-export class VercelSandboxSession implements Experimental_Sandbox {
-  constructor(private readonly sandbox: Sandbox) {}
+export class VercelSandboxSession implements Experimental_SandboxSession {
+  constructor(protected readonly sandbox: Sandbox) {}
 
   get description(): string {
     return [

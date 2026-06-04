@@ -85,6 +85,9 @@ export function mockHarness(options: {
             done,
           };
         },
+        doCompact: async () => {
+          // The mock harness has no underlying runtime to compact.
+        },
         doStop: async () => {
           // streamText is per-call; nothing persistent to stop.
         },

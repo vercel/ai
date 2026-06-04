@@ -1,4 +1,4 @@
-import type { Experimental_Sandbox } from '@ai-sdk/provider-utils';
+import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
 import { describe, expect, it, vi } from 'vitest';
 import { createPiPathMapper } from './pi-paths';
 import { createPiRemoteOps } from './pi-remote-ops';
@@ -18,7 +18,7 @@ function makeMockSandbox(behaviors: {
   };
   readBinary?: (path: string) => Uint8Array | null;
 }): {
-  sandbox: Experimental_Sandbox;
+  sandbox: Experimental_SandboxSession;
   runCalls: RunCalls;
   readCalls: ReadCalls;
   writeCalls: WriteCalls;
@@ -27,7 +27,7 @@ function makeMockSandbox(behaviors: {
   const readCalls: ReadCalls = [];
   const writeCalls: WriteCalls = [];
 
-  const sandbox: Experimental_Sandbox = {
+  const sandbox: Experimental_SandboxSession = {
     description: 'mock',
     run: vi.fn(
       async ({
@@ -60,7 +60,7 @@ function makeMockSandbox(behaviors: {
       },
     ),
     spawn: vi.fn(),
-  } as unknown as Experimental_Sandbox;
+  } as unknown as Experimental_SandboxSession;
 
   return { sandbox, runCalls, readCalls, writeCalls };
 }

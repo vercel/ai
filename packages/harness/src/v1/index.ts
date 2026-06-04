@@ -29,9 +29,8 @@ export type {
 } from './harness-v1-sandbox-provider';
 export type {
   HarnessV1NetworkPolicy,
-  HarnessV1SandboxHandle,
-} from './harness-v1-sandbox-handle';
-export type { HarnessV1SandboxSession } from './harness-v1-sandbox-session';
+  HarnessV1NetworkSandboxSession,
+} from './harness-v1-network-sandbox-session';
 export type {
   HarnessV1RecoveryMode,
   HarnessV1Session,

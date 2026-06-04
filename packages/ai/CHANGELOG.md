@@ -1,5 +1,30 @@
 # ai
 
+## 7.0.0-canary.163
+
+### Patch Changes
+
+- ee798eb: chore(provider-utils): rename `Experimental_Sandbox` to `Experimental_SandboxSession`
+- c907622: Add a `toolOrder` option to control the order in which tools are sent to provider APIs.
+- Updated dependencies [ee798eb]
+- Updated dependencies [daf6637]
+  - @ai-sdk/provider-utils@5.0.0-canary.45
+  - @ai-sdk/gateway@4.0.0-canary.97
+
+## 7.0.0-canary.162
+
+### Patch Changes
+
+- Updated dependencies [83877a1]
+  - @ai-sdk/gateway@4.0.0-canary.96
+
+## 7.0.0-canary.161
+
+### Patch Changes
+
+- Updated dependencies [a3261db]
+  - @ai-sdk/gateway@4.0.0-canary.95
+
 ## 7.0.0-canary.160
 
 ### Patch Changes

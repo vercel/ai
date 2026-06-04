@@ -1,4 +1,7 @@
-import { HarnessCapabilityUnsupportedError } from '@ai-sdk/harness';
+import {
+  HarnessCapabilityUnsupportedError,
+  type HarnessV1NetworkSandboxSession,
+} from '@ai-sdk/harness';
 import type * as NodeFsPromises from 'node:fs/promises';
 import { describe, expect, it, vi } from 'vitest';
 import { createCodex } from './codex-harness';
@@ -33,29 +36,29 @@ describe('createCodex adapter', () => {
     expect(harness.builtinTools.webSearch.commonName).toBe('webSearch');
   });
 
-  it('throws HarnessCapabilityUnsupportedError when no sandbox handle is provided', async () => {
+  it('throws HarnessCapabilityUnsupportedError when no network sandbox session is provided', async () => {
     const harness = createCodex();
     await expect(harness.doStart({ sessionId: 's1' })).rejects.toBeInstanceOf(
       HarnessCapabilityUnsupportedError,
     );
   });
 
-  it('throws HarnessCapabilityUnsupportedError when the handle exposes no ports', async () => {
+  it('throws HarnessCapabilityUnsupportedError when the network sandbox session exposes no ports', async () => {
     const harness = createCodex();
-    const sandboxHandle = {
+    const sandboxSession = {
       id: 'test-sandbox',
       defaultWorkingDirectory: '/vercel/sandbox',
-      session: {} as never,
+      restricted: () => ({}) as never,
       ports: [] as ReadonlyArray<number>,
       async getPortUrl() {
         return '';
       },
       async stop() {},
-    };
+    } as unknown as HarnessV1NetworkSandboxSession;
     await expect(
       harness.doStart({
         sessionId: 's1',
-        sandboxHandle,
+        sandboxSession,
         sessionWorkDir: '/vercel/sandbox/codex-s1',
       }),
     ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);

@@ -10,6 +10,7 @@ import {
   type BridgeTurn,
 } from '@ai-sdk/harness/bridge';
 import type { HarnessV1BuiltinToolName } from '@ai-sdk/harness';
+import { createCompactionLatch } from './compaction-latch';
 import type { StartMessage } from '../claude-code-bridge-protocol';
 import { randomUUID } from 'node:crypto';
 import { argv, stdout } from 'node:process';
@@ -52,6 +53,40 @@ const NATIVE_TO_COMMON: Readonly<Record<string, HarnessV1BuiltinToolName>> = {
 
 function toCommonName(nativeName: string): HarnessV1BuiltinToolName | string {
   return NATIVE_TO_COMMON[nativeName] ?? nativeName;
+}
+
+/*
+ * The harness exposes a coarse `'off' | 'on' | 'adaptive'` thinking setting,
+ * but the Claude Agent SDK's `thinking` option takes a structured
+ * `ThinkingConfig` object. Passing the bare string silently disables extended
+ * thinking (the SDK ignores the malformed value), so the model never emits
+ * thinking blocks and no reasoning is streamed. Map to the SDK's shape:
+ *   'adaptive' → { type: 'adaptive' }  (Claude decides depth; Opus 4.6+)
+ *   'on'       → { type: 'enabled' }   (extended thinking always on)
+ *   'off'      → { type: 'disabled' }
+ *
+ * `display: 'summarized'` is required for the model's reasoning to actually be
+ * streamed: without it the thinking block arrives carrying only a signature
+ * and empty `thinking_delta`s, so `reasoningText` comes back empty. We default
+ * it on whenever thinking is enabled so reasoning is visible out of the box;
+ * `'off'` (disabled) takes no display.
+ */
+function toThinkingConfig(
+  thinking: 'off' | 'on' | 'adaptive' | undefined,
+):
+  | { type: 'adaptive' | 'enabled'; display: 'summarized' }
+  | { type: 'disabled' }
+  | undefined {
+  switch (thinking) {
+    case 'adaptive':
+      return { type: 'adaptive', display: 'summarized' };
+    case 'on':
+      return { type: 'enabled', display: 'summarized' };
+    case 'off':
+      return { type: 'disabled' };
+    default:
+      return undefined;
+  }
 }
 
 const args = parseArgs(argv.slice(2));
@@ -154,6 +189,11 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     };
   }
 
+  // Compaction observation: merge Claude's `compact_boundary` message and
+  // `PostCompact` hook (which arrive in either order) into one `compaction`
+  // event. See `createCompactionLatch`.
+  const compaction = createCompactionLatch(event => emit(event));
+
   // `stream-start` is emitted lazily on the first SDK message (below) so it can
   // carry the model the CLI resolved to, reported on the `system`/`init` message.
 
@@ -168,8 +208,27 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     options: {
       ...(start.model ? { model: start.model } : {}),
       ...(start.maxTurns !== undefined ? { maxTurns: start.maxTurns } : {}),
-      ...(start.thinking ? { thinking: start.thinking } : {}),
+      ...(toThinkingConfig(start.thinking)
+        ? { thinking: toThinkingConfig(start.thinking) }
+        : {}),
       includePartialMessages: true,
+      // The `PostCompact` hook carries the compaction summary, which the
+      // `compact_boundary` system message does not. Latch it for the unified
+      // `compaction` event; return an empty output so compaction proceeds.
+      hooks: {
+        PostCompact: [
+          {
+            hooks: [
+              async (input: { compact_summary?: unknown }) => {
+                if (typeof input?.compact_summary === 'string') {
+                  compaction.onSummary(input.compact_summary);
+                }
+                return {};
+              },
+            ],
+          },
+        ],
+      },
       // Continuation rule: the host can force-continue (resume after a
       // cross-process detach) by setting `start.continue: true`; otherwise
       // we continue every subsequent turn after the first one in this
@@ -258,6 +317,22 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         typeof msg.patch.error === 'string'
       ) {
         emitTerminalError(msg.patch.error);
+        continue;
+      }
+
+      if (type === 'system' && msg.subtype === 'compact_boundary') {
+        const meta = msg.compact_metadata;
+        if (meta) {
+          compaction.onBoundary({
+            trigger: meta.trigger,
+            ...(typeof meta.pre_tokens === 'number'
+              ? { tokensBefore: meta.pre_tokens }
+              : {}),
+            ...(typeof meta.post_tokens === 'number'
+              ? { tokensAfter: meta.post_tokens }
+              : {}),
+          });
+        }
         continue;
       }
 
@@ -394,6 +469,11 @@ type ClaudeMessage = {
   error?: string;
   error_status?: number;
   patch?: { status?: string; error?: string };
+  compact_metadata?: {
+    trigger: 'manual' | 'auto';
+    pre_tokens?: number;
+    post_tokens?: number;
+  };
   event?: {
     type?: string;
     index?: number;

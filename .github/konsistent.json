@@ -42,6 +42,7 @@
         "!packages/llamaindex",
         "!packages/mcp",
         "!packages/otel",
+        "!packages/policy-opa",
         "!packages/provider",
         "!packages/provider-utils",
         "!packages/react",

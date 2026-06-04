@@ -1,14 +1,14 @@
 import type { LanguageModelV4CallOptions } from '@ai-sdk/provider';
 import {
   tool,
-  type Experimental_Sandbox as Sandbox,
+  type Experimental_SandboxSession as SandboxSession,
 } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   mockId,
 } from '@ai-sdk/provider-utils/test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { mockSandboxFileStubs } from '../test/mock-sandbox';
+import { mockSandboxSessionFileStubs } from '../test/mock-sandbox';
 import { z } from 'zod/v4';
 import type {
   GenerateTextOnEndCallback,
@@ -102,6 +102,32 @@ describe('ToolLoopAgent', () => {
       `);
     });
 
+    it('should forward toolOrder to generateText', async () => {
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        tools: {
+          zebra: tool({
+            inputSchema: z.object({}),
+          }),
+          alpha: tool({
+            inputSchema: z.object({}),
+          }),
+          middle: tool({
+            inputSchema: z.object({}),
+          }),
+        },
+        toolOrder: ['middle'],
+      });
+
+      await agent.generate({ prompt: 'Hello, world!' });
+
+      expect(doGenerateOptions?.tools?.map(tool => tool.name)).toEqual([
+        'middle',
+        'alpha',
+        'zebra',
+      ]);
+    });
+
     it('should pass sandbox to prepareCall', async () => {
       const sandbox = {
         description: 'test sandbox',
@@ -110,9 +136,9 @@ describe('ToolLoopAgent', () => {
           stdout: 'ok',
           stderr: '',
         })),
-        ...mockSandboxFileStubs,
-      } satisfies Sandbox;
-      let recordedSandbox: Sandbox | undefined;
+        ...mockSandboxSessionFileStubs,
+      } satisfies SandboxSession;
+      let recordedSandbox: SandboxSession | undefined;
 
       const agent = new ToolLoopAgent({
         model: mockModel,
@@ -207,9 +233,9 @@ describe('ToolLoopAgent', () => {
           stdout: 'ok',
           stderr: '',
         })),
-        ...mockSandboxFileStubs,
-      } satisfies Sandbox;
-      let recordedSandbox: Sandbox | undefined;
+        ...mockSandboxSessionFileStubs,
+      } satisfies SandboxSession;
+      let recordedSandbox: SandboxSession | undefined;
       let modelCallCount = 0;
 
       const agent = new ToolLoopAgent({
@@ -732,6 +758,33 @@ describe('ToolLoopAgent', () => {
       );
     });
 
+    it('should forward toolOrder to streamText', async () => {
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        tools: {
+          zebra: tool({
+            inputSchema: z.object({}),
+          }),
+          alpha: tool({
+            inputSchema: z.object({}),
+          }),
+          middle: tool({
+            inputSchema: z.object({}),
+          }),
+        },
+        toolOrder: ['middle'],
+      });
+
+      const result = await agent.stream({ prompt: 'Hello, world!' });
+      await result.consumeStream();
+
+      expect(doStreamOptions?.tools?.map(tool => tool.name)).toEqual([
+        'middle',
+        'alpha',
+        'zebra',
+      ]);
+    });
+
     it('should pass sandbox to prepareCall', async () => {
       const sandbox = {
         description: 'test sandbox',
@@ -740,9 +793,9 @@ describe('ToolLoopAgent', () => {
           stdout: 'ok',
           stderr: '',
         })),
-        ...mockSandboxFileStubs,
-      } satisfies Sandbox;
-      let recordedSandbox: Sandbox | undefined;
+        ...mockSandboxSessionFileStubs,
+      } satisfies SandboxSession;
+      let recordedSandbox: SandboxSession | undefined;
 
       const agent = new ToolLoopAgent({
         model: mockModel,
@@ -840,9 +893,9 @@ describe('ToolLoopAgent', () => {
           stdout: 'ok',
           stderr: '',
         })),
-        ...mockSandboxFileStubs,
-      } satisfies Sandbox;
-      let recordedSandbox: Sandbox | undefined;
+        ...mockSandboxSessionFileStubs,
+      } satisfies SandboxSession;
+      let recordedSandbox: SandboxSession | undefined;
       let modelCallCount = 0;
 
       const agent = new ToolLoopAgent({

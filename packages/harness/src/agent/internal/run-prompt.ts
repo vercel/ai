@@ -2,7 +2,6 @@ import type {
   HarnessV1,
   HarnessV1Prompt,
   HarnessV1PromptControl,
-  HarnessV1SandboxSession,
   HarnessV1Session,
   HarnessV1StreamPart,
   HarnessV1ToolSpec,
@@ -11,6 +10,7 @@ import { toHarnessStream } from './to-harness-stream';
 import {
   safeParseJSON,
   type Context,
+  type Experimental_SandboxSession as SandboxSession,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import type { LanguageModelV4ToolCall } from '@ai-sdk/provider';
@@ -47,7 +47,7 @@ export function runPrompt<
   instructions: string | undefined;
   tools: TOOLS;
   toolSpecs: HarnessV1ToolSpec[];
-  sandboxSession: HarnessV1SandboxSession | undefined;
+  sandboxSession: SandboxSession | undefined;
   sessionWorkDir: string | undefined;
   runtimeContext: RUNTIME_CONTEXT;
   abortSignal: AbortSignal | undefined;
@@ -255,7 +255,7 @@ type HostToolOutcome =
 async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
   event: { toolCallId: string; toolName: string; input: string };
   tools: TOOLS;
-  sandboxSession: HarnessV1SandboxSession | undefined;
+  sandboxSession: SandboxSession | undefined;
   abortSignal: AbortSignal | undefined;
   control: HarnessV1PromptControl;
 }): Promise<HostToolOutcome> {
@@ -265,7 +265,7 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
           args: unknown,
           options: {
             abortSignal?: AbortSignal;
-            experimental_sandbox?: HarnessV1SandboxSession;
+            experimental_sandbox?: SandboxSession;
           },
         ) => unknown | Promise<unknown>;
       }

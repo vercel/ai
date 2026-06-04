@@ -60,10 +60,10 @@ export type HarnessAgentSettings<
   readonly instructions?: string;
 
   /**
-   * Sandbox provider whose `create()` produces the sandbox handle the harness
-   * runs against. The handle's `session` is also propagated to user tool
-   * `execute()` calls (as the `experimental_sandbox` field), typed as
-   * `Experimental_Sandbox` so tools cannot reach the infra surface.
+   * Sandbox provider whose `create()` produces the network sandbox session the
+   * harness runs against. Its `restricted()` view is also propagated to user
+   * tool `execute()` calls (as the `experimental_sandbox` field), typed as
+   * `Experimental_SandboxSession` so tools cannot reach the infra surface.
    */
   readonly sandbox?: HarnessV1SandboxProvider;
 

@@ -20,16 +20,17 @@ const sandbox = createVercelSandbox({
   ports: [3000],
 });
 
-const handle = await sandbox.create();
+const sandboxSession = await sandbox.create();
+const session = sandboxSession.restricted();
 
-await handle.session.writeTextFile({ path: 'hello.txt', content: 'hi' });
-const { stdout } = await handle.session.run({
+await session.writeTextFile({ path: 'hello.txt', content: 'hi' });
+const { stdout } = await session.run({
   command: 'cat hello.txt',
 });
-await handle.stop();
+await sandboxSession.stop();
 ```
 
-`handle.session` is typed as `Experimental_Sandbox`, so it's safe to pass to AI SDK tools that accept `experimental_sandbox`. The handle itself carries the infra surface (`ports`, `getPortUrl`, `setNetworkPolicy`, `stop`) that only the harness should reach for.
+`sandboxSession.restricted()` is typed as `Experimental_SandboxSession`, so it's safe to pass to AI SDK tools that accept `experimental_sandbox`. The network sandbox session itself carries the infra surface (`ports`, `getPortUrl`, `setNetworkPolicy`, `stop`) that only the harness should reach for.
 
 The flat-field settings are aliased directly from `@vercel/sandbox`'s `Sandbox.create` parameters, so every option Vercel supports — including its native `NetworkPolicy` — is available without re-declaration:
 
@@ -45,7 +46,7 @@ const sandbox = createVercelSandbox({
 });
 ```
 
-To wrap an already-created `@vercel/sandbox` `Sandbox` instead — e.g. when you need credentials or options outside the factory's settings, or you want to share one sandbox across multiple harness sessions — pass it via `sandbox`. The provider's `handle.stop()` is a no-op in this case; the caller owns the lifecycle.
+To wrap an already-created `@vercel/sandbox` `Sandbox` instead — e.g. when you need credentials or options outside the factory's settings, or you want to share one sandbox across multiple harness sessions — pass it via `sandbox`. The network sandbox session's `stop()` is a no-op in this case; the caller owns the lifecycle.
 
 ```ts
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
@@ -58,10 +59,10 @@ const sandbox = createVercelSandbox({
 
 ### Mid-session network policy
 
-Once the handle is alive, the host can update outbound network policy on the running sandbox:
+Once the network sandbox session is alive, the host can update outbound network policy on the running sandbox:
 
 ```ts
-await handle.setNetworkPolicy?.({
+await sandboxSession.setNetworkPolicy?.({
   mode: 'custom',
   allowedHosts: ['api.example.com'],
   deniedCIDRs: ['169.254.169.254/32'],

@@ -266,4 +266,89 @@ describe('translatePiEvent', () => {
       translatePiEvent({ type: 'queue_update' } as PiSessionEvent, state),
     ).toEqual([]);
   });
+
+  it('translates compaction_end into a compaction part (auto for threshold/overflow)', () => {
+    const state = createPiTranslatorState();
+    const out = translatePiEvent(
+      {
+        type: 'compaction_end',
+        reason: 'threshold',
+        aborted: false,
+        result: { summary: 'Condensed history.', tokensBefore: 90000 },
+      } as PiSessionEvent,
+      state,
+    );
+    expect(out).toEqual([
+      {
+        type: 'compaction',
+        trigger: 'auto',
+        summary: 'Condensed history.',
+        tokensBefore: 90000,
+      },
+    ]);
+  });
+
+  it('maps reason "manual" to trigger "manual"', () => {
+    const state = createPiTranslatorState();
+    const out = translatePiEvent(
+      {
+        type: 'compaction_end',
+        reason: 'manual',
+        aborted: false,
+        result: { summary: 'Manual compaction.' },
+      } as PiSessionEvent,
+      state,
+    );
+    expect(out[0]).toEqual({
+      type: 'compaction',
+      trigger: 'manual',
+      summary: 'Manual compaction.',
+    });
+  });
+
+  it('drops aborted or result-less compaction_end events', () => {
+    const state = createPiTranslatorState();
+    expect(
+      translatePiEvent(
+        {
+          type: 'compaction_end',
+          reason: 'manual',
+          aborted: true,
+          result: { summary: 's' },
+        } as PiSessionEvent,
+        state,
+      ),
+    ).toEqual([]);
+    expect(
+      translatePiEvent(
+        {
+          type: 'compaction_end',
+          reason: 'overflow',
+          aborted: false,
+        } as PiSessionEvent,
+        state,
+      ),
+    ).toEqual([]);
+  });
+
+  it('emits with a placeholder summary when the result has no summary', () => {
+    const state = createPiTranslatorState();
+    const out = translatePiEvent(
+      {
+        type: 'compaction_end',
+        reason: 'threshold',
+        aborted: false,
+        result: { tokensBefore: 50000 },
+      } as PiSessionEvent,
+      state,
+    );
+    expect(out).toEqual([
+      {
+        type: 'compaction',
+        trigger: 'auto',
+        summary: '(no summary provided)',
+        tokensBefore: 50000,
+      },
+    ]);
+  });
 });

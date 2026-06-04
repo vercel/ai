@@ -1,4 +1,5 @@
-import type { HarnessV1Bootstrap, HarnessV1SandboxSession } from '../../v1';
+import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
+import type { HarnessV1Bootstrap } from '../../v1';
 
 /**
  * Version of the bootstrap recipe shape itself. Bump to force every existing
@@ -79,7 +80,7 @@ export function bootstrapMarkerPath(
  * an earlier process) this is a single fast read.
  */
 export async function applyBootstrapRecipe(
-  session: HarnessV1SandboxSession,
+  session: SandboxSession,
   recipe: HarnessV1Bootstrap,
   identity: string,
   options?: { abortSignal?: AbortSignal },

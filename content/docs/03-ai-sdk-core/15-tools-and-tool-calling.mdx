@@ -951,14 +951,15 @@ const result = await generateText({
 The experimental sandbox description is not added to the model prompt automatically. If the model should know about details such as the root directory, exposed ports, or public hostname, include `experimental_sandbox.description` in your system prompt,
 instructions, user-visible context, or a tool description function.
 
-`run` also accepts an optional `workingDirectory` and `abortSignal`.
+`run` also accepts an optional `workingDirectory`, `env`, and `abortSignal`.
 Use `workingDirectory` when a tool needs to run a command from a directory other
-than the experimental sandbox implementation's default working directory. Forward
+than the experimental sandbox implementation's default working directory. Use `env`
+to set environment variables for the command. Forward
 `abortSignal` from the tool execution options so the experimental sandbox can cancel the command if the overall operation is aborted or times out.
 
 The AI SDK forwards your experimental sandbox object but does not create or isolate one for you.
 
-The `Experimental_Sandbox` interface is only a contract. Its isolation guarantees depend on your implementation or experimental sandbox provider. A local implementation that uses
+The `Experimental_SandboxSession` interface is only a contract. Its isolation guarantees depend on your implementation or experimental sandbox provider. A local implementation that uses
 `child_process.exec` with a working directory is not a security boundary because
 commands can still access paths outside that directory. For untrusted commands
 or user-directed coding agents, use a real isolation provider, restrict
@@ -1353,6 +1354,36 @@ const { text } = await generateText({
   activeTools: ['firstTool'],
 });
 ```
+
+## Tool Order
+
+Some providers include tool definitions in the cached portion of a request.
+If the order of those definitions changes between otherwise similar requests,
+the provider may not be able to reuse the cached prefix as effectively.
+
+Use `toolOrder` when you want a stable provider request shape for caching or
+debugging. The list can be partial: tools listed in `toolOrder` are sent first
+in that order, and any remaining tools are sent afterwards in alphabetical
+order. Tool names are typed from your `tools` object.
+
+```ts highlight="9"
+import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
+
+const { text } = await generateText({
+  model: __MODEL__,
+  tools: myToolSet,
+  toolOrder: ['search', 'readFile'],
+  prompt: 'Summarize the latest project notes.',
+});
+```
+
+`toolOrder` controls only the order of tool definitions sent to the provider.
+It does not force the model to call a tool. Use [`toolChoice`](#tool-choice) to
+control tool selection, and use [`activeTools`](#active-tools) when you want to
+limit which tools are available. When both `activeTools` and `toolOrder` are
+provided, `activeTools` filters the available tools first and `toolOrder`
+orders the remaining tools.
 
 ## Multi-modal Tool Results
 

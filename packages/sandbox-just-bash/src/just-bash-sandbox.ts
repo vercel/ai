@@ -1,11 +1,11 @@
 import type {
+  HarnessV1NetworkSandboxSession,
   HarnessV1ProviderSettings,
-  HarnessV1SandboxHandle,
   HarnessV1SandboxProvider,
-  HarnessV1SandboxSession,
 } from '@ai-sdk/harness';
+import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 import { Sandbox } from 'just-bash';
-import { JustBashSandboxHandle } from './just-bash-sandbox-handle';
+import { JustBashNetworkSandboxSession } from './just-bash-network-sandbox-session';
 
 /**
  * Parameters forwarded to `just-bash`'s `Sandbox.create` when creating a
@@ -42,9 +42,9 @@ export function createJustBashSandbox(
 
 /**
  * `HarnessV1SandboxProvider` implementation backed by `just-bash`. Useful for
- * non-bridge harness flows and for handing a local `Experimental_Sandbox` to
- * AI SDK tools — use `provider.create()` then `handle.session` to get the
- * latter.
+ * non-bridge harness flows and for handing a local `Experimental_SandboxSession`
+ * to AI SDK tools — use `provider.create()` then `sandboxSession.restricted()`
+ * to get the latter.
  *
  * Note: just-bash cannot expose ports, so bridge-backed harness adapters
  * (claude-code, codex) will reject this provider at start.
@@ -63,14 +63,14 @@ export class JustBashSandboxProvider implements HarnessV1SandboxProvider {
     abortSignal?: AbortSignal;
     identity?: string;
     onFirstCreate?: (
-      session: HarnessV1SandboxSession,
+      session: SandboxSession,
       opts: { abortSignal?: AbortSignal },
     ) => Promise<void>;
-  }): Promise<HarnessV1SandboxHandle> => {
+  }): Promise<HarnessV1NetworkSandboxSession> => {
     options?.abortSignal?.throwIfAborted();
 
     if ('sandbox' in this.settings && this.settings.sandbox) {
-      return new JustBashSandboxHandle({
+      return new JustBashNetworkSandboxSession({
         sandbox: this.settings.sandbox,
         ownsLifecycle: false,
       });
@@ -86,14 +86,17 @@ export class JustBashSandboxProvider implements HarnessV1SandboxProvider {
     };
 
     const sandbox = await Sandbox.create(createParams);
-    const handle = new JustBashSandboxHandle({ sandbox, ownsLifecycle: true });
+    const sandboxSession = new JustBashNetworkSandboxSession({
+      sandbox,
+      ownsLifecycle: true,
+    });
 
     if (options?.onFirstCreate != null) {
-      await options.onFirstCreate(handle.session, {
+      await options.onFirstCreate(sandboxSession.restricted(), {
         abortSignal: options?.abortSignal,
       });
     }
 
-    return handle;
+    return sandboxSession;
   };
 }
