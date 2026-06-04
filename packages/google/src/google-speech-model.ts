@@ -158,8 +158,6 @@ export class GoogleSpeechModel implements SpeechModelV4 {
     }
 
     const requestBody = {
-      // `role: 'user'` is required by the Vertex AI generateContent API and
-      // accepted by the Gemini Developer API, so the shared model sets it for both.
       contents: [{ role: 'user', parts: [{ text: promptText }] }],
       generationConfig: {
         responseModalities: ['AUDIO'],

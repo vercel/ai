@@ -242,9 +242,6 @@ export function createGoogleVertex(
       generateId: options.generateId ?? generateId,
     });
 
-  // Speech reuses @ai-sdk/google's GoogleSpeechModel: it builds
-  // `${baseURL}/models/${modelId}:generateContent` (the same path the Vertex
-  // language model uses) and Gemini TTS returns the same raw-PCM payload here.
   const createSpeechModel = (modelId: GoogleVertexSpeechModelId) =>
     new GoogleSpeechModel(modelId, createConfig('speech'));
 
