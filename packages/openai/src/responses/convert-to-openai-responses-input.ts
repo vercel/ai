@@ -223,6 +223,18 @@ export async function convertToOpenAIResponsesInput({
                 | string
                 | undefined;
 
+              const namespace = (part.providerOptions?.[providerOptionsName]
+                ?.namespace ??
+                (
+                  part as {
+                    providerMetadata?: {
+                      [providerOptionsName]?: { namespace?: string };
+                    };
+                  }
+                ).providerMetadata?.[providerOptionsName]?.namespace) as
+                | string
+                | undefined;
+
               if (hasConversation && id != null) {
                 break;
               }
@@ -354,7 +366,11 @@ export async function convertToOpenAIResponsesInput({
                 call_id: part.toolCallId,
                 name: resolvedToolName,
                 arguments: serializeToolCallArguments(part.input),
+<<<<<<< HEAD
                 id,
+=======
+                ...(namespace != null && { namespace }),
+>>>>>>> 94eba1b05 (fix(openai): round-trip namespace on function_call input items (#15193))
               });
               break;
             }

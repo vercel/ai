@@ -99,6 +99,7 @@ export type OpenAIResponsesFunctionCall = {
   name: string;
   arguments: string;
   id?: string;
+  namespace?: string;
 };
 
 export type OpenAIResponsesFunctionCallOutput = {
