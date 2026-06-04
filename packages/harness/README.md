@@ -72,7 +72,7 @@ try {
 
 ## Implementing a harness
 
-Implement the `HarnessV1` factory and a `HarnessV1Session` whose `doPrompt` emits events; the agent surface, streaming, tool execution, and multi-turn state are handled for you. If the adapter needs a sandbox, read `startOpts.sandboxHandle` — the agent has already created the handle for you and will stop it on cleanup.
+Implement the `HarnessV1` factory and a `HarnessV1Session` whose `doPromptTurn` emits events; the agent surface, streaming, tool execution, and multi-turn state are handled for you. If the adapter needs a sandbox, read `startOpts.sandboxHandle` — the agent has already created the handle for you and will stop it on cleanup.
 
 ```ts
 import type { HarnessV1, HarnessV1Session } from '@ai-sdk/harness';
@@ -85,7 +85,7 @@ export function myHarness(): HarnessV1 {
     doStart: async startOpts => {
       const session: HarnessV1Session = {
         sessionId: startOpts.sessionId,
-        doPrompt: async promptOpts => {
+        doPromptTurn: async promptOpts => {
           promptOpts.emit({ type: 'text-start', id: 't' });
           promptOpts.emit({ type: 'text-delta', id: 't', delta: 'Hello.' });
           promptOpts.emit({ type: 'text-end', id: 't' });

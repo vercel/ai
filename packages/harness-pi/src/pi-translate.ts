@@ -5,7 +5,7 @@ import { serializeToolOutput } from './pi-utils';
 
 /**
  * Translator state shared across all events of a single turn. Reset at the
- * start of every `doPrompt`. Callers update the same instance and read it to
+ * start of every `doPromptTurn`. Callers update the same instance and read it to
  * decide when a turn has settled into a steady state (e.g. for gap-filling).
  */
 export interface PiTranslatorState {

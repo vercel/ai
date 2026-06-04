@@ -120,6 +120,77 @@ describe('SandboxChannel ↔ runBridge reconnect', () => {
     expect(debug).toContain('reconnected');
     expect(closedCode).toBeUndefined(); // transient drop never surfaced as close
   });
+
+  it('suspends mid-turn, then a fresh-process channel attaches and continues exactly once', async () => {
+    // Models a workflow slice boundary: slice 1 consumes part of a turn then
+    // `suspend()`s at a precise cursor (the host process goes away); the bridge
+    // keeps the turn running. Slice 2 is a brand-new `SandboxChannel` (new
+    // process) that attaches with the persisted cursor and continues — the tail
+    // must arrive with no gap and no duplicate of what slice 1 already saw.
+    let release!: () => void;
+    const gate = new Promise<void>(r => (release = r));
+
+    const handle = await startBridge(async (_s, turn) => {
+      turn.emit({ type: 'text-delta', id: 'm', delta: 'one' }); // seq 1
+      turn.emit({ type: 'text-delta', id: 'm', delta: 'two' }); // seq 2
+      await gate; // suspended here — no active socket
+      turn.emit({ type: 'text-delta', id: 'm', delta: 'three' }); // seq 3
+      turn.emit({ type: 'text-delta', id: 'm', delta: 'four' }); // seq 4
+      turn.emit({ type: 'finish' }); // seq 5
+    });
+
+    const url = `ws://127.0.0.1:${handle.port}/?agent_bridge_token=${TOKEN}`;
+    const connect = () =>
+      new Promise<WebSocket>((resolve, reject) => {
+        const ws = new WebSocket(url);
+        ws.on('open', () => resolve(ws));
+        ws.on('error', reject);
+      });
+
+    // ── Slice 1: open, start, receive the first two deltas, then suspend. ──
+    const channelA = new SandboxChannel<Outbound, Inbound>({
+      connect,
+      outboundSchema,
+    });
+    const deltasA: string[] = [];
+    channelA.on('text-delta', e => deltasA.push(e.delta));
+    let suspendedReason: number | undefined;
+    channelA.onClose((_code, reason) => {
+      // exposed as the second onClose arg
+      suspendedReason = reason === 'suspended' ? 1 : 0;
+    });
+
+    await channelA.open();
+    channelA.send({ type: 'start' });
+    await waitUntil(() => deltasA.length === 2);
+
+    const cursor = await channelA.suspend();
+    expect(deltasA).toEqual(['one', 'two']);
+    expect(cursor).toBe(2); // froze exactly at the last delivered event
+    expect(suspendedReason).toBe(1); // closed with reason 'suspended'
+
+    // The turn keeps running in the bridge after the host went away.
+    release();
+
+    // ── Slice 2: a fresh channel attaches from the persisted cursor. ──
+    const channelB = new SandboxChannel<Outbound, Inbound>({
+      connect,
+      outboundSchema,
+      initialLastSeenEventId: cursor,
+    });
+    cleanups.push(() => channelB.close());
+    const deltasB: string[] = [];
+    channelB.on('text-delta', e => deltasB.push(e.delta));
+    const finishedB = new Promise<void>(resolve => {
+      channelB.on('finish', () => resolve());
+    });
+
+    await channelB.open({ resume: true });
+    await finishedB;
+
+    // No gap (got the whole tail) and no duplicate (none of slice 1's events).
+    expect(deltasB).toEqual(['three', 'four']);
+  });
 });
 
 async function waitUntil(pred: () => boolean, timeoutMs = 2000): Promise<void> {

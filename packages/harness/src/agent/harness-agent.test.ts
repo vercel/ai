@@ -37,7 +37,7 @@ function mockHarness(options: {
 
   const session: HarnessV1Session = {
     sessionId: 'mock-session-1',
-    doPrompt: async (opts: HarnessV1PromptOptions) => {
+    doPromptTurn: async (opts: HarnessV1PromptOptions) => {
       prompts.push(opts.prompt);
       const control: HarnessV1PromptControl = {
         submitToolResult: async input => {
@@ -48,7 +48,7 @@ function mockHarness(options: {
       const events = options.script(async input => {
         await control.submitToolResult(input);
       });
-      // Emit on a microtask so the consumer can await doPrompt first.
+      // Emit on a microtask so the consumer can await doPromptTurn first.
       queueMicrotask(() => {
         for (const event of events) opts.emit(event);
       });
@@ -56,6 +56,15 @@ function mockHarness(options: {
     },
     doStop,
     doGetResumeHandle: () => ({
+      harnessId: 'mock',
+      specificationVersion: 'harness-v1',
+      data: {},
+    }),
+    doContinueTurn: async () => ({
+      submitToolResult: async () => {},
+      done: Promise.resolve(),
+    }),
+    doSuspendTurn: async () => ({
       harnessId: 'mock',
       specificationVersion: 'harness-v1',
       data: {},
@@ -429,12 +438,21 @@ describe('HarnessAgent', () => {
     const underlying: HarnessV1Session = {
       sessionId: 's-attach',
       recoveryMode: 'attach',
-      doPrompt: async (opts: HarnessV1PromptOptions) => {
+      doPromptTurn: async (opts: HarnessV1PromptOptions) => {
         queueMicrotask(() => opts.emit({ type: 'finish' } as never));
         return { submitToolResult: async () => {}, done: Promise.resolve() };
       },
       doStop,
       doGetResumeHandle: () => ({
+        harnessId: 'mock',
+        specificationVersion: 'harness-v1',
+        data: { bridge: { port: 5001, token: 't', lastSeenEventId: 3 } },
+      }),
+      doContinueTurn: async () => ({
+        submitToolResult: async () => {},
+        done: Promise.resolve(),
+      }),
+      doSuspendTurn: async () => ({
         harnessId: 'mock',
         specificationVersion: 'harness-v1',
         data: { bridge: { port: 5001, token: 't', lastSeenEventId: 3 } },

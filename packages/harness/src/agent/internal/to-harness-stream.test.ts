@@ -1,32 +1,23 @@
 import { describe, expect, test, vi } from 'vitest';
-import type {
-  HarnessV1PromptControl,
-  HarnessV1PromptOptions,
-} from '../../v1/harness-v1-call-options';
-import type { HarnessV1Session } from '../../v1/harness-v1-session';
+import type { HarnessV1PromptControl } from '../../v1/harness-v1-call-options';
 import type { HarnessV1StreamPart } from '../../v1/harness-v1-stream-part';
 import { toHarnessStream } from './to-harness-stream';
 
-function makeSession(opts: {
+/**
+ * Build an `invoke` thunk for `toHarnessStream`. `run` produces the turn's
+ * events against the supplied `emit`; its returned promise becomes `done`.
+ */
+function makeInvoke(opts: {
   run: (emit: (part: HarnessV1StreamPart) => void) => Promise<void>;
   control?: Partial<HarnessV1PromptControl>;
-}): HarnessV1Session {
-  return {
-    sessionId: 'session-1',
-    doPrompt: async (callOpts: HarnessV1PromptOptions) => {
-      const done = opts.run(callOpts.emit);
-      return {
-        submitToolResult: vi.fn(async () => {}),
-        ...opts.control,
-        done,
-      } as HarnessV1PromptControl;
-    },
-    doStop: vi.fn(async () => {}),
-    doGetResumeHandle: () => ({
-      harnessId: 'mock',
-      specificationVersion: 'harness-v1',
-      data: {},
-    }),
+}) {
+  return async (emit: (part: HarnessV1StreamPart) => void) => {
+    const done = opts.run(emit);
+    return {
+      submitToolResult: vi.fn(async () => {}),
+      ...opts.control,
+      done,
+    } as HarnessV1PromptControl;
   };
 }
 
@@ -48,31 +39,28 @@ async function collect(
 
 describe('toHarnessStream', () => {
   test('forwards emitted events in order and closes when done resolves', async () => {
-    const session = makeSession({
-      run: async emit => {
-        emit({ type: 'stream-start' });
-        emit({ type: 'text-start', id: 't1' });
-        emit({ type: 'text-delta', id: 't1', delta: 'hello' });
-        emit({ type: 'text-end', id: 't1' });
-        emit({
-          type: 'finish',
-          finishReason: { unified: 'stop', raw: 'end_turn' },
-          totalUsage: {
-            inputTokens: {
-              total: 10,
-              noCache: 10,
-              cacheRead: undefined,
-              cacheWrite: undefined,
-            },
-            outputTokens: { total: 5, text: 5, reasoning: undefined },
-          },
-        });
-      },
-    });
-
     const { stream } = await toHarnessStream({
-      session,
-      prompt: { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+      invoke: makeInvoke({
+        run: async emit => {
+          emit({ type: 'stream-start' });
+          emit({ type: 'text-start', id: 't1' });
+          emit({ type: 'text-delta', id: 't1', delta: 'hello' });
+          emit({ type: 'text-end', id: 't1' });
+          emit({
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'end_turn' },
+            totalUsage: {
+              inputTokens: {
+                total: 10,
+                noCache: 10,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: { total: 5, text: 5, reasoning: undefined },
+            },
+          });
+        },
+      }),
     });
 
     const parts = await collect(stream);
@@ -85,16 +73,13 @@ describe('toHarnessStream', () => {
     ]);
   });
 
-  test('returns the same control handle doPrompt produced', async () => {
+  test('returns the same control handle invoke produced', async () => {
     const submitToolResult = vi.fn(async () => {});
-    const session = makeSession({
-      run: async () => {},
-      control: { submitToolResult },
-    });
-
     const { control } = await toHarnessStream({
-      session,
-      prompt: { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+      invoke: makeInvoke({
+        run: async () => {},
+        control: { submitToolResult },
+      }),
     });
 
     await control.submitToolResult({ toolCallId: 'c1', output: 'ok' });
@@ -104,13 +89,13 @@ describe('toHarnessStream', () => {
     });
   });
 
-  test('enqueues an error part and errors the stream when done rejects', async () => {
+  test('enqueues an error part and closes the stream when done rejects', async () => {
     const boom = new Error('boom');
     let signalFailure!: (err: unknown) => void;
-    const session: HarnessV1Session = {
-      sessionId: 's',
-      doPrompt: async callOpts => {
-        callOpts.emit({ type: 'text-delta', id: 't', delta: 'partial' });
+
+    const { stream } = await toHarnessStream({
+      invoke: async emit => {
+        emit({ type: 'text-delta', id: 't', delta: 'partial' });
         const done = new Promise<void>((_, reject) => {
           signalFailure = reject;
         });
@@ -119,17 +104,6 @@ describe('toHarnessStream', () => {
           done,
         } as HarnessV1PromptControl;
       },
-      doStop: async () => {},
-      doGetResumeHandle: () => ({
-        harnessId: 'mock',
-        specificationVersion: 'harness-v1',
-        data: {},
-      }),
-    };
-
-    const { stream } = await toHarnessStream({
-      session,
-      prompt: { role: 'user', content: [{ type: 'text', text: 'hi' }] },
     });
 
     // Trigger the failure after the stream is wired up. This mirrors how a
@@ -143,72 +117,19 @@ describe('toHarnessStream', () => {
     expect(parts[1]).toMatchObject({ type: 'error', error: boom });
   });
 
-  test('passes prompt + tools + instructions through to doPrompt', async () => {
-    const doPrompt = vi.fn(
+  test('invokes the thunk once with a working emit', async () => {
+    const invoke = vi.fn(
       async (
-        _opts: HarnessV1PromptOptions,
+        _emit: (part: HarnessV1StreamPart) => void,
       ): Promise<HarnessV1PromptControl> => ({
         submitToolResult: vi.fn(async () => {}),
         done: Promise.resolve(),
       }),
     );
-    const session: HarnessV1Session = {
-      sessionId: 's',
-      doPrompt,
-      doStop: async () => {},
-      doGetResumeHandle: () => ({
-        harnessId: 'mock',
-        specificationVersion: 'harness-v1',
-        data: {},
-      }),
-    };
 
-    await toHarnessStream({
-      session,
-      prompt: { role: 'user', content: [{ type: 'text', text: 'hi' }] },
-      tools: [{ name: 'myTool' }],
-      instructions: 'be brief',
-    });
+    await toHarnessStream({ invoke });
 
-    expect(doPrompt).toHaveBeenCalledTimes(1);
-    const arg = doPrompt.mock.calls[0]![0]!;
-    expect(arg.prompt).toEqual({
-      role: 'user',
-      content: [{ type: 'text', text: 'hi' }],
-    });
-    expect(arg.tools).toEqual([{ name: 'myTool' }]);
-    expect(arg.instructions).toBe('be brief');
-    expect(typeof arg.emit).toBe('function');
-  });
-
-  test('forwards the abort signal to doPrompt', async () => {
-    const ac = new AbortController();
-    const doPrompt = vi.fn(
-      async (
-        _opts: HarnessV1PromptOptions,
-      ): Promise<HarnessV1PromptControl> => ({
-        submitToolResult: vi.fn(async () => {}),
-        done: Promise.resolve(),
-      }),
-    );
-    const session: HarnessV1Session = {
-      sessionId: 's',
-      doPrompt,
-      doStop: async () => {},
-      doGetResumeHandle: () => ({
-        harnessId: 'mock',
-        specificationVersion: 'harness-v1',
-        data: {},
-      }),
-    };
-
-    await toHarnessStream({
-      session,
-      prompt: { role: 'user', content: [{ type: 'text', text: 'hi' }] },
-      abortSignal: ac.signal,
-    });
-
-    const arg = doPrompt.mock.calls[0]![0]!;
-    expect(arg.abortSignal).toBe(ac.signal);
+    expect(invoke).toHaveBeenCalledTimes(1);
+    expect(typeof invoke.mock.calls[0]![0]).toBe('function');
   });
 });

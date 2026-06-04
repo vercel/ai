@@ -15,6 +15,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { Type } from 'typebox';
 import type {
+  HarnessV1ContinueOptions,
   HarnessV1PromptControl,
   HarnessV1PromptOptions,
   HarnessV1ResumeState,
@@ -235,6 +236,13 @@ export async function createPiSession(
   let sessionFileName: string | undefined;
   let stopped = false;
   /*
+   * Set by `doSuspendTurn` before it aborts the in-flight host turn at a slice
+   * boundary. The turn's catch settles silently when this is set, so the stream
+   * closes cleanly (no spurious `error` chunk) — the next slice rerun-continues
+   * from the persisted journal.
+   */
+  let suspending = false;
+  /*
    * Instructions are prepended to the first user message of a fresh session
    * only. A resumed session already carried them in its original first
    * message (preserved in the persisted session file), so it starts "applied".
@@ -242,7 +250,7 @@ export async function createPiSession(
   let instructionsApplied = input.isResume;
   const pendingToolResults = new Map<string, PendingToolResult>();
 
-  // Emit channel set at the start of every doPrompt and cleared on end.
+  // Emit channel set at the start of every doPromptTurn and cleared on end.
   let currentEmit: ((part: HarnessV1StreamPart) => void) | undefined;
   let translatorState: PiTranslatorState | undefined;
 
@@ -350,6 +358,137 @@ export async function createPiSession(
     });
   }
 
+  /*
+   * Drive one turn against the Pi session and return the control surface.
+   * Shared by `doPromptTurn` (a fresh user prompt) and `doContinueTurn` (an empty
+   * prompt that asks Pi to continue its own thread after a rerun resume).
+   */
+  async function runTurn(turnOpts: {
+    text: string;
+    tools: ReadonlyArray<HarnessV1ToolSpec>;
+    emit: (part: HarnessV1StreamPart) => void;
+    abortSignal?: AbortSignal;
+  }): Promise<HarnessV1PromptControl> {
+    if (stopped) {
+      throw new Error('Pi session has been stopped.');
+    }
+
+    const userTools = turnOpts.tools;
+    const signature = JSON.stringify(userTools.map(t => t.name).sort());
+    const needsRebuild = piSession == null || signature !== lastToolsSignature;
+    if (needsRebuild) {
+      await rebuildPiSession(userTools, piSession == null);
+      lastToolsSignature = signature;
+    }
+
+    await resourceLoader.reload();
+    await syncHostWorkspaceFromSandbox({
+      sandbox,
+      sandboxWorkDir: input.sessionWorkDir,
+      hostWorkDir,
+    });
+
+    currentEmit = turnOpts.emit;
+    // Fresh translator state for the new turn — keep the tool sets the
+    // session was built with.
+    translatorState = createPiTranslatorState({
+      builtinToolNames: [...PI_NATIVE_BUILTIN_NAMES],
+      nativeToCommon: NATIVE_TO_COMMON,
+    });
+
+    turnOpts.emit({ type: 'stream-start' });
+
+    const turnPromise = (async () => {
+      let terminalError: string | undefined;
+      const session = piSession!;
+
+      // We subscribed in rebuild, but the translator may need to detect
+      // terminal errors too — wrap a second listener that records them.
+      const unsubErr = session.subscribe(raw => {
+        const ev = parseNativeEvent(raw);
+        if (!ev) return;
+        const err = getPiTerminalError(ev);
+        if (err && !terminalError) {
+          terminalError = err;
+        }
+      });
+
+      try {
+        await session.prompt(turnOpts.text);
+
+        if (terminalError) {
+          turnOpts.emit({ type: 'error', error: new Error(terminalError) });
+          return;
+        }
+
+        const stats = session.getSessionStats();
+        const finishReason = {
+          unified: 'stop' as const,
+          raw: undefined,
+        };
+        const usage = {
+          inputTokens: {
+            total: stats.tokens.input,
+            noCache: undefined,
+            cacheRead: stats.tokens.cacheRead,
+            cacheWrite: stats.tokens.cacheWrite,
+          },
+          outputTokens: {
+            total: stats.tokens.output,
+            text: undefined,
+            reasoning: undefined,
+          },
+        };
+        // `finish-step` populates the step's finishReason + usage (the
+        // agent's result builder reads this); `finish` marks the turn end
+        // with totalUsage.
+        turnOpts.emit({ type: 'finish-step', finishReason, usage });
+        turnOpts.emit({
+          type: 'finish',
+          finishReason,
+          totalUsage: usage,
+        });
+      } catch (err) {
+        // A `doSuspendTurn` aborts the in-flight turn on purpose — settle silently
+        // so the stream closes cleanly without a spurious `error` chunk; the
+        // next slice rerun-continues from the persisted journal.
+        if (suspending) return;
+        turnOpts.emit({ type: 'error', error: err });
+      } finally {
+        unsubErr();
+      }
+    })();
+
+    const abortHandler = () => {
+      piSession?.abort().catch(() => {});
+    };
+    if (turnOpts.abortSignal) {
+      turnOpts.abortSignal.addEventListener('abort', abortHandler, {
+        once: true,
+      });
+    }
+
+    const done = turnPromise.finally(() => {
+      turnOpts.abortSignal?.removeEventListener('abort', abortHandler);
+      currentEmit = undefined;
+    });
+
+    const control: HarnessV1PromptControl = {
+      async submitToolResult(args) {
+        const pending = pendingToolResults.get(args.toolCallId);
+        if (!pending) return;
+        pendingToolResults.delete(args.toolCallId);
+        pending.resolve(args.output);
+      },
+      async submitUserMessage(text) {
+        await piSession?.steer(text);
+      },
+      done,
+    };
+
+    return control;
+  }
+
   const sessionImpl: HarnessV1Session = {
     sessionId: input.sessionId,
     // The model Pi actually resolves to (the configured id, or its default when
@@ -361,130 +500,40 @@ export async function createPiSession(
     // sandbox, i.e. the `rerun` equivalent.
     recoveryMode: input.isResume ? 'rerun' : 'cold',
 
-    doPrompt: async (
+    doPromptTurn: async (
       promptOpts: HarnessV1PromptOptions,
     ): Promise<HarnessV1PromptControl> => {
-      if (stopped) {
-        throw new Error('Pi session has been stopped.');
-      }
-
       let text = extractUserText(promptOpts.prompt);
       if (!instructionsApplied && promptOpts.instructions) {
         text = frameInstructions(promptOpts.instructions, text);
       }
       instructionsApplied = true;
 
-      const userTools = promptOpts.tools ?? [];
-      const signature = JSON.stringify(userTools.map(t => t.name).sort());
-      const needsRebuild =
-        piSession == null || signature !== lastToolsSignature;
-      if (needsRebuild) {
-        await rebuildPiSession(userTools, piSession == null);
-        lastToolsSignature = signature;
-      }
-
-      await resourceLoader.reload();
-      await syncHostWorkspaceFromSandbox({
-        sandbox,
-        sandboxWorkDir: input.sessionWorkDir,
-        hostWorkDir,
+      return runTurn({
+        text,
+        tools: promptOpts.tools ?? [],
+        emit: promptOpts.emit,
+        abortSignal: promptOpts.abortSignal,
       });
+    },
 
-      currentEmit = promptOpts.emit;
-      // Fresh translator state for the new turn — keep the tool sets the
-      // session was built with.
-      translatorState = createPiTranslatorState({
-        builtinToolNames: [...PI_NATIVE_BUILTIN_NAMES],
-        nativeToCommon: NATIVE_TO_COMMON,
+    doContinueTurn: async (
+      continueOpts: HarnessV1ContinueOptions,
+    ): Promise<HarnessV1PromptControl> => {
+      /*
+       * Pi runs the model on the host, so there is no live turn in the sandbox
+       * to attach to — the previous slice's turn died with its process.
+       * Rerun-continue: re-drive the agent from the journal restored on resume.
+       * An empty prompt asks Pi to continue its own thread. Lossy — any work in
+       * flight at the slice boundary is recomputed. Matches Pi's `'rerun'`
+       * recoveryMode (a host-resident runtime cannot do a lossless attach).
+       */
+      return runTurn({
+        text: '',
+        tools: continueOpts.tools ?? [],
+        emit: continueOpts.emit,
+        abortSignal: continueOpts.abortSignal,
       });
-
-      promptOpts.emit({ type: 'stream-start' });
-
-      const turnPromise = (async () => {
-        let terminalError: string | undefined;
-        const session = piSession!;
-
-        // We subscribed in rebuild, but the translator may need to detect
-        // terminal errors too — wrap a second listener that records them.
-        const unsubErr = session.subscribe(raw => {
-          const ev = parseNativeEvent(raw);
-          if (!ev) return;
-          const err = getPiTerminalError(ev);
-          if (err && !terminalError) {
-            terminalError = err;
-          }
-        });
-
-        try {
-          await session.prompt(text);
-
-          if (terminalError) {
-            promptOpts.emit({ type: 'error', error: new Error(terminalError) });
-            return;
-          }
-
-          const stats = session.getSessionStats();
-          const finishReason = {
-            unified: 'stop' as const,
-            raw: undefined,
-          };
-          const usage = {
-            inputTokens: {
-              total: stats.tokens.input,
-              noCache: undefined,
-              cacheRead: stats.tokens.cacheRead,
-              cacheWrite: stats.tokens.cacheWrite,
-            },
-            outputTokens: {
-              total: stats.tokens.output,
-              text: undefined,
-              reasoning: undefined,
-            },
-          };
-          // `finish-step` populates the step's finishReason + usage (the
-          // agent's result builder reads this); `finish` marks the turn end
-          // with totalUsage.
-          promptOpts.emit({ type: 'finish-step', finishReason, usage });
-          promptOpts.emit({
-            type: 'finish',
-            finishReason,
-            totalUsage: usage,
-          });
-        } catch (err) {
-          promptOpts.emit({ type: 'error', error: err });
-        } finally {
-          unsubErr();
-        }
-      })();
-
-      const abortHandler = () => {
-        piSession?.abort().catch(() => {});
-      };
-      if (promptOpts.abortSignal) {
-        promptOpts.abortSignal.addEventListener('abort', abortHandler, {
-          once: true,
-        });
-      }
-
-      const done = turnPromise.finally(() => {
-        promptOpts.abortSignal?.removeEventListener('abort', abortHandler);
-        currentEmit = undefined;
-      });
-
-      const control: HarnessV1PromptControl = {
-        async submitToolResult(args) {
-          const pending = pendingToolResults.get(args.toolCallId);
-          if (!pending) return;
-          pendingToolResults.delete(args.toolCallId);
-          pending.resolve(args.output);
-        },
-        async submitUserMessage(text) {
-          await piSession?.steer(text);
-        },
-        done,
-      };
-
-      return control;
     },
 
     doStop: async () => {
@@ -560,6 +609,54 @@ export async function createPiSession(
           // in place, so resume returns to a slightly older (still valid) state.
         }
       }
+
+      return {
+        harnessId: HARNESS_ID,
+        specificationVersion: 'harness-v1',
+        data: sessionFileName ? { sessionFileName } : {},
+      };
+    },
+
+    doSuspendTurn: async (): Promise<HarnessV1ResumeState> => {
+      if (stopped) {
+        throw new Error('Pi session has been stopped.');
+      }
+      /*
+       * Pi's model runs in this host process, which is about to be suspended at
+       * the slice boundary — the in-flight turn cannot survive it. Abort it (the
+       * turn settles silently via the `suspending` guard so the stream closes
+       * cleanly), persist the journal into the sandbox, and tear down host-side
+       * resources. The sandbox itself is left running; the next slice pulls the
+       * journal after `provider.resume({ sessionId })` and rerun-continues. The
+       * tail in flight at the boundary is recomputed — Pi cannot freeze a live
+       * turn the way a bridge adapter can.
+       */
+      suspending = true;
+      await Promise.resolve(piSession?.abort()).catch(() => {});
+
+      if (sessionFileName) {
+        try {
+          await persistSessionFileToSandbox({
+            sandbox,
+            sessionWorkDir: input.sessionWorkDir,
+            hostSessionDir,
+            sessionFileName,
+          });
+        } catch {
+          // Best-effort: a missing/failed copy leaves the previously persisted
+          // journal in place, so the next slice resumes from a slightly older
+          // (still valid) state.
+        }
+      }
+
+      stopped = true;
+      settlePendingToolResults('Pi session suspended');
+      unsubscribe?.();
+      unsubscribe = undefined;
+      piSession?.dispose();
+      piSession = undefined;
+      workspaceVfs.unmount();
+      await rm(hostRoot, { recursive: true, force: true });
 
       return {
         harnessId: HARNESS_ID,

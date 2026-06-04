@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 /*
  * The codex adapter sends `instructions` over the channel inside the `start`
  * message. We stub `SandboxChannel` so `send()` records the messages instead
- * of opening a real WebSocket, then drive `doStart` → `doPrompt` against a
+ * of opening a real WebSocket, then drive `doStart` → `doPromptTurn` against a
  * fake sandbox handle. This isolates the "prepend to the first user message
  * only" gating without standing up the in-sandbox bridge.
  */
@@ -105,14 +105,14 @@ describe('codex adapter — instructions gating', () => {
   it('prepends instructions on the first user message only', async () => {
     const session = await startSession();
 
-    await session.doPrompt({
+    await session.doPromptTurn({
       prompt: 'first turn',
       instructions: 'Use turbo build --concurrency=4.',
       emit: () => {},
     });
     expect(lastStart().instructions).toBe('Use turbo build --concurrency=4.');
 
-    await session.doPrompt({
+    await session.doPromptTurn({
       prompt: 'second turn',
       instructions: 'Use turbo build --concurrency=4.',
       emit: () => {},
@@ -129,7 +129,7 @@ describe('codex adapter — instructions gating', () => {
       },
     });
 
-    await session.doPrompt({
+    await session.doPromptTurn({
       prompt: 'resumed turn',
       instructions: 'Use turbo build --concurrency=4.',
       emit: () => {},

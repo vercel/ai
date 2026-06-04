@@ -111,6 +111,44 @@ describe('SandboxChannel', () => {
     expect(captured).toHaveLength(1);
   });
 
+  it('suspend freezes the cursor at the last delivered event and closes with reason "suspended"', async () => {
+    const connector = makeConnector();
+    const channel = makeChannel(connector);
+    await channel.open();
+
+    const text: string[] = [];
+    channel.on('text-delta', evt => text.push(evt.delta));
+    let closeReason: string | undefined;
+    channel.onClose((_code, reason) => {
+      closeReason = reason;
+    });
+
+    connector
+      .current()
+      .deliver({ type: 'text-delta', id: 'a', delta: 'one' }, 1);
+    connector
+      .current()
+      .deliver({ type: 'text-delta', id: 'a', delta: 'two' }, 2);
+    await flush();
+
+    const cursor = await channel.suspend();
+    expect(cursor).toBe(2);
+    expect(closeReason).toBe('suspended');
+    expect(channel.lastSeenEventId).toBe(2);
+
+    // Frames arriving after suspend are ignored — the cursor must not advance
+    // past what was delivered (the bridge replays the rest to the next slice).
+    connector
+      .current()
+      .deliver({ type: 'text-delta', id: 'a', delta: 'three' }, 3);
+    await flush();
+    expect(text).toEqual(['one', 'two']);
+    expect(channel.lastSeenEventId).toBe(2);
+
+    // No `resume` was sent — suspend is a one-way close, not a reconnect.
+    expect(connector.current().sent).toEqual([]);
+  });
+
   it('serialises and sends inbound messages', async () => {
     const connector = makeConnector();
     const channel = makeChannel(connector);
