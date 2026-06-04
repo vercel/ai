@@ -223,6 +223,30 @@ describe('status-code fallback for unrecognized error types', () => {
     expect(error).toBeInstanceOf(GatewayInvalidRequestError);
     expect(error.isRetryable).toBe(false);
   });
+
+  // Deliberate: a relayed provider 401/403/404 is bucketed as
+  // GatewayInvalidRequestError, NOT GatewayAuthenticationError /
+  // GatewayModelNotFoundError. Those classes describe Gateway-level auth and
+  // model resolution; the Gateway already emits the matching recognized types
+  // (authentication_error / model_not_found) for genuine cases via its own
+  // paths. Inferring them from a bare upstream status would mislead (a provider
+  // 401 isn't the caller's Gateway key being wrong). isRetryable stays correct
+  // either way since it derives from the status code.
+  it.each([401, 403, 404])(
+    'maps an unrecognized %i to GatewayInvalidRequestError (not Auth/ModelNotFound)',
+    async statusCode => {
+      const error = await createGatewayErrorFromResponse({
+        response: {
+          error: { message: 'upstream rejected', type: 'AI_APICallError' },
+        },
+        statusCode,
+      });
+
+      expect(error).toBeInstanceOf(GatewayInvalidRequestError);
+      expect(error.statusCode).toBe(statusCode);
+      expect(error.isRetryable).toBe(false);
+    },
+  );
 });
 
 describe('Error response edge cases', () => {
