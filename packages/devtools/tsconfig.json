@@ -12,26 +12,10 @@
     "rootDir": "./src",
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./src/viewer/client/*"
-      ]
+      "@/*": ["./src/viewer/client/*"]
     },
     "jsx": "react-jsx"
   },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "examples"
-  ],
-  "references": [
-    {
-      "path": "../ai"
-    },
-    {
-      "path": "../provider"
-    }
-  ]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "examples"]
 }

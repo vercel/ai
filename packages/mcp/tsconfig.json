@@ -15,14 +15,11 @@
     "tsup.config.ts"
   ],
   "references": [
-    {
+      {
       "path": "../provider"
-    },
-    {
+      },
+      {
       "path": "../provider-utils"
-    },
-    {
-      "path": "../test-server"
-    }
+      }
   ]
 }

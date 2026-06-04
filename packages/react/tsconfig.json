@@ -15,19 +15,13 @@
   ],
   "references": [
     {
-      "path": "../ai"
-    },
-    {
       "path": "../mcp"
-    },
-    {
-      "path": "../provider"
     },
     {
       "path": "../provider-utils"
     },
     {
-      "path": "../test-server"
+      "path": "../ai"
     }
   ]
 }
