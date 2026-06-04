@@ -1463,7 +1463,12 @@ export function processLangGraphEvent(
 
         const citations = extractCitationsFromContentBlocks(msg);
         if (citations.length > 0) {
-          emitSourceChunks(citations, msgId, state.emittedSourceIds, controller);
+          emitSourceChunks(
+            citations,
+            msgId,
+            state.emittedSourceIds,
+            controller,
+          );
         }
       } else if (isToolMessageType(msg)) {
         // Handle both direct properties and serialized messages (kwargs)

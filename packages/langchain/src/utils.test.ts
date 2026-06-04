@@ -2354,9 +2354,7 @@ describe('processModelChunk - sources', () => {
     processModelChunk(chunk, state, controller);
 
     expect(
-      chunks.filter(c =>
-        (c as { type: string }).type.startsWith('source-'),
-      ),
+      chunks.filter(c => (c as { type: string }).type.startsWith('source-')),
     ).toHaveLength(0);
   });
 });
@@ -2428,11 +2426,7 @@ describe('processLangGraphEvent - sources', () => {
     });
 
     processLangGraphEvent(['messages', [msg, {}]], state, controller);
-    processLangGraphEvent(
-      ['values', { messages: [msg] }],
-      state,
-      controller,
-    );
+    processLangGraphEvent(['values', { messages: [msg] }], state, controller);
 
     expect(
       chunks.filter(c => (c as { type: string }).type === 'source-url'),

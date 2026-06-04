@@ -1987,9 +1987,7 @@ describe('toUIMessageStream with streamEvents', () => {
               {
                 type: 'text',
                 text: ' continued',
-                annotations: [
-                  { type: 'citation', url: 'https://example.com' },
-                ],
+                annotations: [{ type: 'citation', url: 'https://example.com' }],
               },
             ],
           },
