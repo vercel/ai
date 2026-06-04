@@ -345,7 +345,7 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'description',
               isOptional: true,
-              type: 'string | ((options: { context: CONTEXT; experimental_sandbox?: Experimental_Sandbox }) => string)',
+              type: 'string | ((options: { context: CONTEXT; experimental_sandbox?: Experimental_SandboxSession }) => string)',
               description:
                 'Information about the purpose of the tool including details on how and when it can be used by the model. Provide a string for a fixed description, or a function to derive the description from the tool-specific context and optional experimental sandbox before each model call.',
             },
@@ -652,7 +652,7 @@ To see `generateText` in action, check out [these examples](#examples).
                     },
                     {
                       name: 'experimental_sandbox',
-                      type: 'Experimental_Sandbox | undefined',
+                      type: 'Experimental_SandboxSession | undefined',
                       isOptional: true,
                       description:
                         'The experimental sandbox environment passed via the `experimental_sandbox` setting.',
@@ -718,7 +718,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'experimental_sandbox',
-              type: 'Experimental_Sandbox',
+              type: 'Experimental_SandboxSession',
               isOptional: true,
               description:
                 'Experimental sandbox environment for this step. Changing it will affect tool execution in this step only.',
@@ -749,7 +749,7 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'experimental_sandbox',
-      type: 'Experimental_Sandbox',
+      type: 'Experimental_SandboxSession',
       isOptional: true,
       description:
         'Experimental sandbox environment that is passed through to `prepareStep`, tool description functions, and tool execution. Tools can access it from their description function options and execution options.',
@@ -1343,7 +1343,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'performance',
-              type: '{ responseTimeMs: number; effectiveOutputTokensPerSecond: number; outputTokensPerSecond: number | undefined; inputTokensPerSecond: number | undefined; effectiveTotalTokensPerSecond: number; timeToFirstOutputTokenMs: number | undefined }',
+              type: '{ responseTimeMs: number; effectiveOutputTokensPerSecond: number; outputTokensPerSecond: number | undefined; inputTokensPerSecond: number | undefined; effectiveTotalTokensPerSecond: number; timeToFirstOutputMs: number | undefined; timeBetweenOutputChunksMs?: OutputChunkTimingStats }',
               description: 'Performance metrics for the model call.',
               properties: [
                 {
@@ -1365,13 +1365,13 @@ To see `generateText` in action, check out [these examples](#examples).
                       name: 'outputTokensPerSecond',
                       type: 'number | undefined',
                       description:
-                        'Number of output tokens per second after the first output token was received. Only available for streaming model calls.',
+                        'Number of output tokens per second after the first generated output chunk was received. For `generateText`, this is `undefined` because the response is not streamed.',
                     },
                     {
                       name: 'inputTokensPerSecond',
                       type: 'number | undefined',
                       description:
-                        'Number of input tokens processed per second before the first output token was received. Only available for streaming model calls.',
+                        'Number of input tokens processed per second before the first generated output chunk was received. For `generateText`, this is `undefined` because the response is not streamed.',
                     },
                     {
                       name: 'effectiveTotalTokensPerSecond',
@@ -1380,10 +1380,16 @@ To see `generateText` in action, check out [these examples](#examples).
                         'Effective number of input and output tokens per second over the full language model response.',
                     },
                     {
-                      name: 'timeToFirstOutputTokenMs',
+                      name: 'timeToFirstOutputMs',
                       type: 'number | undefined',
                       description:
-                        'Time until the first text, reasoning, or tool input delta was received in milliseconds. Only available for streaming model calls.',
+                        'Time until the first generated output chunk was received in milliseconds. For `generateText`, this is `undefined` because the response is not streamed.',
+                    },
+                    {
+                      name: 'timeBetweenOutputChunksMs',
+                      type: 'OutputChunkTimingStats | undefined',
+                      description:
+                        'Timing statistics for the gaps between generated output chunks in milliseconds. For `generateText`, this is `undefined` because the response is not streamed.',
                     },
                   ],
                 },
@@ -1715,13 +1721,13 @@ To see `generateText` in action, check out [these examples](#examples).
                       name: 'outputTokensPerSecond',
                       type: 'number | undefined',
                       description:
-                        'Number of output tokens per second after the first output token was received. Only available for streaming steps.',
+                        'Number of output tokens per second after the first generated output chunk was received. For `generateText`, this is `undefined` because the response is not streamed.',
                     },
                     {
                       name: 'inputTokensPerSecond',
                       type: 'number | undefined',
                       description:
-                        'Number of input tokens processed per second before the first output token was received. Only available for streaming steps.',
+                        'Number of input tokens processed per second before the first generated output chunk was received. For `generateText`, this is `undefined` because the response is not streamed.',
                     },
                     {
                       name: 'effectiveTotalTokensPerSecond',
@@ -1748,10 +1754,16 @@ To see `generateText` in action, check out [these examples](#examples).
                         'Time spent executing each client-side tool call in the step in milliseconds, keyed by tool call ID.',
                     },
                     {
-                      name: 'timeToFirstOutputTokenMs',
+                      name: 'timeToFirstOutputMs',
                       type: 'number | undefined',
                       description:
-                        'Time until the first text, reasoning, or tool input delta was received in milliseconds. Only available for streaming steps.',
+                        'Time until the first generated output chunk was received in milliseconds. For `generateText`, this is `undefined` because the response is not streamed.',
+                    },
+                    {
+                      name: 'timeBetweenOutputChunksMs',
+                      type: 'OutputChunkTimingStats | undefined',
+                      description:
+                        'Timing statistics for the gaps between generated output chunks in milliseconds. For `generateText`, this is `undefined` because the response is not streamed.',
                     },
                   ],
                 },
@@ -1855,7 +1867,7 @@ To see `generateText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'onFinish',
+      name: 'onEnd',
       type: '(event: GenerateTextEndEvent<TOOLS>) => PromiseLike<void> | void',
       isOptional: true,
       description:
@@ -2284,17 +2296,23 @@ To see `generateText` in action, check out [these examples](#examples).
               name: 'runtimeContext',
               type: 'CONTEXT',
               description:
-                'The final state of the user-defined shared runtime context object. This reflects any modifications made during the generation lifecycle via `prepareStep`.',
+                'Deprecated. Use `finalStep.runtimeContext` instead. The final state of the user-defined shared runtime context object. This reflects any modifications made during the generation lifecycle via `prepareStep`.',
             },
             {
               name: 'toolsContext',
               type: 'InferToolSetContext<TOOLS>',
               description:
-                'The final state of the per-tool context map passed via `toolsContext`.',
+                'Deprecated. Use `finalStep.toolsContext` instead. The final state of the per-tool context map passed via `toolsContext`.',
             },
           ],
         },
       ],
+    },
+    {
+      name: 'onFinish',
+      type: '(event: GenerateTextEndEvent<TOOLS>) => PromiseLike<void> | void',
+      isOptional: true,
+      description: 'Deprecated alias for `onEnd`.',
     },
   ]}
 />

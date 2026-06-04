@@ -142,7 +142,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
   private async getArgs(options: LanguageModelV4CallOptions) {
     const warnings: Array<SharedV4Warning> = [];
 
-    const opts = await parseProviderOptions({
+    const googleOptions = await parseProviderOptions({
       provider: 'google',
       providerOptions: options.providerOptions,
       schema: googleInteractionsLanguageModelOptions,
@@ -207,8 +207,8 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
       }
     }
 
-    if (opts?.responseFormat != null) {
-      for (const entry of opts.responseFormat) {
+    if (googleOptions?.responseFormat != null) {
+      for (const entry of googleOptions.responseFormat) {
         if (entry.type === 'text') {
           responseFormatEntries.push(
             pruneUndefined({
@@ -243,15 +243,16 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
       warnings: convWarnings,
     } = convertToGoogleInteractionsInput({
       prompt: options.prompt,
-      previousInteractionId: opts?.previousInteractionId ?? undefined,
-      store: opts?.store ?? undefined,
-      mediaResolution: opts?.mediaResolution ?? undefined,
+      previousInteractionId: googleOptions?.previousInteractionId ?? undefined,
+      store: googleOptions?.store ?? undefined,
+      mediaResolution: googleOptions?.mediaResolution ?? undefined,
     });
 
     warnings.push(...convWarnings);
 
     let systemInstruction = convertedSystemInstruction;
-    const optionSystemInstruction = opts?.systemInstruction ?? undefined;
+    const optionSystemInstruction =
+      googleOptions?.systemInstruction ?? undefined;
     if (systemInstruction != null && optionSystemInstruction != null) {
       warnings.push({
         type: 'other',
@@ -284,11 +285,12 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
       }
       if (options.maxOutputTokens != null)
         droppedFields.push('maxOutputTokens');
-      if (opts?.thinkingLevel != null) droppedFields.push('thinkingLevel');
-      if (opts?.thinkingSummaries != null) {
+      if (googleOptions?.thinkingLevel != null)
+        droppedFields.push('thinkingLevel');
+      if (googleOptions?.thinkingSummaries != null) {
         droppedFields.push('thinkingSummaries');
       }
-      if (opts?.imageConfig != null) droppedFields.push('imageConfig');
+      if (googleOptions?.imageConfig != null) droppedFields.push('imageConfig');
       if (droppedFields.length > 0) {
         warnings.push({
           type: 'other',
@@ -306,8 +308,8 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
             ? options.stopSequences
             : undefined,
         max_output_tokens: options.maxOutputTokens ?? undefined,
-        thinking_level: opts?.thinkingLevel ?? undefined,
-        thinking_summaries: opts?.thinkingSummaries ?? undefined,
+        thinking_level: googleOptions?.thinkingLevel ?? undefined,
+        thinking_summaries: googleOptions?.thinkingSummaries ?? undefined,
         tool_choice: toolChoiceForBody,
       });
 
@@ -317,7 +319,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
        * always emitted when `imageConfig` is set so callers migrate to the
        * `responseFormat` shape.
        */
-      if (opts?.imageConfig != null) {
+      if (googleOptions?.imageConfig != null) {
         const alreadyHasImageEntry = responseFormatEntries.some(
           entry => entry.type === 'image',
         );
@@ -331,11 +333,11 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
           responseFormatEntries.push({
             type: 'image',
             mime_type: 'image/png',
-            ...(opts.imageConfig.aspectRatio != null
-              ? { aspect_ratio: opts.imageConfig.aspectRatio }
+            ...(googleOptions.imageConfig.aspectRatio != null
+              ? { aspect_ratio: googleOptions.imageConfig.aspectRatio }
               : {}),
-            ...(opts.imageConfig.imageSize != null
-              ? { image_size: opts.imageConfig.imageSize }
+            ...(googleOptions.imageConfig.imageSize != null
+              ? { image_size: googleOptions.imageConfig.imageSize }
               : {}),
           });
         }
@@ -343,53 +345,54 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     }
 
     let agentConfig: GoogleInteractionsAgentConfig | undefined;
-    if (isAgent && opts?.agentConfig != null) {
-      const ac = opts.agentConfig;
-      if (ac.type === 'deep-research') {
+    if (isAgent && googleOptions?.agentConfig != null) {
+      const agentConfigOptions = googleOptions.agentConfig;
+      if (agentConfigOptions.type === 'deep-research') {
         agentConfig = pruneUndefined({
           type: 'deep-research',
-          thinking_summaries: ac.thinkingSummaries ?? undefined,
-          visualization: ac.visualization ?? undefined,
-          collaborative_planning: ac.collaborativePlanning ?? undefined,
+          thinking_summaries: agentConfigOptions.thinkingSummaries ?? undefined,
+          visualization: agentConfigOptions.visualization ?? undefined,
+          collaborative_planning:
+            agentConfigOptions.collaborativePlanning ?? undefined,
         }) as GoogleInteractionsAgentConfig;
-      } else if (ac.type === 'dynamic') {
+      } else if (agentConfigOptions.type === 'dynamic') {
         agentConfig = { type: 'dynamic' };
       }
     }
 
     let environment: GoogleInteractionsRequestBody['environment'];
-    if (opts?.environment != null) {
+    if (googleOptions?.environment != null) {
       if (!isAgent) {
         warnings.push({
           type: 'other',
           message:
             'google.interactions: environment is only supported when an agent is set; environment will be omitted from the request body.',
         });
-      } else if (typeof opts.environment === 'string') {
-        environment = opts.environment;
+      } else if (typeof googleOptions.environment === 'string') {
+        environment = googleOptions.environment;
       } else {
-        const env = opts.environment;
+        const environmentOptions = googleOptions.environment;
         const sources: Array<GoogleInteractionsEnvironmentSource> | undefined =
-          env.sources?.map(s => {
-            if (s.type === 'inline') {
+          environmentOptions.sources?.map(source => {
+            if (source.type === 'inline') {
               return {
                 type: 'inline' as const,
-                content: s.content,
-                target: s.target,
+                content: source.content,
+                target: source.target,
               };
             }
             return pruneUndefined({
-              type: s.type,
-              source: s.source,
-              target: s.target ?? undefined,
+              type: source.type,
+              source: source.source,
+              target: source.target ?? undefined,
             }) as GoogleInteractionsEnvironmentSource;
           });
         let network: GoogleInteractionsNetworkConfig | undefined;
-        if (env.network === 'disabled') {
+        if (environmentOptions.network === 'disabled') {
           network = 'disabled';
-        } else if (env.network != null) {
+        } else if (environmentOptions.network != null) {
           network = {
-            allowlist: env.network.allowlist.map(entry =>
+            allowlist: environmentOptions.network.allowlist.map(entry =>
               pruneUndefined({
                 domain: entry.domain,
                 transform: entry.transform ?? undefined,
@@ -420,29 +423,30 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
       response_format:
         responseFormatEntries.length > 0 ? responseFormatEntries : undefined,
       response_modalities:
-        opts?.responseModalities != null
-          ? (opts.responseModalities as Array<
+        googleOptions?.responseModalities != null
+          ? (googleOptions.responseModalities as Array<
               'text' | 'image' | 'audio' | 'video' | 'document'
             >)
           : undefined,
-      previous_interaction_id: opts?.previousInteractionId ?? undefined,
-      service_tier: opts?.serviceTier ?? undefined,
-      store: opts?.store ?? undefined,
+      previous_interaction_id:
+        googleOptions?.previousInteractionId ?? undefined,
+      service_tier: googleOptions?.serviceTier ?? undefined,
+      store: googleOptions?.store ?? undefined,
       generation_config:
         generationConfig != null && Object.keys(generationConfig).length > 0
           ? generationConfig
           : undefined,
       agent_config: agentConfig,
       environment,
-      background: opts?.background ?? undefined,
+      background: googleOptions?.background ?? undefined,
     });
 
     return {
       args,
       warnings,
       isAgent,
-      isBackground: opts?.background === true,
-      pollingTimeoutMs: opts?.pollingTimeoutMs ?? undefined,
+      isBackground: googleOptions?.background === true,
+      pollingTimeoutMs: googleOptions?.pollingTimeoutMs ?? undefined,
     };
   }
 

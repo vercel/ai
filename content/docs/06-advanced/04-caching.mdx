@@ -125,7 +125,13 @@ Here's an example of how you can implement caching using Vercel KV and Next.js t
 This example uses [Upstash Redis](https://upstash.com/docs/redis/overall/getstarted) and Next.js to cache the response for 1 hour.
 
 ```tsx filename="app/api/chat/route.ts"
-import { convertToModelMessages, streamText, UIMessage } from 'ai';
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+  UIMessage,
+} from 'ai';
 __PROVIDER_IMPORT__;
 import { Redis } from '@upstash/redis';
 
@@ -164,6 +170,8 @@ export async function POST(req: Request) {
   });
 
   // Respond with the stream
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```

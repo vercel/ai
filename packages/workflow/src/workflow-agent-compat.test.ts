@@ -1324,8 +1324,8 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
           text: event.text,
           finishReason: event.finishReason,
           stepsLength: event.steps.length,
-          inputTokens: event.totalUsage.inputTokens,
-          outputTokens: event.totalUsage.outputTokens,
+          inputTokens: event.usage.inputTokens,
+          outputTokens: event.usage.outputTokens,
         }).toMatchInlineSnapshot(`
           {
             "finishReason": "stop",

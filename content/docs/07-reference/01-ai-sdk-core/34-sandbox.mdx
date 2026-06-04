@@ -1,11 +1,11 @@
 ---
-title: Experimental_Sandbox
-description: API Reference for the Experimental_Sandbox interface.
+title: Experimental_SandboxSession
+description: API Reference for the Experimental_SandboxSession interface.
 ---
 
-# `Experimental_Sandbox`
+# `Experimental_SandboxSession`
 
-The `Experimental_Sandbox` interface describes an execution environment that
+The `Experimental_SandboxSession` interface describes an execution environment that
 tools can use to run commands. Pass an experimental sandbox using the
 `experimental_sandbox` option to `generateText`, `streamText`,
 `ToolLoopAgent.generate`, `ToolLoopAgent.stream`, or agent UI stream helpers to
@@ -21,14 +21,14 @@ make it available to tool description functions and tool execution.
 ## Import
 
 <Snippet
-  text={`import type { Experimental_Sandbox } from "ai"`}
+  text={`import type { Experimental_SandboxSession } from "ai"`}
   prompt={false}
 />
 
 ## Type Definition
 
 ```ts
-type Experimental_Sandbox = {
+type Experimental_SandboxSession = {
   readonly description: string;
   readonly run: (options: {
     command: string;

@@ -1,5 +1,37 @@
 # @ai-sdk/gateway
 
+## 4.0.0-canary.96
+
+### Patch Changes
+
+- 83877a1: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-canary.95
+
+### Patch Changes
+
+- a3261db: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-canary.94
+
+### Patch Changes
+
+- 712873e: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-canary.93
+
+### Patch Changes
+
+- e02f041: feat(provider/anthropic): add support for `claude-opus-4-8`
+
+## 4.0.0-canary.92
+
+### Patch Changes
+
+- Updated dependencies [6c93e36]
+- Updated dependencies [f617ac2]
+  - @ai-sdk/provider-utils@5.0.0-canary.44
+
 ## 4.0.0-canary.91
 
 ### Patch Changes

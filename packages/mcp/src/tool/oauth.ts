@@ -667,7 +667,12 @@ export async function exchangeAuthorization(
   });
 
   if (addClientAuthentication) {
-    addClientAuthentication(headers, params, authorizationServerUrl, metadata);
+    await addClientAuthentication(
+      headers,
+      params,
+      authorizationServerUrl,
+      metadata,
+    );
   } else {
     const supportedMethods =
       metadata?.token_endpoint_auth_methods_supported ?? [];
@@ -754,7 +759,12 @@ export async function refreshAuthorization(
   });
 
   if (addClientAuthentication) {
-    addClientAuthentication(headers, params, authorizationServerUrl, metadata);
+    await addClientAuthentication(
+      headers,
+      params,
+      authorizationServerUrl,
+      metadata,
+    );
   } else {
     const supportedMethods =
       metadata?.token_endpoint_auth_methods_supported ?? [];

@@ -483,11 +483,17 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
         'Callback invoked after each agent step (LLM/tool call) completes. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first).',
     },
     {
-      name: 'onFinish',
-      type: 'GenerateTextOnFinishCallback',
+      name: 'onEnd',
+      type: 'GenerateTextOnEndCallback',
       isOptional: true,
       description:
         'Callback that is called when all agent steps are finished and the response is complete. Receives step results, total usage, shared `runtimeContext`, and `toolsContext`. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first).',
+    },
+    {
+      name: 'onFinish',
+      type: 'GenerateTextOnEndCallback',
+      isOptional: true,
+      description: 'Deprecated alias for `onEnd`.',
     },
     {
       name: 'runtimeContext',
@@ -687,7 +693,7 @@ const result = await agent.generate({
     },
     {
       name: 'experimental_sandbox',
-      type: 'Experimental_Sandbox',
+      type: 'Experimental_SandboxSession',
       isOptional: true,
       description:
         'Experimental sandbox environment that is passed through to `prepareStep`, tool description functions, and tool execution. Tools can access it from their description function options and execution options.',
@@ -735,11 +741,17 @@ const result = await agent.generate({
         'Callback invoked after each agent step (LLM/tool call) completes. If also specified in the constructor, both callbacks are called (constructor first, then this one).',
     },
     {
-      name: 'onFinish',
-      type: 'GenerateTextOnFinishCallback',
+      name: 'onEnd',
+      type: 'GenerateTextOnEndCallback',
       isOptional: true,
       description:
         'Callback that is called when all agent steps are finished and the response is complete. If also specified in the constructor, both callbacks are called (constructor first, then this one).',
+    },
+    {
+      name: 'onFinish',
+      type: 'GenerateTextOnEndCallback',
+      isOptional: true,
+      description: 'Deprecated alias for `onEnd`.',
     },
   ]}
 />
@@ -790,7 +802,7 @@ for await (const chunk of stream.textStream) {
     },
     {
       name: 'experimental_sandbox',
-      type: 'Experimental_Sandbox',
+      type: 'Experimental_SandboxSession',
       isOptional: true,
       description:
         'Experimental sandbox environment that is passed through to `prepareStep`, tool description functions, and tool execution. Tools can access it from their description function options and execution options.',
@@ -845,11 +857,17 @@ for await (const chunk of stream.textStream) {
         'Callback invoked after each agent step (LLM/tool call) completes. If also specified in the constructor, both callbacks are called (constructor first, then this one).',
     },
     {
-      name: 'onFinish',
-      type: 'GenerateTextOnFinishCallback',
+      name: 'onEnd',
+      type: 'GenerateTextOnEndCallback',
       isOptional: true,
       description:
         'Callback that is called when all agent steps are finished and the response is complete. If also specified in the constructor, both callbacks are called (constructor first, then this one).',
+    },
+    {
+      name: 'onFinish',
+      type: 'GenerateTextOnEndCallback',
+      isOptional: true,
+      description: 'Deprecated alias for `onEnd`.',
     },
   ]}
 />

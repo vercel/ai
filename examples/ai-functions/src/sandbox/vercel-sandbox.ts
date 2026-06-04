@@ -4,7 +4,7 @@ import {
   extractLines,
   type Experimental_SandboxProcess,
 } from '@ai-sdk/provider-utils';
-import { type Experimental_Sandbox as Sandbox } from 'ai';
+import { type Experimental_SandboxSession as SandboxSession } from 'ai';
 import type { Command, Sandbox as VercelSandboxSDK } from '@vercel/sandbox';
 import {
   bytesToStream,
@@ -14,7 +14,7 @@ import {
 
 const rootDirectory = '/vercel/sandbox';
 
-export class VercelSandbox implements Sandbox {
+export class VercelSandboxSession implements SandboxSession {
   constructor(
     public readonly sandbox: Awaited<
       ReturnType<typeof VercelSandboxSDK.create>

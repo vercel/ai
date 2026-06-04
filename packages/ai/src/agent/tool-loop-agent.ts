@@ -1,7 +1,7 @@
 import {
   validateTypes,
   type Context,
-  type Experimental_Sandbox as Sandbox,
+  type Experimental_SandboxSession as SandboxSession,
   type ModelMessage,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
@@ -58,7 +58,8 @@ export class ToolLoopAgent<
       OUTPUT
     >,
   ) {
-    this.settings = settings;
+    const { onFinish, onEnd = onFinish } = settings;
+    this.settings = { ...settings, onEnd };
   }
 
   /**
@@ -79,7 +80,7 @@ export class ToolLoopAgent<
     prompt?: string | Array<ModelMessage>;
     messages?: Array<ModelMessage>;
     options?: CALL_OPTIONS;
-    experimental_sandbox?: Sandbox;
+    experimental_sandbox?: SandboxSession;
   }): Promise<
     Omit<
       ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT, OUTPUT>,
@@ -91,6 +92,7 @@ export class ToolLoopAgent<
       | 'onToolExecutionStart'
       | 'onToolExecutionEnd'
       | 'onStepFinish'
+      | 'onEnd'
       | 'onFinish'
     > &
       Prompt
@@ -114,6 +116,7 @@ export class ToolLoopAgent<
       onToolExecutionEnd: _settingsOnToolExecutionEnd,
       onStepFinish: _settingsOnStepFinish,
       onFinish: _settingsOnFinish,
+      onEnd: _settingsOnEnd,
       ...settingsWithoutCallbacks
     } = this.settings;
 
@@ -180,6 +183,7 @@ export class ToolLoopAgent<
     onToolExecutionEnd,
     onStepFinish,
     onFinish,
+    onEnd = onFinish,
     ...options
   }: AgentCallParameters<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT>): Promise<
     GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>
@@ -214,7 +218,7 @@ export class ToolLoopAgent<
         onToolExecutionEnd,
       ),
       onStepFinish: mergeCallbacks(this.settings.onStepFinish, onStepFinish),
-      onFinish: mergeCallbacks(this.settings.onFinish, onFinish),
+      onEnd: mergeCallbacks(this.settings.onEnd, onEnd),
     };
 
     return await generate({
@@ -237,6 +241,7 @@ export class ToolLoopAgent<
     onToolExecutionEnd,
     onStepFinish,
     onFinish,
+    onEnd = onFinish,
     ...options
   }: AgentStreamParameters<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT>): Promise<
     StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>
@@ -272,7 +277,7 @@ export class ToolLoopAgent<
         onToolExecutionEnd,
       ),
       onStepFinish: mergeCallbacks(this.settings.onStepFinish, onStepFinish),
-      onFinish: mergeCallbacks(this.settings.onFinish, onFinish),
+      onEnd: mergeCallbacks(this.settings.onEnd, onEnd),
     };
 
     return await stream({

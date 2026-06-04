@@ -1,12 +1,12 @@
 import type {
   Arrayable,
   Context,
-  Experimental_Sandbox as Sandbox,
+  Experimental_SandboxSession as SandboxSession,
   ModelMessage,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import type {
-  GenerateTextOnFinishCallback,
+  GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
@@ -104,12 +104,19 @@ export type AgentCallParameters<
     /**
      * Callback that is called when all steps are finished and the response is complete.
      */
-    onFinish?: GenerateTextOnFinishCallback<TOOLS, RUNTIME_CONTEXT>;
+    onEnd?: GenerateTextOnEndCallback<TOOLS, RUNTIME_CONTEXT>;
+
+    /**
+     * Callback that is called when all steps are finished and the response is complete.
+     *
+     * @deprecated Use `onEnd` instead.
+     */
+    onFinish?: GenerateTextOnEndCallback<TOOLS, RUNTIME_CONTEXT>;
 
     /**
      * The sandbox environment that is passed through to tool execution.
      */
-    experimental_sandbox?: Sandbox;
+    experimental_sandbox?: SandboxSession;
   };
 
 /**
