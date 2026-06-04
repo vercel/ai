@@ -2,49 +2,151 @@
 
 ## Main features
 
-- **AI SDK v7 and provider spec modernization.** The SDK entered the v7 beta cycle with a new `LanguageModelV4` / `ProviderV4` foundation, ESM-only package exports, and broad provider-spec cleanup. Related changes simplify file parts into tagged unions, consolidate image-specific file outputs into generic file outputs, add `custom` and `reasoning-file` content types, and split call settings into model call options and request options.
+- **AI SDK v7 beta foundation.** The repository entered the v7 prerelease cycle and added the first `LanguageModelV4`, `LanguageModelV4Middleware`, `ProviderV4`, `MockLanguageModelV4`, and `MockProviderV4` scaffolding. This created the versioned provider-spec surface used by the rest of the v7 work.
 
-- **Portable reasoning controls.** `generateText` and `streamText` gained a top-level `reasoning` parameter so apps can request reasoning effort without hard-coding provider-specific option names. Providers were migrated to map that shared enum into their native effort or budget APIs while keeping provider options available for advanced or provider-specific behavior.
+- **ESM-only package exports.** Published packages were converted away from CommonJS exports to ESM-only builds. Package export maps, `main`, `types`, and tsup formats were updated so consumers use modern `import` syntax consistently.
 
-- **Provider references, file uploads, and skill uploads.** The SDK added `uploadFile`, `uploadSkill`, `ProviderReference`, and provider interfaces for uploaded files and skills. This lets applications upload assets once per provider, pass provider-specific references through messages, and access file/skill APIs through provider registries and shorthand provider instances.
+- **Separated model call and request options.** `CallSettings` was split into model-facing generation options and request/transport options. This makes the public types clearer and lets request behavior such as headers, retries, abort signals, and timeouts evolve independently from model sampling settings.
 
-- **Tool execution controls and step state.** Tool loops gained richer step and message state, including `request.messages`, `responseMessages`, `finalStep`, `include.requestMessage`, stable `include` handling, and tool-specific metadata. `prepareStep` can now receive instructions, initial/response messages, and per-step sandbox overrides.
+- **Tagged file data in provider messages.** File part `data` values in the provider spec were changed from overloaded runtime unions to explicit tagged variants for inline data, URLs, provider references, and text. Top-level APIs continue to accept the existing shorthand forms while converting to the more precise V4 provider shape.
 
-- **Tool approval and tool context safety.** Tool approval evolved from a simple user-approval mechanism into a generic approval system that can automatically approve, deny, defer to users, return reasons, and flow through UI messages. Runtime context is available to approval functions, tool context is separated and scoped per tool, tool context schemas are validated at runtime, and sensitive runtime/tool context is opt-in for telemetry.
+- **Generalized file output content.** Image-specific tool result output types were folded into generic file output types with media types. Providers now branch on `mediaType` rather than duplicated `image-*` variants, while user-facing deprecated variants are migrated automatically.
 
-- **Timeouts and abort handling.** `generateText`, `streamText`, agents, tools, and UI helpers gained structured timeout configuration covering total, per-step, per-chunk, per-tool, and per-tool-name overrides. Abort chunks now carry abort reasons, tool timeouts return tool errors the model can handle, and telemetry spans can be closed through `onAbort`.
+- **New `custom` content parts.** The provider and core stream/content types gained a `custom` content part for provider output that does not fit text, reasoning, files, tools, or other built-in part types. This lets providers preserve non-standard response content instead of dropping or forcing it into an ill-fitting shape.
 
-- **Sandbox abstraction for agent tools.** The provider utilities package gained an experimental sandbox abstraction for shell execution, detached commands, working directories, abort signals, and file read/write helpers. Anthropic bash tooling can use the sandbox automatically, making hosted or restricted execution environments easier to plug into agent flows.
+- **Reasoning file content parts.** The provider spec and AI results gained a `reasoning-file` part for files produced as part of model reasoning rather than final answer content. This also fixes duplicate file reporting where reasoning files were previously mixed into top-level output files.
 
-- **Telemetry, events, diagnostics, and observability.** Core functions gained event emitters, lifecycle callbacks, a global telemetry integration registry, diagnostics channels, performance statistics, and token timing statistics. OpenTelemetry span creation was decoupled from core into integrations, moved into a dedicated package, aligned with GenAI semantic conventions, and extended with step spans, custom attributes, supplemental attributes, and DevTools trace visualization.
+- **Top-level reasoning option.** `generateText`, `streamText`, and the language model spec gained a portable `reasoning` option with shared effort values. Existing provider options still take precedence, so users can keep provider-specific controls when they need more detail.
 
-- **Streaming and output ergonomics.** The SDK added helpers such as `toUIMessageChunkStream`, `response.stream`, `elementStream` for `Output.array`, `experimental_streamModelCall`, and exposed model-call stream part types. Streaming also gained better provider metadata propagation, failed-response finish reason mapping, smooth reasoning chunks, `Intl.Segmenter` support in `smoothStream`, and middleware for extracting malformed JSON.
+- **Reasoning provider migration helpers.** Provider utilities gained helpers for mapping the portable reasoning enum into provider-native effort strings or token budgets. Multiple providers were migrated to use these helpers so the top-level option works across effort-based and budget-based reasoning APIs.
 
-- **UI framework improvements.** UI streams and hooks gained usage data in `useChat.onFinish`, `onStepFinish` in `createUIMessageStream`, automatic tool approval parts, async/function headers for `useObject`, and `DirectChatTransport` for directly calling an `Agent` without a server. Vue gained a `useChat` composable, Angular was aligned with current UI patterns, and LangChain/LangGraph adapters gained richer finish/error/abort callbacks.
+- **Provider references and uploaded files.** The SDK added `ProviderReference`, a `FilesV4` provider interface, and a top-level `uploadFile` helper. Applications can upload files to providers and pass provider-specific references through later inference calls without embedding the file bytes again.
 
-- **Provider registry and middleware coverage.** `customProvider` and `createProviderRegistry` now support files, skills, video models, and image model middleware. `wrapProvider` can wrap image models, enabling image safety, caching, or policy middleware with the same pattern used for language models.
+- **Uploaded skill support.** The provider spec and core package gained `SkillsV4` and `uploadSkill` for provider-native remote skills. OpenAI and Anthropic implementations let applications upload skills and reference them during programmatic tool or shell workflows.
 
-- **Gateway capabilities.** The Gateway gained provider timeouts, service tiers, Vercel access token support, speech and transcription model support, reranking support, image usage reporting, generation IDs on errors, and automated model settings updates. Gateway model ID lists were also kept in sync with new OpenAI, Google, and other provider models.
+- **Provider registry support for files, skills, and video.** `customProvider` and `createProviderRegistry` now expose provider file, skill, and video model capabilities. This lets applications route more provider APIs through the same registry abstraction used for language and image models.
 
-- **Reranking, embeddings, and media expansion.** Core support expanded around rerank callbacks, telemetry for rerank/embed/object functions, plain string model IDs for rerank, multimodal embeddings, image generation, and experimental video generation. Video generation started with fal, Google AI Studio, Google Vertex, and Replicate, with provider-specific video capabilities added later.
+- **Provider-instance upload shorthand.** `uploadFile` and `uploadSkill` can accept a provider instance directly and resolve the relevant sub-interface internally. This removes boilerplate for providers that expose `.files()` or `.skills()` methods while still producing clear errors when unsupported.
 
-- **Type and documentation cleanup.** Provider option type names were normalized and exported across many packages so users can write type-safe `providerOptions` with `satisfies`. Deprecated aliases preserve compatibility while examples and docs move toward the new naming conventions.
+- **Initial timeout option.** `generateText`, `streamText`, agents, and related helpers gained a `timeout` option that aborts work after a configured duration. This introduced the foundation for more fine-grained timeout controls.
+
+- **Structured timeout configuration.** The timeout option was expanded from a number into a configuration object with `totalMs`, `stepMs`, `chunkMs`, and `toolMs`. This lets users set separate limits for the overall call, each model step, streamed chunks, and tool executions.
+
+- **Per-tool timeout overrides.** Tool timeouts can be overridden per tool name with typed keys such as `weatherMs`. The SDK resolves the most specific timeout first, so slow or risky tools can have tighter limits than the rest of the tool set.
+
+- **Abort reason propagation.** Stream abort chunks now include `AbortSignal.reason`, and related UI/core schemas carry that reason through the stream protocol. This makes it possible to distinguish manual cancellation, timeout cancellation, and combined-signal aborts.
+
+- **Tool timeout results.** Timed-out tools now return tool errors in the generation flow, allowing the model to recover, explain the timeout, or choose another action. This turns tool timeouts into model-visible execution results instead of opaque failures.
+
+- **Generic tool approval.** Tool approval was generalized so approval logic can be provided as a configuration or function instead of being tied only to static per-tool flags. Approval functions can approve, deny, request user approval, or mark a tool as not applicable.
+
+- **Automatic tool approvals.** Tool calls can be automatically approved or denied before reaching a user approval flow. Approval reasons are supported and UI messages can represent automatic approval responses.
+
+- **Runtime context in tool approval.** Tool approval functions can access runtime context, making approval policies depend on request-specific information. Approval functions can also return `undefined` to fall back to the next applicable approval behavior.
+
+- **Tool approval overrides.** `generateText`, `streamText`, and `ToolLoopAgent` gained `toolNeedsApproval`, letting callers require approval for tools they do not own. This is especially useful for third-party tools where the tool definition itself cannot be changed.
+
+- **Tool context separation.** Runtime context and tool context were split so individual tools only receive the context explicitly provided for them. This reduces accidental data exposure between tools and enables safer third-party tool execution.
+
+- **Runtime validation for tool context.** Tool context is validated against each tool's `contextSchema` before approval and execution. Misconfigured context now fails earlier with clearer errors instead of surfacing as downstream tool failures.
+
+- **Sensitive context telemetry controls.** Runtime context and tool context are excluded from telemetry unless users opt in through explicit telemetry settings. This replaced earlier sensitive-context markers with a clearer opt-in model.
+
+- **Provider-defined vs provider-executed tools.** Provider tools now distinguish tools whose schemas are defined by providers from tools executed by providers. This lets approval and execution logic avoid treating provider-side tools as if the SDK could intercept their execution locally.
+
+- **Richer step request state.** Step results can include request messages, response messages, and a final step indicator. Include options were stabilized and moved toward structured `include.*` flags for request messages and raw chunks.
+
+- **Step preparation inputs.** `prepareStep`, tool call repair, tool parsing, and events gained richer instruction and message inputs. This gives advanced loops more context when adapting each step.
+
+- **Tool metadata.** Tools can carry tool-specific metadata through the SDK. This gives apps and integrations a place to preserve information needed by UI, telemetry, or provider-specific handling.
+
+- **Retention controls for large requests.** An experimental retention setting lets callers exclude request and response bodies from stored step data. This reduces memory pressure for media-heavy conversations while preserving opt-in access when needed.
+
+- **Sandbox shell execution.** Provider utilities gained an experimental sandbox interface for shell command execution. It supports working directories, abort signals, detached command spawning, and other primitives needed by agent tools.
+
+- **Sandbox file operations.** The sandbox abstraction was extended with `readFile`, `writeFile`, and convenience wrappers. This makes file-capable agent tools portable across local, hosted, and restricted execution environments.
+
+- **Per-step sandbox overrides.** AI functions can override the sandbox used by a step. This allows different steps or tool calls in the same loop to run in different execution environments.
+
+- **Anthropic bash sandbox integration.** Anthropic bash tooling can automatically use the SDK sandbox abstraction. This keeps provider tool execution aligned with the user's configured sandbox instead of assuming a local shell.
+
+- **Event emitter for core functions.** Core AI functions gained an event emitter and listener model that exposes lifecycle information as the generation runs. This became the foundation for telemetry and diagnostics integrations outside the core implementation.
+
+- **Lifecycle callbacks across AI functions.** `generateText`, `streamText`, `ToolLoopAgent`, embed, rerank, and structured output functions gained start, finish, step, tool-call, chunk, error, and abort-style callbacks over time. These callbacks expose the data integrations need without hard-wiring a specific telemetry backend into core.
+
+- **Global telemetry registry.** The core package gained telemetry integration registration and fan-out so multiple integrations can receive lifecycle events. Telemetry is enabled by default, can register several integrations at once, and uses stable `telemetry` naming instead of experimental integration names.
+
+- **OpenTelemetry decoupling.** OpenTelemetry span creation was moved out of core AI functions into telemetry integrations. This reduced coupling between the SDK runtime and one observability implementation while preserving tracing coverage.
+
+- **GenAI OpenTelemetry semantic conventions.** OpenTelemetry integration support was expanded to emit spans aligned with GenAI semantic conventions. Step-level spans, model call spans, tool spans, usage attributes, and optional supplemental attributes make traces more useful for agent debugging.
+
+- **DevTools telemetry integration.** DevTools gained a telemetry integration and trace/span viewer that maps SDK events into inspectable traces. This replaces middleware-based event extraction with the shared telemetry event flow.
+
+- **Diagnostics and performance statistics.** The SDK added diagnostics channels, model call start/end events, performance statistics, and token timing statistics such as time between output tokens. These make it easier to inspect latency and streaming behavior.
+
+- **Model-call stream primitive.** `streamText` internals exposed an experimental `streamModelCall` primitive and model-call stream part types. This gives advanced users lower-level streaming control without invoking the full tool loop.
+
+- **Response stream helpers.** The SDK added `response.stream` and `toUIMessageChunkStream` helpers for working directly with response or UI message chunk streams. These helpers make it easier to bridge lower-level streams into UI protocols.
+
+- **Array output element streams.** `streamText` gained `elementStream` support when using `Output.array`. Consumers can process structured array elements as they are completed instead of waiting for the whole array result.
+
+- **Malformed JSON extraction middleware.** A middleware was added to extract JSON from malformed model output, especially for gateway/Gemini cases involving structured outputs and tools. This improves resilience without making every caller implement their own repair layer.
+
+- **Streaming metadata preservation.** Provider metadata can now be carried across stream chunks, tool results, and UI message streams more reliably. This is needed for provider-specific IDs, phases, tool outputs, and multi-turn continuation data.
+
+- **Smooth reasoning streams.** `smoothStream` gained support for reasoning parts and `Intl.Segmenter`. This improves UX for streamed reasoning output in the same way smoothing already helps streamed text.
+
+- **Image model middleware.** The provider and core packages gained image model middleware and `wrapImageModel`. Image generation can now use the same middleware patterns as language models for safety, caching, policy, or default settings.
+
+- **Experimental video generation.** Core gained experimental video generation types and `experimental_generateVideo`. Initial provider coverage included fal, Google AI Studio, Google Vertex, and Replicate, with room for async support and richer media inputs later.
+
+- **Rerank function integration.** Rerank gained plain string model ID support, lifecycle callbacks, and telemetry integration work. This brought reranking closer to the same observability and provider ergonomics as generation and embedding functions.
+
+- **Embedding lifecycle events.** `embed` and `embedMany` gained lifecycle callbacks and later moved telemetry span creation into integrations. This makes embedding calls observable without hard-coding OpenTelemetry into the core functions.
+
+- **UI message stream callbacks.** `createUIMessageStream` gained `onStepFinish`, and UI streams now propagate usage and provider metadata more consistently. This helps UI layers show token usage, step progress, and provider-specific continuation state.
+
+- **Chat UI transport improvements.** `DirectChatTransport` lets chat UIs call an `Agent` directly instead of going through an HTTP endpoint. This is useful for local, browser-hosted, or on-device model use cases.
+
+- **React hook improvements.** `useChat` now exposes token usage in `onFinish`, and `useObject` supports headers supplied by sync or async functions. These changes improve cost tracking and auth-token handling in React apps.
+
+- **Vue and Angular UI support.** Vue gained a `useChat` composable, while Angular support was aligned with current UI parts, tools, tests, and examples. This keeps framework integrations closer to the core UI protocol behavior.
+
+- **LangChain and LangGraph callbacks.** The LangChain adapter gained `onFinish`, `onError`, and `onAbort` callbacks that can expose final LangGraph state. This aligns adapter lifecycle hooks more closely with core streaming callbacks.
+
+- **Gateway request controls.** Gateway provider options gained provider timeouts, service tiers, and Vercel access token support. Gateway errors now expose generation IDs to help debug and report failed generations.
+
+- **Gateway modality expansion.** Gateway support expanded to speech, transcription, reranking, and image generation usage reporting. Gateway model settings were also automated and kept in sync with provider model capability updates.
+
+- **Provider option type normalization.** Provider-specific options types were renamed and exported using a consistent `*ModelOptions` convention. Deprecated aliases preserve compatibility while docs and examples move toward type-safe `satisfies` usage.
 
 ## MCP features
 
-- **MCP Apps support.** The MCP package added support for MCP Apps and introduced MCP-specific provider metadata. This gives MCP-discovered tools and app integrations a richer place to carry MCP-specific information through AI SDK tool flows.
+- **MCP Apps support.** The MCP package added support for MCP Apps. This gives MCP-based app and tool integrations a richer path through AI SDK tool flows.
+
+- **MCP provider metadata.** A dedicated MCP provider metadata type was added. MCP-specific information can now travel through tool parts and UI flows without being flattened into generic metadata.
 
 - **Typed tool outputs with structured content.** MCP tools now support `structuredContent` and `outputSchema`, including extraction and validation of typed tool outputs. When an output schema is present, callers receive typed output; otherwise they can still access the raw MCP call result.
 
-- **Transport customization and security controls.** HTTP and SSE MCP transports can receive a custom `fetch` implementation, which is important for runtimes such as Cloudflare Workers and Nitro. The transports also gained a `redirect` option so developers can reject server-initiated redirects and reduce SSRF risk.
+- **Custom fetch for HTTP and SSE transports.** MCP HTTP and SSE transports can receive a custom `fetch` implementation. This supports runtimes such as Cloudflare Workers and Nitro, and OAuth discovery/exchange uses the same fetch implementation.
 
-- **Better MCP error details.** MCP client errors now expose response status code, URL, and response body. This makes failed MCP initialization and tool calls easier to debug without requiring users to reproduce requests manually.
+- **Redirect control for MCP transports.** HTTP and SSE transports gained a `redirect` option so callers can reject server-initiated redirects. This helps defend against SSRF-style redirects after a developer has already validated the original MCP server URL.
 
-- **Server metadata and instructions.** MCP clients now surface server instructions, server info, server names on dynamic tool parts, and tool titles emitted by servers. These additions make MCP tool surfaces more inspectable and better aligned with newer MCP specifications.
+- **Richer MCP client errors.** `MCPClientError` now exposes response status code, URL, and response body. This makes failed initialization, transport, and tool calls easier to debug.
 
-- **Serializable tool definitions.** The MCP client now exposes server tool definitions and a public `listTools()` API in addition to executable AI SDK tools. This lets apps inspect, serialize, filter, or wrap remote tool surfaces before converting them into executable tools.
+- **Server info exposure.** The client now surfaces `serverInfo` returned by MCP servers. This includes spec-aligned implementation details such as server titles.
 
-- **Client naming and metadata cleanup.** `MCPClient` moved toward `clientName` instead of `name`, while preserving compatibility through deprecation. The package also added a dedicated metadata type for MCP-specific information.
+- **Server instructions exposure.** MCP server instructions are exposed through the client. Applications can display or use these instructions when presenting a server's tool surface to users or agents.
+
+- **Server name propagation.** Dynamic tool parts now preserve the MCP server name. This helps UIs and tool logs distinguish the origin of tool calls when multiple MCP servers are connected.
+
+- **Tool title capture.** MCP tool definitions now capture the top-level title emitted by servers, with annotation title fallback. This keeps tool labels aligned with newer MCP spec fields.
+
+- **Serializable tool definitions.** The MCP client exposes server tool definitions separately from executable AI SDK tools. Applications can inspect, serialize, filter, or wrap remote tool surfaces before turning them into executable tools.
+
+- **Public `listTools()` API.** `listTools()` is now public, making it possible to fetch MCP tool definitions without creating executable tools immediately. This supports registries, previews, and policy checks over remote tool surfaces.
+
+- **MCP client naming cleanup.** `MCPClient` moved toward `clientName` instead of `name`, with compatibility through deprecation. This makes client identity clearer and avoids ambiguous naming on the client object.
 
 ## New packages
 
@@ -66,32 +168,152 @@
 
 - **`@ai-sdk/konsistent-provider`.** Adds an internal package for reusable third-party provider conventions and `konsistent.json` workflow checks. It helps keep provider package structure and serialization conventions consistent.
 
-- **Tools Registry additions.** The Tools Registry gained entries for Nitrosend, You.com, Browserbase, and Tako Knowledge Search. These entries document third-party tool packages and MCP-backed integrations that can be used with AI SDK agents and tool loops.
+- **Nitrosend tools package registry entry.** The Tools Registry gained `@nitrosend/ai-sdk`, a typed wrapper around Nitrosend's remote MCP server. It exposes marketing automation capabilities such as email, SMS, contacts, flows, and campaigns as AI SDK tools.
+
+- **You.com tools package registry entry.** The Tools Registry gained You.com search, research, and extraction tools. This documents a third-party tool package for agents that need web search and content extraction.
+
+- **Browserbase tools package registry entry.** The Tools Registry gained `@browserbasehq/ai-sdk` for browser automation tools powered by Stagehand. It covers cloud browser navigation, screenshot, action, extraction, and observation workflows.
+
+- **Tako Knowledge Search registry entry.** The Tools Registry gained Tako Knowledge Search. The entry describes a tool surface for answering natural-language questions with visualizations and citable data-backed summaries.
 
 ## Provider features
 
-- **OpenAI Responses and model support.** The OpenAI provider added many new model IDs across GPT-5.3, GPT-5.4, GPT-5.5, o4-mini, GPT image, speech, transcription, and chat/Responses variants. Responses API support expanded with tool search, server-side compaction, assistant message `phase`, `allowedTools`, failure finish-reason mapping, provider metadata preservation, and examples for previous response IDs.
+- **OpenAI model ID expansion.** The OpenAI provider added new model IDs across GPT-5.3, GPT-5.4, GPT-5.5, o4-mini, GPT image, speech, transcription, chat, and Responses variants. Capability tables and Gateway model lists were updated alongside the provider types.
 
-- **OpenAI tools, MCP, shell, and skills.** OpenAI tools gained MCP approval handling, native skills, hosted shell environments, local shell skills, and shell-call output parsing. These features make OpenAI Responses usable for richer agent workflows that combine provider-executed tools, approval requests, and skill-augmented shell execution.
+- **OpenAI Responses tool search.** OpenAI's Responses API gained support for the new tool search tool. Conversion logic and examples cover both server-side and client-side tool search flows.
 
-- **OpenAI-compatible providers.** The OpenAI-compatible base added request body transformation hooks, support for more file and audio content types, deprecation warnings for kebab-case provider options, and thought signature preservation for Google-compatible models. This makes OpenAI-compatible providers more flexible without baking provider-specific behavior into core.
+- **OpenAI Responses compaction.** The OpenAI provider supports server-side compaction metadata in the Responses API. This allows multi-turn conversations to reference compacted context without resending all previous content.
 
-- **Anthropic model and reasoning support.** Anthropic support expanded across Claude Opus 4.6, Sonnet 4.6, Opus 4.7, Opus 4.8, adaptive thinking, fast mode, task budgets, `xhigh`/`max` effort modes, and bearer-token auth. Structured output schemas are sanitized for Anthropic limitations, and beta headers can be forwarded to downstream providers.
+- **OpenAI Responses assistant phase metadata.** OpenAI Responses assistant message items now preserve `phase` metadata such as commentary and final answer. This helps codex-style workflows maintain phase information across streaming and multi-turn calls.
 
-- **Anthropic agent tools.** Anthropic gained code execution, advisor tools, web search/fetch versions, computer-use zoom support, deferred tool search results, custom tool-reference content, fine-grained/eager tool input streaming, and container file upload for code execution. These changes make Anthropic tools more complete for agentic and programmatic tool-calling workflows.
+- **OpenAI Responses allowed tools.** The OpenAI provider exposes `allowedTools` for Responses requests. This lets users constrain provider-side tool availability without manually editing the full tool set.
 
-- **Google Gemini and Vertex AI.** Google provider support expanded with Gemini text-to-speech, Gemini 3/3.1/3.5 model IDs, image models in `generateImage`, image search grounding, multimodal embeddings, file data embeddings, service tiers, finish messages, per-modality usage details, and combined built-in tools with function calling. Vertex-specific work added Gemini image generation, streaming tool argument assembly, Interactions API support with cancellation and managed agents, Anthropic tool search tools, Grok model IDs, and overridable Vertex Anthropic auth.
+- **OpenAI Responses failed event mapping.** The provider now handles `response.failed` events and maps failed response finish reasons correctly. This prevents incomplete or error responses from losing their finish reason.
 
-- **xAI Responses, search, images, and video.** xAI moved its default language model path to the Responses API and added image input, non-image file URLs, web/image search options, MCP server tools, logprobs, reasoning summary, reasoning effort updates, and cost metadata. Image and video support expanded with dedicated JSON image editing, multiple image inputs, base64 output, quality/user/resolution options, missing model IDs, video extension, reference-to-video, video cost metadata, and clearer moderation errors.
+- **OpenAI provider metadata preservation.** OpenAI Responses metadata such as item IDs, response IDs, phases, and tool output identifiers is preserved across stream and UI message flows. This supports multi-turn Responses conversations and provider-executed tool outputs.
 
-- **Amazon Bedrock and Bedrock Anthropic.** Bedrock gained service tier support, prompt-cache TTLs, native structured output for Anthropic models, adaptive thinking and reasoning effort support, cache/service-tier metadata, Bedrock Mantle model support, and Anthropic beta forwarding. A native `amazon-bedrock/anthropic` sub-provider bypasses Converse through InvokeModel to expose more Anthropic features, including tools, streaming, reasoning, cache control, images, PDFs, and multi-turn chat.
+- **OpenAI previous response ID example.** Example apps now demonstrate how to use OpenAI `previousResponseId` with `useChat`. The pattern stores provider metadata on the client and sends only the newest user message on later turns.
 
-- **Mistral, DeepSeek, Groq, Fireworks, and Perplexity.** Mistral added reasoning configuration and updated model IDs, DeepSeek added V4 reasoning effort and adaptive thinking handling, Groq added strict JSON schema support, performance service tier support, and reasoning token usage. Fireworks added Kimi K2.5 thinking/reasoning options, while Perplexity exposes provider-reported cost metadata.
+- **OpenAI native skills and hosted shell.** The OpenAI provider added native skills for the Responses shell tool and support for hosted shell containers. Skills can be passed as inline/container references or local filesystem paths depending on the environment.
 
-- **Cohere, Fal, Together.ai, Deepgram, and Prodia.** Cohere gained image input support, Fal image editing can accept multiple image URLs, Together.ai now prefers `TOGETHER_API_KEY` while warning on the old variable, Deepgram transcription gained automatic language detection, and Prodia gained price parameters plus language/video model support.
+- **OpenAI MCP approval handling.** OpenAI's built-in MCP tool can now surface provider-side approval requests and receive approval responses through the SDK. This integrates OpenAI MCP approval flows with AI SDK tool approval handling.
 
-- **Provider file, media, and usage metadata.** Providers gained consistent handling for uploaded file references, non-image documents, image/detail metadata on tool results, modality-specific token accounting, provider-reported costs, cache token details, image generation usage, and differentiated text vs image input tokens. These changes improve billing, tracing, and multi-provider media portability.
+- **OpenAI image model support.** The OpenAI provider added support for `gpt-image-2`, `chatgpt-image-latest`, and related image capabilities. Tool result image metadata such as image detail is also forwarded where supported.
 
-- **Provider-defined and provider-executed tools.** Provider tools now distinguish provider-defined tools from provider-executed tools so approval and execution logic can treat them correctly. This supports workflows where a provider executes tools server-side while the SDK still tracks tool calls, outputs, and approvals in its own stream and UI abstractions.
+- **OpenAI-compatible request body transforms.** The OpenAI-compatible provider gained a `transformRequestBody` hook for chat and Responses requests. Proxy providers can adapt request payloads without forking the base provider.
 
-- **Model ID and capability table maintenance.** Many provider commits add or curate model IDs across OpenAI, Anthropic, Google, xAI, Alibaba, Mistral, Gateway, Vertex, Bedrock, and others. These updates improve autocomplete, type safety, capability documentation, and routing through Gateway and provider-specific packages.
+- **OpenAI-compatible media parts.** OpenAI-compatible providers can accept additional file and audio content part types, not just text and images. This better matches providers that extend the OpenAI-style schema with more modalities.
+
+- **OpenAI-compatible Google thought signatures.** Thought signatures returned by Google-compatible models are preserved in provider metadata across message flows. This keeps multi-turn Google reasoning state intact when accessed through OpenAI-compatible providers.
+
+- **OpenAI-compatible provider option warnings.** The OpenAI-compatible provider now warns when deprecated kebab-case provider option keys are used. Backward compatibility remains, but users are guided toward camelCase options.
+
+- **Anthropic Claude model updates.** Anthropic support expanded across Claude Opus 4.6, Sonnet 4.6, Opus 4.7, and Opus 4.8. Model capability data, examples, and downstream provider model lists were updated to match the new models.
+
+- **Anthropic reasoning and thinking options.** Anthropic gained adaptive thinking, `xhigh` and `max` effort levels, task budgets, thinking display controls, and fast mode. These options expose newer Claude reasoning behavior through provider options and top-level reasoning mappings.
+
+- **Anthropic structured output schema sanitization.** Structured output schemas are sanitized before being sent to Anthropic when they contain validation keywords Anthropic rejects. The removed constraints are preserved in descriptions so the model still sees the intended constraint.
+
+- **Anthropic code execution and advisor tools.** The Anthropic provider added code execution and advisor tools. Programmatic tool-calling examples and UI examples demonstrate these provider-defined tools in both generate and stream paths.
+
+- **Anthropic web search and web fetch tools.** New Anthropic web search and web fetch tool versions were added, including dynamic filtering capabilities. This keeps the provider aligned with Anthropic's newer built-in web tool APIs.
+
+- **Anthropic computer-use zoom.** The `computer_20251124` tool supports the zoom action and region coordinates. It enables detailed screen-region inspection for supported Claude computer-use workflows.
+
+- **Anthropic tool search improvements.** Anthropic tool search gained deferred result handling and custom tool-reference content for deferred tool loading. The SDK can now handle tool search results that arrive in later passes or through custom implementations.
+
+- **Anthropic fine-grained tool input streaming.** Anthropic function tools gained eager input streaming support for fine-grained tool argument streaming. The implementation avoids applying the option to provider-defined tools that Anthropic rejects.
+
+- **Anthropic code execution file uploads.** The Anthropic provider exposes container upload support for passing files to the code execution tool. This makes code execution workflows work with uploaded inputs instead of only prompt-provided content.
+
+- **Anthropic authentication and beta forwarding.** Anthropic now supports bearer-token authentication and can forward `anthropicBeta` to downstream providers. This improves proxy/gateway use cases and Bedrock/Vertex Anthropic feature enablement.
+
+- **Google Gemini model updates.** Google and Vertex provider model lists were expanded with Gemini 3.1, Gemini 3.5, Gemini embedding, image, video, and other missing IDs. Gateway and documentation capability tables were updated alongside the provider types.
+
+- **Google Gemini text-to-speech.** The Google provider added Gemini speech model support. This expands Google coverage beyond text, image, embedding, and video model IDs.
+
+- **Google Gemini image generation through `generateImage`.** Gemini image models can be used through `generateImage` in the Google provider. The implementation delegates to the language model API with image response modalities and supports generation and editing.
+
+- **Google Vertex Gemini image generation.** The Google Vertex provider gained the same Gemini image model support through `generateImage`. Existing Imagen behavior remains unchanged while Gemini image/editing workflows get a more direct API.
+
+- **Google image search grounding.** Google Search grounding now supports image search and current `googleSearch` parameters such as search types and time ranges. Grounding metadata can include image result attribution.
+
+- **Google image search for image generation.** Google search grounding can be used when generating images with Gemini image models. This supports grounded image generation workflows where Google Search provides source context.
+
+- **Google multimodal embeddings.** Google embeddings gained multimodal support and the `gemini-embedding-2-preview` model. `embedMany` handling was fixed so multimodal content aligns per input value.
+
+- **Google file data embeddings.** Google embedding models can receive `fileData` input. This enables embedding workflows that refer to uploaded or file-backed content instead of only raw text.
+
+- **Google service tiers.** The Google provider exposes service tier options for Gemini requests. Users can choose standard, flex, or priority processing where the upstream API supports it.
+
+- **Google usage and finish metadata.** Google provider metadata now preserves finish messages, usage metadata, and per-modality token details. This is especially useful for billing and debugging multimodal requests.
+
+- **Google built-in tool and function combination.** Gemini 3 models can combine built-in tools such as Search/Maps/URL Context with custom function declarations in one request. The provider parses and serializes provider-executed tool calls and results across turns.
+
+- **Google Vertex Interactions API.** The Google provider added support for the Gemini Interactions API, including upstream breaking changes, managed agents, cancellation via `AbortSignal`, and intermittent stream processing. This enables long-running interaction-style agent workflows.
+
+- **Google Vertex streaming tool arguments.** Vertex can stream function call arguments in multiple typed partial chunks. The provider assembles those chunks into AI SDK `tool-input-delta` updates with correct tool-call boundaries.
+
+- **Google Vertex Anthropic features.** Vertex Anthropic support gained Anthropic tool search tools and an auth token override hook. This improves parity with the Anthropic provider while accounting for Vertex-specific authentication and header constraints.
+
+- **xAI Responses API default.** The xAI provider now defaults `xai('model-id')` and `xai.languageModel('model-id')` to the Responses API. The legacy chat completions path remains available through `xai.chat()`.
+
+- **xAI Responses image input.** xAI Responses supports image inputs through `input_image` content parts for URL and base64 image data. The provider now converts AI SDK image file parts instead of dropping them.
+
+- **xAI Responses non-image file URLs.** xAI Responses supports non-image files such as PDFs and text files when passed by public URL. Inline bytes remain unsupported for these file types and produce a clearer error.
+
+- **xAI web and image search options.** xAI search tooling now exposes options such as `enableImageSearch`. This makes provider-defined search behavior configurable through AI SDK provider options.
+
+- **xAI remote MCP server tool.** xAI's Responses API can connect to remote MCP servers through `xai.tools.mcpServer()`. The tool factory supports server URL, label, description, allowed tools, headers, and authorization.
+
+- **xAI logprobs and reasoning summary.** xAI chat and Responses options now support logprobs/top logprobs and `reasoningSummary`. Responses requests can include both reasoning effort and summary controls.
+
+- **xAI cost metadata.** xAI Responses, image, and video APIs now expose `costInUsdTicks` in provider metadata where upstream responses include it. This helps applications report usage and cost per request.
+
+- **xAI dedicated image model.** xAI image generation/editing moved to a dedicated JSON-based image model implementation rather than the OpenAI-compatible multipart path. This supports xAI's API shape and structured error handling.
+
+- **xAI image editing options.** xAI image support gained multiple input images, base64 JSON output, quality, user, resolution, and missing model IDs. These options bring image generation and editing closer to the upstream xAI API.
+
+- **xAI video extension and reference-to-video.** The xAI provider supports video extension and reference-to-video generation modes. Provider metadata includes progress and video-specific details for polling and chaining workflows.
+
+- **xAI video moderation errors.** xAI video generation now detects moderation failures and throws a dedicated moderation error instead of a generic missing-video error. This produces clearer app behavior for rejected generations.
+
+- **Amazon Bedrock service tiers.** Bedrock Converse requests can include `providerOptions.bedrock.serviceTier`. The provider validates supported tier values and serializes them into Bedrock request bodies.
+
+- **Amazon Bedrock prompt cache TTL.** Bedrock prompt caching gained configurable TTL support with helper types and cache point creation helpers. Users can choose supported cache durations instead of relying only on the default TTL.
+
+- **Amazon Bedrock Anthropic reasoning.** Bedrock Anthropic models gained adaptive thinking and reasoning effort support, including newer effort values for Opus 4.6. Model IDs and examples were updated accordingly.
+
+- **Amazon Bedrock native structured output.** Bedrock Anthropic structured output can now use native structured output support even when reasoning is not enabled. This avoids falling back to JSON-tool workarounds for capable models.
+
+- **Amazon Bedrock metadata fields.** Bedrock provider metadata now includes performance configuration, service tier, cache details, and related usage metadata. This improves billing and observability for Bedrock requests.
+
+- **Amazon Bedrock Anthropic sub-provider.** `@ai-sdk/amazon-bedrock/anthropic` exposes Anthropic Messages API behavior through Bedrock InvokeModel rather than Converse. It adds streaming, tools, reasoning, images, PDFs, cache control, custom fetch, and multi-turn support closer to Anthropic first-party parity.
+
+- **Bedrock Mantle support.** The Amazon Bedrock provider added support for Bedrock Mantle. This extends the Bedrock provider's model coverage.
+
+- **Mistral reasoning configuration.** The Mistral provider maps top-level reasoning or provider options to Mistral's `reasoning_effort` where supported. Model IDs and documentation were updated for newer Mistral models.
+
+- **DeepSeek reasoning updates.** DeepSeek gained V4 reasoning effort support and support for adaptive thinking/full reasoning-effort values. This aligns DeepSeek with the SDK's portable reasoning work.
+
+- **Groq structured output and service tiers.** Groq gained `strictJsonSchema` for structured outputs and support for the `performance` service tier. The provider also exposes reasoning tokens in usage data.
+
+- **Fireworks Kimi thinking options.** Fireworks added thinking and reasoning-history options for Kimi K2.5 models. Request transforms convert AI SDK camelCase options into the provider's native snake_case API format.
+
+- **Perplexity cost metadata.** Perplexity exposes provider-reported cost in provider metadata. This lets applications display or record Perplexity usage cost directly from responses.
+
+- **Cohere image input.** Cohere models can receive image inputs through the provider. This expands Cohere support beyond text-only model calls.
+
+- **Fal multi-image editing.** Fal image editing can accept multiple image URLs as inputs. This supports upstream image editing APIs that work from several reference images.
+
+- **Together.ai environment variable rename.** Together.ai now prefers `TOGETHER_API_KEY` and warns when falling back to the older `TOGETHER_AI_API_KEY`. Explicit API key configuration still takes precedence.
+
+- **Deepgram language detection.** Deepgram transcription gained a `detectLanguage` provider option. Users can enable automatic language detection through the provider options schema.
+
+- **Prodia language and video models.** Prodia support expanded with language model and video model implementations in addition to image generation. Shared API utilities cover multipart parsing, job results, errors, and provider metadata.
+
+- **Prodia price parameter.** Prodia requests can include a provider-specific price parameter. This exposes an upstream request option that was previously unavailable.
+
+- **Provider media and usage metadata consistency.** Many providers now preserve more raw usage, modality-specific token counts, file metadata, cache token details, and provider-reported cost fields. This improves billing, debugging, and multi-modal observability across providers.
+
+- **Provider model ID maintenance.** Provider and Gateway model ID lists were updated across OpenAI, Anthropic, Google, xAI, Alibaba, Mistral, Vertex, Bedrock, Groq, Cerebras, Baseten, and others. These updates improve autocomplete, type safety, routing, and documentation accuracy.
