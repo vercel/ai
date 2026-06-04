@@ -40,6 +40,8 @@ export {
 
 export { createRecordingHandler, createReplayHandler } from './record-replay';
 
+export { withBridgeProxyEnv } from './bridge-proxy-env';
+
 export {
   createProxiedSandbox,
   type ProxiedSandbox,

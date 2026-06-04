@@ -95,7 +95,7 @@
       "cache": false,
       "persistent": true
     },
-    "integration-test": {
+    "test:integration": {
       "dependsOn": ["^build", "build"]
     },
     "//#konsistent:check": {

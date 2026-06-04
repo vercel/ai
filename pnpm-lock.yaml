@@ -3626,6 +3626,52 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
 
+  tools/harness-e2e:
+    dependencies:
+      '@ai-sdk/harness':
+        specifier: workspace:*
+        version: link:../../packages/harness
+      '@ai-sdk/harness-claude-code':
+        specifier: workspace:*
+        version: link:../../packages/harness-claude-code
+      '@ai-sdk/harness-codex':
+        specifier: workspace:*
+        version: link:../../packages/harness-codex
+      '@ai-sdk/harness-pi':
+        specifier: workspace:*
+        version: link:../../packages/harness-pi
+      '@ai-sdk/sandbox-vercel':
+        specifier: workspace:*
+        version: link:../../packages/sandbox-vercel
+      harness-http-proxy:
+        specifier: workspace:*
+        version: link:../harness-http-proxy
+    devDependencies:
+      '@types/node':
+        specifier: 22.19.19
+        version: 22.19.19
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      '@vercel/sandbox':
+        specifier: ^2.0.1
+        version: 2.0.1
+      ai:
+        specifier: workspace:*
+        version: link:../../packages/ai
+      dotenv:
+        specifier: 16.4.5
+        version: 16.4.5
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(jiti@2.7.0)(postcss@8.5.14)(tsx@4.22.0)(typescript@5.8.3)(yaml@2.9.0)
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+
   tools/harness-http-proxy:
     dependencies:
       '@ai-sdk/harness':
@@ -28697,7 +28743,7 @@ snapshots:
       '@babel/core': 7.29.0
       '@sentry/babel-plugin-component-annotate': 5.3.0
       '@sentry/cli': 2.58.5(encoding@0.1.13)
-      dotenv: 16.6.1
+      dotenv: 16.4.5
       find-up: 5.0.0
       glob: 13.0.6
       magic-string: 0.30.21

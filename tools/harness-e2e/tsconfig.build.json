@@ -1,0 +1,7 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "composite": false
+  },
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.e2e.test.ts"]
+}

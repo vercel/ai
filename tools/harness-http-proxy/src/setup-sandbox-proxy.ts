@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { HarnessV1SandboxProvider } from '@ai-sdk/harness';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { Sandbox } from '@vercel/sandbox';
+import { withBridgeProxyEnv } from './bridge-proxy-env';
 import { installAndStartProxy } from './install-proxy';
 import { ProxyChannel } from './proxy-channel';
 import {
@@ -33,10 +34,13 @@ export interface ProxiedSandbox {
  * Stand up a Vercel sandbox with the in-sandbox MITM proxy wired to a host-side
  * `httpHandler`, and return a provider ready to hand to `HarnessAgent`.
  *
- * This composes only existing surfaces — `Sandbox.create({ env })` for
- * transparent proxy-env inheritance, a privileged in-sandbox install/start, and
- * the wrap-existing-sandbox provider path — so no harness or adapter change is
- * needed. The agent CLI's HTTPS is MITM'd by the proxy and surfaced to
+ * This composes only existing surfaces — a privileged in-sandbox install/start,
+ * the wrap-existing-sandbox provider path, and a `spawn`-env overlay
+ * (`withBridgeProxyEnv`) that injects the proxy env into the bridge launch only
+ * — so no harness or adapter change is needed. The proxy env is deliberately
+ * NOT set at sandbox-create time: the harness bootstrap (CLI install) runs over
+ * a clean network, and only the bridge process and the agent CLI it spawns are
+ * proxied. The agent CLI's HTTPS is MITM'd by the proxy and surfaced to
  * `httpHandler` (record/replay); leave it undefined for live passthrough.
  *
  * With `networkPolicy: 'deny-all'`, a replay run is provably offline: the CLI
@@ -83,7 +87,6 @@ export async function createProxiedSandbox(opts: {
   const sandbox = await Sandbox.create({
     ...createParams,
     ports,
-    env: { ...(createParams.env ?? {}), ...proxyEnv },
     ...(signal !== undefined ? { signal } : {}),
   } as CreateSandboxParams);
 
@@ -114,10 +117,13 @@ export async function createProxiedSandbox(opts: {
   }
 
   const startedProxy = running;
-  const provider = createVercelSandbox({
-    sandbox,
-    bridgePorts: [opts.bridgePort],
-  });
+  const provider = withBridgeProxyEnv(
+    createVercelSandbox({
+      sandbox,
+      bridgePorts: [opts.bridgePort],
+    }),
+    proxyEnv,
+  );
 
   let stopped = false;
   const stop = async (): Promise<void> => {
