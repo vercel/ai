@@ -1,5 +1,12 @@
 # @ai-sdk/policy
 
+## 1.0.0-canary.1
+
+### Patch Changes
+
+- 9a1b0ea: Initial release
+  - ai@7.0.0-canary.164
+
 ## 1.0.0-canary.0
 
 ### Major Changes
