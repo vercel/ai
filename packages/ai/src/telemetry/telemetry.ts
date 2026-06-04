@@ -36,6 +36,7 @@ import type {
 } from '../rerank/rerank-events';
 import type { Callback } from '../util/callback';
 import type { TelemetryOptions } from '../telemetry/telemetry-options';
+import type { TelemetryTracingEventType } from './tracing-channel';
 
 export type InferTelemetryEvent<EVENT> = EVENT &
   Omit<
@@ -56,6 +57,11 @@ type OperationEndEvent =
   | RerankEndEvent;
 
 export interface TelemetryDispatcher {
+  traceTelemetrySpan?: <T>(options: {
+    type: TelemetryTracingEventType;
+    event: unknown;
+    execute: () => PromiseLike<T>;
+  }) => Promise<T>;
   onStart?: Callback<OperationStartEvent>;
   onStepStart?: Callback<GenerateTextStepStartEvent>;
   onLanguageModelCallStart?: OnLanguageModelCallStartCallback;

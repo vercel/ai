@@ -1,23 +1,9 @@
 export const AI_SDK_TELEMETRY_TRACING_CHANNEL = 'aisdk:telemetry';
 
 export type TelemetryTracingEventType =
-  | 'onStart'
-  | 'onStepStart'
-  | 'onLanguageModelCallStart'
-  | 'onLanguageModelCallEnd'
-  | 'onToolExecutionStart'
-  | 'onToolExecutionEnd'
-  | 'onStepFinish'
-  | 'onObjectStepStart'
-  | 'onObjectStepFinish'
-  | 'onEmbedStart'
-  | 'onEmbedEnd'
-  | 'onRerankStart'
-  | 'onRerankEnd'
-  | 'onEnd'
-  | 'onAbort'
-  | 'onError'
-  | 'executeLanguageModelCall'
+  | 'generateText'
+  | 'step'
+  | 'languageModelCall'
   | 'executeTool';
 
 export type TelemetryTracingChannelMessage<EVENT = unknown> = {

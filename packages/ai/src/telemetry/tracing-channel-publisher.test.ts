@@ -20,7 +20,7 @@ describe.runIf(runningOnNode)(
   'traceTelemetryChannelPromise runtime switch',
   () => {
     const message = {
-      type: 'executeLanguageModelCall' as const,
+      type: 'languageModelCall' as const,
       event: { callId: 'call-1' },
     };
 

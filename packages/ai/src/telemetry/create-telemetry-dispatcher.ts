@@ -7,25 +7,27 @@ import type {
   TelemetryDispatcher,
 } from './telemetry';
 import { traceTelemetryChannelPromise } from './tracing-channel-publisher';
-import { type TelemetryTracingEventType } from './tracing-channel';
 import { getGlobalTelemetryIntegrations } from './telemetry-registry';
 import type { TelemetryOptions } from './telemetry-options';
 
 /**
  * The subset of `TelemetryDispatcher` keys whose values are Callback callbacks.
- * This excludes non-Callback properties such as `executeLanguageModelCall` and
- * `executeTool`.
+ * This excludes dispatcher-only helpers and non-Callback properties such as
+ * `executeLanguageModelCall` and `executeTool`.
  */
-type TelemetryCallbackKey = keyof {
-  [K in keyof TelemetryDispatcher as TelemetryDispatcher[K] extends
-    | Callback<any>
-    | undefined
-    ? K
-    : never]: true;
-};
+type TelemetryCallbackKey = Exclude<
+  keyof {
+    [K in keyof TelemetryDispatcher as TelemetryDispatcher[K] extends
+      | Callback<any>
+      | undefined
+      ? K
+      : never]: true;
+  },
+  'traceTelemetrySpan'
+>;
 
 /**
- * Resolves the public event type accepted by a telemetry callback key.
+ * Resolves the public  event type accepted by a telemetry callback key.
  */
 type TelemetryEvent<K extends TelemetryCallbackKey> =
   TelemetryDispatcher[K] extends Callback<infer EVENT> | undefined
@@ -86,8 +88,6 @@ export function createTelemetryDispatcher({
   const mergeTelemetryCallback = <KEY extends TelemetryCallbackKey>(
     key: KEY,
   ): Callback<TelemetryEvent<KEY>> => {
-    // Integration callbacks receive the augmented event, while tracing uses the
-    // same augmented payload as its context object for subscribers.
     const integrationCallbacks = (
       integrations
         .map(integration => integration[key]?.bind(integration))
@@ -105,15 +105,7 @@ export function createTelemetryDispatcher({
     const mergedIntegrationCallback = mergeCallbacks(...integrationCallbacks);
 
     return async (event: TelemetryEvent<KEY>) => {
-      const augmentedEvent = augmentEvent(event, telemetryMetadata);
-
-      await traceTelemetryChannelPromise(
-        {
-          type: key as TelemetryTracingEventType,
-          event: augmentedEvent,
-        },
-        async () => await mergedIntegrationCallback(event),
-      );
+      await mergedIntegrationCallback(event);
     };
   };
 
@@ -128,6 +120,15 @@ export function createTelemetryDispatcher({
     .filter(Boolean) as Array<NonNullable<Telemetry['executeTool']>>;
 
   return {
+    traceTelemetrySpan: async ({ type, event, execute }) =>
+      await traceTelemetryChannelPromise(
+        {
+          type,
+          event: augmentEvent(event, telemetryMetadata),
+        },
+        execute,
+      ),
+
     onStart: mergeTelemetryCallback('onStart'),
     onStepStart: mergeTelemetryCallback('onStepStart'),
     onLanguageModelCallStart: mergeTelemetryCallback(
@@ -148,8 +149,8 @@ export function createTelemetryDispatcher({
     onError: mergeTelemetryCallback('onError'),
 
     /**
-     * Runs provider calls inside the tracing channel so subscriber-bound async
-     * context stays active for auto-instrumented provider requests.
+     * Runs provider calls inside integration-specific context so
+     * auto-instrumented provider requests can be associated with model work.
      */
     executeLanguageModelCall: async args => {
       const tracingEvent = augmentEvent(
@@ -176,7 +177,7 @@ export function createTelemetryDispatcher({
       }
       return await traceTelemetryChannelPromise(
         {
-          type: 'executeLanguageModelCall',
+          type: 'languageModelCall',
           event: tracingEvent,
         },
         execute,
@@ -187,16 +188,9 @@ export function createTelemetryDispatcher({
      * Composes all `executeTool` wrappers around the original tool execution.
      * Each wrapper receives an `execute` function that calls the next wrapper in
      * the chain, so integrations can establish nested telemetry context before
-     * delegating to the underlying tool. The outer tracing wrapper keeps that
-     * context active for any nested AI SDK calls made by the tool.
+     * delegating to the underlying tool.
      */
     executeTool: async args => {
-      const tracingEvent = augmentEvent(
-        args.event == null
-          ? { callId: args.callId, toolCallId: args.toolCallId }
-          : { callId: args.callId, ...args.event },
-        telemetryMetadata,
-      );
       let execute = args.execute;
       for (const executeWrapper of executeToolWrappers) {
         const innerExecute = execute;
@@ -215,13 +209,7 @@ export function createTelemetryDispatcher({
           return executeWrapper(executeArgs);
         };
       }
-      return await traceTelemetryChannelPromise(
-        {
-          type: 'executeTool',
-          event: tracingEvent,
-        },
-        execute,
-      );
+      return await execute();
     },
   };
 }
