@@ -65,6 +65,7 @@ import type { TypedToolCall } from './tool-call';
 import type { ToolCallRepairFunction } from './tool-call-repair-function';
 import type { TypedToolError } from './tool-error';
 import type { ToolInputRefinement } from './tool-input-refinement';
+import type { ToolOrder } from './tool-order';
 import type { TypedToolResult } from './tool-result';
 
 const originalGenerateId = createIdGenerator({
@@ -194,6 +195,7 @@ export async function streamLanguageModelCall<
 >({
   model,
   tools,
+  toolOrder,
   output,
   toolChoice,
   prompt,
@@ -225,6 +227,7 @@ export async function streamLanguageModelCall<
 }: {
   model: LanguageModel;
   tools?: TOOLS;
+  toolOrder?: ToolOrder<TOOLS>;
   output?: OUTPUT;
   toolChoice?: ToolChoice<TOOLS>;
   download?: DownloadFunction;
@@ -303,6 +306,7 @@ export async function streamLanguageModelCall<
 
   const stepTools = await prepareTools({
     tools,
+    toolOrder,
     toolsContext,
     experimental_sandbox: sandbox,
   });

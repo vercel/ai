@@ -1,5 +1,14 @@
 # @ai-sdk/openai
 
+## 4.0.0-canary.67
+
+### Patch Changes
+
+- 61bcdb5: fix(provider/openai): send client-executed tool calls as full function_call items in the Responses API so they pair with their function_call_output by call_id
+- Updated dependencies [ee798eb]
+- Updated dependencies [daf6637]
+  - @ai-sdk/provider-utils@5.0.0-canary.45
+
 ## 4.0.0-canary.66
 
 ### Patch Changes
