@@ -1,9 +1,11 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import { tool } from '@ai-sdk/provider-utils';
+import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
 import { generateText } from '../generate-text';
+import { streamText } from '../generate-text/stream-text';
 import { isStepCount } from '../generate-text/stop-condition';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { createTelemetryDispatcher } from './create-telemetry-dispatcher';
@@ -375,6 +377,110 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
         "asyncEnd languageModelCall",
         "asyncEnd step",
         "asyncEnd generateText",
+      ]
+    `);
+  });
+
+  it('traces the current streamText lifecycle sequence with a tool call', async () => {
+    let responseCount = 0;
+
+    const sequence = await collectTracingChannelEventSequence(async () => {
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  stream: convertArrayToReadableStream([
+                    { type: 'stream-start', warnings: [] },
+                    {
+                      type: 'tool-call',
+                      toolCallId: 'weather-tool-call',
+                      toolName: 'weather',
+                      input: JSON.stringify({ city: 'San Francisco' }),
+                    },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'tool-calls', raw: undefined },
+                      usage: {
+                        inputTokens: {
+                          total: 3,
+                          noCache: 3,
+                          cacheRead: undefined,
+                          cacheWrite: undefined,
+                        },
+                        outputTokens: {
+                          total: 10,
+                          text: 10,
+                          reasoning: undefined,
+                        },
+                      },
+                    },
+                  ]),
+                };
+
+              case 1:
+                return {
+                  stream: convertArrayToReadableStream([
+                    { type: 'stream-start', warnings: [] },
+                    { type: 'text-start', id: '1' },
+                    { type: 'text-delta', id: '1', delta: 'It is sunny.' },
+                    { type: 'text-end', id: '1' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: {
+                        inputTokens: {
+                          total: 5,
+                          noCache: 5,
+                          cacheRead: undefined,
+                          cacheWrite: undefined,
+                        },
+                        outputTokens: {
+                          total: 7,
+                          text: 7,
+                          reasoning: undefined,
+                        },
+                      },
+                    },
+                  ]),
+                };
+
+              default:
+                throw new Error(`Unexpected response count: ${responseCount}`);
+            }
+          },
+        }),
+        prompt: 'What is the weather in San Francisco?',
+        stopWhen: isStepCount(3),
+        tools: {
+          weather: tool({
+            inputSchema: z.object({ city: z.string() }),
+            execute: async ({ city }) => `Weather in ${city}: sunny`,
+          }),
+        },
+        telemetry: {
+          functionId: 'tracing-channel-stream-text-test',
+        },
+      });
+
+      await result.consumeStream();
+    });
+
+    expect(sequence).toMatchInlineSnapshot(`
+      [
+        "bindStart streamText",
+        "bindStart step",
+        "bindStart languageModelCall",
+        "asyncEnd languageModelCall",
+        "bindStart executeTool",
+        "asyncEnd executeTool",
+        "asyncEnd step",
+        "bindStart step",
+        "bindStart languageModelCall",
+        "asyncEnd languageModelCall",
+        "asyncEnd step",
+        "asyncEnd streamText",
       ]
     `);
   });
