@@ -345,8 +345,7 @@ export async function streamLanguageModelCall<
     response,
     request,
   } = await executeLanguageModelCallInTelemetryContext({
-    callId: effectiveCallId,
-    event: languageModelCallContext,
+    ...languageModelCallStartEvent,
     execute: async () =>
       await resolvedModel.doStream({
         ...callSettings,

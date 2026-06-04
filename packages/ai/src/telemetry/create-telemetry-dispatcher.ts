@@ -152,35 +152,19 @@ export function createTelemetryDispatcher({
      * Runs provider calls inside integration-specific context so
      * auto-instrumented provider requests can be associated with model work.
      */
-    executeLanguageModelCall: async args => {
-      const tracingEvent = augmentEvent(
-        { callId: args.callId, ...args.event },
-        telemetryMetadata,
-      );
-      let execute = args.execute;
-      for (const executeWrapper of executeLanguageModelCallWrappers) {
-        const innerExecute = execute;
-        execute = () => {
-          // Only pass `event` to integrations when the caller provided the
-          // additional model-call context.
-          const executeArgs =
-            args.event == null
-              ? { ...args, execute: innerExecute }
-              : {
-                  ...args,
-                  event: augmentEvent(args.event, telemetryMetadata),
-                  execute: innerExecute,
-                };
+    executeLanguageModelCall: async ({ execute, ...event }) => {
+      const augmentedEvent = augmentEvent(event, telemetryMetadata);
 
-          return executeWrapper(executeArgs);
-        };
+      let wrappedExecute = execute;
+      for (const executeWrapper of executeLanguageModelCallWrappers) {
+        const innerExecute = wrappedExecute;
+        wrappedExecute = () =>
+          executeWrapper({ ...augmentedEvent, execute: innerExecute });
       }
+
       return await traceTelemetryChannelPromise(
-        {
-          type: 'languageModelCall',
-          event: tracingEvent,
-        },
-        execute,
+        { type: 'languageModelCall', event: augmentedEvent },
+        wrappedExecute,
       );
     },
 
@@ -190,26 +174,17 @@ export function createTelemetryDispatcher({
      * the chain, so integrations can establish nested telemetry context before
      * delegating to the underlying tool.
      */
-    executeTool: async args => {
-      let execute = args.execute;
-      for (const executeWrapper of executeToolWrappers) {
-        const innerExecute = execute;
-        execute = () => {
-          // Only pass `event` to integrations when the caller provided the
-          // additional tool execution context.
-          const executeArgs =
-            args.event == null
-              ? { ...args, execute: innerExecute }
-              : {
-                  ...args,
-                  event: augmentEvent(args.event, telemetryMetadata),
-                  execute: innerExecute,
-                };
+    executeTool: async ({ execute, ...event }) => {
+      const augmentedEvent = augmentEvent(event, telemetryMetadata);
 
-          return executeWrapper(executeArgs);
-        };
+      let wrappedExecute = execute;
+      for (const executeWrapper of executeToolWrappers) {
+        const innerExecute = wrappedExecute;
+        wrappedExecute = () =>
+          executeWrapper({ ...augmentedEvent, execute: innerExecute });
       }
-      return await execute();
+
+      return await wrappedExecute();
     },
   };
 }

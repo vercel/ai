@@ -833,8 +833,7 @@ export async function generateText<
               currentModelResponse = await retry(async () => {
                 const result = await executeLanguageModelCallInTelemetryContext(
                   {
-                    callId,
-                    event: languageModelCallContext,
+                    ...languageModelCallStartEvent,
                     execute: async () =>
                       await stepModel.doGenerate({
                         ...callSettings,

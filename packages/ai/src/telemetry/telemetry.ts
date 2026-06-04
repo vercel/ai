@@ -221,30 +221,31 @@ export interface Telemetry {
    * auto-instrumented model provider requests to become children of the current
    * model-call span.
    *
-   * @param options.callId - The call ID of the generation.
-   * @param options.event - Additional model-call start context, when available.
-   * @param options.execute - The function that performs the model call.
+   * The options carry the model-call start-event content as context (the event
+   * fields are optional), alongside the always-present `callId` and the
+   * `execute` function that performs the model call.
    */
-  executeLanguageModelCall?: <T>(options: {
-    callId: string;
-    event?: Omit<InferTelemetryEvent<LanguageModelCallStartEvent>, 'callId'>;
-    execute: () => PromiseLike<T>;
-  }) => PromiseLike<T>;
+  executeLanguageModelCall?: <T>(
+    options: Partial<InferTelemetryEvent<LanguageModelCallStartEvent>> & {
+      callId: string;
+      execute: () => PromiseLike<T>;
+    },
+  ) => PromiseLike<T>;
 
   /**
    * Optionally runs the tool execute function in a telemetry-integration-specific context. This enables
    * nested traces — e.g. when a tool's `execute` function calls `generateText`,
    * the inner call's spans become children of the tool span.
    *
-   * @param options.callId - The call ID of the tool call.
-   * @param options.toolCallId - The tool call ID.
-   * @param options.event - Additional tool execution start context, when available.
-   * @param options.execute - The function to execute.
+   * The options carry the tool-execution start-event content as context (the
+   * event fields are optional), alongside the always-present `callId`,
+   * `toolCallId`, and the `execute` function to run.
    */
-  executeTool?: <T>(options: {
-    callId: string;
-    toolCallId: string;
-    event?: Omit<InferTelemetryEvent<ToolExecutionStartEvent>, 'callId'>;
-    execute: () => PromiseLike<T>;
-  }) => PromiseLike<T>;
+  executeTool?: <T>(
+    options: Partial<InferTelemetryEvent<ToolExecutionStartEvent>> & {
+      callId: string;
+      toolCallId: string;
+      execute: () => PromiseLike<T>;
+    },
+  ) => PromiseLike<T>;
 }

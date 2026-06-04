@@ -65,12 +65,13 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   onPreliminaryToolResult?: (result: TypedToolResult<TOOLS>) => void;
   onToolExecutionStart?: Arrayable<OnToolExecutionStartCallback<TOOLS>>;
   onToolExecutionEnd?: Arrayable<OnToolExecutionEndCallback<TOOLS>>;
-  executeToolInTelemetryContext?: <T>(params: {
-    callId: string;
-    toolCallId: string;
-    event?: Omit<ToolExecutionStartEvent<TOOLS>, 'callId'>;
-    execute: () => PromiseLike<T>;
-  }) => PromiseLike<T>;
+  executeToolInTelemetryContext?: <T>(
+    params: Partial<ToolExecutionStartEvent<TOOLS>> & {
+      callId: string;
+      toolCallId: string;
+      execute: () => PromiseLike<T>;
+    },
+  ) => PromiseLike<T>;
   traceTelemetrySpan?: NonNullable<TelemetryDispatcher['traceTelemetrySpan']>;
 }): Promise<
   | {
@@ -122,10 +123,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
         await executeToolInTelemetryContext({
           callId,
           toolCallId,
-          event: toolExecutionContext as Omit<
-            ToolExecutionStartEvent<TOOLS>,
-            'callId'
-          >,
+          ...(toolExecutionContext as Partial<ToolExecutionStartEvent<TOOLS>>),
           execute: async () => {
             const startTime = now();
             try {
