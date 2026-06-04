@@ -906,6 +906,33 @@ describe('generateObject', () => {
       }
     `);
     });
+
+    it('should return transformed element values', async () => {
+      const model = new MockLanguageModelV4({
+        doGenerate: {
+          ...dummyResponseValues,
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                elements: [{ content: 'element 1' }],
+              }),
+            },
+          ],
+        },
+      });
+
+      const result = await generateObject({
+        model,
+        schema: z.object({
+          content: z.string().transform(value => value.toUpperCase()),
+        }),
+        output: 'array',
+        prompt: 'prompt',
+      });
+
+      expect(result.object).toEqual([{ content: 'ELEMENT 1' }]);
+    });
   });
 
   describe('output = "enum"', () => {
