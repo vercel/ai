@@ -1,5 +1,13 @@
 # @ai-sdk/elevenlabs
 
+## 3.0.0-canary.46
+
+### Patch Changes
+
+- Updated dependencies [ee798eb]
+- Updated dependencies [daf6637]
+  - @ai-sdk/provider-utils@5.0.0-canary.45
+
 ## 3.0.0-canary.45
 
 ### Patch Changes
