@@ -49,7 +49,9 @@ export interface AlibabaProvider extends ProviderV2 {
   /**
    * Creates a model for text embeddings.
    */
-  textEmbeddingModel(modelId: AlibabaEmbeddingModelId): EmbeddingModelV2<string>;
+  textEmbeddingModel(
+    modelId: AlibabaEmbeddingModelId,
+  ): EmbeddingModelV2<string>;
 }
 
 export interface AlibabaProviderSettings {
