@@ -417,6 +417,17 @@ export async function createPiSession(
         await session.prompt(turnOpts.text);
 
         if (terminalError) {
+          /*
+           * A `doSuspendTurn` aborts the in-flight turn on purpose. Pi surfaces
+           * that abort as a *resolved* prompt with a recorded terminal error
+           * ("This operation was aborted") rather than a thrown exception, so the
+           * `catch` guard below never sees it. Swallow it here too — but only if
+           * it's actually the abort: the stream then closes cleanly (no spurious
+           * `error` chunk) and the next slice rerun-continues from the journal.
+           * Any other terminal error mid-suspend is unanticipated and must
+           * surface.
+           */
+          if (suspending && isAbortError(terminalError)) return;
           turnOpts.emit({ type: 'error', error: new Error(terminalError) });
           return;
         }
@@ -452,7 +463,9 @@ export async function createPiSession(
         // A `doSuspendTurn` aborts the in-flight turn on purpose — settle silently
         // so the stream closes cleanly without a spurious `error` chunk; the
         // next slice rerun-continues from the persisted journal.
-        if (suspending) return;
+        // Same rule as the resolved-with-terminalError path: only swallow the
+        // abort our own suspend caused; surface anything unanticipated.
+        if (suspending && isAbortError(err)) return;
         turnOpts.emit({ type: 'error', error: err });
       } finally {
         unsubErr();
@@ -667,6 +680,29 @@ export async function createPiSession(
   };
 
   return sessionImpl;
+}
+
+/**
+ * Whether a terminal error (string from Pi's event stream, or a thrown error)
+ * is an abort — the expected result of `doSuspendTurn` aborting the in-flight
+ * turn. Only these are safe to swallow while `suspending`; any other error is
+ * unanticipated and must surface as an `error` chunk.
+ */
+function isAbortError(value: unknown): boolean {
+  if (value == null) return false;
+  if (
+    typeof value === 'object' &&
+    (value as { name?: unknown }).name === 'AbortError'
+  ) {
+    return true;
+  }
+  const text =
+    typeof value === 'string'
+      ? value
+      : value instanceof Error
+        ? value.message
+        : String(value);
+  return /\baborted\b|AbortError|operation was aborted/i.test(text);
 }
 
 function asPiToolResult(text: string): AgentToolResult<unknown> {

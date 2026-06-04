@@ -19,6 +19,7 @@
     { "path": "packages/deepinfra" },
     { "path": "packages/deepseek" },
     { "path": "packages/workflow" },
+    { "path": "packages/workflow-harness" },
     { "path": "packages/elevenlabs" },
     { "path": "packages/fal" },
     { "path": "packages/fireworks" },

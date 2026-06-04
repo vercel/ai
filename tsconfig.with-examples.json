@@ -22,6 +22,9 @@
       "path": "examples/fastify"
     },
     {
+      "path": "examples/harness-e2e-next"
+    },
+    {
       "path": "examples/hono"
     },
     {
