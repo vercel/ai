@@ -1,5 +1,15 @@
 # @ai-sdk/alibaba
 
+## 2.0.0-canary.56
+
+### Patch Changes
+
+- 616bb31: feat(aliababa): add embedding model support
+- Updated dependencies [ee798eb]
+- Updated dependencies [daf6637]
+  - @ai-sdk/provider-utils@5.0.0-canary.45
+  - @ai-sdk/openai-compatible@3.0.0-canary.53
+
 ## 2.0.0-canary.55
 
 ### Patch Changes

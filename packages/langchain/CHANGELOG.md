@@ -1,5 +1,14 @@
 # @ai-sdk/langchain
 
+## 3.0.0-canary.163
+
+### Patch Changes
+
+- 6e23bf2: fix(langchain): register key mapping for tool calls emitted via messages mode for HITL interrupt matching
+- Updated dependencies [ee798eb]
+- Updated dependencies [c907622]
+  - ai@7.0.0-canary.163
+
 ## 3.0.0-canary.162
 
 ### Patch Changes
