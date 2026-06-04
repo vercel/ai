@@ -59,7 +59,7 @@ For non-lifecycle events, use the most specific verb that applies:
 
 New features that are explored outside of a major release cycle are marked as experimental using prefixes: `Experimental_*` for types and classes, `experimental_*` for functions and values. See `project-philosophies.md` for when to introduce an experimental feature.
 
-**Keep the experimental prefix at the import and export seams only.** Declare the symbol with its plain, unprefixed name and apply the prefix as an _alias_ where the symbol crosses a package boundary:
+**For exported experimental symbols, keep the experimental prefix at the import and export seams only.** Declare the symbol with its plain, unprefixed name and apply the prefix as an _alias_ where the symbol crosses a package boundary:
 
 - In the package that owns the feature, name every declaration without the prefix and add the `Experimental_*` / `experimental_*` alias only in the public export (typically the package's `index.ts`).
 - In packages that consume the feature, import the prefixed symbol under its unprefixed alias and use the unprefixed name throughout the file.
