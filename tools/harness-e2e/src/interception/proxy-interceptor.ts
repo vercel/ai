@@ -1,5 +1,8 @@
 import { createProxiedSandbox, type HttpHandler } from 'harness-http-proxy';
-import type { HarnessV1SandboxProvider } from '@ai-sdk/harness';
+import type {
+  HarnessV1ProviderSettings,
+  HarnessV1SandboxProvider,
+} from '@ai-sdk/harness';
 import type { ReplayRuntimeIdentity } from '../http-fixture';
 import {
   createRecordingHandler,
@@ -44,10 +47,19 @@ export async function startProxyInterception(opts: {
   fixturePath: string;
   mode: InterceptionMode;
   bridgePort: number;
+  /** Bridge-port pool for multiple concurrent sessions on one sandbox. */
+  bridgePorts?: number[];
   proxyWsPort: number;
   sessionId: string;
   proxyPort?: number;
   createParams?: Parameters<typeof createProxiedSandbox>[0]['createParams'];
+  /** Provider `setup` hook forwarded to the proxied sandbox (handle capture). */
+  setup?: HarnessV1ProviderSettings['setup'];
+  /**
+   * Always-used handler that bypasses record/replay entirely (no fixture, never
+   * saved) — the synthetic error / abort scenarios.
+   */
+  syntheticHandler?: HttpHandler;
   signal?: AbortSignal;
 }): Promise<ProxyInterception> {
   const proxyPort = opts.proxyPort ?? DEFAULT_PROXY_PORT;
@@ -65,7 +77,10 @@ export async function startProxyInterception(opts: {
 
   let httpHandler: HttpHandler;
   let save: () => Promise<void>;
-  if (opts.mode === 'record') {
+  if (opts.syntheticHandler) {
+    httpHandler = opts.syntheticHandler;
+    save = async () => {};
+  } else if (opts.mode === 'record') {
     const recorder = createRecordingHandler(
       opts.fixturePath,
       `${opts.adapterName} ${opts.scenario}`,
@@ -82,12 +97,14 @@ export async function startProxyInterception(opts: {
   const proxied = await createProxiedSandbox({
     sessionId: opts.sessionId,
     bridgePort: opts.bridgePort,
+    ...(opts.bridgePorts ? { bridgePorts: opts.bridgePorts } : {}),
     proxyWsPort: opts.proxyWsPort,
     proxyPort,
     httpHandler,
     ...(opts.createParams !== undefined
       ? { createParams: opts.createParams }
       : {}),
+    ...(opts.setup !== undefined ? { setup: opts.setup } : {}),
     ...(opts.signal !== undefined ? { signal: opts.signal } : {}),
   });
 

@@ -13,8 +13,16 @@ export interface ReplayAdapter {
   readonly interception: ReplayInterception;
   /** For host-fetch adapters: hostnames routed through the engine. */
   readonly interceptHosts?: ReadonlyArray<string>;
-  /** Build the harness pinned to a deterministic model + gateway auth. */
-  readonly createHarness: (credential: GatewayCredential) => HarnessV1;
+  /**
+   * Build the harness pinned to a deterministic model + gateway auth. The
+   * optional `overrides` are shallow-merged over the pinned settings so a
+   * scenario can set adapter-specific options (e.g. claude-code `thinking`,
+   * codex `reasoningEffort`) or replace `auth` outright (pi `customEnv`).
+   */
+  readonly createHarness: (
+    credential: GatewayCredential,
+    overrides?: Record<string, unknown>,
+  ) => HarnessV1;
 }
 
 /*
@@ -48,7 +56,7 @@ export const REPLAY_ADAPTERS: ReadonlyArray<ReplayAdapter> = [
   {
     name: 'claude-code',
     interception: 'proxy',
-    createHarness: credential =>
+    createHarness: (credential, overrides) =>
       createClaudeCode({
         model: 'claude-sonnet-4-5',
         auth: credential.apiKey
@@ -64,12 +72,13 @@ export const REPLAY_ADAPTERS: ReadonlyArray<ReplayAdapter> = [
                 baseUrl: ANTHROPIC_GATEWAY_BASE_URL,
               },
             },
+        ...overrides,
       }),
   },
   {
     name: 'codex',
     interception: 'proxy',
-    createHarness: credential =>
+    createHarness: (credential, overrides) =>
       createCodex({
         auth: {
           gateway: {
@@ -77,13 +86,14 @@ export const REPLAY_ADAPTERS: ReadonlyArray<ReplayAdapter> = [
             baseUrl: OPENAI_GATEWAY_BASE_URL,
           },
         },
+        ...overrides,
       }),
   },
   {
     name: 'pi',
     interception: 'host-fetch',
     interceptHosts: ['ai-gateway.vercel.sh'],
-    createHarness: credential =>
+    createHarness: (credential, overrides) =>
       createPi({
         auth: {
           gateway: {
@@ -91,6 +101,7 @@ export const REPLAY_ADAPTERS: ReadonlyArray<ReplayAdapter> = [
             baseUrl: ANTHROPIC_GATEWAY_BASE_URL,
           },
         },
+        ...overrides,
       }),
   },
 ];

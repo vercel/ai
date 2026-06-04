@@ -54,9 +54,20 @@ export {
   RECORD_ALL,
   LIVE,
   fixturePath,
+  hasVercelCredential,
   resolveRunMode,
   shouldRunScenario,
+  shouldRunSyntheticScenario,
+  type GatewayCredential,
   type RunMode,
 } from './e2e-shared';
 
-export { withReplayScenarioAgent, type ScenarioContext } from './e2e-scenario';
+export {
+  withReplayPersistenceAgents,
+  withReplayScenarioAgent,
+  withReplaySharedSandbox,
+  type HarnessSettingsOverride,
+  type ScenarioBuildOptions,
+  type ScenarioContext,
+  type SharedSandboxContext,
+} from './e2e-scenario';

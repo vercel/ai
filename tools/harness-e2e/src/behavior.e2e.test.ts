@@ -47,5 +47,61 @@ for (const adapter of REPLAY_ADAPTERS) {
       },
       SCENARIO_TIMEOUT_MS,
     );
+
+    // Extended thinking is a claude-code-only setting in the reimpl
+    // (`thinking: 'adaptive'`; there is no `effort` field). Other adapters
+    // self-skip via the adapter guard.
+    it.skipIf(
+      adapter.name !== 'claude-code' ||
+        !shouldRunScenario(adapter.name, 'thinking'),
+    )(
+      'thinking does not break a normal turn',
+      async () => {
+        await withReplayScenarioAgent(
+          {
+            adapterName: adapter.name,
+            scenario: 'thinking',
+            harnessSettings: { thinking: 'adaptive' },
+          },
+          async ({ agent, session }) => {
+            const result = await agent.generate({
+              session,
+              prompt: 'What is 2+2? Reply with just the number.',
+            });
+            expect(result.text).toContain('4');
+          },
+        );
+      },
+      SCENARIO_TIMEOUT_MS,
+    );
+
+    it.skipIf(!shouldRunScenario(adapter.name, 'files'))(
+      'agent can read a file written to the sandbox',
+      async () => {
+        await withReplayScenarioAgent(
+          {
+            adapterName: adapter.name,
+            scenario: 'files',
+            captureSandbox: true,
+          },
+          async ({ agent, session, sandbox, sandboxWorkDir }) => {
+            if (sandbox == null || sandboxWorkDir == null) {
+              throw new Error('sandbox not captured');
+            }
+            await sandbox.writeTextFile({
+              path: `${sandboxWorkDir}/uploaded.txt`,
+              content: 'the codeword is FALCON-9',
+            });
+            const result = await agent.generate({
+              session,
+              prompt:
+                'Read the file uploaded.txt and reply with only the codeword it contains.',
+            });
+            expect(result.text.toUpperCase()).toContain('FALCON-9');
+          },
+        );
+      },
+      SCENARIO_TIMEOUT_MS,
+    );
   });
 }

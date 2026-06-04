@@ -26,8 +26,27 @@ function realGatewayApiKey(): string {
 function vercelOidcToken(): string {
   return process.env.VERCEL_OIDC_TOKEN ?? '';
 }
-function hasGatewayCredential(): boolean {
-  return realGatewayApiKey().length > 0 || vercelOidcToken().length > 0;
+
+/**
+ * Whether the environment can provision a Vercel sandbox. Every scenario boots
+ * a real sandbox (replay only cans the model HTTP, not the VM), so a scenario
+ * with no recorded fixture — the synthetic error tests — still needs this to
+ * run. The Vercel SDK accepts either an OIDC token or a `VERCEL_TOKEN`.
+ */
+export function hasVercelCredential(): boolean {
+  return (
+    vercelOidcToken().length > 0 || (process.env.VERCEL_TOKEN ?? '').length > 0
+  );
+}
+
+/**
+ * Gate for scenarios served by an always-synthetic handler (no fixture, never
+ * recorded) — the `invalid-credentials` / `unknown-model` error tests. They
+ * need a sandbox but no model credential, so they run whenever a sandbox can be
+ * provisioned, independent of `RECORD`/`LIVE`.
+ */
+export function shouldRunSyntheticScenario(): boolean {
+  return hasVercelCredential();
 }
 
 export type RunMode = 'record' | 'replay' | 'live';
@@ -49,10 +68,19 @@ export function fixturePath(adapterName: string, scenario: string): string {
 }
 
 /**
- * Decide how a scenario runs, or `'skip'` when it can't:
- *   - LIVE needs a gateway key (else skip).
- *   - RECORD_ALL / (RECORD without a fixture) records, and needs a gateway key.
- *   - otherwise replay if the fixture exists, else skip.
+ * Decide how a scenario runs, or `'skip'` when there is nothing to do:
+ *   - LIVE → always `'live'` (explicit intent).
+ *   - RECORD_ALL, or RECORD without a fixture → always `'record'` (explicit
+ *     intent).
+ *   - otherwise `'replay'` if the fixture exists, else `'skip'`.
+ *
+ * Credential presence is deliberately NOT consulted here: an explicit record /
+ * live request must never be silently skipped for missing credentials — that
+ * masks a misconfiguration. The credential is resolved at run time by
+ * {@link resolveGatewayCredential}, which throws a clear error if it is absent.
+ * (Resolving at run time also means the `.env.local` the integration setup file
+ * loads is in place, unlike at collection time when `skipIf` is evaluated.)
+ *
  * Replay still boots a real sandbox (Vercel credentials are inferred from the
  * environment); only the model HTTP is canned.
  */
@@ -60,14 +88,12 @@ export function resolveRunMode(
   adapterName: string,
   scenario: string,
 ): RunMode | 'skip' {
-  const fixtureExists = existsSync(fixturePath(adapterName, scenario));
-  const hasCredential = hasGatewayCredential();
-
   if (LIVE) {
-    return hasCredential ? 'live' : 'skip';
+    return 'live';
   }
+  const fixtureExists = existsSync(fixturePath(adapterName, scenario));
   if (RECORD_ALL || (RECORD && !fixtureExists)) {
-    return hasCredential ? 'record' : 'skip';
+    return 'record';
   }
   return fixtureExists ? 'replay' : 'skip';
 }
@@ -83,7 +109,8 @@ export function shouldRunScenario(
  * The gateway credential to configure the adapter with for a run mode. Replay
  * never touches the network (the fixture is served), so a dummy api key
  * suffices. Record/live prefer an explicit `AI_GATEWAY_API_KEY`, falling back to
- * the ambient Vercel OIDC token.
+ * the ambient Vercel OIDC token — and throw if neither is set, so an explicit
+ * record/live run fails loudly rather than recording an empty fixture.
  */
 export function resolveGatewayCredential(mode: RunMode): GatewayCredential {
   if (mode === 'replay') {
@@ -93,7 +120,15 @@ export function resolveGatewayCredential(mode: RunMode): GatewayCredential {
   if (apiKey) {
     return { apiKey };
   }
-  return { oidcToken: vercelOidcToken() };
+  const oidcToken = vercelOidcToken();
+  if (oidcToken) {
+    return { oidcToken };
+  }
+  throw new Error(
+    `Run mode "${mode}" needs a gateway credential, but neither AI_GATEWAY_API_KEY ` +
+      `nor VERCEL_OIDC_TOKEN is set. Add one to tools/harness-e2e/.env.local ` +
+      `(or export it) before recording or running live.`,
+  );
 }
 
 /**

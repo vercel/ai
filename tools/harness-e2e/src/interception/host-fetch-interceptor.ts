@@ -1,3 +1,4 @@
+import type { HttpHandler } from 'harness-http-proxy';
 import type { ReplayRuntimeIdentity } from '../http-fixture';
 import {
   createRecordingHandler,
@@ -43,6 +44,11 @@ export function startHostFetchInterception(opts: {
   mode: InterceptionMode;
   sessionId: string;
   interceptHosts?: string[];
+  /**
+   * Always-used handler bypassing record/replay (synthetic error / abort
+   * scenarios — serves a canned response, never recorded).
+   */
+  syntheticHandler?: HttpHandler;
 }): HostFetchInterception {
   const interceptHosts = opts.interceptHosts ?? DEFAULT_INTERCEPT_HOSTS;
 
@@ -61,7 +67,11 @@ export function startHostFetchInterception(opts: {
 
   let handler: (request: Request) => Promise<Response>;
   let save: () => Promise<void>;
-  if (opts.mode === 'record') {
+  if (opts.syntheticHandler) {
+    const synthetic = opts.syntheticHandler;
+    handler = async request => synthetic(request);
+    save = async () => {};
+  } else if (opts.mode === 'record') {
     const recorder = createRecordingHandler(
       opts.fixturePath,
       `${opts.adapterName} ${opts.scenario}`,

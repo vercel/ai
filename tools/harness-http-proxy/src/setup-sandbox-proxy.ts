@@ -1,5 +1,8 @@
 import { randomUUID } from 'node:crypto';
-import type { HarnessV1SandboxProvider } from '@ai-sdk/harness';
+import type {
+  HarnessV1ProviderSettings,
+  HarnessV1SandboxProvider,
+} from '@ai-sdk/harness';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { Sandbox } from '@vercel/sandbox';
 import { withBridgeProxyEnv } from './bridge-proxy-env';
@@ -22,8 +25,10 @@ export interface ProxiedSandbox {
   provider: HarnessV1SandboxProvider;
   /** Stable session id; reuse as the `HarnessAgent` session id. */
   sessionId: string;
-  /** Bridge WS port leased by the harness session. */
+  /** First bridge WS port (the pool's head). */
   bridgePort: number;
+  /** All bridge WS ports the provider may lease (one per concurrent session). */
+  bridgePorts: number[];
   /** Proxy WS port the host channel is connected on. */
   proxyWsPort: number;
   /** Close the proxy channel, stop the proxy process, and stop the sandbox. */
@@ -49,12 +54,24 @@ export interface ProxiedSandbox {
 export async function createProxiedSandbox(opts: {
   sessionId?: string;
   bridgePort: number;
+  /**
+   * Pool of bridge WS ports for running multiple concurrent harness sessions on
+   * this one sandbox (each leases a distinct port). Defaults to `[bridgePort]`.
+   * All ports route their LLM HTTP through the single shared proxy/handler.
+   */
+  bridgePorts?: number[];
   proxyWsPort: number;
   httpHandler?: HttpHandler;
   connectHandler?: ConnectHandler;
   proxyPort?: number;
   /** Extra `Sandbox.create` params (networkPolicy, source, timeout, env, …). */
   createParams?: Partial<CreateSandboxParams>;
+  /**
+   * Provider `setup` hook forwarded to the wrapped sandbox provider. Runs once
+   * after sandbox creation, before the bridge spawn, with a tool-safe session
+   * surface — lets a caller capture the sandbox handle or seed files.
+   */
+  setup?: HarnessV1ProviderSettings['setup'];
   signal?: AbortSignal;
 }): Promise<ProxiedSandbox> {
   const sessionId = opts.sessionId ?? randomUUID();
@@ -77,9 +94,13 @@ export async function createProxiedSandbox(opts: {
     CODEX_CA_CERTIFICATE: CERT_PATH,
   };
 
+  const bridgePorts =
+    opts.bridgePorts && opts.bridgePorts.length > 0
+      ? opts.bridgePorts
+      : [opts.bridgePort];
   const createParams = opts.createParams ?? {};
   const ports = dedupePorts([
-    opts.bridgePort,
+    ...bridgePorts,
     opts.proxyWsPort,
     ...((createParams.ports as number[] | undefined) ?? []),
   ]);
@@ -120,7 +141,8 @@ export async function createProxiedSandbox(opts: {
   const provider = withBridgeProxyEnv(
     createVercelSandbox({
       sandbox,
-      bridgePorts: [opts.bridgePort],
+      bridgePorts,
+      ...(opts.setup !== undefined ? { setup: opts.setup } : {}),
     }),
     proxyEnv,
   );
@@ -137,7 +159,8 @@ export async function createProxiedSandbox(opts: {
   return {
     provider,
     sessionId,
-    bridgePort: opts.bridgePort,
+    bridgePort: bridgePorts[0],
+    bridgePorts,
     proxyWsPort: opts.proxyWsPort,
     stop,
   };
