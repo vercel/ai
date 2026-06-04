@@ -9,6 +9,7 @@ import {
 } from './gateway-model-not-found-error';
 import { GatewayInternalServerError } from './gateway-internal-server-error';
 import { GatewayResponseError } from './gateway-response-error';
+import { GatewayTimeoutError } from './gateway-timeout-error';
 import {
   lazySchema,
   safeValidateTypes,
@@ -101,14 +102,77 @@ export async function createGatewayErrorFromResponse({
         cause,
         generationId,
       });
+    case 'timeout':
+      return new GatewayTimeoutError({
+        message,
+        statusCode,
+        cause,
+        generationId,
+      });
     default:
-      return new GatewayInternalServerError({
+      // The Gateway can return an error type this client has no explicit case
+      // for - a relayed upstream provider error (surfaced as e.g.
+      // "AI_APICallError"), or a newer Gateway error type. Classify by HTTP
+      // status code so `instanceof` checks and `isRetryable` stay meaningful,
+      // instead of collapsing every such error to GatewayInternalServerError.
+      return createGatewayErrorFromStatusCode({
         message,
         statusCode,
         cause,
         generationId,
       });
   }
+}
+
+function createGatewayErrorFromStatusCode({
+  message,
+  statusCode,
+  cause,
+  generationId,
+}: {
+  message: string;
+  statusCode: number;
+  cause?: unknown;
+  generationId?: string;
+}): GatewayError {
+  if (statusCode === 429) {
+    return new GatewayRateLimitError({
+      message,
+      statusCode,
+      cause,
+      generationId,
+    });
+  }
+  if (statusCode === 408 || statusCode === 504) {
+    return new GatewayTimeoutError({
+      message,
+      statusCode,
+      cause,
+      generationId,
+    });
+  }
+  if (statusCode >= 500) {
+    return new GatewayInternalServerError({
+      message,
+      statusCode,
+      cause,
+      generationId,
+    });
+  }
+  if (statusCode >= 400) {
+    return new GatewayInvalidRequestError({
+      message,
+      statusCode,
+      cause,
+      generationId,
+    });
+  }
+  return new GatewayInternalServerError({
+    message,
+    statusCode,
+    cause,
+    generationId,
+  });
 }
 
 const gatewayErrorResponseSchema = lazySchema(() =>

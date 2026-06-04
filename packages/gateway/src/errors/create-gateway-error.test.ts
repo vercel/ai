@@ -7,6 +7,7 @@ import {
   GatewayModelNotFoundError,
   GatewayInternalServerError,
   GatewayResponseError,
+  GatewayTimeoutError,
   type GatewayErrorResponse,
 } from './index';
 describe('Valid error responses', () => {
@@ -139,6 +140,88 @@ describe('Valid error responses', () => {
     expect(error).toBeInstanceOf(GatewayInternalServerError);
     expect(error.message).toBe('Unknown error occurred');
     expect(error.statusCode).toBe(500);
+  });
+
+  it('should create GatewayTimeoutError for timeout type', async () => {
+    const error = await createGatewayErrorFromResponse({
+      response: { error: { message: 'Request timed out', type: 'timeout' } },
+      statusCode: 504,
+    });
+
+    expect(error).toBeInstanceOf(GatewayTimeoutError);
+    expect(error.statusCode).toBe(504);
+  });
+});
+
+// When the Gateway sends an error type the client doesn't have an explicit
+// case for (e.g. a relayed provider error surfaced as "AI_APICallError", or a
+// newer Gateway type), classify by HTTP status code instead of collapsing
+// everything to GatewayInternalServerError. This keeps `instanceof` checks and
+// `isRetryable` meaningful for the most common error category.
+describe('status-code fallback for unrecognized error types', () => {
+  it('should map a relayed provider 400 (AI_APICallError) to GatewayInvalidRequestError', async () => {
+    const error = await createGatewayErrorFromResponse({
+      response: {
+        error: {
+          message:
+            'No tool call found for function call output with call_id call_x.',
+          type: 'AI_APICallError',
+        },
+      },
+      statusCode: 400,
+    });
+
+    expect(error).toBeInstanceOf(GatewayInvalidRequestError);
+    expect(error.statusCode).toBe(400);
+    expect(error.isRetryable).toBe(false);
+  });
+
+  it('should map an unrecognized 429 to GatewayRateLimitError (retryable)', async () => {
+    const error = await createGatewayErrorFromResponse({
+      response: { error: { message: 'slow down', type: 'AI_APICallError' } },
+      statusCode: 429,
+    });
+
+    expect(error).toBeInstanceOf(GatewayRateLimitError);
+    expect(error.isRetryable).toBe(true);
+  });
+
+  it('should map an unrecognized 408/504 to GatewayTimeoutError', async () => {
+    const error408 = await createGatewayErrorFromResponse({
+      response: { error: { message: 'timed out', type: 'AI_APICallError' } },
+      statusCode: 408,
+    });
+    const error504 = await createGatewayErrorFromResponse({
+      response: { error: { message: 'gateway timeout', type: 'some_type' } },
+      statusCode: 504,
+    });
+
+    expect(error408).toBeInstanceOf(GatewayTimeoutError);
+    expect(error504).toBeInstanceOf(GatewayTimeoutError);
+  });
+
+  it('should map an unrecognized 5xx to GatewayInternalServerError (retryable)', async () => {
+    const error = await createGatewayErrorFromResponse({
+      response: {
+        error: { message: 'upstream boom', type: 'AI_APICallError' },
+      },
+      statusCode: 503,
+    });
+
+    expect(error).toBeInstanceOf(GatewayInternalServerError);
+    expect(error.isRetryable).toBe(true);
+  });
+
+  it('should map other unrecognized 4xx to GatewayInvalidRequestError (not retryable)', async () => {
+    const error = await createGatewayErrorFromResponse({
+      response: {
+        error: { message: 'unprocessable', type: 'AI_APICallError' },
+      },
+      statusCode: 422,
+    });
+
+    expect(error).toBeInstanceOf(GatewayInvalidRequestError);
+    expect(error.isRetryable).toBe(false);
   });
 });
 
