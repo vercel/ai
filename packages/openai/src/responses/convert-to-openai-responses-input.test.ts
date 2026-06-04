@@ -1002,158 +1002,6 @@ describe('convertToOpenAIResponsesInput', () => {
       ]);
     });
 
-<<<<<<< HEAD
-=======
-    // A client-executed function_call_output can only reference its call by
-    // call_id (call_...). The model-assigned item id (fc_...) cannot be used
-    // to pair them, so the function_call must be sent in full without the item
-    // id and without an item_reference. Otherwise the API rejects follow-up
-    // requests with "No tool call found for function call output with call_id",
-    // most visibly with parallel tool calls across multiple steps.
-    it('should send client-executed tool calls as function_call items without item id (store: false)', async () => {
-      const result = await convertToOpenAIResponsesInput({
-        toolNameMapping: testToolNameMapping,
-        prompt: [
-          {
-            role: 'assistant',
-            content: [
-              {
-                type: 'tool-call',
-                toolCallId: 'call_a',
-                toolName: 'search',
-                input: { query: 'first' },
-                providerOptions: { openai: { itemId: 'fc_a' } },
-              },
-              {
-                type: 'tool-call',
-                toolCallId: 'call_b',
-                toolName: 'search',
-                input: { query: 'second' },
-                providerOptions: { openai: { itemId: 'fc_b' } },
-              },
-            ],
-          },
-          {
-            role: 'tool',
-            content: [
-              {
-                type: 'tool-result',
-                toolCallId: 'call_a',
-                toolName: 'search',
-                output: { type: 'json', value: { results: [] } },
-              },
-              {
-                type: 'tool-result',
-                toolCallId: 'call_b',
-                toolName: 'search',
-                output: { type: 'json', value: { results: ['x'] } },
-              },
-            ],
-          },
-        ],
-        systemMessageMode: 'system',
-        providerOptionsName: 'openai',
-        store: false,
-      });
-
-      expect(result.input).toEqual([
-        {
-          type: 'function_call',
-          call_id: 'call_a',
-          name: 'search',
-          arguments: JSON.stringify({ query: 'first' }),
-        },
-        {
-          type: 'function_call',
-          call_id: 'call_b',
-          name: 'search',
-          arguments: JSON.stringify({ query: 'second' }),
-        },
-        {
-          type: 'function_call_output',
-          call_id: 'call_a',
-          output: JSON.stringify({ results: [] }),
-        },
-        {
-          type: 'function_call_output',
-          call_id: 'call_b',
-          output: JSON.stringify({ results: ['x'] }),
-        },
-      ]);
-    });
-
-    it('should not use item_reference for client-executed tool calls (store: true)', async () => {
-      const result = await convertToOpenAIResponsesInput({
-        toolNameMapping: testToolNameMapping,
-        prompt: [
-          {
-            role: 'assistant',
-            content: [
-              {
-                type: 'tool-call',
-                toolCallId: 'call_a',
-                toolName: 'search',
-                input: { query: 'first' },
-                providerOptions: { openai: { itemId: 'fc_a' } },
-              },
-              {
-                type: 'tool-call',
-                toolCallId: 'call_b',
-                toolName: 'search',
-                input: { query: 'second' },
-                providerOptions: { openai: { itemId: 'fc_b' } },
-              },
-            ],
-          },
-          {
-            role: 'tool',
-            content: [
-              {
-                type: 'tool-result',
-                toolCallId: 'call_a',
-                toolName: 'search',
-                output: { type: 'json', value: { results: [] } },
-              },
-              {
-                type: 'tool-result',
-                toolCallId: 'call_b',
-                toolName: 'search',
-                output: { type: 'json', value: { results: ['x'] } },
-              },
-            ],
-          },
-        ],
-        systemMessageMode: 'system',
-        providerOptionsName: 'openai',
-        store: true,
-      });
-
-      expect(result.input).toEqual([
-        {
-          type: 'function_call',
-          call_id: 'call_a',
-          name: 'search',
-          arguments: JSON.stringify({ query: 'first' }),
-        },
-        {
-          type: 'function_call',
-          call_id: 'call_b',
-          name: 'search',
-          arguments: JSON.stringify({ query: 'second' }),
-        },
-        {
-          type: 'function_call_output',
-          call_id: 'call_a',
-          output: JSON.stringify({ results: [] }),
-        },
-        {
-          type: 'function_call_output',
-          call_id: 'call_b',
-          output: JSON.stringify({ results: ['x'] }),
-        },
-      ]);
-    });
-
     it('should round-trip namespace on tool call parts dispatched by tool_search', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
@@ -1166,7 +1014,7 @@ describe('convertToOpenAIResponsesInput', () => {
                 toolCallId: 'call_123',
                 toolName: 'get_weather',
                 input: { location: 'Tokyo' },
-                // Cast: `providerMetadata` isn't on `LanguageModelV4ToolCallPart`,
+                // Cast: `providerMetadata` isn't part of prompt tool-call parts,
                 // but the read side writes it onto runtime tool-call parts.
                 ...({
                   providerMetadata: {
@@ -1191,6 +1039,7 @@ describe('convertToOpenAIResponsesInput', () => {
           call_id: 'call_123',
           name: 'get_weather',
           arguments: JSON.stringify({ location: 'Tokyo' }),
+          id: 'fc_abc',
           namespace: 'weather_tools',
         },
       ]);
@@ -1229,12 +1078,12 @@ describe('convertToOpenAIResponsesInput', () => {
           call_id: 'call_123',
           name: 'get_weather',
           arguments: JSON.stringify({ location: 'Tokyo' }),
+          id: 'fc_abc',
           namespace: 'weather_tools',
         },
       ]);
     });
 
->>>>>>> 94eba1b05 (fix(openai): round-trip namespace on function_call input items (#15193))
     describe('reasoning messages (store: false)', () => {
       describe('single summary part', () => {
         it('should convert single reasoning part with text', async () => {

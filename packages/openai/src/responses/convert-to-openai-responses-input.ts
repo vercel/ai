@@ -366,11 +366,8 @@ export async function convertToOpenAIResponsesInput({
                 call_id: part.toolCallId,
                 name: resolvedToolName,
                 arguments: serializeToolCallArguments(part.input),
-<<<<<<< HEAD
                 id,
-=======
                 ...(namespace != null && { namespace }),
->>>>>>> 94eba1b05 (fix(openai): round-trip namespace on function_call input items (#15193))
               });
               break;
             }
