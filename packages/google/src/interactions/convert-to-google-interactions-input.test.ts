@@ -858,6 +858,40 @@ describe('convertToGoogleInteractionsInput', () => {
       expect(fnCall?.arguments).toEqual({ location: 'Boston' });
     });
 
+    it('rejects a stringified tool-call input with a __proto__ key instead of parsing it', () => {
+      const malicious = '{"__proto__":{"polluted":true}}';
+      const prompt: LanguageModelV4Prompt = [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Hi' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call_abc',
+              toolName: 'getWeather',
+              input: malicious,
+            },
+          ],
+        },
+      ];
+
+      const result = convertToGoogleInteractionsInput({ prompt });
+      const steps = result.input as Array<{
+        type: string;
+        arguments?: Record<string, unknown>;
+      }>;
+      const fnCall = steps.find(step => step.type === 'function_call');
+
+      // secureJsonParse rejects the prototype-pollution payload, so the helper
+      // falls back to wrapping the raw string instead of returning a parsed
+      // object with an attacker-controlled `__proto__` entry.
+      expect(fnCall?.arguments).toEqual({ value: malicious });
+      expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+    });
+
     it('round-trips a function_call signature via providerMetadata.google.signature', () => {
       const prompt: LanguageModelV4Prompt = [
         {

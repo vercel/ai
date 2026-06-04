@@ -267,4 +267,44 @@ describe('extractResponseFromAPICallError', () => {
       expect(result).toEqual(arrayData);
     });
   });
+
+  describe('prototype pollution protection', () => {
+    it('should not parse a responseBody containing a __proto__ key', () => {
+      const malicious = '{"__proto__":{"polluted":true}}';
+      const apiCallError = new APICallError({
+        message: 'Request failed',
+        statusCode: 500,
+        data: undefined,
+        responseHeaders: {},
+        responseBody: malicious,
+        url: 'http://test.url',
+        requestBodyValues: {},
+      });
+
+      const result = extractApiCallResponse(apiCallError);
+
+      // secureJsonParse rejects the payload, so we fall back to the raw string
+      // rather than returning an attacker-influenced object.
+      expect(result).toBe(malicious);
+      expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+    });
+
+    it('should not parse a responseBody containing a constructor.prototype key', () => {
+      const malicious = '{"constructor":{"prototype":{"polluted":true}}}';
+      const apiCallError = new APICallError({
+        message: 'Request failed',
+        statusCode: 500,
+        data: undefined,
+        responseHeaders: {},
+        responseBody: malicious,
+        url: 'http://test.url',
+        requestBodyValues: {},
+      });
+
+      const result = extractApiCallResponse(apiCallError);
+
+      expect(result).toBe(malicious);
+      expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+    });
+  });
 });

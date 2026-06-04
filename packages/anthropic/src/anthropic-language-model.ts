@@ -28,6 +28,7 @@ import {
   postJsonToApi,
   resolve,
   resolveProviderReference,
+  secureJsonParse,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -2105,7 +2106,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                         contentBlock.input === '' ? '{}' : contentBlock.input;
                       if (contentBlock.providerToolName === 'code_execution') {
                         try {
-                          const parsed = JSON.parse(finalInput);
+                          const parsed = secureJsonParse(finalInput);
                           if (
                             parsed != null &&
                             typeof parsed === 'object' &&
