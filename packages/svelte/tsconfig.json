@@ -17,17 +17,21 @@
     "stripInternal": true,
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
-    "lib": ["esnext", "dom", "dom.iterable"],
+    "lib": [
+      "esnext",
+      "dom",
+      "dom.iterable"
+    ],
     "types": [],
     "rootDir": "src",
     "outDir": "dist"
   },
   "references": [
     {
-      "path": "../provider-utils"
+      "path": "../ai"
     },
     {
-      "path": "../ai"
+      "path": "../provider-utils"
     },
     {
       "path": "../test-server"
