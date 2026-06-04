@@ -12,7 +12,7 @@ import {
   jsonSchema,
   tool,
   type ModelMessage,
-  type Experimental_Sandbox as Sandbox,
+  type Experimental_SandboxSession as SandboxSession,
   type ToolExecuteFunction,
 } from '@ai-sdk/provider-utils';
 import { mockId } from '@ai-sdk/provider-utils/test';
@@ -27,7 +27,7 @@ import {
   vi,
   vitest,
 } from 'vitest';
-import { mockSandboxFileStubs } from '../test/mock-sandbox';
+import { mockSandboxSessionFileStubs } from '../test/mock-sandbox';
 import { z } from 'zod/v4';
 import * as logWarningsModule from '../logger/log-warnings';
 import type { Instructions } from '../prompt';
@@ -6376,6 +6376,49 @@ describe('generateText', () => {
     });
   });
 
+  describe('options.toolOrder', () => {
+    it('should order available tools before sending them to the model', async () => {
+      let tools:
+        | (LanguageModelV4FunctionTool | LanguageModelV4ProviderTool)[]
+        | undefined;
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async ({ tools: toolsArg }) => {
+            tools = toolsArg;
+
+            return {
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: 'Hello, world!' }],
+            };
+          },
+        }),
+        tools: {
+          zebra: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'zebra',
+          },
+          alpha: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'alpha',
+          },
+          middle: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'middle',
+          },
+        },
+        prompt: 'test-input',
+        toolOrder: ['middle'],
+      });
+
+      expect(tools?.map(tool => tool.name)).toEqual([
+        'middle',
+        'alpha',
+        'zebra',
+      ]);
+    });
+  });
+
   describe('tool callbacks', () => {
     it('should invoke callbacks in the correct order', async () => {
       const recordedCalls: unknown[] = [];
@@ -8664,9 +8707,9 @@ describe('generateText', () => {
           stdout: 'ok',
           stderr: '',
         })),
-        ...mockSandboxFileStubs,
-      } satisfies Sandbox;
-      let recordedSandbox: Sandbox | undefined;
+        ...mockSandboxSessionFileStubs,
+      } satisfies SandboxSession;
+      let recordedSandbox: SandboxSession | undefined;
 
       await generateText({
         model: new MockLanguageModelV4({
@@ -8729,9 +8772,9 @@ describe('generateText', () => {
           stdout: 'ok',
           stderr: '',
         })),
-        ...mockSandboxFileStubs,
-      } satisfies Sandbox;
-      let capturedSandbox: Sandbox | undefined;
+        ...mockSandboxSessionFileStubs,
+      } satisfies SandboxSession;
+      let capturedSandbox: SandboxSession | undefined;
 
       await generateText({
         model: new MockLanguageModelV4({
@@ -8759,8 +8802,8 @@ describe('generateText', () => {
           stdout: 'ok',
           stderr: '',
         })),
-        ...mockSandboxFileStubs,
-      } satisfies Sandbox;
+        ...mockSandboxSessionFileStubs,
+      } satisfies SandboxSession;
       const stepSandbox = {
         description: 'step sandbox',
         run: vi.fn(async () => ({
@@ -8768,9 +8811,9 @@ describe('generateText', () => {
           stdout: 'ok',
           stderr: '',
         })),
-        ...mockSandboxFileStubs,
-      } satisfies Sandbox;
-      const recordedSandboxes: Array<Sandbox | undefined> = [];
+        ...mockSandboxSessionFileStubs,
+      } satisfies SandboxSession;
+      const recordedSandboxes: Array<SandboxSession | undefined> = [];
       let responseCount = 0;
 
       await generateText({

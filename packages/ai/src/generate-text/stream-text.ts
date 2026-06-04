@@ -12,7 +12,7 @@ import {
   isAbortError,
   type Arrayable,
   type Context,
-  type Experimental_Sandbox as Sandbox,
+  type Experimental_SandboxSession as SandboxSession,
   type IdGenerator,
   type InferToolSetContext,
   type ModelMessage,
@@ -137,6 +137,7 @@ import type {
   OnToolExecutionStartCallback,
 } from './tool-execution-events';
 import type { ToolInputRefinement } from './tool-input-refinement';
+import type { ToolOrder } from './tool-order';
 import type { ToolOutput } from './tool-output';
 import type { StaticToolOutputDenied } from './tool-output-denied';
 import type { ToolsContextParameter } from './tools-context-parameter';
@@ -233,6 +234,7 @@ export type StreamTextOnAbortCallback<
  *
  * @param model - The language model to use.
  * @param tools - Tools that are accessible to and can be called by the model. The model needs to support calling tools.
+ * @param toolOrder - Controls the order in which tools are sent to the provider. Tools not listed are appended alphabetically.
  *
  * @param system - A system message that will be part of the prompt.
  * @param prompt - A simple text prompt. You can either use `prompt` or `messages` but not both.
@@ -308,6 +310,7 @@ export function streamText<
   prepareStep,
   providerOptions,
   activeTools,
+  toolOrder,
   experimental_repairToolCall: repairToolCall,
   experimental_refineToolInput: refineToolInput,
   experimental_transform: transform,
@@ -383,7 +386,7 @@ export function streamText<
     /**
      * The sandbox environment that is passed through to tool execution.
      */
-    experimental_sandbox?: Sandbox;
+    experimental_sandbox?: SandboxSession;
 
     /**
      * Runtime context. Treat runtime context as immutable.
@@ -396,6 +399,15 @@ export function streamText<
      * changing the tool call and result types in the result.
      */
     activeTools?: ActiveTools<NoInfer<TOOLS>>;
+
+    /**
+     * Controls the order in which tools are sent to the provider.
+     *
+     * The list can be partial. Tools not listed in `toolOrder` are sent after
+     * the listed tools, sorted alphabetically. This can improve provider-side
+     * caching by keeping tool definitions in a stable order.
+     */
+    toolOrder?: ToolOrder<NoInfer<TOOLS>>;
 
     /**
      * Optional specification for parsing structured outputs from the LLM response.
@@ -627,6 +639,7 @@ export function streamText<
     toolChoice,
     transforms: asArray(transform),
     activeTools,
+    toolOrder,
     repairToolCall,
     refineToolInput,
     stopConditions: asArray(stopWhen),
@@ -822,6 +835,7 @@ class DefaultStreamTextResult<
     toolChoice,
     transforms,
     activeTools,
+    toolOrder,
     repairToolCall,
     refineToolInput,
     stopConditions,
@@ -866,11 +880,12 @@ class DefaultStreamTextResult<
     prompt: Prompt['prompt'];
     messages: Prompt['messages'];
     allowSystemInMessages: Prompt['allowSystemInMessages'];
-    experimental_sandbox: Sandbox | undefined;
+    experimental_sandbox: SandboxSession | undefined;
     tools: TOOLS | undefined;
     toolChoice: ToolChoice<TOOLS> | undefined;
     transforms: Array<StreamTextTransform<TOOLS>>;
     activeTools: ActiveTools<TOOLS>;
+    toolOrder: ToolOrder<TOOLS>;
     repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
     refineToolInput: ToolInputRefinement<TOOLS> | undefined;
     stopConditions: Array<
@@ -1411,6 +1426,7 @@ class DefaultStreamTextResult<
           tools,
           toolChoice,
           activeTools,
+          toolOrder,
           maxOutputTokens: callSettings.maxOutputTokens,
           temperature: callSettings.temperature,
           topP: callSettings.topP,
@@ -1642,9 +1658,13 @@ class DefaultStreamTextResult<
             tools,
             activeTools: prepareStepResult?.activeTools ?? activeTools,
           });
+          const stepToolOrder = prepareStepResult?.toolOrder ?? toolOrder;
 
           const stepTools = await prepareTools({
             tools: stepActiveTools,
+            toolOrder: stepToolOrder as ToolOrder<
+              ActiveToolSubset<TOOLS, ActiveTools<NoInfer<TOOLS>>>
+            >,
             // active tools context is a subset of the tools context, so we can cast to the unknown type
             toolsContext: toolsContext as unknown as InferToolSetContext<
               ActiveToolSubset<TOOLS, ActiveTools<NoInfer<TOOLS>>>
@@ -1681,6 +1701,7 @@ class DefaultStreamTextResult<
             streamLanguageModelCall({
               model: prepareStepResult?.model ?? model,
               tools: stepActiveTools,
+              toolOrder: stepToolOrder,
               toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
               instructions: stepInstructions,
               messages: stepMessages,
@@ -1722,6 +1743,7 @@ class DefaultStreamTextResult<
                     tools,
                     toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
                     activeTools: prepareStepResult?.activeTools ?? activeTools,
+                    toolOrder: stepToolOrder,
                     steps: [...recordedSteps],
                     providerOptions: stepProviderOptions,
                     runtimeContext,

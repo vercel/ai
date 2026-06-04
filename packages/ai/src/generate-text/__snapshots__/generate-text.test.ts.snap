@@ -30,6 +30,7 @@ exports[`generateText > options.experimental_onStart > should send correct infor
   "temperature": undefined,
   "timeout": undefined,
   "toolChoice": undefined,
+  "toolOrder": undefined,
   "tools": undefined,
   "toolsContext": {},
   "topK": undefined,
