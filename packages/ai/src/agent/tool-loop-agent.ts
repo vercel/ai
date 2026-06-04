@@ -218,6 +218,7 @@ export class ToolLoopAgent<
         onToolExecutionEnd,
       ),
       onStepFinish: mergeCallbacks(this.settings.onStepFinish, onStepFinish),
+      onFinish: mergeCallbacks(this.settings.onFinish, onFinish),
       onEnd: mergeCallbacks(this.settings.onEnd, onEnd),
     };
 
@@ -277,6 +278,7 @@ export class ToolLoopAgent<
         onToolExecutionEnd,
       ),
       onStepFinish: mergeCallbacks(this.settings.onStepFinish, onStepFinish),
+      onFinish: mergeCallbacks(this.settings.onFinish, onFinish),
       onEnd: mergeCallbacks(this.settings.onEnd, onEnd),
     };
 

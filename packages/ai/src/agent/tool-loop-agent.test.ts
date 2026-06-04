@@ -673,6 +673,21 @@ describe('ToolLoopAgent', () => {
         ]);
       });
     });
+
+    it('should invoke onFinish when generation completes', async () => {
+      let onFinishCalled = false;
+
+      const agent = new ToolLoopAgent({ model: mockModel });
+
+      await agent.generate({
+        prompt: 'Hello, world!',
+        onFinish: async () => {
+          onFinishCalled = true;
+        },
+      });
+
+      expect(onFinishCalled).toBe(true);
+    });
   });
 
   describe('stream', () => {
@@ -1195,6 +1210,23 @@ describe('ToolLoopAgent', () => {
           ],
         },
       ]);
+    });
+
+    it('should invoke onFinish when stream completes', async () => {
+      let onFinishCalled = false;
+
+      const agent = new ToolLoopAgent({ model: mockModel });
+
+      const result = await agent.stream({
+        prompt: 'Hello, world!',
+        onFinish: async () => {
+          onFinishCalled = true;
+        },
+      });
+
+      await result.consumeStream();
+
+      expect(onFinishCalled).toBe(true);
     });
   });
 
