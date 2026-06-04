@@ -10,6 +10,7 @@ import {
   type BridgeTurn,
 } from '@ai-sdk/harness/bridge';
 import type { HarnessV1BuiltinToolName } from '@ai-sdk/harness';
+import { createCompactionLatch } from './compaction-latch';
 import type { StartMessage } from '../claude-code-bridge-protocol';
 import { randomUUID } from 'node:crypto';
 import { argv, stdout } from 'node:process';
@@ -154,6 +155,11 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     };
   }
 
+  // Compaction observation: merge Claude's `compact_boundary` message and
+  // `PostCompact` hook (which arrive in either order) into one `compaction`
+  // event. See `createCompactionLatch`.
+  const compaction = createCompactionLatch(event => emit(event));
+
   // `stream-start` is emitted lazily on the first SDK message (below) so it can
   // carry the model the CLI resolved to, reported on the `system`/`init` message.
 
@@ -170,6 +176,23 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       ...(start.maxTurns !== undefined ? { maxTurns: start.maxTurns } : {}),
       ...(start.thinking ? { thinking: start.thinking } : {}),
       includePartialMessages: true,
+      // The `PostCompact` hook carries the compaction summary, which the
+      // `compact_boundary` system message does not. Latch it for the unified
+      // `compaction` event; return an empty output so compaction proceeds.
+      hooks: {
+        PostCompact: [
+          {
+            hooks: [
+              async (input: { compact_summary?: unknown }) => {
+                if (typeof input?.compact_summary === 'string') {
+                  compaction.onSummary(input.compact_summary);
+                }
+                return {};
+              },
+            ],
+          },
+        ],
+      },
       // Continuation rule: the host can force-continue (resume after a
       // cross-process detach) by setting `start.continue: true`; otherwise
       // we continue every subsequent turn after the first one in this
@@ -258,6 +281,22 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         typeof msg.patch.error === 'string'
       ) {
         emitTerminalError(msg.patch.error);
+        continue;
+      }
+
+      if (type === 'system' && msg.subtype === 'compact_boundary') {
+        const meta = msg.compact_metadata;
+        if (meta) {
+          compaction.onBoundary({
+            trigger: meta.trigger,
+            ...(typeof meta.pre_tokens === 'number'
+              ? { tokensBefore: meta.pre_tokens }
+              : {}),
+            ...(typeof meta.post_tokens === 'number'
+              ? { tokensAfter: meta.post_tokens }
+              : {}),
+          });
+        }
         continue;
       }
 
@@ -394,6 +433,11 @@ type ClaudeMessage = {
   error?: string;
   error_status?: number;
   patch?: { status?: string; error?: string };
+  compact_metadata?: {
+    trigger: 'manual' | 'auto';
+    pre_tokens?: number;
+    post_tokens?: number;
+  };
   event?: {
     type?: string;
     index?: number;

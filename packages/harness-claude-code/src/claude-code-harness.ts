@@ -939,6 +939,7 @@ function createSession({
         'tool-call',
         'tool-result',
         'finish-step',
+        'compaction',
         'raw',
       ] as const;
       for (const type of eventTypes) {
@@ -1042,6 +1043,20 @@ function createSession({
         done,
       };
       return control;
+    },
+    doCompact: async (customInstructions?: string) => {
+      /*
+       * Claude Code has no SDK/control method for compaction — the supported
+       * trigger is the `/compact` slash command submitted as user input. Ride
+       * the existing user-message rail; the bridge feeds it into the streaming
+       * query input and Claude's native compaction handles the rest, emitting a
+       * `compact_boundary` + `PostCompact` we observe as a `compaction` event.
+       */
+      const text =
+        customInstructions && customInstructions.trim()
+          ? `/compact ${customInstructions.trim()}`
+          : '/compact';
+      channel.send({ type: 'user-message', text });
     },
     doStop: async () => {
       if (stopped) return stopPromise;

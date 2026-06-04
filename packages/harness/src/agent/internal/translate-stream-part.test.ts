@@ -49,6 +49,60 @@ describe('translateStreamPart', () => {
     expect(call.toolCallId).toMatch(/^harness-file-change-/);
   });
 
+  it('fans compaction out into a dynamic provider-executed tool-call + tool-result pair with empty input and metadata output', () => {
+    const out = translateStreamPart<ToolSet>({
+      type: 'compaction',
+      trigger: 'auto',
+      summary: 'Summarized the earlier conversation.',
+      tokensBefore: 120000,
+      tokensAfter: 38000,
+    });
+    expect(out).toHaveLength(2);
+
+    const call = out[0] as Extract<
+      TextStreamPart<ToolSet>,
+      { type: 'tool-call' }
+    >;
+    const result = out[1] as Extract<
+      TextStreamPart<ToolSet>,
+      { type: 'tool-result' }
+    >;
+
+    expect(call.type).toBe('tool-call');
+    expect(call.toolName).toBe('compaction');
+    expect(call.input).toEqual({});
+    expect(call.dynamic).toBe(true);
+    expect(call.providerExecuted).toBe(true);
+
+    expect(result.type).toBe('tool-result');
+    expect(result.toolName).toBe('compaction');
+    expect(result.input).toEqual({});
+    expect(result.output).toEqual({
+      trigger: 'auto',
+      summary: 'Summarized the earlier conversation.',
+      tokensBefore: 120000,
+      tokensAfter: 38000,
+    });
+    expect(result.dynamic).toBe(true);
+    expect(result.providerExecuted).toBe(true);
+
+    expect(result.toolCallId).toBe(call.toolCallId);
+    expect(call.toolCallId).toMatch(/^harness-compaction-/);
+  });
+
+  it('omits optional token fields on the compaction output when absent', () => {
+    const out = translateStreamPart<ToolSet>({
+      type: 'compaction',
+      trigger: 'manual',
+      summary: 'Compacted.',
+    });
+    const result = out[1] as Extract<
+      TextStreamPart<ToolSet>,
+      { type: 'tool-result' }
+    >;
+    expect(result.output).toEqual({ trigger: 'manual', summary: 'Compacted.' });
+  });
+
   it('returns empty for events consumed internally (stream-start, finish-step, finish)', () => {
     expect(translateStreamPart<ToolSet>({ type: 'stream-start' })).toEqual([]);
     expect(

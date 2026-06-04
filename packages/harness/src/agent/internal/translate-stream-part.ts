@@ -165,6 +165,54 @@ export function translateStreamPart<TOOLS extends ToolSet>(
       ];
     }
 
+    case 'compaction': {
+      /*
+       * Like `file-change`, compaction has no first-class AI SDK stream-part
+       * equivalent. Project it as a synthetic dynamic + provider-executed
+       * tool-call / tool-result pair under the reserved name `compaction`, so
+       * the event is visible to `streamText`-style consumers. Compaction takes
+       * no input, so the call input is empty; the metadata rides on the result
+       * output. `dynamic: true` keeps it out of typed-tool lookups;
+       * `providerExecuted: true` signals the runtime already performed it.
+       */
+      const toolCallId = `harness-compaction-${generateId()}`;
+      const output = {
+        trigger: event.trigger,
+        summary: event.summary,
+        ...(event.tokensBefore !== undefined
+          ? { tokensBefore: event.tokensBefore }
+          : {}),
+        ...(event.tokensAfter !== undefined
+          ? { tokensAfter: event.tokensAfter }
+          : {}),
+      };
+      return [
+        {
+          type: 'tool-call',
+          toolCallId,
+          toolName: 'compaction',
+          input: {},
+          dynamic: true,
+          providerExecuted: true,
+          ...(event.harnessMetadata !== undefined
+            ? { providerMetadata: event.harnessMetadata }
+            : {}),
+        } as TextStreamPart<TOOLS>,
+        {
+          type: 'tool-result',
+          toolCallId,
+          toolName: 'compaction',
+          input: {},
+          output,
+          dynamic: true,
+          providerExecuted: true,
+          ...(event.harnessMetadata !== undefined
+            ? { providerMetadata: event.harnessMetadata }
+            : {}),
+        } as TextStreamPart<TOOLS>,
+      ];
+    }
+
     case 'error':
       return [{ type: 'error', error: event.error } as TextStreamPart<TOOLS>];
 
