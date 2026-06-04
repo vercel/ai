@@ -1,6 +1,11 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import * as diagnosticsChannel from 'node:diagnostics_channel';
+import { tool } from '@ai-sdk/provider-utils';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { z } from 'zod/v4';
+import { generateText } from '../generate-text';
+import { isStepCount } from '../generate-text/stop-condition';
+import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { createTelemetryDispatcher } from './create-telemetry-dispatcher';
 import {
   AI_SDK_TELEMETRY_TRACING_CHANNEL,
@@ -43,6 +48,41 @@ async function collectTracingChannelStartMessages(
   }
 
   return messages;
+}
+
+async function collectTracingChannelEventSequence(
+  run: () => Promise<void>,
+): Promise<string[]> {
+  const events: string[] = [];
+
+  const collect =
+    (phase: 'start' | 'end' | 'asyncStart' | 'asyncEnd' | 'error') =>
+    (message: unknown) => {
+      events.push(
+        `${phase} ${(message as TelemetryTracingChannelMessage).type}`,
+      );
+    };
+
+  const tracingChannel = diagnosticsChannel.tracingChannel(
+    AI_SDK_TELEMETRY_TRACING_CHANNEL,
+  );
+  const subscribers = {
+    start: collect('start'),
+    end: collect('end'),
+    asyncStart: collect('asyncStart'),
+    asyncEnd: collect('asyncEnd'),
+    error: collect('error'),
+  };
+
+  tracingChannel.subscribe(subscribers);
+
+  try {
+    await run();
+  } finally {
+    tracingChannel.unsubscribe(subscribers);
+  }
+
+  return events;
 }
 
 describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
@@ -315,6 +355,147 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
         "result": "result",
         "type": "executeTool",
       }
+    `);
+  });
+
+  it('traces the current generateText lifecycle sequence with a tool call', async () => {
+    let responseCount = 0;
+
+    const sequence = await collectTracingChannelEventSequence(async () => {
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  finishReason: { unified: 'tool-calls', raw: undefined },
+                  usage: {
+                    inputTokens: {
+                      total: 3,
+                      noCache: 3,
+                      cacheRead: undefined,
+                      cacheWrite: undefined,
+                    },
+                    outputTokens: {
+                      total: 10,
+                      text: 10,
+                      reasoning: undefined,
+                    },
+                  },
+                  warnings: [],
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'weather-tool-call',
+                      toolName: 'weather',
+                      input: JSON.stringify({ city: 'San Francisco' }),
+                    },
+                  ],
+                };
+
+              case 1:
+                return {
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: {
+                    inputTokens: {
+                      total: 5,
+                      noCache: 5,
+                      cacheRead: undefined,
+                      cacheWrite: undefined,
+                    },
+                    outputTokens: {
+                      total: 7,
+                      text: 7,
+                      reasoning: undefined,
+                    },
+                  },
+                  warnings: [],
+                  content: [{ type: 'text', text: 'It is sunny.' }],
+                };
+
+              default:
+                throw new Error(`Unexpected response count: ${responseCount}`);
+            }
+          },
+        }),
+        prompt: 'What is the weather in San Francisco?',
+        stopWhen: isStepCount(3),
+        tools: {
+          weather: tool({
+            inputSchema: z.object({ city: z.string() }),
+            execute: async ({ city }) => `Weather in ${city}: sunny`,
+          }),
+        },
+        telemetry: {
+          functionId: 'tracing-channel-generate-text-test',
+        },
+      });
+    });
+
+    expect(sequence).toMatchInlineSnapshot(`
+      [
+        "start onStart",
+        "end onStart",
+        "asyncStart onStart",
+        "asyncEnd onStart",
+        "start onStepStart",
+        "end onStepStart",
+        "asyncStart onStepStart",
+        "asyncEnd onStepStart",
+        "start onLanguageModelCallStart",
+        "end onLanguageModelCallStart",
+        "asyncStart onLanguageModelCallStart",
+        "asyncEnd onLanguageModelCallStart",
+        "start executeLanguageModelCall",
+        "end executeLanguageModelCall",
+        "asyncStart executeLanguageModelCall",
+        "asyncEnd executeLanguageModelCall",
+        "start onLanguageModelCallEnd",
+        "end onLanguageModelCallEnd",
+        "asyncStart onLanguageModelCallEnd",
+        "asyncEnd onLanguageModelCallEnd",
+        "start onToolExecutionStart",
+        "end onToolExecutionStart",
+        "asyncStart onToolExecutionStart",
+        "asyncEnd onToolExecutionStart",
+        "start executeTool",
+        "end executeTool",
+        "asyncStart executeTool",
+        "asyncEnd executeTool",
+        "start onToolExecutionEnd",
+        "end onToolExecutionEnd",
+        "asyncStart onToolExecutionEnd",
+        "asyncEnd onToolExecutionEnd",
+        "start onStepFinish",
+        "end onStepFinish",
+        "asyncStart onStepFinish",
+        "asyncEnd onStepFinish",
+        "start onStepStart",
+        "end onStepStart",
+        "asyncStart onStepStart",
+        "asyncEnd onStepStart",
+        "start onLanguageModelCallStart",
+        "end onLanguageModelCallStart",
+        "asyncStart onLanguageModelCallStart",
+        "asyncEnd onLanguageModelCallStart",
+        "start executeLanguageModelCall",
+        "end executeLanguageModelCall",
+        "asyncStart executeLanguageModelCall",
+        "asyncEnd executeLanguageModelCall",
+        "start onLanguageModelCallEnd",
+        "end onLanguageModelCallEnd",
+        "asyncStart onLanguageModelCallEnd",
+        "asyncEnd onLanguageModelCallEnd",
+        "start onStepFinish",
+        "end onStepFinish",
+        "asyncStart onStepFinish",
+        "asyncEnd onStepFinish",
+        "start onEnd",
+        "end onEnd",
+        "asyncStart onEnd",
+        "asyncEnd onEnd",
+      ]
     `);
   });
 });
