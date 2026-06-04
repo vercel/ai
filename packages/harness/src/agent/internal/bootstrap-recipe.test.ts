@@ -1,5 +1,6 @@
+import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 import { describe, expect, it, vi } from 'vitest';
-import type { HarnessV1Bootstrap, HarnessV1SandboxSession } from '../../v1';
+import type { HarnessV1Bootstrap } from '../../v1';
 import {
   BOOTSTRAP_SCHEMA_VERSION,
   applyBootstrapRecipe,
@@ -92,7 +93,7 @@ describe('applyBootstrapRecipe', () => {
     commandExitCode?: number;
     runFailureMessage?: string;
   }): {
-    session: HarnessV1SandboxSession;
+    session: SandboxSession;
     readTextFile: ReturnType<typeof vi.fn>;
     writeTextFile: ReturnType<typeof vi.fn>;
     run: ReturnType<typeof vi.fn>;
@@ -113,7 +114,7 @@ describe('applyBootstrapRecipe', () => {
       readTextFile,
       writeTextFile,
       run,
-    } as unknown as HarnessV1SandboxSession;
+    } as unknown as SandboxSession;
     return { session, readTextFile, writeTextFile, run };
   }
 

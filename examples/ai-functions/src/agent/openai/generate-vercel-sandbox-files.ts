@@ -3,7 +3,7 @@ import { run } from '../../lib/run';
 import { sandboxAgent } from './sandbox-agent';
 
 run(async () => {
-  const handle = await createVercelSandbox({
+  const sandboxSession = await createVercelSandbox({
     timeout: 5 * 60 * 1000,
     runtime: 'node22',
   }).create();
@@ -12,11 +12,11 @@ run(async () => {
     const result = await sandboxAgent.generate({
       prompt:
         'Write a haiku about TypeScript to a file named "haiku.txt", then read it back and summarize what it says.',
-      experimental_sandbox: handle.session,
+      experimental_sandbox: sandboxSession.restricted(),
     });
 
     console.log(result.text);
   } finally {
-    await handle.stop();
+    await sandboxSession.stop();
   }
 });

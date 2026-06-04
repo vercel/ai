@@ -17,8 +17,8 @@ import { Type } from 'typebox';
 import type {
   HarnessV1PromptControl,
   HarnessV1PromptOptions,
+  HarnessV1NetworkSandboxSession,
   HarnessV1ResumeState,
-  HarnessV1SandboxHandle,
   HarnessV1Session,
   HarnessV1Skill,
   HarnessV1StreamPart,
@@ -100,7 +100,7 @@ export interface PiSessionSettings {
 
 export interface CreatePiSessionInput {
   readonly sessionId: string;
-  readonly sandboxHandle: HarnessV1SandboxHandle;
+  readonly sandboxSession: HarnessV1NetworkSandboxSession;
   readonly sessionWorkDir: string;
   readonly skills: ReadonlyArray<HarnessV1Skill>;
   readonly settings: PiSessionSettings;
@@ -140,7 +140,7 @@ export async function createPiSession(
   await mkdir(hostAgentDir, { recursive: true });
   await mkdir(hostSessionDir, { recursive: true });
 
-  const sandbox = input.sandboxHandle.session;
+  const sandbox = input.sandboxSession.restricted();
 
   // Materialise skills into the sandbox workspace once. The host's VFS will
   // make them visible to Pi's `DefaultResourceLoader` after mount + sync.

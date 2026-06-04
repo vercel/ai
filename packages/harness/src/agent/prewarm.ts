@@ -13,10 +13,10 @@ import {
  * sessions always resume from snapshot. For adapters without a bootstrap
  * recipe (no `getBootstrap`) this is a no-op.
  *
- * The temporary sandbox handle created during pre-warm is stopped before the
- * function resolves; the snapshot/template state persists in the provider's
- * native storage (for Vercel: as the `currentSnapshotId` of the named template
- * sandbox).
+ * The temporary network sandbox session created during pre-warm is stopped
+ * before the function resolves; the snapshot/template state persists in the
+ * provider's native storage (for Vercel: as the `currentSnapshotId` of the
+ * named template sandbox).
  */
 export async function prewarmHarness(options: {
   readonly harness: HarnessV1;
@@ -29,7 +29,7 @@ export async function prewarmHarness(options: {
   if (recipe == null) return;
 
   const identity = await hashBootstrap(recipe);
-  const handle = await options.sandboxProvider.create({
+  const sandboxSession = await options.sandboxProvider.create({
     abortSignal: options.abortSignal,
     identity,
     onFirstCreate: (session, opts) =>
@@ -37,10 +37,10 @@ export async function prewarmHarness(options: {
   });
 
   try {
-    await applyBootstrapRecipe(handle.session, recipe, identity, {
+    await applyBootstrapRecipe(sandboxSession.restricted(), recipe, identity, {
       abortSignal: options.abortSignal,
     });
   } finally {
-    await Promise.resolve(handle.stop()).catch(() => {});
+    await Promise.resolve(sandboxSession.stop()).catch(() => {});
   }
 }

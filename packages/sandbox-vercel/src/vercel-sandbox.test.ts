@@ -35,16 +35,16 @@ function makeMockSandbox(overrides: Partial<MockSpies> = {}) {
 }
 
 describe('createVercelSandbox (wrap existing)', () => {
-  it('produces a handle whose ports come from sandbox.routes', async () => {
+  it('produces a network sandbox session whose ports come from sandbox.routes', async () => {
     const { sandbox } = makeMockSandbox({
       routes: [{ port: 3000 }, { port: 4000 }],
     });
     const provider = createVercelSandbox({ sandbox });
-    const handle = await provider.create();
-    expect(handle.ports).toEqual([3000, 4000]);
+    const sandboxSession = await provider.create();
+    expect(sandboxSession.ports).toEqual([3000, 4000]);
   });
 
-  it('handle.session is an Experimental_SandboxSession wrapping the underlying', async () => {
+  it('restricted() returns an Experimental_SandboxSession wrapping the underlying', async () => {
     const { sandbox, spies } = makeMockSandbox();
     spies.runCommand.mockResolvedValueOnce({
       exitCode: 0,
@@ -52,12 +52,14 @@ describe('createVercelSandbox (wrap existing)', () => {
       stderr: async () => '',
     });
 
-    const handle = await createVercelSandbox({ sandbox }).create();
-    const result = await handle.session.run({ command: 'echo ok' });
+    const sandboxSession = await createVercelSandbox({ sandbox }).create();
+    const result = await sandboxSession
+      .restricted()
+      .run({ command: 'echo ok' });
     expect(result.stdout).toBe('ok\n');
   });
 
-  it('handle.stop is a no-op (caller owns lifecycle)', async () => {
+  it('stop is a no-op (caller owns lifecycle)', async () => {
     const { sandbox, spies } = makeMockSandbox();
     await (await createVercelSandbox({ sandbox }).create()).stop();
     expect(spies.stop).not.toHaveBeenCalled();

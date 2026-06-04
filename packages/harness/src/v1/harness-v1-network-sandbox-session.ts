@@ -1,15 +1,17 @@
-import type { HarnessV1SandboxSession } from './harness-v1-sandbox-session';
+import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 
 /**
- * Privileged handle returned by `HarnessV1SandboxProvider.create()`. The harness keeps
- * this for the lifetime of a session. It carries the infra surface (port
- * resolution, lifecycle, network policy mutation) alongside `session` — the
- * narrow {@link HarnessV1SandboxSession} that may be handed to user tools.
+ * Network sandbox session returned by `HarnessV1SandboxProvider.create()`. The
+ * harness keeps this for the lifetime of a session. It is itself a
+ * {@link SandboxSession} (file I/O, exec, spawn) and adds the infra surface on
+ * top: port resolution, lifecycle, and network-policy mutation.
  *
- * The split is by design: a tool that should only touch the filesystem and
- * spawn processes receives `handle.session`, not the handle itself.
+ * Code that should only touch the filesystem and spawn processes receives the
+ * reduced view from {@link HarnessV1NetworkSandboxSession.restricted}, never the
+ * network sandbox session itself — so it cannot stop the sandbox or change its
+ * network policy.
  */
-export interface HarnessV1SandboxHandle {
+export interface HarnessV1NetworkSandboxSession extends SandboxSession {
   /**
    * Stable identifier for the underlying sandbox resource. Used by the
    * harness session manager as the durable lookup key for cross-process
@@ -23,23 +25,16 @@ export interface HarnessV1SandboxHandle {
 
   /**
    * The sandbox's default working directory — the absolute path that
-   * `session.run`/`session.spawn` resolve relative commands against when no
-   * `workingDirectory` is given. Read from the live sandbox (it is
-   * provider-specific and configurable at create time: Vercel defaults to
-   * `/vercel/sandbox`, just-bash to `/home/user`), never hardcoded.
+   * `run`/`spawn` resolve relative commands against when no `workingDirectory`
+   * is given. Read from the live sandbox (it is provider-specific and
+   * configurable at create time: Vercel defaults to `/vercel/sandbox`,
+   * just-bash to `/home/user`), never hardcoded.
    *
    * The framework composes each session's working directory underneath this
    * path (`<defaultWorkingDirectory>/<harnessId>-<sessionId>`) so adapters do
    * not bake a provider-specific base into their own paths.
    */
   readonly defaultWorkingDirectory: string;
-
-  /**
-   * Tool-safe view of the sandbox, typed as `Experimental_Sandbox`. Pass this
-   * to any code that should not be able to stop the sandbox or change its
-   * network policy.
-   */
-  readonly session: HarnessV1SandboxSession;
 
   /** Ports the sandbox exposes; resolvable to public URLs via `getPortUrl`. */
   readonly ports: ReadonlyArray<number>;
@@ -59,8 +54,8 @@ export interface HarnessV1SandboxHandle {
   /**
    * Update the sandbox's outbound network policy. Optional — implementations
    * without a local enforcement primitive (e.g. just-bash) omit this. Callers
-   * use optional-call (`handle.setNetworkPolicy?.(policy)`); a missing
-   * implementation is a no-op.
+   * use optional-call (`sandboxSession.setNetworkPolicy?.(policy)`); a
+   * missing implementation is a no-op.
    */
   readonly setNetworkPolicy?: (
     policy: HarnessV1NetworkPolicy,
@@ -75,6 +70,18 @@ export interface HarnessV1SandboxHandle {
     ports: ReadonlyArray<number>,
     options?: { abortSignal?: AbortSignal },
   ) => PromiseLike<void>;
+
+  /**
+   * Reduced view of this session, typed as the bare {@link SandboxSession}
+   * (file I/O, exec, spawn) — nothing that could stop the sandbox or change
+   * its network policy. Pass this to user-tool `execute()` calls and other
+   * code that must not reach the infra surface.
+   *
+   * The returned object points at exactly the same underlying sandbox
+   * resource as the network sandbox session it was produced from; it is only a
+   * narrower surface over the same resource, not a separate sandbox.
+   */
+  readonly restricted: () => SandboxSession;
 }
 
 /**

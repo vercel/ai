@@ -14,7 +14,7 @@ import {
   type HarnessV1PromptControl,
   type HarnessV1RecoveryMode,
   type HarnessV1ResumeState,
-  type HarnessV1SandboxHandle,
+  type HarnessV1NetworkSandboxSession,
   type HarnessV1Session,
   type HarnessV1Skill,
   type HarnessV1StreamPart,
@@ -103,7 +103,7 @@ const CODEX_BUILTIN_TOOLS = {
  * Persistence comes from the sandbox provider's snapshot, not the path.
  *
  * The session work dir (`startOpts.sessionWorkDir`) and the bridge-state dir
- * derived from `handle.defaultWorkingDirectory` both live under the sandbox's
+ * derived from `sandboxSession.defaultWorkingDirectory` both live under the sandbox's
  * default working directory — the provider's persistent mount — so the
  * workdir's contents (the codex CLI shim and any files the agent edits) and
  * the bridge state files survive the detach -> snapshot -> resume cycle.
@@ -176,18 +176,18 @@ export function createCodex(
       return cachedBootstrap;
     },
     doStart: async startOpts => {
-      // `sandboxHandle` and `sessionWorkDir` are coupled in
+      // `sandbox` and `sessionWorkDir` are coupled in
       // `HarnessV1StartOptions`, so this one check narrows both.
-      if (startOpts.sandboxHandle == null) {
+      if (startOpts.sandboxSession == null) {
         throw new HarnessCapabilityUnsupportedError({
           harnessId: 'codex',
           message:
             'The codex harness requires a sandbox provider. Pass `sandbox` to the HarnessAgent constructor.',
         });
       }
-      const handle = startOpts.sandboxHandle;
-      const { session } = handle;
-      const sandboxId = handle.id;
+      const sandboxSession = startOpts.sandboxSession;
+      const session = sandboxSession.restricted();
+      const sandboxId = sandboxSession.id;
       const isResume = startOpts.resumeFrom != null;
       const resumeData =
         isResume && typeof startOpts.resumeFrom?.data === 'object'
@@ -204,7 +204,7 @@ export function createCodex(
       const coords = resumeData?.bridge;
 
       const workDir = startOpts.sessionWorkDir;
-      const sessionDataDir = `${handle.defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
+      const sessionDataDir = `${sandboxSession.defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
       const bridgeStateDir = `${sessionDataDir}/bridge`;
       const timeoutMs = settings.startupTimeoutMs ?? 120_000;
 
@@ -231,8 +231,10 @@ export function createCodex(
       if (coords) {
         try {
           const attachUrl =
-            (await handle.getPortUrl({ port: coords.port, protocol: 'ws' })) +
-            `?agent_bridge_token=${encodeURIComponent(coords.token)}`;
+            (await sandboxSession.getPortUrl({
+              port: coords.port,
+              protocol: 'ws',
+            })) + `?agent_bridge_token=${encodeURIComponent(coords.token)}`;
           const attachChannel: CodexChannel = new SandboxChannel({
             connect: () => openWebSocket(attachUrl),
             outboundSchema: outboundMessageSchema,
@@ -283,7 +285,7 @@ export function createCodex(
         }
       }
 
-      const port = resolveBridgePort(handle, settings.port);
+      const port = resolveBridgePort(sandboxSession, settings.port);
       const token = randomBytes(32).toString('hex');
       const env = {
         ...resolveCodexEnv(settings.auth),
@@ -312,8 +314,10 @@ export function createCodex(
       });
 
       const wsUrl =
-        (await handle.getPortUrl({ port: boundPort, protocol: 'ws' })) +
-        `?agent_bridge_token=${encodeURIComponent(token)}`;
+        (await sandboxSession.getPortUrl({
+          port: boundPort,
+          protocol: 'ws',
+        })) + `?agent_bridge_token=${encodeURIComponent(token)}`;
 
       const channel: CodexChannel = new SandboxChannel({
         connect: () => openWebSocket(wsUrl),
@@ -350,11 +354,11 @@ export function createCodex(
 }
 
 function resolveBridgePort(
-  handle: HarnessV1SandboxHandle,
+  sandboxSession: HarnessV1NetworkSandboxSession,
   override: number | undefined,
 ): number {
   if (override !== undefined) return override;
-  if (handle.ports.length > 0) return handle.ports[0];
+  if (sandboxSession.ports.length > 0) return sandboxSession.ports[0];
   throw new HarnessCapabilityUnsupportedError({
     harnessId: 'codex',
     message:
@@ -758,7 +762,7 @@ function createSession({
        * If the bridge's channel already closed (e.g. mid-turn WS drop)
        * there is no one to ack a `detach` message. Synthesize an empty
        * payload — the workdir is still captured by the sandbox snapshot
-       * during the subsequent `handle.stop()`, so the next turn can
+       * during the subsequent `sandboxSession.stop()`, so the next turn can
        * resume the filesystem state. The trade-off: we lose
        * `threadId`, so the codex CLI starts a fresh thread on the
        * preserved workdir rather than resuming the prior conversation

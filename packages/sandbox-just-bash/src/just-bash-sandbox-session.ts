@@ -7,16 +7,17 @@ import {
 import type { Sandbox, SandboxCommand } from 'just-bash';
 
 /**
- * `Experimental_Sandbox` implementation backed by a `just-bash` `Sandbox`. File
- * operations and spawned processes share the same in-memory filesystem, so a
- * bridge process spawned via `spawn` can read files the host wrote via
- * `writeTextFile` (and vice versa).
+ * `Experimental_SandboxSession` implementation backed by a `just-bash`
+ * `Sandbox`. File operations and spawned processes share the same in-memory
+ * filesystem, so a bridge process spawned via `spawn` can read files the host
+ * wrote via `writeTextFile` (and vice versa).
  *
- * Produced by `JustBashSandboxHandle.session` — not constructed directly by
+ * This is the tool-safe surface returned by
+ * `JustBashNetworkSandboxSession.restricted()` — not constructed directly by
  * consumers.
  */
 export class JustBashSandboxSession implements Experimental_SandboxSession {
-  constructor(private readonly sandbox: Sandbox) {}
+  constructor(protected readonly sandbox: Sandbox) {}
 
   get description(): string {
     return [

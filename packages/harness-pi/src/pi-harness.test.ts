@@ -36,7 +36,7 @@ describe('createPi adapter', () => {
     expect(harness.getBootstrap).toBeUndefined();
   });
 
-  it('throws HarnessCapabilityUnsupportedError when no sandbox handle is provided', async () => {
+  it('throws HarnessCapabilityUnsupportedError when no network sandbox session is provided', async () => {
     const harness = createPi();
     await expect(harness.doStart({ sessionId: 's1' })).rejects.toBeInstanceOf(
       HarnessCapabilityUnsupportedError,

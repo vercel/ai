@@ -107,7 +107,7 @@ export function createPi(
     builtinTools: PI_BUILTIN_TOOLS,
     resumeStateSchema: piResumeStateSchema,
     doStart: async startOpts => {
-      if (startOpts.sandboxHandle == null) {
+      if (startOpts.sandboxSession == null) {
         throw new HarnessCapabilityUnsupportedError({
           harnessId: 'pi',
           message:
@@ -121,7 +121,7 @@ export function createPi(
 
       return createPiSession({
         sessionId: startOpts.sessionId,
-        sandboxHandle: startOpts.sandboxHandle,
+        sandboxSession: startOpts.sandboxSession,
         sessionWorkDir: startOpts.sessionWorkDir,
         skills: startOpts.skills ?? [],
         settings: {

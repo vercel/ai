@@ -14,7 +14,7 @@ import {
   type HarnessV1PromptControl,
   type HarnessV1RecoveryMode,
   type HarnessV1ResumeState,
-  type HarnessV1SandboxHandle,
+  type HarnessV1NetworkSandboxSession,
   type HarnessV1Session,
   type HarnessV1Skill,
   type HarnessV1StreamPart,
@@ -348,7 +348,7 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
  * Persistence comes from the sandbox provider's snapshot, not the path.
  *
  * The session work dir (`startOpts.sessionWorkDir`) and the bridge-state dir
- * derived from `handle.defaultWorkingDirectory` both live under the sandbox's
+ * derived from `sandboxSession.defaultWorkingDirectory` both live under the sandbox's
  * default working directory — the provider's persistent mount — so the
  * workdir's CLI state (Claude's `~/.claude/projects/<dir>/*.jsonl` thread
  * history is keyed by working directory) and the bridge state files survive
@@ -422,18 +422,18 @@ export function createClaudeCode(
       return cachedBootstrap;
     },
     doStart: async startOpts => {
-      // `sandboxHandle` and `sessionWorkDir` are coupled in
+      // `sandbox` and `sessionWorkDir` are coupled in
       // `HarnessV1StartOptions`, so this one check narrows both.
-      if (startOpts.sandboxHandle == null) {
+      if (startOpts.sandboxSession == null) {
         throw new HarnessCapabilityUnsupportedError({
           harnessId: 'claude-code',
           message:
             'The claude-code harness requires a sandbox provider. Pass `sandbox` to the HarnessAgent constructor.',
         });
       }
-      const handle = startOpts.sandboxHandle;
-      const { session } = handle;
-      const sandboxId = handle.id;
+      const sandboxSession = startOpts.sandboxSession;
+      const session = sandboxSession.restricted();
+      const sandboxId = sandboxSession.id;
       const isResume = startOpts.resumeFrom != null;
       const coords = isResume
         ? (startOpts.resumeFrom?.data as { bridge?: ClaudeCodeBridgeCoords })
@@ -441,7 +441,7 @@ export function createClaudeCode(
         : undefined;
 
       const workDir = startOpts.sessionWorkDir;
-      const sessionDataDir = `${handle.defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
+      const sessionDataDir = `${sandboxSession.defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
       const bridgeStateDir = `${sessionDataDir}/bridge`;
       const timeoutMs = settings.startupTimeoutMs ?? 120_000;
 
@@ -478,8 +478,10 @@ export function createClaudeCode(
       if (coords) {
         try {
           const attachUrl =
-            (await handle.getPortUrl({ port: coords.port, protocol: 'ws' })) +
-            `?agent_bridge_token=${encodeURIComponent(coords.token)}`;
+            (await sandboxSession.getPortUrl({
+              port: coords.port,
+              protocol: 'ws',
+            })) + `?agent_bridge_token=${encodeURIComponent(coords.token)}`;
           const attachChannel: ClaudeCodeChannel = new SandboxChannel({
             connect: buildConnect(attachUrl),
             outboundSchema: outboundMessageSchema,
@@ -530,7 +532,7 @@ export function createClaudeCode(
         }
       }
 
-      const port = resolveBridgePort(handle, settings.port);
+      const port = resolveBridgePort(sandboxSession, settings.port);
       const token = randomBytes(32).toString('hex');
       const env = {
         ...resolveClaudeCodeEnv(settings.auth),
@@ -585,8 +587,10 @@ export function createClaudeCode(
       void forwardBridgeStderr(proc.stderr);
 
       const wsUrl =
-        (await handle.getPortUrl({ port: boundPort, protocol: 'ws' })) +
-        `?agent_bridge_token=${encodeURIComponent(token)}`;
+        (await sandboxSession.getPortUrl({
+          port: boundPort,
+          protocol: 'ws',
+        })) + `?agent_bridge_token=${encodeURIComponent(token)}`;
 
       const channel: ClaudeCodeChannel = new SandboxChannel({
         connect: buildConnect(wsUrl),
@@ -621,11 +625,11 @@ export function createClaudeCode(
 }
 
 function resolveBridgePort(
-  handle: HarnessV1SandboxHandle,
+  sandboxSession: HarnessV1NetworkSandboxSession,
   override: number | undefined,
 ): number {
   if (override !== undefined) return override;
-  if (handle.ports.length > 0) return handle.ports[0];
+  if (sandboxSession.ports.length > 0) return sandboxSession.ports[0];
   throw new HarnessCapabilityUnsupportedError({
     harnessId: 'claude-code',
     message:
@@ -1084,8 +1088,8 @@ function createSession({
        * there is no one to ack a `detach` message. Synthesize an empty
        * payload — for Claude Code the resume state structurally is `{}`
        * (the conversation lives in the workdir, captured by the sandbox
-       * snapshot during the subsequent `handle.stop()`), so we lose
-       * nothing by skipping the round-trip.
+       * snapshot during the subsequent `sandboxSession.stop()`), so we
+       * lose nothing by skipping the round-trip.
        */
       // Tell the channel we are tearing down so the bridge's post-detach
       // socket close finalises instead of triggering a reconnect.

@@ -1,6 +1,6 @@
 import type {
+  HarnessV1NetworkSandboxSession,
   HarnessV1ResumeState,
-  HarnessV1SandboxHandle,
   HarnessV1Session,
 } from '@ai-sdk/harness';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -9,8 +9,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  * The codex adapter sends `instructions` over the channel inside the `start`
  * message. We stub `SandboxChannel` so `send()` records the messages instead
  * of opening a real WebSocket, then drive `doStart` → `doPrompt` against a
- * fake sandbox handle. This isolates the "prepend to the first user message
- * only" gating without standing up the in-sandbox bridge.
+ * fake network sandbox session. This isolates the "prepend to the first user
+ * message only" gating without standing up the in-sandbox bridge.
  */
 const sentMessages: Array<Record<string, unknown>> = [];
 
@@ -58,25 +58,27 @@ function emptyStream(): ReadableStream<Uint8Array> {
   });
 }
 
-function fakeHandle(): HarnessV1SandboxHandle {
+function fakeNetworkSandboxSession(): HarnessV1NetworkSandboxSession {
   const port = 4317;
+  const session = {
+    run: async () => ({ exitCode: 0, stdout: '', stderr: '' }),
+    readTextFile: async () => null,
+    spawn: async () => ({
+      stdout: readyStream(port),
+      stderr: emptyStream(),
+      kill: async () => {},
+      wait: async () => ({ exitCode: 0 }),
+    }),
+  };
   return {
     id: 'sbx',
     defaultWorkingDirectory: '/wd',
     ports: [port],
     getPortUrl: async () => `ws://127.0.0.1:${port}`,
     stop: async () => {},
-    session: {
-      run: async () => ({ exitCode: 0, stdout: '', stderr: '' }),
-      readTextFile: async () => null,
-      spawn: async () => ({
-        stdout: readyStream(port),
-        stderr: emptyStream(),
-        kill: async () => {},
-        wait: async () => ({ exitCode: 0 }),
-      }),
-    },
-  } as unknown as HarnessV1SandboxHandle;
+    restricted: () => session,
+    ...session,
+  } as unknown as HarnessV1NetworkSandboxSession;
 }
 
 async function startSession(options?: {
@@ -85,7 +87,7 @@ async function startSession(options?: {
   const harness = createCodex();
   return harness.doStart({
     sessionId: 's1',
-    sandboxHandle: fakeHandle(),
+    sandboxSession: fakeNetworkSandboxSession(),
     sessionWorkDir: '/wd/codex-s1',
     ...(options?.resumeFrom ? { resumeFrom: options.resumeFrom } : {}),
   });

@@ -1,9 +1,9 @@
 import { HarnessCapabilityUnsupportedError } from '../errors/harness-capability-unsupported-error';
 import type {
   HarnessV1,
+  HarnessV1NetworkSandboxSession,
   HarnessV1RecoveryMode,
   HarnessV1ResumeState,
-  HarnessV1SandboxHandle,
   HarnessV1SandboxProvider,
   HarnessV1Session,
 } from '../v1';
@@ -14,7 +14,7 @@ import { validateResumeStateData } from './internal/resume-state-validation';
  * Live harness session held by the caller.
  *
  * Created by {@link import('./harness-agent').HarnessAgent.createSession}.
- * Owns the underlying `HarnessV1Session`, the sandbox handle (when the
+ * Owns the underlying `HarnessV1Session`, the network sandbox session (when the
  * agent has a sandbox provider), and the bridge-port lease (when the
  * provider wraps a caller-provided sandbox with a port pool).
  *
@@ -36,9 +36,9 @@ export class HarnessAgentSession {
   private readonly harness: HarnessV1;
   private readonly sandboxProvider: HarnessV1SandboxProvider | undefined;
   private readonly sessionWorkDir: string | undefined;
-  private underlyingSession: HarnessV1Session | null;
-  private sandboxHandle: HarnessV1SandboxHandle | null;
-  private leasedBridgePort: number | null;
+  private underlyingSession: HarnessV1Session | undefined;
+  private sandboxSession: HarnessV1NetworkSandboxSession | undefined;
+  private leasedBridgePort: number | undefined;
   private stopped = false;
 
   /**
@@ -53,15 +53,15 @@ export class HarnessAgentSession {
     sessionId: string;
     harness: HarnessV1;
     underlyingSession: HarnessV1Session;
-    sandboxHandle: HarnessV1SandboxHandle | null;
-    sandboxProvider: HarnessV1SandboxProvider | undefined;
-    leasedBridgePort: number | null;
-    sessionWorkDir: string | undefined;
+    sandboxSession?: HarnessV1NetworkSandboxSession;
+    sandboxProvider?: HarnessV1SandboxProvider;
+    leasedBridgePort?: number;
+    sessionWorkDir?: string;
   }) {
     this.sessionId = options.sessionId;
     this.harness = options.harness;
     this.underlyingSession = options.underlyingSession;
-    this.sandboxHandle = options.sandboxHandle;
+    this.sandboxSession = options.sandboxSession;
     this.sandboxProvider = options.sandboxProvider;
     this.leasedBridgePort = options.leasedBridgePort;
     this.sessionWorkDir = options.sessionWorkDir;
@@ -84,12 +84,12 @@ export class HarnessAgentSession {
   }
 
   /**
-   * Active sandbox handle, when the agent's provider produced one.
+   * Active network sandbox session, when the agent's provider produced one.
    *
    * @internal — accessed only by the agent's turn driver.
    */
-  getSandboxHandle(): HarnessV1SandboxHandle | null {
-    return this.sandboxHandle;
+  getSandboxSession(): HarnessV1NetworkSandboxSession | undefined {
+    return this.sandboxSession;
   }
 
   /**
@@ -105,22 +105,22 @@ export class HarnessAgentSession {
 
   /**
    * Tear down the session without preserving resume state. Stops the
-   * underlying adapter session and the sandbox handle, then releases any
-   * leased bridge port. Idempotent.
+   * underlying adapter session and the network sandbox session, then releases
+   * any leased bridge port. Idempotent.
    */
   async close(): Promise<void> {
     if (this.stopped) return;
     this.stopped = true;
     const session = this.underlyingSession;
-    const handle = this.sandboxHandle;
-    this.underlyingSession = null;
-    this.sandboxHandle = null;
+    const sandboxSession = this.sandboxSession;
+    this.underlyingSession = undefined;
+    this.sandboxSession = undefined;
     this.releasePortLease();
     if (session != null) {
       await Promise.resolve(session.doStop()).catch(() => {});
     }
-    if (handle != null) {
-      await Promise.resolve(handle.stop()).catch(() => {});
+    if (sandboxSession != null) {
+      await Promise.resolve(sandboxSession.stop()).catch(() => {});
     }
   }
 
@@ -149,22 +149,22 @@ export class HarnessAgentSession {
       });
     }
 
-    const cleanup = (): HarnessV1SandboxHandle | null => {
+    const cleanup = (): HarnessV1NetworkSandboxSession | undefined => {
       this.stopped = true;
-      const handle = this.sandboxHandle;
-      this.underlyingSession = null;
-      this.sandboxHandle = null;
+      const sandboxSession = this.sandboxSession;
+      this.underlyingSession = undefined;
+      this.sandboxSession = undefined;
       this.releasePortLease();
-      return handle;
+      return sandboxSession;
     };
 
     let raw: unknown;
     try {
       raw = await session.doDetach();
     } catch (err) {
-      const handle = cleanup();
-      if (handle != null) {
-        await Promise.resolve(handle.stop()).catch(() => {});
+      const sandboxSession = cleanup();
+      if (sandboxSession != null) {
+        await Promise.resolve(sandboxSession.stop()).catch(() => {});
       }
       throw err;
     }
@@ -172,9 +172,9 @@ export class HarnessAgentSession {
       harness: this.harness,
       state: raw as HarnessV1ResumeState,
     });
-    const handle = cleanup();
-    if (handle != null) {
-      await Promise.resolve(handle.stop()).catch(() => {});
+    const sandboxSession = cleanup();
+    if (sandboxSession != null) {
+      await Promise.resolve(sandboxSession.stop()).catch(() => {});
     }
     return validated;
   }
@@ -213,6 +213,6 @@ export class HarnessAgentSession {
         sessionId: this.sessionId,
       });
     }
-    this.leasedBridgePort = null;
+    this.leasedBridgePort = undefined;
   }
 }

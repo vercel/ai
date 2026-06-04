@@ -72,7 +72,7 @@ try {
 
 ## Implementing a harness
 
-Implement the `HarnessV1` factory and a `HarnessV1Session` whose `doPrompt` emits events; the agent surface, streaming, tool execution, and multi-turn state are handled for you. If the adapter needs a sandbox, read `startOpts.sandboxHandle` — the agent has already created the handle for you and will stop it on cleanup.
+Implement the `HarnessV1` factory and a `HarnessV1Session` whose `doPrompt` emits events; the agent surface, streaming, tool execution, and multi-turn state are handled for you. If the adapter needs a sandbox, read `startOpts.sandboxSession` — the agent has already created the network sandbox session for you and will stop it on cleanup. Call `sandboxSession.restricted()` for the tool-safe file-IO/exec/spawn surface.
 
 ```ts
 import type { HarnessV1, HarnessV1Session } from '@ai-sdk/harness';

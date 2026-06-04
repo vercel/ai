@@ -38,16 +38,16 @@ const compactMessages: PrepareStepFunction<{
 };
 
 run(async () => {
-  const handle = await createJustBashSandbox({
+  const sandboxSession = await createJustBashSandbox({
     overlayRoot: process.cwd(),
   }).create();
 
   const result = await generateText({
     model: openai('gpt-5.5'),
     instructions:
-      'You have access to a filesystem. Details: ' + handle.session.description,
+      'You have access to a filesystem. Details: ' + sandboxSession.description,
     prompt: 'Read every .ts file in this directory',
-    experimental_sandbox: handle.session,
+    experimental_sandbox: sandboxSession.restricted(),
     tools: {
       bash: anthropic.tools.bash_20250124(),
     },

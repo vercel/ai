@@ -1,37 +1,43 @@
 import {
   HarnessCapabilityUnsupportedError,
   type HarnessV1NetworkPolicy,
-  type HarnessV1SandboxHandle,
+  type HarnessV1NetworkSandboxSession,
 } from '@ai-sdk/harness';
+import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 import type { Sandbox, NetworkPolicy } from '@vercel/sandbox';
 import { VercelSandboxSession } from './vercel-sandbox-session';
 
 const VERCEL_PROVIDER_ID = 'vercel-sandbox';
 
 /**
- * `HarnessV1SandboxHandle` backed by a `@vercel/sandbox` `Sandbox`. The
- * provider's `create()` returns one of these. The handle owns the sandbox
- * sandbox's lifecycle only when the provider created it; when the provider
- * was given an existing sandbox, `stop()` is a no-op (caller retains
- * ownership).
+ * `HarnessV1NetworkSandboxSession` backed by a `@vercel/sandbox` `Sandbox`. The
+ * provider's `create()` returns one of these. It extends
+ * {@link VercelSandboxSession} with the infra surface (ports, lifecycle,
+ * network policy). It owns the sandbox's lifecycle only when the provider
+ * created it; when the provider was given an existing sandbox, `stop()` is a
+ * no-op (caller retains ownership).
  */
-export class VercelSandboxHandle implements HarnessV1SandboxHandle {
+export class VercelNetworkSandboxSession
+  extends VercelSandboxSession
+  implements HarnessV1NetworkSandboxSession
+{
   readonly id: string;
   readonly defaultWorkingDirectory: string;
-  readonly session: VercelSandboxSession;
-  private readonly sandbox: Sandbox;
   private readonly ownsLifecycle: boolean;
 
   constructor(input: { sandbox: Sandbox; ownsLifecycle: boolean }) {
-    this.sandbox = input.sandbox;
+    super(input.sandbox);
     this.ownsLifecycle = input.ownsLifecycle;
     this.id = input.sandbox.name;
     this.defaultWorkingDirectory = input.sandbox.currentSession().cwd;
-    this.session = new VercelSandboxSession(input.sandbox);
   }
 
   get ports(): ReadonlyArray<number> {
     return this.sandbox.routes.map(route => route.port);
+  }
+
+  restricted(): SandboxSession {
+    return new VercelSandboxSession(this.sandbox);
   }
 
   getPortUrl = async (options: {
