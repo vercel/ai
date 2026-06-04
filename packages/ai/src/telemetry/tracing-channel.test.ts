@@ -54,32 +54,36 @@ async function collectTracingChannelEventSequence(
   run: () => Promise<void>,
 ): Promise<string[]> {
   const events: string[] = [];
-
-  const collect =
-    (phase: 'start' | 'end' | 'asyncStart' | 'asyncEnd' | 'error') =>
-    (message: unknown) => {
-      events.push(
-        `${phase} ${(message as TelemetryTracingChannelMessage).type}`,
-      );
-    };
+  const store = new AsyncLocalStorage<TelemetryTracingChannelMessage>();
 
   const tracingChannel = diagnosticsChannel.tracingChannel(
     AI_SDK_TELEMETRY_TRACING_CHANNEL,
   );
   const subscribers = {
-    start: collect('start'),
-    end: collect('end'),
-    asyncStart: collect('asyncStart'),
-    asyncEnd: collect('asyncEnd'),
-    error: collect('error'),
+    start() {},
+    end() {},
+    asyncStart() {},
+    asyncEnd(message: unknown) {
+      events.push(
+        `asyncEnd ${(message as TelemetryTracingChannelMessage).type}`,
+      );
+    },
+    error() {},
   };
 
+  tracingChannel.start.bindStore(store, message => {
+    events.push(
+      `bindStart ${(message as TelemetryTracingChannelMessage).type}`,
+    );
+    return message as TelemetryTracingChannelMessage;
+  });
   tracingChannel.subscribe(subscribers);
 
   try {
     await run();
   } finally {
     tracingChannel.unsubscribe(subscribers);
+    tracingChannel.start.unbindStore(store);
   }
 
   return events;
@@ -435,65 +439,35 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
 
     expect(sequence).toMatchInlineSnapshot(`
       [
-        "start onStart",
-        "end onStart",
-        "asyncStart onStart",
+        "bindStart onStart",
         "asyncEnd onStart",
-        "start onStepStart",
-        "end onStepStart",
-        "asyncStart onStepStart",
+        "bindStart onStepStart",
         "asyncEnd onStepStart",
-        "start onLanguageModelCallStart",
-        "end onLanguageModelCallStart",
-        "asyncStart onLanguageModelCallStart",
+        "bindStart onLanguageModelCallStart",
         "asyncEnd onLanguageModelCallStart",
-        "start executeLanguageModelCall",
-        "end executeLanguageModelCall",
-        "asyncStart executeLanguageModelCall",
+        "bindStart executeLanguageModelCall",
         "asyncEnd executeLanguageModelCall",
-        "start onLanguageModelCallEnd",
-        "end onLanguageModelCallEnd",
-        "asyncStart onLanguageModelCallEnd",
+        "bindStart onLanguageModelCallEnd",
         "asyncEnd onLanguageModelCallEnd",
-        "start onToolExecutionStart",
-        "end onToolExecutionStart",
-        "asyncStart onToolExecutionStart",
+        "bindStart onToolExecutionStart",
         "asyncEnd onToolExecutionStart",
-        "start executeTool",
-        "end executeTool",
-        "asyncStart executeTool",
+        "bindStart executeTool",
         "asyncEnd executeTool",
-        "start onToolExecutionEnd",
-        "end onToolExecutionEnd",
-        "asyncStart onToolExecutionEnd",
+        "bindStart onToolExecutionEnd",
         "asyncEnd onToolExecutionEnd",
-        "start onStepFinish",
-        "end onStepFinish",
-        "asyncStart onStepFinish",
+        "bindStart onStepFinish",
         "asyncEnd onStepFinish",
-        "start onStepStart",
-        "end onStepStart",
-        "asyncStart onStepStart",
+        "bindStart onStepStart",
         "asyncEnd onStepStart",
-        "start onLanguageModelCallStart",
-        "end onLanguageModelCallStart",
-        "asyncStart onLanguageModelCallStart",
+        "bindStart onLanguageModelCallStart",
         "asyncEnd onLanguageModelCallStart",
-        "start executeLanguageModelCall",
-        "end executeLanguageModelCall",
-        "asyncStart executeLanguageModelCall",
+        "bindStart executeLanguageModelCall",
         "asyncEnd executeLanguageModelCall",
-        "start onLanguageModelCallEnd",
-        "end onLanguageModelCallEnd",
-        "asyncStart onLanguageModelCallEnd",
+        "bindStart onLanguageModelCallEnd",
         "asyncEnd onLanguageModelCallEnd",
-        "start onStepFinish",
-        "end onStepFinish",
-        "asyncStart onStepFinish",
+        "bindStart onStepFinish",
         "asyncEnd onStepFinish",
-        "start onEnd",
-        "end onEnd",
-        "asyncStart onEnd",
+        "bindStart onEnd",
         "asyncEnd onEnd",
       ]
     `);
