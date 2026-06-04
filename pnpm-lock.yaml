@@ -1428,6 +1428,9 @@ importers:
       '@sveltejs/vite-plugin-svelte':
         specifier: ^5.1.1
         version: 5.1.1(svelte@5.55.7)(vite@6.4.2(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.47.1)(tsx@4.22.0)(yaml@2.9.0))
+      '@types/node':
+        specifier: 22.19.19
+        version: 22.19.19
       ai:
         specifier: workspace:*
         version: link:../../packages/ai

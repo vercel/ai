@@ -4,6 +4,21 @@
     "rootDir": "src",
     "outDir": "dist"
   },
-  "include": ["src"],
-  "exclude": ["node_modules", "dist", "go", "**/*.test.ts"]
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "go",
+    "**/*.test.ts"
+  ],
+  "references": [
+    {
+      "path": "../../packages/harness"
+    },
+    {
+      "path": "../../packages/sandbox-vercel"
+    }
+  ]
 }
