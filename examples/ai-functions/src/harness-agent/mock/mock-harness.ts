@@ -44,7 +44,7 @@ export function mockHarness(options: {
 
       const session: HarnessV1Session = {
         sessionId: startOpts.sessionId,
-        doPrompt: async promptOpts => {
+        doPromptTurn: async promptOpts => {
           history.push(...(promptOpts.prompt as unknown as ModelMessage[]));
 
           const result = streamText({
@@ -85,10 +85,23 @@ export function mockHarness(options: {
             done,
           };
         },
+        doContinueTurn: async () => {
+          // The mock drives each turn via a fresh `streamText` call, so there is
+          // no in-flight turn to attach to — a continue resolves immediately.
+          return {
+            submitToolResult: async () => {},
+            done: Promise.resolve(),
+          };
+        },
         doStop: async () => {
           // streamText is per-call; nothing persistent to stop.
         },
         doGetResumeHandle: () => ({
+          harnessId: 'mock',
+          specificationVersion: 'harness-v1',
+          data: {},
+        }),
+        doSuspendTurn: async () => ({
           harnessId: 'mock',
           specificationVersion: 'harness-v1',
           data: {},
