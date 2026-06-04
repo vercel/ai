@@ -438,6 +438,38 @@ The `textVerbosity` parameter scales output length without changing the underlyi
 - `'medium'`: Balanced detail (default)
 - `'high'`: Verbose responses with comprehensive detail
 
+#### Namespaced Function Calls
+
+OpenAI supports grouping related function tools into
+[namespaces](https://developers.openai.com/api/docs/guides/function-calling#defining-namespaces).
+When the Responses API returns a `function_call` with a `namespace`, the OpenAI provider
+exposes this value on the generated `tool-call` part as
+`providerMetadata.openai.namespace`.
+
+```ts
+for (const part of result.content) {
+  if (part.type === 'tool-call') {
+    console.log(part.providerMetadata?.openai?.namespace);
+  }
+}
+```
+
+When using `streamText`, the namespace is available on the `tool-input-end` event and on
+the final `tool-call` event:
+
+```ts
+for await (const part of result.stream) {
+  if (part.type === 'tool-input-end' || part.type === 'tool-call') {
+    console.log(part.providerMetadata?.openai?.namespace);
+  }
+}
+```
+
+If you persist or reconstruct messages for later turns, preserve the OpenAI provider
+metadata on tool-call parts. The SDK uses `providerMetadata.openai.namespace` or
+`providerOptions.openai.namespace` to round-trip the namespace back to OpenAI on
+subsequent requests.
+
 #### Web Search Tool
 
 The OpenAI responses API supports web search through the `openai.tools.webSearch` tool.
