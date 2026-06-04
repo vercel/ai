@@ -4566,6 +4566,49 @@ describe('generateText', () => {
     });
   });
 
+  describe('options.toolOrder', () => {
+    it('should order available tools before sending them to the model', async () => {
+      let tools:
+        | (LanguageModelV4FunctionTool | LanguageModelV4ProviderTool)[]
+        | undefined;
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async ({ tools: toolsArg }) => {
+            tools = toolsArg;
+
+            return {
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: 'Hello, world!' }],
+            };
+          },
+        }),
+        tools: {
+          zebra: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'zebra',
+          },
+          alpha: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'alpha',
+          },
+          middle: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'middle',
+          },
+        },
+        prompt: 'test-input',
+        toolOrder: ['middle'],
+      });
+
+      expect(tools?.map(tool => tool.name)).toEqual([
+        'middle',
+        'alpha',
+        'zebra',
+      ]);
+    });
+  });
+
   describe('tool callbacks', () => {
     it('should invoke callbacks in the correct order', async () => {
       const recordedCalls: unknown[] = [];

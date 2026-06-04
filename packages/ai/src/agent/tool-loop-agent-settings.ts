@@ -12,10 +12,24 @@ import type { Output } from '../generate-text/output';
 import type { PrepareStepFunction } from '../generate-text/prepare-step';
 import type { StopCondition } from '../generate-text/stop-condition';
 import type { ToolCallRepairFunction } from '../generate-text/tool-call-repair-function';
+<<<<<<< HEAD
 import type { ToolSet } from '../generate-text/tool-set';
 import type { CallSettings } from '../prompt/call-settings';
 import type { Prompt } from '../prompt/prompt';
 import type { TelemetrySettings } from '../telemetry/telemetry-settings';
+=======
+import type {
+  OnToolExecutionEndCallback,
+  OnToolExecutionStartCallback,
+} from '../generate-text/tool-execution-events';
+import type { ToolInputRefinement } from '../generate-text/tool-input-refinement';
+import type { ToolOrder } from '../generate-text/tool-order';
+import type { ToolsContextParameter } from '../generate-text/tools-context-parameter';
+import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
+import type { Instructions, Prompt } from '../prompt/prompt';
+import type { RequestOptions } from '../prompt/request-options';
+import type { TelemetryOptions } from '../telemetry/telemetry-options';
+>>>>>>> c9076227c (feat: add a `toolOrder` option to control the order in which tools are sent (#15811))
 import type { LanguageModel, ToolChoice } from '../types/language-model';
 import type { DownloadFunction } from '../util/download/download-function';
 import type { AgentCallParameters } from './agent';
@@ -94,10 +108,26 @@ export type ToolLoopAgentSettings<
    */
   activeTools?: Array<keyof NoInfer<TOOLS>>;
 
+<<<<<<< HEAD
   /**
    * Optional specification for generating structured outputs.
    */
   output?: OUTPUT;
+=======
+    /**
+     * Controls the order in which tools are sent to the provider.
+     *
+     * The list can be partial. Tools not listed in `toolOrder` are sent after
+     * the listed tools, sorted alphabetically. This can improve provider-side
+     * caching by keeping tool definitions in a stable order.
+     */
+    toolOrder?: ToolOrder<NoInfer<TOOLS>>;
+
+    /**
+     * Optional specification for generating structured outputs.
+     */
+    output?: OUTPUT;
+>>>>>>> c9076227c (feat: add a `toolOrder` option to control the order in which tools are sent (#15811))
 
   /**
    * Optional function that you can use to provide different settings for a step.
@@ -147,6 +177,7 @@ export type ToolLoopAgentSettings<
    */
   callOptionsSchema?: FlexibleSchema<CALL_OPTIONS>;
 
+<<<<<<< HEAD
   /**
    * Prepare the parameters for the generateText or streamText call.
    *
@@ -157,6 +188,131 @@ export type ToolLoopAgentSettings<
       AgentCallParameters<CALL_OPTIONS, NoInfer<TOOLS>>,
       'onStepFinish'
     > &
+=======
+    /**
+     * Callback that is called after each tool execution completes.
+     */
+    onToolExecutionEnd?: OnToolExecutionEndCallback<NoInfer<TOOLS>>;
+
+    /**
+     * Callback that is called when each step (LLM call) is finished, including intermediate steps.
+     */
+    onStepFinish?: GenerateTextOnStepFinishCallback<
+      NoInfer<TOOLS>,
+      NoInfer<RUNTIME_CONTEXT>
+    >;
+
+    /**
+     * Callback that is called when all steps are finished and the response is complete.
+     */
+    onEnd?: GenerateTextOnEndCallback<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>;
+
+    /**
+     * Callback that is called when all steps are finished and the response is complete.
+     *
+     * @deprecated Use `onEnd` instead.
+     */
+    onFinish?: GenerateTextOnEndCallback<
+      NoInfer<TOOLS>,
+      NoInfer<RUNTIME_CONTEXT>
+    >;
+
+    /**
+     * Additional provider-specific options. They are passed through
+     * to the provider from the AI SDK and enable provider-specific
+     * functionality that can be fully encapsulated in the provider.
+     */
+    providerOptions?: ProviderOptions;
+
+    /**
+     * Custom download function to use for URLs.
+     *
+     * By default, files are downloaded if the model does not support the URL for the given media type.
+     */
+    experimental_download?: DownloadFunction | undefined;
+
+    /**
+     * Settings for controlling what data is included in step results.
+     * Disabling inclusion can help reduce memory usage when processing
+     * large payloads like images.
+     *
+     * By default, request and response bodies are included, and request
+     * messages are excluded.
+     */
+    include?: GenerateTextInclude & StreamTextInclude;
+
+    /**
+     * Internal. For test use only. May change without notice.
+     */
+    _internal?: {
+      generateId?: IdGenerator;
+      generateCallId?: IdGenerator;
+    };
+
+    /**
+     * The schema for the call options.
+     */
+    callOptionsSchema?: FlexibleSchema<CALL_OPTIONS>;
+
+    /**
+     * Prepare the parameters for the generateText or streamText call.
+     *
+     * You can use this to have templates based on call options.
+     *
+     * The design requires you to pass call parameters as follows to
+     * allow for the removal of parameters from the original settings
+     * by setting them to `undefined`:
+     *
+     * ```
+     *   prepareCall: ({ options, ...rest }) => ({
+     *     ...rest,
+     *   }),
+     * ```
+     */
+    prepareCall?: (
+      options: Omit<
+        AgentCallParameters<
+          CALL_OPTIONS,
+          NoInfer<TOOLS>,
+          NoInfer<RUNTIME_CONTEXT>
+        >,
+        'onStepFinish'
+      > &
+        Pick<
+          ToolLoopAgentSettings<
+            CALL_OPTIONS,
+            TOOLS,
+            RUNTIME_CONTEXT,
+            NoInfer<OUTPUT>
+          >,
+          | 'model'
+          | 'tools'
+          | 'maxOutputTokens'
+          | 'temperature'
+          | 'topP'
+          | 'topK'
+          | 'presencePenalty'
+          | 'frequencyPenalty'
+          | 'stopSequences'
+          | 'seed'
+          | 'headers'
+          | 'instructions'
+          | 'allowSystemInMessages'
+          | 'stopWhen'
+          | 'telemetry'
+          | 'experimental_telemetry'
+          | 'activeTools'
+          | 'toolOrder'
+          | 'toolApproval'
+          | 'providerOptions'
+          | 'experimental_download'
+          | 'experimental_refineToolInput'
+          | 'include'
+          | 'runtimeContext'
+          | '_internal'
+        > & { toolsContext: InferToolSetContext<TOOLS> },
+    ) => MaybePromiseLike<
+>>>>>>> c9076227c (feat: add a `toolOrder` option to control the order in which tools are sent (#15811))
       Pick<
         ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, OUTPUT>,
         | 'model'
@@ -175,6 +331,11 @@ export type ToolLoopAgentSettings<
         | 'stopWhen'
         | 'experimental_telemetry'
         | 'activeTools'
+<<<<<<< HEAD
+=======
+        | 'toolOrder'
+        | 'toolApproval'
+>>>>>>> c9076227c (feat: add a `toolOrder` option to control the order in which tools are sent (#15811))
         | 'providerOptions'
         | 'experimental_context'
         | 'experimental_download'

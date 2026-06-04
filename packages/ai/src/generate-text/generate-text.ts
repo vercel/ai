@@ -85,6 +85,15 @@ import type { ToolApprovalRequestOutput } from './tool-approval-request-output';
 import type { TypedToolCall } from './tool-call';
 import type { ToolCallRepairFunction } from './tool-call-repair-function';
 import type { TypedToolError } from './tool-error';
+<<<<<<< HEAD
+=======
+import type {
+  OnToolExecutionEndCallback,
+  OnToolExecutionStartCallback,
+} from './tool-execution-events';
+import type { ToolInputRefinement } from './tool-input-refinement';
+import type { ToolOrder } from './tool-order';
+>>>>>>> c9076227c (feat: add a `toolOrder` option to control the order in which tools are sent (#15811))
 import type { ToolOutput } from './tool-output';
 import type { TypedToolResult } from './tool-result';
 import type { ToolSet } from './tool-set';
@@ -197,6 +206,7 @@ export type GenerateTextOnFinishCallback<TOOLS extends ToolSet> = (
  *
  * @param tools - Tools that are accessible to and can be called by the model. The model needs to support calling tools.
  * @param toolChoice - The tool choice strategy. Default: 'auto'.
+ * @param toolOrder - Controls the order in which tools are sent to the provider. Tools not listed are appended alphabetically.
  *
  * @param system - A system message that will be part of the prompt.
  * @param prompt - A simple text prompt. You can either use `prompt` or `messages` but not both.
@@ -263,10 +273,16 @@ export async function generateText<
   output = experimental_output,
   experimental_telemetry: telemetry,
   providerOptions,
+<<<<<<< HEAD
   experimental_activeTools,
   activeTools = experimental_activeTools,
   experimental_prepareStep,
   prepareStep = experimental_prepareStep,
+=======
+  activeTools,
+  toolOrder,
+  prepareStep,
+>>>>>>> c9076227c (feat: add a `toolOrder` option to control the order in which tools are sent (#15811))
   experimental_repairToolCall: repairToolCall,
   experimental_download: download,
   experimental_context,
@@ -328,6 +344,15 @@ export async function generateText<
      * changing the tool call and result types in the result.
      */
     activeTools?: Array<keyof NoInfer<TOOLS>>;
+
+    /**
+     * Controls the order in which tools are sent to the provider.
+     *
+     * The list can be partial. Tools not listed in `toolOrder` are sent after
+     * the listed tools, sorted alphabetically. This can improve provider-side
+     * caching by keeping tool definitions in a stable order.
+     */
+    toolOrder?: ToolOrder<NoInfer<TOOLS>>;
 
     /**
      * Optional specification for parsing structured outputs from the LLM response.
@@ -493,6 +518,7 @@ export async function generateText<
       tools,
       toolChoice,
       activeTools,
+      toolOrder,
       maxOutputTokens: callSettings.maxOutputTokens,
       temperature: callSettings.temperature,
       topP: callSettings.topP,
@@ -555,6 +581,7 @@ export async function generateText<
           toolApproval => !toolApproval.toolCall.providerExecuted,
         );
 
+<<<<<<< HEAD
         if (
           deniedToolApprovals.length > 0 ||
           localApprovedToolApprovals.length > 0
@@ -583,6 +610,119 @@ export async function generateText<
                 | undefined
                 | GenerateTextOnToolCallFinishCallback<TOOLS>,
             ],
+=======
+        const stepInstructions =
+          prepareStepResult?.instructions ??
+          prepareStepResult?.system ??
+          instructionsForNextStep;
+
+        const promptMessages = await convertToLanguageModelPrompt({
+          prompt: {
+            instructions: stepInstructions,
+            messages: prepareStepResult?.messages ?? stepInputMessages,
+          },
+          supportedUrls: await stepModel.supportedUrls,
+          download,
+          provider: stepModel.provider.split('.')[0],
+        });
+
+        runtimeContext = prepareStepResult?.runtimeContext ?? runtimeContext;
+        toolsContext = prepareStepResult?.toolsContext ?? toolsContext;
+
+        const stepActiveTools = filterActiveTools({
+          tools,
+          activeTools: prepareStepResult?.activeTools ?? activeTools,
+        });
+        const stepToolOrder = prepareStepResult?.toolOrder ?? toolOrder;
+
+        const stepTools = await prepareTools({
+          tools: stepActiveTools,
+          toolOrder: stepToolOrder as ToolOrder<
+            ActiveToolSubset<TOOLS, ActiveTools<NoInfer<TOOLS>>>
+          >,
+          // active tools context is a subset of the tools context, so we can cast to the unknown type
+          toolsContext: toolsContext as unknown as InferToolSetContext<
+            ActiveToolSubset<TOOLS, ActiveTools<NoInfer<TOOLS>>>
+          >,
+          experimental_sandbox: stepSandbox,
+        });
+
+        const stepToolChoice = prepareToolChoice({
+          toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+        });
+
+        const stepMessages = prepareStepResult?.messages ?? stepInputMessages;
+
+        const stepProviderOptions = mergeObjects(
+          providerOptions,
+          prepareStepResult?.providerOptions,
+        );
+        const stepNumber = steps.length;
+
+        await notify({
+          event: {
+            callId,
+            provider: stepModel.provider,
+            modelId: stepModel.modelId,
+            stepNumber,
+            instructions: stepInstructions,
+            messages: stepMessages,
+            tools,
+            toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+            activeTools: prepareStepResult?.activeTools ?? activeTools,
+            toolOrder: stepToolOrder,
+            steps: [...steps],
+            providerOptions: stepProviderOptions,
+            output,
+            runtimeContext,
+            promptMessages,
+            stepTools,
+            stepToolChoice,
+            toolsContext,
+          },
+          callbacks: [onStepStart, telemetryDispatcher.onStepStart],
+        });
+
+        await notify({
+          event: {
+            callId,
+            provider: stepModel.provider,
+            modelId: stepModel.modelId,
+            instructions: stepInstructions,
+            messages: stepMessages,
+            tools: stepTools,
+            ...callSettings,
+          },
+          callbacks: [
+            onLanguageModelCallStart,
+            telemetryDispatcher.onLanguageModelCallStart as
+              | undefined
+              | OnLanguageModelCallStartCallback,
+          ],
+        });
+
+        const stepStartTimestampMs = now();
+
+        const executeLanguageModelCallInTelemetryContext =
+          telemetryDispatcher.executeLanguageModelCall ??
+          (async <T>({ execute }: { execute: () => PromiseLike<T> }) =>
+            await execute());
+
+        currentModelResponse = await retry(async () => {
+          const result = await executeLanguageModelCallInTelemetryContext({
+            callId,
+            execute: async () =>
+              await stepModel.doGenerate({
+                ...callSettings,
+                tools: stepTools,
+                toolChoice: stepToolChoice,
+                responseFormat: await output?.responseFormat,
+                prompt: promptMessages,
+                providerOptions: stepProviderOptions,
+                abortSignal: mergedAbortSignal,
+                headers: headersWithUserAgent,
+              }),
+>>>>>>> c9076227c (feat: add a `toolOrder` option to control the order in which tools are sent (#15811))
           });
 
           const toolContent: Array<any> = [];

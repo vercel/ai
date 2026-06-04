@@ -16359,6 +16359,59 @@ describe('streamText', () => {
     });
   });
 
+  describe('options.toolOrder', () => {
+    it('should order available tools before sending them to the model', async () => {
+      let tools:
+        | (LanguageModelV4FunctionTool | LanguageModelV4ProviderTool)[]
+        | undefined;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async ({ tools: toolsArg }) => {
+            tools = toolsArg;
+
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        tools: {
+          zebra: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'zebra',
+          },
+          alpha: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'alpha',
+          },
+          middle: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'middle',
+          },
+        },
+        prompt: 'test-input',
+        toolOrder: ['middle'],
+      });
+
+      await result.consumeStream();
+
+      expect(tools?.map(tool => tool.name)).toEqual([
+        'middle',
+        'alpha',
+        'zebra',
+      ]);
+    });
+  });
+
   describe('raw chunks forwarding', () => {
     it('should forward raw chunks when includeRawChunks is enabled', async () => {
       const modelWithRawChunks = createTestModel({

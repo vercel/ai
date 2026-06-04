@@ -6,6 +6,7 @@ import type {
 } from '@ai-sdk/provider-utils';
 import type { LanguageModel, ToolChoice } from '../types/language-model';
 import type { StepResult } from './step-result';
+import type { ToolOrder } from './tool-order';
 
 /**
  * Function that you can use to provide different settings for a step.
@@ -74,7 +75,18 @@ export type PrepareStepResult<
       activeTools?: Array<keyof NoInfer<TOOLS>>;
 
       /**
+<<<<<<< HEAD
        * Optionally override the system message(s) sent to the model for this step.
+=======
+       * Optionally override the order in which tools are sent to the provider
+       * for this step.
+       */
+      toolOrder?: ToolOrder<NoInfer<TOOLS>>;
+
+      /**
+       * Optionally override the instructions sent to the model for this step.
+       * The override carries forward to later steps.
+>>>>>>> c9076227c (feat: add a `toolOrder` option to control the order in which tools are sent (#15811))
        */
       system?: string | SystemModelMessage | Array<SystemModelMessage>;
 

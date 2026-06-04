@@ -119,6 +119,15 @@ import type {
 import { toResponseMessages } from './to-response-messages';
 import type { TypedToolCall } from './tool-call';
 import type { ToolCallRepairFunction } from './tool-call-repair-function';
+<<<<<<< HEAD
+=======
+import type {
+  OnToolExecutionEndCallback,
+  OnToolExecutionStartCallback,
+} from './tool-execution-events';
+import type { ToolInputRefinement } from './tool-input-refinement';
+import type { ToolOrder } from './tool-order';
+>>>>>>> c9076227c (feat: add a `toolOrder` option to control the order in which tools are sent (#15811))
 import type { ToolOutput } from './tool-output';
 import type { StaticToolOutputDenied } from './tool-output-denied';
 import type { ToolSet } from './tool-set';
@@ -251,6 +260,7 @@ export type StreamTextOnToolCallFinishCallback<
  *
  * @param model - The language model to use.
  * @param tools - Tools that are accessible to and can be called by the model. The model needs to support calling tools.
+ * @param toolOrder - Controls the order in which tools are sent to the provider. Tools not listed are appended alphabetically.
  *
  * @param system - A system message that will be part of the prompt.
  * @param prompt - A simple text prompt. You can either use `prompt` or `messages` but not both.
@@ -312,8 +322,13 @@ export function streamText<
   experimental_telemetry: telemetry,
   prepareStep,
   providerOptions,
+<<<<<<< HEAD
   experimental_activeTools,
   activeTools = experimental_activeTools,
+=======
+  activeTools,
+  toolOrder,
+>>>>>>> c9076227c (feat: add a `toolOrder` option to control the order in which tools are sent (#15811))
   experimental_repairToolCall: repairToolCall,
   experimental_transform: transform,
   experimental_download: download,
@@ -382,6 +397,15 @@ export function streamText<
      * changing the tool call and result types in the result.
      */
     activeTools?: Array<keyof NoInfer<TOOLS>>;
+
+    /**
+     * Controls the order in which tools are sent to the provider.
+     *
+     * The list can be partial. Tools not listed in `toolOrder` are sent after
+     * the listed tools, sorted alphabetically. This can improve provider-side
+     * caching by keeping tool definitions in a stable order.
+     */
+    toolOrder?: ToolOrder<NoInfer<TOOLS>>;
 
     /**
      * Optional specification for parsing structured outputs from the LLM response.
@@ -558,6 +582,7 @@ export function streamText<
     toolChoice,
     transforms: asArray(transform),
     activeTools,
+    toolOrder,
     repairToolCall,
     stopConditions: asArray(stopWhen),
     output,
@@ -742,6 +767,7 @@ class DefaultStreamTextResult<
     toolChoice,
     transforms,
     activeTools,
+    toolOrder,
     repairToolCall,
     stopConditions,
     output,
@@ -783,7 +809,12 @@ class DefaultStreamTextResult<
     tools: TOOLS | undefined;
     toolChoice: ToolChoice<TOOLS> | undefined;
     transforms: Array<StreamTextTransform<TOOLS>>;
+<<<<<<< HEAD
     activeTools: Array<keyof TOOLS> | undefined;
+=======
+    activeTools: ActiveTools<TOOLS>;
+    toolOrder: ToolOrder<TOOLS>;
+>>>>>>> c9076227c (feat: add a `toolOrder` option to control the order in which tools are sent (#15811))
     repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
     stopConditions: Array<StopCondition<NoInfer<TOOLS>>>;
     output: OUTPUT | undefined;
@@ -1293,6 +1324,7 @@ class DefaultStreamTextResult<
       metadata: telemetry?.metadata as Record<string, unknown> | undefined,
     };
 
+<<<<<<< HEAD
     recordSpan({
       name: 'ai.streamText',
       attributes: selectTelemetryAttributes({
@@ -1303,6 +1335,76 @@ class DefaultStreamTextResult<
           // specific settings that only make sense on the outer level:
           'ai.prompt': {
             input: () => JSON.stringify({ system, prompt, messages }),
+=======
+    (async () => {
+      const initialPrompt = await standardizePrompt({
+        instructions,
+        system,
+        prompt,
+        messages,
+        allowSystemInMessages,
+      } as Prompt);
+
+      await notify({
+        event: {
+          callId,
+          operationId: 'ai.streamText',
+          provider: model.provider,
+          modelId: model.modelId,
+          instructions: initialPrompt.instructions,
+          messages: initialPrompt.messages,
+          tools,
+          toolChoice,
+          activeTools,
+          toolOrder,
+          maxOutputTokens: callSettings.maxOutputTokens,
+          temperature: callSettings.temperature,
+          topP: callSettings.topP,
+          topK: callSettings.topK,
+          presencePenalty: callSettings.presencePenalty,
+          frequencyPenalty: callSettings.frequencyPenalty,
+          stopSequences: callSettings.stopSequences,
+          seed: callSettings.seed,
+          reasoning: callSettings.reasoning,
+          maxRetries,
+          timeout,
+          headers,
+          providerOptions,
+          output,
+          runtimeContext,
+          toolsContext,
+        },
+        callbacks: [onStart, telemetryDispatcher.onStart],
+      });
+
+      const initialMessages = initialPrompt.messages;
+      let instructionsForNextStep = initialPrompt.instructions;
+
+      const { approvedToolApprovals, deniedToolApprovals } =
+        collectToolApprovals<TOOLS>({ messages: initialMessages });
+
+      // initial tool execution step stream
+      if (deniedToolApprovals.length > 0 || approvedToolApprovals.length > 0) {
+        const localApprovedToolApprovals = approvedToolApprovals.filter(
+          toolApproval => !toolApproval.toolCall.providerExecuted,
+        );
+        const localDeniedToolApprovals = deniedToolApprovals.filter(
+          toolApproval => !toolApproval.toolCall.providerExecuted,
+        );
+
+        const deniedProviderExecutedToolApprovals = deniedToolApprovals.filter(
+          toolApproval => toolApproval.toolCall.providerExecuted,
+        );
+
+        let toolExecutionStepStreamController:
+          | ReadableStreamDefaultController<TextStreamPart<TOOLS>>
+          | undefined;
+        const toolExecutionStepStream = new ReadableStream<
+          TextStreamPart<TOOLS>
+        >({
+          start(controller) {
+            toolExecutionStepStreamController = controller;
+>>>>>>> c9076227c (feat: add a `toolOrder` option to control the order in which tools are sent (#15811))
           },
         },
       }),
@@ -1404,6 +1506,7 @@ class DefaultStreamTextResult<
 
             const toolOutputs: Array<ToolOutput<TOOLS>> = [];
 
+<<<<<<< HEAD
             await Promise.all(
               localApprovedToolApprovals.map(async toolApproval => {
                 const result = await executeToolCall({
@@ -1428,6 +1531,189 @@ class DefaultStreamTextResult<
                   ],
                   onPreliminaryToolResult: result => {
                     toolExecutionStepStreamController?.enqueue(result);
+=======
+      self._initialResponseMessages.resolve(initialResponseMessages);
+
+      async function streamStep({
+        currentStep,
+        usage,
+      }: {
+        currentStep: number;
+        usage: LanguageModelUsage;
+      }) {
+        // Set up step timeout if configured
+        const stepTimeoutId = setAbortTimeout({
+          abortController: stepAbortController,
+          label: 'Step',
+          timeoutMs: stepTimeoutMs,
+        });
+
+        // Set up chunk timeout tracking (will be reset on each chunk)
+        let chunkTimeoutId: ReturnType<typeof setTimeout> | undefined =
+          undefined;
+
+        function resetChunkTimeout() {
+          if (chunkTimeoutId != null) {
+            clearTimeout(chunkTimeoutId);
+          }
+          chunkTimeoutId = setAbortTimeout({
+            abortController: chunkAbortController,
+            label: 'Chunk',
+            timeoutMs: chunkTimeoutMs,
+          });
+        }
+
+        function clearChunkTimeout() {
+          if (chunkTimeoutId != null) {
+            clearTimeout(chunkTimeoutId);
+            chunkTimeoutId = undefined;
+          }
+        }
+
+        function clearStepTimeout() {
+          if (stepTimeoutId != null) {
+            clearTimeout(stepTimeoutId);
+          }
+        }
+
+        try {
+          stepFinish = new DelayedPromise<void>();
+
+          const responseMessagesFromPreviousSteps = recordedSteps.flatMap(
+            step => step.response.messages,
+          );
+          const accumulatedResponseMessages = [
+            ...initialResponseMessages,
+            ...responseMessagesFromPreviousSteps,
+          ];
+          const stepInputMessages = stepMessagesForNextStep ?? [
+            ...initialMessages,
+            ...initialResponseMessages,
+          ];
+
+          const prepareStepResult = await prepareStep?.({
+            model,
+            steps: recordedSteps,
+            stepNumber: recordedSteps.length,
+            instructions: instructionsForNextStep,
+            initialInstructions: initialPrompt.instructions,
+            messages: stepInputMessages,
+            initialMessages,
+            responseMessages: accumulatedResponseMessages,
+            toolsContext,
+            runtimeContext,
+            experimental_sandbox: sandbox,
+          });
+
+          const stepSandbox =
+            prepareStepResult?.experimental_sandbox ?? sandbox;
+
+          runtimeContext = prepareStepResult?.runtimeContext ?? runtimeContext;
+          toolsContext = prepareStepResult?.toolsContext ?? toolsContext;
+
+          const stepModel = resolveLanguageModel(
+            prepareStepResult?.model ?? model,
+          );
+
+          const stepActiveTools = filterActiveTools({
+            tools,
+            activeTools: prepareStepResult?.activeTools ?? activeTools,
+          });
+          const stepToolOrder = prepareStepResult?.toolOrder ?? toolOrder;
+
+          const stepTools = await prepareTools({
+            tools: stepActiveTools,
+            toolOrder: stepToolOrder as ToolOrder<
+              ActiveToolSubset<TOOLS, ActiveTools<NoInfer<TOOLS>>>
+            >,
+            // active tools context is a subset of the tools context, so we can cast to the unknown type
+            toolsContext: toolsContext as unknown as InferToolSetContext<
+              ActiveToolSubset<TOOLS, ActiveTools<NoInfer<TOOLS>>>
+            >,
+            experimental_sandbox: stepSandbox,
+          });
+
+          const stepToolChoice = prepareToolChoice({
+            toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+          });
+
+          const stepMessages = prepareStepResult?.messages ?? stepInputMessages;
+          currentStepMessages = stepMessages;
+          const stepInstructions =
+            prepareStepResult?.instructions ??
+            prepareStepResult?.system ??
+            instructionsForNextStep;
+          instructionsForNextStep = stepInstructions;
+
+          const stepProviderOptions = mergeObjects(
+            providerOptions,
+            prepareStepResult?.providerOptions,
+          );
+
+          const stepStartTimestampMs = now();
+
+          const { retry } = prepareRetries({ maxRetries, abortSignal });
+
+          const {
+            stream: languageModelStream,
+            request,
+            response,
+          } = await retry(async () =>
+            streamLanguageModelCall({
+              model: prepareStepResult?.model ?? model,
+              tools: stepActiveTools,
+              toolOrder: stepToolOrder,
+              toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+              instructions: stepInstructions,
+              messages: stepMessages,
+              allowSystemInMessages,
+              repairToolCall,
+              refineToolInput,
+              abortSignal,
+              headers,
+              includeRawChunks: include.rawChunks,
+              providerOptions: stepProviderOptions,
+              download,
+              output,
+              callId,
+              executeLanguageModelCallInTelemetryContext:
+                telemetryDispatcher.executeLanguageModelCall,
+              toolsContext,
+              experimental_sandbox: stepSandbox,
+              onLanguageModelCallStart: filterNullable(
+                onLanguageModelCallStart,
+                telemetryDispatcher.onLanguageModelCallStart as
+                  | undefined
+                  | OnLanguageModelCallStartCallback,
+              ),
+              onLanguageModelCallEnd: filterNullable(
+                onLanguageModelCallEnd,
+                telemetryDispatcher.onLanguageModelCallEnd as
+                  | undefined
+                  | OnLanguageModelCallEndCallback<TOOLS>,
+              ),
+              onStart: async ({ promptMessages }) => {
+                await notify({
+                  event: {
+                    callId,
+                    provider: stepModel.provider,
+                    modelId: stepModel.modelId,
+                    stepNumber: recordedSteps.length,
+                    instructions: stepInstructions,
+                    messages: stepMessages,
+                    tools,
+                    toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+                    activeTools: prepareStepResult?.activeTools ?? activeTools,
+                    toolOrder: stepToolOrder,
+                    steps: [...recordedSteps],
+                    providerOptions: stepProviderOptions,
+                    runtimeContext,
+                    toolsContext,
+                    output,
+                    promptMessages,
+                    stepTools,
+                    stepToolChoice,
+>>>>>>> c9076227c (feat: add a `toolOrder` option to control the order in which tools are sent (#15811))
                   },
                 });
 

@@ -49,6 +49,7 @@ exports[`streamText > options.experimental_onToolCallStart > should be called wi
       "role": "user",
     },
   ],
+<<<<<<< HEAD
   "metadata": undefined,
   "model": {
     "modelId": "mock-model-id",
@@ -66,6 +67,26 @@ exports[`streamText > options.experimental_onToolCallStart > should be called wi
     "toolName": "tool1",
     "type": "tool-call",
   },
+=======
+  "modelId": "mock-model-id",
+  "operationId": "ai.streamText",
+  "output": undefined,
+  "presencePenalty": undefined,
+  "provider": "mock-provider",
+  "providerOptions": undefined,
+  "reasoning": undefined,
+  "runtimeContext": {},
+  "seed": undefined,
+  "stopSequences": undefined,
+  "temperature": undefined,
+  "timeout": undefined,
+  "toolChoice": undefined,
+  "toolOrder": undefined,
+  "tools": undefined,
+  "toolsContext": {},
+  "topK": undefined,
+  "topP": undefined,
+>>>>>>> c9076227c (feat: add a `toolOrder` option to control the order in which tools are sent (#15811))
 }
 `;
 

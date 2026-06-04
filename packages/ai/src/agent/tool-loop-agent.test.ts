@@ -65,6 +65,64 @@ describe('ToolLoopAgent', () => {
       `);
     });
 
+<<<<<<< HEAD
+=======
+    it('should forward toolOrder to generateText', async () => {
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        tools: {
+          zebra: tool({
+            inputSchema: z.object({}),
+          }),
+          alpha: tool({
+            inputSchema: z.object({}),
+          }),
+          middle: tool({
+            inputSchema: z.object({}),
+          }),
+        },
+        toolOrder: ['middle'],
+      });
+
+      await agent.generate({ prompt: 'Hello, world!' });
+
+      expect(doGenerateOptions?.tools?.map(tool => tool.name)).toEqual([
+        'middle',
+        'alpha',
+        'zebra',
+      ]);
+    });
+
+    it('should pass sandbox to prepareCall', async () => {
+      const sandbox = {
+        description: 'test sandbox',
+        run: vi.fn(async () => ({
+          exitCode: 0,
+          stdout: 'ok',
+          stderr: '',
+        })),
+        ...mockSandboxSessionFileStubs,
+      } satisfies SandboxSession;
+      let recordedSandbox: SandboxSession | undefined;
+
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        prepareCall: options => {
+          recordedSandbox = options.experimental_sandbox;
+
+          return options;
+        },
+      });
+
+      await agent.generate({
+        prompt: 'Hello, world!',
+        experimental_sandbox: sandbox,
+      });
+
+      expect(recordedSandbox).toBe(sandbox);
+    });
+
+>>>>>>> c9076227c (feat: add a `toolOrder` option to control the order in which tools are sent (#15811))
     it('should pass abortSignal to generateText', async () => {
       const abortController = new AbortController();
 
@@ -367,6 +425,66 @@ describe('ToolLoopAgent', () => {
       );
     });
 
+<<<<<<< HEAD
+=======
+    it('should forward toolOrder to streamText', async () => {
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        tools: {
+          zebra: tool({
+            inputSchema: z.object({}),
+          }),
+          alpha: tool({
+            inputSchema: z.object({}),
+          }),
+          middle: tool({
+            inputSchema: z.object({}),
+          }),
+        },
+        toolOrder: ['middle'],
+      });
+
+      const result = await agent.stream({ prompt: 'Hello, world!' });
+      await result.consumeStream();
+
+      expect(doStreamOptions?.tools?.map(tool => tool.name)).toEqual([
+        'middle',
+        'alpha',
+        'zebra',
+      ]);
+    });
+
+    it('should pass sandbox to prepareCall', async () => {
+      const sandbox = {
+        description: 'test sandbox',
+        run: vi.fn(async () => ({
+          exitCode: 0,
+          stdout: 'ok',
+          stderr: '',
+        })),
+        ...mockSandboxSessionFileStubs,
+      } satisfies SandboxSession;
+      let recordedSandbox: SandboxSession | undefined;
+
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        prepareCall: options => {
+          recordedSandbox = options.experimental_sandbox;
+
+          return options;
+        },
+      });
+
+      const result = await agent.stream({
+        prompt: 'Hello, world!',
+        experimental_sandbox: sandbox,
+      });
+      await result.consumeStream();
+
+      expect(recordedSandbox).toBe(sandbox);
+    });
+
+>>>>>>> c9076227c (feat: add a `toolOrder` option to control the order in which tools are sent (#15811))
     it('should pass abortSignal to streamText', async () => {
       const abortController = new AbortController();
 
