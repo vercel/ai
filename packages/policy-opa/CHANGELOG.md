@@ -1,5 +1,14 @@
 # @ai-sdk/policy
 
+## 1.0.0-canary.2
+
+### Patch Changes
+
+- Updated dependencies [ce769dd]
+  - @ai-sdk/provider@4.0.0-canary.18
+  - ai@7.0.0-canary.165
+  - @ai-sdk/provider-utils@5.0.0-canary.46
+
 ## 1.0.0-canary.1
 
 ### Patch Changes
