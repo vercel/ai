@@ -1276,13 +1276,13 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'onStepFinish',
-      type: '(result: onStepFinishResult) => Promise<void> | void',
+      name: 'onStepEnd',
+      type: '(result: StepResult<TOOLS>) => Promise<void> | void',
       isOptional: true,
-      description: 'Callback that is called when a step is finished.',
+      description: 'Callback that is called when a step ends.',
       properties: [
         {
-          type: 'onStepFinishResult',
+          type: 'StepResult',
           parameters: [
             {
               name: 'stepType',
@@ -1607,6 +1607,13 @@ To see `streamText` in action, check out [these examples](#examples).
           ],
         },
       ],
+    },
+    {
+      name: 'onStepFinish',
+      type: 'GenerateTextOnStepFinishCallback<TOOLS>',
+      isOptional: true,
+      description:
+        'Deprecated. Use `onStepEnd` instead. This alias is only used as a fallback when `onStepEnd` is not provided.',
     },
     {
       name: 'onEnd',

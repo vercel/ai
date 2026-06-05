@@ -172,7 +172,7 @@ const result = await generateText({
     );
   },
 
-  onStepFinish({ stepNumber, finishReason, usage, performance }) {
+  onStepEnd({ stepNumber, finishReason, usage, performance }) {
     console.log(`Step ${stepNumber} finished`, {
       finishReason,
       usage,
@@ -190,7 +190,7 @@ The available lifecycle callbacks are:
 - **`experimental_onLanguageModelCallEnd`**: Called after the model response has been normalized and parsed, but before any client-side tool execution begins. Receives the model-call content parts, usage, and finish reason.
 - **`onToolExecutionStart`**: Called right before a tool's `execute` function runs. Receives the tool call object, messages, and `toolContext`.
 - **`onToolExecutionEnd`**: Called right after a tool's `execute` function completes or errors. Receives the tool call object, `toolExecutionMs`, and a `toolOutput` discriminated union (`type: 'tool-result'` with `output`, or `type: 'tool-error'` with `error`).
-- **`onStepFinish`**: Called after each step finishes. Includes `stepNumber` (zero-based index of the completed step).
+- **`onStepEnd`**: Called after each step finishes. Includes `stepNumber` (zero-based index of the completed step).
 
 ## `streamText`
 
@@ -406,7 +406,7 @@ const result = streamText({
     );
   },
 
-  onStepFinish({ finishReason, usage }) {
+  onStepEnd({ finishReason, usage }) {
     console.log('Step finished', { finishReason, usage });
   },
 });
@@ -420,7 +420,7 @@ The available lifecycle callbacks are:
 - **`experimental_onLanguageModelCallEnd`**: Called after the model response has been normalized and parsed, but before any client-side tool execution begins. Receives the model-call content parts, usage, and finish reason.
 - **`onToolExecutionStart`**: Called right before a tool's `execute` function runs. Receives the tool call object, messages, and `toolContext`.
 - **`onToolExecutionEnd`**: Called right after a tool's `execute` function completes or errors. Receives the tool call object, `toolExecutionMs`, and a `toolOutput` discriminated union (`type: 'tool-result'` with `output`, or `type: 'tool-error'` with `error`).
-- **`onStepFinish`**: Called after each step finishes. Receives the finish reason, usage, and other step details.
+- **`onStepEnd`**: Called after each step finishes. Receives the finish reason, usage, and other step details.
 
 ### `stream` property
 

@@ -91,6 +91,7 @@ export class ToolLoopAgent<
       | 'experimental_onStepStart'
       | 'onToolExecutionStart'
       | 'onToolExecutionEnd'
+      | 'onStepEnd'
       | 'onStepFinish'
       | 'onEnd'
       | 'onFinish'
@@ -114,6 +115,7 @@ export class ToolLoopAgent<
       experimental_onStepStart: _settingsOnStepStart,
       onToolExecutionStart: _settingsOnToolExecutionStart,
       onToolExecutionEnd: _settingsOnToolExecutionEnd,
+      onStepEnd: _settingsOnStepEnd,
       onStepFinish: _settingsOnStepFinish,
       onFinish: _settingsOnFinish,
       onEnd: _settingsOnEnd,
@@ -181,6 +183,7 @@ export class ToolLoopAgent<
     experimental_onStepStart,
     onToolExecutionStart,
     onToolExecutionEnd,
+    onStepEnd,
     onStepFinish,
     onFinish,
     onEnd = onFinish,
@@ -217,7 +220,10 @@ export class ToolLoopAgent<
         this.settings.onToolExecutionEnd,
         onToolExecutionEnd,
       ),
-      onStepFinish: mergeCallbacks(this.settings.onStepFinish, onStepFinish),
+      onStepEnd: mergeCallbacks(
+        this.settings.onStepEnd ?? this.settings.onStepFinish,
+        onStepEnd ?? onStepFinish,
+      ),
       onEnd: mergeCallbacks(this.settings.onEnd, onEnd),
     };
 
@@ -239,6 +245,7 @@ export class ToolLoopAgent<
     experimental_onStepStart,
     onToolExecutionStart,
     onToolExecutionEnd,
+    onStepEnd,
     onStepFinish,
     onFinish,
     onEnd = onFinish,
@@ -276,7 +283,10 @@ export class ToolLoopAgent<
         this.settings.onToolExecutionEnd,
         onToolExecutionEnd,
       ),
-      onStepFinish: mergeCallbacks(this.settings.onStepFinish, onStepFinish),
+      onStepEnd: mergeCallbacks(
+        this.settings.onStepEnd ?? this.settings.onStepFinish,
+        onStepEnd ?? onStepFinish,
+      ),
       onEnd: mergeCallbacks(this.settings.onEnd, onEnd),
     };
 
