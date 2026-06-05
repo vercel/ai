@@ -130,7 +130,7 @@ export function createTelemetryDispatcher({
     onLanguageModelCallEnd: mergeTelemetryCallback('onLanguageModelCallEnd'),
     onToolExecutionStart: mergeTelemetryCallback('onToolExecutionStart'),
     onToolExecutionEnd: mergeTelemetryCallback('onToolExecutionEnd'),
-    onStepFinish: mergeTelemetryCallback('onStepFinish'),
+    onStepEnd: mergeTelemetryCallback('onStepEnd'),
     onObjectStepStart: mergeTelemetryCallback('onObjectStepStart'),
     onObjectStepFinish: mergeTelemetryCallback('onObjectStepFinish'),
     onEmbedStart: mergeTelemetryCallback('onEmbedStart'),

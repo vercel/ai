@@ -814,6 +814,68 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
     });
   });
 
+  describe('onStepEnd', () => {
+    describe('stream', () => {
+      let mockModel: MockLanguageModelV4;
+
+      beforeEach(() => {
+        mockModel = new MockLanguageModelV4({
+          doStream: async () => createSimpleStreamResponse(),
+        });
+      });
+
+      it('should call onStepEnd from constructor and stream method in correct order', async () => {
+        const onStepEndCalls: string[] = [];
+
+        const agent = new WorkflowAgent({
+          model: mockModel,
+          onStepEnd: async () => {
+            onStepEndCalls.push('constructor');
+          },
+        });
+
+        const { writable } = createMockWritable();
+        await agent.stream({
+          messages: [{ role: 'user' as const, content: 'Hello, world!' }],
+          writable,
+          onStepEnd: async () => {
+            onStepEndCalls.push('method');
+          },
+        });
+
+        expect(onStepEndCalls).toEqual(['constructor', 'method']);
+      });
+
+      it('should prefer onStepEnd over deprecated onStepFinish', async () => {
+        const calls: string[] = [];
+
+        const agent = new WorkflowAgent({
+          model: mockModel,
+          onStepEnd: async () => {
+            calls.push('constructor-onStepEnd');
+          },
+          onStepFinish: async () => {
+            calls.push('constructor-onStepFinish');
+          },
+        });
+
+        const { writable } = createMockWritable();
+        await agent.stream({
+          messages: [{ role: 'user' as const, content: 'Hello, world!' }],
+          writable,
+          onStepEnd: async () => {
+            calls.push('method-onStepEnd');
+          },
+          onStepFinish: async () => {
+            calls.push('method-onStepFinish');
+          },
+        });
+
+        expect(calls).toEqual(['constructor-onStepEnd', 'method-onStepEnd']);
+      });
+    });
+  });
+
   describe('onStepFinish', () => {
     describe('stream', () => {
       let mockModel: MockLanguageModelV4;

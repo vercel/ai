@@ -37,6 +37,7 @@ import { generateText } from './generate-text';
 import type {
   GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
+  GenerateTextOnStepEndCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
 } from './generate-text-events';
@@ -2384,6 +2385,49 @@ describe('generateText', () => {
         tool1: { label: 'updated' },
       });
       expect(recordedToolContext).toEqual({ label: 'updated' });
+    });
+  });
+
+  describe('options.onStepEnd stepNumber', () => {
+    it('should call onStepEnd with step result', async () => {
+      let stepEndEvent!: Parameters<GenerateTextOnStepEndCallback<any, any>>[0];
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            content: [{ type: 'text', text: 'Hello!' }],
+            ...dummyResponseValues,
+          }),
+        }),
+        prompt: 'test-input',
+        onStepEnd: async event => {
+          stepEndEvent = event;
+        },
+      });
+
+      expect(stepEndEvent.stepNumber).toBe(0);
+    });
+
+    it('should prefer onStepEnd over deprecated onStepFinish', async () => {
+      const calls: string[] = [];
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            content: [{ type: 'text', text: 'Hello!' }],
+            ...dummyResponseValues,
+          }),
+        }),
+        prompt: 'test-input',
+        onStepEnd: async () => {
+          calls.push('onStepEnd');
+        },
+        onStepFinish: async () => {
+          calls.push('onStepFinish');
+        },
+      });
+
+      expect(calls).toEqual(['onStepEnd']);
     });
   });
 

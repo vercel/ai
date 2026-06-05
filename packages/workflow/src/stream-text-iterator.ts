@@ -26,6 +26,7 @@ import type {
   GenerationSettings,
   PrepareStepCallback,
   WorkflowAgentOnErrorCallback,
+  WorkflowAgentOnStepEndCallback,
   WorkflowAgentOnStepFinishCallback,
   TelemetryOptions,
   WorkflowAgentOnStepStartCallback,
@@ -60,6 +61,7 @@ export async function* streamTextIterator({
   writable,
   model,
   stopConditions,
+  onStepEnd,
   onStepFinish,
   onStepStart,
   onError,
@@ -78,6 +80,8 @@ export async function* streamTextIterator({
   writable?: WritableStream<ModelCallStreamPart<ToolSet>>;
   model: LanguageModel;
   stopConditions?: ModelStopCondition[] | ModelStopCondition;
+  onStepEnd?: WorkflowAgentOnStepEndCallback<any>;
+  /** @deprecated Use `onStepEnd` instead. */
   onStepFinish?: WorkflowAgentOnStepFinishCallback<any>;
   onStepStart?: WorkflowAgentOnStepStartCallback;
   onError?: WorkflowAgentOnErrorCallback;
@@ -448,10 +452,11 @@ export async function* streamTextIterator({
         );
       }
 
-      if (onStepFinish) {
-        await onStepFinish(step);
+      const resolvedOnStepEnd = onStepEnd ?? onStepFinish;
+      if (resolvedOnStepEnd) {
+        await resolvedOnStepEnd(step);
       }
-      await telemetryDispatcher.onStepFinish?.(normalizeStepForTelemetry(step));
+      await telemetryDispatcher.onStepEnd?.(normalizeStepForTelemetry(step));
     } catch (error) {
       if (onError) {
         await onError({ error });

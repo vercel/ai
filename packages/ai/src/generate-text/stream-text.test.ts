@@ -19134,6 +19134,69 @@ describe('streamText', () => {
           `);
       });
 
+      it('options.onStepEnd should be called', async () => {
+        let result!: Parameters<
+          Required<Parameters<typeof streamText>[0]>['onStepEnd']
+        >[0];
+
+        const resultObject = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello, ' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+          prompt: 'test-input',
+          onStepEnd: async event => {
+            result = event as unknown as typeof result;
+          },
+          _internal: {
+            generateId: () => 'test-call-id',
+            generateCallId: () => 'test-telemetry-call-id',
+          },
+        });
+
+        await resultObject.consumeStream();
+
+        expect(result.stepNumber).toBe(0);
+      });
+
+      it('options.onStepEnd should be preferred over deprecated onStepFinish', async () => {
+        const calls: string[] = [];
+
+        const resultObject = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello, ' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+          prompt: 'test-input',
+          onStepEnd: async () => {
+            calls.push('onStepEnd');
+          },
+          onStepFinish: async () => {
+            calls.push('onStepFinish');
+          },
+        });
+
+        await resultObject.consumeStream();
+
+        expect(calls).toEqual(['onStepEnd']);
+      });
+
       it('options.onStepFinish should be called', async () => {
         let result!: Parameters<
           Required<Parameters<typeof streamText>[0]>['onStepFinish']
