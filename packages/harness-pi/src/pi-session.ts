@@ -525,16 +525,20 @@ export async function createPiSession(
     return control;
   }
 
+  const resumeInfo = input.isResume
+    ? { isResume: true as const, resumeMode: 'rerun' as const }
+    : { isResume: false as const, resumeMode: undefined };
+
   const sessionImpl: HarnessV1Session = {
     sessionId: input.sessionId,
+    ...resumeInfo,
     // The model Pi actually resolves to (the configured id, or its default when
     // unset) — `gen_ai.request.model`.
     ...(resolvedModel?.id ? { modelId: resolvedModel.id } : {}),
 
     // Pi has no bridge to attach to and no on-disk event log to replay; its
-    // only recovery is restoring the session file on a fresh/snapshotted
-    // sandbox, i.e. the `rerun` equivalent.
-    recoveryMode: input.isResume ? 'rerun' : 'cold',
+    // only resume path is restoring the session file on a fresh/snapshotted
+    // sandbox, i.e. `rerun`.
 
     doPromptTurn: async (
       promptOpts: HarnessV1PromptOptions,
@@ -562,7 +566,7 @@ export async function createPiSession(
        * Rerun-continue: re-drive the agent from the journal restored on resume.
        * An empty prompt asks Pi to continue its own thread. Lossy — any work in
        * flight at the slice boundary is recomputed. Matches Pi's `'rerun'`
-       * recoveryMode (a host-resident runtime cannot do a lossless attach).
+       * resumeMode (a host-resident runtime cannot do a lossless attach).
        */
       return runTurn({
         text: '',

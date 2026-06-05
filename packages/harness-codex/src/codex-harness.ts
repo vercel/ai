@@ -12,7 +12,7 @@ import {
   type HarnessV1BuiltinTool,
   type HarnessV1Prompt,
   type HarnessV1PromptControl,
-  type HarnessV1RecoveryMode,
+  type HarnessV1ResumeMode,
   type HarnessV1ResumeState,
   type HarnessV1NetworkSandboxSession,
   type HarnessV1Session,
@@ -252,7 +252,7 @@ export function createCodex(
             reasoningEffort: settings.reasoningEffort,
             webSearch: settings.webSearch,
             resumeThreadId: resumeThreadIdString,
-            recoveryMode: 'attach',
+            resumeMode: 'attach',
             bridgePort: coords.port,
             bridgeToken: coords.token,
             sandboxId,
@@ -272,7 +272,9 @@ export function createCodex(
        * into the next turn. Those resumes always `rerun` (the bridge takes the
        * `codex.resumeThread(threadId)` branch).
        */
-      let recoveryMode: HarnessV1RecoveryMode = isResume ? 'rerun' : 'cold';
+      let resumeMode: HarnessV1ResumeMode | undefined = isResume
+        ? 'rerun'
+        : undefined;
       if (coords) {
         const logRaw = await Promise.resolve(
           session.readTextFile({
@@ -281,7 +283,7 @@ export function createCodex(
           }),
         ).catch(() => null);
         if ((await classifyDiskLog(logRaw)) === 'replay') {
-          recoveryMode = 'replay';
+          resumeMode = 'replay';
         }
       }
 
@@ -291,10 +293,10 @@ export function createCodex(
         ...resolveCodexEnv(settings.auth),
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),
-        ...(recoveryMode === 'replay' ? { BRIDGE_REPLAY_FROM_DISK: '1' } : {}),
+        ...(resumeMode === 'replay' ? { BRIDGE_REPLAY_FROM_DISK: '1' } : {}),
       };
 
-      if (recoveryMode === 'cold') {
+      if (resumeMode === undefined) {
         await session.run({
           command: `mkdir -p ${workDir} ${bridgeStateDir}`,
           abortSignal: startOpts.abortSignal,
@@ -326,12 +328,12 @@ export function createCodex(
         // In replay mode the respawned bridge reloaded the finished turn from
         // disk; seed the cursor and resume so it streams the tail (incl.
         // `finish`).
-        ...(recoveryMode === 'replay'
+        ...(resumeMode === 'replay'
           ? { initialLastSeenEventId: coords?.lastSeenEventId ?? 0 }
           : {}),
       });
       await channel.open(
-        recoveryMode === 'replay' ? { resume: true } : undefined,
+        resumeMode === 'replay' ? { resume: true } : undefined,
       );
 
       return createSession({
@@ -343,7 +345,7 @@ export function createCodex(
         reasoningEffort: settings.reasoningEffort,
         webSearch: settings.webSearch,
         resumeThreadId: resumeThreadIdString,
-        recoveryMode,
+        resumeMode,
         bridgePort: boundPort,
         bridgeToken: token,
         sandboxId,
@@ -521,7 +523,7 @@ function createSession({
   reasoningEffort,
   webSearch,
   resumeThreadId,
-  recoveryMode,
+  resumeMode,
   bridgePort,
   bridgeToken,
   sandboxId,
@@ -536,7 +538,7 @@ function createSession({
   reasoningEffort: 'low' | 'medium' | 'high' | undefined;
   webSearch: boolean | undefined;
   resumeThreadId: string | undefined;
-  recoveryMode: HarnessV1RecoveryMode;
+  resumeMode: HarnessV1ResumeMode | undefined;
   bridgePort: number;
   bridgeToken: string;
   sandboxId: string;
@@ -551,7 +553,7 @@ function createSession({
    * on its own, so it needs no seed.
    */
   let pendingResumeThreadId =
-    recoveryMode === 'rerun' || recoveryMode === 'replay'
+    resumeMode === 'rerun' || resumeMode === 'replay'
       ? resumeThreadId
       : undefined;
   /*
@@ -560,7 +562,7 @@ function createSession({
    * original first message (preserved in the persisted thread), so it starts
    * "applied".
    */
-  let instructionsApplied = recoveryMode !== 'cold';
+  let instructionsApplied = resumeMode !== undefined;
 
   /*
    * Latest codex thread id, cached from the bridge's `bridge-thread`
@@ -700,7 +702,9 @@ function createSession({
 
   return {
     sessionId,
-    recoveryMode,
+    ...(resumeMode === undefined
+      ? { isResume: false, resumeMode: undefined }
+      : { isResume: true, resumeMode }),
     modelId: model,
     doPromptTurn: async promptOpts => {
       const control = wireTurn({
@@ -761,7 +765,7 @@ function createSession({
        * at the interruption is recomputed. This is the rare bridge-died
        * fallback; the common slice path is `attach`.
        */
-      if (recoveryMode === 'rerun') {
+      if (resumeMode === 'rerun') {
         const threadId = pendingResumeThreadId ?? latestThreadId;
         pendingResumeThreadId = undefined;
         channel.send({

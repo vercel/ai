@@ -6,8 +6,8 @@
  * `session.getResumeHandle()` captures the live bridge coordinates *without*
  * tearing anything down. A fresh `HarnessAgent` (standing in for a different
  * server process) reattaches to the still-running bridge with those
- * coordinates and continues mid-conversation. `session.recoveryMode` reports
- * `'attach'`.
+ * coordinates and continues mid-conversation. `session.isResume` reports
+ * `true` and `session.resumeMode` reports `'attach'`.
  */
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import type { HarnessV1ResumeState } from '@ai-sdk/harness';
@@ -49,10 +49,10 @@ run(async () => {
       sessionId,
       resumeFrom: resumeState,
     });
-    console.log('--- turn 2 (recoveryMode:', session.recoveryMode, ') ---');
-    if (session.recoveryMode !== 'attach') {
+    console.log('--- turn 2 (resumeMode:', session.resumeMode, ') ---');
+    if (!session.isResume || session.resumeMode !== 'attach') {
       throw new Error(
-        `expected recoveryMode 'attach', got '${session.recoveryMode}'`,
+        `expected resumeMode 'attach', got '${session.resumeMode}'`,
       );
     }
     const result = await agent.stream({

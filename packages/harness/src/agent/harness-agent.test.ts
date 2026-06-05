@@ -39,6 +39,8 @@ function mockHarness(options: {
 
   const session: HarnessV1Session = {
     sessionId: 'mock-session-1',
+    isResume: false,
+    resumeMode: undefined,
     doPromptTurn: async (opts: HarnessV1PromptOptions) => {
       prompts.push(opts.prompt);
       const control: HarnessV1PromptControl = {
@@ -452,11 +454,12 @@ describe('HarnessAgent', () => {
     await expect(session.compact()).rejects.toThrow(/closed/i);
   });
 
-  test('getResumeHandle() returns validated coords, surfaces recoveryMode, and leaves the session usable', async () => {
+  test('getResumeHandle() returns validated coords, surfaces resume status, and leaves the session usable', async () => {
     const doStop = vi.fn(async () => {});
     const underlying: HarnessV1Session = {
       sessionId: 's-attach',
-      recoveryMode: 'attach',
+      isResume: true,
+      resumeMode: 'attach',
       doPromptTurn: async (opts: HarnessV1PromptOptions) => {
         queueMicrotask(() => opts.emit({ type: 'finish' } as never));
         return { submitToolResult: async () => {}, done: Promise.resolve() };
@@ -496,7 +499,8 @@ describe('HarnessAgent', () => {
 
     const agent = new HarnessAgent({ harness });
     const session = await agent.createSession();
-    expect(session.recoveryMode).toBe('attach');
+    expect(session.isResume).toBe(true);
+    expect(session.resumeMode).toBe('attach');
 
     const handle = await session.getResumeHandle();
     expect(handle).toEqual({

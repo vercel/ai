@@ -316,7 +316,7 @@ export class HarnessAgent<
    * (or finished) in the runtime after a process boundary — the workflow slice
    * loop calls this on every slice after the first. Routes through the adapter's
    * `doContinueTurn`; what it can guarantee (lossless attach vs. lossy rerun)
-   * follows from how the session was resumed (`recoveryMode`).
+   * follows from how the session was resumed (`resumeMode`).
    */
   async continueTurn(options: {
     session: HarnessAgentSession;

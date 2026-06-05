@@ -85,6 +85,8 @@ export function myHarness(): HarnessV1 {
     doStart: async startOpts => {
       const session: HarnessV1Session = {
         sessionId: startOpts.sessionId,
+        isResume: false,
+        resumeMode: undefined,
         doPromptTurn: async promptOpts => {
           promptOpts.emit({ type: 'text-start', id: 't' });
           promptOpts.emit({ type: 'text-delta', id: 't', delta: 'Hello.' });

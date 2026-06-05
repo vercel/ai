@@ -12,7 +12,7 @@ import {
   type HarnessV1BuiltinTool,
   type HarnessV1Prompt,
   type HarnessV1PromptControl,
-  type HarnessV1RecoveryMode,
+  type HarnessV1ResumeMode,
   type HarnessV1ResumeState,
   type HarnessV1NetworkSandboxSession,
   type HarnessV1Session,
@@ -499,7 +499,7 @@ export function createClaudeCode(
             model: settings.model,
             maxTurns: settings.maxTurns,
             thinking: settings.thinking,
-            recoveryMode: 'attach',
+            resumeMode: 'attach',
             bridgePort: coords.port,
             bridgeToken: coords.token,
             sandboxId,
@@ -519,7 +519,9 @@ export function createClaudeCode(
        * into the next turn. Those resumes always `rerun` (the CLI continues its
        * own thread from the workdir snapshot via `continue: true`).
        */
-      let recoveryMode: HarnessV1RecoveryMode = isResume ? 'rerun' : 'cold';
+      let resumeMode: HarnessV1ResumeMode | undefined = isResume
+        ? 'rerun'
+        : undefined;
       if (coords) {
         const logRaw = await Promise.resolve(
           session.readTextFile({
@@ -528,7 +530,7 @@ export function createClaudeCode(
           }),
         ).catch(() => null);
         if ((await classifyDiskLog(logRaw)) === 'replay') {
-          recoveryMode = 'replay';
+          resumeMode = 'replay';
         }
       }
 
@@ -538,16 +540,16 @@ export function createClaudeCode(
         ...resolveClaudeCodeEnv(settings.auth),
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),
-        ...(recoveryMode === 'replay' ? { BRIDGE_REPLAY_FROM_DISK: '1' } : {}),
+        ...(resumeMode === 'replay' ? { BRIDGE_REPLAY_FROM_DISK: '1' } : {}),
       };
 
       /*
-       * On a fresh (cold) start the workdir, skill files, and bridge-state
-       * directory must be created. On any resume they already exist in the
+       * On a fresh start the workdir, skill files, and bridge-state directory
+       * must be created. On any resume they already exist in the
        * sandbox snapshot, so skip the rewrite. The env is sent fresh on every
        * spawn — `BRIDGE_CHANNEL_TOKEN` rotates per start.
        */
-      if (recoveryMode === 'cold') {
+      if (resumeMode === undefined) {
         await session.run({
           command: `mkdir -p ${workDir} ${bridgeStateDir}`,
           abortSignal: startOpts.abortSignal,
@@ -599,12 +601,12 @@ export function createClaudeCode(
         // In replay mode the respawned bridge reloaded the finished turn from
         // disk; seed the cursor and resume so it streams the tail (incl.
         // `finish`) rather than starting empty.
-        ...(recoveryMode === 'replay'
+        ...(resumeMode === 'replay'
           ? { initialLastSeenEventId: coords?.lastSeenEventId ?? 0 }
           : {}),
       });
       await channel.open(
-        recoveryMode === 'replay' ? { resume: true } : undefined,
+        resumeMode === 'replay' ? { resume: true } : undefined,
       );
 
       return createSession({
@@ -614,7 +616,7 @@ export function createClaudeCode(
         model: settings.model,
         maxTurns: settings.maxTurns,
         thinking: settings.thinking,
-        recoveryMode,
+        resumeMode,
         bridgePort: boundPort,
         bridgeToken: token,
         sandboxId,
@@ -873,7 +875,7 @@ function createSession({
   model,
   maxTurns,
   thinking,
-  recoveryMode,
+  resumeMode,
   bridgePort,
   bridgeToken,
   sandboxId,
@@ -886,7 +888,7 @@ function createSession({
   model: string | undefined;
   maxTurns: number | undefined;
   thinking: 'off' | 'on' | 'adaptive' | undefined;
-  recoveryMode: HarnessV1RecoveryMode;
+  resumeMode: HarnessV1ResumeMode | undefined;
   bridgePort: number;
   bridgeToken: string;
   sandboxId: string;
@@ -900,14 +902,14 @@ function createSession({
    * first turn as new, so it must be told to rehydrate the workdir thread. An
    * `attach`ed bridge is already past its first turn and continues on its own.
    */
-  let pendingResumeFlag = recoveryMode === 'rerun' || recoveryMode === 'replay';
+  let pendingResumeFlag = resumeMode === 'rerun' || resumeMode === 'replay';
   /*
    * Instructions are prepended to the first user message of a fresh session
    * only. A resumed session (attach/replay/rerun) already carried them in its
    * original first message (preserved in the workdir snapshot), so it starts
    * "applied".
    */
-  let instructionsApplied = recoveryMode !== 'cold';
+  let instructionsApplied = resumeMode !== undefined;
 
   /*
    * Wire the channel into one turn's worth of events and return the control
@@ -1037,7 +1039,9 @@ function createSession({
 
   return {
     sessionId,
-    recoveryMode,
+    ...(resumeMode === undefined
+      ? { isResume: false, resumeMode: undefined }
+      : { isResume: true, resumeMode }),
     modelId: model,
     doPromptTurn: async promptOpts => {
       const control = wireTurn({
@@ -1089,7 +1093,7 @@ function createSession({
        * recomputed. This is the rare bridge-died fallback; the common slice path
        * is `attach`.
        */
-      if (recoveryMode === 'rerun') {
+      if (resumeMode === 'rerun') {
         pendingResumeFlag = false;
         channel.send({
           type: 'start' as const,

@@ -2,7 +2,7 @@ import { HarnessCapabilityUnsupportedError } from '../errors/harness-capability-
 import type {
   HarnessV1,
   HarnessV1NetworkSandboxSession,
-  HarnessV1RecoveryMode,
+  HarnessV1ResumeMode,
   HarnessV1ResumeState,
   HarnessV1SandboxProvider,
   HarnessV1Session,
@@ -42,12 +42,17 @@ export class HarnessAgentSession {
   private stopped = false;
 
   /**
-   * How this session was (re)established — `'cold'` for a fresh start, or
-   * `'attach'` / `'replay'` / `'rerun'` for the resume rungs. `undefined` when
-   * the adapter does not report it. Captured at construction so it survives
-   * `close()` / `detach()`.
+   * Whether this session was created from a resume payload. Captured at
+   * construction so it survives `close()` / `detach()`.
    */
-  readonly recoveryMode: HarnessV1RecoveryMode | undefined;
+  readonly isResume: boolean;
+
+  /**
+   * How this resumed session was re-established — `'attach'`, `'replay'`, or
+   * `'rerun'`. Fresh sessions leave it unset. Captured at construction so it
+   * survives `close()` / `detach()`.
+   */
+  readonly resumeMode: HarnessV1ResumeMode | undefined;
 
   constructor(options: {
     sessionId: string;
@@ -65,7 +70,8 @@ export class HarnessAgentSession {
     this.sandboxProvider = options.sandboxProvider;
     this.leasedBridgePort = options.leasedBridgePort;
     this.sessionWorkDir = options.sessionWorkDir;
-    this.recoveryMode = options.underlyingSession.recoveryMode;
+    this.isResume = options.underlyingSession.isResume;
+    this.resumeMode = options.underlyingSession.resumeMode;
   }
 
   /**

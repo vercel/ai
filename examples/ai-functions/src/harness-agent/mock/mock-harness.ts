@@ -44,6 +44,8 @@ export function mockHarness(options: {
 
       const session: HarnessV1Session = {
         sessionId: startOpts.sessionId,
+        isResume: false,
+        resumeMode: undefined,
         doPromptTurn: async promptOpts => {
           history.push(...(promptOpts.prompt as unknown as ModelMessage[]));
 

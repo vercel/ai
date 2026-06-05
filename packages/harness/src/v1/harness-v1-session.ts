@@ -65,7 +65,7 @@ export type HarnessV1Session = {
    *    in flight at the interruption is recomputed.
    *
    * Required on every adapter. The behaviour an adapter can guarantee follows
-   * from its architecture (see `recoveryMode`); the contract is uniform.
+   * from its architecture (see `resumeMode`); the contract is uniform.
    */
   doContinueTurn(
     options: HarnessV1ContinueOptions,
@@ -116,16 +116,33 @@ export type HarnessV1Session = {
    * adapter.
    */
   doSuspendTurn(): PromiseLike<HarnessV1ResumeState>;
+} & HarnessV1SessionResumeInfo;
 
-  /**
-   * How this session was (re)established, set by the adapter in `doStart`:
-   * `'cold'` (fresh), `'attach'` (reconnected to a live bridge), `'replay'`
-   * (respawned bridge replaying a finished turn from disk), or `'rerun'`
-   * (fresh bridge continuing the runtime's own thread). Surfaced to callers as
-   * `HarnessAgentSession.recoveryMode`.
-   */
-  readonly recoveryMode?: HarnessV1RecoveryMode;
-};
+export type HarnessV1SessionResumeInfo =
+  | {
+      /**
+       * Whether this session was created from a resume payload. Fresh sessions
+       * report `false` and must leave `resumeMode` unset.
+       */
+      readonly isResume: false;
+      readonly resumeMode?: undefined;
+    }
+  | {
+      /**
+       * Whether this session was created from a resume payload. Resumed
+       * sessions report `true` and must also report the resume strategy used.
+       */
+      readonly isResume: true;
 
-/** @see HarnessV1Session.recoveryMode */
-export type HarnessV1RecoveryMode = 'cold' | 'attach' | 'replay' | 'rerun';
+      /**
+       * How this resumed session was re-established:
+       *
+       *  - `'attach'`: reconnected to a live bridge.
+       *  - `'replay'`: respawned a bridge and replayed an event log from disk.
+       *  - `'rerun'`: continued the runtime's own persisted thread/state.
+       */
+      readonly resumeMode: HarnessV1ResumeMode;
+    };
+
+/** @see HarnessV1Session.resumeMode */
+export type HarnessV1ResumeMode = 'attach' | 'replay' | 'rerun';
