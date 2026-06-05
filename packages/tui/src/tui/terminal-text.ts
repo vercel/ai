@@ -1,10 +1,12 @@
 const ansiEscape = String.fromCharCode(27);
 
-export const ansiPattern = new RegExp(`${ansiEscape}\\[[0-?]*[ -/]*[@-~]`, "g");
-export const ansiPrefixPattern = new RegExp(`^${ansiEscape}\\[[0-?]*[ -/]*[@-~]`);
+export const ansiPattern = new RegExp(`${ansiEscape}\\[[0-?]*[ -/]*[@-~]`, 'g');
+export const ansiPrefixPattern = new RegExp(
+  `^${ansiEscape}\\[[0-?]*[ -/]*[@-~]`,
+);
 
 export function stripAnsi(input: string): string {
-  return input.replaceAll(ansiPattern, "");
+  return input.replace(ansiPattern, '');
 }
 
 export function visibleLength(input: string): number {
@@ -35,10 +37,10 @@ export function visibleLength(input: string): number {
 
 export function sliceVisible(input: string, width: number): string {
   if (width <= 0) {
-    return "";
+    return '';
   }
 
-  let output = "";
+  let output = '';
   let visible = 0;
   let index = 0;
 

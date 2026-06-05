@@ -1,9 +1,14 @@
-import { renderMarkdown } from "./markdown";
-import { ansiPrefixPattern, codePointWidth, sliceVisible, visibleLength } from "./terminal-text";
+import { renderMarkdown } from './markdown';
+import {
+  ansiPrefixPattern,
+  codePointWidth,
+  sliceVisible,
+  visibleLength,
+} from './terminal-text';
 
-export { sliceVisible, stripAnsi, visibleLength } from "./terminal-text";
+export { sliceVisible, stripAnsi, visibleLength } from './terminal-text';
 
-const horizontal = "─";
+const horizontal = '─';
 
 export type TUIScreenState = {
   width: number;
@@ -18,11 +23,14 @@ export type TUIScreenState = {
   status?: string;
 };
 
-export type TUIScreenLinesState = Omit<TUIScreenState, "body"> & {
+export type TUIScreenLinesState = Omit<TUIScreenState, 'body'> & {
   bodyLines: string[];
 };
 
-export type TUIScreenViewportState = Omit<TUIScreenLinesState, "bodyLines" | "scrollOffset"> & {
+export type TUIScreenViewportState = Omit<
+  TUIScreenLinesState,
+  'bodyLines' | 'scrollOffset'
+> & {
   visibleBodyLines: string[];
 };
 
@@ -40,9 +48,18 @@ export function renderScreenLines(state: TUIScreenLinesState): string {
   const bodyHeight = height - inputHeight;
   const bodyContentHeight = bodyHeight - 2;
 
-  const maxScrollOffset = Math.max(0, state.bodyLines.length - bodyContentHeight);
-  const scrollOffset = Math.min(Math.max(0, state.scrollOffset), maxScrollOffset);
-  const start = Math.max(0, state.bodyLines.length - bodyContentHeight - scrollOffset);
+  const maxScrollOffset = Math.max(
+    0,
+    state.bodyLines.length - bodyContentHeight,
+  );
+  const scrollOffset = Math.min(
+    Math.max(0, state.scrollOffset),
+    maxScrollOffset,
+  );
+  const start = Math.max(
+    0,
+    state.bodyLines.length - bodyContentHeight - scrollOffset,
+  );
   const visibleBody = state.bodyLines.slice(start, start + bodyContentHeight);
 
   return renderScreenViewport({ ...state, visibleBodyLines: visibleBody });
@@ -57,36 +74,36 @@ export function renderScreenViewport(state: TUIScreenViewportState): string {
   const visibleBody = state.visibleBodyLines.slice(0, bodyContentHeight);
 
   while (visibleBody.length < bodyContentHeight) {
-    visibleBody.push("");
+    visibleBody.push('');
   }
 
   const lines = [
     topBorder(width, state.title, state.rightTitle),
-    ...visibleBody.map((line) => boxLine(line, width)),
+    ...visibleBody.map(line => boxLine(line, width)),
     bottomBorder(width),
-    topBorder(width, state.inputActive ? "Input" : "Status"),
+    topBorder(width, state.inputActive ? 'Input' : 'Status'),
     boxLine(
       state.inputActive
-        ? `> ${state.input}${state.inputCursorVisible === false ? " " : "█"}`
-        : (state.status ?? "Streaming... ↑/↓ scroll · Ctrl+C quit"),
+        ? `> ${state.input}${state.inputCursorVisible === false ? ' ' : '█'}`
+        : (state.status ?? 'Streaming... ↑/↓ scroll · Ctrl+C quit'),
       width,
     ),
     bottomBorder(width),
   ];
 
-  return lines.join("\n");
+  return lines.join('\n');
 }
 
 export function wrapText(input: string, width: number): string[] {
   if (width <= 0) {
-    return [""];
+    return [''];
   }
 
   const output: string[] = [];
 
-  for (const rawLine of input.split("\n")) {
+  for (const rawLine of input.split('\n')) {
     if (rawLine.length === 0) {
-      output.push("");
+      output.push('');
       continue;
     }
 
@@ -143,7 +160,7 @@ function findBreakPoint(input: string, width: number): number {
       break;
     }
 
-    if (character === " ") {
+    if (character === ' ') {
       lastSpace = index;
     }
 
@@ -167,9 +184,15 @@ function topBorder(width: number, title: string, rightTitle?: string): string {
   const contentWidth = Math.max(0, width - 2);
   const label = sliceVisible(` ${title} `, contentWidth);
   const rightLabel = rightTitle
-    ? sliceVisible(` ${rightTitle} `, Math.max(0, contentWidth - visibleLength(label)))
-    : "";
-  const remaining = Math.max(0, contentWidth - visibleLength(label) - visibleLength(rightLabel));
+    ? sliceVisible(
+        ` ${rightTitle} `,
+        Math.max(0, contentWidth - visibleLength(label)),
+      )
+    : '';
+  const remaining = Math.max(
+    0,
+    contentWidth - visibleLength(label) - visibleLength(rightLabel),
+  );
 
   return `┌${label}${horizontal.repeat(remaining)}${rightLabel}┐`;
 }
@@ -181,7 +204,9 @@ function bottomBorder(width: number): string {
 function boxLine(line: string, width: number): string {
   const contentWidth = width - 4;
   const visible = sliceVisible(line, contentWidth);
-  const padding = " ".repeat(Math.max(0, contentWidth - visibleLength(visible)));
+  const padding = ' '.repeat(
+    Math.max(0, contentWidth - visibleLength(visible)),
+  );
 
   return `│ ${visible}${padding} │`;
 }

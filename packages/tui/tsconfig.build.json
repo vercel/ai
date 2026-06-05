@@ -1,6 +1,7 @@
 {
-  "extends": "../../tsconfig.json",
+  "extends": "./tsconfig.json",
   "compilerOptions": {
-    "ignoreDeprecations": "6.0"
+    // Disable project configuration for tsup builds
+    "composite": false
   }
 }

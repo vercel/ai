@@ -1,4 +1,4 @@
-# @lgrammel/agent-tui
+# @ai-sdk/tui
 
 ## 0.4.7
 

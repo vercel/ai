@@ -3,8 +3,12 @@ import type {
   AssistantResponseStatsMode,
   RunAgentTUIOptions,
   TerminalPartDisplayMode,
-} from "./run-agent-tui";
-import { TerminalRenderer, type TerminalInput, type TerminalOutput } from "./tui/terminal-renderer";
+} from './run-agent-tui';
+import {
+  TerminalRenderer,
+  type TerminalInput,
+  type TerminalOutput,
+} from './tui/terminal-renderer';
 import {
   convertToModelMessages,
   getToolName,
@@ -15,12 +19,15 @@ import {
   type ToolSet,
   type UIMessage,
   type UIMessageChunk,
-} from "ai";
+} from 'ai';
 
-const defaultAssistantResponseStats: AssistantResponseStatsMode = "tokensPerSecond";
+const defaultAssistantResponseStats: AssistantResponseStatsMode =
+  'tokensPerSecond';
 
 export type AgentTUIStreamResult = {
-  uiMessageStream: AsyncIterable<UIMessageChunk> | ReadableStream<UIMessageChunk>;
+  uiMessageStream:
+    | AsyncIterable<UIMessageChunk>
+    | ReadableStream<UIMessageChunk>;
   message?: UIMessage;
   abort?: () => void;
 };
@@ -69,10 +76,9 @@ export type AgentTUIRenderer = {
   ): Promise<UIMessage | undefined>;
 };
 
-export type AgentTUIRunnerOptions<TAgent extends AgentTUIAgent = AgentTUIAgent> = Omit<
-  RunAgentTUIOptions,
-  "agent"
-> & {
+export type AgentTUIRunnerOptions<
+  TAgent extends AgentTUIAgent = AgentTUIAgent,
+> = Omit<RunAgentTUIOptions, 'agent'> & {
   agent: TAgent;
   renderer?: AgentTUIRenderer;
   screen?: TerminalOutput;
@@ -92,9 +98,10 @@ export class AgentTUIRunner<TAgent extends AgentTUIAgent = AgentTUIAgent> {
     this.#agent = options.agent;
     this.#renderer = createRenderer(options) ?? createDefaultRenderer(options);
     this.#name = options.name;
-    this.#tools = options.tools ?? "full";
-    this.#reasoning = options.reasoning ?? "full";
-    this.#assistantResponseStats = options.assistantResponseStats ?? defaultAssistantResponseStats;
+    this.#tools = options.tools ?? 'full';
+    this.#reasoning = options.reasoning ?? 'full';
+    this.#assistantResponseStats =
+      options.assistantResponseStats ?? defaultAssistantResponseStats;
     this.#contextSize = options.contextSize;
   }
 
@@ -116,7 +123,7 @@ export class AgentTUIRunner<TAgent extends AgentTUIAgent = AgentTUIAgent> {
             }
 
             throw new Error(
-              "No prompt was provided and the renderer does not support prompt input.",
+              'No prompt was provided and the renderer does not support prompt input.',
             );
           }
 
@@ -139,7 +146,10 @@ export class AgentTUIRunner<TAgent extends AgentTUIAgent = AgentTUIAgent> {
         hasRunTurn = true;
       }
 
-      const result = await this.#streamMessages([...messages], generateMessageId);
+      const result = await this.#streamMessages(
+        [...messages],
+        generateMessageId,
+      );
 
       try {
         const responseMessage = await this.#renderer.renderStream(result, {
@@ -154,21 +164,28 @@ export class AgentTUIRunner<TAgent extends AgentTUIAgent = AgentTUIAgent> {
         });
 
         if (responseMessage && responseMessage.parts.length > 0) {
-          const approvalRequests = findPendingToolApprovalRequests(responseMessage);
+          const approvalRequests =
+            findPendingToolApprovalRequests(responseMessage);
 
           if (approvalRequests.length > 0) {
             if (!this.#renderer.readToolApproval) {
               throw new Error(
-                "Tool approval was requested, but the renderer does not support tool approval input.",
+                'Tool approval was requested, but the renderer does not support tool approval input.',
               );
             }
 
             for (const request of approvalRequests) {
-              const response = await this.#renderer.readToolApproval(request, { title });
+              const response = await this.#renderer.readToolApproval(request, {
+                title,
+              });
               applyToolApprovalResponse(responseMessage, request, response);
             }
 
-            upsertResponseMessage(messages, responseMessage, streamWithoutPrompt);
+            upsertResponseMessage(
+              messages,
+              responseMessage,
+              streamWithoutPrompt,
+            );
             streamWithoutPrompt = true;
             prompt = undefined;
             continue;
@@ -194,7 +211,9 @@ export class AgentTUIRunner<TAgent extends AgentTUIAgent = AgentTUIAgent> {
   ): Promise<AgentTUIStreamResult> {
     const abortController = new AbortController();
     const result = await this.#agent.stream({
-      prompt: await convertToModelMessages(messages, { tools: this.#agent.tools as ToolSet }),
+      prompt: await convertToModelMessages(messages, {
+        tools: this.#agent.tools as ToolSet,
+      }),
       abortSignal: abortController.signal,
       options: undefined,
     });
@@ -225,7 +244,9 @@ function createDefaultRenderer(options: AgentTUIRunnerOptions) {
       });
 }
 
-function createRenderer(options: AgentTUIRunnerOptions): AgentTUIRenderer | undefined {
+function createRenderer(
+  options: AgentTUIRunnerOptions,
+): AgentTUIRenderer | undefined {
   if (options.renderer) {
     return options.renderer;
   }
@@ -257,79 +278,80 @@ async function* textStreamToUIMessageStream(
   let sentFinish = false;
 
   yield {
-    type: "start",
-    messageId: lastAssistantMessage(originalMessages)?.id ?? generateMessageId(),
+    type: 'start',
+    messageId:
+      lastAssistantMessage(originalMessages)?.id ?? generateMessageId(),
   };
 
   for await (const part of stream) {
     switch (part.type) {
-      case "text-start":
+      case 'text-start':
         openTextParts.add(part.id);
         yield {
-          type: "text-start",
+          type: 'text-start',
           id: part.id,
           providerMetadata: part.providerMetadata,
         };
         break;
-      case "text-delta":
+      case 'text-delta':
         if (!openTextParts.has(part.id)) {
           openTextParts.add(part.id);
           yield {
-            type: "text-start",
+            type: 'text-start',
             id: part.id,
             providerMetadata: part.providerMetadata,
           };
         }
         yield {
-          type: "text-delta",
+          type: 'text-delta',
           id: part.id,
           delta: part.text,
           providerMetadata: part.providerMetadata,
         };
         break;
-      case "text-end":
+      case 'text-end':
         openTextParts.delete(part.id);
         yield {
-          type: "text-end",
+          type: 'text-end',
           id: part.id,
           providerMetadata: part.providerMetadata,
         };
         break;
-      case "reasoning-start":
+      case 'reasoning-start':
         openReasoningParts.add(part.id);
         yield {
-          type: "reasoning-start",
+          type: 'reasoning-start',
           id: part.id,
           providerMetadata: part.providerMetadata,
         };
         break;
-      case "reasoning-delta":
+      case 'reasoning-delta':
         if (!openReasoningParts.has(part.id)) {
           openReasoningParts.add(part.id);
           yield {
-            type: "reasoning-start",
+            type: 'reasoning-start',
             id: part.id,
             providerMetadata: part.providerMetadata,
           };
         }
         yield {
-          type: "reasoning-delta",
+          type: 'reasoning-delta',
           id: part.id,
           delta: part.text,
           providerMetadata: part.providerMetadata,
         };
         break;
-      case "reasoning-end":
+      case 'reasoning-end':
         openReasoningParts.delete(part.id);
         yield {
-          type: "reasoning-end",
+          type: 'reasoning-end',
           id: part.id,
           providerMetadata: part.providerMetadata,
         };
         break;
-      case "tool-input-start":
+      case 'tool-input-start':
         yield {
-          type: "tool-input-start",
+          type: 'tool-input-start',
           toolCallId: part.id,
           toolName: part.toolName,
           providerExecuted: part.providerExecuted,
@@ -339,17 +361,17 @@ async function* textStreamToUIMessageStream(
           title: part.title,
         };
         break;
-      case "tool-input-delta":
+      case 'tool-input-delta':
         yield {
-          type: "tool-input-delta",
+          type: 'tool-input-delta',
           toolCallId: part.id,
           inputTextDelta: part.delta,
         };
         break;
-      case "tool-call":
+      case 'tool-call':
         openToolCalls.add(part.toolCallId);
         yield {
-          type: "tool-input-available",
+          type: 'tool-input-available',
           toolCallId: part.toolCallId,
           toolName: part.toolName,
           input: part.input,
@@ -360,11 +382,11 @@ async function* textStreamToUIMessageStream(
           title: part.title,
         };
         break;
-      case "tool-approval-request":
+      case 'tool-approval-request':
         if (!openToolCalls.has(part.toolCall.toolCallId)) {
           openToolCalls.add(part.toolCall.toolCallId);
           yield {
-            type: "tool-input-available",
+            type: 'tool-input-available',
             toolCallId: part.toolCall.toolCallId,
             toolName: part.toolCall.toolName,
             input: part.toolCall.input,
@@ -376,24 +398,24 @@ async function* textStreamToUIMessageStream(
           };
         }
         yield {
-          type: "tool-approval-request",
+          type: 'tool-approval-request',
           approvalId: part.approvalId,
           toolCallId: part.toolCall.toolCallId,
           isAutomatic: part.isAutomatic,
         };
         break;
-      case "tool-approval-response":
+      case 'tool-approval-response':
         yield {
-          type: "tool-approval-response",
+          type: 'tool-approval-response',
           approvalId: part.approvalId,
           approved: part.approved,
           reason: part.reason,
           providerExecuted: part.providerExecuted,
         };
         break;
-      case "tool-result":
+      case 'tool-result':
         yield {
-          type: "tool-output-available",
+          type: 'tool-output-available',
           toolCallId: part.toolCallId,
           output: part.output,
           providerExecuted: part.providerExecuted,
@@ -403,9 +425,9 @@ async function* textStreamToUIMessageStream(
           preliminary: part.preliminary,
         };
         break;
-      case "tool-error":
+      case 'tool-error':
         yield {
-          type: "tool-output-error",
+          type: 'tool-output-error',
           toolCallId: part.toolCallId,
           errorText: formatStreamError(part.error),
           providerExecuted: part.providerExecuted,
@@ -414,13 +436,13 @@ async function* textStreamToUIMessageStream(
           dynamic: part.dynamic,
         };
         break;
-      case "tool-output-denied":
-        yield { type: "tool-output-denied", toolCallId: part.toolCallId };
+      case 'tool-output-denied':
+        yield { type: 'tool-output-denied', toolCallId: part.toolCallId };
         break;
-      case "source":
-        if (part.sourceType === "url") {
+      case 'source':
+        if (part.sourceType === 'url') {
           yield {
-            type: "source-url",
+            type: 'source-url',
             sourceId: part.id,
             url: part.url,
             title: part.title,
@@ -428,7 +450,7 @@ async function* textStreamToUIMessageStream(
           };
         } else {
           yield {
-            type: "source-document",
+            type: 'source-document',
             sourceId: part.id,
             mediaType: part.mediaType,
             title: part.title,
@@ -437,35 +459,35 @@ async function* textStreamToUIMessageStream(
           };
         }
         break;
-      case "file":
+      case 'file':
         yield {
-          type: "file",
+          type: 'file',
           url: fileToDataUrl(part.file.mediaType, part.file.base64),
           mediaType: part.file.mediaType,
           providerMetadata: part.providerMetadata,
         };
         break;
-      case "reasoning-file":
+      case 'reasoning-file':
         yield {
-          type: "reasoning-file",
+          type: 'reasoning-file',
           url: fileToDataUrl(part.file.mediaType, part.file.base64),
           mediaType: part.file.mediaType,
           providerMetadata: part.providerMetadata,
         };
         break;
-      case "start-step":
-        yield { type: "start-step" };
+      case 'start-step':
+        yield { type: 'start-step' };
         break;
-      case "finish-step":
+      case 'finish-step':
         latestStepUsage = part.usage;
         latestPerformance = part.performance;
-        yield { type: "finish-step" };
+        yield { type: 'finish-step' };
         break;
-      case "finish":
+      case 'finish':
         yield* closeOpenParts(openTextParts, openReasoningParts);
         sentFinish = true;
         yield {
-          type: "finish",
+          type: 'finish',
           finishReason: part.finishReason,
           messageMetadata: createResponseMetadata(
             latestStepUsage ?? part.totalUsage,
@@ -473,18 +495,18 @@ async function* textStreamToUIMessageStream(
           ),
         };
         break;
-      case "abort":
-        yield { type: "abort", reason: part.reason };
+      case 'abort':
+        yield { type: 'abort', reason: part.reason };
         break;
-      case "error":
-        yield { type: "error", errorText: formatStreamError(part.error) };
+      case 'error':
+        yield { type: 'error', errorText: formatStreamError(part.error) };
         break;
     }
   }
 
   if (!sentFinish) {
     yield* closeOpenParts(openTextParts, openReasoningParts);
-    yield { type: "finish" };
+    yield { type: 'finish' };
   }
 }
 
@@ -505,13 +527,21 @@ function createResponseMetadata(
       ? {}
       : {
           usage: {
-            ...(usage.totalTokens == null ? {} : { totalTokens: usage.totalTokens }),
-            ...(usage.outputTokens == null ? {} : { outputTokens: usage.outputTokens }),
+            ...(usage.totalTokens == null
+              ? {}
+              : { totalTokens: usage.totalTokens }),
+            ...(usage.outputTokens == null
+              ? {}
+              : { outputTokens: usage.outputTokens }),
           },
         }),
     ...(performance?.outputTokensPerSecond == null
       ? {}
-      : { performance: { outputTokensPerSecond: performance.outputTokensPerSecond } }),
+      : {
+          performance: {
+            outputTokensPerSecond: performance.outputTokensPerSecond,
+          },
+        }),
   };
 }
 
@@ -520,17 +550,20 @@ type ResponseMetadata = {
     totalTokens?: number;
     outputTokens?: number;
   };
-  performance?: Pick<StepResultPerformance, "outputTokensPerSecond">;
+  performance?: Pick<StepResultPerformance, 'outputTokensPerSecond'>;
 };
 
-function* closeOpenParts(textPartIds: Set<string>, reasoningPartIds: Set<string>) {
+function* closeOpenParts(
+  textPartIds: Set<string>,
+  reasoningPartIds: Set<string>,
+) {
   for (const id of textPartIds) {
-    yield { type: "text-end", id } satisfies UIMessageChunk;
+    yield { type: 'text-end', id } satisfies UIMessageChunk;
   }
   textPartIds.clear();
 
   for (const id of reasoningPartIds) {
-    yield { type: "reasoning-end", id } satisfies UIMessageChunk;
+    yield { type: 'reasoning-end', id } satisfies UIMessageChunk;
   }
   reasoningPartIds.clear();
 }
@@ -538,8 +571,8 @@ function* closeOpenParts(textPartIds: Set<string>, reasoningPartIds: Set<string>
 function createUserMessage(id: string, text: string): UIMessage {
   return {
     id,
-    role: "user",
-    parts: [{ type: "text", text }],
+    role: 'user',
+    parts: [{ type: 'text', text }],
   };
 }
 
@@ -548,7 +581,7 @@ function upsertResponseMessage(
   responseMessage: UIMessage,
   replaceLast: boolean,
 ) {
-  if (replaceLast && messages.at(-1)?.role === "assistant") {
+  if (replaceLast && messages.at(-1)?.role === 'assistant') {
     messages[messages.length - 1] = responseMessage;
     return;
   }
@@ -559,16 +592,18 @@ function upsertResponseMessage(
 function lastAssistantMessage(messages: UIMessage[]) {
   const message = messages.at(-1);
 
-  return message?.role === "assistant" ? message : undefined;
+  return message?.role === 'assistant' ? message : undefined;
 }
 
-function findPendingToolApprovalRequests(message: UIMessage): AgentTUIToolApprovalRequest[] {
+function findPendingToolApprovalRequests(
+  message: UIMessage,
+): AgentTUIToolApprovalRequest[] {
   const requests: AgentTUIToolApprovalRequest[] = [];
 
   for (const [index, part] of message.parts.entries()) {
     if (
       !isToolUIPart(part) ||
-      part.state !== "approval-requested" ||
+      part.state !== 'approval-requested' ||
       part.approval.isAutomatic === true
     ) {
       continue;
@@ -597,10 +632,12 @@ function applyToolApprovalResponse(
   const part = message.parts[request.partIndex];
 
   if (!part || !isToolUIPart(part) || part.toolCallId !== request.toolCallId) {
-    throw new Error(`Could not find tool approval request ${request.approvalId}.`);
+    throw new Error(
+      `Could not find tool approval request ${request.approvalId}.`,
+    );
   }
 
-  part.state = "approval-responded";
+  part.state = 'approval-responded';
   part.approval = {
     id: request.approvalId,
     approved: response.approved,
@@ -613,7 +650,7 @@ function formatStreamError(error: unknown) {
     return error.message;
   }
 
-  if (typeof error === "string") {
+  if (typeof error === 'string') {
     return error;
   }
 
@@ -625,5 +662,5 @@ function fileToDataUrl(mediaType: string, base64: string) {
 }
 
 function isInterruptedError(error: unknown) {
-  return error instanceof Error && error.message === "Interrupted";
+  return error instanceof Error && error.message === 'Interrupted';
 }

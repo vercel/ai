@@ -10,7 +10,7 @@ export type TerminalFrameBufferOptions = {
   useSynchronizedUpdates?: boolean;
 };
 
-const escape = "\x1b";
+const escape = '\x1b';
 const cursorHome = `${escape}[H`;
 const clearScreen = `${escape}[2J`;
 const clearLine = `${escape}[2K`;
@@ -23,13 +23,16 @@ type FrameSnapshot = {
 
 export class TerminalFrameBuffer {
   readonly #useSynchronizedUpdates: boolean;
-  readonly #originalWrite: TerminalFrameOutput["write"];
+  readonly #originalWrite: TerminalFrameOutput['write'];
 
   #previousFrame?: FrameSnapshot;
   #isWritingFrame = false;
   #externalWriteSinceLastFrame = false;
 
-  constructor(output: TerminalFrameOutput, options?: TerminalFrameBufferOptions) {
+  constructor(
+    output: TerminalFrameOutput,
+    options?: TerminalFrameBufferOptions,
+  ) {
     this.#originalWrite = output.write.bind(output);
     this.#useSynchronizedUpdates = options?.useSynchronizedUpdates ?? true;
 
@@ -43,7 +46,7 @@ export class TerminalFrameBuffer {
       }
 
       return this.#originalWrite(chunk, encodingOrCallback, callback);
-    }) as TerminalFrameOutput["write"];
+    }) as TerminalFrameOutput['write'];
   }
 
   present(frame: string) {
@@ -84,12 +87,15 @@ export class TerminalFrameBuffer {
 }
 
 function snapshotFrame(frame: string): FrameSnapshot {
-  return { lines: frame.split("\n") };
+  return { lines: frame.split('\n') };
 }
 
 function diffFrame(previousFrame: FrameSnapshot, nextFrame: FrameSnapshot) {
-  let output = "";
-  const lineCount = Math.max(previousFrame.lines.length, nextFrame.lines.length);
+  let output = '';
+  const lineCount = Math.max(
+    previousFrame.lines.length,
+    nextFrame.lines.length,
+  );
 
   for (let index = 0; index < lineCount; index++) {
     const line = nextFrame.lines[index];
@@ -98,7 +104,7 @@ function diffFrame(previousFrame: FrameSnapshot, nextFrame: FrameSnapshot) {
       continue;
     }
 
-    output += `${escape}[${index + 1};1H${clearLine}${line ?? ""}`;
+    output += `${escape}[${index + 1};1H${clearLine}${line ?? ''}`;
   }
 
   return output;

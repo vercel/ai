@@ -1,15 +1,19 @@
-import { AgentTUIRunner } from "./agent-tui-runner";
-import type { Agent } from "ai";
+import { AgentTUIRunner } from './agent-tui-runner';
+import type { Agent } from 'ai';
 
 /**
  * Controls how terminal UI sections for stream parts are displayed.
  */
-export type TerminalPartDisplayMode = "full" | "collapsed" | "auto-collapsed" | "hidden";
+export type TerminalPartDisplayMode =
+  | 'full'
+  | 'collapsed'
+  | 'auto-collapsed'
+  | 'hidden';
 
 /**
  * Controls which usage statistic is shown for assistant responses.
  */
-export type AssistantResponseStatsMode = "tokens" | "tokensPerSecond";
+export type AssistantResponseStatsMode = 'tokens' | 'tokensPerSecond';
 
 /**
  * An agent that is compatible with the terminal UI.

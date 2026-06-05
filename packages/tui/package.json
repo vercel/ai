@@ -1,64 +1,75 @@
 {
-  "name": "@lgrammel/agent-tui",
-  "version": "0.4.7",
-  "description": "Run AI SDK agents in a terminal UI.",
-  "keywords": [
-    "agent",
-    "ai",
-    "ai-agent",
-    "ai-sdk",
-    "chat",
-    "chatbot",
-    "cli",
-    "llm",
-    "markdown",
-    "streaming",
-    "terminal",
-    "terminal-ui",
-    "tool-calling",
-    "tui",
-    "typescript"
-  ],
-  "homepage": "https://github.com/lgrammel/agent-tui#readme",
-  "bugs": {
-    "url": "https://github.com/lgrammel/agent-tui/issues"
-  },
-  "license": "Apache-2.0",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/lgrammel/agent-tui.git",
-    "directory": "packages/agent-tui"
-  },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE"
-  ],
+  "name": "@ai-sdk/tui",
+  "version": "1.0.0-canary.0",
   "type": "module",
+  "description": "Run AI SDK agents in a terminal UI.",
+  "license": "Apache-2.0",
+  "sideEffects": false,
   "main": "./dist/index.js",
-  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "source": "./src/index.ts",
+  "files": [
+    "dist/**/*",
+    "src",
+    "!src/**/*.test.ts",
+    "!src/**/*.test-d.ts",
+    "!src/**/__snapshots__",
+    "!src/**/__fixtures__",
+    "CHANGELOG.md",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
+    "build:watch": "pnpm clean && tsup --watch",
+    "clean": "del-cli dist *.tsbuildinfo",
+    "type-check": "tsc --build",
+    "test": "vitest --config vitest.node.config.js --run",
+    "test:update": "vitest --config vitest.node.config.js --run -u",
+    "test:watch": "vitest --config vitest.node.config.js"
+  },
   "exports": {
+    "./package.json": "./package.json",
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     }
   },
-  "publishConfig": {
-    "access": "public"
-  },
-  "scripts": {
-    "build": "tsup src/index.ts --format esm --dts --clean --tsconfig tsconfig.build.json",
-    "prepack": "bun run build",
-    "pack:dry-run": "npm pack --dry-run",
-    "release:dry-run": "bun run pack:dry-run",
-    "release": "npm publish"
+  "dependencies": {
+    "ai": "workspace:*"
   },
   "devDependencies": {
-    "ai": "7.0.0-canary.139"
+    "@ai-sdk/provider": "workspace:*",
+    "@types/node": "22.19.19",
+    "@vercel/ai-tsconfig": "workspace:*",
+    "tsup": "^8.5.1",
+    "typescript": "5.8.3",
+    "vitest": "4.1.5",
+    "zod": "3.25.76"
   },
-  "peerDependencies": {
-    "ai": "7.0.0-canary.139",
-    "typescript": "^5 || ^6"
-  }
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "homepage": "https://ai-sdk.dev/docs",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vercel/ai",
+    "directory": "packages/tui"
+  },
+  "bugs": {
+    "url": "https://github.com/vercel/ai/issues"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "chatbot",
+    "cli",
+    "terminal",
+    "tui"
+  ]
 }
