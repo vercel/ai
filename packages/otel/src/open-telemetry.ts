@@ -478,7 +478,7 @@ export class OpenTelemetry implements Telemetry {
   }
 
   /** @deprecated */
-  onObjectStepFinish(event: GenerateObjectStepEndEvent): void {
+  onObjectStepEnd(event: GenerateObjectStepEndEvent): void {
     const state = this.getCallState(event.callId);
     if (!state?.inferenceSpan) return;
 

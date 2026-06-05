@@ -412,7 +412,7 @@ export class LegacyOpenTelemetry implements Telemetry {
   }
 
   /** @deprecated */
-  onObjectStepFinish(event: GenerateObjectStepEndEvent): void {
+  onObjectStepEnd(event: GenerateObjectStepEndEvent): void {
     const state = this.getCallState(event.callId);
     if (!state?.stepSpan) return;
 

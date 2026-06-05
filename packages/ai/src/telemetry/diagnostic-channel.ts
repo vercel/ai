@@ -9,7 +9,7 @@ export type TelemetryDiagnosticEventType =
   | 'onToolExecutionEnd'
   | 'onStepFinish'
   | 'onObjectStepStart'
-  | 'onObjectStepFinish'
+  | 'onObjectStepEnd'
   | 'onEmbedStart'
   | 'onEmbedEnd'
   | 'onRerankStart'

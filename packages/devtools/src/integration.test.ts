@@ -234,7 +234,7 @@ describe('DevToolsTelemetry', () => {
   });
 
   describe('streamObject lifecycle', () => {
-    it('creates stream-type step via onObjectStepStart/Finish', async () => {
+    it('creates stream-type step via onObjectStepStart/End', async () => {
       const integration = createIntegration();
 
       await integration.onStart!(
@@ -251,7 +251,7 @@ describe('DevToolsTelemetry', () => {
 
       expect(mockCreateStep.mock.calls[0][0].type).toBe('stream');
 
-      await integration.onObjectStepFinish!({
+      await integration.onObjectStepEnd!({
         callId: 'call-1',
         stepNumber: 0,
         finishReason: 'stop',
