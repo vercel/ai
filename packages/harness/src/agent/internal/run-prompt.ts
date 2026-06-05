@@ -8,6 +8,8 @@ import type {
 } from '../../v1';
 import { toHarnessStream } from './to-harness-stream';
 import {
+  executeTool,
+  isExecutableTool,
   safeParseJSON,
   type Context,
   type Experimental_SandboxSession as SandboxSession,
@@ -238,14 +240,45 @@ export function runPrompt<
 
         // Execute host-side tools when the harness asks for one.
         if (value.type === 'tool-call' && !value.providerExecuted) {
+          const toolCall = value;
           const outcome = await maybeExecuteHostTool({
-            event: value,
+            event: toolCall,
             tools: input.tools,
             sandboxSession: input.sandboxSession,
             abortSignal: input.abortSignal,
             control,
+            onPreliminaryResult: preliminaryOutput => {
+              /*
+               * Project a `yield`ed value as a preliminary AI SDK
+               * `tool-result` part. Unlike the final result — which is
+               * submitted to the runtime, echoed back as a `tool-result`
+               * event, and stripped on its way through the loop above —
+               * preliminary values never reach the runtime, so strip the
+               * working directory here to match the final result's projection.
+               */
+              const stripped = stripWorkDir(
+                {
+                  type: 'tool-result',
+                  toolCallId: toolCall.toolCallId,
+                  toolName: toolCall.toolName,
+                  result: preliminaryOutput as Extract<
+                    HarnessV1StreamPart,
+                    { type: 'tool-result' }
+                  >['result'],
+                },
+                input.sessionWorkDir,
+              ) as Extract<HarnessV1StreamPart, { type: 'tool-result' }>;
+              result.enqueue({
+                type: 'tool-result',
+                toolCallId: toolCall.toolCallId,
+                toolName: toolCall.toolName,
+                input: undefined,
+                output: stripped.result,
+                preliminary: true,
+              } as TextStreamPart<TOOLS>);
+            },
           });
-          telemetry.toolEnd(value.toolCallId, outcome);
+          telemetry.toolEnd(toolCall.toolCallId, outcome);
         }
 
         if (value.type === 'error') {
@@ -282,29 +315,51 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
   sandboxSession: SandboxSession | undefined;
   abortSignal: AbortSignal | undefined;
   control: HarnessV1PromptControl;
+  /**
+   * Called for each value a generator `execute` `yield`s before its last. The
+   * caller surfaces these as preliminary `tool-result` parts on the consumer
+   * stream. Never called for a plain (non-generator) `execute`.
+   */
+  onPreliminaryResult: (output: unknown) => void;
 }): Promise<HostToolOutcome> {
-  const tool = (input.tools as Record<string, unknown>)[input.event.toolName] as
-    | {
-        execute?: (
-          args: unknown,
-          options: {
-            abortSignal?: AbortSignal;
-            experimental_sandbox?: SandboxSession;
-          },
-        ) => unknown | Promise<unknown>;
-      }
-    | undefined;
+  const tool = input.tools[input.event.toolName];
 
-  if (tool?.execute == null) return { ok: true, output: undefined };
+  if (!isExecutableTool(tool)) return { ok: true, output: undefined };
 
   const parsed = await safeParseJSON({ text: input.event.input });
   const args = parsed.success ? parsed.value : input.event.input;
 
   try {
-    const output = await tool.execute(args, {
-      abortSignal: input.abortSignal,
-      experimental_sandbox: input.sandboxSession,
+    /*
+     * Normalize the tool's return value through `executeTool`, the same helper
+     * the non-harness AI SDK uses, so generator `execute` functions behave
+     * identically here: each `yield`ed value arrives as a `preliminary` part
+     * and the last `yield` is re-emitted as the `final` part; a plain value or
+     * Promise arrives as a single `final` part. The underlying runtimes accept
+     * exactly one tool result per call, so only the final value is submitted
+     * back to the model — preliminary values are surfaced to the consumer
+     * stream alone, matching how the AI SDK treats `onPreliminaryToolResult`.
+     */
+    let output: unknown;
+    const stream = executeTool({
+      tool,
+      input: args as never,
+      options: {
+        toolCallId: input.event.toolCallId,
+        messages: [],
+        abortSignal: input.abortSignal,
+        context: undefined as never,
+        experimental_sandbox: input.sandboxSession,
+      },
     });
+    for await (const part of stream) {
+      if (part.type === 'preliminary') {
+        input.onPreliminaryResult(part.output);
+      } else {
+        output = part.output;
+      }
+    }
+
     await input.control.submitToolResult({
       toolCallId: input.event.toolCallId,
       output,

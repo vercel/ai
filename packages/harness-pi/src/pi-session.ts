@@ -506,6 +506,14 @@ export async function createPiSession(
         const pending = pendingToolResults.get(args.toolCallId);
         if (!pending) return;
         pendingToolResults.delete(args.toolCallId);
+        /*
+         * Preserve the original output so the result projection can surface it
+         * unchanged. The tool handler stringifies the output for the runtime
+         * (so the model reads it), and Pi echoes that text back — without this
+         * the consumer-facing result would be the serialized string instead of
+         * the original object.
+         */
+        translatorState?.hostToolResults.set(args.toolCallId, args.output);
         pending.resolve(args.output);
       },
       async submitUserMessage(text) {

@@ -233,6 +233,47 @@ describe('translatePiEvent', () => {
     });
   });
 
+  it('surfaces the original host-submitted output object instead of the echoed text', () => {
+    const state = createPiTranslatorState();
+    emit(
+      [
+        { type: 'turn_start' } as PiSessionEvent,
+        {
+          type: 'tool_execution_start',
+          toolCallId: 'c6',
+          toolName: 'weather',
+          args: { city: 'SF' },
+        } as PiSessionEvent,
+      ],
+      state,
+    );
+
+    // The session records the exact value the host submitted; Pi echoes only
+    // the serialized text back on the result event.
+    const submitted = { state: 'ready', temperature: 72, weather: 'sunny' };
+    state.hostToolResults.set('c6', submitted);
+
+    const out = translatePiEvent(
+      {
+        type: 'tool_execution_end',
+        toolCallId: 'c6',
+        result: {
+          content: [{ type: 'text', text: JSON.stringify(submitted) }],
+        },
+      } as PiSessionEvent,
+      state,
+    );
+
+    expect(out[0]).toMatchObject({
+      type: 'tool-result',
+      toolCallId: 'c6',
+      toolName: 'weather',
+      result: submitted,
+    });
+    // The stored value is consumed so it cannot leak into a later result.
+    expect(state.hostToolResults.has('c6')).toBe(false);
+  });
+
   it('marks tool-result as error when isError is true', () => {
     const state = createPiTranslatorState();
     emit(

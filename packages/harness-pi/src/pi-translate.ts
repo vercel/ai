@@ -28,6 +28,18 @@ export interface PiTranslatorState {
   /** Tool-call id → tool name (used to fill in `toolName` on results). */
   observedToolNames: Map<string, string>;
   /**
+   * Tool-call id → the exact output value the host submitted for a
+   * user-registered (host-executed) tool. Pi only echoes the tool result back
+   * as serialized text (the tool handler stringifies the output before handing
+   * it to the runtime so the model can read it), which would otherwise reach
+   * consumers as a string and lose the original object structure. Keeping the
+   * submitted value here lets the result projection surface the original object
+   * — matching the other adapters — while the model still receives the text.
+   * Populated by the session's `submitToolResult`; consumed (and cleared) when
+   * the matching `tool_result`/`tool_execution_end` event is translated.
+   */
+  hostToolResults: Map<string, unknown>;
+  /**
    * Names of tools that Pi executes natively (read/write/edit/bash/grep/
    * find/ls). `tool-call` events for these get `providerExecuted: true`
    * so the harness host doesn't try to dispatch them. User-registered
@@ -63,6 +75,7 @@ export function createPiTranslatorState(
     currentReasoningId: undefined,
     reasoningStarted: false,
     observedToolNames: new Map(),
+    hostToolResults: new Map(),
     builtinToolNames: new Set(options.builtinToolNames ?? []),
     nativeToCommonNameMap: map,
   };
@@ -261,7 +274,19 @@ export function translatePiEvent(
         recordedName ??
         (nativeName ? resolveToolName(state, nativeName).wire : undefined);
       if (!wire) return [];
-      const result = unwrapPiToolResult(event);
+      /*
+       * Prefer the exact value the host submitted for user-registered tools
+       * (see `hostToolResults`). Built-in tools, whose results Pi produces and
+       * reports as text, are not in the map and fall back to unwrapping the
+       * event's text payload.
+       */
+      const result = state.hostToolResults.has(event.toolCallId)
+        ? ((state.hostToolResults.get(event.toolCallId) ?? null) as Extract<
+            HarnessV1StreamPart,
+            { type: 'tool-result' }
+          >['result'])
+        : unwrapPiToolResult(event);
+      state.hostToolResults.delete(event.toolCallId);
       return [
         {
           type: 'tool-result',

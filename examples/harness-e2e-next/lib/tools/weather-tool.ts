@@ -16,11 +16,13 @@ function randomWeather() {
 export const weatherTool = tool({
   description: 'Get the current weather for a city.',
   inputSchema: z.object({ city: z.string() }),
-  async execute() {
+  async *execute() {
+    yield { state: 'loading' as const };
+
     await new Promise(resolve => setTimeout(resolve, 300));
 
-    return {
-      state: 'ready',
+    yield {
+      state: 'ready' as const,
       temperature: 72,
       weather: randomWeather(),
     };
