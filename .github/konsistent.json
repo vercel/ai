@@ -47,6 +47,7 @@
         "!packages/rsc",
         "!packages/svelte",
         "!packages/test-server",
+        "!packages/tui",
         "!packages/valibot",
         "!packages/vue",
         "!packages/workflow"
