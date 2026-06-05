@@ -16608,6 +16608,72 @@ describe('streamText', () => {
       expect(receivedAbortSignals[0]).toBe(receivedAbortSignals[1]);
     });
 
+    it('should clear the step timeout on normal completion of a multi-step run', async () => {
+      const receivedAbortSignals: (AbortSignal | undefined)[] = [];
+      let stepCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async ({ abortSignal }) => {
+            receivedAbortSignals.push(abortSignal);
+            stepCount++;
+            if (stepCount === 1) {
+              return {
+                stream: convertArrayToReadableStream([
+                  {
+                    type: 'tool-call',
+                    toolCallType: 'function',
+                    toolCallId: 'call-1',
+                    toolName: 'tool1',
+                    input: `{ "value": "test" }`,
+                  },
+                  {
+                    type: 'finish',
+                    finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+                    usage: testUsage,
+                  },
+                ]),
+              };
+            }
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Final response' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'tool result',
+          },
+        },
+        prompt: 'test-input',
+        timeout: { stepMs: 50 }, // small step timeout
+        stopWhen: isStepCount(2),
+        onError: () => {},
+      });
+
+      // Both steps finish synchronously, well within stepMs.
+      await result.consumeStream();
+
+      // Advance well past stepMs: because each step's timeout is cleared on
+      // finish, the (shared) abort signal must NOT fire. If the timers leaked,
+      // a stale step timer would abort the signal here.
+      await vi.advanceTimersByTimeAsync(100);
+
+      expect(stepCount).toBe(2);
+      expect(receivedAbortSignals[0]?.aborted).toBe(false);
+      expect(receivedAbortSignals[1]?.aborted).toBe(false);
+    });
+
     it('should support both totalMs and stepMs together', async () => {
       let receivedAbortSignal: AbortSignal | undefined;
 
