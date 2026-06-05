@@ -2,9 +2,12 @@ import './globals.css';
 import type { ReactNode } from 'react';
 
 export const metadata = {
-  title: 'Harness Workflow Examples',
+  title: {
+    template: '%s | Harness Examples',
+    default: 'Harness Examples',
+  },
   description:
-    'Durable, multi-turn harness agents via the Vercel Workflow DevKit',
+    'Examples using the AI SDK harness abstraction with concrete harnesses.',
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

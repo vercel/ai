@@ -2,6 +2,7 @@
 
 import type { PiHarnessAgentMessage } from '@/agent/harness/pi/basic-agent';
 import { Response } from '@/components/ai-elements/response';
+import { useChatId } from '@/components/chat-id-provider';
 import ChatInput from '@/components/chat-input';
 import DynamicToolView from '@/components/tool/dynamic-tool-view';
 import HarnessBashToolView from '@/components/tool/harness-bash-tool-view';
@@ -11,16 +12,13 @@ import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 
 export default function PiHarnessChat({
-  chatId,
   apiRoute,
   exampleLabel,
-  onReset,
 }: {
-  chatId: string;
   apiRoute: string;
   exampleLabel: string;
-  onReset: () => void;
 }) {
+  const { chatId, resetChatId } = useChatId();
   const { error, status, sendMessage, messages, regenerate } =
     useChat<PiHarnessAgentMessage>({
       id: chatId,
@@ -34,7 +32,7 @@ export default function PiHarnessChat({
       <h1 className="mb-2 text-xl font-bold">Pi — {exampleLabel}</h1>
       <p className="mb-4 text-xs text-gray-500">
         chat id: <code>{chatId}</code>
-        <button type="button" className="ml-2 underline" onClick={onReset}>
+        <button type="button" className="ml-2 underline" onClick={resetChatId}>
           new session
         </button>
       </p>

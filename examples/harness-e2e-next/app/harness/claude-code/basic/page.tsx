@@ -2,17 +2,17 @@ import ChatIdProvider from '@/components/chat-id-provider';
 import ClaudeCodeHarnessChat from '@/components/claude-code-harness-chat';
 
 export const metadata = {
-  title: 'Claude Code — Workflow',
+  title: 'Claude Code — Basic',
 };
 
-const STORAGE_KEY = 'harness-claude-code-workflow-chat-id';
+const STORAGE_KEY = 'harness-claude-code-basic-chat-id';
 
-export default function HarnessClaudeCodeWorkflowPage() {
+export default function HarnessClaudeCodePage() {
   return (
     <ChatIdProvider storageKey={STORAGE_KEY}>
       <ClaudeCodeHarnessChat
-        apiRoute="/api/harness/claude-code/workflow"
-        exampleLabel="Workflow"
+        apiRoute="/api/harness/claude-code/basic"
+        exampleLabel="Basic"
       />
     </ChatIdProvider>
   );
