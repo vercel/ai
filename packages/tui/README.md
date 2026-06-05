@@ -66,7 +66,7 @@ await runAgentTUI({
   name: 'My Agent',
   tools: 'collapsed',
   reasoning: 'hidden',
-  assistantResponseStats: 'tokens',
+  assistantResponseStats: 'outputTokenCount',
 });
 ```
 
@@ -76,4 +76,4 @@ Settings:
 - `name`: title shown in the terminal UI.
 - `tools`: tool call rendering mode. Use `"full"` to show tool input and output, `"collapsed"` to show only tool cards, `"auto-collapsed"` to show the latest tool expanded until another part appears, or `"hidden"` to omit tool calls. Defaults to `"full"`.
 - `reasoning`: reasoning rendering mode. Use `"full"` to show reasoning, `"collapsed"` to show only reasoning cards, `"auto-collapsed"` to show the latest reasoning expanded until another part appears, or `"hidden"` to omit reasoning. Defaults to `"full"`.
-- `assistantResponseStats`: assistant response header statistic. Use `"tokensPerSecond"` to show throughput or `"tokens"` to show output token count. Defaults to `"tokensPerSecond"`.
+- `assistantResponseStats`: assistant response header statistic. Use `"outputTokensPerSecond"` to show output token throughput or `"outputTokenCount"` to show output token count. Defaults to `"outputTokensPerSecond"`.

@@ -22,7 +22,7 @@ import {
 } from 'ai';
 
 const defaultAssistantResponseStats: AssistantResponseStatsMode =
-  'tokensPerSecond';
+  'outputTokensPerSecond';
 
 export type AgentTUIStreamResult = {
   uiMessageStream:

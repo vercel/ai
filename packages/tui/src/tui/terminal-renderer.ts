@@ -43,7 +43,7 @@ export type TerminalOutput = {
 };
 
 const defaultAssistantResponseStats: AssistantResponseStatsMode =
-  'tokensPerSecond';
+  'outputTokensPerSecond';
 
 export type TerminalRendererOptions = {
   input?: TerminalInput;
@@ -164,7 +164,7 @@ export class TerminalRenderer {
   #totalTokens?: number;
   #contextSize?: number;
   #assistantOutputTokens?: number;
-  #assistantTokensPerSecond?: number;
+  #assistantOutputTokensPerSecond?: number;
   #inputCursorVisible = true;
   #inputCursorTimer?: ReturnType<typeof setInterval>;
   #onData?: (chunk: Buffer) => void;
@@ -256,7 +256,7 @@ export class TerminalRenderer {
     this.#interrupted = false;
     this.#totalTokens = undefined;
     this.#assistantOutputTokens = undefined;
-    this.#assistantTokensPerSecond = undefined;
+    this.#assistantOutputTokensPerSecond = undefined;
     const displayModes = {
       tools: options?.tools ?? this.#tools,
       reasoning: options?.reasoning ?? this.#reasoning,
@@ -535,8 +535,9 @@ export class TerminalRenderer {
     this.#totalTokens = metadataStats.totalTokens ?? this.#totalTokens;
     this.#assistantOutputTokens =
       metadataStats.outputTokens ?? this.#assistantOutputTokens;
-    this.#assistantTokensPerSecond =
-      metadataStats.tokensPerSecond ?? this.#assistantTokensPerSecond;
+    this.#assistantOutputTokensPerSecond =
+      metadataStats.outputTokensPerSecond ??
+      this.#assistantOutputTokensPerSecond;
 
     for (const [index, part] of message.parts.entries()) {
       const id = sectionId(message.id, index);
@@ -558,7 +559,7 @@ export class TerminalRenderer {
               {
                 totalTokens: this.#totalTokens,
                 outputTokens: this.#assistantOutputTokens,
-                tokensPerSecond: this.#assistantTokensPerSecond,
+                outputTokensPerSecond: this.#assistantOutputTokensPerSecond,
               },
               displayModes.assistantResponseStats,
             ),
@@ -682,7 +683,7 @@ export class TerminalRenderer {
         const stats = extractAssistantResponseStats(chunk);
         this.#totalTokens = stats.totalTokens;
         this.#assistantOutputTokens = stats.outputTokens;
-        this.#assistantTokensPerSecond = stats.tokensPerSecond;
+        this.#assistantOutputTokensPerSecond = stats.outputTokensPerSecond;
       }
 
       yield chunk;
@@ -1254,7 +1255,7 @@ function extractAssistantResponseStats(chunk: UIMessageChunk) {
   return {
     totalTokens: extractTotalTokenCountFromUsage(usage ?? metadataUsage),
     outputTokens: extractOutputTokenCountFromUsage(usage ?? metadataUsage),
-    tokensPerSecond: metadataPerformance?.outputTokensPerSecond,
+    outputTokensPerSecond: metadataPerformance?.outputTokensPerSecond,
   };
 }
 
@@ -1264,7 +1265,7 @@ function extractAssistantResponseStatsFromMetadata(metadata: unknown) {
   return {
     totalTokens: extractTotalTokenCountFromUsage(stats?.usage),
     outputTokens: extractOutputTokenCountFromUsage(stats?.usage),
-    tokensPerSecond: stats?.performance?.outputTokensPerSecond,
+    outputTokensPerSecond: stats?.performance?.outputTokensPerSecond,
   };
 }
 
@@ -1349,23 +1350,25 @@ function formatAssistantResponseStats(
   stats: {
     totalTokens: number | undefined;
     outputTokens: number | undefined;
-    tokensPerSecond: number | undefined;
+    outputTokensPerSecond: number | undefined;
   },
   mode: AssistantResponseStatsMode,
 ) {
-  if (mode === 'tokensPerSecond') {
-    return formatTokensPerSecond(stats.tokensPerSecond);
+  if (mode === 'outputTokensPerSecond') {
+    return formatOutputTokensPerSecond(stats.outputTokensPerSecond);
   }
 
   return formatTokenCount(stats.outputTokens);
 }
 
-function formatTokensPerSecond(tokensPerSecond: number | undefined) {
-  if (tokensPerSecond == null) {
+function formatOutputTokensPerSecond(
+  outputTokensPerSecond: number | undefined,
+) {
+  if (outputTokensPerSecond == null) {
     return undefined;
   }
 
-  return `${formatNumber(tokensPerSecond)} tok/s`;
+  return `${formatNumber(outputTokensPerSecond)} tok/s`;
 }
 
 function formatNumber(value: number) {

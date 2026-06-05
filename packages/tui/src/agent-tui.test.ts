@@ -83,12 +83,12 @@ describe('runAgentTUI', () => {
     await runAgentTUI({
       agent,
       name: 'Test Agent',
-      assistantResponseStats: 'tokensPerSecond',
+      assistantResponseStats: 'outputTokensPerSecond',
     });
 
     expect(terminalRendererOptions).toEqual([
       {
-        assistantResponseStats: 'tokensPerSecond',
+        assistantResponseStats: 'outputTokensPerSecond',
         reasoning: undefined,
         tools: undefined,
       },
@@ -251,7 +251,7 @@ describe('AgentTUIRunner', () => {
     expect(renderer.titles).toEqual(['Test Agent', 'Test Agent', 'Test Agent']);
   });
 
-  it('defaults assistant response stats mode to tokens per second', async () => {
+  it('defaults assistant response stats mode to output tokens per second', async () => {
     const streamCalls: AgentTUIStreamCall[] = [];
     const renderer = useRenderer(
       createRenderer({
@@ -262,7 +262,7 @@ describe('AgentTUIRunner', () => {
 
     await new AgentTUIRunner({ agent, name: 'Test Agent' }).run();
 
-    expect(renderer.assistantResponseStats).toEqual(['tokensPerSecond']);
+    expect(renderer.assistantResponseStats).toEqual(['outputTokensPerSecond']);
   });
 
   it('passes assistant response stats mode to stream rendering', async () => {
@@ -277,10 +277,10 @@ describe('AgentTUIRunner', () => {
     await new AgentTUIRunner({
       agent,
       name: 'Test Agent',
-      assistantResponseStats: 'tokens',
+      assistantResponseStats: 'outputTokenCount',
     }).run();
 
-    expect(renderer.assistantResponseStats).toEqual(['tokens']);
+    expect(renderer.assistantResponseStats).toEqual(['outputTokenCount']);
   });
 
   it('passes context size to stream rendering', async () => {

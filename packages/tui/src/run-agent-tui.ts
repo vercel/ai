@@ -13,7 +13,9 @@ export type TerminalPartDisplayMode =
 /**
  * Controls which usage statistic is shown for assistant responses.
  */
-export type AssistantResponseStatsMode = 'tokens' | 'tokensPerSecond';
+export type AssistantResponseStatsMode =
+  | 'outputTokenCount'
+  | 'outputTokensPerSecond';
 
 /**
  * An agent that is compatible with the terminal UI.
@@ -49,7 +51,7 @@ export type RunAgentTUIOptions = {
   /**
    * Which statistic to show in assistant response headers.
    *
-   * @default "tokensPerSecond"
+   * @default "outputTokensPerSecond"
    */
   assistantResponseStats?: AssistantResponseStatsMode;
 

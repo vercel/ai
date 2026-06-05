@@ -66,7 +66,7 @@ describe('TerminalRenderer', () => {
     expect(stripAnsi(output.text())).toContain('╭ User ');
   });
 
-  it('streams assistant text with tokens per second by default', async () => {
+  it('streams assistant text with output tokens per second by default', async () => {
     const input = createInput();
     const output = createOutput();
     const renderer = new TerminalRenderer({ input, output });
@@ -74,7 +74,7 @@ describe('TerminalRenderer', () => {
     await renderer.renderStream(
       createStream(['# Hello', '\n- there'], {
         outputTokens: 12,
-        tokensPerSecond: 12.25,
+        outputTokensPerSecond: 12.25,
       }) as never,
       {
         title: 'Test',
@@ -137,13 +137,13 @@ describe('TerminalRenderer', () => {
     const renderer = new TerminalRenderer({
       input,
       output,
-      assistantResponseStats: 'tokens',
+      assistantResponseStats: 'outputTokenCount',
     });
 
     await renderer.renderStream(
       createStream(['hello'], {
         outputTokens: 12,
-        tokensPerSecond: 12.25,
+        outputTokensPerSecond: 12.25,
       }) as never,
       {
         title: 'Test',
@@ -799,7 +799,7 @@ function createStream(
   stats?: {
     inputTokens?: number;
     outputTokens: number;
-    tokensPerSecond?: number;
+    outputTokensPerSecond?: number;
   },
 ): AgentTUIStreamResult {
   return {
@@ -822,9 +822,13 @@ function createStream(
                 outputTokens: stats.outputTokens,
               },
         messageMetadata:
-          stats?.tokensPerSecond == null
+          stats?.outputTokensPerSecond == null
             ? undefined
-            : { performance: { outputTokensPerSecond: stats.tokensPerSecond } },
+            : {
+                performance: {
+                  outputTokensPerSecond: stats.outputTokensPerSecond,
+                },
+              },
       };
     })(),
   };

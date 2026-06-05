@@ -13,6 +13,7 @@ export default defineConfig({
     ],
     typecheck: {
       enabled: true,
+      include: ['src/**/*.test-d.ts'],
     },
   },
 });

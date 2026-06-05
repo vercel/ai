@@ -76,7 +76,7 @@ describe('runAgentTUI types', () => {
         }),
         tools: 'collapsed',
         reasoning: 'collapsed',
-        assistantResponseStats: 'tokensPerSecond',
+        assistantResponseStats: 'outputTokensPerSecond',
       }),
     ).toEqualTypeOf<Promise<void>>();
   });
