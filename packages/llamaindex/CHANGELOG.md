@@ -1,5 +1,11 @@
 # @ai-sdk/llamaindex
 
+## 3.0.0-canary.164
+
+### Patch Changes
+
+- ai@7.0.0-canary.164
+
 ## 3.0.0-canary.163
 
 ### Patch Changes

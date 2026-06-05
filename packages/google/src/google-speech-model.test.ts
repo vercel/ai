@@ -58,7 +58,7 @@ describe('doGenerate', () => {
     await model.doGenerate({ text: 'Hello from the AI SDK!' });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      contents: [{ parts: [{ text: 'Hello from the AI SDK!' }] }],
+      contents: [{ role: 'user', parts: [{ text: 'Hello from the AI SDK!' }] }],
       generationConfig: {
         responseModalities: ['AUDIO'],
         speechConfig: {
@@ -179,7 +179,9 @@ describe('doGenerate', () => {
     });
 
     expect(await server.calls[0].requestBodyJson).toMatchObject({
-      contents: [{ parts: [{ text: 'Say cheerfully: Hello there' }] }],
+      contents: [
+        { role: 'user', parts: [{ text: 'Say cheerfully: Hello there' }] },
+      ],
     });
   });
 
@@ -206,7 +208,46 @@ describe('doGenerate', () => {
 
     // toStrictEqual proves the single-voice `voiceConfig` is absent.
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      contents: [{ parts: [{ text: 'Joe: Hi. Jane: Hello.' }] }],
+      contents: [{ role: 'user', parts: [{ text: 'Joe: Hi. Jane: Hello.' }] }],
+      generationConfig: {
+        responseModalities: ['AUDIO'],
+        speechConfig: { multiSpeakerVoiceConfig },
+      },
+    });
+  });
+
+  it('should read provider options under `googleVertex` for a Vertex provider', async () => {
+    prepareJsonResponse();
+
+    // Vertex reuses this model with a `google.vertex.*` provider name, so it
+    // reads provider options under `googleVertex` (like the Vertex language
+    // model), not `google`.
+    const vertexModel = new GoogleSpeechModel('gemini-2.5-flash-preview-tts', {
+      provider: 'google.vertex.speech',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: () => ({ 'x-goog-api-key': 'test-api-key' }),
+    });
+
+    const multiSpeakerVoiceConfig = {
+      speakerVoiceConfigs: [
+        {
+          speaker: 'Joe',
+          voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } },
+        },
+        {
+          speaker: 'Jane',
+          voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Puck' } },
+        },
+      ],
+    };
+
+    await vertexModel.doGenerate({
+      text: 'Joe: Hi. Jane: Hello.',
+      providerOptions: { googleVertex: { multiSpeakerVoiceConfig } },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      contents: [{ role: 'user', parts: [{ text: 'Joe: Hi. Jane: Hello.' }] }],
       generationConfig: {
         responseModalities: ['AUDIO'],
         speechConfig: { multiSpeakerVoiceConfig },
@@ -240,7 +281,7 @@ describe('doGenerate', () => {
 
     // instructions are NOT prepended to the multi-speaker transcript.
     expect(await server.calls[0].requestBodyJson).toMatchObject({
-      contents: [{ parts: [{ text: 'Joe: Hi. Jane: Hello.' }] }],
+      contents: [{ role: 'user', parts: [{ text: 'Joe: Hi. Jane: Hello.' }] }],
     });
     expect(result.warnings).toContainEqual(
       expect.objectContaining({ type: 'unsupported', feature: 'instructions' }),

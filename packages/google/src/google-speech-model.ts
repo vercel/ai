@@ -17,6 +17,7 @@ import { googleSpeechResponseSchema } from './google-speech-api';
 import {
   googleSpeechProviderOptionsSchema,
   type GoogleSpeechModelId,
+  type GoogleSpeechModelOptions,
 } from './google-speech-model-options';
 
 interface GoogleSpeechModelConfig {
@@ -70,11 +71,35 @@ export class GoogleSpeechModel implements SpeechModelV4 {
   }: Parameters<SpeechModelV4['doGenerate']>[0]) {
     const warnings: SharedV4Warning[] = [];
 
-    const googleOptions = await parseProviderOptions({
-      provider: 'google',
-      providerOptions,
-      schema: googleSpeechProviderOptionsSchema,
-    });
+    // Names to look up in providerOptions. The Vertex provider exposes these
+    // under `googleVertex`/`vertex` (matching the Google Vertex language model),
+    // while every other Google provider uses `google`.
+    const providerOptionsNames: readonly string[] =
+      this.config.provider.includes('vertex')
+        ? (['googleVertex', 'vertex'] as const)
+        : (['google'] as const);
+
+    let googleOptions: GoogleSpeechModelOptions | undefined;
+    for (const name of providerOptionsNames) {
+      googleOptions = await parseProviderOptions({
+        provider: name,
+        providerOptions,
+        schema: googleSpeechProviderOptionsSchema,
+      });
+      if (googleOptions != null) {
+        break;
+      }
+    }
+
+    // Cross-namespace fallback: a Vertex provider may receive options under the
+    // `google` key (e.g. via the AI Gateway).
+    if (googleOptions == null && !providerOptionsNames.includes('google')) {
+      googleOptions = await parseProviderOptions({
+        provider: 'google',
+        providerOptions,
+        schema: googleSpeechProviderOptionsSchema,
+      });
+    }
 
     // Multi-speaker (provider option) takes precedence over the single voice.
     const multiSpeakerVoiceConfig = googleOptions?.multiSpeakerVoiceConfig;
@@ -133,7 +158,7 @@ export class GoogleSpeechModel implements SpeechModelV4 {
     }
 
     const requestBody = {
-      contents: [{ parts: [{ text: promptText }] }],
+      contents: [{ role: 'user', parts: [{ text: promptText }] }],
       generationConfig: {
         responseModalities: ['AUDIO'],
         speechConfig,
