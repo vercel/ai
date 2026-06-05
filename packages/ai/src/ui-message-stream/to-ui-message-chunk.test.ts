@@ -634,8 +634,6 @@ describe('toUIMessageChunk', () => {
     });
   });
 
-  it('maps ');
-
   it('maps error parts through onError', () => {
     const onError = vi.fn(() => 'handled error');
     const error = new Error('boom');
