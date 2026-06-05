@@ -1,0 +1,64 @@
+{
+  "name": "@lgrammel/agent-tui",
+  "version": "0.4.7",
+  "description": "Run AI SDK agents in a terminal UI.",
+  "keywords": [
+    "agent",
+    "ai",
+    "ai-agent",
+    "ai-sdk",
+    "chat",
+    "chatbot",
+    "cli",
+    "llm",
+    "markdown",
+    "streaming",
+    "terminal",
+    "terminal-ui",
+    "tool-calling",
+    "tui",
+    "typescript"
+  ],
+  "homepage": "https://github.com/lgrammel/agent-tui#readme",
+  "bugs": {
+    "url": "https://github.com/lgrammel/agent-tui/issues"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lgrammel/agent-tui.git",
+    "directory": "packages/agent-tui"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean --tsconfig tsconfig.build.json",
+    "prepack": "bun run build",
+    "pack:dry-run": "npm pack --dry-run",
+    "release:dry-run": "bun run pack:dry-run",
+    "release": "npm publish"
+  },
+  "devDependencies": {
+    "ai": "7.0.0-canary.139"
+  },
+  "peerDependencies": {
+    "ai": "7.0.0-canary.139",
+    "typescript": "^5 || ^6"
+  }
+}

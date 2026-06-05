@@ -3213,6 +3213,16 @@ importers:
         specifier: 3.25.76
         version: 3.25.76
 
+  packages/tui:
+    dependencies:
+      typescript:
+        specifier: ^5 || ^6
+        version: 5.9.3
+    devDependencies:
+      ai:
+        specifier: 7.0.0-canary.139
+        version: 7.0.0-canary.139(zod@4.4.3)
+
   packages/valibot:
     dependencies:
       '@ai-sdk/provider-utils':
@@ -3460,6 +3470,22 @@ packages:
 
   '@adobe/css-tools@4.4.4':
     resolution: {integrity: sha512-Elp+iwUx5rN5+Y8xLt5/GRoG20WGoDCQ/1Fb+1LiGtvwbDavuSk0jhD/eZdckHAuzcDzccnkv+rEjyWfRx18gg==}
+
+  '@ai-sdk/gateway@4.0.0-canary.82':
+    resolution: {integrity: sha512-zUWm8CTQ5/Amc0P4JN1QBmJZc3HIa+Sz7NbqM2gREVwlYH/gu6vv2e8P6pbHPAsB82/1WexkobOc8JTXgUh+Hw==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4.1.8
+
+  '@ai-sdk/provider-utils@5.0.0-canary.41':
+    resolution: {integrity: sha512-0bNrlQJr+R8QPvoVu/uIsS7K5SZLqVK3dWJoUYAz+z8NWFtB9qWfMADFls1bwXy8m+9HCRW9CmiNNkK79ppQmg==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4.1.8
+
+  '@ai-sdk/provider@4.0.0-canary.16':
+    resolution: {integrity: sha512-IJKj5cOfRNbc1+rBIdyqFbsd4tjWY3wrM3y2D2YdZCHLi6qpS2yLN0P+ajEPCEnto6iZFWQHk28iRMwgvFSJRg==}
+    engines: {node: '>=18'}
 
   '@algolia/abtesting@1.1.0':
     resolution: {integrity: sha512-sEyWjw28a/9iluA37KLGu8vjxEIlb60uxznfTUmXImy7H5NvbpSO6yYgmgH5KiD7j+zTUUihiST0jEP12IoXow==}
@@ -11494,6 +11520,12 @@ packages:
   aggregate-error@4.0.1:
     resolution: {integrity: sha512-0poP0T7el6Vq3rstR8Mn4V/IQrpBLO6POkUSrN7RhyY+GF/InCFShQzsQ39T25gkHhLgSLByyAz+Kjb+c2L98w==}
     engines: {node: '>=12'}
+
+  ai@7.0.0-canary.139:
+    resolution: {integrity: sha512-GNf3inEDLGkDCHlynVIhPo70mp9ccu88D7w+cTUlZsqEhnIv3K0jSwbQDPrNxFB5mcx11lg3jVAVLn/XY5FZfg==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4.1.8
 
   ajv-formats@2.1.1:
     resolution: {integrity: sha512-Wx0Kx52hxE7C18hkMEggYlEifqWZtYaRgouJor+WMdPnQyEK13vgEWyVNup7SoeeoLMsr4kf5h6dOW11I15MUA==}
@@ -20340,6 +20372,25 @@ packages:
 snapshots:
 
   '@adobe/css-tools@4.4.4': {}
+
+  '@ai-sdk/gateway@4.0.0-canary.82(zod@4.4.3)':
+    dependencies:
+      '@ai-sdk/provider': 4.0.0-canary.16
+      '@ai-sdk/provider-utils': 5.0.0-canary.41(zod@4.4.3)
+      '@vercel/oidc': 3.2.0
+      zod: 4.4.3
+
+  '@ai-sdk/provider-utils@5.0.0-canary.41(zod@4.4.3)':
+    dependencies:
+      '@ai-sdk/provider': 4.0.0-canary.16
+      '@standard-schema/spec': 1.1.0
+      '@workflow/serde': 4.1.0
+      eventsource-parser: 3.0.8
+      zod: 4.4.3
+
+  '@ai-sdk/provider@4.0.0-canary.16':
+    dependencies:
+      json-schema: 0.4.0
 
   '@algolia/abtesting@1.1.0':
     dependencies:
@@ -30141,6 +30192,13 @@ snapshots:
     dependencies:
       clean-stack: 4.2.0
       indent-string: 5.0.0
+
+  ai@7.0.0-canary.139(zod@4.4.3):
+    dependencies:
+      '@ai-sdk/gateway': 4.0.0-canary.82(zod@4.4.3)
+      '@ai-sdk/provider': 4.0.0-canary.16
+      '@ai-sdk/provider-utils': 5.0.0-canary.41(zod@4.4.3)
+      zod: 4.4.3
 
   ajv-formats@2.1.1(ajv@8.12.0):
     optionalDependencies:
