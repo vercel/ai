@@ -301,7 +301,9 @@ The `GatewayProviderOptions` type and a `parseGatewayProviderOptions` validator 
 import { parseGatewayProviderOptions } from '@ai-sdk/gateway';
 
 // returns typed GatewayProviderOptions | undefined, throws on invalid input
-const options = await parseGatewayProviderOptions(sessionConfig.providerOptions);
+const options = await parseGatewayProviderOptions(
+  sessionConfig.providerOptions,
+);
 ```
 
 <Note>

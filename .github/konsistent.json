@@ -89,6 +89,7 @@
             "packages/gateway/src/gateway-embedding-model.ts",
             "packages/gateway/src/gateway-image-model.ts",
             "packages/gateway/src/gateway-language-model.ts",
+            "packages/gateway/src/gateway-realtime-model.ts",
             "packages/gateway/src/gateway-reranking-model.ts",
             "packages/gateway/src/gateway-speech-model.ts",
             "packages/gateway/src/gateway-transcription-model.ts",
