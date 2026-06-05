@@ -66,7 +66,7 @@ const result = await generateText({
       description: "Called when a tool's execute function completes or errors.",
     },
     {
-      name: 'onStepFinish',
+      name: 'onStepEnd',
       type: '(event: GenerateTextStepEndEvent) => void | Promise<void>',
       description: 'Called when a step (LLM call) completes.',
     },
@@ -81,7 +81,7 @@ const result = await generateText({
 
 For multi-step text generations that use tools, the callback order is typically
 `experimental_onStepStart` -> `experimental_onLanguageModelCallStart` ->
-`experimental_onLanguageModelCallEnd` -> tool execution callbacks -> `onStepFinish`.
+`experimental_onLanguageModelCallEnd` -> tool execution callbacks -> `onStepEnd`.
 
 ### `embed` / `embedMany`
 
@@ -704,7 +704,7 @@ const result = await generateText({
   ]}
 />
 
-#### `onStepFinish`
+#### `onStepEnd`
 
 Called after each step (LLM call) completes. Provides the full `StepResult`.
 
@@ -712,13 +712,17 @@ Called after each step (LLM call) completes. Provides the full `StepResult`.
 const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'Hello!',
-  onStepFinish: event => {
+  onStepEnd: event => {
     console.log('Step:', event.stepNumber);
     console.log('Finish reason:', event.finishReason);
     console.log('Tokens:', event.usage.totalTokens);
   },
 });
 ```
+
+<Note>
+  `onStepFinish` is deprecated. Use `onStepEnd` for new code.
+</Note>
 
 <PropertiesTable
   content={[
@@ -1352,7 +1356,7 @@ const result = await generateText({
       provider: event.provider,
     });
   },
-  onStepFinish: event => {
+  onStepEnd: event => {
     console.log(
       `[${new Date().toISOString()}] Step ${event.stepNumber} finished`,
       {
