@@ -98,7 +98,7 @@ export type HarnessV1StartOptions = {
 );
 
 /**
- * Options passed to `HarnessV1Session.doPrompt`.
+ * Options passed to `HarnessV1Session.doPromptTurn`.
  */
 export type HarnessV1PromptOptions = {
   /**
@@ -140,7 +140,35 @@ export type HarnessV1PromptOptions = {
 };
 
 /**
- * Bidirectional control surface returned by `doPrompt`.
+ * Options passed to `HarnessV1Session.doContinueTurn`.
+ *
+ * Unlike `doPromptTurn`, there is no `prompt`: `doContinueTurn` continues the
+ * in-flight turn rather than starting a new one. It is used to continue a turn
+ * that was previously suspended temporarily, e.g. by the workflow slice loop.
+ */
+export type HarnessV1ContinueOptions = {
+  /**
+   * Host-defined tools to make available for the continued turn. Same shape
+   * as `doPromptTurn`'s `tools`. An adapter that purely attaches to a live turn
+   * may ignore them; an adapter that re-drives the turn (rerun) needs them.
+   */
+  readonly tools?: ReadonlyArray<HarnessV1ToolSpec>;
+
+  /**
+   * Signal that aborts the continued turn. The adapter must cancel any
+   * underlying work and resolve `done` (with an error if appropriate).
+   */
+  readonly abortSignal?: AbortSignal;
+
+  /**
+   * Callback invoked once for each event the adapter produces while the
+   * continued turn runs. Same contract as `doPromptTurn`'s `emit`.
+   */
+  readonly emit: (event: HarnessV1StreamPart) => void;
+};
+
+/**
+ * Bidirectional control surface returned by `doPromptTurn`.
  *
  * The host uses these methods to feed asynchronous responses back to the
  * adapter while a turn is running. All methods are optional except those

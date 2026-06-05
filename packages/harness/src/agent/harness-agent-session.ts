@@ -219,6 +219,39 @@ export class HarnessAgentSession {
     });
   }
 
+  /**
+   * Gracefully freeze the active turn at the slice boundary and return the
+   * resume payload, **leaving the sandbox/runtime running** so the next process
+   * can resume. Resolves once the in-flight `stream()`/`continueTurn()`
+   * has cleanly wound down at a precise cursor (see
+   * {@link HarnessV1Session.doSuspendTurn}).
+   *
+   * After this call the session is marked stopped — the bridge it owned keeps
+   * running in the sandbox, but this in-process handle no longer drives turns
+   * (a future slice reattaches with a fresh session). The sandbox is **not**
+   * stopped and no port lease is released, since the live bridge still holds
+   * the port.
+   */
+  async suspendTurn(): Promise<HarnessV1ResumeState> {
+    if (this.stopped || this.underlyingSession == null) {
+      throw new Error(
+        `Harness session ${this.sessionId} is not active and cannot be suspended.`,
+      );
+    }
+    const session = this.underlyingSession;
+    const raw = await session.doSuspendTurn();
+    const validated = await validateResumeStateData({
+      harness: this.harness,
+      state: raw as HarnessV1ResumeState,
+    });
+    // Drop the in-process references without stopping the sandbox or releasing
+    // the port lease: the bridge keeps running on that port for the next slice.
+    this.stopped = true;
+    this.underlyingSession = undefined;
+    this.sandboxSession = undefined;
+    return validated;
+  }
+
   private releasePortLease(): void {
     if (this.leasedBridgePort == null) return;
     if (this.sandboxProvider != null) {

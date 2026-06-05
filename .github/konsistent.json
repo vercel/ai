@@ -52,7 +52,8 @@
         "!packages/test-server",
         "!packages/valibot",
         "!packages/vue",
-        "!packages/workflow"
+        "!packages/workflow",
+        "!packages/workflow-harness"
       ],
       "must": [
         {

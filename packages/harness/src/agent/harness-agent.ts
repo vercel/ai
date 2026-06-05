@@ -310,6 +310,49 @@ export class HarnessAgent<
     return result;
   }
 
+  /**
+   * Continue the in-flight turn **without a new prompt**, streaming its events
+   * like {@link stream}. Used to keep consuming a turn that is still running
+   * (or finished) in the runtime after a process boundary — the workflow slice
+   * loop calls this on every slice after the first. Routes through the adapter's
+   * `doContinueTurn`; what it can guarantee (lossless attach vs. lossy rerun)
+   * follows from how the session was resumed (`recoveryMode`).
+   */
+  async continueTurn(options: {
+    session: HarnessAgentSession;
+    abortSignal?: AbortSignal;
+  }): Promise<
+    StreamTextResult<
+      HarnessAllTools<THarness, TUserTools>,
+      RUNTIME_CONTEXT,
+      never
+    >
+  > {
+    const session = options.session;
+    const underlyingSession = session.getUnderlyingSession();
+    const sandboxSession = session.getSandboxSession();
+    const sessionWorkDir = session.getSessionWorkDir();
+    const runtimeContext = {} as RUNTIME_CONTEXT;
+
+    const { result } = runPrompt<
+      HarnessAllTools<THarness, TUserTools>,
+      RUNTIME_CONTEXT
+    >({
+      harness: this.settings.harness,
+      session: underlyingSession,
+      mode: 'continue',
+      instructions: this.settings.instructions,
+      tools: this.tools,
+      toolSpecs: this._toToolSpecs(),
+      sandboxSession: sandboxSession?.restricted(),
+      sessionWorkDir,
+      runtimeContext,
+      abortSignal: options.abortSignal,
+      telemetry: this.settings.telemetry,
+    });
+    return result;
+  }
+
   // ─── Internals ──────────────────────────────────────────────────────
 
   private _runTurn(

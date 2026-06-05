@@ -85,7 +85,7 @@ export function myHarness(): HarnessV1 {
     doStart: async startOpts => {
       const session: HarnessV1Session = {
         sessionId: startOpts.sessionId,
-        doPrompt: async promptOpts => {
+        doPromptTurn: async promptOpts => {
           promptOpts.emit({ type: 'text-start', id: 't' });
           promptOpts.emit({ type: 'text-delta', id: 't', delta: 'Hello.' });
           promptOpts.emit({ type: 'text-end', id: 't' });

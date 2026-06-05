@@ -22,7 +22,7 @@ const usage = {
 function scriptedHarness(script: HarnessV1StreamPart[]): HarnessV1 {
   const session: HarnessV1Session = {
     sessionId: 'tel-session',
-    doPrompt: async (opts: HarnessV1PromptOptions) => {
+    doPromptTurn: async (opts: HarnessV1PromptOptions) => {
       const control: HarnessV1PromptControl = {
         submitToolResult: async () => {},
         done: Promise.resolve(),
@@ -33,8 +33,17 @@ function scriptedHarness(script: HarnessV1StreamPart[]): HarnessV1 {
       return control;
     },
     doCompact: async () => {},
+    doContinueTurn: async () => ({
+      submitToolResult: async () => {},
+      done: Promise.resolve(),
+    }),
     doStop: async () => {},
     doGetResumeHandle: () => ({
+      harnessId: 'mock',
+      specificationVersion: 'harness-v1',
+      data: {},
+    }),
+    doSuspendTurn: async () => ({
       harnessId: 'mock',
       specificationVersion: 'harness-v1',
       data: {},

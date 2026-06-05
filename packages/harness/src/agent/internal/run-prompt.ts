@@ -27,7 +27,7 @@ import { createTurnTelemetry, type TurnContentPart } from './turn-telemetry';
 
 /**
  * Drive one prompt turn end-to-end:
- *  - call `session.doPrompt` via `toHarnessStream`
+ *  - call `session.doPromptTurn` via `toHarnessStream`
  *  - translate harness events to AI SDK `TextStreamPart`s and push into the
  *    result object
  *  - execute host-side user tools when their `tool-call` events arrive and
@@ -43,7 +43,14 @@ export function runPrompt<
 >(input: {
   harness: HarnessV1;
   session: HarnessV1Session;
-  prompt: HarnessV1Prompt;
+  /**
+   * Turn entry point. `'prompt'` (default) starts a new turn from `prompt`;
+   * `'continue'` continues the in-flight turn via `doContinueTurn` and ignores
+   * `prompt`/`instructions`.
+   */
+  mode?: 'prompt' | 'continue';
+  /** Required for `mode: 'prompt'`; absent for `mode: 'continue'`. */
+  prompt?: HarnessV1Prompt;
   instructions: string | undefined;
   tools: TOOLS;
   toolSpecs: HarnessV1ToolSpec[];
@@ -70,7 +77,7 @@ export function runPrompt<
     harnessId: input.harness.harnessId,
     modelId: input.session.modelId,
     instructions: input.instructions,
-    promptText: promptToText(input.prompt),
+    promptText: input.prompt != null ? promptToText(input.prompt) : '',
     runtimeContext: input.runtimeContext,
   });
 
@@ -78,11 +85,28 @@ export function runPrompt<
     let bridge: Awaited<ReturnType<typeof toHarnessStream>>;
     try {
       bridge = await toHarnessStream({
-        session: input.session,
-        prompt: input.prompt,
-        tools: input.toolSpecs,
-        instructions: input.instructions,
-        abortSignal: input.abortSignal,
+        invoke:
+          input.mode === 'continue'
+            ? emit =>
+                input.session.doContinueTurn({
+                  tools: input.toolSpecs,
+                  abortSignal: input.abortSignal,
+                  emit,
+                })
+            : emit => {
+                if (input.prompt == null) {
+                  throw new Error(
+                    'runPrompt: `prompt` is required for mode "prompt".',
+                  );
+                }
+                return input.session.doPromptTurn({
+                  prompt: input.prompt,
+                  tools: input.toolSpecs,
+                  instructions: input.instructions,
+                  abortSignal: input.abortSignal,
+                  emit,
+                });
+              },
       });
     } catch (err) {
       telemetry.error(err);

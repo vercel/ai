@@ -9,9 +9,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  * The claude-code adapter prepends `instructions` to the user text it puts in
  * the `start` message's `prompt`. We stub `SandboxChannel` so `send()` records
  * the messages instead of opening a real WebSocket, then drive `doStart` →
- * `doPrompt` against a fake network sandbox session. This isolates the "prepend
- * to the first user message only" gating without standing up the in-sandbox
- * bridge.
+ * `doPromptTurn` against a fake network sandbox session. This isolates the
+ * "prepend to the first user message only" gating without standing up the
+ * in-sandbox bridge.
  */
 const sentMessages: Array<Record<string, unknown>> = [];
 
@@ -110,7 +110,7 @@ describe('claude-code adapter — instructions gating', () => {
   it('frames instructions into the first user message only', async () => {
     const session = await startSession();
 
-    await session.doPrompt({
+    await session.doPromptTurn({
       prompt: 'first turn',
       instructions: INSTRUCTIONS,
       emit: () => {},
@@ -122,7 +122,7 @@ describe('claude-code adapter — instructions gating', () => {
     // The instructions must be marked as system guidance, not user-authored.
     expect(framed).toMatch(/not a message from the user/i);
 
-    await session.doPrompt({
+    await session.doPromptTurn({
       prompt: 'second turn',
       instructions: INSTRUCTIONS,
       emit: () => {},
@@ -139,7 +139,7 @@ describe('claude-code adapter — instructions gating', () => {
       },
     });
 
-    await session.doPrompt({
+    await session.doPromptTurn({
       prompt: 'resumed turn',
       instructions: INSTRUCTIONS,
       emit: () => {},

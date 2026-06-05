@@ -190,6 +190,9 @@
       "path": "packages/vue"
     },
     {
+      "path": "packages/workflow-harness"
+    },
+    {
       "path": "packages/workflow"
     },
     {

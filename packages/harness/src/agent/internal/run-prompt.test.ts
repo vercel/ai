@@ -14,21 +14,28 @@ import { runPrompt } from './run-prompt';
 const WORK_DIR = '/vercel/sandbox/claude-code-abc123';
 
 function fakeSession(script: HarnessV1StreamPart[]): HarnessV1Session {
+  const emitScript = (emit: (event: HarnessV1StreamPart) => void) => {
+    const control: HarnessV1PromptControl = {
+      submitToolResult: async () => {},
+      done: Promise.resolve(),
+    };
+    queueMicrotask(() => {
+      for (const event of script) emit(event);
+    });
+    return control;
+  };
   return {
     sessionId: 'fake-session',
-    doPrompt: async (opts: HarnessV1PromptOptions) => {
-      const control: HarnessV1PromptControl = {
-        submitToolResult: async () => {},
-        done: Promise.resolve(),
-      };
-      queueMicrotask(() => {
-        for (const event of script) opts.emit(event);
-      });
-      return control;
-    },
+    doPromptTurn: async (opts: HarnessV1PromptOptions) => emitScript(opts.emit),
+    doContinueTurn: async opts => emitScript(opts.emit),
     doCompact: async () => {},
     doStop: async () => {},
     doGetResumeHandle: () => ({
+      harnessId: 'fake',
+      specificationVersion: 'harness-v1',
+      data: {},
+    }),
+    doSuspendTurn: async () => ({
       harnessId: 'fake',
       specificationVersion: 'harness-v1',
       data: {},

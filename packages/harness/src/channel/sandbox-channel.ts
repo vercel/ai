@@ -124,6 +124,13 @@ export class SandboxChannel<
   private connected = false;
   /** Host has begun teardown; suppresses reconnect so a bridge-side close finalises. */
   private closing = false;
+  /**
+   * Host has gracefully suspended (slice boundary). Inbound frames are ignored
+   * from this point so the cursor stops advancing exactly at the last delivered
+   * event — the bridge keeps the turn running and the not-yet-delivered tail is
+   * replayed to the next process on `resume`.
+   */
+  private suspended = false;
   /** Channel is fully torn down; `send` throws and `onClose` has fired. */
   private terminal = false;
   private _lastSeenEventId = 0;
@@ -237,6 +244,42 @@ export class SandboxChannel<
     this.enqueue(() => this.finalizeClose(1000, 'closed'));
   }
 
+  /**
+   * Gracefully suspend at a slice boundary: stop processing inbound frames
+   * (so the cursor freezes at the last delivered event), drain any frames
+   * already queued for dispatch, then close the socket and finalise with the
+   * close reason `'suspended'`. Resolves with the final `lastSeenEventId`.
+   *
+   * The bridge keeps the in-flight turn running (a host socket close never
+   * aborts it) and accumulates events past the cursor for the next process to
+   * `resume`. Unlike {@link close}, the consumer's active turn is wound down
+   * cleanly — adapters distinguish a suspend from an unexpected drop via the
+   * `'suspended'` close reason and resolve `done` successfully.
+   */
+  suspend(): Promise<number> {
+    return new Promise<number>(resolve => {
+      if (this.terminal) {
+        resolve(this._lastSeenEventId);
+        return;
+      }
+      // Stop counting/dispatching further inbound frames immediately, and
+      // suppress reconnect so the socket close finalises.
+      this.suspended = true;
+      this.closing = true;
+      this.onClose(() => resolve(this._lastSeenEventId));
+      // Queue the close behind any already-dispatched frames so everything
+      // delivered to the consumer is reflected in the final cursor.
+      this.enqueue(() => {
+        try {
+          this.ws?.close();
+        } catch {
+          // best-effort
+        }
+        this.finalizeClose(1000, 'suspended');
+      });
+    });
+  }
+
   isClosed(): boolean {
     return this.terminal;
   }
@@ -258,6 +301,9 @@ export class SandboxChannel<
     };
 
     ws.on('message', (raw: ArrayBufferLike | string) => {
+      // Once suspended, ignore further frames so the cursor freezes exactly at
+      // the last delivered event (the bridge replays the rest to the next slice).
+      if (this.suspended) return;
       const text =
         typeof raw === 'string' ? raw : Buffer.from(raw).toString('utf8');
       this.enqueue(() => this.handleIncoming(text));

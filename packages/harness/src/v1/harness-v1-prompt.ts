@@ -1,7 +1,7 @@
 import type { UserModelMessage } from '@ai-sdk/provider-utils';
 
 /**
- * Prompt shape passed to `HarnessV1Session.doPrompt`.
+ * Prompt shape passed to `HarnessV1Session.doPromptTurn`.
  *
  * A harness session represents an ongoing third-party agent runtime that
  * owns its own conversation history. Each prompt turn carries only the

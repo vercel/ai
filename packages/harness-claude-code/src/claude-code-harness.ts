@@ -909,101 +909,141 @@ function createSession({
    */
   let instructionsApplied = recoveryMode !== 'cold';
 
+  /*
+   * Wire the channel into one turn's worth of events and return the control
+   * surface. Shared by `doPromptTurn` (which sends a `start` afterwards) and
+   * `doContinueTurn` (which attaches to an already-running/replayed turn, or sends
+   * a rerun `start`). The only difference between the two entry points is the
+   * `start` message, not the listener/abort/settle plumbing.
+   */
+  const wireTurn = (turnOpts: {
+    emit: (event: HarnessV1StreamPart) => void;
+    abortSignal?: AbortSignal;
+  }): HarnessV1PromptControl => {
+    let pendingResolve: (() => void) | undefined;
+    let pendingReject: ((err: unknown) => void) | undefined;
+    const done = new Promise<void>((resolve, reject) => {
+      pendingResolve = resolve;
+      pendingReject = reject;
+    });
+
+    const unsubs: Array<() => void> = [];
+    const forward = (event: HarnessV1StreamPart) => {
+      try {
+        turnOpts.emit(event);
+      } catch {}
+    };
+
+    let isSettled = false;
+    const settleSuccess = () => {
+      if (isSettled) return;
+      isSettled = true;
+      for (const u of unsubs) u();
+      pendingResolve!();
+    };
+    const settleError = (err: unknown) => {
+      if (isSettled) return;
+      isSettled = true;
+      for (const u of unsubs) u();
+      pendingReject!(err);
+    };
+
+    const eventTypes = [
+      'stream-start',
+      'text-start',
+      'text-delta',
+      'text-end',
+      'reasoning-start',
+      'reasoning-delta',
+      'reasoning-end',
+      'tool-call',
+      'tool-result',
+      'finish-step',
+      'raw',
+    ] as const;
+    for (const type of eventTypes) {
+      unsubs.push(
+        channel.on(type, msg => {
+          forward(msg);
+        }),
+      );
+    }
+    unsubs.push(
+      channel.on('finish', msg => {
+        forward(msg);
+        settleSuccess();
+      }),
+    );
+    unsubs.push(
+      channel.on('error', msg => {
+        forward(msg);
+        settleError(msg.error);
+      }),
+    );
+
+    /*
+     * A `'suspended'` close is a graceful slice-boundary freeze the host
+     * initiated (`doSuspendTurn`): the turn keeps running in the bridge and its
+     * tail is replayed to the next process, so wind this turn down cleanly
+     * rather than failing it. Any other close mid-turn is an unexpected drop.
+     */
+    const onClose = (_code?: number, reason?: string) => {
+      if (isSettled) return;
+      if (reason === 'suspended') {
+        settleSuccess();
+        return;
+      }
+      settleError(
+        new Error('claude-code bridge closed before the turn finished.'),
+      );
+    };
+    channel.onClose(onClose);
+
+    const onAbort = () => {
+      if (isSettled) return;
+      try {
+        channel.send({ type: 'abort' });
+      } catch {}
+      settleError(
+        turnOpts.abortSignal?.reason ??
+          new DOMException('Aborted', 'AbortError'),
+      );
+    };
+    if (turnOpts.abortSignal) {
+      if (turnOpts.abortSignal.aborted) {
+        onAbort();
+      } else {
+        turnOpts.abortSignal.addEventListener('abort', onAbort, {
+          once: true,
+        });
+      }
+    }
+
+    return {
+      submitToolResult: async input => {
+        channel.send({
+          type: 'tool-result',
+          toolCallId: input.toolCallId,
+          output: input.output,
+          isError: input.isError,
+        });
+      },
+      submitUserMessage: async text => {
+        channel.send({ type: 'user-message', text });
+      },
+      done,
+    };
+  };
+
   return {
     sessionId,
     recoveryMode,
     modelId: model,
-    doPrompt: async promptOpts => {
-      let pendingResolve: (() => void) | undefined;
-      let pendingReject: ((err: unknown) => void) | undefined;
-      const done = new Promise<void>((resolve, reject) => {
-        pendingResolve = resolve;
-        pendingReject = reject;
+    doPromptTurn: async promptOpts => {
+      const control = wireTurn({
+        emit: promptOpts.emit,
+        abortSignal: promptOpts.abortSignal,
       });
-
-      const unsubs: Array<() => void> = [];
-      const forward = (event: HarnessV1StreamPart) => {
-        try {
-          promptOpts.emit(event);
-        } catch {}
-      };
-
-      const eventTypes = [
-        'stream-start',
-        'text-start',
-        'text-delta',
-        'text-end',
-        'reasoning-start',
-        'reasoning-delta',
-        'reasoning-end',
-        'tool-call',
-        'tool-result',
-        'finish-step',
-        'compaction',
-        'raw',
-      ] as const;
-      for (const type of eventTypes) {
-        unsubs.push(
-          channel.on(type, msg => {
-            forward(msg);
-          }),
-        );
-      }
-      unsubs.push(
-        channel.on('finish', msg => {
-          forward(msg);
-          settleSuccess();
-        }),
-      );
-      unsubs.push(
-        channel.on('error', msg => {
-          forward(msg);
-          settleError(msg.error);
-        }),
-      );
-
-      const onClose = () => {
-        if (!isSettled) {
-          settleError(
-            new Error('claude-code bridge closed before the turn finished.'),
-          );
-        }
-      };
-      channel.onClose(onClose);
-
-      let isSettled = false;
-      const settleSuccess = () => {
-        if (isSettled) return;
-        isSettled = true;
-        for (const u of unsubs) u();
-        pendingResolve!();
-      };
-      const settleError = (err: unknown) => {
-        if (isSettled) return;
-        isSettled = true;
-        for (const u of unsubs) u();
-        pendingReject!(err);
-      };
-
-      const onAbort = () => {
-        if (isSettled) return;
-        try {
-          channel.send({ type: 'abort' });
-        } catch {}
-        settleError(
-          promptOpts.abortSignal?.reason ??
-            new DOMException('Aborted', 'AbortError'),
-        );
-      };
-      if (promptOpts.abortSignal) {
-        if (promptOpts.abortSignal.aborted) {
-          onAbort();
-        } else {
-          promptOpts.abortSignal.addEventListener('abort', onAbort, {
-            once: true,
-          });
-        }
-      }
 
       let promptText = extractUserText(promptOpts.prompt);
       if (!instructionsApplied && promptOpts.instructions) {
@@ -1028,20 +1068,52 @@ function createSession({
       pendingResumeFlag = false;
       channel.send(startMessage);
 
-      const control: HarnessV1PromptControl = {
-        submitToolResult: async input => {
-          channel.send({
-            type: 'tool-result',
-            toolCallId: input.toolCallId,
-            output: input.output,
-            isError: input.isError,
-          });
-        },
-        submitUserMessage: async text => {
-          channel.send({ type: 'user-message', text });
-        },
-        done,
-      };
+      return control;
+    },
+    doContinueTurn: async continueOpts => {
+      const control = wireTurn({
+        emit: continueOpts.emit,
+        abortSignal: continueOpts.abortSignal,
+      });
+
+      /*
+       * attach / replay: the still-running (or disk-replayed) turn streams into
+       * the wired listeners — `doStart` opened the channel with `{ resume: true }`
+       * so the bridge replays everything past the persisted cursor (including a
+       * `finish` if the turn ended during the gap). No `start` is sent: issuing
+       * one would clear the bridge's replay log and begin a new turn. Lossless.
+       *
+       * rerun: the bridge was respawned with no in-flight turn to attach to, so
+       * re-drive the runtime's own thread from the workdir snapshot via
+       * `continue: true`. Lossy — work in flight at the interruption is
+       * recomputed. This is the rare bridge-died fallback; the common slice path
+       * is `attach`.
+       */
+      if (recoveryMode === 'rerun') {
+        pendingResumeFlag = false;
+        channel.send({
+          type: 'start' as const,
+          /*
+           * A continuation nudge rather than an empty prompt: `continue: true`
+           * rehydrates the prior thread, and this is the new user turn that
+           * drives it forward. It must be non-empty — an empty text block is
+           * rejected by the Anthropic API once the SDK stamps it with
+           * `cache_control`.
+           */
+          prompt: 'Continue.',
+          tools: (continueOpts.tools ?? []).map(t => ({
+            name: t.name,
+            description: t.description,
+            inputSchema: t.inputSchema,
+          })),
+          model,
+          maxTurns,
+          thinking,
+          ...(debug ? { debug } : {}),
+          continue: true,
+        });
+      }
+
       return control;
     },
     doCompact: async (customInstructions?: string) => {
@@ -1183,6 +1255,37 @@ function createSession({
             port: bridgePort,
             token: bridgeToken,
             lastSeenEventId: channel.lastSeenEventId,
+            sandboxId,
+          },
+        },
+      };
+      return payload;
+    },
+    doSuspendTurn: async () => {
+      if (stopped) {
+        throw new Error(
+          `claude-code session ${sessionId} is stopped; cannot suspend.`,
+        );
+      }
+      stopped = true;
+      /*
+       * Gracefully freeze the active turn at a precise cursor. `channel.suspend`
+       * stops processing inbound frames (the cursor stops advancing exactly at
+       * the last delivered event), drains what was already dispatched, then
+       * closes the host socket with reason `'suspended'` — which `wireTurn`'s
+       * `onClose` treats as a clean turn end. The bridge keeps the turn running
+       * and accumulates events past the cursor for the next slice to replay. The
+       * sandbox process is deliberately left alive (no `shutdown`/`detach`).
+       */
+      const lastSeenEventId = await channel.suspend();
+      const payload: HarnessV1ResumeState = {
+        harnessId: 'claude-code',
+        specificationVersion: 'harness-v1',
+        data: {
+          bridge: {
+            port: bridgePort,
+            token: bridgeToken,
+            lastSeenEventId,
             sandboxId,
           },
         },
