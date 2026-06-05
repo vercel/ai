@@ -26,7 +26,7 @@ import type {
   GenerateTextStepStartEvent,
   ToolExecutionEndEvent,
   ToolExecutionStartEvent,
-  OutputInterface as Output,
+  Output,
   RerankingModelCallEndEvent,
   RerankEndEvent,
   RerankStartEvent,
@@ -112,7 +112,7 @@ function selectAttributes(
 interface OtelStepStartEvent<
   TOOLS extends ToolSet = ToolSet,
   RUNTIME_CONTEXT extends AISDKContext = AISDKContext,
-  OUTPUT extends Output = Output,
+  OUTPUT extends Output.Output = Output.Output,
 > extends GenerateTextStepStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
   readonly promptMessages?: LanguageModelV4Prompt;
   readonly stepTools?: ReadonlyArray<Record<string, unknown>>;
