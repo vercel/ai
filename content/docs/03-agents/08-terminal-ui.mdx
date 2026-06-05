@@ -48,7 +48,7 @@ const agent = new ToolLoopAgent({
 });
 
 await runAgentTUI({
-  name: 'Weather Agent',
+  title: 'Weather Agent',
   agent,
 });
 ```
@@ -57,27 +57,30 @@ await runAgentTUI({
 
 ## Display Options
 
-You can control how tool calls, reasoning, and assistant response statistics are
-shown:
+You can control how tool calls, reasoning, and response statistics are shown:
 
 ```ts
 await runAgentTUI({
-  name: 'Weather Agent',
+  title: 'Weather Agent',
   agent,
   tools: 'auto-collapsed',
   reasoning: 'collapsed',
-  assistantResponseStats: 'outputTokensPerSecond',
+  responseStatistics: 'outputTokensPerSecond',
   contextSize: 200_000,
 });
 ```
 
 Settings:
 
-- `tools`: Use `"full"`, `"collapsed"`, `"auto-collapsed"`, or `"hidden"` to
-  control tool card rendering. Defaults to `"full"`.
-- `reasoning`: Use `"full"`, `"collapsed"`, `"auto-collapsed"`, or `"hidden"`
-  to control reasoning rendering. Defaults to `"full"`.
-- `assistantResponseStats`: Use `"outputTokensPerSecond"` to show output token
+- `tools`: Controls tool call rendering. Use `"full"` to show tool input and
+  output, `"collapsed"` to show only tool cards, `"auto-collapsed"` to show the
+  latest tool expanded until another visible section appears, or `"hidden"` to
+  omit tool calls. Defaults to `"auto-collapsed"`.
+- `reasoning`: Controls reasoning rendering. Use `"full"` to show reasoning,
+  `"collapsed"` to show only reasoning cards, `"auto-collapsed"` to show the
+  latest reasoning expanded until another visible section appears, or `"hidden"`
+  to omit reasoning. Defaults to `"auto-collapsed"`.
+- `responseStatistics`: Use `"outputTokensPerSecond"` to show output token
   throughput or `"outputTokenCount"` to show output token count. Defaults to
   `"outputTokensPerSecond"`.
 - `contextSize`: When provided, the terminal UI shows total token usage as a
@@ -101,7 +104,7 @@ const agent = new ToolLoopAgent({
   },
 });
 
-await runAgentTUI({ name: 'Weather Agent', agent });
+await runAgentTUI({ title: 'Weather Agent', agent });
 ```
 
 ## Compatibility

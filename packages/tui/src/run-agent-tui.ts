@@ -3,6 +3,12 @@ import type { Agent } from 'ai';
 
 /**
  * Controls how terminal UI sections for stream parts are displayed.
+ *
+ * - `full`: show the section header and full content.
+ * - `collapsed`: show only the section header.
+ * - `auto-collapsed`: show the latest section expanded until another visible
+ *   section appears, then collapse it.
+ * - `hidden`: omit the section entirely.
  */
 export type TerminalPartDisplayMode =
   | 'full'
@@ -11,9 +17,12 @@ export type TerminalPartDisplayMode =
   | 'hidden';
 
 /**
- * Controls which usage statistic is shown for assistant responses.
+ * Controls which response statistic is shown.
+ *
+ * - `outputTokenCount`: show the number of output tokens in the response.
+ * - `outputTokensPerSecond`: show output token throughput for the response.
  */
-export type AssistantResponseStatsMode =
+export type ResponseStatisticsMode =
   | 'outputTokenCount'
   | 'outputTokensPerSecond';
 
@@ -36,24 +45,28 @@ export type RunAgentTUIOptions = {
   /**
    * The title shown in the terminal UI.
    */
-  name: string;
+  title?: string;
 
   /**
    * How tool calls should render.
+   *
+   * @default "auto-collapsed"
    */
   tools?: TerminalPartDisplayMode;
 
   /**
    * How reasoning parts should render.
+   *
+   * @default "auto-collapsed"
    */
   reasoning?: TerminalPartDisplayMode;
 
   /**
-   * Which statistic to show in assistant response headers.
+   * Which response statistic to show.
    *
    * @default "outputTokensPerSecond"
    */
-  assistantResponseStats?: AssistantResponseStatsMode;
+  responseStatistics?: ResponseStatisticsMode;
 
   /**
    * The model context window size in tokens.

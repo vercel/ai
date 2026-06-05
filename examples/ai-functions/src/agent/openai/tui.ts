@@ -15,7 +15,7 @@ const agent = new ToolLoopAgent({
 
 run(async () => {
   await runAgentTUI({
-    name: 'OpenAI Agent',
+    title: 'OpenAI Agent',
     agent,
     tools: 'auto-collapsed',
     reasoning: 'auto-collapsed',

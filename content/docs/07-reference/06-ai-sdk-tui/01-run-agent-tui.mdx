@@ -22,7 +22,7 @@ const agent = new ToolLoopAgent({
 });
 
 await runAgentTUI({
-  name: 'Assistant',
+  title: 'Assistant',
   agent,
 });
 ```
@@ -54,31 +54,32 @@ await runAgentTUI({
                 'The agent to run. The agent must not require per-call options and must not use structured output.',
             },
             {
-              name: 'name',
+              name: 'title',
               type: 'string',
-              isRequired: true,
-              description: 'The title shown in the terminal UI.',
+              isOptional: true,
+              description:
+                'The title shown in the terminal UI. If omitted, no title is shown.',
             },
             {
               name: 'tools',
               type: "'full' | 'collapsed' | 'auto-collapsed' | 'hidden'",
               isOptional: true,
               description:
-                'Controls how tool call sections are displayed. Defaults to `full`.',
+                'Controls how tool call sections are displayed. Defaults to `auto-collapsed`.',
             },
             {
               name: 'reasoning',
               type: "'full' | 'collapsed' | 'auto-collapsed' | 'hidden'",
               isOptional: true,
               description:
-                'Controls how reasoning sections are displayed. Defaults to `full`.',
+                'Controls how reasoning sections are displayed. Defaults to `auto-collapsed`.',
             },
             {
-              name: 'assistantResponseStats',
+              name: 'responseStatistics',
               type: "'outputTokenCount' | 'outputTokensPerSecond'",
               isOptional: true,
               description:
-                'Controls which statistic is shown in assistant response headers. Defaults to `outputTokensPerSecond`.',
+                'Controls which response statistic is shown in response headers. Defaults to `outputTokensPerSecond`.',
             },
             {
               name: 'contextSize',
@@ -129,23 +130,32 @@ type TerminalPartDisplayMode =
   | 'hidden';
 ```
 
-### `AssistantResponseStatsMode`
+- `"full"`: Show the section header and full content.
+- `"collapsed"`: Show only the section header.
+- `"auto-collapsed"`: Show the latest section expanded until another visible
+  section appears, then collapse it.
+- `"hidden"`: Omit the section entirely.
 
-Controls which assistant response statistic is shown:
+### `ResponseStatisticsMode`
+
+Controls which response statistic is shown:
 
 ```ts
-type AssistantResponseStatsMode = 'outputTokenCount' | 'outputTokensPerSecond';
+type ResponseStatisticsMode = 'outputTokenCount' | 'outputTokensPerSecond';
 ```
+
+- `"outputTokenCount"`: Show the number of output tokens in the response.
+- `"outputTokensPerSecond"`: Show output token throughput for the response.
 
 ## Example with Tool Display Options
 
 ```ts
 await runAgentTUI({
-  name: 'Assistant',
+  title: 'Assistant',
   agent,
   tools: 'auto-collapsed',
   reasoning: 'collapsed',
-  assistantResponseStats: 'outputTokenCount',
+  responseStatistics: 'outputTokenCount',
   contextSize: 200_000,
 });
 ```

@@ -1,9 +1,14 @@
-import { runAgentTUI } from '@ai-sdk/tui';
+import {
+  runAgentTUI,
+  type AgentTUIAgent,
+  type ResponseStatisticsMode,
+  type RunAgentTUIOptions,
+  type TerminalPartDisplayMode,
+} from '@ai-sdk/tui';
 import { MockLanguageModelV4 } from 'ai/test';
 import { ToolLoopAgent, tool } from 'ai';
 import { assertType, describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
-import type { AgentTUIAgent } from './run-agent-tui';
 
 const model = new MockLanguageModelV4({
   doStream: async () => ({
@@ -12,18 +17,25 @@ const model = new MockLanguageModelV4({
 });
 
 describe('runAgentTUI types', () => {
+  it('exports documented public types from the package root', () => {
+    expectTypeOf<TerminalPartDisplayMode>().toEqualTypeOf<
+      'full' | 'collapsed' | 'auto-collapsed' | 'hidden'
+    >();
+    expectTypeOf<ResponseStatisticsMode>().toEqualTypeOf<
+      'outputTokenCount' | 'outputTokensPerSecond'
+    >();
+    expectTypeOf<RunAgentTUIOptions>().toHaveProperty('agent');
+    expectTypeOf<RunAgentTUIOptions>().toHaveProperty('responseStatistics');
+  });
+
   it('accepts a ToolLoopAgent without tools', () => {
     const agent = new ToolLoopAgent({
       model,
     });
 
     expectTypeOf(agent).toMatchTypeOf<AgentTUIAgent>();
-    expectTypeOf(
-      runAgentTUI({ name: 'Unconfigured Agent', agent }),
-    ).toEqualTypeOf<Promise<void>>();
-    assertType<Promise<void>>(
-      runAgentTUI({ name: 'Unconfigured Agent', agent }),
-    );
+    expectTypeOf(runAgentTUI({ agent })).toEqualTypeOf<Promise<void>>();
+    assertType<Promise<void>>(runAgentTUI({ agent }));
   });
 
   it('accepts a ToolLoopAgent with tools', () => {
@@ -38,7 +50,7 @@ describe('runAgentTUI types', () => {
     });
 
     expectTypeOf(agent).toMatchTypeOf<AgentTUIAgent>();
-    expectTypeOf(runAgentTUI({ name: 'Tool Agent', agent })).toEqualTypeOf<
+    expectTypeOf(runAgentTUI({ title: 'Tool Agent', agent })).toEqualTypeOf<
       Promise<void>
     >();
   });
@@ -51,7 +63,7 @@ describe('runAgentTUI types', () => {
 
     expectTypeOf(agent).toMatchTypeOf<AgentTUIAgent>();
     expectTypeOf(
-      runAgentTUI({ name: 'Runtime Context Agent', agent }),
+      runAgentTUI({ title: 'Runtime Context Agent', agent }),
     ).toEqualTypeOf<Promise<void>>();
   });
 
@@ -61,14 +73,14 @@ describe('runAgentTUI types', () => {
     });
 
     expectTypeOf(
-      runAgentTUI({ name: 'Context Agent', agent, contextSize: 200_000 }),
+      runAgentTUI({ title: 'Context Agent', agent, contextSize: 200_000 }),
     ).toEqualTypeOf<Promise<void>>();
   });
 
   it('accepts a ToolLoopAgent with terminal display options', () => {
     expectTypeOf(
       runAgentTUI({
-        name: 'Demo Agent',
+        title: 'Demo Agent',
         agent: new ToolLoopAgent({
           model,
           instructions:
@@ -76,7 +88,7 @@ describe('runAgentTUI types', () => {
         }),
         tools: 'collapsed',
         reasoning: 'collapsed',
-        assistantResponseStats: 'outputTokensPerSecond',
+        responseStatistics: 'outputTokensPerSecond',
       }),
     ).toEqualTypeOf<Promise<void>>();
   });
@@ -90,7 +102,7 @@ describe('runAgentTUI types', () => {
     expectTypeOf(agent).not.toMatchTypeOf<AgentTUIAgent>();
 
     runAgentTUI({
-      name: 'Optional Call Options Agent',
+      title: 'Optional Call Options Agent',
       // @ts-expect-error runAgentTUI cannot provide per-call options.
       agent,
     });
@@ -105,9 +117,33 @@ describe('runAgentTUI types', () => {
     expectTypeOf(agent).not.toMatchTypeOf<AgentTUIAgent>();
 
     runAgentTUI({
-      name: 'Required Call Options Agent',
+      title: 'Required Call Options Agent',
       // @ts-expect-error runAgentTUI cannot provide required per-call options.
       agent,
+    });
+  });
+
+  it('rejects the old name option', () => {
+    const agent = new ToolLoopAgent({
+      model,
+    });
+
+    runAgentTUI({
+      agent,
+      // @ts-expect-error Use title instead of name.
+      name: 'Old Agent Name',
+    });
+  });
+
+  it('rejects the old assistantResponseStats option', () => {
+    const agent = new ToolLoopAgent({
+      model,
+    });
+
+    runAgentTUI({
+      agent,
+      // @ts-expect-error Use responseStatistics instead.
+      assistantResponseStats: 'outputTokenCount',
     });
   });
 });

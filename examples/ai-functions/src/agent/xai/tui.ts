@@ -16,7 +16,7 @@ const agent = new ToolLoopAgent({
 
 run(async () => {
   await runAgentTUI({
-    name: 'XAI Research Agent',
+    title: 'XAI Research Agent',
     agent,
     tools: 'auto-collapsed',
   });

@@ -137,7 +137,7 @@ describe('TerminalRenderer', () => {
     const renderer = new TerminalRenderer({
       input,
       output,
-      assistantResponseStats: 'outputTokenCount',
+      responseStatistics: 'outputTokenCount',
     });
 
     await renderer.renderStream(
@@ -297,7 +297,12 @@ describe('TerminalRenderer', () => {
     const input = createInput();
     const output = createOutput();
     output.rows = 20;
-    const renderer = new TerminalRenderer({ input, output });
+    const renderer = new TerminalRenderer({
+      tools: 'full',
+      reasoning: 'full',
+      input,
+      output,
+    });
 
     await renderer.renderStream(createMixedStream() as never, {
       title: 'Test',
@@ -373,14 +378,13 @@ describe('TerminalRenderer', () => {
     expect(rendered).not.toContain('"weather": "sunny"');
   });
 
-  it('auto-collapses tool parts after a later visible part is shown', async () => {
+  it('auto-collapses tool parts by default after a later visible part is shown', async () => {
     const input = createInput();
     const output = createOutput();
     const frameBuffer = createFrameBuffer();
     output.rows = 20;
     const nextTextStarted = createDeferred<void>();
     const renderer = new TerminalRenderer({
-      tools: 'auto-collapsed',
       input,
       output,
       frameBuffer,
@@ -475,14 +479,13 @@ describe('TerminalRenderer', () => {
     expect(rendered).toContain('Tool · weather');
   });
 
-  it('auto-collapses reasoning parts after a later visible part is shown', async () => {
+  it('auto-collapses reasoning parts by default after a later visible part is shown', async () => {
     const input = createInput();
     const output = createOutput();
     const frameBuffer = createFrameBuffer();
     output.rows = 20;
     const nextToolStarted = createDeferred<void>();
     const renderer = new TerminalRenderer({
-      reasoning: 'auto-collapsed',
       input,
       output,
       frameBuffer,

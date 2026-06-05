@@ -4,7 +4,7 @@ import type {
   AgentTUIToolApprovalResponse,
 } from '../agent-tui-runner';
 import type {
-  AssistantResponseStatsMode,
+  ResponseStatisticsMode,
   TerminalPartDisplayMode,
 } from '../run-agent-tui';
 import { renderScreenViewport, sliceVisible, visibleLength } from './layout';
@@ -42,7 +42,7 @@ export type TerminalOutput = {
   off(event: 'resize', listener: () => void): TerminalOutput;
 };
 
-const defaultAssistantResponseStats: AssistantResponseStatsMode =
+const defaultResponseStatistics: ResponseStatisticsMode =
   'outputTokensPerSecond';
 
 export type TerminalRendererOptions = {
@@ -51,7 +51,7 @@ export type TerminalRendererOptions = {
   frameBuffer?: TerminalFrameBuffer;
   tools?: TerminalPartDisplayMode;
   reasoning?: TerminalPartDisplayMode;
-  assistantResponseStats?: AssistantResponseStatsMode;
+  responseStatistics?: ResponseStatisticsMode;
   contextSize?: number;
 };
 
@@ -63,7 +63,7 @@ export type TerminalSessionOptions = {
   continueSession?: boolean;
   tools?: TerminalPartDisplayMode;
   reasoning?: TerminalPartDisplayMode;
-  assistantResponseStats?: AssistantResponseStatsMode;
+  responseStatistics?: ResponseStatisticsMode;
   contextSize?: number;
 };
 
@@ -150,14 +150,14 @@ export class TerminalRenderer {
   readonly #frameBuffer: TerminalFrameBuffer;
   readonly #tools: TerminalPartDisplayMode;
   readonly #reasoning: TerminalPartDisplayMode;
-  readonly #assistantResponseStats: AssistantResponseStatsMode;
+  readonly #responseStatistics: ResponseStatisticsMode;
   readonly #defaultContextSize?: number;
 
   #sections: ChatSection[] = [];
   #inputText = '';
   #inputActive = false;
   #scrollOffset = 0;
-  #title = 'Agent TUI';
+  #title = '';
   #status = streamingStatus;
   #isInteractive = false;
   #interrupted = false;
@@ -176,10 +176,10 @@ export class TerminalRenderer {
     this.#output = options?.output ?? process.stdout;
     this.#frameBuffer =
       options?.frameBuffer ?? new TerminalFrameBuffer(this.#output);
-    this.#tools = options?.tools ?? 'full';
-    this.#reasoning = options?.reasoning ?? 'full';
-    this.#assistantResponseStats =
-      options?.assistantResponseStats ?? defaultAssistantResponseStats;
+    this.#tools = options?.tools ?? 'auto-collapsed';
+    this.#reasoning = options?.reasoning ?? 'auto-collapsed';
+    this.#responseStatistics =
+      options?.responseStatistics ?? defaultResponseStatistics;
     this.#defaultContextSize = options?.contextSize;
     this.#contextSize = options?.contextSize;
   }
@@ -260,8 +260,8 @@ export class TerminalRenderer {
     const displayModes = {
       tools: options?.tools ?? this.#tools,
       reasoning: options?.reasoning ?? this.#reasoning,
-      assistantResponseStats:
-        options?.assistantResponseStats ?? this.#assistantResponseStats,
+      responseStatistics:
+        options?.responseStatistics ?? this.#responseStatistics,
     };
     this.#paint();
     const streamInterrupted = new Promise<void>(resolve => {
@@ -524,12 +524,12 @@ export class TerminalRenderer {
     displayModes: {
       tools: TerminalPartDisplayMode;
       reasoning: TerminalPartDisplayMode;
-      assistantResponseStats: AssistantResponseStatsMode;
+      responseStatistics: ResponseStatisticsMode;
     },
   ) {
     const previousBodyLineCount = this.#bodyLineCount();
     const activeSectionIds = new Set<string>();
-    const metadataStats = extractAssistantResponseStatsFromMetadata(
+    const metadataStats = extractResponseStatisticsFromMetadata(
       message.metadata,
     );
     this.#totalTokens = metadataStats.totalTokens ?? this.#totalTokens;
@@ -555,13 +555,13 @@ export class TerminalRenderer {
             id,
             kind: 'assistant',
             title: 'Assistant',
-            rightTitle: formatAssistantResponseStats(
+            rightTitle: formatResponseStatistics(
               {
                 totalTokens: this.#totalTokens,
                 outputTokens: this.#assistantOutputTokens,
                 outputTokensPerSecond: this.#assistantOutputTokensPerSecond,
               },
-              displayModes.assistantResponseStats,
+              displayModes.responseStatistics,
             ),
             content,
           });
@@ -680,7 +680,7 @@ export class TerminalRenderer {
       }
 
       if (chunk.type === 'finish') {
-        const stats = extractAssistantResponseStats(chunk);
+        const stats = extractResponseStatistics(chunk);
         this.#totalTokens = stats.totalTokens;
         this.#assistantOutputTokens = stats.outputTokens;
         this.#assistantOutputTokensPerSecond = stats.outputTokensPerSecond;
@@ -1239,7 +1239,7 @@ function findVisibleBreakPoint(input: string, width: number) {
   return sliceVisible(input, width).length;
 }
 
-function extractAssistantResponseStats(chunk: UIMessageChunk) {
+function extractResponseStatistics(chunk: UIMessageChunk) {
   const usage =
     'usage' in chunk ? (chunk.usage as StreamUsage | undefined) : undefined;
   const metadataUsage =
@@ -1259,7 +1259,7 @@ function extractAssistantResponseStats(chunk: UIMessageChunk) {
   };
 }
 
-function extractAssistantResponseStatsFromMetadata(metadata: unknown) {
+function extractResponseStatisticsFromMetadata(metadata: unknown) {
   const stats = metadata as MessageMetadataWithStats | undefined;
 
   return {
@@ -1346,13 +1346,13 @@ function formatContextPercentage(
   return `${Math.round((tokens / contextSize) * 100).toLocaleString()}%`;
 }
 
-function formatAssistantResponseStats(
+function formatResponseStatistics(
   stats: {
     totalTokens: number | undefined;
     outputTokens: number | undefined;
     outputTokensPerSecond: number | undefined;
   },
-  mode: AssistantResponseStatsMode,
+  mode: ResponseStatisticsMode,
 ) {
   if (mode === 'outputTokensPerSecond') {
     return formatOutputTokensPerSecond(stats.outputTokensPerSecond);

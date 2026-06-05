@@ -22,7 +22,7 @@ import { ToolLoopAgent, tool } from 'ai';
 import { z } from 'zod';
 
 await runAgentTUI({
-  name: 'Weather Agent',
+  title: 'Weather Agent',
   agent: new ToolLoopAgent({
     model: openai('gpt-5.4-mini'),
     instructions:
@@ -63,17 +63,17 @@ await runAgentTUI({
 ```ts
 await runAgentTUI({
   agent,
-  name: 'My Agent',
+  title: 'My Agent',
   tools: 'collapsed',
   reasoning: 'hidden',
-  assistantResponseStats: 'outputTokenCount',
+  responseStatistics: 'outputTokenCount',
 });
 ```
 
 Settings:
 
 - `agent`: AI SDK agent to run.
-- `name`: title shown in the terminal UI.
-- `tools`: tool call rendering mode. Use `"full"` to show tool input and output, `"collapsed"` to show only tool cards, `"auto-collapsed"` to show the latest tool expanded until another part appears, or `"hidden"` to omit tool calls. Defaults to `"full"`.
-- `reasoning`: reasoning rendering mode. Use `"full"` to show reasoning, `"collapsed"` to show only reasoning cards, `"auto-collapsed"` to show the latest reasoning expanded until another part appears, or `"hidden"` to omit reasoning. Defaults to `"full"`.
-- `assistantResponseStats`: assistant response header statistic. Use `"outputTokensPerSecond"` to show output token throughput or `"outputTokenCount"` to show output token count. Defaults to `"outputTokensPerSecond"`.
+- `title`: optional title shown in the terminal UI.
+- `tools`: tool call rendering mode. Use `"full"` to show tool input and output, `"collapsed"` to show only tool cards, `"auto-collapsed"` to show the latest tool expanded until another visible section appears, or `"hidden"` to omit tool calls. Defaults to `"auto-collapsed"`.
+- `reasoning`: reasoning rendering mode. Use `"full"` to show reasoning, `"collapsed"` to show only reasoning cards, `"auto-collapsed"` to show the latest reasoning expanded until another visible section appears, or `"hidden"` to omit reasoning. Defaults to `"auto-collapsed"`.
+- `responseStatistics`: response header statistic. Use `"outputTokensPerSecond"` to show output token throughput or `"outputTokenCount"` to show output token count. Defaults to `"outputTokensPerSecond"`.

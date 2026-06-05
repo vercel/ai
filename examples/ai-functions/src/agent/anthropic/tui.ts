@@ -15,7 +15,7 @@ const agent = new ToolLoopAgent({
 
 run(async () => {
   await runAgentTUI({
-    name: 'Anthropic Agent',
+    title: 'Anthropic Agent',
     agent,
     tools: 'auto-collapsed',
   });

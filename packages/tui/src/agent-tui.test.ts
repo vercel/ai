@@ -47,7 +47,7 @@ describe('runAgentTUI', () => {
     );
     const agent = createAISDKAgent();
 
-    await runAgentTUI({ agent, name: 'Test Agent' });
+    await runAgentTUI({ agent, title: 'Test Agent' });
 
     expect(terminalRendererOptions).toEqual([undefined]);
   });
@@ -62,7 +62,7 @@ describe('runAgentTUI', () => {
 
     await runAgentTUI({
       agent,
-      name: 'Test Agent',
+      title: 'Test Agent',
       tools: 'collapsed',
       reasoning: 'hidden',
     });
@@ -72,7 +72,7 @@ describe('runAgentTUI', () => {
     ]);
   });
 
-  it('passes assistant response stats mode to the default terminal renderer', async () => {
+  it('passes response statistics mode to the default terminal renderer', async () => {
     useRenderer(
       createRenderer({
         prompts: [undefined],
@@ -82,13 +82,13 @@ describe('runAgentTUI', () => {
 
     await runAgentTUI({
       agent,
-      name: 'Test Agent',
-      assistantResponseStats: 'outputTokensPerSecond',
+      title: 'Test Agent',
+      responseStatistics: 'outputTokensPerSecond',
     });
 
     expect(terminalRendererOptions).toEqual([
       {
-        assistantResponseStats: 'outputTokensPerSecond',
+        responseStatistics: 'outputTokensPerSecond',
         reasoning: undefined,
         tools: undefined,
       },
@@ -105,13 +105,13 @@ describe('runAgentTUI', () => {
 
     await runAgentTUI({
       agent,
-      name: 'Test Agent',
+      title: 'Test Agent',
       contextSize: 200_000,
     });
 
     expect(terminalRendererOptions).toEqual([
       {
-        assistantResponseStats: undefined,
+        responseStatistics: undefined,
         contextSize: 200_000,
         reasoning: undefined,
         tools: undefined,
@@ -135,10 +135,12 @@ describe('AgentTUIRunner', () => {
     );
     const agent = createAgent(streamCalls);
 
-    await new AgentTUIRunner({ agent, name: 'Test Agent' }).run();
+    await new AgentTUIRunner({ agent, title: 'Test Agent' }).run();
 
     expectStreamCalls(streamCalls, [[createUserModelMessage('hello')]]);
     expect(renderer.submittedPrompts).toEqual(['hello']);
+    expect(renderer.tools).toEqual(['auto-collapsed']);
+    expect(renderer.reasoning).toEqual(['auto-collapsed']);
   });
 
   it('continues prompting and passes message history', async () => {
@@ -150,7 +152,7 @@ describe('AgentTUIRunner', () => {
     );
     const agent = createAgent(streamCalls);
 
-    await new AgentTUIRunner({ agent, name: 'Test Agent' }).run();
+    await new AgentTUIRunner({ agent, title: 'Test Agent' }).run();
 
     expectStreamCalls(streamCalls, [
       [createUserModelMessage('first')],
@@ -172,7 +174,7 @@ describe('AgentTUIRunner', () => {
     );
     const agent = createMultiStepAgent(streamCalls);
 
-    await new AgentTUIRunner({ agent, name: 'Test Agent' }).run();
+    await new AgentTUIRunner({ agent, title: 'Test Agent' }).run();
 
     expectStreamCalls(streamCalls, [
       [createUserModelMessage('weather')],
@@ -195,7 +197,7 @@ describe('AgentTUIRunner', () => {
     );
     const agent = createApprovalAgent(streamCalls);
 
-    await new AgentTUIRunner({ agent, name: 'Test Agent' }).run();
+    await new AgentTUIRunner({ agent, title: 'Test Agent' }).run();
 
     expectStreamCalls(streamCalls, [
       [createUserModelMessage('run command')],
@@ -230,12 +232,12 @@ describe('AgentTUIRunner', () => {
     });
     const agent = createAgent(streamCalls);
 
-    await new AgentTUIRunner({ agent, name: 'Test Agent' }).run();
+    await new AgentTUIRunner({ agent, title: 'Test Agent' }).run();
 
     expect(streamCalls).toEqual([]);
   });
 
-  it('uses the provided name as the session title', async () => {
+  it('uses the provided title as the session title', async () => {
     const streamCalls: AgentTUIStreamCall[] = [];
     const renderer = useRenderer(
       createRenderer({
@@ -244,14 +246,14 @@ describe('AgentTUIRunner', () => {
     );
     const agent = createAgent(streamCalls);
 
-    await new AgentTUIRunner({ agent, name: 'Test Agent' }).run();
+    await new AgentTUIRunner({ agent, title: 'Test Agent' }).run();
 
     expect(terminalRendererOptions).toEqual([undefined]);
     expect(renderer.submittedPrompts).toEqual(['hello']);
     expect(renderer.titles).toEqual(['Test Agent', 'Test Agent', 'Test Agent']);
   });
 
-  it('defaults assistant response stats mode to output tokens per second', async () => {
+  it('omits the session title by default', async () => {
     const streamCalls: AgentTUIStreamCall[] = [];
     const renderer = useRenderer(
       createRenderer({
@@ -260,12 +262,27 @@ describe('AgentTUIRunner', () => {
     );
     const agent = createAgent(streamCalls);
 
-    await new AgentTUIRunner({ agent, name: 'Test Agent' }).run();
+    await new AgentTUIRunner({ agent }).run();
 
-    expect(renderer.assistantResponseStats).toEqual(['outputTokensPerSecond']);
+    expect(renderer.submittedPrompts).toEqual(['hello']);
+    expect(renderer.titles).toEqual([undefined, undefined, undefined]);
   });
 
-  it('passes assistant response stats mode to stream rendering', async () => {
+  it('defaults response statistics mode to output tokens per second', async () => {
+    const streamCalls: AgentTUIStreamCall[] = [];
+    const renderer = useRenderer(
+      createRenderer({
+        prompts: ['hello', undefined],
+      }),
+    );
+    const agent = createAgent(streamCalls);
+
+    await new AgentTUIRunner({ agent, title: 'Test Agent' }).run();
+
+    expect(renderer.responseStatistics).toEqual(['outputTokensPerSecond']);
+  });
+
+  it('passes response statistics mode to stream rendering', async () => {
     const streamCalls: AgentTUIStreamCall[] = [];
     const renderer = useRenderer(
       createRenderer({
@@ -276,11 +293,11 @@ describe('AgentTUIRunner', () => {
 
     await new AgentTUIRunner({
       agent,
-      name: 'Test Agent',
-      assistantResponseStats: 'outputTokenCount',
+      title: 'Test Agent',
+      responseStatistics: 'outputTokenCount',
     }).run();
 
-    expect(renderer.assistantResponseStats).toEqual(['outputTokenCount']);
+    expect(renderer.responseStatistics).toEqual(['outputTokenCount']);
   });
 
   it('passes context size to stream rendering', async () => {
@@ -294,7 +311,7 @@ describe('AgentTUIRunner', () => {
 
     await new AgentTUIRunner({
       agent,
-      name: 'Test Agent',
+      title: 'Test Agent',
       contextSize: 200_000,
     }).run();
 
@@ -324,7 +341,7 @@ describe('AgentTUIRunner', () => {
       },
     ]);
 
-    await new AgentTUIRunner({ agent, name: 'Test Agent' }).run();
+    await new AgentTUIRunner({ agent, title: 'Test Agent' }).run();
 
     expect(renderer.responseMessages[0]?.metadata).toEqual({
       usage: { totalTokens: 15, outputTokens: 12 },
@@ -338,7 +355,7 @@ describe('AgentTUIRunner', () => {
     });
     const agent = createAgent(streamCalls);
 
-    await new AgentTUIRunner({ agent, name: 'Test Agent', renderer }).run();
+    await new AgentTUIRunner({ agent, title: 'Test Agent', renderer }).run();
 
     expectStreamCalls(streamCalls, [[createUserModelMessage('hello')]]);
     expect(terminalRendererOptions).toEqual([]);
@@ -418,10 +435,10 @@ function createAISDKAgent(): Agent<any, any, any, any> {
 
 type TestRenderer = AgentTUIRenderer & {
   submittedPrompts: string[];
-  titles: string[];
-  assistantResponseStats: Array<
-    AgentTUISessionOptions['assistantResponseStats']
-  >;
+  titles: Array<AgentTUISessionOptions['title']>;
+  responseStatistics: Array<AgentTUISessionOptions['responseStatistics']>;
+  tools: Array<AgentTUISessionOptions['tools']>;
+  reasoning: Array<AgentTUISessionOptions['reasoning']>;
   contextSizes: Array<AgentTUISessionOptions['contextSize']>;
   toolApprovalRequests: AgentTUIToolApprovalRequest[];
   responseMessages: UIMessage[];
@@ -452,10 +469,12 @@ function createRenderer(options: {
   toolApprovals?: AgentTUIToolApprovalResponse[];
 }): TestRenderer {
   const submittedPrompts: string[] = [];
-  const titles: string[] = [];
-  const assistantResponseStats: Array<
-    AgentTUISessionOptions['assistantResponseStats']
+  const titles: Array<AgentTUISessionOptions['title']> = [];
+  const responseStatistics: Array<
+    AgentTUISessionOptions['responseStatistics']
   > = [];
+  const tools: Array<AgentTUISessionOptions['tools']> = [];
+  const reasoning: Array<AgentTUISessionOptions['reasoning']> = [];
   const contextSizes: Array<AgentTUISessionOptions['contextSize']> = [];
   const toolApprovalRequests: AgentTUIToolApprovalRequest[] = [];
   const responseMessages: UIMessage[] = [];
@@ -463,21 +482,19 @@ function createRenderer(options: {
   return {
     submittedPrompts,
     titles,
-    assistantResponseStats,
+    responseStatistics,
+    tools,
+    reasoning,
     contextSizes,
     toolApprovalRequests,
     responseMessages,
     async readPrompt(sessionOptions) {
-      if (sessionOptions?.title) {
-        titles.push(sessionOptions.title);
-      }
+      titles.push(sessionOptions?.title);
 
       return options.prompts.shift();
     },
     async readToolApproval(request, sessionOptions) {
-      if (sessionOptions?.title) {
-        titles.push(sessionOptions.title);
-      }
+      titles.push(sessionOptions?.title);
 
       toolApprovalRequests.push(request);
 
@@ -489,15 +506,15 @@ function createRenderer(options: {
       return approval;
     },
     async renderStream(result, sessionOptions) {
-      if (sessionOptions?.title) {
-        titles.push(sessionOptions.title);
-      }
+      titles.push(sessionOptions?.title);
 
       if (sessionOptions?.submittedPrompt) {
         submittedPrompts.push(sessionOptions.submittedPrompt);
       }
 
-      assistantResponseStats.push(sessionOptions?.assistantResponseStats);
+      responseStatistics.push(sessionOptions?.responseStatistics);
+      tools.push(sessionOptions?.tools);
+      reasoning.push(sessionOptions?.reasoning);
       contextSizes.push(sessionOptions?.contextSize);
 
       let responseMessage: UIMessage | undefined;

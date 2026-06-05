@@ -1,6 +1,6 @@
 import type {
   AgentTUIAgent,
-  AssistantResponseStatsMode,
+  ResponseStatisticsMode,
   RunAgentTUIOptions,
   TerminalPartDisplayMode,
 } from './run-agent-tui';
@@ -21,7 +21,7 @@ import {
   type UIMessageChunk,
 } from 'ai';
 
-const defaultAssistantResponseStats: AssistantResponseStatsMode =
+const defaultResponseStatistics: ResponseStatisticsMode =
   'outputTokensPerSecond';
 
 export type AgentTUIStreamResult = {
@@ -44,7 +44,7 @@ export type AgentTUISessionOptions = {
   continueSession?: boolean;
   tools?: TerminalPartDisplayMode;
   reasoning?: TerminalPartDisplayMode;
-  assistantResponseStats?: AssistantResponseStatsMode;
+  responseStatistics?: ResponseStatisticsMode;
   contextSize?: number;
 };
 
@@ -88,25 +88,25 @@ export type AgentTUIRunnerOptions<
 export class AgentTUIRunner<TAgent extends AgentTUIAgent = AgentTUIAgent> {
   readonly #agent: TAgent;
   readonly #renderer: AgentTUIRenderer;
-  readonly #name: string;
+  readonly #title?: string;
   readonly #tools: TerminalPartDisplayMode;
   readonly #reasoning: TerminalPartDisplayMode;
-  readonly #assistantResponseStats: AssistantResponseStatsMode;
+  readonly #responseStatistics: ResponseStatisticsMode;
   readonly #contextSize?: number;
 
   constructor(options: AgentTUIRunnerOptions<TAgent>) {
     this.#agent = options.agent;
     this.#renderer = createRenderer(options) ?? createDefaultRenderer(options);
-    this.#name = options.name;
-    this.#tools = options.tools ?? 'full';
-    this.#reasoning = options.reasoning ?? 'full';
-    this.#assistantResponseStats =
-      options.assistantResponseStats ?? defaultAssistantResponseStats;
+    this.#title = options.title;
+    this.#tools = options.tools ?? 'auto-collapsed';
+    this.#reasoning = options.reasoning ?? 'auto-collapsed';
+    this.#responseStatistics =
+      options.responseStatistics ?? defaultResponseStatistics;
     this.#contextSize = options.contextSize;
   }
 
   async run() {
-    const title = this.#name;
+    const title = this.#title;
     const messages: UIMessage[] = [];
     let nextMessageIndex = 0;
     const generateMessageId = () => `message-${++nextMessageIndex}`;
@@ -158,7 +158,7 @@ export class AgentTUIRunner<TAgent extends AgentTUIAgent = AgentTUIAgent> {
           continueSession: Boolean(this.#renderer.readPrompt),
           tools: this.#tools,
           reasoning: this.#reasoning,
-          assistantResponseStats: this.#assistantResponseStats,
+          responseStatistics: this.#responseStatistics,
           contextSize: this.#contextSize,
           waitForExit: false,
         });
@@ -233,13 +233,13 @@ export class AgentTUIRunner<TAgent extends AgentTUIAgent = AgentTUIAgent> {
 function createDefaultRenderer(options: AgentTUIRunnerOptions) {
   return options.tools === undefined &&
     options.reasoning === undefined &&
-    options.assistantResponseStats === undefined &&
+    options.responseStatistics === undefined &&
     options.contextSize === undefined
     ? new TerminalRenderer()
     : new TerminalRenderer({
         tools: options.tools,
         reasoning: options.reasoning,
-        assistantResponseStats: options.assistantResponseStats,
+        responseStatistics: options.responseStatistics,
         contextSize: options.contextSize,
       });
 }
@@ -258,7 +258,7 @@ function createRenderer(
   return new TerminalRenderer({
     tools: options.tools,
     reasoning: options.reasoning,
-    assistantResponseStats: options.assistantResponseStats,
+    responseStatistics: options.responseStatistics,
     contextSize: options.contextSize,
     input: options.userInput,
     output: options.screen,

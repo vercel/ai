@@ -11,7 +11,7 @@ const agent = new ToolLoopAgent({
 
 run(async () => {
   await runAgentTUI({
-    name: 'Groq Agent',
+    title: 'Groq Agent',
     agent,
   });
 });

@@ -70,6 +70,20 @@ describe('renderScreen', () => {
     expect(output).toContain('┌ Chat ─────────── 13 tokens ┐');
   });
 
+  it('renders no outer frame title when title is empty', () => {
+    const output = renderScreen({
+      width: 30,
+      height: 8,
+      title: '',
+      body: 'Hello',
+      input: '',
+      inputActive: false,
+      scrollOffset: 0,
+    });
+
+    expect(output).toContain('┌────────────────────────────┐');
+  });
+
   it('renders a blank cursor during the hidden blink phase', () => {
     const output = renderScreen({
       width: 30,

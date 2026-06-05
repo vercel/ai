@@ -182,7 +182,7 @@ function findBreakPoint(input: string, width: number): number {
 
 function topBorder(width: number, title: string, rightTitle?: string): string {
   const contentWidth = Math.max(0, width - 2);
-  const label = sliceVisible(` ${title} `, contentWidth);
+  const label = title ? sliceVisible(` ${title} `, contentWidth) : '';
   const rightLabel = rightTitle
     ? sliceVisible(
         ` ${rightTitle} `,
