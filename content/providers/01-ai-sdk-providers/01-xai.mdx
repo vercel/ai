@@ -138,6 +138,31 @@ Supported values:
   your selected model. `'none'` requires `grok-4.3` or newer.
 </Note>
 
+## Realtime Models
+
+<Note type="warning">Realtime is an experimental feature.</Note>
+
+You can create models that call the [xAI Realtime API](https://docs.x.ai/docs/guides/realtime)
+using the `.experimental_realtime()` factory method.
+
+```ts
+import { xai } from '@ai-sdk/xai';
+
+const model = xai.experimental_realtime('grok-voice-latest');
+```
+
+Realtime sessions run in the browser and require a short-lived token created on
+your server with `xai.experimental_realtime.getToken()`:
+
+```ts
+const token = await xai.experimental_realtime.getToken({
+  model: 'grok-voice-latest',
+});
+```
+
+See [Realtime](/docs/ai-sdk-core/realtime) for the complete setup and tool
+calling pattern.
+
 ## Responses API (Agentic Tools)
 
 The xAI Responses API is the default when using `xai(modelId)`. You can also use `xai.responses(modelId)` explicitly. This enables the model to autonomously orchestrate tool calls and research on xAI's servers.
