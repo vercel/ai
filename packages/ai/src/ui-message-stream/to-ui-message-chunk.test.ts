@@ -4,7 +4,6 @@ import * as z from 'zod/v4';
 import type { GeneratedFile } from '../generate-text';
 import type { TextStreamPart } from '../generate-text/stream-text-result';
 import type { ProviderMetadata } from '../types/provider-metadata';
-import type { UIMessage } from '../ui/ui-messages';
 import { toUIMessageChunk } from './to-ui-message-chunk';
 
 const providerMetadata: ProviderMetadata = {
@@ -501,6 +500,27 @@ describe('toUIMessageChunk', () => {
     expect(
       toUIMessageChunk<Tools>(
         {
+          type: 'tool-result',
+          toolCallId: 'call-undefined',
+          toolName: 'dynamicTool',
+          input: { value: 'input' },
+          output: undefined,
+        },
+        { tools },
+      ),
+    ).toEqual({
+      type: 'tool-output-available',
+      toolCallId: 'call-undefined',
+      // This must be `null` so that we don't lose the property when this is
+      // serialized to JSON. See the following issue for more details:
+      // https://github.com/vercel/ai/issues/15854
+      output: null,
+      dynamic: true,
+    });
+
+    expect(
+      toUIMessageChunk<Tools>(
+        {
           type: 'tool-error',
           toolCallId: 'call-2',
           toolName: 'dynamicTool',
@@ -613,6 +633,8 @@ describe('toUIMessageChunk', () => {
       providerExecuted: true,
     });
   });
+
+  it('maps ');
 
   it('maps error parts through onError', () => {
     const onError = vi.fn(() => 'handled error');
