@@ -358,6 +358,9 @@ importers:
       '@ai-sdk/togetherai':
         specifier: workspace:*
         version: link:../../packages/togetherai
+      '@ai-sdk/tui':
+        specifier: workspace:*
+        version: link:../../packages/tui
       '@ai-sdk/valibot':
         specifier: workspace:*
         version: link:../../packages/valibot
