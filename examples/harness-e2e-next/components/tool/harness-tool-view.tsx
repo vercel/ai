@@ -17,11 +17,13 @@ export default function HarnessToolView({
   toolArg,
   state,
   output,
+  errorText,
 }: {
   toolName: string;
   toolArg?: string;
   state: DynamicToolUIPart['state'];
   output?: unknown;
+  errorText?: string;
 }) {
   const running = state === 'input-streaming' || state === 'input-available';
 
@@ -38,9 +40,14 @@ export default function HarnessToolView({
       <div>
         <strong>{toolName}</strong>(<code>{toolArg}</code>)
       </div>
-      {outputText && (
+      {state !== 'output-error' && outputText && (
         <div className="mt-1 ml-4">
           <CollapsibleOutput content={outputText} className={PRE_CLASS} />
+        </div>
+      )}
+      {state === 'output-error' && errorText && (
+        <div className="mt-1 ml-4">
+          <div className="text-sm text-red-500">Error: {errorText}</div>
         </div>
       )}
     </div>
