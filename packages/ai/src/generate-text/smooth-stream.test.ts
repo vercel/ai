@@ -1549,6 +1549,41 @@ describe('smoothStream', () => {
       });
     });
 
+    it('should preserve providerMetadata on chunks emitted from the chunking loop', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'reasoning-start', id: '1' },
+        {
+          text: 'hello world ',
+          type: 'reasoning-delta',
+          id: '1',
+          providerMetadata: {
+            anthropic: { signature: 'sig_loop' },
+          },
+        },
+        { type: 'reasoning-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      const reasoningDeltas = events.filter(
+        (e: any) => e?.type === 'reasoning-delta',
+      );
+      const withMetadata = reasoningDeltas.filter(
+        (e: any) => e.providerMetadata != null,
+      );
+
+      // Metadata must survive on a loop-emitted chunk — exactly once (not dropped, not duplicated).
+      expect(withMetadata).toHaveLength(1);
+      expect(withMetadata[0].providerMetadata).toEqual({
+        anthropic: { signature: 'sig_loop' },
+      });
+    });
+
     it('should preserve providerMetadata on reasoning-start for redacted thinking', async () => {
       const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
         {
