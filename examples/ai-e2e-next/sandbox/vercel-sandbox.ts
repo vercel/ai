@@ -41,15 +41,18 @@ export class VercelSandboxSession implements SandboxSession {
   async run({
     command,
     workingDirectory,
+    env,
     abortSignal,
   }: {
     command: string;
     workingDirectory?: string;
+    env?: Record<string, string>;
     abortSignal?: AbortSignal;
   }) {
     const proc = await this.spawn({
       command,
       workingDirectory,
+      env,
       abortSignal,
     });
 
@@ -65,10 +68,12 @@ export class VercelSandboxSession implements SandboxSession {
   async spawn({
     command,
     workingDirectory,
+    env,
     abortSignal,
   }: {
     command: string;
     workingDirectory?: string;
+    env?: Record<string, string>;
     abortSignal?: AbortSignal;
   }): Promise<Experimental_SandboxProcess> {
     abortSignal?.throwIfAborted();
@@ -77,6 +82,7 @@ export class VercelSandboxSession implements SandboxSession {
       cmd: 'bash',
       args: ['-c', command],
       cwd: workingDirectory ?? rootDirectory,
+      env,
       detached: true,
     });
 

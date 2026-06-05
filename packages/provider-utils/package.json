@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/provider-utils",
-  "version": "5.0.0-canary.44",
+  "version": "5.0.0-canary.46",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,

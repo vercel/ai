@@ -43,15 +43,18 @@ export class LocalSandboxSession implements SandboxSession {
   async run({
     command,
     workingDirectory,
+    env,
     abortSignal,
   }: {
     command: string;
     workingDirectory?: string;
+    env?: Record<string, string>;
     abortSignal?: AbortSignal;
   }) {
     const proc = await this.spawn({
       command,
       workingDirectory,
+      env,
       abortSignal,
     });
 
@@ -67,13 +70,19 @@ export class LocalSandboxSession implements SandboxSession {
   async spawn({
     command,
     workingDirectory,
+    env,
     abortSignal,
   }: {
     command: string;
     workingDirectory?: string;
+    env?: Record<string, string>;
     abortSignal?: AbortSignal;
   }): Promise<Experimental_SandboxProcess> {
     abortSignal?.throwIfAborted();
+
+    if (env != null && Object.keys(env).length > 0) {
+      throw new Error('LocalSandboxSession does not support the `env` option.');
+    }
 
     const child = spawn('bash', ['-c', command], {
       cwd: workingDirectory ?? this.rootDirectory,

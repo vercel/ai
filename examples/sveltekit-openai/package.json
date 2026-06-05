@@ -19,6 +19,7 @@
     "@sveltejs/adapter-vercel": "^6.3.3",
     "@sveltejs/kit": "^2.60.1",
     "@sveltejs/vite-plugin-svelte": "^5.1.1",
+    "@types/node": "22.19.19",
     "ai": "workspace:*",
     "autoprefixer": "^10.5.0",
     "bits-ui": "^1.8.0",

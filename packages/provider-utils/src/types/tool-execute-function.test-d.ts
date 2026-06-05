@@ -1,7 +1,7 @@
 import { describe, expectTypeOf, it } from 'vitest';
 import type { Context } from './context';
 import type { ModelMessage } from './model-message';
-import type { Experimental_SandboxSession as SandboxSession } from './sandbox';
+import type { SandboxSession } from './sandbox';
 import type {
   ToolExecuteFunction,
   ToolExecutionOptions,
@@ -22,6 +22,7 @@ describe('tool execute function types', () => {
     expectTypeOf<Parameters<SandboxSession['run']>[0]>().toEqualTypeOf<{
       command: string;
       workingDirectory?: string;
+      env?: Record<string, string>;
       abortSignal?: AbortSignal;
     }>();
   });

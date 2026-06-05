@@ -98,6 +98,13 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
         'Limits the tools that are available for the model to call without changing the tool call and result types in the result. All tools are active by default. Tool names are restricted to the string keys of the tool set.',
     },
     {
+      name: 'toolOrder',
+      type: 'ToolOrder<TOOLS>',
+      isOptional: true,
+      description:
+        'Controls the order in which tools are sent to the provider. The list can be partial. Tools not listed in `toolOrder` are sent after the listed tools, sorted alphabetically. Tool names are restricted to the string keys of the tool set.',
+    },
+    {
       name: 'toolApproval',
       type: 'ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>',
       isOptional: true,
@@ -185,6 +192,12 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
               type: 'ActiveTools<TOOLS>',
               description:
                 'Limits which tools are available for the model to call.',
+            },
+            {
+              name: 'toolOrder',
+              type: 'ToolOrder<TOOLS>',
+              description:
+                'Controls the order in which tools are sent to the provider.',
             },
             {
               name: 'maxOutputTokens',
@@ -326,6 +339,12 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
               name: 'activeTools',
               type: 'ActiveTools<TOOLS>',
               description: 'Limits which tools are available for this step.',
+            },
+            {
+              name: 'toolOrder',
+              type: 'ToolOrder<TOOLS>',
+              description:
+                'Controls the order in which tools are sent to the provider for this step.',
             },
             {
               name: 'steps',
