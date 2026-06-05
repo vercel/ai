@@ -86,27 +86,27 @@ export type AgentTUIRunnerOptions<
 };
 
 export class AgentTUIRunner<TAgent extends AgentTUIAgent = AgentTUIAgent> {
-  readonly #agent: TAgent;
-  readonly #renderer: AgentTUIRenderer;
-  readonly #title?: string;
-  readonly #tools: TerminalPartDisplayMode;
-  readonly #reasoning: TerminalPartDisplayMode;
-  readonly #responseStatistics: ResponseStatisticsMode;
-  readonly #contextSize?: number;
+  private readonly agent: TAgent;
+  private readonly renderer: AgentTUIRenderer;
+  private readonly title?: string;
+  private readonly tools: TerminalPartDisplayMode;
+  private readonly reasoning: TerminalPartDisplayMode;
+  private readonly responseStatistics: ResponseStatisticsMode;
+  private readonly contextSize?: number;
 
   constructor(options: AgentTUIRunnerOptions<TAgent>) {
-    this.#agent = options.agent;
-    this.#renderer = createRenderer(options) ?? createDefaultRenderer(options);
-    this.#title = options.title;
-    this.#tools = options.tools ?? 'auto-collapsed';
-    this.#reasoning = options.reasoning ?? 'auto-collapsed';
-    this.#responseStatistics =
+    this.agent = options.agent;
+    this.renderer = createRenderer(options) ?? createDefaultRenderer(options);
+    this.title = options.title;
+    this.tools = options.tools ?? 'auto-collapsed';
+    this.reasoning = options.reasoning ?? 'auto-collapsed';
+    this.responseStatistics =
       options.responseStatistics ?? defaultResponseStatistics;
-    this.#contextSize = options.contextSize;
+    this.contextSize = options.contextSize;
   }
 
   async run() {
-    const title = this.#title;
+    const title = this.title;
     const messages: UIMessage[] = [];
     let nextMessageIndex = 0;
     const generateMessageId = () => `message-${++nextMessageIndex}`;
@@ -117,7 +117,7 @@ export class AgentTUIRunner<TAgent extends AgentTUIAgent = AgentTUIAgent> {
     while (true) {
       if (!streamWithoutPrompt) {
         if (prompt == null) {
-          if (!this.#renderer.readPrompt) {
+          if (!this.renderer.readPrompt) {
             if (hasRunTurn) {
               return;
             }
@@ -128,7 +128,7 @@ export class AgentTUIRunner<TAgent extends AgentTUIAgent = AgentTUIAgent> {
           }
 
           try {
-            prompt = await this.#renderer.readPrompt({ title });
+            prompt = await this.renderer.readPrompt({ title });
           } catch (error) {
             if (isInterruptedError(error)) {
               return;
@@ -146,20 +146,20 @@ export class AgentTUIRunner<TAgent extends AgentTUIAgent = AgentTUIAgent> {
         hasRunTurn = true;
       }
 
-      const result = await this.#streamMessages(
+      const result = await this.streamMessages(
         [...messages],
         generateMessageId,
       );
 
       try {
-        const responseMessage = await this.#renderer.renderStream(result, {
+        const responseMessage = await this.renderer.renderStream(result, {
           title,
           submittedPrompt: prompt,
-          continueSession: Boolean(this.#renderer.readPrompt),
-          tools: this.#tools,
-          reasoning: this.#reasoning,
-          responseStatistics: this.#responseStatistics,
-          contextSize: this.#contextSize,
+          continueSession: Boolean(this.renderer.readPrompt),
+          tools: this.tools,
+          reasoning: this.reasoning,
+          responseStatistics: this.responseStatistics,
+          contextSize: this.contextSize,
           waitForExit: false,
         });
 
@@ -168,14 +168,14 @@ export class AgentTUIRunner<TAgent extends AgentTUIAgent = AgentTUIAgent> {
             findPendingToolApprovalRequests(responseMessage);
 
           if (approvalRequests.length > 0) {
-            if (!this.#renderer.readToolApproval) {
+            if (!this.renderer.readToolApproval) {
               throw new Error(
                 'Tool approval was requested, but the renderer does not support tool approval input.',
               );
             }
 
             for (const request of approvalRequests) {
-              const response = await this.#renderer.readToolApproval(request, {
+              const response = await this.renderer.readToolApproval(request, {
                 title,
               });
               applyToolApprovalResponse(responseMessage, request, response);
@@ -205,14 +205,14 @@ export class AgentTUIRunner<TAgent extends AgentTUIAgent = AgentTUIAgent> {
     }
   }
 
-  async #streamMessages(
+  private async streamMessages(
     messages: UIMessage[],
     generateMessageId: () => string,
   ): Promise<AgentTUIStreamResult> {
     const abortController = new AbortController();
-    const result = await this.#agent.stream({
+    const result = await this.agent.stream({
       prompt: await convertToModelMessages(messages, {
-        tools: this.#agent.tools as ToolSet,
+        tools: this.agent.tools as ToolSet,
       }),
       abortSignal: abortController.signal,
       options: undefined,
