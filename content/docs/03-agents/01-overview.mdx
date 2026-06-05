@@ -91,6 +91,24 @@ The ToolLoopAgent is the recommended approach for building agents with the AI SD
 
 For most use cases, start with the ToolLoopAgent. Use core functions (`generateText`, `streamText`) when you need explicit control over each step for complex structured workflows.
 
+## Terminal UI
+
+Use `@ai-sdk/tui` to run a `ToolLoopAgent` in an interactive terminal UI. It is
+useful for local agent development, demos, and internal tools where you want
+prompt input, streamed responses, tool cards, reasoning sections, scrolling, and
+tool approval prompts without building a custom interface.
+
+```ts
+import { runAgentTUI } from '@ai-sdk/tui';
+
+await runAgentTUI({
+  name: 'Weather Agent',
+  agent: weatherAgent,
+});
+```
+
+Learn more in [Terminal UI](/docs/agents/terminal-ui).
+
 ## Structured Workflows
 
 Agents are flexible and powerful, but non-deterministic. When you need reliable, repeatable outcomes with explicit control flow, use core functions with structured workflow patterns combining:
