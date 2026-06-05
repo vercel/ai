@@ -235,6 +235,83 @@ console.log(ranking);
 
 Reranking models are useful for improving search results in retrieval-augmented generation (RAG) pipelines by re-scoring candidate documents after an initial retrieval step.
 
+## Realtime Models
+
+<Note type="warning">
+  Realtime support is experimental and the API may change in patch releases.
+</Note>
+
+You can create realtime models for bidirectional audio/text WebSocket sessions using the `experimental_realtime` method on the provider instance. The first argument is the model ID in the format `creator/model-name`:
+
+```ts
+import { gateway } from '@ai-sdk/gateway';
+
+const model = gateway.experimental_realtime('openai/gpt-realtime-2');
+```
+
+The Gateway normalizes realtime the same way it normalizes every other modality: your client speaks the [normalized AI SDK realtime protocol](/docs/ai-sdk-core/realtime) and the Gateway translates to and from the upstream provider server-side. This means the same client code works regardless of which provider backs the model.
+
+Use it with the same setup-endpoint and `experimental_useRealtime` flow as any other realtime provider (see [Realtime](/docs/ai-sdk-core/realtime)). Your server creates a short-lived token, and the browser connects through the Gateway:
+
+```ts
+// app/api/realtime/setup/route.ts
+import { gateway } from '@ai-sdk/gateway';
+
+export async function POST() {
+  const token = await gateway.experimental_realtime.getToken({
+    model: 'openai/gpt-realtime-2',
+  });
+  return Response.json(token);
+}
+```
+
+<Note>
+  Because the browser `WebSocket` API cannot set request headers, the Gateway
+  auth token is sent via the `Sec-WebSocket-Protocol` subprotocol and the model
+  id rides the `?ai-model-id=` query — the WebSocket transport of the
+  `Authorization` and `ai-model-id` headers the HTTP routes use.
+</Note>
+
+### Provider Options
+
+Gateway [provider options](#gateway-provider-options) — `tags`, `user`, `byok`, compliance flags, and so on — are set under `providerOptions.gateway` in the **session configuration**, mirroring how they ride the request body on the non-realtime routes. Pass them to `experimental_useRealtime` (or to the session you construct) and the Gateway applies them server-side:
+
+```ts
+import { gateway, type GatewayProviderOptions } from '@ai-sdk/gateway';
+import { experimental_useRealtime } from '@ai-sdk/react';
+
+const gatewayOptions: GatewayProviderOptions = {
+  tags: ['cooking-coach', 'v2'],
+  user: 'user-123',
+};
+
+experimental_useRealtime({
+  model: gateway.experimental_realtime('openai/gpt-realtime-2'),
+  api: { token: '/api/realtime/setup' },
+  sessionConfig: {
+    instructions: 'You are a concise voice assistant.',
+    providerOptions: { gateway: gatewayOptions },
+  },
+});
+```
+
+The `GatewayProviderOptions` type and a `parseGatewayProviderOptions` validator are exported from `@ai-sdk/gateway` so the same shape is shared between the client (which sets the options) and any server that reads them (e.g. validating the `providerOptions.gateway` carried on a `session.update`):
+
+```ts
+import { parseGatewayProviderOptions } from '@ai-sdk/gateway';
+
+// returns typed GatewayProviderOptions | undefined, throws on invalid input
+const options = await parseGatewayProviderOptions(sessionConfig.providerOptions);
+```
+
+<Note>
+  Provider options are sent in the first `session.update` frame (after the
+  socket opens), so connect-time options such as `byok` and quota selection
+  require a Gateway that resolves them from that frame. Routing knobs like
+  `order` / `only` do not apply to realtime, where the Gateway selects the
+  WebSocket-capable provider.
+</Note>
+
 ## Available Models
 
 The AI Gateway supports models from OpenAI, Anthropic, Google, Meta, xAI, Mistral, DeepSeek, Amazon Bedrock, Cohere, Perplexity, Alibaba, and other providers.

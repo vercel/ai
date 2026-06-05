@@ -1,10 +1,18 @@
-import { describe, expect, it } from 'vitest';
+import type { Experimental_RealtimeModelV4ClientEvent as RealtimeClientEvent } from '@ai-sdk/provider';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { GatewayAuthenticationError } from './errors';
 import {
   GATEWAY_AUTH_SUBPROTOCOL_PREFIX,
   GATEWAY_REALTIME_SUBPROTOCOL,
-  GatewayRealtimeModel,
-} from './gateway-realtime-model';
+} from './gateway-realtime-auth';
+import { GatewayRealtimeModel } from './gateway-realtime-model';
 import { createGateway } from './gateway-provider';
+import { getVercelOidcToken } from './vercel-environment';
+
+vi.mock('./vercel-environment', () => ({
+  getVercelOidcToken: vi.fn(),
+  getVercelRequestId: vi.fn(),
+}));
 
 const createTestModel = (
   modelId = 'openai/gpt-realtime',
@@ -26,11 +34,11 @@ describe('GatewayRealtimeModel', () => {
   });
 
   describe('doCreateClientSecret', () => {
-    it('returns the gateway auth token and a wss realtime url with the model query', async () => {
+    it('returns the gateway auth token and a wss realtime url with the ai-model-id query', async () => {
       const result = await createTestModel().doCreateClientSecret();
       expect(result.token).toBe('vck_test-token');
       expect(result.url).toBe(
-        'wss://ai-gateway.vercel.sh/v4/ai/realtime-model?model=openai%2Fgpt-realtime',
+        'wss://ai-gateway.vercel.sh/v4/ai/realtime-model?ai-model-id=openai%2Fgpt-realtime',
       );
     });
 
@@ -40,8 +48,30 @@ describe('GatewayRealtimeModel', () => {
         'http://localhost:3000/v4/ai',
       ).doCreateClientSecret();
       expect(result.url).toBe(
-        'ws://localhost:3000/v4/ai/realtime-model?model=openai%2Fgpt-realtime',
+        'ws://localhost:3000/v4/ai/realtime-model?ai-model-id=openai%2Fgpt-realtime',
       );
+    });
+
+    it('passes the model id through verbatim (the gateway owns qualification)', async () => {
+      const result =
+        await createTestModel('gpt-realtime-2').doCreateClientSecret();
+      // No client-side `openai/` prefixing — mirrors the non-realtime routes.
+      expect(result.url).toBe(
+        'wss://ai-gateway.vercel.sh/v4/ai/realtime-model?ai-model-id=gpt-realtime-2',
+      );
+    });
+
+    it('returns an oidc token unchanged', async () => {
+      const model = new GatewayRealtimeModel('openai/gpt-realtime-2', {
+        provider: 'gateway.realtime',
+        baseURL: 'https://ai-gateway.vercel.sh/v4/ai',
+        getAuthToken: async () => ({
+          token: 'oidc-token',
+          authMethod: 'oidc',
+        }),
+      });
+      const result = await model.doCreateClientSecret();
+      expect(result.token).toBe('oidc-token');
     });
   });
 
@@ -49,10 +79,10 @@ describe('GatewayRealtimeModel', () => {
     it('smuggles the bearer token through the subprotocol (browser has no header channel)', () => {
       const config = createTestModel().getWebSocketConfig({
         token: 'vck_test-token',
-        url: 'wss://ai-gateway.vercel.sh/v4/ai/realtime-model?model=openai%2Fgpt-realtime',
+        url: 'wss://ai-gateway.vercel.sh/v4/ai/realtime-model?ai-model-id=openai%2Fgpt-realtime',
       });
       expect(config.url).toBe(
-        'wss://ai-gateway.vercel.sh/v4/ai/realtime-model?model=openai%2Fgpt-realtime',
+        'wss://ai-gateway.vercel.sh/v4/ai/realtime-model?ai-model-id=openai%2Fgpt-realtime',
       );
       expect(config.protocols).toEqual([
         GATEWAY_REALTIME_SUBPROTOCOL,
@@ -76,6 +106,22 @@ describe('GatewayRealtimeModel', () => {
       const config = { instructions: 'be concise', voice: 'alloy' };
       expect(createTestModel().buildSessionConfig(config)).toBe(config);
     });
+
+    it('passes session-update provider options through unchanged', () => {
+      // "Support all the things": gateway provider options (tags/user/byok/...)
+      // ride session.update exactly as they ride the request body on the
+      // non-realtime routes. The identity codec must not strip them.
+      const event = {
+        type: 'session-update',
+        config: {
+          instructions: 'be concise',
+          providerOptions: {
+            gateway: { tags: ['demo'], user: 'user-1' },
+          },
+        },
+      } satisfies RealtimeClientEvent;
+      expect(createTestModel().serializeClientEvent(event)).toBe(event);
+    });
   });
 });
 
@@ -95,7 +141,37 @@ describe('gateway.experimental_realtime', () => {
     });
     expect(result.token).toBe('vck_test-token');
     expect(result.url).toBe(
-      'wss://ai-gateway.vercel.sh/v4/ai/realtime-model?model=openai%2Fgpt-realtime',
+      'wss://ai-gateway.vercel.sh/v4/ai/realtime-model?ai-model-id=openai%2Fgpt-realtime',
     );
+  });
+});
+
+describe('gateway.experimental_realtime auth errors', () => {
+  let previousApiKey: string | undefined;
+
+  beforeEach(() => {
+    previousApiKey = process.env.AI_GATEWAY_API_KEY;
+    Reflect.deleteProperty(process.env, 'AI_GATEWAY_API_KEY');
+    vi.mocked(getVercelOidcToken).mockRejectedValue(
+      new Error('no oidc token available'),
+    );
+  });
+
+  afterEach(() => {
+    if (previousApiKey !== undefined) {
+      process.env.AI_GATEWAY_API_KEY = previousApiKey;
+    }
+    vi.clearAllMocks();
+  });
+
+  it('wraps getToken auth failures in a GatewayAuthenticationError', async () => {
+    // No API key and no OIDC token: the realtime auth path must surface the
+    // same GatewayAuthenticationError the other gateway models throw.
+    const gateway = createGateway({});
+    await expect(
+      gateway.experimental_realtime.getToken({
+        model: 'openai/gpt-realtime-2',
+      }),
+    ).rejects.toBeInstanceOf(GatewayAuthenticationError);
   });
 });

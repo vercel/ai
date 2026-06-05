@@ -1,4 +1,10 @@
 export type { GatewayModelId } from './gateway-language-model-settings';
+export {
+  GATEWAY_AUTH_SUBPROTOCOL_PREFIX,
+  GATEWAY_REALTIME_SUBPROTOCOL,
+  getGatewayRealtimeAuthToken,
+  getGatewayRealtimeProtocols,
+} from './gateway-realtime-auth';
 export type { GatewayRealtimeModelId } from './gateway-realtime-model-settings';
 export type { GatewayRerankingModelId } from './gateway-reranking-model-settings';
 export type { GatewaySpeechModelId } from './gateway-speech-model-settings';
@@ -29,6 +35,7 @@ export type {
   GatewayProvider,
   GatewayProviderSettings,
 } from './gateway-provider';
+export { parseGatewayProviderOptions } from './gateway-provider-options';
 export type {
   GatewayProviderOptions,
   /** @deprecated Use `GatewayProviderOptions` instead. */

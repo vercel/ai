@@ -11,4 +11,17 @@ translates to/from the upstream provider server-side, so `GatewayRealtimeModel`
 is a thin identity codec. Because the browser `WebSocket` API cannot set
 request headers, the Gateway auth token is carried via the
 `Sec-WebSocket-Protocol` subprotocol (the same workaround used for OpenAI) and
-the model id rides the `?model=` query.
+the model id rides the `?ai-model-id=` query — the WS transport of the
+`ai-model-id` header used by the HTTP routes. The model id is passed through
+verbatim; the Gateway owns resolution. Provider options (including BYOK) flow
+through the normalized `session.update`, exactly as they ride the request body
+on the non-realtime routes.
+
+The subprotocol auth contract is centralized so the client and the Gateway
+server share one definition: `getGatewayRealtimeProtocols` (client encode) and
+`getGatewayRealtimeAuthToken` (server decode), plus the
+`GATEWAY_REALTIME_SUBPROTOCOL` / `GATEWAY_AUTH_SUBPROTOCOL_PREFIX` constants.
+
+Provider options are similarly shared: `parseGatewayProviderOptions` validates
+the `providerOptions.gateway` shape (returning the typed `GatewayProviderOptions`)
+so the client and the Gateway service apply the same schema.

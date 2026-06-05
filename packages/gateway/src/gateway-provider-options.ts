@@ -1,5 +1,6 @@
 import {
   lazySchema,
+  parseProviderOptions,
   zodSchema,
   type InferSchema,
 } from '@ai-sdk/provider-utils';
@@ -116,3 +117,23 @@ const gatewayProviderOptions = lazySchema(() =>
 );
 
 export type GatewayProviderOptions = InferSchema<typeof gatewayProviderOptions>;
+
+/**
+ * Parse and validate the Gateway provider options nested under
+ * `providerOptions.gateway`.
+ *
+ * Shared by the AI SDK and the AI Gateway service so both agree on one schema:
+ * the client sets these options (e.g. on a realtime `sessionConfig`), and the
+ * service reads them off the request body or the realtime `session.update`
+ * frame. Returns the typed options, `undefined` when absent, and throws
+ * `InvalidArgumentError` when present but invalid.
+ */
+export function parseGatewayProviderOptions(
+  providerOptions: Record<string, unknown> | undefined,
+): Promise<GatewayProviderOptions | undefined> {
+  return parseProviderOptions({
+    provider: 'gateway',
+    providerOptions,
+    schema: gatewayProviderOptions,
+  });
+}

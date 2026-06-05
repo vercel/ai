@@ -53,7 +53,7 @@ const providers: Record<string, { factory: RealtimeFactory; model: string }> = {
   },
   gateway: {
     factory: gateway.experimental_realtime,
-    model: 'openai/gpt-realtime',
+    model: 'openai/gpt-realtime-2',
   },
 };
 

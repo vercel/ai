@@ -5,21 +5,7 @@ import type {
   Experimental_RealtimeModelV4ServerEvent as RealtimeModelV4ServerEvent,
   Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
 } from '@ai-sdk/provider';
-
-/**
- * Subprotocol marker offered on every Gateway realtime WebSocket handshake so
- * the Gateway can echo a negotiated subprotocol on the 101 response.
- */
-export const GATEWAY_REALTIME_SUBPROTOCOL = 'ai-gateway-realtime';
-
-/**
- * Subprotocol prefix that carries the Gateway auth token. The browser
- * `WebSocket` API cannot set request headers, so the bearer token is smuggled
- * through the `Sec-WebSocket-Protocol` handshake — the same workaround OpenAI
- * uses for `openai-insecure-api-key.<token>`. The Gateway decodes this back
- * into an `Authorization` header before authenticating the upgrade.
- */
-export const GATEWAY_AUTH_SUBPROTOCOL_PREFIX = 'ai-gateway-auth.';
+import { getGatewayRealtimeProtocols } from './gateway-realtime-auth';
 
 export type GatewayRealtimeModelConfig = {
   provider: string;
@@ -79,10 +65,7 @@ export class GatewayRealtimeModel implements RealtimeModelV4 {
   } {
     return {
       url: options.url,
-      protocols: [
-        GATEWAY_REALTIME_SUBPROTOCOL,
-        `${GATEWAY_AUTH_SUBPROTOCOL_PREFIX}${options.token}`,
-      ],
+      protocols: getGatewayRealtimeProtocols(options.token),
     };
   }
 
@@ -106,12 +89,15 @@ export class GatewayRealtimeModel implements RealtimeModelV4 {
 
 /**
  * Build the Gateway realtime WebSocket URL. The HTTP(S) base URL is upgraded to
- * WS(S) and the model id rides the `?model=` query — the only browser-settable
- * channel besides subprotocols, and (unlike a subprotocol token) slash-safe for
- * qualified ids such as `openai/gpt-realtime`.
+ * WS(S) and the model id rides the `?ai-model-id=` query — the WS transport of
+ * the `ai-model-id` header the HTTP routes use, since a browser `WebSocket`
+ * cannot set headers. The model id is passed through verbatim; the Gateway owns
+ * resolution (including the bare → `openai/` qualification), exactly like the
+ * non-realtime routes. The query is slash-safe for qualified ids such as
+ * `openai/gpt-realtime-2`.
  */
 function toGatewayRealtimeUrl(baseURL: string, modelId: string): string {
   const url = new URL(`${baseURL.replace(/^http/, 'ws')}/realtime-model`);
-  url.searchParams.set('model', modelId);
+  url.searchParams.set('ai-model-id', modelId);
   return url.toString();
 }
