@@ -94,6 +94,22 @@ describe('createTelemetryDispatcher', () => {
     expect(onStart2).toHaveBeenCalledWith(augmentedDummyEvent);
   });
 
+  it('fans out step-end events to deprecated onStepFinish integrations', async () => {
+    const onStepEnd = vi.fn();
+    const onStepFinish = vi.fn();
+
+    const telemetry = createTelemetryDispatcher({
+      telemetry: {
+        integrations: [{ onStepEnd }, { onStepFinish }],
+      },
+    });
+
+    await telemetry.onStepEnd!(dummyEvent);
+
+    expect(onStepEnd).toHaveBeenCalledWith(augmentedDummyEvent);
+    expect(onStepFinish).toHaveBeenCalledWith(augmentedDummyEvent);
+  });
+
   it('skips integrations that do not implement the method', async () => {
     const onStart = vi.fn();
 
