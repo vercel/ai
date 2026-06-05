@@ -3496,8 +3496,8 @@ describe('ToolLoopAgent', () => {
               onToolExecutionEnd: async () => {
                 events.push('onToolExecutionEnd');
               },
-              onStepFinish: async () => {
-                events.push('onStepFinish');
+              onStepEnd: async () => {
+                events.push('onStepEnd');
               },
               onEnd: async () => {
                 events.push('onEnd');
@@ -3513,9 +3513,9 @@ describe('ToolLoopAgent', () => {
           'onStepStart',
           'onToolExecutionStart',
           'onToolExecutionEnd',
-          'onStepFinish',
+          'onStepEnd',
           'onStepStart',
-          'onStepFinish',
+          'onStepEnd',
           'onEnd',
         ]);
       });
@@ -3528,8 +3528,8 @@ describe('ToolLoopAgent', () => {
             onStart: async () => {
               events.push('global-onStart');
             },
-            onStepFinish: async () => {
-              events.push('global-onStepFinish');
+            onStepEnd: async () => {
+              events.push('global-onStepEnd');
             },
             onEnd: async () => {
               events.push('global-onEnd');
@@ -3551,7 +3551,7 @@ describe('ToolLoopAgent', () => {
 
         expect(events).toEqual([
           'global-onStart',
-          'global-onStepFinish',
+          'global-onStepEnd',
           'global-onEnd',
         ]);
       });
@@ -3591,7 +3591,7 @@ describe('ToolLoopAgent', () => {
                   (event as { runtimeContext: unknown }).runtimeContext,
                 );
               },
-              onStepFinish: async ({ runtimeContext }) => {
+              onStepEnd: async ({ runtimeContext }) => {
                 telemetryContexts.push(runtimeContext);
               },
               onEnd: async event => {
@@ -3642,8 +3642,8 @@ describe('ToolLoopAgent', () => {
               onStart: async () => {
                 events.push('integration-onStart');
               },
-              onStepFinish: async () => {
-                events.push('integration-onStepFinish');
+              onStepEnd: async () => {
+                events.push('integration-onStepEnd');
               },
               onEnd: async () => {
                 events.push('integration-onEnd');
@@ -3658,7 +3658,7 @@ describe('ToolLoopAgent', () => {
           'agent-onStart',
           'integration-onStart',
           'agent-onStepFinish',
-          'integration-onStepFinish',
+          'integration-onStepEnd',
           'agent-onFinish',
           'integration-onEnd',
         ]);
@@ -3678,7 +3678,7 @@ describe('ToolLoopAgent', () => {
               onStart: async () => {
                 throw new Error('integration error');
               },
-              onStepFinish: async () => {
+              onStepEnd: async () => {
                 throw new Error('integration error');
               },
               onEnd: async () => {
@@ -3789,8 +3789,8 @@ describe('ToolLoopAgent', () => {
               onToolExecutionEnd: async () => {
                 events.push('onToolExecutionEnd');
               },
-              onStepFinish: async () => {
-                events.push('onStepFinish');
+              onStepEnd: async () => {
+                events.push('onStepEnd');
               },
               onEnd: async () => {
                 events.push('onEnd');
@@ -3807,9 +3807,9 @@ describe('ToolLoopAgent', () => {
           'onStepStart',
           'onToolExecutionStart',
           'onToolExecutionEnd',
-          'onStepFinish',
+          'onStepEnd',
           'onStepStart',
-          'onStepFinish',
+          'onStepEnd',
           'onEnd',
         ]);
       });
@@ -3822,8 +3822,8 @@ describe('ToolLoopAgent', () => {
             onStart: async () => {
               events.push('global-onStart');
             },
-            onStepFinish: async () => {
-              events.push('global-onStepFinish');
+            onStepEnd: async () => {
+              events.push('global-onStepEnd');
             },
             onEnd: async () => {
               events.push('global-onEnd');
@@ -3856,7 +3856,7 @@ describe('ToolLoopAgent', () => {
 
         expect(events).toEqual([
           'global-onStart',
-          'global-onStepFinish',
+          'global-onStepEnd',
           'global-onEnd',
         ]);
       });
@@ -3906,7 +3906,7 @@ describe('ToolLoopAgent', () => {
                   (event as { runtimeContext: unknown }).runtimeContext,
                 );
               },
-              onStepFinish: async ({ runtimeContext }) => {
+              onStepEnd: async ({ runtimeContext }) => {
                 telemetryContexts.push(runtimeContext);
               },
               onEnd: async event => {
@@ -3968,8 +3968,8 @@ describe('ToolLoopAgent', () => {
               onStart: async () => {
                 events.push('integration-onStart');
               },
-              onStepFinish: async () => {
-                events.push('integration-onStepFinish');
+              onStepEnd: async () => {
+                events.push('integration-onStepEnd');
               },
               onEnd: async () => {
                 events.push('integration-onEnd');
@@ -3985,7 +3985,7 @@ describe('ToolLoopAgent', () => {
           'agent-onStart',
           'integration-onStart',
           'agent-onStepFinish',
-          'integration-onStepFinish',
+          'integration-onStepEnd',
           'agent-onFinish',
           'integration-onEnd',
         ]);
@@ -4015,7 +4015,7 @@ describe('ToolLoopAgent', () => {
               onStart: async () => {
                 throw new Error('integration error');
               },
-              onStepFinish: async () => {
+              onStepEnd: async () => {
                 throw new Error('integration error');
               },
               onEnd: async () => {
