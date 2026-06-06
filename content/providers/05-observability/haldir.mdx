@@ -1,0 +1,163 @@
+---
+title: Haldir
+description: Add governance to your AI SDK tools with Haldir — scoped sessions, encrypted secrets, hash-chained audit, and policy enforcement.
+---
+
+# Haldir Governance
+
+[Haldir](https://haldir.xyz) is a governance layer for AI agents and tool-calling applications. Wrap any AI SDK tool with Haldir enforcement and you get:
+
+- **Scoped sessions** with per-session spend caps and TTL (Gate)
+- **Encrypted secrets** that never enter the model context (Vault)
+- **Hash-chained tamper-evident audit trail** for every tool call (Watch)
+- **Policy enforcement** at the tool boundary with instant mid-run revocation (Proxy)
+
+## Setup
+
+The Haldir AI SDK integration is available in the `@haldir/ai-sdk` package. Install it alongside the `haldir` JavaScript client:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @haldir/ai-sdk haldir" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @haldir/ai-sdk haldir" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @haldir/ai-sdk haldir" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @haldir/ai-sdk haldir" dark />
+  </Tab>
+</Tabs>
+
+Setting up Haldir:
+
+1. Grab a free API key at [haldir.xyz/quickstart](https://haldir.xyz/quickstart) (one click, no signup).
+2. Set your API key as an environment variable:
+
+   ```bash filename=".env"
+   HALDIR_API_KEY=hld_...
+   ```
+
+3. Wrap your AI SDK tools with `governTool`:
+
+   ```typescript
+   import { generateText, tool } from 'ai';
+   import { openai } from '@ai-sdk/openai';
+   import { z } from 'zod';
+   import { createSession, governTool } from '@haldir/ai-sdk';
+
+   // Create a scoped Haldir session with a $10 spend cap
+   const { client, sessionId } = await createSession({
+     apiKey: process.env.HALDIR_API_KEY!,
+     agentId: 'my-agent',
+     scopes: ['read', 'search'],
+     spendLimit: 10.0,
+   });
+
+   // Wrap your tool so Haldir enforces permissions on every call
+   const weather = governTool({
+     tool: tool({
+       description: 'Get the weather in a city',
+       parameters: z.object({ city: z.string() }),
+       execute: async ({ city }) => `Weather in ${city}: sunny, 72°F.`,
+     }),
+     client,
+     sessionId,
+     toolName: 'weather',
+     requiredScope: 'read',
+     costUsd: 0.001,
+   });
+
+   // Use the governed tool exactly like a normal AI SDK tool
+   const { text } = await generateText({
+     model: openai('gpt-4o-mini'),
+     tools: { weather },
+     prompt: 'What is the weather in San Francisco?',
+   });
+   ```
+
+Every tool call is now permission-checked before execution and logged to Haldir's hash-chained audit trail after.
+
+## Production Features
+
+### Tamper-evident Audit Trail
+
+Every governed tool call is recorded to Watch with a cryptographic hash chain — a compliance-grade log of every action your agent took.
+
+```typescript
+const trail = await client.getAuditTrail({ agentId: 'my-agent' });
+for (const entry of trail.entries ?? []) {
+  console.log(`[${entry.timestamp}] ${entry.tool} — $${(entry.cost_usd ?? 0).toFixed(4)}`);
+}
+```
+
+### Per-session Spend Caps
+
+When cumulative spend hits the `spendLimit` you set at `createSession()`, the next tool call throws `HaldirPermissionError`. No runaway costs from a misbehaving agent.
+
+### Mid-run Revocation
+
+Any process with the Haldir API key can revoke an active session. The next tool call throws `HaldirPermissionError`, halting the agent:
+
+```typescript
+await client.revokeSession(sessionId);
+```
+
+### Secrets without leaking them to the model
+
+Retrieve credentials at tool-call time without exposing the raw value to the LLM prompt or traceback output:
+
+```typescript
+import { HaldirSecrets } from '@haldir/ai-sdk';
+
+// Store once, out-of-band (not from the agent):
+// await client.storeSecret('stripe_api_key', 'sk_live_xxx', { scopeRequired: 'spend' });
+
+const secrets = new HaldirSecrets(client, sessionId);
+const stripeKey = await secrets.get('stripe_api_key');
+
+// stripeKey.toString() -> "[Haldir.Secret]"
+// stripeKey.toJSON() -> "[Haldir.Secret]"
+const stripe = new Stripe(stripeKey.getValue());
+```
+
+### Variable per-call cost
+
+For tools whose cost depends on the output (paid APIs, token-metered models), pass `costFn`:
+
+```typescript
+const scraper = governTool({
+  tool: myScraperTool,
+  client,
+  sessionId,
+  toolName: 'scraper',
+  requiredScope: 'read',
+  costFn: (result) => JSON.stringify(result).length / 1000 * 0.005,
+});
+```
+
+### Works with `streamText`
+
+Every governance check happens the same way when streaming:
+
+```typescript
+import { streamText } from 'ai';
+
+const result = await streamText({
+  model: openai('gpt-4o'),
+  tools: { weather },
+  prompt: 'Weather in Tokyo?',
+});
+
+for await (const part of result.textStream) {
+  process.stdout.write(part);
+}
+```
+
+## Further Reading
+
+- [Haldir docs](https://haldir.xyz/docs)
+- [`@haldir/ai-sdk` on npm](https://www.npmjs.com/package/@haldir/ai-sdk)
+- [Source on GitHub](https://github.com/ExposureGuard/haldir/tree/main/integrations/vercel-ai-haldir)
