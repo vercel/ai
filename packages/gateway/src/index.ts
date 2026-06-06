@@ -36,6 +36,7 @@ export type {
 export {
   GatewayError,
   GatewayAuthenticationError,
+  GatewayExplicitCacheFallbackError,
   GatewayInvalidRequestError,
   GatewayRateLimitError,
   GatewayModelNotFoundError,

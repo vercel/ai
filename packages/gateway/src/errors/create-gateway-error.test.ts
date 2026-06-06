@@ -6,6 +6,7 @@ import {
   GatewayRateLimitError,
   GatewayModelNotFoundError,
   GatewayInternalServerError,
+  GatewayExplicitCacheFallbackError,
   GatewayResponseError,
   type GatewayErrorResponse,
 } from './index';
@@ -121,6 +122,28 @@ describe('Valid error responses', () => {
     expect(error).toBeInstanceOf(GatewayInternalServerError);
     expect(error.message).toBe('Internal server error occurred');
     expect(error.statusCode).toBe(500);
+  });
+
+  it('should create GatewayExplicitCacheFallbackError for gemini_explicit_cache_fallback_unsupported type', async () => {
+    const response: GatewayErrorResponse = {
+      error: {
+        message: 'Explicit cache reference cannot be served by fallback',
+        type: 'gemini_explicit_cache_fallback_unsupported',
+      },
+    };
+
+    const error = await createGatewayErrorFromResponse({
+      response,
+      statusCode: 424,
+    });
+
+    expect(error).toBeInstanceOf(GatewayExplicitCacheFallbackError);
+    expect(error.type).toBe('gemini_explicit_cache_fallback_unsupported');
+    expect(error.message).toBe(
+      'Explicit cache reference cannot be served by fallback',
+    );
+    expect(error.statusCode).toBe(424);
+    expect(error.isRetryable).toBe(false);
   });
 
   it('should create GatewayInternalServerError for unknown error type', async () => {
