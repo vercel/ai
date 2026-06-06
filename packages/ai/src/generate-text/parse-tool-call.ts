@@ -92,9 +92,12 @@ export async function parseToolCall<TOOLS extends ToolSet>({
       });
     }
   } catch (error) {
-    // use parsed input when possible
+    // use parsed input when possible; fall back to a JSON object so the
+    // conversation history remains API-valid (e.g. Bedrock rejects raw strings)
     const parsedInput = await safeParseJSON({ text: toolCall.input });
-    const input = parsedInput.success ? parsedInput.value : toolCall.input;
+    const input = parsedInput.success
+      ? parsedInput.value
+      : { rawInvalidInput: toolCall.input };
     const tool = tools?.[toolCall.toolName];
 
     // TODO AI SDK 6: special invalid tool call parts
