@@ -848,6 +848,117 @@ describe('ToolLoopAgent', () => {
       expect(doStreamOptions?.abortSignal).toBeDefined();
     });
 
+    it('should merge onChunk callbacks from constructor and stream method', async () => {
+      const calls: string[] = [];
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        onChunk: ({ chunk }) => {
+          if (chunk.type === 'text-delta') {
+            calls.push(`constructor:${chunk.text}`);
+          }
+        },
+      });
+
+      const result = await agent.stream({
+        prompt: 'Hello, world!',
+        onChunk: ({ chunk }) => {
+          if (chunk.type === 'text-delta') {
+            calls.push(`method:${chunk.text}`);
+          }
+        },
+      });
+      await result.consumeStream();
+
+      expect(calls).toEqual([
+        'constructor:Hello',
+        'method:Hello',
+        'constructor:, ',
+        'method:, ',
+        'constructor:world!',
+        'method:world!',
+      ]);
+    });
+
+    it('should merge onError callbacks from constructor and stream method', async () => {
+      const error = new Error('test error');
+      const calls: string[] = [];
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            throw error;
+          },
+        }),
+        onError: ({ error }) => {
+          calls.push(`constructor:${String(error)}`);
+        },
+      });
+
+      const result = await agent.stream({
+        prompt: 'Hello, world!',
+        onError: ({ error }) => {
+          calls.push(`method:${String(error)}`);
+        },
+      });
+      await result.consumeStream();
+
+      expect(calls).toEqual([
+        'constructor:Error: test error',
+        'method:Error: test error',
+      ]);
+    });
+
+    it('should preserve the default streamText onError callback when none is configured', async () => {
+      const error = new Error('test error');
+      const consoleError = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            throw error;
+          },
+        }),
+      });
+
+      const result = await agent.stream({ prompt: 'Hello, world!' });
+      await result.consumeStream();
+
+      expect(consoleError).toHaveBeenCalledWith(error);
+    });
+
+    it('should merge onAbort callbacks from constructor and stream method', async () => {
+      const abortController = new AbortController();
+      const calls: string[] = [];
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: new ReadableStream({
+              pull(controller) {
+                abortController.abort();
+                controller.error(
+                  new DOMException('The user aborted a request.', 'AbortError'),
+                );
+              },
+            }),
+          }),
+        }),
+        onAbort: () => {
+          calls.push('constructor');
+        },
+      });
+
+      const result = await agent.stream({
+        prompt: 'Hello, world!',
+        abortSignal: abortController.signal,
+        onAbort: () => {
+          calls.push('method');
+        },
+      });
+      await result.consumeStream();
+
+      expect(calls).toEqual(['constructor', 'method']);
+    });
+
     it('should allow system messages when allowSystemInMessages is true', async () => {
       const agent = new ToolLoopAgent({
         model: mockModel,
