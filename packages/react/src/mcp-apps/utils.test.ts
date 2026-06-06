@@ -11,13 +11,11 @@ describe('getMCPAppFromToolPart', () => {
       state: 'input-available',
       input: { topic: 'usage' },
       toolMetadata: {
-        mcp: {
-          clientName: 'local-mcp-apps',
-          app: {
-            resourceUri: 'ui://ai-sdk-e2e/dashboard',
-            mimeType: 'text/html;profile=mcp-app',
-            visibility: ['model', 'app'],
-          },
+        clientName: 'local-mcp-apps',
+        app: {
+          resourceUri: 'ui://ai-sdk-e2e/dashboard',
+          mimeType: 'text/html;profile=mcp-app',
+          visibility: ['model', 'app'],
         },
       },
     } satisfies MCPAppRendererProps['part'];
@@ -42,7 +40,7 @@ describe('getMCPAppFromToolPart', () => {
       state: 'input-available',
       input: {},
       toolMetadata: {
-        mcp: { clientName: 'local-mcp-apps' },
+        clientName: 'local-mcp-apps',
       },
     } satisfies MCPAppRendererProps['part'];
 

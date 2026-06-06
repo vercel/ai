@@ -13,11 +13,10 @@ import type { MCPAppMetadata, MCPAppRendererProps } from './types';
  *   state: 'input-available',
  *   input: { topic: 'usage' },
  *   toolMetadata: {
- *     mcp: {
- *       app: {
- *         resourceUri: 'ui://example/dashboard',
- *         mimeType: 'text/html;profile=mcp-app',
- *       },
+ *     clientName: 'local-mcp-apps',
+ *     app: {
+ *       resourceUri: 'ui://example/dashboard',
+ *       mimeType: 'text/html;profile=mcp-app',
  *     },
  *   },
  * });
