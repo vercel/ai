@@ -3,6 +3,7 @@ type State =
   | 'FINISH'
   | 'INSIDE_STRING'
   | 'INSIDE_STRING_ESCAPE'
+  | 'INSIDE_STRING_UNICODE_ESCAPE'
   | 'INSIDE_LITERAL'
   | 'INSIDE_NUMBER'
   | 'INSIDE_OBJECT_START'
@@ -28,6 +29,8 @@ export function fixJson(input: string): string {
   const stack: State[] = ['ROOT'];
   let lastValidIndex = -1;
   let literalStart: number | null = null;
+  // Number of hex digits still expected to complete the current \uXXXX escape.
+  let unicodeEscapeRemaining = 0;
 
   function processValueStart(char: string, i: number, swapState: State) {
     {
@@ -260,7 +263,48 @@ export function fixJson(input: string): string {
 
       case 'INSIDE_STRING_ESCAPE': {
         stack.pop();
-        lastValidIndex = i;
+
+        if (char === 'u') {
+          // A unicode escape requires exactly four hex digits (\uXXXX).
+          // Do not advance lastValidIndex yet: if the input ends before all
+          // four digits have arrived, the incomplete escape must be dropped
+          // rather than closed off into invalid JSON (e.g. `"\u12"`).
+          stack.push('INSIDE_STRING_UNICODE_ESCAPE');
+          unicodeEscapeRemaining = 4;
+        } else {
+          lastValidIndex = i;
+        }
+
+        break;
+      }
+
+      case 'INSIDE_STRING_UNICODE_ESCAPE': {
+        const isHexDigit =
+          (char >= '0' && char <= '9') ||
+          (char >= 'a' && char <= 'f') ||
+          (char >= 'A' && char <= 'F');
+
+        if (isHexDigit) {
+          unicodeEscapeRemaining--;
+
+          // Only once all four hex digits are present is the escape valid and
+          // safe to include in the repaired output.
+          if (unicodeEscapeRemaining === 0) {
+            stack.pop();
+            lastValidIndex = i;
+          }
+        } else {
+          // Malformed unicode escape (already-invalid JSON, which fixJson does
+          // not repair). Leave the unicode-escape state; a closing quote still
+          // terminates the string so structural repair stays consistent with
+          // the pre-existing behavior for such inputs.
+          stack.pop();
+
+          if (char === '"') {
+            stack.pop();
+            lastValidIndex = i;
+          }
+        }
 
         break;
       }
