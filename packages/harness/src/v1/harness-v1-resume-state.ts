@@ -1,8 +1,8 @@
 import type { JSONValue } from '@ai-sdk/provider';
 
 /**
- * Opaque payload returned by `HarnessV1Session.doDetach()` and accepted by
- * a future `HarnessV1.doStart({ resumeFrom })` to reattach to the same
+ * Opaque payload returned by resumable session lifecycle methods and accepted
+ * by a future `HarnessV1.doStart({ resumeFrom })` to resume the same
  * underlying session.
  *
  * The contents are entirely adapter-defined. Consumers (including

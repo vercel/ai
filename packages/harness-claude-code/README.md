@@ -46,14 +46,17 @@ const agent = new HarnessAgent({
   },
 });
 
+const session = await agent.createSession();
+
 try {
   const result = await agent.generate({
+    session,
     prompt: 'Read README.md and summarise the goals.',
   });
   console.log(result.text);
 } finally {
-  await agent.close();
+  await session.destroy();
 }
 ```
 
-The adapter requires a `HarnessV1SandboxProvider` whose handles expose at least one port — `@ai-sdk/sandbox-vercel` is the supported choice today. The agent calls `provider.create()` on its first turn and stops the underlying sandbox during `agent.close()`.
+The adapter requires a `HarnessV1SandboxProvider` whose handles expose at least one port — `@ai-sdk/sandbox-vercel` is the supported choice today. The agent calls `provider.create()` when a session starts. Use `session.detach()` to park the bridge and sandbox, `session.stop()` to save state and stop the sandbox, or `session.destroy()` to clean up without keeping resume state.

@@ -20,29 +20,36 @@ function resumeState(tag: string): HarnessV1ResumeState {
 /** A fake session that records lifecycle calls. */
 function fakeSession(): HarnessAgentSession & {
   suspendCalls: number;
-  closeCalls: number;
-  resumeHandleCalls: number;
+  detachCalls: number;
+  stopCalls: number;
+  destroyCalls: number;
 } {
   const session = {
     sessionId: 'ses_1',
     suspendCalls: 0,
-    closeCalls: 0,
-    resumeHandleCalls: 0,
+    detachCalls: 0,
+    stopCalls: 0,
+    destroyCalls: 0,
     async suspendTurn() {
       session.suspendCalls++;
       return resumeState('suspended');
     },
-    async getResumeHandle() {
-      session.resumeHandleCalls++;
-      return resumeState('warm-handle');
+    async detach() {
+      session.detachCalls++;
+      return resumeState('detached');
     },
-    async close() {
-      session.closeCalls++;
+    async stop() {
+      session.stopCalls++;
+      return resumeState('stopped');
+    },
+    async destroy() {
+      session.destroyCalls++;
     },
   } as unknown as HarnessAgentSession & {
     suspendCalls: number;
-    closeCalls: number;
-    resumeHandleCalls: number;
+    detachCalls: number;
+    stopCalls: number;
+    destroyCalls: number;
   };
   return session;
 }
@@ -143,11 +150,12 @@ describe('runHarnessAgentSlice', () => {
       finishReason: 'stop',
       usage: { inputTokens: 11, outputTokens: 7 },
     });
-    // Default keeps the session warm for the next user turn and hands back a
-    // fresh resume handle — it must NOT close the sandbox.
-    expect(session.closeCalls).toBe(0);
-    expect(session.resumeHandleCalls).toBe(1);
-    expect(next.resumeState).toEqual(resumeState('warm-handle'));
+    // Default parks the session for the next user turn and hands back fresh
+    // resume state. It must NOT destroy the sandbox.
+    expect(session.destroyCalls).toBe(0);
+    expect(session.detachCalls).toBe(1);
+    expect(session.stopCalls).toBe(0);
+    expect(next.resumeState).toEqual(resumeState('detached'));
     expect(chunks.map(c => c.type)).toEqual([
       'start',
       'text-start',
@@ -156,7 +164,7 @@ describe('runHarnessAgentSlice', () => {
     ]);
   });
 
-  test('closeOnFinish stops the sandbox and drops the resume handle', async () => {
+  test('destroyOnFinish destroys the sandbox and drops resume state', async () => {
     const session = fakeSession();
     const { result } = streamResult({ chunks: [{ type: 'start' }] });
     const agent: HarnessWorkflowAgent = {
@@ -169,13 +177,14 @@ describe('runHarnessAgentSlice', () => {
     const next = await runHarnessAgentSlice({
       agent,
       state: createHarnessWorkflowState({ prompt: 'hi', sessionId: 'ses_1' }),
-      closeOnFinish: true,
+      destroyOnFinish: true,
       writable,
     });
 
     expect(next.status).toBe('finished');
-    expect(session.closeCalls).toBe(1);
-    expect(session.resumeHandleCalls).toBe(0);
+    expect(session.destroyCalls).toBe(1);
+    expect(session.detachCalls).toBe(0);
+    expect(session.stopCalls).toBe(0);
     expect(next.resumeState).toBeUndefined();
   });
 
@@ -250,8 +259,8 @@ describe('runHarnessAgentSlice', () => {
     expect(next.turnStarted).toBe(true);
     expect(next.resumeState).toEqual(resumeState('suspended'));
     expect(session.suspendCalls).toBe(1);
-    // A suspended slice must NOT close the sandbox — the next slice attaches.
-    expect(session.closeCalls).toBe(0);
+    // A suspended slice must NOT destroy the sandbox — the next slice attaches.
+    expect(session.destroyCalls).toBe(0);
     // It must also NOT close the output stream — the next slice keeps writing
     // to the same run stream; closing here would end the response mid-turn.
     expect(isClosed()).toBe(false);

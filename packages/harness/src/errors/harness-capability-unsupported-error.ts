@@ -7,9 +7,9 @@ const symbol = Symbol.for(marker);
 
 /**
  * Thrown when a caller asks the harness to do something the adapter (or the
- * supplied sandbox) does not support, e.g. calling `agent.detach()` against
- * an adapter whose session has no `doDetach` method, or invoking
- * `getPortUrl` on a sandbox that does not expose one.
+ * supplied sandbox) does not support, e.g. requesting manual compaction from
+ * an adapter that only auto-compacts, or invoking `getPortUrl` on a sandbox
+ * that does not expose one.
  *
  * The caller supplies the full human-readable message. Optional `harnessId`
  * is recorded as structured context for tooling.

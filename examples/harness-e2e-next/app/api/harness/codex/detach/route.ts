@@ -29,8 +29,8 @@ export async function POST(request: Request) {
   return createUIMessageStreamResponse({
     stream: toUIMessageStream({
       stream: result.stream,
-      // Detach (and stop the sandbox) at the end of the turn — the next request
-      // resumes from the snapshot in `rerun` mode rather than attaching.
+      // Detach at the end of the turn so the next request attaches to the
+      // parked bridge.
       onFinish: () => detachAndPersist(chatId, session),
     }),
   });

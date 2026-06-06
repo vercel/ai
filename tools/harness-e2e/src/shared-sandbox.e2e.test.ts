@@ -43,7 +43,7 @@ describe(`shared-sandbox: ${ADAPTER}`, () => {
               content: 'from-agent-a',
             });
           } finally {
-            await sessionA.close().catch(() => {});
+            await sessionA.destroy().catch(() => {});
           }
 
           const agentB = makeAgent();
@@ -61,7 +61,7 @@ describe(`shared-sandbox: ${ADAPTER}`, () => {
             const shared = await sandbox.readTextFile({ path: sharedPath });
             expect(shared).toBe('from-agent-a');
           } finally {
-            await sessionB.close().catch(() => {});
+            await sessionB.destroy().catch(() => {});
           }
         },
       );
@@ -98,8 +98,8 @@ describe(`shared-sandbox: ${ADAPTER}`, () => {
             expect(rB.text).toContain('6');
           } finally {
             await Promise.all([
-              sessionA.close().catch(() => {}),
-              sessionB.close().catch(() => {}),
+              sessionA.destroy().catch(() => {}),
+              sessionB.destroy().catch(() => {}),
             ]);
           }
         },

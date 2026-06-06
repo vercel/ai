@@ -55,7 +55,7 @@ export type HarnessAgentSettings<
   /**
    * Instructions for the underlying agent runtime. Adapters prepend this to
    * the first user message of a fresh session, once — it is not re-applied on
-   * later turns or when resuming a previously detached session.
+   * later turns or when resuming a previously ended session.
    */
   readonly instructions?: string;
 

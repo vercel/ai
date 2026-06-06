@@ -66,7 +66,7 @@ run(async () => {
     exitCode = 1;
     console.error('[example] failed:', err);
   } finally {
-    await session.close();
+    await session.destroy();
     process.exit(exitCode);
   }
 });

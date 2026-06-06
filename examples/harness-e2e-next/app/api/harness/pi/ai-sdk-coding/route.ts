@@ -1,6 +1,6 @@
 import { aiSdkCodingPiHarnessAgent } from '@/agent/harness/pi/ai-sdk-coding-agent';
 import {
-  persistResumeState,
+  detachAndPersist,
   resumeOrCreateSession,
 } from '@/util/harness-resume-store';
 import {
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
   return createUIMessageStreamResponse({
     stream: toUIMessageStream({
       stream: result.stream,
-      onFinish: () => persistResumeState(chatId, session),
+      onFinish: () => detachAndPersist(chatId, session),
     }),
   });
 }

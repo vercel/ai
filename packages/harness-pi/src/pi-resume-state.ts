@@ -5,10 +5,10 @@ import { z } from 'zod';
 
 /**
  * Schema for the adapter-specific portion of `HarnessV1ResumeState.data`
- * produced by Pi's `doDetach`. Carries the basename (including extension)
- * of the Pi session file. The actual session bytes live in the sandbox
- * under `${sessionWorkDir}/.pi-sessions/<sessionFileName>` so they survive
- * cross-process resume via the sandbox snapshot.
+ * produced by Pi's resumable lifecycle methods. Carries the basename
+ * (including extension) of the Pi session file. The actual session bytes live
+ * in the sandbox under `${sessionWorkDir}/.pi-sessions/<sessionFileName>` so
+ * they survive cross-process resume via the sandbox snapshot.
  */
 export const piResumeStateSchema = z
   .object({
@@ -22,8 +22,8 @@ const PI_SESSIONS_DIR = '.pi-sessions';
 
 /**
  * Copy the Pi session file from the host's local mirror to a stable location
- * inside the sandbox workspace. Called during `doDetach` so the session
- * survives a sandbox snapshot.
+ * inside the sandbox workspace. Called during resumable lifecycle methods so
+ * the session survives a sandbox snapshot or a process handoff.
  */
 export async function persistSessionFileToSandbox(args: {
   readonly sandbox: Experimental_SandboxSession;

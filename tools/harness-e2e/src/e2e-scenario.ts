@@ -251,7 +251,7 @@ export async function withReplayScenarioAgent(
   try {
     await fn(buildContext(prepared, session));
   } finally {
-    await Promise.resolve(session.close()).catch(() => {});
+    await Promise.resolve(session.destroy()).catch(() => {});
     await runTeardown(prepared);
   }
 }
@@ -293,10 +293,10 @@ export async function withReplayPersistenceAgents(
     await second(buildContext(prepared, secondSession));
   } finally {
     if (secondSession) {
-      await Promise.resolve(secondSession.close()).catch(() => {});
+      await Promise.resolve(secondSession.destroy()).catch(() => {});
     }
     if (firstSession) {
-      await Promise.resolve(firstSession.close()).catch(() => {});
+      await Promise.resolve(firstSession.destroy()).catch(() => {});
     }
     await runTeardown(prepared);
   }

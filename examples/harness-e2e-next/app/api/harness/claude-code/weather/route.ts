@@ -1,6 +1,6 @@
 import { weatherClaudeCodeHarnessAgent } from '@/agent/harness/claude-code/weather-agent';
 import {
-  persistResumeState,
+  detachAndPersist,
   resumeOrCreateSession,
 } from '@/util/harness-resume-store';
 import {
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
   return createUIMessageStreamResponse({
     stream: toUIMessageStream({
       stream: result.stream,
-      onFinish: () => persistResumeState(chatId, session),
+      onFinish: () => detachAndPersist(chatId, session),
     }),
   });
 }

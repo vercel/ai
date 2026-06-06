@@ -39,12 +39,17 @@ function scriptedHarness(script: HarnessV1StreamPart[]): HarnessV1 {
       submitToolResult: async () => {},
       done: Promise.resolve(),
     }),
-    doStop: async () => {},
-    doGetResumeHandle: () => ({
+    doDetach: async () => ({
       harnessId: 'mock',
       specificationVersion: 'harness-v1',
       data: {},
     }),
+    doStop: async () => ({
+      harnessId: 'mock',
+      specificationVersion: 'harness-v1',
+      data: {},
+    }),
+    doDestroy: async () => {},
     doSuspendTurn: async () => ({
       harnessId: 'mock',
       specificationVersion: 'harness-v1',
@@ -128,7 +133,7 @@ describe('HarnessAgent telemetry integration', () => {
     });
     const session = await agent.createSession();
     await agent.generate({ session, prompt: 'go' });
-    await session.close();
+    await session.destroy();
 
     expect(calls.map(c => c.method)).toEqual([
       'onStart',
@@ -177,7 +182,7 @@ describe('HarnessAgent telemetry integration', () => {
     void integration;
     const session = await agent.createSession();
     await agent.generate({ session, prompt: 'go' });
-    await session.close();
+    await session.destroy();
     expect(calls).toEqual([]);
   });
 });

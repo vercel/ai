@@ -39,25 +39,31 @@ const agent = new HarnessAgent({
   },
 });
 
+const session = await agent.createSession();
+
 try {
   const result = await agent.generate({
+    session,
     prompt: 'Fix the failing test in src/auth.ts',
   });
   console.log(result.text);
 
   // Streaming
-  const stream = await agent.stream({ prompt: 'Now write a regression test' });
+  const stream = await agent.stream({
+    session,
+    prompt: 'Now write a regression test',
+  });
   for await (const part of stream.fullStream) {
     if (part.type === 'text-delta') {
       process.stdout.write(part.text);
     }
   }
 } finally {
-  await agent.close();
+  await session.destroy();
 }
 ```
 
-`sandbox` is a `HarnessV1SandboxProvider` — the agent calls `provider.create()` lazily on the first turn and stops the underlying sandbox during `agent.close()`. Bridge-backed adapters (claude-code, codex) require a provider that exposes ports — `@ai-sdk/sandbox-vercel` is the supported choice today. `@ai-sdk/sandbox-just-bash` is suitable only for non-bridge flows.
+`sandbox` is a `HarnessV1SandboxProvider` — the agent calls `provider.create()` when a session starts. Use `session.detach()` to park a bridge-backed session for later attach, `session.stop()` to save state and stop the sandbox, or `session.destroy()` to clean up without keeping resume state. Bridge-backed adapters (claude-code, codex) require a provider that exposes ports — `@ai-sdk/sandbox-vercel` is the supported choice today. `@ai-sdk/sandbox-just-bash` is suitable only for non-bridge flows.
 
 ### Available harnesses
 
@@ -106,7 +112,22 @@ export function myHarness(): HarnessV1 {
           });
           return { submitToolResult: async () => {}, done: Promise.resolve() };
         },
-        doStop: async () => {},
+        doContinueTurn: async () => ({
+          submitToolResult: async () => {},
+          done: Promise.resolve(),
+        }),
+        doCompact: async () => {},
+        doStop: async () => ({
+          harnessId: 'my-harness',
+          specificationVersion: 'harness-v1',
+          data: {},
+        }),
+        doDestroy: async () => {},
+        doSuspendTurn: async () => ({
+          harnessId: 'my-harness',
+          specificationVersion: 'harness-v1',
+          data: {},
+        }),
       };
       return session;
     },

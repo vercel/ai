@@ -352,14 +352,14 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
  * default working directory — the provider's persistent mount — so the
  * workdir's CLI state (Claude's `~/.claude/projects/<dir>/*.jsonl` thread
  * history is keyed by working directory) and the bridge state files survive
- * the detach -> snapshot -> resume cycle.
+ * both detach -> attach/replay and stop -> snapshot -> resume cycles.
  */
 const BOOTSTRAP_DIR = '/tmp/harness/claude-code';
 
 /**
- * Live bridge coordinates carried by `getResumeHandle()`. A future process
- * uses them to reopen a socket to the still-running bridge (`attach`) instead
- * of re-spawning it. Absent on a `detach()` payload (that stops the bridge).
+ * Live bridge coordinates returned by `doDetach()` and `doSuspendTurn()`. A
+ * future process uses them to reopen a socket to the still-running bridge
+ * (`attach`) instead of re-spawning it. Absent on a `doStop()` payload.
  */
 const bridgeCoordsSchema = z.object({
   port: z.number(),
@@ -371,12 +371,11 @@ const bridgeCoordsSchema = z.object({
 /**
  * Schema for the adapter-specific portion of `HarnessV1ResumeState.data`.
  *
- * A `detach()` payload is structurally empty (`{}`): the framework derives the
+ * A `doStop()` payload is structurally empty (`{}`): the framework derives the
  * sandbox via `provider.resume({ sessionId })`, and the Claude SDK's
- * `{ continue: true }` flag rehydrates the thread from the workdir (preserved
- * in the sandbox snapshot). A `getResumeHandle()` payload additionally carries
- * `bridge` coordinates for cross-process `attach`. `.passthrough()` keeps both
- * shapes (and older empty payloads) valid.
+ * `{ continue: true }` flag rehydrates the thread from the workdir. A
+ * `doDetach()` payload additionally carries `bridge` coordinates for
+ * cross-process `attach`. `.passthrough()` keeps both shapes valid.
  */
 const claudeCodeResumeStateSchema = z
   .object({ bridge: bridgeCoordsSchema.optional() })
@@ -493,8 +492,8 @@ export function createClaudeCode(
             sessionId: startOpts.sessionId,
             channel: attachChannel,
             // The live bridge was spawned by another process; this one owns no
-            // process handle. `doStop` closes the channel; stopping the sandbox
-            // is the caller's choice.
+            // process handle. The session lifecycle method decides whether the
+            // sandbox is left running, stopped, or destroyed.
             proc: undefined,
             model: settings.model,
             maxTurns: settings.maxTurns,
@@ -512,9 +511,10 @@ export function createClaudeCode(
 
       /*
        * Rungs 2/3 — REPLAY vs RERUN. Respawn the bridge. `replay` is only sound
-       * when the resume payload carried live coordinates (`getResumeHandle`),
+       * when the resume payload carried live coordinates (`detach` or
+       * `suspendTurn`),
        * because those include the cursor the on-disk log is replayed *from*. A
-       * payload without coordinates — e.g. from a destructive `detach()` — has
+       * payload without coordinates — e.g. from `stop()` — has
        * no cursor, so replaying a finished turn from seq 0 would re-deliver it
        * into the next turn. Those resumes always `rerun` (the CLI continues its
        * own thread from the workdir snapshot via `continue: true`).
@@ -1134,7 +1134,29 @@ function createSession({
           : '/compact';
       channel.send({ type: 'user-message', text });
     },
-    doStop: async () => {
+    doDetach: async () => {
+      if (stopped) {
+        throw new Error(
+          `claude-code session ${sessionId} is already stopped; cannot detach.`,
+        );
+      }
+      stopped = true;
+      const lastSeenEventId = await channel.suspend();
+      const payload: HarnessV1ResumeState = {
+        harnessId: 'claude-code',
+        specificationVersion: 'harness-v1',
+        data: {
+          bridge: {
+            port: bridgePort,
+            token: bridgeToken,
+            lastSeenEventId,
+            sandboxId,
+          },
+        },
+      };
+      return payload;
+    },
+    doDestroy: async () => {
       if (stopped) return stopPromise;
       stopped = true;
       stopPromise = (async () => {
@@ -1167,10 +1189,10 @@ function createSession({
       })();
       return stopPromise;
     },
-    doDetach: async () => {
+    doStop: async () => {
       if (stopped) {
         throw new Error(
-          `claude-code session ${sessionId} is already stopped; cannot detach.`,
+          `claude-code session ${sessionId} is already stopped; cannot stop.`,
         );
       }
       stopped = true;
@@ -1237,31 +1259,6 @@ function createSession({
         harnessId: 'claude-code',
         specificationVersion: 'harness-v1',
         data: (data ?? {}) as HarnessV1ResumeState['data'],
-      };
-      return payload;
-    },
-    doGetResumeHandle: () => {
-      if (stopped) {
-        throw new Error(
-          `claude-code session ${sessionId} is stopped; cannot read a resume handle.`,
-        );
-      }
-      /*
-       * Non-destructive: capture the live bridge coordinates so another process
-       * can `attach`. Nothing is torn down — the cursor is read live from the
-       * channel, so this stays accurate if called again after more turns.
-       */
-      const payload: HarnessV1ResumeState = {
-        harnessId: 'claude-code',
-        specificationVersion: 'harness-v1',
-        data: {
-          bridge: {
-            port: bridgePort,
-            token: bridgeToken,
-            lastSeenEventId: channel.lastSeenEventId,
-            sandboxId,
-          },
-        },
       };
       return payload;
     },

@@ -63,13 +63,13 @@ export interface RunHarnessAgentSliceOptions {
   /** Wall-clock budget for this slice. Defaults to {@link DEFAULT_SLICE_TIMEOUT_SECONDS}. */
   readonly sliceTimeoutSeconds?: number;
   /**
-   * When the turn finishes, whether to stop the sandbox. Defaults to `false`:
-   * the session is left warm and a fresh resume handle is returned in
+   * When the turn finishes, whether to destroy the sandbox. Defaults to `false`:
+   * the session is parked or stopped and a fresh resume state is returned in
    * `resumeState`, so the next user turn reattaches to the same conversation
    * (multi-turn chat). Set `true` for a one-shot run that should release the
    * sandbox when the turn completes.
    */
-  readonly closeOnFinish?: boolean;
+  readonly destroyOnFinish?: boolean;
   /**
    * Where to write the turn's UI-message chunks. Defaults to the workflow's
    * output stream (`getWritable()` from `workflow`). Inject a stream in tests
@@ -98,7 +98,7 @@ export async function runHarnessAgentSlice(
   const { agent, state } = options;
   const sliceTimeoutSeconds =
     options.sliceTimeoutSeconds ?? DEFAULT_SLICE_TIMEOUT_SECONDS;
-  const closeOnFinish = options.closeOnFinish ?? false;
+  const destroyOnFinish = options.destroyOnFinish ?? false;
 
   // `resumeState` decides the session: resume an existing one (a prior run's
   // warm handle or a prior slice's cursor) when present, else start cold.
@@ -123,7 +123,7 @@ export async function runHarnessAgentSlice(
             typeof state.prompt === 'string' ? state.prompt : [state.prompt],
         });
   } catch (err) {
-    await closeQuietly(session);
+    await destroyQuietly(session);
     return { ...state, status: 'failed', error: errorMessage(err) };
   }
 
@@ -185,7 +185,7 @@ export async function runHarnessAgentSlice(
     // mask it. (Abort errors during suspend were already filtered above.)
     if (sawError) {
       if (suspendPromise != null) await suspendPromise.catch(() => {});
-      await closeQuietly(session);
+      await destroyQuietly(session);
       return {
         ...state,
         status: 'failed',
@@ -223,20 +223,18 @@ export async function runHarnessAgentSlice(
     ]);
 
     /*
-     * Capture the resume handle for the *next user turn* before releasing the
-     * session, leaving the conversation warm (no `close`) so the next run
-     * reattaches and the agent retains context — this is what makes multi-turn
-     * chat work. A one-shot consumer opts into `closeOnFinish` to stop the
-     * sandbox instead.
+     * Capture resume state for the *next user turn* before ending this local
+     * session handle. `detach()` parks the session without stopping the sandbox;
+     * bridge-backed sessions usually resume by attach/replay, while
+     * host-resident sessions may resume by rerun. A one-shot consumer opts into
+     * `destroyOnFinish` to destroy the sandbox instead.
      */
     let resumeState = state.resumeState;
-    if (closeOnFinish) {
-      await closeQuietly(session);
+    if (destroyOnFinish) {
+      await destroyQuietly(session);
       resumeState = undefined;
     } else {
-      resumeState = await Promise.resolve(session.getResumeHandle()).catch(
-        () => state.resumeState,
-      );
+      resumeState = await session.detach().catch(() => state.resumeState);
     }
 
     return {
@@ -268,8 +266,8 @@ async function resolveWorkflowWritable(): Promise<
   return getWritable<HarnessWorkflowChunk>();
 }
 
-async function closeQuietly(session: HarnessAgentSession): Promise<void> {
-  await session.close().catch(() => {});
+async function destroyQuietly(session: HarnessAgentSession): Promise<void> {
+  await session.destroy().catch(() => {});
 }
 
 function errorMessage(err: unknown): string {

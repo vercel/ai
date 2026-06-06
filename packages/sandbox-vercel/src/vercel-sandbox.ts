@@ -44,9 +44,9 @@ type VercelSandboxCreateParams = DistributiveOmit<
  * extended with the provider-agnostic {@link HarnessV1ProviderSettings} fields:
  *
  * - `{ sandbox }` — wrap an already-created `@vercel/sandbox` `Sandbox`. The
- *   caller owns its lifecycle; the provider's `stop()` is a no-op. Optionally
- *   declare `bridgePorts` to give the harness a port pool to lease from for
- *   concurrent sessions on the same provided sandbox.
+ *   caller owns its lifecycle; the provider's `stop()` and `destroy()` are
+ *   no-ops. Optionally declare `bridgePorts` to give the harness a port pool to
+ *   lease from for concurrent sessions on the same provided sandbox.
  * - {@link VercelSandboxCreateParams} fields — provider creates the underlying
  *   sandbox. When the adapter declares a bootstrap recipe the provider uses
  *   `Sandbox.getOrCreate` to maintain a persistent named template snapshot

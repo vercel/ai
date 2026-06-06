@@ -18,6 +18,6 @@ run(async () => {
     console.log('finishReason:', result.finishReason);
     console.log('usage:', result.usage);
   } finally {
-    await session.close();
+    await session.destroy();
   }
 });

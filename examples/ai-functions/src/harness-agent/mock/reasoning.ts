@@ -36,6 +36,6 @@ run(async () => {
     console.log();
     console.log('usage:', await result.usage);
   } finally {
-    await session.close();
+    await session.destroy();
   }
 });

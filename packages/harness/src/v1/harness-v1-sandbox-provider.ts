@@ -53,7 +53,7 @@ export interface HarnessV1SandboxProvider {
   /**
    * Pool of ports the consumer reserved on a caller-provided sandbox for
    * concurrent harness sessions. The session manager leases one port per
-   * session and releases on close.
+   * session and releases on stop or destroy.
    *
    * Only meaningful when the provider wraps a caller-provided sandbox
    * (the caller pre-declared the ports). In create-new modes the provider

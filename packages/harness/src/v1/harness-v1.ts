@@ -11,8 +11,8 @@ import type { HarnessV1Session } from './harness-v1-session';
  * descriptive fields, and one entry-point method (`doStart`) that yields a
  * session. There is intentionally no static "capabilities" object —
  * optional features are signalled by the presence or absence of optional
- * methods on the session and prompt-control handle. Adapters that cannot
- * satisfy a request (no sandbox provided, detach not supported, …) throw
+ * methods on the prompt-control handle. Adapters that cannot
+ * satisfy a request (no sandbox provided, manual compaction not supported, …) throw
  * `HarnessCapabilityUnsupportedError` from the method that needs the
  * capability.
  */
@@ -41,11 +41,10 @@ export type HarnessV1<TBuiltinTools extends ToolSet = ToolSet> = {
   readonly builtinTools: TBuiltinTools;
 
   /**
-   * Optional schema for the payload returned by
-   * `HarnessV1Session.doDetach`. When present, the adapter promises that
-   * exported state validated by this schema can be re-imported in a future
-   * `doStart({ resumeFrom })` call. Hosts use this to persist and re-hydrate
-   * resume payloads safely.
+   * Optional schema for resume payloads returned by the session lifecycle.
+   * When present, the adapter promises that exported state validated by this
+   * schema can be re-imported in a future `doStart({ resumeFrom })` call.
+   * Hosts use this to persist and re-hydrate resume payloads safely.
    */
   readonly resumeStateSchema?: FlexibleSchema<unknown>;
 
@@ -65,9 +64,9 @@ export type HarnessV1<TBuiltinTools extends ToolSet = ToolSet> = {
   }) => PromiseLike<HarnessV1Bootstrap>;
 
   /**
-   * Start a fresh session (or reattach via `resumeFrom`). The host then
-   * issues prompts against the returned session, ending with `doStop` or
-   * `doDetach`.
+   * Start a fresh session (or resume via `resumeFrom`). The host then issues
+   * prompts against the returned session, ending with `doDetach`, `doStop`, or
+   * `doDestroy`.
    */
   doStart(options: HarnessV1StartOptions): PromiseLike<HarnessV1Session>;
 };

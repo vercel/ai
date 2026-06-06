@@ -51,8 +51,8 @@ export type HarnessV1StartOptions = {
   readonly skills?: ReadonlyArray<HarnessV1Skill>;
 
   /**
-   * Optional resume payload returned by a prior `doDetach()`. When provided,
-   * the adapter should reattach to the existing session rather than create
+   * Optional resume payload returned by a prior session lifecycle method. When
+   * provided, the adapter should resume the existing session rather than create
    * a fresh one.
    */
   readonly resumeFrom?: HarnessV1ResumeState;

@@ -13,6 +13,7 @@ type MockSpies = {
   update: ReturnType<typeof vi.fn>;
   runCommand: ReturnType<typeof vi.fn>;
   stop: ReturnType<typeof vi.fn>;
+  delete: ReturnType<typeof vi.fn>;
   routes: Array<{ port: number }>;
 };
 
@@ -21,6 +22,7 @@ function makeMockSandbox(overrides: Partial<MockSpies> = {}) {
   const update = overrides.update ?? vi.fn(async () => {});
   const runCommand = overrides.runCommand ?? vi.fn();
   const stop = overrides.stop ?? vi.fn(async () => {});
+  const deleteSandbox = overrides.delete ?? vi.fn(async () => {});
   const routes: Array<{ port: number }> = overrides.routes ?? [{ port: 4000 }];
   const sandbox = {
     name: 'sbx_harness',
@@ -28,10 +30,14 @@ function makeMockSandbox(overrides: Partial<MockSpies> = {}) {
     update,
     runCommand,
     stop,
+    delete: deleteSandbox,
     routes,
     currentSession: () => ({ cwd: '/vercel/sandbox' }),
   } as unknown as Sandbox;
-  return { sandbox, spies: { domain, update, runCommand, stop, routes } };
+  return {
+    sandbox,
+    spies: { domain, update, runCommand, stop, delete: deleteSandbox, routes },
+  };
 }
 
 describe('createVercelSandbox (wrap existing)', () => {
@@ -63,6 +69,13 @@ describe('createVercelSandbox (wrap existing)', () => {
     const { sandbox, spies } = makeMockSandbox();
     await (await createVercelSandbox({ sandbox }).create()).stop();
     expect(spies.stop).not.toHaveBeenCalled();
+  });
+
+  it('destroy is a no-op (caller owns lifecycle)', async () => {
+    const { sandbox, spies } = makeMockSandbox();
+    await (await createVercelSandbox({ sandbox }).create()).destroy?.();
+    expect(spies.stop).not.toHaveBeenCalled();
+    expect(spies.delete).not.toHaveBeenCalled();
   });
 
   describe('getPortUrl', () => {
@@ -237,5 +250,31 @@ describe('createVercelSandbox (create from scratch)', () => {
     await createVercelSandbox({ timeout: 60_000 }).create();
 
     expect(createMock.mock.calls[0][0]).toMatchObject({ timeout: 60_000 });
+  });
+
+  it('destroy stops and deletes owned sandboxes', async () => {
+    const { sandbox, spies } = makeMockSandbox();
+    createMock.mockResolvedValueOnce(sandbox);
+
+    const handle = await createVercelSandbox({}).create();
+    await handle.destroy?.();
+
+    expect(spies.stop).toHaveBeenCalledTimes(1);
+    expect(spies.delete).toHaveBeenCalledTimes(1);
+  });
+
+  it('destroy deletes owned sandboxes even when stop fails', async () => {
+    const { sandbox, spies } = makeMockSandbox({
+      stop: vi.fn(async () => {
+        throw new Error('already stopped');
+      }),
+    });
+    createMock.mockResolvedValueOnce(sandbox);
+
+    const handle = await createVercelSandbox({}).create();
+    await handle.destroy?.();
+
+    expect(spies.stop).toHaveBeenCalledTimes(1);
+    expect(spies.delete).toHaveBeenCalledTimes(1);
   });
 });

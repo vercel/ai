@@ -62,7 +62,7 @@ End the document with the version tag on a line by itself, prefixed with \`v\`.`
     exitCode = 1;
     console.error('[example] failed:', err);
   } finally {
-    await session.close();
+    await session.destroy();
     process.exit(exitCode);
   }
 });

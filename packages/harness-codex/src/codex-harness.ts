@@ -106,14 +106,15 @@ const CODEX_BUILTIN_TOOLS = {
  * derived from `sandboxSession.defaultWorkingDirectory` both live under the sandbox's
  * default working directory — the provider's persistent mount — so the
  * workdir's contents (the codex CLI shim and any files the agent edits) and
- * the bridge state files survive the detach -> snapshot -> resume cycle.
+ * the bridge state files survive both detach -> attach/replay and
+ * stop -> snapshot -> resume cycles.
  */
 const BOOTSTRAP_DIR = '/tmp/harness/codex';
 
 /**
- * Live bridge coordinates carried by `getResumeHandle()`. A future process uses
- * them to reopen a socket to the still-running bridge (`attach`) instead of
- * re-spawning it. Absent on a `detach()` payload (that stops the bridge).
+ * Live bridge coordinates returned by `doDetach()` and `doSuspendTurn()`. A
+ * future process uses them to reopen a socket to the still-running bridge
+ * (`attach`) instead of re-spawning it. Absent on a `doStop()` payload.
  */
 const bridgeCoordsSchema = z.object({
   port: z.number(),
@@ -127,7 +128,8 @@ const bridgeCoordsSchema = z.object({
  * produces. `threadId` is what `codex.resumeThread(...)` requires for the
  * replay/rerun rungs; the sandbox lookup is handled separately via
  * `provider.resume({ sessionId })`. `bridge` carries live coordinates for
- * cross-process `attach` (present only on `getResumeHandle()` payloads).
+ * cross-process `attach` (present on `doDetach()` and `doSuspendTurn()`
+ * payloads).
  */
 const codexResumeStateSchema = z.object({
   threadId: z.string().optional(),
@@ -265,9 +267,10 @@ export function createCodex(
 
       /*
        * Rungs 2/3 — REPLAY vs RERUN. Respawn the bridge. `replay` is only sound
-       * when the resume payload carried live coordinates (`getResumeHandle`),
+       * when the resume payload carried live coordinates (`detach` or
+       * `suspendTurn`),
        * because those include the cursor the on-disk log is replayed *from*. A
-       * payload without coordinates — e.g. from a destructive `detach()` — has
+       * payload without coordinates — e.g. from `stop()` — has
        * no cursor, so replaying a finished turn from seq 0 would re-deliver it
        * into the next turn. Those resumes always `rerun` (the bridge takes the
        * `codex.resumeThread(threadId)` branch).
@@ -566,9 +569,8 @@ function createSession({
 
   /*
    * Latest codex thread id, cached from the bridge's `bridge-thread`
-   * announcements. Seeded from a resume payload so `getResumeHandle()` reports
-   * a thread id even before this process has run a turn. Read live by
-   * `doGetResumeHandle` for the replay/rerun fallback.
+   * announcements. Seeded from a resume payload so `doDetach()` and `doStop()`
+   * can include a thread id even before this process has run a turn.
    */
   let latestThreadId = resumeThreadId;
   channel.on('bridge-thread', msg => {
@@ -807,7 +809,30 @@ function createSession({
         harnessId: 'codex',
       });
     },
-    doStop: async () => {
+    doDetach: async () => {
+      if (stopped) {
+        throw new Error(
+          `codex session ${sessionId} is already stopped; cannot detach.`,
+        );
+      }
+      stopped = true;
+      const lastSeenEventId = await channel.suspend();
+      const payload: HarnessV1ResumeState = {
+        harnessId: 'codex',
+        specificationVersion: 'harness-v1',
+        data: {
+          ...(latestThreadId ? { threadId: latestThreadId } : {}),
+          bridge: {
+            port: bridgePort,
+            token: bridgeToken,
+            lastSeenEventId,
+            sandboxId,
+          },
+        },
+      };
+      return payload;
+    },
+    doDestroy: async () => {
       if (stopped) return stopPromise;
       stopped = true;
       stopPromise = (async () => {
@@ -840,10 +865,10 @@ function createSession({
       })();
       return stopPromise;
     },
-    doDetach: async () => {
+    doStop: async () => {
       if (stopped) {
         throw new Error(
-          `codex session ${sessionId} is already stopped; cannot detach.`,
+          `codex session ${sessionId} is already stopped; cannot stop.`,
         );
       }
       stopped = true;
@@ -909,33 +934,6 @@ function createSession({
         harnessId: 'codex',
         specificationVersion: 'harness-v1',
         data: (data ?? {}) as HarnessV1ResumeState['data'],
-      };
-      return payload;
-    },
-    doGetResumeHandle: () => {
-      if (stopped) {
-        throw new Error(
-          `codex session ${sessionId} is stopped; cannot read a resume handle.`,
-        );
-      }
-      /*
-       * Non-destructive: capture the live bridge coordinates (for `attach`)
-       * plus the latest thread id (for the replay/rerun fallback) without
-       * tearing anything down. Both are read live, so this stays accurate when
-       * called again after more turns.
-       */
-      const payload: HarnessV1ResumeState = {
-        harnessId: 'codex',
-        specificationVersion: 'harness-v1',
-        data: {
-          ...(latestThreadId ? { threadId: latestThreadId } : {}),
-          bridge: {
-            port: bridgePort,
-            token: bridgeToken,
-            lastSeenEventId: channel.lastSeenEventId,
-            sandboxId,
-          },
-        },
       };
       return payload;
     },

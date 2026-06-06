@@ -10,8 +10,8 @@ import type { HarnessV1ResumeState } from './harness-v1-resume-state';
  *
  * A session is the unit of state continuity across multiple prompts (one
  * sandbox, one conversation history, one running agent runtime). The host
- * holds onto the session across `doPromptTurn` calls and releases it via
- * `doStop` (or hands it off via `doDetach`, when supported).
+ * holds onto the session across `doPromptTurn` calls and ends the local
+ * instance via `doDetach`, `doStop`, or `doDestroy`.
  */
 export type HarnessV1Session = {
   /**
@@ -72,34 +72,32 @@ export type HarnessV1Session = {
   ): PromiseLike<HarnessV1PromptControl>;
 
   /**
-   * Tear down the session. Idempotent. After `doStop`, no further methods
-   * on the session may be called.
-   */
-  doStop(): PromiseLike<void>;
-
-  /**
    * Detach from the underlying runtime without tearing it down, returning a
    * payload the host can later pass to `HarnessV1.doStart({ resumeFrom })`
-   * to reconnect. Optional — adapters that cannot survive a host hand-off
-   * omit this method, in which case `HarnessAgent.detach()` throws
-   * `HarnessCapabilityUnsupportedError`.
+   * to reconnect. After `doDetach`, no further methods on this session
+   * instance may be called.
+   *
+   * Required. Adapters that cannot keep a live runtime parked still return the
+   * best resume state they can while leaving the sandbox running; their next
+   * session may resume with `resumeMode: 'rerun'`.
    */
-  doDetach?(): PromiseLike<HarnessV1ResumeState>;
+  doDetach(): PromiseLike<HarnessV1ResumeState>;
 
   /**
-   * Capture the resume payload **without** tearing anything down. Unlike
-   * `doDetach`, the session, bridge, and sandbox keep running — the returned
-   * state carries whatever a future process needs to resume: live bridge
-   * coordinates to *attach* to a still-running bridge (Claude Code, Codex), or
-   * a pointer to the persisted session state for a snapshot resume (Pi). Safe
-   * to call repeatedly mid-session to refresh the checkpoint.
+   * Persist enough state to resume later, then stop the underlying runtime.
+   * After `doStop`, no further methods on this session instance may be called.
    */
-  doGetResumeHandle(): PromiseLike<HarnessV1ResumeState> | HarnessV1ResumeState;
+  doStop(): PromiseLike<HarnessV1ResumeState>;
+
+  /**
+   * Stop the underlying runtime without returning resume state. After
+   * `doDestroy`, no further methods on this session instance may be called.
+   */
+  doDestroy(): PromiseLike<void>;
 
   /**
    * Gracefully freeze the active turn **at a precise cursor while keeping the
-   * runtime alive**, returning the resume payload (same shape as
-   * `doGetResumeHandle`).
+   * runtime alive**, returning the resume payload.
    *
    * This is the slice-boundary primitive. The adapter stops host-side
    * consumption of the in-flight turn without telling the runtime to stop:
@@ -112,8 +110,9 @@ export type HarnessV1Session = {
    * turn alive, so it persists what it can and the in-flight tail is recomputed
    * on continue.
    *
-   * Unlike `doDetach`, the sandbox/runtime is left running. Required on every
-   * adapter.
+   * Like `doDetach`, the sandbox/runtime is left running. Unlike `doDetach`,
+   * this is for an active turn at a slice boundary rather than a between-turn
+   * session handoff. Required on every adapter.
    */
   doSuspendTurn(): PromiseLike<HarnessV1ResumeState>;
 } & HarnessV1SessionResumeInfo;

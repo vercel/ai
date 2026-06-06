@@ -24,6 +24,6 @@ run(async () => {
     console.log('usage:', await result.usage);
     console.log('steps:', (await result.steps).length);
   } finally {
-    await session.close();
+    await session.destroy();
   }
 });

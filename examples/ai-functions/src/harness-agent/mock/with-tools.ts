@@ -44,6 +44,6 @@ run(async () => {
     console.log('steps:', result.steps.length);
     console.log('finishReason:', result.finishReason);
   } finally {
-    await session.close();
+    await session.destroy();
   }
 });

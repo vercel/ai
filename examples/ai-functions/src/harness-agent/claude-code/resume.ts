@@ -2,11 +2,10 @@
  * Cross-process resume smoke test for the Claude Code harness.
  *
  * Within a single Node process this example simulates the REST-server
- * flow: turn 1 runs, the session is detached, the agent reference is
- * dropped, and a fresh `HarnessAgent` instance picks the conversation
- * back up using the persisted `HarnessV1ResumeState`. If resume works the
- * second turn answers from the workdir state the Claude SDK preserved
- * across the snapshot.
+ * flow: turn 1 runs, the session is stopped, the agent reference is dropped,
+ * and a fresh `HarnessAgent` instance picks the conversation back up using
+ * the persisted `HarnessV1ResumeState`. If resume works the second turn
+ * answers from the workdir state the Claude SDK preserved across the snapshot.
  */
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import type { HarnessV1ResumeState } from '@ai-sdk/harness';
@@ -35,8 +34,8 @@ run(async () => {
       prompt: 'My name is Felix. Remember it.',
     });
     await printFullStream({ result });
-    resumeState = await session.detach();
-    console.log('[detached] resume state:', JSON.stringify(resumeState));
+    resumeState = await session.stop();
+    console.log('[stopped] resume state:', JSON.stringify(resumeState));
   }
 
   // Turn 2: brand-new agent instance, only the persisted state survives.
@@ -52,7 +51,7 @@ run(async () => {
       prompt: 'What is my name? Answer in one word.',
     });
     await printFullStream({ result });
-    await session.close();
+    await session.destroy();
   }
 
   process.exit(0);

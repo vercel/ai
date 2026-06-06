@@ -48,8 +48,15 @@ export interface HarnessV1NetworkSandboxSession extends SandboxSession {
     protocol?: 'http' | 'https' | 'ws';
   }) => PromiseLike<string>;
 
-  /** Tear down the sandbox. Idempotent. */
+  /** Stop the sandbox. Idempotent. */
   readonly stop: () => PromiseLike<void>;
+
+  /**
+   * Destroy/delete the sandbox resource when supported. Optional because some
+   * providers only have a stop/dispose concept. Implementations must handle
+   * both a still-running sandbox and a previously stopped sandbox.
+   */
+  readonly destroy?: () => PromiseLike<void>;
 
   /**
    * Update the sandbox's outbound network policy. Optional — implementations

@@ -343,7 +343,7 @@ export async function createPiSession(
     });
     piSession = session;
 
-    // Pick up the actual session file path so doDetach can persist it. Pi
+    // Pick up the actual session file path so doStop can persist it. Pi
     // 0.77 emits `.jsonl` files; older builds used `.json`. Persist the
     // basename verbatim — including the extension — so the resume path can
     // round-trip it without guessing the extension.
@@ -529,6 +529,43 @@ export async function createPiSession(
     ? { isResume: true as const, resumeMode: 'rerun' as const }
     : { isResume: false as const, resumeMode: undefined };
 
+  const doStop = async (): Promise<HarnessV1ResumeState> => {
+    if (stopped) {
+      throw new Error('Pi session has been stopped.');
+    }
+    stopped = true;
+    settlePendingToolResults('Pi session stopped');
+
+    // Persist the Pi session file into the sandbox so a future process
+    // can pick it up after `provider.resume({ sessionId })` reattaches.
+    if (sessionFileName) {
+      try {
+        await persistSessionFileToSandbox({
+          sandbox,
+          sessionWorkDir: input.sessionWorkDir,
+          hostSessionDir,
+          sessionFileName,
+        });
+      } catch {
+        // Best-effort: a missing session file means resume returns to a
+        // fresh conversation rather than failing stop.
+      }
+    }
+
+    unsubscribe?.();
+    unsubscribe = undefined;
+    piSession?.dispose();
+    piSession = undefined;
+    workspaceVfs.unmount();
+    await rm(hostRoot, { recursive: true, force: true });
+
+    return {
+      harnessId: HARNESS_ID,
+      specificationVersion: 'harness-v1',
+      data: sessionFileName ? { sessionFileName } : {},
+    };
+  };
+
   const sessionImpl: HarnessV1Session = {
     sessionId: input.sessionId,
     ...resumeInfo,
@@ -589,7 +626,7 @@ export async function createPiSession(
       await piSession?.compact(customInstructions);
     },
 
-    doStop: async () => {
+    doDestroy: async () => {
       if (stopped) return;
       stopped = true;
       settlePendingToolResults('Pi session stopped');
@@ -601,73 +638,19 @@ export async function createPiSession(
       await rm(hostRoot, { recursive: true, force: true });
     },
 
+    doStop,
+
     doDetach: async (): Promise<HarnessV1ResumeState> => {
-      if (stopped) {
-        throw new Error('Pi session has been stopped.');
-      }
-      stopped = true;
-      settlePendingToolResults('Pi session detached');
-
-      // Persist the Pi session file into the sandbox so a future process
-      // can pick it up after `provider.resume({ sessionId })` reattaches.
-      if (sessionFileName) {
-        try {
-          await persistSessionFileToSandbox({
-            sandbox,
-            sessionWorkDir: input.sessionWorkDir,
-            hostSessionDir,
-            sessionFileName,
-          });
-        } catch {
-          // Best-effort: a missing session file means resume returns to a
-          // fresh conversation rather than failing detach.
-        }
-      }
-
-      unsubscribe?.();
-      unsubscribe = undefined;
-      piSession?.dispose();
-      piSession = undefined;
-      workspaceVfs.unmount();
-      await rm(hostRoot, { recursive: true, force: true });
-
-      return {
-        harnessId: HARNESS_ID,
-        specificationVersion: 'harness-v1',
-        data: sessionFileName ? { sessionFileName } : {},
-      };
-    },
-
-    doGetResumeHandle: async (): Promise<HarnessV1ResumeState> => {
-      if (stopped) {
-        throw new Error('Pi session has been stopped.');
-      }
       /*
-       * Non-destructive: copy the current Pi session journal into the sandbox
-       * so a future process can pull it after `provider.resume({ sessionId })`,
-       * but leave this session running (no dispose/unmount/teardown). The
-       * journal is appended to the same file across turns, so calling this
-       * after each turn keeps the sandbox copy current.
+       * Pi has no live runtime to detach from: the model runs in this host
+       * process, not behind an in-sandbox bridge. Adapter-side work is
+       * therefore the same as `doStop()`: persist the Pi session file and tear
+       * down host-side Pi resources. Consumers still observe a lifecycle
+       * difference because `session.detach()` leaves the sandbox running,
+       * while `session.stop()` calls this same save path and then stops the
+       * sandbox.
        */
-      if (sessionFileName) {
-        try {
-          await persistSessionFileToSandbox({
-            sandbox,
-            sessionWorkDir: input.sessionWorkDir,
-            hostSessionDir,
-            sessionFileName,
-          });
-        } catch {
-          // Best-effort: a failed copy leaves the previously persisted journal
-          // in place, so resume returns to a slightly older (still valid) state.
-        }
-      }
-
-      return {
-        harnessId: HARNESS_ID,
-        specificationVersion: 'harness-v1',
-        data: sessionFileName ? { sessionFileName } : {},
-      };
+      return doStop();
     },
 
     doSuspendTurn: async (): Promise<HarnessV1ResumeState> => {

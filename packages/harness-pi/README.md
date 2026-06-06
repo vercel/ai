@@ -45,7 +45,7 @@ try {
   });
   console.log(result.text);
 } finally {
-  await session.close();
+  await session.destroy();
 }
 ```
 

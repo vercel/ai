@@ -98,14 +98,20 @@ export function mockHarness(options: {
         doCompact: async () => {
           // The mock harness has no underlying runtime to compact.
         },
-        doStop: async () => {
-          // streamText is per-call; nothing persistent to stop.
-        },
-        doGetResumeHandle: () => ({
+        doDetach: async () => ({
           harnessId: 'mock',
           specificationVersion: 'harness-v1',
           data: {},
         }),
+        doStop: async () => ({
+          // streamText is per-call; nothing persistent to stop.
+          harnessId: 'mock',
+          specificationVersion: 'harness-v1',
+          data: {},
+        }),
+        doDestroy: async () => {
+          // streamText is per-call; nothing persistent to destroy.
+        },
         doSuspendTurn: async () => ({
           harnessId: 'mock',
           specificationVersion: 'harness-v1',

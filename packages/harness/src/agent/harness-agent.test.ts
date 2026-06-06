@@ -1,7 +1,9 @@
 import type {
   HarnessV1,
+  HarnessV1NetworkSandboxSession,
   HarnessV1PromptControl,
   HarnessV1PromptOptions,
+  HarnessV1ResumeState,
   HarnessV1Session,
   HarnessV1StreamPart,
 } from '../v1';
@@ -9,6 +11,7 @@ import { tool } from '@ai-sdk/provider-utils';
 import { describe, expect, test, vi } from 'vitest';
 import { z } from 'zod';
 import { HarnessAgent } from './harness-agent';
+import { HarnessAgentSession } from './harness-agent-session';
 
 /**
  * Build a mock harness whose session emits a canned event script. Each
@@ -30,11 +33,18 @@ function mockHarness(options: {
   prompts: HarnessV1PromptOptions['prompt'][];
   toolResults: { toolCallId: string; output: unknown }[];
   doStop: ReturnType<typeof vi.fn>;
+  doDestroy: ReturnType<typeof vi.fn>;
   doCompact: ReturnType<typeof vi.fn>;
 } {
   const prompts: HarnessV1PromptOptions['prompt'][] = [];
   const toolResults: { toolCallId: string; output: unknown }[] = [];
-  const doStop = vi.fn(async () => {});
+  const resumeState = {
+    harnessId: 'mock',
+    specificationVersion: 'harness-v1' as const,
+    data: {},
+  };
+  const doStop = vi.fn(async () => resumeState);
+  const doDestroy = vi.fn(async () => {});
   const doCompact = vi.fn(async (_customInstructions?: string) => {});
 
   const session: HarnessV1Session = {
@@ -59,12 +69,9 @@ function mockHarness(options: {
       return control;
     },
     doCompact,
+    doDetach: async () => resumeState,
     doStop,
-    doGetResumeHandle: () => ({
-      harnessId: 'mock',
-      specificationVersion: 'harness-v1',
-      data: {},
-    }),
+    doDestroy,
     doContinueTurn: async () => ({
       submitToolResult: async () => {},
       done: Promise.resolve(),
@@ -86,7 +93,84 @@ function mockHarness(options: {
     prompts,
     toolResults,
     doStop,
+    doDestroy,
     doCompact,
+  };
+}
+
+function makeLifecycleSession(options: {
+  underlyingSession?: Partial<HarnessV1Session>;
+  sandboxSession?: Partial<HarnessV1NetworkSandboxSession>;
+}): {
+  session: HarnessAgentSession;
+  resumeState: HarnessV1ResumeState;
+  doDetach: ReturnType<typeof vi.fn>;
+  doStop: ReturnType<typeof vi.fn>;
+  doDestroy: ReturnType<typeof vi.fn>;
+  sandboxStop: ReturnType<typeof vi.fn>;
+  sandboxDestroy: ReturnType<typeof vi.fn>;
+} {
+  const resumeState: HarnessV1ResumeState = {
+    harnessId: 'mock',
+    specificationVersion: 'harness-v1',
+    data: {},
+  };
+  const doDetach = vi.fn(async () => resumeState);
+  const doStop = vi.fn(async () => resumeState);
+  const doDestroy = vi.fn(async () => {});
+  const sandboxStop = vi.fn(async () => {});
+  const sandboxDestroy = vi.fn(async () => {});
+  const harness: HarnessV1 = {
+    specificationVersion: 'harness-v1',
+    harnessId: 'mock',
+    builtinTools: {},
+    doStart: async () => {
+      throw new Error('not used');
+    },
+  };
+  const underlyingSession = {
+    sessionId: 'lifecycle-session',
+    isResume: false,
+    resumeMode: undefined,
+    doPromptTurn: async () => ({
+      submitToolResult: async () => {},
+      done: Promise.resolve(),
+    }),
+    doContinueTurn: async () => ({
+      submitToolResult: async () => {},
+      done: Promise.resolve(),
+    }),
+    doCompact: async () => {},
+    doDetach,
+    doStop,
+    doDestroy,
+    doSuspendTurn: async () => resumeState,
+    ...options.underlyingSession,
+  } as HarnessV1Session;
+  const sandboxSession = {
+    id: 'sandbox',
+    defaultWorkingDirectory: '/work',
+    ports: [],
+    getPortUrl: async () => 'ws://example.test/',
+    stop: sandboxStop,
+    destroy: sandboxDestroy,
+    restricted: () => ({}) as never,
+    ...options.sandboxSession,
+  } as unknown as HarnessV1NetworkSandboxSession;
+
+  return {
+    session: new HarnessAgentSession({
+      sessionId: 'lifecycle-session',
+      harness,
+      underlyingSession,
+      sandboxSession,
+    }),
+    resumeState,
+    doDetach,
+    doStop,
+    doDestroy,
+    sandboxStop,
+    sandboxDestroy,
   };
 }
 
@@ -154,7 +238,7 @@ describe('HarnessAgent', () => {
     expect(result.responseMessages).toHaveLength(1);
     expect(result.responseMessages[0]!.role).toBe('assistant');
 
-    await session.close();
+    await session.destroy();
   });
 
   test('stream() returns a result whose fullStream emits translated parts', async () => {
@@ -213,7 +297,7 @@ describe('HarnessAgent', () => {
     expect(types).toContain('finish');
     expect(await result.text).toBe('Hi');
 
-    await session.close();
+    await session.destroy();
   });
 
   test('host-side tools are executed and the result is submitted back', async () => {
@@ -278,11 +362,11 @@ describe('HarnessAgent', () => {
     expect(result.toolCalls).toHaveLength(1);
     expect(result.toolCalls[0]!.toolName).toBe('echo');
 
-    await session.close();
+    await session.destroy();
   });
 
   test('a single session can drive multiple generate() turns', async () => {
-    const { harness, prompts, doStop } = mockHarness({
+    const { harness, prompts, doDestroy } = mockHarness({
       script: () => [
         { type: 'text-delta', id: 't', delta: 'ok' },
         {
@@ -328,25 +412,24 @@ describe('HarnessAgent', () => {
     await agent.generate({ session, prompt: 'two' });
 
     expect(prompts).toHaveLength(2);
-    // doStop is only called on close, not between turns.
-    expect(doStop).not.toHaveBeenCalled();
+    expect(doDestroy).not.toHaveBeenCalled();
 
-    await session.close();
-    expect(doStop).toHaveBeenCalledTimes(1);
+    await session.destroy();
+    expect(doDestroy).toHaveBeenCalledTimes(1);
   });
 
-  test('session.close() is idempotent and rejects further turns', async () => {
-    const { harness, doStop } = mockHarness({ script: () => [] });
+  test('session.destroy() is idempotent and rejects further turns', async () => {
+    const { harness, doDestroy } = mockHarness({ script: () => [] });
     const agent = new HarnessAgent({ harness });
     const session = await agent.createSession();
 
-    await session.close();
-    await session.close();
-    expect(doStop).toHaveBeenCalledTimes(1);
+    await session.destroy();
+    await session.destroy();
+    expect(doDestroy).toHaveBeenCalledTimes(1);
 
     await expect(
-      agent.generate({ session, prompt: 'after close' }),
-    ).rejects.toThrow(/has been closed/);
+      agent.generate({ session, prompt: 'after destroy' }),
+    ).rejects.toThrow(/has ended/);
   });
 
   test('normalizes prompt input — string passes through, message array is reduced to the last user message', async () => {
@@ -428,18 +511,80 @@ describe('HarnessAgent', () => {
       }),
     ).rejects.toThrow(/at least one `role: "user"` entry/);
 
-    await session.close();
+    await session.destroy();
   });
 
-  test('session.detach() throws when the harness session does not support it', async () => {
-    const { harness } = mockHarness({ script: () => [] });
-    const agent = new HarnessAgent({ harness });
-    const session = await agent.createSession();
-    await expect(session.detach()).rejects.toThrow(/does not support detach/i);
-    await session.close();
+  test('session.detach() parks without stopping or destroying the sandbox', async () => {
+    const {
+      session,
+      resumeState,
+      doDetach,
+      doStop,
+      doDestroy,
+      sandboxStop,
+      sandboxDestroy,
+    } = makeLifecycleSession({});
+
+    await expect(session.detach()).resolves.toEqual(resumeState);
+
+    expect(doDetach).toHaveBeenCalledTimes(1);
+    expect(doStop).not.toHaveBeenCalled();
+    expect(doDestroy).not.toHaveBeenCalled();
+    expect(sandboxStop).not.toHaveBeenCalled();
+    expect(sandboxDestroy).not.toHaveBeenCalled();
   });
 
-  test('session.compact() forwards to the harness session doCompact, then throws once closed', async () => {
+  test('session.stop() saves state and stops the sandbox', async () => {
+    const {
+      session,
+      resumeState,
+      doDetach,
+      doStop,
+      doDestroy,
+      sandboxStop,
+      sandboxDestroy,
+    } = makeLifecycleSession({});
+
+    await expect(session.stop()).resolves.toEqual(resumeState);
+
+    expect(doDetach).not.toHaveBeenCalled();
+    expect(doStop).toHaveBeenCalledTimes(1);
+    expect(doDestroy).not.toHaveBeenCalled();
+    expect(sandboxStop).toHaveBeenCalledTimes(1);
+    expect(sandboxDestroy).not.toHaveBeenCalled();
+  });
+
+  test('session.destroy() destroys the sandbox without saving state', async () => {
+    const {
+      session,
+      doDetach,
+      doStop,
+      doDestroy,
+      sandboxStop,
+      sandboxDestroy,
+    } = makeLifecycleSession({});
+
+    await session.destroy();
+
+    expect(doDetach).not.toHaveBeenCalled();
+    expect(doStop).not.toHaveBeenCalled();
+    expect(doDestroy).toHaveBeenCalledTimes(1);
+    expect(sandboxStop).not.toHaveBeenCalled();
+    expect(sandboxDestroy).toHaveBeenCalledTimes(1);
+  });
+
+  test('session.destroy() falls back to stopping the sandbox when destroy is unsupported', async () => {
+    const { session, sandboxStop, sandboxDestroy } = makeLifecycleSession({
+      sandboxSession: { destroy: undefined },
+    });
+
+    await session.destroy();
+
+    expect(sandboxStop).toHaveBeenCalledTimes(1);
+    expect(sandboxDestroy).not.toHaveBeenCalled();
+  });
+
+  test('session.compact() forwards to the harness session doCompact, then throws once ended', async () => {
     const { harness, doCompact } = mockHarness({ script: () => [] });
     const agent = new HarnessAgent({ harness });
     const session = await agent.createSession();
@@ -450,12 +595,17 @@ describe('HarnessAgent', () => {
     expect(doCompact).toHaveBeenNthCalledWith(1, undefined);
     expect(doCompact).toHaveBeenNthCalledWith(2, 'keep the error trace');
 
-    await session.close();
-    await expect(session.compact()).rejects.toThrow(/closed/i);
+    await session.destroy();
+    await expect(session.compact()).rejects.toThrow(/ended/i);
   });
 
-  test('getResumeHandle() returns validated coords, surfaces resume status, and leaves the session usable', async () => {
-    const doStop = vi.fn(async () => {});
+  test('session.detach() returns validated coords, surfaces resume status, and ends the local handle', async () => {
+    const doStop = vi.fn(async () => ({
+      harnessId: 'mock',
+      specificationVersion: 'harness-v1' as const,
+      data: {},
+    }));
+    const doDestroy = vi.fn(async () => {});
     const underlying: HarnessV1Session = {
       sessionId: 's-attach',
       isResume: true,
@@ -466,7 +616,8 @@ describe('HarnessAgent', () => {
       },
       doCompact: async () => {},
       doStop,
-      doGetResumeHandle: () => ({
+      doDestroy,
+      doDetach: async () => ({
         harnessId: 'mock',
         specificationVersion: 'harness-v1',
         data: { bridge: { port: 5001, token: 't', lastSeenEventId: 3 } },
@@ -502,17 +653,61 @@ describe('HarnessAgent', () => {
     expect(session.isResume).toBe(true);
     expect(session.resumeMode).toBe('attach');
 
-    const handle = await session.getResumeHandle();
+    const handle = await session.detach();
     expect(handle).toEqual({
       harnessId: 'mock',
       specificationVersion: 'harness-v1',
       data: { bridge: { port: 5001, token: 't', lastSeenEventId: 3 } },
     });
-    // Non-destructive: the session is still active.
     expect(doStop).not.toHaveBeenCalled();
-    const second = await session.getResumeHandle();
-    expect(second).toEqual(handle);
+    expect(doDestroy).not.toHaveBeenCalled();
 
-    await session.close();
+    await expect(
+      agent.generate({ session, prompt: 'after detach' }),
+    ).rejects.toThrow(/has ended/);
+  });
+
+  test('session.stop() returns validated state and ends the local handle', async () => {
+    const resumeState = {
+      harnessId: 'mock',
+      specificationVersion: 'harness-v1' as const,
+      data: { value: 'saved' },
+    };
+    const doStop = vi.fn(async () => resumeState);
+    const doDestroy = vi.fn(async () => {});
+    const underlying: HarnessV1Session = {
+      sessionId: 's-stop',
+      isResume: false,
+      resumeMode: undefined,
+      doPromptTurn: async () => ({
+        submitToolResult: async () => {},
+        done: Promise.resolve(),
+      }),
+      doCompact: async () => {},
+      doDetach: async () => resumeState,
+      doStop,
+      doDestroy,
+      doContinueTurn: async () => ({
+        submitToolResult: async () => {},
+        done: Promise.resolve(),
+      }),
+      doSuspendTurn: async () => resumeState,
+    };
+    const harness: HarnessV1 = {
+      specificationVersion: 'harness-v1',
+      harnessId: 'mock',
+      builtinTools: {},
+      resumeStateSchema: z.object({ value: z.string() }),
+      doStart: async () => underlying,
+    };
+
+    const agent = new HarnessAgent({ harness });
+    const session = await agent.createSession();
+    await expect(session.stop()).resolves.toEqual(resumeState);
+    expect(doStop).toHaveBeenCalledTimes(1);
+    expect(doDestroy).not.toHaveBeenCalled();
+    await expect(
+      agent.generate({ session, prompt: 'after stop' }),
+    ).rejects.toThrow(/has ended/);
   });
 });

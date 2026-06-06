@@ -76,12 +76,12 @@ export interface HarnessAgentCallExtensions {
  *    `generate()` / `stream()`.
  *  - **Explicit sessions.** Callers spawn sessions with
  *    `agent.createSession(...)`, pass the returned
- *    `HarnessAgentSession` on every `generate` / `stream`, and tear it
- *    down via `session.close()` or `session.detach()`.
+ *    `HarnessAgentSession` on every `generate` / `stream`, and end it via
+ *    `session.detach()`, `session.stop()`, or `session.destroy()`.
  *  - **Cross-process resume.** `createSession({ sessionId, resumeFrom })`
- *    reattaches to a sandbox previously detached via
- *    `session.detach()`. The framework validates `resumeFrom` against
- *    the harness's `resumeStateSchema` before handing it to the adapter.
+ *    resumes from state previously returned by `session.detach()` or
+ *    `session.stop()`. The framework validates `resumeFrom` against the
+ *    harness's `resumeStateSchema` before handing it to the adapter.
  *  - **Host tool execution.** User tools passed in `settings.tools` are
  *    executed on the host whenever the underlying runtime calls them;
  *    the result is fed back to the harness via `submitToolResult`.
@@ -134,21 +134,23 @@ export class HarnessAgent<
   }
 
   /**
-   * Start a fresh session, or reattach to one previously detached via
-   * `session.detach()`. The returned `HarnessAgentSession` must be
-   * passed to subsequent `generate` / `stream` calls; closing it with
-   * `session.close()` releases the sandbox and bridge-port lease.
+   * Start a fresh session, or resume from state previously returned by
+   * `session.detach()` or `session.stop()`. The returned
+   * `HarnessAgentSession` must be passed to subsequent `generate` / `stream`
+   * calls; end it with `session.detach()`, `session.stop()`, or
+   * `session.destroy()`.
    */
   async createSession(options?: {
     /**
      * Optional stable identifier for the underlying sandbox/session.
      * When omitted the agent generates one. Supply the original
      * `session.sessionId` together with `resumeFrom` to reattach a
-     * previously detached session across processes.
+     * previously ended session across processes.
      */
     sessionId?: string;
     /**
-     * Resume payload returned by a prior `session.detach()`. Must be
+     * Resume payload returned by a prior `session.detach()` or
+     * `session.stop()`. Must be
      * accompanied by the original `sessionId`; the framework
      * validates it against `harness.resumeStateSchema` before handing
      * it to the adapter.

@@ -1,13 +1,11 @@
 /*
  * Cross-process ATTACH for the Claude Code harness.
  *
- * Unlike `resume.ts` (which detaches — stopping the sandbox — and so resumes
- * in `rerun` mode), this example keeps the session alive: turn 1 runs, then
- * `session.getResumeHandle()` captures the live bridge coordinates *without*
- * tearing anything down. A fresh `HarnessAgent` (standing in for a different
- * server process) reattaches to the still-running bridge with those
- * coordinates and continues mid-conversation. `session.isResume` reports
- * `true` and `session.resumeMode` reports `'attach'`.
+ * `session.detach()` parks the bridge and sandbox, returns live coordinates,
+ * and makes the current session handle unusable. A fresh `HarnessAgent`
+ * (standing in for a different server process) reattaches to the still-running
+ * bridge and continues mid-conversation. `session.isResume` reports `true`
+ * and `session.resumeMode` reports `'attach'`.
  */
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import type { HarnessV1ResumeState } from '@ai-sdk/harness';
@@ -23,8 +21,7 @@ run(async () => {
     timeout: 10 * 60 * 1000,
   });
 
-  // Turn 1: introduce the name, then capture coordinates WITHOUT detaching —
-  // the bridge and sandbox stay alive.
+  // Turn 1: introduce the name, then park the live bridge and sandbox.
   let sessionId: string;
   let resumeState: HarnessV1ResumeState;
   {
@@ -37,9 +34,8 @@ run(async () => {
       prompt: 'My name is Felix. Remember it.',
     });
     await printFullStream({ result });
-    resumeState = await session.getResumeHandle();
+    resumeState = await session.detach();
     console.log('[handle] live coords:', JSON.stringify(resumeState));
-    // Note: no detach()/close() — we intentionally leave the bridge running.
   }
 
   // Turn 2: brand-new agent instance attaches to the live bridge.
@@ -60,7 +56,7 @@ run(async () => {
       prompt: 'What is my name? Answer in one word.',
     });
     await printFullStream({ result });
-    await session.close();
+    await session.destroy();
   }
 
   process.exit(0);

@@ -62,4 +62,8 @@ export class JustBashNetworkSandboxSession
     // just-bash has no explicit shutdown; the sandbox is garbage-collected
     // along with its in-memory filesystem once references drop.
   };
+
+  destroy = async (): Promise<void> => {
+    await this.stop();
+  };
 }

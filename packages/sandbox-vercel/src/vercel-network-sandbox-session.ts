@@ -14,8 +14,8 @@ const VERCEL_PROVIDER_ID = 'vercel-sandbox';
  * provider's `create()` returns one of these. It extends
  * {@link VercelSandboxSession} with the infra surface (ports, lifecycle,
  * network policy). It owns the sandbox's lifecycle only when the provider
- * created it; when the provider was given an existing sandbox, `stop()` is a
- * no-op (caller retains ownership).
+ * created it; when the provider was given an existing sandbox, `stop()` and
+ * `destroy()` are no-ops (caller retains ownership).
  */
 export class VercelNetworkSandboxSession
   extends VercelSandboxSession
@@ -85,6 +85,12 @@ export class VercelNetworkSandboxSession
   stop = async (): Promise<void> => {
     if (!this.ownsLifecycle) return;
     await this.sandbox.stop();
+  };
+
+  destroy = async (): Promise<void> => {
+    if (!this.ownsLifecycle) return;
+    await this.sandbox.stop().catch(() => {});
+    await this.sandbox.delete();
   };
 }
 

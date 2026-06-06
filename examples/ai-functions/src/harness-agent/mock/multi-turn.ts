@@ -24,6 +24,6 @@ run(async () => {
     });
     console.log(second.text);
   } finally {
-    await session.close();
+    await session.destroy();
   }
 });

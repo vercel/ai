@@ -2,10 +2,10 @@
  * Cross-process resume smoke test for the Codex harness.
  *
  * Within a single Node process this example simulates the REST-server
- * flow: turn 1 runs, the session is detached, the agent reference is
- * dropped, and a fresh `HarnessAgent` instance picks the conversation
- * back up using the persisted `HarnessV1ResumeState`. The resume payload
- * carries the Codex `threadId`; the bridge takes the
+ * flow: turn 1 runs, the session is stopped, the agent reference is dropped,
+ * and a fresh `HarnessAgent` instance picks the conversation back up using
+ * the persisted `HarnessV1ResumeState`. The resume payload carries the Codex
+ * `threadId`; the bridge takes the
  * `codex.resumeThread(...)` branch on the second turn so the model
  * remembers the name from turn 1.
  */
@@ -36,8 +36,8 @@ run(async () => {
       prompt: 'My name is Felix. Remember it.',
     });
     await printFullStream({ result });
-    resumeState = await session.detach();
-    console.log('[detached] resume state:', JSON.stringify(resumeState));
+    resumeState = await session.stop();
+    console.log('[stopped] resume state:', JSON.stringify(resumeState));
   }
 
   // Turn 2: brand-new agent instance, only the persisted state survives.
@@ -53,7 +53,7 @@ run(async () => {
       prompt: 'What is my name? Answer in one word.',
     });
     await printFullStream({ result });
-    await session.close();
+    await session.destroy();
   }
 
   process.exit(0);

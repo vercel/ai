@@ -40,12 +40,17 @@ function fakeSession(
     doPromptTurn: async (opts: HarnessV1PromptOptions) => emitScript(opts.emit),
     doContinueTurn: async opts => emitScript(opts.emit),
     doCompact: async () => {},
-    doStop: async () => {},
-    doGetResumeHandle: () => ({
+    doDetach: async () => ({
       harnessId: 'fake',
       specificationVersion: 'harness-v1',
       data: {},
     }),
+    doStop: async () => ({
+      harnessId: 'fake',
+      specificationVersion: 'harness-v1',
+      data: {},
+    }),
+    doDestroy: async () => {},
     doSuspendTurn: async () => ({
       harnessId: 'fake',
       specificationVersion: 'harness-v1',

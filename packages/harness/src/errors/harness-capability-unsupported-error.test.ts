@@ -5,7 +5,7 @@ import { HarnessError } from './harness-error';
 describe('HarnessCapabilityUnsupportedError', () => {
   test('is a HarnessError', () => {
     const err = new HarnessCapabilityUnsupportedError({
-      message: 'Harness does not support detach',
+      message: 'Harness does not support manual compaction',
     });
     expect(HarnessError.isInstance(err)).toBe(true);
     expect(HarnessCapabilityUnsupportedError.isInstance(err)).toBe(true);
