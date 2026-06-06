@@ -37,6 +37,7 @@ import { generateText } from './generate-text';
 import type {
   GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
+  GenerateTextOnStepEndCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
 } from './generate-text-events';
@@ -2384,6 +2385,49 @@ describe('generateText', () => {
         tool1: { label: 'updated' },
       });
       expect(recordedToolContext).toEqual({ label: 'updated' });
+    });
+  });
+
+  describe('options.onStepEnd stepNumber', () => {
+    it('should call onStepEnd with step result', async () => {
+      let stepEndEvent!: Parameters<GenerateTextOnStepEndCallback<any, any>>[0];
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            content: [{ type: 'text', text: 'Hello!' }],
+            ...dummyResponseValues,
+          }),
+        }),
+        prompt: 'test-input',
+        onStepEnd: async event => {
+          stepEndEvent = event;
+        },
+      });
+
+      expect(stepEndEvent.stepNumber).toBe(0);
+    });
+
+    it('should prefer onStepEnd over deprecated onStepFinish', async () => {
+      const calls: string[] = [];
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            content: [{ type: 'text', text: 'Hello!' }],
+            ...dummyResponseValues,
+          }),
+        }),
+        prompt: 'test-input',
+        onStepEnd: async () => {
+          calls.push('onStepEnd');
+        },
+        onStepFinish: async () => {
+          calls.push('onStepFinish');
+        },
+      });
+
+      expect(calls).toEqual(['onStepEnd']);
     });
   });
 
@@ -8972,7 +9016,7 @@ describe('generateText', () => {
             onStepStart: ({ runtimeContext }) => {
               telemetryContexts.push(runtimeContext);
             },
-            onStepFinish: ({ runtimeContext }) => {
+            onStepEnd: ({ runtimeContext }) => {
               telemetryContexts.push(runtimeContext);
             },
             onEnd: event => {
@@ -9036,7 +9080,7 @@ describe('generateText', () => {
             onStepStart: ({ toolsContext }) => {
               telemetryContexts.push(toolsContext);
             },
-            onStepFinish: ({ toolsContext }) => {
+            onStepEnd: ({ toolsContext }) => {
               telemetryContexts.push(toolsContext);
             },
             onEnd: event => {
@@ -9095,7 +9139,7 @@ describe('generateText', () => {
             onStepStart: ({ toolsContext }) => {
               telemetryContexts.push(toolsContext);
             },
-            onStepFinish: ({ toolsContext }) => {
+            onStepEnd: ({ toolsContext }) => {
               telemetryContexts.push(toolsContext);
             },
             onEnd: event => {
@@ -9136,7 +9180,7 @@ describe('generateText', () => {
             onStepStart: ({ runtimeContext }) => {
               telemetryContexts.push(runtimeContext);
             },
-            onStepFinish: ({ runtimeContext }) => {
+            onStepEnd: ({ runtimeContext }) => {
               telemetryContexts.push(runtimeContext);
             },
             onEnd: event => {
@@ -11802,8 +11846,8 @@ describe('generateText', () => {
             onToolExecutionEnd: async () => {
               events.push('onToolExecutionEnd');
             },
-            onStepFinish: async () => {
-              events.push('onStepFinish');
+            onStepEnd: async () => {
+              events.push('onStepEnd');
             },
             onEnd: async () => {
               events.push('onEnd');
@@ -11818,7 +11862,7 @@ describe('generateText', () => {
           "onStepStart",
           "onToolExecutionStart",
           "onToolExecutionEnd",
-          "onStepFinish",
+          "onStepEnd",
           "onEnd",
         ]
       `);
@@ -11832,8 +11876,8 @@ describe('generateText', () => {
           onStart: async () => {
             events.push('global-onStart');
           },
-          onStepFinish: async () => {
-            events.push('global-onStepFinish');
+          onStepEnd: async () => {
+            events.push('global-onStepEnd');
           },
           onEnd: async () => {
             events.push('global-onEnd');
@@ -11853,7 +11897,7 @@ describe('generateText', () => {
 
       expect(events).toEqual([
         'global-onStart',
-        'global-onStepFinish',
+        'global-onStepEnd',
         'global-onEnd',
       ]);
     });
@@ -11914,8 +11958,8 @@ describe('generateText', () => {
             onStart: async () => {
               events.push('integration-onStart');
             },
-            onStepFinish: async () => {
-              events.push('integration-onStepFinish');
+            onStepEnd: async () => {
+              events.push('integration-onStepEnd');
             },
             onEnd: async () => {
               events.push('integration-onEnd');
@@ -11928,7 +11972,7 @@ describe('generateText', () => {
         'user-onStart',
         'integration-onStart',
         'user-onStepFinish',
-        'integration-onStepFinish',
+        'integration-onStepEnd',
         'user-onFinish',
         'integration-onEnd',
       ]);
@@ -11948,7 +11992,7 @@ describe('generateText', () => {
             onStart: async () => {
               throw new Error('integration error');
             },
-            onStepFinish: async () => {
+            onStepEnd: async () => {
               throw new Error('integration error');
             },
             onEnd: async () => {

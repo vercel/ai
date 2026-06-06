@@ -7149,7 +7149,7 @@ describe('streamText', () => {
             onStepStart: async ({ runtimeContext }) => {
               telemetryContexts.push(runtimeContext);
             },
-            onStepFinish: async ({ runtimeContext }) => {
+            onStepEnd: async ({ runtimeContext }) => {
               telemetryContexts.push(runtimeContext);
             },
             onEnd: async event => {
@@ -7210,7 +7210,7 @@ describe('streamText', () => {
             onStepStart: async ({ toolsContext }) => {
               telemetryContexts.push(toolsContext);
             },
-            onStepFinish: async ({ toolsContext }) => {
+            onStepEnd: async ({ toolsContext }) => {
               telemetryContexts.push(toolsContext);
             },
             onEnd: async event => {
@@ -7253,7 +7253,7 @@ describe('streamText', () => {
             onStepStart: async ({ runtimeContext }) => {
               telemetryContexts.push(runtimeContext);
             },
-            onStepFinish: async ({ runtimeContext }) => {
+            onStepEnd: async ({ runtimeContext }) => {
               telemetryContexts.push(runtimeContext);
             },
             onEnd: async event => {
@@ -19134,6 +19134,69 @@ describe('streamText', () => {
           `);
       });
 
+      it('options.onStepEnd should be called', async () => {
+        let result!: Parameters<
+          Required<Parameters<typeof streamText>[0]>['onStepEnd']
+        >[0];
+
+        const resultObject = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello, ' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+          prompt: 'test-input',
+          onStepEnd: async event => {
+            result = event as unknown as typeof result;
+          },
+          _internal: {
+            generateId: () => 'test-call-id',
+            generateCallId: () => 'test-telemetry-call-id',
+          },
+        });
+
+        await resultObject.consumeStream();
+
+        expect(result.stepNumber).toBe(0);
+      });
+
+      it('options.onStepEnd should be preferred over deprecated onStepFinish', async () => {
+        const calls: string[] = [];
+
+        const resultObject = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello, ' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+          prompt: 'test-input',
+          onStepEnd: async () => {
+            calls.push('onStepEnd');
+          },
+          onStepFinish: async () => {
+            calls.push('onStepFinish');
+          },
+        });
+
+        await resultObject.consumeStream();
+
+        expect(calls).toEqual(['onStepEnd']);
+      });
+
       it('options.onStepFinish should be called', async () => {
         let result!: Parameters<
           Required<Parameters<typeof streamText>[0]>['onStepFinish']
@@ -28559,8 +28622,8 @@ describe('streamText', () => {
             onToolExecutionEnd: async () => {
               events.push('onToolExecutionEnd');
             },
-            onStepFinish: async () => {
-              events.push('onStepFinish');
+            onStepEnd: async () => {
+              events.push('onStepEnd');
             },
             onEnd: async () => {
               events.push('onEnd');
@@ -28577,7 +28640,7 @@ describe('streamText', () => {
           "onStepStart",
           "onToolExecutionStart",
           "onToolExecutionEnd",
-          "onStepFinish",
+          "onStepEnd",
           "onEnd",
         ]
       `);
@@ -28591,8 +28654,8 @@ describe('streamText', () => {
           onStart: async () => {
             events.push('global-onStart');
           },
-          onStepFinish: async () => {
-            events.push('global-onStepFinish');
+          onStepEnd: async () => {
+            events.push('global-onStepEnd');
           },
           onEnd: async () => {
             events.push('global-onEnd');
@@ -28610,7 +28673,7 @@ describe('streamText', () => {
 
       expect(events).toEqual([
         'global-onStart',
-        'global-onStepFinish',
+        'global-onStepEnd',
         'global-onEnd',
       ]);
     });
@@ -28665,8 +28728,8 @@ describe('streamText', () => {
             onStart: async () => {
               events.push('integration-onStart');
             },
-            onStepFinish: async () => {
-              events.push('integration-onStepFinish');
+            onStepEnd: async () => {
+              events.push('integration-onStepEnd');
             },
             onEnd: async () => {
               events.push('integration-onEnd');
@@ -28681,7 +28744,7 @@ describe('streamText', () => {
         'user-onStart',
         'integration-onStart',
         'user-onStepFinish',
-        'integration-onStepFinish',
+        'integration-onStepEnd',
         'user-onFinish',
         'integration-onEnd',
       ]);
@@ -28697,7 +28760,7 @@ describe('streamText', () => {
             onStart: async () => {
               throw new Error('integration error');
             },
-            onStepFinish: async () => {
+            onStepEnd: async () => {
               throw new Error('integration error');
             },
             onEnd: async () => {
