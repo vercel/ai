@@ -85,6 +85,18 @@ describe('validateDownloadUrl', () => {
         DownloadError,
       );
     });
+
+    it('should block .internal domains (cloud metadata)', () => {
+      expect(() =>
+        validateDownloadUrl('http://metadata.google.internal/computeMetadata/v1'),
+      ).toThrow(DownloadError);
+    });
+
+    it('should block nested .internal domains', () => {
+      expect(() =>
+        validateDownloadUrl('http://service.namespace.svc.cluster.internal/api'),
+      ).toThrow(DownloadError);
+    });
   });
 
   describe('blocked IPv4 addresses', () => {
@@ -134,6 +146,60 @@ describe('validateDownloadUrl', () => {
 
     it('should block 0.0.0.0', () => {
       expect(() => validateDownloadUrl('http://0.0.0.0/file')).toThrow(
+        DownloadError,
+      );
+    });
+
+    it('should block 100.64.0.0/10 (Shared/CGNAT - RFC 6598)', () => {
+      expect(() => validateDownloadUrl('http://100.64.0.1/file')).toThrow(
+        DownloadError,
+      );
+      expect(() => validateDownloadUrl('http://100.100.100.1/file')).toThrow(
+        DownloadError,
+      );
+      expect(() => validateDownloadUrl('http://100.127.255.255/file')).toThrow(
+        DownloadError,
+      );
+    });
+
+    it('should allow 100.63.x.x and 100.128.x.x (outside CGNAT)', () => {
+      expect(() =>
+        validateDownloadUrl('http://100.63.255.255/file'),
+      ).not.toThrow();
+      expect(() =>
+        validateDownloadUrl('http://100.128.0.1/file'),
+      ).not.toThrow();
+    });
+
+    it('should block 198.18.0.0/15 (Benchmarking - RFC 2544)', () => {
+      expect(() => validateDownloadUrl('http://198.18.0.1/file')).toThrow(
+        DownloadError,
+      );
+      expect(() => validateDownloadUrl('http://198.19.255.255/file')).toThrow(
+        DownloadError,
+      );
+    });
+
+    it('should allow 198.17.x.x and 198.20.x.x (outside benchmarking)', () => {
+      expect(() =>
+        validateDownloadUrl('http://198.17.0.1/file'),
+      ).not.toThrow();
+      expect(() =>
+        validateDownloadUrl('http://198.20.0.1/file'),
+      ).not.toThrow();
+    });
+
+    it('should block 192.0.0.0/24 (IETF Protocol Assignments - RFC 6890)', () => {
+      expect(() => validateDownloadUrl('http://192.0.0.1/file')).toThrow(
+        DownloadError,
+      );
+    });
+
+    it('should block 240.0.0.0/4 (Reserved - RFC 1112)', () => {
+      expect(() => validateDownloadUrl('http://240.0.0.1/file')).toThrow(
+        DownloadError,
+      );
+      expect(() => validateDownloadUrl('http://255.255.255.255/file')).toThrow(
         DownloadError,
       );
     });
@@ -191,6 +257,12 @@ describe('validateDownloadUrl', () => {
       expect(() =>
         validateDownloadUrl('http://[::ffff:203.0.113.1]/file'),
       ).not.toThrow();
+    });
+
+    it('should block ::ffff: mapped 100.64.x.x (CGNAT via IPv6)', () => {
+      expect(() =>
+        validateDownloadUrl('http://[::ffff:100.64.0.1]/file'),
+      ).toThrow(DownloadError);
     });
   });
 });

@@ -41,11 +41,12 @@ export function validateDownloadUrl(url: string): void {
     });
   }
 
-  // Block localhost and .local domains
+  // Block localhost, .local, .localhost, and .internal domains
   if (
     hostname === 'localhost' ||
     hostname.endsWith('.local') ||
-    hostname.endsWith('.localhost')
+    hostname.endsWith('.localhost') ||
+    hostname.endsWith('.internal')
   ) {
     throw new DownloadError({
       url,
@@ -96,14 +97,28 @@ function isPrivateIPv4(ip: string): boolean {
   if (a === 0) return true;
   // 10.0.0.0/8
   if (a === 10) return true;
+  // 100.64.0.0/10 - Shared Address Space (RFC 6598, used in cloud CGNAT/VPCs)
+  if (a === 100 && b >= 64 && b <= 127) return true;
   // 127.0.0.0/8
   if (a === 127) return true;
   // 169.254.0.0/16
   if (a === 169 && b === 254) return true;
   // 172.16.0.0/12
   if (a === 172 && b >= 16 && b <= 31) return true;
+  // 192.0.0.0/24 - IETF Protocol Assignments (RFC 6890)
+  if (a === 192 && b === 0 && parts[2] === 0) return true;
+  // 192.0.2.0/24 - Documentation (TEST-NET-1, RFC 5737)
+  if (a === 192 && b === 0 && parts[2] === 2) return true;
   // 192.168.0.0/16
   if (a === 192 && b === 168) return true;
+  // 198.18.0.0/15 - Benchmarking (RFC 2544)
+  if (a === 198 && (b === 18 || b === 19)) return true;
+  // 198.51.100.0/24 - Documentation (TEST-NET-2, RFC 5737)
+  if (a === 198 && b === 51 && parts[2] === 100) return true;
+  // 203.0.113.0/24 - Documentation (TEST-NET-3, RFC 5737)
+  if (a === 203 && b === 0 && parts[2] === 113) return true;
+  // 240.0.0.0/4 - Reserved for future use (RFC 1112)
+  if (a >= 240) return true;
 
   return false;
 }
