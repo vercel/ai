@@ -1,7 +1,7 @@
-import { codexDetachHarnessAgent } from '@/agent/harness/codex/detach-agent';
+import { codexHarnessAgent } from '@/agent/harness/codex/basic-agent';
 import {
-  detachAndPersist,
   resumeOrCreateSession,
+  stopAndPersist,
 } from '@/util/harness-resume-store';
 import {
   convertToModelMessages,
@@ -22,16 +22,16 @@ export async function POST(request: Request) {
   const chatId = body.id;
   const messages = await convertToModelMessages(body.messages);
 
-  const session = await resumeOrCreateSession(codexDetachHarnessAgent, chatId);
+  const session = await resumeOrCreateSession(codexHarnessAgent, chatId);
 
-  const result = await codexDetachHarnessAgent.stream({ session, messages });
+  const result = await codexHarnessAgent.stream({ session, messages });
 
   return createUIMessageStreamResponse({
     stream: toUIMessageStream({
       stream: result.stream,
-      // Detach at the end of the turn so the next request attaches to the
-      // parked bridge.
-      onFinish: () => detachAndPersist(chatId, session),
+      // Stop the session at the end of the turn so the next request resumes
+      // from the persisted snapshot rather than attaching to a parked bridge.
+      onFinish: () => stopAndPersist(chatId, session),
     }),
   });
 }

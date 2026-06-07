@@ -3,7 +3,7 @@ import Link from 'next/link';
 const VARIANTS = [
   { slug: 'workflow', label: 'Workflow' },
   { slug: 'basic', label: 'Basic' },
-  { slug: 'detach', label: 'Detach' },
+  { slug: 'basic-with-stop', label: 'Basic (with stop)' },
   { slug: 'ai-sdk-coding', label: 'AI SDK Coding' },
   { slug: 'weather', label: 'Weather' },
 ] as const;
@@ -12,17 +12,35 @@ const HARNESSES = [
   {
     slug: 'claude-code',
     label: 'Claude Code',
-    variants: ['basic', 'detach', 'ai-sdk-coding', 'weather', 'workflow'],
+    variants: [
+      'basic',
+      'basic-with-stop',
+      'ai-sdk-coding',
+      'weather',
+      'workflow',
+    ],
   },
   {
     slug: 'codex',
     label: 'Codex',
-    variants: ['basic', 'detach', 'ai-sdk-coding', 'weather', 'workflow'],
+    variants: [
+      'basic',
+      'basic-with-stop',
+      'ai-sdk-coding',
+      'weather',
+      'workflow',
+    ],
   },
   {
     slug: 'pi',
     label: 'Pi',
-    variants: ['basic', 'ai-sdk-coding', 'weather', 'workflow'],
+    variants: [
+      'basic',
+      'basic-with-stop',
+      'ai-sdk-coding',
+      'weather',
+      'workflow',
+    ],
   },
 ] as const;
 

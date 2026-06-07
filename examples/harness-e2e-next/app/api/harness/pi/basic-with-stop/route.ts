@@ -1,7 +1,7 @@
-import { claudeCodeDetachHarnessAgent } from '@/agent/harness/claude-code/detach-agent';
+import { piHarnessAgent } from '@/agent/harness/pi/basic-agent';
 import {
-  detachAndPersist,
   resumeOrCreateSession,
+  stopAndPersist,
 } from '@/util/harness-resume-store';
 import {
   convertToModelMessages,
@@ -22,22 +22,16 @@ export async function POST(request: Request) {
   const chatId = body.id;
   const messages = await convertToModelMessages(body.messages);
 
-  const session = await resumeOrCreateSession(
-    claudeCodeDetachHarnessAgent,
-    chatId,
-  );
+  const session = await resumeOrCreateSession(piHarnessAgent, chatId);
 
-  const result = await claudeCodeDetachHarnessAgent.stream({
-    session,
-    messages,
-  });
+  const result = await piHarnessAgent.stream({ session, messages });
 
   return createUIMessageStreamResponse({
     stream: toUIMessageStream({
       stream: result.stream,
-      // Detach at the end of the turn so the next request attaches to the
-      // parked bridge.
-      onFinish: () => detachAndPersist(chatId, session),
+      // Stop the session at the end of the turn so the next request resumes
+      // from the persisted snapshot rather than attaching to a parked bridge.
+      onFinish: () => stopAndPersist(chatId, session),
     }),
   });
 }

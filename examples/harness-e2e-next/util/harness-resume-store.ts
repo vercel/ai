@@ -84,10 +84,7 @@ export async function detachAndPersist(
     // just resumes from the previous checkpoint (or starts cold). Surfaced so a
     // misconfiguration (unwritable dir, failed save) doesn't fail silently and
     // leave resume quietly broken.
-    console.error(
-      `[harness] failed to persist resume state for ${chatId}:`,
-      error,
-    );
+    console.error(`[harness] failed to detach+persist for ${chatId}:`, error);
   }
 }
 
