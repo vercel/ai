@@ -2824,13 +2824,13 @@ importers:
 
   packages/provider:
     dependencies:
+      '@types/json-schema':
+        specifier: 7.0.15
+        version: 7.0.15
       json-schema:
         specifier: ^0.4.0
         version: 0.4.0
     devDependencies:
-      '@types/json-schema':
-        specifier: 7.0.15
-        version: 7.0.15
       '@types/node':
         specifier: 22.19.19
         version: 22.19.19
