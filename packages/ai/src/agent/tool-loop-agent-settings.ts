@@ -12,6 +12,7 @@ import type { ActiveTools } from '../generate-text/active-tools';
 import type {
   GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
+  GenerateTextOnStepEndCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
 } from '../generate-text/generate-text-events';
@@ -180,7 +181,17 @@ export type ToolLoopAgentSettings<
     onToolExecutionEnd?: OnToolExecutionEndCallback<NoInfer<TOOLS>>;
 
     /**
-     * Callback that is called when each step (LLM call) is finished, including intermediate steps.
+     * Callback that is called when each step (LLM call) ends, including intermediate steps.
+     */
+    onStepEnd?: GenerateTextOnStepEndCallback<
+      NoInfer<TOOLS>,
+      NoInfer<RUNTIME_CONTEXT>
+    >;
+
+    /**
+     * Callback that is called when each step (LLM call) ends, including intermediate steps.
+     *
+     * @deprecated Use `onStepEnd` instead.
      */
     onStepFinish?: GenerateTextOnStepFinishCallback<
       NoInfer<TOOLS>,
@@ -261,7 +272,7 @@ export type ToolLoopAgentSettings<
           NoInfer<TOOLS>,
           NoInfer<RUNTIME_CONTEXT>
         >,
-        'onStepFinish'
+        'onStepEnd' | 'onStepFinish'
       > &
         Pick<
           ToolLoopAgentSettings<

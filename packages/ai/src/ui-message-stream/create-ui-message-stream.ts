@@ -7,6 +7,7 @@ import type { UIMessage } from '../ui/ui-messages';
 import { handleUIMessageStreamFinish } from './handle-ui-message-stream-finish';
 import type { InferUIMessageChunk } from './ui-message-chunks';
 import type { UIMessageStreamOnFinishCallback } from './ui-message-stream-on-finish-callback';
+import type { UIMessageStreamOnStepEndCallback } from './ui-message-stream-on-step-end-callback';
 import type { UIMessageStreamOnStepFinishCallback } from './ui-message-stream-on-step-finish-callback';
 import type { UIMessageStreamWriter } from './ui-message-stream-writer';
 
@@ -17,7 +18,8 @@ import type { UIMessageStreamWriter } from './ui-message-stream-writer';
  * @param options.onError - A function that extracts an error message from an error. Defaults to `getErrorMessage`.
  * @param options.originalMessages - The original messages. If provided, persistence mode is assumed
  *   and a message ID is provided for the response message.
- * @param options.onStepFinish - A callback that is called when each step finishes. Useful for persisting intermediate messages.
+ * @param options.onStepEnd - A callback that is called when each step ends. Useful for persisting intermediate messages.
+ * @param options.onStepFinish - Deprecated alias for `onStepEnd`.
  * @param options.onFinish - A callback that is called when the stream finishes.
  * @param options.generateId - A function that generates a unique ID. Defaults to the built-in ID generator.
  *
@@ -27,6 +29,7 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
   execute,
   onError = getErrorMessage,
   originalMessages,
+  onStepEnd,
   onStepFinish,
   onFinish,
   generateId = generateIdFunc,
@@ -43,7 +46,14 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
   originalMessages?: UI_MESSAGE[];
 
   /**
-   * Callback that is called when each step finishes during multi-step agent runs.
+   * Callback that is called when each step ends during multi-step agent runs.
+   */
+  onStepEnd?: UIMessageStreamOnStepEndCallback<UI_MESSAGE>;
+
+  /**
+   * Callback that is called when each step ends during multi-step agent runs.
+   *
+   * @deprecated Use `onStepEnd` instead.
    */
   onStepFinish?: UIMessageStreamOnStepFinishCallback<UI_MESSAGE>;
 
@@ -138,7 +148,7 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
     stream,
     messageId: generateId(),
     originalMessages,
-    onStepFinish,
+    onStepEnd: onStepEnd ?? onStepFinish,
     onFinish,
     onError,
   });

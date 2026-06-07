@@ -175,6 +175,9 @@
       "path": "../../packages/togetherai"
     },
     {
+      "path": "../../packages/tui"
+    },
+    {
       "path": "../../packages/valibot"
     },
     {

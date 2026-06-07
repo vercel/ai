@@ -394,6 +394,9 @@ importers:
       '@ai-sdk/togetherai':
         specifier: workspace:*
         version: link:../../packages/togetherai
+      '@ai-sdk/tui':
+        specifier: workspace:*
+        version: link:../../packages/tui
       '@ai-sdk/valibot':
         specifier: workspace:*
         version: link:../../packages/valibot
@@ -3519,6 +3522,34 @@ importers:
       typescript:
         specifier: 5.8.3
         version: 5.8.3
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+
+  packages/tui:
+    dependencies:
+      ai:
+        specifier: workspace:*
+        version: link:../ai
+    devDependencies:
+      '@ai-sdk/provider':
+        specifier: workspace:*
+        version: link:../provider
+      '@types/node':
+        specifier: 22.19.19
+        version: 22.19.19
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(jiti@2.7.0)(postcss@8.5.14)(tsx@4.22.0)(typescript@5.8.3)(yaml@2.9.0)
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+      vitest:
+        specifier: ^4.1.6
+        version: 4.1.6(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.1)(@types/node@22.19.19)(jsdom@26.1.0)(msw@2.14.6(@types/node@22.19.19)(typescript@5.8.3))(vite@7.3.3(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.47.1)(tsx@4.22.0)(yaml@2.9.0))
       zod:
         specifier: 3.25.76
         version: 3.25.76

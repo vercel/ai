@@ -9,6 +9,7 @@ export type {
   GenerateTextOnFinishCallback,
   GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
+  GenerateTextOnStepEndCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
   GenerateTextStartEvent,

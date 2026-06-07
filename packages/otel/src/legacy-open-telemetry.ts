@@ -655,7 +655,7 @@ export class LegacyOpenTelemetry implements Telemetry {
     state.toolSpans.delete(event.toolCall.toolCallId);
   }
 
-  onStepFinish(event: GenerateTextStepEndEvent<ToolSet>): void {
+  onStepEnd(event: GenerateTextStepEndEvent<ToolSet>): void {
     const state = this.getCallState(event.callId);
     if (!state?.stepSpan) return;
 
@@ -760,6 +760,11 @@ export class LegacyOpenTelemetry implements Telemetry {
     state.stepSpan.end();
     state.stepSpan = undefined;
     state.stepContext = undefined;
+  }
+
+  /** @deprecated Use `onStepEnd` instead. */
+  onStepFinish(event: GenerateTextStepEndEvent<ToolSet>): void {
+    this.onStepEnd(event);
   }
 
   onEnd(

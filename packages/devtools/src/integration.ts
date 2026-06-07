@@ -309,7 +309,7 @@ export function DevToolsTelemetry(): Telemetry {
       });
     },
 
-    onStepFinish: async event => {
+    onStepEnd: async event => {
       const stepResult = event as GenerateTextStepEndEvent<ToolSet>;
 
       const state = callStates.get(stepResult.callId);

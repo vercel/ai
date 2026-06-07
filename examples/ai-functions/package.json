@@ -53,6 +53,7 @@
     "@ai-sdk/sandbox-just-bash": "workspace:*",
     "@ai-sdk/sandbox-vercel": "workspace:*",
     "@ai-sdk/togetherai": "workspace:*",
+    "@ai-sdk/tui": "workspace:*",
     "@ai-sdk/valibot": "workspace:*",
     "@ai-sdk/vercel": "workspace:*",
     "@ai-sdk/voyage": "workspace:*",

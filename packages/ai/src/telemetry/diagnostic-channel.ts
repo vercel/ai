@@ -7,6 +7,7 @@ export type TelemetryDiagnosticEventType =
   | 'onLanguageModelCallEnd'
   | 'onToolExecutionStart'
   | 'onToolExecutionEnd'
+  | 'onStepEnd'
   | 'onStepFinish'
   | 'onObjectStepStart'
   | 'onObjectStepFinish'
