@@ -501,6 +501,24 @@ describe('toUIMessageChunk', () => {
     expect(
       toUIMessageChunk<Tools>(
         {
+          type: 'tool-result',
+          toolCallId: 'call-undefined-output',
+          toolName: 'dynamicTool',
+          input: { value: 'input' },
+          output: undefined,
+        },
+        { tools },
+      ),
+    ).toEqual({
+      type: 'tool-output-available',
+      toolCallId: 'call-undefined-output',
+      output: null,
+      dynamic: true,
+    });
+
+    expect(
+      toUIMessageChunk<Tools>(
+        {
           type: 'tool-error',
           toolCallId: 'call-2',
           toolName: 'dynamicTool',

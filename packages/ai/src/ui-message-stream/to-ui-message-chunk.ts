@@ -276,7 +276,7 @@ export function toUIMessageChunk<
       return {
         type: 'tool-output-available',
         toolCallId: part.toolCallId,
-        output: part.output,
+        output: part.output ?? null,
         ...(part.providerExecuted != null
           ? { providerExecuted: part.providerExecuted }
           : {}),
