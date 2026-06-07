@@ -133,7 +133,11 @@ export interface ChatRequestContext {
 export async function chat(messages: UIMessage[], request: ChatRequestContext) {
   'use workflow';
 
-  const modelMessages = await convertToModelMessages(messages);
+  // Pass `tools` so prior tool results from the UI history are reconstructed
+  // through each tool's `toModelOutput` hook — the same conversion WorkflowAgent
+  // applies to fresh tool results. Without this, earlier-turn tool results would
+  // fall back to default `json`/`text` serialization, diverging across turns.
+  const modelMessages = await convertToModelMessages(messages, { tools });
 
   const agent = new WorkflowAgent({
     model: anthropic('claude-sonnet-4-20250514'),

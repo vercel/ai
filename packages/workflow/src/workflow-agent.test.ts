@@ -294,6 +294,97 @@ describe('WorkflowAgent', () => {
       });
     });
 
+    it('should use toModelOutput for local tool results while preserving raw output', async () => {
+      const rawToolResult = { public: 'visible to user', secret: 'hide me' };
+      const toolInput = { query: 'test query' };
+      const toModelOutput = vi.fn(({ output }: any) => ({
+        type: 'text' as const,
+        value: `model sees: ${output.public}`,
+      }));
+      const tools: ToolSet = {
+        testTool: {
+          description: 'A test tool',
+          inputSchema: z.object({ query: z.string() }),
+          execute: async () => rawToolResult,
+          toModelOutput,
+        },
+      };
+
+      const agent = new WorkflowAgent({
+        model: createMockModel(),
+        tools,
+      });
+
+      const write = vi.fn();
+      const mockWritable = new WritableStream({
+        write,
+        close: vi.fn(),
+      });
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const mockMessages: LanguageModelV4Prompt = [
+        { role: 'user', content: [{ type: 'text', text: 'test' }] },
+      ];
+      const mockIterator = {
+        next: vi
+          .fn()
+          .mockResolvedValueOnce({
+            done: false,
+            value: {
+              toolCalls: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'test-call-id',
+                  toolName: 'testTool',
+                  input: toolInput,
+                } as unknown as LanguageModelV4ToolCall,
+              ],
+              messages: mockMessages,
+            },
+          })
+          .mockResolvedValueOnce({ done: true, value: [] }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      const result = await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        writable: mockWritable,
+      });
+
+      expect(toModelOutput).toHaveBeenCalledWith({
+        toolCallId: 'test-call-id',
+        input: toolInput,
+        output: rawToolResult,
+      });
+
+      const continuationToolResults = mockIterator.next.mock.calls[1][0];
+      expect(continuationToolResults[0]).toMatchObject({
+        type: 'tool-result',
+        toolCallId: 'test-call-id',
+        toolName: 'testTool',
+        output: {
+          type: 'text',
+          value: 'model sees: visible to user',
+        },
+      });
+      expect(result.toolResults[0]).toMatchObject({
+        type: 'tool-result',
+        toolCallId: 'test-call-id',
+        toolName: 'testTool',
+        input: toolInput,
+        output: rawToolResult,
+      });
+      expect(write.mock.calls.map(([chunk]) => chunk)).toContainEqual(
+        expect.objectContaining({
+          type: 'tool-result',
+          toolCallId: 'test-call-id',
+          output: rawToolResult,
+        }),
+      );
+    });
+
     it('should skip local execution for provider-executed tools', async () => {
       // This tool should NOT be called because the tool call is provider-executed
       const executeFn = vi.fn();
@@ -378,6 +469,98 @@ describe('WorkflowAgent', () => {
           type: 'text',
           value: 'Search results for: test query',
         },
+      });
+    });
+
+    it('should use toModelOutput for provider-executed tool results while preserving raw output', async () => {
+      const rawProviderResult = {
+        public: 'provider result',
+        secret: 'hide me',
+      };
+      const toolInput = { query: 'test query' };
+      const executeFn = vi.fn();
+      const toModelOutput = vi.fn(({ output }: any) => ({
+        type: 'text' as const,
+        value: `model sees: ${output.public}`,
+      }));
+      const tools: ToolSet = {
+        WebSearch: {
+          description: 'A provider-executed tool',
+          inputSchema: z.object({ query: z.string() }),
+          execute: executeFn,
+          toModelOutput,
+        },
+      };
+
+      const agent = new WorkflowAgent({
+        model: createMockModel(),
+        tools,
+      });
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const mockMessages: LanguageModelV4Prompt = [
+        { role: 'user', content: [{ type: 'text', text: 'test' }] },
+      ];
+      const providerExecutedToolResults = new Map();
+      providerExecutedToolResults.set('provider-call-id', {
+        toolCallId: 'provider-call-id',
+        toolName: 'WebSearch',
+        result: rawProviderResult,
+        isError: false,
+      });
+
+      const mockIterator = {
+        next: vi
+          .fn()
+          .mockResolvedValueOnce({
+            done: false,
+            value: {
+              toolCalls: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'provider-call-id',
+                  toolName: 'WebSearch',
+                  input: toolInput,
+                  providerExecuted: true,
+                } as unknown as LanguageModelV4ToolCall,
+              ],
+              messages: mockMessages,
+              providerExecutedToolResults,
+            },
+          })
+          .mockResolvedValueOnce({ done: true, value: [] }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      const result = await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+      });
+
+      expect(executeFn).not.toHaveBeenCalled();
+      expect(toModelOutput).toHaveBeenCalledWith({
+        toolCallId: 'provider-call-id',
+        input: toolInput,
+        output: rawProviderResult,
+      });
+
+      const continuationToolResults = mockIterator.next.mock.calls[1][0];
+      expect(continuationToolResults[0]).toMatchObject({
+        type: 'tool-result',
+        toolCallId: 'provider-call-id',
+        toolName: 'WebSearch',
+        output: {
+          type: 'text',
+          value: 'model sees: provider result',
+        },
+      });
+      expect(result.toolResults[0]).toMatchObject({
+        type: 'tool-result',
+        toolCallId: 'provider-call-id',
+        toolName: 'WebSearch',
+        input: toolInput,
+        output: rawProviderResult,
       });
     });
 
@@ -3067,6 +3250,107 @@ describe('WorkflowAgent', () => {
 
       // The streamTextIterator should have been called (the agent continues after approval)
       expect(mockIterator.next).toHaveBeenCalled();
+    });
+
+    it('should use toModelOutput for approved tool results while preserving raw stream output', async () => {
+      const rawToolResult = { public: 'weather summary', secret: 'hide me' };
+      const executeFn = vi.fn().mockResolvedValue(rawToolResult);
+      const toModelOutput = vi.fn(({ output }: any) => ({
+        type: 'text' as const,
+        value: `model sees: ${output.public}`,
+      }));
+      const tools: ToolSet = {
+        getWeather: {
+          description: 'Get weather',
+          inputSchema: z.object({ city: z.string() }),
+          execute: executeFn,
+          needsApproval: true as const,
+          toModelOutput,
+        },
+      };
+
+      const agent = new WorkflowAgent({
+        model: createMockModel(),
+        tools,
+      });
+
+      const write = vi.fn();
+      const mockWritable = new WritableStream({
+        write,
+        close: vi.fn(),
+      });
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const mockIterator = {
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      await agent.stream({
+        messages: [
+          { role: 'user', content: "What's the weather in London?" },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'getWeather',
+                input: { city: 'London' },
+              },
+              {
+                type: 'tool-approval-request',
+                approvalId: 'approval-call-1',
+                toolCallId: 'call-1',
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'approval-call-1',
+                approved: true,
+              },
+            ],
+          },
+        ] as any,
+        writable: mockWritable,
+      });
+
+      expect(toModelOutput).toHaveBeenCalledWith({
+        toolCallId: 'call-1',
+        input: { city: 'London' },
+        output: rawToolResult,
+      });
+
+      const iteratorArgs = vi
+        .mocked(streamTextIterator)
+        .mock.calls.at(-1)?.[0] as any;
+      const toolMessage = iteratorArgs.prompt.find(
+        (message: any) =>
+          message.role === 'tool' &&
+          message.content.some((part: any) => part.toolCallId === 'call-1'),
+      );
+      expect(toolMessage.content[0]).toMatchObject({
+        type: 'tool-result',
+        toolCallId: 'call-1',
+        toolName: 'getWeather',
+        output: {
+          type: 'text',
+          value: 'model sees: weather summary',
+        },
+      });
+      expect(write.mock.calls.map(([chunk]) => chunk)).toContainEqual(
+        expect.objectContaining({
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          output: rawToolResult,
+        }),
+      );
     });
 
     it('should create denial results for denied tools and continue', async () => {

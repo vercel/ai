@@ -21,7 +21,8 @@ export async function createToolModelOutput({
   }
 
   if (tool?.toModelOutput) {
-    return await tool.toModelOutput({ toolCallId, input, output });
+    const { toModelOutput } = tool;
+    return await toModelOutput({ toolCallId, input, output });
   }
 
   return typeof output === 'string'
