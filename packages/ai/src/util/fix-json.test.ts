@@ -80,6 +80,16 @@ describe('string', () => {
       '"value with unicode \u003C"',
     );
   });
+
+  test('should handle incomplete unicode escape sequences', () => {
+    assert.strictEqual(fixJson('"value with \\u'), '"value with "');
+    assert.strictEqual(fixJson('"value with \\u12'), '"value with "');
+    assert.strictEqual(fixJson('{"value":"text \\u00'), '{"value":"text "}');
+  });
+
+  test('should preserve complete unicode escape sequences', () => {
+    assert.strictEqual(fixJson('"value with \\u003C"'), '"value with \\u003C"');
+  });
 });
 
 describe('array', () => {
