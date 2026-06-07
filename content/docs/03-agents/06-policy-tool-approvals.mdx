@@ -223,18 +223,21 @@ import { opaPolicy, shadow, wasmPolicyClient } from '@ai-sdk/policy-opa';
 
 const client = await wasmPolicyClient({ wasm });
 
-const toolApproval = shadow(opaPolicy({ client, path: 'agent/call/decision' }), {
-  enforce: process.env.ENFORCE_POLICY === 'true',
-  onDecision: event => {
-    logger.info('policy.decision', {
-      tool: event.toolCall.toolName,
-      decision: event.decision.type,
-      reason: event.decision.reason,
-      enforced: event.enforced,
-      wouldBlock: event.decision.type === 'denied',
-    });
+const toolApproval = shadow(
+  opaPolicy({ client, path: 'agent/call/decision' }),
+  {
+    enforce: process.env.ENFORCE_POLICY === 'true',
+    onDecision: event => {
+      logger.info('policy.decision', {
+        tool: event.toolCall.toolName,
+        decision: event.decision.type,
+        reason: event.decision.reason,
+        enforced: event.enforced,
+        wouldBlock: event.decision.type === 'denied',
+      });
+    },
   },
-});
+);
 ```
 
 Recommended rollout:
@@ -256,16 +259,19 @@ Telemetry semantics:
 `onDecision` is not only for rollout. Keep `shadow` in place with `enforce: true` and every decision flows to your logging, metrics, or tracing stack while the policy stays load-bearing.
 
 ```ts
-const toolApproval = shadow(opaPolicy({ client, path: 'agent/call/decision' }), {
-  enforce: true, // enforcing AND observing
-  onDecision: event => {
-    metrics.increment('agent.policy.decision', {
-      tool: event.toolCall.toolName,
-      decision: event.decision.type, // approved | denied | user-approval | not-applicable
-      enforced: String(event.enforced),
-    });
+const toolApproval = shadow(
+  opaPolicy({ client, path: 'agent/call/decision' }),
+  {
+    enforce: true, // enforcing AND observing
+    onDecision: event => {
+      metrics.increment('agent.policy.decision', {
+        tool: event.toolCall.toolName,
+        decision: event.decision.type, // approved | denied | user-approval | not-applicable
+        enforced: String(event.enforced),
+      });
+    },
   },
-});
+);
 ```
 
 - Each `PolicyDecisionEvent` carries the tool call, the policy `decision` (type and reason), `enforced`, and `effective` (what the SDK acted on). Compare `decision` against `effective` to spot drift.
