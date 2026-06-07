@@ -106,7 +106,7 @@ const CODEX_BUILTIN_TOOLS = {
  * derived from `sandboxSession.defaultWorkingDirectory` both live under the sandbox's
  * default working directory — the provider's persistent mount — so the
  * workdir's contents (the codex CLI shim and any files the agent edits) and
- * the bridge state files survive both detach -> attach/replay and
+ * the bridge state files survive both detach -> attach and
  * stop -> snapshot -> resume cycles.
  */
 const BOOTSTRAP_DIR = '/tmp/harness/codex';
@@ -114,13 +114,16 @@ const BOOTSTRAP_DIR = '/tmp/harness/codex';
 /**
  * Live bridge coordinates returned by `doDetach()` and `doSuspendTurn()`. A
  * future process uses them to reopen a socket to the still-running bridge
- * (`attach`) instead of re-spawning it. Absent on a `doStop()` payload.
+ * (`attach`) instead of re-spawning it. `continueTurnOnAttach` is true only
+ * for `doSuspendTurn()`, where the next process must continue the in-flight
+ * turn. Absent on a `doStop()` payload.
  */
 const bridgeCoordsSchema = z.object({
   port: z.number(),
   token: z.string(),
   lastSeenEventId: z.number(),
   sandboxId: z.string().optional(),
+  continueTurnOnAttach: z.boolean().optional(),
 });
 
 /**
@@ -204,6 +207,7 @@ export function createCodex(
           ? resumeThreadId
           : undefined;
       const coords = resumeData?.bridge;
+      const continueTurnOnAttach = coords?.continueTurnOnAttach === true;
 
       const workDir = startOpts.sessionWorkDir;
       const sessionDataDir = `${sandboxSession.defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
@@ -226,9 +230,10 @@ export function createCodex(
 
       /*
        * Rung 1 — ATTACH. With live coordinates, reopen a socket to the
-       * still-running bridge and replay everything past the persisted cursor.
-       * No spawn, no fresh token. If the bridge is gone the open throws and we
-       * fall through to a spawn-based recovery.
+       * still-running bridge. Parked between-turn sessions just attach and wait
+       * for the next `start`; suspended in-flight turns replay everything past
+       * the persisted cursor. No spawn, no fresh token. If the bridge is gone
+       * the open throws and we fall through to a spawn-based recovery.
        */
       if (coords) {
         try {
@@ -243,7 +248,9 @@ export function createCodex(
             initialLastSeenEventId: coords.lastSeenEventId,
             onDiagnostic,
           });
-          await attachChannel.open({ resume: true });
+          await attachChannel.open(
+            continueTurnOnAttach ? { resume: true } : undefined,
+          );
           return createSession({
             sessionId: startOpts.sessionId,
             channel: attachChannel,
@@ -267,18 +274,15 @@ export function createCodex(
 
       /*
        * Rungs 2/3 — REPLAY vs RERUN. Respawn the bridge. `replay` is only sound
-       * when the resume payload carried live coordinates (`detach` or
-       * `suspendTurn`),
-       * because those include the cursor the on-disk log is replayed *from*. A
-       * payload without coordinates — e.g. from `stop()` — has
-       * no cursor, so replaying a finished turn from seq 0 would re-deliver it
-       * into the next turn. Those resumes always `rerun` (the bridge takes the
-       * `codex.resumeThread(threadId)` branch).
+       * for a suspended in-flight turn, because that state includes the cursor
+       * the on-disk log is replayed from. A parked between-turn session already
+       * finished its turn, and a `stop()` payload has no bridge cursor; both
+       * should `rerun` via `codex.resumeThread(threadId)`.
        */
       let resumeMode: HarnessV1ResumeMode | undefined = isResume
         ? 'rerun'
         : undefined;
-      if (coords) {
+      if (coords && continueTurnOnAttach) {
         const logRaw = await Promise.resolve(
           session.readTextFile({
             path: `${bridgeStateDir}/event-log.ndjson`,
@@ -827,6 +831,7 @@ function createSession({
             token: bridgeToken,
             lastSeenEventId,
             sandboxId,
+            continueTurnOnAttach: false,
           },
         },
       };
@@ -964,6 +969,7 @@ function createSession({
             token: bridgeToken,
             lastSeenEventId,
             sandboxId,
+            continueTurnOnAttach: true,
           },
         },
       };

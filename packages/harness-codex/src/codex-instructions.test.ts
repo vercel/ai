@@ -13,10 +13,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  * message only" gating without standing up the in-sandbox bridge.
  */
 const sentMessages: Array<Record<string, unknown>> = [];
+const openCalls: Array<{ resume?: boolean } | undefined> = [];
 
 vi.mock('@ai-sdk/harness/channel', () => {
   class FakeSandboxChannel {
-    async open(): Promise<void> {}
+    async open(opts?: { resume?: boolean }): Promise<void> {
+      openCalls.push(opts);
+    }
     on(): () => void {
       return () => {};
     }
@@ -27,6 +30,9 @@ vi.mock('@ai-sdk/harness/channel', () => {
     beginClose(): void {}
     isClosed(): boolean {
       return false;
+    }
+    async suspend(): Promise<number> {
+      return 7;
     }
     close(): void {}
   }
@@ -102,6 +108,7 @@ function lastStart(): Record<string, unknown> {
 describe('codex adapter — instructions gating', () => {
   beforeEach(() => {
     sentMessages.length = 0;
+    openCalls.length = 0;
   });
 
   it('prepends instructions on the first user message only', async () => {
@@ -137,5 +144,107 @@ describe('codex adapter — instructions gating', () => {
       emit: () => {},
     });
     expect(lastStart().instructions).toBeUndefined();
+  });
+});
+
+describe('codex adapter — attach replay mode', () => {
+  beforeEach(() => {
+    sentMessages.length = 0;
+    openCalls.length = 0;
+  });
+
+  it('attaches a parked session without replaying old turn events', async () => {
+    const session = await startSession({
+      resumeFrom: {
+        harnessId: 'codex',
+        specificationVersion: 'harness-v1',
+        data: {
+          threadId: 'thread-abc',
+          bridge: {
+            port: 4317,
+            token: 'token',
+            lastSeenEventId: 7,
+            continueTurnOnAttach: false,
+          },
+        },
+      },
+    });
+
+    expect(openCalls.at(-1)).toBeUndefined();
+
+    await session.doPromptTurn({
+      prompt: 'next user turn',
+      emit: () => {},
+    });
+    expect(lastStart()).toMatchObject({
+      type: 'start',
+      prompt: 'next user turn',
+    });
+    expect(lastStart().resumeThreadId).toBeUndefined();
+  });
+
+  it('treats legacy bridge resume state as parked', async () => {
+    await startSession({
+      resumeFrom: {
+        harnessId: 'codex',
+        specificationVersion: 'harness-v1',
+        data: {
+          threadId: 'thread-abc',
+          bridge: {
+            port: 4317,
+            token: 'token',
+            lastSeenEventId: 7,
+          },
+        },
+      },
+    });
+
+    expect(openCalls.at(-1)).toBeUndefined();
+  });
+
+  it('attaches a suspended turn by requesting replay from the cursor', async () => {
+    await startSession({
+      resumeFrom: {
+        harnessId: 'codex',
+        specificationVersion: 'harness-v1',
+        data: {
+          threadId: 'thread-abc',
+          bridge: {
+            port: 4317,
+            token: 'token',
+            lastSeenEventId: 7,
+            continueTurnOnAttach: true,
+          },
+        },
+      },
+    });
+
+    expect(openCalls.at(-1)).toEqual({ resume: true });
+  });
+
+  it('marks detach as parked and suspend as replayable', async () => {
+    const detached = await (await startSession()).doDetach();
+    expect(
+      (
+        detached.data as {
+          bridge?: {
+            continueTurnOnAttach?: boolean;
+            lastSeenEventId?: number;
+          };
+        }
+      ).bridge,
+    ).toMatchObject({ lastSeenEventId: 7, continueTurnOnAttach: false });
+
+    const suspended = await (await startSession()).doSuspendTurn();
+    expect(
+      (
+        suspended.data as {
+          bridge?: {
+            continueTurnOnAttach?: boolean;
+            lastSeenEventId?: number;
+          };
+        }
+      ).bridge,
+    ).toMatchObject({ lastSeenEventId: 7, continueTurnOnAttach: true });
   });
 });
