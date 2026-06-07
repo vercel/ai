@@ -145,7 +145,7 @@ describe('WorkflowAgent', () => {
         toolName: 'testTool',
         output: {
           type: 'error-text',
-          value: errorMessage,
+          value: `FatalError: ${errorMessage}`,
         },
       });
     });
@@ -219,7 +219,7 @@ describe('WorkflowAgent', () => {
         toolName: 'testTool',
         output: {
           type: 'error-text',
-          value: errorMessage,
+          value: `Error: ${errorMessage}`,
         },
       });
     });
@@ -297,10 +297,12 @@ describe('WorkflowAgent', () => {
     it('should use toModelOutput for local tool results while preserving raw output', async () => {
       const rawToolResult = { public: 'visible to user', secret: 'hide me' };
       const toolInput = { query: 'test query' };
-      const toModelOutput = vi.fn(({ output }: any) => ({
-        type: 'text' as const,
-        value: `model sees: ${output.public}`,
-      }));
+      const toModelOutput = vi.fn(
+        ({ output }: { output: typeof rawToolResult }) => ({
+          type: 'text' as const,
+          value: `model sees: ${output.public}`,
+        }),
+      );
       const tools: ToolSet = {
         testTool: {
           description: 'A test tool',
@@ -479,10 +481,12 @@ describe('WorkflowAgent', () => {
       };
       const toolInput = { query: 'test query' };
       const executeFn = vi.fn();
-      const toModelOutput = vi.fn(({ output }: any) => ({
-        type: 'text' as const,
-        value: `model sees: ${output.public}`,
-      }));
+      const toModelOutput = vi.fn(
+        ({ output }: { output: typeof rawProviderResult }) => ({
+          type: 'text' as const,
+          value: `model sees: ${output.public}`,
+        }),
+      );
       const tools: ToolSet = {
         WebSearch: {
           description: 'A provider-executed tool',
@@ -904,7 +908,7 @@ describe('WorkflowAgent', () => {
           {
             "output": {
               "type": "error-text",
-              "value": "Invalid input for tool testTool",
+              "value": "Error: Invalid input for tool testTool",
             },
             "toolCallId": "invalid-call-id",
             "toolName": "testTool",
@@ -2198,7 +2202,7 @@ describe('WorkflowAgent', () => {
         toolName: 'failingTool',
         output: {
           type: 'error-text',
-          value: errorMessage,
+          value: `Error: ${errorMessage}`,
         },
       });
     });
@@ -2457,7 +2461,7 @@ describe('WorkflowAgent', () => {
         expect.objectContaining({
           stepNumber: 0,
           success: false,
-          error: 'tool failed',
+          error: 'Error: tool failed',
           durationMs: expect.any(Number),
         }),
       );
@@ -3255,10 +3259,12 @@ describe('WorkflowAgent', () => {
     it('should use toModelOutput for approved tool results while preserving raw stream output', async () => {
       const rawToolResult = { public: 'weather summary', secret: 'hide me' };
       const executeFn = vi.fn().mockResolvedValue(rawToolResult);
-      const toModelOutput = vi.fn(({ output }: any) => ({
-        type: 'text' as const,
-        value: `model sees: ${output.public}`,
-      }));
+      const toModelOutput = vi.fn(
+        ({ output }: { output: typeof rawToolResult }) => ({
+          type: 'text' as const,
+          value: `model sees: ${output.public}`,
+        }),
+      );
       const tools: ToolSet = {
         getWeather: {
           description: 'Get weather',

@@ -6,7 +6,11 @@ export { convertAsyncIteratorToReadableStream } from '@ai-sdk/provider-utils';
 
 // internal
 export { createAsyncIterableStream } from '../src/util/async-iterable-stream';
-export { convertToLanguageModelPrompt } from '../src/prompt/convert-to-language-model-prompt';
+export {
+  convertToLanguageModelPrompt,
+  createLanguageModelToolResultOutput,
+  mapToolResultOutput,
+} from '../src/prompt/convert-to-language-model-prompt';
 export { createToolModelOutput } from '../src/prompt/create-tool-model-output';
 export { prepareToolChoice } from '../src/prompt/prepare-tool-choice';
 export { prepareTools } from '../src/prompt/prepare-tools';

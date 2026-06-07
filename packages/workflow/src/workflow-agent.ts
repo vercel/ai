@@ -2,16 +2,15 @@ import type {
   LanguageModelV4CallOptions,
   LanguageModelV4Prompt,
   LanguageModelV4StreamPart,
-  LanguageModelV4ToolResultOutput,
   LanguageModelV4ToolResultPart,
   SharedV4ProviderOptions,
 } from '@ai-sdk/provider';
 import {
+  getErrorMessage,
   validateTypes,
   type Context,
   type HasRequiredKey,
   type InferToolSetContext,
-  type Tool,
 } from '@ai-sdk/provider-utils';
 import {
   Output,
@@ -35,8 +34,8 @@ import {
   type Instructions,
 } from 'ai';
 import {
+  createLanguageModelToolResultOutput,
   createRestrictedTelemetryDispatcher,
-  createToolModelOutput,
   convertToLanguageModelPrompt,
   mergeAbortSignals,
   mergeCallbacks,
@@ -1417,12 +1416,14 @@ export class WorkflowAgent<
               type: 'tool-result' as const,
               toolCallId: approval.toolCallId,
               toolName: approval.toolName,
-              output: await createWorkflowToolModelOutput({
-                toolCall: approval,
+              output: await createLanguageModelToolResultOutput({
+                toolCallId: approval.toolCallId,
+                toolName: approval.toolName,
                 input: approval.input,
                 output: toolResult,
                 tool,
                 errorMode: 'none',
+                supportedUrls: {},
                 download,
               }),
             });
@@ -1452,12 +1453,14 @@ export class WorkflowAgent<
               type: 'tool-result' as const,
               toolCallId: approval.toolCallId,
               toolName: approval.toolName,
-              output: await createWorkflowToolModelOutput({
-                toolCall: approval,
+              output: await createLanguageModelToolResultOutput({
+                toolCallId: approval.toolCallId,
+                toolName: approval.toolName,
                 input: approval.input,
                 output: errorMessage,
                 tool,
                 errorMode: 'text',
+                supportedUrls: {},
                 download,
               }),
             });
@@ -2525,96 +2528,6 @@ function aggregateUsage(steps: StepResult<any, any>[]): LanguageModelUsage {
   } as LanguageModelUsage;
 }
 
-// Matches AI SDK's getErrorMessage from @ai-sdk/provider-utils
-function getErrorMessage(error: unknown): string {
-  if (error == null) {
-    return 'unknown error';
-  }
-
-  if (typeof error === 'string') {
-    return error;
-  }
-
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return JSON.stringify(error);
-}
-
-async function createWorkflowToolModelOutput({
-  toolCall,
-  input,
-  output,
-  tool,
-  errorMode,
-  download,
-}: {
-  toolCall: { toolCallId: string; toolName: string };
-  input: unknown;
-  output: unknown;
-  tool: Tool | undefined;
-  errorMode: 'none' | 'text' | 'json';
-  download?: DownloadFunction;
-}): Promise<LanguageModelV4ToolResultOutput> {
-  const modelOutput = await createToolModelOutput({
-    toolCallId: toolCall.toolCallId,
-    input,
-    output,
-    tool,
-    errorMode,
-  });
-
-  if (modelOutput.type !== 'content') {
-    return modelOutput;
-  }
-
-  const convertedPrompt = await convertToLanguageModelPrompt({
-    prompt: {
-      instructions: undefined,
-      messages: [
-        {
-          role: 'assistant',
-          content: [
-            {
-              type: 'tool-call',
-              toolCallId: toolCall.toolCallId,
-              toolName: toolCall.toolName,
-              input,
-            },
-          ],
-        },
-        {
-          role: 'tool',
-          content: [
-            {
-              type: 'tool-result',
-              toolCallId: toolCall.toolCallId,
-              toolName: toolCall.toolName,
-              output: modelOutput,
-            },
-          ],
-        },
-      ],
-    } satisfies Parameters<typeof convertToLanguageModelPrompt>[0]['prompt'],
-    supportedUrls: {},
-    download,
-  });
-  const toolMessage = convertedPrompt.find(message => message.role === 'tool');
-  const toolResult = toolMessage?.content.find(
-    (part): part is LanguageModelV4ToolResultPart =>
-      part.type === 'tool-result' && part.toolCallId === toolCall.toolCallId,
-  );
-
-  if (toolResult == null) {
-    throw new Error(
-      `Tool result "${toolCall.toolCallId}" was missing after prompt conversion.`,
-    );
-  }
-
-  return toolResult.output;
-}
-
 async function resolveProviderToolResult(
   toolCall: { toolCallId: string; toolName: string; input: unknown },
   providerExecutedToolResults?: Map<
@@ -2657,12 +2570,14 @@ async function resolveProviderToolResult(
       type: 'tool-result' as const,
       toolCallId: toolCall.toolCallId,
       toolName: toolCall.toolName,
-      output: await createWorkflowToolModelOutput({
-        toolCall,
+      output: await createLanguageModelToolResultOutput({
+        toolCallId: toolCall.toolCallId,
+        toolName: toolCall.toolName,
         input: toolCall.input,
         output: result,
         tool: tools?.[toolCall.toolName],
         errorMode,
+        supportedUrls: {},
         download,
       }),
     },
@@ -2738,12 +2653,14 @@ async function executeTool(
         type: 'tool-result',
         toolCallId: toolCall.toolCallId,
         toolName: toolCall.toolName,
-        output: await createWorkflowToolModelOutput({
-          toolCall,
+        output: await createLanguageModelToolResultOutput({
+          toolCallId: toolCall.toolCallId,
+          toolName: toolCall.toolName,
           input: parsedInput,
           output: errorMessage,
           tool,
           errorMode: 'text',
+          supportedUrls: {},
           download,
         }),
       },
@@ -2757,12 +2674,14 @@ async function executeTool(
       type: 'tool-result' as const,
       toolCallId: toolCall.toolCallId,
       toolName: toolCall.toolName,
-      output: await createWorkflowToolModelOutput({
-        toolCall,
+      output: await createLanguageModelToolResultOutput({
+        toolCallId: toolCall.toolCallId,
+        toolName: toolCall.toolName,
         input: parsedInput,
         output: toolResult,
         tool,
         errorMode: 'none',
+        supportedUrls: {},
         download,
       }),
     },

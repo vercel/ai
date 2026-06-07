@@ -17,6 +17,7 @@ import {
   type ReasoningFilePart,
   type ReasoningPart,
   type TextPart,
+  type Tool,
   type ToolCallPart,
   type ToolResultOutput,
   type ToolResultPart,
@@ -31,6 +32,7 @@ import type { Warning } from '../types/warning';
 import { InvalidMessageRoleError } from './invalid-message-role-error';
 import type { StandardizedPrompt } from './standardize-prompt';
 import { MissingToolResultsError } from '../error/missing-tool-result-error';
+import { createToolModelOutput } from './create-tool-model-output';
 
 export async function convertToLanguageModelPrompt({
   prompt,
@@ -592,7 +594,64 @@ function convertPartToLanguageModelPart(
   };
 }
 
-function mapToolResultOutput({
+export async function createLanguageModelToolResultOutput({
+  toolCallId,
+  toolName,
+  input,
+  output,
+  tool,
+  errorMode,
+  supportedUrls,
+  download = createDefaultDownloadFunction(),
+  provider,
+}: {
+  toolCallId: string;
+  toolName: string;
+  input: unknown;
+  output: unknown;
+  tool: Tool | undefined;
+  errorMode: 'none' | 'text' | 'json';
+  supportedUrls: Record<string, RegExp[]>;
+  download?: DownloadFunction;
+  provider?: string;
+}): Promise<LanguageModelV4ToolResultOutput> {
+  const modelOutput = await createToolModelOutput({
+    toolCallId,
+    input,
+    output,
+    tool,
+    errorMode,
+  });
+
+  const downloadedAssets =
+    modelOutput.type === 'content'
+      ? await downloadAssets(
+          [
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId,
+                  toolName,
+                  output: modelOutput,
+                },
+              ],
+            },
+          ],
+          download,
+          supportedUrls,
+        )
+      : {};
+
+  return mapToolResultOutput({
+    output: modelOutput,
+    provider,
+    downloadedAssets,
+  });
+}
+
+export function mapToolResultOutput({
   output,
   // `provider` is only needed here to convert legacy "file-id" and "image-file-id" types to provider references, in case they are using string ID values.
   // TODO: remove in v8 when "file-id" and "image-file-id" types are removed
