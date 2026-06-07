@@ -87,12 +87,20 @@ export type OpenAIResponsesUserMessage = {
   >;
 };
 
-export type OpenAIResponsesAssistantMessage = {
-  role: 'assistant';
-  content: Array<{ type: 'output_text'; text: string }>;
-  id?: string;
-  phase?: 'commentary' | 'final_answer' | null;
-};
+export type OpenAIResponsesAssistantMessage =
+  | {
+      role: 'assistant';
+      content: Array<{ type: 'input_text'; text: string }>;
+      phase?: 'commentary' | 'final_answer' | null;
+    }
+  | {
+      type: 'message';
+      role: 'assistant';
+      content: Array<{ type: 'output_text'; text: string; annotations: [] }>;
+      id: string;
+      status: 'completed';
+      phase?: 'commentary' | 'final_answer' | null;
+    };
 
 export type OpenAIResponsesFunctionCall = {
   type: 'function_call';
