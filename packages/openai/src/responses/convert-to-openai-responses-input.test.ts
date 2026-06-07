@@ -78,7 +78,7 @@ describe('convertToOpenAIResponsesInput', () => {
   });
 
   describe('user messages', () => {
-    it('should convert messages with only a text part to a string content', async () => {
+    it('should convert assistant text without item ids to input text', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [
           {
@@ -1165,7 +1165,7 @@ describe('convertToOpenAIResponsesInput', () => {
       expect(result.input).toEqual([
         {
           role: 'assistant',
-          content: [{ type: 'output_text', text: 'Hello' }],
+          content: [{ type: 'input_text', text: 'Hello' }],
         },
       ]);
     });
@@ -1197,9 +1197,17 @@ describe('convertToOpenAIResponsesInput', () => {
 
       expect(result.input).toEqual([
         {
+          type: 'message',
           role: 'assistant',
-          content: [{ type: 'output_text', text: 'I will search for that' }],
+          content: [
+            {
+              type: 'output_text',
+              text: 'I will search for that',
+              annotations: [],
+            },
+          ],
           id: 'msg_001',
+          status: 'completed',
           phase: 'commentary',
         },
       ]);
@@ -1232,11 +1240,17 @@ describe('convertToOpenAIResponsesInput', () => {
 
       expect(result.input).toEqual([
         {
+          type: 'message',
           role: 'assistant',
           content: [
-            { type: 'output_text', text: 'The capital of France is Paris.' },
+            {
+              type: 'output_text',
+              text: 'The capital of France is Paris.',
+              annotations: [],
+            },
           ],
           id: 'msg_002',
+          status: 'completed',
           phase: 'final_answer',
         },
       ]);
@@ -1268,9 +1282,11 @@ describe('convertToOpenAIResponsesInput', () => {
 
       expect(result.input).toEqual([
         {
+          type: 'message',
           role: 'assistant',
-          content: [{ type: 'output_text', text: 'Hello' }],
+          content: [{ type: 'output_text', text: 'Hello', annotations: [] }],
           id: 'msg_003',
+          status: 'completed',
         },
       ]);
     });
@@ -1302,7 +1318,7 @@ describe('convertToOpenAIResponsesInput', () => {
           role: 'assistant',
           content: [
             {
-              type: 'output_text',
+              type: 'input_text',
               text: 'I will search for that information.',
             },
           ],
@@ -2179,10 +2195,9 @@ describe('convertToOpenAIResponsesInput', () => {
                 "content": [
                   {
                     "text": "First response",
-                    "type": "output_text",
+                    "type": "input_text",
                   },
                 ],
-                "id": undefined,
                 "role": "assistant",
               },
               {
@@ -2202,10 +2217,9 @@ describe('convertToOpenAIResponsesInput', () => {
                 "content": [
                   {
                     "text": "Second response",
-                    "type": "output_text",
+                    "type": "input_text",
                   },
                 ],
-                "id": undefined,
                 "role": "assistant",
               },
             ]
@@ -2303,10 +2317,9 @@ describe('convertToOpenAIResponsesInput', () => {
                 "content": [
                   {
                     "text": "First response",
-                    "type": "output_text",
+                    "type": "input_text",
                   },
                 ],
-                "id": undefined,
                 "role": "assistant",
               },
               {
@@ -2333,10 +2346,9 @@ describe('convertToOpenAIResponsesInput', () => {
                 "content": [
                   {
                     "text": "Second response",
-                    "type": "output_text",
+                    "type": "input_text",
                   },
                 ],
-                "id": undefined,
                 "role": "assistant",
               },
             ]
@@ -2539,7 +2551,7 @@ describe('convertToOpenAIResponsesInput', () => {
               role: 'assistant',
               content: [
                 {
-                  type: 'output_text',
+                  type: 'input_text',
                   text: 'Based on my analysis and calculations, here is the final answer.',
                 },
               ],
@@ -3703,20 +3715,18 @@ describe('convertToOpenAIResponsesInput', () => {
               "content": [
                 {
                   "text": "Let me search for recent news from San Francisco.",
-                  "type": "output_text",
+                  "type": "input_text",
                 },
               ],
-              "id": undefined,
               "role": "assistant",
             },
             {
               "content": [
                 {
                   "text": "Based on the search results, several significant events took place in San Francisco yesterday (June 22, 2025).",
-                  "type": "output_text",
+                  "type": "input_text",
                 },
               ],
-              "id": undefined,
               "role": "assistant",
             },
           ],
@@ -3768,21 +3778,19 @@ describe('convertToOpenAIResponsesInput', () => {
             role: 'assistant',
             content: [
               {
-                type: 'output_text',
+                type: 'input_text',
                 text: 'I need approval before running that tool.',
               },
             ],
-            id: undefined,
           },
           {
             role: 'assistant',
             content: [
               {
-                type: 'output_text',
+                type: 'input_text',
                 text: 'The tool was not run.',
               },
             ],
-            id: undefined,
           },
         ],
         warnings: [],
@@ -3830,21 +3838,19 @@ describe('convertToOpenAIResponsesInput', () => {
             role: 'assistant',
             content: [
               {
-                type: 'output_text',
+                type: 'input_text',
                 text: 'I need approval before running that tool.',
               },
             ],
-            id: undefined,
           },
           {
             role: 'assistant',
             content: [
               {
-                type: 'output_text',
+                type: 'input_text',
                 text: 'The tool was not run.',
               },
             ],
-            id: undefined,
           },
         ],
         warnings: [],
@@ -4775,10 +4781,9 @@ describe('convertToOpenAIResponsesInput', () => {
             "content": [
               {
                 "text": "Hi there!",
-                "type": "output_text",
+                "type": "input_text",
               },
             ],
-            "id": undefined,
             "role": "assistant",
           },
         ]
@@ -5147,12 +5152,15 @@ describe('convertToOpenAIResponsesInput', () => {
           {
             "content": [
               {
+                "annotations": [],
                 "text": "Here is my response.",
                 "type": "output_text",
               },
             ],
             "id": "msg_001",
             "role": "assistant",
+            "status": "completed",
+            "type": "message",
           },
           {
             "encrypted_content": "encrypted_state",
