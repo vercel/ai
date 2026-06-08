@@ -2,7 +2,7 @@
   "extends": "./node_modules/@vercel/ai-tsconfig/ts-library.json",
   "compilerOptions": {
     "composite": true,
-    "rootDir": ".",
+    "rootDir": "src",
     "outDir": "dist"
   },
   "include": ["src"],
