@@ -1687,6 +1687,185 @@ describe('prepareResponsesTools', () => {
         }
       `);
     });
+
+    it('should group function tools by OpenAI namespace provider option', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.tool_search',
+            name: 'toolSearch',
+            args: {},
+          },
+          {
+            type: 'function',
+            name: 'get_customer_profile',
+            description: 'Fetch a customer profile by customer ID.',
+            inputSchema: {
+              type: 'object',
+              properties: { customer_id: { type: 'string' } },
+              required: ['customer_id'],
+              additionalProperties: false,
+            },
+            providerOptions: {
+              openai: {
+                namespace: {
+                  name: 'crm',
+                  description:
+                    'CRM tools for customer lookup and order management.',
+                },
+              },
+            },
+          },
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get the current weather',
+            inputSchema: {
+              type: 'object',
+              properties: { location: { type: 'string' } },
+              required: ['location'],
+              additionalProperties: false,
+            },
+          },
+          {
+            type: 'function',
+            name: 'list_open_orders',
+            description: 'List open orders for a customer ID.',
+            inputSchema: {
+              type: 'object',
+              properties: { customer_id: { type: 'string' } },
+              required: ['customer_id'],
+              additionalProperties: false,
+            },
+            strict: true,
+            providerOptions: {
+              openai: {
+                deferLoading: true,
+                namespace: {
+                  name: 'crm',
+                  description:
+                    'CRM tools for customer lookup and order management.',
+                },
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "type": "tool_search",
+            },
+            {
+              "description": "CRM tools for customer lookup and order management.",
+              "name": "crm",
+              "tools": [
+                {
+                  "description": "Fetch a customer profile by customer ID.",
+                  "name": "get_customer_profile",
+                  "parameters": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "customer_id": {
+                        "type": "string",
+                      },
+                    },
+                    "required": [
+                      "customer_id",
+                    ],
+                    "type": "object",
+                  },
+                  "type": "function",
+                },
+                {
+                  "defer_loading": true,
+                  "description": "List open orders for a customer ID.",
+                  "name": "list_open_orders",
+                  "parameters": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "customer_id": {
+                        "type": "string",
+                      },
+                    },
+                    "required": [
+                      "customer_id",
+                    ],
+                    "type": "object",
+                  },
+                  "strict": true,
+                  "type": "function",
+                },
+              ],
+              "type": "namespace",
+            },
+            {
+              "description": "Get the current weather",
+              "name": "get_weather",
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "location": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "location",
+                ],
+                "type": "object",
+              },
+              "type": "function",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should reject conflicting descriptions for the same OpenAI namespace', async () => {
+      await expect(
+        prepareResponsesTools({
+          tools: [
+            {
+              type: 'function',
+              name: 'get_customer_profile',
+              description: 'Fetch a customer profile by customer ID.',
+              inputSchema: { type: 'object', properties: {} },
+              providerOptions: {
+                openai: {
+                  namespace: {
+                    name: 'crm',
+                    description: 'CRM tools.',
+                  },
+                },
+              },
+            },
+            {
+              type: 'function',
+              name: 'list_open_orders',
+              description: 'List open orders for a customer ID.',
+              inputSchema: { type: 'object', properties: {} },
+              providerOptions: {
+                openai: {
+                  namespace: {
+                    name: 'crm',
+                    description: 'Different CRM tools.',
+                  },
+                },
+              },
+            },
+          ],
+          toolChoice: undefined,
+        }),
+      ).rejects.toThrow(
+        'conflicting descriptions for OpenAI tool namespace "crm"',
+      );
+    });
   });
 
   describe('allowedTools provider option', () => {
