@@ -87,6 +87,20 @@ const tools = {
       defaultUnit: z.enum(['celsius', 'fahrenheit']),
     }),
     execute: getWeather,
+
+    // `toModelOutput` controls what the model sees for this tool result.
+    // The app/UI still receives the full structured object, but the model
+    // receives this compact one-line summary instead of raw JSON.
+    toModelOutput: ({
+      output,
+    }: {
+      output: Awaited<ReturnType<typeof getWeather>>;
+    }) => ({
+      type: 'text' as const,
+      value: `${output.city}: ${output.temperature}°${
+        output.unit === 'celsius' ? 'C' : 'F'
+      }, ${output.condition}.`,
+    }),
   },
   calculate: {
     description: 'Evaluate a math expression.',
@@ -169,6 +183,20 @@ export async function chat(messages: UIMessage[], request: ChatRequestContext) {
         return { temperature: 0.2 };
       }
       return {};
+    },
+
+    // Make `toModelOutput` observable end-to-end. The tool-role messages here
+    // carry the model-facing tool results, while the UI renders raw tool output.
+    onEnd: ({ messages }) => {
+      const modelFacingToolResults = messages
+        .filter(message => message.role === 'tool')
+        .flatMap(message =>
+          Array.isArray(message.content) ? message.content : [],
+        );
+      console.log(
+        '[WorkflowAgent] model-facing tool results (post toModelOutput):',
+        JSON.stringify(modelFacingToolResults, null, 2),
+      );
     },
   });
 
