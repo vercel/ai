@@ -2,10 +2,9 @@
   "extends": "./node_modules/@vercel/ai-tsconfig/ts-library.json",
   "compilerOptions": {
     "composite": true,
-    "rootDir": ".",
+    "rootDir": "src",
     "outDir": "dist"
   },
-  "include": ["index.ts", "src"],
   "exclude": ["dist", "build", "node_modules", "tsup.config.ts"],
   "references": [{ "path": "../harness" }]
 }
