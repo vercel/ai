@@ -33,6 +33,7 @@ function mockHarness(options: {
   harness: HarnessV1;
   prompts: HarnessV1PromptOptions['prompt'][];
   toolResults: { toolCallId: string; output: unknown }[];
+  doStart: ReturnType<typeof vi.fn>;
   doStop: ReturnType<typeof vi.fn>;
   doDestroy: ReturnType<typeof vi.fn>;
   doCompact: ReturnType<typeof vi.fn>;
@@ -47,8 +48,10 @@ function mockHarness(options: {
   const doStop = vi.fn(async () => resumeState);
   const doDestroy = vi.fn(async () => {});
   const doCompact = vi.fn(async (_customInstructions?: string) => {});
+  let session: HarnessV1Session;
+  const doStart = vi.fn(async () => session);
 
-  const session: HarnessV1Session = {
+  session = {
     sessionId: 'mock-session-1',
     isResume: false,
     doPromptTurn: async (opts: HarnessV1PromptOptions) => {
@@ -88,10 +91,11 @@ function mockHarness(options: {
       specificationVersion: 'harness-v1',
       harnessId: 'mock',
       builtinTools: {},
-      doStart: async () => session,
+      doStart,
     },
     prompts,
     toolResults,
+    doStart,
     doStop,
     doDestroy,
     doCompact,
@@ -331,6 +335,69 @@ describe('HarnessAgent', () => {
     expect(types).toContain('finish-step');
     expect(types).toContain('finish');
     expect(await result.text).toBe('Hi');
+
+    await session.destroy();
+  });
+
+  test('onSandboxSession runs after the session work dir exists and before harness start', async () => {
+    const { harness, doStart } = mockHarness({ script: () => [] });
+    const restrictedSession = { label: 'restricted' };
+    const run = vi.fn(async () => ({}) as never);
+    const sandboxSession = makeSandboxSession({
+      run,
+      restricted: () => restrictedSession as never,
+    });
+    const onSandboxSession = vi.fn(async () => {});
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(sandboxSession),
+      onSandboxSession,
+    });
+
+    const session = await agent.createSession({ sessionId: 's1' });
+
+    expect(run).toHaveBeenCalledWith({
+      command: 'mkdir -p /work/mock-s1',
+      abortSignal: undefined,
+    });
+    expect(onSandboxSession).toHaveBeenCalledWith({
+      session: restrictedSession,
+      sessionWorkDir: '/work/mock-s1',
+      abortSignal: undefined,
+    });
+    expect(run.mock.invocationCallOrder[0]!).toBeLessThan(
+      onSandboxSession.mock.invocationCallOrder[0]!,
+    );
+    expect(onSandboxSession.mock.invocationCallOrder[0]!).toBeLessThan(
+      doStart.mock.invocationCallOrder[0]!,
+    );
+
+    await session.destroy();
+  });
+
+  test('onSandboxSession runs for resumed sessions', async () => {
+    const { harness } = mockHarness({ script: () => [] });
+    const sandboxSessionEvents: Array<{ sessionWorkDir: string }> = [];
+    const onSandboxSession = vi.fn(async (opts: { sessionWorkDir: string }) => {
+      sandboxSessionEvents.push({ sessionWorkDir: opts.sessionWorkDir });
+    });
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(),
+      onSandboxSession,
+    });
+
+    const session = await agent.createSession({
+      sessionId: 's1',
+      resumeFrom: {
+        harnessId: 'mock',
+        specificationVersion: 'harness-v1',
+        data: {},
+      },
+    });
+
+    expect(onSandboxSession).toHaveBeenCalledTimes(1);
+    expect(sandboxSessionEvents).toEqual([{ sessionWorkDir: '/work/mock-s1' }]);
 
     await session.destroy();
   });

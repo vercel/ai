@@ -27,6 +27,13 @@ const agent = new HarnessAgent({
     runtime: 'node24',
     ports: [4000],
   }),
+  onSandboxSession: async ({ session, sessionWorkDir, abortSignal }) => {
+    await session.writeTextFile({
+      path: `${sessionWorkDir}/README.md`,
+      content: 'Workspace notes for this session.',
+      abortSignal,
+    });
+  },
   tools: {
     deploy: tool({
       description: 'Deploy to a target environment',
@@ -63,7 +70,7 @@ try {
 }
 ```
 
-`sandbox` is a required `HarnessV1SandboxProvider` — the agent calls `provider.create()` when a session starts. Use `session.detach()` to park a bridge-backed session for later attach, `session.stop()` to save state and stop the sandbox, or `session.destroy()` to clean up without keeping resume state. Bridge-backed adapters (claude-code, codex) require a provider that exposes ports — `@ai-sdk/sandbox-vercel` is the supported choice today. `@ai-sdk/sandbox-just-bash` is suitable only for non-bridge flows.
+`sandbox` is a required `HarnessV1SandboxProvider` — the agent calls `provider.create()` when a session starts. Use `onSandboxSession` to prepare the acquired sandbox before the harness adapter starts. The hook runs for fresh and resumed sessions, so keep it idempotent. Use `session.detach()` to park a bridge-backed session for later attach, `session.stop()` to save state and stop the sandbox, or `session.destroy()` to clean up without keeping resume state. Bridge-backed adapters (claude-code, codex) require a provider that exposes ports — `@ai-sdk/sandbox-vercel` is the supported choice today. `@ai-sdk/sandbox-just-bash` is suitable only for non-bridge flows.
 
 ### Available harnesses
 

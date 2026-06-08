@@ -17,30 +17,31 @@ export const aiSdkCodingPiHarnessAgent = new HarnessAgent({
   instructions,
   sandbox: createVercelSandbox({
     runtime: 'node24',
-    setup: async ({ session, sessionWorkDir, abortSignal }) => {
-      const result = await session.run({
-        command: 'git clone --depth 1 https://github.com/vercel/ai.git .',
-        workingDirectory: sessionWorkDir,
-        abortSignal,
-      });
-      if (result.exitCode !== 0) {
-        throw new Error(
-          `Failed to clone vercel/ai (exit ${result.exitCode}): ${result.stderr}`,
-        );
-      }
-
-      const installResult = await session.run({
-        command: 'pnpm install',
-        workingDirectory: sessionWorkDir,
-        abortSignal,
-      });
-      if (installResult.exitCode !== 0) {
-        throw new Error(
-          `Failed to install dependencies (exit ${installResult.exitCode}): ${installResult.stderr}`,
-        );
-      }
-    },
   }),
+  onSandboxSession: async ({ session, sessionWorkDir, abortSignal }) => {
+    const result = await session.run({
+      command:
+        'test -d .git || git clone --depth 1 https://github.com/vercel/ai.git .',
+      workingDirectory: sessionWorkDir,
+      abortSignal,
+    });
+    if (result.exitCode !== 0) {
+      throw new Error(
+        `Failed to clone vercel/ai (exit ${result.exitCode}): ${result.stderr}`,
+      );
+    }
+
+    const installResult = await session.run({
+      command: 'test -d node_modules || pnpm install',
+      workingDirectory: sessionWorkDir,
+      abortSignal,
+    });
+    if (installResult.exitCode !== 0) {
+      throw new Error(
+        `Failed to install dependencies (exit ${installResult.exitCode}): ${installResult.stderr}`,
+      );
+    }
+  },
 });
 
 /*

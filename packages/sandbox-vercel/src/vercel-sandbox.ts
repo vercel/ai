@@ -1,6 +1,5 @@
 import type {
   HarnessV1NetworkSandboxSession,
-  HarnessV1ProviderSettings,
   HarnessV1SandboxProvider,
 } from '@ai-sdk/harness';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
@@ -40,8 +39,7 @@ type VercelSandboxCreateParams = DistributiveOmit<
 >;
 
 /**
- * Settings for {@link createVercelSandbox}. Two mutually-exclusive shapes
- * extended with the provider-agnostic {@link HarnessV1ProviderSettings} fields:
+ * Settings for {@link createVercelSandbox}. Two mutually-exclusive shapes:
  *
  * - `{ sandbox }` — wrap an already-created `@vercel/sandbox` `Sandbox`. The
  *   caller owns its lifecycle; the provider's `stop()` and `destroy()` are
@@ -53,17 +51,15 @@ type VercelSandboxCreateParams = DistributiveOmit<
  *   keyed by the recipe identity, and forks an ephemeral sandbox per session
  *   from the snapshot. Use `name` to override the auto-derived template name.
  */
-export type VercelSandboxSettings = HarnessV1ProviderSettings &
-  (
-    | {
-        sandbox: Sandbox;
-        bridgePorts?: ReadonlyArray<number>;
-      }
-    | (VercelSandboxCreateParams & {
-        sandbox?: never;
-        name?: string;
-      })
-  );
+export type VercelSandboxSettings =
+  | {
+      sandbox: Sandbox;
+      bridgePorts?: ReadonlyArray<number>;
+    }
+  | (VercelSandboxCreateParams & {
+      sandbox?: never;
+      name?: string;
+    });
 
 /**
  * 30 minutes. The `@vercel/sandbox` SDK defaults to 5 minutes which is
@@ -96,11 +92,9 @@ export function createVercelSandbox(
 export class VercelSandboxProvider implements HarnessV1SandboxProvider {
   readonly specificationVersion = 'harness-sandbox-v1' as const;
   readonly providerId = VERCEL_PROVIDER_ID;
-  readonly setup?: HarnessV1ProviderSettings['setup'];
   readonly bridgePorts?: ReadonlyArray<number>;
 
   constructor(private readonly settings: VercelSandboxSettings) {
-    this.setup = settings.setup;
     if (
       'sandbox' in settings &&
       settings.sandbox != null &&
@@ -132,12 +126,10 @@ export class VercelSandboxProvider implements HarnessV1SandboxProvider {
     type CreateNewBranch = BaseCreateSandboxParams & {
       sandbox?: never;
       name?: string;
-      setup?: HarnessV1ProviderSettings['setup'];
     };
     const settings = this.settings as CreateNewBranch;
     const {
       sandbox: _ignoredSandbox,
-      setup: _ignoredSetup,
       name: explicitName,
       ...createParams
     } = settings;

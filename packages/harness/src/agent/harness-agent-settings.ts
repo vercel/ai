@@ -7,7 +7,10 @@ import type {
   HarnessDebugConfig,
   HarnessDiagnostic,
 } from './harness-diagnostics';
-import type { ToolSet } from '@ai-sdk/provider-utils';
+import type {
+  Experimental_SandboxSession as SandboxSession,
+  ToolSet,
+} from '@ai-sdk/provider-utils';
 import type { TelemetryOptions } from 'ai';
 
 /**
@@ -66,6 +69,21 @@ export type HarnessAgentSettings<
    * `Experimental_SandboxSession` so tools cannot reach the infra surface.
    */
   readonly sandbox: HarnessV1SandboxProvider;
+
+  /**
+   * Called after each sandbox session is acquired and the session work
+   * directory exists, before the harness adapter starts. Runs for fresh and
+   * resumed sessions.
+   *
+   * Use this to write per-session config, install lightweight tools, activate
+   * licenses, or prepare files in `sessionWorkDir`. Keep it idempotent if the
+   * agent may resume sessions.
+   */
+  readonly onSandboxSession?: (opts: {
+    readonly session: SandboxSession;
+    readonly sessionWorkDir: string;
+    readonly abortSignal?: AbortSignal;
+  }) => Promise<void>;
 
   /**
    * Telemetry configuration. The harness drives AI SDK's pluggable

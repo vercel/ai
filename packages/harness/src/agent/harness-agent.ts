@@ -197,41 +197,38 @@ export class HarnessAgent<
     const leasedBridgePort = leased.port;
     const sessionWorkDir = `${sandboxSession.defaultWorkingDirectory}/${harness.harnessId}-${sessionId}`;
 
-    // On resume the recipe is already baked into the sandbox snapshot;
-    // skip re-applying it and skip the setup hook (it ran on the
-    // original create).
-    if (validatedResumeFrom == null) {
-      try {
-        if (recipe != null && identity != null) {
-          await applyBootstrapRecipe(
-            sandboxSession.restricted(),
-            recipe,
-            identity,
-            { abortSignal },
-          );
-        }
-        // Create the session work dir before `setup` so the hook can
-        // operate against it (e.g. clone a repo into it).
-        await sandboxSession.run({
-          command: `mkdir -p ${sessionWorkDir}`,
+    try {
+      /*
+       * Adapter bootstrap is one-time work for fresh sessions. The consumer
+       * hook runs for every acquired sandbox session after the work dir exists.
+       */
+      if (validatedResumeFrom == null && recipe != null && identity != null) {
+        await applyBootstrapRecipe(
+          sandboxSession.restricted(),
+          recipe,
+          identity,
+          { abortSignal },
+        );
+      }
+      await sandboxSession.run({
+        command: `mkdir -p ${sessionWorkDir}`,
+        abortSignal,
+      });
+      if (this.settings.onSandboxSession != null) {
+        await this.settings.onSandboxSession({
+          session: sandboxSession.restricted(),
+          sessionWorkDir,
           abortSignal,
         });
-        if (sandboxProvider.setup != null) {
-          await sandboxProvider.setup({
-            session: sandboxSession.restricted(),
-            sessionWorkDir,
-            abortSignal,
-          });
-        }
-      } catch (err) {
-        await cleanupAfterStartFailure({
-          sandboxProvider,
-          sandboxSession,
-          sessionId,
-          leasedBridgePort,
-        });
-        throw err;
       }
+    } catch (err) {
+      await cleanupAfterStartFailure({
+        sandboxProvider,
+        sandboxSession,
+        sessionId,
+        leasedBridgePort,
+      });
+      throw err;
     }
 
     try {

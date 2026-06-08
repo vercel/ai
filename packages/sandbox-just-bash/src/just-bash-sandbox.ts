@@ -1,6 +1,5 @@
 import type {
   HarnessV1NetworkSandboxSession,
-  HarnessV1ProviderSettings,
   HarnessV1SandboxProvider,
 } from '@ai-sdk/harness';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
@@ -17,8 +16,7 @@ type JustBashSandboxCreateParams = NonNullable<
 >;
 
 /**
- * Settings for {@link createJustBashSandbox}. Two mutually-exclusive shapes
- * extended with the provider-agnostic {@link HarnessV1ProviderSettings} fields:
+ * Settings for {@link createJustBashSandbox}. Two mutually-exclusive shapes:
  *
  * - `{ sandbox }` — wrap an already-created `just-bash` `Sandbox`. The caller
  *   owns its lifecycle.
@@ -29,8 +27,9 @@ type JustBashSandboxCreateParams = NonNullable<
  * management is a per-call no-op: if an adapter declares a bootstrap recipe
  * the provider runs it once on the freshly-created sandbox before returning.
  */
-export type JustBashSandboxSettings = HarnessV1ProviderSettings &
-  ({ sandbox: Sandbox } | (JustBashSandboxCreateParams & { sandbox?: never }));
+export type JustBashSandboxSettings =
+  | { sandbox: Sandbox }
+  | (JustBashSandboxCreateParams & { sandbox?: never });
 
 const JUST_BASH_PROVIDER_ID = 'just-bash-sandbox';
 
@@ -52,11 +51,8 @@ export function createJustBashSandbox(
 export class JustBashSandboxProvider implements HarnessV1SandboxProvider {
   readonly specificationVersion = 'harness-sandbox-v1' as const;
   readonly providerId = JUST_BASH_PROVIDER_ID;
-  readonly setup?: HarnessV1ProviderSettings['setup'];
 
-  constructor(private readonly settings: JustBashSandboxSettings) {
-    this.setup = settings.setup;
-  }
+  constructor(private readonly settings: JustBashSandboxSettings) {}
 
   create = async (options?: {
     sessionId?: string;
@@ -76,14 +72,7 @@ export class JustBashSandboxProvider implements HarnessV1SandboxProvider {
       });
     }
 
-    const {
-      sandbox: _ignoredSandbox,
-      setup: _ignoredSetup,
-      ...createParams
-    } = this.settings as JustBashSandboxCreateParams & {
-      sandbox?: never;
-      setup?: HarnessV1ProviderSettings['setup'];
-    };
+    const createParams = this.settings as JustBashSandboxCreateParams;
 
     const sandbox = await Sandbox.create(createParams);
     const sandboxSession = new JustBashNetworkSandboxSession({

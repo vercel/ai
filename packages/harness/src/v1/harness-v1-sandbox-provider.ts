@@ -2,38 +2,6 @@ import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/prov
 import type { HarnessV1NetworkSandboxSession } from './harness-v1-network-sandbox-session';
 
 /**
- * Base type for sandbox-provider settings. Every concrete provider's settings
- * type (e.g. `VercelSandboxSettings`, `JustBashSandboxSettings`) extends this
- * so provider-agnostic features are surfaced consistently across providers.
- */
-export interface HarnessV1ProviderSettings {
-  /**
-   * Optional consumer-defined sandbox setup. Runs once at every session
-   * start, after the sandbox is created/resumed and the adapter bootstrap
-   * has been applied, before the bridge spawns. Provider-agnostic.
-   *
-   * Use cases: write per-environment config files, install extra tools,
-   * activate licenses, run db migrations. For one-time setup that should
-   * be baked into a snapshot (cloning a large repo, installing heavy
-   * binaries), use the provider's native primitive (e.g. Vercel's
-   * `source: { type: 'git' }`) or pre-build a sandbox externally and pass
-   * it via the wrap-existing settings branch.
-   *
-   * `sessionWorkDir` is the directory the agent runs in for this session —
-   * the same path the harness adapter operates against. It is created before
-   * `setup` runs. The `session` here defaults its commands to the sandbox
-   * root, so to act on the agent's workspace pass `sessionWorkDir` explicitly
-   * (e.g. `session.run({ command: 'git clone … .', workingDirectory:
-   * sessionWorkDir })`).
-   */
-  readonly setup?: (opts: {
-    readonly session: SandboxSession;
-    readonly sessionWorkDir: string;
-    readonly abortSignal?: AbortSignal;
-  }) => Promise<void>;
-}
-
-/**
  * Provider that produces network sandbox sessions for harness sessions. Lives at
  * module scope as a stable, synchronous object — analogous to
  * `LanguageModelV4` providers, no I/O performed at construction. The actual
@@ -42,13 +10,6 @@ export interface HarnessV1ProviderSettings {
 export interface HarnessV1SandboxProvider {
   readonly specificationVersion: 'harness-sandbox-v1';
   readonly providerId: string;
-
-  /**
-   * View of the consumer-defined setup, if any. Providers pass through what
-   * the consumer put in settings. The harness session manager reads this
-   * and runs the function after sandbox creation and adapter bootstrap.
-   */
-  readonly setup?: HarnessV1ProviderSettings['setup'];
 
   /**
    * Pool of ports the consumer reserved on a caller-provided sandbox for

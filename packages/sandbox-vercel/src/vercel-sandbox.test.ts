@@ -215,15 +215,6 @@ describe('createVercelSandbox (wrap existing)', () => {
       expect(provider.bridgePorts).toBeUndefined();
     });
   });
-
-  describe('setup', () => {
-    it('is passed through from settings to provider', () => {
-      const { sandbox } = makeMockSandbox();
-      const setup = async () => {};
-      const provider = createVercelSandbox({ sandbox, setup });
-      expect(provider.setup).toBe(setup);
-    });
-  });
 });
 
 describe('createVercelSandbox (create from scratch)', () => {
