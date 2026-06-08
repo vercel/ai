@@ -57,6 +57,13 @@ type OperationEndEvent =
   | RerankEndEvent;
 
 export interface TelemetryDispatcher {
+  /**
+   * Runs the operation inside a diagnostics-channel tracing span.
+   *
+   * The `event` payload describes the span selected by `type`: operation spans
+   * use the corresponding start event, step spans use `{ callId, stepNumber }`,
+   * and tool/model-call spans use their start-event context.
+   */
   traceTelemetrySpan?: <T>(options: {
     type: TelemetryTracingEventType;
     event: unknown;
