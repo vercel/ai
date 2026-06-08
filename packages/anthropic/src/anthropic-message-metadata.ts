@@ -8,66 +8,43 @@ import type { JSONObject } from '@ai-sdk/provider';
  * - `compaction`: a context compaction step (billed at executor rates).
  * - `message`: an executor sampling iteration (billed at executor rates).
  * - `advisor_message`: an advisor sub-inference (billed at the advisor
- *   model's rates; `model` carries the advisor model ID). Advisor token
- *   usage is NOT rolled into the top-level usage totals because it bills
- *   at a different rate; inspect this array directly for advisor billing.
+ *   model's rates). Advisor token usage is NOT rolled into the top-level
+ *   usage totals because it bills at a different rate; inspect this array
+ *   directly for advisor billing.
+ * - `fallback_message`: a server-side fallback attempt that served the turn.
+ *   Inspect this array for exact per-model attribution on a turn that fell
+ *   back.
  */
-export type AnthropicUsageIteration =
-  | {
-      type: 'compaction' | 'message';
+export type AnthropicUsageIteration = {
+  type: 'compaction' | 'message' | 'advisor_message' | 'fallback_message';
 
-      /**
-       * Number of input tokens consumed in this iteration.
-       */
-      inputTokens: number;
+  /**
+   * The model that produced this iteration. Populated for the per-model
+   * attribution cases (the fallback chain and advisor sub-inferences) and
+   * absent otherwise.
+   */
+  model?: string;
 
-      /**
-       * Number of output tokens generated in this iteration.
-       */
-      outputTokens: number;
+  /**
+   * Number of input tokens consumed in this iteration.
+   */
+  inputTokens: number;
 
-      /**
-       * Number of cache-creation input tokens consumed in this iteration.
-       */
-      cacheCreationInputTokens?: number;
+  /**
+   * Number of output tokens generated in this iteration.
+   */
+  outputTokens: number;
 
-      /**
-       * Number of cache-read input tokens consumed in this iteration.
-       */
-      cacheReadInputTokens?: number;
-    }
-  | {
-      type: 'advisor_message';
+  /**
+   * Number of cache-creation input tokens consumed in this iteration.
+   */
+  cacheCreationInputTokens?: number;
 
-      /**
-       * The advisor model that produced this iteration.
-       */
-      model: string;
-
-      /**
-       * Number of input tokens consumed in this iteration.
-       */
-      inputTokens: number;
-
-      /**
-       * Number of output tokens generated in this iteration.
-       */
-      outputTokens: number;
-
-      /**
-       * Number of cache-creation input tokens consumed by this advisor
-       * sub-inference. Nonzero when advisor-side caching is enabled and
-       * the advisor writes a fresh cache entry.
-       */
-      cacheCreationInputTokens?: number;
-
-      /**
-       * Number of cache-read input tokens consumed by this advisor
-       * sub-inference. Nonzero on the second and later advisor calls
-       * when advisor-side caching is enabled.
-       */
-      cacheReadInputTokens?: number;
-    };
+  /**
+   * Number of cache-read input tokens consumed in this iteration.
+   */
+  cacheReadInputTokens?: number;
+};
 
 export interface AnthropicMessageMetadata {
   usage: JSONObject;
