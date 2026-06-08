@@ -3137,6 +3137,14 @@ If you call `openai.chat(...)` to use the Chat Completions API directly, you can
 
 The `structuredOutputs` option is now configured using provider options rather than as a setting on the model instance.
 
+<Note type="warning">
+  `structuredOutputs` and `strictJsonSchema` control different parts of the
+  request. `structuredOutputs` enables the Chat Completions structured-output
+  response format, while `strictJsonSchema` controls the `strict` flag for JSON
+  Schema validation. If you relied on AI SDK 4's strict schema behavior, set
+  `strictJsonSchema: true` in addition to `structuredOutputs: true`.
+</Note>
+
 ```tsx filename="AI SDK 4.0"
 import { z } from 'zod';
 import { generateObject } from 'ai';
@@ -3159,6 +3167,7 @@ const result = await generateObject({
   providerOptions: {
     openai: {
       structuredOutputs: true,
+      strictJsonSchema: true, // opt back in to the AI SDK 4 strict schema behavior
     } satisfies OpenAIChatLanguageModelOptions,
   },
 });
