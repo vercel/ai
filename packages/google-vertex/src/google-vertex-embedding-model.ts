@@ -23,7 +23,6 @@ import type { GoogleVertexConfig } from './google-vertex-config';
 export class GoogleVertexEmbeddingModel implements EmbeddingModelV4 {
   readonly specificationVersion = 'v4';
   readonly modelId: GoogleVertexEmbeddingModelId;
-  readonly maxEmbeddingsPerCall = 2048;
   readonly supportsParallelCalls = true;
 
   private readonly config: GoogleVertexConfig;
@@ -44,6 +43,10 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV4 {
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  get maxEmbeddingsPerCall(): number {
+    return usesEmbedContentEndpoint(this.modelId) ? 1 : 2048;
   }
 
   constructor(
@@ -99,6 +102,44 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV4 {
       this.config.headers ? await resolve(this.config.headers) : undefined,
       headers,
     );
+
+    if (usesEmbedContentEndpoint(this.modelId)) {
+      const {
+        responseHeaders,
+        value: response,
+        rawValue,
+      } = await postJsonToApi({
+        url: `${this.config.baseURL}/models/${this.modelId}:embedContent`,
+        headers: mergedHeaders,
+        body: {
+          content: {
+            parts: [{ text: values[0] }],
+          },
+          embedContentConfig: {
+            outputDimensionality: googleOptions.outputDimensionality,
+            taskType: googleOptions.taskType,
+            title: googleOptions.title,
+            autoTruncate: googleOptions.autoTruncate,
+          },
+        },
+        failedResponseHandler: googleVertexFailedResponseHandler,
+        successfulResponseHandler: createJsonResponseHandler(
+          googleVertexEmbedContentResponseSchema,
+        ),
+        abortSignal,
+        fetch: this.config.fetch,
+      });
+
+      return {
+        warnings: [],
+        embeddings: [response.embedding.values],
+        usage:
+          response.usageMetadata?.promptTokenCount == null
+            ? undefined
+            : { tokens: response.usageMetadata.promptTokenCount },
+        response: { headers: responseHeaders, body: rawValue },
+      };
+    }
 
     const url = `${this.config.baseURL}/models/${this.modelId}:predict`;
     const {
@@ -158,3 +199,20 @@ const googleVertexTextEmbeddingResponseSchema = z.object({
     }),
   ),
 });
+
+const googleVertexEmbedContentResponseSchema = z.object({
+  embedding: z.object({
+    values: z.array(z.number()),
+  }),
+  usageMetadata: z
+    .object({
+      promptTokenCount: z.number().optional(),
+    })
+    .optional(),
+});
+
+function usesEmbedContentEndpoint(modelId: GoogleVertexEmbeddingModelId) {
+  return (
+    modelId === 'gemini-embedding-2' || modelId === 'gemini-embedding-2-preview'
+  );
+}
