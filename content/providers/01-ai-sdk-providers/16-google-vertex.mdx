@@ -1303,6 +1303,121 @@ The following provider options are available:
   model ID as a string if needed.
 </Note>
 
+<<<<<<< HEAD
+=======
+### Speech Models
+
+You can create [Gemini text-to-speech](https://docs.cloud.google.com/text-to-speech/docs/gemini-tts)
+models that call the Vertex AI API using the `.speech()` factory method. For more on speech
+generation with the AI SDK see [generateSpeech()](/docs/reference/ai-sdk-core/generate-speech).
+
+```ts
+import { googleVertex } from '@ai-sdk/google-vertex';
+import { experimental_generateSpeech as generateSpeech } from 'ai';
+
+const result = await generateSpeech({
+  model: googleVertex.speech('gemini-2.5-flash-tts'),
+  text: 'Hello, world!',
+  voice: 'Kore', // Gemini voice name
+});
+```
+
+The `voice` argument accepts one of Gemini's [30 prebuilt voices](https://ai.google.dev/gemini-api/docs/speech-generation#voices)
+(e.g. `Kore`, `Puck`, `Zephyr`); it defaults to `Kore`. Multi-speaker dialogue is available via
+`providerOptions.googleVertex.multiSpeakerVoiceConfig`.
+
+By default the audio is returned as a playable WAV (Gemini returns raw PCM, which the provider
+wraps). Set `outputFormat: 'pcm'` for the raw signed 16-bit little-endian mono bytes; the sample
+rate is reported in `result.providerMetadata.google.sampleRate`.
+
+#### Speech Model Capabilities
+
+| Model                               | Multi-speaker       | Style via instructions |
+| ----------------------------------- | ------------------- | ---------------------- |
+| `gemini-2.5-flash-tts`              | <Check size={18} /> | <Check size={18} />    |
+| `gemini-2.5-pro-tts`                | <Check size={18} /> | <Check size={18} />    |
+| `gemini-2.5-flash-lite-preview-tts` | <Check size={18} /> | <Check size={18} />    |
+| `gemini-3.1-flash-tts-preview`      | <Check size={18} /> | <Check size={18} />    |
+
+### Transcription Models
+
+You can transcribe audio with Google Cloud Speech-to-Text models using the
+`.transcription()` factory method together with
+[`transcribe()`](/docs/reference/ai-sdk-core/transcribe).
+
+```ts
+import { googleVertex } from '@ai-sdk/google-vertex';
+import { experimental_transcribe as transcribe } from 'ai';
+import { readFile } from 'fs/promises';
+
+const result = await transcribe({
+  model: googleVertex.transcription('chirp_2'),
+  audio: await readFile('audio.wav'),
+});
+```
+
+The provider supports [Chirp](https://docs.cloud.google.com/speech-to-text/docs/models/chirp-3)
+models `chirp_2` and `chirp_3`, plus `telephony` for phone-call audio.
+Speech-to-Text uses standard Google Cloud credentials (OAuth, Application Default
+Credentials, or a service account) and calls the Cloud Speech-to-Text API.
+Express Mode API keys are not supported for transcription models. Set
+`GOOGLE_VERTEX_LOCATION` (or `providerOptions.googleVertex.region`) to a
+Speech-to-Text region. For Chirp, `chirp_2` is available in `us-central1`,
+`europe-west4`, and `asia-southeast1`; `chirp_3` in the `us` and `eu`
+multi-regions. Chirp is not available in the `global` Speech-to-Text location,
+and these regions differ from Vertex AI regions. `telephony` availability
+depends on the selected Speech-to-Text region and language.
+
+The synchronous API transcribes audio up to one minute or 10 MB, whichever is
+reached first. The spoken language is auto-detected by default; pass
+`languageCodes` to restrict it. For `telephony`, pass a supported language code
+such as `['en-US']`.
+
+```ts
+const result = await transcribe({
+  model: googleVertex.transcription('chirp_3'),
+  audio: await readFile('audio.wav'),
+  providerOptions: {
+    googleVertex: {
+      region: 'us',
+      languageCodes: ['en-US'],
+    },
+  },
+});
+```
+
+The following provider options are available:
+
+- **languageCodes** _string[]_
+
+  BCP-47 language codes to recognize, or `['auto']` to detect the spoken
+  language. Defaults to `['auto']`. Multiple explicit language codes require a
+  multi-region Speech-to-Text endpoint such as `us` or `eu`.
+
+- **enableAutomaticPunctuation** _boolean_
+
+  Whether to add punctuation to the transcript. Defaults to `true`.
+
+- **enableWordTimeOffsets** _boolean_
+
+  Whether to include word-level timestamps in `result.segments`. Defaults to
+  `true`. Google notes that enabling word-level timestamps can reduce
+  transcription quality and speed.
+
+- **region** _string_
+
+  The Speech-to-Text region for the request. Defaults to the provider
+  `location`.
+
+#### Transcription Model Capabilities
+
+| Model       | Word timestamps                                           | Language detection                                                             |
+| ----------- | --------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `chirp_2`   | Available with a potential quality and speed tradeoff     | Auto detection with `['auto']`                                                 |
+| `chirp_3`   | Available with a potential transcription quality tradeoff | Auto detection with `['auto']`                                                 |
+| `telephony` | Available                                                 | Explicit supported language codes, with alternative language detection support |
+
+>>>>>>> 6dd2fd798 (feat(provider/google-vertex): add Chirp speech-to-text (transcription) model support (#15806))
 ## Google Vertex Anthropic Provider Usage
 
 The Google Vertex Anthropic provider for the [AI SDK](/docs) offers support for Anthropic's Claude models through the Google Vertex AI APIs. This section provides details on how to set up and use the Google Vertex Anthropic provider.
