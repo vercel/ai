@@ -808,6 +808,60 @@ describe('tool messages', () => {
     });
   });
 
+  it('should convert Vertex tool result content with URL files into functionResponse fileData parts', async () => {
+    const result = convertToGoogleMessages(
+      [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'imageGenerator',
+              toolCallId: 'testCallId',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'text',
+                    text: 'Here is the generated image:',
+                  },
+                  {
+                    type: 'file',
+                    data: {
+                      type: 'url',
+                      url: new URL('https://example.com/image.png'),
+                    },
+                    mediaType: 'image/png',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+      { providerOptionsNames: ['googleVertex', 'vertex'] },
+    );
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionResponse: {
+        id: 'testCallId',
+        name: 'imageGenerator',
+        response: {
+          name: 'imageGenerator',
+          content: 'Here is the generated image:',
+        },
+        parts: [
+          {
+            fileData: {
+              mimeType: 'image/png',
+              fileUri: 'https://example.com/image.png',
+            },
+          },
+        ],
+      },
+    });
+  });
+
   it('should forward non-data image-url tool result parts as text content', async () => {
     const result = convertToGoogleMessages([
       {

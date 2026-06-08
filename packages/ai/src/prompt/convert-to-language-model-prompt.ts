@@ -423,8 +423,56 @@ function convertImagePartToFilePart(
   };
 }
 
+function collectToolResultFileParts(
+  output: ToolResultOutput,
+): Array<{ part: FilePart; forceDownload: boolean }> {
+  if (output.type !== 'content') {
+    return [];
+  }
+
+  return output.value.flatMap(item => {
+    switch (item.type) {
+      case 'file':
+        return [
+          {
+            part: item,
+            forceDownload: !isFullMediaType(item.mediaType),
+          },
+        ];
+      case 'file-url': {
+        const mediaType = item.mediaType ?? getMediaTypeFromUrl(item.url);
+        return [
+          {
+            part: {
+              type: 'file' as const,
+              data: { type: 'url' as const, url: new URL(item.url) },
+              mediaType,
+              providerOptions: item.providerOptions,
+            },
+            forceDownload: !isFullMediaType(mediaType),
+          },
+        ];
+      }
+      case 'image-url':
+        return [
+          {
+            part: {
+              type: 'file' as const,
+              data: { type: 'url' as const, url: new URL(item.url) },
+              mediaType: 'image',
+              providerOptions: item.providerOptions,
+            },
+            forceDownload: true,
+          },
+        ];
+      default:
+        return [];
+    }
+  });
+}
+
 /**
- * Downloads files from URLs in the user messages.
+ * Downloads URL-backed file parts before provider conversion when needed.
  */
 async function downloadAssets(
   messages: ModelMessage[],
@@ -440,9 +488,13 @@ async function downloadAssets(
   type UrlTaggedFile = {
     mediaType: string | undefined;
     data: { type: 'url'; url: URL };
+    forceDownload: boolean;
   };
 
-  const downloadableFiles: FilePart[] = [];
+  const downloadableFiles: Array<{
+    part: FilePart;
+    forceDownload: boolean;
+  }> = [];
 
   for (const message of messages) {
     if (message.role === 'user' && Array.isArray(message.content)) {
@@ -450,7 +502,7 @@ async function downloadAssets(
         const filePart = convertImagePartToFilePart(part);
 
         if (filePart.type === 'file') {
-          downloadableFiles.push(filePart);
+          downloadableFiles.push({ part: filePart, forceDownload: false });
         }
       }
     }
@@ -461,15 +513,7 @@ async function downloadAssets(
           continue;
         }
 
-        if (part.output.type !== 'content') {
-          continue;
-        }
-
-        for (const contentPart of part.output.value) {
-          if (contentPart.type === 'file') {
-            downloadableFiles.push(contentPart);
-          }
-        }
+        downloadableFiles.push(...collectToolResultFileParts(part.output));
       }
     }
 
@@ -478,28 +522,29 @@ async function downloadAssets(
         if (part.type !== 'tool-result') {
           continue;
         }
-        if (part.output.type !== 'content') {
-          continue;
-        }
-        for (const contentPart of part.output.value) {
-          if (contentPart.type === 'file') {
-            downloadableFiles.push(contentPart);
-          }
-        }
+        downloadableFiles.push(...collectToolResultFileParts(part.output));
       }
     }
   }
 
   const plannedDownloads = downloadableFiles
-    .map((part): ConvertedFile => {
-      const mediaType = part.mediaType;
-      const { data } = convertToLanguageModelV4FilePart(part.data);
-      return { mediaType, data };
-    })
+    .map(
+      ({
+        part,
+        forceDownload,
+      }): ConvertedFile & {
+        forceDownload: boolean;
+      } => {
+        const mediaType = part.mediaType;
+        const { data } = convertToLanguageModelV4FilePart(part.data);
+        return { mediaType, data, forceDownload };
+      },
+    )
     .filter((part): part is UrlTaggedFile => part.data.type === 'url')
     .map(part => ({
       url: part.data.url,
       isUrlSupportedByModel:
+        !part.forceDownload &&
         part.mediaType != null &&
         isUrlSupported({
           url: part.data.url.toString(),
@@ -592,6 +637,22 @@ function convertPartToLanguageModelPart(
   };
 }
 
+function convertToolResultFilePart(
+  part: FilePart,
+  downloadedAssets: Record<
+    string,
+    { mediaType: string | undefined; data: Uint8Array }
+  >,
+): LanguageModelV4FilePart {
+  const convertedPart = convertPartToLanguageModelPart(part, downloadedAssets);
+
+  if (convertedPart.type !== 'file') {
+    throw new Error('Expected tool result file content to convert to file.');
+  }
+
+  return convertedPart;
+}
+
 function mapToolResultOutput({
   output,
   // `provider` is only needed here to convert legacy "file-id" and "image-file-id" types to provider references, in case they are using string ID values.
@@ -617,18 +678,7 @@ function mapToolResultOutput({
     value: output.value.map(item => {
       switch (item.type) {
         case 'file': {
-          const convertedPart = convertPartToLanguageModelPart(
-            item,
-            downloadedAssets,
-          );
-
-          if (convertedPart.type !== 'file') {
-            throw new Error(
-              'Expected tool result file content to convert to file.',
-            );
-          }
-
-          return convertedPart;
+          return convertToolResultFilePart(item, downloadedAssets);
         }
         case 'file-data': {
           warnings.push({
@@ -659,12 +709,15 @@ function mapToolResultOutput({
             setting: '"tool-result" content of type "file-url"',
             message,
           });
-          return {
-            type: 'file' as const,
-            data: { type: 'url' as const, url: new URL(item.url) },
-            mediaType,
-            providerOptions: item.providerOptions,
-          };
+          return convertToolResultFilePart(
+            {
+              type: 'file' as const,
+              data: { type: 'url' as const, url: new URL(item.url) },
+              mediaType,
+              providerOptions: item.providerOptions,
+            },
+            downloadedAssets,
+          );
         }
         case 'file-id': {
           warnings.push({
@@ -722,12 +775,15 @@ function mapToolResultOutput({
             setting: '"tool-result" content of type "image-url"',
             message: `The "image-url" type for tool result content is deprecated. Use the "file" type with mediaType 'image' (or a specific image/* subtype) and { type: 'url', url } instead.`,
           });
-          return {
-            type: 'file' as const,
-            data: { type: 'url' as const, url: new URL(item.url) },
-            mediaType: 'image',
-            providerOptions: item.providerOptions,
-          };
+          return convertToolResultFilePart(
+            {
+              type: 'file' as const,
+              data: { type: 'url' as const, url: new URL(item.url) },
+              mediaType: 'image',
+              providerOptions: item.providerOptions,
+            },
+            downloadedAssets,
+          );
         }
         case 'image-file-id': {
           warnings.push({

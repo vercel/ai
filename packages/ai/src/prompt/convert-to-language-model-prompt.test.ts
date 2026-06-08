@@ -1334,6 +1334,83 @@ describe('convertToLanguageModelPrompt', () => {
         ]
       `);
     });
+
+    it('should download legacy image-url tool result content when only a top-level media type is known', async () => {
+      const mockDownload = vi.fn().mockImplementation(requestedDownloads =>
+        requestedDownloads.map(() => ({
+          data: new Uint8Array([8, 9, 10, 11]),
+          mediaType: 'image/png',
+        })),
+      );
+
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          instructions: undefined,
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'toolCallId',
+                  toolName: 'toolName',
+                  input: {},
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolName: 'toolName',
+                  toolCallId: 'toolCallId',
+                  output: {
+                    type: 'content',
+                    value: [
+                      {
+                        type: 'image-url',
+                        url: 'https://example.com/preview',
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+        supportedUrls: {
+          '*': [/^https?:\/\/.*$/],
+        },
+        download: mockDownload,
+      });
+
+      expect(mockDownload).toHaveBeenCalledOnce();
+      expect(mockDownload).toHaveBeenCalledWith([
+        {
+          url: new URL('https://example.com/preview'),
+          isUrlSupportedByModel: false,
+        },
+      ]);
+
+      expect(result[1].role).toBe('tool');
+      expect(result[1].content[0]).toMatchObject({
+        type: 'tool-result',
+        output: {
+          type: 'content',
+          value: [
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: {
+                type: 'data',
+                data: new Uint8Array([8, 9, 10, 11]),
+              },
+            },
+          ],
+        },
+      });
+    });
   });
 });
 
@@ -3048,6 +3125,7 @@ describe('convertToLanguageModelMessage', () => {
                       "type": "url",
                       "url": "https://example.com/image.png",
                     },
+                    "filename": undefined,
                     "mediaType": "image/png",
                     "providerOptions": undefined,
                     "type": "file",
@@ -3087,6 +3165,7 @@ describe('convertToLanguageModelMessage', () => {
                       "type": "url",
                       "url": "https://example.com/image.png",
                     },
+                    "filename": undefined,
                     "mediaType": "image",
                     "providerOptions": undefined,
                     "type": "file",
