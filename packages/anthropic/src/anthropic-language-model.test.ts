@@ -1536,6 +1536,48 @@ describe('AnthropicLanguageModel', () => {
       `);
     });
 
+    describe('refusal stop reason', () => {
+      it('should map a classifier refusal to content-filter and expose stop details', async () => {
+        prepareJsonFixtureResponse('anthropic-refusal');
+
+        const result = await provider('claude-fable-5').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.finishReason).toMatchInlineSnapshot(`
+          {
+            "raw": "refusal",
+            "unified": "content-filter",
+          }
+        `);
+        expect(result.providerMetadata?.anthropic?.stopDetails)
+          .toMatchInlineSnapshot(`
+          {
+            "category": "cyber",
+            "explanation": "This request triggered restrictions on violative cyber content and was blocked under Anthropic's Usage Policy.",
+            "recommendedModel": "claude-fable-5",
+            "type": "refusal",
+          }
+        `);
+      });
+
+      it('should map a refusal without stop details to content-filter and omit stop details', async () => {
+        prepareJsonFixtureResponse('anthropic-refusal-no-details');
+
+        const result = await provider('claude-fable-5').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.finishReason).toMatchInlineSnapshot(`
+          {
+            "raw": "refusal",
+            "unified": "content-filter",
+          }
+        `);
+        expect(result.providerMetadata?.anthropic?.stopDetails).toBeUndefined();
+      });
+    });
+
     it('should expose the raw response headers', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'json-value',
@@ -6815,6 +6857,37 @@ describe('AnthropicLanguageModel', () => {
           },
         },
       });
+    });
+
+    it('should map a streamed classifier refusal to content-filter and expose stop details', async () => {
+      prepareChunksFixtureResponse('anthropic-refusal');
+
+      const { stream } = await provider('claude-fable-5').doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+      const finishPart = result.find(part => part.type === 'finish');
+
+      expect(finishPart).toMatchObject({
+        type: 'finish',
+        finishReason: {
+          unified: 'content-filter',
+          raw: 'refusal',
+        },
+      });
+      expect(
+        finishPart?.type === 'finish'
+          ? finishPart.providerMetadata?.anthropic?.stopDetails
+          : undefined,
+      ).toMatchInlineSnapshot(`
+        {
+          "category": "cyber",
+          "explanation": "This request triggered restrictions on violative cyber content and was blocked under Anthropic's Usage Policy.",
+          "recommendedModel": "claude-fable-5",
+          "type": "refusal",
+        }
+      `);
     });
 
     it('should stream reasoning deltas', async () => {

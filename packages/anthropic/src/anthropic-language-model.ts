@@ -47,6 +47,7 @@ import {
   type AnthropicContainer,
   type AnthropicReasoningMetadata,
   type AnthropicResponseContextManagement,
+  type AnthropicStopDetails,
   type AnthropicTool,
   type Citation,
 } from './anthropic-api';
@@ -1357,9 +1358,12 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       },
       warnings,
       providerMetadata: (() => {
+        const stopDetails = mapAnthropicStopDetails(response.stop_details);
+
         const anthropicMetadata = {
           usage: response.usage as JSONObject,
           stopSequence: response.stop_sequence ?? null,
+          ...(stopDetails != null ? { stopDetails } : {}),
 
           iterations: response.usage.iterations
             ? response.usage.iterations.map(iter =>
@@ -1510,6 +1514,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       | null = null;
     let rawUsage: JSONObject | undefined = undefined;
     let stopSequence: string | null = null;
+    let stopDetails: AnthropicMessageMetadata['stopDetails'] = undefined;
     let container: AnthropicMessageMetadata['container'] | null = null;
     let isJsonResponseFromTool = false;
 
@@ -2409,6 +2414,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               };
 
               stopSequence = value.delta.stop_sequence ?? null;
+              stopDetails = mapAnthropicStopDetails(value.delta.stop_details);
               container =
                 value.delta.container != null
                   ? {
@@ -2441,6 +2447,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               const anthropicMetadata = {
                 usage: (rawUsage as JSONObject) ?? null,
                 stopSequence,
+                ...(stopDetails != null ? { stopDetails } : {}),
                 iterations: usage.iterations
                   ? usage.iterations.map(iter =>
                       iter.type === 'advisor_message'
@@ -2768,4 +2775,23 @@ function mapAnthropicResponseContextManagement(
           .filter(edit => edit !== undefined),
       }
     : null;
+}
+
+function mapAnthropicStopDetails(
+  stopDetails: AnthropicStopDetails | null | undefined,
+): AnthropicMessageMetadata['stopDetails'] | undefined {
+  if (stopDetails == null) {
+    return undefined;
+  }
+
+  return {
+    type: stopDetails.type,
+    ...(stopDetails.category != null ? { category: stopDetails.category } : {}),
+    ...(stopDetails.explanation != null
+      ? { explanation: stopDetails.explanation }
+      : {}),
+    ...(stopDetails.recommended_model != null
+      ? { recommendedModel: stopDetails.recommended_model }
+      : {}),
+  };
 }

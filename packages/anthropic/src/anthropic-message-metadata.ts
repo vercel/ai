@@ -74,6 +74,42 @@ export interface AnthropicMessageMetadata {
   stopSequence: string | null;
 
   /**
+   * Details about why the request stopped. Present only when the API returns
+   * a `refusal` stop reason together with a `stop_details` object (a
+   * classifier block or a model refusal).
+   *
+   * Branch on the finish reason (`content-filter`), not on this object: the
+   * API may return a refusal with no details at all, so this field can be
+   * absent even on a refusal and should not be relied upon being present.
+   */
+  stopDetails?: {
+    /**
+     * The kind of stop detail. `'refusal'` for classifier blocks and model
+     * refusals.
+     */
+    type: string;
+
+    /**
+     * The classifier category that triggered the block, e.g. `'cyber'` or
+     * `'bio'`. Absent for model refusals and other cases.
+     */
+    category?: string;
+
+    /**
+     * Human-readable explanation of why the request was blocked. May be
+     * absent even on a refusal.
+     */
+    explanation?: string;
+
+    /**
+     * The canonical id of a model to retry directly. Populated only when the
+     * request included fallbacks and the fallback attempt could not be made
+     * (e.g. the fallback model was rate limited or overloaded).
+     */
+    recommendedModel?: string;
+  };
+
+  /**
    * Usage breakdown by iteration when compaction is triggered.
    *
    * When compaction occurs, this array contains usage for each sampling iteration.

@@ -612,6 +612,15 @@ export type AnthropicResponseContextManagement = {
   applied_edits: AnthropicResponseContextManagementEdit[];
 };
 
+const anthropicStopDetailsSchema = z.object({
+  type: z.string(),
+  category: z.string().nullish(),
+  explanation: z.string().nullish(),
+  recommended_model: z.string().nullish(),
+});
+
+export type AnthropicStopDetails = z.infer<typeof anthropicStopDetailsSchema>;
+
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 export const anthropicResponseSchema = lazySchema(() =>
@@ -916,6 +925,7 @@ export const anthropicResponseSchema = lazySchema(() =>
       ),
       stop_reason: z.string().nullish(),
       stop_sequence: z.string().nullish(),
+      stop_details: anthropicStopDetailsSchema.nullish(),
       usage: z.looseObject({
         input_tokens: z.number(),
         output_tokens: z.number(),
@@ -1373,6 +1383,7 @@ export const anthropicChunkSchema = lazySchema(() =>
         delta: z.object({
           stop_reason: z.string().nullish(),
           stop_sequence: z.string().nullish(),
+          stop_details: anthropicStopDetailsSchema.nullish(),
           container: z
             .object({
               expires_at: z.string(),
