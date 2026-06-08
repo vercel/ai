@@ -38,6 +38,11 @@ import {
 import type { DownloadFunction } from '../util/download/download-function';
 import { notify } from '../util/notify';
 import { now as originalNow } from '../util/now';
+import {
+  appendToTextAccumulator,
+  finalizeTextAccumulator,
+  prepareTextAccumulator,
+} from '../util/text-accumulator';
 import { calculateTokensPerSecond } from './calculate-tokens-per-second';
 import type { ContentPart } from './content-part';
 import { DefaultGeneratedFileWithType } from './generated-file';
@@ -475,6 +480,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
             id: chunk.id,
             type: 'text',
             providerMetadata: chunk.providerMetadata,
+            finalize: true,
           });
           textPartIndexes.delete(chunk.id);
           controller.enqueue(chunk);
@@ -515,6 +521,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
             id: chunk.id,
             type: 'reasoning',
             providerMetadata: chunk.providerMetadata,
+            finalize: true,
           });
           reasoningPartIndexes.delete(chunk.id);
           controller.enqueue(chunk);
@@ -802,6 +809,7 @@ function upsertTextContentPart<TOOLS extends ToolSet>({
   type,
   textDelta,
   providerMetadata,
+  finalize,
 }: {
   content: Array<ContentPart<TOOLS>>;
   partIndexes: Map<string, number>;
@@ -809,16 +817,19 @@ function upsertTextContentPart<TOOLS extends ToolSet>({
   type: 'text' | 'reasoning';
   textDelta?: string;
   providerMetadata?: ProviderMetadata;
+  finalize?: boolean;
 }) {
   let partIndex = partIndexes.get(id);
 
   if (partIndex == null) {
     partIndex =
-      content.push({
-        type,
-        text: '',
-        ...(providerMetadata != null ? { providerMetadata } : {}),
-      }) - 1;
+      content.push(
+        prepareTextAccumulator({
+          type,
+          text: '',
+          ...(providerMetadata != null ? { providerMetadata } : {}),
+        }),
+      ) - 1;
     partIndexes.set(id, partIndex);
   }
 
@@ -828,10 +839,14 @@ function upsertTextContentPart<TOOLS extends ToolSet>({
   };
 
   if (textDelta != null) {
-    part.text += textDelta;
+    appendToTextAccumulator({ part, textDelta });
   }
 
   if (providerMetadata != null) {
     part.providerMetadata = providerMetadata;
+  }
+
+  if (finalize) {
+    finalizeTextAccumulator(part);
   }
 }
