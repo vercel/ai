@@ -10385,6 +10385,19 @@ describe('getModelCapabilities', () => {
     `);
   });
 
+  it('should return correct capabilities for claude-fable-5', () => {
+    expect(getModelCapabilities('claude-fable-5')).toMatchInlineSnapshot(`
+      {
+        "isKnownModel": true,
+        "maxOutputTokens": 128000,
+        "rejectsSamplingParameters": true,
+        "supportsAdaptiveThinking": true,
+        "supportsStructuredOutput": true,
+        "supportsXhighEffort": true,
+      }
+    `);
+  });
+
   it('should return correct capabilities for claude-opus-4-7', () => {
     expect(getModelCapabilities('claude-opus-4-7')).toMatchInlineSnapshot(`
       {
