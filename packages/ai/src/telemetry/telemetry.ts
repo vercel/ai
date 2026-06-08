@@ -62,12 +62,6 @@ export interface TelemetryDispatcher {
     event: unknown;
     execute: () => PromiseLike<T>;
   }) => Promise<T>;
-  traceTelemetryStreamSpan?: <T>(options: {
-    type: TelemetryTracingEventType;
-    event: unknown;
-    execute: () => PromiseLike<T>;
-    completion: PromiseLike<unknown>;
-  }) => Promise<T>;
   onStart?: Callback<OperationStartEvent>;
   onStepStart?: Callback<GenerateTextStepStartEvent>;
   onLanguageModelCallStart?: OnLanguageModelCallStartCallback;
