@@ -1,12 +1,17 @@
 import type {
   HarnessV1,
   HarnessV1NetworkSandboxSession,
+  HarnessV1Prompt,
   HarnessV1ResumeState,
   HarnessV1SandboxProvider,
   HarnessV1Session,
+  HarnessV1ToolSpec,
 } from '../v1';
+import type { Context, ToolSet } from '@ai-sdk/provider-utils';
+import type { TelemetryOptions } from 'ai';
 import { releaseBridgePort } from './internal/bridge-port-registry';
 import { validateResumeStateData } from './internal/resume-state-validation';
+import { runPrompt } from './internal/run-prompt';
 
 /**
  * Live harness session held by the caller.
@@ -64,24 +69,9 @@ export class HarnessAgentSession {
   }
 
   /**
-   * Underlying adapter session driven by `agent.stream` / `agent.generate`.
-   * Throws once the session has ended.
-   *
-   * @internal — accessed only by the agent's turn driver.
-   */
-  getUnderlyingSession(): HarnessV1Session {
-    if (this.stopped || this.underlyingSession == null) {
-      throw new Error(
-        `Harness session ${this.sessionId} has ended and cannot be reused.`,
-      );
-    }
-    return this.underlyingSession;
-  }
-
-  /**
    * Active network sandbox session.
    *
-   * @internal — accessed only by the agent's turn driver.
+   * @internal — accessed by session turn and lifecycle drivers.
    */
   getSandboxSession(): HarnessV1NetworkSandboxSession {
     if (this.stopped || this.sandboxSession == null) {
@@ -96,10 +86,64 @@ export class HarnessAgentSession {
    * Working directory the agent runs in for this session. Used to strip the
    * prefix from absolute paths in stream events before they reach consumers.
    *
-   * @internal — accessed only by the agent's turn driver.
+   * @internal — accessed by session turn drivers.
    */
   getSessionWorkDir(): string {
     return this.sessionWorkDir;
+  }
+
+  promptTurn<TOOLS extends ToolSet, RUNTIME_CONTEXT extends Context>(options: {
+    prompt: HarnessV1Prompt;
+    instructions: string | undefined;
+    tools: TOOLS;
+    toolSpecs: HarnessV1ToolSpec[];
+    runtimeContext: RUNTIME_CONTEXT;
+    abortSignal: AbortSignal | undefined;
+    telemetry: TelemetryOptions | undefined;
+  }): ReturnType<typeof runPrompt<TOOLS, RUNTIME_CONTEXT>> {
+    const session = this.requireReusableSession();
+    const sandboxSession = this.getSandboxSession();
+    return runPrompt<TOOLS, RUNTIME_CONTEXT>({
+      harness: this.harness,
+      session,
+      prompt: options.prompt,
+      instructions: options.instructions,
+      tools: options.tools,
+      toolSpecs: options.toolSpecs,
+      sandboxSession: sandboxSession.restricted(),
+      sessionWorkDir: this.sessionWorkDir,
+      runtimeContext: options.runtimeContext,
+      abortSignal: options.abortSignal,
+      telemetry: options.telemetry,
+    });
+  }
+
+  continueTurn<
+    TOOLS extends ToolSet,
+    RUNTIME_CONTEXT extends Context,
+  >(options: {
+    instructions: string | undefined;
+    tools: TOOLS;
+    toolSpecs: HarnessV1ToolSpec[];
+    runtimeContext: RUNTIME_CONTEXT;
+    abortSignal: AbortSignal | undefined;
+    telemetry: TelemetryOptions | undefined;
+  }): ReturnType<typeof runPrompt<TOOLS, RUNTIME_CONTEXT>> {
+    const session = this.requireReusableSession();
+    const sandboxSession = this.getSandboxSession();
+    return runPrompt<TOOLS, RUNTIME_CONTEXT>({
+      harness: this.harness,
+      session,
+      mode: 'continue',
+      instructions: options.instructions,
+      tools: options.tools,
+      toolSpecs: options.toolSpecs,
+      sandboxSession: sandboxSession.restricted(),
+      sessionWorkDir: this.sessionWorkDir,
+      runtimeContext: options.runtimeContext,
+      abortSignal: options.abortSignal,
+      telemetry: options.telemetry,
+    });
   }
 
   /**
@@ -113,7 +157,7 @@ export class HarnessAgentSession {
    * the hood). Throws if the session has ended.
    */
   async compact(customInstructions?: string): Promise<void> {
-    await this.getUnderlyingSession().doCompact(customInstructions);
+    await this.requireReusableSession().doCompact(customInstructions);
   }
 
   /**
@@ -231,5 +275,14 @@ export class HarnessAgentSession {
       sessionId: this.sessionId,
     });
     this.leasedBridgePort = undefined;
+  }
+
+  private requireReusableSession(): HarnessV1Session {
+    if (this.stopped || this.underlyingSession == null) {
+      throw new Error(
+        `Harness session ${this.sessionId} has ended and cannot be reused.`,
+      );
+    }
+    return this.underlyingSession;
   }
 }

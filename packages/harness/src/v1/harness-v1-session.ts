@@ -78,6 +78,27 @@ export type HarnessV1Session = {
   ): PromiseLike<HarnessV1PromptControl>;
 
   /**
+   * Gracefully freeze the active turn **at a precise cursor while keeping the
+   * runtime alive**, returning the resume payload.
+   *
+   * This is the slice-boundary primitive. The adapter stops host-side
+   * consumption of the in-flight turn without telling the runtime to stop:
+   * for a bridge adapter it closes the host socket (the bridge keeps the turn
+   * running and accumulates events for replay) and resolves the active
+   * `doPromptTurn`/`doContinueTurn` `done` **cleanly** (not as an error) once buffered
+   * events have drained, so the cursor in the returned state equals the last
+   * event delivered to the host — guaranteeing the next slice's attach replays
+   * with no gap and no duplicate. A host-resident adapter (Pi) cannot keep its
+   * turn alive, so it persists what it can and the in-flight tail is recomputed
+   * on continue.
+   *
+   * Like `doDetach`, the sandbox/runtime is left running. Unlike `doDetach`,
+   * this is for an active turn at a slice boundary rather than a between-turn
+   * session handoff. Required on every adapter.
+   */
+  doSuspendTurn(): PromiseLike<HarnessV1ResumeState>;
+
+  /**
    * Detach from the underlying runtime without tearing it down, returning a
    * payload the host can later pass to `HarnessV1.doStart({ resumeFrom })`
    * to reconnect. After `doDetach`, no further methods on this session
@@ -99,25 +120,4 @@ export type HarnessV1Session = {
    * `doDestroy`, no further methods on this session instance may be called.
    */
   doDestroy(): PromiseLike<void>;
-
-  /**
-   * Gracefully freeze the active turn **at a precise cursor while keeping the
-   * runtime alive**, returning the resume payload.
-   *
-   * This is the slice-boundary primitive. The adapter stops host-side
-   * consumption of the in-flight turn without telling the runtime to stop:
-   * for a bridge adapter it closes the host socket (the bridge keeps the turn
-   * running and accumulates events for replay) and resolves the active
-   * `doPromptTurn`/`doContinueTurn` `done` **cleanly** (not as an error) once buffered
-   * events have drained, so the cursor in the returned state equals the last
-   * event delivered to the host — guaranteeing the next slice's attach replays
-   * with no gap and no duplicate. A host-resident adapter (Pi) cannot keep its
-   * turn alive, so it persists what it can and the in-flight tail is recomputed
-   * on continue.
-   *
-   * Like `doDetach`, the sandbox/runtime is left running. Unlike `doDetach`,
-   * this is for an active turn at a slice boundary rather than a between-turn
-   * session handoff. Required on every adapter.
-   */
-  doSuspendTurn(): PromiseLike<HarnessV1ResumeState>;
 };

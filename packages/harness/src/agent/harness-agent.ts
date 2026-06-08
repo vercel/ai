@@ -36,7 +36,6 @@ import {
 } from './internal/bridge-port-registry';
 import { buildObservability } from './internal/resolve-observability';
 import { validateResumeStateData } from './internal/resume-state-validation';
-import { runPrompt } from './internal/run-prompt';
 
 /** Extract the builtin tool set type from a `HarnessV1<...>` parameter. */
 type BuiltinToolsOf<H> = H extends HarnessV1<infer T> ? T : never;
@@ -282,7 +281,20 @@ export class HarnessAgent<
       never
     >
   > {
-    const { result, done } = this._runTurn(options);
+    const prompt = this._normalizePrompt(options);
+    const runtimeContext = {} as RUNTIME_CONTEXT;
+    const { result, done } = options.session.promptTurn<
+      HarnessAllTools<THarness, TUserTools>,
+      RUNTIME_CONTEXT
+    >({
+      prompt,
+      instructions: this.settings.instructions,
+      tools: this.tools,
+      toolSpecs: this._toToolSpecs(),
+      runtimeContext,
+      abortSignal: options.abortSignal,
+      telemetry: this.settings.telemetry,
+    });
     await done;
     return this._toGenerateResult(result);
   }
@@ -301,7 +313,20 @@ export class HarnessAgent<
       never
     >
   > {
-    const { result } = this._runTurn(options);
+    const prompt = this._normalizePrompt(options);
+    const runtimeContext = {} as RUNTIME_CONTEXT;
+    const { result } = options.session.promptTurn<
+      HarnessAllTools<THarness, TUserTools>,
+      RUNTIME_CONTEXT
+    >({
+      prompt,
+      instructions: this.settings.instructions,
+      tools: this.tools,
+      toolSpecs: this._toToolSpecs(),
+      runtimeContext,
+      abortSignal: options.abortSignal,
+      telemetry: this.settings.telemetry,
+    });
     return result;
   }
 
@@ -323,24 +348,15 @@ export class HarnessAgent<
       never
     >
   > {
-    const session = options.session;
-    const underlyingSession = session.getUnderlyingSession();
-    const sandboxSession = session.getSandboxSession();
-    const sessionWorkDir = session.getSessionWorkDir();
     const runtimeContext = {} as RUNTIME_CONTEXT;
 
-    const { result } = runPrompt<
+    const { result } = options.session.continueTurn<
       HarnessAllTools<THarness, TUserTools>,
       RUNTIME_CONTEXT
     >({
-      harness: this.settings.harness,
-      session: underlyingSession,
-      mode: 'continue',
       instructions: this.settings.instructions,
       tools: this.tools,
       toolSpecs: this._toToolSpecs(),
-      sandboxSession: sandboxSession.restricted(),
-      sessionWorkDir,
       runtimeContext,
       abortSignal: options.abortSignal,
       telemetry: this.settings.telemetry,
@@ -349,53 +365,6 @@ export class HarnessAgent<
   }
 
   // ─── Internals ──────────────────────────────────────────────────────
-
-  private _runTurn(
-    options: (
-      | AgentCallParameters<
-          never,
-          HarnessAllTools<THarness, TUserTools>,
-          RUNTIME_CONTEXT
-        >
-      | AgentStreamParameters<
-          never,
-          HarnessAllTools<THarness, TUserTools>,
-          RUNTIME_CONTEXT
-        >
-    ) &
-      HarnessAgentCallExtensions,
-  ): {
-    result: ReturnType<
-      typeof runPrompt<HarnessAllTools<THarness, TUserTools>, RUNTIME_CONTEXT>
-    >['result'];
-    done: Promise<void>;
-  } {
-    const session = options.session;
-    const underlyingSession = session.getUnderlyingSession();
-    const sandboxSession = session.getSandboxSession();
-    const sessionWorkDir = session.getSessionWorkDir();
-
-    const prompt = this._normalizePrompt(options);
-    const toolSpecs = this._toToolSpecs();
-    // `runtimeContext` is not part of AgentCallParameters by name; AI SDK
-    // populates it via context propagation. For v0 we pass an empty object
-    // cast to RUNTIME_CONTEXT, which is correct for the default Context type.
-    const runtimeContext = {} as RUNTIME_CONTEXT;
-
-    return runPrompt<HarnessAllTools<THarness, TUserTools>, RUNTIME_CONTEXT>({
-      harness: this.settings.harness,
-      session: underlyingSession,
-      prompt,
-      instructions: this.settings.instructions,
-      tools: this.tools,
-      toolSpecs,
-      sandboxSession: sandboxSession.restricted(),
-      sessionWorkDir,
-      runtimeContext,
-      abortSignal: options.abortSignal,
-      telemetry: this.settings.telemetry,
-    });
-  }
 
   private async _acquireSandbox(input: {
     sandboxProvider: HarnessV1SandboxProvider;
