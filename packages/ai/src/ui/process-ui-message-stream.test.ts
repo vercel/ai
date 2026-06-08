@@ -9061,4 +9061,184 @@ describe('processUIMessageStream', () => {
       ]);
     });
   });
+
+  describe('resume against existing assistant message', () => {
+    it('should not duplicate text parts when text-start is replayed', async () => {
+      const lastMessage: UIMessage = {
+        id: 'msg-123',
+        role: 'assistant',
+        metadata: undefined,
+        parts: [
+          { type: 'step-start' },
+          {
+            type: 'text',
+            text: 'Hello, world!',
+            state: 'streaming',
+            providerMetadata: undefined,
+          },
+        ],
+      };
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage,
+        isResume: true,
+      });
+
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'Hello, ' },
+        { type: 'text-delta', id: 'text-1', delta: 'world!' },
+        { type: 'text-end', id: 'text-1' },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      const textParts = state!.message.parts.filter(p => p.type === 'text');
+      expect(textParts).toMatchInlineSnapshot(`
+        [
+          {
+            "providerMetadata": undefined,
+            "state": "done",
+            "text": "Hello, world!",
+            "type": "text",
+          },
+        ]
+      `);
+    });
+
+    it('should NOT reuse existing text when a new step appends content after a tool result', async () => {
+      // Continuation flow (not a resume): addToolOutput appended a tool result
+      // to the assistant message, then triggered a new makeRequest. The next
+      // step's text-start must produce a NEW text part, not overwrite step 1.
+      const lastMessage: UIMessage = {
+        id: 'msg-123',
+        role: 'assistant',
+        metadata: undefined,
+        parts: [
+          { type: 'step-start' },
+          {
+            type: 'text',
+            text: 'let me search the docs',
+            state: 'done',
+            providerMetadata: undefined,
+          },
+          // tool part would be here in a real flow; text reuse must not happen
+          // regardless of what sits between the old text and the new step.
+        ],
+      };
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage,
+      });
+
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        { type: 'text-start', id: 'text-2' },
+        { type: 'text-delta', id: 'text-2', delta: "here's the answer" },
+        { type: 'text-end', id: 'text-2' },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      const textParts = state!.message.parts.filter(p => p.type === 'text');
+      expect(textParts).toMatchInlineSnapshot(`
+        [
+          {
+            "providerMetadata": undefined,
+            "state": "done",
+            "text": "let me search the docs",
+            "type": "text",
+          },
+          {
+            "providerMetadata": undefined,
+            "state": "done",
+            "text": "here's the answer",
+            "type": "text",
+          },
+        ]
+      `);
+    });
+
+    it('should not duplicate reasoning parts when reasoning-start is replayed', async () => {
+      const lastMessage: UIMessage = {
+        id: 'msg-123',
+        role: 'assistant',
+        metadata: undefined,
+        parts: [
+          { type: 'step-start' },
+          {
+            type: 'reasoning',
+            text: 'thinking...',
+            state: 'streaming',
+            providerMetadata: undefined,
+          },
+        ],
+      };
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage,
+        isResume: true,
+      });
+
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        { type: 'reasoning-start', id: 'r-1' },
+        { type: 'reasoning-delta', id: 'r-1', delta: 'thinking...' },
+        { type: 'reasoning-end', id: 'r-1' },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      const reasoningParts = state!.message.parts.filter(
+        p => p.type === 'reasoning',
+      );
+      expect(reasoningParts).toMatchInlineSnapshot(`
+        [
+          {
+            "providerMetadata": undefined,
+            "state": "done",
+            "text": "thinking...",
+            "type": "reasoning",
+          },
+        ]
+      `);
+    });
+  });
 });
