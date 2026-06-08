@@ -4,6 +4,8 @@ import type {
   ImageModelV4,
   LanguageModelV4,
   ProviderV4,
+  Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
+  Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
   SpeechModelV4,
   SkillsV4,
   TranscriptionModelV4,
@@ -25,6 +27,7 @@ import type { OpenAIEmbeddingModelId } from './embedding/openai-embedding-model-
 import { OpenAIImageModel } from './image/openai-image-model';
 import type { OpenAIImageModelId } from './image/openai-image-model-options';
 import { openaiTools } from './openai-tools';
+import { OpenAIRealtimeModel } from './realtime/openai-realtime-model';
 import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
 import type { OpenAIResponsesModelId } from './responses/openai-responses-language-model-options';
 import { OpenAISpeechModel } from './speech/openai-speech-model';
@@ -96,6 +99,12 @@ export interface OpenAIProvider extends ProviderV4 {
    * Creates a model for speech generation.
    */
   speech(modelId: OpenAISpeechModelId): SpeechModelV4;
+
+  /**
+   * Creates an experimental realtime model for bidirectional audio/text
+   * communication over WebSocket.
+   */
+  experimental_realtime: RealtimeFactoryV4;
 
   /**
    * Returns a FilesV4 interface for uploading files to OpenAI.
@@ -267,6 +276,33 @@ export function createOpenAI(
     });
   };
 
+  const createRealtimeModel = (modelId: string) =>
+    new OpenAIRealtimeModel(modelId, {
+      provider: `${providerName}.realtime`,
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
+  const experimentalRealtimeFactory = Object.assign(
+    (modelId: string) => createRealtimeModel(modelId),
+    {
+      getToken: async (tokenOptions: RealtimeFactoryV4GetTokenOptions) => {
+        const model = createRealtimeModel(tokenOptions.model);
+        const secret = await model.doCreateClientSecret({
+          sessionConfig: tokenOptions.sessionConfig,
+          expiresAfterSeconds: tokenOptions.expiresAfterSeconds,
+        });
+
+        return {
+          token: secret.token,
+          url: secret.url,
+          expiresAt: secret.expiresAt,
+        };
+      },
+    },
+  ) as RealtimeFactoryV4;
+
   const provider = function (modelId: OpenAIResponsesModelId) {
     return createLanguageModel(modelId);
   };
@@ -291,6 +327,8 @@ export function createOpenAI(
   provider.speechModel = createSpeechModel;
   provider.files = createFiles;
   provider.skills = createSkills;
+
+  provider.experimental_realtime = experimentalRealtimeFactory;
 
   provider.tools = openaiTools;
 

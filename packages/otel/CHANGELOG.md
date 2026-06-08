@@ -1,5 +1,24 @@
 # @ai-sdk/otel
 
+## 1.0.0-canary.112
+
+### Patch Changes
+
+- 19736ee: feat(ai): rename onStepFinish to onStepEnd
+- e4182bd: chore: rm export of OutputInterface
+- Updated dependencies [19736ee]
+- Updated dependencies [d66ae02]
+- Updated dependencies [e4182bd]
+  - ai@7.0.0-canary.166
+
+## 1.0.0-canary.111
+
+### Patch Changes
+
+- Updated dependencies [ce769dd]
+  - @ai-sdk/provider@4.0.0-canary.18
+  - ai@7.0.0-canary.165
+
 ## 1.0.0-canary.110
 
 ### Patch Changes

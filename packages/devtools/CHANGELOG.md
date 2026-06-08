@@ -1,5 +1,18 @@
 # @ai-sdk/devtools
 
+## 1.0.0-canary.28
+
+### Patch Changes
+
+- 19736ee: feat(ai): rename onStepFinish to onStepEnd
+
+## 1.0.0-canary.27
+
+### Patch Changes
+
+- Updated dependencies [ce769dd]
+  - @ai-sdk/provider@4.0.0-canary.18
+
 ## 1.0.0-canary.26
 
 ### Patch Changes

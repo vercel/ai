@@ -438,6 +438,38 @@ The `textVerbosity` parameter scales output length without changing the underlyi
 - `'medium'`: Balanced detail (default)
 - `'high'`: Verbose responses with comprehensive detail
 
+#### Namespaced Function Calls
+
+OpenAI supports grouping related function tools into
+[namespaces](https://developers.openai.com/api/docs/guides/function-calling#defining-namespaces).
+When the Responses API returns a `function_call` with a `namespace`, the OpenAI provider
+exposes this value on the generated `tool-call` part as
+`providerMetadata.openai.namespace`.
+
+```ts
+for (const part of result.content) {
+  if (part.type === 'tool-call') {
+    console.log(part.providerMetadata?.openai?.namespace);
+  }
+}
+```
+
+When using `streamText`, the namespace is available on the `tool-input-end` event and on
+the final `tool-call` event:
+
+```ts
+for await (const part of result.stream) {
+  if (part.type === 'tool-input-end' || part.type === 'tool-call') {
+    console.log(part.providerMetadata?.openai?.namespace);
+  }
+}
+```
+
+If you persist or reconstruct messages for later turns, preserve the OpenAI provider
+metadata on tool-call parts. The SDK uses `providerMetadata.openai.namespace` or
+`providerOptions.openai.namespace` to round-trip the namespace back to OpenAI on
+subsequent requests.
+
 #### Web Search Tool
 
 The OpenAI responses API supports web search through the `openai.tools.webSearch` tool.
@@ -1025,6 +1057,52 @@ const result = await generateText({
 In hosted mode, the model internally searches the deferred tools, loads the relevant ones, and
 proceeds to call them — all within a single response. The `tool_search_call` and
 `tool_search_output` items appear in the response with `execution: 'server'` and `call_id: null`.
+
+##### Namespaces
+
+Use `providerOptions.openai.namespace` to group related function tools for OpenAI.
+The SDK keeps each tool executable as a normal AI SDK tool, but serializes grouped
+tools as OpenAI `namespace` entries in the request:
+
+```ts
+const crmNamespace = {
+  name: 'crm',
+  description: 'CRM tools for customer lookup and order management.',
+};
+
+const result = await generateText({
+  model: openai.responses('gpt-5.4'),
+  prompt: 'List open orders for customer cust_123.',
+  tools: {
+    toolSearch: openai.tools.toolSearch(),
+
+    get_customer_profile: tool({
+      description: 'Fetch a customer profile by customer ID.',
+      inputSchema: z.object({ customer_id: z.string() }),
+      execute: async ({ customer_id }) => ({ customer_id }),
+      providerOptions: {
+        openai: { namespace: crmNamespace },
+      },
+    }),
+
+    list_open_orders: tool({
+      description: 'List open orders for a customer ID.',
+      inputSchema: z.object({ customer_id: z.string() }),
+      execute: async ({ customer_id }) => ({ customer_id, orders: [] }),
+      providerOptions: {
+        openai: {
+          namespace: crmNamespace,
+          deferLoading: true,
+        },
+      },
+    }),
+  },
+});
+```
+
+Tools in the same namespace must use the same namespace `name` and `description`.
+For best results with tool search, keep namespace descriptions concise and put
+detailed usage guidance on the individual function tools.
 
 ##### Client-Executed Tool Search
 
@@ -2335,6 +2413,31 @@ The following optional provider options are available for OpenAI completion mode
   models. The table above lists popular models. You can also pass any available
   provider model ID as a string if needed.
 </Note>
+
+## Realtime Models
+
+<Note type="warning">Realtime is an experimental feature.</Note>
+
+You can create models that call the [OpenAI Realtime API](https://platform.openai.com/docs/guides/realtime)
+using the `.experimental_realtime()` factory method.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+
+const model = openai.experimental_realtime('gpt-realtime');
+```
+
+Realtime sessions run in the browser and require a short-lived token created on
+your server with `openai.experimental_realtime.getToken()`:
+
+```ts
+const token = await openai.experimental_realtime.getToken({
+  model: 'gpt-realtime',
+});
+```
+
+See [Realtime](/docs/ai-sdk-core/realtime) for the complete setup and tool
+calling pattern.
 
 ## Embedding Models
 

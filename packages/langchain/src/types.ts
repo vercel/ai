@@ -28,6 +28,20 @@ export interface LangGraphEventState {
   currentStep: number | null;
   /** Maps tool call key (name:argsJson) to tool call ID for HITL interrupt handling */
   emittedToolCallsByKey: Map<string, string>;
+  /** Tracks source IDs already emitted to avoid duplicates across messages/values events */
+  emittedSourceIds: Set<string>;
+}
+
+/**
+ * A LangChain citation projected to the fields the AI SDK source parts can carry.
+ */
+export interface NormalizedCitation {
+  url?: string;
+  title?: string;
+  source?: string;
+  citedText?: string;
+  startIndex?: number;
+  endIndex?: number;
 }
 
 /**

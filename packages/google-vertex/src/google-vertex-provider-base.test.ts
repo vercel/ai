@@ -1,7 +1,10 @@
 import type * as ProviderUtilsModule from '@ai-sdk/provider-utils';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createGoogleVertex } from './google-vertex-provider-base';
-import { GoogleLanguageModel } from '@ai-sdk/google/internal';
+import {
+  GoogleLanguageModel,
+  GoogleSpeechModel,
+} from '@ai-sdk/google/internal';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
 import { GoogleVertexImageModel } from './google-vertex-image-model';
 import { GoogleVertexVideoModel } from './google-vertex-video-model';
@@ -36,6 +39,7 @@ vi.mock('@ai-sdk/provider-utils', async importOriginal => {
 
 vi.mock('@ai-sdk/google/internal', () => ({
   GoogleLanguageModel: vi.fn(),
+  GoogleSpeechModel: vi.fn(),
   googleTools: {
     googleSearch: vi.fn(),
     urlContext: vi.fn(),
@@ -108,6 +112,37 @@ describe('google-vertex-provider-base', () => {
         baseURL:
           'https://test-location-aiplatform.googleapis.com/v1beta1/projects/test-project/locations/test-location/publishers/google',
       }),
+    );
+  });
+
+  it('should create a speech model with correct settings', () => {
+    const provider = createGoogleVertex({
+      project: 'test-project',
+      location: 'test-location',
+    });
+    provider.speech('gemini-2.5-flash-tts');
+
+    expect(GoogleSpeechModel).toHaveBeenCalledWith(
+      'gemini-2.5-flash-tts',
+      expect.objectContaining({
+        provider: 'google.vertex.speech',
+        headers: expect.any(Function),
+        baseURL:
+          'https://test-location-aiplatform.googleapis.com/v1beta1/projects/test-project/locations/test-location/publishers/google',
+      }),
+    );
+  });
+
+  it('should create a speech model via speechModel()', () => {
+    const provider = createGoogleVertex({
+      project: 'test-project',
+      location: 'test-location',
+    });
+    provider.speechModel('gemini-2.5-pro-tts');
+
+    expect(GoogleSpeechModel).toHaveBeenCalledWith(
+      'gemini-2.5-pro-tts',
+      expect.objectContaining({ provider: 'google.vertex.speech' }),
     );
   });
 

@@ -1,5 +1,24 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-canary.104
+
+### Patch Changes
+
+- Updated dependencies [ce769dd]
+  - @ai-sdk/provider@4.0.0-canary.18
+  - @ai-sdk/google@4.0.0-canary.79
+  - @ai-sdk/anthropic@4.0.0-canary.63
+  - @ai-sdk/openai-compatible@3.0.0-canary.54
+  - @ai-sdk/provider-utils@5.0.0-canary.46
+
+## 5.0.0-canary.103
+
+### Patch Changes
+
+- 2ce3c65: feat(provider/google-vertex): add Gemini text-to-speech (speech) model support
+- Updated dependencies [2ce3c65]
+  - @ai-sdk/google@4.0.0-canary.78
+
 ## 5.0.0-canary.102
 
 ### Patch Changes

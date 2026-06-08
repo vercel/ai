@@ -68,6 +68,8 @@ export interface TelemetryDispatcher {
   onLanguageModelCallEnd?: OnLanguageModelCallEndCallback;
   onToolExecutionStart?: Callback<ToolExecutionStartEvent>;
   onToolExecutionEnd?: Callback<ToolExecutionEndEvent>;
+  onStepEnd?: Callback<GenerateTextStepEndEvent>;
+  /** @deprecated Use `onStepEnd` instead. */
   onStepFinish?: Callback<GenerateTextStepEndEvent>;
   onObjectStepStart?: Callback<GenerateObjectStepStartEvent>;
   onObjectStepFinish?: Callback<GenerateObjectStepEndEvent>;
@@ -144,6 +146,13 @@ export interface Telemetry {
    * The event is a `StepResult` containing the model's response, tool calls
    * and results, usage statistics, finish reason, and optional request/response
    * bodies.
+   */
+  onStepEnd?: Callback<InferTelemetryEvent<GenerateTextStepEndEvent>>;
+
+  /**
+   * Called when an individual step (single LLM invocation) completes.
+   *
+   * @deprecated Use `onStepEnd` instead.
    */
   onStepFinish?: Callback<InferTelemetryEvent<GenerateTextStepEndEvent>>;
 
