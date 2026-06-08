@@ -34,13 +34,13 @@ import {
   type Instructions,
 } from 'ai';
 import {
-  createLanguageModelToolResultOutput,
   createRestrictedTelemetryDispatcher,
   convertToLanguageModelPrompt,
   mergeAbortSignals,
   mergeCallbacks,
   standardizePrompt,
 } from 'ai/internal';
+import { createLanguageModelToolResultOutput } from './create-language-model-tool-result-output.js';
 import { streamTextIterator } from './stream-text-iterator.js';
 
 // Re-export for consumers
