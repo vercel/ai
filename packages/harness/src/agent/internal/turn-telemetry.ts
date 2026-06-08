@@ -237,8 +237,8 @@ export function createTurnTelemetry(opts: {
         usage: info.usage,
         content,
       });
-      dispatcher.onStepFinish?.(
-        cast<'onStepFinish'>({
+      dispatcher.onStepEnd?.(
+        cast<'onStepEnd'>({
           callId,
           finishReason: info.finishReason,
           usage: info.usage,
@@ -309,8 +309,8 @@ export function createTurnTelemetry(opts: {
           usage: info.usage,
           content: [],
         });
-        dispatcher.onStepFinish?.(
-          cast<'onStepFinish'>({
+        dispatcher.onStepEnd?.(
+          cast<'onStepEnd'>({
             callId,
             finishReason: info.finishReason,
             usage: info.usage,
