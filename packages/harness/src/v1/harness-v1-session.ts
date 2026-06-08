@@ -21,6 +21,12 @@ export type HarnessV1Session = {
   readonly sessionId: string;
 
   /**
+   * Whether this session was created from a resume payload. Fresh sessions
+   * report `false`; resumed sessions report `true`.
+   */
+  readonly isResume: boolean;
+
+  /**
    * The model id the underlying runtime is configured to use, if the adapter
    * knows it (e.g. from its settings). Surfaced into telemetry as
    * `gen_ai.request.model` and the trace span labels. Omitted when the adapter
@@ -65,7 +71,7 @@ export type HarnessV1Session = {
    *    in flight at the interruption is recomputed.
    *
    * Required on every adapter. The behaviour an adapter can guarantee follows
-   * from its architecture (see `resumeMode`); the contract is uniform.
+   * from its architecture; the contract is uniform.
    */
   doContinueTurn(
     options: HarnessV1ContinueOptions,
@@ -78,8 +84,7 @@ export type HarnessV1Session = {
    * instance may be called.
    *
    * Required. Adapters that cannot keep a live runtime parked still return the
-   * best resume state they can while leaving the sandbox running; their next
-   * session may resume with `resumeMode: 'rerun'`.
+   * best resume state they can while leaving the sandbox running.
    */
   doDetach(): PromiseLike<HarnessV1ResumeState>;
 
@@ -115,33 +120,4 @@ export type HarnessV1Session = {
    * session handoff. Required on every adapter.
    */
   doSuspendTurn(): PromiseLike<HarnessV1ResumeState>;
-} & HarnessV1SessionResumeInfo;
-
-export type HarnessV1SessionResumeInfo =
-  | {
-      /**
-       * Whether this session was created from a resume payload. Fresh sessions
-       * report `false` and must leave `resumeMode` unset.
-       */
-      readonly isResume: false;
-      readonly resumeMode?: undefined;
-    }
-  | {
-      /**
-       * Whether this session was created from a resume payload. Resumed
-       * sessions report `true` and must also report the resume strategy used.
-       */
-      readonly isResume: true;
-
-      /**
-       * How this resumed session was re-established:
-       *
-       *  - `'attach'`: reconnected to a live bridge.
-       *  - `'replay'`: respawned a bridge and replayed an event log from disk.
-       *  - `'rerun'`: continued the runtime's own persisted thread/state.
-       */
-      readonly resumeMode: HarnessV1ResumeMode;
-    };
-
-/** @see HarnessV1Session.resumeMode */
-export type HarnessV1ResumeMode = 'attach' | 'replay' | 'rerun';
+};

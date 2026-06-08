@@ -12,7 +12,6 @@ import {
   type HarnessV1BuiltinTool,
   type HarnessV1Prompt,
   type HarnessV1PromptControl,
-  type HarnessV1ResumeMode,
   type HarnessV1ResumeState,
   type HarnessV1NetworkSandboxSession,
   type HarnessV1Session,
@@ -35,6 +34,7 @@ import {
 } from './codex-bridge-protocol';
 
 type CodexChannel = SandboxChannel<OutboundMessage, InboundMessage>;
+type CodexRespawnStrategy = 'replay' | 'rerun';
 
 /*
  * The model the adapter pins when the consumer configures none. The Codex SDK
@@ -261,7 +261,9 @@ export function createCodex(
             reasoningEffort: settings.reasoningEffort,
             webSearch: settings.webSearch,
             resumeThreadId: resumeThreadIdString,
-            resumeMode: 'attach',
+            isResume: true,
+            seedResumeThreadOnFirstPrompt: false,
+            rerunContinue: false,
             bridgePort: coords.port,
             bridgeToken: coords.token,
             sandboxId,
@@ -279,7 +281,7 @@ export function createCodex(
        * finished its turn, and a `stop()` payload has no bridge cursor; both
        * should `rerun` via `codex.resumeThread(threadId)`.
        */
-      let resumeMode: HarnessV1ResumeMode | undefined = isResume
+      let respawnStrategy: CodexRespawnStrategy | undefined = isResume
         ? 'rerun'
         : undefined;
       if (coords && continueTurnOnAttach) {
@@ -290,7 +292,7 @@ export function createCodex(
           }),
         ).catch(() => null);
         if ((await classifyDiskLog(logRaw)) === 'replay') {
-          resumeMode = 'replay';
+          respawnStrategy = 'replay';
         }
       }
 
@@ -300,10 +302,12 @@ export function createCodex(
         ...resolveCodexEnv(settings.auth),
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),
-        ...(resumeMode === 'replay' ? { BRIDGE_REPLAY_FROM_DISK: '1' } : {}),
+        ...(respawnStrategy === 'replay'
+          ? { BRIDGE_REPLAY_FROM_DISK: '1' }
+          : {}),
       };
 
-      if (resumeMode === undefined) {
+      if (respawnStrategy === undefined) {
         await session.run({
           command: `mkdir -p ${workDir} ${bridgeStateDir}`,
           abortSignal: startOpts.abortSignal,
@@ -335,12 +339,12 @@ export function createCodex(
         // In replay mode the respawned bridge reloaded the finished turn from
         // disk; seed the cursor and resume so it streams the tail (incl.
         // `finish`).
-        ...(resumeMode === 'replay'
+        ...(respawnStrategy === 'replay'
           ? { initialLastSeenEventId: coords?.lastSeenEventId ?? 0 }
           : {}),
       });
       await channel.open(
-        resumeMode === 'replay' ? { resume: true } : undefined,
+        respawnStrategy === 'replay' ? { resume: true } : undefined,
       );
 
       return createSession({
@@ -352,7 +356,9 @@ export function createCodex(
         reasoningEffort: settings.reasoningEffort,
         webSearch: settings.webSearch,
         resumeThreadId: resumeThreadIdString,
-        resumeMode,
+        isResume: respawnStrategy !== undefined,
+        seedResumeThreadOnFirstPrompt: respawnStrategy !== undefined,
+        rerunContinue: respawnStrategy === 'rerun',
         bridgePort: boundPort,
         bridgeToken: token,
         sandboxId,
@@ -530,7 +536,9 @@ function createSession({
   reasoningEffort,
   webSearch,
   resumeThreadId,
-  resumeMode,
+  isResume,
+  seedResumeThreadOnFirstPrompt,
+  rerunContinue,
   bridgePort,
   bridgeToken,
   sandboxId,
@@ -545,7 +553,9 @@ function createSession({
   reasoningEffort: 'low' | 'medium' | 'high' | undefined;
   webSearch: boolean | undefined;
   resumeThreadId: string | undefined;
-  resumeMode: HarnessV1ResumeMode | undefined;
+  isResume: boolean;
+  seedResumeThreadOnFirstPrompt: boolean;
+  rerunContinue: boolean;
   bridgePort: number;
   bridgeToken: string;
   sandboxId: string;
@@ -559,17 +569,16 @@ function createSession({
    * An `attach`ed bridge already holds its threadState in memory and continues
    * on its own, so it needs no seed.
    */
-  let pendingResumeThreadId =
-    resumeMode === 'rerun' || resumeMode === 'replay'
-      ? resumeThreadId
-      : undefined;
+  let pendingResumeThreadId = seedResumeThreadOnFirstPrompt
+    ? resumeThreadId
+    : undefined;
   /*
    * Instructions are prepended to the first user message of a fresh session
    * only. A resumed session (attach/replay/rerun) already carried them in its
    * original first message (preserved in the persisted thread), so it starts
    * "applied".
    */
-  let instructionsApplied = resumeMode !== undefined;
+  let instructionsApplied = isResume;
 
   /*
    * Latest codex thread id, cached from the bridge's `bridge-thread`
@@ -708,9 +717,7 @@ function createSession({
 
   return {
     sessionId,
-    ...(resumeMode === undefined
-      ? { isResume: false, resumeMode: undefined }
-      : { isResume: true, resumeMode }),
+    isResume,
     modelId: model,
     doPromptTurn: async promptOpts => {
       const control = wireTurn({
@@ -771,7 +778,7 @@ function createSession({
        * at the interruption is recomputed. This is the rare bridge-died
        * fallback; the common slice path is `attach`.
        */
-      if (resumeMode === 'rerun') {
+      if (rerunContinue) {
         const threadId = pendingResumeThreadId ?? latestThreadId;
         pendingResumeThreadId = undefined;
         channel.send({

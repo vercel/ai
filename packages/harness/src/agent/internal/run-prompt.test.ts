@@ -36,7 +36,6 @@ function fakeSession(
   return {
     sessionId: 'fake-session',
     isResume: false,
-    resumeMode: undefined,
     doPromptTurn: async (opts: HarnessV1PromptOptions) => emitScript(opts.emit),
     doContinueTurn: async opts => emitScript(opts.emit),
     doCompact: async () => {},

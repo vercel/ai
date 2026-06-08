@@ -4,8 +4,7 @@
  * `session.detach()` parks the bridge and sandbox, returns live coordinates,
  * and makes the current session handle unusable. A fresh `HarnessAgent`
  * (standing in for a different server process) reattaches to the still-running
- * bridge and continues mid-conversation. `session.isResume` reports `true`
- * and `session.resumeMode` reports `'attach'`.
+ * bridge and continues mid-conversation. `session.isResume` reports `true`.
  */
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import type { HarnessV1ResumeState } from '@ai-sdk/harness';
@@ -45,11 +44,9 @@ run(async () => {
       sessionId,
       resumeFrom: resumeState,
     });
-    console.log('--- turn 2 (resumeMode:', session.resumeMode, ') ---');
-    if (!session.isResume || session.resumeMode !== 'attach') {
-      throw new Error(
-        `expected resumeMode 'attach', got '${session.resumeMode}'`,
-      );
+    console.log('--- turn 2 ---');
+    if (!session.isResume) {
+      throw new Error('expected resumed session');
     }
     const result = await agent.stream({
       session,

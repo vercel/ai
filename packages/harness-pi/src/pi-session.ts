@@ -525,10 +525,6 @@ export async function createPiSession(
     return control;
   }
 
-  const resumeInfo = input.isResume
-    ? { isResume: true as const, resumeMode: 'rerun' as const }
-    : { isResume: false as const, resumeMode: undefined };
-
   const doStop = async (): Promise<HarnessV1ResumeState> => {
     if (stopped) {
       throw new Error('Pi session has been stopped.');
@@ -568,7 +564,7 @@ export async function createPiSession(
 
   const sessionImpl: HarnessV1Session = {
     sessionId: input.sessionId,
-    ...resumeInfo,
+    isResume: input.isResume,
     // The model Pi actually resolves to (the configured id, or its default when
     // unset) — `gen_ai.request.model`.
     ...(resolvedModel?.id ? { modelId: resolvedModel.id } : {}),
@@ -602,8 +598,8 @@ export async function createPiSession(
        * to attach to — the previous slice's turn died with its process.
        * Rerun-continue: re-drive the agent from the journal restored on resume.
        * An empty prompt asks Pi to continue its own thread. Lossy — any work in
-       * flight at the slice boundary is recomputed. Matches Pi's `'rerun'`
-       * resumeMode (a host-resident runtime cannot do a lossless attach).
+       * flight at the slice boundary is recomputed because a host-resident
+       * runtime cannot do a lossless attach.
        */
       return runTurn({
         text: '',

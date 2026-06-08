@@ -1,7 +1,6 @@
 import type {
   HarnessV1,
   HarnessV1NetworkSandboxSession,
-  HarnessV1ResumeMode,
   HarnessV1ResumeState,
   HarnessV1SandboxProvider,
   HarnessV1Session,
@@ -45,13 +44,6 @@ export class HarnessAgentSession {
    */
   readonly isResume: boolean;
 
-  /**
-   * How this resumed session was re-established — `'attach'`, `'replay'`, or
-   * `'rerun'`. Fresh sessions leave it unset. Captured at construction so it
-   * survives lifecycle cleanup.
-   */
-  readonly resumeMode: HarnessV1ResumeMode | undefined;
-
   constructor(options: {
     sessionId: string;
     harness: HarnessV1;
@@ -69,7 +61,6 @@ export class HarnessAgentSession {
     this.leasedBridgePort = options.leasedBridgePort;
     this.sessionWorkDir = options.sessionWorkDir;
     this.isResume = options.underlyingSession.isResume;
-    this.resumeMode = options.underlyingSession.resumeMode;
   }
 
   /**

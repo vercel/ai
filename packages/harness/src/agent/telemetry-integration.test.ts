@@ -23,7 +23,6 @@ function scriptedHarness(script: HarnessV1StreamPart[]): HarnessV1 {
   const session: HarnessV1Session = {
     sessionId: 'tel-session',
     isResume: false,
-    resumeMode: undefined,
     doPromptTurn: async (opts: HarnessV1PromptOptions) => {
       const control: HarnessV1PromptControl = {
         submitToolResult: async () => {},

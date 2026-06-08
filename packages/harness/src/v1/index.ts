@@ -32,11 +32,7 @@ export type {
   HarnessV1NetworkPolicy,
   HarnessV1NetworkSandboxSession,
 } from './harness-v1-network-sandbox-session';
-export type {
-  HarnessV1ResumeMode,
-  HarnessV1Session,
-  HarnessV1SessionResumeInfo,
-} from './harness-v1-session';
+export type { HarnessV1Session } from './harness-v1-session';
 export type { HarnessV1Skill } from './harness-v1-skill';
 export type { HarnessV1StreamPart } from './harness-v1-stream-part';
 export {

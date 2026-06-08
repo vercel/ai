@@ -50,7 +50,6 @@ function mockHarness(options: {
   const session: HarnessV1Session = {
     sessionId: 'mock-session-1',
     isResume: false,
-    resumeMode: undefined,
     doPromptTurn: async (opts: HarnessV1PromptOptions) => {
       prompts.push(opts.prompt);
       const control: HarnessV1PromptControl = {
@@ -131,7 +130,6 @@ function makeLifecycleSession(options: {
   const underlyingSession = {
     sessionId: 'lifecycle-session',
     isResume: false,
-    resumeMode: undefined,
     doPromptTurn: async () => ({
       submitToolResult: async () => {},
       done: Promise.resolve(),
@@ -609,7 +607,6 @@ describe('HarnessAgent', () => {
     const underlying: HarnessV1Session = {
       sessionId: 's-attach',
       isResume: true,
-      resumeMode: 'attach',
       doPromptTurn: async (opts: HarnessV1PromptOptions) => {
         queueMicrotask(() => opts.emit({ type: 'finish' } as never));
         return { submitToolResult: async () => {}, done: Promise.resolve() };
@@ -651,7 +648,6 @@ describe('HarnessAgent', () => {
     const agent = new HarnessAgent({ harness });
     const session = await agent.createSession();
     expect(session.isResume).toBe(true);
-    expect(session.resumeMode).toBe('attach');
 
     const handle = await session.detach();
     expect(handle).toEqual({
@@ -678,7 +674,6 @@ describe('HarnessAgent', () => {
     const underlying: HarnessV1Session = {
       sessionId: 's-stop',
       isResume: false,
-      resumeMode: undefined,
       doPromptTurn: async () => ({
         submitToolResult: async () => {},
         done: Promise.resolve(),
