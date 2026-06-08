@@ -95,14 +95,4 @@ describe('stripWorkDir', () => {
     };
     expect(stripWorkDir(part, WORK_DIR)).toBe(part);
   });
-
-  it('is a no-op when sessionWorkDir is undefined', () => {
-    const part: HarnessV1StreamPart = {
-      type: 'tool-call',
-      toolCallId: 'c1',
-      toolName: 'readFile',
-      input: JSON.stringify({ path: `${WORK_DIR}/src/foo.ts` }),
-    };
-    expect(stripWorkDir(part, undefined)).toBe(part);
-  });
 });

@@ -12,9 +12,9 @@ import { validateResumeStateData } from './internal/resume-state-validation';
  * Live harness session held by the caller.
  *
  * Created by {@link import('./harness-agent').HarnessAgent.createSession}.
- * Owns the underlying `HarnessV1Session`, the network sandbox session (when the
- * agent has a sandbox provider), and the bridge-port lease (when the
- * provider wraps a caller-provided sandbox with a port pool).
+ * Owns the underlying `HarnessV1Session`, the network sandbox session, and the
+ * bridge-port lease (when the provider wraps a caller-provided sandbox with a
+ * port pool).
  *
  * Pass the instance back to `agent.generate` / `agent.stream` on every
  * call; end the local handle with `detach()`, `stop()`, or `destroy()`.
@@ -31,8 +31,8 @@ export class HarnessAgentSession {
   readonly sessionId: string;
 
   private readonly harness: HarnessV1;
-  private readonly sandboxProvider: HarnessV1SandboxProvider | undefined;
-  private readonly sessionWorkDir: string | undefined;
+  private readonly sandboxProvider: HarnessV1SandboxProvider;
+  private readonly sessionWorkDir: string;
   private underlyingSession: HarnessV1Session | undefined;
   private sandboxSession: HarnessV1NetworkSandboxSession | undefined;
   private leasedBridgePort: number | undefined;
@@ -48,10 +48,10 @@ export class HarnessAgentSession {
     sessionId: string;
     harness: HarnessV1;
     underlyingSession: HarnessV1Session;
-    sandboxSession?: HarnessV1NetworkSandboxSession;
-    sandboxProvider?: HarnessV1SandboxProvider;
+    sandboxSession: HarnessV1NetworkSandboxSession;
+    sandboxProvider: HarnessV1SandboxProvider;
     leasedBridgePort?: number;
-    sessionWorkDir?: string;
+    sessionWorkDir: string;
   }) {
     this.sessionId = options.sessionId;
     this.harness = options.harness;
@@ -79,22 +79,26 @@ export class HarnessAgentSession {
   }
 
   /**
-   * Active network sandbox session, when the agent's provider produced one.
+   * Active network sandbox session.
    *
    * @internal — accessed only by the agent's turn driver.
    */
-  getSandboxSession(): HarnessV1NetworkSandboxSession | undefined {
+  getSandboxSession(): HarnessV1NetworkSandboxSession {
+    if (this.stopped || this.sandboxSession == null) {
+      throw new Error(
+        `Harness session ${this.sessionId} has ended and cannot be reused.`,
+      );
+    }
     return this.sandboxSession;
   }
 
   /**
-   * Working directory the agent runs in for this session, or `undefined` when
-   * the session has no sandbox. Used to strip the prefix from absolute paths in
-   * stream events before they reach consumers.
+   * Working directory the agent runs in for this session. Used to strip the
+   * prefix from absolute paths in stream events before they reach consumers.
    *
    * @internal — accessed only by the agent's turn driver.
    */
-  getSessionWorkDir(): string | undefined {
+  getSessionWorkDir(): string {
     return this.sessionWorkDir;
   }
 
@@ -148,7 +152,7 @@ export class HarnessAgentSession {
       );
     }
     const session = this.underlyingSession;
-    const sandboxSession = this.sandboxSession;
+    const sandboxSession = this.getSandboxSession();
     try {
       const raw = await session.doStop();
       return await validateResumeStateData({
@@ -157,9 +161,7 @@ export class HarnessAgentSession {
       });
     } finally {
       this.endLocalHandle({ releasePortLease: true });
-      if (sandboxSession != null) {
-        await Promise.resolve(sandboxSession.stop()).catch(() => {});
-      }
+      await Promise.resolve(sandboxSession.stop()).catch(() => {});
     }
   }
 
@@ -170,16 +172,14 @@ export class HarnessAgentSession {
   async destroy(): Promise<void> {
     if (this.stopped) return;
     const session = this.underlyingSession;
-    const sandboxSession = this.sandboxSession;
+    const sandboxSession = this.getSandboxSession();
     this.endLocalHandle({ releasePortLease: true });
     if (session != null) {
       await Promise.resolve(session.doDestroy()).catch(() => {});
     }
-    if (sandboxSession != null) {
-      await Promise.resolve(
-        sandboxSession.destroy?.() ?? sandboxSession.stop(),
-      ).catch(() => {});
-    }
+    await Promise.resolve(
+      sandboxSession.destroy?.() ?? sandboxSession.stop(),
+    ).catch(() => {});
   }
 
   /**
@@ -226,12 +226,10 @@ export class HarnessAgentSession {
 
   private releasePortLease(): void {
     if (this.leasedBridgePort == null) return;
-    if (this.sandboxProvider != null) {
-      releaseBridgePort({
-        poolKey: this.sandboxProvider,
-        sessionId: this.sessionId,
-      });
-    }
+    releaseBridgePort({
+      poolKey: this.sandboxProvider,
+      sessionId: this.sessionId,
+    });
     this.leasedBridgePort = undefined;
   }
 }

@@ -1,3 +1,4 @@
+import type { HarnessV1SandboxProvider } from '@ai-sdk/harness';
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { tool } from 'ai';
 import { describe, expect, it } from 'vitest';
@@ -7,8 +8,8 @@ import { addTool } from './tools';
 /*
  * No-HTTP core test — `agent.tools` merges the harness builtins with the
  * user-defined tools, with user tools overriding builtins on key collision.
- * Pure construction (no session, no sandbox, no credentials), so it runs in the
- * default `pnpm test` rather than the sandbox-booting integration suite.
+ * Pure construction (no session and no credentials), so it runs in the default
+ * `pnpm test` rather than the sandbox-booting integration suite.
  *
  * Parity note: the original `e2e-core` also asserts auto/user `sessionId` and
  * `workDir`. Those do not port to this reimpl — `sessionId` lives on the
@@ -17,6 +18,13 @@ import { addTool } from './tools';
  * parity caveat in KEY_REQUIREMENTS_AND_GAPS.md, not forced into a test here.
  */
 const DUMMY_CREDENTIAL = { apiKey: 'unit-test-key' } as const;
+const sandbox: HarnessV1SandboxProvider = {
+  specificationVersion: 'harness-sandbox-v1',
+  providerId: 'unit-test-sandbox',
+  create: async () => {
+    throw new Error('not used');
+  },
+};
 
 for (const adapter of REPLAY_ADAPTERS) {
   describe(`tools listing: ${adapter.name}`, () => {
@@ -24,6 +32,7 @@ for (const adapter of REPLAY_ADAPTERS) {
       const harness = adapter.createHarness(DUMMY_CREDENTIAL);
       const agent = new HarnessAgent({
         harness,
+        sandbox,
         tools: { add: addTool() },
       });
 
@@ -49,6 +58,7 @@ for (const adapter of REPLAY_ADAPTERS) {
       });
       const agent = new HarnessAgent({
         harness,
+        sandbox,
         tools: { [builtinName]: override },
       });
 

@@ -56,8 +56,8 @@ export function runPrompt<
   instructions: string | undefined;
   tools: TOOLS;
   toolSpecs: HarnessV1ToolSpec[];
-  sandboxSession: SandboxSession | undefined;
-  sessionWorkDir: string | undefined;
+  sandboxSession: SandboxSession;
+  sessionWorkDir: string;
   runtimeContext: RUNTIME_CONTEXT;
   abortSignal: AbortSignal | undefined;
   telemetry?: TelemetryOptions | undefined;
@@ -312,7 +312,7 @@ type HostToolOutcome =
 async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
   event: { toolCallId: string; toolName: string; input: string };
   tools: TOOLS;
-  sandboxSession: SandboxSession | undefined;
+  sandboxSession: SandboxSession;
   abortSignal: AbortSignal | undefined;
   control: HarnessV1PromptControl;
   /**

@@ -1,4 +1,8 @@
-import { tool, type ToolSet } from '@ai-sdk/provider-utils';
+import {
+  tool,
+  type Experimental_SandboxSession,
+  type ToolSet,
+} from '@ai-sdk/provider-utils';
 import type { TextStreamPart } from 'ai';
 import { describe, expect, test } from 'vitest';
 import { z } from 'zod';
@@ -12,6 +16,7 @@ import type {
 import { runPrompt } from './run-prompt';
 
 const WORK_DIR = '/vercel/sandbox/claude-code-abc123';
+const sandboxSession = {} as Experimental_SandboxSession;
 
 function fakeSession(
   script: HarnessV1StreamPart[],
@@ -127,7 +132,7 @@ describe('runPrompt workDir stripping', () => {
       instructions: undefined,
       tools: { readFile } as ToolSet,
       toolSpecs: [],
-      sandboxSession: undefined,
+      sandboxSession,
       sessionWorkDir: WORK_DIR,
       runtimeContext: {} as never,
       abortSignal: undefined,
@@ -154,39 +159,6 @@ describe('runPrompt workDir stripping', () => {
       { type: 'tool-result' }
     >;
     expect(toolResult.output).toBe('src/foo.ts\nsrc/bar.ts\n');
-  });
-
-  test('leaves paths untouched when there is no sessionWorkDir', async () => {
-    const { result, done } = runPrompt({
-      harness,
-      session: fakeSession([
-        {
-          type: 'tool-result',
-          toolCallId: 'b1',
-          toolName: 'bash',
-          result: `${WORK_DIR}/src/foo.ts\n`,
-        },
-        ...finishEvents,
-      ]),
-      prompt: 'go',
-      instructions: undefined,
-      tools: {} as ToolSet,
-      toolSpecs: [],
-      sandboxSession: undefined,
-      sessionWorkDir: undefined,
-      runtimeContext: {} as never,
-      abortSignal: undefined,
-    });
-
-    const parts: TextStreamPart<ToolSet>[] = [];
-    for await (const part of result.fullStream) parts.push(part);
-    await done;
-
-    const toolResult = parts.find(p => p.type === 'tool-result') as Extract<
-      TextStreamPart<ToolSet>,
-      { type: 'tool-result' }
-    >;
-    expect(toolResult.output).toBe(`${WORK_DIR}/src/foo.ts\n`);
   });
 });
 
@@ -235,8 +207,8 @@ describe('runPrompt host tool generator results', () => {
       instructions: undefined,
       tools: { weather } as ToolSet,
       toolSpecs: [],
-      sandboxSession: undefined,
-      sessionWorkDir: undefined,
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
       runtimeContext: {} as never,
       abortSignal: undefined,
     });
@@ -287,8 +259,8 @@ describe('runPrompt host tool generator results', () => {
       instructions: undefined,
       tools: { echo } as ToolSet,
       toolSpecs: [],
-      sandboxSession: undefined,
-      sessionWorkDir: undefined,
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
       runtimeContext: {} as never,
       abortSignal: undefined,
     });
@@ -325,7 +297,7 @@ describe('runPrompt host tool generator results', () => {
       instructions: undefined,
       tools: { find } as ToolSet,
       toolSpecs: [],
-      sandboxSession: undefined,
+      sandboxSession,
       sessionWorkDir: WORK_DIR,
       runtimeContext: {} as never,
       abortSignal: undefined,

@@ -172,71 +172,66 @@ export class HarnessAgent<
       });
     }
 
-    let sandboxSession: HarnessV1NetworkSandboxSession | undefined;
-    let sessionWorkDir: string | undefined;
-    let leasedBridgePort: number | undefined;
     let recipe: HarnessV1Bootstrap | undefined;
     let identity: string | undefined;
 
-    if (sandboxProvider != null) {
-      if (harness.getBootstrap != null) {
-        recipe = await harness.getBootstrap({ abortSignal });
-        identity = await hashBootstrap(recipe);
-      }
+    if (harness.getBootstrap != null) {
+      recipe = await harness.getBootstrap({ abortSignal });
+      identity = await hashBootstrap(recipe);
+    }
 
-      sandboxSession = await this._acquireSandbox({
-        sandboxProvider,
-        sessionId,
-        isResume: validatedResumeFrom != null,
-        recipe,
-        identity,
-        abortSignal,
-      });
+    const acquiredSandboxSession = await this._acquireSandbox({
+      sandboxProvider,
+      sessionId,
+      isResume: validatedResumeFrom != null,
+      recipe,
+      identity,
+      abortSignal,
+    });
 
-      const leased = applyPortLease({
-        provider: sandboxProvider,
-        sandboxSession,
-        sessionId,
-      });
-      sandboxSession = leased.sandboxSession;
-      leasedBridgePort = leased.port;
-      sessionWorkDir = `${sandboxSession.defaultWorkingDirectory}/${harness.harnessId}-${sessionId}`;
+    const leased = applyPortLease({
+      provider: sandboxProvider,
+      sandboxSession: acquiredSandboxSession,
+      sessionId,
+    });
+    const sandboxSession = leased.sandboxSession;
+    const leasedBridgePort = leased.port;
+    const sessionWorkDir = `${sandboxSession.defaultWorkingDirectory}/${harness.harnessId}-${sessionId}`;
 
-      // On resume the recipe is already baked into the sandbox snapshot;
-      // skip re-applying it and skip the setup hook (it ran on the
-      // original create).
-      if (validatedResumeFrom == null) {
-        try {
-          if (recipe != null && identity != null) {
-            await applyBootstrapRecipe(
-              sandboxSession.restricted(),
-              recipe,
-              identity,
-              { abortSignal },
-            );
-          }
-          // Create the session work dir before `setup` so the hook can
-          // operate against it (e.g. clone a repo into it).
-          await sandboxSession.run({
-            command: `mkdir -p ${sessionWorkDir}`,
+    // On resume the recipe is already baked into the sandbox snapshot;
+    // skip re-applying it and skip the setup hook (it ran on the
+    // original create).
+    if (validatedResumeFrom == null) {
+      try {
+        if (recipe != null && identity != null) {
+          await applyBootstrapRecipe(
+            sandboxSession.restricted(),
+            recipe,
+            identity,
+            { abortSignal },
+          );
+        }
+        // Create the session work dir before `setup` so the hook can
+        // operate against it (e.g. clone a repo into it).
+        await sandboxSession.run({
+          command: `mkdir -p ${sessionWorkDir}`,
+          abortSignal,
+        });
+        if (sandboxProvider.setup != null) {
+          await sandboxProvider.setup({
+            session: sandboxSession.restricted(),
+            sessionWorkDir,
             abortSignal,
           });
-          if (sandboxProvider.setup != null) {
-            await sandboxProvider.setup({
-              session: sandboxSession.restricted(),
-              sessionWorkDir,
-              abortSignal,
-            });
-          }
-        } catch (err) {
-          await cleanupAfterStartFailure({
-            sandboxProvider,
-            sandboxSession,
-            sessionId,
-            leasedBridgePort,
-          });
-          throw err;
         }
+      } catch (err) {
+        await cleanupAfterStartFailure({
+          sandboxProvider,
+          sandboxSession,
+          sessionId,
+          leasedBridgePort,
+        });
+        throw err;
       }
     }
 
@@ -248,11 +243,11 @@ export class HarnessAgent<
         abortSignal,
         observability: buildObservability({ settings: this.settings }),
       };
-      const underlyingSession = await harness.doStart(
-        sandboxSession != null && sessionWorkDir != null
-          ? { ...baseStartOptions, sandboxSession, sessionWorkDir }
-          : baseStartOptions,
-      );
+      const underlyingSession = await harness.doStart({
+        ...baseStartOptions,
+        sandboxSession,
+        sessionWorkDir,
+      });
       return new HarnessAgentSession({
         sessionId,
         harness,
@@ -263,14 +258,12 @@ export class HarnessAgent<
         sessionWorkDir,
       });
     } catch (error) {
-      if (sandboxSession != null) {
-        await cleanupAfterStartFailure({
-          sandboxProvider: sandboxProvider!,
-          sandboxSession,
-          sessionId,
-          leasedBridgePort,
-        });
-      }
+      await cleanupAfterStartFailure({
+        sandboxProvider,
+        sandboxSession,
+        sessionId,
+        leasedBridgePort,
+      });
       throw error;
     }
   }
@@ -346,7 +339,7 @@ export class HarnessAgent<
       instructions: this.settings.instructions,
       tools: this.tools,
       toolSpecs: this._toToolSpecs(),
-      sandboxSession: sandboxSession?.restricted(),
+      sandboxSession: sandboxSession.restricted(),
       sessionWorkDir,
       runtimeContext,
       abortSignal: options.abortSignal,
@@ -396,7 +389,7 @@ export class HarnessAgent<
       instructions: this.settings.instructions,
       tools: this.tools,
       toolSpecs,
-      sandboxSession: sandboxSession?.restricted(),
+      sandboxSession: sandboxSession.restricted(),
       sessionWorkDir,
       runtimeContext,
       abortSignal: options.abortSignal,

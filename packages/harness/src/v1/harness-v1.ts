@@ -11,9 +11,9 @@ import type { HarnessV1Session } from './harness-v1-session';
  * descriptive fields, and one entry-point method (`doStart`) that yields a
  * session. There is intentionally no static "capabilities" object —
  * optional features are signalled by the presence or absence of optional
- * methods on the prompt-control handle. Adapters that cannot
- * satisfy a request (no sandbox provided, manual compaction not supported, …) throw
- * `HarnessCapabilityUnsupportedError` from the method that needs the
+ * methods on the prompt-control handle. Adapters that cannot satisfy a request
+ * (manual compaction not supported, required port exposure unavailable, …)
+ * throw `HarnessCapabilityUnsupportedError` from the method that needs the
  * capability.
  */
 export type HarnessV1<TBuiltinTools extends ToolSet = ToolSet> = {
@@ -54,7 +54,7 @@ export type HarnessV1<TBuiltinTools extends ToolSet = ToolSet> = {
    * one-time recipe-application hook) to the sandbox provider, and applies
    * the recipe idempotently after the provider returns the handle.
    *
-   * Adapters with no sandbox needs omit this. Adapters that need to install
+   * Adapters with no bootstrap needs omit this. Adapters that need to install
    * deps or ship bridge files into the sandbox declare them here so the
    * provider can cache the result across sessions via snapshots when
    * supported.

@@ -3,6 +3,7 @@ import {
   type AnthropicLanguageModelOptions,
 } from '@ai-sdk/anthropic';
 import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
 import { run } from '../../lib/run';
 import { mockHarness } from './mock-harness';
 
@@ -16,6 +17,7 @@ run(async () => {
         } satisfies AnthropicLanguageModelOptions,
       },
     }),
+    sandbox: createJustBashSandbox(),
   });
 
   const session = await agent.createSession();

@@ -61,13 +61,6 @@ describe('createClaudeCode adapter', () => {
     expect(harness.builtinTools.WebFetch).toBeDefined();
   });
 
-  it('throws HarnessCapabilityUnsupportedError when no network sandbox session is provided', async () => {
-    const harness = createClaudeCode();
-    await expect(harness.doStart({ sessionId: 's1' })).rejects.toBeInstanceOf(
-      HarnessCapabilityUnsupportedError,
-    );
-  });
-
   it('throws HarnessCapabilityUnsupportedError when the network sandbox session exposes no ports', async () => {
     const harness = createClaudeCode();
     const sandboxSession = {

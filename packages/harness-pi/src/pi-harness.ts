@@ -1,6 +1,5 @@
 import {
   commonTool,
-  HarnessCapabilityUnsupportedError,
   type HarnessV1,
   type HarnessV1BuiltinTool,
 } from '@ai-sdk/harness';
@@ -107,14 +106,6 @@ export function createPi(
     builtinTools: PI_BUILTIN_TOOLS,
     resumeStateSchema: piResumeStateSchema,
     doStart: async startOpts => {
-      if (startOpts.sandboxSession == null) {
-        throw new HarnessCapabilityUnsupportedError({
-          harnessId: 'pi',
-          message:
-            'The pi harness requires a sandbox provider. Pass `sandbox` to the HarnessAgent constructor.',
-        });
-      }
-
       const resumeData = startOpts.resumeFrom?.data as
         | { sessionFileName?: string }
         | undefined;

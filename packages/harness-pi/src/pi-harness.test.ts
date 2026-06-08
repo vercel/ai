@@ -1,4 +1,3 @@
-import { HarnessCapabilityUnsupportedError } from '@ai-sdk/harness';
 import { describe, expect, it } from 'vitest';
 import { createPi } from './pi-harness';
 
@@ -34,12 +33,5 @@ describe('createPi adapter', () => {
   it('omits getBootstrap (no in-sandbox install needed)', () => {
     const harness = createPi();
     expect(harness.getBootstrap).toBeUndefined();
-  });
-
-  it('throws HarnessCapabilityUnsupportedError when no network sandbox session is provided', async () => {
-    const harness = createPi();
-    await expect(harness.doStart({ sessionId: 's1' })).rejects.toBeInstanceOf(
-      HarnessCapabilityUnsupportedError,
-    );
   });
 });

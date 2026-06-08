@@ -15,14 +15,12 @@ import type { HarnessV1StreamPart } from '../../v1';
  * output — where paths can appear anywhere and field-aware rewriting is
  * impossible. The prefix is long and contains the session id, so it is unique
  * enough that replacing every occurrence is safe.
- *
- * A no-op when `sessionWorkDir` is `undefined` (sessions with no sandbox).
  */
 export function stripWorkDir(
   part: HarnessV1StreamPart,
-  sessionWorkDir: string | undefined,
+  sessionWorkDir: string,
 ): HarnessV1StreamPart {
-  if (sessionWorkDir == null || sessionWorkDir.length === 0) return part;
+  if (sessionWorkDir.length === 0) return part;
 
   switch (part.type) {
     case 'tool-call':

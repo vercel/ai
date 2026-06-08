@@ -2,8 +2,10 @@ import type { Telemetry } from 'ai';
 import { describe, expect, test } from 'vitest';
 import type {
   HarnessV1,
+  HarnessV1NetworkSandboxSession,
   HarnessV1PromptControl,
   HarnessV1PromptOptions,
+  HarnessV1SandboxProvider,
   HarnessV1Session,
   HarnessV1StreamPart,
 } from '../v1';
@@ -60,6 +62,24 @@ function scriptedHarness(script: HarnessV1StreamPart[]): HarnessV1 {
     harnessId: 'mock',
     builtinTools: {},
     doStart: async () => session,
+  };
+}
+
+function makeSandboxProvider(): HarnessV1SandboxProvider {
+  const sandboxSession = {
+    id: 'sandbox',
+    defaultWorkingDirectory: '/work',
+    ports: [],
+    getPortUrl: async () => 'ws://example.test/',
+    run: async () => ({}),
+    stop: async () => {},
+    destroy: async () => {},
+    restricted: () => ({}),
+  } as unknown as HarnessV1NetworkSandboxSession;
+  return {
+    specificationVersion: 'harness-sandbox-v1',
+    providerId: 'mock-sandbox',
+    create: async () => sandboxSession,
   };
 }
 
@@ -128,6 +148,7 @@ describe('HarnessAgent telemetry integration', () => {
     const { integration, calls, events } = recordingIntegration();
     const agent = new HarnessAgent({
       harness,
+      sandbox: makeSandboxProvider(),
       telemetry: { integrations: [integration] },
     });
     const session = await agent.createSession();
@@ -177,7 +198,7 @@ describe('HarnessAgent telemetry integration', () => {
     ]);
     const { integration, calls } = recordingIntegration();
     // Integration registered, but the agent has no telemetry settings → opt-out.
-    const agent = new HarnessAgent({ harness });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
     void integration;
     const session = await agent.createSession();
     await agent.generate({ session, prompt: 'go' });

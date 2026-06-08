@@ -421,15 +421,6 @@ export function createClaudeCode(
       return cachedBootstrap;
     },
     doStart: async startOpts => {
-      // `sandbox` and `sessionWorkDir` are coupled in
-      // `HarnessV1StartOptions`, so this one check narrows both.
-      if (startOpts.sandboxSession == null) {
-        throw new HarnessCapabilityUnsupportedError({
-          harnessId: 'claude-code',
-          message:
-            'The claude-code harness requires a sandbox provider. Pass `sandbox` to the HarnessAgent constructor.',
-        });
-      }
       const sandboxSession = startOpts.sandboxSession;
       const session = sandboxSession.restricted();
       const sandboxId = sandboxSession.id;

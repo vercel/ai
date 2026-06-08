@@ -1,5 +1,6 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
 import { tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
@@ -29,6 +30,7 @@ run(async () => {
       tools,
     }),
     tools,
+    sandbox: createJustBashSandbox(),
   });
 
   const session = await agent.createSession();

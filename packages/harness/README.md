@@ -63,7 +63,7 @@ try {
 }
 ```
 
-`sandbox` is a `HarnessV1SandboxProvider` — the agent calls `provider.create()` when a session starts. Use `session.detach()` to park a bridge-backed session for later attach, `session.stop()` to save state and stop the sandbox, or `session.destroy()` to clean up without keeping resume state. Bridge-backed adapters (claude-code, codex) require a provider that exposes ports — `@ai-sdk/sandbox-vercel` is the supported choice today. `@ai-sdk/sandbox-just-bash` is suitable only for non-bridge flows.
+`sandbox` is a required `HarnessV1SandboxProvider` — the agent calls `provider.create()` when a session starts. Use `session.detach()` to park a bridge-backed session for later attach, `session.stop()` to save state and stop the sandbox, or `session.destroy()` to clean up without keeping resume state. Bridge-backed adapters (claude-code, codex) require a provider that exposes ports — `@ai-sdk/sandbox-vercel` is the supported choice today. `@ai-sdk/sandbox-just-bash` is suitable only for non-bridge flows.
 
 ### Available harnesses
 
@@ -78,7 +78,7 @@ try {
 
 ## Implementing a harness
 
-Implement the `HarnessV1` factory and a `HarnessV1Session` whose `doPrompt` emits events; the agent surface, streaming, tool execution, and multi-turn state are handled for you. If the adapter needs a sandbox, read `startOpts.sandboxSession` — the agent has already created the network sandbox session for you and will stop it on cleanup. Call `sandboxSession.restricted()` for the tool-safe file-IO/exec/spawn surface.
+Implement the `HarnessV1` factory and a `HarnessV1Session` whose `doPrompt` emits events; the agent surface, streaming, tool execution, and multi-turn state are handled for you. Read `startOpts.sandboxSession` for the network sandbox session the agent created and will stop on cleanup. Call `sandboxSession.restricted()` for the tool-safe file-IO/exec/spawn surface.
 
 ```ts
 import type { HarnessV1, HarnessV1Session } from '@ai-sdk/harness';

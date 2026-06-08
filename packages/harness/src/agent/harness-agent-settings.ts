@@ -65,7 +65,7 @@ export type HarnessAgentSettings<
    * tool `execute()` calls (as the `experimental_sandbox` field), typed as
    * `Experimental_SandboxSession` so tools cannot reach the infra surface.
    */
-  readonly sandbox?: HarnessV1SandboxProvider;
+  readonly sandbox: HarnessV1SandboxProvider;
 
   /**
    * Telemetry configuration. The harness drives AI SDK's pluggable

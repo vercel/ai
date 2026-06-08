@@ -4,6 +4,7 @@ import type {
   HarnessV1PromptControl,
   HarnessV1PromptOptions,
   HarnessV1ResumeState,
+  HarnessV1SandboxProvider,
   HarnessV1Session,
   HarnessV1StreamPart,
 } from '../v1';
@@ -97,9 +98,38 @@ function mockHarness(options: {
   };
 }
 
+function makeSandboxSession(
+  options: Partial<HarnessV1NetworkSandboxSession> = {},
+): HarnessV1NetworkSandboxSession {
+  const run = vi.fn(async () => ({}) as never);
+  const sandboxSession = {
+    id: 'sandbox',
+    defaultWorkingDirectory: '/work',
+    ports: [],
+    getPortUrl: async () => 'ws://example.test/',
+    run,
+    stop: vi.fn(async () => {}),
+    destroy: vi.fn(async () => {}),
+    restricted: () => ({ run }) as never,
+    ...options,
+  } as unknown as HarnessV1NetworkSandboxSession;
+  return sandboxSession;
+}
+
+function makeSandboxProvider(
+  sandboxSession = makeSandboxSession(),
+): HarnessV1SandboxProvider {
+  return {
+    specificationVersion: 'harness-sandbox-v1',
+    providerId: 'mock-sandbox',
+    create: async () => sandboxSession,
+    resume: async () => sandboxSession,
+  };
+}
+
 function makeLifecycleSession(options: {
   underlyingSession?: Partial<HarnessV1Session>;
-  sandboxSession?: Partial<HarnessV1NetworkSandboxSession>;
+  sandboxSessionOverrides?: Partial<HarnessV1NetworkSandboxSession>;
 }): {
   session: HarnessAgentSession;
   resumeState: HarnessV1ResumeState;
@@ -153,8 +183,9 @@ function makeLifecycleSession(options: {
     stop: sandboxStop,
     destroy: sandboxDestroy,
     restricted: () => ({}) as never,
-    ...options.sandboxSession,
+    ...options.sandboxSessionOverrides,
   } as unknown as HarnessV1NetworkSandboxSession;
+  const sandboxProvider = makeSandboxProvider(sandboxSession);
 
   return {
     session: new HarnessAgentSession({
@@ -162,6 +193,8 @@ function makeLifecycleSession(options: {
       harness,
       underlyingSession,
       sandboxSession,
+      sandboxProvider,
+      sessionWorkDir: '/work/mock-lifecycle-session',
     }),
     resumeState,
     doDetach,
@@ -175,7 +208,11 @@ function makeLifecycleSession(options: {
 describe('HarnessAgent', () => {
   test('exposes the AI SDK Agent contract surface', () => {
     const { harness } = mockHarness({ script: () => [] });
-    const agent = new HarnessAgent({ harness, id: 'a1' });
+    const agent = new HarnessAgent({
+      harness,
+      id: 'a1',
+      sandbox: makeSandboxProvider(),
+    });
     expect(agent.version).toBe('agent-v1');
     expect(agent.id).toBe('a1');
     expect(agent.harnessId).toBe('mock');
@@ -219,7 +256,7 @@ describe('HarnessAgent', () => {
       ],
     });
 
-    const agent = new HarnessAgent({ harness });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
     const session = await agent.createSession();
     const result = await agent.generate({ session, prompt: 'hi' });
 
@@ -281,7 +318,7 @@ describe('HarnessAgent', () => {
       ],
     });
 
-    const agent = new HarnessAgent({ harness });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
     const session = await agent.createSession();
     const result = await agent.stream({ session, prompt: 'hi' });
 
@@ -350,7 +387,11 @@ describe('HarnessAgent', () => {
       execute: async ({ value }: { value: string }) => ({ echoed: value }),
     });
 
-    const agent = new HarnessAgent({ harness, tools: { echo } });
+    const agent = new HarnessAgent({
+      harness,
+      tools: { echo },
+      sandbox: makeSandboxProvider(),
+    });
     const session = await agent.createSession();
     const result = await agent.generate({ session, prompt: 'go' });
 
@@ -404,7 +445,7 @@ describe('HarnessAgent', () => {
       ],
     });
 
-    const agent = new HarnessAgent({ harness });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
     const session = await agent.createSession();
     await agent.generate({ session, prompt: 'one' });
     await agent.generate({ session, prompt: 'two' });
@@ -418,7 +459,7 @@ describe('HarnessAgent', () => {
 
   test('session.destroy() is idempotent and rejects further turns', async () => {
     const { harness, doDestroy } = mockHarness({ script: () => [] });
-    const agent = new HarnessAgent({ harness });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
     const session = await agent.createSession();
 
     await session.destroy();
@@ -471,7 +512,7 @@ describe('HarnessAgent', () => {
     }
 
     const { harness, prompts } = mockHarness({ script: finishOnly });
-    const agent = new HarnessAgent({ harness });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
     const session = await agent.createSession();
 
     await agent.generate({ session, prompt: 'plain string' });
@@ -573,7 +614,7 @@ describe('HarnessAgent', () => {
 
   test('session.destroy() falls back to stopping the sandbox when destroy is unsupported', async () => {
     const { session, sandboxStop, sandboxDestroy } = makeLifecycleSession({
-      sandboxSession: { destroy: undefined },
+      sandboxSessionOverrides: { destroy: undefined },
     });
 
     await session.destroy();
@@ -584,7 +625,7 @@ describe('HarnessAgent', () => {
 
   test('session.compact() forwards to the harness session doCompact, then throws once ended', async () => {
     const { harness, doCompact } = mockHarness({ script: () => [] });
-    const agent = new HarnessAgent({ harness });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
     const session = await agent.createSession();
 
     await session.compact();
@@ -645,7 +686,7 @@ describe('HarnessAgent', () => {
       doStart: async () => underlying,
     };
 
-    const agent = new HarnessAgent({ harness });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
     const session = await agent.createSession();
     expect(session.isResume).toBe(true);
 
@@ -696,7 +737,7 @@ describe('HarnessAgent', () => {
       doStart: async () => underlying,
     };
 
-    const agent = new HarnessAgent({ harness });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
     const session = await agent.createSession();
     await expect(session.stop()).resolves.toEqual(resumeState);
     expect(doStop).toHaveBeenCalledTimes(1);
