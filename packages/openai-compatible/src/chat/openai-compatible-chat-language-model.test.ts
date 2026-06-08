@@ -24,6 +24,13 @@ const server = createTestServer({
   'https://my.api.com/v1/chat/completions': {},
 });
 
+type TestContentPart = {
+  type: string;
+  text?: string;
+  thinking?: Array<{ type: string; text?: string }>;
+  [key: string]: unknown;
+};
+
 function prepareJsonFixtureResponse(
   filename: string,
   { headers }: { headers?: Record<string, string> } = {},
@@ -105,7 +112,7 @@ describe('doGenerate', () => {
     model = 'grok-3',
     headers,
   }: {
-    content?: string;
+    content?: string | TestContentPart[];
     reasoning_content?: string;
     reasoning?: string;
     tool_calls?: Array<{
@@ -295,6 +302,28 @@ describe('doGenerate', () => {
         "model": "grok-3",
       }
     `);
+  });
+
+  it('should normalize response content array text and thinking parts', async () => {
+    prepareJsonResponse({
+      content: [
+        {
+          type: 'thinking',
+          thinking: [{ type: 'text', text: 'provider thought' }],
+        },
+        { type: 'unknown', value: 'ignored' },
+        { type: 'text', text: 'Hello from an array' },
+      ],
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toStrictEqual([
+      { type: 'reasoning', text: 'provider thought' },
+      { type: 'text', text: 'Hello from an array' },
+    ]);
   });
 
   it('should extract reasoning from reasoning field when reasoning_content is not provided', async () => {
@@ -1822,6 +1851,48 @@ describe('doStream', () => {
     expect(textDeltas).toStrictEqual([
       { type: 'text-delta', delta: 'Hello', id: 'txt-0' },
       { type: 'text-delta', delta: ' World', id: 'txt-0' },
+    ]);
+  });
+
+  it('should normalize streamed content array text and thinking parts', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1702657020,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"role":"assistant","content":[{"type":"thinking","thinking":[{"type":"text","text":"provider thought"}]},{"type":"unknown","value":"ignored"},{"type":"text","text":"Hello from an array"}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1702657020,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const contentEvents = events.filter(
+      e =>
+        e.type === 'reasoning-start' ||
+        e.type === 'reasoning-delta' ||
+        e.type === 'reasoning-end' ||
+        e.type === 'text-start' ||
+        e.type === 'text-delta' ||
+        e.type === 'text-end',
+    );
+
+    expect(contentEvents).toStrictEqual([
+      { type: 'reasoning-start', id: 'reasoning-0' },
+      {
+        type: 'reasoning-delta',
+        id: 'reasoning-0',
+        delta: 'provider thought',
+      },
+      { type: 'reasoning-end', id: 'reasoning-0' },
+      { type: 'text-start', id: 'txt-0' },
+      { type: 'text-delta', id: 'txt-0', delta: 'Hello from an array' },
+      { type: 'text-end', id: 'txt-0' },
     ]);
   });
 

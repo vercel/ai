@@ -354,16 +354,13 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
     const choice = responseBody.choices[0];
     const content: Array<LanguageModelV4Content> = [];
 
-    // text content:
-    const text = choice.message.content;
-    if (text != null && text.length > 0) {
-      content.push({ type: 'text', text });
-    }
+    content.push(...getOpenAICompatibleContentParts(choice.message.content));
 
     // reasoning content:
-    const reasoning =
-      choice.message.reasoning_content ?? choice.message.reasoning;
-    if (reasoning != null && reasoning.length > 0) {
+    const reasoning = getOpenAICompatibleString(
+      choice.message.reasoning_content ?? choice.message.reasoning,
+    );
+    if (reasoning != null) {
       content.push({
         type: 'reasoning',
         text: reasoning,
@@ -619,9 +616,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
 
             const delta = choice.delta;
 
-            // enqueue reasoning before text deltas:
-            const reasoningContent = delta.reasoning_content ?? delta.reasoning;
-            if (reasoningContent) {
+            const enqueueReasoningContent = (reasoningContent: string) => {
               if (!isActiveReasoning) {
                 controller.enqueue({
                   type: 'reasoning-start',
@@ -635,9 +630,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
                 id: 'reasoning-0',
                 delta: reasoningContent,
               });
-            }
+            };
 
-            if (delta.content) {
+            const enqueueTextContent = (text: string) => {
               // end active reasoning block before text starts
               if (isActiveReasoning) {
                 controller.enqueue({
@@ -655,8 +650,26 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
               controller.enqueue({
                 type: 'text-delta',
                 id: 'txt-0',
-                delta: delta.content,
+                delta: text,
               });
+            };
+
+            // enqueue reasoning before text deltas:
+            const reasoningContent = getOpenAICompatibleString(
+              delta.reasoning_content ?? delta.reasoning,
+            );
+            if (reasoningContent != null) {
+              enqueueReasoningContent(reasoningContent);
+            }
+
+            for (const contentPart of getOpenAICompatibleContentParts(
+              delta.content,
+            )) {
+              if (contentPart.type === 'reasoning') {
+                enqueueReasoningContent(contentPart.text);
+              } else {
+                enqueueTextContent(contentPart.text);
+              }
             }
 
             if (delta.tool_calls != null) {
@@ -752,6 +765,85 @@ const openaiCompatibleTokenUsageSchema = z
   })
   .nullish();
 
+const openAICompatibleContentPartSchema = z.looseObject({
+  type: z.unknown().nullish(),
+  text: z.unknown().nullish(),
+  thinking: z.unknown().nullish(),
+});
+
+const openAICompatibleContentSchema = z
+  .union([z.string(), z.array(openAICompatibleContentPartSchema)])
+  .nullish();
+
+type OpenAICompatibleContent = z.infer<typeof openAICompatibleContentSchema>;
+
+type OpenAICompatibleNormalizedContent =
+  | { type: 'text'; text: string }
+  | { type: 'reasoning'; text: string };
+
+function getOpenAICompatibleString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+function getOpenAICompatibleThinkingText(
+  thinking: unknown,
+): string | undefined {
+  const text = getOpenAICompatibleString(thinking);
+  if (text != null) {
+    return text;
+  }
+
+  if (!Array.isArray(thinking)) {
+    return undefined;
+  }
+
+  const parts = thinking
+    .map(part =>
+      part != null && typeof part === 'object'
+        ? getOpenAICompatibleString((part as { text?: unknown }).text)
+        : undefined,
+    )
+    .filter((part): part is string => part != null);
+
+  return parts.length > 0 ? parts.join('') : undefined;
+}
+
+function getOpenAICompatibleContentParts(
+  content: OpenAICompatibleContent,
+): Array<OpenAICompatibleNormalizedContent> {
+  const text = getOpenAICompatibleString(content);
+  if (text != null) {
+    return [{ type: 'text', text }];
+  }
+
+  if (!Array.isArray(content)) {
+    return [];
+  }
+
+  const parts: Array<OpenAICompatibleNormalizedContent> = [];
+
+  for (const part of content) {
+    if (part.type === 'text') {
+      const text = getOpenAICompatibleString(part.text);
+      if (text != null) {
+        parts.push({ type: 'text', text });
+      }
+      continue;
+    }
+
+    if (part.type === 'thinking') {
+      const reasoning =
+        getOpenAICompatibleThinkingText(part.thinking) ??
+        getOpenAICompatibleString(part.text);
+      if (reasoning != null) {
+        parts.push({ type: 'reasoning', text: reasoning });
+      }
+    }
+  }
+
+  return parts;
+}
+
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const OpenAICompatibleChatResponseSchema = z.looseObject({
@@ -762,7 +854,7 @@ const OpenAICompatibleChatResponseSchema = z.looseObject({
     z.object({
       message: z.object({
         role: z.literal('assistant').nullish(),
-        content: z.string().nullish(),
+        content: openAICompatibleContentSchema,
         reasoning_content: z.string().nullish(),
         reasoning: z.string().nullish(),
         tool_calls: z
@@ -802,7 +894,7 @@ const chunkBaseSchema = z.looseObject({
       delta: z
         .object({
           role: z.enum(['assistant', '']).nullish(),
-          content: z.string().nullish(),
+          content: openAICompatibleContentSchema,
           // Most openai-compatible models set `reasoning_content`, but some
           // providers serving `gpt-oss` set `reasoning`. See #7866
           reasoning_content: z.string().nullish(),
