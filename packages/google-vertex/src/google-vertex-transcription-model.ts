@@ -119,7 +119,7 @@ export class GoogleVertexTranscriptionModel implements TranscriptionModelV4 {
       config: {
         model: this.modelId,
         languageCodes,
-        // Let Chirp auto-detect the audio encoding (wav/mp3/flac/…).
+        // Let Speech-to-Text auto-detect the audio encoding (wav/mp3/flac/…).
         autoDecodingConfig: {},
         features: {
           // Word timing populates `segments`.

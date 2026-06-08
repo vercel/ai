@@ -1,16 +1,18 @@
 import { z } from 'zod/v4';
 
-// Google Cloud Speech-to-Text "Chirp" transcription models (Speech-to-Text v2).
-// https://docs.cloud.google.com/speech-to-text/docs/models/chirp-3
+// Google Cloud Speech-to-Text transcription models (Speech-to-Text v2).
+// https://docs.cloud.google.com/speech-to-text/docs/transcription-model
 export type GoogleVertexTranscriptionModelId =
   | 'chirp_2'
   | 'chirp_3'
+  | 'telephony'
   | (string & {});
 
 export const googleVertexTranscriptionProviderOptionsSchema = z.object({
   /**
    * BCP-47 language codes to recognize (e.g. `['en-US']`), or `['auto']` to let
-   * Chirp auto-detect the spoken language. Defaults to `['auto']`.
+   * Chirp auto-detect the spoken language. Defaults to `['auto']`. For
+   * `telephony`, pass a supported explicit language code.
    */
   languageCodes: z.array(z.string()).optional(),
 
