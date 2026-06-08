@@ -6,6 +6,7 @@ import {
   GatewayRateLimitError,
   GatewayModelNotFoundError,
   GatewayInternalServerError,
+  GatewayFailedDependencyError,
   GatewayResponseError,
   type GatewayErrorResponse,
 } from './index';
@@ -122,6 +123,28 @@ describe('Valid error responses', () => {
     expect(error).toBeInstanceOf(GatewayInternalServerError);
     expect(error.message).toBe('Internal server error occurred');
     expect(error.statusCode).toBe(500);
+  });
+
+  it('should create GatewayFailedDependencyError for failed_dependency type', async () => {
+    const response: GatewayErrorResponse = {
+      error: {
+        message: 'A dependency required by the request was unavailable',
+        type: 'failed_dependency',
+      },
+    };
+
+    const error = await createGatewayErrorFromResponse({
+      response,
+      statusCode: 424,
+    });
+
+    expect(error).toBeInstanceOf(GatewayFailedDependencyError);
+    expect(error.type).toBe('failed_dependency');
+    expect(error.message).toBe(
+      'A dependency required by the request was unavailable',
+    );
+    expect(error.statusCode).toBe(424);
+    expect(error.isRetryable).toBe(false);
   });
 
   it('should create GatewayInternalServerError for unknown error type', async () => {
