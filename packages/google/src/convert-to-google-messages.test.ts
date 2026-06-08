@@ -658,6 +658,123 @@ describe('tool messages', () => {
     });
   });
 
+  it('should mark execution-denied tool results with an error discriminator', async () => {
+    const result = convertToGoogleMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'sendEmail',
+            toolCallId: 'call-denied',
+            output: { type: 'execution-denied', reason: 'no thanks' },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionResponse: {
+        id: 'call-denied',
+        name: 'sendEmail',
+        response: {
+          name: 'sendEmail',
+          error: 'execution-denied',
+          reason: 'no thanks',
+        },
+      },
+    });
+    expect(
+      (result.contents[0].parts[0] as any).functionResponse.response,
+    ).not.toHaveProperty('content');
+  });
+
+  it('should fall back to a default reason for execution-denied without one', async () => {
+    const result = convertToGoogleMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'sendEmail',
+            toolCallId: 'call-denied',
+            output: { type: 'execution-denied' },
+          },
+        ],
+      },
+    ]);
+
+    expect(
+      (result.contents[0].parts[0] as any).functionResponse.response,
+    ).toEqual({
+      name: 'sendEmail',
+      error: 'execution-denied',
+      reason: 'Tool execution denied by user.',
+    });
+  });
+
+  it('should mark error-text tool results with an error discriminator', async () => {
+    const result = convertToGoogleMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'lookup',
+            toolCallId: 'call-error-text',
+            output: { type: 'error-text', value: 'oops' },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionResponse: {
+        id: 'call-error-text',
+        name: 'lookup',
+        response: {
+          name: 'lookup',
+          error: 'tool-error',
+          errorText: 'oops',
+        },
+      },
+    });
+    expect(
+      (result.contents[0].parts[0] as any).functionResponse.response,
+    ).not.toHaveProperty('content');
+  });
+
+  it('should mark error-json tool results with an error discriminator', async () => {
+    const result = convertToGoogleMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'lookup',
+            toolCallId: 'call-error-json',
+            output: { type: 'error-json', value: { code: 'E_BAD' } },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionResponse: {
+        id: 'call-error-json',
+        name: 'lookup',
+        response: {
+          name: 'lookup',
+          error: 'tool-error',
+          errorValue: { code: 'E_BAD' },
+        },
+      },
+    });
+    expect(
+      (result.contents[0].parts[0] as any).functionResponse.response,
+    ).not.toHaveProperty('content');
+  });
+
   it('should convert tool result content with image-data into functionResponse parts', async () => {
     const result = convertToGoogleMessages([
       {
@@ -1447,8 +1564,9 @@ describe('tool results with thought signatures', () => {
         id: 'call1',
         name: 'readdata',
         response: {
-          content: 'file not found',
           name: 'readdata',
+          error: 'tool-error',
+          errorText: 'file not found',
         },
       },
     });
