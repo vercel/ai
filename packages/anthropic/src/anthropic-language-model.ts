@@ -2243,11 +2243,13 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
                     // for the code execution 20250825, we need to add
                     // the type to the delta and change the tool name.
-                    if (
-                      contentBlock.firstDelta &&
-                      contentBlock.providerToolName === 'code_execution'
-                    ) {
-                      delta = `{"type": "programmatic-tool-call",${delta.substring(1)}`;
+                    if (contentBlock.firstDelta) {
+                      if (contentBlock.providerToolName === 'code_execution') {
+                        delta = delta.startsWith('{')
+                          ? `{"type": "programmatic-tool-call",${delta.substring(1)}`
+                          : `{"type": "programmatic-tool-call",${delta}`;
+                      }
+                      contentBlock.firstDelta = false;
                     }
 
                     controller.enqueue({
@@ -2257,7 +2259,6 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                     });
 
                     contentBlock.input += delta;
-                    contentBlock.firstDelta = false;
                   }
 
                   return;

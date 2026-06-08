@@ -9363,6 +9363,51 @@ describe('AnthropicLanguageModel', () => {
         ).toMatchSnapshot();
       });
 
+      it('should inject the code execution tool type after an empty first input delta', async () => {
+        prepareChunksFixtureResponse(
+          'anthropic-code-execution-20250825-empty-first-delta',
+        );
+
+        const result = await model.doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.code_execution_20250825',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(result.stream);
+        const toolInputDeltas = parts.filter(
+          part => part.type === 'tool-input-delta',
+        );
+        const toolCall = parts.find(part => part.type === 'tool-call');
+
+        expect(toolInputDeltas).toEqual([
+          {
+            type: 'tool-input-delta',
+            id: 'srvtoolu_empty_first_delta',
+            delta: '{"type": "programmatic-tool-call","command"',
+          },
+          {
+            type: 'tool-input-delta',
+            id: 'srvtoolu_empty_first_delta',
+            delta: ':"view","path":"/tmp/a.txt"}',
+          },
+        ]);
+        expect(toolCall).toMatchObject({
+          type: 'tool-call',
+          toolCallId: 'srvtoolu_empty_first_delta',
+          toolName: 'code_execution',
+          input:
+            '{"type": "programmatic-tool-call","command":"view","path":"/tmp/a.txt"}',
+          providerExecuted: true,
+        });
+      });
+
       it('should include file id list in code execution tool call result.', async () => {
         prepareChunksFixtureResponse('anthropic-code-execution-20250825.2');
 
