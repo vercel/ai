@@ -1,0 +1,78 @@
+---
+title: Spanlens
+description: Drop-in LLM observability for the AI SDK — proxy or callback tracker
+---
+
+# Spanlens Observability
+
+[Spanlens](https://spanlens.io) ([GitHub](https://github.com/spanlens/Spanlens)) is an open source (MIT) LLM observability platform. It captures every AI SDK call — cost, latency, request and response bodies, token usage, security flags, and full agent trace trees — by either pointing your provider at the Spanlens proxy or wiring a tracker into `generateText` / `streamText`.
+
+- Per-request logs with cost, tokens, and latency
+- Agent trace trees with span timing and token rollups
+- Cost anomalies, error-rate alerts, per-user analytics
+- Self-host with a single Docker image or use Spanlens Cloud
+
+## Setup
+
+You'll need a Spanlens API key from [spanlens.io/projects](https://spanlens.io/projects) (or your self-hosted dashboard). Spanlens supports two integration shapes — pick either, they compose freely.
+
+### Option 1 — Proxy (zero code changes beyond the URL)
+
+Point your provider at the Spanlens proxy. Spanlens forwards the request to OpenAI / Anthropic / Google / Azure transparently and logs the full request and response out-of-band. This is the recommended starting point — you get everything Spanlens offers with no callbacks to wire up.
+
+```ts
+import { generateText } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai';
+
+const openai = createOpenAI({
+  baseURL: 'https://api.spanlens.io/proxy/openai/v1',
+  apiKey: process.env.SPANLENS_API_KEY, // sl_live_*
+});
+
+const result = await generateText({
+  model: openai('gpt-4o'),
+  prompt: 'Write a short story about a cat.',
+});
+```
+
+The same pattern works for Anthropic (`/proxy/anthropic`), Google Generative AI (`/proxy/gemini`), and Azure OpenAI (`/proxy/azure`). Register the matching upstream provider key once in the Spanlens dashboard.
+
+### Option 2 — Tracker (capture multi-step agent runs)
+
+If you want explicit agent trace structure — multi-step tool calls, parallel spans, manual lifecycle — use `createSpanlensTracker` and spread its callbacks into `generateText` or `streamText`:
+
+```ts
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { SpanlensClient } from '@spanlens/sdk';
+import { createSpanlensTracker } from '@spanlens/sdk/vercel-ai';
+
+const client = new SpanlensClient({ apiKey: process.env.SPANLENS_API_KEY! });
+const tracker = createSpanlensTracker({ client, modelName: 'gpt-4o' });
+
+const result = await generateText({
+  model: openai('gpt-4o'),
+  messages: [{ role: 'user', content: 'Summarise the latest sales report.' }],
+  onStepFinish: tracker.onStepFinish, // records intermediate tool steps
+  onFinish: tracker.onFinish,         // closes the span with final usage
+});
+```
+
+The tracker works with AI SDK 4.x (`promptTokens` / `completionTokens`) and 5.x (`inputTokens` / `outputTokens`). Pass an existing `TraceHandle` via `{ trace }` to attach the LLM span to a wider trace you own.
+
+## What you get
+
+Either integration surfaces in the Spanlens dashboard:
+
+- **Requests view** — every call with model, cost, latency, token breakdown, and replayable request/response bodies
+- **Traces view** — agent span trees with critical-path highlighting
+- **Cost dashboards** — by model, by project, by user, with month-end forecasts
+- **Anomalies** — automatic flags for cost or error-rate spikes, P50/P95/P99 latency drift
+- **Webhooks** — push events into Slack, PagerDuty, your own endpoint
+
+## Links
+
+- [Documentation](https://spanlens.io/docs)
+- [SDK on npm](https://www.npmjs.com/package/@spanlens/sdk)
+- [Self-host guide](https://spanlens.io/docs/self-host)
+- [GitHub](https://github.com/spanlens/Spanlens)
