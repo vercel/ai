@@ -293,7 +293,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                         output: {
                           type: 'error-text' as const,
                           value:
-                            toolPart.approval.reason ??
+                            toolPart.approval?.reason ??
                             'Tool execution denied.',
                         },
                         ...(toolPart.callProviderMetadata != null
