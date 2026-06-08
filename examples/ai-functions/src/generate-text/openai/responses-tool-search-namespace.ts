@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { generateText, tool, isStepCount } from 'ai';
+import { generateText, tool, stepCountIs } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
@@ -13,7 +13,7 @@ run(async () => {
     model: openai.responses('gpt-5.4'),
     prompt:
       'Look up customer cust_123 and list any open orders for that customer.',
-    stopWhen: isStepCount(10),
+    stopWhen: stepCountIs(10),
     onStepFinish: step => {
       console.log(`\n=== Step Content ===`);
       console.dir(step.content, { depth: Infinity });
