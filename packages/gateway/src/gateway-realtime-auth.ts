@@ -7,9 +7,9 @@
  * `openai-insecure-api-key.<token>`.
  *
  * This module is the single source of truth for that contract so the client and
- * the Gateway server can't drift: the client encodes the token with
- * `getGatewayRealtimeProtocols`, and the Gateway server decodes it with
- * `getGatewayRealtimeAuthToken`.
+ * the Gateway server can't drift: the client encodes values with
+ * `getGatewayRealtimeProtocols`, and the Gateway server decodes them with
+ * `getGatewayRealtimeAuthToken` / `getGatewayRealtimeTeamIdOrSlug`.
  */
 
 /**
@@ -22,15 +22,29 @@ export const GATEWAY_REALTIME_SUBPROTOCOL = 'ai-gateway-realtime';
 /** Subprotocol prefix that carries the Gateway auth (bearer) token. */
 export const GATEWAY_AUTH_SUBPROTOCOL_PREFIX = 'ai-gateway-auth.';
 
+/** Subprotocol prefix that carries optional Vercel team scoping. */
+export const GATEWAY_TEAM_SUBPROTOCOL_PREFIX = 'ai-gateway-team.';
+
 /**
  * Client-side: build the WebSocket subprotocols that carry `token` to the
  * Gateway. Pass the result as the second argument to `new WebSocket(url, ...)`.
  */
-export function getGatewayRealtimeProtocols(token: string): string[] {
-  return [
+export function getGatewayRealtimeProtocols(
+  token: string,
+  options?: { teamIdOrSlug?: string },
+): string[] {
+  const protocols = [
     GATEWAY_REALTIME_SUBPROTOCOL,
     `${GATEWAY_AUTH_SUBPROTOCOL_PREFIX}${token}`,
   ];
+
+  if (options?.teamIdOrSlug) {
+    protocols.push(
+      `${GATEWAY_TEAM_SUBPROTOCOL_PREFIX}${encodeSubprotocolValue(options.teamIdOrSlug)}`,
+    );
+  }
+
+  return protocols;
 }
 
 /**
@@ -45,14 +59,66 @@ export function getGatewayRealtimeProtocols(token: string): string[] {
 export function getGatewayRealtimeAuthToken(
   secWebSocketProtocol: string | null | undefined,
 ): string | undefined {
-  const authProtocol = secWebSocketProtocol
-    ?.split(',')
-    .map(protocol => protocol.trim())
-    .find(protocol => protocol.startsWith(GATEWAY_AUTH_SUBPROTOCOL_PREFIX));
+  const authProtocol = findProtocol(
+    secWebSocketProtocol,
+    GATEWAY_AUTH_SUBPROTOCOL_PREFIX,
+  );
 
   // `authProtocol` is already trimmed above, so the sliced token needs no
   // further trimming; `|| undefined` collapses the empty-token case.
   const token = authProtocol?.slice(GATEWAY_AUTH_SUBPROTOCOL_PREFIX.length);
 
   return token || undefined;
+}
+
+/**
+ * Server-side: extract the optional Vercel team ID or slug from the
+ * `Sec-WebSocket-Protocol` header value. Team scoping is base64url-encoded so
+ * arbitrary team slugs stay within the WebSocket subprotocol token grammar.
+ */
+export function getGatewayRealtimeTeamIdOrSlug(
+  secWebSocketProtocol: string | null | undefined,
+): string | undefined {
+  const teamProtocol = findProtocol(
+    secWebSocketProtocol,
+    GATEWAY_TEAM_SUBPROTOCOL_PREFIX,
+  );
+  const encoded = teamProtocol?.slice(GATEWAY_TEAM_SUBPROTOCOL_PREFIX.length);
+  if (!encoded) return undefined;
+
+  try {
+    return decodeSubprotocolValue(encoded) || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function findProtocol(
+  secWebSocketProtocol: string | null | undefined,
+  prefix: string,
+): string | undefined {
+  return secWebSocketProtocol
+    ?.split(',')
+    .map(protocol => protocol.trim())
+    .find(protocol => protocol.startsWith(prefix));
+}
+
+function encodeSubprotocolValue(value: string): string {
+  const bytes = new TextEncoder().encode(value);
+  let binary = '';
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/u, '');
+}
+
+function decodeSubprotocolValue(value: string): string {
+  const base64 = value.replace(/-/g, '+').replace(/_/g, '/');
+  const padding = '='.repeat((4 - (base64.length % 4)) % 4);
+  const binary = atob(`${base64}${padding}`);
+  const bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
 }

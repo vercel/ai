@@ -472,6 +472,7 @@ export function createGateway(
     new GatewayRealtimeModel(modelId, {
       provider: 'gateway.realtime',
       baseURL,
+      teamIdOrSlug: options.teamIdOrSlug,
       getAuthToken: getRealtimeAuthToken,
     });
   provider.experimental_realtime = Object.assign(

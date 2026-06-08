@@ -10,6 +10,7 @@ import { getGatewayRealtimeProtocols } from './gateway-realtime-auth';
 export type GatewayRealtimeModelConfig = {
   provider: string;
   baseURL: string;
+  teamIdOrSlug?: string;
   /**
    * Resolves the Gateway auth token used to authenticate the WebSocket upgrade
    * (API key or Vercel OIDC token).
@@ -65,7 +66,9 @@ export class GatewayRealtimeModel implements RealtimeModelV4 {
   } {
     return {
       url: options.url,
-      protocols: getGatewayRealtimeProtocols(options.token),
+      protocols: getGatewayRealtimeProtocols(options.token, {
+        teamIdOrSlug: this.config.teamIdOrSlug,
+      }),
     };
   }
 

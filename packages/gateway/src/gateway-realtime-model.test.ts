@@ -4,6 +4,7 @@ import { GatewayAuthenticationError } from './errors';
 import {
   GATEWAY_AUTH_SUBPROTOCOL_PREFIX,
   GATEWAY_REALTIME_SUBPROTOCOL,
+  getGatewayRealtimeTeamIdOrSlug,
 } from './gateway-realtime-auth';
 import { GatewayRealtimeModel } from './gateway-realtime-model';
 import { createGateway } from './gateway-provider';
@@ -18,10 +19,12 @@ const createTestModel = (
   modelId = 'openai/gpt-realtime',
   baseURL = 'https://ai-gateway.vercel.sh/v4/ai',
   token = 'vck_test-token',
+  teamIdOrSlug?: string,
 ) =>
   new GatewayRealtimeModel(modelId, {
     provider: 'gateway.realtime',
     baseURL,
+    ...(teamIdOrSlug !== undefined && { teamIdOrSlug }),
     getAuthToken: async () => ({ token, authMethod: 'api-key' }),
   });
 
@@ -89,6 +92,22 @@ describe('GatewayRealtimeModel', () => {
         `${GATEWAY_AUTH_SUBPROTOCOL_PREFIX}vck_test-token`,
       ]);
     });
+
+    it('smuggles optional team scoping through the subprotocol', () => {
+      const config = createTestModel(
+        'openai/gpt-realtime',
+        'https://ai-gateway.vercel.sh/v4/ai',
+        'vck_test-token',
+        'team_123',
+      ).getWebSocketConfig({
+        token: 'vck_test-token',
+        url: 'wss://ai-gateway.vercel.sh/v4/ai/realtime-model?ai-model-id=openai%2Fgpt-realtime',
+      });
+
+      expect(getGatewayRealtimeTeamIdOrSlug(config.protocols?.join(', '))).toBe(
+        'team_123',
+      );
+    });
   });
 
   describe('normalized identity codec', () => {
@@ -142,6 +161,22 @@ describe('gateway.experimental_realtime', () => {
     expect(result.token).toBe('vck_test-token');
     expect(result.url).toBe(
       'wss://ai-gateway.vercel.sh/v4/ai/realtime-model?ai-model-id=openai%2Fgpt-realtime',
+    );
+  });
+
+  it('carries teamIdOrSlug through realtime WebSocket protocols', () => {
+    const scopedGateway = createGateway({
+      apiKey: 'vck_test-token',
+      teamIdOrSlug: 'my-team',
+    });
+    const model = scopedGateway.experimental_realtime('openai/gpt-realtime');
+    const config = model.getWebSocketConfig({
+      token: 'vck_test-token',
+      url: 'wss://ai-gateway.vercel.sh/v4/ai/realtime-model?ai-model-id=openai%2Fgpt-realtime',
+    });
+
+    expect(getGatewayRealtimeTeamIdOrSlug(config.protocols?.join(', '))).toBe(
+      'my-team',
     );
   });
 });
