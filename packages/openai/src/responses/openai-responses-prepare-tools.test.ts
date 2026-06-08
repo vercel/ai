@@ -72,7 +72,7 @@ describe('prepareResponsesTools', () => {
       `);
     });
 
-    it('should not include strict mode when strict is undefined', async () => {
+    it('should default strict mode to false when strict is undefined', async () => {
       const result = await prepareResponsesTools({
         tools: [
           {
@@ -97,6 +97,7 @@ describe('prepareResponsesTools', () => {
                 "properties": {},
                 "type": "object",
               },
+              "strict": false,
               "type": "function",
             },
           ],
@@ -163,6 +164,7 @@ describe('prepareResponsesTools', () => {
                 "properties": {},
                 "type": "object",
               },
+              "strict": false,
               "type": "function",
             },
           ],
@@ -414,6 +416,7 @@ describe('prepareResponsesTools', () => {
                 },
                 "type": "object",
               },
+              "strict": false,
               "type": "function",
             },
             {
@@ -798,6 +801,7 @@ describe('prepareResponsesTools', () => {
                 },
                 "type": "object",
               },
+              "strict": false,
               "type": "function",
             },
             {
@@ -1504,6 +1508,7 @@ describe('prepareResponsesTools', () => {
                 },
                 "type": "object",
               },
+              "strict": false,
               "type": "function",
             },
             {
@@ -1639,6 +1644,7 @@ describe('prepareResponsesTools', () => {
                 },
                 "type": "object",
               },
+              "strict": false,
               "type": "function",
             },
             {
@@ -1728,6 +1734,7 @@ describe('prepareResponsesTools', () => {
                 ],
                 "type": "object",
               },
+              "strict": false,
               "type": "function",
             },
           ],

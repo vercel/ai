@@ -83,7 +83,7 @@ export async function prepareResponsesTools({
           name: tool.name,
           description: tool.description,
           parameters: tool.inputSchema,
-          ...(tool.strict != null ? { strict: tool.strict } : {}),
+          strict: tool.strict ?? false,
           ...(deferLoading != null ? { defer_loading: deferLoading } : {}),
         });
         break;
