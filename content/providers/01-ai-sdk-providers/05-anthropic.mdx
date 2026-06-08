@@ -278,6 +278,63 @@ const { text } = await generateText({
 
 The `inferenceGeo` option accepts `'us'` (US-only infrastructure) or `'global'` (default, any available geography).
 
+### Safety Classifiers and Fallbacks
+
+Claude Fable 5 has safeguards that limit its performance in certain areas like cybersecurity, biology, and chemistry, and automated safety checks are run on every request.
+
+When one of these checks blocks a request, the API does not answer it. Instead it returns a classifier block: a `200` response with a `refusal` stop reason and an optional `stop_details` object describing the category that triggered the block. The AI SDK surfaces this as a `content-filter` finish reason, with the details available on `providerMetadata.anthropic.stopDetails`.
+
+A classifier block looks like this:
+
+```json
+{
+  "type": "message",
+  "model": "claude-fable-5",
+  "content": [],
+  "stop_reason": "refusal",
+  "stop_details": {
+    "type": "refusal",
+    "category": "cyber",
+    "explanation": "This request triggered restrictions on violative cyber content and was blocked under Anthropic's Usage Policy."
+  }
+}
+```
+
+Branch on the finish reason rather than on the presence of `stop_details` — the API may return a refusal with no details at all.
+
+To avoid receiving a classifier block, pass the `fallbacks` option. When the primary model's classifiers block a turn, the API automatically retries it server-side on the next model in the chain and returns that model's answer. The required beta header is added for you.
+
+```ts highlight="8-10"
+import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: anthropic('claude-fable-5'),
+  prompt: 'Explain the history of cryptography.',
+  providerOptions: {
+    anthropic: {
+      fallbacks: [{ model: 'claude-fable-5' }],
+    } satisfies AnthropicProviderOptions,
+  },
+});
+```
+
+Each fallback entry requires a `model` and may additionally override `max_tokens`, `thinking`, `output_config`, and `speed` for that attempt only.
+
+When a fallback serves the turn, it is recorded in the per-model usage breakdown (`usage.iterations`) as a `fallback_message` entry. The AI SDK exposes this breakdown on `providerMetadata.anthropic.iterations`, so you can detect whether a fallback ran:
+
+```ts
+// set up `result` with a `streamText` call passing `fallbacks` as shown
+// above, then consume the stream
+
+const { iterations } = (await result.providerMetadata)?.anthropic ?? {};
+const servedByFallback = iterations?.some(
+  iteration => iteration.type === 'fallback_message',
+);
+
+console.log('Served by fallback:', servedByFallback);
+```
+
 ### Task Budgets
 
 `claude-opus-4-7` supports a `taskBudget` option that informs the model of the total token budget available for an agentic turn. The model uses this information to prioritize work, plan ahead, and wind down gracefully as the budget is consumed.
@@ -1141,6 +1198,7 @@ and the `mediaType` should be set to `'application/pdf'`.
 
 | Model                      | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search          | Tool Search         | Compaction          |
 | -------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `claude-fable-5`           | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-opus-4-8`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-opus-4-7`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-opus-4-6`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
