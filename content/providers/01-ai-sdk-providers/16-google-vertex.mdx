@@ -1334,10 +1334,10 @@ rate is reported in `result.providerMetadata.google.sampleRate`.
 | `gemini-2.5-flash-lite-preview-tts` | <Check size={18} /> | <Check size={18} />    |
 | `gemini-3.1-flash-tts-preview`      | <Check size={18} /> | <Check size={18} />    |
 
-### Transcription Models (Chirp)
+### Transcription Models
 
-You can transcribe audio with Google Cloud [Chirp](https://docs.cloud.google.com/speech-to-text/docs/models/chirp-3)
-speech-to-text models using the `.transcription()` factory method together with
+You can transcribe audio with Google Cloud Speech-to-Text models using the
+`.transcription()` factory method together with
 [`transcribe()`](/docs/reference/ai-sdk-core/transcribe).
 
 ```ts
@@ -1351,18 +1351,22 @@ const result = await transcribe({
 });
 ```
 
-Chirp uses standard Google Cloud credentials (OAuth, Application Default
+The provider supports [Chirp](https://docs.cloud.google.com/speech-to-text/docs/models/chirp-3)
+models `chirp_2` and `chirp_3`, plus `telephony` for phone-call audio.
+Speech-to-Text uses standard Google Cloud credentials (OAuth, Application Default
 Credentials, or a service account) and calls the Cloud Speech-to-Text API.
 Express Mode API keys are not supported for transcription models. Set
 `GOOGLE_VERTEX_LOCATION` (or `providerOptions.googleVertex.region`) to a
-Speech-to-Text region: `chirp_2` is available in `us-central1`, `europe-west4`,
-and `asia-southeast1`; `chirp_3` in the `us` and `eu` multi-regions. Chirp is
-not available in the `global` Speech-to-Text location, and these regions differ
-from Vertex AI regions.
+Speech-to-Text region. For Chirp, `chirp_2` is available in `us-central1`,
+`europe-west4`, and `asia-southeast1`; `chirp_3` in the `us` and `eu`
+multi-regions. Chirp is not available in the `global` Speech-to-Text location,
+and these regions differ from Vertex AI regions. `telephony` availability
+depends on the selected Speech-to-Text region and language.
 
 The synchronous API transcribes audio up to one minute or 10 MB, whichever is
 reached first. The spoken language is auto-detected by default; pass
-`languageCodes` to restrict it.
+`languageCodes` to restrict it. For `telephony`, pass a supported language code
+such as `['en-US']`.
 
 ```ts
 const result = await transcribe({
@@ -1402,10 +1406,11 @@ The following provider options are available:
 
 #### Transcription Model Capabilities
 
-| Model     | Word timestamps                                           | Auto language detection |
-| --------- | --------------------------------------------------------- | ----------------------- |
-| `chirp_2` | Available with a potential quality and speed tradeoff     | <Check size={18} />     |
-| `chirp_3` | Available with a potential transcription quality tradeoff | <Check size={18} />     |
+| Model       | Word timestamps                                           | Language detection                                                             |
+| ----------- | --------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `chirp_2`   | Available with a potential quality and speed tradeoff     | Auto detection with `['auto']`                                                 |
+| `chirp_3`   | Available with a potential transcription quality tradeoff | Auto detection with `['auto']`                                                 |
+| `telephony` | Available                                                 | Explicit supported language codes, with alternative language detection support |
 
 ## Google Vertex Anthropic Provider Usage
 

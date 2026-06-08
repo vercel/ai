@@ -103,14 +103,14 @@ export interface GoogleVertexProvider extends ProviderV4 {
   speechModel(modelId: GoogleVertexSpeechModelId): SpeechModelV4;
 
   /**
-   * Creates a model for transcription (speech-to-text) using Chirp.
+   * Creates a model for transcription (speech-to-text).
    */
   transcription(
     modelId: GoogleVertexTranscriptionModelId,
   ): TranscriptionModelV4;
 
   /**
-   * Creates a model for transcription (speech-to-text) using Chirp.
+   * Creates a model for transcription (speech-to-text).
    */
   transcriptionModel(
     modelId: GoogleVertexTranscriptionModelId,
@@ -262,8 +262,8 @@ export function createGoogleVertex(
   const createSpeechModel = (modelId: GoogleVertexSpeechModelId) =>
     new GoogleSpeechModel(modelId, createConfig('speech'));
 
-  // Chirp (Cloud Speech-to-Text) reuses the Vertex auth headers from
-  // createConfig, but targets the Speech-to-Text API.
+  // Cloud Speech-to-Text reuses the Vertex auth headers from createConfig, but
+  // targets the Speech-to-Text API.
   const createTranscriptionModel = (
     modelId: GoogleVertexTranscriptionModelId,
   ) => {

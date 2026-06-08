@@ -2,4 +2,4 @@
 '@ai-sdk/google-vertex': patch
 ---
 
-feat(provider/google-vertex): add Chirp speech-to-text (transcription) model support
+feat(provider/google-vertex): add Google Cloud Speech-to-Text transcription model support
