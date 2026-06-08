@@ -1,0 +1,76 @@
+---
+title: QVAC
+description: Learn how to use the QVAC provider.
+---
+
+# QVAC Provider
+
+[QVAC](https://qvac.com) is an open-source, cross-platform runtime for local-first, peer-to-peer AI — LLMs, embeddings, transcription, translation, speech, and image generation, all running on the user's own hardware.
+
+[`@qvac/ai-sdk-provider`](https://www.npmjs.com/package/@qvac/ai-sdk-provider) is a branded wrapper around [`@ai-sdk/openai-compatible`](https://www.npmjs.com/package/@ai-sdk/openai-compatible) that points at a local `qvac serve openai` HTTP server and re-exports QVAC's typed model metadata.
+
+<Note>
+  This provider talks to a local OpenAI-compatible server. Install
+  [`@qvac/cli`](https://www.npmjs.com/package/@qvac/cli) and start it with `qvac
+  serve openai` before using the provider.
+</Note>
+
+## Setup
+
+The QVAC provider is available in the `@qvac/ai-sdk-provider` module. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @qvac/ai-sdk-provider ai @ai-sdk/openai-compatible" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @qvac/ai-sdk-provider ai @ai-sdk/openai-compatible" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @qvac/ai-sdk-provider ai @ai-sdk/openai-compatible" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @qvac/ai-sdk-provider ai @ai-sdk/openai-compatible" dark />
+  </Tab>
+</Tabs>
+
+`ai` and `@ai-sdk/openai-compatible` are peer dependencies — install them alongside.
+
+## Provider Instance
+
+Import `createQvac` from `@qvac/ai-sdk-provider` and create a provider instance pointing at your running `qvac serve openai`:
+
+```ts
+import { createQvac } from '@qvac/ai-sdk-provider';
+
+const qvac = createQvac({
+  baseURL: 'http://127.0.0.1:11434/v1', // match your `qvac serve` port
+  apiKey: 'qvac', // anything non-empty; serve does not validate
+});
+```
+
+## Language Models
+
+You can create models by passing a `qvac serve` alias to the provider instance:
+
+```ts
+import { createQvac } from '@qvac/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const qvac = createQvac({
+  baseURL: 'http://127.0.0.1:11434/v1',
+  apiKey: 'qvac',
+});
+
+const { text } = await generateText({
+  model: qvac('qwen3-600m'),
+  prompt: 'Write a haiku about local-first AI.',
+});
+
+console.log(text);
+```
+
+## Additional Resources
+
+- [QVAC](https://qvac.com)
+- [npm Package](https://www.npmjs.com/package/@qvac/ai-sdk-provider)
