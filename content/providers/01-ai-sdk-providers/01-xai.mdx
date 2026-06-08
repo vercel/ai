@@ -638,6 +638,94 @@ const result = await generateSpeech({
 | --------- | ------------------- | ------------------- | -------------------------- |
 | `default` | <Check size={18} /> | <Check size={18} /> | mp3, wav, pcm, mulaw, alaw |
 
+## Transcription Models
+
+You can create models that call the [xAI Speech to Text API](https://docs.x.ai/developers/model-capabilities/audio/speech-to-text)
+using the `.transcription()` factory method. xAI's batch transcription endpoint
+does not require a model identifier.
+
+```ts
+const model = xai.transcription();
+```
+
+Use xAI transcription models with the `transcribe` function:
+
+```ts
+import { xai } from '@ai-sdk/xai';
+import { experimental_transcribe as transcribe } from 'ai';
+import { readFile } from 'fs/promises';
+
+const result = await transcribe({
+  model: xai.transcription(),
+  audio: await readFile('meeting.mp3'),
+});
+```
+
+### Provider Options
+
+You can pass xAI-specific controls using `providerOptions.xai`:
+
+```ts
+import { xai, type XaiTranscriptionModelOptions } from '@ai-sdk/xai';
+import { experimental_transcribe as transcribe } from 'ai';
+import { readFile } from 'fs/promises';
+
+const result = await transcribe({
+  model: xai.transcription(),
+  audio: await readFile('meeting.mp3'),
+  providerOptions: {
+    xai: {
+      language: 'en',
+      format: true,
+      keyterm: ['AI SDK', 'Grok'],
+      diarize: true,
+    } satisfies XaiTranscriptionModelOptions,
+  },
+});
+```
+
+- **audioFormat** _`pcm` | `mulaw` | `alaw`_
+
+  Audio encoding for raw, headerless input audio.
+
+- **sampleRate** _8000 | 16000 | 22050 | 24000 | 44100 | 48000_
+
+  Sample rate of the input audio in Hz.
+
+- **language** _string_
+
+  Language code used for inverse text normalization.
+
+- **format** _boolean_
+
+  Enables inverse text normalization. Requires `language`.
+
+- **multichannel** _boolean_
+
+  Enables per-channel transcription for interleaved multichannel audio.
+
+- **channels** _2 | 3 | 4 | 5 | 6 | 7 | 8_
+
+  Number of interleaved audio channels.
+
+- **diarize** _boolean_
+
+  Enables speaker diarization.
+
+- **keyterm** _string | string[]_
+
+  One or more terms to bias transcription toward.
+
+- **fillerWords** _boolean_
+
+  Includes filler words such as `uh` and `um` in the transcript.
+
+### Model Capabilities
+
+| Model     | Word Timestamps     | Diarization         | Multichannel        |
+| --------- | ------------------- | ------------------- | ------------------- |
+| `default` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+
 ## Image Models
 
 You can create xAI image models using the `.image()` factory method. For more on image generation with the AI SDK see [generateImage()](/docs/reference/ai-sdk-core/generate-image).
