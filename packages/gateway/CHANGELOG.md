@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 3.0.126
+
+### Patch Changes
+
+- ff16d3b: feat(gateway): add GatewayFailedDependencyError (424)
+
 ## 3.0.125
 
 ### Patch Changes
