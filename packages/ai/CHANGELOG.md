@@ -1,5 +1,17 @@
 # ai
 
+## 7.0.0-canary.166
+
+### Patch Changes
+
+- 19736ee: feat(ai): rename onStepFinish to onStepEnd
+- d66ae02: Return validated elements from generateText array output
+- e4182bd: chore: rm export of OutputInterface
+- Updated dependencies [24bb123]
+- Updated dependencies [c44fcc8]
+- Updated dependencies [97e480a]
+  - @ai-sdk/gateway@4.0.0-canary.100
+
 ## 7.0.0-canary.165
 
 ### Patch Changes
