@@ -1227,6 +1227,8 @@ export async function generateText<
                 event: currentStepResult,
                 callbacks: [resolvedOnStepEnd, telemetryDispatcher.onStepEnd],
               });
+
+              return currentStepResult;
             },
           });
         } finally {
