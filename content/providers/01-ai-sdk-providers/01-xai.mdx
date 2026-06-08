@@ -534,6 +534,110 @@ The following provider options are available:
   can also pass any available provider model ID as a string if needed.
 </Note>
 
+## Speech Models
+
+You can create models that call the [xAI Text to Speech API](https://docs.x.ai/developers/model-capabilities/audio/text-to-speech)
+using the `.speech()` factory method. xAI's text-to-speech endpoint does not
+require a model identifier.
+
+```ts
+const model = xai.speech();
+```
+
+Use xAI speech models with the `generateSpeech` function:
+
+```ts
+import { xai } from '@ai-sdk/xai';
+import { experimental_generateSpeech as generateSpeech } from 'ai';
+
+const result = await generateSpeech({
+  model: xai.speech(),
+  text: 'Hello from the AI SDK!',
+  voice: 'ara',
+  language: 'en',
+  outputFormat: 'mp3',
+  speed: 1.1,
+});
+```
+
+### Supported Parameters
+
+- **text** _string_ (required)
+
+  Text to synthesize. You can include xAI speech tags such as `[pause]`,
+  `[laugh]`, or `<whisper>...</whisper>` directly in the text.
+
+- **voice** _string_
+
+  The xAI voice ID. Defaults to `'eve'`. Built-in voice IDs are `'eve'`,
+  `'ara'`, `'rex'`, `'sal'`, and `'leo'`; custom voice IDs are also accepted.
+
+- **language** _string_
+
+  A BCP-47 language code or `'auto'` for automatic detection. Defaults to
+  `'auto'` when omitted.
+
+- **speed** _number_
+
+  Speech rate multiplier from `0.7` to `1.5`.
+
+- **outputFormat** _string_
+
+  The audio codec to generate. Supported values are `'mp3'`, `'wav'`, `'pcm'`,
+  `'mulaw'`, and `'alaw'`. Defaults to `'mp3'`.
+
+<Note>
+  xAI does not expose a separate `instructions` field for text-to-speech. Use
+  speech tags in `text` to control expressive delivery.
+</Note>
+
+### Provider Options
+
+You can pass xAI-specific controls using `providerOptions.xai`:
+
+```ts
+import { xai, type XaiSpeechModelOptions } from '@ai-sdk/xai';
+import { experimental_generateSpeech as generateSpeech } from 'ai';
+
+const result = await generateSpeech({
+  model: xai.speech(),
+  text: 'A high fidelity narration sample.',
+  outputFormat: 'mp3',
+  providerOptions: {
+    xai: {
+      sampleRate: 44100,
+      bitRate: 192000,
+      optimizeStreamingLatency: 1,
+      textNormalization: true,
+    } satisfies XaiSpeechModelOptions,
+  },
+});
+```
+
+- **sampleRate** _8000 | 16000 | 22050 | 24000 | 44100 | 48000_
+
+  Sample rate of the output audio in Hz.
+
+- **bitRate** _32000 | 64000 | 96000 | 128000 | 192000_
+
+  MP3 bit rate in bits per second. Only applies when `outputFormat` is
+  `'mp3'`.
+
+- **optimizeStreamingLatency** _0 | 1 | 2_
+
+  Latency optimization level. Higher values reduce time to first audio with a
+  quality tradeoff at chunk boundaries.
+
+- **textNormalization** _boolean_
+
+  Whether to normalize written-form input text before synthesizing speech.
+
+### Model Capabilities
+
+| Model     | Language            | Speed               | Output Formats             |
+| --------- | ------------------- | ------------------- | -------------------------- |
+| `default` | <Check size={18} /> | <Check size={18} /> | mp3, wav, pcm, mulaw, alaw |
+
 ## Image Models
 
 You can create xAI image models using the `.image()` factory method. For more on image generation with the AI SDK see [generateImage()](/docs/reference/ai-sdk-core/generate-image).

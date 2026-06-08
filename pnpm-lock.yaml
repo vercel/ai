@@ -1444,6 +1444,15 @@ importers:
         specifier: 3.25.76
         version: 3.25.76
 
+  examples/xai-tts-demo:
+    dependencies:
+      '@ai-sdk/xai':
+        specifier: workspace:*
+        version: link:../../packages/xai
+      ai:
+        specifier: workspace:*
+        version: link:../../packages/ai
+
   packages/ai:
     dependencies:
       '@ai-sdk/gateway':
