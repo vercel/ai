@@ -3,11 +3,7 @@ import { writeFileSync, statSync } from 'fs';
 import { join } from 'path';
 
 // Bundle size limits in bytes
-<<<<<<< HEAD
 const LIMIT = 580 * 1024;
-=======
-const LIMIT = 620 * 1024;
->>>>>>> c44fcc8db (feat(gateway): add GatewayFailedDependencyError (424) (#15859))
 
 interface BundleResult {
   size: number;
