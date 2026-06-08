@@ -103,30 +103,30 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
       'chat' in options ? options.chat : new Chat(optionsWithCallbacks);
   }
 
+  const chat = chatRef.current;
+
   const subscribeToMessages = useCallback(
     (update: () => void) =>
-      chatRef.current['~registerMessagesCallback'](update, throttleWaitMs),
-    // `chatRef.current.id` is required to trigger re-subscription when the chat ID changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [throttleWaitMs, chatRef.current.id],
+      chat['~registerMessagesCallback'](update, throttleWaitMs),
+    [chat, throttleWaitMs],
   );
 
   const messages = useSyncExternalStore(
     subscribeToMessages,
-    () => chatRef.current.messages,
-    () => chatRef.current.messages,
+    () => chat.messages,
+    () => chat.messages,
   );
 
   const status = useSyncExternalStore(
-    chatRef.current['~registerStatusCallback'],
-    () => chatRef.current.status,
-    () => chatRef.current.status,
+    chat['~registerStatusCallback'],
+    () => chat.status,
+    () => chat.status,
   );
 
   const error = useSyncExternalStore(
-    chatRef.current['~registerErrorCallback'],
-    () => chatRef.current.error,
-    () => chatRef.current.error,
+    chat['~registerErrorCallback'],
+    () => chat.error,
+    () => chat.error,
   );
 
   const setMessages = useCallback(
@@ -143,26 +143,26 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
 
   useEffect(() => {
     if (resume) {
-      chatRef.current.resumeStream();
+      chat.resumeStream();
     }
-  }, [resume, chatRef]);
+  }, [resume, chat]);
 
   return {
-    id: chatRef.current.id,
+    id: chat.id,
     messages,
     setMessages,
-    sendMessage: chatRef.current.sendMessage,
-    regenerate: chatRef.current.regenerate,
-    clearError: chatRef.current.clearError,
-    stop: chatRef.current.stop,
+    sendMessage: chat.sendMessage,
+    regenerate: chat.regenerate,
+    clearError: chat.clearError,
+    stop: chat.stop,
     error,
-    resumeStream: chatRef.current.resumeStream,
+    resumeStream: chat.resumeStream,
     status,
     /**
      * @deprecated Use `addToolOutput` instead.
      */
-    addToolResult: chatRef.current.addToolOutput,
-    addToolOutput: chatRef.current.addToolOutput,
-    addToolApprovalResponse: chatRef.current.addToolApprovalResponse,
+    addToolResult: chat.addToolOutput,
+    addToolOutput: chat.addToolOutput,
+    addToolApprovalResponse: chat.addToolApprovalResponse,
   };
 }

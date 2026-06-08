@@ -25,6 +25,35 @@ function formatChunk(part: UIMessageChunk) {
   return `data: ${JSON.stringify(part)}\n\n`;
 }
 
+function textMessage(id: string, text: string): UIMessage {
+  return {
+    id,
+    role: 'user',
+    parts: [{ type: 'text', text }],
+  };
+}
+
+function trackMessageSubscriptions(chat: Chat<UIMessage>) {
+  const tracker = {
+    subscribeCount: 0,
+    unsubscribeCount: 0,
+  };
+  const registerMessagesCallback = chat['~registerMessagesCallback'];
+
+  chat['~registerMessagesCallback'] = (onChange, throttleWaitMs) => {
+    tracker.subscribeCount++;
+
+    const unsubscribe = registerMessagesCallback(onChange, throttleWaitMs);
+
+    return () => {
+      tracker.unsubscribeCount++;
+      unsubscribe();
+    };
+  };
+
+  return tracker;
+}
+
 const server = createTestServer({
   '/api/chat': {},
   '/api/chat/123/stream': {},
@@ -84,6 +113,64 @@ describe('use-chat', () => {
         ]);
       });
     });
+  });
+
+  it('should resubscribe when the provided chat instance changes with the same id', async () => {
+    const firstChat = new Chat({
+      id: 'same-id',
+      messages: [textMessage('first-0', 'first chat')],
+    });
+    const secondChat = new Chat({
+      id: 'same-id',
+      messages: [textMessage('second-0', 'second chat')],
+    });
+    const firstTracker = trackMessageSubscriptions(firstChat);
+    const secondTracker = trackMessageSubscriptions(secondChat);
+
+    const TestComponent = () => {
+      const [chat, setChat] = useState(firstChat);
+      const { messages } = useChat({ chat });
+
+      return (
+        <div>
+          <div data-testid="messages">{JSON.stringify(messages)}</div>
+          <button data-testid="swap-chat" onClick={() => setChat(secondChat)} />
+        </div>
+      );
+    };
+
+    const { unmount } = render(<TestComponent />);
+
+    try {
+      expect(screen.getByTestId('messages').textContent).toContain(
+        'first chat',
+      );
+      expect(firstTracker.subscribeCount).toBe(1);
+
+      fireEvent.click(screen.getByTestId('swap-chat'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('messages').textContent).toContain(
+          'second chat',
+        );
+      });
+      await waitFor(() => {
+        expect(firstTracker.unsubscribeCount).toBe(1);
+        expect(secondTracker.subscribeCount).toBe(1);
+      });
+
+      act(() => {
+        secondChat.messages = [textMessage('second-1', 'updated second chat')];
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('messages').textContent).toContain(
+          'updated second chat',
+        );
+      });
+    } finally {
+      unmount();
+    }
   });
 
   describe('data protocol stream', () => {
