@@ -54,8 +54,6 @@ export type GatewayModelId =
   | 'deepseek/deepseek-v3.2-thinking'
   | 'deepseek/deepseek-v4-flash'
   | 'deepseek/deepseek-v4-pro'
-  | 'google/gemini-2.0-flash'
-  | 'google/gemini-2.0-flash-lite'
   | 'google/gemini-2.5-flash'
   | 'google/gemini-2.5-flash-image'
   | 'google/gemini-2.5-flash-lite'

@@ -6,6 +6,7 @@ export {
 export { extractApiCallResponse } from './extract-api-call-response';
 export { GatewayError } from './gateway-error';
 export { GatewayAuthenticationError } from './gateway-authentication-error';
+export { GatewayFailedDependencyError } from './gateway-failed-dependency-error';
 export { GatewayInternalServerError } from './gateway-internal-server-error';
 export { GatewayInvalidRequestError } from './gateway-invalid-request-error';
 export {
