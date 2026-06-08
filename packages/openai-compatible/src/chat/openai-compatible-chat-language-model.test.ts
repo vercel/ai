@@ -2901,6 +2901,72 @@ describe('doStream', () => {
     `);
   });
 
+  it('should handle providers that stream cumulative tool call arguments', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-snapshot-args","object":"chat.completion.chunk","created":1711357598,"model":"snapshot-model",` +
+          `"choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
+          `"tool_calls":[{"index":0,"id":"call_snapshot","type":"function","function":{"name":"searchGoogle","arguments":"{\\"query\\": \\""}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-snapshot-args","object":"chat.completion.chunk","created":1711357598,"model":"snapshot-model",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
+          `"function":{"arguments":"{\\"query\\": \\"latest"}}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-snapshot-args","object":"chat.completion.chunk","created":1711357598,"model":"snapshot-model",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
+          `"function":{"arguments":"{\\"query\\": \\"latest news\\"}"}}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-snapshot-args","object":"chat.completion.chunk","created":1711357598,"model":"snapshot-model",` +
+          `"choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],` +
+          `"usage":{"prompt_tokens":10,"completion_tokens":20,"total_tokens":30}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'function',
+          name: 'searchGoogle',
+          inputSchema: {
+            type: 'object',
+            properties: { query: { type: 'string' } },
+            required: ['query'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const result = await convertReadableStreamToArray(stream);
+
+    expect(result.filter(event => event.type === 'tool-input-delta')).toEqual([
+      {
+        type: 'tool-input-delta',
+        id: 'call_snapshot',
+        delta: '{"query": "',
+      },
+      {
+        type: 'tool-input-delta',
+        id: 'call_snapshot',
+        delta: 'latest',
+      },
+      {
+        type: 'tool-input-delta',
+        id: 'call_snapshot',
+        delta: ' news"}',
+      },
+    ]);
+    expect(result.find(event => event.type === 'tool-call')).toMatchObject({
+      type: 'tool-call',
+      toolCallId: 'call_snapshot',
+      toolName: 'searchGoogle',
+      input: '{"query": "latest news"}',
+    });
+  });
+
   it('should stream tool call that is sent in one chunk', async () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',

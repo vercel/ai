@@ -203,13 +203,24 @@ export class StreamingToolCallTracker<
     }
 
     if (toolCallDelta.function?.arguments != null) {
-      toolCall.function.arguments += toolCallDelta.function.arguments;
+      // Some OpenAI-compatible providers stream cumulative argument snapshots.
+      const argumentsDelta = toolCallDelta.function.arguments.startsWith(
+        toolCall.function.arguments,
+      )
+        ? toolCallDelta.function.arguments.slice(
+            toolCall.function.arguments.length,
+          )
+        : toolCallDelta.function.arguments;
 
-      this.controller.enqueue({
-        type: 'tool-input-delta',
-        id: toolCall.id,
-        delta: toolCallDelta.function.arguments,
-      });
+      toolCall.function.arguments += argumentsDelta;
+
+      if (argumentsDelta.length > 0) {
+        this.controller.enqueue({
+          type: 'tool-input-delta',
+          id: toolCall.id,
+          delta: argumentsDelta,
+        });
+      }
     }
 
     // Check if tool call is complete
