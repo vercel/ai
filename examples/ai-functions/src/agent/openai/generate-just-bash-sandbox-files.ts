@@ -5,7 +5,7 @@ import { sandboxAgent } from './sandbox-agent';
 run(async () => {
   const sandboxSession = await createJustBashSandbox({
     overlayRoot: process.cwd(),
-  }).create();
+  }).createSession();
 
   const result = await sandboxAgent.generate({
     prompt:

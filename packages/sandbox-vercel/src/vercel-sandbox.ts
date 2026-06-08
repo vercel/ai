@@ -86,8 +86,8 @@ export function createVercelSandbox(
 /**
  * `HarnessV1SandboxProvider` implementation backed by `@vercel/sandbox`.
  * Construct one via {@link createVercelSandbox} at module scope and pass it
- * to a `HarnessAgent` (or call `create()` directly if you want raw access to
- * a network sandbox session).
+ * to a `HarnessAgent` (or call `createSession()` directly if you want raw
+ * access to a network sandbox session).
  */
 export class VercelSandboxProvider implements HarnessV1SandboxProvider {
   readonly specificationVersion = 'harness-sandbox-v1' as const;
@@ -105,7 +105,7 @@ export class VercelSandboxProvider implements HarnessV1SandboxProvider {
     }
   }
 
-  create = async (options?: {
+  createSession = async (options?: {
     sessionId?: string;
     abortSignal?: AbortSignal;
     identity?: string;
@@ -141,10 +141,10 @@ export class VercelSandboxProvider implements HarnessV1SandboxProvider {
     const identity = options?.identity;
     const onFirstCreate = options?.onFirstCreate;
 
-    // When sessionId is supplied, name the per-session sandbox
-    // deterministically so a future `resume({ sessionId })` can locate
-    // it via `Sandbox.get({ name })`. Absent sessionId (e.g. prewarm),
-    // fall back to Vercel's auto-naming.
+    // When sessionId is supplied, name the per-session sandbox deterministically
+    // so a future `resumeSession({ sessionId })` can locate it via
+    // `Sandbox.get({ name })`. Absent sessionId (e.g. prewarm), fall back to
+    // Vercel's auto-naming.
     const sessionNameOverride = options?.sessionId
       ? { name: sessionSandboxName(options.sessionId) }
       : {};
@@ -213,13 +213,13 @@ export class VercelSandboxProvider implements HarnessV1SandboxProvider {
     });
   };
 
-  resume = async (options: {
+  resumeSession = async (options: {
     sessionId: string;
     abortSignal?: AbortSignal;
   }): Promise<HarnessV1NetworkSandboxSession> => {
     options.abortSignal?.throwIfAborted();
 
-    // Wrap-existing case: caller owns the sandbox. Same session as create.
+    // Wrap-existing case: caller owns the sandbox. Same session as createSession.
     if ('sandbox' in this.settings && this.settings.sandbox != null) {
       return new VercelNetworkSandboxSession({
         sandbox: this.settings.sandbox,

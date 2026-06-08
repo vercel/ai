@@ -21,7 +21,7 @@ type JustBashSandboxCreateParams = NonNullable<
  * - `{ sandbox }` — wrap an already-created `just-bash` `Sandbox`. The caller
  *   owns its lifecycle.
  * - {@link JustBashSandboxCreateParams} fields — provider calls
- *   `Sandbox.create(settings)` on every `create()`.
+ *   `Sandbox.create(settings)` on every `createSession()`.
  *
  * just-bash has no port exposure and no snapshot mechanism, so image
  * management is a per-call no-op: if an adapter declares a bootstrap recipe
@@ -42,8 +42,8 @@ export function createJustBashSandbox(
 /**
  * `HarnessV1SandboxProvider` implementation backed by `just-bash`. Useful for
  * non-bridge harness flows and for handing a local `Experimental_SandboxSession`
- * to AI SDK tools — use `provider.create()` then `sandboxSession.restricted()`
- * to get the latter.
+ * to AI SDK tools — use `provider.createSession()` then
+ * `sandboxSession.restricted()` to get the latter.
  *
  * Note: just-bash cannot expose ports, so bridge-backed harness adapters
  * (claude-code, codex) will reject this provider at start.
@@ -54,7 +54,7 @@ export class JustBashSandboxProvider implements HarnessV1SandboxProvider {
 
   constructor(private readonly settings: JustBashSandboxSettings) {}
 
-  create = async (options?: {
+  createSession = async (options?: {
     sessionId?: string;
     abortSignal?: AbortSignal;
     identity?: string;

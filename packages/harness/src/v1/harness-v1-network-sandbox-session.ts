@@ -1,7 +1,7 @@
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 
 /**
- * Network sandbox session returned by `HarnessV1SandboxProvider.create()`. The
+ * Network sandbox session returned by `HarnessV1SandboxProvider.createSession()`. The
  * harness keeps this for the lifetime of a session. It is itself a
  * {@link SandboxSession} (file I/O, exec, spawn) and adds the infra surface on
  * top: port resolution, lifecycle, and network-policy mutation.

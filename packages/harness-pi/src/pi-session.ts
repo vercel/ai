@@ -533,7 +533,7 @@ export async function createPiSession(
     settlePendingToolResults('Pi session stopped');
 
     // Persist the Pi session file into the sandbox so a future process
-    // can pick it up after `provider.resume({ sessionId })` reattaches.
+    // can pick it up after `provider.resumeSession({ sessionId })` reattaches.
     if (sessionFileName) {
       try {
         await persistSessionFileToSandbox({
@@ -659,7 +659,7 @@ export async function createPiSession(
        * turn settles silently via the `suspending` guard so the stream closes
        * cleanly), persist the journal into the sandbox, and tear down host-side
        * resources. The sandbox itself is left running; the next slice pulls the
-       * journal after `provider.resume({ sessionId })` and rerun-continues. The
+       * journal after `provider.resumeSession({ sessionId })` and rerun-continues. The
        * tail in flight at the boundary is recomputed — Pi cannot freeze a live
        * turn the way a bridge adapter can.
        */

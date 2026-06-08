@@ -372,7 +372,7 @@ const bridgeCoordsSchema = z.object({
  * Schema for the adapter-specific portion of `HarnessV1ResumeState.data`.
  *
  * A `doStop()` payload is structurally empty (`{}`): the framework derives the
- * sandbox via `provider.resume({ sessionId })`, and the Claude SDK's
+ * sandbox via `provider.resumeSession({ sessionId })`, and the Claude SDK's
  * `{ continue: true }` flag rehydrates the thread from the workdir. A
  * `doDetach()` payload additionally carries `bridge` coordinates for
  * cross-process `attach`. `.passthrough()` keeps both shapes valid.

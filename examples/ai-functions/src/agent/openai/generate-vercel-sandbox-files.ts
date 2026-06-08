@@ -6,7 +6,7 @@ run(async () => {
   const sandboxSession = await createVercelSandbox({
     timeout: 5 * 60 * 1000,
     runtime: 'node22',
-  }).create();
+  }).createSession();
 
   try {
     const result = await sandboxAgent.generate({

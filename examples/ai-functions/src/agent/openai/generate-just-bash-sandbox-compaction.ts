@@ -40,7 +40,7 @@ const compactMessages: PrepareStepFunction<{
 run(async () => {
   const sandboxSession = await createJustBashSandbox({
     overlayRoot: process.cwd(),
-  }).create();
+  }).createSession();
 
   const result = await generateText({
     model: openai('gpt-5.5'),

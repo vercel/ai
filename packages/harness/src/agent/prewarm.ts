@@ -29,7 +29,7 @@ export async function prewarmHarness(options: {
   if (recipe == null) return;
 
   const identity = await hashBootstrap(recipe);
-  const sandboxSession = await options.sandboxProvider.create({
+  const sandboxSession = await options.sandboxProvider.createSession({
     abortSignal: options.abortSignal,
     identity,
     onFirstCreate: (session, opts) =>

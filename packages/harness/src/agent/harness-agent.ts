@@ -87,8 +87,8 @@ export interface HarnessAgentCallExtensions {
  *    Adapter builtin tools (e.g. Claude Code's `Bash`) pass through
  *    untouched.
  *  - **Sandbox propagation.** `settings.sandbox` is a sandbox provider.
- *    On `createSession`, the agent calls `provider.create()` (or
- *    `resume()`) and passes the resulting network sandbox session into
+ *    On `createSession`, the agent calls `provider.createSession()` (or
+ *    `resumeSession()`) and passes the resulting network sandbox session into
  *    `doStart`. Its `restricted()` view (a tool-safe
  *    `Experimental_SandboxSession`) is handed to user-tool `execute()` calls
  *    via `experimental_sandbox`.
@@ -373,18 +373,18 @@ export class HarnessAgent<
   }): Promise<HarnessV1NetworkSandboxSession> {
     const { sandboxProvider } = input;
     if (input.isResume) {
-      if (sandboxProvider.resume == null) {
+      if (sandboxProvider.resumeSession == null) {
         throw new HarnessCapabilityUnsupportedError({
           message: `Sandbox provider '${sandboxProvider.providerId}' does not support resume.`,
           harnessId: this.settings.harness.harnessId,
         });
       }
-      return sandboxProvider.resume({
+      return sandboxProvider.resumeSession({
         sessionId: input.sessionId,
         abortSignal: input.abortSignal,
       });
     }
-    return sandboxProvider.create({
+    return sandboxProvider.createSession({
       sessionId: input.sessionId,
       abortSignal: input.abortSignal,
       identity: input.identity,

@@ -5,7 +5,7 @@ import type { HarnessV1NetworkSandboxSession } from './harness-v1-network-sandbo
  * Provider that produces network sandbox sessions for harness sessions. Lives at
  * module scope as a stable, synchronous object — analogous to
  * `LanguageModelV4` providers, no I/O performed at construction. The actual
- * sandbox is created (or wrapped) when `HarnessAgent` calls `create()`.
+ * sandbox is created (or wrapped) when `HarnessAgent` calls `createSession()`.
  */
 export interface HarnessV1SandboxProvider {
   readonly specificationVersion: 'harness-sandbox-v1';
@@ -23,7 +23,7 @@ export interface HarnessV1SandboxProvider {
    */
   readonly bridgePorts?: ReadonlyArray<number>;
 
-  readonly create: (options?: {
+  readonly createSession: (options?: {
     /**
      * Stable per-session identifier. When supplied, the provider names the
      * underlying resource deterministically so a future call to `resume`
@@ -66,10 +66,10 @@ export interface HarnessV1SandboxProvider {
    * them.
    *
    * The provider derives the sandbox identifier from `sessionId` using the
-   * same deterministic naming scheme it used in `create`. Returns a network
-   * sandbox session bound to the existing resource.
+   * same deterministic naming scheme it used in `createSession`. Returns a
+   * network sandbox session bound to the existing resource.
    */
-  readonly resume?: (options: {
+  readonly resumeSession?: (options: {
     sessionId: string;
     abortSignal?: AbortSignal;
   }) => PromiseLike<HarnessV1NetworkSandboxSession>;

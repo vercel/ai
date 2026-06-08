@@ -12,14 +12,14 @@ npm i @ai-sdk/sandbox-just-bash
 
 ## Usage
 
-The factory is synchronous. The returned provider is stable; the actual `just-bash` `Sandbox` is created on demand inside `provider.create()`.
+The factory is synchronous. The returned provider is stable; the actual `just-bash` `Sandbox` is created on demand inside `provider.createSession()`.
 
 ```ts
 import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
 
 const sandbox = createJustBashSandbox({ cwd: '/work' });
 
-const sandboxSession = await sandbox.create();
+const sandboxSession = await sandbox.createSession();
 const session = sandboxSession.restricted();
 
 await session.writeTextFile({ path: '/work/hello.txt', content: 'hi' });

@@ -79,7 +79,7 @@ function makeSandboxProvider(): HarnessV1SandboxProvider {
   return {
     specificationVersion: 'harness-sandbox-v1',
     providerId: 'mock-sandbox',
-    create: async () => sandboxSession,
+    createSession: async () => sandboxSession,
   };
 }
 

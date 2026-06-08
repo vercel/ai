@@ -1,6 +1,6 @@
 # AI SDK - Vercel Sandbox
 
-`HarnessV1SandboxProvider` implementation backed by [`@vercel/sandbox`](https://vercel.com/docs/vercel-sandbox). Construct the provider at module scope and pass it to a `HarnessAgent` — the agent calls `provider.create()` lazily on the first turn and stops the sandbox when the agent closes.
+`HarnessV1SandboxProvider` implementation backed by [`@vercel/sandbox`](https://vercel.com/docs/vercel-sandbox). Construct the provider at module scope and pass it to a `HarnessAgent` — the agent calls `provider.createSession()` lazily on the first turn and stops the sandbox when the agent closes.
 
 ## Setup
 
@@ -10,7 +10,7 @@ npm i @ai-sdk/sandbox-vercel @vercel/sandbox
 
 ## Usage
 
-The factory is synchronous. The returned provider is stable; the actual `@vercel/sandbox` `Sandbox` is created on demand inside `provider.create()`.
+The factory is synchronous. The returned provider is stable; the actual `@vercel/sandbox` `Sandbox` is created on demand inside `provider.createSession()`.
 
 ```ts
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
@@ -20,7 +20,7 @@ const sandbox = createVercelSandbox({
   ports: [3000],
 });
 
-const sandboxSession = await sandbox.create();
+const sandboxSession = await sandbox.createSession();
 const session = sandboxSession.restricted();
 
 await session.writeTextFile({ path: 'hello.txt', content: 'hi' });

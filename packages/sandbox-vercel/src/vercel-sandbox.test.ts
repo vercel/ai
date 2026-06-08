@@ -46,7 +46,7 @@ describe('createVercelSandbox (wrap existing)', () => {
       routes: [{ port: 3000 }, { port: 4000 }],
     });
     const provider = createVercelSandbox({ sandbox });
-    const sandboxSession = await provider.create();
+    const sandboxSession = await provider.createSession();
     expect(sandboxSession.ports).toEqual([3000, 4000]);
   });
 
@@ -58,7 +58,9 @@ describe('createVercelSandbox (wrap existing)', () => {
       stderr: async () => '',
     });
 
-    const sandboxSession = await createVercelSandbox({ sandbox }).create();
+    const sandboxSession = await createVercelSandbox({
+      sandbox,
+    }).createSession();
     const result = await sandboxSession
       .restricted()
       .run({ command: 'echo ok' });
@@ -67,13 +69,13 @@ describe('createVercelSandbox (wrap existing)', () => {
 
   it('stop is a no-op (caller owns lifecycle)', async () => {
     const { sandbox, spies } = makeMockSandbox();
-    await (await createVercelSandbox({ sandbox }).create()).stop();
+    await (await createVercelSandbox({ sandbox }).createSession()).stop();
     expect(spies.stop).not.toHaveBeenCalled();
   });
 
   it('destroy is a no-op (caller owns lifecycle)', async () => {
     const { sandbox, spies } = makeMockSandbox();
-    await (await createVercelSandbox({ sandbox }).create()).destroy?.();
+    await (await createVercelSandbox({ sandbox }).createSession()).destroy?.();
     expect(spies.stop).not.toHaveBeenCalled();
     expect(spies.delete).not.toHaveBeenCalled();
   });
@@ -85,7 +87,7 @@ describe('createVercelSandbox (wrap existing)', () => {
       });
       spies.domain.mockReturnValueOnce('https://sub.vercel.run');
 
-      const handle = await createVercelSandbox({ sandbox }).create();
+      const handle = await createVercelSandbox({ sandbox }).createSession();
       const url = await handle.getPortUrl({ port: 3000 });
       expect(spies.domain).toHaveBeenCalledWith(3000);
       expect(url).toBe('https://sub.vercel.run/');
@@ -94,7 +96,7 @@ describe('createVercelSandbox (wrap existing)', () => {
     it('upgrades ws to wss when domain is https', async () => {
       const { sandbox, spies } = makeMockSandbox();
       spies.domain.mockReturnValueOnce('https://sub.vercel.run');
-      const handle = await createVercelSandbox({ sandbox }).create();
+      const handle = await createVercelSandbox({ sandbox }).createSession();
       const url = await handle.getPortUrl({ port: 4000, protocol: 'ws' });
       expect(url).toBe('wss://sub.vercel.run/');
     });
@@ -102,14 +104,14 @@ describe('createVercelSandbox (wrap existing)', () => {
     it('keeps ws as ws when domain is http', async () => {
       const { sandbox, spies } = makeMockSandbox();
       spies.domain.mockReturnValueOnce('http://sub.vercel.run');
-      const handle = await createVercelSandbox({ sandbox }).create();
+      const handle = await createVercelSandbox({ sandbox }).createSession();
       const url = await handle.getPortUrl({ port: 4000, protocol: 'ws' });
       expect(url).toBe('ws://sub.vercel.run/');
     });
 
     it('throws when the requested port is not in the sandbox routes', async () => {
       const { sandbox } = makeMockSandbox({ routes: [{ port: 4000 }] });
-      const handle = await createVercelSandbox({ sandbox }).create();
+      const handle = await createVercelSandbox({ sandbox }).createSession();
       await expect(handle.getPortUrl({ port: 9999 })).rejects.toThrow(
         /Port 9999 is not exposed/,
       );
@@ -119,21 +121,21 @@ describe('createVercelSandbox (wrap existing)', () => {
   describe('setNetworkPolicy', () => {
     it('maps allow-all', async () => {
       const { sandbox, spies } = makeMockSandbox();
-      const handle = await createVercelSandbox({ sandbox }).create();
+      const handle = await createVercelSandbox({ sandbox }).createSession();
       await handle.setNetworkPolicy!({ mode: 'allow-all' });
       expect(spies.update).toHaveBeenCalledWith({ networkPolicy: 'allow-all' });
     });
 
     it('maps deny-all', async () => {
       const { sandbox, spies } = makeMockSandbox();
-      const handle = await createVercelSandbox({ sandbox }).create();
+      const handle = await createVercelSandbox({ sandbox }).createSession();
       await handle.setNetworkPolicy!({ mode: 'deny-all' });
       expect(spies.update).toHaveBeenCalledWith({ networkPolicy: 'deny-all' });
     });
 
     it('maps custom with allowedHosts to { allow: [...] }', async () => {
       const { sandbox, spies } = makeMockSandbox();
-      const handle = await createVercelSandbox({ sandbox }).create();
+      const handle = await createVercelSandbox({ sandbox }).createSession();
       await handle.setNetworkPolicy!({
         mode: 'custom',
         allowedHosts: ['api.example.com', '*.npmjs.org'],
@@ -145,7 +147,7 @@ describe('createVercelSandbox (wrap existing)', () => {
 
     it('maps custom with allowedCIDRs to { subnets: { allow: [...] } }', async () => {
       const { sandbox, spies } = makeMockSandbox();
-      const handle = await createVercelSandbox({ sandbox }).create();
+      const handle = await createVercelSandbox({ sandbox }).createSession();
       await handle.setNetworkPolicy!({
         mode: 'custom',
         allowedCIDRs: ['10.0.0.0/8'],
@@ -157,7 +159,7 @@ describe('createVercelSandbox (wrap existing)', () => {
 
     it('maps custom with allowedHosts + deniedCIDRs to combined shape', async () => {
       const { sandbox, spies } = makeMockSandbox();
-      const handle = await createVercelSandbox({ sandbox }).create();
+      const handle = await createVercelSandbox({ sandbox }).createSession();
       await handle.setNetworkPolicy!({
         mode: 'custom',
         allowedHosts: ['api.example.com'],
@@ -173,7 +175,7 @@ describe('createVercelSandbox (wrap existing)', () => {
 
     it('maps custom with both allowedCIDRs + deniedCIDRs', async () => {
       const { sandbox, spies } = makeMockSandbox();
-      const handle = await createVercelSandbox({ sandbox }).create();
+      const handle = await createVercelSandbox({ sandbox }).createSession();
       await handle.setNetworkPolicy!({
         mode: 'custom',
         allowedCIDRs: ['10.0.0.0/8'],
@@ -190,7 +192,7 @@ describe('createVercelSandbox (wrap existing)', () => {
   describe('setPorts', () => {
     it('forwards the requested port list to sandbox.update', async () => {
       const { sandbox, spies } = makeMockSandbox();
-      const handle = await createVercelSandbox({ sandbox }).create();
+      const handle = await createVercelSandbox({ sandbox }).createSession();
       await handle.setPorts!([4000, 5000]);
       expect(spies.update).toHaveBeenCalledWith(
         { ports: [4000, 5000] },
@@ -226,7 +228,7 @@ describe('createVercelSandbox (create from scratch)', () => {
     const { sandbox } = makeMockSandbox();
     createMock.mockResolvedValueOnce(sandbox);
 
-    await createVercelSandbox({}).create();
+    await createVercelSandbox({}).createSession();
 
     expect(createMock).toHaveBeenCalledTimes(1);
     expect(createMock.mock.calls[0][0]).toMatchObject({
@@ -238,7 +240,7 @@ describe('createVercelSandbox (create from scratch)', () => {
     const { sandbox } = makeMockSandbox();
     createMock.mockResolvedValueOnce(sandbox);
 
-    await createVercelSandbox({ timeout: 60_000 }).create();
+    await createVercelSandbox({ timeout: 60_000 }).createSession();
 
     expect(createMock.mock.calls[0][0]).toMatchObject({ timeout: 60_000 });
   });
@@ -247,7 +249,7 @@ describe('createVercelSandbox (create from scratch)', () => {
     const { sandbox, spies } = makeMockSandbox();
     createMock.mockResolvedValueOnce(sandbox);
 
-    const handle = await createVercelSandbox({}).create();
+    const handle = await createVercelSandbox({}).createSession();
     await handle.destroy?.();
 
     expect(spies.stop).toHaveBeenCalledTimes(1);
@@ -262,7 +264,7 @@ describe('createVercelSandbox (create from scratch)', () => {
     });
     createMock.mockResolvedValueOnce(sandbox);
 
-    const handle = await createVercelSandbox({}).create();
+    const handle = await createVercelSandbox({}).createSession();
     await handle.destroy?.();
 
     expect(spies.stop).toHaveBeenCalledTimes(1);

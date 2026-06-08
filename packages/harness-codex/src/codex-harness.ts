@@ -130,7 +130,7 @@ const bridgeCoordsSchema = z.object({
  * Schema for the adapter-specific `HarnessV1ResumeState.data` payload Codex
  * produces. `threadId` is what `codex.resumeThread(...)` requires for the
  * replay/rerun rungs; the sandbox lookup is handled separately via
- * `provider.resume({ sessionId })`. `bridge` carries live coordinates for
+ * `provider.resumeSession({ sessionId })`. `bridge` carries live coordinates for
  * cross-process `attach` (present on `doDetach()` and `doSuspendTurn()`
  * payloads).
  */

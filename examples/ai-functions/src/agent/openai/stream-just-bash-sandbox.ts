@@ -6,7 +6,7 @@ import { printFullStream } from '../../lib/print-full-stream';
 run(async () => {
   const sandboxSession = await createJustBashSandbox({
     cwd: '/home/user',
-  }).create();
+  }).createSession();
 
   const result = await sandboxAgent.stream({
     prompt:

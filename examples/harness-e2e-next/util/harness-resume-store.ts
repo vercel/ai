@@ -17,7 +17,7 @@ import { safeParseJSON } from '@ai-sdk/provider-utils';
  * Files live under the git-ignored `.harness-sessions/` directory, keyed by
  * chat id. The chat id doubles as the `sessionId`, so the deterministic sandbox
  * name is derived from it and a fresh process resolves the same sandbox via
- * `provider.resume` (`Sandbox.get`) rather than colliding on `provider.create`.
+ * `provider.resumeSession` (`Sandbox.get`) rather than colliding on `provider.createSession`.
  */
 const STORE_DIR = path.join(process.cwd(), '.harness-sessions');
 
