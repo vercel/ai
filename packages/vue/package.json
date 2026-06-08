@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/vue",
-  "version": "4.0.0-canary.157",
+  "version": "4.0.0-canary.165",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,

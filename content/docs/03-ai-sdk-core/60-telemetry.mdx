@@ -274,7 +274,7 @@ class MyIntegration implements Telemetry {
     console.log('Generation started:', event.modelId);
   }
 
-  async onStepFinish(event) {
+  async onStepEnd(event) {
     console.log(
       `Step ${event.stepNumber} done:`,
       event.usage.totalTokens,
@@ -348,7 +348,7 @@ export function myIntegration(): Telemetry {
       description: "Called when a tool's execute function completes or errors.",
     },
     {
-      name: 'onStepFinish',
+      name: 'onStepEnd',
       type: '(event: GenerateTextStepEndEvent) => void | PromiseLike<void>',
       description: 'Called when a step (LLM call) completes.',
     },

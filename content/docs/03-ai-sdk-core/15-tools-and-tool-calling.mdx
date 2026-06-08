@@ -169,7 +169,7 @@ The older `needsApproval` property on `tool()` definitions is deprecated. Existi
 
 ### Configure `toolApproval`
 
-```ts highlight="8-10"
+```ts highlight="4-6"
 const result = await generateText({
   model: __MODEL__,
   tools: { runCommand },
@@ -461,9 +461,9 @@ const { steps } = await generateText({
 const allToolCalls = steps.flatMap(step => step.toolCalls);
 ```
 
-### `onStepFinish` callback
+### `onStepEnd` callback
 
-When using `generateText` or `streamText`, you can provide an `onStepFinish` callback that
+When using `generateText` or `streamText`, you can provide an `onStepEnd` callback that
 is triggered when a step is finished,
 i.e. all text deltas, tool calls, and tool results for the step are available.
 When you have multiple steps, the callback is triggered for each step.
@@ -475,7 +475,7 @@ import { generateText } from 'ai';
 
 const result = await generateText({
   // ...
-  onStepFinish({
+  onStepEnd({
     stepNumber,
     text,
     toolCalls,
@@ -708,7 +708,7 @@ const result = await generateText({
       /* ... */
     }),
   },
-  onStepFinish: ({ toolCalls, toolResults }) => {
+  onStepEnd: ({ toolCalls, toolResults }) => {
     // Type-safe iteration
     for (const toolCall of toolCalls) {
       if (toolCall.dynamic) {
@@ -805,12 +805,13 @@ When tools are called, they receive additional options as a second parameter.
 The ID of the tool call is forwarded to the tool execution.
 You can use it e.g. when sending tool-call related information with stream data.
 
-```ts highlight="14-20"
+```ts highlight="15-21"
 import {
   streamText,
   tool,
   createUIMessageStream,
   createUIMessageStreamResponse,
+  toUIMessageStream,
 } from 'ai';
 
 export async function POST(req: Request) {
@@ -840,7 +841,7 @@ export async function POST(req: Request) {
         },
       });
 
-      writer.merge(result.toUIMessageStream());
+      writer.merge(toUIMessageStream({ stream: result.stream }));
     },
   });
 
@@ -950,14 +951,15 @@ const result = await generateText({
 The experimental sandbox description is not added to the model prompt automatically. If the model should know about details such as the root directory, exposed ports, or public hostname, include `experimental_sandbox.description` in your system prompt,
 instructions, user-visible context, or a tool description function.
 
-`run` also accepts an optional `workingDirectory` and `abortSignal`.
+`run` also accepts an optional `workingDirectory`, `env`, and `abortSignal`.
 Use `workingDirectory` when a tool needs to run a command from a directory other
-than the experimental sandbox implementation's default working directory. Forward
+than the experimental sandbox implementation's default working directory. Use `env`
+to set environment variables for the command. Forward
 `abortSignal` from the tool execution options so the experimental sandbox can cancel the command if the overall operation is aborted or times out.
 
 The AI SDK forwards your experimental sandbox object but does not create or isolate one for you.
 
-The `Experimental_Sandbox` interface is only a contract. Its isolation guarantees depend on your implementation or experimental sandbox provider. A local implementation that uses
+The `Experimental_SandboxSession` interface is only a contract. Its isolation guarantees depend on your implementation or experimental sandbox provider. A local implementation that uses
 `child_process.exec` with a working directory is not a security boundary because
 commands can still access paths outside that directory. For untrusted commands
 or user-directed coding agents, use a real isolation provider, restrict
@@ -1180,23 +1182,26 @@ toolErrors.forEach(toolError => {
 
 `streamText` sends errors as part of the `stream` result. Tool execution errors appear as `tool-error` parts, while other errors appear as `error` parts.
 
-When using `toUIMessageStreamResponse`, you can pass an `onError` function to extract the error message from the error part and forward it as part of the stream response:
+When using `toUIMessageStream`, you can pass an `onError` function to extract the error message from the error part and forward it as part of the stream response:
 
 ```ts
 const result = streamText({
   // ...
 });
 
-return result.toUIMessageStreamResponse({
-  onError: error => {
-    if (NoSuchToolError.isInstance(error)) {
-      return 'The model tried to call a unknown tool.';
-    } else if (InvalidToolInputError.isInstance(error)) {
-      return 'The model called a tool with invalid inputs.';
-    } else {
-      return 'An unknown error occurred.';
-    }
-  },
+return createUIMessageStreamResponse({
+  stream: toUIMessageStream({
+    stream: result.stream,
+    onError: error => {
+      if (NoSuchToolError.isInstance(error)) {
+        return 'The model tried to call a unknown tool.';
+      } else if (InvalidToolInputError.isInstance(error)) {
+        return 'The model called a tool with invalid inputs.';
+      } else {
+        return 'An unknown error occurred.';
+      }
+    },
+  }),
 });
 ```
 
@@ -1349,6 +1354,36 @@ const { text } = await generateText({
   activeTools: ['firstTool'],
 });
 ```
+
+## Tool Order
+
+Some providers include tool definitions in the cached portion of a request.
+If the order of those definitions changes between otherwise similar requests,
+the provider may not be able to reuse the cached prefix as effectively.
+
+Use `toolOrder` when you want a stable provider request shape for caching or
+debugging. The list can be partial: tools listed in `toolOrder` are sent first
+in that order, and any remaining tools are sent afterwards in alphabetical
+order. Tool names are typed from your `tools` object.
+
+```ts highlight="9"
+import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
+
+const { text } = await generateText({
+  model: __MODEL__,
+  tools: myToolSet,
+  toolOrder: ['search', 'readFile'],
+  prompt: 'Summarize the latest project notes.',
+});
+```
+
+`toolOrder` controls only the order of tool definitions sent to the provider.
+It does not force the model to call a tool. Use [`toolChoice`](#tool-choice) to
+control tool selection, and use [`activeTools`](#active-tools) when you want to
+limit which tools are available. When both `activeTools` and `toolOrder` are
+provided, `activeTools` filters the available tools first and `toolOrder`
+orders the remaining tools.
 
 ## Multi-modal Tool Results
 

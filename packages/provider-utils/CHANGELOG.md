@@ -1,5 +1,19 @@
 # @ai-sdk/provider-utils
 
+## 5.0.0-canary.46
+
+### Patch Changes
+
+- Updated dependencies [ce769dd]
+  - @ai-sdk/provider@4.0.0-canary.18
+
+## 5.0.0-canary.45
+
+### Patch Changes
+
+- ee798eb: chore(provider-utils): rename `Experimental_Sandbox` to `Experimental_SandboxSession`
+- daf6637: feat(provider-utils): add `env` option to `spawn` and `run` methods of `Experimental_SandboxSession`
+
 ## 5.0.0-canary.44
 
 ### Patch Changes

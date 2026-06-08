@@ -1,5 +1,33 @@
 # @ai-sdk/mcp
 
+## 2.0.0-canary.59
+
+### Patch Changes
+
+- Updated dependencies [ce769dd]
+  - @ai-sdk/provider@4.0.0-canary.18
+  - @ai-sdk/provider-utils@5.0.0-canary.46
+
+## 2.0.0-canary.58
+
+### Patch Changes
+
+- Updated dependencies [ee798eb]
+- Updated dependencies [daf6637]
+  - @ai-sdk/provider-utils@5.0.0-canary.45
+
+## 2.0.0-canary.57
+
+### Patch Changes
+
+- 78e0023: fix(mcp): await addClientAuthentication in token exchange and refresh
+
+## 2.0.0-canary.56
+
+### Patch Changes
+
+- dcefad3: fix(mcp): respond to ping requests with an empty result per JSON-RPC spec (closes #6282)
+
 ## 2.0.0-canary.55
 
 ### Patch Changes

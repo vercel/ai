@@ -14,6 +14,7 @@ import type { ActiveTools } from './active-tools';
 import type { Output } from './output';
 import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
+import type { ToolOrder } from './tool-order';
 
 /**
  * Event passed to the `onStart` callback.
@@ -46,6 +47,9 @@ export type GenerateTextStartEvent<
 
   /** Limits which tools are available for the model to call. */
   readonly activeTools: ActiveTools<TOOLS>;
+
+  /** Controls the order in which tools are sent to the provider. */
+  readonly toolOrder: ToolOrder<TOOLS>;
 
   /** Maximum number of retries for failed requests. */
   readonly maxRetries: number;
@@ -109,6 +113,9 @@ export type GenerateTextStepStartEvent<
   /** Limits which tools are available for this step. */
   readonly activeTools: ActiveTools<TOOLS>;
 
+  /** Controls the order in which tools are sent to the provider for this step. */
+  readonly toolOrder: ToolOrder<TOOLS>;
+
   /** Array of results from previous steps (empty for first step). */
   readonly steps: ReadonlyArray<StepResult<TOOLS, RUNTIME_CONTEXT>>;
 
@@ -130,7 +137,7 @@ export type GenerateTextStepStartEvent<
 } & StandardizedPrompt;
 
 /**
- * Event passed to the `onStepFinish` callback.
+ * Event passed to the `onStepEnd` callback.
  *
  * Called when a step (LLM call) completes.
  * Includes the StepResult for that step along with the call identifier.
@@ -362,17 +369,27 @@ export type GenerateTextOnStepStartCallback<
 > = Callback<GenerateTextStepStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>>;
 
 /**
- * Callback that is set using the `onStepFinish` option.
+ * Callback that is set using the `onStepEnd` option.
  *
  * Called when a step (LLM call) completes. The event includes all step result
  * properties (text, tool calls, usage, etc.) along with additional metadata.
  *
  * @param stepResult - The result of the step.
  */
-export type GenerateTextOnStepFinishCallback<
+export type GenerateTextOnStepEndCallback<
   TOOLS extends ToolSet = ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
 > = Callback<GenerateTextStepEndEvent<TOOLS, RUNTIME_CONTEXT>>;
+
+/**
+ * Callback that is set using the `onStepFinish` option.
+ *
+ * @deprecated Use `GenerateTextOnStepEndCallback` instead.
+ */
+export type GenerateTextOnStepFinishCallback<
+  TOOLS extends ToolSet = ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+> = GenerateTextOnStepEndCallback<TOOLS, RUNTIME_CONTEXT>;
 
 /**
  * Callback that is set using the `onEnd` option.

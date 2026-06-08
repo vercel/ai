@@ -1,5 +1,27 @@
 # @ai-sdk/bytedance
 
+## 2.0.0-canary.49
+
+### Patch Changes
+
+- Updated dependencies [ce769dd]
+  - @ai-sdk/provider@4.0.0-canary.18
+  - @ai-sdk/provider-utils@5.0.0-canary.46
+
+## 2.0.0-canary.48
+
+### Patch Changes
+
+- Updated dependencies [ee798eb]
+- Updated dependencies [daf6637]
+  - @ai-sdk/provider-utils@5.0.0-canary.45
+
+## 2.0.0-canary.47
+
+### Patch Changes
+
+- a2ad029: Fix ByteDance video payloads to tag the prompt image as the first frame when a last frame image is provided.
+
 ## 2.0.0-canary.46
 
 ### Patch Changes

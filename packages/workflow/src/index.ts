@@ -21,6 +21,7 @@ export {
   type WorkflowAgentOnEndCallback,
   type WorkflowAgentOnErrorCallback,
   type WorkflowAgentOnFinishCallback,
+  type WorkflowAgentOnStepEndCallback,
   type WorkflowAgentOnStepFinishCallback,
   type StreamTextTransform,
   type TelemetryOptions,

@@ -1,5 +1,61 @@
 # @ai-sdk/svelte
 
+## 5.0.0-canary.165
+
+### Patch Changes
+
+- Updated dependencies [ce769dd]
+  - ai@7.0.0-canary.165
+  - @ai-sdk/provider-utils@5.0.0-canary.46
+
+## 5.0.0-canary.164
+
+### Patch Changes
+
+- ai@7.0.0-canary.164
+
+## 5.0.0-canary.163
+
+### Patch Changes
+
+- Updated dependencies [ee798eb]
+- Updated dependencies [daf6637]
+- Updated dependencies [c907622]
+  - @ai-sdk/provider-utils@5.0.0-canary.45
+  - ai@7.0.0-canary.163
+
+## 5.0.0-canary.162
+
+### Patch Changes
+
+- ai@7.0.0-canary.162
+
+## 5.0.0-canary.161
+
+### Patch Changes
+
+- ai@7.0.0-canary.161
+
+## 5.0.0-canary.160
+
+### Patch Changes
+
+- ai@7.0.0-canary.160
+
+## 5.0.0-canary.159
+
+### Patch Changes
+
+- Updated dependencies [b5092f5]
+  - ai@7.0.0-canary.159
+
+## 5.0.0-canary.158
+
+### Patch Changes
+
+- Updated dependencies [bcce2dd]
+  - ai@7.0.0-canary.158
+
 ## 5.0.0-canary.157
 
 ### Patch Changes

@@ -12,6 +12,7 @@ import type { ActiveTools } from '../generate-text/active-tools';
 import type {
   GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
+  GenerateTextOnStepEndCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
 } from '../generate-text/generate-text-events';
@@ -27,6 +28,7 @@ import type {
   OnToolExecutionStartCallback,
 } from '../generate-text/tool-execution-events';
 import type { ToolInputRefinement } from '../generate-text/tool-input-refinement';
+import type { ToolOrder } from '../generate-text/tool-order';
 import type { ToolsContextParameter } from '../generate-text/tools-context-parameter';
 import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import type { Instructions, Prompt } from '../prompt/prompt';
@@ -106,6 +108,15 @@ export type ToolLoopAgentSettings<
     activeTools?: ActiveTools<NoInfer<TOOLS>>;
 
     /**
+     * Controls the order in which tools are sent to the provider.
+     *
+     * The list can be partial. Tools not listed in `toolOrder` are sent after
+     * the listed tools, sorted alphabetically. This can improve provider-side
+     * caching by keeping tool definitions in a stable order.
+     */
+    toolOrder?: ToolOrder<NoInfer<TOOLS>>;
+
+    /**
      * Optional specification for generating structured outputs.
      */
     output?: OUTPUT;
@@ -170,7 +181,17 @@ export type ToolLoopAgentSettings<
     onToolExecutionEnd?: OnToolExecutionEndCallback<NoInfer<TOOLS>>;
 
     /**
-     * Callback that is called when each step (LLM call) is finished, including intermediate steps.
+     * Callback that is called when each step (LLM call) ends, including intermediate steps.
+     */
+    onStepEnd?: GenerateTextOnStepEndCallback<
+      NoInfer<TOOLS>,
+      NoInfer<RUNTIME_CONTEXT>
+    >;
+
+    /**
+     * Callback that is called when each step (LLM call) ends, including intermediate steps.
+     *
+     * @deprecated Use `onStepEnd` instead.
      */
     onStepFinish?: GenerateTextOnStepFinishCallback<
       NoInfer<TOOLS>,
@@ -251,7 +272,7 @@ export type ToolLoopAgentSettings<
           NoInfer<TOOLS>,
           NoInfer<RUNTIME_CONTEXT>
         >,
-        'onStepFinish'
+        'onStepEnd' | 'onStepFinish'
       > &
         Pick<
           ToolLoopAgentSettings<
@@ -277,6 +298,7 @@ export type ToolLoopAgentSettings<
           | 'telemetry'
           | 'experimental_telemetry'
           | 'activeTools'
+          | 'toolOrder'
           | 'toolApproval'
           | 'providerOptions'
           | 'experimental_download'
@@ -310,6 +332,7 @@ export type ToolLoopAgentSettings<
         | 'telemetry'
         | 'experimental_telemetry'
         | 'activeTools'
+        | 'toolOrder'
         | 'toolApproval'
         | 'providerOptions'
         | 'experimental_download'

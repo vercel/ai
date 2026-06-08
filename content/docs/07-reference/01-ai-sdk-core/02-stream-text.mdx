@@ -346,7 +346,7 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'description',
               isOptional: true,
-              type: 'string | ((options: { context: CONTEXT; experimental_sandbox?: Experimental_Sandbox }) => string)',
+              type: 'string | ((options: { context: CONTEXT; experimental_sandbox?: Experimental_SandboxSession }) => string)',
               description:
                 'Information about the purpose of the tool including details on how and when it can be used by the model. Provide a string for a fixed description, or a function to derive the description from the tool-specific context and optional experimental sandbox before each model call.',
             },
@@ -609,6 +609,13 @@ To see `streamText` in action, check out [these examples](#examples).
         'Limits the tools that are available for the model to call without changing the tool call and result types in the result. All tools are active by default. Tool names are restricted to the string keys of the tool set.',
     },
     {
+      name: 'toolOrder',
+      type: 'ToolOrder<TOOLS>',
+      isOptional: true,
+      description:
+        'Controls the order in which tools are sent to the provider. The list can be partial. Tools not listed in `toolOrder` are sent after the listed tools, sorted alphabetically. Tool names are restricted to the string keys of the tool set.',
+    },
+    {
       name: 'toolApproval',
       type: 'ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>',
       isOptional: true,
@@ -696,7 +703,7 @@ To see `streamText` in action, check out [these examples](#examples).
                     },
                     {
                       name: 'experimental_sandbox',
-                      type: 'Experimental_Sandbox | undefined',
+                      type: 'Experimental_SandboxSession | undefined',
                       isOptional: true,
                       description:
                         'The experimental sandbox environment passed via the `experimental_sandbox` setting.',
@@ -734,6 +741,13 @@ To see `streamText` in action, check out [these examples](#examples).
                 'If provided, only these tools are enabled/available for this step.',
             },
             {
+              name: 'toolOrder',
+              type: 'ToolOrder<TOOLS>',
+              isOptional: true,
+              description:
+                'If provided, overrides the order in which tools are sent to the provider for this step. Tools not listed are appended alphabetically.',
+            },
+            {
               name: 'instructions',
               type: 'Instructions',
               isOptional: true,
@@ -762,7 +776,7 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'experimental_sandbox',
-              type: 'Experimental_Sandbox',
+              type: 'Experimental_SandboxSession',
               isOptional: true,
               description:
                 'Experimental sandbox environment for this step. Changing it will affect tool execution in this step only.',
@@ -793,7 +807,7 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'experimental_sandbox',
-      type: 'Experimental_Sandbox',
+      type: 'Experimental_SandboxSession',
       isOptional: true,
       description:
         'Experimental sandbox environment that is passed through to `prepareStep`, tool description functions, and tool execution. Tools can access it from their description function options and execution options.',
@@ -1262,13 +1276,13 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'onStepFinish',
-      type: '(result: onStepFinishResult) => Promise<void> | void',
+      name: 'onStepEnd',
+      type: '(result: StepResult<TOOLS>) => Promise<void> | void',
       isOptional: true,
-      description: 'Callback that is called when a step is finished.',
+      description: 'Callback that is called when a step ends.',
       properties: [
         {
-          type: 'onStepFinishResult',
+          type: 'StepResult',
           parameters: [
             {
               name: 'stepType',
@@ -1593,6 +1607,13 @@ To see `streamText` in action, check out [these examples](#examples).
           ],
         },
       ],
+    },
+    {
+      name: 'onStepFinish',
+      type: 'GenerateTextOnStepFinishCallback<TOOLS>',
+      isOptional: true,
+      description:
+        'Deprecated. Use `onStepEnd` instead. This alias is only used as a fallback when `onStepEnd` is not provided.',
     },
     {
       name: 'onEnd',
@@ -2020,6 +2041,12 @@ To see `streamText` in action, check out [these examples](#examples).
                 'Limits which tools are available for the model to call.',
             },
             {
+              name: 'toolOrder',
+              type: 'ToolOrder<TOOLS>',
+              description:
+                'Controls the order in which tools are sent to the provider.',
+            },
+            {
               name: 'maxOutputTokens',
               type: 'number | undefined',
               description: 'Maximum number of tokens to generate.',
@@ -2165,6 +2192,12 @@ To see `streamText` in action, check out [these examples](#examples).
               name: 'activeTools',
               type: 'ActiveTools<TOOLS>',
               description: 'Limits which tools are available for this step.',
+            },
+            {
+              name: 'toolOrder',
+              type: 'ToolOrder<TOOLS>',
+              description:
+                'Controls the order in which tools are sent to the provider for this step.',
             },
             {
               name: 'steps',

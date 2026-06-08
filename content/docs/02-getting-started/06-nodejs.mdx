@@ -379,7 +379,7 @@ async function main() {
         }),
       },
       stopWhen: isStepCount(5),
-      onStepFinish: async ({ toolResults }) => {
+      onStepEnd: async ({ toolResults }) => {
         if (toolResults.length) {
           console.log(JSON.stringify(toolResults, null, 2));
         }
@@ -404,7 +404,7 @@ main().catch(console.error);
 In this updated code:
 
 1. You set `stopWhen` to be when `isStepCount` 5, allowing the agent to use up to 5 "steps" for any given generation.
-2. You add an `onStepFinish` callback to log any `toolResults` from each step of the interaction, helping you understand the agent's tool usage. This means we can also delete the `toolCall` and `toolResult` `console.log` statements from the previous example.
+2. You add an `onStepEnd` callback to log any `toolResults` from each step of the interaction, helping you understand the agent's tool usage. This means we can also delete the `toolCall` and `toolResult` `console.log` statements from the previous example.
 
 Now, when you ask about the weather in a location, you should see the agent using the weather tool results to answer your question.
 
@@ -469,7 +469,7 @@ async function main() {
         }),
       },
       stopWhen: isStepCount(5),
-      onStepFinish: async ({ toolResults }) => {
+      onStepEnd: async ({ toolResults }) => {
         if (toolResults.length) {
           console.log(JSON.stringify(toolResults, null, 2));
         }

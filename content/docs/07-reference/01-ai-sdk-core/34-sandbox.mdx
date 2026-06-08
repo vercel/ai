@@ -1,11 +1,11 @@
 ---
-title: Experimental_Sandbox
-description: API Reference for the Experimental_Sandbox interface.
+title: Experimental_SandboxSession
+description: API Reference for the Experimental_SandboxSession interface.
 ---
 
-# `Experimental_Sandbox`
+# `Experimental_SandboxSession`
 
-The `Experimental_Sandbox` interface describes an execution environment that
+The `Experimental_SandboxSession` interface describes an execution environment that
 tools can use to run commands. Pass an experimental sandbox using the
 `experimental_sandbox` option to `generateText`, `streamText`,
 `ToolLoopAgent.generate`, `ToolLoopAgent.stream`, or agent UI stream helpers to
@@ -21,18 +21,19 @@ make it available to tool description functions and tool execution.
 ## Import
 
 <Snippet
-  text={`import type { Experimental_Sandbox } from "ai"`}
+  text={`import type { Experimental_SandboxSession } from "ai"`}
   prompt={false}
 />
 
 ## Type Definition
 
 ```ts
-type Experimental_Sandbox = {
+type Experimental_SandboxSession = {
   readonly description: string;
   readonly run: (options: {
     command: string;
     workingDirectory?: string;
+    env?: Record<string, string>;
     abortSignal?: AbortSignal;
   }) => PromiseLike<{
     exitCode: number;
@@ -54,7 +55,7 @@ type Experimental_Sandbox = {
     },
     {
       name: 'run',
-      type: '(options: { command: string; workingDirectory?: string; abortSignal?: AbortSignal }) => PromiseLike<{ exitCode: number; stdout: string; stderr: string }>',
+      type: '(options: { command: string; workingDirectory?: string; env?: Record<string, string>; abortSignal?: AbortSignal }) => PromiseLike<{ exitCode: number; stdout: string; stderr: string }>',
       description:
         'Executes a command in the experimental sandbox and resolves with the command exit code, standard output, and standard error.',
       properties: [
@@ -72,6 +73,12 @@ type Experimental_Sandbox = {
               type: 'string | undefined',
               description:
                 'Optional working directory to execute the command in. If omitted, the experimental sandbox implementation uses its default working directory.',
+            },
+            {
+              name: 'env',
+              type: 'Record<string, string> | undefined',
+              description:
+                'Optional environment variables to set for the command. Merged with the experimental sandbox default environment, with these values taking precedence. Passing secrets here instead of inlining them into the command avoids leaking them in logs. Implementations that cannot set environment variables reject this option.',
             },
             {
               name: 'abortSignal',

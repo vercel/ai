@@ -8,7 +8,7 @@ import {
   extractLines,
   type Experimental_SandboxProcess,
 } from '@ai-sdk/provider-utils';
-import { type Experimental_Sandbox as Sandbox } from 'ai';
+import { type Experimental_SandboxSession as SandboxSession } from 'ai';
 import {
   bytesToStream,
   collectStream,
@@ -18,12 +18,12 @@ import {
 /**
  * WARNING: This is not a security sandbox.
  *
- * LocalSandbox only sets the working directory for shell commands. Commands can
+ * LocalSandboxSession only sets the working directory for shell commands. Commands can
  * still read or edit files outside `rootDirectory` through absolute paths,
  * parent-directory paths, symlinks, subprocesses, and shell features. Only use
  * this with trusted commands.
  */
-export class LocalSandbox implements Sandbox {
+export class LocalSandboxSession implements SandboxSession {
   /**
    * Root directory used as the default working directory and the anchor for
    * relative paths in file methods.
@@ -43,15 +43,18 @@ export class LocalSandbox implements Sandbox {
   async run({
     command,
     workingDirectory,
+    env,
     abortSignal,
   }: {
     command: string;
     workingDirectory?: string;
+    env?: Record<string, string>;
     abortSignal?: AbortSignal;
   }) {
     const proc = await this.spawn({
       command,
       workingDirectory,
+      env,
       abortSignal,
     });
 
@@ -67,13 +70,19 @@ export class LocalSandbox implements Sandbox {
   async spawn({
     command,
     workingDirectory,
+    env,
     abortSignal,
   }: {
     command: string;
     workingDirectory?: string;
+    env?: Record<string, string>;
     abortSignal?: AbortSignal;
   }): Promise<Experimental_SandboxProcess> {
     abortSignal?.throwIfAborted();
+
+    if (env != null && Object.keys(env).length > 0) {
+      throw new Error('LocalSandboxSession does not support the `env` option.');
+    }
 
     const child = spawn('bash', ['-c', command], {
       cwd: workingDirectory ?? this.rootDirectory,
@@ -234,7 +243,7 @@ export class LocalSandbox implements Sandbox {
 
   get description() {
     return [
-      'WARNING: LocalSandbox is not a true sandbox.',
+      'WARNING: LocalSandboxSession is not a true sandbox.',
       'Commands can access files outside the root directory.',
       `Root directory: ${this.rootDirectory}`,
     ].join('\n');

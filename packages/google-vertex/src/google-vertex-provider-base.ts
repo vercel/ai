@@ -1,9 +1,13 @@
-import { GoogleLanguageModel } from '@ai-sdk/google/internal';
+import {
+  GoogleLanguageModel,
+  GoogleSpeechModel,
+} from '@ai-sdk/google/internal';
 import type {
   Experimental_VideoModelV4,
   ImageModelV4,
   LanguageModelV4,
   ProviderV4,
+  SpeechModelV4,
 } from '@ai-sdk/provider';
 import {
   generateId,
@@ -26,6 +30,7 @@ import type { GoogleVertexModelId } from './google-vertex-options';
 import { googleVertexTools } from './google-vertex-tools';
 import { GoogleVertexVideoModel } from './google-vertex-video-model';
 import type { GoogleVertexVideoModelId } from './google-vertex-video-settings';
+import type { GoogleVertexSpeechModelId } from './google-vertex-speech-model-options';
 
 const EXPRESS_MODE_BASE_URL =
   'https://aiplatform.googleapis.com/v1/publishers/google';
@@ -83,6 +88,16 @@ export interface GoogleVertexProvider extends ProviderV4 {
    * Creates a model for video generation.
    */
   videoModel(modelId: GoogleVertexVideoModelId): Experimental_VideoModelV4;
+
+  /**
+   * Creates a model for speech generation (text-to-speech).
+   */
+  speech(modelId: GoogleVertexSpeechModelId): SpeechModelV4;
+
+  /**
+   * Creates a model for speech generation (text-to-speech).
+   */
+  speechModel(modelId: GoogleVertexSpeechModelId): SpeechModelV4;
 }
 
 export interface GoogleVertexProviderSettings {
@@ -162,13 +177,19 @@ export function createGoogleVertex(
     const region = loadGoogleVertexLocation();
     const project = loadGoogleVertexProject();
 
-    // For global region, use aiplatform.googleapis.com directly
-    // For other regions, use region-aiplatform.googleapis.com
-    const baseHost = `${region === 'global' ? '' : region + '-'}aiplatform.googleapis.com`;
+    const getHost = () => {
+      if (region === 'global') {
+        return 'aiplatform.googleapis.com';
+      } else if (region === 'eu' || region === 'us') {
+        return `aiplatform.${region}.rep.googleapis.com`;
+      } else {
+        return `${region}-aiplatform.googleapis.com`;
+      }
+    };
 
     return (
       withoutTrailingSlash(options.baseURL) ??
-      `https://${baseHost}/v1beta1/projects/${project}/locations/${region}/publishers/google`
+      `https://${getHost()}/v1beta1/projects/${project}/locations/${region}/publishers/google`
     );
   };
 
@@ -221,6 +242,9 @@ export function createGoogleVertex(
       generateId: options.generateId ?? generateId,
     });
 
+  const createSpeechModel = (modelId: GoogleVertexSpeechModelId) =>
+    new GoogleSpeechModel(modelId, createConfig('speech'));
+
   const provider = function (modelId: GoogleVertexModelId) {
     if (new.target) {
       throw new Error(
@@ -239,6 +263,8 @@ export function createGoogleVertex(
   provider.imageModel = createImageModel;
   provider.video = createVideoModel;
   provider.videoModel = createVideoModel;
+  provider.speech = createSpeechModel;
+  provider.speechModel = createSpeechModel;
   provider.tools = googleVertexTools;
 
   return provider;

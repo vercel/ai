@@ -172,7 +172,7 @@ const result = await generateText({
     );
   },
 
-  onStepFinish({ stepNumber, finishReason, usage, performance }) {
+  onStepEnd({ stepNumber, finishReason, usage, performance }) {
     console.log(`Step ${stepNumber} finished`, {
       finishReason,
       usage,
@@ -190,7 +190,7 @@ The available lifecycle callbacks are:
 - **`experimental_onLanguageModelCallEnd`**: Called after the model response has been normalized and parsed, but before any client-side tool execution begins. Receives the model-call content parts, usage, and finish reason.
 - **`onToolExecutionStart`**: Called right before a tool's `execute` function runs. Receives the tool call object, messages, and `toolContext`.
 - **`onToolExecutionEnd`**: Called right after a tool's `execute` function completes or errors. Receives the tool call object, `toolExecutionMs`, and a `toolOutput` discriminated union (`type: 'tool-result'` with `output`, or `type: 'tool-error'` with `error`).
-- **`onStepFinish`**: Called after each step finishes. Includes `stepNumber` (zero-based index of the completed step).
+- **`onStepEnd`**: Called after each step finishes. Includes `stepNumber` (zero-based index of the completed step).
 
 ## `streamText`
 
@@ -225,12 +225,12 @@ for await (const textPart of result.textStream) {
 You can use `streamText` on its own or in combination with [AI SDK
 UI](/examples/next-pages/basics/streaming-text-generation) and [AI SDK
 RSC](/examples/next-app/basics/streaming-text-generation).
-The result object contains several helper functions to make the integration into [AI SDK UI](/docs/ai-sdk-ui) easier:
+The `result.stream` can be passed to several standalone helpers to make the integration into [AI SDK UI](/docs/ai-sdk-ui) easier:
 
-- `result.toUIMessageStreamResponse()`: Creates a UI Message stream HTTP response (with tool calls etc.) that can be used in a Next.js App Router API route.
-- `result.pipeUIMessageStreamToResponse()`: Writes UI Message stream delta output to a Node.js response-like object.
-- `result.toTextStreamResponse()`: Creates a simple text stream HTTP response.
-- `result.pipeTextStreamToResponse()`: Writes text delta output to a Node.js response-like object.
+- `createUIMessageStreamResponse({ stream: toUIMessageStream({ stream: result.stream }) })`: Creates a UI Message stream HTTP response (with tool calls etc.) that can be used in a Next.js App Router API route.
+- `pipeUIMessageStreamToResponse({ stream: toUIMessageStream({ stream: result.stream }), response })`: Writes UI Message stream delta output to a Node.js response-like object.
+- `createTextStreamResponse({ stream: toTextStream({ stream: result.stream }) })`: Creates a simple text stream HTTP response.
+- `pipeTextStreamToResponse({ stream: toTextStream({ stream: result.stream }), response })`: Writes text delta output to a Node.js response-like object.
 
 <Note>
   `streamText` is using backpressure and only generates tokens as they are
@@ -406,7 +406,7 @@ const result = streamText({
     );
   },
 
-  onStepFinish({ finishReason, usage }) {
+  onStepEnd({ finishReason, usage }) {
     console.log('Step finished', { finishReason, usage });
   },
 });
@@ -420,7 +420,7 @@ The available lifecycle callbacks are:
 - **`experimental_onLanguageModelCallEnd`**: Called after the model response has been normalized and parsed, but before any client-side tool execution begins. Receives the model-call content parts, usage, and finish reason.
 - **`onToolExecutionStart`**: Called right before a tool's `execute` function runs. Receives the tool call object, messages, and `toolContext`.
 - **`onToolExecutionEnd`**: Called right after a tool's `execute` function completes or errors. Receives the tool call object, `toolExecutionMs`, and a `toolOutput` discriminated union (`type: 'tool-result'` with `output`, or `type: 'tool-error'` with `error`).
-- **`onStepFinish`**: Called after each step finishes. Receives the finish reason, usage, and other step details.
+- **`onStepEnd`**: Called after each step finishes. Receives the finish reason, usage, and other step details.
 
 ### `stream` property
 

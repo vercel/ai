@@ -243,6 +243,39 @@ The same rename applies to `streamText`, `Agent.generate()`,
 accepted as a deprecated alias. When both `onEnd` and `onFinish` are provided,
 `onEnd` takes precedence.
 
+#### `onStepFinish` Renamed to `onStepEnd`
+
+The per-step lifecycle callback has been renamed from `onStepFinish` to
+`onStepEnd`.
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello!',
+  onStepFinish: ({ stepNumber, usage }) => {
+    console.log(`Step ${stepNumber} used ${usage.totalTokens} tokens`);
+  },
+});
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello!',
+  onStepEnd: ({ stepNumber, usage }) => {
+    console.log(`Step ${stepNumber} used ${usage.totalTokens} tokens`);
+  },
+});
+```
+
+This applies to `generateText`, `streamText`, `generateObject`,
+`streamObject`, agents, workflow agents, and UI message stream helpers.
+Telemetry integrations should implement `onStepEnd`.
+
+The `onStepFinish` option is still accepted as a deprecated alias for
+user-facing callbacks. When both `onStepEnd` and `onStepFinish` are provided,
+`onStepEnd` takes precedence.
+
 #### `StreamTextResult.fullStream` Renamed to `stream`
 
 The full event stream returned by `streamText` has been renamed from
@@ -1363,6 +1396,112 @@ stopWhen: stepCountIs(3);
 import { isStepCount } from 'ai';
 
 stopWhen: isStepCount(3);
+```
+
+### `streamText` Response Helpers Deprecated — Use Stateless Helpers
+
+The `toUIMessageStream`, `toUIMessageStreamResponse`, `pipeUIMessageStreamToResponse`, `toTextStreamResponse`, and `pipeTextStreamToResponse` methods on the `streamText` result are now deprecated. They still work in v7 (with deprecation warnings) and will be removed in the next major release.
+
+The equivalent stateless helpers live on the top-level `'ai'` export. Use them directly so the same transformation can be composed over any `stream` / `textStream` — not just a `streamText` result.
+
+**UI message stream**
+
+```tsx filename="AI SDK 6"
+const result = streamText({ model, prompt });
+
+const uiStream = result.toUIMessageStream({
+  originalMessages,
+  generateMessageId,
+  onFinish,
+});
+```
+
+```tsx filename="AI SDK 7"
+import { streamText, toUIMessageStream } from 'ai';
+
+const result = streamText({ model, prompt });
+
+const uiStream = toUIMessageStream({
+  stream: result.stream,
+  generateMessageId,
+  originalMessages,
+  onFinish,
+});
+```
+
+**UI message stream `Response`**
+
+```tsx filename="AI SDK 6"
+return result.toUIMessageStreamResponse({ originalMessages });
+```
+
+```tsx filename="AI SDK 7"
+import { createUIMessageStreamResponse, toUIMessageStream } from 'ai';
+
+const uiStream = toUIMessageStream({
+  stream: result.stream,
+  generateMessageId,
+  originalMessages,
+  onFinish,
+});
+
+return createUIMessageStreamResponse({
+  stream: uiStream,
+});
+```
+
+**Pipe UI message stream to Node.js response**
+
+```tsx filename="AI SDK 6"
+result.pipeUIMessageStreamToResponse(response, { originalMessages });
+```
+
+```tsx filename="AI SDK 7"
+import { pipeUIMessageStreamToResponse, toUIMessageStream } from 'ai';
+
+const uiStream = toUIMessageStream({
+  stream: result.stream,
+  generateMessageId,
+  originalMessages,
+  onFinish,
+});
+
+pipeUIMessageStreamToResponse({
+  stream: uiStream,
+  response,
+});
+```
+
+**Text stream `Response`**
+
+```tsx filename="AI SDK 6"
+return result.toTextStreamResponse();
+```
+
+```tsx filename="AI SDK 7"
+import { createTextStreamResponse, toTextStream } from 'ai';
+
+const textStream = toTextStream({
+  stream: result.stream,
+});
+
+return createTextStreamResponse({ stream: textStream });
+```
+
+**Pipe text stream to Node.js response**
+
+```tsx filename="AI SDK 6"
+result.pipeTextStreamToResponse(response);
+```
+
+```tsx filename="AI SDK 7"
+import { pipeTextStreamToResponse, toTextStream } from 'ai';
+
+const textStream = toTextStream({
+  stream: result.stream,
+});
+
+pipeTextStreamToResponse({ response, stream: textStream });
 ```
 
 ## MCP Package
