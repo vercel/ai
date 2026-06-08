@@ -12,6 +12,11 @@ import {
 import type { ErrorHandler } from '../util/error-handler';
 import { mergeObjects } from '../util/merge-objects';
 import { parsePartialJson } from '../util/parse-partial-json';
+import {
+  appendToTextAccumulator,
+  finalizeTextAccumulator,
+  prepareTextAccumulator,
+} from '../util/text-accumulator';
 import type { UIDataTypesToSchemas } from './chat';
 import {
   getStaticToolName,
@@ -366,12 +371,12 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
           switch (chunk.type) {
             case 'text-start': {
-              const textPart: TextUIPart = {
+              const textPart = prepareTextAccumulator({
                 type: 'text',
                 text: '',
                 providerMetadata: chunk.providerMetadata,
                 state: 'streaming',
-              };
+              } satisfies TextUIPart);
               state.activeTextParts[chunk.id] = textPart;
               state.message.parts.push(textPart);
               write();
@@ -389,7 +394,10 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                     `Ensure a "text-start" chunk is sent before any "text-delta" chunks.`,
                 });
               }
-              textPart.text += chunk.delta;
+              appendToTextAccumulator({
+                part: textPart,
+                textDelta: chunk.delta,
+              });
               textPart.providerMetadata =
                 chunk.providerMetadata ?? textPart.providerMetadata;
               write();
@@ -410,18 +418,19 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               textPart.state = 'done';
               textPart.providerMetadata =
                 chunk.providerMetadata ?? textPart.providerMetadata;
+              finalizeTextAccumulator(textPart);
               delete state.activeTextParts[chunk.id];
               write();
               break;
             }
 
             case 'reasoning-start': {
-              const reasoningPart: ReasoningUIPart = {
+              const reasoningPart = prepareTextAccumulator({
                 type: 'reasoning',
                 text: '',
                 providerMetadata: chunk.providerMetadata,
                 state: 'streaming',
-              };
+              } satisfies ReasoningUIPart);
               state.activeReasoningParts[chunk.id] = reasoningPart;
               state.message.parts.push(reasoningPart);
               write();
@@ -439,7 +448,10 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                     `Ensure a "reasoning-start" chunk is sent before any "reasoning-delta" chunks.`,
                 });
               }
-              reasoningPart.text += chunk.delta;
+              appendToTextAccumulator({
+                part: reasoningPart,
+                textDelta: chunk.delta,
+              });
               reasoningPart.providerMetadata =
                 chunk.providerMetadata ?? reasoningPart.providerMetadata;
               write();
@@ -460,6 +472,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               reasoningPart.providerMetadata =
                 chunk.providerMetadata ?? reasoningPart.providerMetadata;
               reasoningPart.state = 'done';
+              finalizeTextAccumulator(reasoningPart);
               delete state.activeReasoningParts[chunk.id];
 
               write();
