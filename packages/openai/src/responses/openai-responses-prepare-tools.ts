@@ -1,14 +1,8 @@
 import {
   UnsupportedFunctionalityError,
-<<<<<<< HEAD
   type LanguageModelV3CallOptions,
+  type LanguageModelV3FunctionTool,
   type SharedV3Warning,
-=======
-  type LanguageModelV4CallOptions,
-  type LanguageModelV4FunctionTool,
-  type SharedV4ProviderReference,
-  type SharedV4Warning,
->>>>>>> 6a5800ef0 (feat(openai): add namespaces for tool definitions (#15904))
 } from '@ai-sdk/provider';
 import { validateTypes, type ToolNameMapping } from '@ai-sdk/provider-utils';
 import { codeInterpreterArgsSchema } from '../tool/code-interpreter';
@@ -396,7 +390,7 @@ function prepareFunctionTool({
   tool,
   options,
 }: {
-  tool: LanguageModelV4FunctionTool;
+  tool: LanguageModelV3FunctionTool;
   options: OpenAIToolOptions | undefined;
 }): OpenAIResponsesFunctionTool {
   const deferLoading = options?.deferLoading;
