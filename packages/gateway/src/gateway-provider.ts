@@ -468,13 +468,15 @@ export function createGateway(
   provider.transcriptionModel = createTranscriptionModel;
   provider.transcription = createTranscriptionModel;
 
-  const createRealtimeModel = (modelId: GatewayRealtimeModelId) =>
-    new GatewayRealtimeModel(modelId, {
+  const createRealtimeModel = (modelId: GatewayRealtimeModelId) => {
+    assertGatewayRealtimeServerEnvironment();
+    return new GatewayRealtimeModel(modelId, {
       provider: 'gateway.realtime',
       baseURL,
       teamIdOrSlug: options.teamIdOrSlug,
       getAuthToken: getRealtimeAuthToken,
     });
+  };
   provider.experimental_realtime = Object.assign(
     (modelId: GatewayRealtimeModelId) => createRealtimeModel(modelId),
     {
@@ -520,4 +522,12 @@ export async function getGatewayAuthToken(
     token: oidcToken,
     authMethod: 'oidc',
   };
+}
+
+function assertGatewayRealtimeServerEnvironment(): void {
+  if (typeof globalThis.window !== 'undefined') {
+    throw new Error(
+      'AI Gateway realtime models cannot be used in browsers yet. Use gateway.experimental_realtime from server-side code only.',
+    );
+  }
 }

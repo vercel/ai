@@ -251,59 +251,48 @@ const model = gateway.experimental_realtime('openai/gpt-realtime-2');
 
 The Gateway normalizes realtime the same way it normalizes every other modality: your client speaks the [normalized AI SDK realtime protocol](/docs/ai-sdk-core/realtime) and the Gateway translates to and from the upstream provider server-side. This means the same client code works regardless of which provider backs the model.
 
-Use it with the same setup-endpoint and `experimental_useRealtime` flow as any other realtime provider (see [Realtime](/docs/ai-sdk-core/realtime)). For Gateway realtime v0, `getToken()` returns the Gateway auth token resolved by the provider (`apiKey`, `AI_GATEWAY_API_KEY`, or Vercel OIDC token), and the browser connects through the Gateway with that token:
+Gateway realtime v0 is server-side only. Calling `gateway.experimental_realtime()` in a browser throws an error. `getToken()` returns the Gateway auth token resolved by the provider (`apiKey`, `AI_GATEWAY_API_KEY`, or Vercel OIDC token), so do not expose it to browser clients.
 
 ```ts
-// app/api/realtime/setup/route.ts
 import { gateway } from '@ai-sdk/gateway';
 
-export async function POST() {
-  const token = await gateway.experimental_realtime.getToken({
-    model: 'openai/gpt-realtime-2',
-  });
-  return Response.json(token);
-}
+// Server-side only. Do not return this token to browser clients.
+const token = await gateway.experimental_realtime.getToken({
+  model: 'openai/gpt-realtime-2',
+});
 ```
 
 <Note>
   Gateway realtime v0 does not mint a provider-style short-lived client secret.
-  The token returned by `gateway.experimental_realtime.getToken()` is the
-  Gateway credential used to authenticate the WebSocket upgrade. Protect your
-  setup endpoint and only expose this token to clients you trust. Gateway-minted
-  ephemeral secrets are planned as future work.
+  Gateway-minted ephemeral secrets are planned as future work; browser support
+  should wait for that flow.
 </Note>
 
 <Note>
-  Because the browser `WebSocket` API cannot set request headers, the Gateway
-  auth token is sent via the versioned `Sec-WebSocket-Protocol` subprotocol and
-  the model id rides the `?ai-model-id=` query - the WebSocket transport of the
-  `Authorization` and `ai-model-id` headers the HTTP routes use. Subprotocol
-  values must fit the WebSocket token grammar, and the complete
-  `Sec-WebSocket-Protocol` header should stay compact (under an 8 KiB safe
-  header budget).
+  The Gateway WebSocket route transports auth via the versioned
+  `Sec-WebSocket-Protocol` subprotocol and the model id via the `?ai-model-id=`
+  query - the WebSocket transport of the `Authorization` and `ai-model-id`
+  headers the HTTP routes use. Subprotocol values must fit the WebSocket token
+  grammar, and the complete `Sec-WebSocket-Protocol` header should stay compact
+  (under an 8 KiB safe header budget).
 </Note>
 
 ### Provider Options
 
-Gateway [provider options](#gateway-provider-options) — `tags`, `user`, `byok`, compliance flags, and so on — are set under `providerOptions.gateway` in the **session configuration**, mirroring how they ride the request body on the non-realtime routes. Pass them to `experimental_useRealtime` (or to the session you construct) and the Gateway applies them server-side:
+Gateway [provider options](#gateway-provider-options) — `tags`, `user`, `byok`, compliance flags, and so on — are set under `providerOptions.gateway` in the **session configuration**, mirroring how they ride the request body on the non-realtime routes. Include them in the session configuration you send to the Gateway, and the Gateway applies them server-side:
 
 ```ts
-import { gateway, type GatewayProviderOptions } from '@ai-sdk/gateway';
-import { experimental_useRealtime } from '@ai-sdk/react';
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 
 const gatewayOptions: GatewayProviderOptions = {
   tags: ['cooking-coach', 'v2'],
   user: 'user-123',
 };
 
-experimental_useRealtime({
-  model: gateway.experimental_realtime('openai/gpt-realtime-2'),
-  api: { token: '/api/realtime/setup' },
-  sessionConfig: {
-    instructions: 'You are a concise voice assistant.',
-    providerOptions: { gateway: gatewayOptions },
-  },
-});
+const sessionConfig = {
+  instructions: 'You are a concise voice assistant.',
+  providerOptions: { gateway: gatewayOptions },
+};
 ```
 
 The `GatewayProviderOptions` type is exported from `@ai-sdk/gateway` for stable client-facing fields. The type also accepts service-owned option keys so the Gateway service can add or change server-side options without requiring an SDK release for every schema change. Runtime validation is owned by the Gateway service.

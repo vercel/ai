@@ -39,7 +39,7 @@ export type GatewayProviderOptions = {
   serviceTier?: 'flex' | 'priority';
 
   /** Sort providers by a performance or cost metric before routing. */
-  sort?: 'cost' | 'latency' | 'price' | 'throughput' | 'tps' | 'ttft';
+  sort?: 'cost' | 'tps' | 'ttft';
 
   /** User-specified tags for reporting and filtering usage. */
   tags?: string[];

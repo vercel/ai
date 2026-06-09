@@ -8,8 +8,10 @@ Adds `gateway.experimental_realtime()` for bidirectional audio/text realtime
 sessions routed through the AI Gateway. Like every other Gateway modality, the
 client speaks the normalized AI SDK realtime protocol and the Gateway
 translates to/from the upstream provider server-side, so `GatewayRealtimeModel`
-is a thin identity codec. Because the browser `WebSocket` API cannot set
-request headers, the Gateway auth token is carried via the
+is a thin identity codec. Gateway realtime is server-side only for v0 and throws
+if used in a browser because it returns the resolved Gateway auth token rather
+than a minted ephemeral client secret. Because the browser `WebSocket` API
+cannot set request headers, the Gateway auth token is carried via the
 `Sec-WebSocket-Protocol` subprotocol (the same workaround used for OpenAI) and
 the model id rides the `?ai-model-id=` query — the WS transport of the
 `ai-model-id` header used by the HTTP routes. The model id is passed through

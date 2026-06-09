@@ -15,6 +15,10 @@ vi.mock('./vercel-environment', () => ({
   getVercelRequestId: vi.fn(),
 }));
 
+const serverOnlyDescribe =
+  typeof globalThis.window === 'undefined' ? describe : describe.skip;
+const serverOnlyIt = typeof globalThis.window === 'undefined' ? it : it.skip;
+
 const createTestModel = (
   modelId = 'openai/gpt-realtime',
   baseURL = 'https://ai-gateway.vercel.sh/v4/ai',
@@ -147,14 +151,14 @@ describe('GatewayRealtimeModel', () => {
 describe('gateway.experimental_realtime', () => {
   const gateway = createGateway({ apiKey: 'vck_test-token' });
 
-  it('creates a realtime model from a model id', () => {
+  serverOnlyIt('creates a realtime model from a model id', () => {
     const model = gateway.experimental_realtime('openai/gpt-realtime');
     expect(model.specificationVersion).toBe('v4');
     expect(model.modelId).toBe('openai/gpt-realtime');
     expect(model.provider).toBe('gateway.realtime');
   });
 
-  it('mints a token + url via getToken', async () => {
+  serverOnlyIt('returns a Gateway auth token + url via getToken', async () => {
     const result = await gateway.experimental_realtime.getToken({
       model: 'openai/gpt-realtime',
     });
@@ -164,24 +168,63 @@ describe('gateway.experimental_realtime', () => {
     );
   });
 
-  it('carries teamIdOrSlug through realtime WebSocket protocols', () => {
-    const scopedGateway = createGateway({
-      apiKey: 'vck_test-token',
-      teamIdOrSlug: 'my-team',
-    });
-    const model = scopedGateway.experimental_realtime('openai/gpt-realtime');
-    const config = model.getWebSocketConfig({
-      token: 'vck_test-token',
-      url: 'wss://ai-gateway.vercel.sh/v4/ai/realtime-model?ai-model-id=openai%2Fgpt-realtime',
-    });
+  serverOnlyIt(
+    'carries teamIdOrSlug through realtime WebSocket protocols',
+    () => {
+      const scopedGateway = createGateway({
+        apiKey: 'vck_test-token',
+        teamIdOrSlug: 'my-team',
+      });
+      const model = scopedGateway.experimental_realtime('openai/gpt-realtime');
+      const config = model.getWebSocketConfig({
+        token: 'vck_test-token',
+        url: 'wss://ai-gateway.vercel.sh/v4/ai/realtime-model?ai-model-id=openai%2Fgpt-realtime',
+      });
 
-    expect(getGatewayRealtimeTeamIdOrSlug(config.protocols?.join(', '))).toBe(
-      'my-team',
-    );
+      expect(getGatewayRealtimeTeamIdOrSlug(config.protocols?.join(', '))).toBe(
+        'my-team',
+      );
+    },
+  );
+
+  it('rejects creating a realtime model in browsers', () => {
+    withBrowserGlobal(() => {
+      expect(() =>
+        gateway.experimental_realtime('openai/gpt-realtime'),
+      ).toThrow(/cannot be used in browsers/);
+    });
+  });
+
+  it('rejects getToken in browsers', async () => {
+    await withBrowserGlobal(async () => {
+      await expect(
+        gateway.experimental_realtime.getToken({
+          model: 'openai/gpt-realtime',
+        }),
+      ).rejects.toThrow(/cannot be used in browsers/);
+    });
   });
 });
 
-describe('gateway.experimental_realtime auth errors', () => {
+function withBrowserGlobal<T>(callback: () => T): T {
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'window');
+  Object.defineProperty(globalThis, 'window', {
+    configurable: true,
+    value: {},
+  });
+
+  try {
+    return callback();
+  } finally {
+    if (descriptor) {
+      Object.defineProperty(globalThis, 'window', descriptor);
+    } else {
+      Reflect.deleteProperty(globalThis, 'window');
+    }
+  }
+}
+
+serverOnlyDescribe('gateway.experimental_realtime auth errors', () => {
   let previousApiKey: string | undefined;
 
   beforeEach(() => {
