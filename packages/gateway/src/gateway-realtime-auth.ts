@@ -10,6 +10,12 @@
  * the Gateway server can't drift: the client encodes values with
  * `getGatewayRealtimeProtocols`, and the Gateway server decodes them with
  * `getGatewayRealtimeAuthToken` / `getGatewayRealtimeTeamIdOrSlug`.
+ *
+ * WebSocket subprotocol values must fit the RFC token grammar. The auth token is
+ * sent as-is, so callers must use tokens that are valid subprotocol tokens; the
+ * optional team scope is base64url-encoded by this module. Keep the complete
+ * `Sec-WebSocket-Protocol` header compact (target under an 8 KiB safe header
+ * budget) because intermediaries may reject large upgrade headers.
  */
 
 /**
@@ -17,7 +23,7 @@
  * negotiated subprotocol on the 101 response (some clients require the server to
  * select one of the offered subprotocols).
  */
-export const GATEWAY_REALTIME_SUBPROTOCOL = 'ai-gateway-realtime';
+export const GATEWAY_REALTIME_SUBPROTOCOL = 'ai-gateway-realtime.v1';
 
 /** Subprotocol prefix that carries the Gateway auth (bearer) token. */
 export const GATEWAY_AUTH_SUBPROTOCOL_PREFIX = 'ai-gateway-auth.';
@@ -59,16 +65,13 @@ export function getGatewayRealtimeProtocols(
 export function getGatewayRealtimeAuthToken(
   secWebSocketProtocol: string | null | undefined,
 ): string | undefined {
-  const authProtocol = findProtocol(
-    secWebSocketProtocol,
-    GATEWAY_AUTH_SUBPROTOCOL_PREFIX,
+  // `findProtocol` trims the protocol, so the sliced token needs no further
+  // trimming; `|| undefined` collapses the empty-token case.
+  return (
+    findProtocol(secWebSocketProtocol, GATEWAY_AUTH_SUBPROTOCOL_PREFIX)?.slice(
+      GATEWAY_AUTH_SUBPROTOCOL_PREFIX.length,
+    ) || undefined
   );
-
-  // `authProtocol` is already trimmed above, so the sliced token needs no
-  // further trimming; `|| undefined` collapses the empty-token case.
-  const token = authProtocol?.slice(GATEWAY_AUTH_SUBPROTOCOL_PREFIX.length);
-
-  return token || undefined;
 }
 
 /**
@@ -79,11 +82,10 @@ export function getGatewayRealtimeAuthToken(
 export function getGatewayRealtimeTeamIdOrSlug(
   secWebSocketProtocol: string | null | undefined,
 ): string | undefined {
-  const teamProtocol = findProtocol(
+  const encoded = findProtocol(
     secWebSocketProtocol,
     GATEWAY_TEAM_SUBPROTOCOL_PREFIX,
-  );
-  const encoded = teamProtocol?.slice(GATEWAY_TEAM_SUBPROTOCOL_PREFIX.length);
+  )?.slice(GATEWAY_TEAM_SUBPROTOCOL_PREFIX.length);
   if (!encoded) return undefined;
 
   try {

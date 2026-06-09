@@ -210,3 +210,8 @@ import { gateway } from '@ai-sdk/gateway';
 
 const gatewayModel = gateway.experimental_realtime('openai/gpt-realtime-2');
 ```
+
+Gateway realtime v0 uses the resolved Gateway auth token for the WebSocket
+upgrade rather than a provider-minted short-lived client secret. See the
+[AI Gateway realtime docs](/providers/ai-sdk-providers/ai-gateway#realtime) for
+the Gateway-specific token and subprotocol details.

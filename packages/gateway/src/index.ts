@@ -37,7 +37,6 @@ export type {
   GatewayProvider,
   GatewayProviderSettings,
 } from './gateway-provider';
-export { parseGatewayProviderOptions } from './gateway-provider-options';
 export type {
   GatewayProviderOptions,
   /** @deprecated Use `GatewayProviderOptions` instead. */

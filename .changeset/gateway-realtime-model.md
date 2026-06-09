@@ -17,11 +17,12 @@ verbatim; the Gateway owns resolution. Provider options (including BYOK) flow
 through the normalized `session.update`, exactly as they ride the request body
 on the non-realtime routes.
 
-The subprotocol auth contract is centralized so the client and the Gateway
-server share one definition: `getGatewayRealtimeProtocols` (client encode) and
-`getGatewayRealtimeAuthToken` (server decode), plus the
+The versioned subprotocol auth contract is centralized so the client and the
+Gateway server share one definition: `getGatewayRealtimeProtocols` (client
+encode) and `getGatewayRealtimeAuthToken` (server decode), plus the
 `GATEWAY_REALTIME_SUBPROTOCOL` / `GATEWAY_AUTH_SUBPROTOCOL_PREFIX` constants.
 
-Provider options are similarly shared: `parseGatewayProviderOptions` validates
-the `providerOptions.gateway` shape (returning the typed `GatewayProviderOptions`)
-so the client and the Gateway service apply the same schema.
+`GatewayProviderOptions` documents the stable client-facing option fields while
+remaining open to service-owned options. Runtime validation lives in the Gateway
+service so the server can evolve without requiring an SDK release for every new
+option.

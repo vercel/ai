@@ -45,12 +45,13 @@ export class GatewayRealtimeModel implements RealtimeModelV4 {
 
   /**
    * Unlike providers with a dedicated ephemeral-secret endpoint (e.g. OpenAI),
-   * the Gateway has no client-secret mint: the returned token is the Gateway
-   * auth token and the WebSocket upgrade is authenticated directly. The
-   * `RealtimeModelV4ClientSecretOptions` are therefore intentionally unused —
+   * the Gateway v0 realtime path does not mint a new client secret. The returned
+   * token is the Gateway credential resolved by the provider (`apiKey`,
+   * `AI_GATEWAY_API_KEY`, or Vercel OIDC token) and the WebSocket upgrade is
+   * authenticated directly with that credential. The
+   * `RealtimeModelV4ClientSecretOptions` are therefore intentionally unused:
    * `sessionConfig` is applied later via the normalized `session-update` event,
-   * and `expiresAfterSeconds` has no Gateway-side equivalent. Do not forward
-   * them here expecting an effect.
+   * and `expiresAfterSeconds` has no Gateway-side equivalent.
    */
   async doCreateClientSecret(): Promise<RealtimeModelV4ClientSecretResult> {
     const { token } = await this.config.getAuthToken();
