@@ -6,11 +6,12 @@ export type {
 } from './harness-v1-bootstrap';
 export type {
   HarnessV1ContinueOptions,
-  HarnessV1Observability,
-  HarnessV1PromptControl,
   HarnessV1PromptOptions,
+  HarnessV1Session,
   HarnessV1StartOptions,
-} from './harness-v1-call-options';
+} from './harness-v1-session';
+export type { HarnessV1Observability } from './harness-v1-observability';
+export type { HarnessV1PromptControl } from './harness-v1-prompt-control';
 export type { HarnessV1CallWarning } from './harness-v1-call-warning';
 export type {
   HarnessV1BuiltinTool,
@@ -33,7 +34,6 @@ export type {
   HarnessV1NetworkPolicy,
   HarnessV1NetworkSandboxSession,
 } from './harness-v1-network-sandbox-session';
-export type { HarnessV1Session } from './harness-v1-session';
 export type { HarnessV1Skill } from './harness-v1-skill';
 export type { HarnessV1StreamPart } from './harness-v1-stream-part';
 export {

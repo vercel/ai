@@ -1,7 +1,9 @@
 import type { FlexibleSchema, ToolSet } from '@ai-sdk/provider-utils';
 import type { HarnessV1Bootstrap } from './harness-v1-bootstrap';
-import type { HarnessV1StartOptions } from './harness-v1-call-options';
-import type { HarnessV1Session } from './harness-v1-session';
+import type {
+  HarnessV1Session,
+  HarnessV1StartOptions,
+} from './harness-v1-session';
 
 /**
  * Versioned specification for a harness adapter — the integration point for

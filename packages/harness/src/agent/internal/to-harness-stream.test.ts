@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from 'vitest';
-import type { HarnessV1PromptControl } from '../../v1/harness-v1-call-options';
+import type { HarnessV1PromptControl } from '../../v1/harness-v1-prompt-control';
 import type { HarnessV1StreamPart } from '../../v1/harness-v1-stream-part';
 import { toHarnessStream } from './to-harness-stream';
 
