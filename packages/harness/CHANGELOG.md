@@ -1,6 +1,6 @@
 # @ai-sdk/harness
 
-## 1.0.0-canary.3
+## 1.0.0-canary.2
 
 ### Major Changes
 
