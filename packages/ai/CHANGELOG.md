@@ -1,5 +1,14 @@
 # ai
 
+## 6.0.199
+
+### Patch Changes
+
+- 49d9364: fix(ai): add approval guard for denied tool outputs
+- Updated dependencies [3851e29]
+- Updated dependencies [2a91a17]
+  - @ai-sdk/gateway@3.0.127
+
 ## 6.0.198
 
 ### Patch Changes
