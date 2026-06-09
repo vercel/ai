@@ -32,6 +32,7 @@ export type PiHarnessSettings = {
 const PI_BUILTIN_TOOLS = {
   read: commonTool('read', {
     nativeName: 'read',
+    toolUseKind: 'readonly',
     description: 'Read file contents.',
     inputSchema: z.object({
       file_path: z.string(),
@@ -39,6 +40,7 @@ const PI_BUILTIN_TOOLS = {
   }),
   write: commonTool('write', {
     nativeName: 'write',
+    toolUseKind: 'edit',
     description: 'Overwrite or create a file.',
     inputSchema: z.object({
       file_path: z.string(),
@@ -47,6 +49,7 @@ const PI_BUILTIN_TOOLS = {
   }),
   edit: commonTool('edit', {
     nativeName: 'edit',
+    toolUseKind: 'edit',
     description: 'Edit a file by exact string replacement.',
     inputSchema: z.object({
       file_path: z.string(),
@@ -56,6 +59,7 @@ const PI_BUILTIN_TOOLS = {
   }),
   bash: commonTool('bash', {
     nativeName: 'bash',
+    toolUseKind: 'bash',
     description: 'Execute a shell command in the sandbox.',
     inputSchema: z.object({
       command: z.string(),
@@ -64,6 +68,7 @@ const PI_BUILTIN_TOOLS = {
   }),
   grep: commonTool('grep', {
     nativeName: 'grep',
+    toolUseKind: 'readonly',
     description: 'Search file contents with regex.',
     inputSchema: z.object({
       pattern: z.string(),
@@ -77,6 +82,7 @@ const PI_BUILTIN_TOOLS = {
   }),
   glob: commonTool('glob', {
     nativeName: 'find',
+    toolUseKind: 'readonly',
     description: 'Find files matching a glob pattern.',
     inputSchema: z.object({
       pattern: z.string(),
@@ -94,6 +100,7 @@ const PI_BUILTIN_TOOLS = {
       outputSchema: z.unknown(),
     }),
     nativeName: 'ls',
+    toolUseKind: 'readonly',
   } as HarnessV1BuiltinTool,
 } as const satisfies Record<string, HarnessV1BuiltinTool<any, any>>;
 
@@ -104,6 +111,7 @@ export function createPi(
     specificationVersion: 'harness-v1',
     harnessId: 'pi',
     builtinTools: PI_BUILTIN_TOOLS,
+    supportsBuiltinToolApprovals: true,
     resumeStateSchema: piResumeStateSchema,
     doStart: async startOpts => {
       const resumeData = startOpts.resumeFrom?.data as
@@ -123,6 +131,7 @@ export function createPi(
             : {}),
         },
         isResume: startOpts.resumeFrom != null,
+        permissionMode: startOpts.permissionMode,
         ...(resumeData?.sessionFileName
           ? { resumeSessionFileName: resumeData.sessionFileName }
           : {}),

@@ -67,6 +67,12 @@ export type HarnessV1BridgeToolWire = z.infer<
   typeof harnessV1BridgeToolWireSchema
 >;
 
+export const harnessV1BridgePermissionModeSchema = z.enum([
+  'allow-reads',
+  'allow-edits',
+  'allow-all',
+]);
+
 /**
  * Common fields of the inbound `start` message. Each adapter extends this with
  * its runtime-specific configuration (e.g. `thinking`/`continue` for Claude
@@ -83,6 +89,7 @@ export const harnessV1BridgeStartBaseSchema = z.object({
   tools: z.array(harnessV1BridgeToolWireSchema).optional(),
   model: z.string().optional(),
   debug: harnessV1DebugConfigSchema.optional(),
+  permissionMode: harnessV1BridgePermissionModeSchema.optional(),
 });
 
 // --- Transport / control frames (outbound, not consumer events) ---
@@ -239,6 +246,13 @@ export const harnessV1BridgeToolResultInboundSchema = z.object({
   isError: z.boolean().optional(),
 });
 
+export const harnessV1BridgeToolApprovalResponseInboundSchema = z.object({
+  type: z.literal('tool-approval-response'),
+  approvalId: z.string(),
+  approved: z.boolean(),
+  reason: z.string().optional(),
+});
+
 export const harnessV1BridgeUserMessageInboundSchema = z.object({
   type: z.literal('user-message'),
   text: z.string(),
@@ -276,6 +290,7 @@ export const harnessV1BridgeDetachInboundSchema = z.object({
  */
 export const harnessV1BridgeInboundCommandSchemas = [
   harnessV1BridgeToolResultInboundSchema,
+  harnessV1BridgeToolApprovalResponseInboundSchema,
   harnessV1BridgeUserMessageInboundSchema,
   harnessV1BridgeAbortInboundSchema,
   harnessV1BridgeShutdownInboundSchema,

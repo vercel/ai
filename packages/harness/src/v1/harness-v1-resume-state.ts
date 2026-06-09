@@ -1,5 +1,15 @@
 import type { JSONValue } from '@ai-sdk/provider';
 
+export type HarnessV1PendingToolApproval = {
+  readonly approvalId: string;
+  readonly toolCallId: string;
+  readonly toolName: string;
+  readonly input: string;
+  readonly kind: 'builtin' | 'custom';
+  readonly providerExecuted?: boolean;
+  readonly nativeName?: string;
+};
+
 /**
  * Opaque payload returned by resumable session lifecycle methods and accepted
  * by a future `HarnessV1.doStart({ resumeFrom })` to resume the same
@@ -26,4 +36,11 @@ export type HarnessV1ResumeState = {
    * responsible for any necessary encoding.
    */
   readonly data: JSONValue;
+
+  /**
+   * Framework-owned pending approval records. These are intentionally outside
+   * adapter-defined `data` so callers can persist the entire resume payload
+   * without the harness framework owning storage.
+   */
+  readonly pendingToolApprovals?: readonly HarnessV1PendingToolApproval[];
 };

@@ -36,7 +36,9 @@ async function loadResumeState(
     return undefined;
   }
   const parsed = await safeParseJSON({ text });
-  return parsed.success ? (parsed.value as HarnessV1ResumeState) : undefined;
+  return parsed.success
+    ? (parsed.value as unknown as HarnessV1ResumeState)
+    : undefined;
 }
 
 async function saveResumeState(

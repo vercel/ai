@@ -5,6 +5,7 @@ import type {
 import type { HarnessV1Prompt } from './harness-v1-prompt';
 import type { HarnessV1ResumeState } from './harness-v1-resume-state';
 import type { HarnessV1NetworkSandboxSession } from './harness-v1-network-sandbox-session';
+import type { HarnessV1PermissionMode } from './harness-v1-permission-mode';
 import type { HarnessV1Skill } from './harness-v1-skill';
 import type { HarnessV1StreamPart } from './harness-v1-stream-part';
 import type { HarnessV1ToolSpec } from './harness-v1-tool-spec';
@@ -54,6 +55,13 @@ export type HarnessV1StartOptions = {
    * a fresh one.
    */
   readonly resumeFrom?: HarnessV1ResumeState;
+
+  /**
+   * Approval policy for built-in adapter-native tool use. Custom host-executed
+   * tools are approved by the framework before results are submitted back to
+   * the adapter.
+   */
+  readonly permissionMode?: HarnessV1PermissionMode;
 
   /**
    * Signal that aborts startup. The adapter must propagate cancellation to

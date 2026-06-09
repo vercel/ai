@@ -58,6 +58,8 @@ export const HARNESS_V1_BUILTIN_TOOL_NAMES = Object.keys(
   HARNESS_V1_BUILTIN_TOOLS,
 ) as ReadonlyArray<HarnessV1BuiltinToolName>;
 
+export type HarnessV1BuiltinToolUseKind = 'readonly' | 'edit' | 'bash';
+
 /**
  * A tool that the adapter's underlying runtime exposes natively. Extends the
  * AI SDK `Tool` shape with two optional harness-specific fields:
@@ -83,6 +85,7 @@ export type HarnessV1BuiltinTool<INPUT = unknown, OUTPUT = unknown> = Tool<
 > & {
   readonly nativeName?: string;
   readonly commonName?: HarnessV1BuiltinToolName;
+  readonly toolUseKind?: HarnessV1BuiltinToolUseKind;
 };
 
 type InputOf<T> = T extends Tool<infer I, any, any> ? I : never;
@@ -118,6 +121,7 @@ export function commonTool<TName extends HarnessV1BuiltinToolName, TInput>(
   commonName: TName,
   opts: {
     readonly nativeName: string;
+    readonly toolUseKind?: HarnessV1BuiltinToolUseKind;
     readonly description?: string;
     readonly inputSchema: FlexibleSchema<TInput>;
   },
@@ -129,5 +133,6 @@ export function commonTool<TName extends HarnessV1BuiltinToolName, TInput>(
     }),
     nativeName: opts.nativeName,
     commonName,
+    toolUseKind: opts.toolUseKind,
   } as never;
 }

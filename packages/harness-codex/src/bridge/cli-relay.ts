@@ -89,6 +89,7 @@ export function composeToolUsageInstructions({
     `  node ${cliShimPath} <toolName> '<jsonInput>'`,
     '',
     'The script prints the JSON result to stdout. Do not invent another way to call these tools — only this CLI invocation will work. Pass the JSON input as a single-quoted argument.',
+    'For every user request that depends on a host-provided tool, run a separate CLI invocation for each needed tool call in the current turn before answering. Do not reuse previous tool results, and do not say you used a host tool unless the command has completed in the current turn.',
     '',
   ];
   for (const tool of tools) {

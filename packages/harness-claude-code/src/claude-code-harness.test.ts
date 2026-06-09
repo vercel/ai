@@ -3,7 +3,7 @@ import {
   type HarnessV1NetworkSandboxSession,
 } from '@ai-sdk/harness';
 import type * as NodeFsPromises from 'node:fs/promises';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createClaudeCode } from './claude-code-harness';
 
 vi.mock('node:fs/promises', async importOriginal => {
@@ -22,11 +22,60 @@ vi.mock('node:fs/promises', async importOriginal => {
   };
 });
 
+function textStream(text: string): ReadableStream<Uint8Array> {
+  return new ReadableStream<Uint8Array>({
+    start(controller) {
+      if (text.length > 0) {
+        controller.enqueue(new TextEncoder().encode(text));
+      }
+      controller.close();
+    },
+  });
+}
+
+function fakeNetworkSandboxSessionForStartupFailure({
+  stdout,
+  stderr,
+  exitCode = 1,
+}: {
+  stdout: string;
+  stderr: string;
+  exitCode?: number;
+}): HarnessV1NetworkSandboxSession {
+  const port = 4319;
+  const session = {
+    run: async () => ({ exitCode: 0, stdout: '', stderr: '' }),
+    readTextFile: async () => null,
+    spawn: async () => ({
+      stdout: textStream(stdout),
+      stderr: textStream(stderr),
+      kill: async () => {},
+      wait: async () => ({ exitCode }),
+    }),
+  };
+  return {
+    id: 'test-sandbox',
+    defaultWorkingDirectory: '/vercel/sandbox',
+    restricted: () => session,
+    ports: [port],
+    async getPortUrl() {
+      return `ws://127.0.0.1:${port}`;
+    },
+    async stop() {},
+    ...session,
+  } as unknown as HarnessV1NetworkSandboxSession;
+}
+
 describe('createClaudeCode adapter', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('declares the harness id and builtin tools', () => {
     const harness = createClaudeCode();
     expect(harness.harnessId).toBe('claude-code');
     expect(harness.specificationVersion).toBe('harness-v1');
+    expect(harness.supportsBuiltinToolApprovals).toBe(true);
     expect(Object.keys(harness.builtinTools)).toEqual([
       'read',
       'write',
@@ -55,6 +104,9 @@ describe('createClaudeCode adapter', () => {
     ]);
     expect(harness.builtinTools.read.nativeName).toBe('Read');
     expect(harness.builtinTools.read.commonName).toBe('read');
+    expect(harness.builtinTools.read.toolUseKind).toBe('readonly');
+    expect(harness.builtinTools.write.toolUseKind).toBe('edit');
+    expect(harness.builtinTools.bash.toolUseKind).toBe('bash');
     // WebFetch has no cross-harness common equivalent — its key is the
     // native name directly, so the entry intentionally omits both
     // `nativeName` and `commonName`.
@@ -80,6 +132,44 @@ describe('createClaudeCode adapter', () => {
         sessionWorkDir: '/vercel/sandbox/claude-code-s1',
       }),
     ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
+  });
+
+  it('includes bridge startup stdout, stderr, and exit code when ready never arrives', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    const harness = createClaudeCode();
+    const stdout =
+      JSON.stringify({
+        type: 'bridge-fatal',
+        message: 'Missing --workdir argument.',
+      }) + '\n';
+    const sandboxSession = fakeNetworkSandboxSessionForStartupFailure({
+      stdout,
+      stderr: 'Cannot find module @anthropic-ai/claude-agent-sdk',
+      exitCode: 1,
+    });
+
+    let error: unknown;
+    try {
+      await harness.doStart({
+        sessionId: 's1',
+        sandboxSession,
+        sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      });
+    } catch (err) {
+      error = err;
+    }
+
+    expect(error).toBeInstanceOf(Error);
+    const message = (error as Error).message;
+    expect(message).toContain(
+      'claude-code bridge exited before becoming ready.',
+    );
+    expect(message).toContain('Exit code: 1.');
+    expect(message).toContain('bridge-fatal');
+    expect(message).toContain('Missing --workdir argument.');
+    expect(message).toContain(
+      'Cannot find module @anthropic-ai/claude-agent-sdk',
+    );
   });
 
   describe('getBootstrap', () => {

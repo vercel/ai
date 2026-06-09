@@ -51,6 +51,34 @@ const NATIVE_TO_COMMON: Readonly<Record<string, HarnessV1BuiltinToolName>> = {
   WebSearch: 'webSearch',
 };
 
+const NATIVE_TOOL_KINDS: Readonly<
+  Record<string, 'readonly' | 'edit' | 'bash'>
+> = {
+  Read: 'readonly',
+  Glob: 'readonly',
+  Grep: 'readonly',
+  WebSearch: 'readonly',
+  WebFetch: 'readonly',
+  TaskGet: 'readonly',
+  TaskList: 'readonly',
+  TaskOutput: 'readonly',
+  ListMcpResources: 'readonly',
+  ReadMcpResource: 'readonly',
+  Write: 'edit',
+  Edit: 'edit',
+  NotebookEdit: 'edit',
+  TodoWrite: 'edit',
+  TaskCreate: 'edit',
+  TaskUpdate: 'edit',
+  TaskStop: 'edit',
+  EnterWorktree: 'edit',
+  ExitWorktree: 'edit',
+  ExitPlanMode: 'edit',
+  Skill: 'edit',
+  AskUserQuestion: 'readonly',
+  Bash: 'bash',
+};
+
 function toCommonName(nativeName: string): HarnessV1BuiltinToolName | string {
   return NATIVE_TO_COMMON[nativeName] ?? nativeName;
 }
@@ -115,6 +143,103 @@ await runBridge<StartMessage>({
 
 type Emit = (msg: Record<string, unknown>) => void;
 
+function createPermissionOptions(input: {
+  start: StartMessage;
+  turn: BridgeTurn;
+  emit: Emit;
+  nativeToolCallNames: Map<string, string>;
+  approvalRequestedToolUseIds: Set<string>;
+}): Record<string, unknown> {
+  const permissionMode = input.start.permissionMode ?? 'allow-all';
+  if (permissionMode === 'allow-all') {
+    return {
+      permissionMode: 'bypassPermissions',
+      allowDangerouslySkipPermissions: true,
+    };
+  }
+
+  return {
+    permissionMode:
+      permissionMode === 'allow-edits' ? 'acceptEdits' : 'default',
+    allowDangerouslySkipPermissions: false,
+    settings: createPermissionSettings({ permissionMode }),
+    canUseTool: async (
+      toolName: string,
+      toolInput: Record<string, unknown>,
+      options: { toolUseID: string },
+    ) => {
+      if (toolName.startsWith('mcp__harness-tools__')) {
+        return { behavior: 'allow', updatedInput: toolInput };
+      }
+      if (
+        !nativeToolRequiresApproval({
+          nativeName: toolName,
+          permissionMode,
+        })
+      ) {
+        return { behavior: 'allow', updatedInput: toolInput };
+      }
+
+      const approvalId = options.toolUseID;
+      input.approvalRequestedToolUseIds.add(approvalId);
+      input.nativeToolCallNames.set(approvalId, toolName);
+      input.emit({
+        type: 'tool-call',
+        toolCallId: approvalId,
+        toolName: toCommonName(toolName),
+        nativeName: toolName,
+        input: JSON.stringify(toolInput ?? {}),
+        providerExecuted: true,
+      });
+      input.emit({
+        type: 'tool-approval-request',
+        approvalId,
+        toolCallId: approvalId,
+      });
+
+      const decision = await input.turn.requestToolApproval(approvalId);
+      return decision.approved
+        ? { behavior: 'allow', updatedInput: toolInput, toolUseID: approvalId }
+        : {
+            behavior: 'deny',
+            message: decision.reason ?? 'Denied',
+            toolUseID: approvalId,
+          };
+    },
+  };
+}
+
+function createPermissionSettings(input: {
+  permissionMode: 'allow-reads' | 'allow-edits' | 'allow-all';
+}): Record<string, unknown> | undefined {
+  const askRules = Object.entries(NATIVE_TOOL_KINDS)
+    .filter(([, kind]) =>
+      input.permissionMode === 'allow-reads'
+        ? kind === 'edit' || kind === 'bash'
+        : input.permissionMode === 'allow-edits'
+          ? kind === 'bash'
+          : false,
+    )
+    .map(([nativeName]) => `${nativeName}(*)`);
+
+  if (askRules.length === 0) return undefined;
+
+  return {
+    permissions: { ask: askRules },
+    sandbox: { autoAllowBashIfSandboxed: false },
+  };
+}
+
+function nativeToolRequiresApproval(input: {
+  nativeName: string;
+  permissionMode: 'allow-reads' | 'allow-edits' | 'allow-all';
+}): boolean {
+  if (input.permissionMode === 'allow-all') return false;
+  const kind = NATIVE_TOOL_KINDS[input.nativeName] ?? 'edit';
+  if (input.permissionMode === 'allow-edits') return kind === 'bash';
+  return kind === 'edit' || kind === 'bash';
+}
+
 async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   const emit: Emit = msg => turn.emit(msg as BridgeEvent);
 
@@ -136,6 +261,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
    * map the tool-result event would have to emit `toolName: 'unknown'`.
    */
   const nativeToolCallNames = new Map<string, string>();
+  const approvalRequestedToolUseIds = new Set<string>();
 
   /*
    * Tool-use ids that originated from the MCP server hosting user-supplied
@@ -197,14 +323,21 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   // `stream-start` is emitted lazily on the first SDK message (below) so it can
   // carry the model the CLI resolved to, reported on the `system`/`init` message.
 
-  const queryInput = makeQueryInput({
+  const queryInput = createQueryInput({
     initialUserMessage: start.prompt,
     pendingUserMessages: turn.pendingUserMessages,
     abortSignal: abortCtl.signal,
   });
+  const permissionOptions = createPermissionOptions({
+    start,
+    turn,
+    emit,
+    nativeToolCallNames,
+    approvalRequestedToolUseIds,
+  });
 
   const q = claudeSdk.query({
-    prompt: queryInput,
+    prompt: queryInput.input,
     options: {
       ...(start.model ? { model: start.model } : {}),
       ...(start.maxTurns !== undefined ? { maxTurns: start.maxTurns } : {}),
@@ -234,8 +367,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       // we continue every subsequent turn after the first one in this
       // bridge process.
       ...(start.continue === true || !turn.firstTurn ? { continue: true } : {}),
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
+      ...permissionOptions,
       mcpServers,
       cwd: workdir,
       abortSignal: abortCtl.signal,
@@ -259,6 +391,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     observedTerminalError = normalized;
     emittedTerminalError = true;
     emit({ type: 'error', error: normalized });
+    queryInput.close();
     abortCtl.abort();
   };
 
@@ -354,6 +487,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
               continue;
             }
             nativeToolCallNames.set(block.id, block.name);
+            if (approvalRequestedToolUseIds.has(block.id)) {
+              continue;
+            }
             emit({
               type: 'tool-call',
               toolCallId: block.id,
@@ -377,6 +513,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
               mcpToolUseIds.delete(block.tool_use_id);
               continue;
             }
+            approvalRequestedToolUseIds.delete(block.tool_use_id);
             const nativeName =
               nativeToolCallNames.get(block.tool_use_id) ?? 'unknown';
             nativeToolCallNames.delete(block.tool_use_id);
@@ -432,6 +569,8 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
             usage: harnessUsage ?? defaultUsage(),
             ...(metadata ? { harnessMetadata: metadata } : {}),
           });
+          queryInput.close();
+          break;
         } else {
           emitTerminalError(
             (Array.isArray(msg.errors) ? msg.errors.join('\n') : undefined) ||
@@ -448,6 +587,8 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       emit({ type: 'error', error: serialiseError(err) });
     }
     return;
+  } finally {
+    queryInput.close();
   }
 
   if (emittedTerminalError) return;
@@ -547,7 +688,7 @@ function handleStreamEvent(
   }
 }
 
-function makeQueryInput({
+function createQueryInput({
   initialUserMessage,
   pendingUserMessages,
   abortSignal,
@@ -555,41 +696,56 @@ function makeQueryInput({
   initialUserMessage: string;
   pendingUserMessages: string[];
   abortSignal: AbortSignal;
-}): AsyncIterable<unknown> {
+}): {
+  input: AsyncIterable<unknown>;
+  close(): void;
+} {
+  let closed = false;
+  const close = (): void => {
+    closed = true;
+  };
+  if (abortSignal.aborted) {
+    close();
+  } else {
+    abortSignal.addEventListener('abort', close, { once: true });
+  }
+
+  const toUserMessage = (text: string): unknown => ({
+    type: 'user',
+    message: {
+      role: 'user',
+      content: [{ type: 'text', text }],
+    },
+  });
+
   return {
-    [Symbol.asyncIterator]() {
-      let sentInitial = false;
-      return {
-        async next() {
-          if (abortSignal.aborted) {
+    close,
+    input: {
+      [Symbol.asyncIterator]() {
+        let sentInitial = false;
+        return {
+          async next() {
+            // eslint-disable-next-line no-unmodified-loop-condition
+            while (!closed && !abortSignal.aborted) {
+              if (!sentInitial) {
+                sentInitial = true;
+                return {
+                  value: toUserMessage(initialUserMessage),
+                  done: false,
+                };
+              }
+              if (pendingUserMessages.length > 0) {
+                return {
+                  value: toUserMessage(pendingUserMessages.shift()!),
+                  done: false,
+                };
+              }
+              await new Promise(resolve => setTimeout(resolve, 50));
+            }
             return { value: undefined, done: true } as IteratorResult<unknown>;
-          }
-          if (!sentInitial) {
-            sentInitial = true;
-            return {
-              value: {
-                type: 'user',
-                message: {
-                  role: 'user',
-                  content: [{ type: 'text', text: initialUserMessage }],
-                },
-              },
-              done: false,
-            };
-          }
-          if (pendingUserMessages.length > 0) {
-            const text = pendingUserMessages.shift()!;
-            return {
-              value: {
-                type: 'user',
-                message: { role: 'user', content: [{ type: 'text', text }] },
-              },
-              done: false,
-            };
-          }
-          return { value: undefined, done: true } as IteratorResult<unknown>;
-        },
-      };
+          },
+        };
+      },
     },
   };
 }

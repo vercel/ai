@@ -15,6 +15,7 @@ export type { HarnessV1CallWarning } from './harness-v1-call-warning';
 export type {
   HarnessV1BuiltinTool,
   HarnessV1BuiltinToolName,
+  HarnessV1BuiltinToolUseKind,
 } from './harness-v1-builtin-tool';
 export {
   HARNESS_V1_BUILTIN_TOOL_NAMES,
@@ -23,8 +24,11 @@ export {
 } from './harness-v1-builtin-tool';
 export type { HarnessV1Metadata } from './harness-v1-metadata';
 export type { HarnessV1Prompt } from './harness-v1-prompt';
-export type { HarnessV1ResumeState } from './harness-v1-resume-state';
 export type { HarnessV1SandboxProvider } from './harness-v1-sandbox-provider';
+export type {
+  HarnessV1PendingToolApproval,
+  HarnessV1ResumeState,
+} from './harness-v1-resume-state';
 export type {
   HarnessV1NetworkPolicy,
   HarnessV1NetworkSandboxSession,
@@ -64,7 +68,9 @@ export {
   harnessV1BridgeShutdownInboundSchema,
   harnessV1BridgeStartBaseSchema,
   harnessV1BridgeThreadSchema,
+  harnessV1BridgeToolApprovalResponseInboundSchema,
   harnessV1BridgeToolResultInboundSchema,
+  harnessV1BridgePermissionModeSchema,
   harnessV1BridgeToolWireSchema,
   harnessV1BridgeUserMessageInboundSchema,
   harnessV1DiagnosticFromBridgeFrame,
@@ -82,3 +88,4 @@ export {
   type HarnessV1Diagnostic,
 } from './harness-v1-diagnostic';
 export type { HarnessV1ToolSpec } from './harness-v1-tool-spec';
+export type { HarnessV1PermissionMode } from './harness-v1-permission-mode';

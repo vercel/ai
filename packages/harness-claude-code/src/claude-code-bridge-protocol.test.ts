@@ -69,6 +69,7 @@ describe('inboundMessageSchema', () => {
         model: 'claude-sonnet-4-5',
         maxTurns: 5,
         thinking: 'adaptive',
+        permissionMode: 'allow-edits',
       }),
     ).not.toThrow();
   });
@@ -79,6 +80,16 @@ describe('inboundMessageSchema', () => {
         type: 'tool-result',
         toolCallId: 't1',
         output: { ok: true },
+      }),
+    ).not.toThrow();
+  });
+
+  it('accepts a tool-approval-response message', () => {
+    expect(() =>
+      inboundMessageSchema.parse({
+        type: 'tool-approval-response',
+        approvalId: 'a1',
+        approved: true,
       }),
     ).not.toThrow();
   });

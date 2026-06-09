@@ -94,6 +94,15 @@ export interface BridgeTurn {
   ): Promise<{ output: unknown; isError?: boolean }>;
 
   /**
+   * Register interest in a host approval decision and resolve when the matching
+   * `tool-approval-response` arrives. The adapter emits the
+   * `tool-approval-request` event itself using the same `approvalId`.
+   */
+  requestToolApproval(
+    approvalId: string,
+  ): Promise<{ approved: boolean; reason?: string }>;
+
+  /**
    * Live queue of mid-turn user messages. The runtime pushes inbound
    * `user-message` text here; the adapter drains it as its runtime accepts
    * interactive input.
@@ -149,6 +158,12 @@ type InboundControl =
       toolCallId: string;
       output: unknown;
       isError?: boolean;
+    }
+  | {
+      type: 'tool-approval-response';
+      approvalId: string;
+      approved: boolean;
+      reason?: string;
     }
   | { type: 'user-message'; text: string }
   | { type: 'abort' }
@@ -294,6 +309,10 @@ export async function runBridge<TStart extends { type: 'start' }>(
   const pendingToolResults = new Map<
     string,
     (output: { output: unknown; isError?: boolean }) => void
+  >();
+  const pendingToolApprovals = new Map<
+    string,
+    (response: { approved: boolean; reason?: string }) => void
   >();
 
   // ─── persistence (best-effort meta + start config) ──────────────────
@@ -473,6 +492,10 @@ export async function runBridge<TStart extends { type: 'start' }>(
             new Promise(resolve => {
               pendingToolResults.set(toolCallId, resolve);
             }),
+          requestToolApproval: approvalId =>
+            new Promise(resolve => {
+              pendingToolApprovals.set(approvalId, resolve);
+            }),
           pendingUserMessages: [],
           abortSignal: turnAbort.signal,
           firstTurn,
@@ -507,6 +530,14 @@ export async function runBridge<TStart extends { type: 'start' }>(
         if (resolver) {
           pendingToolResults.delete(msg.toolCallId);
           resolver({ output: msg.output, isError: msg.isError });
+        }
+        return;
+      }
+      case 'tool-approval-response': {
+        const resolver = pendingToolApprovals.get(msg.approvalId);
+        if (resolver) {
+          pendingToolApprovals.delete(msg.approvalId);
+          resolver({ approved: msg.approved, reason: msg.reason });
         }
         return;
       }

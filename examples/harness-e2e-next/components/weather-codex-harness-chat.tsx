@@ -9,7 +9,10 @@ import HarnessBashToolView from '@/components/tool/harness-bash-tool-view';
 import HarnessToolView from '@/components/tool/harness-tool-view';
 import WeatherView from '@/components/tool/weather-tool-view';
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport } from 'ai';
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithApprovalResponses,
+} from 'ai';
 
 export default function WeatherCodexHarnessChat({
   apiRoute,
@@ -19,13 +22,20 @@ export default function WeatherCodexHarnessChat({
   exampleLabel: string;
 }) {
   const { chatId, resetChatId } = useChatId();
-  const { error, status, sendMessage, messages, regenerate } =
-    useChat<WeatherCodexHarnessAgentMessage>({
-      id: chatId,
-      transport: new DefaultChatTransport({
-        api: apiRoute,
-      }),
-    });
+  const {
+    error,
+    status,
+    sendMessage,
+    messages,
+    regenerate,
+    addToolApprovalResponse,
+  } = useChat<WeatherCodexHarnessAgentMessage>({
+    id: chatId,
+    transport: new DefaultChatTransport({
+      api: apiRoute,
+    }),
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
+  });
 
   return (
     <div className="flex flex-col pt-12 pb-24 mx-auto w-full max-w-5xl stretch">
@@ -75,7 +85,13 @@ export default function WeatherCodexHarnessChat({
                 return null;
               }
               case 'tool-get_weather': {
-                return <WeatherView key={index} invocation={part} />;
+                return (
+                  <WeatherView
+                    key={index}
+                    invocation={part}
+                    addToolApprovalResponse={addToolApprovalResponse}
+                  />
+                );
               }
               case 'tool-bash': {
                 return <HarnessBashToolView invocation={part} key={index} />;

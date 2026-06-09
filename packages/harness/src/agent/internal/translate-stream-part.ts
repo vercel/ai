@@ -97,18 +97,7 @@ export function translateStreamPart<TOOLS extends ToolSet>(
       return [];
 
     case 'tool-approval-request':
-      return [
-        {
-          type: 'tool-approval-request',
-          approvalId: event.approvalId,
-          toolCall: {
-            type: 'tool-call',
-            toolCallId: event.toolCallId,
-            toolName: '',
-            input: undefined,
-          },
-        } as TextStreamPart<TOOLS>,
-      ];
+      return [];
 
     case 'tool-result':
       return [

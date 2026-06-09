@@ -199,6 +199,7 @@ function makeLifecycleSession(options: {
       sandboxSession,
       sandboxProvider,
       sessionWorkDir: '/work/mock-lifecycle-session',
+      toolApproval: undefined,
     }),
     resumeState,
     doDetach,

@@ -14,6 +14,7 @@ import {
   type HarnessV1PromptControl,
   type HarnessV1ResumeState,
   type HarnessV1NetworkSandboxSession,
+  type HarnessV1PermissionMode,
   type HarnessV1Session,
   type HarnessV1Skill,
   type HarnessV1StreamPart,
@@ -87,11 +88,13 @@ export type CodexHarnessSettings = {
 const CODEX_BUILTIN_TOOLS = {
   bash: commonTool('bash', {
     nativeName: 'shell',
+    toolUseKind: 'bash',
     description: 'Execute a shell command',
     inputSchema: z.object({ command: z.string() }),
   }),
   webSearch: commonTool('webSearch', {
     nativeName: 'web_search',
+    toolUseKind: 'readonly',
     description: 'Search the web',
     inputSchema: z.object({ query: z.string() }),
   }),
@@ -150,6 +153,7 @@ export function createCodex(
     specificationVersion: 'harness-v1',
     harnessId: 'codex',
     builtinTools: CODEX_BUILTIN_TOOLS,
+    supportsBuiltinToolApprovals: false,
     resumeStateSchema: codexResumeStateSchema,
     getBootstrap: async () => {
       if (cachedBootstrap != null) return cachedBootstrap;
@@ -181,6 +185,16 @@ export function createCodex(
       return cachedBootstrap;
     },
     doStart: async startOpts => {
+      if (
+        startOpts.permissionMode != null &&
+        startOpts.permissionMode !== 'allow-all'
+      ) {
+        throw new HarnessCapabilityUnsupportedError({
+          message:
+            "Harness 'codex' does not support built-in tool approval requests; use permissionMode: 'allow-all'.",
+          harnessId: 'codex',
+        });
+      }
       const sandboxSession = startOpts.sandboxSession;
       const session = sandboxSession.restricted();
       const sandboxId = sandboxSession.id;
@@ -259,6 +273,7 @@ export function createCodex(
             bridgeToken: coords.token,
             sandboxId,
             debug: startOpts.observability?.debug,
+            permissionMode: startOpts.permissionMode,
           });
         } catch {
           // Bridge no longer reachable — recover by respawning below.
@@ -267,10 +282,12 @@ export function createCodex(
 
       /*
        * Rungs 2/3 — REPLAY vs RERUN. Respawn the bridge. `replay` is only sound
-       * for a suspended in-flight turn, because that state includes the cursor
-       * the on-disk log is replayed from. A parked between-turn session already
-       * finished its turn, and a `stop()` payload has no bridge cursor; both
-       * should `rerun` via `codex.resumeThread(threadId)`.
+       * when the resume payload carried live coordinates (`detach` or
+       * `suspendTurn`), because those include the cursor the on-disk log is
+       * replayed *from*. A payload without coordinates — e.g. from `stop()` —
+       * has no cursor, so replaying a finished turn from seq 0 would re-deliver
+       * it into the next turn. Those resumes always `rerun` via
+       * `codex.resumeThread(threadId)`.
        */
       let respawnStrategy: CodexRespawnStrategy | undefined = isResume
         ? 'rerun'
@@ -354,6 +371,7 @@ export function createCodex(
         bridgeToken: token,
         sandboxId,
         debug: startOpts.observability?.debug,
+        permissionMode: startOpts.permissionMode,
       });
     },
   };
@@ -534,6 +552,7 @@ function createSession({
   bridgeToken,
   sandboxId,
   debug,
+  permissionMode,
 }: {
   sessionId: string;
   channel: CodexChannel;
@@ -551,6 +570,7 @@ function createSession({
   bridgeToken: string;
   sandboxId: string;
   debug: HarnessV1DebugConfig | undefined;
+  permissionMode: HarnessV1PermissionMode | undefined;
 }): HarnessV1Session {
   let stopped = false;
   let stopPromise: Promise<void> | undefined;
@@ -615,6 +635,7 @@ function createSession({
       'reasoning-delta',
       'reasoning-end',
       'tool-call',
+      'tool-approval-request',
       'tool-result',
       'file-change',
       'finish-step',
@@ -699,6 +720,14 @@ function createSession({
           isError: input.isError,
         });
       },
+      submitToolApproval: async input => {
+        channel.send({
+          type: 'tool-approval-response',
+          approvalId: input.approvalId,
+          approved: input.approved,
+          reason: input.reason,
+        });
+      },
       submitUserMessage: async text => {
         channel.send({ type: 'user-message', text });
       },
@@ -732,6 +761,7 @@ function createSession({
         model,
         reasoningEffort,
         webSearch,
+        ...(permissionMode ? { permissionMode } : {}),
         ...(skills && skills.length > 0
           ? {
               skills: skills.map(s => ({
@@ -790,6 +820,7 @@ function createSession({
           model,
           reasoningEffort,
           webSearch,
+          ...(permissionMode ? { permissionMode } : {}),
           ...(threadId ? { resumeThreadId: threadId } : {}),
           ...(debug ? { debug } : {}),
         });
