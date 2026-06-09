@@ -427,7 +427,7 @@ export async function POST(req: Request) {
         },
       }),
     },
-    onStepFinish: ({ toolResults }) => {
+    onStepEnd: ({ toolResults }) => {
       console.log(toolResults);
     },
   });
@@ -441,7 +441,7 @@ export async function POST(req: Request) {
 In this updated code:
 
 1. You set `stopWhen` to be when `isStepCount` 5, allowing the model to use up to 5 "steps" for any given generation.
-2. You add an `onStepFinish` callback to log any `toolResults` from each step of the interaction, helping you understand the model's tool usage.
+2. You add an `onStepEnd` callback to log any `toolResults` from each step of the interaction, helping you understand the model's tool usage.
 
 Head back to the browser and ask about the weather in a location. You should now see the model using the weather tool results to answer your question.
 

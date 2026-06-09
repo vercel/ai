@@ -36,6 +36,7 @@
         "!packages/angular",
         "!packages/codemod",
         "!packages/devtools",
+        "!packages/harness",
         "!packages/langchain",
         "!packages/llamaindex",
         "!packages/mcp",
@@ -45,6 +46,7 @@
         "!packages/provider-utils",
         "!packages/react",
         "!packages/rsc",
+        "!packages/sandbox-*",
         "!packages/svelte",
         "!packages/test-server",
         "!packages/tui",
@@ -115,6 +117,59 @@
         "aisdk/provider-language-model-file-must-import-workflow-serialization",
         "aisdk/provider-model-options-file-must-export-model-options-type",
         "aisdk/provider-model-options-file-with-subtype-must-export-model-options-type"
+      ]
+    },
+    {
+      "name": "sandbox-package-must-export-required-symbols",
+      "description": "Every sandbox package must have specific files that export a specific set of symbols.",
+      "paths": ["packages/sandbox-{sandboxId}/src/index.ts"],
+      "must": [
+        {
+          "name": "sandbox-package-must-export-sandbox-creator-and-settings",
+          "description": "Every sandbox package must export a sandbox creator function and settings from its index.ts file.",
+          "must": {
+            "export": [
+              {
+                "name": "create${sandboxId.toPascalCase()}Sandbox",
+                "from": "./${sandboxId}-sandbox"
+              }
+            ],
+            "exportTypes": [
+              {
+                "name": "${sandboxId.toPascalCase()}SandboxSettings",
+                "from": "./${sandboxId}-sandbox"
+              }
+            ],
+            "haveFiles": ["${sandboxId}-sandbox.ts"]
+          }
+        },
+        {
+          "name": "sandbox-file-must-export-sandbox-creator-and-settings-type",
+          "description": "Every sandbox file must export a sandbox creator function and a sandbox settings type.",
+          "for": { "files": ["{sandboxId}-sandbox.ts"] },
+          "must": {
+            "importTypes": [
+              {
+                "name": "HarnessV1SandboxProvider",
+                "from": "@ai-sdk/harness"
+              }
+            ],
+            "exportClasses": [
+              {
+                "name": "${sandboxId.toPascalCase()}SandboxProvider",
+                "implement": ["HarnessV1SandboxProvider"]
+              }
+            ],
+            "exportFunctions": [
+              {
+                "name": "create${sandboxId.toPascalCase()}Sandbox",
+                "receiveParamOfType": "${sandboxId.toPascalCase()}SandboxSettings",
+                "returnValueOfType": "HarnessV1SandboxProvider"
+              }
+            ],
+            "exportTypes": ["${sandboxId.toPascalCase()}SandboxSettings"]
+          }
+        }
       ]
     }
   ],

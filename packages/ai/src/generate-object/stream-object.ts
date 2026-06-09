@@ -275,6 +275,14 @@ export function streamObject<
        * Callback that is called when the model streaming step completes,
        * with the raw accumulated text before final schema validation.
        */
+      onStepEnd?: Callback<GenerateObjectStepEndEvent>;
+
+      /**
+       * Callback that is called when the model streaming step completes,
+       * with the raw accumulated text before final schema validation.
+       *
+       * @deprecated Use `onStepEnd` instead.
+       */
       onStepFinish?: Callback<GenerateObjectStepEndEvent>;
 
       /**
@@ -329,6 +337,7 @@ export function streamObject<
     providerOptions,
     experimental_onStart: onStart,
     experimental_onStepStart: onStepStart,
+    onStepEnd,
     onStepFinish,
     onError = ({ error }: { error: unknown }) => {
       console.error(error);
@@ -384,7 +393,7 @@ export function streamObject<
     repairText,
     onStart,
     onStepStart,
-    onStepFinish,
+    onStepFinish: onStepEnd ?? onStepFinish,
     onError,
     onFinish,
     download,
@@ -798,7 +807,7 @@ class DefaultStreamObjectResult<
                   },
                   callbacks: [
                     onStepFinish,
-                    telemetryDispatcher.onObjectStepFinish,
+                    telemetryDispatcher.onObjectStepEnd,
                   ],
                 });
 

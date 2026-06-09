@@ -461,9 +461,9 @@ const { steps } = await generateText({
 const allToolCalls = steps.flatMap(step => step.toolCalls);
 ```
 
-### `onStepFinish` callback
+### `onStepEnd` callback
 
-When using `generateText` or `streamText`, you can provide an `onStepFinish` callback that
+When using `generateText` or `streamText`, you can provide an `onStepEnd` callback that
 is triggered when a step is finished,
 i.e. all text deltas, tool calls, and tool results for the step are available.
 When you have multiple steps, the callback is triggered for each step.
@@ -475,7 +475,7 @@ import { generateText } from 'ai';
 
 const result = await generateText({
   // ...
-  onStepFinish({
+  onStepEnd({
     stepNumber,
     text,
     toolCalls,
@@ -708,7 +708,7 @@ const result = await generateText({
       /* ... */
     }),
   },
-  onStepFinish: ({ toolCalls, toolResults }) => {
+  onStepEnd: ({ toolCalls, toolResults }) => {
     // Type-safe iteration
     for (const toolCall of toolCalls) {
       if (toolCall.dynamic) {

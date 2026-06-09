@@ -186,7 +186,7 @@ const result = await generateText({
       /* ... */
     }),
   },
-  onStepFinish: ({ toolCalls, toolResults }) => {
+  onStepEnd: ({ toolCalls, toolResults }) => {
     for (const toolCall of toolCalls) {
       if (toolCall.dynamic) {
         // Dynamic tool: input/output are 'unknown'

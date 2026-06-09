@@ -1,5 +1,15 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.0-canary.79
+
+### Patch Changes
+
+- 6b4d325: feat(provider/anthropic): add support for `claude-fable-5` and the `fallbacks` API parameter
+- Updated dependencies [6a5800e]
+- Updated dependencies [6b4d325]
+  - @ai-sdk/openai@4.0.0-canary.70
+  - @ai-sdk/anthropic@4.0.0-canary.64
+
 ## 5.0.0-canary.78
 
 ### Patch Changes

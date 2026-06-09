@@ -243,6 +243,39 @@ The same rename applies to `streamText`, `Agent.generate()`,
 accepted as a deprecated alias. When both `onEnd` and `onFinish` are provided,
 `onEnd` takes precedence.
 
+#### `onStepFinish` Renamed to `onStepEnd`
+
+The per-step lifecycle callback has been renamed from `onStepFinish` to
+`onStepEnd`.
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello!',
+  onStepFinish: ({ stepNumber, usage }) => {
+    console.log(`Step ${stepNumber} used ${usage.totalTokens} tokens`);
+  },
+});
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello!',
+  onStepEnd: ({ stepNumber, usage }) => {
+    console.log(`Step ${stepNumber} used ${usage.totalTokens} tokens`);
+  },
+});
+```
+
+This applies to `generateText`, `streamText`, `generateObject`,
+`streamObject`, agents, workflow agents, and UI message stream helpers.
+Telemetry integrations should implement `onStepEnd`.
+
+The `onStepFinish` option is still accepted as a deprecated alias for
+user-facing callbacks. When both `onStepEnd` and `onStepFinish` are provided,
+`onStepEnd` takes precedence.
+
 #### `StreamTextResult.fullStream` Renamed to `stream`
 
 The full event stream returned by `streamText` has been renamed from

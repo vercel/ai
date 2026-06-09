@@ -1528,11 +1528,11 @@ To see `generateText` in action, check out [these examples](#examples).
         'Deprecated. Use `onToolExecutionEnd` instead. This alias is only used as a fallback when `onToolExecutionEnd` is not provided.',
     },
     {
-      name: 'onStepFinish',
+      name: 'onStepEnd',
       type: '(stepResult: StepResult<TOOLS>) => Promise<void> | void',
       isOptional: true,
       description:
-        'Callback that is called when a step is finished. Receives a StepResult object.',
+        'Callback that is called when a step ends. Receives a StepResult object.',
       properties: [
         {
           type: 'StepResult',
@@ -1891,6 +1891,13 @@ To see `generateText` in action, check out [these examples](#examples).
           ],
         },
       ],
+    },
+    {
+      name: 'onStepFinish',
+      type: 'GenerateTextOnStepFinishCallback<TOOLS>',
+      isOptional: true,
+      description:
+        'Deprecated. Use `onStepEnd` instead. This alias is only used as a fallback when `onStepEnd` is not provided.',
     },
     {
       name: 'onEnd',

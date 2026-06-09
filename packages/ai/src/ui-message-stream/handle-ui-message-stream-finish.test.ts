@@ -428,6 +428,55 @@ describe('handleUIMessageStreamFinish', () => {
   });
 
   describe('onStepFinish callback', () => {
+    it('should call onStepEnd when finish-step chunk is encountered', async () => {
+      const onStepEndCallback = vi.fn();
+      const inputChunks: UIMessageChunk[] = [
+        { type: 'start', messageId: 'msg-step-end' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+        { type: 'text-end', id: 'text-1' },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ];
+
+      const resultStream = handleUIMessageStreamFinish({
+        stream: convertArrayToReadableStream(inputChunks as any),
+        originalMessages: [],
+        onError: mockErrorHandler,
+        onStepEnd: onStepEndCallback,
+      });
+
+      await convertReadableStreamToArray(resultStream);
+
+      expect(onStepEndCallback).toHaveBeenCalledTimes(1);
+      expect(onStepEndCallback.mock.calls[0][0].responseMessage.id).toBe(
+        'msg-step-end',
+      );
+    });
+
+    it('should prefer onStepEnd over deprecated onStepFinish', async () => {
+      const onStepEndCallback = vi.fn();
+      const onStepFinishCallback = vi.fn();
+      const inputChunks: UIMessageChunk[] = [
+        { type: 'start', messageId: 'msg-step-end' },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ];
+
+      const resultStream = handleUIMessageStreamFinish({
+        stream: convertArrayToReadableStream(inputChunks as any),
+        originalMessages: [],
+        onError: mockErrorHandler,
+        onStepEnd: onStepEndCallback,
+        onStepFinish: onStepFinishCallback,
+      });
+
+      await convertReadableStreamToArray(resultStream);
+
+      expect(onStepEndCallback).toHaveBeenCalledTimes(1);
+      expect(onStepFinishCallback).not.toHaveBeenCalled();
+    });
+
     it('should call onStepFinish when finish-step chunk is encountered', async () => {
       const onStepFinishCallback = vi.fn();
       const inputChunks: UIMessageChunk[] = [
