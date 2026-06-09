@@ -12,7 +12,7 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { OpenAIResponsesLanguageModel } from './openai-responses-language-model';
 import {
   openaiResponsesModelIds,
@@ -7653,48 +7653,6 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
           ]
         `);
-      });
-
-      it('should debug early stream errors without logging prompt content', async () => {
-        const originalDebug = process.env.AI_SDK_OPENAI_STREAM_DEBUG;
-        process.env.AI_SDK_OPENAI_STREAM_DEBUG = '1';
-        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-        server.urls['https://api.openai.com/v1/responses'].response = {
-          type: 'stream-chunks',
-          chunks: [
-            `data:{"type":"response.created","sequence_number":0,"response":{"id":"resp_debug","created_at":1741269019,"model":"gpt-4o-2024-07-18","service_tier":null}}\n\n`,
-            `data:{"type":"response.failed","sequence_number":1,"response":{"id":"resp_debug","object":"response","status":"failed","model":"gpt-4o-2024-07-18","output":[{"type":"message","content":[{"type":"output_text","text":"SECRET_OUTPUT"}]}],"metadata":{"secret":"SECRET_METADATA"},"error":{"code":"server_error","message":"response failed"},"incomplete_details":null,"usage":null,"service_tier":null}}\n\n`,
-          ],
-        };
-
-        try {
-          await expect(
-            createModel('gpt-4o-mini').doStream({
-              prompt: [
-                {
-                  role: 'user',
-                  content: [{ type: 'text', text: 'SECRET_PROMPT' }],
-                },
-              ],
-              includeRawChunks: false,
-            }),
-          ).rejects.toThrow('response failed');
-
-          expect(warn).toHaveBeenCalledTimes(1);
-          const debugOutput = warn.mock.calls[0].join(' ');
-          expect(debugOutput).toContain('response failed');
-          expect(debugOutput).not.toContain('SECRET_PROMPT');
-          expect(debugOutput).not.toContain('SECRET_OUTPUT');
-          expect(debugOutput).not.toContain('SECRET_METADATA');
-        } finally {
-          warn.mockRestore();
-          if (originalDebug == null) {
-            delete process.env.AI_SDK_OPENAI_STREAM_DEBUG;
-          } else {
-            process.env.AI_SDK_OPENAI_STREAM_DEBUG = originalDebug;
-          }
-        }
       });
     });
 

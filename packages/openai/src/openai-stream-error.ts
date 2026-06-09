@@ -5,8 +5,6 @@ type StreamError = {
   message: string;
   code?: string | number | null;
   type?: string | null;
-  param?: unknown;
-  sequenceNumber?: unknown;
   frame: unknown;
 };
 
@@ -76,7 +74,7 @@ function createOpenAIStreamError({
   responseHeaders?: Record<string, string>;
 }): APICallError {
   const streamError = parseStreamError(frame);
-  const apiCallError = new APICallError({
+  return new APICallError({
     message:
       streamError?.message ??
       'OpenAI stream failed before any output was generated',
@@ -87,12 +85,6 @@ function createOpenAIStreamError({
     responseBody: JSON.stringify(frame),
     data: frame,
   });
-
-  if (streamError != null) {
-    debugOpenAIStreamError({ apiCallError, streamError, responseHeaders });
-  }
-
-  return apiCallError;
 }
 
 function parseStreamError(frame: unknown): StreamError | undefined {
@@ -111,7 +103,6 @@ function parseStreamError(frame: unknown): StreamError | undefined {
           message: responseError.message,
           code: getStringOrNumber(responseError.code),
           type: 'response.failed',
-          sequenceNumber: value.sequence_number,
           frame,
         }
       : undefined;
@@ -128,8 +119,6 @@ function parseStreamError(frame: unknown): StreamError | undefined {
         message: error.message,
         code: getStringOrNumber(error.code),
         type: typeof error.type === 'string' ? error.type : undefined,
-        param: error.param,
-        sequenceNumber: value.sequence_number,
         frame,
       }
     : undefined;
@@ -173,68 +162,6 @@ function getStatusCode(error: StreamError): number {
   if (discriminator.includes('timeout')) return 504;
 
   return 500;
-}
-
-function debugOpenAIStreamError({
-  apiCallError,
-  streamError,
-  responseHeaders,
-}: {
-  apiCallError: APICallError;
-  streamError: StreamError;
-  responseHeaders?: Record<string, string>;
-}) {
-  const env = (globalThis as { process?: { env?: Record<string, string> } })
-    .process?.env;
-
-  if (env?.AI_SDK_OPENAI_STREAM_DEBUG !== '1') {
-    return;
-  }
-
-  const headers = Object.fromEntries(
-    ['x-request-id', 'openai-processing-ms', 'retry-after', 'retry-after-ms']
-      .filter(header => responseHeaders?.[header] != null)
-      .map(header => [header, responseHeaders![header]]),
-  );
-
-  console.warn(
-    '[AI SDK][OpenAI] early stream error',
-    JSON.stringify({
-      message: apiCallError.message,
-      statusCode: apiCallError.statusCode,
-      isRetryable: apiCallError.isRetryable,
-      code: streamError.code,
-      type: streamError.type,
-      param: streamError.param,
-      sequenceNumber: streamError.sequenceNumber,
-      responseHeaders: Object.keys(headers).length > 0 ? headers : undefined,
-      frame: sanitizeDebugFrame(streamError.frame),
-    }),
-  );
-}
-
-function sanitizeDebugFrame(frame: unknown): unknown {
-  const value = asRecord(frame);
-
-  if (value?.type !== 'response.failed') {
-    return frame;
-  }
-
-  const response = asRecord(value.response);
-
-  return {
-    type: value.type,
-    sequence_number: value.sequence_number,
-    response: {
-      id: response?.id,
-      object: response?.object,
-      status: response?.status,
-      model: response?.model,
-      error: response?.error,
-      incomplete_details: response?.incomplete_details,
-      service_tier: response?.service_tier,
-    },
-  };
 }
 
 function asRecord(value: unknown): Record<string, unknown> | undefined {
