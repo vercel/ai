@@ -1,6 +1,7 @@
 import {
   UnsupportedFunctionalityError,
   type LanguageModelV3CallOptions,
+  type LanguageModelV3FunctionTool,
   type SharedV3Warning,
 } from '@ai-sdk/provider';
 import { validateTypes, type ToolNameMapping } from '@ai-sdk/provider-utils';
@@ -13,7 +14,18 @@ import { shellArgsSchema } from '../tool/shell';
 import { toolSearchArgsSchema } from '../tool/tool-search';
 import { webSearchArgsSchema } from '../tool/web-search';
 import { webSearchPreviewArgsSchema } from '../tool/web-search-preview';
-import type { OpenAIResponsesTool } from './openai-responses-api';
+import type {
+  OpenAIResponsesFunctionTool,
+  OpenAIResponsesTool,
+} from './openai-responses-api';
+
+type OpenAIToolOptions = {
+  deferLoading?: boolean;
+  namespace?: {
+    name: string;
+    description: string;
+  };
+};
 
 export async function prepareResponsesTools({
   tools,
@@ -62,6 +74,10 @@ export async function prepareResponsesTools({
   }
 
   const openaiTools: Array<OpenAIResponsesTool> = [];
+  const namespaceTools = new Map<
+    string,
+    Extract<OpenAIResponsesTool, { type: 'namespace' }>
+  >();
   const resolvedCustomProviderToolNames =
     customProviderToolNames ?? new Set<string>();
 
@@ -69,18 +85,36 @@ export async function prepareResponsesTools({
     switch (tool.type) {
       case 'function': {
         const openaiOptions = tool.providerOptions?.openai as
-          | { deferLoading?: boolean }
+          | OpenAIToolOptions
           | undefined;
-        const deferLoading = openaiOptions?.deferLoading;
-
-        openaiTools.push({
-          type: 'function',
-          name: tool.name,
-          description: tool.description,
-          parameters: tool.inputSchema,
-          ...(tool.strict != null ? { strict: tool.strict } : {}),
-          ...(deferLoading != null ? { defer_loading: deferLoading } : {}),
+        const openaiFunctionTool = prepareFunctionTool({
+          tool,
+          options: openaiOptions,
         });
+        const namespace = openaiOptions?.namespace;
+
+        if (namespace == null) {
+          openaiTools.push(openaiFunctionTool);
+        } else {
+          let namespaceTool = namespaceTools.get(namespace.name);
+
+          if (namespaceTool == null) {
+            namespaceTool = {
+              type: 'namespace',
+              name: namespace.name,
+              description: namespace.description,
+              tools: [],
+            };
+            namespaceTools.set(namespace.name, namespaceTool);
+            openaiTools.push(namespaceTool);
+          } else if (namespaceTool.description !== namespace.description) {
+            throw new UnsupportedFunctionalityError({
+              functionality: `conflicting descriptions for OpenAI tool namespace "${namespace.name}"`,
+            });
+          }
+
+          namespaceTool.tools.push(openaiFunctionTool);
+        }
         break;
       }
       case 'provider': {
@@ -350,6 +384,25 @@ export async function prepareResponsesTools({
       });
     }
   }
+}
+
+function prepareFunctionTool({
+  tool,
+  options,
+}: {
+  tool: LanguageModelV3FunctionTool;
+  options: OpenAIToolOptions | undefined;
+}): OpenAIResponsesFunctionTool {
+  const deferLoading = options?.deferLoading;
+
+  return {
+    type: 'function',
+    name: tool.name,
+    description: tool.description,
+    parameters: tool.inputSchema,
+    ...(tool.strict != null ? { strict: tool.strict } : {}),
+    ...(deferLoading != null ? { defer_loading: deferLoading } : {}),
+  };
 }
 
 function mapShellEnvironment(environment: {
