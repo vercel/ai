@@ -353,6 +353,7 @@
     "old-stingrays-watch",
     "olive-colts-sparkle",
     "olive-ligers-ring",
+    "openai-early-stream-errors",
     "openai-preserve-namespace-on-function-call",
     "openai-responses-web-search-queries",
     "openai-roundtrip-namespace-on-function-call",
