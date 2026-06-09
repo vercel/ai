@@ -691,6 +691,52 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
 
+  examples/harness-e2e-tui:
+    dependencies:
+      '@ai-sdk/harness':
+        specifier: workspace:*
+        version: link:../../packages/harness
+      '@ai-sdk/harness-claude-code':
+        specifier: workspace:*
+        version: link:../../packages/harness-claude-code
+      '@ai-sdk/harness-codex':
+        specifier: workspace:*
+        version: link:../../packages/harness-codex
+      '@ai-sdk/harness-pi':
+        specifier: workspace:*
+        version: link:../../packages/harness-pi
+      '@ai-sdk/sandbox-vercel':
+        specifier: workspace:*
+        version: link:../../packages/sandbox-vercel
+      '@ai-sdk/tui':
+        specifier: workspace:*
+        version: link:../../packages/tui
+      '@earendil-works/pi-coding-agent':
+        specifier: ^0.77.0
+        version: 0.77.0(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@3.25.76))(ws@8.20.1)(zod@3.25.76)
+      '@vercel/sandbox':
+        specifier: ^2.0.1
+        version: 2.0.1
+      ai:
+        specifier: workspace:*
+        version: link:../../packages/ai
+      dotenv:
+        specifier: 16.4.5
+        version: 16.4.5
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: 22.19.19
+        version: 22.19.19
+      tsx:
+        specifier: 4.19.2
+        version: 4.19.2
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+
   examples/hono:
     dependencies:
       '@ai-sdk/openai':

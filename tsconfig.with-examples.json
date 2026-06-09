@@ -25,6 +25,9 @@
       "path": "examples/harness-e2e-next"
     },
     {
+      "path": "examples/harness-e2e-tui"
+    },
+    {
       "path": "examples/hono"
     },
     {
