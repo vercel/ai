@@ -33,6 +33,9 @@ jobs:
       - name: Run ultracite check
         run: pnpm run check
 
+      - name: Validate docs <PropertiesTable> usage
+        run: pnpm run validate:docs
+
   konsistent:
     name: 'Code Consistency'
     runs-on: ubuntu-latest
