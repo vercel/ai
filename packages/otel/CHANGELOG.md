@@ -1,5 +1,15 @@
 # @ai-sdk/otel
 
+## 1.0.0-canary.113
+
+### Patch Changes
+
+- 4757690: feat(ai): rename onObjectStepFinish to onObjectStepEnd
+- Updated dependencies [4757690]
+- Updated dependencies [eeefc3f]
+- Updated dependencies [b79b6a8]
+  - ai@7.0.0-canary.167
+
 ## 1.0.0-canary.112
 
 ### Patch Changes
