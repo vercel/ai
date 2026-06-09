@@ -478,6 +478,30 @@ export type OpenAIResponsesReasoning = {
   }>;
 };
 
+// Captured from the Responses API when OpenAI returned an early
+// insufficient_quota stream error after HTTP 200. This shape differs from the
+// currently documented ResponseErrorEvent below.
+const openaiResponsesNestedErrorChunkSchema = z.object({
+  type: z.literal('error'),
+  sequence_number: z.number(),
+  error: z.object({
+    type: z.string(),
+    code: z.string(),
+    message: z.string(),
+    param: z.string().nullish(),
+  }),
+});
+
+// Current OpenAI OpenAPI docs define ResponseErrorEvent with top-level
+// code/message/param fields.
+const openaiResponsesErrorChunkSchema = z.object({
+  type: z.literal('error'),
+  sequence_number: z.number(),
+  code: z.string().nullish(),
+  message: z.string(),
+  param: z.string().nullish(),
+});
+
 export const openaiResponsesChunkSchema = lazySchema(() =>
   zodSchema(
     z.union([
@@ -1037,23 +1061,8 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
         output_index: z.number(),
         diff: z.string(),
       }),
-      z.object({
-        type: z.literal('error'),
-        sequence_number: z.number(),
-        error: z.object({
-          type: z.string().nullish(),
-          code: z.string().nullish(),
-          message: z.string(),
-          param: z.string().nullish(),
-        }),
-      }),
-      z.object({
-        type: z.literal('error'),
-        sequence_number: z.number(),
-        code: z.string().nullish(),
-        message: z.string(),
-        param: z.string().nullish(),
-      }),
+      openaiResponsesNestedErrorChunkSchema,
+      openaiResponsesErrorChunkSchema,
       z
         .object({ type: z.string() })
         .loose()
