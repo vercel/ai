@@ -6,7 +6,10 @@ import type {
   Telemetry,
   TelemetryDispatcher,
 } from './telemetry';
-import { traceTelemetryChannelPromise } from './tracing-channel-publisher';
+import {
+  openTelemetryChannelSpanContext,
+  traceTelemetryChannelPromise,
+} from './tracing-channel-publisher';
 import { getGlobalTelemetryIntegrations } from './telemetry-registry';
 import type { TelemetryOptions } from './telemetry-options';
 
@@ -23,7 +26,7 @@ type TelemetryCallbackKey = Exclude<
       ? K
       : never]: true;
   },
-  'traceTelemetrySpan'
+  'traceTelemetrySpan' | 'openTelemetrySpanContext'
 >;
 
 /**
@@ -128,6 +131,15 @@ export function createTelemetryDispatcher({
         },
         execute,
       ),
+
+    openTelemetrySpanContext: ({ type, event, completion }) =>
+      openTelemetryChannelSpanContext({
+        message: {
+          type,
+          event: augmentEvent(event, telemetryMetadata),
+        },
+        completion,
+      }),
 
     onStart: mergeTelemetryCallback('onStart'),
     onStepStart: mergeTelemetryCallback('onStepStart'),

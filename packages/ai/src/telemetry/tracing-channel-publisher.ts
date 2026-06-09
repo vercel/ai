@@ -1,4 +1,5 @@
 import type * as diagnosticsChannelModule from 'node:diagnostics_channel';
+import type * as asyncHooksModule from 'node:async_hooks';
 import {
   AI_SDK_TELEMETRY_TRACING_CHANNEL,
   type TelemetryTracingChannelMessage,
@@ -6,6 +7,12 @@ import {
 import { isNodeRuntime } from '../util/is-node-runtime';
 
 type DiagnosticsChannel = typeof diagnosticsChannelModule;
+type AsyncHooks = typeof asyncHooksModule;
+type AsyncResource = asyncHooksModule.AsyncResource;
+
+export type TelemetrySpanContext = {
+  run<T>(execute: () => T): T;
+};
 
 let diagnosticsChannelPromise:
   | Promise<DiagnosticsChannel | undefined>
@@ -33,6 +40,20 @@ async function loadDiagnosticsChannel(): Promise<
   }
 
   return diagnosticsChannelPromise;
+}
+
+function loadBuiltinModule<T>(id: string): T | undefined {
+  const processWithBuiltins = globalThis.process as
+    | {
+        getBuiltinModule?: (id: string) => unknown;
+      }
+    | undefined;
+
+  try {
+    return processWithBuiltins?.getBuiltinModule?.(id) as T | undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 /**
@@ -104,4 +125,96 @@ export async function traceTelemetryChannelPromise<T>(
 
     return await execute();
   }
+}
+
+/**
+ * Opens a long-lived tracing-channel span context and returns a runner that can
+ * re-enter that context later without changing stream setup timing.
+ */
+export function openTelemetryChannelSpanContext({
+  message,
+  completion,
+}: {
+  message: TelemetryTracingChannelMessage;
+  completion: PromiseLike<unknown>;
+}): TelemetrySpanContext | undefined {
+  if (!isNodeRuntime()) {
+    return undefined;
+  }
+
+  const diagnosticsChannel = loadBuiltinModule<DiagnosticsChannel>(
+    'node:diagnostics_channel',
+  );
+  const asyncHooks = loadBuiltinModule<AsyncHooks>('node:async_hooks');
+  const tracingChannel = diagnosticsChannel?.tracingChannel?.(
+    AI_SDK_TELEMETRY_TRACING_CHANNEL,
+  );
+
+  if (
+    tracingChannel == null ||
+    tracingChannel.hasSubscribers === false ||
+    asyncHooks == null
+  ) {
+    Promise.resolve(completion).catch(() => {});
+    return undefined;
+  }
+
+  const context = message as TelemetryTracingChannelMessage & {
+    result?: unknown;
+    error?: unknown;
+  };
+  let asyncResource: AsyncResource | undefined;
+  let asyncEndPublished = false;
+
+  const safePublish = (publish: () => void) => {
+    try {
+      publish();
+    } catch {
+      // Diagnostics subscribers should never affect SDK stream behavior.
+    }
+  };
+
+  const publishAsyncEnd = ({
+    result,
+    error,
+  }: {
+    result?: unknown;
+    error?: unknown;
+  }) => {
+    if (asyncEndPublished) {
+      return;
+    }
+
+    asyncEndPublished = true;
+
+    if (error !== undefined) {
+      context.error = error;
+      safePublish(() => tracingChannel.error.publish(context));
+    }
+
+    if (result !== undefined) {
+      context.result = result;
+    }
+
+    safePublish(() => tracingChannel.asyncEnd.publish(context));
+  };
+
+  safePublish(() => {
+    tracingChannel.start.runStores(context, () => {
+      asyncResource = new asyncHooks.AsyncResource('ai.telemetry');
+    });
+  });
+  safePublish(() => tracingChannel.end.publish(context));
+
+  void Promise.resolve(completion).then(
+    result => publishAsyncEnd({ result }),
+    error => publishAsyncEnd({ error }),
+  );
+
+  return {
+    run: execute =>
+      asyncResource == null
+        ? execute()
+        : asyncResource.runInAsyncScope(execute),
+  };
 }

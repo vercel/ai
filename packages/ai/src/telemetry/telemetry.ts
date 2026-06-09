@@ -37,6 +37,7 @@ import type {
 import type { Callback } from '../util/callback';
 import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import type { TelemetryTracingEventType } from './tracing-channel';
+import type { TelemetrySpanContext } from './tracing-channel-publisher';
 
 export type InferTelemetryEvent<EVENT> = EVENT &
   Omit<
@@ -69,6 +70,16 @@ export interface TelemetryDispatcher {
     event: unknown;
     execute: () => PromiseLike<T>;
   }) => Promise<T>;
+  /**
+   * Opens a tracing span context whose completion is observed separately.
+   * This is used by streamed operations that must preserve stream timing while
+   * still creating child spans with the correct parent.
+   */
+  openTelemetrySpanContext?: (options: {
+    type: TelemetryTracingEventType;
+    event: unknown;
+    completion: PromiseLike<unknown>;
+  }) => TelemetrySpanContext | undefined;
   onStart?: Callback<OperationStartEvent>;
   onStepStart?: Callback<GenerateTextStepStartEvent>;
   onLanguageModelCallStart?: OnLanguageModelCallStartCallback;

@@ -41,6 +41,7 @@ import {
 } from '../prompt/request-options';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
+import type { TelemetryDispatcher } from '../telemetry/telemetry';
 import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import { createTextStreamResponse } from '../text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../text-stream/pipe-text-stream-to-response';
@@ -1458,16 +1459,13 @@ class DefaultStreamTextResult<
         toolsContext,
       };
 
-      // Open the operation-level tracing span. Unlike generateText the work
-      // happens while the stream is consumed, so the span is kept open until
-      // the stream settles (resolved/rejected via the total usage promise).
-      telemetryDispatcher
-        .traceTelemetrySpan?.({
-          type: 'streamText',
-          event: startEvent,
-          execute: () => self._totalUsage.promise.then(() => undefined),
-        })
-        .catch(() => {});
+      const streamTextContext = telemetryDispatcher.openTelemetrySpanContext?.({
+        type: 'streamText',
+        event: startEvent,
+        completion: self._totalUsage.promise.then(() => undefined),
+      });
+      const runInStreamTextSpan = <T>(execute: () => T): T =>
+        streamTextContext?.run(execute) ?? execute();
 
       await notify({
         event: startEvent,
@@ -1653,16 +1651,13 @@ class DefaultStreamTextResult<
         try {
           stepFinish = new DelayedPromise<void>();
 
-          // Open the step-level tracing span. It is kept open until the step
-          // has been fully processed by the event processor (see flush below).
-          const stepSpanDone = new DelayedPromise<void>();
-          telemetryDispatcher
-            .traceTelemetrySpan?.({
-              type: 'step',
-              event: { callId, stepNumber: currentStep },
-              execute: () => stepSpanDone.promise,
-            })
-            .catch(() => {});
+          const stepContext = telemetryDispatcher.openTelemetrySpanContext?.({
+            type: 'step',
+            event: { callId, stepNumber: currentStep },
+            completion: stepFinish.promise,
+          });
+          const runInStepSpan = <T>(execute: () => T): T =>
+            stepContext?.run(execute) ?? execute();
 
           const responseMessagesFromPreviousSteps = recordedSteps.flatMap(
             step => step.response.messages,
@@ -1743,70 +1738,73 @@ class DefaultStreamTextResult<
             stream: languageModelStream,
             request,
             response,
-          } = await retry(async () =>
-            streamLanguageModelCall({
-              model: prepareStepResult?.model ?? model,
-              tools: stepActiveTools,
-              toolOrder: stepToolOrder,
-              toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-              instructions: stepInstructions,
-              messages: stepMessages,
-              allowSystemInMessages,
-              repairToolCall,
-              refineToolInput,
-              abortSignal,
-              headers,
-              includeRawChunks: include.rawChunks,
-              providerOptions: stepProviderOptions,
-              download,
-              output,
-              callId,
-              executeLanguageModelCallInTelemetryContext:
-                telemetryDispatcher.executeLanguageModelCall,
-              toolsContext,
-              experimental_sandbox: stepSandbox,
-              onLanguageModelCallStart: filterNullable(
-                onLanguageModelCallStart,
-                telemetryDispatcher.onLanguageModelCallStart as
-                  | undefined
-                  | OnLanguageModelCallStartCallback,
-              ),
-              onLanguageModelCallEnd: filterNullable(
-                onLanguageModelCallEnd,
-                telemetryDispatcher.onLanguageModelCallEnd as
-                  | undefined
-                  | OnLanguageModelCallEndCallback<TOOLS>,
-              ),
-              onStart: async ({ promptMessages }) => {
-                await notify({
-                  event: {
-                    callId,
-                    provider: stepModel.provider,
-                    modelId: stepModel.modelId,
-                    stepNumber: recordedSteps.length,
-                    instructions: stepInstructions,
-                    messages: stepMessages,
-                    tools,
-                    toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-                    activeTools: prepareStepResult?.activeTools ?? activeTools,
-                    toolOrder: stepToolOrder,
-                    steps: [...recordedSteps],
-                    providerOptions: stepProviderOptions,
-                    runtimeContext,
-                    toolsContext,
-                    output,
-                    promptMessages,
-                    stepTools,
-                    stepToolChoice,
-                  },
-                  callbacks: [onStepStart, telemetryDispatcher.onStepStart],
-                });
-              },
-              _internal: {
-                now,
-              },
-              ...callSettings,
-            }),
+          } = await runInStepSpan(() =>
+            retry(async () =>
+              streamLanguageModelCall({
+                model: prepareStepResult?.model ?? model,
+                tools: stepActiveTools,
+                toolOrder: stepToolOrder,
+                toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+                instructions: stepInstructions,
+                messages: stepMessages,
+                allowSystemInMessages,
+                repairToolCall,
+                refineToolInput,
+                abortSignal,
+                headers,
+                includeRawChunks: include.rawChunks,
+                providerOptions: stepProviderOptions,
+                download,
+                output,
+                callId,
+                executeLanguageModelCallInTelemetryContext:
+                  telemetryDispatcher.executeLanguageModelCall,
+                toolsContext,
+                experimental_sandbox: stepSandbox,
+                onLanguageModelCallStart: filterNullable(
+                  onLanguageModelCallStart,
+                  telemetryDispatcher.onLanguageModelCallStart as
+                    | undefined
+                    | OnLanguageModelCallStartCallback,
+                ),
+                onLanguageModelCallEnd: filterNullable(
+                  onLanguageModelCallEnd,
+                  telemetryDispatcher.onLanguageModelCallEnd as
+                    | undefined
+                    | OnLanguageModelCallEndCallback<TOOLS>,
+                ),
+                onStart: async ({ promptMessages }) => {
+                  await notify({
+                    event: {
+                      callId,
+                      provider: stepModel.provider,
+                      modelId: stepModel.modelId,
+                      stepNumber: recordedSteps.length,
+                      instructions: stepInstructions,
+                      messages: stepMessages,
+                      tools,
+                      toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+                      activeTools:
+                        prepareStepResult?.activeTools ?? activeTools,
+                      toolOrder: stepToolOrder,
+                      steps: [...recordedSteps],
+                      providerOptions: stepProviderOptions,
+                      runtimeContext,
+                      toolsContext,
+                      output,
+                      promptMessages,
+                      stepTools,
+                      stepToolChoice,
+                    },
+                    callbacks: [onStepStart, telemetryDispatcher.onStepStart],
+                  });
+                },
+                _internal: {
+                  now,
+                },
+                ...callSettings,
+              }),
+            ),
           );
 
           const streamAfterToolCallbackInvocation =
@@ -1817,6 +1815,20 @@ class DefaultStreamTextResult<
               abortSignal,
               runtimeContext,
             });
+
+          const traceTelemetrySpanInStep =
+            telemetryDispatcher.traceTelemetrySpan == null
+              ? undefined
+              : <T>(
+                  options: Parameters<
+                    NonNullable<TelemetryDispatcher['traceTelemetrySpan']>
+                  >[0] & {
+                    execute: () => PromiseLike<T>;
+                  },
+                ) =>
+                  runInStepSpan(() =>
+                    telemetryDispatcher.traceTelemetrySpan!(options),
+                  );
 
           const streamWithToolResults = executeToolsFromStream({
             stream: streamAfterToolCallbackInvocation,
@@ -1843,7 +1855,7 @@ class DefaultStreamTextResult<
             ),
 
             executeToolInTelemetryContext: telemetryDispatcher.executeTool,
-            traceTelemetrySpan: telemetryDispatcher.traceTelemetrySpan,
+            traceTelemetrySpan: traceTelemetrySpanInStep,
           });
 
           // Conditionally include request.body based on include settings.
@@ -2042,9 +2054,6 @@ class DefaultStreamTextResult<
                   // to ensure that the recorded steps are complete:
                   await stepFinish.promise;
 
-                  // close the step-level tracing span now that the step is done:
-                  stepSpanDone.resolve();
-
                   const clientToolCalls = stepToolCalls.filter(
                     toolCall => toolCall.providerExecuted !== true,
                   );
@@ -2113,10 +2122,12 @@ class DefaultStreamTextResult<
                     }))
                   ) {
                     try {
-                      await streamStep({
-                        currentStep: currentStep + 1,
-                        usage: combinedUsage,
-                      });
+                      await runInStreamTextSpan(() =>
+                        streamStep({
+                          currentStep: currentStep + 1,
+                          usage: combinedUsage,
+                        }),
+                      );
                     } catch (error) {
                       controller.enqueue({
                         type: 'error',
@@ -2148,11 +2159,13 @@ class DefaultStreamTextResult<
         }
       }
 
-      // add the initial stream to the stitchable stream
-      await streamStep({
-        currentStep: 0,
-        usage: createNullLanguageModelUsage(),
-      });
+      await runInStreamTextSpan(() =>
+        // add the initial stream to the stitchable stream
+        streamStep({
+          currentStep: 0,
+          usage: createNullLanguageModelUsage(),
+        }),
+      );
     })().catch(async error => {
       await telemetryDispatcher.onError?.({ callId, error });
       self._initialResponseMessages.reject(error);
