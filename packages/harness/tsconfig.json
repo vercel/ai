@@ -2,10 +2,10 @@
   "extends": "./node_modules/@vercel/ai-tsconfig/ts-library.json",
   "compilerOptions": {
     "composite": true,
-    "rootDir": "src",
+    "rootDir": ".",
     "outDir": "dist"
   },
-  "include": ["src"],
+  "include": ["index.ts", "src", "agent", "channel", "observability", "bridge"],
   "exclude": [
     "dist",
     "build",
@@ -13,6 +13,7 @@
     "tsup.config.ts"
   ],
   "references": [
+    { "path": "../ai" },
     { "path": "../provider" },
     { "path": "../provider-utils" }
   ]
