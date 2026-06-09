@@ -139,7 +139,7 @@ describe('DevToolsTelemetry', () => {
         }
       `);
 
-      await integration.onStepFinish!(makeStepFinishEvent());
+      await integration.onStepEnd!(makeStepFinishEvent());
       expect(mockUpdateStepResult).toHaveBeenCalledOnce();
 
       const [stepId, result] = mockUpdateStepResult.mock.calls[0];
@@ -171,7 +171,7 @@ describe('DevToolsTelemetry', () => {
 
       await integration.onStart!(makeStartEvent());
       await integration.onStepStart!(makeStepStartEvent());
-      await integration.onStepFinish!(
+      await integration.onStepEnd!(
         makeStepFinishEvent({
           request: { body: { model: 'test', prompt: 'hi' } },
           response: {
@@ -212,7 +212,7 @@ describe('DevToolsTelemetry', () => {
       );
       await integration.onStepStart!(makeStepStartEvent());
 
-      await integration.onStepFinish!(
+      await integration.onStepEnd!(
         makeStepFinishEvent({
           response: {
             id: 'resp-1',
@@ -326,7 +326,7 @@ describe('DevToolsTelemetry', () => {
 
       await integration.onStart!(makeStartEvent());
       await integration.onStepStart!(makeStepStartEvent());
-      await integration.onStepFinish!(makeStepFinishEvent());
+      await integration.onStepEnd!(makeStepFinishEvent());
       await integration.onEnd!({ callId: 'call-1' } as any);
 
       mockCreateStep.mockClear();

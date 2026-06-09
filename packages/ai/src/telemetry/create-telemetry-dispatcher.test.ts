@@ -25,7 +25,7 @@ describe('createTelemetryDispatcher', () => {
     expect(telemetry.onLanguageModelCallEnd).toBeDefined();
     expect(telemetry.onToolExecutionStart).toBeDefined();
     expect(telemetry.onToolExecutionEnd).toBeDefined();
-    expect(telemetry.onStepFinish).toBeDefined();
+    expect(telemetry.onStepEnd).toBeDefined();
     expect(telemetry.onObjectStepStart).toBeDefined();
     expect(telemetry.onObjectStepEnd).toBeDefined();
     expect(telemetry.onEmbedStart).toBeDefined();
@@ -94,6 +94,22 @@ describe('createTelemetryDispatcher', () => {
     expect(onStart2).toHaveBeenCalledWith(augmentedDummyEvent);
   });
 
+  it('fans out step-end events to deprecated onStepFinish integrations', async () => {
+    const onStepEnd = vi.fn();
+    const onStepFinish = vi.fn();
+
+    const telemetry = createTelemetryDispatcher({
+      telemetry: {
+        integrations: [{ onStepEnd }, { onStepFinish }],
+      },
+    });
+
+    await telemetry.onStepEnd!(dummyEvent);
+
+    expect(onStepEnd).toHaveBeenCalledWith(augmentedDummyEvent);
+    expect(onStepFinish).toHaveBeenCalledWith(augmentedDummyEvent);
+  });
+
   it('skips integrations that do not implement the method', async () => {
     const onStart = vi.fn();
 
@@ -146,7 +162,7 @@ describe('createTelemetryDispatcher', () => {
       onLanguageModelCallEnd: vi.fn(),
       onToolExecutionStart: vi.fn(),
       onToolExecutionEnd: vi.fn(),
-      onStepFinish: vi.fn(),
+      onStepEnd: vi.fn(),
       onObjectStepStart: vi.fn(),
       onObjectStepEnd: vi.fn(),
       onEmbedStart: vi.fn(),
@@ -168,7 +184,7 @@ describe('createTelemetryDispatcher', () => {
     await telemetry.onLanguageModelCallEnd!(dummyEvent);
     await telemetry.onToolExecutionStart!(dummyEvent);
     await telemetry.onToolExecutionEnd!(dummyEvent);
-    await telemetry.onStepFinish!(dummyEvent);
+    await telemetry.onStepEnd!(dummyEvent);
     await telemetry.onObjectStepStart!(dummyEvent);
     await telemetry.onObjectStepEnd!(dummyEvent);
     await telemetry.onEmbedStart!(dummyEvent);
@@ -185,7 +201,7 @@ describe('createTelemetryDispatcher', () => {
     expect(integration.onLanguageModelCallEnd).toHaveBeenCalledOnce();
     expect(integration.onToolExecutionStart).toHaveBeenCalledOnce();
     expect(integration.onToolExecutionEnd).toHaveBeenCalledOnce();
-    expect(integration.onStepFinish).toHaveBeenCalledOnce();
+    expect(integration.onStepEnd).toHaveBeenCalledOnce();
     expect(integration.onObjectStepStart).toHaveBeenCalledOnce();
     expect(integration.onObjectStepEnd).toHaveBeenCalledOnce();
     expect(integration.onEmbedStart).toHaveBeenCalledOnce();
@@ -215,7 +231,7 @@ describe('createTelemetryDispatcher', () => {
         onStepStart: vi.fn(),
         onToolExecutionStart: vi.fn(),
         onToolExecutionEnd: vi.fn(),
-        onStepFinish: vi.fn(),
+        onStepEnd: vi.fn(),
         onObjectStepStart: vi.fn(),
         onObjectStepEnd: vi.fn(),
         onEmbedStart: vi.fn(),
@@ -237,7 +253,7 @@ describe('createTelemetryDispatcher', () => {
       expect(telemetry.onStepStart).toBeUndefined();
       expect(telemetry.onToolExecutionStart).toBeUndefined();
       expect(telemetry.onToolExecutionEnd).toBeUndefined();
-      expect(telemetry.onStepFinish).toBeUndefined();
+      expect(telemetry.onStepEnd).toBeUndefined();
       expect(telemetry.onObjectStepStart).toBeUndefined();
       expect(telemetry.onObjectStepEnd).toBeUndefined();
       expect(telemetry.onEmbedStart).toBeUndefined();

@@ -7149,7 +7149,7 @@ describe('streamText', () => {
             onStepStart: async ({ runtimeContext }) => {
               telemetryContexts.push(runtimeContext);
             },
-            onStepFinish: async ({ runtimeContext }) => {
+            onStepEnd: async ({ runtimeContext }) => {
               telemetryContexts.push(runtimeContext);
             },
             onEnd: async event => {
@@ -7210,7 +7210,7 @@ describe('streamText', () => {
             onStepStart: async ({ toolsContext }) => {
               telemetryContexts.push(toolsContext);
             },
-            onStepFinish: async ({ toolsContext }) => {
+            onStepEnd: async ({ toolsContext }) => {
               telemetryContexts.push(toolsContext);
             },
             onEnd: async event => {
@@ -7253,7 +7253,7 @@ describe('streamText', () => {
             onStepStart: async ({ runtimeContext }) => {
               telemetryContexts.push(runtimeContext);
             },
-            onStepFinish: async ({ runtimeContext }) => {
+            onStepEnd: async ({ runtimeContext }) => {
               telemetryContexts.push(runtimeContext);
             },
             onEnd: async event => {
@@ -16608,6 +16608,72 @@ describe('streamText', () => {
       expect(receivedAbortSignals[0]).toBe(receivedAbortSignals[1]);
     });
 
+    it('should clear the step timeout on normal completion of a multi-step run', async () => {
+      const receivedAbortSignals: (AbortSignal | undefined)[] = [];
+      let stepCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async ({ abortSignal }) => {
+            receivedAbortSignals.push(abortSignal);
+            stepCount++;
+            if (stepCount === 1) {
+              return {
+                stream: convertArrayToReadableStream([
+                  {
+                    type: 'tool-call',
+                    toolCallType: 'function',
+                    toolCallId: 'call-1',
+                    toolName: 'tool1',
+                    input: `{ "value": "test" }`,
+                  },
+                  {
+                    type: 'finish',
+                    finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+                    usage: testUsage,
+                  },
+                ]),
+              };
+            }
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Final response' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'tool result',
+          },
+        },
+        prompt: 'test-input',
+        timeout: { stepMs: 50 }, // small step timeout
+        stopWhen: isStepCount(2),
+        onError: () => {},
+      });
+
+      // Both steps finish synchronously, well within stepMs.
+      await result.consumeStream();
+
+      // Advance well past stepMs: because each step's timeout is cleared on
+      // finish, the (shared) abort signal must NOT fire. If the timers leaked,
+      // a stale step timer would abort the signal here.
+      await vi.advanceTimersByTimeAsync(100);
+
+      expect(stepCount).toBe(2);
+      expect(receivedAbortSignals[0]?.aborted).toBe(false);
+      expect(receivedAbortSignals[1]?.aborted).toBe(false);
+    });
+
     it('should support both totalMs and stepMs together', async () => {
       let receivedAbortSignal: AbortSignal | undefined;
 
@@ -16637,6 +16703,61 @@ describe('streamText', () => {
       await result.consumeStream();
 
       expect(receivedAbortSignal).toBeDefined();
+    });
+
+    it('should abort when step timeout expires', async () => {
+      let receivedAbortSignal: AbortSignal | undefined;
+      const delayedPromise = new DelayedPromise<void>();
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async ({ abortSignal }) => {
+            receivedAbortSignal = abortSignal;
+            return {
+              stream: new ReadableStream({
+                async start(controller) {
+                  // Open the stream but stall before producing any content,
+                  // modelling a model that returns 200 OK and then idles.
+                  // The step timeout must abort this stalled step.
+                  await delayedPromise.promise;
+
+                  controller.enqueue({ type: 'text-start', id: '1' });
+                  controller.enqueue({
+                    type: 'text-delta',
+                    id: '1',
+                    delta: 'Hello',
+                  });
+                  controller.enqueue({ type: 'text-end', id: '1' });
+                  controller.enqueue({
+                    type: 'finish',
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                    usage: testUsage,
+                  });
+                  controller.close();
+                },
+              }),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        timeout: { stepMs: 50 }, // 50ms step timeout
+        onError: () => {},
+      });
+
+      // Start consuming the stream (won't complete until delayedPromise resolves)
+      const consumePromise = result.consumeStream();
+
+      // Advance time past the step timeout
+      await vi.advanceTimersByTimeAsync(100);
+
+      // Resolve the delayed promise to allow the stream to finish
+      delayedPromise.resolve(undefined);
+
+      await consumePromise;
+
+      // The abort signal should have been triggered due to step timeout
+      expect(receivedAbortSignal?.aborted).toBe(true);
+      expect((receivedAbortSignal?.reason as Error)?.name).toBe('TimeoutError');
     });
 
     it('should forward chunkMs as abort signal to model', async () => {
@@ -19132,6 +19253,69 @@ describe('streamText', () => {
               },
             ]
           `);
+      });
+
+      it('options.onStepEnd should be called', async () => {
+        let result!: Parameters<
+          Required<Parameters<typeof streamText>[0]>['onStepEnd']
+        >[0];
+
+        const resultObject = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello, ' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+          prompt: 'test-input',
+          onStepEnd: async event => {
+            result = event as unknown as typeof result;
+          },
+          _internal: {
+            generateId: () => 'test-call-id',
+            generateCallId: () => 'test-telemetry-call-id',
+          },
+        });
+
+        await resultObject.consumeStream();
+
+        expect(result.stepNumber).toBe(0);
+      });
+
+      it('options.onStepEnd should be preferred over deprecated onStepFinish', async () => {
+        const calls: string[] = [];
+
+        const resultObject = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello, ' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+          prompt: 'test-input',
+          onStepEnd: async () => {
+            calls.push('onStepEnd');
+          },
+          onStepFinish: async () => {
+            calls.push('onStepFinish');
+          },
+        });
+
+        await resultObject.consumeStream();
+
+        expect(calls).toEqual(['onStepEnd']);
       });
 
       it('options.onStepFinish should be called', async () => {
@@ -28559,8 +28743,8 @@ describe('streamText', () => {
             onToolExecutionEnd: async () => {
               events.push('onToolExecutionEnd');
             },
-            onStepFinish: async () => {
-              events.push('onStepFinish');
+            onStepEnd: async () => {
+              events.push('onStepEnd');
             },
             onEnd: async () => {
               events.push('onEnd');
@@ -28577,7 +28761,7 @@ describe('streamText', () => {
           "onStepStart",
           "onToolExecutionStart",
           "onToolExecutionEnd",
-          "onStepFinish",
+          "onStepEnd",
           "onEnd",
         ]
       `);
@@ -28591,8 +28775,8 @@ describe('streamText', () => {
           onStart: async () => {
             events.push('global-onStart');
           },
-          onStepFinish: async () => {
-            events.push('global-onStepFinish');
+          onStepEnd: async () => {
+            events.push('global-onStepEnd');
           },
           onEnd: async () => {
             events.push('global-onEnd');
@@ -28610,7 +28794,7 @@ describe('streamText', () => {
 
       expect(events).toEqual([
         'global-onStart',
-        'global-onStepFinish',
+        'global-onStepEnd',
         'global-onEnd',
       ]);
     });
@@ -28665,8 +28849,8 @@ describe('streamText', () => {
             onStart: async () => {
               events.push('integration-onStart');
             },
-            onStepFinish: async () => {
-              events.push('integration-onStepFinish');
+            onStepEnd: async () => {
+              events.push('integration-onStepEnd');
             },
             onEnd: async () => {
               events.push('integration-onEnd');
@@ -28681,7 +28865,7 @@ describe('streamText', () => {
         'user-onStart',
         'integration-onStart',
         'user-onStepFinish',
-        'integration-onStepFinish',
+        'integration-onStepEnd',
         'user-onFinish',
         'integration-onEnd',
       ]);
@@ -28697,7 +28881,7 @@ describe('streamText', () => {
             onStart: async () => {
               throw new Error('integration error');
             },
-            onStepFinish: async () => {
+            onStepEnd: async () => {
               throw new Error('integration error');
             },
             onEnd: async () => {

@@ -22,7 +22,7 @@ import {
   type ModelMessage,
   type StepResult,
   type StopCondition,
-  type GenerateTextOnStepFinishCallback,
+  type GenerateTextOnStepEndCallback,
   type ActiveTools,
   type ToolCallRepairFunction,
   type ToolChoice,
@@ -47,13 +47,24 @@ export type { CompatibleLanguageModel } from './types.js';
 
 /**
  * Callback function to be called after each step completes.
- * Alias for the AI SDK's GenerateTextOnStepFinishCallback, using
+ * Alias for the AI SDK's GenerateTextOnStepEndCallback, using
  * WorkflowAgent-consistent naming.
+ */
+export type WorkflowAgentOnStepEndCallback<
+  TTools extends ToolSet = ToolSet,
+  TRuntimeContext extends Context = Context,
+> = GenerateTextOnStepEndCallback<TTools, TRuntimeContext>;
+
+/**
+ * Callback function to be called after each step completes.
+ * Deprecated alias for `WorkflowAgentOnStepEndCallback`.
+ *
+ * @deprecated Use `WorkflowAgentOnStepEndCallback` instead.
  */
 export type WorkflowAgentOnStepFinishCallback<
   TTools extends ToolSet = ToolSet,
   TRuntimeContext extends Context = Context,
-> = GenerateTextOnStepFinishCallback<TTools, TRuntimeContext>;
+> = WorkflowAgentOnStepEndCallback<TTools, TRuntimeContext>;
 
 /**
  * Infer the type of the tools of a workflow agent.
@@ -492,6 +503,13 @@ export type WorkflowAgentOptions<
     /**
      * Callback function to be called after each step completes.
      */
+    onStepEnd?: WorkflowAgentOnStepEndCallback<TTools, TRuntimeContext>;
+
+    /**
+     * Callback function to be called after each step completes.
+     *
+     * @deprecated Use `onStepEnd` instead.
+     */
     onStepFinish?: WorkflowAgentOnStepFinishCallback<TTools, TRuntimeContext>;
 
     /**
@@ -905,6 +923,13 @@ export type WorkflowAgentStreamOptions<
     /**
      * Callback function to be called after each step completes.
      */
+    onStepEnd?: WorkflowAgentOnStepEndCallback<TTools, TRuntimeContext>;
+
+    /**
+     * Callback function to be called after each step completes.
+     *
+     * @deprecated Use `onStepEnd` instead.
+     */
     onStepFinish?: WorkflowAgentOnStepFinishCallback<TTools, TRuntimeContext>;
 
     /**
@@ -1134,7 +1159,7 @@ export class WorkflowAgent<
   private experimentalRepairToolCall?: ToolCallRepairFunction<TBaseTools>;
   private experimentalDownload?: DownloadFunction;
   private prepareStep?: PrepareStepCallback<TBaseTools, TRuntimeContext>;
-  private constructorOnStepFinish?: WorkflowAgentOnStepFinishCallback<
+  private constructorOnStepEnd?: WorkflowAgentOnStepEndCallback<
     TBaseTools,
     TRuntimeContext
   >;
@@ -1170,7 +1195,7 @@ export class WorkflowAgent<
     this.experimentalRepairToolCall = options.experimental_repairToolCall;
     this.experimentalDownload = options.experimental_download;
     this.prepareStep = options.prepareStep;
-    this.constructorOnStepFinish = options.onStepFinish;
+    this.constructorOnStepEnd = options.onStepEnd ?? options.onStepFinish;
     const { onFinish, onEnd = onFinish } = options;
     this.constructorOnEnd = onEnd;
     this.constructorOnStart = options.experimental_onStart;
@@ -1533,11 +1558,11 @@ export class WorkflowAgent<
     };
 
     // Merge constructor + stream callbacks (constructor first, then stream)
-    const mergedOnStepFinish = mergeCallbacks(
-      this.constructorOnStepFinish as
-        | WorkflowAgentOnStepFinishCallback<TTools, TRuntimeContext>
+    const mergedOnStepEnd = mergeCallbacks(
+      this.constructorOnStepEnd as
+        | WorkflowAgentOnStepEndCallback<TTools, TRuntimeContext>
         | undefined,
-      options.onStepFinish,
+      options.onStepEnd ?? options.onStepFinish,
     );
     const mergedOnEnd = mergeCallbacks(
       this.constructorOnEnd as
@@ -1857,7 +1882,7 @@ export class WorkflowAgent<
       prompt: modelPrompt,
       stopConditions: options.stopWhen ?? this.stopWhen,
 
-      onStepFinish: mergedOnStepFinish as any,
+      onStepEnd: mergedOnStepEnd as any,
       onStepStart: mergedOnStepStart as any,
       onError: options.onError,
       prepareStep: (options.prepareStep ??

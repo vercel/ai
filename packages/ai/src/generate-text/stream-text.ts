@@ -93,6 +93,7 @@ import {
 import type {
   GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
+  GenerateTextOnStepEndCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
 } from './generate-text-events';
@@ -277,7 +278,8 @@ export type StreamTextOnAbortCallback<
  * @param experimental_onToolCallStart - Deprecated alias for `onToolExecutionStart`.
  * @param onToolExecutionEnd - Callback invoked after each tool execution completes.
  * @param experimental_onToolCallFinish - Deprecated alias for `onToolExecutionEnd`.
- * @param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
+ * @param onStepEnd - Callback that is called when each step (LLM call) ends, including intermediate steps.
+ * @param onStepFinish - Deprecated alias for `onStepEnd`.
  * @param onEnd - Callback that is called when all steps are finished and the response is complete.
  * @param onFinish - Deprecated alias for `onEnd`.
  *
@@ -323,6 +325,7 @@ export function streamText<
   onFinish,
   onEnd = onFinish,
   onAbort,
+  onStepEnd,
   onStepFinish,
   experimental_onStart: onStart,
   experimental_onStepStart: onStepStart,
@@ -511,7 +514,17 @@ export function streamText<
     >;
 
     /**
-     * Callback that is called when each step (LLM call) is finished, including intermediate steps.
+     * Callback that is called when each step (LLM call) ends, including intermediate steps.
+     */
+    onStepEnd?: GenerateTextOnStepEndCallback<
+      NoInfer<TOOLS>,
+      NoInfer<RUNTIME_CONTEXT>
+    >;
+
+    /**
+     * Callback that is called when each step (LLM call) ends, including intermediate steps.
+     *
+     * @deprecated Use `onStepEnd` instead.
      */
     onStepFinish?: GenerateTextOnStepFinishCallback<
       NoInfer<TOOLS>,
@@ -611,6 +624,7 @@ export function streamText<
     onToolExecutionStart ?? experimental_onToolCallStart;
   const resolvedOnToolExecutionEnd =
     onToolExecutionEnd ?? experimental_onToolCallFinish;
+  const resolvedOnStepEnd = onStepEnd ?? onStepFinish;
   return new DefaultStreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>({
     model: resolveLanguageModel(model),
     telemetry,
@@ -652,7 +666,7 @@ export function streamText<
     onError,
     onEnd,
     onAbort,
-    onStepFinish,
+    onStepFinish: resolvedOnStepEnd,
     onStart,
     onStepStart,
     onLanguageModelCallStart,
@@ -1177,7 +1191,7 @@ class DefaultStreamTextResult<
 
           await notify({
             event: currentStepResult,
-            callbacks: [onStepFinish, telemetryDispatcher.onStepFinish],
+            callbacks: [onStepFinish, telemetryDispatcher.onStepEnd],
           });
 
           logWarnings({
@@ -1614,6 +1628,13 @@ class DefaultStreamTextResult<
             clearTimeout(stepTimeoutId);
           }
         }
+
+        // The step's stream is registered lazily and consumed long after this
+        // function returns, so the step timer must stay armed past setup. When
+        // the merged abort signal fires (any step/chunk/total timeout or caller
+        // abort), drop both step-scoped timers so neither outlives the step.
+        abortSignal?.addEventListener('abort', clearStepTimeout);
+        abortSignal?.addEventListener('abort', clearChunkTimeout);
 
         try {
           stepFinish = new DelayedPromise<void>();
@@ -2089,9 +2110,12 @@ class DefaultStreamTextResult<
               }),
             ),
           );
-        } finally {
+        } catch (error) {
+          // Setup failed before the stream was registered, so neither the
+          // stream's flush nor an abort will clear the timers — clear them here.
           clearStepTimeout();
           clearChunkTimeout();
+          throw error;
         }
       }
 
