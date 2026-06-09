@@ -807,7 +807,7 @@ class DefaultStreamObjectResult<
                   },
                   callbacks: [
                     onStepFinish,
-                    telemetryDispatcher.onObjectStepFinish,
+                    telemetryDispatcher.onObjectStepEnd,
                   ],
                 });
 
