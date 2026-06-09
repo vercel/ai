@@ -1642,6 +1642,13 @@ class DefaultStreamTextResult<
           }
         }
 
+        // The step's stream is registered lazily and consumed long after this
+        // function returns, so the step timer must stay armed past setup. When
+        // the merged abort signal fires (any step/chunk/total timeout or caller
+        // abort), drop both step-scoped timers so neither outlives the step.
+        abortSignal?.addEventListener('abort', clearStepTimeout);
+        abortSignal?.addEventListener('abort', clearChunkTimeout);
+
         try {
           stepFinish = new DelayedPromise<void>();
 
@@ -2116,9 +2123,12 @@ class DefaultStreamTextResult<
               }),
             ),
           );
-        } finally {
+        } catch (error) {
+          // Setup failed before the stream was registered, so neither the
+          // stream's flush nor an abort will clear the timers — clear them here.
           clearStepTimeout();
           clearChunkTimeout();
+          throw error;
         }
       }
 

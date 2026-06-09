@@ -1,5 +1,13 @@
 # @ai-sdk/gateway
 
+## 4.0.0-canary.100
+
+### Patch Changes
+
+- 24bb123: fix(gateway): base64-encode inline Uint8Array data on reasoning-file and tool-result file parts
+- c44fcc8: feat(gateway): add GatewayFailedDependencyError (424)
+- 97e480a: chore(provider/gateway): update gateway model settings files
+
 ## 4.0.0-canary.99
 
 ### Patch Changes

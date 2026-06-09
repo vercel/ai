@@ -1,5 +1,15 @@
 # @ai-sdk/tui
 
+## 1.0.0-canary.1
+
+### Patch Changes
+
+- e757741: feat: agent tui
+- Updated dependencies [19736ee]
+- Updated dependencies [d66ae02]
+- Updated dependencies [e4182bd]
+  - ai@7.0.0-canary.166
+
 ## 0.4.7
 
 ### Patch Changes

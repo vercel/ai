@@ -8,6 +8,7 @@ import type {
   LanguageModelV4,
   ProviderV4,
   SpeechModelV4,
+  TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
   generateId,
@@ -28,6 +29,8 @@ import { GoogleVertexImageModel } from './google-vertex-image-model';
 import type { GoogleVertexImageModelId } from './google-vertex-image-settings';
 import type { GoogleVertexModelId } from './google-vertex-options';
 import { googleVertexTools } from './google-vertex-tools';
+import { GoogleVertexTranscriptionModel } from './google-vertex-transcription-model';
+import type { GoogleVertexTranscriptionModelId } from './google-vertex-transcription-model-options';
 import { GoogleVertexVideoModel } from './google-vertex-video-model';
 import type { GoogleVertexVideoModelId } from './google-vertex-video-settings';
 import type { GoogleVertexSpeechModelId } from './google-vertex-speech-model-options';
@@ -98,6 +101,20 @@ export interface GoogleVertexProvider extends ProviderV4 {
    * Creates a model for speech generation (text-to-speech).
    */
   speechModel(modelId: GoogleVertexSpeechModelId): SpeechModelV4;
+
+  /**
+   * Creates a model for transcription (speech-to-text).
+   */
+  transcription(
+    modelId: GoogleVertexTranscriptionModelId,
+  ): TranscriptionModelV4;
+
+  /**
+   * Creates a model for transcription (speech-to-text).
+   */
+  transcriptionModel(
+    modelId: GoogleVertexTranscriptionModelId,
+  ): TranscriptionModelV4;
 }
 
 export interface GoogleVertexProviderSettings {
@@ -245,6 +262,27 @@ export function createGoogleVertex(
   const createSpeechModel = (modelId: GoogleVertexSpeechModelId) =>
     new GoogleSpeechModel(modelId, createConfig('speech'));
 
+  // Cloud Speech-to-Text reuses the Vertex auth headers from createConfig, but
+  // targets the Speech-to-Text API.
+  const createTranscriptionModel = (
+    modelId: GoogleVertexTranscriptionModelId,
+  ) => {
+    if (apiKey) {
+      throw new Error(
+        'Google Vertex transcription models do not support Express Mode API keys. Use standard Google Cloud credentials instead.',
+      );
+    }
+
+    const config = createConfig('transcription');
+    return new GoogleVertexTranscriptionModel(modelId, {
+      provider: config.provider,
+      headers: config.headers,
+      fetch: config.fetch,
+      project: loadGoogleVertexProject(),
+      location: loadGoogleVertexLocation(),
+    });
+  };
+
   const provider = function (modelId: GoogleVertexModelId) {
     if (new.target) {
       throw new Error(
@@ -265,6 +303,8 @@ export function createGoogleVertex(
   provider.videoModel = createVideoModel;
   provider.speech = createSpeechModel;
   provider.speechModel = createSpeechModel;
+  provider.transcription = createTranscriptionModel;
+  provider.transcriptionModel = createTranscriptionModel;
   provider.tools = googleVertexTools;
 
   return provider;
