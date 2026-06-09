@@ -166,12 +166,15 @@ export function extractJsonMiddleware(options?: {
                   let remaining = block.buffer;
                   if (block.phase === 'buffering') {
                     remaining = transform(remaining);
-                  } else if (block.prefixStripped) {
-                    // strip suffix since prefix already handled
-                    remaining = remaining.replace(/\n?```\s*$/, '').trimEnd();
                   } else {
-                    // Apply full transform (handles both prefix and suffix)
-                    remaining = transform(remaining);
+                    // We're in the streaming phase: earlier deltas already
+                    // streamed text content as-is, and the buffer holds at most
+                    // the trailing SUFFIX_BUFFER_SIZE characters. Strip any
+                    // trailing markdown fence and `.trimEnd()` only — leading
+                    // whitespace here is a legitimate word boundary continuing
+                    // from the previously emitted delta, not a code-fence
+                    // artifact, so it must be preserved.
+                    remaining = remaining.replace(/\n?```\s*$/, '').trimEnd();
                   }
 
                   if (remaining.length > 0) {

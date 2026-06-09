@@ -817,5 +817,44 @@ describe('extractJsonMiddleware', () => {
 
       expect(await result.text).toBe('{"value": "test"}');
     });
+
+    it('should preserve leading whitespace in the trailing suffix when no markdown prefix was stripped (#15921)', async () => {
+      // The middleware keeps a 12-character suffix buffer. When the prior delta
+      // ends mid-sentence and the final suffix begins with a legitimate
+      // word-boundary space, that space must survive into the merged output.
+      const mockModel = new MockLanguageModelV4({
+        async doStream() {
+          return {
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'there' },
+              { type: 'text-delta', id: '1', delta: ' altogether?' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          };
+        },
+      });
+
+      const result = streamText({
+        model: wrapLanguageModel({
+          model: mockModel,
+          middleware: extractJsonMiddleware(),
+        }),
+        prompt: 'Generate text',
+      });
+
+      expect(await result.text).toBe('there altogether?');
+    });
   });
 });
