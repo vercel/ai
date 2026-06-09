@@ -25,14 +25,14 @@ export const weatherApprovalCodexHarnessAgent = new HarnessAgent({
   sandbox: createVercelSandbox({
     runtime: 'node24',
     ports: [4000],
-    setup: async ({ session, sessionWorkDir, abortSignal }) => {
-      await session.writeTextFile({
-        path: `${sessionWorkDir}/weather-codes.md`,
-        content: WEATHER_CODES_REFERENCE,
-        abortSignal,
-      });
-    },
   }),
+  onSandboxSession: async ({ session, sessionWorkDir, abortSignal }) => {
+    await session.writeTextFile({
+      path: `${sessionWorkDir}/weather-codes.md`,
+      content: WEATHER_CODES_REFERENCE,
+      abortSignal,
+    });
+  },
   debug: { enabled: true },
   telemetry: {
     integrations: [
