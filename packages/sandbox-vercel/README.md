@@ -1,6 +1,8 @@
 # AI SDK - Vercel Sandbox
 
-`HarnessV1SandboxProvider` implementation backed by [`@vercel/sandbox`](https://vercel.com/docs/vercel-sandbox). Construct the provider at module scope and pass it to a `HarnessAgent` — the agent calls `provider.createSession()` lazily on the first turn and stops the sandbox when the agent closes.
+_This package is **experimental**._
+
+`HarnessV1SandboxProvider` implementation for [Vercel Sandbox](https://vercel.com/docs/vercel-sandbox).
 
 ## Setup
 
@@ -15,22 +17,24 @@ The factory is synchronous. The returned provider is stable; the actual `@vercel
 ```ts
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
-const sandbox = createVercelSandbox({
+const vercelSandbox = createVercelSandbox({
   runtime: 'node24',
   ports: [3000],
 });
 
-const sandboxSession = await sandbox.createSession();
-const session = sandboxSession.restricted();
+const networkSandboxSession = await vercelSandbox.createSession();
+const sandboxSession = networkSandboxSession.restricted();
 
-await session.writeTextFile({ path: 'hello.txt', content: 'hi' });
-const { stdout } = await session.run({
+await sandboxSession.writeTextFile({ path: 'hello.txt', content: 'hi' });
+
+const { stdout } = await sandboxSession.run({
   command: 'cat hello.txt',
 });
-await sandboxSession.stop();
+console.log(stdout); // "hi"
+await networkSandboxSession.stop();
 ```
 
-`sandboxSession.restricted()` is typed as `Experimental_SandboxSession`, so it's safe to pass to AI SDK tools that accept `experimental_sandbox`. The network sandbox session itself carries the infra surface (`ports`, `getPortUrl`, `setNetworkPolicy`, `stop`) that only the harness should reach for.
+`networkSandboxSession.restricted()` is typed as `Experimental_SandboxSession`, so it's safe to pass to AI SDK tools that accept `experimental_sandbox`. The network sandbox session itself carries the infra surface (`ports`, `getPortUrl`, `setNetworkPolicy`, `stop`) that only the harness should reach for.
 
 The flat-field settings are aliased directly from `@vercel/sandbox`'s `Sandbox.create` parameters, so every option Vercel supports — including its native `NetworkPolicy` — is available without re-declaration:
 
@@ -62,7 +66,7 @@ const sandbox = createVercelSandbox({
 Once the network sandbox session is alive, the host can update outbound network policy on the running sandbox:
 
 ```ts
-await sandboxSession.setNetworkPolicy?.({
+await networkSandboxSession.setNetworkPolicy?.({
   mode: 'custom',
   allowedHosts: ['api.example.com'],
   deniedCIDRs: ['169.254.169.254/32'],

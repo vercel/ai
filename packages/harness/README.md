@@ -1,8 +1,8 @@
 # AI SDK - Harness Specification and Agent
 
-Drive third-party coding agent runtimes (Claude Code, Codex, OpenCode, …) through one uniform AI SDK `Agent` API.
+_This package is **experimental**._
 
-This package provides both the specification that harness adapter packages implement, and a `HarnessAgent` class consumers use to run them.
+`HarnessAgent` implementation plus the underlying harness specification, including an expanded network session sandbox interface to support harness sandbox needs.
 
 ## Setup
 

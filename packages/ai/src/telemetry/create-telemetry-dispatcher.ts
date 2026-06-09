@@ -139,7 +139,7 @@ export function createTelemetryDispatcher({
       mergeTelemetryCallback('onStepFinish'),
     ),
     onObjectStepStart: mergeTelemetryCallback('onObjectStepStart'),
-    onObjectStepFinish: mergeTelemetryCallback('onObjectStepFinish'),
+    onObjectStepEnd: mergeTelemetryCallback('onObjectStepEnd'),
     onEmbedStart: mergeTelemetryCallback('onEmbedStart'),
     onEmbedEnd: mergeTelemetryCallback('onEmbedEnd'),
     onRerankStart: mergeTelemetryCallback('onRerankStart'),

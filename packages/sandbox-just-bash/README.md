@@ -1,8 +1,10 @@
 # AI SDK - just-bash Sandbox
 
-`HarnessV1SandboxProvider` implementation backed by [`just-bash`](https://github.com/vercel-labs/just-bash), an in-process JavaScript bash environment with a virtual filesystem. File operations and spawned processes share the same in-memory state.
+_This package is **experimental**._
 
-This provider does not expose ports, so it cannot host bridge-backed harness adapters (claude-code, codex). It is primarily useful for handing a local `Experimental_SandboxSession` to AI SDK tools that accept `experimental_sandbox`, or for non-bridge harness flows.
+`HarnessV1SandboxProvider` implementation for [`just-bash`](https://github.com/vercel-labs/just-bash), an in-process JavaScript bash environment with a virtual filesystem. File operations and spawned processes share the same in-memory state.
+
+This provider does not expose ports, so it cannot be used with features that require actual network sandboxes. It is primarily useful for handing a local `Experimental_SandboxSession` to AI SDK tools that accept `experimental_sandbox`.
 
 ## Setup
 
@@ -17,20 +19,20 @@ The factory is synchronous. The returned provider is stable; the actual `just-ba
 ```ts
 import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
 
-const sandbox = createJustBashSandbox({ cwd: '/work' });
+const justBashSandbox = createJustBashSandbox({ cwd: '/work' });
 
-const sandboxSession = await sandbox.createSession();
-const session = sandboxSession.restricted();
+const networkSandboxSession = await justBashSandbox.createSession();
+const sandboxSession = networkSandboxSession.restricted();
 
-await session.writeTextFile({ path: '/work/hello.txt', content: 'hi' });
+await sandboxSession.writeTextFile({ path: '/work/hello.txt', content: 'hi' });
 
-const { stdout } = await session.run({
+const { stdout } = await sandboxSession.run({
   command: 'cat /work/hello.txt',
 });
 console.log(stdout); // "hi"
 ```
 
-`sandboxSession.restricted()` is typed as `Experimental_SandboxSession` and is the surface to hand to user tools. The network sandbox session's `getPortUrl` throws (just-bash has no port story) and `setNetworkPolicy` is omitted (no local enforcement primitive).
+`networkSandboxSession.restricted()` is typed as `Experimental_SandboxSession` and is the surface to hand to user tools. The network sandbox session's `getPortUrl` throws (just-bash has no port story) and `setNetworkPolicy` is omitted (no local enforcement primitive).
 
 To wrap an already-created `just-bash` `Sandbox` (e.g. with a custom `fs`), pass it via `sandbox`:
 

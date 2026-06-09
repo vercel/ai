@@ -1,5 +1,14 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-canary.105
+
+### Patch Changes
+
+- 6dd2fd7: feat(provider/google-vertex): add Google Cloud Speech-to-Text transcription model support
+- 6b4d325: feat(provider/anthropic): add support for `claude-fable-5` and the `fallbacks` API parameter
+- Updated dependencies [6b4d325]
+  - @ai-sdk/anthropic@4.0.0-canary.64
+
 ## 5.0.0-canary.104
 
 ### Patch Changes

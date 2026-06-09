@@ -269,5 +269,6 @@ Only call `addToolApprovalResponse` for manual approvals. Automatic approvals an
 ## Related APIs
 
 - Use `toolApproval` with `ToolLoopAgent`, `generateText`, and `streamText`.
+- Author approval rules as code with [Policy-Based Tool Approvals](/docs/agents/policy-tool-approvals) (`@ai-sdk/policy-opa`).
 - Use `needsApproval` only with [`WorkflowAgent`](/docs/agents/workflow-agent), where approvals suspend and resume durable workflow execution.
 - Subagent tools cannot use `toolApproval`; see [Subagents](/docs/agents/subagents#no-tool-approvals-in-subagents).

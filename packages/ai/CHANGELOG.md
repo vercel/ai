@@ -1,5 +1,30 @@
 # ai
 
+## 7.0.0-canary.167
+
+### Patch Changes
+
+- 4757690: feat(ai): rename onObjectStepFinish to onObjectStepEnd
+- eeefc3f: fix(ai): enforce `timeout.stepMs` for the whole step in `streamText`
+
+  Previously `streamText`'s step timer was cleared synchronously right after the step's stream was registered, before the stream produced anything, so `stepMs` never aborted a step that stalled before emitting content. The step timer now survives until the step's stream finishes or aborts, matching `generateText`. `chunkMs`/`totalMs` and normal step-finish cleanup are unchanged.
+
+- b79b6a8: fix(ai): add approval guard for denied tool outputs
+- Updated dependencies [6b4d325]
+  - @ai-sdk/gateway@4.0.0-canary.101
+
+## 7.0.0-canary.166
+
+### Patch Changes
+
+- 19736ee: feat(ai): rename onStepFinish to onStepEnd
+- d66ae02: Return validated elements from generateText array output
+- e4182bd: chore: rm export of OutputInterface
+- Updated dependencies [24bb123]
+- Updated dependencies [c44fcc8]
+- Updated dependencies [97e480a]
+  - @ai-sdk/gateway@4.0.0-canary.100
+
 ## 7.0.0-canary.165
 
 ### Patch Changes

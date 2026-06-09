@@ -432,7 +432,7 @@ importers:
         version: 1.7.0(valibot@1.1.0(typescript@5.8.3))
       '@vercel/sandbox':
         specifier: ^2.0.1
-        version: 2.0.1
+        version: 2.1.1
       ai:
         specifier: workspace:*
         version: link:../../packages/ai
@@ -3459,7 +3459,7 @@ importers:
         version: link:../../tools/tsconfig
       '@vercel/sandbox':
         specifier: ^2.0.1
-        version: 2.0.1
+        version: 2.1.1
       tsup:
         specifier: ^8.5.1
         version: 8.5.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(jiti@2.7.0)(postcss@8.5.14)(tsx@4.22.0)(typescript@5.8.3)(yaml@2.9.0)
@@ -11699,6 +11699,9 @@ packages:
 
   '@vercel/sandbox@2.0.1':
     resolution: {integrity: sha512-Q1PZVcTORgEMWAK63ga5h3Yfb5EIGpZAn25nJBw0bwA6Gu8rp7em58/OnpjduXsT408hhY6QP63ACWPM3acYPg==}
+
+  '@vercel/sandbox@2.1.1':
+    resolution: {integrity: sha512-gKhW+YlvU15Qxya7jQKByB+sqA1dWat5zx/rvxT52E3Ryg9MAIXgqD5wd1d+CoJDbdHL26gIOcksTZY5sFpplA==}
 
   '@vitejs/plugin-basic-ssl@2.1.0':
     resolution: {integrity: sha512-dOxxrhgyDIEUADhb/8OlV9JIqYLgos03YorAueTIeOUskLJSEsfwCByjbu98ctXitUN3znXKp0bYD/WHSudCeA==}
@@ -20063,6 +20066,10 @@ packages:
 
   undici@7.25.0:
     resolution: {integrity: sha512-xXnp4kTyor2Zq+J1FfPI6Eq3ew5h6Vl0F/8d9XU5zZQf1tX9s2Su1/3PiMmUANFULpmksxkClamIZcaUqryHsQ==}
+    engines: {node: '>=20.18.1'}
+
+  undici@7.27.1:
+    resolution: {integrity: sha512-UDdpiex+mzigiyrXrGbiUaF4HzTNhKbh2vRNFaTMzcqmLIPrZxaCtwo/1TMSuWoM1Xz3WiTo9KdgI3kRqYzJGg==}
     engines: {node: '>=20.18.1'}
 
   undici@8.3.0:
@@ -30347,6 +30354,23 @@ snapshots:
       picocolors: 1.1.1
       tar-stream: 3.1.7
       undici: 7.25.0
+      xdg-app-paths: 5.1.0
+      zod: 3.24.4
+    transitivePeerDependencies:
+      - bare-abort-controller
+      - react-native-b4a
+
+  '@vercel/sandbox@2.1.1':
+    dependencies:
+      '@vercel/oidc': 3.2.0
+      '@workflow/serde': 4.1.0-beta.2
+      async-retry: 1.3.3
+      jose: 6.2.3
+      jsonlines: 0.1.1
+      ms: 2.1.3
+      picocolors: 1.1.1
+      tar-stream: 3.1.7
+      undici: 7.27.1
       xdg-app-paths: 5.1.0
       zod: 3.24.4
     transitivePeerDependencies:
@@ -41417,6 +41441,8 @@ snapshots:
   undici@7.22.0: {}
 
   undici@7.25.0: {}
+
+  undici@7.27.1: {}
 
   undici@8.3.0: {}
 

@@ -1,5 +1,19 @@
 # @ai-sdk/gateway
 
+## 4.0.0-canary.101
+
+### Patch Changes
+
+- 6b4d325: feat(provider/anthropic): add support for `claude-fable-5` and the `fallbacks` API parameter
+
+## 4.0.0-canary.100
+
+### Patch Changes
+
+- 24bb123: fix(gateway): base64-encode inline Uint8Array data on reasoning-file and tool-result file parts
+- c44fcc8: feat(gateway): add GatewayFailedDependencyError (424)
+- 97e480a: chore(provider/gateway): update gateway model settings files
+
 ## 4.0.0-canary.99
 
 ### Patch Changes

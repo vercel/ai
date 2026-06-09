@@ -8,6 +8,7 @@ import {
   modelNotFoundParamSchema,
 } from './gateway-model-not-found-error';
 import { GatewayInternalServerError } from './gateway-internal-server-error';
+import { GatewayFailedDependencyError } from './gateway-failed-dependency-error';
 import { GatewayResponseError } from './gateway-response-error';
 import {
   lazySchema,
@@ -96,6 +97,13 @@ export async function createGatewayErrorFromResponse({
     }
     case 'internal_server_error':
       return new GatewayInternalServerError({
+        message,
+        statusCode,
+        cause,
+        generationId,
+      });
+    case 'failed_dependency':
+      return new GatewayFailedDependencyError({
         message,
         statusCode,
         cause,
