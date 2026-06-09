@@ -1,69 +1,52 @@
 import {
-  type ModelMessage,
-  Output,
-  ToolLoopAgent,
-  type FlexibleSchema,
-  type InferToolSetContext,
-  type LanguageModel,
-  type OutputInterface,
+  type Agent,
+  type ToolLoopAgent,
+  type Output,
   type Tool,
-  type ToolSet,
+  type ModelMessage,
   type ToolExecutionOptions,
 } from 'ai';
+import * as z from 'zod';
 
-export function subagent<
-  INPUT,
-  TOOLS extends ToolSet = {},
-  OUTPUT extends OutputInterface = OutputInterface<string, string, never>,
->({
-  model,
+export function subagent<AGENT extends ToolLoopAgent<any, any, any, any>>({
   description,
-  instructions,
-  tools,
+  agent,
   prompt,
-  inputSchema,
-  output = Output.text() as unknown as OUTPUT,
-  toolsContext,
 }: {
-  model: LanguageModel;
   description: string;
-  tools: TOOLS;
-  toolsContext?: InferToolSetContext<TOOLS>;
-  inputSchema: FlexibleSchema<INPUT>;
-  output?: OUTPUT;
-  instructions?: string | ((options: INPUT) => string);
+  agent: AGENT;
   prompt:
     | string
     | Array<ModelMessage>
     | ((
-        input: INPUT,
+        input: InferAgentCallOptions<AGENT>,
         options: ToolExecutionOptions<never>,
       ) => string | Array<ModelMessage>);
-}): Tool<INPUT, OUTPUT> {
-  const agent = new ToolLoopAgent({
-    model,
-    tools,
-    toolsContext,
-    output,
-    callOptionsSchema: inputSchema,
-    prepareCall: ({ options, ...rest }: any) => ({
-      ...rest,
-      instructions:
-        typeof instructions === 'function'
-          ? instructions(options)
-          : instructions,
-    }),
-  } as any);
-
+}): Tool<
+  InferAgentCallOptions<AGENT>,
+  Output.Output<AGENT['settings']['output']>
+> {
   return {
     description,
-    inputSchema,
-    execute: async (input: INPUT, options: ToolExecutionOptions<never>) => {
+    inputSchema:
+      agent.settings.callOptionsSchema ?? z.object({ prompt: z.string() }),
+    execute: async (
+      input: InferAgentCallOptions<AGENT>,
+      options: ToolExecutionOptions<never>,
+    ) => {
       const result = await agent.generate({
         prompt: typeof prompt === 'function' ? prompt(input, options) : prompt,
         options: input as any,
       });
       return result.output;
     },
-  } as unknown as Tool<INPUT, OUTPUT>;
+  } as unknown as Tool<
+    InferAgentCallOptions<AGENT>,
+    Output.Output<AGENT['settings']['output']>
+  >;
 }
+
+type InferAgentCallOptions<AGENT extends Agent<any, any, any, any>> =
+  AGENT extends ToolLoopAgent<infer CALL_OPTIONS, any, any, any>
+    ? CALL_OPTIONS
+    : never;
