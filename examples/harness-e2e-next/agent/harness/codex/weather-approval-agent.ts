@@ -22,6 +22,8 @@ export const weatherApprovalCodexHarnessAgent = new HarnessAgent({
   toolApproval: {
     get_weather: 'user-approval',
   },
+  // Codex harness currently only supports the default of "allow-all".
+  // permissionMode: 'allow-edits',
   sandbox: createVercelSandbox({
     runtime: 'node24',
     ports: [4000],
