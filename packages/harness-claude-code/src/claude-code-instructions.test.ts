@@ -3,6 +3,7 @@ import type {
   HarnessV1ResumeState,
   HarnessV1Session,
 } from '@ai-sdk/harness';
+import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /*
@@ -15,7 +16,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  */
 const sentMessages: Array<Record<string, unknown>> = [];
 
-vi.mock('@ai-sdk/harness/channel', () => {
+vi.mock('@ai-sdk/harness/utils', async importOriginal => {
+  const actual = await importOriginal<typeof HarnessUtils>();
   class FakeSandboxChannel {
     async open(): Promise<void> {}
     on(): () => void {
@@ -31,7 +33,7 @@ vi.mock('@ai-sdk/harness/channel', () => {
     }
     close(): void {}
   }
-  return { SandboxChannel: FakeSandboxChannel };
+  return { ...actual, SandboxChannel: FakeSandboxChannel };
 });
 
 // eslint-disable-next-line import/first

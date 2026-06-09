@@ -2,7 +2,6 @@ import { randomBytes } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import {
-  classifyDiskLog,
   commonTool,
   HarnessCapabilityUnsupportedError,
   harnessV1DiagnosticFromBridgeFrame,
@@ -19,6 +18,7 @@ import {
   type HarnessV1Skill,
   type HarnessV1StreamPart,
 } from '@ai-sdk/harness';
+import { classifyDiskLog, SandboxChannel } from '@ai-sdk/harness/utils';
 import {
   safeParseJSON,
   type Experimental_SandboxProcess,
@@ -26,7 +26,6 @@ import {
 import { WebSocket } from 'ws';
 import { z } from 'zod';
 import { resolveCodexEnv, type CodexAuthOptions } from './codex-auth';
-import { SandboxChannel } from '@ai-sdk/harness/channel';
 import {
   bridgeReadySchema,
   outboundMessageSchema,

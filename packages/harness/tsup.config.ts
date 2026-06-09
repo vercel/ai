@@ -14,7 +14,7 @@ export default defineConfig([
     sourcemap: true,
   },
   {
-    entry: { 'channel/index': 'channel/index.ts' },
+    entry: { 'utils/index': 'utils/index.ts' },
     format: ['esm'],
     dts: true,
     sourcemap: true,

@@ -11,7 +11,7 @@
     "dist/**/*",
     "src",
     "agent",
-    "channel",
+    "utils",
     "bridge",
     "!src/**/*.test.ts",
     "!src/**/*.test-d.ts",
@@ -42,10 +42,10 @@
       "import": "./dist/agent/index.js",
       "default": "./dist/agent/index.js"
     },
-    "./channel": {
-      "types": "./dist/channel/index.d.ts",
-      "import": "./dist/channel/index.js",
-      "default": "./dist/channel/index.js"
+    "./utils": {
+      "types": "./dist/utils/index.d.ts",
+      "import": "./dist/utils/index.js",
+      "default": "./dist/utils/index.js"
     },
     "./observability": {
       "types": "./dist/observability/index.d.ts",

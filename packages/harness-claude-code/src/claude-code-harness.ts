@@ -2,7 +2,6 @@ import { randomBytes } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import {
-  classifyDiskLog,
   commonTool,
   harnessV1DiagnosticFromBridgeFrame,
   HarnessCapabilityUnsupportedError,
@@ -19,6 +18,7 @@ import {
   type HarnessV1Skill,
   type HarnessV1StreamPart,
 } from '@ai-sdk/harness';
+import { classifyDiskLog, SandboxChannel } from '@ai-sdk/harness/utils';
 import {
   safeParseJSON,
   tool,
@@ -31,7 +31,6 @@ import {
   resolveClaudeCodeEnv,
   type ClaudeCodeAuthOptions,
 } from './claude-code-auth';
-import { SandboxChannel } from '@ai-sdk/harness/channel';
 import {
   bridgeReadySchema,
   outboundMessageSchema,
