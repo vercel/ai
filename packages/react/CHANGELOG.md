@@ -1,5 +1,118 @@
 # @ai-sdk/react
 
+## 4.0.0-canary.169
+
+### Patch Changes
+
+- Updated dependencies [19736ee]
+- Updated dependencies [d66ae02]
+- Updated dependencies [e4182bd]
+  - ai@7.0.0-canary.166
+
+## 4.0.0-canary.168
+
+### Patch Changes
+
+- ce769dd: feat(provider): add experimental Realtime API support for voice conversations
+
+  Adds first-class support for realtime (speech-to-speech) APIs:
+
+  - `Experimental_RealtimeModelV4` spec in `@ai-sdk/provider` with normalized event types and factory
+  - OpenAI, Google, and xAI realtime provider implementations
+  - `openai.experimental_realtime()` / `google.experimental_realtime()` / `xai.experimental_realtime()` work in both server and browser
+  - `.getToken()` static method on each provider for server-side ephemeral token creation
+  - `experimental_getRealtimeToolDefinitions` helper for provider session tool definitions
+  - `experimental_useRealtime` hook in `@ai-sdk/react` returning `UIMessage[]` (aligned with `useChat`), with `onToolCall` and `addToolOutput` for client-driven tool execution
+  - `inputAudioTranscription` session config for showing transcribed user audio messages when supported by the provider
+
+- Updated dependencies [ce769dd]
+  - @ai-sdk/provider@4.0.0-canary.18
+  - ai@7.0.0-canary.165
+  - @ai-sdk/mcp@2.0.0-canary.59
+  - @ai-sdk/provider-utils@5.0.0-canary.46
+
+## 4.0.0-canary.167
+
+### Patch Changes
+
+- ai@7.0.0-canary.164
+
+## 4.0.0-canary.166
+
+### Patch Changes
+
+- Updated dependencies [ee798eb]
+- Updated dependencies [daf6637]
+- Updated dependencies [c907622]
+  - @ai-sdk/provider-utils@5.0.0-canary.45
+  - ai@7.0.0-canary.163
+  - @ai-sdk/mcp@2.0.0-canary.58
+
+## 4.0.0-canary.165
+
+### Patch Changes
+
+- Updated dependencies [78e0023]
+  - @ai-sdk/mcp@2.0.0-canary.57
+  - ai@7.0.0-canary.162
+
+## 4.0.0-canary.164
+
+### Patch Changes
+
+- ai@7.0.0-canary.161
+
+## 4.0.0-canary.163
+
+### Patch Changes
+
+- ai@7.0.0-canary.160
+
+## 4.0.0-canary.162
+
+### Patch Changes
+
+- Updated dependencies [dcefad3]
+  - @ai-sdk/mcp@2.0.0-canary.56
+
+## 4.0.0-canary.161
+
+### Patch Changes
+
+- Updated dependencies [b5092f5]
+  - ai@7.0.0-canary.159
+
+## 4.0.0-canary.160
+
+### Patch Changes
+
+- Updated dependencies [bcce2dd]
+  - ai@7.0.0-canary.158
+
+## 4.0.0-canary.159
+
+### Patch Changes
+
+- ai@7.0.0-canary.157
+
+## 4.0.0-canary.158
+
+### Patch Changes
+
+- Updated dependencies [023550e]
+- Updated dependencies [e92fc45]
+  - ai@7.0.0-canary.156
+
+## 4.0.0-canary.157
+
+### Patch Changes
+
+- Updated dependencies [e67d80e]
+- Updated dependencies [6cca112]
+- Updated dependencies [82fc0ab]
+- Updated dependencies [76fd58c]
+  - ai@7.0.0-canary.155
+
 ## 4.0.0-canary.156
 
 ### Patch Changes

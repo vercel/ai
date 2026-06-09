@@ -1,16 +1,20 @@
 import type {
   Arrayable,
   Context,
-  Experimental_Sandbox as Sandbox,
+  Experimental_SandboxSession as SandboxSession,
   Tool,
   ToolSet,
 } from '@ai-sdk/provider-utils';
-import type { GenerateTextOnStepFinishCallback } from '../generate-text/generate-text-events';
+import type {
+  GenerateTextOnStepEndCallback,
+  GenerateTextOnStepFinishCallback,
+} from '../generate-text/generate-text-events';
 import type { Output } from '../generate-text/output';
 import type { StreamTextTransform } from '../generate-text/stream-text';
 import type { UIMessageStreamOptions } from '../generate-text/stream-text-result';
 import type { TimeoutConfiguration } from '../prompt/request-options';
 import type { InferUIMessageChunk } from '../ui-message-stream';
+import { toUIMessageStream } from '../ui-message-stream/to-ui-message-stream';
 import { convertToModelMessages } from '../ui/convert-to-model-messages';
 import type {
   InferUIMessageTools,
@@ -18,7 +22,10 @@ import type {
   UIMessage,
 } from '../ui/ui-messages';
 import { validateUIMessages } from '../ui/validate-ui-messages';
-import type { AsyncIterableStream } from '../util/async-iterable-stream';
+import {
+  createAsyncIterableStream,
+  type AsyncIterableStream,
+} from '../util/async-iterable-stream';
 import type { Agent } from './agent';
 
 /**
@@ -31,7 +38,8 @@ import type { Agent } from './agent';
  * @param experimental_sandbox - The sandbox environment that is passed through to tool execution. Optional.
  * @param options - The options for the agent.
  * @param experimental_transform - The stream transformations. Optional.
- * @param onStepFinish - Callback that is called when each step is finished. Optional.
+ * @param onStepEnd - Callback that is called when each step ends. Optional.
+ * @param onStepFinish - Deprecated alias for `onStepEnd`. Optional.
  *
  * @returns The UI message stream.
  */
@@ -51,6 +59,7 @@ export async function createAgentUIStream<
   timeout,
   experimental_sandbox: sandbox,
   experimental_transform,
+  onStepEnd,
   onStepFinish,
   ...uiMessageStreamOptions
 }: {
@@ -58,9 +67,11 @@ export async function createAgentUIStream<
   uiMessages: unknown[];
   abortSignal?: AbortSignal;
   timeout?: TimeoutConfiguration<TOOLS>;
-  experimental_sandbox?: Sandbox;
+  experimental_sandbox?: SandboxSession;
   options?: CALL_OPTIONS;
   experimental_transform?: Arrayable<StreamTextTransform<TOOLS>>;
+  onStepEnd?: GenerateTextOnStepEndCallback<TOOLS>;
+  /** @deprecated Use `onStepEnd` instead. */
   onStepFinish?: GenerateTextOnStepFinishCallback<TOOLS>;
   // TODO `originalMessages` is part of this for bc, omit in v7
 } & UIMessageStreamOptions<UI_MESSAGE>): Promise<
@@ -89,13 +100,19 @@ export async function createAgentUIStream<
     timeout,
     experimental_sandbox: sandbox,
     experimental_transform,
-    onStepFinish,
+    onStepEnd: onStepEnd ?? onStepFinish,
   });
 
-  return result.toUIMessageStream({
-    ...uiMessageStreamOptions,
-    // TODO reading `originalMessages` is here for bc, always use `validatedMessages` in v7
-    originalMessages:
-      uiMessageStreamOptions.originalMessages ?? validatedMessages,
-  });
+  // TODO reading `originalMessages` is here for bc, always use `validatedMessages` in v7
+  const originalMessages =
+    uiMessageStreamOptions.originalMessages ?? validatedMessages;
+
+  return createAsyncIterableStream(
+    toUIMessageStream({
+      ...uiMessageStreamOptions,
+      originalMessages,
+      stream: result.stream,
+      tools: agent.tools,
+    }),
+  );
 }

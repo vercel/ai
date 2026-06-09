@@ -1,5 +1,96 @@
 # @ai-sdk/otel
 
+## 1.0.0-canary.112
+
+### Patch Changes
+
+- 19736ee: feat(ai): rename onStepFinish to onStepEnd
+- e4182bd: chore: rm export of OutputInterface
+- Updated dependencies [19736ee]
+- Updated dependencies [d66ae02]
+- Updated dependencies [e4182bd]
+  - ai@7.0.0-canary.166
+
+## 1.0.0-canary.111
+
+### Patch Changes
+
+- Updated dependencies [ce769dd]
+  - @ai-sdk/provider@4.0.0-canary.18
+  - ai@7.0.0-canary.165
+
+## 1.0.0-canary.110
+
+### Patch Changes
+
+- ai@7.0.0-canary.164
+
+## 1.0.0-canary.109
+
+### Patch Changes
+
+- Updated dependencies [ee798eb]
+- Updated dependencies [c907622]
+  - ai@7.0.0-canary.163
+
+## 1.0.0-canary.108
+
+### Patch Changes
+
+- ai@7.0.0-canary.162
+
+## 1.0.0-canary.107
+
+### Patch Changes
+
+- ai@7.0.0-canary.161
+
+## 1.0.0-canary.106
+
+### Patch Changes
+
+- ai@7.0.0-canary.160
+
+## 1.0.0-canary.105
+
+### Patch Changes
+
+- Updated dependencies [b5092f5]
+  - ai@7.0.0-canary.159
+
+## 1.0.0-canary.104
+
+### Patch Changes
+
+- Updated dependencies [bcce2dd]
+  - ai@7.0.0-canary.158
+
+## 1.0.0-canary.103
+
+### Patch Changes
+
+- ai@7.0.0-canary.157
+
+## 1.0.0-canary.102
+
+### Patch Changes
+
+- 1e200eb: fix(otel): ensure nested context object creates separate attribute
+- e92fc45: feat(ai): introduce onAbort hook to close telemetry spans
+- Updated dependencies [023550e]
+- Updated dependencies [e92fc45]
+  - ai@7.0.0-canary.156
+
+## 1.0.0-canary.101
+
+### Patch Changes
+
+- Updated dependencies [e67d80e]
+- Updated dependencies [6cca112]
+- Updated dependencies [82fc0ab]
+- Updated dependencies [76fd58c]
+  - ai@7.0.0-canary.155
+
 ## 1.0.0-canary.100
 
 ### Patch Changes

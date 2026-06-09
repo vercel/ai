@@ -130,7 +130,14 @@ export function createTelemetryDispatcher({
     onLanguageModelCallEnd: mergeTelemetryCallback('onLanguageModelCallEnd'),
     onToolExecutionStart: mergeTelemetryCallback('onToolExecutionStart'),
     onToolExecutionEnd: mergeTelemetryCallback('onToolExecutionEnd'),
-    onStepFinish: mergeTelemetryCallback('onStepFinish'),
+    // Fan out step-end events to both the new `onStepEnd` callback and the
+    // deprecated `onStepFinish` callback so integrations that still implement
+    // only `onStepFinish` keep receiving step-end events during the deprecation
+    // window.
+    onStepEnd: mergeCallbacks(
+      mergeTelemetryCallback('onStepEnd'),
+      mergeTelemetryCallback('onStepFinish'),
+    ),
     onObjectStepStart: mergeTelemetryCallback('onObjectStepStart'),
     onObjectStepFinish: mergeTelemetryCallback('onObjectStepFinish'),
     onEmbedStart: mergeTelemetryCallback('onEmbedStart'),
@@ -138,6 +145,7 @@ export function createTelemetryDispatcher({
     onRerankStart: mergeTelemetryCallback('onRerankStart'),
     onRerankEnd: mergeTelemetryCallback('onRerankEnd'),
     onEnd: mergeTelemetryCallback('onEnd'),
+    onAbort: mergeTelemetryCallback('onAbort'),
     onError: mergeTelemetryCallback('onError'),
 
     executeLanguageModelCall:

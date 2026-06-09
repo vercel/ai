@@ -100,6 +100,7 @@ export type OpenAIResponsesFunctionCall = {
   name: string;
   arguments: string;
   id?: string;
+  namespace?: string;
 };
 
 export type OpenAIResponsesFunctionCallOutput = {
@@ -285,14 +286,22 @@ export type OpenAIResponsesFileSearchToolCompoundFilter = {
   >;
 };
 
+export type OpenAIResponsesFunctionTool = {
+  type: 'function';
+  name: string;
+  description: string | undefined;
+  parameters: JSONSchema7;
+  strict?: boolean;
+  defer_loading?: boolean;
+};
+
 export type OpenAIResponsesTool =
+  | OpenAIResponsesFunctionTool
   | {
-      type: 'function';
+      type: 'namespace';
       name: string;
-      description: string | undefined;
-      parameters: JSONSchema7;
-      strict?: boolean;
-      defer_loading?: boolean;
+      description: string;
+      tools: Array<OpenAIResponsesFunctionTool>;
     }
   | {
       type: 'apply_patch';
@@ -750,6 +759,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
                 z.object({
                   type: z.literal('search'),
                   query: z.string().nullish(),
+                  queries: z.array(z.string()).nullish(),
                   sources: z
                     .array(
                       z.discriminatedUnion('type', [
@@ -1147,6 +1157,7 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
                   z.object({
                     type: z.literal('search'),
                     query: z.string().nullish(),
+                    queries: z.array(z.string()).nullish(),
                     sources: z
                       .array(
                         z.discriminatedUnion('type', [

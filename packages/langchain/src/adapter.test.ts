@@ -1954,6 +1954,60 @@ describe('toUIMessageStream with streamEvents', () => {
       ]
     `);
   });
+
+  it('should emit source-url parts for citation annotations and dedupe them', async () => {
+    const inputStream = convertArrayToReadableStream([
+      {
+        event: 'on_chat_model_stream',
+        data: {
+          chunk: {
+            id: 'src-msg-1',
+            content: [
+              {
+                type: 'text',
+                text: 'Answer',
+                annotations: [
+                  {
+                    type: 'citation',
+                    url: 'https://example.com',
+                    title: 'Example',
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      },
+      {
+        event: 'on_chat_model_stream',
+        data: {
+          chunk: {
+            id: 'src-msg-1',
+            content: [
+              {
+                type: 'text',
+                text: ' continued',
+                annotations: [{ type: 'citation', url: 'https://example.com' }],
+              },
+            ],
+          },
+        },
+      },
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(result.filter(c => c.type === 'source-url')).toEqual([
+      {
+        type: 'source-url',
+        sourceId: 'https://example.com',
+        url: 'https://example.com',
+        title: 'Example',
+      },
+    ]);
+  });
 });
 
 describe('toUIMessageStream LangGraph finish events', () => {
@@ -2124,6 +2178,185 @@ describe('toUIMessageStream with LangGraph HITL fixture', () => {
     await expect(JSON.stringify(result, null, 2)).toMatchFileSnapshot(
       './__snapshots__/react-agent-tool-calling.json',
     );
+  });
+});
+
+describe('toUIMessageStream HITL interrupt key matching with dual streamMode', () => {
+  beforeEach(() => {
+    vi.spyOn(Date, 'now').mockReturnValue(1234567890);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should match interrupt to tool call emitted via messages mode', async () => {
+    // This test verifies the fix for HITL interrupt key matching when using
+    // streamMode: ["messages", "values"]. The tool call is first emitted via
+    // messages mode, then the values event contains the same tool call plus
+    // an __interrupt__. The interrupt handler must find the original tool call ID.
+    const originalToolCallId = 'call_abc123';
+
+    const inputStream = convertArrayToReadableStream([
+      // 1. messages mode: AI streams a tool call
+      [
+        'messages',
+        [
+          {
+            lc: 1,
+            type: 'constructor',
+            id: ['langchain_core', 'messages', 'AIMessageChunk'],
+            kwargs: {
+              id: 'ai-msg-1',
+              content: [],
+              tool_call_chunks: [
+                {
+                  id: originalToolCallId,
+                  name: 'delete_file',
+                  args: '{"filename":"report.pdf"}',
+                  index: 0,
+                },
+              ],
+              tool_calls: [],
+            },
+          },
+          {
+            tags: [],
+            langgraph_step: 1,
+            langgraph_node: 'agent',
+          },
+        ],
+      ],
+      // 2. values mode: full state with same tool call + __interrupt__
+      [
+        'values',
+        {
+          messages: [
+            {
+              type: 'constructor',
+              id: ['langchain_core', 'messages', 'HumanMessage'],
+              kwargs: { id: 'human-1', content: 'Delete report.pdf' },
+            },
+            {
+              type: 'constructor',
+              id: ['langchain_core', 'messages', 'AIMessage'],
+              kwargs: {
+                id: 'ai-msg-1',
+                content: '',
+                tool_calls: [
+                  {
+                    id: originalToolCallId,
+                    name: 'delete_file',
+                    args: { filename: 'report.pdf' },
+                    type: 'tool_call',
+                  },
+                ],
+              },
+            },
+          ],
+          __interrupt__: [
+            {
+              value: {
+                actionRequests: [
+                  {
+                    name: 'delete_file',
+                    args: { filename: 'report.pdf' },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    // Find the tool-approval-request event
+    const approvalEvents = result.filter(
+      (e: { type: string }) => e.type === 'tool-approval-request',
+    );
+
+    expect(approvalEvents).toHaveLength(1);
+    // The approval must reference the ORIGINAL tool call ID from messages mode,
+    // not a fallback-generated ID like "hitl-delete_file-1234567890"
+    expect(approvalEvents[0]).toMatchObject({
+      type: 'tool-approval-request',
+      approvalId: originalToolCallId,
+      toolCallId: originalToolCallId,
+    });
+
+    // The interrupt handler should NOT emit duplicate tool-input-start/available
+    // since the tool call was already emitted via messages mode
+    const toolInputStartEvents = result.filter(
+      (e: { type: string; toolCallId?: string }) =>
+        e.type === 'tool-input-start' && e.toolCallId !== originalToolCallId,
+    );
+    expect(toolInputStartEvents).toHaveLength(0);
+  });
+
+  it('should handle interrupt for tool call only emitted via values mode', async () => {
+    // When there's no prior messages event, the values handler should
+    // still register the key mapping correctly
+    const toolCallId = 'call_values_only';
+
+    const inputStream = convertArrayToReadableStream([
+      [
+        'values',
+        {
+          messages: [
+            {
+              type: 'constructor',
+              id: ['langchain_core', 'messages', 'HumanMessage'],
+              kwargs: { id: 'human-1', content: 'Delete report.pdf' },
+            },
+            {
+              type: 'constructor',
+              id: ['langchain_core', 'messages', 'AIMessage'],
+              kwargs: {
+                id: 'ai-msg-1',
+                content: '',
+                tool_calls: [
+                  {
+                    id: toolCallId,
+                    name: 'delete_file',
+                    args: { filename: 'report.pdf' },
+                    type: 'tool_call',
+                  },
+                ],
+              },
+            },
+          ],
+          __interrupt__: [
+            {
+              value: {
+                actionRequests: [
+                  {
+                    name: 'delete_file',
+                    args: { filename: 'report.pdf' },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    const approvalEvents = result.filter(
+      (e: { type: string }) => e.type === 'tool-approval-request',
+    );
+
+    expect(approvalEvents).toHaveLength(1);
+    expect(approvalEvents[0]).toMatchObject({
+      toolCallId: toolCallId,
+    });
   });
 });
 

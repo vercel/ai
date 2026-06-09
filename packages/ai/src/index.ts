@@ -18,7 +18,7 @@ export {
   type InferToolSetContext,
   type InferToolInput,
   type InferToolOutput,
-  type Experimental_Sandbox,
+  type Experimental_SandboxSession,
   type Experimental_SandboxProcess,
   type Schema,
   type Tool,
@@ -41,6 +41,7 @@ export * from './generate-video';
 export * from './logger';
 export * from './middleware';
 export * from './prompt';
+export * from './realtime';
 export * from './registry';
 export * from './rerank';
 export * from './telemetry';

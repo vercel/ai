@@ -5,10 +5,6 @@ description: Using OpenTelemetry with AI SDK Core
 
 # Telemetry
 
-<Note type="warning">
-  AI SDK Telemetry is experimental and may change in the future.
-</Note>
-
 The AI SDK uses [OpenTelemetry](https://opentelemetry.io/) to collect telemetry data.
 OpenTelemetry is an open-source observability framework designed to provide
 standardized instrumentation for collecting telemetry data.
@@ -125,7 +121,7 @@ In this example, telemetry integrations receive `runtimeContext` as `{ requestId
 Tool-specific context can also contain values that are useful during execution but should not be sent to telemetry providers, such as API keys or access tokens.
 Use `telemetry.includeToolsContext` to include selected top-level properties from a tool's `context` in telemetry:
 
-```ts highlight="18-24"
+```ts highlight="16-20,23-28"
 const weatherTool = tool({
   inputSchema: z.object({
     location: z.string(),
@@ -278,7 +274,7 @@ class MyIntegration implements Telemetry {
     console.log('Generation started:', event.modelId);
   }
 
-  async onStepFinish(event) {
+  async onStepEnd(event) {
     console.log(
       `Step ${event.stepNumber} done:`,
       event.usage.totalTokens,
@@ -301,6 +297,10 @@ class MyIntegration implements Telemetry {
 
   async onEnd(event) {
     console.log('Done. Total tokens:', event.usage.totalTokens);
+  }
+
+  async onAbort(event) {
+    console.log('Stream aborted after', event.steps.length, 'finished steps');
   }
 }
 
@@ -348,7 +348,7 @@ export function myIntegration(): Telemetry {
       description: "Called when a tool's execute function completes or errors.",
     },
     {
-      name: 'onStepFinish',
+      name: 'onStepEnd',
       type: '(event: GenerateTextStepEndEvent) => void | PromiseLike<void>',
       description: 'Called when a step (LLM call) completes.',
     },
@@ -367,6 +367,12 @@ export function myIntegration(): Telemetry {
       type: '(event: GenerateTextEndEvent) => void | PromiseLike<void>',
       description:
         'Called when the entire generation completes (all steps finished).',
+    },
+    {
+      name: 'onAbort',
+      type: '(event: GenerateTextAbortEvent) => void | PromiseLike<void>',
+      description:
+        'Called when a streaming text generation operation is aborted before it completes.',
     },
   ]}
 />

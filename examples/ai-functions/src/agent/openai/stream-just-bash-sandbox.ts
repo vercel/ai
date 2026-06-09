@@ -1,11 +1,11 @@
 import { Sandbox } from 'just-bash';
 import { run } from '../../lib/run';
-import { JustBashSandbox } from '../../sandbox/just-bash-sandbox';
+import { JustBashSandboxSession } from '../../sandbox/just-bash-sandbox';
 import { sandboxAgent } from './sandbox-agent';
 import { printFullStream } from '../../lib/print-full-stream';
 
 run(async () => {
-  const sandbox = new JustBashSandbox(
+  const sandbox = new JustBashSandboxSession(
     await Sandbox.create({ cwd: '/home/user' }),
   );
 

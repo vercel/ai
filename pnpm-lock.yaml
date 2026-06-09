@@ -358,6 +358,9 @@ importers:
       '@ai-sdk/togetherai':
         specifier: workspace:*
         version: link:../../packages/togetherai
+      '@ai-sdk/tui':
+        specifier: workspace:*
+        version: link:../../packages/tui
       '@ai-sdk/valibot':
         specifier: workspace:*
         version: link:../../packages/valibot
@@ -1392,6 +1395,9 @@ importers:
       '@sveltejs/vite-plugin-svelte':
         specifier: ^5.1.1
         version: 5.1.1(svelte@5.55.7)(vite@6.4.2(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.47.1)(tsx@4.22.0)(yaml@2.9.0))
+      '@types/node':
+        specifier: 22.19.19
+        version: 22.19.19
       ai:
         specifier: workspace:*
         version: link:../../packages/ai
@@ -2710,6 +2716,9 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
+      '@opentelemetry/sdk-trace-base':
+        specifier: 2.7.1
+        version: 2.7.1(@opentelemetry/api@1.9.1)
       '@types/node':
         specifier: 22.19.19
         version: 22.19.19
@@ -2753,6 +2762,37 @@ importers:
       zod:
         specifier: 3.25.76
         version: 3.25.76
+
+  packages/policy-opa:
+    dependencies:
+      '@ai-sdk/provider':
+        specifier: workspace:*
+        version: link:../provider
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../provider-utils
+      '@open-policy-agent/opa':
+        specifier: ^1.0.0
+        version: 1.7.11(zod@4.4.3)
+      '@open-policy-agent/opa-wasm':
+        specifier: ^1.0.0
+        version: 1.10.0
+    devDependencies:
+      '@types/node':
+        specifier: 22.19.19
+        version: 22.19.19
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      ai:
+        specifier: workspace:*
+        version: link:../ai
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(jiti@2.7.0)(postcss@8.5.14)(tsx@4.22.0)(typescript@5.8.3)(yaml@2.9.0)
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
 
   packages/prodia:
     dependencies:
@@ -3172,6 +3212,34 @@ importers:
       typescript:
         specifier: 5.8.3
         version: 5.8.3
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+
+  packages/tui:
+    dependencies:
+      ai:
+        specifier: workspace:*
+        version: link:../ai
+    devDependencies:
+      '@ai-sdk/provider':
+        specifier: workspace:*
+        version: link:../provider
+      '@types/node':
+        specifier: 22.19.19
+        version: 22.19.19
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(jiti@2.7.0)(postcss@8.5.14)(tsx@4.22.0)(typescript@5.8.3)(yaml@2.9.0)
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+      vitest:
+        specifier: ^4.1.6
+        version: 4.1.6(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.1)(@types/node@22.19.19)(jsdom@26.1.0)(msw@2.14.6(@types/node@22.19.19)(typescript@5.8.3))(vite@7.3.3(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.47.1)(tsx@4.22.0)(yaml@2.9.0))
       zod:
         specifier: 3.25.76
         version: 3.25.76
@@ -7816,6 +7884,17 @@ packages:
   '@open-draft/until@2.1.0':
     resolution: {integrity: sha512-U69T3ItWHvLwGg5eJ0n3I62nWuE6ilHlmz7zM0npLBRvPRd7e6NYmg54vvRtP5mZG7kZqZCFVdsTWo7BPtBujg==}
 
+  '@open-policy-agent/opa-wasm@1.10.0':
+    resolution: {integrity: sha512-ymR/nFS3nO9o24j9xowGGQaf+Gmb813QcxUpVZkfRlJkawKWqSIllnEH15agyWjijmOIyhA+OBErenx6N3jphw==}
+
+  '@open-policy-agent/opa@1.7.11':
+    resolution: {integrity: sha512-CRrmLkUjTqG3Rvpr+RahWn+EBgtfaJ7uMlhDGYSjJZXEohtPIkja5Tvqgn5nmjZmuVdnC8TNyRb5Zj+g6wLhRA==}
+    peerDependencies:
+      zod: '>= 3'
+
+  '@open-policy-agent/ucast-prisma@0.1.6':
+    resolution: {integrity: sha512-4bnz9aZzQQyfoo6OrXCWA8IH6Kp6pB34e4A2vGv2B0S/dbfFVN8TzmUn+WTJg7Eyr/NiF2EPFShiFgBwbUhhrA==}
+
   '@opentelemetry/api-logs@0.207.0':
     resolution: {integrity: sha512-lAb0jQRVyleQQGiuuvCOTDVspc14nx6XJjP4FspJ1sNARo3Regq4ZZbrc3rN4b1TYSuUCvgH+UXUPug4SLOqEQ==}
     engines: {node: '>=8.0.0'}
@@ -10782,6 +10861,9 @@ packages:
     resolution: {integrity: sha512-PJFXFS4ZJKiJ9Qiuix6Dz/OwEIqHD7Dme1UwZhTK11vR+5dqW2ACbdndWQexBzCx+CPuMe5WBYQWCsFyGlQLlQ==}
     peerDependencies:
       typescript: '*'
+
+  '@ucast/core@1.10.2':
+    resolution: {integrity: sha512-ons5CwXZ/51wrUPfoduC+cO7AS1/wRb0ybpQJ9RrssossDxVy4t49QxWoWgfBDvVKsz9VXzBk9z0wqTdZ+Cq8g==}
 
   '@ungap/structured-clone@1.3.1':
     resolution: {integrity: sha512-mUFwbeTqrVgDQxFveS+df2yfap6iuP20NAKAsBt5jDEoOTDew+zwLAOilHCeQJOVSvmgCX4ogqIrA0mnyr08yQ==}
@@ -20176,6 +20258,10 @@ packages:
     resolution: {integrity: sha512-YgvUTfwqyc7UXVMrB+SImsVYSmTS8X/tSrtdNZMImM+n7+QTriRXyXim0mBrTXNeqzVF0KWGgHPeiyViFFrNDw==}
     engines: {node: '>=18'}
 
+  yaml@1.10.3:
+    resolution: {integrity: sha512-vIYeF1u3CjlhAFekPPAk2h/Kv4T3mAkMox5OymRiJQB0spDP10LHvt+K7G9Ny6NuuMAb25/6n1qyUjAcGNf/AA==}
+    engines: {node: '>= 6'}
+
   yaml@2.7.0:
     resolution: {integrity: sha512-+hSoy/QHluxmC9kCIJyL/uyFmLmc+e5CFR5Wa+bpIhIj85LVb9ZH2nVnqrHoSvKogwODv0ClqZkmiSSaIH5LTA==}
     engines: {node: '>= 14'}
@@ -25651,6 +25737,21 @@ snapshots:
 
   '@open-draft/until@2.1.0': {}
 
+  '@open-policy-agent/opa-wasm@1.10.0':
+    dependencies:
+      sprintf-js: 1.1.3
+      yaml: 1.10.3
+
+  '@open-policy-agent/opa@1.7.11(zod@4.4.3)':
+    dependencies:
+      '@open-policy-agent/ucast-prisma': 0.1.6
+      zod: 4.4.3
+
+  '@open-policy-agent/ucast-prisma@0.1.6':
+    dependencies:
+      '@ucast/core': 1.10.2
+      lodash.merge: 4.6.2
+
   '@opentelemetry/api-logs@0.207.0':
     dependencies:
       '@opentelemetry/api': 1.9.1
@@ -28868,6 +28969,8 @@ snapshots:
       typescript: 5.8.3
     transitivePeerDependencies:
       - supports-color
+
+  '@ucast/core@1.10.2': {}
 
   '@ungap/structured-clone@1.3.1': {}
 
@@ -34973,8 +35076,7 @@ snapshots:
 
   lodash.memoize@4.1.2: {}
 
-  lodash.merge@4.6.2:
-    optional: true
+  lodash.merge@4.6.2: {}
 
   lodash.sortby@4.7.0: {}
 
@@ -41312,6 +41414,8 @@ snapshots:
   yallist@4.0.0: {}
 
   yallist@5.0.0: {}
+
+  yaml@1.10.3: {}
 
   yaml@2.7.0: {}
 

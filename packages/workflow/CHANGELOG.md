@@ -1,5 +1,96 @@
 # @ai-sdk/workflow
 
+## 1.0.0-canary.83
+
+### Patch Changes
+
+- 19736ee: feat(ai): rename onStepFinish to onStepEnd
+- Updated dependencies [19736ee]
+- Updated dependencies [d66ae02]
+- Updated dependencies [e4182bd]
+  - ai@7.0.0-canary.166
+
+## 1.0.0-canary.82
+
+### Patch Changes
+
+- Updated dependencies [ce769dd]
+  - @ai-sdk/provider@4.0.0-canary.18
+  - ai@7.0.0-canary.165
+  - @ai-sdk/provider-utils@5.0.0-canary.46
+
+## 1.0.0-canary.81
+
+### Patch Changes
+
+- ai@7.0.0-canary.164
+
+## 1.0.0-canary.80
+
+### Patch Changes
+
+- Updated dependencies [ee798eb]
+- Updated dependencies [daf6637]
+- Updated dependencies [c907622]
+  - @ai-sdk/provider-utils@5.0.0-canary.45
+  - ai@7.0.0-canary.163
+
+## 1.0.0-canary.79
+
+### Patch Changes
+
+- ai@7.0.0-canary.162
+
+## 1.0.0-canary.78
+
+### Patch Changes
+
+- ai@7.0.0-canary.161
+
+## 1.0.0-canary.77
+
+### Patch Changes
+
+- ai@7.0.0-canary.160
+
+## 1.0.0-canary.76
+
+### Patch Changes
+
+- Updated dependencies [b5092f5]
+  - ai@7.0.0-canary.159
+
+## 1.0.0-canary.75
+
+### Patch Changes
+
+- Updated dependencies [bcce2dd]
+  - ai@7.0.0-canary.158
+
+## 1.0.0-canary.74
+
+### Patch Changes
+
+- ai@7.0.0-canary.157
+
+## 1.0.0-canary.73
+
+### Patch Changes
+
+- Updated dependencies [023550e]
+- Updated dependencies [e92fc45]
+  - ai@7.0.0-canary.156
+
+## 1.0.0-canary.72
+
+### Patch Changes
+
+- Updated dependencies [e67d80e]
+- Updated dependencies [6cca112]
+- Updated dependencies [82fc0ab]
+- Updated dependencies [76fd58c]
+  - ai@7.0.0-canary.155
+
 ## 1.0.0-canary.71
 
 ### Patch Changes

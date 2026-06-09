@@ -492,7 +492,7 @@ const result = await myAgent.generate({
     );
   },
 
-  onStepFinish({ stepNumber, usage, performance, finishReason, toolCalls }) {
+  onStepEnd({ stepNumber, usage, performance, finishReason, toolCalls }) {
     console.log(`Step ${stepNumber} completed:`, {
       inputTokens: usage.inputTokens,
       outputTokens: usage.outputTokens,
@@ -518,7 +518,7 @@ The available lifecycle callbacks are:
 - **`experimental_onStepStart`**: Called before each step (LLM call). Receives the step number, model, messages being sent, tools, and prior steps.
 - **`onToolExecutionStart`**: Called right before a tool's `execute` function runs. Receives the tool call object, messages, and `toolContext`.
 - **`onToolExecutionEnd`**: Called right after a tool's `execute` function completes or errors. Receives the tool call, `toolExecutionMs`, and a `toolOutput` discriminated union (`type: 'tool-result'` with `output`, or `type: 'tool-error'` with `error`).
-- **`onStepFinish`**: Called after each step finishes. Receives step results including usage, performance, finish reason, and tool calls.
+- **`onStepEnd`**: Called after each step finishes. Receives step results including usage, performance, finish reason, and tool calls.
 - **`onEnd`**: Called when all steps are finished and the response is complete. Receives all step results, total usage, and `runtimeContext`.
 
 #### Constructor vs. Method Callbacks
@@ -528,7 +528,7 @@ All lifecycle callbacks can be defined in the constructor for agent-wide trackin
 ```ts
 const agent = new ToolLoopAgent({
   model: __MODEL__,
-  onStepFinish: async ({ stepNumber, usage }) => {
+  onStepEnd: async ({ stepNumber, usage }) => {
     // Agent-wide logging
     console.log(`Agent step ${stepNumber}:`, usage.totalTokens);
   },
@@ -537,7 +537,7 @@ const agent = new ToolLoopAgent({
 // Method-level callback runs after constructor callback
 const result = await agent.generate({
   prompt: 'Hello',
-  onStepFinish: async ({ stepNumber, usage }) => {
+  onStepEnd: async ({ stepNumber, usage }) => {
     // Per-call tracking (e.g., for billing)
     await trackUsage(stepNumber, usage);
   },

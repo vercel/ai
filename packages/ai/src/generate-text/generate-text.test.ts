@@ -12,7 +12,7 @@ import {
   jsonSchema,
   tool,
   type ModelMessage,
-  type Experimental_Sandbox as Sandbox,
+  type Experimental_SandboxSession as SandboxSession,
   type ToolExecuteFunction,
 } from '@ai-sdk/provider-utils';
 import { mockId } from '@ai-sdk/provider-utils/test';
@@ -27,7 +27,7 @@ import {
   vi,
   vitest,
 } from 'vitest';
-import { mockSandboxFileStubs } from '../test/mock-sandbox';
+import { mockSandboxSessionFileStubs } from '../test/mock-sandbox';
 import { z } from 'zod/v4';
 import * as logWarningsModule from '../logger/log-warnings';
 import type { Instructions } from '../prompt';
@@ -37,6 +37,7 @@ import { generateText } from './generate-text';
 import type {
   GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
+  GenerateTextOnStepEndCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
 } from './generate-text-events';
@@ -2384,6 +2385,49 @@ describe('generateText', () => {
         tool1: { label: 'updated' },
       });
       expect(recordedToolContext).toEqual({ label: 'updated' });
+    });
+  });
+
+  describe('options.onStepEnd stepNumber', () => {
+    it('should call onStepEnd with step result', async () => {
+      let stepEndEvent!: Parameters<GenerateTextOnStepEndCallback<any, any>>[0];
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            content: [{ type: 'text', text: 'Hello!' }],
+            ...dummyResponseValues,
+          }),
+        }),
+        prompt: 'test-input',
+        onStepEnd: async event => {
+          stepEndEvent = event;
+        },
+      });
+
+      expect(stepEndEvent.stepNumber).toBe(0);
+    });
+
+    it('should prefer onStepEnd over deprecated onStepFinish', async () => {
+      const calls: string[] = [];
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            content: [{ type: 'text', text: 'Hello!' }],
+            ...dummyResponseValues,
+          }),
+        }),
+        prompt: 'test-input',
+        onStepEnd: async () => {
+          calls.push('onStepEnd');
+        },
+        onStepFinish: async () => {
+          calls.push('onStepFinish');
+        },
+      });
+
+      expect(calls).toEqual(['onStepEnd']);
     });
   });
 
@@ -6376,6 +6420,49 @@ describe('generateText', () => {
     });
   });
 
+  describe('options.toolOrder', () => {
+    it('should order available tools before sending them to the model', async () => {
+      let tools:
+        | (LanguageModelV4FunctionTool | LanguageModelV4ProviderTool)[]
+        | undefined;
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async ({ tools: toolsArg }) => {
+            tools = toolsArg;
+
+            return {
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: 'Hello, world!' }],
+            };
+          },
+        }),
+        tools: {
+          zebra: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'zebra',
+          },
+          alpha: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'alpha',
+          },
+          middle: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'middle',
+          },
+        },
+        prompt: 'test-input',
+        toolOrder: ['middle'],
+      });
+
+      expect(tools?.map(tool => tool.name)).toEqual([
+        'middle',
+        'alpha',
+        'zebra',
+      ]);
+    });
+  });
+
   describe('tool callbacks', () => {
     it('should invoke callbacks in the correct order', async () => {
       const recordedCalls: unknown[] = [];
@@ -8664,9 +8751,9 @@ describe('generateText', () => {
           stdout: 'ok',
           stderr: '',
         })),
-        ...mockSandboxFileStubs,
-      } satisfies Sandbox;
-      let recordedSandbox: Sandbox | undefined;
+        ...mockSandboxSessionFileStubs,
+      } satisfies SandboxSession;
+      let recordedSandbox: SandboxSession | undefined;
 
       await generateText({
         model: new MockLanguageModelV4({
@@ -8729,9 +8816,9 @@ describe('generateText', () => {
           stdout: 'ok',
           stderr: '',
         })),
-        ...mockSandboxFileStubs,
-      } satisfies Sandbox;
-      let capturedSandbox: Sandbox | undefined;
+        ...mockSandboxSessionFileStubs,
+      } satisfies SandboxSession;
+      let capturedSandbox: SandboxSession | undefined;
 
       await generateText({
         model: new MockLanguageModelV4({
@@ -8759,8 +8846,8 @@ describe('generateText', () => {
           stdout: 'ok',
           stderr: '',
         })),
-        ...mockSandboxFileStubs,
-      } satisfies Sandbox;
+        ...mockSandboxSessionFileStubs,
+      } satisfies SandboxSession;
       const stepSandbox = {
         description: 'step sandbox',
         run: vi.fn(async () => ({
@@ -8768,9 +8855,9 @@ describe('generateText', () => {
           stdout: 'ok',
           stderr: '',
         })),
-        ...mockSandboxFileStubs,
-      } satisfies Sandbox;
-      const recordedSandboxes: Array<Sandbox | undefined> = [];
+        ...mockSandboxSessionFileStubs,
+      } satisfies SandboxSession;
+      const recordedSandboxes: Array<SandboxSession | undefined> = [];
       let responseCount = 0;
 
       await generateText({
@@ -8929,7 +9016,7 @@ describe('generateText', () => {
             onStepStart: ({ runtimeContext }) => {
               telemetryContexts.push(runtimeContext);
             },
-            onStepFinish: ({ runtimeContext }) => {
+            onStepEnd: ({ runtimeContext }) => {
               telemetryContexts.push(runtimeContext);
             },
             onEnd: event => {
@@ -8993,7 +9080,7 @@ describe('generateText', () => {
             onStepStart: ({ toolsContext }) => {
               telemetryContexts.push(toolsContext);
             },
-            onStepFinish: ({ toolsContext }) => {
+            onStepEnd: ({ toolsContext }) => {
               telemetryContexts.push(toolsContext);
             },
             onEnd: event => {
@@ -9052,7 +9139,7 @@ describe('generateText', () => {
             onStepStart: ({ toolsContext }) => {
               telemetryContexts.push(toolsContext);
             },
-            onStepFinish: ({ toolsContext }) => {
+            onStepEnd: ({ toolsContext }) => {
               telemetryContexts.push(toolsContext);
             },
             onEnd: event => {
@@ -9093,7 +9180,7 @@ describe('generateText', () => {
             onStepStart: ({ runtimeContext }) => {
               telemetryContexts.push(runtimeContext);
             },
-            onStepFinish: ({ runtimeContext }) => {
+            onStepEnd: ({ runtimeContext }) => {
               telemetryContexts.push(runtimeContext);
             },
             onEnd: event => {
@@ -11759,8 +11846,8 @@ describe('generateText', () => {
             onToolExecutionEnd: async () => {
               events.push('onToolExecutionEnd');
             },
-            onStepFinish: async () => {
-              events.push('onStepFinish');
+            onStepEnd: async () => {
+              events.push('onStepEnd');
             },
             onEnd: async () => {
               events.push('onEnd');
@@ -11775,7 +11862,7 @@ describe('generateText', () => {
           "onStepStart",
           "onToolExecutionStart",
           "onToolExecutionEnd",
-          "onStepFinish",
+          "onStepEnd",
           "onEnd",
         ]
       `);
@@ -11789,8 +11876,8 @@ describe('generateText', () => {
           onStart: async () => {
             events.push('global-onStart');
           },
-          onStepFinish: async () => {
-            events.push('global-onStepFinish');
+          onStepEnd: async () => {
+            events.push('global-onStepEnd');
           },
           onEnd: async () => {
             events.push('global-onEnd');
@@ -11810,7 +11897,7 @@ describe('generateText', () => {
 
       expect(events).toEqual([
         'global-onStart',
-        'global-onStepFinish',
+        'global-onStepEnd',
         'global-onEnd',
       ]);
     });
@@ -11871,8 +11958,8 @@ describe('generateText', () => {
             onStart: async () => {
               events.push('integration-onStart');
             },
-            onStepFinish: async () => {
-              events.push('integration-onStepFinish');
+            onStepEnd: async () => {
+              events.push('integration-onStepEnd');
             },
             onEnd: async () => {
               events.push('integration-onEnd');
@@ -11885,7 +11972,7 @@ describe('generateText', () => {
         'user-onStart',
         'integration-onStart',
         'user-onStepFinish',
-        'integration-onStepFinish',
+        'integration-onStepEnd',
         'user-onFinish',
         'integration-onEnd',
       ]);
@@ -11905,7 +11992,7 @@ describe('generateText', () => {
             onStart: async () => {
               throw new Error('integration error');
             },
-            onStepFinish: async () => {
+            onStepEnd: async () => {
               throw new Error('integration error');
             },
             onEnd: async () => {

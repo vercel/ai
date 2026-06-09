@@ -241,7 +241,7 @@ import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: anthropic('claude-opus-4-7'),
+  model: anthropic('claude-opus-4-8'),
   prompt: 'Research the pros and cons of Rust vs Go for building CLI tools.',
   providerOptions: {
     anthropic: {
@@ -340,7 +340,7 @@ Starting with `claude-opus-4-7`, thinking content is omitted from the response b
 
 ```ts highlight="5"
 const { text, reasoningText } = await generateText({
-  model: anthropic('claude-opus-4-7'),
+  model: anthropic('claude-opus-4-8'),
   providerOptions: {
     anthropic: {
       thinking: { type: 'adaptive', display: 'summarized' },
@@ -506,7 +506,7 @@ When compaction occurs, the model generates a summary of the earlier context. Th
 When using `streamText`, you can detect compaction summaries by checking the `providerMetadata` on `text-start` events:
 
 ```ts
-for await (const part of result.fullStream) {
+for await (const part of result.stream) {
   switch (part.type) {
     case 'text-start': {
       const isCompaction =
@@ -732,7 +732,7 @@ import { anthropic } from '@ai-sdk/anthropic';
 import { generateText, isStepCount } from 'ai';
 
 const result = await generateText({
-  model: anthropic('claude-opus-4-7'),
+  model: anthropic('claude-opus-4-8'),
   tools: {
     bash: anthropic.tools.bash_20250124(),
   },
@@ -994,7 +994,7 @@ const result = await generateText({
     'Build a concurrent worker pool in Go with graceful shutdown. Outline the design first.',
   tools: {
     advisor: anthropic.tools.advisor_20260301({
-      model: 'claude-opus-4-7',
+      model: 'claude-opus-4-8',
       maxUses: 3,
     }),
   },
@@ -1012,7 +1012,7 @@ The advisor tool supports the following configuration options:
 
 - **model** _string_
 
-  Required. The advisor model ID, such as `claude-opus-4-7`. The advisor model must be at least as capable as the executor model.
+  Required. The advisor model ID, such as `claude-opus-4-8`. The advisor model must be at least as capable as the executor model.
 
 - **maxUses** _number_
 
@@ -1276,6 +1276,48 @@ const result = await generateText({
   file operations), and `codeExecution_20250522` (supports Bash only).
 </Note>
 
+#### Uploading Files for Code Execution
+
+You can upload files via the [Files API](https://docs.anthropic.com/en/docs/build-with-claude/files) and make them available inside the code execution sandbox. First upload the file, then reference it in your message using `containerUpload: true` in the provider options:
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText, uploadFile } from 'ai';
+import * as fs from 'fs';
+
+const { providerReference } = await uploadFile({
+  api: anthropic.files(),
+  data: fs.readFileSync('./data.csv'),
+  filename: 'data.csv',
+  mediaType: 'text/csv',
+});
+
+const result = await generateText({
+  model: anthropic('claude-sonnet-4-5'),
+  tools: {
+    code_execution: anthropic.tools.codeExecution_20250825(),
+  },
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Analyze this CSV data' },
+        {
+          type: 'file',
+          mediaType: 'text/csv',
+          data: { type: 'reference', reference: providerReference },
+          providerOptions: {
+            anthropic: { containerUpload: true },
+          },
+        },
+      ],
+    },
+  ],
+});
+```
+
+Supported file types include CSV, Excel, JSON, XML, images (JPEG, PNG, GIF, WebP), and text files.
+
 #### Error Handling
 
 Code execution errors are handled differently depending on whether you're using streaming or non-streaming:
@@ -1525,6 +1567,7 @@ and the `mediaType` should be set to `'application/pdf'`.
 
 | Model               | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search          | Tool Search         | Compaction          |
 | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `claude-opus-4-8`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-opus-4-7`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-opus-4-6`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-sonnet-4-6` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |

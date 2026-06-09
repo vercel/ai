@@ -12,7 +12,7 @@ import {
   isAbortError,
   type Arrayable,
   type Context,
-  type Experimental_Sandbox as Sandbox,
+  type Experimental_SandboxSession as SandboxSession,
   type IdGenerator,
   type InferToolSetContext,
   type ModelMessage,
@@ -44,6 +44,7 @@ import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import { createTextStreamResponse } from '../text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../text-stream/pipe-text-stream-to-response';
+import { toTextStream } from '../text-stream/to-text-stream';
 import type { LanguageModelRequestMetadata } from '../types';
 import type {
   CallWarning,
@@ -59,18 +60,10 @@ import {
 } from '../types/usage';
 import type { UIMessage } from '../ui';
 import { createUIMessageStreamResponse } from '../ui-message-stream/create-ui-message-stream-response';
-import { getResponseUIMessageId } from '../ui-message-stream/get-response-ui-message-id';
-import { handleUIMessageStreamFinish } from '../ui-message-stream/handle-ui-message-stream-finish';
 import { pipeUIMessageStreamToResponse } from '../ui-message-stream/pipe-ui-message-stream-to-response';
-import type {
-  InferUIMessageChunk,
-  UIMessageChunk,
-} from '../ui-message-stream/ui-message-chunks';
+import { toUIMessageStream as toUIMessageStreamHelper } from '../ui-message-stream/to-ui-message-stream';
+import type { InferUIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import type { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
-import type {
-  InferUIMessageData,
-  InferUIMessageMetadata,
-} from '../ui/ui-messages';
 import {
   createAsyncIterableStream,
   type AsyncIterableStream,
@@ -100,6 +93,7 @@ import {
 import type {
   GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
+  GenerateTextOnStepEndCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
 } from './generate-text-events';
@@ -144,6 +138,7 @@ import type {
   OnToolExecutionStartCallback,
 } from './tool-execution-events';
 import type { ToolInputRefinement } from './tool-input-refinement';
+import type { ToolOrder } from './tool-order';
 import type { ToolOutput } from './tool-output';
 import type { StaticToolOutputDenied } from './tool-output-denied';
 import type { ToolsContextParameter } from './tools-context-parameter';
@@ -240,6 +235,7 @@ export type StreamTextOnAbortCallback<
  *
  * @param model - The language model to use.
  * @param tools - Tools that are accessible to and can be called by the model. The model needs to support calling tools.
+ * @param toolOrder - Controls the order in which tools are sent to the provider. Tools not listed are appended alphabetically.
  *
  * @param system - A system message that will be part of the prompt.
  * @param prompt - A simple text prompt. You can either use `prompt` or `messages` but not both.
@@ -282,7 +278,8 @@ export type StreamTextOnAbortCallback<
  * @param experimental_onToolCallStart - Deprecated alias for `onToolExecutionStart`.
  * @param onToolExecutionEnd - Callback invoked after each tool execution completes.
  * @param experimental_onToolCallFinish - Deprecated alias for `onToolExecutionEnd`.
- * @param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
+ * @param onStepEnd - Callback that is called when each step (LLM call) ends, including intermediate steps.
+ * @param onStepFinish - Deprecated alias for `onStepEnd`.
  * @param onEnd - Callback that is called when all steps are finished and the response is complete.
  * @param onFinish - Deprecated alias for `onEnd`.
  *
@@ -315,6 +312,7 @@ export function streamText<
   prepareStep,
   providerOptions,
   activeTools,
+  toolOrder,
   experimental_repairToolCall: repairToolCall,
   experimental_refineToolInput: refineToolInput,
   experimental_transform: transform,
@@ -327,6 +325,7 @@ export function streamText<
   onFinish,
   onEnd = onFinish,
   onAbort,
+  onStepEnd,
   onStepFinish,
   experimental_onStart: onStart,
   experimental_onStepStart: onStepStart,
@@ -390,7 +389,7 @@ export function streamText<
     /**
      * The sandbox environment that is passed through to tool execution.
      */
-    experimental_sandbox?: Sandbox;
+    experimental_sandbox?: SandboxSession;
 
     /**
      * Runtime context. Treat runtime context as immutable.
@@ -403,6 +402,15 @@ export function streamText<
      * changing the tool call and result types in the result.
      */
     activeTools?: ActiveTools<NoInfer<TOOLS>>;
+
+    /**
+     * Controls the order in which tools are sent to the provider.
+     *
+     * The list can be partial. Tools not listed in `toolOrder` are sent after
+     * the listed tools, sorted alphabetically. This can improve provider-side
+     * caching by keeping tool definitions in a stable order.
+     */
+    toolOrder?: ToolOrder<NoInfer<TOOLS>>;
 
     /**
      * Optional specification for parsing structured outputs from the LLM response.
@@ -506,7 +514,17 @@ export function streamText<
     >;
 
     /**
-     * Callback that is called when each step (LLM call) is finished, including intermediate steps.
+     * Callback that is called when each step (LLM call) ends, including intermediate steps.
+     */
+    onStepEnd?: GenerateTextOnStepEndCallback<
+      NoInfer<TOOLS>,
+      NoInfer<RUNTIME_CONTEXT>
+    >;
+
+    /**
+     * Callback that is called when each step (LLM call) ends, including intermediate steps.
+     *
+     * @deprecated Use `onStepEnd` instead.
      */
     onStepFinish?: GenerateTextOnStepFinishCallback<
       NoInfer<TOOLS>,
@@ -606,6 +624,7 @@ export function streamText<
     onToolExecutionStart ?? experimental_onToolCallStart;
   const resolvedOnToolExecutionEnd =
     onToolExecutionEnd ?? experimental_onToolCallFinish;
+  const resolvedOnStepEnd = onStepEnd ?? onStepFinish;
   return new DefaultStreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>({
     model: resolveLanguageModel(model),
     telemetry,
@@ -634,6 +653,7 @@ export function streamText<
     toolChoice,
     transforms: asArray(transform),
     activeTools,
+    toolOrder,
     repairToolCall,
     refineToolInput,
     stopConditions: asArray(stopWhen),
@@ -646,7 +666,7 @@ export function streamText<
     onError,
     onEnd,
     onAbort,
-    onStepFinish,
+    onStepFinish: resolvedOnStepEnd,
     onStart,
     onStepStart,
     onLanguageModelCallStart,
@@ -829,6 +849,7 @@ class DefaultStreamTextResult<
     toolChoice,
     transforms,
     activeTools,
+    toolOrder,
     repairToolCall,
     refineToolInput,
     stopConditions,
@@ -873,11 +894,12 @@ class DefaultStreamTextResult<
     prompt: Prompt['prompt'];
     messages: Prompt['messages'];
     allowSystemInMessages: Prompt['allowSystemInMessages'];
-    experimental_sandbox: Sandbox | undefined;
+    experimental_sandbox: SandboxSession | undefined;
     tools: TOOLS | undefined;
     toolChoice: ToolChoice<TOOLS> | undefined;
     transforms: Array<StreamTextTransform<TOOLS>>;
     activeTools: ActiveTools<TOOLS>;
+    toolOrder: ToolOrder<TOOLS>;
     repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
     refineToolInput: ToolInputRefinement<TOOLS> | undefined;
     stopConditions: Array<
@@ -1169,7 +1191,7 @@ class DefaultStreamTextResult<
 
           await notify({
             event: currentStepResult,
-            callbacks: [onStepFinish, telemetryDispatcher.onStepFinish],
+            callbacks: [onStepFinish, telemetryDispatcher.onStepEnd],
           });
 
           logWarnings({
@@ -1305,8 +1327,17 @@ class DefaultStreamTextResult<
 
       async pull(controller) {
         // abort handling:
-        function abort() {
-          onAbort?.({ steps: recordedSteps });
+        async function abort() {
+          await notify({
+            event: {
+              callId,
+              steps: recordedSteps,
+              ...(abortSignal?.reason !== undefined
+                ? { reason: abortSignal.reason }
+                : {}),
+            },
+            callbacks: [onAbort, telemetryDispatcher.onAbort],
+          });
           controller.enqueue({
             type: 'abort',
             // The `reason` is usually of type DOMException, but it can also be of any type,
@@ -1328,14 +1359,14 @@ class DefaultStreamTextResult<
           }
 
           if (abortSignal?.aborted) {
-            abort();
+            await abort();
             return;
           }
 
           controller.enqueue(value);
         } catch (error) {
           if (isAbortError(error) && abortSignal?.aborted) {
-            abort();
+            await abort();
           } else {
             controller.error(error);
           }
@@ -1409,6 +1440,7 @@ class DefaultStreamTextResult<
           tools,
           toolChoice,
           activeTools,
+          toolOrder,
           maxOutputTokens: callSettings.maxOutputTokens,
           temperature: callSettings.temperature,
           topP: callSettings.topP,
@@ -1597,6 +1629,13 @@ class DefaultStreamTextResult<
           }
         }
 
+        // The step's stream is registered lazily and consumed long after this
+        // function returns, so the step timer must stay armed past setup. When
+        // the merged abort signal fires (any step/chunk/total timeout or caller
+        // abort), drop both step-scoped timers so neither outlives the step.
+        abortSignal?.addEventListener('abort', clearStepTimeout);
+        abortSignal?.addEventListener('abort', clearChunkTimeout);
+
         try {
           stepFinish = new DelayedPromise<void>();
 
@@ -1640,9 +1679,13 @@ class DefaultStreamTextResult<
             tools,
             activeTools: prepareStepResult?.activeTools ?? activeTools,
           });
+          const stepToolOrder = prepareStepResult?.toolOrder ?? toolOrder;
 
           const stepTools = await prepareTools({
             tools: stepActiveTools,
+            toolOrder: stepToolOrder as ToolOrder<
+              ActiveToolSubset<TOOLS, ActiveTools<NoInfer<TOOLS>>>
+            >,
             // active tools context is a subset of the tools context, so we can cast to the unknown type
             toolsContext: toolsContext as unknown as InferToolSetContext<
               ActiveToolSubset<TOOLS, ActiveTools<NoInfer<TOOLS>>>
@@ -1679,6 +1722,7 @@ class DefaultStreamTextResult<
             streamLanguageModelCall({
               model: prepareStepResult?.model ?? model,
               tools: stepActiveTools,
+              toolOrder: stepToolOrder,
               toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
               instructions: stepInstructions,
               messages: stepMessages,
@@ -1720,6 +1764,7 @@ class DefaultStreamTextResult<
                     tools,
                     toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
                     activeTools: prepareStepResult?.activeTools ?? activeTools,
+                    toolOrder: stepToolOrder,
                     steps: [...recordedSteps],
                     providerOptions: stepProviderOptions,
                     runtimeContext,
@@ -2065,9 +2110,12 @@ class DefaultStreamTextResult<
               }),
             ),
           );
-        } finally {
+        } catch (error) {
+          // Setup failed before the stream was registered, so neither the
+          // stream's flush nor an abort will clear the timers — clear them here.
           clearStepTimeout();
           clearChunkTimeout();
+          throw error;
         }
       }
 
@@ -2232,23 +2280,10 @@ class DefaultStreamTextResult<
   }
 
   get textStream(): AsyncIterableStream<string> {
-    return createAsyncIterableStream(
-      this.teeStream().pipeThrough(
-        new TransformStream<
-          EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>,
-          string
-        >({
-          transform({ part }, controller) {
-            if (part.type === 'text-delta') {
-              controller.enqueue(part.text);
-            }
-          },
-        }),
-      ),
-    );
+    return createAsyncIterableStream(toTextStream({ stream: this.stream }));
   }
 
-  get fullStream(): AsyncIterableStream<TextStreamPart<TOOLS>> {
+  get stream(): AsyncIterableStream<TextStreamPart<TOOLS>> {
     return createAsyncIterableStream(
       this.teeStream().pipeThrough(
         new TransformStream<
@@ -2263,10 +2298,14 @@ class DefaultStreamTextResult<
     );
   }
 
+  get fullStream(): AsyncIterableStream<TextStreamPart<TOOLS>> {
+    return this.stream;
+  }
+
   async consumeStream(options?: ConsumeStreamOptions): Promise<void> {
     try {
       await consumeStream({
-        stream: this.fullStream,
+        stream: this.stream,
         onError: options?.onError,
       });
     } catch (error) {
@@ -2330,410 +2369,26 @@ class DefaultStreamTextResult<
     generateMessageId,
     onFinish,
     messageMetadata,
-    sendReasoning = true,
-    sendSources = false,
-    sendStart = true,
-    sendFinish = true,
-    onError = getErrorMessage,
+    sendReasoning,
+    sendSources,
+    sendStart,
+    sendFinish,
+    onError,
   }: UIMessageStreamOptions<UI_MESSAGE> = {}): AsyncIterableStream<
     InferUIMessageChunk<UI_MESSAGE>
   > {
-    const responseMessageId =
-      generateMessageId != null
-        ? getResponseUIMessageId({
-            originalMessages,
-            responseMessageId: generateMessageId,
-          })
-        : undefined;
-
-    // TODO simplify once dynamic is no longer needed for invalid tool inputs
-    const isDynamic = (part: { toolName: string; dynamic?: boolean }) => {
-      const tool = this.tools?.[part.toolName];
-
-      // provider-executed, dynamic tools are not listed in the tools object
-      if (tool == null) {
-        return part.dynamic;
-      }
-
-      return tool?.type === 'dynamic' ? true : undefined;
-    };
-
-    const baseStream = this.fullStream.pipeThrough(
-      new TransformStream<
-        TextStreamPart<TOOLS>,
-        UIMessageChunk<
-          InferUIMessageMetadata<UI_MESSAGE>,
-          InferUIMessageData<UI_MESSAGE>
-        >
-      >({
-        transform: async (part, controller) => {
-          const messageMetadataValue = messageMetadata?.({ part });
-
-          const partType = part.type;
-          switch (partType) {
-            case 'text-start': {
-              controller.enqueue({
-                type: 'text-start',
-                id: part.id,
-                ...(part.providerMetadata != null
-                  ? { providerMetadata: part.providerMetadata }
-                  : {}),
-              });
-              break;
-            }
-
-            case 'text-delta': {
-              controller.enqueue({
-                type: 'text-delta',
-                id: part.id,
-                delta: part.text,
-                ...(part.providerMetadata != null
-                  ? { providerMetadata: part.providerMetadata }
-                  : {}),
-              });
-              break;
-            }
-
-            case 'text-end': {
-              controller.enqueue({
-                type: 'text-end',
-                id: part.id,
-                ...(part.providerMetadata != null
-                  ? { providerMetadata: part.providerMetadata }
-                  : {}),
-              });
-              break;
-            }
-
-            case 'reasoning-start':
-            case 'reasoning-end': {
-              if (sendReasoning) {
-                controller.enqueue({
-                  type: partType,
-                  id: part.id,
-                  ...(part.providerMetadata != null
-                    ? { providerMetadata: part.providerMetadata }
-                    : {}),
-                });
-              }
-              break;
-            }
-
-            case 'reasoning-delta': {
-              if (sendReasoning) {
-                controller.enqueue({
-                  type: 'reasoning-delta',
-                  id: part.id,
-                  delta: part.text,
-                  ...(part.providerMetadata != null
-                    ? { providerMetadata: part.providerMetadata }
-                    : {}),
-                });
-              }
-              break;
-            }
-
-            case 'file':
-            case 'reasoning-file': {
-              if (partType !== 'reasoning-file' || sendReasoning) {
-                controller.enqueue({
-                  type: part.type,
-                  mediaType: part.file.mediaType,
-                  url: `data:${part.file.mediaType};base64,${part.file.base64}`,
-                  ...(part.providerMetadata != null
-                    ? { providerMetadata: part.providerMetadata }
-                    : {}),
-                });
-              }
-              break;
-            }
-
-            case 'source': {
-              if (sendSources && part.sourceType === 'url') {
-                controller.enqueue({
-                  type: 'source-url',
-                  sourceId: part.id,
-                  url: part.url,
-                  title: part.title,
-                  ...(part.providerMetadata != null
-                    ? { providerMetadata: part.providerMetadata }
-                    : {}),
-                });
-              }
-
-              if (sendSources && part.sourceType === 'document') {
-                controller.enqueue({
-                  type: 'source-document',
-                  sourceId: part.id,
-                  mediaType: part.mediaType,
-                  title: part.title,
-                  filename: part.filename,
-                  ...(part.providerMetadata != null
-                    ? { providerMetadata: part.providerMetadata }
-                    : {}),
-                });
-              }
-              break;
-            }
-
-            case 'custom': {
-              controller.enqueue({
-                type: 'custom',
-                kind: part.kind,
-                ...(part.providerMetadata != null
-                  ? { providerMetadata: part.providerMetadata }
-                  : {}),
-              });
-              break;
-            }
-
-            case 'tool-input-start': {
-              const dynamic = isDynamic(part);
-
-              controller.enqueue({
-                type: 'tool-input-start',
-                toolCallId: part.id,
-                toolName: part.toolName,
-                ...(part.providerExecuted != null
-                  ? { providerExecuted: part.providerExecuted }
-                  : {}),
-                ...(part.providerMetadata != null
-                  ? { providerMetadata: part.providerMetadata }
-                  : {}),
-                ...(part.toolMetadata != null
-                  ? { toolMetadata: part.toolMetadata }
-                  : {}),
-                ...(dynamic != null ? { dynamic } : {}),
-                ...(part.title != null ? { title: part.title } : {}),
-              });
-              break;
-            }
-
-            case 'tool-input-delta': {
-              controller.enqueue({
-                type: 'tool-input-delta',
-                toolCallId: part.id,
-                inputTextDelta: part.delta,
-              });
-              break;
-            }
-
-            case 'tool-call': {
-              const dynamic = isDynamic(part);
-
-              if (part.invalid) {
-                controller.enqueue({
-                  type: 'tool-input-error',
-                  toolCallId: part.toolCallId,
-                  toolName: part.toolName,
-                  input: part.input,
-                  ...(part.providerExecuted != null
-                    ? { providerExecuted: part.providerExecuted }
-                    : {}),
-                  ...(part.providerMetadata != null
-                    ? { providerMetadata: part.providerMetadata }
-                    : {}),
-                  ...(part.toolMetadata != null
-                    ? { toolMetadata: part.toolMetadata }
-                    : {}),
-                  ...(dynamic != null ? { dynamic } : {}),
-                  errorText: onError(part.error),
-                  ...(part.title != null ? { title: part.title } : {}),
-                });
-              } else {
-                controller.enqueue({
-                  type: 'tool-input-available',
-                  toolCallId: part.toolCallId,
-                  toolName: part.toolName,
-                  input: part.input,
-                  ...(part.providerExecuted != null
-                    ? { providerExecuted: part.providerExecuted }
-                    : {}),
-                  ...(part.providerMetadata != null
-                    ? { providerMetadata: part.providerMetadata }
-                    : {}),
-                  ...(part.toolMetadata != null
-                    ? { toolMetadata: part.toolMetadata }
-                    : {}),
-                  ...(dynamic != null ? { dynamic } : {}),
-                  ...(part.title != null ? { title: part.title } : {}),
-                });
-              }
-
-              break;
-            }
-
-            case 'tool-approval-request': {
-              controller.enqueue({
-                type: 'tool-approval-request',
-                approvalId: part.approvalId,
-                toolCallId: part.toolCall.toolCallId,
-                ...(part.isAutomatic != null
-                  ? { isAutomatic: part.isAutomatic }
-                  : {}),
-              });
-              break;
-            }
-
-            case 'tool-approval-response': {
-              controller.enqueue({
-                type: 'tool-approval-response',
-                approvalId: part.approvalId,
-                approved: part.approved,
-                ...(part.reason != null ? { reason: part.reason } : {}),
-                ...(part.providerExecuted != null
-                  ? { providerExecuted: part.providerExecuted }
-                  : {}),
-              });
-              break;
-            }
-
-            case 'tool-result': {
-              const dynamic = isDynamic(part);
-
-              controller.enqueue({
-                type: 'tool-output-available',
-                toolCallId: part.toolCallId,
-                output: part.output,
-                ...(part.providerExecuted != null
-                  ? { providerExecuted: part.providerExecuted }
-                  : {}),
-                ...(part.providerMetadata != null
-                  ? { providerMetadata: part.providerMetadata }
-                  : {}),
-                ...(part.toolMetadata != null
-                  ? { toolMetadata: part.toolMetadata }
-                  : {}),
-                ...(part.preliminary != null
-                  ? { preliminary: part.preliminary }
-                  : {}),
-                ...(dynamic != null ? { dynamic } : {}),
-              });
-              break;
-            }
-
-            case 'tool-error': {
-              const dynamic = isDynamic(part);
-
-              controller.enqueue({
-                type: 'tool-output-error',
-                toolCallId: part.toolCallId,
-                errorText: part.providerExecuted
-                  ? typeof part.error === 'string'
-                    ? part.error
-                    : JSON.stringify(part.error)
-                  : onError(part.error),
-                ...(part.providerExecuted != null
-                  ? { providerExecuted: part.providerExecuted }
-                  : {}),
-                ...(part.providerMetadata != null
-                  ? { providerMetadata: part.providerMetadata }
-                  : {}),
-                ...(part.toolMetadata != null
-                  ? { toolMetadata: part.toolMetadata }
-                  : {}),
-                ...(dynamic != null ? { dynamic } : {}),
-              });
-              break;
-            }
-
-            case 'tool-output-denied': {
-              controller.enqueue({
-                type: 'tool-output-denied',
-                toolCallId: part.toolCallId,
-              });
-              break;
-            }
-
-            case 'error': {
-              controller.enqueue({
-                type: 'error',
-                errorText: onError(part.error),
-              });
-              break;
-            }
-
-            case 'start-step': {
-              controller.enqueue({ type: 'start-step' });
-              break;
-            }
-
-            case 'finish-step': {
-              controller.enqueue({ type: 'finish-step' });
-              break;
-            }
-
-            case 'start': {
-              if (sendStart) {
-                controller.enqueue({
-                  type: 'start',
-                  ...(messageMetadataValue != null
-                    ? { messageMetadata: messageMetadataValue }
-                    : {}),
-                  ...(responseMessageId != null
-                    ? { messageId: responseMessageId }
-                    : {}),
-                });
-              }
-              break;
-            }
-
-            case 'finish': {
-              if (sendFinish) {
-                controller.enqueue({
-                  type: 'finish',
-                  finishReason: part.finishReason,
-                  ...(messageMetadataValue != null
-                    ? { messageMetadata: messageMetadataValue }
-                    : {}),
-                });
-              }
-              break;
-            }
-
-            case 'abort': {
-              controller.enqueue(part);
-              break;
-            }
-
-            case 'tool-input-end': {
-              break;
-            }
-
-            case 'raw': {
-              // Raw chunks are not included in UI message streams
-              // as they contain provider-specific data for developer use
-              break;
-            }
-
-            default: {
-              const exhaustiveCheck: never = partType;
-              throw new Error(`Unknown chunk type: ${exhaustiveCheck}`);
-            }
-          }
-
-          // start and finish events already have metadata
-          // so we only need to send metadata for other parts
-          if (
-            messageMetadataValue != null &&
-            partType !== 'start' &&
-            partType !== 'finish'
-          ) {
-            controller.enqueue({
-              type: 'message-metadata',
-              messageMetadata: messageMetadataValue,
-            });
-          }
-        },
-      }),
-    );
-
     return createAsyncIterableStream(
-      handleUIMessageStreamFinish<UI_MESSAGE>({
-        stream: baseStream,
-        messageId: responseMessageId ?? generateMessageId?.(),
+      toUIMessageStreamHelper({
+        stream: this.stream,
+        tools: this.tools,
         originalMessages,
+        generateMessageId,
         onFinish,
+        messageMetadata,
+        sendReasoning,
+        sendSources,
+        sendStart,
+        sendFinish,
         onError,
       }),
     );
@@ -2774,7 +2429,7 @@ class DefaultStreamTextResult<
   pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit) {
     pipeTextStreamToResponse({
       response,
-      textStream: this.textStream,
+      stream: this.textStream,
       ...init,
     });
   }
@@ -2810,7 +2465,7 @@ class DefaultStreamTextResult<
 
   toTextStreamResponse(init?: ResponseInit): Response {
     return createTextStreamResponse({
-      textStream: this.textStream,
+      stream: this.textStream,
       ...init,
     });
   }

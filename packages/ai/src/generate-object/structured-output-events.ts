@@ -109,7 +109,7 @@ export interface GenerateObjectStepStartEvent {
 }
 
 /**
- * Event passed to the `onStepFinish` callback of
+ * Event passed to the `onStepEnd` callback of
  * `generateObject` and `streamObject`.
  *
  * Called when the model call (step) completes, with the raw result

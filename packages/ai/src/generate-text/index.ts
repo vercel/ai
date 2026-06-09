@@ -3,10 +3,13 @@ export type { ContentPart } from './content-part';
 export { filterActiveTools as experimental_filterActiveTools } from './filter-active-tools';
 export { generateText, type GenerateTextInclude } from './generate-text';
 export type {
+  GenerateTextAbortEvent,
+  GenerateTextOnAbortCallback,
   GenerateTextEndEvent,
   GenerateTextOnFinishCallback,
   GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
+  GenerateTextOnStepEndCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
   GenerateTextStartEvent,
@@ -31,7 +34,6 @@ export type {
   OnLanguageModelCallStartCallback,
 } from './language-model-events';
 export * as Output from './output';
-export type { Output as OutputInterface } from './output';
 export type {
   InferCompleteOutput as InferGenerateOutput,
   InferPartialOutput as InferStreamOutput,
@@ -100,6 +102,7 @@ export type {
   ToolExecutionStartEvent,
 } from './tool-execution-events';
 export type { ToolInputRefinement } from './tool-input-refinement';
+export type { ToolOrder } from './tool-order';
 export type {
   StaticToolOutputDenied,
   TypedToolOutputDenied,

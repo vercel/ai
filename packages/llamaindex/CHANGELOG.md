@@ -1,5 +1,91 @@
 # @ai-sdk/llamaindex
 
+## 3.0.0-canary.166
+
+### Patch Changes
+
+- Updated dependencies [19736ee]
+- Updated dependencies [d66ae02]
+- Updated dependencies [e4182bd]
+  - ai@7.0.0-canary.166
+
+## 3.0.0-canary.165
+
+### Patch Changes
+
+- Updated dependencies [ce769dd]
+  - ai@7.0.0-canary.165
+
+## 3.0.0-canary.164
+
+### Patch Changes
+
+- ai@7.0.0-canary.164
+
+## 3.0.0-canary.163
+
+### Patch Changes
+
+- Updated dependencies [ee798eb]
+- Updated dependencies [c907622]
+  - ai@7.0.0-canary.163
+
+## 3.0.0-canary.162
+
+### Patch Changes
+
+- ai@7.0.0-canary.162
+
+## 3.0.0-canary.161
+
+### Patch Changes
+
+- ai@7.0.0-canary.161
+
+## 3.0.0-canary.160
+
+### Patch Changes
+
+- ai@7.0.0-canary.160
+
+## 3.0.0-canary.159
+
+### Patch Changes
+
+- Updated dependencies [b5092f5]
+  - ai@7.0.0-canary.159
+
+## 3.0.0-canary.158
+
+### Patch Changes
+
+- Updated dependencies [bcce2dd]
+  - ai@7.0.0-canary.158
+
+## 3.0.0-canary.157
+
+### Patch Changes
+
+- ai@7.0.0-canary.157
+
+## 3.0.0-canary.156
+
+### Patch Changes
+
+- Updated dependencies [023550e]
+- Updated dependencies [e92fc45]
+  - ai@7.0.0-canary.156
+
+## 3.0.0-canary.155
+
+### Patch Changes
+
+- Updated dependencies [e67d80e]
+- Updated dependencies [6cca112]
+- Updated dependencies [82fc0ab]
+- Updated dependencies [76fd58c]
+  - ai@7.0.0-canary.155
+
 ## 3.0.0-canary.154
 
 ### Patch Changes

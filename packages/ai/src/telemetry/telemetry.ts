@@ -12,6 +12,7 @@ import type {
   GenerateObjectStepStartEvent,
 } from '../generate-object/structured-output-events';
 import type {
+  GenerateTextAbortEvent,
   GenerateTextEndEvent,
   GenerateTextStartEvent,
   GenerateTextStepEndEvent,
@@ -61,6 +62,8 @@ export interface TelemetryDispatcher {
   onLanguageModelCallEnd?: OnLanguageModelCallEndCallback;
   onToolExecutionStart?: Callback<ToolExecutionStartEvent>;
   onToolExecutionEnd?: Callback<ToolExecutionEndEvent>;
+  onStepEnd?: Callback<GenerateTextStepEndEvent>;
+  /** @deprecated Use `onStepEnd` instead. */
   onStepFinish?: Callback<GenerateTextStepEndEvent>;
   onObjectStepStart?: Callback<GenerateObjectStepStartEvent>;
   onObjectStepFinish?: Callback<GenerateObjectStepEndEvent>;
@@ -69,6 +72,7 @@ export interface TelemetryDispatcher {
   onRerankStart?: Callback<RerankingModelCallStartEvent>;
   onRerankEnd?: Callback<RerankingModelCallEndEvent>;
   onEnd?: Callback<OperationEndEvent>;
+  onAbort?: Callback<GenerateTextAbortEvent<ToolSet>>;
   onError?: Callback<unknown>;
   executeLanguageModelCall?: Telemetry['executeLanguageModelCall'];
   executeTool?: Telemetry['executeTool'];
@@ -137,6 +141,13 @@ export interface Telemetry {
    * and results, usage statistics, finish reason, and optional request/response
    * bodies.
    */
+  onStepEnd?: Callback<InferTelemetryEvent<GenerateTextStepEndEvent>>;
+
+  /**
+   * Called when an individual step (single LLM invocation) completes.
+   *
+   * @deprecated Use `onStepEnd` instead.
+   */
   onStepFinish?: Callback<InferTelemetryEvent<GenerateTextStepEndEvent>>;
 
   /**
@@ -192,6 +203,12 @@ export interface Telemetry {
    * Use the event shape or `operationId` to distinguish between operation types.
    */
   onEnd?: Callback<InferTelemetryEvent<OperationEndEvent>>;
+
+  /**
+   * Called when a streaming text generation operation is aborted before it
+   * completes.
+   */
+  onAbort?: Callback<InferTelemetryEvent<GenerateTextAbortEvent<ToolSet>>>;
 
   /**
    * Called when an unrecoverable error occurs during the generation lifecycle.

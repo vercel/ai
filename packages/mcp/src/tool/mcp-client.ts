@@ -805,6 +805,15 @@ class DefaultMCPClient implements MCPClient {
 
   private async onRequestMessage(request: JSONRPCRequest): Promise<void> {
     try {
+      if (request.method === 'ping') {
+        await this.transport.send({
+          jsonrpc: '2.0',
+          id: request.id,
+          result: {},
+        });
+        return;
+      }
+
       if (request.method !== 'elicitation/create') {
         await this.transport.send({
           jsonrpc: '2.0',

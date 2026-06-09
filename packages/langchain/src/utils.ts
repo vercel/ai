@@ -14,6 +14,8 @@ import type {
   ToolResultPart,
   AssistantContent,
   UserContent,
+  ProviderMetadata,
+  JSONValue,
 } from 'ai';
 
 import type {
@@ -22,6 +24,7 @@ import type {
   ThinkingContentBlock,
   GPT5ReasoningOutput,
   ImageGenerationOutput,
+  NormalizedCitation,
 } from './types';
 
 /**
@@ -114,8 +117,8 @@ function getDefaultFilename(
   mediaType: string,
   prefix: string = 'file',
 ): string {
-  const ext = mediaType.split('/')[1] || 'bin';
-  return `${prefix}.${ext}`;
+  const fileExtension = mediaType.split('/')[1] || 'bin';
+  return `${prefix}.${fileExtension}`;
 }
 
 /**
@@ -237,27 +240,27 @@ export function convertUserContent(content: UserContent): HumanMessage {
 
       // Normalize tagged data shape into the legacy bare value this code expects.
       const normalizedData: string | Uint8Array | URL | ArrayBuffer = (() => {
-        const d = rawFilePart.data;
+        const data = rawFilePart.data;
         if (
-          typeof d === 'object' &&
-          d !== null &&
-          !(d instanceof URL) &&
-          !(d instanceof Uint8Array) &&
-          !(d instanceof ArrayBuffer) &&
-          'type' in d
+          typeof data === 'object' &&
+          data !== null &&
+          !(data instanceof URL) &&
+          !(data instanceof Uint8Array) &&
+          !(data instanceof ArrayBuffer) &&
+          'type' in data
         ) {
-          switch (d.type) {
+          switch (data.type) {
             case 'data':
-              return d.data;
+              return data.data;
             case 'url':
-              return d.url;
+              return data.url;
             case 'text':
-              return d.text;
+              return data.text;
             default:
               return '';
           }
         }
-        return d as string | Uint8Array | URL | ArrayBuffer;
+        return data as string | Uint8Array | URL | ArrayBuffer;
       })();
 
       const filePart = {
@@ -433,6 +436,7 @@ export function processModelChunk(
     /** Track the ID used for text-start to ensure text-end uses the same ID */
     textMessageId?: string | null;
     emittedImages?: Set<string>;
+    emittedSourceIds?: Set<string>;
   },
   controller: ReadableStreamDefaultController<UIMessageChunk>,
 ): void {
@@ -441,6 +445,10 @@ export function processModelChunk(
    */
   if (!state.emittedImages) {
     state.emittedImages = new Set<string>();
+  }
+
+  if (!state.emittedSourceIds) {
+    state.emittedSourceIds = new Set<string>();
   }
 
   /**
@@ -546,6 +554,16 @@ export function processModelChunk(
       id: state.textMessageId ?? state.messageId,
     });
   }
+
+  const citations = extractCitationsFromContentBlocks(chunk);
+  if (citations.length > 0) {
+    emitSourceChunks(
+      citations,
+      state.messageId,
+      state.emittedSourceIds,
+      controller,
+    );
+  }
 }
 
 /**
@@ -620,21 +638,25 @@ export function isAIMessageChunk(
    * Plain object from RemoteGraph API (not a LangChain class instance)
    */
   if (isPlainMessageObject(msg)) {
-    const obj = msg as Record<string, unknown>;
+    const messageRecord = msg as Record<string, unknown>;
     /**
      * Direct type from RemoteGraph format. TypeScript langchain-core emits
      * type === 'ai'; Python langchain-core emits type === 'AIMessageChunk'.
      */
-    if ('type' in obj && (obj.type === 'ai' || obj.type === 'AIMessageChunk')) {
+    if (
+      'type' in messageRecord &&
+      (messageRecord.type === 'ai' || messageRecord.type === 'AIMessageChunk')
+    ) {
       return true;
     }
     /**
      * Serialized LangChain message format: { lc: 1, type: "constructor", id: ["...", "AIMessageChunk"], kwargs: {...} }
      */
     if (
-      obj.type === 'constructor' &&
-      Array.isArray(obj.id) &&
-      (obj.id.includes('AIMessageChunk') || obj.id.includes('AIMessage'))
+      messageRecord.type === 'constructor' &&
+      Array.isArray(messageRecord.id) &&
+      (messageRecord.id.includes('AIMessageChunk') ||
+        messageRecord.id.includes('AIMessage'))
     ) {
       return true;
     }
@@ -656,18 +678,18 @@ export function isToolMessageType(
    * Plain object from RemoteGraph API (not a LangChain class instance)
    */
   if (isPlainMessageObject(msg)) {
-    const obj = msg as Record<string, unknown>;
+    const messageRecord = msg as Record<string, unknown>;
     /**
      * Direct type === 'tool' (RemoteGraph format)
      */
-    if ('type' in obj && obj.type === 'tool') return true;
+    if ('type' in messageRecord && messageRecord.type === 'tool') return true;
     /**
      * Serialized LangChain message format
      */
     if (
-      obj.type === 'constructor' &&
-      Array.isArray(obj.id) &&
-      obj.id.includes('ToolMessage')
+      messageRecord.type === 'constructor' &&
+      Array.isArray(messageRecord.id) &&
+      messageRecord.id.includes('ToolMessage')
     ) {
       return true;
     }
@@ -960,6 +982,152 @@ export function extractReasoningFromValuesMessage(
   return undefined;
 }
 
+export function isCitationContentBlock(
+  obj: unknown,
+): obj is ContentBlock.Citation {
+  return (
+    obj != null &&
+    typeof obj === 'object' &&
+    'type' in obj &&
+    (obj as { type: unknown }).type === 'citation'
+  );
+}
+
+/**
+ * LangChain Core standardizes citations as `{ type: 'citation', ... }` entries in
+ * the `annotations` array of a text content block. The text extractors elsewhere
+ * in this file only read the `text` field, so without this the citations would be
+ * dropped instead of surfaced as AI SDK source parts.
+ *
+ * Handles both class instances and serialized LangChain message objects.
+ */
+export function extractCitationsFromContentBlocks(
+  msg: unknown,
+): NormalizedCitation[] {
+  if (msg == null || typeof msg !== 'object') return [];
+
+  const msgObj = msg as Record<string, unknown>;
+  const kwargs =
+    msgObj.kwargs && typeof msgObj.kwargs === 'object'
+      ? (msgObj.kwargs as Record<string, unknown>)
+      : msgObj;
+
+  // `contentBlocks` is the normalized view derived from `content`; reading both
+  // would double-count annotations, so prefer it and only fall back to `content`.
+  const contentBlocks = (kwargs as { contentBlocks?: unknown }).contentBlocks;
+  const content = (kwargs as { content?: unknown }).content;
+  const blockSources: unknown[] = Array.isArray(contentBlocks)
+    ? contentBlocks
+    : Array.isArray(content)
+      ? content
+      : [];
+
+  const citations: NormalizedCitation[] = [];
+
+  for (const block of blockSources) {
+    if (block == null || typeof block !== 'object') continue;
+
+    const annotations = (block as { annotations?: unknown }).annotations;
+    if (!Array.isArray(annotations)) continue;
+
+    for (const annotation of annotations) {
+      if (!isCitationContentBlock(annotation)) continue;
+
+      citations.push({
+        url: annotation.url,
+        title: annotation.title,
+        source: annotation.source,
+        citedText: annotation.citedText,
+        startIndex: annotation.startIndex,
+        endIndex: annotation.endIndex,
+      });
+    }
+  }
+
+  return citations;
+}
+
+function buildSourceProviderMetadata(
+  citation: NormalizedCitation,
+): ProviderMetadata | undefined {
+  const langchain: Record<string, JSONValue> = {};
+
+  if (typeof citation.citedText === 'string') {
+    langchain.citedText = citation.citedText;
+  }
+  if (typeof citation.startIndex === 'number') {
+    langchain.startIndex = citation.startIndex;
+  }
+  if (typeof citation.endIndex === 'number') {
+    langchain.endIndex = citation.endIndex;
+  }
+  if (typeof citation.source === 'string') {
+    langchain.source = citation.source;
+  }
+
+  if (Object.keys(langchain).length === 0) {
+    return undefined;
+  }
+
+  return { langchain };
+}
+
+/**
+ * Emits AI SDK source chunks (`source-url` / `source-document`) for the given
+ * citations.
+ *
+ * Citations with a `url` become `source-url` parts keyed by that url; the rest
+ * become `source-document` parts. Citation metadata that the source parts cannot
+ * represent natively (`citedText`, `startIndex`, `endIndex`, `source`) is preserved
+ * under `providerMetadata.langchain`.
+ *
+ * `emittedSourceIds` dedupes across the LangGraph messages and values events, which
+ * can each surface the same citation. URL-less citations are keyed by their content
+ * rather than position, so a differing citation subset/order between those two events
+ * does not cause an id collision.
+ */
+export function emitSourceChunks(
+  citations: NormalizedCitation[],
+  messageId: string,
+  emittedSourceIds: Set<string>,
+  controller: ReadableStreamDefaultController<UIMessageChunk>,
+): void {
+  for (const citation of citations) {
+    if (citation.url) {
+      if (emittedSourceIds.has(citation.url)) continue;
+      emittedSourceIds.add(citation.url);
+
+      const providerMetadata = buildSourceProviderMetadata(citation);
+      controller.enqueue({
+        type: 'source-url',
+        sourceId: citation.url,
+        url: citation.url,
+        ...(citation.title ? { title: citation.title } : {}),
+        ...(providerMetadata ? { providerMetadata } : {}),
+      });
+      continue;
+    }
+
+    // A citation with no url and no human-readable label carries no information a
+    // UI could render, so skip it rather than emit a placeholder source.
+    const title = citation.title ?? citation.source;
+    if (!title) continue;
+
+    const sourceId = `${messageId}:${title}:${citation.citedText ?? ''}:${citation.startIndex ?? ''}:${citation.endIndex ?? ''}`;
+    if (emittedSourceIds.has(sourceId)) continue;
+    emittedSourceIds.add(sourceId);
+
+    const providerMetadata = buildSourceProviderMetadata(citation);
+    controller.enqueue({
+      type: 'source-document',
+      sourceId,
+      mediaType: 'text/plain',
+      title,
+      ...(providerMetadata ? { providerMetadata } : {}),
+    });
+  }
+}
+
 /**
  * Checks if an object is an image generation output
  *
@@ -1161,18 +1329,18 @@ export function processLangGraphEvent(
           | undefined;
         if (toolCallChunks?.length) {
           for (const toolCallChunk of toolCallChunks) {
-            const idx = toolCallChunk.index ?? 0;
+            const toolCallIndex = toolCallChunk.index ?? 0;
 
             /**
              * If this chunk has an id, store it for future lookups by index
              */
             if (toolCallChunk.id) {
               toolCallInfoByIndex[msgId] ??= {};
-              toolCallInfoByIndex[msgId][idx] = {
+              toolCallInfoByIndex[msgId][toolCallIndex] = {
                 id: toolCallChunk.id,
                 name:
                   toolCallChunk.name ||
-                  concatChunk?.tool_call_chunks?.[idx]?.name ||
+                  concatChunk?.tool_call_chunks?.[toolCallIndex]?.name ||
                   'unknown',
               };
             }
@@ -1182,8 +1350,8 @@ export function processLangGraphEvent(
              */
             const toolCallId =
               toolCallChunk.id ||
-              toolCallInfoByIndex[msgId]?.[idx]?.id ||
-              concatChunk?.tool_call_chunks?.[idx]?.id;
+              toolCallInfoByIndex[msgId]?.[toolCallIndex]?.id ||
+              concatChunk?.tool_call_chunks?.[toolCallIndex]?.id;
 
             /**
              * Skip if we don't have a proper tool call ID - we'll handle it in values
@@ -1194,8 +1362,8 @@ export function processLangGraphEvent(
 
             const toolName =
               toolCallChunk.name ||
-              toolCallInfoByIndex[msgId]?.[idx]?.name ||
-              concatChunk?.tool_call_chunks?.[idx]?.name ||
+              toolCallInfoByIndex[msgId]?.[toolCallIndex]?.name ||
+              concatChunk?.tool_call_chunks?.[toolCallIndex]?.name ||
               'unknown';
 
             /**
@@ -1291,6 +1459,16 @@ export function processLangGraphEvent(
             delta: text,
             id: msgId,
           });
+        }
+
+        const citations = extractCitationsFromContentBlocks(msg);
+        if (citations.length > 0) {
+          emitSourceChunks(
+            citations,
+            msgId,
+            state.emittedSourceIds,
+            controller,
+          );
         }
       } else if (isToolMessageType(msg)) {
         // Handle both direct properties and serialized messages (kwargs)
@@ -1425,23 +1603,23 @@ export function processLangGraphEvent(
               /**
                * For plain objects from RemoteGraph API or serialized LangChain messages
                */
-              const obj = msg as Record<string, unknown>;
+              const messageRecord = msg as Record<string, unknown>;
 
               /**
                * Determine the data source (handle both direct and serialized formats)
                */
               const isSerializedFormat =
-                obj.type === 'constructor' &&
-                Array.isArray(obj.id) &&
-                ((obj.id as string[]).includes('AIMessageChunk') ||
-                  (obj.id as string[]).includes('AIMessage'));
+                messageRecord.type === 'constructor' &&
+                Array.isArray(messageRecord.id) &&
+                ((messageRecord.id as string[]).includes('AIMessageChunk') ||
+                  (messageRecord.id as string[]).includes('AIMessage'));
               const dataSource = isSerializedFormat
-                ? (obj.kwargs as Record<string, unknown>)
-                : obj;
+                ? (messageRecord.kwargs as Record<string, unknown>)
+                : messageRecord;
 
               if (
-                obj.type === 'ai' ||
-                obj.type === 'AIMessageChunk' ||
+                messageRecord.type === 'ai' ||
+                messageRecord.type === 'AIMessageChunk' ||
                 isSerializedFormat
               ) {
                 /**
@@ -1523,6 +1701,11 @@ export function processLangGraphEvent(
                     input: toolCall.args,
                     dynamic: true,
                   });
+                } else if (toolCall.id && emittedToolCalls.has(toolCall.id)) {
+                  // Register key mapping for tool calls already emitted via messages mode
+                  // so that __interrupt__ handling can match them by key
+                  const toolCallKey = `${toolCall.name}:${JSON.stringify(toolCall.args)}`;
+                  emittedToolCallsByKey.set(toolCallKey, toolCall.id);
                 }
               }
             }
@@ -1570,6 +1753,16 @@ export function processLangGraphEvent(
                 controller.enqueue({ type: 'reasoning-end', id: msgId });
                 emittedReasoningIds.add(reasoningId);
               }
+            }
+
+            const valuesCitations = extractCitationsFromContentBlocks(msg);
+            if (valuesCitations.length > 0) {
+              emitSourceChunks(
+                valuesCitations,
+                msgId,
+                state.emittedSourceIds,
+                controller,
+              );
             }
           }
         }
