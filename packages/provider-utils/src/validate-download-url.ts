@@ -142,7 +142,8 @@ function isPrivateIPv6(ip: string): boolean {
   if (normalized.startsWith('fc') || normalized.startsWith('fd')) return true;
 
   // fe80::/10 (link-local)
-  if (normalized.startsWith('fe80')) return true;
+  const firstHextet = parseInt(normalized.split(':', 1)[0], 16);
+  if (!isNaN(firstHextet) && (firstHextet & 0xffc0) === 0xfe80) return true;
 
   return false;
 }
