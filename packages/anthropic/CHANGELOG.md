@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.0.81
+
+### Patch Changes
+
+- 518f0c3: feat(provider/anthropic): add support for `claude-fable-5` and the `fallbacks` API parameter
+
 ## 2.0.80
 
 ### Patch Changes

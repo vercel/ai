@@ -1,5 +1,13 @@
 # @ai-sdk/google-vertex
 
+## 3.0.141
+
+### Patch Changes
+
+- 518f0c3: feat(provider/anthropic): add support for `claude-fable-5` and the `fallbacks` API parameter
+- Updated dependencies [518f0c3]
+  - @ai-sdk/anthropic@2.0.81
+
 ## 3.0.140
 
 ### Patch Changes

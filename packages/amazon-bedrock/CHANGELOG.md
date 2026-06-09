@@ -1,5 +1,13 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.101
+
+### Patch Changes
+
+- 518f0c3: feat(provider/anthropic): add support for `claude-fable-5` and the `fallbacks` API parameter
+- Updated dependencies [518f0c3]
+  - @ai-sdk/anthropic@2.0.81
+
 ## 3.0.100
 
 ### Patch Changes
