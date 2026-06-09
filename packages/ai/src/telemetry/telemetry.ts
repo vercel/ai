@@ -79,7 +79,7 @@ export interface TelemetryDispatcher {
   /** @deprecated Use `onStepEnd` instead. */
   onStepFinish?: Callback<GenerateTextStepEndEvent>;
   onObjectStepStart?: Callback<GenerateObjectStepStartEvent>;
-  onObjectStepFinish?: Callback<GenerateObjectStepEndEvent>;
+  onObjectStepEnd?: Callback<GenerateObjectStepEndEvent>;
   onEmbedStart?: Callback<EmbeddingModelCallStartEvent>;
   onEmbedEnd?: Callback<EmbeddingModelCallEndEvent>;
   onRerankStart?: Callback<RerankingModelCallStartEvent>;
@@ -179,9 +179,7 @@ export interface Telemetry {
    *
    * @deprecated
    */
-  onObjectStepFinish?: Callback<
-    InferTelemetryEvent<GenerateObjectStepEndEvent>
-  >;
+  onObjectStepEnd?: Callback<InferTelemetryEvent<GenerateObjectStepEndEvent>>;
 
   /**
    * Called when an individual embedding model call (doEmbed) begins.

@@ -79,6 +79,9 @@
       "path": "packages/groq"
     },
     {
+      "path": "packages/harness"
+    },
+    {
       "path": "packages/huggingface"
     },
     {
@@ -149,6 +152,12 @@
     },
     {
       "path": "packages/rsc"
+    },
+    {
+      "path": "packages/sandbox-just-bash"
+    },
+    {
+      "path": "packages/sandbox-vercel"
     },
     {
       "path": "packages/svelte"

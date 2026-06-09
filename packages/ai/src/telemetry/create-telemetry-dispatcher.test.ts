@@ -27,7 +27,7 @@ describe('createTelemetryDispatcher', () => {
     expect(telemetry.onToolExecutionEnd).toBeDefined();
     expect(telemetry.onStepEnd).toBeDefined();
     expect(telemetry.onObjectStepStart).toBeDefined();
-    expect(telemetry.onObjectStepFinish).toBeDefined();
+    expect(telemetry.onObjectStepEnd).toBeDefined();
     expect(telemetry.onEmbedStart).toBeDefined();
     expect(telemetry.onEmbedEnd).toBeDefined();
     expect(telemetry.onRerankStart).toBeDefined();
@@ -177,7 +177,7 @@ describe('createTelemetryDispatcher', () => {
       onToolExecutionEnd: vi.fn(),
       onStepEnd: vi.fn(),
       onObjectStepStart: vi.fn(),
-      onObjectStepFinish: vi.fn(),
+      onObjectStepEnd: vi.fn(),
       onEmbedStart: vi.fn(),
       onEmbedEnd: vi.fn(),
       onRerankStart: vi.fn(),
@@ -199,7 +199,7 @@ describe('createTelemetryDispatcher', () => {
     await telemetry.onToolExecutionEnd!(dummyEvent);
     await telemetry.onStepEnd!(dummyEvent);
     await telemetry.onObjectStepStart!(dummyEvent);
-    await telemetry.onObjectStepFinish!(dummyEvent);
+    await telemetry.onObjectStepEnd!(dummyEvent);
     await telemetry.onEmbedStart!(dummyEvent);
     await telemetry.onEmbedEnd!(dummyEvent);
     await telemetry.onRerankStart!(dummyEvent);
@@ -216,7 +216,7 @@ describe('createTelemetryDispatcher', () => {
     expect(integration.onToolExecutionEnd).toHaveBeenCalledOnce();
     expect(integration.onStepEnd).toHaveBeenCalledOnce();
     expect(integration.onObjectStepStart).toHaveBeenCalledOnce();
-    expect(integration.onObjectStepFinish).toHaveBeenCalledOnce();
+    expect(integration.onObjectStepEnd).toHaveBeenCalledOnce();
     expect(integration.onEmbedStart).toHaveBeenCalledOnce();
     expect(integration.onEmbedEnd).toHaveBeenCalledOnce();
     expect(integration.onRerankStart).toHaveBeenCalledOnce();
@@ -246,7 +246,7 @@ describe('createTelemetryDispatcher', () => {
         onToolExecutionEnd: vi.fn(),
         onStepEnd: vi.fn(),
         onObjectStepStart: vi.fn(),
-        onObjectStepFinish: vi.fn(),
+        onObjectStepEnd: vi.fn(),
         onEmbedStart: vi.fn(),
         onEmbedEnd: vi.fn(),
         onRerankStart: vi.fn(),
@@ -268,7 +268,7 @@ describe('createTelemetryDispatcher', () => {
       expect(telemetry.onToolExecutionEnd).toBeUndefined();
       expect(telemetry.onStepEnd).toBeUndefined();
       expect(telemetry.onObjectStepStart).toBeUndefined();
-      expect(telemetry.onObjectStepFinish).toBeUndefined();
+      expect(telemetry.onObjectStepEnd).toBeUndefined();
       expect(telemetry.onEmbedStart).toBeUndefined();
       expect(telemetry.onEmbedEnd).toBeUndefined();
       expect(telemetry.onRerankStart).toBeUndefined();
