@@ -44,5 +44,8 @@ export async function validateResumeStateData(input: {
     harnessId: state.harnessId,
     specificationVersion: state.specificationVersion,
     data: result.value as HarnessV1ResumeState['data'],
+    ...(state.pendingToolApprovals !== undefined
+      ? { pendingToolApprovals: state.pendingToolApprovals }
+      : {}),
   };
 }

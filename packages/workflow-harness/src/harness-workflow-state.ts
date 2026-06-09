@@ -1,17 +1,26 @@
 import type { HarnessV1Prompt, HarnessV1ResumeState } from '@ai-sdk/harness';
 
+export type HarnessWorkflowModelMessage =
+  | { readonly role: 'system'; readonly content: any }
+  | { readonly role: 'user'; readonly content: any }
+  | { readonly role: 'assistant'; readonly content: any }
+  | { readonly role: 'tool'; readonly content: any };
+
 /**
  * Where a workflow-driven harness run is in its slice loop.
  *
  *  - `running`   — fresh state, no slice has run yet.
  *  - `timed_out` — a slice hit its wall-clock budget; the turn keeps running in
  *                  the sandbox and `resumeState` carries the cursor to continue.
+ *  - `awaiting_tool_approval` — the turn emitted one or more tool approval
+ *                  requests and `resumeState` carries the suspended turn.
  *  - `finished`  — the agent turn completed on its own; `finalResult` is set.
  *  - `failed`    — the turn errored; `error` is set.
  */
 export type HarnessWorkflowStatus =
   | 'running'
   | 'timed_out'
+  | 'awaiting_tool_approval'
   | 'finished'
   | 'failed';
 
@@ -61,6 +70,12 @@ export interface HarnessWorkflowState {
    * on the slice that starts the turn.
    */
   readonly prompt: HarnessV1Prompt;
+  /**
+   * Full AI SDK model messages for continuing a suspended approval turn. When
+   * present, the next slice sends these to `HarnessAgent.stream()` so approval
+   * responses can resume the interrupted turn.
+   */
+  readonly messages?: HarnessWorkflowModelMessage[];
   readonly status: HarnessWorkflowStatus;
   /**
    * Resume coordinates for the session this slice should attach to — a prior
@@ -88,7 +103,8 @@ export interface HarnessWorkflowState {
  * only for the first turn of a new conversation.
  */
 export interface HarnessWorkflowInput {
-  prompt: HarnessV1Prompt;
+  prompt?: HarnessV1Prompt;
+  messages?: HarnessWorkflowModelMessage[];
   sessionId: string;
   resumeFrom?: HarnessV1ResumeState;
 }
@@ -99,9 +115,10 @@ export function createHarnessWorkflowState(
 ): HarnessWorkflowState {
   return {
     sessionId: input.sessionId,
-    prompt: input.prompt,
+    prompt: input.prompt ?? '',
+    ...(input.messages != null ? { messages: input.messages } : {}),
     status: 'running',
-    turnStarted: false,
+    turnStarted: input.messages != null,
     ...(input.resumeFrom != null ? { resumeState: input.resumeFrom } : {}),
   };
 }

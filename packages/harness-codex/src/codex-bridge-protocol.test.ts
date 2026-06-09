@@ -86,6 +86,17 @@ describe('inboundMessageSchema', () => {
     ).not.toThrow();
   });
 
+  it('accepts a tool-approval-response message', () => {
+    expect(() =>
+      inboundMessageSchema.parse({
+        type: 'tool-approval-response',
+        approvalId: 'a1',
+        approved: false,
+        reason: 'not allowed',
+      }),
+    ).not.toThrow();
+  });
+
   it('accepts user-message, abort, shutdown', () => {
     for (const sample of [
       { type: 'user-message', text: 'hi' },

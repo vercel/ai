@@ -6,6 +6,7 @@ describe('createPi adapter', () => {
     const harness = createPi();
     expect(harness.harnessId).toBe('pi');
     expect(harness.specificationVersion).toBe('harness-v1');
+    expect(harness.supportsBuiltinToolApprovals).toBe(true);
     expect(Object.keys(harness.builtinTools).sort()).toEqual([
       'bash',
       'edit',
@@ -17,6 +18,9 @@ describe('createPi adapter', () => {
     ]);
     expect(harness.builtinTools.read.nativeName).toBe('read');
     expect(harness.builtinTools.read.commonName).toBe('read');
+    expect(harness.builtinTools.read.toolUseKind).toBe('readonly');
+    expect(harness.builtinTools.write.toolUseKind).toBe('edit');
+    expect(harness.builtinTools.bash.toolUseKind).toBe('bash');
     // `glob` is the common-name key; the native Pi name is `find`.
     expect(harness.builtinTools.glob.nativeName).toBe('find');
     expect(harness.builtinTools.glob.commonName).toBe('glob');

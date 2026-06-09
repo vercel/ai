@@ -3,6 +3,7 @@ export {
   finalizeHarnessWorkflow,
   type HarnessWorkflowFinalResult,
   type HarnessWorkflowInput,
+  type HarnessWorkflowModelMessage,
   type HarnessWorkflowState,
   type HarnessWorkflowStatus,
   type HarnessWorkflowUsageSummary,

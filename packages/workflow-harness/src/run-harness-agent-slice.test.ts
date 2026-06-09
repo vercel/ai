@@ -1,7 +1,10 @@
 import { describe, expect, test, vi } from 'vitest';
 import type { HarnessV1ResumeState } from '@ai-sdk/harness';
 import type { HarnessAgentSession } from '@ai-sdk/harness/agent';
-import { createHarnessWorkflowState } from './harness-workflow-state';
+import {
+  createHarnessWorkflowState,
+  type HarnessWorkflowModelMessage,
+} from './harness-workflow-state';
 import {
   runHarnessAgentSlice,
   type HarnessWorkflowAgent,
@@ -188,6 +191,38 @@ describe('runHarnessAgentSlice', () => {
     expect(next.resumeState).toBeUndefined();
   });
 
+  test('tool approval pause suspends the turn and closes the response stream', async () => {
+    const session = fakeSession();
+    const { result } = streamResult({
+      chunks: [
+        { type: 'start' },
+        { type: 'tool-call', toolCallId: 'c1', toolName: 'weather' },
+        { type: 'tool-approval-request', approvalId: 'a1' },
+      ],
+      finishReason: 'tool-calls',
+    });
+    const agent: HarnessWorkflowAgent = {
+      createSession: vi.fn(async () => session),
+      stream: vi.fn(async () => result),
+      continueTurn: vi.fn(async () => result),
+    };
+
+    const { writable, isClosed } = collectingWritable();
+    const next = await runHarnessAgentSlice({
+      agent,
+      state: createHarnessWorkflowState({ prompt: 'hi', sessionId: 'ses_1' }),
+      writable,
+    });
+
+    expect(next.status).toBe('awaiting_tool_approval');
+    expect(next.turnStarted).toBe(true);
+    expect(next.resumeState).toEqual(resumeState('suspended'));
+    expect(session.suspendCalls).toBe(1);
+    expect(session.detachCalls).toBe(0);
+    expect(session.destroyCalls).toBe(0);
+    expect(isClosed()).toBe(true);
+  });
+
   test('new user turn resumes the warm session and sends the prompt (multi-turn)', async () => {
     const session = fakeSession();
     const { result } = streamResult({
@@ -304,5 +339,45 @@ describe('runHarnessAgentSlice', () => {
     expect(next.status).toBe('finished');
     // The opening `start` is dropped on a continued slice; one terminal finish.
     expect(chunks.map(c => c.type)).toEqual(['text-delta', 'finish']);
+  });
+
+  test('approval response messages resume through stream messages', async () => {
+    const session = fakeSession();
+    const { result } = streamResult({ chunks: [{ type: 'start' }] });
+    const messages: HarnessWorkflowModelMessage[] = [
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-approval-response',
+            approvalId: 'a1',
+            approved: true,
+          },
+        ],
+      },
+    ];
+    const agent: HarnessWorkflowAgent = {
+      createSession: vi.fn(async () => session),
+      stream: vi.fn(async () => result),
+      continueTurn: vi.fn(async () => {
+        throw new Error('continue should not be called for approval messages');
+      }),
+    };
+
+    const { writable } = collectingWritable();
+    const next = await runHarnessAgentSlice({
+      agent,
+      state: createHarnessWorkflowState({
+        messages,
+        sessionId: 'ses_1',
+        resumeFrom: resumeState('approval'),
+      }),
+      writable,
+    });
+
+    expect(agent.stream).toHaveBeenCalledWith({ session, messages });
+    expect(agent.continueTurn).not.toHaveBeenCalled();
+    expect(next.status).toBe('finished');
+    expect('messages' in next).toBe(false);
   });
 });

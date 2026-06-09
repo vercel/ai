@@ -178,6 +178,295 @@ function toolResultParts(
 }
 
 describe('runPrompt host tool generator results', () => {
+  test('pauses custom tool execution when approval is required', async () => {
+    const submitted: SubmittedResult[] = [];
+    const pending: unknown[] = [];
+    const weather = tool({
+      description: 'Get weather',
+      inputSchema: z.object({ city: z.string() }),
+      execute: async () => ({ temperature: 72 }),
+    });
+
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession(
+        [
+          {
+            type: 'tool-call',
+            toolCallId: 'c1',
+            toolName: 'weather',
+            input: JSON.stringify({ city: 'SF' }),
+          },
+        ],
+        input => submitted.push(input),
+      ),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { weather } as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      toolApproval: { weather: 'user-approval' },
+      onPendingToolApproval: approval => pending.push(approval),
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(submitted).toEqual([]);
+    expect(await result.finishReason).toBe('tool-calls');
+    expect(pending).toEqual([
+      {
+        approvalId: expect.any(String),
+        toolCallId: 'c1',
+        toolName: 'weather',
+        input: JSON.stringify({ city: 'SF' }),
+        kind: 'custom',
+        providerExecuted: false,
+      },
+    ]);
+    expect(parts.map(part => part.type)).toContain('tool-approval-request');
+    const approvalRequest = parts.find(
+      part => part.type === 'tool-approval-request',
+    ) as Extract<TextStreamPart<ToolSet>, { type: 'tool-approval-request' }>;
+    expect(approvalRequest.toolCall.toolName).toBe('weather');
+    expect(approvalRequest.toolCall.input).toEqual({ city: 'SF' });
+  });
+
+  test('denies custom tools configured with denied approval status', async () => {
+    const submitted: SubmittedResult[] = [];
+    const weather = tool({
+      description: 'Get weather',
+      inputSchema: z.object({ city: z.string() }),
+      execute: async () => ({ temperature: 72 }),
+    });
+
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession(
+        [
+          {
+            type: 'tool-call',
+            toolCallId: 'c1',
+            toolName: 'weather',
+            input: JSON.stringify({ city: 'SF' }),
+          },
+        ],
+        input => submitted.push(input),
+      ),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { weather } as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      toolApproval: {
+        weather: { type: 'denied', reason: 'weather disabled' },
+      },
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(submitted).toEqual([
+      {
+        toolCallId: 'c1',
+        output: {
+          type: 'execution-denied',
+          reason: 'weather disabled',
+        },
+      },
+    ]);
+    expect(parts).toContainEqual(
+      expect.objectContaining({
+        type: 'tool-approval-request',
+        isAutomatic: true,
+      }),
+    );
+    expect(parts).toContainEqual(
+      expect.objectContaining({
+        type: 'tool-approval-response',
+        approved: false,
+        reason: 'weather disabled',
+        providerExecuted: false,
+      }),
+    );
+  });
+
+  test('executes an approved pending custom tool continuation', async () => {
+    const submitted: SubmittedResult[] = [];
+    const settled: string[] = [];
+    const weather = tool({
+      description: 'Get weather',
+      inputSchema: z.object({ city: z.string() }),
+      execute: async (args: { city: string }) => ({
+        city: args.city,
+        temperature: 72,
+      }),
+    });
+
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([], input => submitted.push(input)),
+      mode: 'continue',
+      instructions: undefined,
+      tools: { weather } as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      pendingToolApprovals: [
+        {
+          approvalId: 'approval-1',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          input: JSON.stringify({ city: 'SF' }),
+          kind: 'custom',
+          providerExecuted: false,
+        },
+      ],
+      toolApprovalContinuations: [
+        {
+          approvalResponse: {
+            type: 'tool-approval-response',
+            approvalId: 'approval-1',
+            approved: true,
+          },
+          toolCall: {
+            type: 'tool-call',
+            toolCallId: 'c1',
+            toolName: 'weather',
+            input: { city: 'SF' },
+            providerExecuted: false,
+          },
+        },
+      ],
+      onToolApprovalSettled: approvalId => settled.push(approvalId),
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(settled).toEqual(['approval-1']);
+    expect(submitted).toEqual([
+      { toolCallId: 'c1', output: { city: 'SF', temperature: 72 } },
+    ]);
+    expect(parts).toContainEqual(
+      expect.objectContaining({
+        type: 'tool-approval-response',
+        approvalId: 'approval-1',
+        approved: true,
+      }),
+    );
+  });
+
+  test('does not reuse a consumed approval for replayed custom tool calls', async () => {
+    const submitted: SubmittedResult[] = [];
+    const pending: unknown[] = [];
+    const settled: string[] = [];
+    const weather = tool({
+      description: 'Get weather',
+      inputSchema: z.object({ city: z.string() }),
+      execute: async (args: { city: string }) => ({
+        city: args.city,
+        temperature: 72,
+      }),
+    });
+
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession(
+        [
+          {
+            type: 'tool-call',
+            toolCallId: 'c1',
+            toolName: 'weather',
+            input: JSON.stringify({ city: 'SF' }),
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'c2',
+            toolName: 'weather',
+            input: JSON.stringify({ city: 'Austin' }),
+          },
+        ],
+        input => submitted.push(input),
+      ),
+      mode: 'continue',
+      instructions: undefined,
+      tools: { weather } as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      toolApproval: { weather: 'user-approval' },
+      pendingToolApprovals: [
+        {
+          approvalId: 'approval-1',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          input: JSON.stringify({ city: 'SF' }),
+          kind: 'custom',
+          providerExecuted: false,
+        },
+      ],
+      toolApprovalContinuations: [
+        {
+          approvalResponse: {
+            type: 'tool-approval-response',
+            approvalId: 'approval-1',
+            approved: true,
+          },
+          toolCall: {
+            type: 'tool-call',
+            toolCallId: 'c1',
+            toolName: 'weather',
+            input: { city: 'SF' },
+            providerExecuted: false,
+          },
+        },
+      ],
+      onPendingToolApproval: approval => pending.push(approval),
+      onToolApprovalSettled: approvalId => settled.push(approvalId),
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(settled).toEqual(['approval-1']);
+    expect(submitted).toEqual([
+      { toolCallId: 'c1', output: { city: 'SF', temperature: 72 } },
+    ]);
+    expect(pending).toEqual([
+      {
+        approvalId: expect.any(String),
+        toolCallId: 'c2',
+        toolName: 'weather',
+        input: JSON.stringify({ city: 'Austin' }),
+        kind: 'custom',
+        providerExecuted: false,
+      },
+    ]);
+    expect(
+      parts.filter(part => part.type === 'tool-approval-request'),
+    ).toContainEqual(
+      expect.objectContaining({
+        type: 'tool-approval-request',
+        toolCall: expect.objectContaining({ toolCallId: 'c2' }),
+      }),
+    );
+  });
+
   test('surfaces each generator yield as a preliminary result and submits the last yield', async () => {
     const submitted: SubmittedResult[] = [];
     const weather = tool({

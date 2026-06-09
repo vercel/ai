@@ -29,11 +29,24 @@ describe('createCodex adapter', () => {
     const harness = createCodex();
     expect(harness.harnessId).toBe('codex');
     expect(harness.specificationVersion).toBe('harness-v1');
+    expect(harness.supportsBuiltinToolApprovals).toBe(false);
     expect(Object.keys(harness.builtinTools)).toEqual(['bash', 'webSearch']);
     expect(harness.builtinTools.bash.nativeName).toBe('shell');
     expect(harness.builtinTools.bash.commonName).toBe('bash');
     expect(harness.builtinTools.webSearch.nativeName).toBe('web_search');
     expect(harness.builtinTools.webSearch.commonName).toBe('webSearch');
+  });
+
+  it('rejects built-in permission modes other than allow-all', async () => {
+    const harness = createCodex();
+    await expect(
+      harness.doStart({
+        sessionId: 's1',
+        sandboxSession: {} as HarnessV1NetworkSandboxSession,
+        sessionWorkDir: '/vercel/sandbox/codex-s1',
+        permissionMode: 'allow-edits',
+      }),
+    ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
   });
 
   it('throws HarnessCapabilityUnsupportedError when the network sandbox session exposes no ports', async () => {

@@ -1,5 +1,6 @@
 import type {
   HarnessV1,
+  HarnessV1PermissionMode,
   HarnessV1SandboxProvider,
   HarnessV1Skill,
 } from '../v1';
@@ -8,7 +9,11 @@ import type {
   HarnessDiagnostic,
 } from './harness-diagnostics';
 import type { ToolSet } from '@ai-sdk/provider-utils';
-import type { TelemetryOptions } from 'ai';
+import type { TelemetryOptions, ToolApprovalStatus } from 'ai';
+
+export type HarnessAgentToolApprovalConfiguration = Readonly<
+  Record<string, ToolApprovalStatus>
+>;
 
 /**
  * Construction-time settings for a `HarnessAgent`.
@@ -58,6 +63,22 @@ export type HarnessAgentSettings<
    * later turns or when resuming a previously ended session.
    */
   readonly instructions?: string;
+
+  /**
+   * Built-in tool permission mode. Defaults to `'allow-all'`, preserving the
+   * existing bypass-permissions behavior unless users opt in.
+   */
+  readonly permissionMode?: HarnessV1PermissionMode;
+
+  /**
+   * Per custom-tool approval statuses. This mirrors AI SDK `toolApproval`
+   * object configuration for host-executed tools, without callback support.
+   *
+   * `not-applicable` and `approved` run the tool, `user-approval` pauses the
+   * turn for a user decision, and `denied` immediately submits an
+   * `execution-denied` result.
+   */
+  readonly toolApproval?: HarnessAgentToolApprovalConfiguration;
 
   /**
    * Sandbox provider whose `create()` produces the network sandbox session the

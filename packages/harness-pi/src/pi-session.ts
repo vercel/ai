@@ -19,6 +19,7 @@ import type {
   HarnessV1PromptControl,
   HarnessV1PromptOptions,
   HarnessV1NetworkSandboxSession,
+  HarnessV1PermissionMode,
   HarnessV1ResumeState,
   HarnessV1Session,
   HarnessV1Skill,
@@ -50,6 +51,15 @@ import { PiWorkspaceVfs } from './pi-workspace-vfs';
 import { syncHostWorkspaceFromSandbox } from './pi-workspace-mirror';
 
 const HARNESS_ID = 'pi';
+
+/*
+ * Pi runs in this Node process, not behind an attachable in-sandbox bridge.
+ * During a tool approval pause the Pi turn is still alive and blocked on the
+ * custom tool promise, so detach must park that live session for the next
+ * same-process resume instead of stopping it and resolving the promise as an
+ * error. Cross-process resume still falls back to the persisted session file.
+ */
+const parkedPiSessions = new Map<string, HarnessV1Session>();
 
 /**
  * Whether a discovered resource path belongs to the session workspace — either
@@ -85,6 +95,18 @@ const NATIVE_TO_COMMON: Readonly<Record<string, string>> = {
   find: 'glob',
 };
 
+const PI_NATIVE_TOOL_KINDS: Readonly<
+  Record<(typeof PI_NATIVE_BUILTIN_NAMES)[number], 'readonly' | 'edit' | 'bash'>
+> = {
+  read: 'readonly',
+  write: 'edit',
+  edit: 'edit',
+  bash: 'bash',
+  grep: 'readonly',
+  find: 'readonly',
+  ls: 'readonly',
+};
+
 export type PiThinkingLevel =
   | 'off'
   | 'minimal'
@@ -106,6 +128,7 @@ export interface CreatePiSessionInput {
   readonly skills: ReadonlyArray<HarnessV1Skill>;
   readonly settings: PiSessionSettings;
   readonly isResume: boolean;
+  readonly permissionMode?: HarnessV1PermissionMode;
   readonly resumeSessionFileName?: string;
   readonly abortSignal?: AbortSignal;
 }
@@ -114,9 +137,29 @@ interface PendingToolResult {
   resolve: (value: unknown) => void;
 }
 
+interface PendingToolApproval {
+  resolve: (value: { approved: boolean; reason?: string }) => void;
+}
+
+interface ActivePiTurn {
+  readonly token: object;
+  readonly done: Promise<void>;
+}
+
 export async function createPiSession(
   input: CreatePiSessionInput,
 ): Promise<HarnessV1Session> {
+  if (input.isResume) {
+    const parkedSession = parkedPiSessions.get(input.sessionId);
+    if (parkedSession) {
+      parkedPiSessions.delete(input.sessionId);
+      return {
+        ...parkedSession,
+        isResume: true,
+      };
+    }
+  }
+
   // Host-side mirror layout under tmpdir. Replace path-separator characters
   // that would otherwise turn a session id like `2026-05-29T17:54:27` into a
   // sub-directory tree on disk.
@@ -142,6 +185,7 @@ export async function createPiSession(
   await mkdir(hostSessionDir, { recursive: true });
 
   const sandbox = input.sandboxSession.restricted();
+  const permissionMode = input.permissionMode ?? 'allow-all';
 
   // Materialise skills into the sandbox workspace once. The host's VFS will
   // make them visible to Pi's `DefaultResourceLoader` after mount + sync.
@@ -249,10 +293,12 @@ export async function createPiSession(
    */
   let instructionsApplied = input.isResume;
   const pendingToolResults = new Map<string, PendingToolResult>();
+  const pendingToolApprovals = new Map<string, PendingToolApproval>();
 
   // Emit channel set at the start of every doPromptTurn and cleared on end.
   let currentEmit: ((part: HarnessV1StreamPart) => void) | undefined;
   let translatorState: PiTranslatorState | undefined;
+  let activeTurn: ActivePiTurn | undefined;
   /*
    * Compaction parts produced while no turn is active. Pi's `compact()` aborts
    * the current turn before it summarizes, so a manually triggered compaction
@@ -278,13 +324,108 @@ export async function createPiSession(
     pendingToolResults.clear();
   }
 
+  function settlePendingToolApprovals(reason: string): void {
+    for (const pending of pendingToolApprovals.values()) {
+      pending.resolve({ approved: false, reason });
+    }
+    pendingToolApprovals.clear();
+  }
+
+  async function persistSessionFile(): Promise<void> {
+    if (!sessionFileName) return;
+    await persistSessionFileToSandbox({
+      sandbox,
+      sessionWorkDir: input.sessionWorkDir,
+      hostSessionDir,
+      sessionFileName,
+    });
+  }
+
+  function createPromptControl(input: {
+    done: Promise<void>;
+    abortSignal?: AbortSignal;
+  }): HarnessV1PromptControl {
+    const abortHandler = () => {
+      piSession?.abort().catch(() => {});
+    };
+    if (input.abortSignal) {
+      input.abortSignal.addEventListener('abort', abortHandler, {
+        once: true,
+      });
+      void input.done.then(
+        () => {
+          input.abortSignal?.removeEventListener('abort', abortHandler);
+        },
+        () => {
+          input.abortSignal?.removeEventListener('abort', abortHandler);
+        },
+      );
+    }
+
+    return {
+      async submitToolResult(args) {
+        const pending = pendingToolResults.get(args.toolCallId);
+        if (!pending) return;
+        pendingToolResults.delete(args.toolCallId);
+        /*
+         * Preserve the original output so the result projection can surface it
+         * unchanged. The tool handler stringifies the output for the runtime
+         * (so the model reads it), and Pi echoes that text back — without this
+         * the consumer-facing result would be the serialized string instead of
+         * the original object.
+         */
+        translatorState?.hostToolResults.set(args.toolCallId, args.output);
+        pending.resolve(args.output);
+      },
+      async submitToolApproval(args) {
+        const pending = pendingToolApprovals.get(args.approvalId);
+        if (!pending) return;
+        pendingToolApprovals.delete(args.approvalId);
+        pending.resolve({
+          approved: args.approved,
+          reason: args.reason,
+        });
+      },
+      async submitUserMessage(text) {
+        await piSession?.steer(text);
+      },
+      done: input.done,
+    };
+  }
+
+  async function requestBuiltinToolApproval(args: {
+    toolCallId: string;
+    nativeName: (typeof PI_NATIVE_BUILTIN_NAMES)[number];
+  }): Promise<{ approved: boolean; reason?: string }> {
+    if (
+      !piBuiltinToolRequiresApproval({
+        permissionMode,
+        kind: PI_NATIVE_TOOL_KINDS[args.nativeName],
+      })
+    ) {
+      return { approved: true };
+    }
+    currentEmit?.({
+      type: 'tool-approval-request',
+      approvalId: args.toolCallId,
+      toolCallId: args.toolCallId,
+    });
+    return new Promise(resolve => {
+      pendingToolApprovals.set(args.toolCallId, { resolve });
+    });
+  }
+
   function buildToolDefinitions(userTools: ReadonlyArray<HarnessV1ToolSpec>): {
     customTools: ToolDefinition[];
     builtinNames: string[];
   } {
     const customTools: ToolDefinition[] = [
       ...PI_NATIVE_BUILTIN_NAMES.map(native =>
-        buildBuiltinToolDefinition(native, remoteOps),
+        buildBuiltinToolDefinition({
+          native,
+          remoteOps,
+          requestApproval: requestBuiltinToolApproval,
+        }),
       ),
       ...userTools.map(spec =>
         buildUserToolDefinition(spec, pendingToolResults),
@@ -443,7 +584,7 @@ export async function createPiSession(
            * surface.
            */
           if (suspending && isAbortError(terminalError)) return;
-          turnOpts.emit({ type: 'error', error: new Error(terminalError) });
+          currentEmit?.({ type: 'error', error: new Error(terminalError) });
           return;
         }
 
@@ -468,8 +609,8 @@ export async function createPiSession(
         // `finish-step` populates the step's finishReason + usage (the
         // agent's result builder reads this); `finish` marks the turn end
         // with totalUsage.
-        turnOpts.emit({ type: 'finish-step', finishReason, usage });
-        turnOpts.emit({
+        currentEmit?.({ type: 'finish-step', finishReason, usage });
+        currentEmit?.({
           type: 'finish',
           finishReason,
           totalUsage: usage,
@@ -481,48 +622,28 @@ export async function createPiSession(
         // Same rule as the resolved-with-terminalError path: only swallow the
         // abort our own suspend caused; surface anything unanticipated.
         if (suspending && isAbortError(err)) return;
-        turnOpts.emit({ type: 'error', error: err });
+        currentEmit?.({ type: 'error', error: err });
       } finally {
         unsubErr();
       }
     })();
 
-    const abortHandler = () => {
-      piSession?.abort().catch(() => {});
-    };
-    if (turnOpts.abortSignal) {
-      turnOpts.abortSignal.addEventListener('abort', abortHandler, {
-        once: true,
-      });
-    }
-
+    const activeTurnToken = {};
     const done = turnPromise.finally(() => {
-      turnOpts.abortSignal?.removeEventListener('abort', abortHandler);
+      if (activeTurn?.token === activeTurnToken) {
+        activeTurn = undefined;
+      }
       currentEmit = undefined;
     });
-
-    const control: HarnessV1PromptControl = {
-      async submitToolResult(args) {
-        const pending = pendingToolResults.get(args.toolCallId);
-        if (!pending) return;
-        pendingToolResults.delete(args.toolCallId);
-        /*
-         * Preserve the original output so the result projection can surface it
-         * unchanged. The tool handler stringifies the output for the runtime
-         * (so the model reads it), and Pi echoes that text back — without this
-         * the consumer-facing result would be the serialized string instead of
-         * the original object.
-         */
-        translatorState?.hostToolResults.set(args.toolCallId, args.output);
-        pending.resolve(args.output);
-      },
-      async submitUserMessage(text) {
-        await piSession?.steer(text);
-      },
+    activeTurn = {
+      token: activeTurnToken,
       done,
     };
 
-    return control;
+    return createPromptControl({
+      done,
+      abortSignal: turnOpts.abortSignal,
+    });
   }
 
   const doStop = async (): Promise<HarnessV1ResumeState> => {
@@ -530,18 +651,15 @@ export async function createPiSession(
       throw new Error('Pi session has been stopped.');
     }
     stopped = true;
+    parkedPiSessions.delete(input.sessionId);
     settlePendingToolResults('Pi session stopped');
+    settlePendingToolApprovals('Pi session stopped');
 
     // Persist the Pi session file into the sandbox so a future process
     // can pick it up after `provider.resume({ sessionId })` reattaches.
     if (sessionFileName) {
       try {
-        await persistSessionFileToSandbox({
-          sandbox,
-          sessionWorkDir: input.sessionWorkDir,
-          hostSessionDir,
-          sessionFileName,
-        });
+        await persistSessionFile();
       } catch {
         // Best-effort: a missing session file means resume returns to a
         // fresh conversation rather than failing stop.
@@ -593,6 +711,14 @@ export async function createPiSession(
     doContinueTurn: async (
       continueOpts: HarnessV1ContinueOptions,
     ): Promise<HarnessV1PromptControl> => {
+      if (activeTurn != null) {
+        currentEmit = continueOpts.emit;
+        return createPromptControl({
+          done: activeTurn.done,
+          abortSignal: continueOpts.abortSignal,
+        });
+      }
+
       /*
        * Pi runs the model on the host, so there is no live turn in the sandbox
        * to attach to — the previous slice's turn died with its process.
@@ -625,7 +751,9 @@ export async function createPiSession(
     doDestroy: async () => {
       if (stopped) return;
       stopped = true;
+      parkedPiSessions.delete(input.sessionId);
       settlePendingToolResults('Pi session stopped');
+      settlePendingToolApprovals('Pi session stopped');
       unsubscribe?.();
       unsubscribe = undefined;
       piSession?.dispose();
@@ -637,15 +765,25 @@ export async function createPiSession(
     doStop,
 
     doDetach: async (): Promise<HarnessV1ResumeState> => {
-      /*
-       * Pi has no live runtime to detach from: the model runs in this host
-       * process, not behind an in-sandbox bridge. Adapter-side work is
-       * therefore the same as `doStop()`: persist the Pi session file and tear
-       * down host-side Pi resources. Consumers still observe a lifecycle
-       * difference because `session.detach()` leaves the sandbox running,
-       * while `session.stop()` calls this same save path and then stops the
-       * sandbox.
-       */
+      if (activeTurn != null || pendingToolResults.size > 0) {
+        parkedPiSessions.set(input.sessionId, sessionImpl);
+        if (sessionFileName) {
+          try {
+            await persistSessionFile();
+          } catch {
+            /*
+             * The parked in-process session is the authoritative continuation
+             * path while the live turn is waiting on host input. Persistence is
+             * only a fallback for later non-live resumes.
+             */
+          }
+        }
+        return {
+          harnessId: HARNESS_ID,
+          specificationVersion: 'harness-v1',
+          data: sessionFileName ? { sessionFileName } : {},
+        };
+      }
       return doStop();
     },
 
@@ -668,12 +806,7 @@ export async function createPiSession(
 
       if (sessionFileName) {
         try {
-          await persistSessionFileToSandbox({
-            sandbox,
-            sessionWorkDir: input.sessionWorkDir,
-            hostSessionDir,
-            sessionFileName,
-          });
+          await persistSessionFile();
         } catch {
           // Best-effort: a missing/failed copy leaves the previously persisted
           // journal in place, so the next slice resumes from a slightly older
@@ -682,7 +815,9 @@ export async function createPiSession(
       }
 
       stopped = true;
+      parkedPiSessions.delete(input.sessionId);
       settlePendingToolResults('Pi session suspended');
+      settlePendingToolApprovals('Pi session suspended');
       unsubscribe?.();
       unsubscribe = undefined;
       piSession?.dispose();
@@ -731,19 +866,59 @@ function asPiToolResult(text: string): AgentToolResult<unknown> {
   };
 }
 
-function buildBuiltinToolDefinition(
-  native: (typeof PI_NATIVE_BUILTIN_NAMES)[number],
-  remoteOps: PiRemoteOps,
-): ToolDefinition {
-  switch (native) {
+async function maybeDenyPiBuiltinTool(input: {
+  toolCallId: string;
+  nativeName: (typeof PI_NATIVE_BUILTIN_NAMES)[number];
+  requestApproval: (args: {
+    toolCallId: string;
+    nativeName: (typeof PI_NATIVE_BUILTIN_NAMES)[number];
+  }) => Promise<{ approved: boolean; reason?: string }>;
+}): Promise<AgentToolResult<unknown> | undefined> {
+  const decision = await input.requestApproval({
+    toolCallId: input.toolCallId,
+    nativeName: input.nativeName,
+  });
+  if (decision.approved) return undefined;
+  return asPiToolResult(
+    serializeToolOutput({
+      type: 'execution-denied',
+      reason: decision.reason,
+    }),
+  );
+}
+
+function piBuiltinToolRequiresApproval(input: {
+  permissionMode: HarnessV1PermissionMode;
+  kind: 'readonly' | 'edit' | 'bash';
+}): boolean {
+  if (input.permissionMode === 'allow-all') return false;
+  if (input.permissionMode === 'allow-edits') return input.kind === 'bash';
+  return input.kind === 'edit' || input.kind === 'bash';
+}
+
+function buildBuiltinToolDefinition(input: {
+  native: (typeof PI_NATIVE_BUILTIN_NAMES)[number];
+  remoteOps: PiRemoteOps;
+  requestApproval: (args: {
+    toolCallId: string;
+    nativeName: (typeof PI_NATIVE_BUILTIN_NAMES)[number];
+  }) => Promise<{ approved: boolean; reason?: string }>;
+}): ToolDefinition {
+  switch (input.native) {
     case 'read':
       return defineTool({
         name: 'read',
         label: 'read',
         description: 'Read file contents.',
         parameters: Type.Object({ file_path: Type.String() }),
-        async execute(_id, params) {
-          const buf = await remoteOps.readBuffer(params.file_path);
+        async execute(toolCallId, params) {
+          const denied = await maybeDenyPiBuiltinTool({
+            toolCallId,
+            nativeName: 'read',
+            requestApproval: input.requestApproval,
+          });
+          if (denied) return denied;
+          const buf = await input.remoteOps.readBuffer(params.file_path);
           return asPiToolResult(buf.toString('utf8'));
         },
       });
@@ -756,8 +931,14 @@ function buildBuiltinToolDefinition(
           file_path: Type.String(),
           content: Type.String(),
         }),
-        async execute(_id, params) {
-          await remoteOps.writeFile(params.file_path, params.content);
+        async execute(toolCallId, params) {
+          const denied = await maybeDenyPiBuiltinTool({
+            toolCallId,
+            nativeName: 'write',
+            requestApproval: input.requestApproval,
+          });
+          if (denied) return denied;
+          await input.remoteOps.writeFile(params.file_path, params.content);
           return asPiToolResult(`Wrote ${params.file_path}`);
         },
       });
@@ -771,8 +952,14 @@ function buildBuiltinToolDefinition(
           old_string: Type.String(),
           new_string: Type.String(),
         }),
-        async execute(_id, params) {
-          await remoteOps.editFile(
+        async execute(toolCallId, params) {
+          const denied = await maybeDenyPiBuiltinTool({
+            toolCallId,
+            nativeName: 'edit',
+            requestApproval: input.requestApproval,
+          });
+          if (denied) return denied;
+          await input.remoteOps.editFile(
             params.file_path,
             params.old_string,
             params.new_string,
@@ -791,9 +978,15 @@ function buildBuiltinToolDefinition(
             Type.Number({ description: 'Timeout in seconds.' }),
           ),
         }),
-        async execute(_id, params, signal) {
+        async execute(toolCallId, params, signal) {
+          const denied = await maybeDenyPiBuiltinTool({
+            toolCallId,
+            nativeName: 'bash',
+            requestApproval: input.requestApproval,
+          });
+          if (denied) return denied;
           const chunks: Buffer[] = [];
-          const result = await remoteOps.exec(params.command, '.', {
+          const result = await input.remoteOps.exec(params.command, '.', {
             onData(data) {
               chunks.push(data);
             },
@@ -823,8 +1016,14 @@ function buildBuiltinToolDefinition(
           context: Type.Optional(Type.Number()),
           limit: Type.Optional(Type.Number()),
         }),
-        async execute(_id, params) {
-          const out = await remoteOps.grepFiles(params.pattern, params);
+        async execute(toolCallId, params) {
+          const denied = await maybeDenyPiBuiltinTool({
+            toolCallId,
+            nativeName: 'grep',
+            requestApproval: input.requestApproval,
+          });
+          if (denied) return denied;
+          const out = await input.remoteOps.grepFiles(params.pattern, params);
           return asPiToolResult(out);
         },
       });
@@ -838,8 +1037,14 @@ function buildBuiltinToolDefinition(
           path: Type.Optional(Type.String()),
           limit: Type.Optional(Type.Number()),
         }),
-        async execute(_id, params) {
-          const matches = await remoteOps.findFiles(
+        async execute(toolCallId, params) {
+          const denied = await maybeDenyPiBuiltinTool({
+            toolCallId,
+            nativeName: 'find',
+            requestApproval: input.requestApproval,
+          });
+          if (denied) return denied;
+          const matches = await input.remoteOps.findFiles(
             params.pattern,
             params.path ?? '.',
             params.limit ?? 1_000,
@@ -856,8 +1061,14 @@ function buildBuiltinToolDefinition(
           path: Type.Optional(Type.String()),
           limit: Type.Optional(Type.Number()),
         }),
-        async execute(_id, params) {
-          const entries = await remoteOps.listDirectory(
+        async execute(toolCallId, params) {
+          const denied = await maybeDenyPiBuiltinTool({
+            toolCallId,
+            nativeName: 'ls',
+            requestApproval: input.requestApproval,
+          });
+          if (denied) return denied;
+          const entries = await input.remoteOps.listDirectory(
             params.path ?? '.',
             params.limit ?? 500,
           );

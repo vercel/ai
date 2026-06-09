@@ -1,6 +1,7 @@
 import type { HarnessV1Prompt, HarnessV1ResumeState } from '@ai-sdk/harness';
 import type { HarnessAgentSession } from '@ai-sdk/harness/agent';
 import type {
+  HarnessWorkflowModelMessage,
   HarnessWorkflowState,
   HarnessWorkflowUsageSummary,
 } from './harness-workflow-state';
@@ -43,15 +44,24 @@ export interface HarnessWorkflowAgent {
     sessionId?: string;
     resumeFrom?: HarnessV1ResumeState;
   }): Promise<HarnessAgentSession>;
-  stream(options: {
-    session: HarnessAgentSession;
-    /**
-     * The new user turn. A string or an array of user messages — the shape
-     * `HarnessAgent.stream` accepts (it collapses an array to its last user
-     * entry). The engine passes the run's single {@link HarnessV1Prompt}.
-     */
-    prompt: string | HarnessV1UserMessage[];
-  }): Promise<HarnessWorkflowStreamResult>;
+  stream(
+    options:
+      | {
+          session: HarnessAgentSession;
+          /**
+           * The new user turn. A string or an array of user messages — the shape
+           * `HarnessAgent.stream` accepts (it collapses an array to its last user
+           * entry). The engine passes the run's single {@link HarnessV1Prompt}.
+           */
+          prompt: string | HarnessV1UserMessage[];
+          messages?: undefined;
+        }
+      | {
+          session: HarnessAgentSession;
+          prompt?: undefined;
+          messages: HarnessWorkflowModelMessage[];
+        },
+  ): Promise<HarnessWorkflowStreamResult>;
   continueTurn(options: {
     session: HarnessAgentSession;
   }): Promise<HarnessWorkflowStreamResult>;
@@ -115,16 +125,31 @@ export async function runHarnessAgentSlice(
     // `turnStarted` decides the action: continue an already-started (then
     // suspended) turn, else send this run's prompt as a fresh user turn. A
     // single user message is wrapped in an array — the shape `stream` accepts.
-    result = state.turnStarted
-      ? await agent.continueTurn({ session })
-      : await agent.stream({
-          session,
-          prompt:
-            typeof state.prompt === 'string' ? state.prompt : [state.prompt],
-        });
+    result =
+      state.messages != null
+        ? await agent.stream({
+            session,
+            messages: state.messages,
+          })
+        : state.turnStarted
+          ? await agent.continueTurn({ session })
+          : await agent.stream({
+              session,
+              prompt:
+                typeof state.prompt === 'string'
+                  ? state.prompt
+                  : [state.prompt],
+            });
   } catch (err) {
     await destroyQuietly(session);
-    return { ...state, status: 'failed', error: errorMessage(err) };
+    return {
+      sessionId: state.sessionId,
+      prompt: state.prompt,
+      status: 'failed',
+      turnStarted: state.turnStarted,
+      resumeState: state.resumeState,
+      error: errorMessage(err),
+    };
   }
 
   const writable = options.writable ?? (await resolveWorkflowWritable());
@@ -187,8 +212,11 @@ export async function runHarnessAgentSlice(
       if (suspendPromise != null) await suspendPromise.catch(() => {});
       await destroyQuietly(session);
       return {
-        ...state,
+        sessionId: state.sessionId,
+        prompt: state.prompt,
         status: 'failed',
+        turnStarted: state.turnStarted,
+        resumeState: state.resumeState,
         error: 'harness turn emitted an error',
       };
     }
@@ -198,8 +226,29 @@ export async function runHarnessAgentSlice(
     if (suspendPromise != null) {
       const resumeState = await suspendPromise;
       return {
-        ...state,
+        sessionId: state.sessionId,
+        prompt: state.prompt,
         status: 'timed_out',
+        turnStarted: true,
+        resumeState,
+      };
+    }
+
+    const [finishReason, usage] = await Promise.all([
+      Promise.resolve(result.finishReason).catch(() => undefined),
+      Promise.resolve(result.totalUsage).catch(() => undefined),
+    ]);
+    const normalizedFinishReason = toFinishReasonString(finishReason);
+
+    if (normalizedFinishReason === 'tool-calls') {
+      const resumeState = await session.suspendTurn();
+      await writer.write({ type: 'finish', finishReason: 'tool-calls' });
+      await writer.close();
+      writerClosed = true;
+      return {
+        sessionId: state.sessionId,
+        prompt: state.prompt,
+        status: 'awaiting_tool_approval',
         turnStarted: true,
         resumeState,
       };
@@ -217,10 +266,6 @@ export async function runHarnessAgentSlice(
     await writer.write({ type: 'finish' });
     await writer.close();
     writerClosed = true;
-    const [finishReason, usage] = await Promise.all([
-      Promise.resolve(result.finishReason).catch(() => undefined),
-      Promise.resolve(result.totalUsage).catch(() => undefined),
-    ]);
 
     /*
      * Capture resume state for the *next user turn* before ending this local
@@ -238,13 +283,14 @@ export async function runHarnessAgentSlice(
     }
 
     return {
-      ...state,
+      sessionId: state.sessionId,
+      prompt: state.prompt,
       status: 'finished',
       turnStarted: true,
       resumeState,
       finalResult: {
         sessionId: state.sessionId,
-        finishReason: toFinishReasonString(finishReason),
+        finishReason: normalizedFinishReason,
         usage: toUsageSummary(usage),
       },
     };

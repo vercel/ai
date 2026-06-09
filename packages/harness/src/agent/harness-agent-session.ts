@@ -1,6 +1,7 @@
 import type {
   HarnessV1,
   HarnessV1NetworkSandboxSession,
+  HarnessV1PendingToolApproval,
   HarnessV1Prompt,
   HarnessV1ResumeState,
   HarnessV1SandboxProvider,
@@ -9,6 +10,8 @@ import type {
 } from '../v1';
 import type { Context, ToolSet } from '@ai-sdk/provider-utils';
 import type { TelemetryOptions } from 'ai';
+import type { HarnessAgentToolApprovalConfiguration } from './harness-agent-settings';
+import type { HarnessAgentToolApprovalContinuation } from './harness-agent-tool-approval-continuation';
 import { releaseBridgePort } from './internal/bridge-port-registry';
 import { validateResumeStateData } from './internal/resume-state-validation';
 import { runPrompt } from './internal/run-prompt';
@@ -41,6 +44,13 @@ export class HarnessAgentSession {
   private underlyingSession: HarnessV1Session | undefined;
   private sandboxSession: HarnessV1NetworkSandboxSession | undefined;
   private leasedBridgePort: number | undefined;
+  private readonly toolApproval:
+    | HarnessAgentToolApprovalConfiguration
+    | undefined;
+  private readonly pendingToolApprovals = new Map<
+    string,
+    HarnessV1PendingToolApproval
+  >();
   private stopped = false;
 
   /**
@@ -57,6 +67,8 @@ export class HarnessAgentSession {
     sandboxProvider: HarnessV1SandboxProvider;
     leasedBridgePort?: number;
     sessionWorkDir: string;
+    toolApproval: HarnessAgentToolApprovalConfiguration | undefined;
+    pendingToolApprovals?: readonly HarnessV1PendingToolApproval[];
   }) {
     this.sessionId = options.sessionId;
     this.harness = options.harness;
@@ -65,6 +77,10 @@ export class HarnessAgentSession {
     this.sandboxProvider = options.sandboxProvider;
     this.leasedBridgePort = options.leasedBridgePort;
     this.sessionWorkDir = options.sessionWorkDir;
+    this.toolApproval = options.toolApproval;
+    for (const approval of options.pendingToolApprovals ?? []) {
+      this.pendingToolApprovals.set(approval.approvalId, approval);
+    }
     this.isResume = options.underlyingSession.isResume;
   }
 
@@ -102,6 +118,11 @@ export class HarnessAgentSession {
     telemetry: TelemetryOptions | undefined;
   }): ReturnType<typeof runPrompt<TOOLS, RUNTIME_CONTEXT>> {
     const session = this.requireReusableSession();
+    if (this.pendingToolApprovals.size > 0) {
+      throw new Error(
+        `Harness session ${this.sessionId} has pending tool approvals and must be continued with approval responses before accepting a new prompt.`,
+      );
+    }
     const sandboxSession = this.getSandboxSession();
     return runPrompt<TOOLS, RUNTIME_CONTEXT>({
       harness: this.harness,
@@ -115,6 +136,14 @@ export class HarnessAgentSession {
       runtimeContext: options.runtimeContext,
       abortSignal: options.abortSignal,
       telemetry: options.telemetry,
+      toolApproval: this.toolApproval,
+      pendingToolApprovals: this.getPendingToolApprovals(),
+      onPendingToolApproval: approval => {
+        this.pendingToolApprovals.set(approval.approvalId, approval);
+      },
+      onToolApprovalSettled: approvalId => {
+        this.pendingToolApprovals.delete(approvalId);
+      },
     });
   }
 
@@ -128,6 +157,9 @@ export class HarnessAgentSession {
     runtimeContext: RUNTIME_CONTEXT;
     abortSignal: AbortSignal | undefined;
     telemetry: TelemetryOptions | undefined;
+    toolApprovalContinuations?:
+      | readonly HarnessAgentToolApprovalContinuation[]
+      | undefined;
   }): ReturnType<typeof runPrompt<TOOLS, RUNTIME_CONTEXT>> {
     const session = this.requireReusableSession();
     const sandboxSession = this.getSandboxSession();
@@ -143,6 +175,15 @@ export class HarnessAgentSession {
       runtimeContext: options.runtimeContext,
       abortSignal: options.abortSignal,
       telemetry: options.telemetry,
+      toolApproval: this.toolApproval,
+      pendingToolApprovals: this.getPendingToolApprovals(),
+      toolApprovalContinuations: options.toolApprovalContinuations,
+      onPendingToolApproval: approval => {
+        this.pendingToolApprovals.set(approval.approvalId, approval);
+      },
+      onToolApprovalSettled: approvalId => {
+        this.pendingToolApprovals.delete(approvalId);
+      },
     });
   }
 
@@ -175,10 +216,11 @@ export class HarnessAgentSession {
     const session = this.underlyingSession;
     try {
       const raw = await session.doDetach();
-      return await validateResumeStateData({
+      const validated = await validateResumeStateData({
         harness: this.harness,
         state: raw as HarnessV1ResumeState,
       });
+      return this.withPendingToolApprovals(validated);
     } finally {
       this.endLocalHandle({ releasePortLease: false });
     }
@@ -199,10 +241,11 @@ export class HarnessAgentSession {
     const sandboxSession = this.getSandboxSession();
     try {
       const raw = await session.doStop();
-      return await validateResumeStateData({
+      const validated = await validateResumeStateData({
         harness: this.harness,
         state: raw as HarnessV1ResumeState,
       });
+      return this.withPendingToolApprovals(validated);
     } finally {
       this.endLocalHandle({ releasePortLease: true });
       await Promise.resolve(sandboxSession.stop()).catch(() => {});
@@ -256,7 +299,28 @@ export class HarnessAgentSession {
     this.stopped = true;
     this.underlyingSession = undefined;
     this.sandboxSession = undefined;
-    return validated;
+    return this.withPendingToolApprovals(validated);
+  }
+
+  private getPendingToolApprovals(): readonly HarnessV1PendingToolApproval[] {
+    return Array.from(this.pendingToolApprovals.values());
+  }
+
+  private withPendingToolApprovals(
+    state: HarnessV1ResumeState,
+  ): HarnessV1ResumeState {
+    const pendingToolApprovals = this.getPendingToolApprovals();
+    if (pendingToolApprovals.length === 0) {
+      return {
+        harnessId: state.harnessId,
+        specificationVersion: state.specificationVersion,
+        data: state.data,
+      };
+    }
+    return {
+      ...state,
+      pendingToolApprovals,
+    };
   }
 
   private endLocalHandle(options: { releasePortLease: boolean }): void {

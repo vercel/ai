@@ -41,7 +41,9 @@ export async function loadResumeStep(
     return undefined;
   }
   const parsed = await safeParseJSON({ text });
-  return parsed.success ? (parsed.value as HarnessV1ResumeState) : undefined;
+  return parsed.success
+    ? (parsed.value as unknown as HarnessV1ResumeState)
+    : undefined;
 }
 
 /** Checkpoint the handle for the next turn. No-op when there is nothing to save. */

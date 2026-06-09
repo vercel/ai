@@ -41,6 +41,15 @@ export type HarnessV1<TBuiltinTools extends ToolSet = ToolSet> = {
   readonly builtinTools: TBuiltinTools;
 
   /**
+   * Whether the adapter can emit approval requests for built-in tools when
+   * `permissionMode` is not `'allow-all'`.
+   *
+   * Custom host-executed tool approvals are handled by `HarnessAgent`, so this
+   * only describes adapter-native tool approval support.
+   */
+  readonly supportsBuiltinToolApprovals?: boolean;
+
+  /**
    * Optional schema for resume payloads returned by the session lifecycle.
    * When present, the adapter promises that exported state validated by this
    * schema can be re-imported in a future `doStart({ resumeFrom })` call.

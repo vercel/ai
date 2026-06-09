@@ -663,6 +663,16 @@ export class HarnessStreamTextResult<
           ...(part as object),
         } as ContentPart<TOOLS>);
         return;
+      case 'tool-approval-request':
+        this.currentStepContent.push({
+          ...(part as object),
+        } as ContentPart<TOOLS>);
+        return;
+      case 'tool-approval-response':
+        this.currentStepContent.push({
+          ...(part as object),
+        } as ContentPart<TOOLS>);
+        return;
       case 'tool-result':
         this.currentStepContent.push({
           ...(part as object),

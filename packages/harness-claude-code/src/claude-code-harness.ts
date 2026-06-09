@@ -10,6 +10,7 @@ import {
   type HarnessV1Bootstrap,
   type HarnessV1DebugConfig,
   type HarnessV1BuiltinTool,
+  type HarnessV1PermissionMode,
   type HarnessV1Prompt,
   type HarnessV1PromptControl,
   type HarnessV1ResumeState,
@@ -83,6 +84,7 @@ export type ClaudeCodeHarnessSettings = {
 const CLAUDE_CODE_BUILTIN_TOOLS = {
   read: commonTool('read', {
     nativeName: 'Read',
+    toolUseKind: 'readonly',
     description: 'Read file contents (text, image, PDF, notebook)',
     inputSchema: z.object({
       file_path: z.string(),
@@ -93,6 +95,7 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
   }),
   write: commonTool('write', {
     nativeName: 'Write',
+    toolUseKind: 'edit',
     description: 'Overwrite or create a file at an absolute path',
     inputSchema: z.object({
       file_path: z.string(),
@@ -101,6 +104,7 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
   }),
   edit: commonTool('edit', {
     nativeName: 'Edit',
+    toolUseKind: 'edit',
     description: 'Edit a file by exact string replacement',
     inputSchema: z.object({
       file_path: z.string(),
@@ -111,6 +115,7 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
   }),
   bash: commonTool('bash', {
     nativeName: 'Bash',
+    toolUseKind: 'bash',
     description: 'Execute a shell command, optionally in background',
     inputSchema: z.object({
       command: z.string(),
@@ -122,6 +127,7 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
   }),
   glob: commonTool('glob', {
     nativeName: 'Glob',
+    toolUseKind: 'readonly',
     description: 'Fast file-pattern search using glob syntax',
     inputSchema: z.object({
       pattern: z.string(),
@@ -130,6 +136,7 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
   }),
   grep: commonTool('grep', {
     nativeName: 'Grep',
+    toolUseKind: 'readonly',
     description: 'Regex search over file contents via ripgrep',
     inputSchema: z.object({
       pattern: z.string(),
@@ -153,6 +160,7 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
   }),
   webSearch: commonTool('webSearch', {
     nativeName: 'WebSearch',
+    toolUseKind: 'readonly',
     description: 'Issue web search queries with optional domain filters',
     inputSchema: z.object({
       query: z.string(),
@@ -392,6 +400,7 @@ export function createClaudeCode(
     specificationVersion: 'harness-v1',
     harnessId: 'claude-code',
     builtinTools: CLAUDE_CODE_BUILTIN_TOOLS,
+    supportsBuiltinToolApprovals: true,
     resumeStateSchema: claudeCodeResumeStateSchema,
     getBootstrap: async () => {
       if (cachedBootstrap != null) return cachedBootstrap;
@@ -453,9 +462,7 @@ export function createClaudeCode(
       // (re)connect: open the socket, then wait for `bridge-hello` so the
       // end-to-end link is proven live before any frame is sent.
       const buildConnect = (wsUrl: string) => async (): Promise<WebSocket> => {
-        const ws = await openWebSocket(wsUrl);
-        await waitForBridgeHello(ws, timeoutMs);
-        return ws;
+        return openBridgeWebSocket({ wsUrl, timeoutMs });
       };
 
       /*
@@ -496,6 +503,7 @@ export function createClaudeCode(
             bridgeToken: coords.token,
             sandboxId,
             debug: startOpts.observability?.debug,
+            permissionMode: startOpts.permissionMode,
           });
         } catch {
           // Bridge no longer reachable — recover by respawning below.
@@ -505,12 +513,11 @@ export function createClaudeCode(
       /*
        * Rungs 2/3 — REPLAY vs RERUN. Respawn the bridge. `replay` is only sound
        * when the resume payload carried live coordinates (`detach` or
-       * `suspendTurn`),
-       * because those include the cursor the on-disk log is replayed *from*. A
-       * payload without coordinates — e.g. from `stop()` — has
-       * no cursor, so replaying a finished turn from seq 0 would re-deliver it
-       * into the next turn. Those resumes always `rerun` (the CLI continues its
-       * own thread from the workdir snapshot via `continue: true`).
+       * `suspendTurn`), because those include the cursor the on-disk log is
+       * replayed *from*. A payload without coordinates — e.g. from `stop()` —
+       * has no cursor, so replaying a finished turn from seq 0 would re-deliver
+       * it into the next turn. Those resumes always `rerun` (the CLI continues
+       * its own thread from the workdir snapshot via `continue: true`).
        */
       let respawnStrategy: ClaudeCodeRespawnStrategy | undefined = isResume
         ? 'rerun'
@@ -566,22 +573,26 @@ export function createClaudeCode(
         abortSignal: startOpts.abortSignal,
       });
 
+      const bridgeStartupStderr: string[] = [];
+      /*
+       * Bridge stderr is the only diagnostic channel for sandbox-side crashes
+       * and startup failures. Start forwarding before `bridge-ready`, otherwise
+       * module-resolution, auth, and syntax errors can be lost behind the
+       * generic startup failure below.
+       */
+      const bridgeStartupStderrDone = forwardBridgeStderr({
+        stream: proc.stderr,
+        collectTail: bridgeStartupStderr,
+      });
+      void bridgeStartupStderrDone;
       const { port: boundPort } = await waitForBridgeReady({
         proc,
         timeoutMs,
         abortSignal: startOpts.abortSignal,
+        stderrTail: bridgeStartupStderr,
+        stderrDone: bridgeStartupStderrDone,
       });
       void drainRest(proc.stdout);
-      /*
-       * Bridge stderr is the only diagnostic channel for what happens
-       * inside the sandbox once the bridge is running (uncaught
-       * exceptions, Claude SDK errors, network failures). Forward it
-       * line-by-line to the host console so a mid-turn bridge crash can
-       * be inspected from `pnpm dev` logs without redeploying. The
-       * bridge itself writes nothing to stderr in steady state, so this
-       * is silent on the happy path.
-       */
-      void forwardBridgeStderr(proc.stderr);
 
       const wsUrl =
         (await sandboxSession.getPortUrl({
@@ -618,6 +629,7 @@ export function createClaudeCode(
         bridgeToken: token,
         sandboxId,
         debug: startOpts.observability?.debug,
+        permissionMode: startOpts.permissionMode,
       });
     },
   };
@@ -687,14 +699,19 @@ async function waitForBridgeReady({
   proc,
   timeoutMs,
   abortSignal,
+  stderrTail,
+  stderrDone,
 }: {
   proc: Experimental_SandboxProcess;
   timeoutMs: number;
   abortSignal: AbortSignal | undefined;
+  stderrTail: string[];
+  stderrDone: Promise<void>;
 }): Promise<{ port: number }> {
   const reader = proc.stdout.pipeThrough(new TextDecoderStream()).getReader();
 
   const decoder = lineDecoder();
+  const stdoutTail: string[] = [];
 
   const deadline = Date.now() + timeoutMs;
   try {
@@ -706,7 +723,13 @@ async function waitForBridgeReady({
       const remaining = deadline - Date.now();
       if (remaining <= 0) {
         await proc.kill();
-        throw new Error('claude-code bridge did not become ready in time.');
+        throw await createBridgeStartupError({
+          message: 'claude-code bridge did not become ready in time.',
+          proc,
+          stdoutTail,
+          stderrTail,
+          stderrDone,
+        });
       }
       const { value, done } = (await Promise.race([
         reader.read(),
@@ -718,10 +741,22 @@ async function waitForBridgeReady({
         ),
       ])) as ReadableStreamReadResult<string>;
       if (done) {
-        throw new Error('claude-code bridge exited before becoming ready.');
+        for (const line of decoder.flush()) {
+          stdoutTail.push(line);
+          if (stdoutTail.length > 20) stdoutTail.shift();
+        }
+        throw await createBridgeStartupError({
+          message: 'claude-code bridge exited before becoming ready.',
+          proc,
+          stdoutTail,
+          stderrTail,
+          stderrDone,
+        });
       }
       if (value === undefined) continue;
       for (const line of decoder.push(value)) {
+        stdoutTail.push(line);
+        if (stdoutTail.length > 20) stdoutTail.shift();
         const parsed = await safeParseJSON({
           text: line,
           schema: bridgeReadySchema,
@@ -732,6 +767,50 @@ async function waitForBridgeReady({
   } finally {
     reader.releaseLock();
   }
+}
+
+async function createBridgeStartupError({
+  message,
+  proc,
+  stdoutTail,
+  stderrTail,
+  stderrDone,
+}: {
+  message: string;
+  proc: Experimental_SandboxProcess;
+  stdoutTail: string[];
+  stderrTail: string[];
+  stderrDone: Promise<void>;
+}): Promise<Error> {
+  await Promise.race([
+    stderrDone,
+    new Promise<void>(resolve => setTimeout(resolve, 250)),
+  ]).catch(() => {});
+
+  let exitStatus = '';
+  try {
+    const result = (await Promise.race([
+      proc.wait(),
+      new Promise<undefined>(resolve => setTimeout(resolve, 250)),
+    ])) as { exitCode?: number } | undefined;
+    if (result?.exitCode !== undefined) {
+      exitStatus = ` Exit code: ${result.exitCode}.`;
+    }
+  } catch {}
+
+  const details: string[] = [];
+  if (stdoutTail.length > 0) {
+    details.push(`stdout:\n${stdoutTail.join('\n')}`);
+  }
+  if (stderrTail.length > 0) {
+    details.push(`stderr:\n${stderrTail.join('\n')}`);
+  }
+
+  return new Error(
+    `${message}${exitStatus}${
+      details.length > 0 ? `\n\n${details.join('\n\n')}` : ''
+    }`,
+  );
 }
 
 function lineDecoder() {
@@ -749,20 +828,47 @@ function lineDecoder() {
       }
       return lines;
     },
+    flush(): string[] {
+      const line = buffer.replace(/\r$/, '').trim();
+      buffer = '';
+      return line.length > 0 ? [line] : [];
+    },
   };
 }
 
-async function forwardBridgeStderr(
-  stream: ReadableStream<Uint8Array>,
-): Promise<void> {
+async function forwardBridgeStderr({
+  stream,
+  collectTail,
+}: {
+  stream: ReadableStream<Uint8Array>;
+  collectTail?: string[];
+}): Promise<void> {
   try {
     const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
+    const decoder = lineDecoder();
     while (true) {
       const { value, done } = await reader.read();
-      if (done) return;
+      if (done) {
+        for (const line of decoder.flush()) {
+          const trimmed = line.trim();
+          if (!trimmed) continue;
+          if (collectTail) {
+            collectTail.push(trimmed);
+            if (collectTail.length > 20) collectTail.shift();
+          }
+          // eslint-disable-next-line no-console
+          console.log(`[bridge stderr] ${trimmed}`);
+        }
+        return;
+      }
       if (value) {
-        const trimmed = value.endsWith('\n') ? value.slice(0, -1) : value;
-        if (trimmed.length > 0) {
+        for (const line of decoder.push(value)) {
+          const trimmed = line.trim();
+          if (!trimmed) continue;
+          if (collectTail) {
+            collectTail.push(trimmed);
+            if (collectTail.length > 20) collectTail.shift();
+          }
           // eslint-disable-next-line no-console
           console.log(`[bridge stderr] ${trimmed}`);
         }
@@ -794,10 +900,13 @@ async function drainRest(stream: ReadableStream<Uint8Array>): Promise<void> {
  * `bridge-hello` the instant it accepts the connection, so receiving it
  * is the only reliable evidence that the end-to-end link is live.
  */
-async function waitForBridgeHello(
-  ws: WebSocket,
-  timeoutMs: number,
-): Promise<void> {
+async function waitForBridgeHello({
+  ws,
+  timeoutMs,
+}: {
+  ws: WebSocket;
+  timeoutMs: number;
+}): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     let settled = false;
     const cleanup = () => {
@@ -849,20 +958,92 @@ async function waitForBridgeHello(
   });
 }
 
-function openWebSocket(url: string): Promise<WebSocket> {
+async function openBridgeWebSocket({
+  wsUrl,
+  timeoutMs,
+}: {
+  wsUrl: string;
+  timeoutMs: number;
+}): Promise<WebSocket> {
+  const deadline = Date.now() + timeoutMs;
+  let attempt = 0;
+  let lastError: unknown;
+
+  while (Date.now() < deadline) {
+    attempt++;
+    let ws: WebSocket | undefined;
+    try {
+      const remaining = Math.max(1, deadline - Date.now());
+      ws = await openWebSocket({
+        url: wsUrl,
+        timeoutMs: Math.min(10_000, remaining),
+      });
+      await waitForBridgeHello({
+        ws,
+        timeoutMs: Math.min(5_000, Math.max(1, deadline - Date.now())),
+      });
+      return ws;
+    } catch (err) {
+      lastError = err;
+      try {
+        ws?.close();
+      } catch {}
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) break;
+      await sleep(Math.min(250 * attempt, 1_000, remaining));
+    }
+  }
+
+  throw new Error(
+    `claude-code bridge did not complete WebSocket handshake within ${timeoutMs}ms after ${attempt} attempt(s). Last error: ${formatUnknownError(lastError)}`,
+  );
+}
+
+function openWebSocket({
+  url,
+  timeoutMs,
+}: {
+  url: string;
+  timeoutMs: number;
+}): Promise<WebSocket> {
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(url);
-    const onOpen = () => {
+    const timer = setTimeout(() => {
+      cleanup();
+      try {
+        ws.terminate();
+      } catch {}
+      reject(new Error(`WebSocket open timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+    timer.unref?.();
+    const cleanup = () => {
+      clearTimeout(timer);
+      ws.off('open', onOpen);
       ws.off('error', onError);
+    };
+    const onOpen = () => {
+      cleanup();
       resolve(ws);
     };
     const onError = (err: Error) => {
-      ws.off('open', onOpen);
+      cleanup();
       reject(err);
     };
     ws.once('open', onOpen);
     ws.once('error', onError);
   });
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => {
+    const timer = setTimeout(resolve, ms);
+    timer.unref?.();
+  });
+}
+
+function formatUnknownError(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  return String(error);
 }
 
 function createSession({
@@ -879,6 +1060,7 @@ function createSession({
   bridgeToken,
   sandboxId,
   debug,
+  permissionMode,
 }: {
   sessionId: string;
   channel: ClaudeCodeChannel;
@@ -894,6 +1076,7 @@ function createSession({
   bridgeToken: string;
   sandboxId: string;
   debug: HarnessV1DebugConfig | undefined;
+  permissionMode: HarnessV1PermissionMode | undefined;
 }): HarnessV1Session {
   let stopped = false;
   let stopPromise: Promise<void> | undefined;
@@ -960,6 +1143,7 @@ function createSession({
       'reasoning-delta',
       'reasoning-end',
       'tool-call',
+      'tool-approval-request',
       'tool-result',
       'finish-step',
       'raw',
@@ -1031,6 +1215,14 @@ function createSession({
           isError: input.isError,
         });
       },
+      submitToolApproval: async input => {
+        channel.send({
+          type: 'tool-approval-response',
+          approvalId: input.approvalId,
+          approved: input.approved,
+          reason: input.reason,
+        });
+      },
       submitUserMessage: async text => {
         channel.send({ type: 'user-message', text });
       },
@@ -1065,6 +1257,7 @@ function createSession({
         model,
         maxTurns,
         thinking,
+        ...(permissionMode ? { permissionMode } : {}),
         ...(debug ? { debug } : {}),
         ...(pendingResumeFlag ? { continue: true } : {}),
       };
@@ -1112,6 +1305,7 @@ function createSession({
           model,
           maxTurns,
           thinking,
+          ...(permissionMode ? { permissionMode } : {}),
           ...(debug ? { debug } : {}),
           continue: true,
         });

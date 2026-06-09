@@ -1,0 +1,51 @@
+import { weatherTool } from '@/lib/tools/weather-tool';
+import {
+  WEATHER_CODES_REFERENCE,
+  weatherCodesSkill,
+  weatherForecastSkill,
+  weatherInstructions,
+} from '@/lib/weather-utils';
+import { HarnessAgent } from '@ai-sdk/harness/agent';
+import {
+  createFileReporter,
+  createTraceTreeReporter,
+} from '@ai-sdk/harness/observability';
+import { codex } from '@ai-sdk/harness-codex';
+import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import type { InferUITools, UIMessage } from 'ai';
+
+export const weatherApprovalCodexHarnessAgent = new HarnessAgent({
+  harness: codex,
+  instructions: weatherInstructions,
+  skills: [weatherForecastSkill, weatherCodesSkill],
+  tools: { get_weather: weatherTool },
+  toolApproval: {
+    get_weather: 'user-approval',
+  },
+  sandbox: createVercelSandbox({
+    runtime: 'node24',
+    ports: [4000],
+    setup: async ({ session, sessionWorkDir, abortSignal }) => {
+      await session.writeTextFile({
+        path: `${sessionWorkDir}/weather-codes.md`,
+        content: WEATHER_CODES_REFERENCE,
+        abortSignal,
+      });
+    },
+  }),
+  debug: { enabled: true },
+  telemetry: {
+    integrations: [
+      createTraceTreeReporter(),
+      createFileReporter({
+        dir: '.harness-observability/codex/weather-approval',
+      }),
+    ],
+  },
+});
+
+export type WeatherApprovalCodexHarnessAgentMessage = UIMessage<
+  unknown,
+  never,
+  InferUITools<typeof weatherApprovalCodexHarnessAgent.tools>
+>;

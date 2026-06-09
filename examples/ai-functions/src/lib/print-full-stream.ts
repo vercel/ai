@@ -41,9 +41,24 @@ export async function printFullStream({
 
       case 'error':
         console.error(
-          `\n\x1b[31m\x1b[1mERROR\x1b[22m\n${JSON.stringify(chunk.error, null, 2)}\x1b[0m`,
+          `\n\x1b[31m\x1b[1mERROR\x1b[22m\n${formatStreamError(chunk.error)}\x1b[0m`,
         );
         break;
     }
   }
+}
+
+function formatStreamError(error: unknown): string {
+  if (error instanceof Error) {
+    return JSON.stringify(
+      {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+      },
+      null,
+      2,
+    );
+  }
+  return JSON.stringify(error, null, 2);
 }
