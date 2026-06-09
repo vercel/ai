@@ -442,6 +442,15 @@ export type AnthropicResponseContextManagement = {
   applied_edits: AnthropicResponseContextManagementEdit[];
 };
 
+const anthropicStopDetailsSchema = z.object({
+  type: z.string(),
+  category: z.string().nullish(),
+  explanation: z.string().nullish(),
+  recommended_model: z.string().nullish(),
+});
+
+export type AnthropicStopDetails = z.infer<typeof anthropicStopDetailsSchema>;
+
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 export const anthropicMessagesResponseSchema = lazySchema(() =>
@@ -634,10 +643,17 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
               }),
             ]),
           }),
+          // Server-side fallback marker. Parsed so the response validates, but
+          // dropped from the content output (the AI SDK has no model-hop
+          // primitive). The hop remains observable via usage.iterations.
+          z.object({
+            type: z.literal('fallback'),
+          }),
         ]),
       ),
       stop_reason: z.string().nullish(),
       stop_sequence: z.string().nullish(),
+      stop_details: anthropicStopDetailsSchema.nullish(),
       usage: z.looseObject({
         input_tokens: z.number(),
         output_tokens: z.number(),
@@ -646,9 +662,17 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
         iterations: z
           .array(
             z.object({
-              type: z.union([z.literal('compaction'), z.literal('message')]),
+              type: z.union([
+                z.literal('compaction'),
+                z.literal('message'),
+                z.literal('advisor_message'),
+                z.literal('fallback_message'),
+              ]),
+              model: z.string().nullish(),
               input_tokens: z.number(),
               output_tokens: z.number(),
+              cache_creation_input_tokens: z.number().nullish(),
+              cache_read_input_tokens: z.number().nullish(),
             }),
           )
           .nullish(),
@@ -865,6 +889,11 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
               }),
             ]),
           }),
+          // Server-side fallback marker; dropped from content output (see the
+          // response schema). The hop remains observable via usage.iterations.
+          z.object({
+            type: z.literal('fallback'),
+          }),
         ]),
       }),
       z.object({
@@ -937,6 +966,7 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
         delta: z.object({
           stop_reason: z.string().nullish(),
           stop_sequence: z.string().nullish(),
+          stop_details: anthropicStopDetailsSchema.nullish(),
           container: z
             .object({
               expires_at: z.string(),
@@ -964,9 +994,17 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
           iterations: z
             .array(
               z.object({
-                type: z.union([z.literal('compaction'), z.literal('message')]),
+                type: z.union([
+                  z.literal('compaction'),
+                  z.literal('message'),
+                  z.literal('advisor_message'),
+                  z.literal('fallback_message'),
+                ]),
+                model: z.string().nullish(),
                 input_tokens: z.number(),
                 output_tokens: z.number(),
+                cache_creation_input_tokens: z.number().nullish(),
+                cache_read_input_tokens: z.number().nullish(),
               }),
             )
             .nullish(),

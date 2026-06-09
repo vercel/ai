@@ -30,6 +30,7 @@ import type { AnthropicMessageMetadata } from './anthropic-message-metadata';
 import {
   type AnthropicContainer,
   type AnthropicReasoningMetadata,
+  type AnthropicStopDetails,
   type Citation,
   anthropicMessagesChunkSchema,
   anthropicMessagesResponseSchema,
@@ -345,6 +346,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       ...(anthropicOptions?.inferenceGeo && {
         inference_geo: anthropicOptions.inferenceGeo,
       }),
+      ...(anthropicOptions?.fallbacks &&
+        anthropicOptions.fallbacks.length > 0 && {
+          fallbacks: anthropicOptions.fallbacks,
+        }),
       ...(anthropicOptions?.cacheControl && {
         cache_control: anthropicOptions.cacheControl,
       }),
@@ -522,6 +527,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
     if (anthropicOptions?.speed === 'fast') {
       betas.add('fast-mode-2026-02-01');
+    }
+
+    if (anthropicOptions?.fallbacks && anthropicOptions.fallbacks.length > 0) {
+      betas.add('server-side-fallback-2026-06-01');
     }
 
     // structured output:
@@ -935,13 +944,33 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
           });
           break;
         }
+
+        // Server-side fallback marker: the AI SDK has no content primitive for
+        // a model hop, so drop it. The hop is still observable via
+        // usage.iterations.
+        case 'fallback': {
+          break;
+        }
       }
     }
 
     let inputTokens: number;
     let outputTokens: number;
 
-    if (response.usage.iterations && response.usage.iterations.length > 0) {
+    // A turn served by a server-side fallback is the exception to summing the
+    // iterations: the served answer comes from the fallback model, so the
+    // executor `message` iteration is the blocked primary attempt (zero
+    // output). The top-level totals already reflect the fallback answer, so
+    // they are used directly.
+    const servedByFallback = response.usage.iterations?.some(
+      iter => iter.type === 'fallback_message',
+    );
+
+    if (
+      response.usage.iterations &&
+      response.usage.iterations.length > 0 &&
+      !servedByFallback
+    ) {
       const totals = response.usage.iterations.reduce(
         (acc, iter) => ({
           input: acc.input + iter.input_tokens,
@@ -955,6 +984,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       inputTokens = response.usage.input_tokens;
       outputTokens = response.usage.output_tokens;
     }
+
+    const stopDetails = mapAnthropicStopDetails(response.stop_details);
 
     return {
       content,
@@ -982,9 +1013,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
           cacheCreationInputTokens:
             response.usage.cache_creation_input_tokens ?? null,
           stopSequence: response.stop_sequence ?? null,
+          ...(stopDetails != null ? { stopDetails } : {}),
           iterations: response.usage.iterations
             ? response.usage.iterations.map(iter => ({
                 type: iter.type,
+                ...(iter.model != null ? { model: iter.model } : {}),
                 inputTokens: iter.input_tokens,
                 outputTokens: iter.output_tokens,
               }))
@@ -1111,9 +1144,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     let rawUsage: JSONObject | undefined = undefined;
     let cacheCreationInputTokens: number | null = null;
     let stopSequence: string | null = null;
+    let stopDetails: AnthropicMessageMetadata['stopDetails'] = undefined;
     let container: AnthropicMessageMetadata['container'] | null = null;
     let iterations: Array<{
-      type: 'compaction' | 'message';
+      type: 'compaction' | 'message' | 'advisor_message' | 'fallback_message';
+      model?: string | null;
       input_tokens: number;
       output_tokens: number;
     }> | null = null;
@@ -1165,6 +1200,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
             case 'content_block_start': {
               const contentBlockType = value.content_block.type;
+
+              // Server-side fallback marker: the AI SDK has no content
+              // primitive for a model hop, so drop it. The hop is still
+              // observable via usage.iterations.
+              if (contentBlockType === 'fallback') {
+                return;
+              }
 
               blockType = contentBlockType;
 
@@ -1653,7 +1695,20 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                 iterations = value.usage.iterations;
               }
 
-              if (value.usage.iterations && value.usage.iterations.length > 0) {
+              // A turn served by a server-side fallback is the exception to
+              // summing the iterations: the served answer comes from the
+              // fallback model, so the executor `message` iteration is the
+              // blocked primary attempt (zero output). The top-level totals
+              // already reflect the fallback answer, so they are used directly.
+              const servedByFallback = value.usage.iterations?.some(
+                iter => iter.type === 'fallback_message',
+              );
+
+              if (
+                value.usage.iterations &&
+                value.usage.iterations.length > 0 &&
+                !servedByFallback
+              ) {
                 const totals = value.usage.iterations.reduce(
                   (acc, iter) => ({
                     input: acc.input + iter.input_tokens,
@@ -1680,6 +1735,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                 finishReason: value.delta.stop_reason,
                 isJsonResponseFromTool: usesJsonResponseTool,
               });
+
+              stopDetails = mapAnthropicStopDetails(value.delta.stop_details);
 
               stopSequence = value.delta.stop_sequence ?? null;
               container =
@@ -1771,9 +1828,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                     usage: (rawUsage as JSONObject) ?? null,
                     cacheCreationInputTokens,
                     stopSequence,
+                    ...(stopDetails != null ? { stopDetails } : {}),
                     iterations: iterations
                       ? iterations.map(iter => ({
                           type: iter.type,
+                          ...(iter.model != null ? { model: iter.model } : {}),
                           inputTokens: iter.input_tokens,
                           outputTokens: iter.output_tokens,
                         }))
@@ -1857,7 +1916,8 @@ function getModelCapabilities(modelId: string): {
 } {
   if (
     modelId.includes('claude-opus-4-8') ||
-    modelId.includes('claude-opus-4-7')
+    modelId.includes('claude-opus-4-7') ||
+    modelId.includes('claude-fable-5')
   ) {
     return {
       maxOutputTokens: 128000,
@@ -1932,4 +1992,23 @@ function getModelCapabilities(modelId: string): {
       isKnownModel: false,
     };
   }
+}
+
+function mapAnthropicStopDetails(
+  stopDetails: AnthropicStopDetails | null | undefined,
+): AnthropicMessageMetadata['stopDetails'] | undefined {
+  if (stopDetails == null) {
+    return undefined;
+  }
+
+  return {
+    type: stopDetails.type,
+    ...(stopDetails.category != null ? { category: stopDetails.category } : {}),
+    ...(stopDetails.explanation != null
+      ? { explanation: stopDetails.explanation }
+      : {}),
+    ...(stopDetails.recommended_model != null
+      ? { recommendedModel: stopDetails.recommended_model }
+      : {}),
+  };
 }
