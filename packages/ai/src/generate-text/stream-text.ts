@@ -1006,6 +1006,7 @@ class DefaultStreamTextResult<
         providerMetadata: ProviderMetadata | undefined;
       }
     > = {};
+    let recordedError: unknown | undefined;
 
     const eventProcessor = new TransformStream<
       EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>,
@@ -1019,7 +1020,11 @@ class DefaultStreamTextResult<
         await onChunk?.({ chunk: part });
 
         if (part.type === 'error') {
-          await onError({ error: wrapGatewayError(part.error) });
+          const error = wrapGatewayError(part.error);
+          if (NoOutputGeneratedError.isInstance(error)) {
+            recordedError = error;
+          }
+          await onError({ error });
         }
 
         if (
@@ -1223,9 +1228,10 @@ class DefaultStreamTextResult<
           if (recordedSteps.length === 0) {
             const error = abortSignal?.aborted
               ? abortSignal.reason
-              : new NoOutputGeneratedError({
+              : (recordedError ??
+                new NoOutputGeneratedError({
                   message: 'No output generated. Check the stream for errors.',
-                });
+                }));
 
             self._finishReason.reject(error);
             self._rawFinishReason.reject(error);
@@ -1838,6 +1844,8 @@ class DefaultStreamTextResult<
 
           let stepFinishReason: FinishReason = 'other';
           let stepRawFinishReason: string | undefined = undefined;
+          let sawErrorPart = false;
+          let sawModelCallEnd = false;
 
           let stepUsage: LanguageModelUsage = createNullLanguageModelUsage();
           let stepProviderMetadata: ProviderMetadata | undefined;
@@ -1956,6 +1964,8 @@ class DefaultStreamTextResult<
                     }
 
                     case 'model-call-end': {
+                      sawModelCallEnd = true;
+
                       // Note: tool executions might not be finished yet when the finish event is emitted.
                       // store usage and finish reason for promises and onEnd callback:
                       stepUsage = chunk.usage;
@@ -1968,6 +1978,7 @@ class DefaultStreamTextResult<
                     }
 
                     case 'error': {
+                      sawErrorPart = true;
                       controller.enqueue(chunk);
                       stepFinishReason = 'error';
                       break;
@@ -1989,6 +2000,21 @@ class DefaultStreamTextResult<
 
                 // invoke onEnd callback and resolve toolResults promise when the stream is about to close:
                 async flush(controller) {
+                  if (!sawModelCallEnd && !sawErrorPart) {
+                    controller.enqueue({
+                      type: 'error',
+                      error: new NoOutputGeneratedError({
+                        message:
+                          'No output generated. The model stream ended without a finish chunk.',
+                      }),
+                    });
+
+                    clearStepTimeout();
+                    clearChunkTimeout();
+                    self.closeStream();
+                    return;
+                  }
+
                   const stepTimeMs = now() - stepStartTimestampMs;
 
                   const finishStepPart: TextStreamPart<TOOLS> = {
@@ -2302,13 +2328,27 @@ class DefaultStreamTextResult<
     return this.stream;
   }
 
+  private rejectResultPromises(error: unknown) {
+    if (this._finishReason.isPending()) this._finishReason.reject(error);
+    if (this._rawFinishReason.isPending()) this._rawFinishReason.reject(error);
+    if (this._totalUsage.isPending()) this._totalUsage.reject(error);
+    if (this._steps.isPending()) this._steps.reject(error);
+    if (this._initialResponseMessages.isPending()) {
+      this._initialResponseMessages.reject(error);
+    }
+  }
+
   async consumeStream(options?: ConsumeStreamOptions): Promise<void> {
     try {
       await consumeStream({
         stream: this.stream,
-        onError: options?.onError,
+        onError: error => {
+          this.rejectResultPromises(error);
+          options?.onError?.(error);
+        },
       });
     } catch (error) {
+      this.rejectResultPromises(error);
       options?.onError?.(error);
     }
   }

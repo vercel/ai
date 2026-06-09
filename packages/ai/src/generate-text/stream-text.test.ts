@@ -2508,6 +2508,88 @@ describe('streamText', () => {
         'No output generated. Check the stream for errors.',
       );
     });
+
+    it('should reject when provider stream closes before finish chunk', async () => {
+      const onError = vi.fn();
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'stream-start',
+              warnings: [],
+            },
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        onError,
+      });
+
+      await result.consumeStream();
+
+      await expect(result.text).rejects.toThrow(
+        'No output generated. The model stream ended without a finish chunk.',
+      );
+      await expect(result.steps).rejects.toThrow(
+        'No output generated. The model stream ended without a finish chunk.',
+      );
+      await expect(result.finishReason).rejects.toThrow(
+        'No output generated. The model stream ended without a finish chunk.',
+      );
+      expect(onError).toHaveBeenCalledWith({
+        error: expect.objectContaining({
+          message:
+            'No output generated. The model stream ended without a finish chunk.',
+        }),
+      });
+    });
+
+    it('should reject result promises when provider stream errors after metadata', async () => {
+      const onConsumeError = vi.fn();
+
+      const result = streamText({
+        model: createTestModel({
+          stream: new ReadableStream<LanguageModelV4StreamPart>({
+            start(controller) {
+              controller.enqueue({ type: 'stream-start', warnings: [] });
+              controller.enqueue({
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              });
+              queueMicrotask(() => {
+                controller.error(new Error('simulated provider stream error'));
+              });
+            },
+          }),
+        }),
+        prompt: 'test-input',
+      });
+
+      await expect(
+        result.consumeStream({ onError: onConsumeError }),
+      ).resolves.not.toThrow();
+
+      await expect(result.text).rejects.toThrow(
+        'simulated provider stream error',
+      );
+      await expect(result.steps).rejects.toThrow(
+        'simulated provider stream error',
+      );
+      await expect(result.finishReason).rejects.toThrow(
+        'simulated provider stream error',
+      );
+      expect(onConsumeError).toHaveBeenCalledWith(
+        new Error('simulated provider stream error'),
+      );
+    });
   });
 
   describe('retries', () => {
@@ -17265,6 +17347,11 @@ describe('streamText', () => {
                 { type: 'text-delta', id: '1', delta: ', ' },
                 { type: 'text-delta', id: '1', delta: 'world!' },
                 { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
               ]),
             }),
           });
@@ -28563,6 +28650,11 @@ describe('streamText', () => {
                 delta: 'response from with-image-url-support',
               },
               { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
             ]),
           };
         },
@@ -28583,6 +28675,11 @@ describe('streamText', () => {
                 delta: 'response from without-image-url-support',
               },
               { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
             ]),
           };
         },
