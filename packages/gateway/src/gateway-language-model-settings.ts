@@ -29,6 +29,7 @@ export type GatewayModelId =
   | 'amazon/nova-pro'
   | 'anthropic/claude-3-haiku'
   | 'anthropic/claude-3.5-haiku'
+  | 'anthropic/claude-fable-5'
   | 'anthropic/claude-haiku-4.5'
   | 'anthropic/claude-opus-4'
   | 'anthropic/claude-opus-4.1'

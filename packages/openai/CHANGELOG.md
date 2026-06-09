@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 4.0.0-canary.70
+
+### Patch Changes
+
+- 6a5800e: feat(openai): add namespaces for tool definitions
+
 ## 4.0.0-canary.69
 
 ### Patch Changes
