@@ -1,5 +1,18 @@
 # ai
 
+## 7.0.0-canary.168
+
+### Patch Changes
+
+- 1e4b350: Honor `tool.toModelOutput` in `WorkflowAgent`.
+
+  `WorkflowAgent` now routes successful local, provider-executed, and approved tool results through each tool's optional `toModelOutput` hook, matching `generateText`, `streamText`, and `ToolLoopAgent`. Previously the hook was ignored and results were always serialized as `text` or `json`.
+
+  Internally exports the shared tool-result model-output helpers from `ai/internal`, and uses the shared `getErrorMessage` behavior for workflow tool error results.
+
+- Updated dependencies [a3bb04a]
+  - @ai-sdk/gateway@4.0.0-canary.102
+
 ## 7.0.0-canary.167
 
 ### Patch Changes
