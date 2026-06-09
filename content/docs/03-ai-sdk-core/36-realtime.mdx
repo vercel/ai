@@ -201,3 +201,18 @@ const googleModel = google.experimental_realtime(
 );
 const xaiModel = xai.experimental_realtime('grok-voice-latest');
 ```
+
+You can also route realtime through the [AI Gateway](/providers/ai-sdk-providers/ai-gateway#realtime), which normalizes the
+session so the same client code works across upstream providers:
+
+```ts
+import { gateway } from '@ai-sdk/gateway';
+
+const gatewayModel = gateway.experimental_realtime('openai/gpt-realtime-2');
+```
+
+Gateway realtime v0 is server-side only and throws if used in a browser. It uses
+the resolved Gateway auth token for the WebSocket upgrade rather than a
+provider-minted short-lived client secret. See the
+[AI Gateway realtime docs](/providers/ai-sdk-providers/ai-gateway#realtime) for
+the Gateway-specific token and subprotocol details.
