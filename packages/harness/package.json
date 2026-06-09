@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/harness",
-  "version": "0.0.0-canary.0",
+  "version": "0.0.0-canary.1",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
