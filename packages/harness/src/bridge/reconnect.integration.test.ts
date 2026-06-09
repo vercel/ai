@@ -11,7 +11,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';
 import { z } from 'zod';
 import { runBridge, type BridgeHandle, type BridgeTurn } from './index';
-import { SandboxChannel } from '../channel/sandbox-channel';
+import { SandboxChannel } from '../utils/sandbox-channel';
 
 const TOKEN = 'integ-token';
 const outboundSchema = z.discriminatedUnion('type', [
