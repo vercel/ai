@@ -4,7 +4,7 @@ import type {
   HarnessV1,
   HarnessV1NetworkSandboxSession,
   HarnessV1PromptControl,
-  HarnessV1PromptOptions,
+  HarnessV1PromptTurnOptions,
   HarnessV1SandboxProvider,
   HarnessV1Session,
   HarnessV1StreamPart,
@@ -25,7 +25,7 @@ function scriptedHarness(script: HarnessV1StreamPart[]): HarnessV1 {
   const session: HarnessV1Session = {
     sessionId: 'tel-session',
     isResume: false,
-    doPromptTurn: async (opts: HarnessV1PromptOptions) => {
+    doPromptTurn: async (opts: HarnessV1PromptTurnOptions) => {
       const control: HarnessV1PromptControl = {
         submitToolResult: async () => {},
         done: Promise.resolve(),

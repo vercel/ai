@@ -2,7 +2,7 @@ import type {
   HarnessV1,
   HarnessV1NetworkSandboxSession,
   HarnessV1PromptControl,
-  HarnessV1PromptOptions,
+  HarnessV1PromptTurnOptions,
   HarnessV1ResumeState,
   HarnessV1SandboxProvider,
   HarnessV1Session,
@@ -31,14 +31,14 @@ function mockHarness(options: {
   ) => HarnessV1StreamPart[];
 }): {
   harness: HarnessV1;
-  prompts: HarnessV1PromptOptions['prompt'][];
+  prompts: HarnessV1PromptTurnOptions['prompt'][];
   toolResults: { toolCallId: string; output: unknown }[];
   doStart: ReturnType<typeof vi.fn>;
   doStop: ReturnType<typeof vi.fn>;
   doDestroy: ReturnType<typeof vi.fn>;
   doCompact: ReturnType<typeof vi.fn>;
 } {
-  const prompts: HarnessV1PromptOptions['prompt'][] = [];
+  const prompts: HarnessV1PromptTurnOptions['prompt'][] = [];
   const toolResults: { toolCallId: string; output: unknown }[] = [];
   const resumeState = {
     harnessId: 'mock',
@@ -54,7 +54,7 @@ function mockHarness(options: {
   session = {
     sessionId: 'mock-session-1',
     isResume: false,
-    doPromptTurn: async (opts: HarnessV1PromptOptions) => {
+    doPromptTurn: async (opts: HarnessV1PromptTurnOptions) => {
       prompts.push(opts.prompt);
       const control: HarnessV1PromptControl = {
         submitToolResult: async input => {
@@ -716,7 +716,7 @@ describe('HarnessAgent', () => {
     const underlying: HarnessV1Session = {
       sessionId: 's-attach',
       isResume: true,
-      doPromptTurn: async (opts: HarnessV1PromptOptions) => {
+      doPromptTurn: async (opts: HarnessV1PromptTurnOptions) => {
         queueMicrotask(() => opts.emit({ type: 'finish' } as never));
         return { submitToolResult: async () => {}, done: Promise.resolve() };
       },

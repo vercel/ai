@@ -79,7 +79,7 @@ export type HarnessV1StartOptions = {
 /**
  * Options passed to `HarnessV1Session.doPromptTurn`.
  */
-export type HarnessV1PromptOptions = {
+export type HarnessV1PromptTurnOptions = {
   /**
    * Fresh input for this turn — either a plain string or a single
    * `ModelMessage`. The harness session owns its own conversation history,
@@ -118,6 +118,8 @@ export type HarnessV1PromptOptions = {
   readonly emit: (event: HarnessV1StreamPart) => void;
 };
 
+export type HarnessV1PromptOptions = HarnessV1PromptTurnOptions;
+
 /**
  * Options passed to `HarnessV1Session.doContinueTurn`.
  *
@@ -125,7 +127,7 @@ export type HarnessV1PromptOptions = {
  * in-flight turn rather than starting a new one. It is used to continue a turn
  * that was previously suspended temporarily, e.g. by the workflow slice loop.
  */
-export type HarnessV1ContinueOptions = {
+export type HarnessV1ContinueTurnOptions = {
   /**
    * Host-defined tools to make available for the continued turn. Same shape
    * as `doPromptTurn`'s `tools`. An adapter that purely attaches to a live turn
@@ -145,6 +147,8 @@ export type HarnessV1ContinueOptions = {
    */
   readonly emit: (event: HarnessV1StreamPart) => void;
 };
+
+export type HarnessV1ContinueOptions = HarnessV1ContinueTurnOptions;
 
 /**
  * Active harness session, returned by `HarnessV1.doStart`.
@@ -181,7 +185,7 @@ export type HarnessV1Session = {
    * is in flight. The handle's `done` promise resolves when the turn ends.
    */
   doPromptTurn(
-    options: HarnessV1PromptOptions,
+    options: HarnessV1PromptTurnOptions,
   ): PromiseLike<HarnessV1PromptControl>;
 
   /**
@@ -215,7 +219,7 @@ export type HarnessV1Session = {
    * from its architecture; the contract is uniform.
    */
   doContinueTurn(
-    options: HarnessV1ContinueOptions,
+    options: HarnessV1ContinueTurnOptions,
   ): PromiseLike<HarnessV1PromptControl>;
 
   /**

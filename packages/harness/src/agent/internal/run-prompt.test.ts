@@ -9,7 +9,7 @@ import { z } from 'zod';
 import type {
   HarnessV1,
   HarnessV1PromptControl,
-  HarnessV1PromptOptions,
+  HarnessV1PromptTurnOptions,
   HarnessV1Session,
   HarnessV1StreamPart,
 } from '../../v1';
@@ -41,7 +41,8 @@ function fakeSession(
   return {
     sessionId: 'fake-session',
     isResume: false,
-    doPromptTurn: async (opts: HarnessV1PromptOptions) => emitScript(opts.emit),
+    doPromptTurn: async (opts: HarnessV1PromptTurnOptions) =>
+      emitScript(opts.emit),
     doContinueTurn: async opts => emitScript(opts.emit),
     doCompact: async () => {},
     doDetach: async () => ({
