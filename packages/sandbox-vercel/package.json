@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/sandbox-vercel",
-  "version": "1.0.0-canary.1",
+  "version": "1.0.0-canary.2",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
