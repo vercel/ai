@@ -1,5 +1,12 @@
 # @ai-sdk/gateway
 
+## 3.0.127
+
+### Patch Changes
+
+- 3851e29: Backport: chore(provider/gateway): update gateway model settings files
+- 2a91a17: feat(provider/anthropic): add support for `claude-fable-5` and the `fallbacks` API parameter
+
 ## 3.0.126
 
 ### Patch Changes

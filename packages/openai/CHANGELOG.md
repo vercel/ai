@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.69
+
+### Patch Changes
+
+- 9a55f6d: feat(openai): add namespaces for tool definitions
+
 ## 3.0.68
 
 ### Patch Changes
