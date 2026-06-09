@@ -111,6 +111,12 @@ const gatewayProviderOptions = lazySchema(() =>
        * default.
        */
       serviceTier: z.enum(['flex', 'priority']).optional(),
+      /**
+       * Caching behavior for automatic caching in AI Gateway.
+       *
+       * - `'auto'`: Automatically cache responses when possible.
+       */
+      caching: z.literal('auto').optional(),
     }),
   ),
 );
