@@ -2652,6 +2652,7 @@ describe('processLangGraphEvent - sources', () => {
     >,
     messageConcat: {} as Record<string, AIMessageChunk>,
     emittedToolCalls: new Set<string>(),
+    emittedToolInputs: new Set<string>(),
     emittedImages: new Set<string>(),
     emittedReasoningIds: new Set<string>(),
     messageReasoningIds: {} as Record<string, string>,
