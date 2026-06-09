@@ -18,6 +18,7 @@ import {
   type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
+import { throwIfOpenAIStreamErrorBeforeOutput } from '../openai-stream-error';
 import {
   convertOpenAICompletionUsage,
   type OpenAICompletionUsage,
@@ -224,11 +225,13 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
       },
     };
 
+    const url = this.config.url({
+      path: '/completions',
+      modelId: this.modelId,
+    });
+
     const { responseHeaders, value: response } = await postJsonToApi({
-      url: this.config.url({
-        path: '/completions',
-        modelId: this.modelId,
-      }),
+      url,
       headers: combineHeaders(this.config.headers(), options.headers),
       body,
       failedResponseHandler: openaiFailedResponseHandler,
@@ -239,6 +242,15 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
+    const checkedResponse = await throwIfOpenAIStreamErrorBeforeOutput({
+      stream: response,
+      getError: chunk => ('error' in chunk ? chunk.error : undefined),
+      isOutputChunk: isOpenAICompletionOutputChunk,
+      url,
+      requestBodyValues: body,
+      responseHeaders,
+    });
+
     let finishReason: LanguageModelV3FinishReason = {
       unified: 'other',
       raw: undefined,
@@ -247,8 +259,8 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
     let usage: OpenAICompletionUsage | undefined = undefined;
     let isFirstChunk = true;
 
-    return {
-      stream: response.pipeThrough(
+    const result = {
+      stream: checkedResponse.pipeThrough(
         new TransformStream<
           ParseResult<OpenAICompletionChunk>,
           LanguageModelV3StreamPart
@@ -332,5 +344,13 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
       request: { body },
       response: { headers: responseHeaders },
     };
+
+    return result;
   }
+}
+
+function isOpenAICompletionOutputChunk(chunk: OpenAICompletionChunk): boolean {
+  return (
+    !('error' in chunk) && chunk.choices.some(choice => choice.text.length > 0)
+  );
 }
