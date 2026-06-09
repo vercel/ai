@@ -519,10 +519,11 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
       }),
       z.object({
         type: z.literal('response.failed'),
+        sequence_number: z.number().nullish(),
         response: z.object({
           error: z
             .object({
-              code: z.string().nullish(),
+              code: z.union([z.string(), z.number()]).nullish(),
               message: z.string(),
             })
             .nullish(),
@@ -1038,13 +1039,20 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
       }),
       z.object({
         type: z.literal('error'),
-        sequence_number: z.number(),
+        sequence_number: z.number().nullish(),
         error: z.object({
-          type: z.string(),
-          code: z.string(),
+          type: z.string().nullish(),
+          code: z.union([z.string(), z.number()]).nullish(),
           message: z.string(),
-          param: z.string().nullish(),
+          param: z.any().nullish(),
         }),
+      }),
+      z.object({
+        type: z.literal('error'),
+        sequence_number: z.number().nullish(),
+        code: z.union([z.string(), z.number()]).nullish(),
+        message: z.string(),
+        param: z.any().nullish(),
       }),
       z
         .object({ type: z.string() })

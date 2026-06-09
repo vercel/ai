@@ -1,10 +1,10 @@
-import type {
-  LanguageModelV4Content,
-  LanguageModelV4FunctionTool,
-  LanguageModelV4GenerateResult,
-  LanguageModelV4ProviderTool,
-  LanguageModelV4Prompt,
-  LanguageModelV4StreamPart,
+import {
+  type LanguageModelV4Content,
+  type LanguageModelV4FunctionTool,
+  type LanguageModelV4GenerateResult,
+  type LanguageModelV4ProviderTool,
+  type LanguageModelV4Prompt,
+  type LanguageModelV4StreamPart,
 } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
@@ -12,7 +12,7 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { OpenAIResponsesLanguageModel } from './openai-responses-language-model';
 import {
   openaiResponsesModelIds,
@@ -1820,7 +1820,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       it('should throw an error', async () => {
         prepareJsonFixtureResponse('openai-error.1');
 
-        expect(
+        await expect(
           createModel('gpt-4o').doGenerate({
             prompt: TEST_PROMPT,
           }),
@@ -7515,77 +7515,72 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('errors', () => {
-      it('should stream error parts', async () => {
+      it('should throw an api error when the stream errors before output starts', async () => {
         prepareChunksFixtureResponse('openai-error.1');
 
-        const { stream } = await createModel('gpt-4o-mini').doStream({
-          prompt: TEST_PROMPT,
-          includeRawChunks: false,
+        await expect(
+          createModel('gpt-4o-mini').doStream({
+            prompt: TEST_PROMPT,
+            includeRawChunks: false,
+          }),
+        ).rejects.toMatchObject({
+          message:
+            'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.',
+          statusCode: 429,
+          isRetryable: true,
         });
-
-        expect(await convertReadableStreamToArray(stream))
-          .toMatchInlineSnapshot(`
-            [
-              {
-                "type": "stream-start",
-                "warnings": [],
-              },
-              {
-                "id": "resp_05500b38c2cd9bfc00691c7c9d222481a3b595421266dab424",
-                "modelId": "gpt-5-nano-2025-08-07",
-                "timestamp": 2025-11-18T14:03:09.000Z,
-                "type": "response-metadata",
-              },
-              {
-                "error": {
-                  "error": {
-                    "code": "insufficient_quota",
-                    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.",
-                    "param": null,
-                    "type": "insufficient_quota",
-                  },
-                  "sequence_number": 2,
-                  "type": "error",
-                },
-                "type": "error",
-              },
-              {
-                "finishReason": {
-                  "raw": "error",
-                  "unified": "error",
-                },
-                "providerMetadata": {
-                  "openai": {
-                    "responseId": "resp_05500b38c2cd9bfc00691c7c9d222481a3b595421266dab424",
-                  },
-                },
-                "type": "finish",
-                "usage": {
-                  "inputTokens": {
-                    "cacheRead": undefined,
-                    "cacheWrite": undefined,
-                    "noCache": undefined,
-                    "total": undefined,
-                  },
-                  "outputTokens": {
-                    "reasoning": undefined,
-                    "text": undefined,
-                    "total": undefined,
-                  },
-                  "raw": undefined,
-                },
-              },
-            ]
-          `);
       });
 
-      it('should expose raw finish reason from response.failed incomplete details', async () => {
+      it('should throw an api error for documented top-level error events before output starts', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data:{"type":"response.created","sequence_number":0,"response":{"id":"resp_error_top_level","created_at":1741269019,"model":"gpt-4o-2024-07-18","service_tier":null}}\n\n`,
+            `data:{"type":"error","sequence_number":1,"code":"rate_limit_exceeded","message":"Rate limit reached","param":null}\n\n`,
+          ],
+        };
+
+        await expect(
+          createModel('gpt-4o-mini').doStream({
+            prompt: TEST_PROMPT,
+            includeRawChunks: true,
+          }),
+        ).rejects.toMatchObject({
+          message: 'Rate limit reached',
+          statusCode: 429,
+          isRetryable: true,
+        });
+      });
+
+      it('should throw an api error when response.failed arrives before output starts', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data:{"type":"response.created","sequence_number":0,"response":{"id":"resp_failed_before_output","created_at":1741269019,"model":"gpt-4o-2024-07-18","service_tier":null}}\n\n`,
+            `data:{"type":"response.failed","sequence_number":1,"response":{"error":{"code":"server_error","message":"response failed"},"incomplete_details":null,"usage":null,"service_tier":null}}\n\n`,
+          ],
+        };
+
+        await expect(
+          createModel('gpt-4o-mini').doStream({
+            prompt: TEST_PROMPT,
+            includeRawChunks: false,
+          }),
+        ).rejects.toMatchObject({
+          message: 'response failed',
+          statusCode: 500,
+          isRetryable: true,
+        });
+      });
+
+      it('should expose raw finish reason from late response.failed incomplete details', async () => {
         server.urls['https://api.openai.com/v1/responses'].response = {
           type: 'stream-chunks',
           chunks: [
             `data:{"type":"response.created","sequence_number":0,"response":{"id":"resp_failed_with_reason","created_at":1741269019,"model":"gpt-4o-2024-07-18","service_tier":null}}\n\n`,
-            `data:{"type":"error","sequence_number":1,"error":{"type":"server_error","code":"server_error","message":"response failed","param":null}}\n\n`,
-            `data:{"type":"response.failed","sequence_number":2,"response":{"error":{"code":"server_error","message":"response failed"},"incomplete_details":{"reason":"max_output_tokens"},"usage":null,"service_tier":null}}\n\n`,
+            `data:{"type":"response.output_item.added","sequence_number":1,"output_index":0,"item":{"id":"msg_failed_with_reason","type":"message"}}\n\n`,
+            `data:{"type":"error","sequence_number":2,"error":{"type":"server_error","code":"server_error","message":"response failed","param":null}}\n\n`,
+            `data:{"type":"response.failed","sequence_number":3,"response":{"error":{"code":"server_error","message":"response failed"},"incomplete_details":{"reason":"max_output_tokens"},"usage":null,"service_tier":null}}\n\n`,
           ],
         };
 
@@ -7609,6 +7604,15 @@ describe('OpenAIResponsesLanguageModel', () => {
               "type": "response-metadata",
             },
             {
+              "id": "msg_failed_with_reason",
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "msg_failed_with_reason",
+                },
+              },
+              "type": "text-start",
+            },
+            {
               "error": {
                 "error": {
                   "code": "server_error",
@@ -7616,7 +7620,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                   "param": null,
                   "type": "server_error",
                 },
-                "sequence_number": 1,
+                "sequence_number": 2,
                 "type": "error",
               },
               "type": "error",
@@ -7649,6 +7653,48 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
           ]
         `);
+      });
+
+      it('should debug early stream errors without logging prompt content', async () => {
+        const originalDebug = process.env.AI_SDK_OPENAI_STREAM_DEBUG;
+        process.env.AI_SDK_OPENAI_STREAM_DEBUG = '1';
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data:{"type":"response.created","sequence_number":0,"response":{"id":"resp_debug","created_at":1741269019,"model":"gpt-4o-2024-07-18","service_tier":null}}\n\n`,
+            `data:{"type":"response.failed","sequence_number":1,"response":{"id":"resp_debug","object":"response","status":"failed","model":"gpt-4o-2024-07-18","output":[{"type":"message","content":[{"type":"output_text","text":"SECRET_OUTPUT"}]}],"metadata":{"secret":"SECRET_METADATA"},"error":{"code":"server_error","message":"response failed"},"incomplete_details":null,"usage":null,"service_tier":null}}\n\n`,
+          ],
+        };
+
+        try {
+          await expect(
+            createModel('gpt-4o-mini').doStream({
+              prompt: [
+                {
+                  role: 'user',
+                  content: [{ type: 'text', text: 'SECRET_PROMPT' }],
+                },
+              ],
+              includeRawChunks: false,
+            }),
+          ).rejects.toThrow('response failed');
+
+          expect(warn).toHaveBeenCalledTimes(1);
+          const debugOutput = warn.mock.calls[0].join(' ');
+          expect(debugOutput).toContain('response failed');
+          expect(debugOutput).not.toContain('SECRET_PROMPT');
+          expect(debugOutput).not.toContain('SECRET_OUTPUT');
+          expect(debugOutput).not.toContain('SECRET_METADATA');
+        } finally {
+          warn.mockRestore();
+          if (originalDebug == null) {
+            delete process.env.AI_SDK_OPENAI_STREAM_DEBUG;
+          } else {
+            process.env.AI_SDK_OPENAI_STREAM_DEBUG = originalDebug;
+          }
+        }
       });
     });
 
