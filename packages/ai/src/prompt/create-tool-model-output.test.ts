@@ -170,7 +170,7 @@ describe('createToolModelOutput', () => {
     // class-based tools that rely on `this` in `toModelOutput`.
     // See https://github.com/vercel/ai/pull/15917#discussion_r3376474765
     it('should preserve `this` when calling a class-based tool.toModelOutput', async () => {
-      class WeatherTool implements Tool {
+      class WeatherTool {
         readonly inputSchema = z.object({});
         private readonly unit = '°C';
 

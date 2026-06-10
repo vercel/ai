@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
 import { executeTool } from './execute-tool';
 import type { ExecutableTool } from './executable-tool';
-import { tool, type Tool } from './tool';
+import { tool } from './tool';
 import type { ToolExecutionOptions } from './tool-execute-function';
 describe('executeTool', () => {
   // Guards against re-introducing a "this-binding guard" (e.g. destructuring
@@ -10,7 +10,7 @@ describe('executeTool', () => {
   // tools that rely on `this` in `execute`.
   // See https://github.com/vercel/ai/pull/15917#discussion_r3376474765
   it('preserves `this` for a class-based tool.execute', async () => {
-    class CalculatorTool implements Tool {
+    class CalculatorTool {
       readonly inputSchema = z.object({ a: z.number(), b: z.number() });
       private readonly prefix = 'calc';
 
@@ -34,7 +34,7 @@ describe('executeTool', () => {
       options: {
         toolCallId: 'tool-call-1',
         messages: [],
-        context: undefined,
+        context: undefined as never,
       },
     })) {
       results.push(result);

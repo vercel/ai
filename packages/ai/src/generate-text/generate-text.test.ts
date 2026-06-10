@@ -13,7 +13,6 @@ import {
   tool,
   type ModelMessage,
   type Experimental_SandboxSession as SandboxSession,
-  type Tool,
   type ToolExecuteFunction,
   type ToolResultOutput,
 } from '@ai-sdk/provider-utils';
@@ -1261,7 +1260,7 @@ describe('generateText', () => {
     // break the binding.
     // See https://github.com/vercel/ai/pull/15917#discussion_r3376474765
     it('should preserve `this` for execute and toModelOutput', async () => {
-      class CalculatorTool implements Tool {
+      class CalculatorTool {
         readonly inputSchema = z.object({ a: z.number(), b: z.number() });
         private readonly prefix = 'calc';
 
