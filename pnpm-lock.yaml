@@ -2351,10 +2351,16 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
+      ai:
+        specifier: workspace:*
+        version: link:../ai
     devDependencies:
       '@types/node':
         specifier: 22.19.19
         version: 22.19.19
+      '@types/ws':
+        specifier: ^8.5.13
+        version: 8.18.1
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
@@ -2364,6 +2370,12 @@ importers:
       typescript:
         specifier: 5.8.3
         version: 5.8.3
+      ws:
+        specifier: ^8.20.1
+        version: 8.20.1
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/huggingface:
     dependencies:
