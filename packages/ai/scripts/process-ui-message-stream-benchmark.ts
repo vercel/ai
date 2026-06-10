@@ -13,10 +13,12 @@ const DEFAULT_SWEEP_ITERATIONS = 20;
 // Usage:
 //   pnpm tsx packages/ai/scripts/process-ui-message-stream-benchmark.ts [chunks] [chunk-size] [iterations]
 //   pnpm tsx packages/ai/scripts/process-ui-message-stream-benchmark.ts --sweep [iterations]
+//   pnpm tsx packages/ai/scripts/process-ui-message-stream-benchmark.ts --high-chunk-count-sweep [iterations]
 //
 // To compare this branch with main, run the same script from this branch and
 // from a main worktree that contains a copy of the script.
 const sweep = process.argv.includes('--sweep');
+const highChunkCountSweep = process.argv.includes('--high-chunk-count-sweep');
 const summaryOnly = process.argv.includes('--summary-only');
 const positionalArguments = process.argv
   .slice(2)
@@ -28,25 +30,36 @@ type Workload = {
   iterations: number;
 };
 
-const workloads = sweep
+const workloads = highChunkCountSweep
   ? [
-      { chunkCount: 5_000, chunkSize: 200 },
-      { chunkCount: 10_000, chunkSize: 200 },
-      { chunkCount: 20_000, chunkSize: 200 },
-      { chunkCount: 40_000, chunkSize: 200 },
-      { chunkCount: 10_000, chunkSize: 1_000 },
-      { chunkCount: 20_000, chunkSize: 1_000 },
+      { chunkCount: 50_000, chunkSize: 20 },
+      { chunkCount: 100_000, chunkSize: 20 },
+      { chunkCount: 150_000, chunkSize: 20 },
+      { chunkCount: 200_000, chunkSize: 20 },
+      { chunkCount: 250_000, chunkSize: 20 },
     ].map(workload => ({
       ...workload,
       iterations: readPositiveIntegerArgument(2, DEFAULT_SWEEP_ITERATIONS),
     }))
-  : [
-      {
-        chunkCount: readPositiveIntegerArgument(2, DEFAULT_CHUNK_COUNT),
-        chunkSize: readPositiveIntegerArgument(3, DEFAULT_CHUNK_SIZE),
-        iterations: readPositiveIntegerArgument(4, DEFAULT_ITERATIONS),
-      },
-    ];
+  : sweep
+    ? [
+        { chunkCount: 5_000, chunkSize: 200 },
+        { chunkCount: 10_000, chunkSize: 200 },
+        { chunkCount: 20_000, chunkSize: 200 },
+        { chunkCount: 40_000, chunkSize: 200 },
+        { chunkCount: 10_000, chunkSize: 1_000 },
+        { chunkCount: 20_000, chunkSize: 1_000 },
+      ].map(workload => ({
+        ...workload,
+        iterations: readPositiveIntegerArgument(2, DEFAULT_SWEEP_ITERATIONS),
+      }))
+    : [
+        {
+          chunkCount: readPositiveIntegerArgument(2, DEFAULT_CHUNK_COUNT),
+          chunkSize: readPositiveIntegerArgument(3, DEFAULT_CHUNK_SIZE),
+          iterations: readPositiveIntegerArgument(4, DEFAULT_ITERATIONS),
+        },
+      ];
 
 type BenchmarkResult = {
   elapsedMs: number;
