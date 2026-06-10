@@ -908,6 +908,36 @@ describe('generateObject', () => {
       }
     `);
     });
+
+    it('should return transformed array elements', async () => {
+      const model = new MockLanguageModelV4({
+        doGenerate: {
+          ...dummyResponseValues,
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                elements: [{ content: 'element 1' }, { content: 'element 2' }],
+              }),
+            },
+          ],
+        },
+      });
+
+      const result = await generateObject({
+        model,
+        schema: z.object({
+          content: z
+            .string()
+            .transform(value => value.length)
+            .pipe(z.number()),
+        }),
+        output: 'array',
+        prompt: 'prompt',
+      });
+
+      expect(result.object).toStrictEqual([{ content: 9 }, { content: 9 }]);
+    });
   });
 
   describe('output = "enum"', () => {
