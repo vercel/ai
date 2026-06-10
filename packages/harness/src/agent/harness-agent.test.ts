@@ -1,9 +1,10 @@
 import type {
   HarnessV1,
+  HarnessV1ContinueTurnState,
   HarnessV1NetworkSandboxSession,
   HarnessV1PromptControl,
   HarnessV1PromptTurnOptions,
-  HarnessV1ResumeState,
+  HarnessV1ResumeSessionState,
   HarnessV1SandboxProvider,
   HarnessV1Session,
   HarnessV1StreamPart,
@@ -41,6 +42,13 @@ function mockHarness(options: {
   const prompts: HarnessV1PromptTurnOptions['prompt'][] = [];
   const toolResults: { toolCallId: string; output: unknown }[] = [];
   const resumeState = {
+    type: 'resume-session' as const,
+    harnessId: 'mock',
+    specificationVersion: 'harness-v1' as const,
+    data: {},
+  };
+  const continueState = {
+    type: 'continue-turn' as const,
     harnessId: 'mock',
     specificationVersion: 'harness-v1' as const,
     data: {},
@@ -79,11 +87,7 @@ function mockHarness(options: {
       submitToolResult: async () => {},
       done: Promise.resolve(),
     }),
-    doSuspendTurn: async () => ({
-      harnessId: 'mock',
-      specificationVersion: 'harness-v1',
-      data: {},
-    }),
+    doSuspendTurn: async () => continueState,
   };
 
   return {
@@ -136,14 +140,22 @@ function makeLifecycleSession(options: {
   sandboxSessionOverrides?: Partial<HarnessV1NetworkSandboxSession>;
 }): {
   session: HarnessAgentSession;
-  resumeState: HarnessV1ResumeState;
+  resumeState: HarnessV1ResumeSessionState;
+  continueState: HarnessV1ContinueTurnState;
   doDetach: ReturnType<typeof vi.fn>;
   doStop: ReturnType<typeof vi.fn>;
   doDestroy: ReturnType<typeof vi.fn>;
   sandboxStop: ReturnType<typeof vi.fn>;
   sandboxDestroy: ReturnType<typeof vi.fn>;
 } {
-  const resumeState: HarnessV1ResumeState = {
+  const resumeState: HarnessV1ResumeSessionState = {
+    type: 'resume-session',
+    harnessId: 'mock',
+    specificationVersion: 'harness-v1',
+    data: {},
+  };
+  const continueState: HarnessV1ContinueTurnState = {
+    type: 'continue-turn',
     harnessId: 'mock',
     specificationVersion: 'harness-v1',
     data: {},
@@ -176,7 +188,7 @@ function makeLifecycleSession(options: {
     doDetach,
     doStop,
     doDestroy,
-    doSuspendTurn: async () => resumeState,
+    doSuspendTurn: async () => continueState,
     ...options.underlyingSession,
   } as HarnessV1Session;
   const sandboxSession = {
@@ -202,6 +214,7 @@ function makeLifecycleSession(options: {
       toolApproval: undefined,
     }),
     resumeState,
+    continueState,
     doDetach,
     doStop,
     doDestroy,
@@ -391,6 +404,7 @@ describe('HarnessAgent', () => {
     const session = await agent.createSession({
       sessionId: 's1',
       resumeFrom: {
+        type: 'resume-session',
         harnessId: 'mock',
         specificationVersion: 'harness-v1',
         data: {},
@@ -708,6 +722,7 @@ describe('HarnessAgent', () => {
 
   test('session.detach() returns validated coords, surfaces resume status, and ends the local handle', async () => {
     const doStop = vi.fn(async () => ({
+      type: 'resume-session' as const,
       harnessId: 'mock',
       specificationVersion: 'harness-v1' as const,
       data: {},
@@ -724,6 +739,7 @@ describe('HarnessAgent', () => {
       doStop,
       doDestroy,
       doDetach: async () => ({
+        type: 'resume-session',
         harnessId: 'mock',
         specificationVersion: 'harness-v1',
         data: { bridge: { port: 5001, token: 't', lastSeenEventId: 3 } },
@@ -733,6 +749,7 @@ describe('HarnessAgent', () => {
         done: Promise.resolve(),
       }),
       doSuspendTurn: async () => ({
+        type: 'continue-turn',
         harnessId: 'mock',
         specificationVersion: 'harness-v1',
         data: { bridge: { port: 5001, token: 't', lastSeenEventId: 3 } },
@@ -742,7 +759,7 @@ describe('HarnessAgent', () => {
       specificationVersion: 'harness-v1',
       harnessId: 'mock',
       builtinTools: {},
-      resumeStateSchema: z.object({
+      lifecycleStateSchema: z.object({
         bridge: z
           .object({
             port: z.number(),
@@ -760,6 +777,7 @@ describe('HarnessAgent', () => {
 
     const handle = await session.detach();
     expect(handle).toEqual({
+      type: 'resume-session',
       harnessId: 'mock',
       specificationVersion: 'harness-v1',
       data: { bridge: { port: 5001, token: 't', lastSeenEventId: 3 } },
@@ -774,6 +792,13 @@ describe('HarnessAgent', () => {
 
   test('session.stop() returns validated state and ends the local handle', async () => {
     const resumeState = {
+      type: 'resume-session' as const,
+      harnessId: 'mock',
+      specificationVersion: 'harness-v1' as const,
+      data: { value: 'saved' },
+    };
+    const continueState = {
+      type: 'continue-turn' as const,
       harnessId: 'mock',
       specificationVersion: 'harness-v1' as const,
       data: { value: 'saved' },
@@ -795,13 +820,13 @@ describe('HarnessAgent', () => {
         submitToolResult: async () => {},
         done: Promise.resolve(),
       }),
-      doSuspendTurn: async () => resumeState,
+      doSuspendTurn: async () => continueState,
     };
     const harness: HarnessV1 = {
       specificationVersion: 'harness-v1',
       harnessId: 'mock',
       builtinTools: {},
-      resumeStateSchema: z.object({ value: z.string() }),
+      lifecycleStateSchema: z.object({ value: z.string() }),
       doStart: async () => underlying,
     };
 
