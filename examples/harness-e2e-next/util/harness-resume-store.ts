@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import type { HarnessV1ResumeState } from '@ai-sdk/harness';
+import type { HarnessV1ResumeSessionState } from '@ai-sdk/harness';
 import type { HarnessAgentSession } from '@ai-sdk/harness/agent';
 import { safeParseJSON } from '@ai-sdk/provider-utils';
 
@@ -28,7 +28,7 @@ function fileFor(chatId: string): string {
 
 async function loadResumeState(
   chatId: string,
-): Promise<HarnessV1ResumeState | undefined> {
+): Promise<HarnessV1ResumeSessionState | undefined> {
   let text: string;
   try {
     text = await readFile(fileFor(chatId), 'utf8');
@@ -37,13 +37,13 @@ async function loadResumeState(
   }
   const parsed = await safeParseJSON({ text });
   return parsed.success
-    ? (parsed.value as unknown as HarnessV1ResumeState)
+    ? (parsed.value as unknown as HarnessV1ResumeSessionState)
     : undefined;
 }
 
 async function saveResumeState(
   chatId: string,
-  state: HarnessV1ResumeState,
+  state: HarnessV1ResumeSessionState,
 ): Promise<void> {
   await mkdir(STORE_DIR, { recursive: true });
   await writeFile(fileFor(chatId), JSON.stringify(state), 'utf8');
@@ -52,7 +52,7 @@ async function saveResumeState(
 type SessionFactory = {
   createSession(options?: {
     sessionId?: string;
-    resumeFrom?: HarnessV1ResumeState;
+    resumeFrom?: HarnessV1ResumeSessionState;
   }): Promise<HarnessAgentSession>;
 };
 

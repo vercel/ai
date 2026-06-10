@@ -36,6 +36,6 @@ export async function claudeCodeCodingWorkflow(
   while (state.status === 'running' || state.status === 'timed_out') {
     state = await runClaudeCodeSlice(state);
   }
-  await persistResumeStep(state.sessionId, state.resumeState);
+  await persistResumeStep(state.sessionId, state.resumeFrom);
   return finalizeHarnessWorkflow(state);
 }

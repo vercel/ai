@@ -2,9 +2,10 @@ import { HarnessCapabilityUnsupportedError } from '../errors/harness-capability-
 import type {
   HarnessV1,
   HarnessV1Bootstrap,
+  HarnessV1ContinueTurnState,
   HarnessV1NetworkSandboxSession,
   HarnessV1Prompt,
-  HarnessV1ResumeState,
+  HarnessV1ResumeSessionState,
   HarnessV1SandboxProvider,
   HarnessV1ToolSpec,
   HarnessV1PermissionMode,
@@ -40,7 +41,7 @@ import {
   releaseBridgePort,
 } from './internal/bridge-port-registry';
 import { buildObservability } from './internal/resolve-observability';
-import { validateResumeStateData } from './internal/resume-state-validation';
+import { validateLifecycleStateData } from './internal/lifecycle-state-validation';
 import {
   permissionModeNeedsBuiltinSupport,
   resolvePermissionMode,
@@ -89,7 +90,9 @@ export interface HarnessAgentCallExtensions {
  *  - **Cross-process resume.** `createSession({ sessionId, resumeFrom })`
  *    resumes from state previously returned by `session.detach()` or
  *    `session.stop()`. The framework validates `resumeFrom` against the
- *    harness's `resumeStateSchema` before handing it to the adapter.
+ *    harness's `lifecycleStateSchema` before handing it to the adapter.
+ *    `createSession({ sessionId, continueFrom })` resumes from state returned
+ *    by `session.suspendTurn()` before `continueTurn()`.
  *  - **Host tool execution.** User tools passed in `settings.tools` are
  *    executed on the host whenever the underlying runtime calls them;
  *    the result is fed back to the harness via `submitToolResult`.
@@ -174,25 +177,47 @@ export class HarnessAgent<
     sessionId?: string;
     /**
      * Resume payload returned by a prior `session.detach()` or
-     * `session.stop()`. Must be
-     * accompanied by the original `sessionId`; the framework
-     * validates it against `harness.resumeStateSchema` before handing
-     * it to the adapter.
+     * `session.stop()`. Must be accompanied by the original `sessionId`; the
+     * framework validates it against `harness.lifecycleStateSchema` before
+     * handing it to the adapter.
      */
-    resumeFrom?: HarnessV1ResumeState;
+    resumeFrom?: HarnessV1ResumeSessionState;
+    /**
+     * Continuation payload returned by a prior `session.suspendTurn()`. Must be
+     * accompanied by the original `sessionId`; the framework validates it before
+     * handing it to the adapter.
+     */
+    continueFrom?: HarnessV1ContinueTurnState;
     abortSignal?: AbortSignal;
   }): Promise<HarnessAgentSession> {
     const sessionId = options?.sessionId ?? generateId();
     const resumeFrom = options?.resumeFrom;
+    const continueFrom = options?.continueFrom;
     const abortSignal = options?.abortSignal;
     const harness = this.settings.harness;
     const sandboxProvider = this.settings.sandbox;
 
-    let validatedResumeFrom: HarnessV1ResumeState | undefined;
+    if (resumeFrom != null && continueFrom != null) {
+      throw new Error(
+        'HarnessAgent.createSession: pass either `resumeFrom` or `continueFrom`, not both.',
+      );
+    }
+
+    let validatedResumeFrom: HarnessV1ResumeSessionState | undefined;
     if (resumeFrom != null) {
-      validatedResumeFrom = await validateResumeStateData({
+      validatedResumeFrom = await validateLifecycleStateData({
         harness,
         state: resumeFrom,
+        expectedType: 'resume-session',
+      });
+    }
+
+    let validatedContinueFrom: HarnessV1ContinueTurnState | undefined;
+    if (continueFrom != null) {
+      validatedContinueFrom = await validateLifecycleStateData({
+        harness,
+        state: continueFrom,
+        expectedType: 'continue-turn',
       });
     }
 
@@ -207,7 +232,7 @@ export class HarnessAgent<
     const acquiredSandboxSession = await this._acquireSandbox({
       sandboxProvider,
       sessionId,
-      isResume: validatedResumeFrom != null,
+      isResume: validatedResumeFrom != null || validatedContinueFrom != null,
       recipe,
       identity,
       abortSignal,
@@ -261,6 +286,7 @@ export class HarnessAgent<
         sessionId,
         skills: this.settings.skills,
         resumeFrom: validatedResumeFrom,
+        continueFrom: validatedContinueFrom,
         permissionMode: this.permissionMode,
         abortSignal,
         observability: buildObservability({ settings: this.settings }),
@@ -279,7 +305,9 @@ export class HarnessAgent<
         leasedBridgePort,
         sessionWorkDir,
         toolApproval: this.settings.toolApproval,
-        pendingToolApprovals: validatedResumeFrom?.pendingToolApprovals,
+        pendingToolApprovals:
+          validatedResumeFrom?.pendingToolApprovals ??
+          validatedContinueFrom?.pendingToolApprovals,
       });
     } catch (error) {
       await cleanupAfterStartFailure({

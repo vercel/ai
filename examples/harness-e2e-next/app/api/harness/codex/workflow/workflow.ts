@@ -28,6 +28,6 @@ export async function codexCodingWorkflow(
   while (state.status === 'running' || state.status === 'timed_out') {
     state = await runCodexSlice(state);
   }
-  await persistResumeStep(state.sessionId, state.resumeState);
+  await persistResumeStep(state.sessionId, state.resumeFrom);
   return finalizeHarnessWorkflow(state);
 }

@@ -1,6 +1,7 @@
 import type {
+  HarnessV1ContinueTurnState,
   HarnessV1NetworkSandboxSession,
-  HarnessV1ResumeState,
+  HarnessV1ResumeSessionState,
   HarnessV1Session,
 } from '@ai-sdk/harness';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
@@ -15,11 +16,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  * in-sandbox bridge.
  */
 const sentMessages: Array<Record<string, unknown>> = [];
+const openCalls: Array<{ resume?: boolean } | undefined> = [];
 
 vi.mock('@ai-sdk/harness/utils', async importOriginal => {
   const actual = await importOriginal<typeof HarnessUtils>();
   class FakeSandboxChannel {
-    async open(): Promise<void> {}
+    async open(opts?: { resume?: boolean }): Promise<void> {
+      openCalls.push(opts);
+    }
     on(): () => void {
       return () => {};
     }
@@ -85,7 +89,8 @@ function fakeNetworkSandboxSession(): HarnessV1NetworkSandboxSession {
 }
 
 async function startSession(options?: {
-  resumeFrom?: HarnessV1ResumeState;
+  resumeFrom?: HarnessV1ResumeSessionState;
+  continueFrom?: HarnessV1ContinueTurnState;
 }): Promise<HarnessV1Session> {
   const harness = createClaudeCode();
   return harness.doStart({
@@ -93,6 +98,7 @@ async function startSession(options?: {
     sandboxSession: fakeNetworkSandboxSession(),
     sessionWorkDir: '/wd/claude-code-s1',
     ...(options?.resumeFrom ? { resumeFrom: options.resumeFrom } : {}),
+    ...(options?.continueFrom ? { continueFrom: options.continueFrom } : {}),
   });
 }
 
@@ -107,6 +113,7 @@ const INSTRUCTIONS = 'Use turbo build --concurrency=4.';
 describe('claude-code adapter — instructions gating', () => {
   beforeEach(() => {
     sentMessages.length = 0;
+    openCalls.length = 0;
   });
 
   it('frames instructions into the first user message only', async () => {
@@ -135,6 +142,7 @@ describe('claude-code adapter — instructions gating', () => {
   it('does not apply instructions when resuming a session', async () => {
     const session = await startSession({
       resumeFrom: {
+        type: 'resume-session',
         harnessId: 'claude-code',
         specificationVersion: 'harness-v1',
         data: {},
@@ -147,5 +155,39 @@ describe('claude-code adapter — instructions gating', () => {
       emit: () => {},
     });
     expect(lastStart().prompt).toBe('resumed turn');
+  });
+
+  it('distinguishes parked session resume from suspended turn continuation', async () => {
+    await startSession({
+      resumeFrom: {
+        type: 'resume-session',
+        harnessId: 'claude-code',
+        specificationVersion: 'harness-v1',
+        data: {
+          bridge: {
+            port: 4319,
+            token: 'token',
+            lastSeenEventId: 7,
+          },
+        },
+      },
+    });
+    expect(openCalls.at(-1)).toBeUndefined();
+
+    await startSession({
+      continueFrom: {
+        type: 'continue-turn',
+        harnessId: 'claude-code',
+        specificationVersion: 'harness-v1',
+        data: {
+          bridge: {
+            port: 4319,
+            token: 'token',
+            lastSeenEventId: 7,
+          },
+        },
+      },
+    });
+    expect(openCalls.at(-1)).toEqual({ resume: true });
   });
 });

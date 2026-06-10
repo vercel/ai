@@ -4,8 +4,8 @@ import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 
 /**
- * Schema for the adapter-specific portion of `HarnessV1ResumeState.data`
- * produced by Pi's resumable lifecycle methods. Carries the basename
+ * Schema for the adapter-specific portion of lifecycle state `data` produced
+ * by Pi's resumable lifecycle methods. Carries the basename
  * (including extension) of the Pi session file. The actual session bytes live
  * in the sandbox under `${sessionWorkDir}/.pi-sessions/<sessionFileName>` so
  * they survive cross-process resume via the sandbox snapshot.

@@ -16,11 +16,12 @@ import path from 'node:path';
 import { Type } from 'typebox';
 import type {
   HarnessV1ContinueOptions,
+  HarnessV1ContinueTurnState,
   HarnessV1PromptControl,
   HarnessV1PromptOptions,
   HarnessV1NetworkSandboxSession,
   HarnessV1PermissionMode,
-  HarnessV1ResumeState,
+  HarnessV1ResumeSessionState,
   HarnessV1Session,
   HarnessV1Skill,
   HarnessV1StreamPart,
@@ -646,7 +647,7 @@ export async function createPiSession(
     });
   }
 
-  const doStop = async (): Promise<HarnessV1ResumeState> => {
+  const doStop = async (): Promise<HarnessV1ResumeSessionState> => {
     if (stopped) {
       throw new Error('Pi session has been stopped.');
     }
@@ -674,6 +675,7 @@ export async function createPiSession(
     await rm(hostRoot, { recursive: true, force: true });
 
     return {
+      type: 'resume-session',
       harnessId: HARNESS_ID,
       specificationVersion: 'harness-v1',
       data: sessionFileName ? { sessionFileName } : {},
@@ -764,7 +766,7 @@ export async function createPiSession(
 
     doStop,
 
-    doDetach: async (): Promise<HarnessV1ResumeState> => {
+    doDetach: async (): Promise<HarnessV1ResumeSessionState> => {
       if (activeTurn != null || pendingToolResults.size > 0) {
         parkedPiSessions.set(input.sessionId, sessionImpl);
         if (sessionFileName) {
@@ -779,6 +781,7 @@ export async function createPiSession(
           }
         }
         return {
+          type: 'resume-session',
           harnessId: HARNESS_ID,
           specificationVersion: 'harness-v1',
           data: sessionFileName ? { sessionFileName } : {},
@@ -787,7 +790,7 @@ export async function createPiSession(
       return doStop();
     },
 
-    doSuspendTurn: async (): Promise<HarnessV1ResumeState> => {
+    doSuspendTurn: async (): Promise<HarnessV1ContinueTurnState> => {
       if (stopped) {
         throw new Error('Pi session has been stopped.');
       }
@@ -826,6 +829,7 @@ export async function createPiSession(
       await rm(hostRoot, { recursive: true, force: true });
 
       return {
+        type: 'continue-turn',
         harnessId: HARNESS_ID,
         specificationVersion: 'harness-v1',
         data: sessionFileName ? { sessionFileName } : {},

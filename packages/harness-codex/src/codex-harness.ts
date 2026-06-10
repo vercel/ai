@@ -9,9 +9,10 @@ import {
   type HarnessV1Bootstrap,
   type HarnessV1DebugConfig,
   type HarnessV1BuiltinTool,
+  type HarnessV1ContinueTurnState,
   type HarnessV1Prompt,
   type HarnessV1PromptControl,
-  type HarnessV1ResumeState,
+  type HarnessV1ResumeSessionState,
   type HarnessV1NetworkSandboxSession,
   type HarnessV1PermissionMode,
   type HarnessV1Session,
@@ -116,24 +117,21 @@ const BOOTSTRAP_DIR = '/tmp/harness/codex';
 /**
  * Live bridge coordinates returned by `doDetach()` and `doSuspendTurn()`. A
  * future process uses them to reopen a socket to the still-running bridge
- * (`attach`) instead of re-spawning it. `continueTurnOnAttach` is true only
- * for `doSuspendTurn()`, where the next process must continue the in-flight
- * turn. Absent on a `doStop()` payload.
+ * (`attach`) instead of re-spawning it. Absent on a `doStop()` payload.
  */
 const bridgeCoordsSchema = z.object({
   port: z.number(),
   token: z.string(),
   lastSeenEventId: z.number(),
   sandboxId: z.string().optional(),
-  continueTurnOnAttach: z.boolean().optional(),
 });
 
 /**
- * Schema for the adapter-specific `HarnessV1ResumeState.data` payload Codex
- * produces. `threadId` is what `codex.resumeThread(...)` requires for the
- * replay/rerun rungs; the sandbox lookup is handled separately via
- * `provider.resumeSession({ sessionId })`. `bridge` carries live coordinates for
- * cross-process `attach` (present on `doDetach()` and `doSuspendTurn()`
+ * Schema for the adapter-specific lifecycle `data` payload Codex produces.
+ * `threadId` is what `codex.resumeThread(...)` requires for the replay/rerun
+ * rungs; the sandbox lookup is handled separately via
+ * `provider.resumeSession({ sessionId })`. `bridge` carries live coordinates
+ * for cross-process `attach` (present on `doDetach()` and `doSuspendTurn()`
  * payloads).
  */
 const codexResumeStateSchema = z.object({
@@ -153,7 +151,7 @@ export function createCodex(
     harnessId: 'codex',
     builtinTools: CODEX_BUILTIN_TOOLS,
     supportsBuiltinToolApprovals: false,
-    resumeStateSchema: codexResumeStateSchema,
+    lifecycleStateSchema: codexResumeStateSchema,
     getBootstrap: async () => {
       if (cachedBootstrap != null) return cachedBootstrap;
       const [pkg, lock, bridge, hostToolMcp] = await Promise.all([
@@ -197,10 +195,12 @@ export function createCodex(
       const sandboxSession = startOpts.sandboxSession;
       const session = sandboxSession.restricted();
       const sandboxId = sandboxSession.id;
-      const isResume = startOpts.resumeFrom != null;
+      const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
+      const isResume = lifecycleState != null;
+      const isContinue = startOpts.continueFrom != null;
       const resumeData =
-        isResume && typeof startOpts.resumeFrom?.data === 'object'
-          ? (startOpts.resumeFrom.data as {
+        isResume && typeof lifecycleState?.data === 'object'
+          ? (lifecycleState.data as {
               threadId?: unknown;
               bridge?: CodexBridgeCoords;
             })
@@ -211,7 +211,6 @@ export function createCodex(
           ? resumeThreadId
           : undefined;
       const coords = resumeData?.bridge;
-      const continueTurnOnAttach = coords?.continueTurnOnAttach === true;
 
       const workDir = startOpts.sessionWorkDir;
       const sessionDataDir = `${sandboxSession.defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
@@ -235,9 +234,10 @@ export function createCodex(
       /*
        * Rung 1 — ATTACH. With live coordinates, reopen a socket to the
        * still-running bridge. Parked between-turn sessions just attach and wait
-       * for the next `start`; suspended in-flight turns replay everything past
-       * the persisted cursor. No spawn, no fresh token. If the bridge is gone
-       * the open throws and we fall through to a spawn-based recovery.
+       * for the next `start`; suspended in-flight turns request replay of
+       * everything past the persisted cursor. No spawn, no fresh token. If the
+       * bridge is gone the open throws and we fall through to a spawn-based
+       * recovery.
        */
       if (coords) {
         try {
@@ -252,9 +252,7 @@ export function createCodex(
             initialLastSeenEventId: coords.lastSeenEventId,
             onDiagnostic,
           });
-          await attachChannel.open(
-            continueTurnOnAttach ? { resume: true } : undefined,
-          );
+          await attachChannel.open(isContinue ? { resume: true } : undefined);
           return createSession({
             sessionId: startOpts.sessionId,
             channel: attachChannel,
@@ -281,17 +279,16 @@ export function createCodex(
 
       /*
        * Rungs 2/3 — REPLAY vs RERUN. Respawn the bridge. `replay` is only sound
-       * when the resume payload carried live coordinates (`detach` or
-       * `suspendTurn`), because those include the cursor the on-disk log is
-       * replayed *from*. A payload without coordinates — e.g. from `stop()` —
-       * has no cursor, so replaying a finished turn from seq 0 would re-deliver
-       * it into the next turn. Those resumes always `rerun` via
-       * `codex.resumeThread(threadId)`.
+       * for `continueFrom`: those coordinates include the cursor the on-disk
+       * log is replayed *from*. `resumeFrom` is a between-turn resume; even when
+       * it carries bridge coordinates, replaying the previous turn would
+       * re-deliver stale events into the next turn. Those resumes always `rerun`
+       * via `codex.resumeThread(threadId)` when attach is unavailable.
        */
       let respawnStrategy: CodexRespawnStrategy | undefined = isResume
         ? 'rerun'
         : undefined;
-      if (coords && continueTurnOnAttach) {
+      if (coords && isContinue) {
         const logRaw = await Promise.resolve(
           session.readTextFile({
             path: `${bridgeStateDir}/event-log.ndjson`,
@@ -592,7 +589,7 @@ function createSession({
 
   /*
    * Latest codex thread id, cached from the bridge's `bridge-thread`
-   * announcements. Seeded from a resume payload so `doDetach()` and `doStop()`
+   * announcements. Seeded from lifecycle state so `doDetach()` and `doStop()`
    * can include a thread id even before this process has run a turn.
    */
   let latestThreadId = resumeThreadId;
@@ -849,7 +846,8 @@ function createSession({
       }
       stopped = true;
       const lastSeenEventId = await channel.suspend();
-      const payload: HarnessV1ResumeState = {
+      const payload: HarnessV1ResumeSessionState = {
+        type: 'resume-session',
         harnessId: 'codex',
         specificationVersion: 'harness-v1',
         data: {
@@ -859,7 +857,6 @@ function createSession({
             token: bridgeToken,
             lastSeenEventId,
             sandboxId,
-            continueTurnOnAttach: false,
           },
         },
       };
@@ -963,10 +960,11 @@ function createSession({
         channel.close();
       }
 
-      const payload: HarnessV1ResumeState = {
+      const payload: HarnessV1ResumeSessionState = {
+        type: 'resume-session',
         harnessId: 'codex',
         specificationVersion: 'harness-v1',
-        data: (data ?? {}) as HarnessV1ResumeState['data'],
+        data: (data ?? {}) as HarnessV1ResumeSessionState['data'],
       };
       return payload;
     },
@@ -987,7 +985,8 @@ function createSession({
        * sandbox process is deliberately left alive (no `shutdown`/`detach`).
        */
       const lastSeenEventId = await channel.suspend();
-      const payload: HarnessV1ResumeState = {
+      const payload: HarnessV1ContinueTurnState = {
+        type: 'continue-turn',
         harnessId: 'codex',
         specificationVersion: 'harness-v1',
         data: {
@@ -997,7 +996,6 @@ function createSession({
             token: bridgeToken,
             lastSeenEventId,
             sandboxId,
-            continueTurnOnAttach: true,
           },
         },
       };

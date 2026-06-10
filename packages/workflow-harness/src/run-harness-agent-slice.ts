@@ -1,4 +1,8 @@
-import type { HarnessV1Prompt, HarnessV1ResumeState } from '@ai-sdk/harness';
+import type {
+  HarnessV1ContinueTurnState,
+  HarnessV1Prompt,
+  HarnessV1ResumeSessionState,
+} from '@ai-sdk/harness';
 import type { HarnessAgentSession } from '@ai-sdk/harness/agent';
 import type {
   HarnessWorkflowModelMessage,
@@ -42,7 +46,8 @@ export interface HarnessWorkflowStreamResult {
 export interface HarnessWorkflowAgent {
   createSession(options?: {
     sessionId?: string;
-    resumeFrom?: HarnessV1ResumeState;
+    resumeFrom?: HarnessV1ResumeSessionState;
+    continueFrom?: HarnessV1ContinueTurnState;
   }): Promise<HarnessAgentSession>;
   stream(
     options:
@@ -75,7 +80,7 @@ export interface RunHarnessAgentSliceOptions {
   /**
    * When the turn finishes, whether to destroy the sandbox. Defaults to `false`:
    * the session is parked or stopped and a fresh resume state is returned in
-   * `resumeState`, so the next user turn reattaches to the same conversation
+   * `resumeFrom`, so the next user turn reattaches to the same conversation
    * (multi-turn chat). Set `true` for a one-shot run that should release the
    * sandbox when the turn completes.
    */
@@ -95,8 +100,8 @@ export interface RunHarnessAgentSliceOptions {
  * the session, streams the turn's chunks to the workflow output, and races the
  * turn against a wall-clock budget. If the budget fires first it freezes the
  * turn with `session.suspendTurn()` (the sandbox keeps running) and returns a
- * `timed_out` state carrying the resume cursor for the next slice; if the turn
- * finishes first it returns a `finished` state with the result.
+ * `timed_out` state carrying continuation state for the next slice; if the
+ * turn finishes first it returns a `finished` state with the result.
  *
  * The returned {@link HarnessWorkflowState} is serializable and is meant to be
  * the step's return value — the Workflow DevKit persists it as the durable
@@ -110,28 +115,28 @@ export async function runHarnessAgentSlice(
     options.sliceTimeoutSeconds ?? DEFAULT_SLICE_TIMEOUT_SECONDS;
   const destroyOnFinish = options.destroyOnFinish ?? false;
 
-  // `resumeState` decides the session: resume an existing one (a prior run's
-  // warm handle or a prior slice's cursor) when present, else start cold.
   const session =
-    state.resumeState != null
+    state.continueFrom != null
       ? await agent.createSession({
           sessionId: state.sessionId,
-          resumeFrom: state.resumeState,
+          continueFrom: state.continueFrom,
         })
-      : await agent.createSession({ sessionId: state.sessionId });
+      : state.resumeFrom != null
+        ? await agent.createSession({
+            sessionId: state.sessionId,
+            resumeFrom: state.resumeFrom,
+          })
+        : await agent.createSession({ sessionId: state.sessionId });
 
   let result: HarnessWorkflowStreamResult;
   try {
-    // `turnStarted` decides the action: continue an already-started (then
-    // suspended) turn, else send this run's prompt as a fresh user turn. A
-    // single user message is wrapped in an array — the shape `stream` accepts.
     result =
       state.messages != null
         ? await agent.stream({
             session,
             messages: state.messages,
           })
-        : state.turnStarted
+        : state.continueFrom != null
           ? await agent.continueTurn({ session })
           : await agent.stream({
               session,
@@ -146,8 +151,10 @@ export async function runHarnessAgentSlice(
       sessionId: state.sessionId,
       prompt: state.prompt,
       status: 'failed',
-      turnStarted: state.turnStarted,
-      resumeState: state.resumeState,
+      ...(state.resumeFrom != null ? { resumeFrom: state.resumeFrom } : {}),
+      ...(state.continueFrom != null
+        ? { continueFrom: state.continueFrom }
+        : {}),
       error: errorMessage(err),
     };
   }
@@ -155,7 +162,7 @@ export async function runHarnessAgentSlice(
   const writable = options.writable ?? (await resolveWorkflowWritable());
   const writer = writable.getWriter();
 
-  let suspendPromise: Promise<HarnessV1ResumeState> | undefined;
+  let suspendPromise: Promise<HarnessV1ContinueTurnState> | undefined;
   const timer = setTimeout(() => {
     suspendPromise = session.suspendTurn();
   }, sliceTimeoutSeconds * 1000);
@@ -178,10 +185,10 @@ export async function runHarnessAgentSlice(
          * the turn keeps the opening `start`; slices that continue an already
          * suspended turn drop it. Intermediate `finish` chunks are dropped and
          * the loop writes a single terminal `finish` itself when the run
-         * completes. (A new user turn — `turnStarted: false` — keeps its `start`
-         * so the UI renders it as a fresh assistant message.)
+         * completes. A new user turn keeps its `start` so the UI renders it as
+         * a fresh assistant message.
          */
-        if (value.type === 'start' && state.turnStarted) continue;
+        if (value.type === 'start' && state.continueFrom != null) continue;
         if (value.type === 'finish') continue;
         if (value.type === 'error') {
           const errorText = (value as { errorText?: unknown }).errorText;
@@ -215,8 +222,10 @@ export async function runHarnessAgentSlice(
         sessionId: state.sessionId,
         prompt: state.prompt,
         status: 'failed',
-        turnStarted: state.turnStarted,
-        resumeState: state.resumeState,
+        ...(state.resumeFrom != null ? { resumeFrom: state.resumeFrom } : {}),
+        ...(state.continueFrom != null
+          ? { continueFrom: state.continueFrom }
+          : {}),
         error: 'harness turn emitted an error',
       };
     }
@@ -224,13 +233,12 @@ export async function runHarnessAgentSlice(
     // Budget fired: the turn keeps running in the sandbox; persist the cursor
     // so the next slice attaches and continues the same in-flight turn.
     if (suspendPromise != null) {
-      const resumeState = await suspendPromise;
+      const continueFrom = await suspendPromise;
       return {
         sessionId: state.sessionId,
         prompt: state.prompt,
         status: 'timed_out',
-        turnStarted: true,
-        resumeState,
+        continueFrom,
       };
     }
 
@@ -241,7 +249,7 @@ export async function runHarnessAgentSlice(
     const normalizedFinishReason = toFinishReasonString(finishReason);
 
     if (normalizedFinishReason === 'tool-calls') {
-      const resumeState = await session.suspendTurn();
+      const continueFrom = await session.suspendTurn();
       await writer.write({ type: 'finish', finishReason: 'tool-calls' });
       await writer.close();
       writerClosed = true;
@@ -249,8 +257,7 @@ export async function runHarnessAgentSlice(
         sessionId: state.sessionId,
         prompt: state.prompt,
         status: 'awaiting_tool_approval',
-        turnStarted: true,
-        resumeState,
+        continueFrom,
       };
     }
 
@@ -274,20 +281,19 @@ export async function runHarnessAgentSlice(
      * host-resident sessions may resume by rerun. A one-shot consumer opts into
      * `destroyOnFinish` to destroy the sandbox instead.
      */
-    let resumeState = state.resumeState;
+    let resumeFrom = state.resumeFrom;
     if (destroyOnFinish) {
       await destroyQuietly(session);
-      resumeState = undefined;
+      resumeFrom = undefined;
     } else {
-      resumeState = await session.detach().catch(() => state.resumeState);
+      resumeFrom = await session.detach().catch(() => state.resumeFrom);
     }
 
     return {
       sessionId: state.sessionId,
       prompt: state.prompt,
       status: 'finished',
-      turnStarted: true,
-      resumeState,
+      ...(resumeFrom != null ? { resumeFrom } : {}),
       finalResult: {
         sessionId: state.sessionId,
         finishReason: normalizedFinishReason,

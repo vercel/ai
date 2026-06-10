@@ -1,5 +1,8 @@
 import { describe, expect, test, vi } from 'vitest';
-import type { HarnessV1ResumeState } from '@ai-sdk/harness';
+import type {
+  HarnessV1ContinueTurnState,
+  HarnessV1ResumeSessionState,
+} from '@ai-sdk/harness';
 import type { HarnessAgentSession } from '@ai-sdk/harness/agent';
 import {
   createHarnessWorkflowState,
@@ -12,8 +15,18 @@ import {
   type HarnessWorkflowStreamResult,
 } from './run-harness-agent-slice';
 
-function resumeState(tag: string): HarnessV1ResumeState {
+function resumeState(tag: string): HarnessV1ResumeSessionState {
   return {
+    type: 'resume-session',
+    harnessId: 'mock',
+    specificationVersion: 'harness-v1',
+    data: { tag },
+  };
+}
+
+function continueState(tag: string): HarnessV1ContinueTurnState {
+  return {
+    type: 'continue-turn',
     harnessId: 'mock',
     specificationVersion: 'harness-v1',
     data: { tag },
@@ -35,7 +48,7 @@ function fakeSession(): HarnessAgentSession & {
     destroyCalls: 0,
     async suspendTurn() {
       session.suspendCalls++;
-      return resumeState('suspended');
+      return continueState('suspended');
     },
     async detach() {
       session.detachCalls++;
@@ -158,7 +171,7 @@ describe('runHarnessAgentSlice', () => {
     expect(session.destroyCalls).toBe(0);
     expect(session.detachCalls).toBe(1);
     expect(session.stopCalls).toBe(0);
-    expect(next.resumeState).toEqual(resumeState('detached'));
+    expect(next.resumeFrom).toEqual(resumeState('detached'));
     expect(chunks.map(c => c.type)).toEqual([
       'start',
       'text-start',
@@ -188,7 +201,7 @@ describe('runHarnessAgentSlice', () => {
     expect(session.destroyCalls).toBe(1);
     expect(session.detachCalls).toBe(0);
     expect(session.stopCalls).toBe(0);
-    expect(next.resumeState).toBeUndefined();
+    expect(next.resumeFrom).toBeUndefined();
   });
 
   test('tool approval pause suspends the turn and closes the response stream', async () => {
@@ -215,8 +228,7 @@ describe('runHarnessAgentSlice', () => {
     });
 
     expect(next.status).toBe('awaiting_tool_approval');
-    expect(next.turnStarted).toBe(true);
-    expect(next.resumeState).toEqual(resumeState('suspended'));
+    expect(next.continueFrom).toEqual(continueState('suspended'));
     expect(session.suspendCalls).toBe(1);
     expect(session.detachCalls).toBe(0);
     expect(session.destroyCalls).toBe(0);
@@ -241,8 +253,7 @@ describe('runHarnessAgentSlice', () => {
     };
 
     const { writable } = collectingWritable();
-    // A subsequent user turn: resumeFrom a prior run's handle, but turnStarted
-    // is false — so the slice resumes the warm session AND sends the new prompt.
+    // A subsequent user turn resumes the warm session and sends the new prompt.
     const next = await runHarnessAgentSlice({
       agent,
       state: createHarnessWorkflowState({
@@ -268,7 +279,7 @@ describe('runHarnessAgentSlice', () => {
       blockAfter: true,
     });
     const suspendingSession = session as unknown as {
-      suspendTurn: () => Promise<HarnessV1ResumeState>;
+      suspendTurn: () => Promise<HarnessV1ContinueTurnState>;
     };
     const originalSuspend = suspendingSession.suspendTurn.bind(session);
     suspendingSession.suspendTurn = async () => {
@@ -291,8 +302,7 @@ describe('runHarnessAgentSlice', () => {
     });
 
     expect(next.status).toBe('timed_out');
-    expect(next.turnStarted).toBe(true);
-    expect(next.resumeState).toEqual(resumeState('suspended'));
+    expect(next.continueFrom).toEqual(continueState('suspended'));
     expect(session.suspendCalls).toBe(1);
     // A suspended slice must NOT destroy the sandbox — the next slice attaches.
     expect(session.destroyCalls).toBe(0);
@@ -325,8 +335,7 @@ describe('runHarnessAgentSlice', () => {
         sessionId: 'ses_1',
         prompt: 'hi',
         status: 'timed_out',
-        turnStarted: true,
-        resumeState: resumeState('cursor'),
+        continueFrom: continueState('cursor'),
       },
       writable,
     });
@@ -334,7 +343,7 @@ describe('runHarnessAgentSlice', () => {
     expect(agent.continueTurn).toHaveBeenCalledTimes(1);
     expect(agent.createSession).toHaveBeenCalledWith({
       sessionId: 'ses_1',
-      resumeFrom: resumeState('cursor'),
+      continueFrom: continueState('cursor'),
     });
     expect(next.status).toBe('finished');
     // The opening `start` is dropped on a continued slice; one terminal finish.
@@ -370,7 +379,7 @@ describe('runHarnessAgentSlice', () => {
       state: createHarnessWorkflowState({
         messages,
         sessionId: 'ses_1',
-        resumeFrom: resumeState('approval'),
+        continueFrom: continueState('approval'),
       }),
       writable,
     });

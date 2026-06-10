@@ -9,10 +9,11 @@ import {
   type HarnessV1Bootstrap,
   type HarnessV1DebugConfig,
   type HarnessV1BuiltinTool,
+  type HarnessV1ContinueTurnState,
   type HarnessV1PermissionMode,
   type HarnessV1Prompt,
   type HarnessV1PromptControl,
-  type HarnessV1ResumeState,
+  type HarnessV1ResumeSessionState,
   type HarnessV1NetworkSandboxSession,
   type HarnessV1Session,
   type HarnessV1Skill,
@@ -376,7 +377,7 @@ const bridgeCoordsSchema = z.object({
 });
 
 /**
- * Schema for the adapter-specific portion of `HarnessV1ResumeState.data`.
+ * Schema for the adapter-specific portion of lifecycle state `data`.
  *
  * A `doStop()` payload is structurally empty (`{}`): the framework derives the
  * sandbox via `provider.resumeSession({ sessionId })`, and the Claude SDK's
@@ -400,7 +401,7 @@ export function createClaudeCode(
     harnessId: 'claude-code',
     builtinTools: CLAUDE_CODE_BUILTIN_TOOLS,
     supportsBuiltinToolApprovals: true,
-    resumeStateSchema: claudeCodeResumeStateSchema,
+    lifecycleStateSchema: claudeCodeResumeStateSchema,
     getBootstrap: async () => {
       if (cachedBootstrap != null) return cachedBootstrap;
       const [pkg, lock, bridge] = await Promise.all([
@@ -432,10 +433,11 @@ export function createClaudeCode(
       const sandboxSession = startOpts.sandboxSession;
       const session = sandboxSession.restricted();
       const sandboxId = sandboxSession.id;
-      const isResume = startOpts.resumeFrom != null;
+      const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
+      const isResume = lifecycleState != null;
+      const isContinue = startOpts.continueFrom != null;
       const coords = isResume
-        ? (startOpts.resumeFrom?.data as { bridge?: ClaudeCodeBridgeCoords })
-            ?.bridge
+        ? (lifecycleState?.data as { bridge?: ClaudeCodeBridgeCoords })?.bridge
         : undefined;
 
       const workDir = startOpts.sessionWorkDir;
@@ -465,11 +467,12 @@ export function createClaudeCode(
       };
 
       /*
-       * Rung 1 — ATTACH. When the resume payload carries live bridge
-       * coordinates, try to reopen a socket to the still-running bridge and
-       * replay everything past the persisted cursor. No spawn, no fresh token
-       * (the existing bridge still authorises the persisted one). If the bridge
-       * is gone the open throws and we fall through to a spawn-based recovery.
+       * Rung 1 — ATTACH. When lifecycle state carries live bridge coordinates,
+       * try to reopen a socket to the still-running bridge. Parked sessions wait
+       * for the next `start`; suspended turns request replay of everything past
+       * the persisted cursor. No spawn, no fresh token (the existing bridge
+       * still authorises the persisted one). If the bridge is gone the open
+       * throws and we fall through to a spawn-based recovery.
        */
       if (coords) {
         try {
@@ -484,7 +487,7 @@ export function createClaudeCode(
             initialLastSeenEventId: coords.lastSeenEventId,
             onDiagnostic,
           });
-          await attachChannel.open({ resume: true });
+          await attachChannel.open(isContinue ? { resume: true } : undefined);
           return createSession({
             sessionId: startOpts.sessionId,
             channel: attachChannel,
@@ -511,17 +514,17 @@ export function createClaudeCode(
 
       /*
        * Rungs 2/3 — REPLAY vs RERUN. Respawn the bridge. `replay` is only sound
-       * when the resume payload carried live coordinates (`detach` or
-       * `suspendTurn`), because those include the cursor the on-disk log is
-       * replayed *from*. A payload without coordinates — e.g. from `stop()` —
-       * has no cursor, so replaying a finished turn from seq 0 would re-deliver
-       * it into the next turn. Those resumes always `rerun` (the CLI continues
-       * its own thread from the workdir snapshot via `continue: true`).
+       * for `continueFrom`: those coordinates include the cursor the on-disk
+       * log is replayed *from*. `resumeFrom` is a between-turn resume; even when
+       * it carries bridge coordinates, replaying the previous turn would
+       * re-deliver stale events into the next turn. Those resumes always `rerun`
+       * when attach is unavailable (the CLI continues its own thread from the
+       * workdir snapshot via `continue: true`).
        */
       let respawnStrategy: ClaudeCodeRespawnStrategy | undefined = isResume
         ? 'rerun'
         : undefined;
-      if (coords) {
+      if (coords && isContinue) {
         const logRaw = await Promise.resolve(
           session.readTextFile({
             path: `${bridgeStateDir}/event-log.ndjson`,
@@ -1334,7 +1337,8 @@ function createSession({
       }
       stopped = true;
       const lastSeenEventId = await channel.suspend();
-      const payload: HarnessV1ResumeState = {
+      const payload: HarnessV1ResumeSessionState = {
+        type: 'resume-session',
         harnessId: 'claude-code',
         specificationVersion: 'harness-v1',
         data: {
@@ -1447,10 +1451,11 @@ function createSession({
         channel.close();
       }
 
-      const payload: HarnessV1ResumeState = {
+      const payload: HarnessV1ResumeSessionState = {
+        type: 'resume-session',
         harnessId: 'claude-code',
         specificationVersion: 'harness-v1',
-        data: (data ?? {}) as HarnessV1ResumeState['data'],
+        data: (data ?? {}) as HarnessV1ResumeSessionState['data'],
       };
       return payload;
     },
@@ -1471,7 +1476,8 @@ function createSession({
        * sandbox process is deliberately left alive (no `shutdown`/`detach`).
        */
       const lastSeenEventId = await channel.suspend();
-      const payload: HarnessV1ResumeState = {
+      const payload: HarnessV1ContinueTurnState = {
+        type: 'continue-turn',
         harnessId: 'claude-code',
         specificationVersion: 'harness-v1',
         data: {

@@ -7,7 +7,7 @@
  * bridge and continues mid-conversation. `session.isResume` reports `true`.
  */
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import type { HarnessV1ResumeState } from '@ai-sdk/harness';
+import type { HarnessV1ResumeSessionState } from '@ai-sdk/harness';
 import { codex } from '@ai-sdk/harness-codex';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { printFullStream } from '../../lib/print-full-stream';
@@ -22,7 +22,7 @@ run(async () => {
 
   // Turn 1: introduce the name, then park the live bridge and sandbox.
   let sessionId: string;
-  let resumeState: HarnessV1ResumeState;
+  let resumeState: HarnessV1ResumeSessionState;
   {
     const agent = new HarnessAgent({ harness: codex, sandbox });
     const session = await agent.createSession();

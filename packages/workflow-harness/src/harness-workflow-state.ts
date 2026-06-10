@@ -1,4 +1,8 @@
-import type { HarnessV1Prompt, HarnessV1ResumeState } from '@ai-sdk/harness';
+import type {
+  HarnessV1ContinueTurnState,
+  HarnessV1Prompt,
+  HarnessV1ResumeSessionState,
+} from '@ai-sdk/harness';
 
 export type HarnessWorkflowModelMessage =
   | { readonly role: 'system'; readonly content: any }
@@ -10,10 +14,10 @@ export type HarnessWorkflowModelMessage =
  * Where a workflow-driven harness run is in its slice loop.
  *
  *  - `running`   — fresh state, no slice has run yet.
- *  - `timed_out` — a slice hit its wall-clock budget; the turn keeps running in
- *                  the sandbox and `resumeState` carries the cursor to continue.
+ *  - `timed_out` — a slice hit its wall-clock budget; `continueFrom` carries
+ *                  the cursor to continue the same turn.
  *  - `awaiting_tool_approval` — the turn emitted one or more tool approval
- *                  requests and `resumeState` carries the suspended turn.
+ *                  requests and `continueFrom` carries the suspended turn.
  *  - `finished`  — the agent turn completed on its own; `finalResult` is set.
  *  - `failed`    — the turn errored; `error` is set.
  */
@@ -39,22 +43,14 @@ export interface HarnessWorkflowFinalResult {
  * Serializable state machine threaded between workflow slices. A `'use step'`
  * returns the next value of this object, and the Workflow DevKit persists that
  * return value — so this is the entire durable state of a harness run. Every
- * field must be JSON-serializable; {@link HarnessV1ResumeState} is.
+ * field must be JSON-serializable.
  *
- * Two independent axes drive the engine, and both ride in `resumeState` /
- * `turnStarted`:
+ * Two independent lifecycle states drive the engine:
  *
- *  - **Which session to use** is governed by `resumeState`. When present, the
- *    slice resumes an existing harness session; when absent, it starts a cold
- *    one. The same field carries two kinds of resume coordinates, because the
- *    framework treats them identically: a *prior run's* handle (so a new user
- *    turn reattaches to the warm conversation — this is what makes multi-turn
- *    chat work) and a *prior slice's* cursor (so a long turn continues across a
- *    wall-clock boundary).
- *  - **What to do this slice** is governed by `turnStarted`. While `false`, the
- *    slice sends `prompt` as a fresh user turn (`stream`); once `true` (a turn
- *    was already started this run but suspended), the slice `continue`s the
- *    in-flight turn with no new prompt.
+ *  - `resumeFrom` reattaches to a warm session before starting this run's new
+ *    user turn.
+ *  - `continueFrom` reattaches to an interrupted turn from this same run and
+ *    continues it without sending `prompt` again.
  */
 export interface HarnessWorkflowState {
   /**
@@ -78,17 +74,16 @@ export interface HarnessWorkflowState {
   readonly messages?: HarnessWorkflowModelMessage[];
   readonly status: HarnessWorkflowStatus;
   /**
-   * Resume coordinates for the session this slice should attach to — a prior
-   * run's handle (cross-user-turn) or a prior slice's cursor (mid-turn). Absent
-   * only on the very first turn of a brand-new conversation (cold start).
+   * Resume coordinates for the next user turn. Absent only on the first turn of
+   * a brand-new conversation or when the sandbox was destroyed after finish.
    */
-  readonly resumeState?: HarnessV1ResumeState;
+  readonly resumeFrom?: HarnessV1ResumeSessionState;
   /**
-   * False until this run's `prompt` has been sent. The first slice sends it
-   * (`stream`); subsequent slices (after a suspend) `continue` the in-flight
-   * turn instead.
+   * Continuation coordinates for this run's current suspended turn. When
+   * present, the next slice must call `continueTurn` rather than sending
+   * `prompt` again.
    */
-  readonly turnStarted: boolean;
+  readonly continueFrom?: HarnessV1ContinueTurnState;
   readonly finalResult?: HarnessWorkflowFinalResult;
   readonly error?: string;
 }
@@ -106,7 +101,8 @@ export interface HarnessWorkflowInput {
   prompt?: HarnessV1Prompt;
   messages?: HarnessWorkflowModelMessage[];
   sessionId: string;
-  resumeFrom?: HarnessV1ResumeState;
+  resumeFrom?: HarnessV1ResumeSessionState;
+  continueFrom?: HarnessV1ContinueTurnState;
 }
 
 /** Initial state for one user turn (see {@link HarnessWorkflowInput}). */
@@ -118,8 +114,8 @@ export function createHarnessWorkflowState(
     prompt: input.prompt ?? '',
     ...(input.messages != null ? { messages: input.messages } : {}),
     status: 'running',
-    turnStarted: input.messages != null,
-    ...(input.resumeFrom != null ? { resumeState: input.resumeFrom } : {}),
+    ...(input.resumeFrom != null ? { resumeFrom: input.resumeFrom } : {}),
+    ...(input.continueFrom != null ? { continueFrom: input.continueFrom } : {}),
   };
 }
 

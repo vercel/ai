@@ -112,9 +112,10 @@ export function createPi(
     harnessId: 'pi',
     builtinTools: PI_BUILTIN_TOOLS,
     supportsBuiltinToolApprovals: true,
-    resumeStateSchema: piResumeStateSchema,
+    lifecycleStateSchema: piResumeStateSchema,
     doStart: async startOpts => {
-      const resumeData = startOpts.resumeFrom?.data as
+      const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
+      const resumeData = lifecycleState?.data as
         | { sessionFileName?: string }
         | undefined;
 
@@ -130,7 +131,7 @@ export function createPi(
             ? { thinkingLevel: settings.thinkingLevel }
             : {}),
         },
-        isResume: startOpts.resumeFrom != null,
+        isResume: lifecycleState != null,
         permissionMode: startOpts.permissionMode,
         ...(resumeData?.sessionFileName
           ? { resumeSessionFileName: resumeData.sessionFileName }

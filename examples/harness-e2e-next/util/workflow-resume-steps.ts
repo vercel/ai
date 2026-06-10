@@ -1,4 +1,4 @@
-import type { HarnessV1ResumeState } from '@ai-sdk/harness';
+import type { HarnessV1ResumeSessionState } from '@ai-sdk/harness';
 import { safeParseJSON } from '@ai-sdk/provider-utils';
 
 /*
@@ -26,7 +26,7 @@ function fileName(sessionId: string): string {
 /** Load the handle persisted after this chat's previous turn, if any. */
 export async function loadResumeStep(
   sessionId: string,
-): Promise<HarnessV1ResumeState | undefined> {
+): Promise<HarnessV1ResumeSessionState | undefined> {
   'use step';
 
   const { readFile } = await import('node:fs/promises');
@@ -42,14 +42,14 @@ export async function loadResumeStep(
   }
   const parsed = await safeParseJSON({ text });
   return parsed.success
-    ? (parsed.value as unknown as HarnessV1ResumeState)
+    ? (parsed.value as unknown as HarnessV1ResumeSessionState)
     : undefined;
 }
 
 /** Checkpoint the handle for the next turn. No-op when there is nothing to save. */
 export async function persistResumeStep(
   sessionId: string,
-  resumeState: HarnessV1ResumeState | undefined,
+  resumeState: HarnessV1ResumeSessionState | undefined,
 ): Promise<void> {
   'use step';
 

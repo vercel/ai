@@ -4,11 +4,11 @@
  * Within a single Node process this example simulates the REST-server
  * flow: turn 1 runs, the session is stopped, the agent reference is dropped,
  * and a fresh `HarnessAgent` instance picks the conversation back up using
- * the persisted `HarnessV1ResumeState`. If resume works the second turn
+ * the persisted `HarnessV1ResumeSessionState`. If resume works the second turn
  * answers from the workdir state the Claude SDK preserved across the snapshot.
  */
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import type { HarnessV1ResumeState } from '@ai-sdk/harness';
+import type { HarnessV1ResumeSessionState } from '@ai-sdk/harness';
 import { claudeCode } from '@ai-sdk/harness-claude-code';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { printFullStream } from '../../lib/print-full-stream';
@@ -23,7 +23,7 @@ run(async () => {
 
   // Turn 1: introduce the name.
   let sessionId: string;
-  let resumeState: HarnessV1ResumeState;
+  let resumeState: HarnessV1ResumeSessionState;
   {
     const agent = new HarnessAgent({ harness: claudeCode, sandbox });
     const session = await agent.createSession();

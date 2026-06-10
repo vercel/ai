@@ -29,9 +29,9 @@ describe('createPi adapter', () => {
     expect(harness.builtinTools.ls.commonName).toBeUndefined();
   });
 
-  it('exposes a resume-state schema', () => {
+  it('exposes a lifecycle-state schema', () => {
     const harness = createPi();
-    expect(harness.resumeStateSchema).toBeDefined();
+    expect(harness.lifecycleStateSchema).toBeDefined();
   });
 
   it('omits getBootstrap (no in-sandbox install needed)', () => {

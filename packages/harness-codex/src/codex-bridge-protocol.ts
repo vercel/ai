@@ -31,8 +31,8 @@ export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
     .optional(),
   // Resume signal. When supplied, the bridge calls
   // `codex.resumeThread(resumeThreadId, …)` instead of starting a fresh thread.
-  // The host sources the id from the `HarnessV1ResumeState.data` payload it
-  // cached from a prior `agent.detach`.
+  // The host sources the id from lifecycle state `data` cached from a prior
+  // `agent.detach`.
   resumeThreadId: z.string().optional(),
 });
 

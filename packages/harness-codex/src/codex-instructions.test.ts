@@ -1,6 +1,7 @@
 import type {
+  HarnessV1ContinueTurnState,
   HarnessV1NetworkSandboxSession,
-  HarnessV1ResumeState,
+  HarnessV1ResumeSessionState,
   HarnessV1Session,
 } from '@ai-sdk/harness';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
@@ -90,7 +91,8 @@ function fakeNetworkSandboxSession(): HarnessV1NetworkSandboxSession {
 }
 
 async function startSession(options?: {
-  resumeFrom?: HarnessV1ResumeState;
+  resumeFrom?: HarnessV1ResumeSessionState;
+  continueFrom?: HarnessV1ContinueTurnState;
 }): Promise<HarnessV1Session> {
   const harness = createCodex();
   return harness.doStart({
@@ -98,6 +100,7 @@ async function startSession(options?: {
     sandboxSession: fakeNetworkSandboxSession(),
     sessionWorkDir: '/wd/codex-s1',
     ...(options?.resumeFrom ? { resumeFrom: options.resumeFrom } : {}),
+    ...(options?.continueFrom ? { continueFrom: options.continueFrom } : {}),
   });
 }
 
@@ -134,6 +137,7 @@ describe('codex adapter — instructions gating', () => {
   it('does not apply instructions when resuming a session', async () => {
     const session = await startSession({
       resumeFrom: {
+        type: 'resume-session',
         harnessId: 'codex',
         specificationVersion: 'harness-v1',
         data: { threadId: 'thread-abc' },
@@ -158,6 +162,7 @@ describe('codex adapter — attach replay mode', () => {
   it('attaches a parked session without replaying old turn events', async () => {
     const session = await startSession({
       resumeFrom: {
+        type: 'resume-session',
         harnessId: 'codex',
         specificationVersion: 'harness-v1',
         data: {
@@ -166,7 +171,6 @@ describe('codex adapter — attach replay mode', () => {
             port: 4317,
             token: 'token',
             lastSeenEventId: 7,
-            continueTurnOnAttach: false,
           },
         },
       },
@@ -185,28 +189,10 @@ describe('codex adapter — attach replay mode', () => {
     expect(lastStart().resumeThreadId).toBeUndefined();
   });
 
-  it('treats legacy bridge resume state as parked', async () => {
-    await startSession({
-      resumeFrom: {
-        harnessId: 'codex',
-        specificationVersion: 'harness-v1',
-        data: {
-          threadId: 'thread-abc',
-          bridge: {
-            port: 4317,
-            token: 'token',
-            lastSeenEventId: 7,
-          },
-        },
-      },
-    });
-
-    expect(openCalls.at(-1)).toBeUndefined();
-  });
-
   it('attaches a suspended turn by requesting replay from the cursor', async () => {
     await startSession({
-      resumeFrom: {
+      continueFrom: {
+        type: 'continue-turn',
         harnessId: 'codex',
         specificationVersion: 'harness-v1',
         data: {
@@ -215,7 +201,6 @@ describe('codex adapter — attach replay mode', () => {
             port: 4317,
             token: 'token',
             lastSeenEventId: 7,
-            continueTurnOnAttach: true,
           },
         },
       },
@@ -226,27 +211,27 @@ describe('codex adapter — attach replay mode', () => {
 
   it('marks detach as parked and suspend as replayable', async () => {
     const detached = await (await startSession()).doDetach();
+    expect(detached.type).toBe('resume-session');
     expect(
       (
         detached.data as {
           bridge?: {
-            continueTurnOnAttach?: boolean;
             lastSeenEventId?: number;
           };
         }
       ).bridge,
-    ).toMatchObject({ lastSeenEventId: 7, continueTurnOnAttach: false });
+    ).toMatchObject({ lastSeenEventId: 7 });
 
     const suspended = await (await startSession()).doSuspendTurn();
+    expect(suspended.type).toBe('continue-turn');
     expect(
       (
         suspended.data as {
           bridge?: {
-            continueTurnOnAttach?: boolean;
             lastSeenEventId?: number;
           };
         }
       ).bridge,
-    ).toMatchObject({ lastSeenEventId: 7, continueTurnOnAttach: true });
+    ).toMatchObject({ lastSeenEventId: 7 });
   });
 });

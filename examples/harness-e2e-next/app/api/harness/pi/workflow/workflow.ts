@@ -31,6 +31,6 @@ export async function piCodingWorkflow(
   while (state.status === 'running' || state.status === 'timed_out') {
     state = await runPiSlice(state);
   }
-  await persistResumeStep(state.sessionId, state.resumeState);
+  await persistResumeStep(state.sessionId, state.resumeFrom);
   return finalizeHarnessWorkflow(state);
 }
