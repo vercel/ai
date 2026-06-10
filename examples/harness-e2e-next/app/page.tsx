@@ -1,12 +1,12 @@
 import Link from 'next/link';
 
 const VARIANTS = [
-  { slug: 'workflow', label: 'Workflow' },
   { slug: 'basic', label: 'Basic' },
   { slug: 'basic-with-stop', label: 'Basic (with stop)' },
   { slug: 'ai-sdk-coding', label: 'AI SDK Coding' },
   { slug: 'weather', label: 'Weather' },
   { slug: 'weather-approval', label: 'Weather Approval' },
+  { slug: 'workflow', label: 'Workflow' },
 ] as const;
 
 const HARNESSES = [

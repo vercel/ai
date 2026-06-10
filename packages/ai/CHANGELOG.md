@@ -1,5 +1,17 @@
 # ai
 
+## 7.0.0-canary.169
+
+### Patch Changes
+
+- a5018ab: fix(ai): return schema-transformed elements in array output mode
+
+  Previously final array output validation checked each element against the schema but returned the raw model output. Array output now returns the validated values so Zod transforms, coercions, defaults, and pipes are applied consistently with object output.
+
+- 21d3d60: feat(harness): implement harness specification
+- 426dbbb: fix(ai): reject `streamText` result promises with `NoOutputGeneratedError` when the model stream ends without producing any output. Previously such streams resolved with an empty step. Incomplete streams with partial output still resolve with the partial result.
+- 7fd3360: Harden UI message stream processing against prototype pollution from chunk IDs.
+
 ## 7.0.0-canary.168
 
 ### Patch Changes
