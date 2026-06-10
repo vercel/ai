@@ -2557,6 +2557,40 @@ describe('streamText', () => {
       expect(onStepFinish).not.toHaveBeenCalled();
     });
 
+    it('should resolve with partial output when provider stream closes before finish chunk after producing output', async () => {
+      const onError = vi.fn();
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'stream-start',
+              warnings: [],
+            },
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-delta', id: '1', delta: ', world' },
+            // stream truncated: no text-end, no finish chunk
+          ]),
+        }),
+        prompt: 'test-input',
+        onError,
+      });
+
+      await result.consumeStream();
+
+      expect(await result.text).toStrictEqual('Hello, world');
+      expect(await result.finishReason).toStrictEqual('other');
+      expect(await result.steps).toHaveLength(1);
+      expect(onError).not.toHaveBeenCalled();
+    });
+
     it('should reject result promises when provider stream errors after metadata', async () => {
       const onConsumeError = vi.fn();
 
@@ -17439,11 +17473,6 @@ describe('streamText', () => {
                 { type: 'text-delta', id: '1', delta: ', ' },
                 { type: 'text-delta', id: '1', delta: 'world!' },
                 { type: 'text-end', id: '1' },
-                {
-                  type: 'finish',
-                  finishReason: { unified: 'stop', raw: 'stop' },
-                  usage: testUsage,
-                },
               ]),
             }),
           });
@@ -28742,11 +28771,6 @@ describe('streamText', () => {
                 delta: 'response from with-image-url-support',
               },
               { type: 'text-end', id: '1' },
-              {
-                type: 'finish',
-                finishReason: { unified: 'stop', raw: 'stop' },
-                usage: testUsage,
-              },
             ]),
           };
         },
@@ -28767,11 +28791,6 @@ describe('streamText', () => {
                 delta: 'response from without-image-url-support',
               },
               { type: 'text-end', id: '1' },
-              {
-                type: 'finish',
-                finishReason: { unified: 'stop', raw: 'stop' },
-                usage: testUsage,
-              },
             ]),
           };
         },

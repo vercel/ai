@@ -1853,6 +1853,10 @@ class DefaultStreamTextResult<
           // end means the model stream is incomplete:
           let hasReceivedTerminalChunk = false;
 
+          // output chunk = any content chunk (text, tool calls, etc.);
+          // used to distinguish empty incomplete streams from partial results:
+          let hasReceivedOutputChunk = false;
+
           let stepUsage: LanguageModelUsage = createNullLanguageModelUsage();
           let stepProviderMetadata: ProviderMetadata | undefined;
           let stepFirstChunk = true;
@@ -1901,6 +1905,17 @@ class DefaultStreamTextResult<
                   }
 
                   const chunkType = chunk.type;
+
+                  if (
+                    chunkType !== 'model-call-response-metadata' &&
+                    chunkType !== 'model-call-end' &&
+                    chunkType !== 'tool-execution-end' &&
+                    chunkType !== 'error' &&
+                    chunkType !== 'raw'
+                  ) {
+                    hasReceivedOutputChunk = true;
+                  }
+
                   switch (chunkType) {
                     case 'file':
                     case 'custom':
@@ -2006,9 +2021,10 @@ class DefaultStreamTextResult<
 
                 // invoke onEnd callback and resolve toolResults promise when the stream is about to close:
                 async flush(controller) {
-                  // emit an error for incomplete model streams instead of
-                  // recording an empty step:
-                  if (!hasReceivedTerminalChunk) {
+                  // emit an error when an incomplete model stream produced no
+                  // output instead of recording an empty step. incomplete
+                  // streams with partial output retain the partial result:
+                  if (!hasReceivedTerminalChunk && !hasReceivedOutputChunk) {
                     controller.enqueue({
                       type: 'error',
                       error: new NoOutputGeneratedError({
