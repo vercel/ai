@@ -1022,9 +1022,6 @@ class DefaultStreamTextResult<
         if (part.type === 'error') {
           const error = wrapGatewayError(part.error);
 
-          // remember no-output errors (e.g. from incomplete model streams) so
-          // that the flush handler can reject the result promises with the
-          // specific error instead of a generic one:
           if (NoOutputGeneratedError.isInstance(error)) {
             recordedNoOutputError = error;
           }
@@ -1230,7 +1227,9 @@ class DefaultStreamTextResult<
 
       async flush(controller) {
         try {
-          if (recordedSteps.length === 0) {
+          // reject when no output was generated or an incomplete model stream
+          // ended a continuation step:
+          if (recordedSteps.length === 0 || recordedNoOutputError != null) {
             const error = abortSignal?.aborted
               ? abortSignal.reason
               : (recordedNoOutputError ??
@@ -1850,10 +1849,8 @@ class DefaultStreamTextResult<
           let stepFinishReason: FinishReason = 'other';
           let stepRawFinishReason: string | undefined = undefined;
 
-          // Providers can end the stream without a 'model-call-end' chunk
-          // (e.g. when the connection drops after response metadata). Track
-          // whether a terminal chunk ('model-call-end' or 'error') arrived so
-          // that flush can detect incomplete model streams:
+          // terminal chunk = 'model-call-end' or 'error'; absence on stream
+          // end means the model stream is incomplete:
           let hasReceivedTerminalChunk = false;
 
           let stepUsage: LanguageModelUsage = createNullLanguageModelUsage();
@@ -2009,9 +2006,8 @@ class DefaultStreamTextResult<
 
                 // invoke onEnd callback and resolve toolResults promise when the stream is about to close:
                 async flush(controller) {
-                  // The model stream ended without a terminal chunk, so it is
-                  // incomplete. Emit an error instead of a finish-step part so
-                  // that no empty step is recorded:
+                  // emit an error for incomplete model streams instead of
+                  // recording an empty step:
                   if (!hasReceivedTerminalChunk) {
                     controller.enqueue({
                       type: 'error',
