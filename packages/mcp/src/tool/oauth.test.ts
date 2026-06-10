@@ -1520,10 +1520,10 @@ describe('auth function', () => {
           ok: true,
           status: 200,
           json: async () => ({
-            issuer: 'https://auth.example.com',
-            authorization_endpoint: 'https://auth.example.com/authorize',
-            token_endpoint: 'https://auth.example.com/token',
-            registration_endpoint: 'https://auth.example.com/register',
+            issuer: 'https://resource.example.com',
+            authorization_endpoint: 'https://resource.example.com/authorize',
+            token_endpoint: 'https://resource.example.com/token',
+            registration_endpoint: 'https://resource.example.com/register',
             response_types_supported: ['code'],
             code_challenge_methods_supported: ['S256'],
           }),
@@ -1759,7 +1759,7 @@ describe('auth function', () => {
       client_id: 'test-client',
       client_secret: 'test-secret',
       authorization_server: 'https://api.example.com/mcp-server',
-      token_endpoint: 'https://auth.example.com/token',
+      token_endpoint: 'https://api.example.com/token',
     });
     (mockProvider.tokens as Mock).mockResolvedValue({
       access_token: 'old-access',
@@ -1929,6 +1929,207 @@ describe('auth function', () => {
     expect(evilTokenRequests).toHaveLength(0);
   });
 
+  it('rejects authorization server metadata with a mismatched issuer before refreshing tokens', async () => {
+    const tokenRequests: URLSearchParams[] = [];
+
+    mockFetch.mockImplementation((url, init) => {
+      const urlString = url.toString();
+
+      if (urlString.includes('/.well-known/oauth-protected-resource')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            resource: 'https://api.example.com/mcp-server',
+            authorization_servers: ['https://auth.example.com'],
+          }),
+        });
+      } else if (
+        urlString ===
+        'https://auth.example.com/.well-known/oauth-authorization-server'
+      ) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            issuer: 'https://evil.example',
+            authorization_endpoint: 'https://auth.example.com/authorize',
+            token_endpoint: 'https://auth.example.com/token',
+            response_types_supported: ['code'],
+            code_challenge_methods_supported: ['S256'],
+          }),
+        });
+      } else if (urlString === 'https://auth.example.com/token') {
+        tokenRequests.push(init?.body as URLSearchParams);
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            access_token: 'new-access',
+            token_type: 'Bearer',
+          }),
+        });
+      }
+
+      return Promise.resolve({ ok: false, status: 404 });
+    });
+
+    (mockProvider.clientInformation as Mock).mockResolvedValue({
+      client_id: 'real-client',
+      client_secret: 'real-secret',
+    });
+    (mockProvider.tokens as Mock).mockResolvedValue({
+      access_token: 'old-access',
+      token_type: 'Bearer',
+      refresh_token: 'real-refresh-token',
+      authorization_server: 'https://auth.example.com/',
+      token_endpoint: 'https://auth.example.com/token',
+    });
+
+    await expect(
+      auth(mockProvider, {
+        serverUrl: 'https://api.example.com/mcp-server',
+      }),
+    ).rejects.toThrow(/issuer/);
+
+    expect(tokenRequests).toHaveLength(0);
+  });
+
+  it('rejects cross-origin token endpoints before exchanging an authorization code', async () => {
+    const evilTokenRequests: URLSearchParams[] = [];
+
+    mockFetch.mockImplementation((url, init) => {
+      const urlString = url.toString();
+
+      if (urlString.includes('/.well-known/oauth-protected-resource')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            resource: 'https://api.example.com/mcp-server',
+            authorization_servers: ['https://auth.example.com'],
+          }),
+        });
+      } else if (
+        urlString ===
+        'https://auth.example.com/.well-known/oauth-authorization-server'
+      ) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            issuer: 'https://auth.example.com',
+            authorization_endpoint: 'https://auth.example.com/authorize',
+            token_endpoint: 'https://evil.example/token',
+            response_types_supported: ['code'],
+            code_challenge_methods_supported: ['S256'],
+          }),
+        });
+      } else if (urlString === 'https://evil.example/token') {
+        evilTokenRequests.push(init?.body as URLSearchParams);
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            access_token: 'attacker-token',
+            token_type: 'Bearer',
+          }),
+        });
+      }
+
+      return Promise.resolve({ ok: false, status: 404 });
+    });
+
+    (mockProvider.clientInformation as Mock).mockResolvedValue({
+      client_id: 'real-client',
+      client_secret: 'real-secret',
+      authorization_server: 'https://auth.example.com/',
+      token_endpoint: 'https://evil.example/token',
+    });
+    (mockProvider.codeVerifier as Mock).mockResolvedValue('real-verifier');
+
+    await expect(
+      auth(mockProvider, {
+        serverUrl: 'https://api.example.com/mcp-server',
+        authorizationCode: 'real-code',
+      }),
+    ).rejects.toThrow(/same origin/);
+
+    expect(evilTokenRequests).toHaveLength(0);
+  });
+
+  it('does not reuse unpinned confidential client credentials for a newly discovered authorization server', async () => {
+    mockFetch.mockImplementation(url => {
+      const urlString = url.toString();
+
+      if (urlString.includes('/.well-known/oauth-protected-resource')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            resource: 'https://api.example.com/mcp-server',
+            authorization_servers: ['https://auth.example.com'],
+          }),
+        });
+      } else if (
+        urlString ===
+        'https://auth.example.com/.well-known/oauth-authorization-server'
+      ) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            issuer: 'https://auth.example.com',
+            authorization_endpoint: 'https://auth.example.com/authorize',
+            token_endpoint: 'https://auth.example.com/token',
+            registration_endpoint: 'https://auth.example.com/register',
+            response_types_supported: ['code'],
+            code_challenge_methods_supported: ['S256'],
+          }),
+        });
+      } else if (urlString === 'https://auth.example.com/register') {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            client_id: 'new-client',
+            client_secret: 'new-secret',
+            redirect_uris: ['http://localhost:3000/callback'],
+          }),
+        });
+      }
+
+      return Promise.resolve({ ok: false, status: 404 });
+    });
+
+    (mockProvider.clientInformation as Mock).mockResolvedValue({
+      client_id: 'old-client',
+      client_secret: 'old-secret',
+    });
+    (mockProvider.tokens as Mock).mockResolvedValue(undefined);
+    (mockProvider.redirectToAuthorization as Mock).mockResolvedValue(undefined);
+    mockProvider.invalidateCredentials = vi.fn();
+    mockProvider.saveClientInformation = vi.fn();
+
+    const result = await auth(mockProvider, {
+      serverUrl: 'https://api.example.com/mcp-server',
+    });
+
+    expect(result).toBe('REDIRECT');
+    expect(mockProvider.invalidateCredentials).toHaveBeenCalledWith('client');
+    expect(mockProvider.saveClientInformation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        client_id: 'new-client',
+        authorization_server: 'https://auth.example.com/',
+        token_endpoint: 'https://auth.example.com/token',
+      }),
+    );
+
+    const authUrl = (mockProvider.redirectToAuthorization as Mock).mock
+      .calls[0][0] as URL;
+    expect(authUrl.searchParams.get('client_id')).toBe('new-client');
+  });
+
   it('skips default PRM resource validation when custom validateResourceURL is provided', async () => {
     const mockValidateResourceURL = vi.fn().mockResolvedValue(undefined);
     const providerWithCustomValidation = {
@@ -1973,6 +2174,8 @@ describe('auth function', () => {
     (providerWithCustomValidation.clientInformation as Mock).mockResolvedValue({
       client_id: 'test-client',
       client_secret: 'test-secret',
+      authorization_server: 'https://auth.example.com/',
+      token_endpoint: 'https://auth.example.com/token',
     });
     (providerWithCustomValidation.tokens as Mock).mockResolvedValue(undefined);
     (providerWithCustomValidation.saveCodeVerifier as Mock).mockResolvedValue(
@@ -2034,6 +2237,8 @@ describe('auth function', () => {
     (mockProvider.clientInformation as Mock).mockResolvedValue({
       client_id: 'test-client',
       client_secret: 'test-secret',
+      authorization_server: 'https://auth.example.com/',
+      token_endpoint: 'https://auth.example.com/token',
     });
     (mockProvider.tokens as Mock).mockResolvedValue(undefined);
     (mockProvider.saveCodeVerifier as Mock).mockResolvedValue(undefined);
@@ -2081,9 +2286,9 @@ describe('auth function', () => {
           ok: true,
           status: 200,
           json: async () => ({
-            issuer: 'https://auth.example.com',
-            authorization_endpoint: 'https://auth.example.com/authorize',
-            token_endpoint: 'https://auth.example.com/token',
+            issuer: 'https://api.example.com',
+            authorization_endpoint: 'https://api.example.com/authorize',
+            token_endpoint: 'https://api.example.com/token',
             response_types_supported: ['code'],
             code_challenge_methods_supported: ['S256'],
           }),
@@ -2097,6 +2302,8 @@ describe('auth function', () => {
     (mockProvider.clientInformation as Mock).mockResolvedValue({
       client_id: 'test-client',
       client_secret: 'test-secret',
+      authorization_server: 'https://api.example.com/mcp-server',
+      token_endpoint: 'https://api.example.com/token',
     });
     (mockProvider.tokens as Mock).mockResolvedValue(undefined);
     (mockProvider.saveCodeVerifier as Mock).mockResolvedValue(undefined);
@@ -2140,9 +2347,9 @@ describe('auth function', () => {
           ok: true,
           status: 200,
           json: async () => ({
-            issuer: 'https://auth.example.com',
-            authorization_endpoint: 'https://auth.example.com/authorize',
-            token_endpoint: 'https://auth.example.com/token',
+            issuer: 'https://api.example.com',
+            authorization_endpoint: 'https://api.example.com/authorize',
+            token_endpoint: 'https://api.example.com/token',
             response_types_supported: ['code'],
             code_challenge_methods_supported: ['S256'],
           }),
@@ -2168,7 +2375,7 @@ describe('auth function', () => {
       client_id: 'test-client',
       client_secret: 'test-secret',
       authorization_server: 'https://api.example.com/mcp-server',
-      token_endpoint: 'https://auth.example.com/token',
+      token_endpoint: 'https://api.example.com/token',
     });
     (mockProvider.codeVerifier as Mock).mockResolvedValue('test-verifier');
     (mockProvider.saveTokens as Mock).mockResolvedValue(undefined);
@@ -2210,9 +2417,9 @@ describe('auth function', () => {
           ok: true,
           status: 200,
           json: async () => ({
-            issuer: 'https://auth.example.com',
-            authorization_endpoint: 'https://auth.example.com/authorize',
-            token_endpoint: 'https://auth.example.com/token',
+            issuer: 'https://api.example.com',
+            authorization_endpoint: 'https://api.example.com/authorize',
+            token_endpoint: 'https://api.example.com/token',
             response_types_supported: ['code'],
             code_challenge_methods_supported: ['S256'],
           }),
@@ -2236,13 +2443,15 @@ describe('auth function', () => {
     (mockProvider.clientInformation as Mock).mockResolvedValue({
       client_id: 'test-client',
       client_secret: 'test-secret',
+      authorization_server: 'https://api.example.com/mcp-server',
+      token_endpoint: 'https://api.example.com/token',
     });
     (mockProvider.tokens as Mock).mockResolvedValue({
       access_token: 'old-access',
       token_type: 'Bearer',
       refresh_token: 'refresh123',
       authorization_server: 'https://api.example.com/mcp-server',
-      token_endpoint: 'https://auth.example.com/token',
+      token_endpoint: 'https://api.example.com/token',
     });
     (mockProvider.saveTokens as Mock).mockResolvedValue(undefined);
 
@@ -2308,6 +2517,8 @@ describe('auth function', () => {
     (mockProvider.clientInformation as Mock).mockResolvedValue({
       client_id: 'test-client',
       client_secret: 'test-secret',
+      authorization_server: 'https://auth.example.com/oauth',
+      token_endpoint: 'https://auth.example.com/token',
     });
     (mockProvider.tokens as Mock).mockResolvedValue(undefined);
     (mockProvider.saveCodeVerifier as Mock).mockResolvedValue(undefined);
@@ -2374,6 +2585,8 @@ describe('auth function', () => {
       clientInformation: vi.fn().mockResolvedValue({
         client_id: 'client123',
         client_secret: 'secret123',
+        authorization_server: 'https://auth.example.com/',
+        token_endpoint: 'https://auth.example.com/token',
       }),
       tokens: vi.fn().mockResolvedValue(undefined),
       saveTokens: vi.fn(),
@@ -2429,7 +2642,7 @@ describe('OAuth state validation', () => {
         client_id: 'test-client',
         client_secret: 'test-secret',
         authorization_server: 'https://resource.example.com/',
-        token_endpoint: 'https://auth.example.com/token',
+        token_endpoint: 'https://resource.example.com/token',
       }),
       tokens: vi.fn().mockResolvedValue(undefined),
       saveTokens: vi.fn(),
@@ -2453,9 +2666,9 @@ describe('OAuth state validation', () => {
           ok: true,
           status: 200,
           json: async () => ({
-            issuer: 'https://auth.example.com',
-            authorization_endpoint: 'https://auth.example.com/authorize',
-            token_endpoint: 'https://auth.example.com/token',
+            issuer: 'https://resource.example.com',
+            authorization_endpoint: 'https://resource.example.com/authorize',
+            token_endpoint: 'https://resource.example.com/token',
             response_types_supported: ['code'],
             code_challenge_methods_supported: ['S256'],
           }),
@@ -2483,10 +2696,10 @@ describe('OAuth state validation', () => {
           ok: true,
           status: 200,
           json: async () => ({
-            issuer: 'https://auth.example.com',
-            authorization_endpoint: 'https://auth.example.com/authorize',
-            token_endpoint: 'https://auth.example.com/token',
-            registration_endpoint: 'https://auth.example.com/register',
+            issuer: 'https://resource.example.com',
+            authorization_endpoint: 'https://resource.example.com/authorize',
+            token_endpoint: 'https://resource.example.com/token',
+            registration_endpoint: 'https://resource.example.com/register',
             response_types_supported: ['code'],
             code_challenge_methods_supported: ['S256'],
           }),
@@ -2548,7 +2761,7 @@ describe('OAuth state validation', () => {
     expect(provider.saveTokens).toHaveBeenCalledWith({
       ...validTokens,
       authorization_server: 'https://resource.example.com/',
-      token_endpoint: 'https://auth.example.com/token',
+      token_endpoint: 'https://resource.example.com/token',
     });
   });
 
