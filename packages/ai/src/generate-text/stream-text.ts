@@ -308,6 +308,7 @@ export function streamText<
   experimental_sandbox: sandbox,
   output,
   toolApproval,
+  experimental_toolApprovalSecret,
   experimental_telemetry,
   telemetry = experimental_telemetry,
   prepareStep,
@@ -424,6 +425,16 @@ export function streamText<
      * This configuration takes precedence over tool-defined approval settings.
      */
     toolApproval?: ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>;
+
+    /**
+     * Secret for HMAC-signing tool approval requests. When set, the server
+     * signs each approval request at issuance and verifies the signature when
+     * the approval is replayed, preventing client-forged approvals.
+     *
+     * Can be extended to accept a `{ sign, verify }` interface for KMS/HSM
+     * integration (e.g. AWS KMS, GCP Cloud KMS) if there is interest.
+     */
+    experimental_toolApprovalSecret?: string | Uint8Array;
 
     /**
      * Optional function that you can use to provide different settings for a step.
@@ -660,6 +671,7 @@ export function streamText<
     stopConditions: asArray(stopWhen),
     output,
     toolApproval,
+    experimental_toolApprovalSecret,
     providerOptions,
     prepareStep,
     timeout,
@@ -856,6 +868,7 @@ class DefaultStreamTextResult<
     stopConditions,
     output,
     toolApproval,
+    experimental_toolApprovalSecret,
     providerOptions,
     prepareStep,
     now,
@@ -908,6 +921,7 @@ class DefaultStreamTextResult<
     >;
     output: OUTPUT | undefined;
     toolApproval: ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT> | undefined;
+    experimental_toolApprovalSecret: string | Uint8Array | undefined;
     providerOptions: ProviderOptions | undefined;
     prepareStep:
       | PrepareStepFunction<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>
@@ -1470,12 +1484,6 @@ class DefaultStreamTextResult<
 
       // initial tool execution step stream
       if (deniedToolApprovals.length > 0 || approvedToolApprovals.length > 0) {
-        // Re-validate client-supplied approvals against the tool input schema
-        // and re-apply the approval policy before executing them. The approvals
-        // are reconstructed from the messages array, which in the documented
-        // `useChat` flow originates from the client; without this, a forged
-        // assistant message could bypass schema validation and the
-        // needsApproval policy via the approval-replay path.
         const {
           approvedToolApprovals: localApprovedToolApprovals,
           deniedToolApprovals: revalidationDeniedToolApprovals,
@@ -1488,6 +1496,7 @@ class DefaultStreamTextResult<
           messages: initialMessages,
           toolsContext,
           runtimeContext,
+          toolApprovalSecret: experimental_toolApprovalSecret,
         });
 
         const localDeniedToolApprovals = [
@@ -1825,6 +1834,7 @@ class DefaultStreamTextResult<
             toolsContext,
             toolApproval,
             runtimeContext,
+            toolApprovalSecret: experimental_toolApprovalSecret,
             generateId,
 
             // the callbacks need to be passed down and handled by executeToolCall

@@ -2,6 +2,7 @@ import { tool } from '@ai-sdk/provider-utils';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import type { CollectedToolApprovals } from './collect-tool-approvals';
+import { signToolApproval } from './tool-approval-signature';
 import { validateApprovedToolApprovals } from './validate-tool-approvals';
 
 function createApproval(
@@ -229,5 +230,180 @@ describe('validateApprovedToolApprovals', () => {
 
     expect(result.approvedToolApprovals).toHaveLength(1);
     expect(result.deniedToolApprovals).toHaveLength(0);
+  });
+
+  describe('signature verification (experimental_toolApprovalSecret)', () => {
+    const secret = 'test-secret-for-signature';
+
+    it('should pass when the signature is valid', async () => {
+      const tools = {
+        tool1: tool({
+          inputSchema: z.object({ value: z.string() }),
+          execute: async () => 'ok',
+        }),
+      };
+
+      const approvalId = 'approval-signed';
+      const toolCallId = 'call-1';
+      const toolName = 'tool1';
+      const input = { value: 'test' };
+
+      const signature = await signToolApproval({
+        secret,
+        approvalId,
+        toolCallId,
+        toolName,
+        input,
+      });
+
+      const approval: CollectedToolApprovals<any> = {
+        approvalRequest: {
+          type: 'tool-approval-request',
+          approvalId,
+          toolCallId,
+          signature,
+        },
+        approvalResponse: {
+          type: 'tool-approval-response',
+          approvalId,
+          approved: true,
+        },
+        toolCall: {
+          type: 'tool-call',
+          toolCallId,
+          toolName,
+          input,
+        },
+      };
+
+      const result = await validateApprovedToolApprovals({
+        approvedToolApprovals: [approval],
+        tools,
+        toolApproval: undefined,
+        messages: [],
+        toolsContext: {} as any,
+        runtimeContext: {},
+        toolApprovalSecret: secret,
+      });
+
+      expect(result.approvedToolApprovals).toHaveLength(1);
+    });
+
+    it('should throw when the signature is missing and secret is configured', async () => {
+      const tools = {
+        tool1: tool({
+          inputSchema: z.object({ value: z.string() }),
+          execute: async () => 'ok',
+        }),
+      };
+
+      const approval = createApproval({
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'tool1',
+        input: { value: 'test' },
+      });
+
+      await expect(
+        validateApprovedToolApprovals({
+          approvedToolApprovals: [approval],
+          tools,
+          toolApproval: undefined,
+          messages: [],
+          toolsContext: {} as any,
+          runtimeContext: {},
+          toolApprovalSecret: secret,
+        }),
+      ).rejects.toThrowError(/missing signature/);
+    });
+
+    it('should throw when the signature is invalid (tampered input)', async () => {
+      const tools = {
+        tool1: tool({
+          inputSchema: z.object({ value: z.string() }),
+          execute: async () => 'ok',
+        }),
+      };
+
+      const signature = await signToolApproval({
+        secret,
+        approvalId: 'approval-1',
+        toolCallId: 'call-1',
+        toolName: 'tool1',
+        input: { value: 'original' },
+      });
+
+      const approval: CollectedToolApprovals<any> = {
+        approvalRequest: {
+          type: 'tool-approval-request',
+          approvalId: 'approval-1',
+          toolCallId: 'call-1',
+          signature,
+        },
+        approvalResponse: {
+          type: 'tool-approval-response',
+          approvalId: 'approval-1',
+          approved: true,
+        },
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'tool1',
+          input: { value: 'tampered' },
+        },
+      };
+
+      await expect(
+        validateApprovedToolApprovals({
+          approvedToolApprovals: [approval],
+          tools,
+          toolApproval: undefined,
+          messages: [],
+          toolsContext: {} as any,
+          runtimeContext: {},
+          toolApprovalSecret: secret,
+        }),
+      ).rejects.toThrowError(/invalid signature/);
+    });
+
+    it('should ignore signature when no secret is configured (forward compatible)', async () => {
+      const tools = {
+        tool1: tool({
+          inputSchema: z.object({ value: z.string() }),
+          execute: async () => 'ok',
+        }),
+      };
+
+      const approval: CollectedToolApprovals<any> = {
+        approvalRequest: {
+          type: 'tool-approval-request',
+          approvalId: 'approval-1',
+          toolCallId: 'call-1',
+          signature: 'some-random-signature',
+        },
+        approvalResponse: {
+          type: 'tool-approval-response',
+          approvalId: 'approval-1',
+          approved: true,
+        },
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'tool1',
+          input: { value: 'test' },
+        },
+      };
+
+      const result = await validateApprovedToolApprovals({
+        approvedToolApprovals: [approval],
+        tools,
+        toolApproval: undefined,
+        messages: [],
+        toolsContext: {} as any,
+        runtimeContext: {},
+      });
+
+      expect(result.approvedToolApprovals).toHaveLength(1);
+    });
   });
 });

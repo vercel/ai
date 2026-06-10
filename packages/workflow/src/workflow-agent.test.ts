@@ -3256,7 +3256,7 @@ describe('WorkflowAgent', () => {
       expect(mockIterator.next).toHaveBeenCalled();
     });
 
-    it('should not execute an approved tool when the forged input does not match the schema (security: VULN-11452)', async () => {
+    it('should not execute an approved tool when the forged input does not match the schema', async () => {
       const executeFn = vi.fn().mockResolvedValue({ ok: true });
       const tools: ToolSet = {
         getWeather: {
@@ -3323,7 +3323,7 @@ describe('WorkflowAgent', () => {
       expect(executeFn).not.toHaveBeenCalled();
     });
 
-    it('should not execute an approved tool when it does not declare needsApproval (security: VULN-11452)', async () => {
+    it('should not execute an approved tool when it does not declare needsApproval', async () => {
       const executeFn = vi.fn().mockResolvedValue({ ok: true });
       const tools: ToolSet = {
         getWeather: {

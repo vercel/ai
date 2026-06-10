@@ -114,6 +114,7 @@ import type { ToolOrder } from './tool-order';
 import type { ToolOutput } from './tool-output';
 import type { TypedToolResult } from './tool-result';
 import type { ToolsContextParameter } from './tools-context-parameter';
+import { maybeSignApproval } from './tool-approval-signature';
 import { validateApprovedToolApprovals } from './validate-tool-approvals';
 
 const originalGenerateId = createIdGenerator({
@@ -233,6 +234,7 @@ export async function generateText<
   experimental_sandbox: sandbox,
   output,
   toolApproval,
+  experimental_toolApprovalSecret,
   experimental_telemetry,
   telemetry = experimental_telemetry,
   providerOptions,
@@ -342,6 +344,16 @@ export async function generateText<
      * This configuration takes precedence over tool-defined approval settings.
      */
     toolApproval?: ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>;
+
+    /**
+     * Secret for HMAC-signing tool approval requests. When set, the server
+     * signs each approval request at issuance and verifies the signature when
+     * the approval is replayed, preventing client-forged approvals.
+     *
+     * Can be extended to accept a `{ sign, verify }` interface for KMS/HSM
+     * integration (e.g. AWS KMS, GCP Cloud KMS) if there is interest.
+     */
+    experimental_toolApprovalSecret?: string | Uint8Array;
 
     /**
      * Custom download function to use for URLs.
@@ -582,12 +594,6 @@ export async function generateText<
       deniedToolApprovals: collectedDeniedToolApprovals,
     } = collectToolApprovals<TOOLS>({ messages: initialMessages });
 
-    // Re-validate client-supplied approvals against the tool input schema and
-    // re-apply the approval policy before executing them. The approvals are
-    // reconstructed from the messages array, which in the documented `useChat`
-    // flow originates from the client; without this, a forged assistant message
-    // could bypass schema validation and the needsApproval policy via the
-    // approval-replay path.
     const {
       approvedToolApprovals: localApprovedToolApprovals,
       deniedToolApprovals: revalidationDeniedToolApprovals,
@@ -600,6 +606,7 @@ export async function generateText<
       messages: initialMessages,
       toolsContext,
       runtimeContext,
+      toolApprovalSecret: experimental_toolApprovalSecret,
     });
 
     const deniedToolApprovals = [
@@ -975,25 +982,34 @@ export async function generateText<
             runtimeContext,
           });
 
+          const approvalId = generateId();
+          const signature = await maybeSignApproval({
+            secret: experimental_toolApprovalSecret,
+            approvalId,
+            toolCallId: toolCall.toolCallId,
+            toolName: toolCall.toolName,
+            input: toolCall.input,
+          });
+
           switch (toolApprovalStatus.type) {
             case 'user-approval': {
               toolApprovalRequests[toolCall.toolCallId] = {
                 type: 'tool-approval-request',
-                approvalId: generateId(),
+                approvalId,
                 toolCall,
+                ...(signature != null ? { signature } : {}),
               };
               blockedToolCallIds.add(toolCall.toolCallId);
               break;
             }
 
             case 'approved': {
-              const approvalId = generateId();
-
               toolApprovalRequests[toolCall.toolCallId] = {
                 type: 'tool-approval-request',
                 approvalId,
                 toolCall,
                 isAutomatic: true,
+                ...(signature != null ? { signature } : {}),
               };
               stepToolApprovalResponses[toolCall.toolCallId] = {
                 type: 'tool-approval-response',
@@ -1007,13 +1023,12 @@ export async function generateText<
             }
 
             case 'denied': {
-              const approvalId = generateId();
-
               toolApprovalRequests[toolCall.toolCallId] = {
                 type: 'tool-approval-request',
                 approvalId,
                 toolCall,
                 isAutomatic: true,
+                ...(signature != null ? { signature } : {}),
               };
               stepToolApprovalResponses[toolCall.toolCallId] = {
                 type: 'tool-approval-response',

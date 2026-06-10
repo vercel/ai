@@ -1,10 +1,11 @@
 ---
 'ai': patch
 '@ai-sdk/workflow': patch
+'@ai-sdk/provider-utils': patch
 ---
 
-fix (ai): re-validate tool approvals reconstructed from message history before execution
+fix(security): re-validate tool approvals from client message history before execution
 
-`collectToolApprovals` rebuilds approved tool calls purely from the messages array, which in the documented `useChat` flow originates from the client. The approval-replay path in `generateText`/`streamText` (and `WorkflowAgent.stream`) previously handed the raw tool-call input straight to `execute()` without re-validating it against the tool's input schema or re-applying the `needsApproval` policy. A client could forge an assistant message with a pre-approved tool-call part and have the server execute a tool with attacker-chosen arguments.
+The approval-replay path in `generateText`/`streamText` (and `WorkflowAgent.stream`) reconstructed approved tool calls from the client-supplied messages array and executed them without re-validating input against the tool's schema or re-applying the approval policy. A client could forge an assistant message with a pre-approved tool-call part and have the server execute a tool with attacker-chosen arguments.
 
-The approval-replay path now mirrors the normal model path: the tool-call input is re-validated against the tool's input schema (rejected fail-closed on mismatch) and the approval policy is re-resolved (a tool the server-side policy denies is not executed, even if the client-supplied approval response claims it was approved).
+The replay path now validates HMAC signature (when `experimental_toolApprovalSecret` is configured), re-validates tool-call input against the tool's input schema, and re-resolves the approval policy before execution.

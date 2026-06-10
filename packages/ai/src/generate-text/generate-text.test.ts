@@ -28,6 +28,7 @@ import {
   vitest,
 } from 'vitest';
 import { mockSandboxSessionFileStubs } from '../test/mock-sandbox';
+import { signToolApproval } from './tool-approval-signature';
 import { z } from 'zod/v4';
 import * as logWarningsModule from '../logger/log-warnings';
 import type { Instructions } from '../prompt';
@@ -10341,7 +10342,7 @@ describe('generateText', () => {
       });
     });
 
-    describe('when a client forges an approval (security: VULN-11452)', () => {
+    describe('when a client forges an approval with invalid or denied input', () => {
       it('should not execute the tool when the forged input does not match the schema', async () => {
         const executeFunction = vi.fn().mockReturnValue('result1');
 
@@ -10457,6 +10458,250 @@ describe('generateText', () => {
         });
 
         expect(executeFunction).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('when experimental_toolApprovalSecret is configured', () => {
+      const testSecret = 'test-hmac-secret-do-not-use-in-production';
+
+      it('should execute the tool when the signature is valid', async () => {
+        const executeFunction = vi.fn().mockReturnValue('result1');
+
+        const approvalId = 'approval-1';
+        const toolCallId = 'call-1';
+        const toolName = 'tool1';
+        const input = { value: 'test' };
+
+        const signature = await signToolApproval({
+          secret: testSecret,
+          approvalId,
+          toolCallId,
+          toolName,
+          input,
+        });
+
+        const result = await generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: 'done' }],
+              finishReason: { unified: 'stop', raw: 'stop' },
+            }),
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: executeFunction,
+            }),
+          },
+          toolApproval: { tool1: 'user-approval' },
+          experimental_toolApprovalSecret: testSecret,
+          stopWhen: isStepCount(3),
+          messages: [
+            { role: 'user', content: 'test' },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  input,
+                  toolCallId,
+                  toolName,
+                  type: 'tool-call',
+                },
+                {
+                  approvalId,
+                  toolCallId,
+                  type: 'tool-approval-request',
+                  signature,
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  approvalId,
+                  type: 'tool-approval-response',
+                  approved: true,
+                },
+              ],
+            },
+          ],
+        });
+
+        expect(executeFunction).toHaveBeenCalledOnce();
+      });
+
+      it('should reject when the signature is missing', async () => {
+        const executeFunction = vi.fn().mockReturnValue('result1');
+
+        await expect(
+          generateText({
+            model: new MockLanguageModelV4({
+              doGenerate: async () => {
+                throw new Error('model should not be called');
+              },
+            }),
+            tools: {
+              tool1: tool({
+                inputSchema: z.object({ value: z.string() }),
+                execute: executeFunction,
+              }),
+            },
+            toolApproval: { tool1: 'user-approval' },
+            experimental_toolApprovalSecret: testSecret,
+            stopWhen: isStepCount(3),
+            messages: [
+              { role: 'user', content: 'test' },
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    input: { value: 'test' },
+                    toolCallId: 'call-1',
+                    toolName: 'tool1',
+                    type: 'tool-call',
+                  },
+                  {
+                    approvalId: 'approval-1',
+                    toolCallId: 'call-1',
+                    type: 'tool-approval-request',
+                    // no signature
+                  },
+                ],
+              },
+              {
+                role: 'tool',
+                content: [
+                  {
+                    approvalId: 'approval-1',
+                    type: 'tool-approval-response',
+                    approved: true,
+                  },
+                ],
+              },
+            ],
+          }),
+        ).rejects.toThrowError(/missing signature/);
+
+        expect(executeFunction).not.toHaveBeenCalled();
+      });
+
+      it('should reject when the input was tampered after signing', async () => {
+        const executeFunction = vi.fn().mockReturnValue('result1');
+
+        const signature = await signToolApproval({
+          secret: testSecret,
+          approvalId: 'approval-1',
+          toolCallId: 'call-1',
+          toolName: 'tool1',
+          input: { value: 'original' },
+        });
+
+        await expect(
+          generateText({
+            model: new MockLanguageModelV4({
+              doGenerate: async () => {
+                throw new Error('model should not be called');
+              },
+            }),
+            tools: {
+              tool1: tool({
+                inputSchema: z.object({ value: z.string() }),
+                execute: executeFunction,
+              }),
+            },
+            toolApproval: { tool1: 'user-approval' },
+            experimental_toolApprovalSecret: testSecret,
+            stopWhen: isStepCount(3),
+            messages: [
+              { role: 'user', content: 'test' },
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    input: { value: 'tampered' },
+                    toolCallId: 'call-1',
+                    toolName: 'tool1',
+                    type: 'tool-call',
+                  },
+                  {
+                    approvalId: 'approval-1',
+                    toolCallId: 'call-1',
+                    type: 'tool-approval-request',
+                    signature,
+                  },
+                ],
+              },
+              {
+                role: 'tool',
+                content: [
+                  {
+                    approvalId: 'approval-1',
+                    type: 'tool-approval-response',
+                    approved: true,
+                  },
+                ],
+              },
+            ],
+          }),
+        ).rejects.toThrowError(/invalid signature/);
+
+        expect(executeFunction).not.toHaveBeenCalled();
+      });
+
+      it('should work without a secret (backward compatible)', async () => {
+        const executeFunction = vi.fn().mockReturnValue('result1');
+
+        await generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: 'done' }],
+              finishReason: { unified: 'stop', raw: 'stop' },
+            }),
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: executeFunction,
+            }),
+          },
+          toolApproval: { tool1: 'user-approval' },
+          // no experimental_toolApprovalSecret
+          stopWhen: isStepCount(3),
+          messages: [
+            { role: 'user', content: 'test' },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  input: { value: 'test' },
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  type: 'tool-call',
+                },
+                {
+                  approvalId: 'approval-1',
+                  toolCallId: 'call-1',
+                  type: 'tool-approval-request',
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  approvalId: 'approval-1',
+                  type: 'tool-approval-response',
+                  approved: true,
+                },
+              ],
+            },
+          ],
+        });
+
+        expect(executeFunction).toHaveBeenCalledOnce();
       });
     });
 
