@@ -256,6 +256,11 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         id: string;
         approved?: never;
         reason?: never;
+<<<<<<< HEAD
+=======
+        isAutomatic?: boolean;
+        signature?: string;
+>>>>>>> bae5e2b63f (fix(security): harden tool approval replay path against client-forged approvals (#15947))
       };
     }
   | {
@@ -268,6 +273,11 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         id: string;
         approved: boolean;
         reason?: string;
+<<<<<<< HEAD
+=======
+        isAutomatic?: boolean;
+        signature?: string;
+>>>>>>> bae5e2b63f (fix(security): harden tool approval replay path against client-forged approvals (#15947))
       };
     }
   | {
@@ -282,6 +292,11 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         id: string;
         approved: true;
         reason?: string;
+<<<<<<< HEAD
+=======
+        isAutomatic?: boolean;
+        signature?: string;
+>>>>>>> bae5e2b63f (fix(security): harden tool approval replay path against client-forged approvals (#15947))
       };
     }
   | {
@@ -296,6 +311,11 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         id: string;
         approved: true;
         reason?: string;
+<<<<<<< HEAD
+=======
+        isAutomatic?: boolean;
+        signature?: string;
+>>>>>>> bae5e2b63f (fix(security): harden tool approval replay path against client-forged approvals (#15947))
       };
     }
   | {
@@ -308,6 +328,11 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         id: string;
         approved: false;
         reason?: string;
+<<<<<<< HEAD
+=======
+        isAutomatic?: boolean;
+        signature?: string;
+>>>>>>> bae5e2b63f (fix(security): harden tool approval replay path against client-forged approvals (#15947))
       };
     }
 );
@@ -364,6 +389,11 @@ export type DynamicToolUIPart = {
         id: string;
         approved?: never;
         reason?: never;
+<<<<<<< HEAD
+=======
+        isAutomatic?: boolean;
+        signature?: string;
+>>>>>>> bae5e2b63f (fix(security): harden tool approval replay path against client-forged approvals (#15947))
       };
     }
   | {
@@ -376,6 +406,11 @@ export type DynamicToolUIPart = {
         id: string;
         approved: boolean;
         reason?: string;
+<<<<<<< HEAD
+=======
+        isAutomatic?: boolean;
+        signature?: string;
+>>>>>>> bae5e2b63f (fix(security): harden tool approval replay path against client-forged approvals (#15947))
       };
     }
   | {
@@ -390,6 +425,11 @@ export type DynamicToolUIPart = {
         id: string;
         approved: true;
         reason?: string;
+<<<<<<< HEAD
+=======
+        isAutomatic?: boolean;
+        signature?: string;
+>>>>>>> bae5e2b63f (fix(security): harden tool approval replay path against client-forged approvals (#15947))
       };
     }
   | {
@@ -403,6 +443,11 @@ export type DynamicToolUIPart = {
         id: string;
         approved: true;
         reason?: string;
+<<<<<<< HEAD
+=======
+        isAutomatic?: boolean;
+        signature?: string;
+>>>>>>> bae5e2b63f (fix(security): harden tool approval replay path against client-forged approvals (#15947))
       };
     }
   | {
@@ -415,6 +460,11 @@ export type DynamicToolUIPart = {
         id: string;
         approved: false;
         reason?: string;
+<<<<<<< HEAD
+=======
+        isAutomatic?: boolean;
+        signature?: string;
+>>>>>>> bae5e2b63f (fix(security): harden tool approval replay path against client-forged approvals (#15947))
       };
     }
 );

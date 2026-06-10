@@ -675,7 +675,43 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             case 'tool-approval-request': {
               const toolInvocation = getToolInvocation(chunk.toolCallId);
               toolInvocation.state = 'approval-requested';
+<<<<<<< HEAD
               toolInvocation.approval = { id: chunk.approvalId };
+=======
+              toolInvocation.approval = {
+                id: chunk.approvalId,
+                ...(chunk.isAutomatic === true ? { isAutomatic: true } : {}),
+                ...(chunk.signature != null
+                  ? { signature: chunk.signature }
+                  : {}),
+              };
+              write();
+              break;
+            }
+
+            case 'tool-approval-response': {
+              const toolInvocation = getToolInvocationByApprovalId(
+                chunk.approvalId,
+              );
+              const approval =
+                toolInvocation.approval == null
+                  ? { id: chunk.approvalId }
+                  : toolInvocation.approval;
+
+              toolInvocation.state = 'approval-responded';
+              toolInvocation.approval = {
+                id: chunk.approvalId,
+                approved: chunk.approved,
+                ...(chunk.reason != null ? { reason: chunk.reason } : {}),
+                ...(approval.isAutomatic === true ? { isAutomatic: true } : {}),
+              };
+              if (chunk.providerExecuted != null) {
+                toolInvocation.providerExecuted = chunk.providerExecuted;
+              }
+              if (chunk.providerMetadata != null) {
+                toolInvocation.callProviderMetadata = chunk.providerMetadata;
+              }
+>>>>>>> bae5e2b63f (fix(security): harden tool approval replay path against client-forged approvals (#15947))
               write();
               break;
             }

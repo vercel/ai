@@ -122,6 +122,11 @@ const uiMessagesSchema = lazySchema(() =>
                     id: z.string(),
                     approved: z.never().optional(),
                     reason: z.never().optional(),
+<<<<<<< HEAD
+=======
+                    isAutomatic: z.boolean().optional(),
+                    signature: z.string().optional(),
+>>>>>>> bae5e2b63f (fix(security): harden tool approval replay path against client-forged approvals (#15947))
                   }),
                 }),
                 z.object({
@@ -139,6 +144,11 @@ const uiMessagesSchema = lazySchema(() =>
                     id: z.string(),
                     approved: z.boolean(),
                     reason: z.string().optional(),
+<<<<<<< HEAD
+=======
+                    isAutomatic: z.boolean().optional(),
+                    signature: z.string().optional(),
+>>>>>>> bae5e2b63f (fix(security): harden tool approval replay path against client-forged approvals (#15947))
                   }),
                 }),
                 z.object({
@@ -159,6 +169,11 @@ const uiMessagesSchema = lazySchema(() =>
                       id: z.string(),
                       approved: z.literal(true),
                       reason: z.string().optional(),
+<<<<<<< HEAD
+=======
+                      isAutomatic: z.boolean().optional(),
+                      signature: z.string().optional(),
+>>>>>>> bae5e2b63f (fix(security): harden tool approval replay path against client-forged approvals (#15947))
                     })
                     .optional(),
                 }),
@@ -180,6 +195,11 @@ const uiMessagesSchema = lazySchema(() =>
                       id: z.string(),
                       approved: z.literal(true),
                       reason: z.string().optional(),
+<<<<<<< HEAD
+=======
+                      isAutomatic: z.boolean().optional(),
+                      signature: z.string().optional(),
+>>>>>>> bae5e2b63f (fix(security): harden tool approval replay path against client-forged approvals (#15947))
                     })
                     .optional(),
                 }),
@@ -198,6 +218,11 @@ const uiMessagesSchema = lazySchema(() =>
                     id: z.string(),
                     approved: z.literal(false),
                     reason: z.string().optional(),
+<<<<<<< HEAD
+=======
+                    isAutomatic: z.boolean().optional(),
+                    signature: z.string().optional(),
+>>>>>>> bae5e2b63f (fix(security): harden tool approval replay path against client-forged approvals (#15947))
                   }),
                 }),
                 z.object({
@@ -238,6 +263,11 @@ const uiMessagesSchema = lazySchema(() =>
                     id: z.string(),
                     approved: z.never().optional(),
                     reason: z.never().optional(),
+<<<<<<< HEAD
+=======
+                    isAutomatic: z.boolean().optional(),
+                    signature: z.string().optional(),
+>>>>>>> bae5e2b63f (fix(security): harden tool approval replay path against client-forged approvals (#15947))
                   }),
                 }),
                 z.object({
@@ -254,6 +284,11 @@ const uiMessagesSchema = lazySchema(() =>
                     id: z.string(),
                     approved: z.boolean(),
                     reason: z.string().optional(),
+<<<<<<< HEAD
+=======
+                    isAutomatic: z.boolean().optional(),
+                    signature: z.string().optional(),
+>>>>>>> bae5e2b63f (fix(security): harden tool approval replay path against client-forged approvals (#15947))
                   }),
                 }),
                 z.object({
@@ -273,6 +308,11 @@ const uiMessagesSchema = lazySchema(() =>
                       id: z.string(),
                       approved: z.literal(true),
                       reason: z.string().optional(),
+<<<<<<< HEAD
+=======
+                      isAutomatic: z.boolean().optional(),
+                      signature: z.string().optional(),
+>>>>>>> bae5e2b63f (fix(security): harden tool approval replay path against client-forged approvals (#15947))
                     })
                     .optional(),
                 }),
@@ -293,6 +333,11 @@ const uiMessagesSchema = lazySchema(() =>
                       id: z.string(),
                       approved: z.literal(true),
                       reason: z.string().optional(),
+<<<<<<< HEAD
+=======
+                      isAutomatic: z.boolean().optional(),
+                      signature: z.string().optional(),
+>>>>>>> bae5e2b63f (fix(security): harden tool approval replay path against client-forged approvals (#15947))
                     })
                     .optional(),
                 }),
@@ -310,6 +355,11 @@ const uiMessagesSchema = lazySchema(() =>
                     id: z.string(),
                     approved: z.literal(false),
                     reason: z.string().optional(),
+<<<<<<< HEAD
+=======
+                    isAutomatic: z.boolean().optional(),
+                    signature: z.string().optional(),
+>>>>>>> bae5e2b63f (fix(security): harden tool approval replay path against client-forged approvals (#15947))
                   }),
                 }),
               ]),

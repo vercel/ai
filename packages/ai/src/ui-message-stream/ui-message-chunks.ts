@@ -85,6 +85,19 @@ export const uiMessageChunkSchema = lazySchema(() =>
         type: z.literal('tool-approval-request'),
         approvalId: z.string(),
         toolCallId: z.string(),
+<<<<<<< HEAD
+=======
+        isAutomatic: z.boolean().optional(),
+        signature: z.string().optional(),
+      }),
+      z.strictObject({
+        type: z.literal('tool-approval-response'),
+        approvalId: z.string(),
+        approved: z.boolean(),
+        reason: z.string().optional(),
+        providerExecuted: z.boolean().optional(),
+        providerMetadata: providerMetadataSchema.optional(),
+>>>>>>> bae5e2b63f (fix(security): harden tool approval replay path against client-forged approvals (#15947))
       }),
       z.strictObject({
         type: z.literal('tool-output-available'),
@@ -269,6 +282,19 @@ export type UIMessageChunk<
       type: 'tool-approval-request';
       approvalId: string;
       toolCallId: string;
+<<<<<<< HEAD
+=======
+      isAutomatic?: boolean;
+      signature?: string;
+    }
+  | {
+      type: 'tool-approval-response';
+      approvalId: string;
+      approved: boolean;
+      reason?: string;
+      providerExecuted?: boolean;
+      providerMetadata?: ProviderMetadata;
+>>>>>>> bae5e2b63f (fix(security): harden tool approval replay path against client-forged approvals (#15947))
     }
   | {
       type: 'tool-output-available';

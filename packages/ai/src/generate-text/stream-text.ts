@@ -121,7 +121,12 @@ import type { TypedToolCall } from './tool-call';
 import type { ToolCallRepairFunction } from './tool-call-repair-function';
 import type { ToolOutput } from './tool-output';
 import type { StaticToolOutputDenied } from './tool-output-denied';
+<<<<<<< HEAD
 import type { ToolSet } from './tool-set';
+=======
+import type { ToolsContextParameter } from './tools-context-parameter';
+import { validateApprovedToolApprovals } from './validate-tool-approvals';
+>>>>>>> bae5e2b63f (fix(security): harden tool approval replay path against client-forged approvals (#15947))
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -335,10 +340,20 @@ export function streamText<
   abortSignal,
   timeout,
   headers,
+<<<<<<< HEAD
   stopWhen = stepCountIs(1),
   experimental_output,
   output = experimental_output,
   experimental_telemetry: telemetry,
+=======
+  stopWhen = isStepCount(1),
+  experimental_sandbox: sandbox,
+  output,
+  toolApproval,
+  experimental_toolApprovalSecret,
+  experimental_telemetry,
+  telemetry = experimental_telemetry,
+>>>>>>> bae5e2b63f (fix(security): harden tool approval replay path against client-forged approvals (#15947))
   prepareStep,
   providerOptions,
   experimental_activeTools,
@@ -423,6 +438,13 @@ export function streamText<
      * @deprecated Use `output` instead.
      */
     experimental_output?: OUTPUT;
+
+    /**
+     * Secret for HMAC-signing tool approval requests. When set, the server
+     * signs each approval request at issuance and verifies the signature when
+     * the approval is replayed, preventing client-forged approvals.
+     */
+    experimental_toolApprovalSecret?: string | Uint8Array;
 
     /**
      * Optional function that you can use to provide different settings for a step.
@@ -590,6 +612,11 @@ export function streamText<
     repairToolCall,
     stopConditions: asArray(stopWhen),
     output,
+<<<<<<< HEAD
+=======
+    toolApproval,
+    experimental_toolApprovalSecret,
+>>>>>>> bae5e2b63f (fix(security): harden tool approval replay path against client-forged approvals (#15947))
     providerOptions,
     prepareStep,
     includeRawChunks,
@@ -774,6 +801,11 @@ class DefaultStreamTextResult<
     repairToolCall,
     stopConditions,
     output,
+<<<<<<< HEAD
+=======
+    toolApproval,
+    experimental_toolApprovalSecret,
+>>>>>>> bae5e2b63f (fix(security): harden tool approval replay path against client-forged approvals (#15947))
     providerOptions,
     prepareStep,
     includeRawChunks,
@@ -816,6 +848,11 @@ class DefaultStreamTextResult<
     repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
     stopConditions: Array<StopCondition<NoInfer<TOOLS>>>;
     output: OUTPUT | undefined;
+<<<<<<< HEAD
+=======
+    toolApproval: ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT> | undefined;
+    experimental_toolApprovalSecret: string | Uint8Array | undefined;
+>>>>>>> bae5e2b63f (fix(security): harden tool approval replay path against client-forged approvals (#15947))
     providerOptions: ProviderOptions | undefined;
     prepareStep: PrepareStepFunction<NoInfer<TOOLS>> | undefined;
     includeRawChunks: boolean;
@@ -1330,6 +1367,7 @@ class DefaultStreamTextResult<
       metadata: telemetry?.metadata as Record<string, unknown> | undefined,
     };
 
+<<<<<<< HEAD
     recordSpan({
       name: 'ai.streamText',
       attributes: selectTelemetryAttributes({
@@ -1340,6 +1378,91 @@ class DefaultStreamTextResult<
           // specific settings that only make sense on the outer level:
           'ai.prompt': {
             input: () => JSON.stringify({ system, prompt, messages }),
+=======
+    (async () => {
+      const initialPrompt = await standardizePrompt({
+        instructions,
+        system,
+        prompt,
+        messages,
+        allowSystemInMessages,
+      } as Prompt);
+
+      await notify({
+        event: {
+          callId,
+          operationId: 'ai.streamText',
+          provider: model.provider,
+          modelId: model.modelId,
+          instructions: initialPrompt.instructions,
+          messages: initialPrompt.messages,
+          tools,
+          toolChoice,
+          activeTools,
+          toolOrder,
+          maxOutputTokens: callSettings.maxOutputTokens,
+          temperature: callSettings.temperature,
+          topP: callSettings.topP,
+          topK: callSettings.topK,
+          presencePenalty: callSettings.presencePenalty,
+          frequencyPenalty: callSettings.frequencyPenalty,
+          stopSequences: callSettings.stopSequences,
+          seed: callSettings.seed,
+          reasoning: callSettings.reasoning,
+          maxRetries,
+          timeout,
+          headers,
+          providerOptions,
+          output,
+          runtimeContext,
+          toolsContext,
+        },
+        callbacks: [onStart, telemetryDispatcher.onStart],
+      });
+
+      const initialMessages = initialPrompt.messages;
+      let instructionsForNextStep = initialPrompt.instructions;
+
+      const { approvedToolApprovals, deniedToolApprovals } =
+        collectToolApprovals<TOOLS>({ messages: initialMessages });
+
+      // initial tool execution step stream
+      if (deniedToolApprovals.length > 0 || approvedToolApprovals.length > 0) {
+        const {
+          approvedToolApprovals: localApprovedToolApprovals,
+          deniedToolApprovals: revalidationDeniedToolApprovals,
+        } = await validateApprovedToolApprovals<TOOLS, RUNTIME_CONTEXT>({
+          approvedToolApprovals: approvedToolApprovals.filter(
+            toolApproval => !toolApproval.toolCall.providerExecuted,
+          ),
+          tools,
+          toolApproval,
+          messages: initialMessages,
+          toolsContext,
+          runtimeContext,
+          toolApprovalSecret: experimental_toolApprovalSecret,
+        });
+
+        const localDeniedToolApprovals = [
+          ...deniedToolApprovals.filter(
+            toolApproval => !toolApproval.toolCall.providerExecuted,
+          ),
+          ...revalidationDeniedToolApprovals,
+        ];
+
+        const deniedProviderExecutedToolApprovals = deniedToolApprovals.filter(
+          toolApproval => toolApproval.toolCall.providerExecuted,
+        );
+
+        let toolExecutionStepStreamController:
+          | ReadableStreamDefaultController<TextStreamPart<TOOLS>>
+          | undefined;
+        const toolExecutionStepStream = new ReadableStream<
+          TextStreamPart<TOOLS>
+        >({
+          start(controller) {
+            toolExecutionStepStreamController = controller;
+>>>>>>> bae5e2b63f (fix(security): harden tool approval replay path against client-forged approvals (#15947))
           },
         },
       }),
@@ -1582,6 +1705,7 @@ class DefaultStreamTextResult<
               experimental_context,
             });
 
+<<<<<<< HEAD
             const stepModel = resolveLanguageModel(
               prepareStepResult?.model ?? model,
             );
@@ -1589,6 +1713,21 @@ class DefaultStreamTextResult<
               provider: stepModel.provider,
               modelId: stepModel.modelId,
             };
+=======
+          const streamWithToolResults = executeToolsFromStream({
+            stream: streamAfterToolCallbackInvocation,
+            tools,
+            callId,
+            messages: stepMessages,
+            abortSignal,
+            timeout,
+            experimental_sandbox: stepSandbox,
+            toolsContext,
+            toolApproval,
+            runtimeContext,
+            toolApprovalSecret: experimental_toolApprovalSecret,
+            generateId,
+>>>>>>> bae5e2b63f (fix(security): harden tool approval replay path against client-forged approvals (#15947))
 
             const promptMessages = await convertToLanguageModelPrompt({
               prompt: {

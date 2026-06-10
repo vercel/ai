@@ -113,6 +113,11 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
           type: 'tool-approval-request',
           approvalId: part.approvalId,
           toolCallId: part.toolCall.toolCallId,
+<<<<<<< HEAD
+=======
+          isAutomatic: part.isAutomatic,
+          ...(part.signature != null ? { signature: part.signature } : {}),
+>>>>>>> bae5e2b63f (fix(security): harden tool approval replay path against client-forged approvals (#15947))
         });
         break;
     }
