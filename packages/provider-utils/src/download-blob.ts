@@ -1,5 +1,6 @@
 import { DownloadError } from './download-error';
 import {
+  cancelResponseBody,
   readResponseWithSizeLimit,
   DEFAULT_MAX_DOWNLOAD_SIZE,
 } from './read-response-with-size-limit';
@@ -32,6 +33,9 @@ export async function downloadBlob(
     }
 
     if (!response.ok) {
+      // Release the connection before rejecting so an error status from an
+      // attacker-controlled origin cannot leak open sockets.
+      await cancelResponseBody(response);
       throw new DownloadError({
         url,
         statusCode: response.status,

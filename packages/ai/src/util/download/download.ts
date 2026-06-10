@@ -1,4 +1,5 @@
 import {
+  cancelResponseBody,
   DownloadError,
   readResponseWithSizeLimit,
   DEFAULT_MAX_DOWNLOAD_SIZE,
@@ -45,6 +46,9 @@ export const download = async ({
     }
 
     if (!response.ok) {
+      // Release the connection before rejecting so an error status from an
+      // attacker-controlled origin cannot leak open sockets.
+      await cancelResponseBody(response);
       throw new DownloadError({
         url: urlText,
         statusCode: response.status,

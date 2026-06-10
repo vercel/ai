@@ -179,6 +179,58 @@ describe('download', () => {
     }
   });
 
+  it('should cancel the body on non-ok response (prevents socket leak)', async () => {
+    const onCancel = vi.fn();
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      statusText: 'Not Found',
+      headers: new Headers(),
+      body: new ReadableStream({
+        start(controller) {
+          controller.enqueue(new Uint8Array(10));
+          controller.close();
+        },
+        cancel() {
+          onCancel();
+        },
+      }),
+    } as unknown as Response);
+
+    await expect(
+      download({ url: new URL('http://example.com/not-found') }),
+    ).rejects.toThrow(DownloadError);
+
+    expect(onCancel).toHaveBeenCalled();
+  });
+
+  it('should cancel the body when Content-Length exceeds limit (prevents socket leak)', async () => {
+    const onCancel = vi.fn();
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({
+        'content-type': 'application/octet-stream',
+        'content-length': `${3 * 1024 * 1024 * 1024}`,
+      }),
+      body: new ReadableStream({
+        start(controller) {
+          controller.enqueue(new Uint8Array(10));
+          controller.close();
+        },
+        cancel() {
+          onCancel();
+        },
+      }),
+    } as unknown as Response);
+
+    await expect(
+      download({ url: new URL('http://example.com/large') }),
+    ).rejects.toThrow(DownloadError);
+
+    expect(onCancel).toHaveBeenCalled();
+  });
+
   it('should abort when response exceeds default size limit', async () => {
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,

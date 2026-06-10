@@ -40,6 +40,9 @@ export async function readResponseWithSizeLimit({
   if (contentLength != null) {
     const length = parseInt(contentLength, 10);
     if (!isNaN(length) && length > maxBytes) {
+      // Cancel the body so the underlying connection is released back to the
+      // pool instead of being left open until the socket is exhausted.
+      await cancelResponseBody(response);
       throw new DownloadError({
         url,
         message: `Download of ${url} exceeded maximum size of ${maxBytes} bytes (Content-Length: ${length}).`,
@@ -94,4 +97,23 @@ export async function readResponseWithSizeLimit({
   }
 
   return result;
+}
+
+/**
+ * Cancels a response body to release the underlying connection.
+ *
+ * When a fetch Response is rejected without consuming its body (e.g. a failed
+ * status code or a Content-Length that exceeds the size limit), the underlying
+ * TCP socket is not returned to the connection pool and may stay open until the
+ * process runs out of file descriptors. Cancelling the body avoids this leak.
+ *
+ * Errors thrown while cancelling are ignored: the body may already be locked,
+ * disturbed, or absent, none of which should mask the original rejection.
+ */
+export async function cancelResponseBody(response: Response): Promise<void> {
+  try {
+    await response.body?.cancel();
+  } catch {
+    // Ignore cancel errors so the original rejection is preserved.
+  }
 }

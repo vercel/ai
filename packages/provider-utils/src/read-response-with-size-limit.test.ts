@@ -8,11 +8,13 @@ function createMockResponse({
 }: {
   body?: Uint8Array | null;
   contentLength?: string;
-}): Response {
+}): { response: Response; cancelled: () => boolean } {
   const headers = new Headers();
   if (contentLength != null) {
     headers.set('content-length', contentLength);
   }
+
+  let cancelled = false;
 
   const stream =
     body != null
@@ -25,19 +27,25 @@ function createMockResponse({
             }
             controller.close();
           },
+          cancel() {
+            cancelled = true;
+          },
         })
       : null;
 
   return {
-    headers,
-    body: stream,
-  } as unknown as Response;
+    response: {
+      headers,
+      body: stream,
+    } as unknown as Response,
+    cancelled: () => cancelled,
+  };
 }
 
 describe('readResponseWithSizeLimit', () => {
   it('should read response within limit successfully', async () => {
     const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
-    const response = createMockResponse({
+    const { response } = createMockResponse({
       body: data,
       contentLength: '8',
     });
@@ -52,7 +60,7 @@ describe('readResponseWithSizeLimit', () => {
   });
 
   it('should reject when Content-Length exceeds limit (early check)', async () => {
-    const response = createMockResponse({
+    const { response } = createMockResponse({
       body: new Uint8Array(10),
       contentLength: '1000',
     });
@@ -72,12 +80,29 @@ describe('readResponseWithSizeLimit', () => {
     });
   });
 
+  it('should cancel the body when Content-Length exceeds limit (prevents socket leak)', async () => {
+    const { response, cancelled } = createMockResponse({
+      body: new Uint8Array(10),
+      contentLength: '1000',
+    });
+
+    await expect(
+      readResponseWithSizeLimit({
+        response,
+        url: 'http://example.com/large',
+        maxBytes: 100,
+      }),
+    ).rejects.toThrow();
+
+    expect(cancelled()).toBe(true);
+  });
+
   it('should abort when streamed bytes exceed limit', async () => {
     // Body is larger than maxBytes, but Content-Length is not set
     const largeBody = new Uint8Array(200);
     largeBody.fill(42);
 
-    const response = createMockResponse({
+    const { response } = createMockResponse({
       body: largeBody,
     });
 
@@ -100,7 +125,7 @@ describe('readResponseWithSizeLimit', () => {
     const largeBody = new Uint8Array(200);
     largeBody.fill(42);
 
-    const response = createMockResponse({
+    const { response } = createMockResponse({
       body: largeBody,
       contentLength: '10', // Claims to be small
     });
@@ -121,7 +146,7 @@ describe('readResponseWithSizeLimit', () => {
   });
 
   it('should handle empty body (null)', async () => {
-    const response = createMockResponse({
+    const { response } = createMockResponse({
       body: null,
     });
 
@@ -135,7 +160,7 @@ describe('readResponseWithSizeLimit', () => {
   });
 
   it('should handle empty body (zero-length)', async () => {
-    const response = createMockResponse({
+    const { response } = createMockResponse({
       body: new Uint8Array(0),
     });
 
@@ -152,7 +177,7 @@ describe('readResponseWithSizeLimit', () => {
     const data = new Uint8Array(10);
     data.fill(1);
 
-    const response = createMockResponse({
+    const { response } = createMockResponse({
       body: data,
       contentLength: '10',
     });
@@ -170,7 +195,7 @@ describe('readResponseWithSizeLimit', () => {
     const data = new Uint8Array(11);
     data.fill(1);
 
-    const response = createMockResponse({
+    const { response } = createMockResponse({
       body: data,
     });
 
