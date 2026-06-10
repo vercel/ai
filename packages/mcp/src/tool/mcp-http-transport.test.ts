@@ -408,6 +408,8 @@ describe('HttpMCPTransport', () => {
       access_token: 'expired-access-token',
       token_type: 'Bearer',
       refresh_token: 'rotating-refresh-token',
+      authorization_server: 'http://localhost:4000/',
+      token_endpoint: 'http://localhost:4000/token',
     };
     let releaseRefresh: () => void;
     const refreshGate = new Promise<void>(resolve => {
