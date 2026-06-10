@@ -106,7 +106,7 @@ It currently does not support accepting notifications from an MCP server, and cu
                       type: 'OAuthClientProvider',
                       isOptional: true,
                       description:
-                        'Optional OAuth provider for authorization to access protected remote MCP servers.',
+                        'Optional OAuth provider for authorization to access protected remote MCP servers. Implement `validateAuthorizationServerURL` on the provider to allowlist discovered OAuth authorization server URLs before metadata is fetched.',
                     },
                     {
                       name: 'redirect',

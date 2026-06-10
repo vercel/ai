@@ -124,6 +124,38 @@ transports by providing an `authProvider`.
 
 </Note>
 
+### OAuth Authorization Server Validation
+
+When using MCP OAuth in server-side applications, the MCP server can advertise
+the OAuth authorization server to use. If you connect to MCP servers outside
+your control, implement `validateAuthorizationServerURL` on your
+`authProvider` to allow only the authorization server origins you trust:
+
+```typescript
+const allowedAuthorizationServerOrigins = new Set([
+  'https://accounts.example.com',
+  'https://tenant.auth0.com',
+]);
+
+const myOAuthClientProvider = {
+  // ...other OAuthClientProvider methods
+
+  validateAuthorizationServerURL(serverUrl, authorizationServerUrl) {
+    const origin = new URL(authorizationServerUrl).origin;
+
+    if (!allowedAuthorizationServerOrigins.has(origin)) {
+      throw new Error(
+        `Unexpected OAuth authorization server for ${serverUrl}: ${origin}`,
+      );
+    }
+  },
+};
+```
+
+This hook is called before the SDK fetches authorization server metadata, so a
+rejected URL is not requested. It is optional and does not change existing OAuth
+flows unless you implement it.
+
 ### Closing the MCP Client
 
 After initialization, you should close the MCP client based on your usage pattern:
