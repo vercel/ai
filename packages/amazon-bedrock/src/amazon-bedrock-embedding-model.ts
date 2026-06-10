@@ -128,7 +128,7 @@ export class AmazonBedrockEmbeddingModel implements EmbeddingModelV4 {
           };
 
     const url = this.getUrl(this.modelId);
-    const { value: response } = await postJsonToApi({
+    const { value: response, responseHeaders } = await postJsonToApi({
       url,
       headers: await resolve(
         combineHeaders(
@@ -171,13 +171,18 @@ export class AmazonBedrockEmbeddingModel implements EmbeddingModelV4 {
       embedding = response.embeddings.float[0];
     }
 
-    // Extract token count based on response format
+    // Extract token count based on response format. Cohere responses don't
+    // include a token count in the body, so fall back to the InvokeModel
+    // response header (NaN when the header is absent).
+    const headerTokenCount = Number(
+      responseHeaders?.['x-amzn-bedrock-input-token-count'],
+    );
     const tokens =
       'inputTextTokenCount' in response
         ? response.inputTextTokenCount // Titan response
         : 'inputTokenCount' in response
           ? (response.inputTokenCount ?? 0) // Nova response
-          : NaN; // Cohere doesn't return token count
+          : headerTokenCount;
 
     return {
       embeddings: [embedding],
