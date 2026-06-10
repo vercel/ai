@@ -128,19 +128,11 @@ const originalGenerateId = createIdGenerator({
   size: 24,
 });
 
-<<<<<<< HEAD
-=======
-const originalGenerateCallId = createIdGenerator({
-  prefix: 'call',
-  size: 24,
-});
-
 // chunk types that count as model output; used to distinguish empty
 // incomplete streams from incomplete streams with partial results.
 // exhaustive so that new chunk types must be classified explicitly:
 const isOutputChunkType = {
   file: true,
-  custom: true,
   source: true,
   'text-start': true,
   'text-end': true,
@@ -148,55 +140,23 @@ const isOutputChunkType = {
   'reasoning-start': true,
   'reasoning-end': true,
   'reasoning-delta': true,
-  'reasoning-file': true,
   'tool-input-start': true,
   'tool-input-end': true,
   'tool-input-delta': true,
   'tool-approval-request': true,
-  'tool-approval-response': true,
   'tool-call': true,
   'tool-result': true,
   'tool-error': true,
-  'tool-execution-end': false,
-  'model-call-start': false,
-  'model-call-response-metadata': false,
-  'model-call-end': false,
+  'stream-start': false,
+  'response-metadata': false,
+  finish: false,
   error: false,
   raw: false,
-} as const satisfies Record<ExecuteToolsStreamPart['type'], boolean>;
+} as const satisfies Record<
+  SingleRequestTextStreamPart<ToolSet>['type'],
+  boolean
+>;
 
-export type StreamTextInclude = {
-  /**
-   * Whether to retain the request body in step results.
-   * The request body can be large when sending images or files.
-   *
-   * @default false
-   */
-  requestBody?: boolean;
-
-  /**
-   * Whether to retain the request messages in step results.
-   * The request messages can be large when sending images or files.
-   *
-   * @default false
-   */
-  requestMessages?: boolean;
-
-  /**
-   * Whether to include raw chunks from the provider in the stream.
-   *
-   * When enabled, you will receive raw chunks with type 'raw' that contain
-   * the unprocessed data from the provider.
-   *
-   * This allows access to cutting-edge provider features not yet wrapped by
-   * the AI SDK.
-   *
-   * @default false
-   */
-  rawChunks?: boolean;
-};
-
->>>>>>> 426dbbbff3 (fix(ai): reject incomplete model streams (#15938))
 /**
  * A transformation that is applied to the stream.
  *
@@ -905,6 +865,7 @@ class DefaultStreamTextResult<
     let recordedRequest: LanguageModelRequestMetadata = {};
     let recordedWarnings: Array<CallWarning> = [];
     const recordedSteps: StepResult<TOOLS>[] = [];
+    let recordedNoOutputError: NoOutputGeneratedError | undefined;
 
     // Track provider-executed tool calls that support deferred results
     // (e.g., code_execution in programmatic tool calling scenarios).
@@ -930,7 +891,6 @@ class DefaultStreamTextResult<
         providerMetadata: ProviderMetadata | undefined;
       }
     > = {};
-    let recordedNoOutputError: NoOutputGeneratedError | undefined;
 
     const eventProcessor = new TransformStream<
       EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>,
@@ -1156,8 +1116,6 @@ class DefaultStreamTextResult<
 
       async flush(controller) {
         try {
-          // reject when no output was generated or an incomplete model stream
-          // ended a continuation step:
           if (recordedSteps.length === 0 || recordedNoOutputError != null) {
             const error = abortSignal?.aborted
               ? abortSignal.reason
@@ -1657,40 +1615,8 @@ class DefaultStreamTextResult<
             const stepMessages =
               prepareStepResult?.messages ?? stepInputMessages;
 
-<<<<<<< HEAD
             const stepSystem =
               prepareStepResult?.system ?? initialPrompt.system;
-=======
-          // terminal chunk = 'model-call-end' or 'error'; absence on stream
-          // end means the model stream is incomplete:
-          let hasReceivedTerminalChunk = false;
-
-          // output chunk = any content chunk (text, tool calls, etc.);
-          // used to distinguish empty incomplete streams from partial results:
-          let hasReceivedOutputChunk = false;
-
-          let stepUsage: LanguageModelUsage = createNullLanguageModelUsage();
-          let stepProviderMetadata: ProviderMetadata | undefined;
-          let stepFirstChunk = true;
-          let modelCallPerformance: Omit<
-            StepResultPerformance,
-            'stepTimeMs' | 'toolExecutionMs'
-          > = {
-            responseTimeMs: 0,
-            effectiveOutputTokensPerSecond: 0,
-            outputTokensPerSecond: undefined,
-            inputTokensPerSecond: undefined,
-            effectiveTotalTokensPerSecond: 0,
-            timeToFirstOutputMs: undefined,
-            timeBetweenOutputChunksMs: undefined,
-          };
-          const toolExecutionMs: Record<string, number> = {};
-          let stepResponse: { id: string; timestamp: Date; modelId: string } = {
-            id: generateId(),
-            timestamp: new Date(),
-            modelId: model.modelId,
-          };
->>>>>>> 426dbbbff3 (fix(ai): reject incomplete model streams (#15938))
 
             const stepProviderOptions = mergeObjects(
               providerOptions,
@@ -1725,7 +1651,6 @@ class DefaultStreamTextResult<
               ],
             });
 
-<<<<<<< HEAD
             const {
               result: { stream, response, request },
               doStreamSpan,
@@ -1747,159 +1672,6 @@ class DefaultStreamTextResult<
                     // prompt:
                     'ai.prompt.messages': {
                       input: () => stringifyForTelemetry(promptMessages),
-=======
-                  if (stepFirstChunk) {
-                    stepFirstChunk = false;
-
-                    // Step start:
-                    controller.enqueue({
-                      type: 'start-step',
-                      request: stepRequest,
-                      warnings: warnings ?? [],
-                    });
-                  }
-
-                  const chunkType = chunk.type;
-
-                  if (isOutputChunkType[chunkType]) {
-                    hasReceivedOutputChunk = true;
-                  }
-
-                  switch (chunkType) {
-                    case 'file':
-                    case 'custom':
-                    case 'source':
-                    case 'text-start':
-                    case 'text-end':
-                    case 'reasoning-start':
-                    case 'reasoning-end':
-                    case 'reasoning-delta':
-                    case 'reasoning-file':
-                    case 'tool-input-start':
-                    case 'tool-input-end':
-                    case 'tool-input-delta':
-                    case 'tool-approval-request': {
-                      controller.enqueue(chunk);
-                      break;
-                    }
-
-                    case 'text-delta': {
-                      if (chunk.text.length > 0) {
-                        controller.enqueue(chunk);
-                      }
-                      break;
-                    }
-
-                    case 'tool-call': {
-                      controller.enqueue(chunk);
-                      // store tool calls for onEnd callback and toolCalls promise:
-                      stepToolCalls.push(chunk);
-                      break;
-                    }
-
-                    case 'tool-approval-response': {
-                      controller.enqueue(chunk);
-                      stepToolApprovalResponses.push(chunk);
-                      break;
-                    }
-
-                    case 'tool-result': {
-                      controller.enqueue(chunk);
-
-                      if (!chunk.preliminary) {
-                        stepToolOutputs.push(chunk);
-                      }
-
-                      break;
-                    }
-
-                    case 'tool-error': {
-                      controller.enqueue(chunk);
-                      stepToolOutputs.push(chunk);
-                      break;
-                    }
-
-                    case 'tool-execution-end': {
-                      toolExecutionMs[chunk.toolCallId] = chunk.toolExecutionMs;
-                      break;
-                    }
-
-                    case 'model-call-response-metadata': {
-                      stepResponse = {
-                        id: chunk.id ?? stepResponse.id,
-                        timestamp: chunk.timestamp ?? stepResponse.timestamp,
-                        modelId: chunk.modelId ?? stepResponse.modelId,
-                      };
-                      break;
-                    }
-
-                    case 'model-call-end': {
-                      hasReceivedTerminalChunk = true;
-
-                      // Note: tool executions might not be finished yet when the finish event is emitted.
-                      // store usage and finish reason for promises and onEnd callback:
-                      stepUsage = chunk.usage;
-                      stepFinishReason = chunk.finishReason;
-                      stepRawFinishReason = chunk.rawFinishReason;
-                      stepProviderMetadata = chunk.providerMetadata;
-                      modelCallPerformance = chunk.performance;
-
-                      break;
-                    }
-
-                    case 'error': {
-                      hasReceivedTerminalChunk = true;
-                      controller.enqueue(chunk);
-                      stepFinishReason = 'error';
-                      break;
-                    }
-
-                    case 'raw': {
-                      if (include.rawChunks) {
-                        controller.enqueue(chunk);
-                      }
-                      break;
-                    }
-
-                    default: {
-                      const exhaustiveCheck: never = chunkType;
-                      throw new Error(`Unknown chunk type: ${exhaustiveCheck}`);
-                    }
-                  }
-                },
-
-                // invoke onEnd callback and resolve toolResults promise when the stream is about to close:
-                async flush(controller) {
-                  // emit an error when an incomplete model stream produced no
-                  // output instead of recording an empty step. incomplete
-                  // streams with partial output retain the partial result:
-                  if (!hasReceivedTerminalChunk && !hasReceivedOutputChunk) {
-                    controller.enqueue({
-                      type: 'error',
-                      error: new NoOutputGeneratedError({
-                        message:
-                          'No output generated. The model stream ended without a finish chunk.',
-                      }),
-                    });
-
-                    clearStepTimeout();
-                    clearChunkTimeout();
-                    self.closeStream();
-                    return;
-                  }
-
-                  const stepTimeMs = now() - stepStartTimestampMs;
-
-                  const finishStepPart: TextStreamPart<TOOLS> = {
-                    type: 'finish-step',
-                    finishReason: stepFinishReason,
-                    rawFinishReason: stepRawFinishReason,
-                    usage: stepUsage,
-                    performance: {
-                      stepTimeMs,
-                      toolExecutionMs,
-                      ...modelCallPerformance,
->>>>>>> 426dbbbff3 (fix(ai): reject incomplete model streams (#15938))
                     },
                     'ai.prompt.tools': {
                       // convert the language model level tools:
@@ -1986,6 +1758,14 @@ class DefaultStreamTextResult<
             let stepFinishReason: FinishReason = 'other';
             let stepRawFinishReason: string | undefined = undefined;
 
+            // terminal chunk = 'finish' or 'error'; absence on stream
+            // end means the model stream is incomplete:
+            let hasReceivedTerminalChunk = false;
+
+            // output chunk = any content chunk (text, tool calls, etc.);
+            // used to distinguish empty incomplete streams from partial results:
+            let hasReceivedOutputChunk = false;
+
             let stepUsage: LanguageModelUsage = createNullLanguageModelUsage();
             let stepProviderMetadata: ProviderMetadata | undefined;
             let stepFirstChunk = true;
@@ -2036,6 +1816,11 @@ class DefaultStreamTextResult<
                     }
 
                     const chunkType = chunk.type;
+
+                    if (isOutputChunkType[chunkType]) {
+                      hasReceivedOutputChunk = true;
+                    }
+
                     switch (chunkType) {
                       case 'tool-approval-request':
                       case 'text-start':
@@ -2106,6 +1891,8 @@ class DefaultStreamTextResult<
                       }
 
                       case 'finish': {
+                        hasReceivedTerminalChunk = true;
+
                         // Note: tool executions might not be finished yet when the finish event is emitted.
                         // store usage and finish reason for promises and onFinish callback:
                         stepUsage = chunk.usage;
@@ -2182,6 +1969,7 @@ class DefaultStreamTextResult<
                       }
 
                       case 'error': {
+                        hasReceivedTerminalChunk = true;
                         controller.enqueue(chunk);
                         stepFinishReason = 'error';
                         break;
@@ -2205,6 +1993,25 @@ class DefaultStreamTextResult<
 
                   // invoke onFinish callback and resolve toolResults promise when the stream is about to close:
                   async flush(controller) {
+                    // emit an error when an incomplete model stream produced no
+                    // output instead of recording an empty step. incomplete
+                    // streams with partial output retain the partial result:
+                    if (!hasReceivedTerminalChunk && !hasReceivedOutputChunk) {
+                      controller.enqueue({
+                        type: 'error',
+                        error: new NoOutputGeneratedError({
+                          message:
+                            'No output generated. The model stream ended without a finish chunk.',
+                        }),
+                      });
+
+                      doStreamSpan.end();
+                      clearStepTimeout();
+                      clearChunkTimeout();
+                      self.closeStream();
+                      return;
+                    }
+
                     const stepToolCallsJson =
                       stepToolCalls.length > 0
                         ? JSON.stringify(stepToolCalls)
@@ -2581,36 +2388,21 @@ class DefaultStreamTextResult<
     );
   }
 
-<<<<<<< HEAD
-  async consumeStream(options?: ConsumeStreamOptions): Promise<void> {
-    try {
-      await consumeStream({
-        stream: this.fullStream,
-        onError: options?.onError,
-=======
-  get fullStream(): AsyncIterableStream<TextStreamPart<TOOLS>> {
-    return this.stream;
-  }
-
   private rejectResultPromises(error: unknown) {
     if (this._finishReason.isPending()) this._finishReason.reject(error);
     if (this._rawFinishReason.isPending()) this._rawFinishReason.reject(error);
     if (this._totalUsage.isPending()) this._totalUsage.reject(error);
     if (this._steps.isPending()) this._steps.reject(error);
-    if (this._initialResponseMessages.isPending()) {
-      this._initialResponseMessages.reject(error);
-    }
   }
 
   async consumeStream(options?: ConsumeStreamOptions): Promise<void> {
     try {
       await consumeStream({
-        stream: this.stream,
+        stream: this.fullStream,
         onError: error => {
           this.rejectResultPromises(error);
           options?.onError?.(error);
         },
->>>>>>> 426dbbbff3 (fix(ai): reject incomplete model streams (#15938))
       });
     } catch (error) {
       this.rejectResultPromises(error);

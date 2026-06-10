@@ -2012,7 +2012,7 @@ describe('streamText', () => {
 
       const result = streamText({
         model: createTestModel({
-          stream: new ReadableStream<LanguageModelV4StreamPart>({
+          stream: new ReadableStream<LanguageModelV3StreamPart>({
             start(controller) {
               controller.enqueue({ type: 'stream-start', warnings: [] });
               controller.enqueue({
@@ -2057,7 +2057,7 @@ describe('streamText', () => {
       let responseCount = 0;
 
       const result = streamText({
-        model: new MockLanguageModelV4({
+        model: new MockLanguageModelV3({
           doStream: async () => {
             switch (responseCount++) {
               case 0:
@@ -2102,7 +2102,7 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        stopWhen: isStepCount(3),
+        stopWhen: stepCountIs(3),
         onError,
         onStepFinish,
       });
