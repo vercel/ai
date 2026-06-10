@@ -979,6 +979,13 @@ export async function generateText<
             runtimeContext,
           });
 
+          // Tools that don't require approval ('not-applicable') must not
+          // consume an approval id, so that id generation stays stable for
+          // callers that rely on deterministic id sequences.
+          if (toolApprovalStatus.type === 'not-applicable') {
+            continue;
+          }
+
           const approvalId = generateId();
           const signature = await maybeSignApproval({
             secret: experimental_toolApprovalSecret,

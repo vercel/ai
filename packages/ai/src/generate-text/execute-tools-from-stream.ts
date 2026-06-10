@@ -108,6 +108,18 @@ export function executeToolsFromStream<
               runtimeContext,
             });
 
+            // Tools that don't require approval ('not-applicable') must not
+            // consume an approval id, so that id generation stays stable for
+            // callers that rely on deterministic id sequences. They execute
+            // directly (when not provider-executed).
+            if (toolApprovalStatus.type === 'not-applicable') {
+              if (tool.execute != null && chunk.providerExecuted !== true) {
+                toolCallsToExecute.push(chunk);
+              }
+
+              return;
+            }
+
             const approvalId = generateId();
             const signature = await maybeSignApproval({
               secret: toolApprovalSecret,
@@ -168,12 +180,10 @@ export function executeToolsFromStream<
 
                 break; // continue with tool execution
               }
-
-              case 'not-applicable':
-                break; // continue with tool execution
             }
 
-            // Only execute tools that are not provider-executed:
+            // approved tool calls continue to execution (when not
+            // provider-executed):
             if (tool.execute != null && chunk.providerExecuted !== true) {
               toolCallsToExecute.push(chunk);
             }
