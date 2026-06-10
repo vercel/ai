@@ -97,7 +97,9 @@ export class AmazonBedrockEmbeddingModel implements EmbeddingModelV4 {
     // adapt here based on the modelId.
     const isNovaModel =
       this.modelId.startsWith('amazon.nova-') && this.modelId.includes('embed');
-    const isCohereModel = this.modelId.startsWith('cohere.embed-');
+    // Use `includes` so cross-region inference profile ids (e.g.
+    // `us.cohere.embed-v4:0`, `global.cohere.embed-v4:0`) are detected too.
+    const isCohereModel = this.modelId.includes('cohere.embed-');
 
     const args = isNovaModel
       ? {
@@ -128,7 +130,7 @@ export class AmazonBedrockEmbeddingModel implements EmbeddingModelV4 {
           };
 
     const url = this.getUrl(this.modelId);
-    const { value: response } = await postJsonToApi({
+    const { value: response, responseHeaders } = await postJsonToApi({
       url,
       headers: await resolve(
         combineHeaders(
@@ -172,12 +174,15 @@ export class AmazonBedrockEmbeddingModel implements EmbeddingModelV4 {
     }
 
     // Extract token count based on response format
+    const headerTokenCount = Number(
+      responseHeaders?.['x-amzn-bedrock-input-token-count'],
+    );
     const tokens =
       'inputTextTokenCount' in response
         ? response.inputTextTokenCount // Titan response
         : 'inputTokenCount' in response
           ? (response.inputTokenCount ?? 0) // Nova response
-          : NaN; // Cohere doesn't return token count
+          : headerTokenCount;
 
     return {
       embeddings: [embedding],

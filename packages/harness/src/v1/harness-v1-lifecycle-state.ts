@@ -10,19 +10,10 @@ export type HarnessV1PendingToolApproval = {
   readonly nativeName?: string;
 };
 
-/**
- * Opaque payload returned by resumable session lifecycle methods and accepted
- * by a future `HarnessV1.doStart({ resumeFrom })` to resume the same
- * underlying session.
- *
- * The contents are entirely adapter-defined. Consumers (including
- * `HarnessAgent`) treat the value as opaque; adapters describe and validate
- * their own schemas via `HarnessV1.resumeStateSchema`.
- */
-export type HarnessV1ResumeState = {
+type HarnessV1LifecycleStateBase = {
   /**
    * Identifier of the harness that produced this state. Used by adapters to
-   * refuse mismatched resume payloads.
+   * refuse mismatched payloads.
    */
   readonly harnessId: string;
 
@@ -39,8 +30,30 @@ export type HarnessV1ResumeState = {
 
   /**
    * Framework-owned pending approval records. These are intentionally outside
-   * adapter-defined `data` so callers can persist the entire resume payload
+   * adapter-defined `data` so callers can persist the entire lifecycle payload
    * without the harness framework owning storage.
    */
   readonly pendingToolApprovals?: readonly HarnessV1PendingToolApproval[];
 };
+
+/**
+ * Opaque payload returned by between-turn session lifecycle methods and
+ * accepted by a future `HarnessV1.doStart({ resumeFrom })` to resume the same
+ * underlying session before starting a new turn.
+ */
+export type HarnessV1ResumeSessionState = HarnessV1LifecycleStateBase & {
+  readonly type: 'resume-session';
+};
+
+/**
+ * Opaque payload returned by `doSuspendTurn` and accepted by a future
+ * `HarnessV1.doStart({ continueFrom })` to reconnect to the same session before
+ * continuing the interrupted turn.
+ */
+export type HarnessV1ContinueTurnState = HarnessV1LifecycleStateBase & {
+  readonly type: 'continue-turn';
+};
+
+export type HarnessV1LifecycleState =
+  | HarnessV1ResumeSessionState
+  | HarnessV1ContinueTurnState;

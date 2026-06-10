@@ -29,9 +29,11 @@ export type { HarnessV1Metadata } from './harness-v1-metadata';
 export type { HarnessV1Prompt } from './harness-v1-prompt';
 export type { HarnessV1SandboxProvider } from './harness-v1-sandbox-provider';
 export type {
+  HarnessV1ContinueTurnState,
+  HarnessV1LifecycleState,
   HarnessV1PendingToolApproval,
-  HarnessV1ResumeState,
-} from './harness-v1-resume-state';
+  HarnessV1ResumeSessionState,
+} from './harness-v1-lifecycle-state';
 export type {
   HarnessV1NetworkPolicy,
   HarnessV1NetworkSandboxSession,
