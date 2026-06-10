@@ -114,6 +114,8 @@ import type { ToolOrder } from './tool-order';
 import type { ToolOutput } from './tool-output';
 import type { TypedToolResult } from './tool-result';
 import type { ToolsContextParameter } from './tools-context-parameter';
+import { maybeSignApproval } from './tool-approval-signature';
+import { validateApprovedToolApprovals } from './validate-tool-approvals';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -232,6 +234,7 @@ export async function generateText<
   experimental_sandbox: sandbox,
   output,
   toolApproval,
+  experimental_toolApprovalSecret,
   experimental_telemetry,
   telemetry = experimental_telemetry,
   providerOptions,
@@ -341,6 +344,13 @@ export async function generateText<
      * This configuration takes precedence over tool-defined approval settings.
      */
     toolApproval?: ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>;
+
+    /**
+     * Secret for HMAC-signing tool approval requests. When set, the server
+     * signs each approval request at issuance and verifies the signature when
+     * the approval is replayed, preventing client-forged approvals.
+     */
+    experimental_toolApprovalSecret?: string | Uint8Array;
 
     /**
      * Custom download function to use for URLs.
@@ -576,12 +586,30 @@ export async function generateText<
     const initialMessages = initialPrompt.messages;
     const initialResponseMessages: Array<ResponseMessage> = [];
 
-    const { approvedToolApprovals, deniedToolApprovals } =
-      collectToolApprovals<TOOLS>({ messages: initialMessages });
+    const {
+      approvedToolApprovals,
+      deniedToolApprovals: collectedDeniedToolApprovals,
+    } = collectToolApprovals<TOOLS>({ messages: initialMessages });
 
-    const localApprovedToolApprovals = approvedToolApprovals.filter(
-      toolApproval => !toolApproval.toolCall.providerExecuted,
-    );
+    const {
+      approvedToolApprovals: localApprovedToolApprovals,
+      deniedToolApprovals: revalidationDeniedToolApprovals,
+    } = await validateApprovedToolApprovals<TOOLS, RUNTIME_CONTEXT>({
+      approvedToolApprovals: approvedToolApprovals.filter(
+        toolApproval => !toolApproval.toolCall.providerExecuted,
+      ),
+      tools,
+      toolApproval,
+      messages: initialMessages,
+      toolsContext,
+      runtimeContext,
+      toolApprovalSecret: experimental_toolApprovalSecret,
+    });
+
+    const deniedToolApprovals = [
+      ...collectedDeniedToolApprovals,
+      ...revalidationDeniedToolApprovals,
+    ];
 
     if (
       deniedToolApprovals.length > 0 ||
@@ -951,25 +979,41 @@ export async function generateText<
             runtimeContext,
           });
 
+          // Tools that don't require approval ('not-applicable') must not
+          // consume an approval id, so that id generation stays stable for
+          // callers that rely on deterministic id sequences.
+          if (toolApprovalStatus.type === 'not-applicable') {
+            continue;
+          }
+
+          const approvalId = generateId();
+          const signature = await maybeSignApproval({
+            secret: experimental_toolApprovalSecret,
+            approvalId,
+            toolCallId: toolCall.toolCallId,
+            toolName: toolCall.toolName,
+            input: toolCall.input,
+          });
+
           switch (toolApprovalStatus.type) {
             case 'user-approval': {
               toolApprovalRequests[toolCall.toolCallId] = {
                 type: 'tool-approval-request',
-                approvalId: generateId(),
+                approvalId,
                 toolCall,
+                ...(signature != null ? { signature } : {}),
               };
               blockedToolCallIds.add(toolCall.toolCallId);
               break;
             }
 
             case 'approved': {
-              const approvalId = generateId();
-
               toolApprovalRequests[toolCall.toolCallId] = {
                 type: 'tool-approval-request',
                 approvalId,
                 toolCall,
                 isAutomatic: true,
+                ...(signature != null ? { signature } : {}),
               };
               stepToolApprovalResponses[toolCall.toolCallId] = {
                 type: 'tool-approval-response',
@@ -983,13 +1027,12 @@ export async function generateText<
             }
 
             case 'denied': {
-              const approvalId = generateId();
-
               toolApprovalRequests[toolCall.toolCallId] = {
                 type: 'tool-approval-request',
                 approvalId,
                 toolCall,
                 isAutomatic: true,
+                ...(signature != null ? { signature } : {}),
               };
               stepToolApprovalResponses[toolCall.toolCallId] = {
                 type: 'tool-approval-response',
