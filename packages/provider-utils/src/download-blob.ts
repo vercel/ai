@@ -29,7 +29,14 @@ export async function downloadBlob(
 
     // Validate final URL after redirects to prevent SSRF via open redirect
     if (response.redirected) {
-      validateDownloadUrl(response.url);
+      try {
+        validateDownloadUrl(response.url);
+      } catch (error) {
+        // Release the connection before rejecting so an attacker-controlled
+        // open redirect cannot leak open sockets.
+        await cancelResponseBody(response);
+        throw error;
+      }
     }
 
     if (!response.ok) {
