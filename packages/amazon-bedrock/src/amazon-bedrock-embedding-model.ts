@@ -95,10 +95,10 @@ export class AmazonBedrockEmbeddingModel implements EmbeddingModelV4 {
     // Note: Different embedding model families expect different request/response
     // payloads (e.g. Titan vs Cohere vs Nova). We keep the public interface stable and
     // adapt here based on the modelId.
+    const isNovaModel =
+      this.modelId.startsWith('amazon.nova-') && this.modelId.includes('embed');
     // Use `includes` so cross-region inference profile ids (e.g.
     // `us.cohere.embed-v4:0`, `global.cohere.embed-v4:0`) are detected too.
-    const isNovaModel =
-      this.modelId.includes('amazon.nova-') && this.modelId.includes('embed');
     const isCohereModel = this.modelId.includes('cohere.embed-');
 
     const args = isNovaModel
