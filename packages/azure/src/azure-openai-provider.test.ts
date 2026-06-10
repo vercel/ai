@@ -12,7 +12,7 @@ import {
 import fs from 'node:fs';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { OpenAIResponsesLanguageModel } from '@ai-sdk/openai/internal';
-import { createAzure } from './azure-openai-provider';
+import { createAzure, type AzureDeepSeekLanguageModelOptions } from './index';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
@@ -45,10 +45,16 @@ const TEST_TOOLS: Array<LanguageModelV2FunctionTool> = [
   },
 ];
 
-function prepareJsonFixtureResponse(filename: string) {
-  server.urls[
-    'https://test-resource.openai.azure.com/openai/v1/responses'
-  ].response = {
+function prepareJsonFixtureResponse(
+  filename: string,
+  endpoint: 'responses' | 'chat' = 'responses',
+) {
+  const url =
+    endpoint === 'chat'
+      ? 'https://test-resource.openai.azure.com/openai/v1/chat/completions'
+      : 'https://test-resource.openai.azure.com/openai/v1/responses';
+
+  server.urls[url].response = {
     type: 'json-value',
     body: JSON.parse(
       fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
@@ -57,16 +63,22 @@ function prepareJsonFixtureResponse(filename: string) {
   return;
 }
 
-function prepareChunksFixtureResponse(filename: string) {
+function prepareChunksFixtureResponse(
+  filename: string,
+  endpoint: 'responses' | 'chat' = 'responses',
+) {
   const chunks = fs
     .readFileSync(`src/__fixtures__/${filename}.chunks.txt`, 'utf8')
     .split('\n')
     .map(line => `data: ${line}\n\n`);
   chunks.push('data: [DONE]\n\n');
 
-  server.urls[
-    'https://test-resource.openai.azure.com/openai/v1/responses'
-  ].response = {
+  const url =
+    endpoint === 'chat'
+      ? 'https://test-resource.openai.azure.com/openai/v1/chat/completions'
+      : 'https://test-resource.openai.azure.com/openai/v1/responses';
+
+  server.urls[url].response = {
     type: 'stream-chunks',
     chunks,
   };
@@ -266,6 +278,180 @@ describe('chat', () => {
         'https://test-resource.openai.azure.com/openai/v1/chat/completions?api-version=v1',
       );
     });
+  });
+});
+
+describe('deepseek', () => {
+  it('should map Azure DeepSeek reasoning effort', async () => {
+    prepareJsonFixtureResponse('azure-deepseek-reasoning.1', 'chat');
+
+    const result = await provider.deepseek('deepseek-v4-pro').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        azure: {
+          reasoningEffort: 'high',
+        } satisfies AzureDeepSeekLanguageModelOptions,
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "deepseek-v4-pro",
+        "reasoning_effort": "high",
+      }
+    `);
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Count each letter in strawberry carefully.",
+          "type": "reasoning",
+        },
+        {
+          "text": "There are three r's in strawberry.",
+          "type": "text",
+        },
+      ]
+    `);
+    expect(result.providerMetadata).toMatchInlineSnapshot(`
+      {
+        "azure": {
+          "promptCacheHitTokens": 2,
+          "promptCacheMissTokens": 6,
+        },
+      }
+    `);
+  });
+
+  it('should parse providerOptions from the azure namespace', async () => {
+    prepareJsonFixtureResponse('azure-deepseek-reasoning.1', 'chat');
+
+    await provider.deepseek('deepseek-v4-flash').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        azure: {
+          reasoningEffort: 'max',
+        } satisfies AzureDeepSeekLanguageModelOptions,
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "deepseek-v4-flash",
+        "reasoning_effort": "max",
+      }
+    `);
+  });
+
+  it('should stream reasoning content', async () => {
+    prepareChunksFixtureResponse('azure-deepseek-reasoning.1', 'chat');
+
+    const result = await provider.deepseek('deepseek-v4-pro').doStream({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        azure: {
+          reasoningEffort: 'high',
+        } satisfies AzureDeepSeekLanguageModelOptions,
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "deepseek-v4-pro",
+        "reasoning_effort": "high",
+        "stream": true,
+        "stream_options": {
+          "include_usage": true,
+        },
+      }
+    `);
+
+    const parts = await convertReadableStreamToArray(result.stream);
+    expect(
+      parts
+        .filter(
+          part =>
+            part.type === 'reasoning-start' ||
+            part.type === 'reasoning-delta' ||
+            part.type === 'reasoning-end' ||
+            part.type === 'text-start' ||
+            part.type === 'text-delta' ||
+            part.type === 'text-end',
+        )
+        .slice(0, 7),
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "reasoning-0",
+          "type": "reasoning-start",
+        },
+        {
+          "delta": "Count",
+          "id": "reasoning-0",
+          "type": "reasoning-delta",
+        },
+        {
+          "delta": " carefully.",
+          "id": "reasoning-0",
+          "type": "reasoning-delta",
+        },
+        {
+          "id": "txt-0",
+          "type": "text-start",
+        },
+        {
+          "id": "reasoning-0",
+          "type": "reasoning-end",
+        },
+        {
+          "delta": "There",
+          "id": "txt-0",
+          "type": "text-delta",
+        },
+        {
+          "delta": " are three r's.",
+          "id": "txt-0",
+          "type": "text-delta",
+        },
+      ]
+    `);
+
+    expect(parts[parts.length - 1]).toMatchInlineSnapshot(`
+      {
+        "finishReason": "stop",
+        "providerMetadata": {
+          "azure": {
+            "promptCacheHitTokens": 2,
+            "promptCacheMissTokens": 6,
+          },
+        },
+        "type": "finish",
+        "usage": {
+          "cachedInputTokens": 2,
+          "inputTokens": 8,
+          "outputTokens": 12,
+          "reasoningTokens": 5,
+          "totalTokens": 20,
+        },
+      }
+    `);
   });
 });
 

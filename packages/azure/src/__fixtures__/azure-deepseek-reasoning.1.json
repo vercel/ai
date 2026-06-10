@@ -1,0 +1,25 @@
+{
+  "id": "deepseek-chatcmpl-1",
+  "model": "deepseek-v4-pro",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "There are three r's in strawberry.",
+        "reasoning_content": "Count each letter in strawberry carefully."
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 8,
+    "completion_tokens": 12,
+    "completion_tokens_details": {
+      "reasoning_tokens": 5
+    },
+    "prompt_cache_hit_tokens": 2,
+    "prompt_cache_miss_tokens": 6,
+    "total_tokens": 20
+  }
+}
