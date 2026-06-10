@@ -8,17 +8,45 @@ import type { UIMessage } from '../src/ui/ui-messages';
 const DEFAULT_CHUNK_COUNT = 10_000;
 const DEFAULT_CHUNK_SIZE = 200;
 const DEFAULT_ITERATIONS = 5;
+const DEFAULT_SWEEP_ITERATIONS = 20;
 
 // Usage:
 //   pnpm tsx packages/ai/scripts/process-ui-message-stream-benchmark.ts [chunks] [chunk-size] [iterations]
+//   pnpm tsx packages/ai/scripts/process-ui-message-stream-benchmark.ts --sweep [iterations]
 //
 // To compare this branch with main, run the same script from this branch and
 // from a main worktree that contains a copy of the script.
-const chunkCount = readPositiveIntegerArgument(2, DEFAULT_CHUNK_COUNT);
-const chunkSize = readPositiveIntegerArgument(3, DEFAULT_CHUNK_SIZE);
-const iterations = readPositiveIntegerArgument(4, DEFAULT_ITERATIONS);
+const sweep = process.argv.includes('--sweep');
 const summaryOnly = process.argv.includes('--summary-only');
-const textDelta = 'x'.repeat(chunkSize);
+const positionalArguments = process.argv
+  .slice(2)
+  .filter(argument => !argument.startsWith('--'));
+
+type Workload = {
+  chunkCount: number;
+  chunkSize: number;
+  iterations: number;
+};
+
+const workloads = sweep
+  ? [
+      { chunkCount: 5_000, chunkSize: 200 },
+      { chunkCount: 10_000, chunkSize: 200 },
+      { chunkCount: 20_000, chunkSize: 200 },
+      { chunkCount: 40_000, chunkSize: 200 },
+      { chunkCount: 10_000, chunkSize: 1_000 },
+      { chunkCount: 20_000, chunkSize: 1_000 },
+    ].map(workload => ({
+      ...workload,
+      iterations: readPositiveIntegerArgument(2, DEFAULT_SWEEP_ITERATIONS),
+    }))
+  : [
+      {
+        chunkCount: readPositiveIntegerArgument(2, DEFAULT_CHUNK_COUNT),
+        chunkSize: readPositiveIntegerArgument(3, DEFAULT_CHUNK_SIZE),
+        iterations: readPositiveIntegerArgument(4, DEFAULT_ITERATIONS),
+      },
+    ];
 
 type BenchmarkResult = {
   elapsedMs: number;
@@ -28,7 +56,7 @@ type BenchmarkResult = {
 };
 
 function readPositiveIntegerArgument(index: number, fallback: number) {
-  const value = process.argv[index];
+  const value = positionalArguments[index - 2];
 
   if (value == null) {
     return fallback;
@@ -45,7 +73,15 @@ function readPositiveIntegerArgument(index: number, fallback: number) {
   return parsed;
 }
 
-function createBenchmarkStream() {
+function createBenchmarkStream({
+  chunkCount,
+  chunkSize,
+}: {
+  chunkCount: number;
+  chunkSize: number;
+}) {
+  const textDelta = 'x'.repeat(chunkSize);
+
   return new ReadableStream<UIMessageChunk>({
     start(controller) {
       controller.enqueue({ type: 'text-start', id: '1' });
@@ -85,7 +121,7 @@ async function consumeProcessedStream(stream: ReadableStream<UIMessageChunk>) {
   return outputChunks;
 }
 
-async function runBenchmark(): Promise<BenchmarkResult> {
+async function runBenchmark(workload: Workload): Promise<BenchmarkResult> {
   const state = createStreamingUIMessageState<UIMessage>({
     lastMessage: undefined,
     messageId: 'm1',
@@ -94,7 +130,7 @@ async function runBenchmark(): Promise<BenchmarkResult> {
 
   const startTime = performance.now();
   const processedStream = processUIMessageStream({
-    stream: createBenchmarkStream(),
+    stream: createBenchmarkStream(workload),
     runUpdateMessageJob: async job =>
       job({
         state,
@@ -130,8 +166,10 @@ function summarize(times: number[]) {
     sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
   const average = times.reduce((sum, time) => sum + time, 0) / times.length;
   const variance =
-    times.reduce((sum, time) => sum + (time - average) ** 2, 0) /
-    (times.length - 1);
+    times.length > 1
+      ? times.reduce((sum, time) => sum + (time - average) ** 2, 0) /
+        (times.length - 1)
+      : 0;
 
   return {
     average,
@@ -142,49 +180,98 @@ function summarize(times: number[]) {
   };
 }
 
-console.log('processUIMessageStream text delta benchmark');
-console.log(`  chunks: ${chunkCount.toLocaleString()}`);
-console.log(`  chunk size: ${chunkSize.toLocaleString()} chars`);
-console.log(`  total text: ${(chunkCount * chunkSize).toLocaleString()} chars`);
-console.log(`  iterations: ${iterations.toLocaleString()}`);
-console.log();
-
-const results: BenchmarkResult[] = [];
-
-for (let i = 0; i < iterations; i++) {
-  const result = await runBenchmark();
-  results.push(result);
-
-  if (!summaryOnly) {
-    console.log(`Run ${i + 1}: ${result.elapsedMs.toFixed(0)} ms`);
-  }
+function formatMegabytes(bytes: number) {
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 }
 
-const stats = summarize(results.map(result => result.elapsedMs));
-const firstResult = results[0];
+async function runWorkload(workload: Workload) {
+  const totalTextLength = workload.chunkCount * workload.chunkSize;
 
-console.log();
-console.log('--- Statistics ---');
-console.log(`Median: ${stats.median.toFixed(0)} ms`);
-console.log(`Average: ${stats.average.toFixed(0)} ms`);
-console.log(`Std dev: ${stats.standardDeviation.toFixed(2)} ms`);
-console.log(`Min: ${stats.min.toFixed(0)} ms`);
-console.log(`Max: ${stats.max.toFixed(0)} ms`);
-console.log(
-  `Throughput: ${(
-    (chunkCount * chunkSize) /
-    (stats.median / 1000) /
-    (1024 * 1024)
-  ).toFixed(2)} MB/s`,
-);
-console.log();
-console.log('--- Validation ---');
-console.log(`Output chunks: ${firstResult.outputChunks.toLocaleString()}`);
-console.log(`Write calls: ${firstResult.writeCalls.toLocaleString()}`);
-console.log(
-  `Final text length: ${firstResult.finalTextLength.toLocaleString()}`,
-);
-console.log();
+  console.log('processUIMessageStream text delta benchmark');
+  console.log(`  chunks: ${workload.chunkCount.toLocaleString()}`);
+  console.log(`  chunk size: ${workload.chunkSize.toLocaleString()} chars`);
+  console.log(`  total text: ${totalTextLength.toLocaleString()} chars`);
+  console.log(`  total text: ${formatMegabytes(totalTextLength)}`);
+  console.log(`  iterations: ${workload.iterations.toLocaleString()}`);
+  console.log();
+
+  const results: BenchmarkResult[] = [];
+
+  for (let i = 0; i < workload.iterations; i++) {
+    const result = await runBenchmark(workload);
+    results.push(result);
+
+    if (!summaryOnly) {
+      console.log(`Run ${i + 1}: ${result.elapsedMs.toFixed(0)} ms`);
+    }
+  }
+
+  const stats = summarize(results.map(result => result.elapsedMs));
+  const firstResult = results[0];
+  const throughput = totalTextLength / (stats.median / 1000) / (1024 * 1024);
+
+  console.log();
+  console.log('--- Statistics ---');
+  console.log(`Median: ${stats.median.toFixed(0)} ms`);
+  console.log(`Average: ${stats.average.toFixed(3)} ms`);
+  console.log(`Std dev: ${stats.standardDeviation.toFixed(3)} ms`);
+  console.log(`Min: ${stats.min.toFixed(0)} ms`);
+  console.log(`Max: ${stats.max.toFixed(0)} ms`);
+  console.log(`Throughput: ${throughput.toFixed(2)} MB/s`);
+  console.log();
+  console.log('--- Validation ---');
+  console.log(`Output chunks: ${firstResult.outputChunks.toLocaleString()}`);
+  console.log(`Write calls: ${firstResult.writeCalls.toLocaleString()}`);
+  console.log(
+    `Final text length: ${firstResult.finalTextLength.toLocaleString()}`,
+  );
+
+  return {
+    ...workload,
+    totalTextLength,
+    throughput,
+    ...stats,
+  };
+}
+
+const summaries = [];
+
+for (const workload of workloads) {
+  summaries.push(await runWorkload(workload));
+  console.log();
+}
+
+if (sweep) {
+  console.log('--- Sweep Summary ---');
+  console.log(
+    [
+      'chunks',
+      'chunkSize',
+      'totalText',
+      'medianMs',
+      'averageMs',
+      'stdDevMs',
+      'throughputMBps',
+    ].join('\t'),
+  );
+
+  for (const summary of summaries) {
+    console.log(
+      [
+        summary.chunkCount,
+        summary.chunkSize,
+        formatMegabytes(summary.totalTextLength),
+        summary.median.toFixed(1),
+        summary.average.toFixed(3),
+        summary.standardDeviation.toFixed(3),
+        summary.throughput.toFixed(2),
+      ].join('\t'),
+    );
+  }
+
+  console.log();
+}
+
 console.log('Compare with main by running the same script in both worktrees:');
 console.log(
   '  pnpm tsx packages/ai/scripts/process-ui-message-stream-benchmark.ts',
