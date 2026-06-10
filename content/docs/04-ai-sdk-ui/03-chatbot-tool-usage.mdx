@@ -514,6 +514,22 @@ decisions already arrive in the UI stream as `approval-requested` and
 If you return a `reason` from an automatic approval or denial, it is available
 as `part.approval.reason`.
 
+### Securing Approvals for Sensitive Tools
+
+In the `useChat` pattern, the client sends the full message history to the server each turn. Without additional protection, a modified client could fabricate an approval response. For tools that perform sensitive operations, add `experimental_toolApprovalSecret` to your `streamText` call so the server cryptographically verifies that it issued the approval:
+
+```tsx filename='app/api/chat/route.ts' highlight="6"
+const result = streamText({
+  model: __MODEL__,
+  messages,
+  tools: { deleteFile },
+  toolApproval: { deleteFile: 'user-approval' },
+  experimental_toolApprovalSecret: process.env.TOOL_APPROVAL_SECRET,
+});
+```
+
+See [Security Considerations](/docs/agents/tool-approvals#security-considerations) for setup details.
+
 ### Auto-Submit After Approval
 
 <Note>

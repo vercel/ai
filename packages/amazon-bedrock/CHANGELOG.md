@@ -1,5 +1,17 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.0-canary.82
+
+### Patch Changes
+
+- 9eda693: fix(provider/amazon-bedrock): detect Cohere embedding models behind cross-region inference profile ids
+
+## 5.0.0-canary.81
+
+### Patch Changes
+
+- 9fa4e9d: fix(provider/amazon-bedrock): extract Cohere embedding token usage from response header
+
 ## 5.0.0-canary.80
 
 ### Patch Changes

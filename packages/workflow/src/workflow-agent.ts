@@ -6,7 +6,9 @@ import type {
   SharedV4ProviderOptions,
 } from '@ai-sdk/provider';
 import {
+  asSchema,
   getErrorMessage,
+  safeValidateTypes,
   validateTypes,
   type Context,
   type HasRequiredKey,
@@ -1368,6 +1370,53 @@ export class WorkflowAgent<
       for (const approval of approvedToolApprovals) {
         const tool = (this.tools as ToolSet)[approval.toolName];
         if (tool && typeof tool.execute === 'function') {
+          if (!tool.needsApproval) {
+            const reason = `Tool "${approval.toolName}" does not require approval`;
+            toolResultContent.push({
+              type: 'tool-result' as const,
+              toolCallId: approval.toolCallId,
+              toolName: approval.toolName,
+              output: await createLanguageModelToolResultOutput({
+                toolCallId: approval.toolCallId,
+                toolName: approval.toolName,
+                input: approval.input,
+                output: reason,
+                tool,
+                errorMode: 'text',
+                supportedUrls: {},
+                download,
+              }),
+            });
+            continue;
+          }
+
+          if (tool.inputSchema != null) {
+            const validation = await safeValidateTypes({
+              value: approval.input,
+              schema: asSchema(tool.inputSchema),
+            });
+
+            if (!validation.success) {
+              const reason = getErrorMessage(validation.error);
+              toolResultContent.push({
+                type: 'tool-result' as const,
+                toolCallId: approval.toolCallId,
+                toolName: approval.toolName,
+                output: await createLanguageModelToolResultOutput({
+                  toolCallId: approval.toolCallId,
+                  toolName: approval.toolName,
+                  input: approval.input,
+                  output: reason,
+                  tool,
+                  errorMode: 'text',
+                  supportedUrls: {},
+                  download,
+                }),
+              });
+              continue;
+            }
+          }
+
           try {
             const { execute } = tool;
             const resolvedContext = await resolveToolContext({
