@@ -1,11 +1,14 @@
 import { generateId, type UIMessage } from 'ai';
-import { existsSync, mkdirSync } from 'fs';
+import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { readFile, writeFile } from 'fs/promises';
 import path from 'path';
 
 // example implementation for demo purposes
 // in a real app, you would save the chat to a database
 // and use the id from the database entry
+
+// Treat chat IDs as opaque tokens before using them in file paths.
+const chatIdRegex = /^[A-Za-z0-9_-]+$/;
 
 export async function createChat(): Promise<string> {
   const id = generateId();
@@ -41,14 +44,13 @@ export async function loadChat(id: string): Promise<UIMessage[]> {
 }
 
 function getChatFile(id: string): string {
-  const chatDir = path.join(process.cwd(), '.chats');
+  const chatDir = getStorageDir('.chats');
+  const chatFile = getSafeStorageFilePath({ storageDir: chatDir, id });
 
   if (!existsSync(chatDir)) mkdirSync(chatDir, { recursive: true });
 
-  const chatFile = path.join(chatDir, `${id}.json`);
-
   if (!existsSync(chatFile)) {
-    writeFile(chatFile, '[]');
+    writeFileSync(chatFile, '[]');
   }
 
   return chatFile;
@@ -74,7 +76,38 @@ export async function loadStreams(chatId: string): Promise<string[]> {
 }
 
 function getStreamsFile(chatId: string): string {
-  const chatDir = path.join(process.cwd(), '.streams');
-  if (!existsSync(chatDir)) mkdirSync(chatDir, { recursive: true });
-  return path.join(chatDir, `${chatId}.json`);
+  const streamsDir = getStorageDir('.streams');
+  const streamsFile = getSafeStorageFilePath({
+    storageDir: streamsDir,
+    id: chatId,
+  });
+
+  if (!existsSync(streamsDir)) mkdirSync(streamsDir, { recursive: true });
+
+  return streamsFile;
+}
+
+function getStorageDir(directory: '.chats' | '.streams'): string {
+  return path.resolve(process.cwd(), directory);
+}
+
+function getSafeStorageFilePath({
+  storageDir,
+  id,
+}: {
+  storageDir: string;
+  id: string;
+}): string {
+  if (!chatIdRegex.test(id)) {
+    throw new Error('Invalid chat ID');
+  }
+
+  const file = path.resolve(storageDir, `${id}.json`);
+
+  // Defense in depth: keep the resolved file inside the storage directory.
+  if (!file.startsWith(`${storageDir}${path.sep}`)) {
+    throw new Error('Invalid chat ID');
+  }
+
+  return file;
 }
