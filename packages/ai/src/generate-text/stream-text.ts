@@ -128,6 +128,35 @@ const originalGenerateId = createIdGenerator({
   size: 24,
 });
 
+// chunk types that count as model output; used to distinguish empty
+// incomplete streams from incomplete streams with partial results.
+// exhaustive so that new chunk types must be classified explicitly:
+const isOutputChunkType = {
+  file: true,
+  source: true,
+  'text-start': true,
+  'text-end': true,
+  'text-delta': true,
+  'reasoning-start': true,
+  'reasoning-end': true,
+  'reasoning-delta': true,
+  'tool-input-start': true,
+  'tool-input-end': true,
+  'tool-input-delta': true,
+  'tool-approval-request': true,
+  'tool-call': true,
+  'tool-result': true,
+  'tool-error': true,
+  'stream-start': false,
+  'response-metadata': false,
+  finish: false,
+  error: false,
+  raw: false,
+} as const satisfies Record<
+  SingleRequestTextStreamPart<ToolSet>['type'],
+  boolean
+>;
+
 /**
  * A transformation that is applied to the stream.
  *
@@ -836,6 +865,7 @@ class DefaultStreamTextResult<
     let recordedRequest: LanguageModelRequestMetadata = {};
     let recordedWarnings: Array<CallWarning> = [];
     const recordedSteps: StepResult<TOOLS>[] = [];
+    let recordedNoOutputError: NoOutputGeneratedError | undefined;
 
     // Track provider-executed tool calls that support deferred results
     // (e.g., code_execution in programmatic tool calling scenarios).
@@ -885,7 +915,13 @@ class DefaultStreamTextResult<
         }
 
         if (part.type === 'error') {
-          await onError({ error: wrapGatewayError(part.error) });
+          const error = wrapGatewayError(part.error);
+
+          if (NoOutputGeneratedError.isInstance(error)) {
+            recordedNoOutputError = error;
+          }
+
+          await onError({ error });
         }
 
         if (part.type === 'text-start') {
@@ -1080,12 +1116,13 @@ class DefaultStreamTextResult<
 
       async flush(controller) {
         try {
-          if (recordedSteps.length === 0) {
+          if (recordedSteps.length === 0 || recordedNoOutputError != null) {
             const error = abortSignal?.aborted
               ? abortSignal.reason
-              : new NoOutputGeneratedError({
+              : (recordedNoOutputError ??
+                new NoOutputGeneratedError({
                   message: 'No output generated. Check the stream for errors.',
-                });
+                }));
 
             self._finishReason.reject(error);
             self._rawFinishReason.reject(error);
@@ -1721,6 +1758,14 @@ class DefaultStreamTextResult<
             let stepFinishReason: FinishReason = 'other';
             let stepRawFinishReason: string | undefined = undefined;
 
+            // terminal chunk = 'finish' or 'error'; absence on stream
+            // end means the model stream is incomplete:
+            let hasReceivedTerminalChunk = false;
+
+            // output chunk = any content chunk (text, tool calls, etc.);
+            // used to distinguish empty incomplete streams from partial results:
+            let hasReceivedOutputChunk = false;
+
             let stepUsage: LanguageModelUsage = createNullLanguageModelUsage();
             let stepProviderMetadata: ProviderMetadata | undefined;
             let stepFirstChunk = true;
@@ -1771,6 +1816,11 @@ class DefaultStreamTextResult<
                     }
 
                     const chunkType = chunk.type;
+
+                    if (isOutputChunkType[chunkType]) {
+                      hasReceivedOutputChunk = true;
+                    }
+
                     switch (chunkType) {
                       case 'tool-approval-request':
                       case 'text-start':
@@ -1841,6 +1891,8 @@ class DefaultStreamTextResult<
                       }
 
                       case 'finish': {
+                        hasReceivedTerminalChunk = true;
+
                         // Note: tool executions might not be finished yet when the finish event is emitted.
                         // store usage and finish reason for promises and onFinish callback:
                         stepUsage = chunk.usage;
@@ -1917,6 +1969,7 @@ class DefaultStreamTextResult<
                       }
 
                       case 'error': {
+                        hasReceivedTerminalChunk = true;
                         controller.enqueue(chunk);
                         stepFinishReason = 'error';
                         break;
@@ -1940,6 +1993,25 @@ class DefaultStreamTextResult<
 
                   // invoke onFinish callback and resolve toolResults promise when the stream is about to close:
                   async flush(controller) {
+                    // emit an error when an incomplete model stream produced no
+                    // output instead of recording an empty step. incomplete
+                    // streams with partial output retain the partial result:
+                    if (!hasReceivedTerminalChunk && !hasReceivedOutputChunk) {
+                      controller.enqueue({
+                        type: 'error',
+                        error: new NoOutputGeneratedError({
+                          message:
+                            'No output generated. The model stream ended without a finish chunk.',
+                        }),
+                      });
+
+                      doStreamSpan.end();
+                      clearStepTimeout();
+                      clearChunkTimeout();
+                      self.closeStream();
+                      return;
+                    }
+
                     const stepToolCallsJson =
                       stepToolCalls.length > 0
                         ? JSON.stringify(stepToolCalls)
@@ -2316,13 +2388,24 @@ class DefaultStreamTextResult<
     );
   }
 
+  private rejectResultPromises(error: unknown) {
+    if (this._finishReason.isPending()) this._finishReason.reject(error);
+    if (this._rawFinishReason.isPending()) this._rawFinishReason.reject(error);
+    if (this._totalUsage.isPending()) this._totalUsage.reject(error);
+    if (this._steps.isPending()) this._steps.reject(error);
+  }
+
   async consumeStream(options?: ConsumeStreamOptions): Promise<void> {
     try {
       await consumeStream({
         stream: this.fullStream,
-        onError: options?.onError,
+        onError: error => {
+          this.rejectResultPromises(error);
+          options?.onError?.(error);
+        },
       });
     } catch (error) {
+      this.rejectResultPromises(error);
       options?.onError?.(error);
     }
   }
