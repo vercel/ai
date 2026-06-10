@@ -1486,6 +1486,7 @@ describe('auth function', () => {
     redirectToAuthorization: vi.fn(),
     saveCodeVerifier: vi.fn(),
     codeVerifier: vi.fn(),
+    saveAuthorizationServerInformation: vi.fn(),
   };
 
   beforeEach(() => {
@@ -1608,6 +1609,8 @@ describe('auth function', () => {
     (mockProvider.clientInformation as Mock).mockResolvedValue({
       client_id: 'test-client',
       client_secret: 'test-secret',
+      authorization_server: 'https://auth.example.com/',
+      token_endpoint: 'https://auth.example.com/token',
     });
     (mockProvider.tokens as Mock).mockResolvedValue(undefined);
     (mockProvider.saveCodeVerifier as Mock).mockResolvedValue(undefined);
@@ -1683,6 +1686,8 @@ describe('auth function', () => {
     (mockProvider.clientInformation as Mock).mockResolvedValue({
       client_id: 'test-client',
       client_secret: 'test-secret',
+      authorization_server: 'https://auth.example.com/',
+      token_endpoint: 'https://auth.example.com/token',
     });
     (mockProvider.codeVerifier as Mock).mockResolvedValue('test-verifier');
     (mockProvider.saveTokens as Mock).mockResolvedValue(undefined);
@@ -1753,10 +1758,15 @@ describe('auth function', () => {
     (mockProvider.clientInformation as Mock).mockResolvedValue({
       client_id: 'test-client',
       client_secret: 'test-secret',
+      authorization_server: 'https://api.example.com/mcp-server',
+      token_endpoint: 'https://auth.example.com/token',
     });
     (mockProvider.tokens as Mock).mockResolvedValue({
       access_token: 'old-access',
+      token_type: 'Bearer',
       refresh_token: 'refresh123',
+      authorization_server: 'https://auth.example.com/',
+      token_endpoint: 'https://auth.example.com/token',
     });
     (mockProvider.saveTokens as Mock).mockResolvedValue(undefined);
 
@@ -1777,6 +1787,146 @@ describe('auth function', () => {
     expect(body.get('resource')).toBe('https://api.example.com/mcp-server');
     expect(body.get('grant_type')).toBe('refresh_token');
     expect(body.get('refresh_token')).toBe('refresh123');
+  });
+
+  it('rejects cross-origin protected resource metadata URLs before sending stored credentials', async () => {
+    const evilTokenRequests: URLSearchParams[] = [];
+
+    mockFetch.mockImplementation((url, init) => {
+      const urlString = url.toString();
+
+      if (
+        urlString ===
+        'https://evil.example/.well-known/oauth-protected-resource'
+      ) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            resource: 'https://api.example.com/mcp-server',
+            authorization_servers: ['https://evil.example'],
+          }),
+        });
+      } else if (
+        urlString ===
+        'https://evil.example/.well-known/oauth-authorization-server'
+      ) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            issuer: 'https://evil.example',
+            authorization_endpoint: 'https://evil.example/authorize',
+            token_endpoint: 'https://evil.example/steal',
+            response_types_supported: ['code'],
+            code_challenge_methods_supported: ['S256'],
+          }),
+        });
+      } else if (urlString === 'https://evil.example/steal') {
+        evilTokenRequests.push(init?.body as URLSearchParams);
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            access_token: 'attacker-token',
+            token_type: 'Bearer',
+          }),
+        });
+      }
+
+      return Promise.resolve({ ok: false, status: 404 });
+    });
+
+    (mockProvider.clientInformation as Mock).mockResolvedValue({
+      client_id: 'real-client',
+      client_secret: 'real-secret',
+      authorization_server: 'https://auth.example.com/',
+      token_endpoint: 'https://auth.example.com/token',
+    });
+    (mockProvider.tokens as Mock).mockResolvedValue({
+      access_token: 'old-access',
+      token_type: 'Bearer',
+      refresh_token: 'real-refresh-token',
+      authorization_server: 'https://auth.example.com/',
+      token_endpoint: 'https://auth.example.com/token',
+    });
+
+    await expect(
+      auth(mockProvider, {
+        serverUrl: 'https://api.example.com/mcp-server',
+        resourceMetadataUrl: new URL(
+          'https://evil.example/.well-known/oauth-protected-resource',
+        ),
+      }),
+    ).rejects.toThrow(/same origin/);
+
+    expect(evilTokenRequests).toHaveLength(0);
+  });
+
+  it('rejects changed authorization server metadata before refreshing stored tokens', async () => {
+    const evilTokenRequests: URLSearchParams[] = [];
+
+    mockFetch.mockImplementation((url, init) => {
+      const urlString = url.toString();
+
+      if (urlString.includes('/.well-known/oauth-protected-resource')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            resource: 'https://api.example.com/mcp-server',
+            authorization_servers: ['https://evil.example'],
+          }),
+        });
+      } else if (
+        urlString ===
+        'https://evil.example/.well-known/oauth-authorization-server'
+      ) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            issuer: 'https://evil.example',
+            authorization_endpoint: 'https://evil.example/authorize',
+            token_endpoint: 'https://evil.example/steal',
+            response_types_supported: ['code'],
+            code_challenge_methods_supported: ['S256'],
+          }),
+        });
+      } else if (urlString === 'https://evil.example/steal') {
+        evilTokenRequests.push(init?.body as URLSearchParams);
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            access_token: 'attacker-token',
+            token_type: 'Bearer',
+          }),
+        });
+      }
+
+      return Promise.resolve({ ok: false, status: 404 });
+    });
+
+    (mockProvider.clientInformation as Mock).mockResolvedValue({
+      client_id: 'real-client',
+      client_secret: 'real-secret',
+    });
+    (mockProvider.tokens as Mock).mockResolvedValue({
+      access_token: 'old-access',
+      token_type: 'Bearer',
+      refresh_token: 'real-refresh-token',
+      authorization_server: 'https://auth.example.com/',
+      token_endpoint: 'https://auth.example.com/token',
+    });
+
+    await expect(
+      auth(mockProvider, {
+        serverUrl: 'https://api.example.com/mcp-server',
+      }),
+    ).rejects.toThrow(/does not match/);
+
+    expect(evilTokenRequests).toHaveLength(0);
   });
 
   it('skips default PRM resource validation when custom validateResourceURL is provided', async () => {
@@ -2017,6 +2167,8 @@ describe('auth function', () => {
     (mockProvider.clientInformation as Mock).mockResolvedValue({
       client_id: 'test-client',
       client_secret: 'test-secret',
+      authorization_server: 'https://api.example.com/mcp-server',
+      token_endpoint: 'https://auth.example.com/token',
     });
     (mockProvider.codeVerifier as Mock).mockResolvedValue('test-verifier');
     (mockProvider.saveTokens as Mock).mockResolvedValue(undefined);
@@ -2087,7 +2239,10 @@ describe('auth function', () => {
     });
     (mockProvider.tokens as Mock).mockResolvedValue({
       access_token: 'old-access',
+      token_type: 'Bearer',
       refresh_token: 'refresh123',
+      authorization_server: 'https://api.example.com/mcp-server',
+      token_endpoint: 'https://auth.example.com/token',
     });
     (mockProvider.saveTokens as Mock).mockResolvedValue(undefined);
 
@@ -2225,6 +2380,7 @@ describe('auth function', () => {
       redirectToAuthorization: vi.fn(),
       saveCodeVerifier: vi.fn(),
       codeVerifier: vi.fn().mockResolvedValue('verifier123'),
+      saveAuthorizationServerInformation: vi.fn(),
     };
 
     const result = await auth(mockProvider, {
@@ -2272,12 +2428,15 @@ describe('OAuth state validation', () => {
       clientInformation: vi.fn().mockResolvedValue({
         client_id: 'test-client',
         client_secret: 'test-secret',
+        authorization_server: 'https://resource.example.com/',
+        token_endpoint: 'https://auth.example.com/token',
       }),
       tokens: vi.fn().mockResolvedValue(undefined),
       saveTokens: vi.fn(),
       redirectToAuthorization: vi.fn(),
       saveCodeVerifier: vi.fn(),
       codeVerifier: vi.fn().mockResolvedValue('test-verifier'),
+      saveAuthorizationServerInformation: vi.fn(),
       ...overrides,
     };
   }
@@ -2386,7 +2545,11 @@ describe('OAuth state validation', () => {
     });
 
     expect(result).toBe('AUTHORIZED');
-    expect(provider.saveTokens).toHaveBeenCalledWith(validTokens);
+    expect(provider.saveTokens).toHaveBeenCalledWith({
+      ...validTokens,
+      authorization_server: 'https://resource.example.com/',
+      token_endpoint: 'https://auth.example.com/token',
+    });
   });
 
   it('should save state when starting a new authorization flow', async () => {
