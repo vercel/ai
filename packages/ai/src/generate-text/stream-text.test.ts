@@ -2511,6 +2511,7 @@ describe('streamText', () => {
 
     it('should reject when provider stream closes before finish chunk', async () => {
       const onError = vi.fn();
+      const onStepFinish = vi.fn();
 
       const result = streamText({
         model: createTestModel({
@@ -2529,6 +2530,7 @@ describe('streamText', () => {
         }),
         prompt: 'test-input',
         onError,
+        onStepFinish,
       });
 
       await result.consumeStream();
@@ -2542,12 +2544,18 @@ describe('streamText', () => {
       await expect(result.finishReason).rejects.toThrow(
         'No output generated. The model stream ended without a finish chunk.',
       );
+      await expect(result.totalUsage).rejects.toThrow(
+        'No output generated. The model stream ended without a finish chunk.',
+      );
       expect(onError).toHaveBeenCalledWith({
         error: expect.objectContaining({
           message:
             'No output generated. The model stream ended without a finish chunk.',
         }),
       });
+
+      // no empty step is recorded for the incomplete model stream:
+      expect(onStepFinish).not.toHaveBeenCalled();
     });
 
     it('should reject result promises when provider stream errors after metadata', async () => {
@@ -2584,6 +2592,9 @@ describe('streamText', () => {
         'simulated provider stream error',
       );
       await expect(result.finishReason).rejects.toThrow(
+        'simulated provider stream error',
+      );
+      await expect(result.totalUsage).rejects.toThrow(
         'simulated provider stream error',
       );
       expect(onConsumeError).toHaveBeenCalledWith(
@@ -3182,6 +3193,11 @@ describe('streamText', () => {
             { type: 'text-delta', id: '1', delta: ', ' },
             { type: 'text-delta', id: '1', delta: 'world!' },
             { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
           ]),
         }),
         prompt: 'test-input',

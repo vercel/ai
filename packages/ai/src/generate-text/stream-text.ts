@@ -1006,7 +1006,7 @@ class DefaultStreamTextResult<
         providerMetadata: ProviderMetadata | undefined;
       }
     > = {};
-    let recordedError: unknown | undefined;
+    let recordedNoOutputError: NoOutputGeneratedError | undefined;
 
     const eventProcessor = new TransformStream<
       EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>,
@@ -1021,9 +1021,14 @@ class DefaultStreamTextResult<
 
         if (part.type === 'error') {
           const error = wrapGatewayError(part.error);
+
+          // remember no-output errors (e.g. from incomplete model streams) so
+          // that the flush handler can reject the result promises with the
+          // specific error instead of a generic one:
           if (NoOutputGeneratedError.isInstance(error)) {
-            recordedError = error;
+            recordedNoOutputError = error;
           }
+
           await onError({ error });
         }
 
@@ -1228,7 +1233,7 @@ class DefaultStreamTextResult<
           if (recordedSteps.length === 0) {
             const error = abortSignal?.aborted
               ? abortSignal.reason
-              : (recordedError ??
+              : (recordedNoOutputError ??
                 new NoOutputGeneratedError({
                   message: 'No output generated. Check the stream for errors.',
                 }));
@@ -1844,8 +1849,12 @@ class DefaultStreamTextResult<
 
           let stepFinishReason: FinishReason = 'other';
           let stepRawFinishReason: string | undefined = undefined;
-          let sawErrorPart = false;
-          let sawModelCallEnd = false;
+
+          // Providers can end the stream without a 'model-call-end' chunk
+          // (e.g. when the connection drops after response metadata). Track
+          // whether a terminal chunk ('model-call-end' or 'error') arrived so
+          // that flush can detect incomplete model streams:
+          let hasReceivedTerminalChunk = false;
 
           let stepUsage: LanguageModelUsage = createNullLanguageModelUsage();
           let stepProviderMetadata: ProviderMetadata | undefined;
@@ -1964,7 +1973,7 @@ class DefaultStreamTextResult<
                     }
 
                     case 'model-call-end': {
-                      sawModelCallEnd = true;
+                      hasReceivedTerminalChunk = true;
 
                       // Note: tool executions might not be finished yet when the finish event is emitted.
                       // store usage and finish reason for promises and onEnd callback:
@@ -1978,7 +1987,7 @@ class DefaultStreamTextResult<
                     }
 
                     case 'error': {
-                      sawErrorPart = true;
+                      hasReceivedTerminalChunk = true;
                       controller.enqueue(chunk);
                       stepFinishReason = 'error';
                       break;
@@ -2000,7 +2009,10 @@ class DefaultStreamTextResult<
 
                 // invoke onEnd callback and resolve toolResults promise when the stream is about to close:
                 async flush(controller) {
-                  if (!sawModelCallEnd && !sawErrorPart) {
+                  // The model stream ended without a terminal chunk, so it is
+                  // incomplete. Emit an error instead of a finish-step part so
+                  // that no empty step is recorded:
+                  if (!hasReceivedTerminalChunk) {
                     controller.enqueue({
                       type: 'error',
                       error: new NoOutputGeneratedError({
