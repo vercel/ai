@@ -63,6 +63,7 @@ describe('downloadBlob()', () => {
     expect(new Uint8Array(await result.arrayBuffer())).toEqual(content);
     expect(fetch).toHaveBeenCalledWith('https://example.com/image.png', {
       signal: undefined,
+      redirect: 'manual',
     });
   });
 
@@ -176,6 +177,7 @@ describe('downloadBlob()', () => {
 
     expect(fetch).toHaveBeenCalledWith('https://example.com/file.bin', {
       signal: controller.signal,
+      redirect: 'manual',
     });
   });
 });
@@ -205,77 +207,104 @@ describe('downloadBlob() SSRF protection', () => {
     );
   });
 
-  it('should reject redirects to private IP addresses', async () => {
+  it('should reject a redirect to a private IP without requesting it', async () => {
     const originalFetch = globalThis.fetch;
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      redirected: true,
-      url: 'http://169.254.169.254/latest/meta-data/',
-      headers: new Headers({ 'content-type': 'text/plain' }),
-      body: new ReadableStream({
-        start(controller) {
-          controller.enqueue(new TextEncoder().encode('secret'));
-          controller.close();
-        },
+    const fetchMock = vi.fn().mockResolvedValueOnce({
+      ok: false,
+      status: 302,
+      headers: new Headers({
+        location: 'http://169.254.169.254/latest/meta-data/',
       }),
+      body: null,
     } as unknown as Response);
+    globalThis.fetch = fetchMock;
 
     try {
       await expect(downloadBlob('https://evil.com/redirect')).rejects.toThrow(
         DownloadError,
       );
+      // The redirect target must never be requested.
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledWith('https://evil.com/redirect', {
+        signal: undefined,
+        redirect: 'manual',
+      });
     } finally {
       globalThis.fetch = originalFetch;
     }
   });
 
-  it('should reject redirects to localhost', async () => {
+  it('should reject a redirect to localhost without requesting it', async () => {
     const originalFetch = globalThis.fetch;
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      redirected: true,
-      url: 'http://localhost:8080/admin',
-      headers: new Headers({ 'content-type': 'text/plain' }),
-      body: new ReadableStream({
-        start(controller) {
-          controller.enqueue(new TextEncoder().encode('secret'));
-          controller.close();
-        },
-      }),
+    const fetchMock = vi.fn().mockResolvedValueOnce({
+      ok: false,
+      status: 307,
+      headers: new Headers({ location: 'http://localhost:8080/admin' }),
+      body: null,
     } as unknown as Response);
+    globalThis.fetch = fetchMock;
 
     try {
       await expect(downloadBlob('https://evil.com/redirect')).rejects.toThrow(
         DownloadError,
       );
+      expect(fetchMock).toHaveBeenCalledTimes(1);
     } finally {
       globalThis.fetch = originalFetch;
     }
   });
 
-  it('should allow redirects to safe URLs', async () => {
+  it('should follow redirects to safe URLs', async () => {
     const originalFetch = globalThis.fetch;
     const content = new TextEncoder().encode('safe content');
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      redirected: true,
-      url: 'https://cdn.example.com/image.png',
-      headers: new Headers({ 'content-type': 'image/png' }),
-      body: new ReadableStream({
-        start(controller) {
-          controller.enqueue(content);
-          controller.close();
-        },
-      }),
-    } as unknown as Response);
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 302,
+        headers: new Headers({ location: 'https://cdn.example.com/image.png' }),
+        body: null,
+      } as unknown as Response)
+      .mockResolvedValueOnce(
+        createMockStreamResponse({
+          body: content,
+          headers: { 'content-type': 'image/png' },
+        }),
+      );
+    globalThis.fetch = fetchMock;
 
     try {
       const result = await downloadBlob('https://example.com/image.png');
       expect(result).toBeInstanceOf(Blob);
       expect(result.type).toBe('image/png');
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(fetchMock).toHaveBeenNthCalledWith(
+        2,
+        'https://cdn.example.com/image.png',
+        { signal: undefined, redirect: 'manual' },
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('should reject relative redirects that resolve to a blocked host', async () => {
+    // A redirect Location may be relative; it must be resolved against the
+    // current URL and re-validated before being followed.
+    const originalFetch = globalThis.fetch;
+    const fetchMock = vi.fn().mockResolvedValueOnce({
+      ok: false,
+      status: 302,
+      headers: new Headers({ location: 'https://10.0.0.1/internal' }),
+      body: null,
+    } as unknown as Response);
+    globalThis.fetch = fetchMock;
+
+    try {
+      await expect(
+        downloadBlob('https://example.com/redirect'),
+      ).rejects.toThrow(DownloadError);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
     } finally {
       globalThis.fetch = originalFetch;
     }

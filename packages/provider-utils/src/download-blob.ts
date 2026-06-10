@@ -5,6 +5,8 @@ import {
 } from './read-response-with-size-limit';
 import { validateDownloadUrl } from './validate-download-url';
 
+const MAX_DOWNLOAD_REDIRECTS = 10;
+
 /**
  * Download a file from a URL and return it as a Blob.
  *
@@ -20,15 +22,34 @@ export async function downloadBlob(
   url: string,
   options?: { maxBytes?: number; abortSignal?: AbortSignal },
 ): Promise<Blob> {
-  validateDownloadUrl(url);
   try {
-    const response = await fetch(url, {
-      signal: options?.abortSignal,
-    });
+    // Follow redirects manually so each hop is validated *before* it is
+    // requested. Relying on the default `redirect: 'follow'` would issue the
+    // request to a redirect target (e.g. an internal address) before we ever
+    // see its URL, defeating the SSRF guard.
+    let currentUrl = url;
+    let response: Response;
+    for (let redirectCount = 0; ; redirectCount++) {
+      validateDownloadUrl(currentUrl);
 
-    // Validate final URL after redirects to prevent SSRF via open redirect
-    if (response.redirected) {
-      validateDownloadUrl(response.url);
+      response = await fetch(currentUrl, {
+        signal: options?.abortSignal,
+        redirect: 'manual',
+      });
+
+      const location = response.headers.get('location');
+      if (response.status >= 300 && response.status < 400 && location) {
+        if (redirectCount >= MAX_DOWNLOAD_REDIRECTS) {
+          throw new DownloadError({
+            url,
+            message: `Too many redirects (max ${MAX_DOWNLOAD_REDIRECTS})`,
+          });
+        }
+        currentUrl = new URL(location, currentUrl).toString();
+        continue;
+      }
+
+      break;
     }
 
     if (!response.ok) {

@@ -193,4 +193,100 @@ describe('validateDownloadUrl', () => {
       ).not.toThrow();
     });
   });
+
+  // Regression: a fully-qualified name with a trailing dot resolves the same as
+  // the bare name, so it must not bypass the hostname blocklist.
+  describe('trailing-dot hostnames', () => {
+    it('should block localhost. (trailing dot)', () => {
+      expect(() => validateDownloadUrl('http://localhost./file')).toThrow(
+        DownloadError,
+      );
+    });
+
+    it('should block .local. (trailing dot)', () => {
+      expect(() => validateDownloadUrl('http://myhost.local./file')).toThrow(
+        DownloadError,
+      );
+    });
+
+    it('should block .localhost. (trailing dot)', () => {
+      expect(() => validateDownloadUrl('http://app.localhost./file')).toThrow(
+        DownloadError,
+      );
+    });
+
+    it('should still allow public hosts with a trailing dot', () => {
+      expect(() =>
+        validateDownloadUrl('https://example.com./image.png'),
+      ).not.toThrow();
+    });
+  });
+
+  // Regression: numeric IPv4 in non-dotted notation is normalized to dotted
+  // form by the URL parser, so the IPv4 private checks must still apply.
+  describe('non-dotted IPv4 notations', () => {
+    it('should block decimal 2130706433 (127.0.0.1)', () => {
+      expect(() => validateDownloadUrl('http://2130706433/file')).toThrow(
+        DownloadError,
+      );
+    });
+
+    it('should block hex 0x7f000001 (127.0.0.1)', () => {
+      expect(() => validateDownloadUrl('http://0x7f000001/file')).toThrow(
+        DownloadError,
+      );
+    });
+
+    it('should block octal 0177.0.0.1 (127.0.0.1)', () => {
+      expect(() => validateDownloadUrl('http://0177.0.0.1/file')).toThrow(
+        DownloadError,
+      );
+    });
+  });
+
+  // Regression: IPv6 forms that embed an IPv4 address in their last 32 bits
+  // must be decoded and checked against the IPv4 private ranges.
+  describe('IPv6 with embedded IPv4', () => {
+    it('should block IPv4-compatible ::127.0.0.1', () => {
+      expect(() => validateDownloadUrl('http://[::127.0.0.1]/file')).toThrow(
+        DownloadError,
+      );
+    });
+
+    it('should block IPv4-translated ::ffff:0:127.0.0.1', () => {
+      expect(() =>
+        validateDownloadUrl('http://[::ffff:0:127.0.0.1]/file'),
+      ).toThrow(DownloadError);
+    });
+
+    it('should block NAT64 64:ff9b::127.0.0.1', () => {
+      expect(() =>
+        validateDownloadUrl('http://[64:ff9b::127.0.0.1]/file'),
+      ).toThrow(DownloadError);
+    });
+
+    it('should block NAT64 64:ff9b::169.254.169.254 (metadata)', () => {
+      expect(() =>
+        validateDownloadUrl('http://[64:ff9b::169.254.169.254]/file'),
+      ).toThrow(DownloadError);
+    });
+
+    it('should block NAT64 local-use 64:ff9b:1::169.254.169.254', () => {
+      expect(() =>
+        validateDownloadUrl('http://[64:ff9b:1::169.254.169.254]/file'),
+      ).toThrow(DownloadError);
+    });
+
+    it('should allow NAT64 with a public embedded IPv4', () => {
+      expect(() =>
+        validateDownloadUrl('http://[64:ff9b::203.0.113.1]/file'),
+      ).not.toThrow();
+    });
+
+    it('should allow a regular public IPv6 address', () => {
+      expect(() =>
+        validateDownloadUrl('http://[2001:db8::1]/file'),
+      ).not.toThrow();
+    });
+  });
 });
