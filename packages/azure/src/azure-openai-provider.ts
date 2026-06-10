@@ -7,6 +7,7 @@ import {
   OpenAISpeechModel,
   OpenAITranscriptionModel,
 } from '@ai-sdk/openai/internal';
+import { DeepSeekChatLanguageModel } from '@ai-sdk/deepseek/internal';
 import {
   InvalidArgumentError,
   type EmbeddingModelV3,
@@ -38,6 +39,11 @@ export interface AzureOpenAIProvider extends ProviderV3 {
    * Creates an Azure OpenAI chat model for text generation.
    */
   chat(deploymentId: string): LanguageModelV3;
+
+  /**
+   * Creates an Azure-hosted DeepSeek chat model for text generation.
+   */
+  deepseek(deploymentId: string): LanguageModelV3;
 
   /**
    * Creates an Azure OpenAI responses API model for text generation.
@@ -233,6 +239,15 @@ export function createAzure(
       fetch,
     });
 
+  const createDeepSeekModel = (deploymentName: string) =>
+    new DeepSeekChatLanguageModel(deploymentName, {
+      provider: 'azure.deepseek',
+      url,
+      headers: getHeaders,
+      fetch,
+      supportsThinking: false,
+    });
+
   const createCompletionModel = (modelId: string) =>
     new OpenAICompletionLanguageModel(modelId, {
       provider: 'azure.completion',
@@ -295,6 +310,7 @@ export function createAzure(
   provider.specificationVersion = 'v3' as const;
   provider.languageModel = createResponsesModel;
   provider.chat = createChatModel;
+  provider.deepseek = createDeepSeekModel;
   provider.completion = createCompletionModel;
   provider.embedding = createEmbeddingModel;
   provider.embeddingModel = createEmbeddingModel;
