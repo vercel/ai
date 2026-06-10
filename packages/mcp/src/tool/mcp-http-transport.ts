@@ -75,6 +75,10 @@ export class HttpMCPTransport implements MCPTransport {
     this.fetchFn = fetchFn ?? globalThis.fetch;
   }
 
+  setProtocolVersion(version: string): void {
+    this.protocolVersion = version;
+  }
+
   private async commonHeaders(
     base: Record<string, string>,
   ): Promise<Record<string, string>> {
