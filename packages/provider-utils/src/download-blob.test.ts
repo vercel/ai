@@ -288,6 +288,38 @@ describe('downloadBlob() SSRF protection', () => {
     }
   });
 
+  it('should let the browser follow redirects natively (no manual handling)', async () => {
+    // In a browser, `redirect: 'manual'` yields an unreadable opaque response,
+    // and SSRF is a server-side threat, so we fall back to `redirect: 'follow'`
+    // and let the platform follow redirects.
+    const originalFetch = globalThis.fetch;
+    const globalThisAny = globalThis as { window?: unknown };
+    globalThisAny.window = {};
+
+    const content = new TextEncoder().encode('image bytes');
+    const fetchMock = vi.fn().mockResolvedValue(
+      createMockStreamResponse({
+        body: content,
+        headers: { 'content-type': 'image/png' },
+      }),
+    );
+    globalThis.fetch = fetchMock;
+
+    try {
+      const result = await downloadBlob('https://example.com/image.png');
+      expect(result).toBeInstanceOf(Blob);
+      // A single fetch with `redirect: 'follow'`; no manual hop handling.
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledWith('https://example.com/image.png', {
+        signal: undefined,
+        redirect: 'follow',
+      });
+    } finally {
+      delete globalThisAny.window;
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   it('should reject relative redirects that resolve to a blocked host', async () => {
     // A redirect Location may be relative; it must be resolved against the
     // current URL and re-validated before being followed.

@@ -5,6 +5,7 @@ import {
   validateDownloadUrl,
   withUserAgentSuffix,
   getRuntimeEnvironmentUserAgent,
+  isBrowserRuntime,
 } from '@ai-sdk/provider-utils';
 import { VERSION } from '../../version';
 
@@ -37,10 +38,18 @@ export const download = async ({
       getRuntimeEnvironmentUserAgent(),
     );
 
-    // Follow redirects manually so each hop is validated *before* it is
-    // requested. Relying on the default `redirect: 'follow'` would issue the
-    // request to a redirect target (e.g. an internal address) before we ever
-    // see its URL, defeating the SSRF guard.
+    // On the server, follow redirects manually so each hop is validated
+    // *before* it is requested. Relying on the default `redirect: 'follow'`
+    // would issue the request to a redirect target (e.g. an internal address)
+    // before we ever see its URL, defeating the SSRF guard.
+    //
+    // In the browser this is both impossible and unnecessary: `redirect:
+    // 'manual'` yields an unreadable opaque response (so we cannot inspect the
+    // hop), and SSRF is a server-side threat — browser fetch is constrained by
+    // CORS and cannot reach cloud-metadata or the server's internal network.
+    // There we let the platform follow redirects natively.
+    const followRedirectsManually = !isBrowserRuntime();
+
     let currentUrl = urlText;
     let response: Response;
     for (let redirectCount = 0; ; redirectCount++) {
@@ -49,19 +58,21 @@ export const download = async ({
       response = await fetch(currentUrl, {
         headers,
         signal: abortSignal,
-        redirect: 'manual',
+        redirect: followRedirectsManually ? 'manual' : 'follow',
       });
 
-      const location = response.headers.get('location');
-      if (response.status >= 300 && response.status < 400 && location) {
-        if (redirectCount >= MAX_DOWNLOAD_REDIRECTS) {
-          throw new DownloadError({
-            url: urlText,
-            message: `Too many redirects (max ${MAX_DOWNLOAD_REDIRECTS})`,
-          });
+      if (followRedirectsManually) {
+        const location = response.headers.get('location');
+        if (response.status >= 300 && response.status < 400 && location) {
+          if (redirectCount >= MAX_DOWNLOAD_REDIRECTS) {
+            throw new DownloadError({
+              url: urlText,
+              message: `Too many redirects (max ${MAX_DOWNLOAD_REDIRECTS})`,
+            });
+          }
+          currentUrl = new URL(location, currentUrl).toString();
+          continue;
         }
-        currentUrl = new URL(location, currentUrl).toString();
-        continue;
       }
 
       break;

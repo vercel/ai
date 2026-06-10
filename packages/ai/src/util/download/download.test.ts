@@ -62,6 +62,39 @@ describe('download SSRF redirect protection', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it('should let the browser follow redirects natively (no manual handling)', async () => {
+    const globalThisAny = globalThis as { window?: unknown };
+    globalThisAny.window = {};
+
+    const content = new Uint8Array([1, 2, 3]);
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'image/png' }),
+      body: new ReadableStream({
+        start(controller) {
+          controller.enqueue(content);
+          controller.close();
+        },
+      }),
+    } as unknown as Response);
+    globalThis.fetch = fetchMock;
+
+    try {
+      const result = await download({
+        url: new URL('https://example.com/image.png'),
+      });
+      expect(result.data).toEqual(content);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledWith(
+        'https://example.com/image.png',
+        expect.objectContaining({ redirect: 'follow' }),
+      );
+    } finally {
+      delete globalThisAny.window;
+    }
+  });
+
   it('should follow redirects to safe URLs', async () => {
     const content = new Uint8Array([1, 2, 3]);
     const fetchMock = vi
