@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await transcribe({
-    model: elevenLabs.transcription('scribe_v1'),
+    model: elevenLabs.transcription('scribe_v2'),
     audio: new URL(
       'https://github.com/vercel/ai/raw/refs/heads/main/examples/ai-functions/data/galileo.mp3',
     ),
