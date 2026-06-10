@@ -153,6 +153,36 @@ const originalGenerateCallId = createIdGenerator({
   size: 24,
 });
 
+// chunk types that count as model output; used to distinguish empty
+// incomplete streams from incomplete streams with partial results.
+// exhaustive so that new chunk types must be classified explicitly:
+const isOutputChunkType = {
+  file: true,
+  custom: true,
+  source: true,
+  'text-start': true,
+  'text-end': true,
+  'text-delta': true,
+  'reasoning-start': true,
+  'reasoning-end': true,
+  'reasoning-delta': true,
+  'reasoning-file': true,
+  'tool-input-start': true,
+  'tool-input-end': true,
+  'tool-input-delta': true,
+  'tool-approval-request': true,
+  'tool-approval-response': true,
+  'tool-call': true,
+  'tool-result': true,
+  'tool-error': true,
+  'tool-execution-end': false,
+  'model-call-start': false,
+  'model-call-response-metadata': false,
+  'model-call-end': false,
+  error: false,
+  raw: false,
+} as const satisfies Record<ExecuteToolsStreamPart['type'], boolean>;
+
 export type StreamTextInclude = {
   /**
    * Whether to retain the request body in step results.
@@ -1906,13 +1936,7 @@ class DefaultStreamTextResult<
 
                   const chunkType = chunk.type;
 
-                  if (
-                    chunkType !== 'model-call-response-metadata' &&
-                    chunkType !== 'model-call-end' &&
-                    chunkType !== 'tool-execution-end' &&
-                    chunkType !== 'error' &&
-                    chunkType !== 'raw'
-                  ) {
+                  if (isOutputChunkType[chunkType]) {
                     hasReceivedOutputChunk = true;
                   }
 
