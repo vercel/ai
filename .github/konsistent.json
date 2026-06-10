@@ -37,6 +37,7 @@
         "!packages/codemod",
         "!packages/devtools",
         "!packages/harness",
+        "!packages/harness-*",
         "!packages/langchain",
         "!packages/llamaindex",
         "!packages/mcp",
@@ -52,7 +53,8 @@
         "!packages/tui",
         "!packages/valibot",
         "!packages/vue",
-        "!packages/workflow"
+        "!packages/workflow",
+        "!packages/workflow-harness"
       ],
       "must": [
         {
@@ -117,6 +119,54 @@
         "aisdk/provider-language-model-file-must-import-workflow-serialization",
         "aisdk/provider-model-options-file-must-export-model-options-type",
         "aisdk/provider-model-options-file-with-subtype-must-export-model-options-type"
+      ]
+    },
+    {
+      "name": "harness-package-must-export-required-symbols",
+      "description": "Every harness package must have specific files that export a specific set of symbols.",
+      "paths": ["packages/harness-{harnessId}/src/index.ts"],
+      "must": [
+        {
+          "name": "harness-package-must-export-harness-creator-and-settings",
+          "description": "Every harness package must export a harness creator function and settings from its index.ts file.",
+          "must": {
+            "export": [
+              {
+                "name": "create${harnessId.toPascalCase()}",
+                "from": "./${harnessId}-harness"
+              }
+            ],
+            "exportConstants": ["${harnessId.toCamelCase()}"],
+            "exportTypes": [
+              {
+                "name": "${harnessId.toPascalCase()}HarnessSettings",
+                "from": "./${harnessId}-harness"
+              }
+            ],
+            "haveFiles": ["${harnessId}-harness.ts"]
+          }
+        },
+        {
+          "name": "harness-file-must-export-harness-creator-and-settings-type",
+          "description": "Every harness file must export a harness creator function and a harness settings type.",
+          "for": { "files": ["${harnessId}-harness.ts"] },
+          "must": {
+            "importTypes": [
+              {
+                "name": "HarnessV1",
+                "from": "@ai-sdk/harness"
+              }
+            ],
+            "exportFunctions": [
+              {
+                "name": "create${harnessId.toPascalCase()}",
+                "receiveParamOfType": "${harnessId.toPascalCase()}HarnessSettings",
+                "returnValueOfType": "HarnessV1"
+              }
+            ],
+            "exportTypes": ["${harnessId.toPascalCase()}HarnessSettings"]
+          }
+        }
       ]
     },
     {
