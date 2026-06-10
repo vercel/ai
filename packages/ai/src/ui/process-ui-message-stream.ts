@@ -11,6 +11,7 @@ import {
   type UIMessageChunk,
   isDataUIMessageChunk,
 } from '../ui-message-stream/ui-message-chunks';
+import { createIdMap } from '../util/create-id-map';
 import type { ErrorHandler } from '../util/error-handler';
 import { mergeObjects } from '../util/merge-objects';
 import { parsePartialJson } from '../util/parse-partial-json';
@@ -62,9 +63,9 @@ export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
               InferUIMessageTools<UI_MESSAGE>
             >[],
           } as UI_MESSAGE),
-    activeTextParts: {},
-    activeReasoningParts: {},
-    partialToolCalls: {},
+    activeTextParts: createIdMap(),
+    activeReasoningParts: createIdMap(),
+    partialToolCalls: createIdMap(),
   };
 }
 
@@ -606,8 +607,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
             case 'finish-step': {
               // reset the current text and reasoning parts
-              state.activeTextParts = {};
-              state.activeReasoningParts = {};
+              state.activeTextParts = createIdMap();
+              state.activeReasoningParts = createIdMap();
               break;
             }
 
