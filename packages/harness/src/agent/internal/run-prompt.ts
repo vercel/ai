@@ -22,12 +22,8 @@ import type {
   LanguageModelV4ToolCall,
   LanguageModelV4Usage,
 } from '@ai-sdk/provider';
-import {
-  parseToolCall,
-  type ContentPart,
-  type TelemetryOptions,
-  type TextStreamPart,
-} from 'ai';
+import { parseToolCall } from 'ai/internal';
+import type { ContentPart, TelemetryOptions, TextStreamPart } from 'ai';
 import type { HarnessAgentToolApprovalContinuation } from '../harness-agent-tool-approval-continuation';
 import type { HarnessAgentToolApprovalConfiguration } from '../harness-agent-settings';
 import { HarnessStreamTextResult } from './harness-stream-text-result';

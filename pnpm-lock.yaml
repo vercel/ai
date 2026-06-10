@@ -1851,6 +1851,9 @@ importers:
 
   packages/azure:
     dependencies:
+      '@ai-sdk/deepseek':
+        specifier: workspace:*
+        version: link:../deepseek
       '@ai-sdk/openai':
         specifier: workspace:*
         version: link:../openai
