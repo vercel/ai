@@ -1,5 +1,6 @@
 import { generateId, type ModelMessage } from '@ai-sdk/provider-utils';
-import { createTelemetryDispatcher, type TelemetryOptions } from 'ai';
+import { createTelemetryDispatcher } from 'ai/internal';
+import type { TelemetryOptions } from 'ai';
 
 /*
  * Drives AI SDK's pluggable `Telemetry` lifecycle from a harness turn.
