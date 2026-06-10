@@ -288,34 +288,51 @@ describe('downloadBlob() SSRF protection', () => {
     }
   });
 
-  it('should let the browser follow redirects natively (no manual handling)', async () => {
-    // In a browser, `redirect: 'manual'` yields an unreadable opaque response,
-    // and SSRF is a server-side threat, so we fall back to `redirect: 'follow'`
-    // and let the platform follow redirects.
+  it('should let the browser follow redirects natively on an opaque redirect', async () => {
+    // In a browser, `redirect: 'manual'` yields an unreadable opaque-redirect
+    // response. SSRF is not reachable from the browser, so we re-issue the
+    // request with `redirect: 'follow'` and let the platform follow it.
     const originalFetch = globalThis.fetch;
-    const globalThisAny = globalThis as { window?: unknown };
-    globalThisAny.window = {};
-
     const content = new TextEncoder().encode('image bytes');
-    const fetchMock = vi.fn().mockResolvedValue(
-      createMockStreamResponse({
-        body: content,
-        headers: { 'content-type': 'image/png' },
-      }),
-    );
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        type: 'opaqueredirect',
+        status: 0,
+        ok: false,
+        headers: new Headers(),
+        body: null,
+      } as unknown as Response)
+      .mockResolvedValueOnce(
+        createMockStreamResponse({
+          body: content,
+          headers: { 'content-type': 'image/png' },
+        }),
+      );
     globalThis.fetch = fetchMock;
 
     try {
       const result = await downloadBlob('https://example.com/image.png');
       expect(result).toBeInstanceOf(Blob);
-      // A single fetch with `redirect: 'follow'`; no manual hop handling.
-      expect(fetchMock).toHaveBeenCalledTimes(1);
-      expect(fetchMock).toHaveBeenCalledWith('https://example.com/image.png', {
-        signal: undefined,
-        redirect: 'follow',
-      });
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      // First the manual probe, then a native follow of the same URL.
+      expect(fetchMock).toHaveBeenNthCalledWith(
+        1,
+        'https://example.com/image.png',
+        {
+          signal: undefined,
+          redirect: 'manual',
+        },
+      );
+      expect(fetchMock).toHaveBeenNthCalledWith(
+        2,
+        'https://example.com/image.png',
+        {
+          signal: undefined,
+          redirect: 'follow',
+        },
+      );
     } finally {
-      delete globalThisAny.window;
       globalThis.fetch = originalFetch;
     }
   });

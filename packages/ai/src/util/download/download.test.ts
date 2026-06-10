@@ -62,37 +62,45 @@ describe('download SSRF redirect protection', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it('should let the browser follow redirects natively (no manual handling)', async () => {
-    const globalThisAny = globalThis as { window?: unknown };
-    globalThisAny.window = {};
-
+  it('should let the browser follow redirects natively on an opaque redirect', async () => {
     const content = new Uint8Array([1, 2, 3]);
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      headers: new Headers({ 'content-type': 'image/png' }),
-      body: new ReadableStream({
-        start(controller) {
-          controller.enqueue(content);
-          controller.close();
-        },
-      }),
-    } as unknown as Response);
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        type: 'opaqueredirect',
+        status: 0,
+        ok: false,
+        headers: new Headers(),
+        body: null,
+      } as unknown as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers({ 'content-type': 'image/png' }),
+        body: new ReadableStream({
+          start(controller) {
+            controller.enqueue(content);
+            controller.close();
+          },
+        }),
+      } as unknown as Response);
     globalThis.fetch = fetchMock;
 
-    try {
-      const result = await download({
-        url: new URL('https://example.com/image.png'),
-      });
-      expect(result.data).toEqual(content);
-      expect(fetchMock).toHaveBeenCalledTimes(1);
-      expect(fetchMock).toHaveBeenCalledWith(
-        'https://example.com/image.png',
-        expect.objectContaining({ redirect: 'follow' }),
-      );
-    } finally {
-      delete globalThisAny.window;
-    }
+    const result = await download({
+      url: new URL('https://example.com/image.png'),
+    });
+    expect(result.data).toEqual(content);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      'https://example.com/image.png',
+      expect.objectContaining({ redirect: 'manual' }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      'https://example.com/image.png',
+      expect.objectContaining({ redirect: 'follow' }),
+    );
   });
 
   it('should follow redirects to safe URLs', async () => {
