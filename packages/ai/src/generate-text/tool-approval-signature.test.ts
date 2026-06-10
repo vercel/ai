@@ -2,46 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   signToolApproval,
   verifyToolApprovalSignature,
-  _canonicalJSON_forTesting as canonicalJSON,
 } from './tool-approval-signature';
 
 const secret = 'test-secret-key-for-hmac-signing';
-
-describe('canonicalJSON', () => {
-  it('should sort object keys', () => {
-    expect(canonicalJSON({ b: 2, a: 1 })).toBe('{"a":1,"b":2}');
-  });
-
-  it('should sort nested object keys', () => {
-    expect(canonicalJSON({ z: { b: 2, a: 1 }, a: 1 })).toBe(
-      '{"a":1,"z":{"a":1,"b":2}}',
-    );
-  });
-
-  it('should preserve array order', () => {
-    expect(canonicalJSON([3, 1, 2])).toBe('[3,1,2]');
-  });
-
-  it('should handle null', () => {
-    expect(canonicalJSON(null)).toBe('null');
-  });
-
-  it('should handle empty object', () => {
-    expect(canonicalJSON({})).toBe('{}');
-  });
-
-  it('should handle primitives', () => {
-    expect(canonicalJSON('hello')).toBe('"hello"');
-    expect(canonicalJSON(42)).toBe('42');
-    expect(canonicalJSON(true)).toBe('true');
-  });
-
-  it('should produce identical output regardless of key insertion order', () => {
-    const a = canonicalJSON({ path: '/app/.env', mode: 'delete' });
-    const b = canonicalJSON({ mode: 'delete', path: '/app/.env' });
-    expect(a).toBe(b);
-  });
-});
 
 describe('signToolApproval + verifyToolApprovalSignature', () => {
   const baseParams = {

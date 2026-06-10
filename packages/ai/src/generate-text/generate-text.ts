@@ -349,9 +349,6 @@ export async function generateText<
      * Secret for HMAC-signing tool approval requests. When set, the server
      * signs each approval request at issuance and verifies the signature when
      * the approval is replayed, preventing client-forged approvals.
-     *
-     * Can be extended to accept a `{ sign, verify }` interface for KMS/HSM
-     * integration (e.g. AWS KMS, GCP Cloud KMS) if there is interest.
      */
     experimental_toolApprovalSecret?: string | Uint8Array;
 
