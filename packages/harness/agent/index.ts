@@ -3,6 +3,27 @@ export type {
   HarnessAgentSettings,
   HarnessAgentToolApprovalConfiguration,
 } from '../src/agent/harness-agent-settings';
+export type {
+  HarnessAgentAdapter,
+  HarnessAgentAdapterSession,
+  HarnessAgentBuiltinTool,
+  HarnessAgentBuiltinToolName,
+  HarnessAgentBuiltinTools,
+  HarnessAgentBuiltinToolUseKind,
+  HarnessAgentContinueTurnOptions,
+  HarnessAgentContinueTurnState,
+  HarnessAgentLifecycleState,
+  HarnessAgentPendingToolApproval,
+  HarnessAgentPermissionMode,
+  HarnessAgentPrompt,
+  HarnessAgentPromptControl,
+  HarnessAgentPromptTurnOptions,
+  HarnessAgentResumeSessionState,
+  HarnessAgentSkill,
+  HarnessAgentStartOptions,
+  HarnessAgentStreamPart,
+  HarnessAgentToolSpec,
+} from '../src/agent/harness-agent-types';
 export { HarnessAgentSession } from '../src/agent/harness-agent-session';
 export {
   collectHarnessAgentToolApprovalContinuations,
@@ -14,4 +35,13 @@ export type {
   HarnessDebugLevel,
   HarnessDiagnostic,
   HarnessDiagnosticConsumer,
-} from '../src/agent/harness-diagnostics';
+} from '../src/agent/observability/types';
+export { HarnessError } from '../src/errors/harness-error';
+export { HarnessCapabilityUnsupportedError } from '../src/errors/harness-capability-unsupported-error';
+export {
+  createFileReporter,
+  createTraceTreeReporter,
+  type FileReporter,
+  type FileReporterOptions,
+  type TraceTreeReporterOptions,
+} from '../src/agent/observability';

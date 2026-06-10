@@ -1,16 +1,14 @@
-import type { HARNESS_V1_BUILTIN_TOOLS } from '@ai-sdk/harness';
+import type { HarnessAgentBuiltinTools } from '@ai-sdk/harness/agent';
 import type { UIToolInvocation } from 'ai';
 import ToolSpinner from './tool-spinner';
 
 type FileToolPart =
-  | ({ type: 'tool-read' } & UIToolInvocation<
-      typeof HARNESS_V1_BUILTIN_TOOLS.read
-    >)
+  | ({ type: 'tool-read' } & UIToolInvocation<HarnessAgentBuiltinTools['read']>)
   | ({ type: 'tool-write' } & UIToolInvocation<
-      typeof HARNESS_V1_BUILTIN_TOOLS.write
+      HarnessAgentBuiltinTools['write']
     >)
   | ({ type: 'tool-edit' } & UIToolInvocation<
-      typeof HARNESS_V1_BUILTIN_TOOLS.edit
+      HarnessAgentBuiltinTools['edit']
     >);
 
 const LABELS = {
