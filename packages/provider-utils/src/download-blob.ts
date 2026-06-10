@@ -1,6 +1,6 @@
+import { cancelResponseBody } from './cancel-response-body';
 import { DownloadError } from './download-error';
 import {
-  cancelResponseBody,
   readResponseWithSizeLimit,
   DEFAULT_MAX_DOWNLOAD_SIZE,
 } from './read-response-with-size-limit';

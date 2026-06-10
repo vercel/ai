@@ -58,8 +58,8 @@ export {
   createProviderExecutedToolFactory,
   type ProviderExecutedToolFactory,
 } from './provider-executed-tool-factory';
+export { cancelResponseBody } from './cancel-response-body';
 export {
-  cancelResponseBody,
   DEFAULT_MAX_DOWNLOAD_SIZE,
   readResponseWithSizeLimit,
 } from './read-response-with-size-limit';
