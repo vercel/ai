@@ -1,9 +1,11 @@
 import type {
   HarnessV1,
+  HarnessV1ContinueTurnState,
+  HarnessV1LifecycleState,
   HarnessV1NetworkSandboxSession,
   HarnessV1PendingToolApproval,
   HarnessV1Prompt,
-  HarnessV1ResumeState,
+  HarnessV1ResumeSessionState,
   HarnessV1SandboxProvider,
   HarnessV1Session,
   HarnessV1ToolSpec,
@@ -13,7 +15,7 @@ import type { TelemetryOptions } from 'ai';
 import type { HarnessAgentToolApprovalConfiguration } from './harness-agent-settings';
 import type { HarnessAgentToolApprovalContinuation } from './harness-agent-tool-approval-continuation';
 import { releaseBridgePort } from './internal/bridge-port-registry';
-import { validateResumeStateData } from './internal/resume-state-validation';
+import { validateLifecycleStateData } from './internal/lifecycle-state-validation';
 import { runPrompt } from './internal/run-prompt';
 
 /**
@@ -54,8 +56,8 @@ export class HarnessAgentSession {
   private stopped = false;
 
   /**
-   * Whether this session was created from a resume payload. Captured at
-   * construction so it survives lifecycle cleanup.
+   * Whether this session was created from `resumeFrom` or `continueFrom`.
+   * Captured at construction so it survives lifecycle cleanup.
    */
   readonly isResume: boolean;
 
@@ -207,7 +209,7 @@ export class HarnessAgentSession {
    * The runtime and sandbox keep running; this local session handle becomes
    * unusable.
    */
-  async detach(): Promise<HarnessV1ResumeState> {
+  async detach(): Promise<HarnessV1ResumeSessionState> {
     if (this.stopped || this.underlyingSession == null) {
       throw new Error(
         `Harness session ${this.sessionId} is not active and cannot be detached.`,
@@ -216,9 +218,10 @@ export class HarnessAgentSession {
     const session = this.underlyingSession;
     try {
       const raw = await session.doDetach();
-      const validated = await validateResumeStateData({
+      const validated = await validateLifecycleStateData({
         harness: this.harness,
-        state: raw as HarnessV1ResumeState,
+        state: raw,
+        expectedType: 'resume-session',
       });
       return this.withPendingToolApprovals(validated);
     } finally {
@@ -231,7 +234,7 @@ export class HarnessAgentSession {
    * Returns the resume state for a future
    * `agent.createSession({ sessionId, resumeFrom })` call.
    */
-  async stop(): Promise<HarnessV1ResumeState> {
+  async stop(): Promise<HarnessV1ResumeSessionState> {
     if (this.stopped || this.underlyingSession == null) {
       throw new Error(
         `Harness session ${this.sessionId} is not active and cannot be stopped.`,
@@ -241,9 +244,10 @@ export class HarnessAgentSession {
     const sandboxSession = this.getSandboxSession();
     try {
       const raw = await session.doStop();
-      const validated = await validateResumeStateData({
+      const validated = await validateLifecycleStateData({
         harness: this.harness,
-        state: raw as HarnessV1ResumeState,
+        state: raw,
+        expectedType: 'resume-session',
       });
       return this.withPendingToolApprovals(validated);
     } finally {
@@ -271,8 +275,8 @@ export class HarnessAgentSession {
 
   /**
    * Gracefully freeze the active turn at the slice boundary and return the
-   * resume payload, **leaving the sandbox/runtime running** so the next process
-   * can resume. Resolves once the in-flight `stream()`/`continueTurn()`
+   * continuation payload, **leaving the sandbox/runtime running** so the next
+   * process can continue. Resolves once the in-flight `stream()`/`continueTurn()`
    * has cleanly wound down at a precise cursor (see
    * {@link HarnessV1Session.doSuspendTurn}).
    *
@@ -282,7 +286,7 @@ export class HarnessAgentSession {
    * released, because bridge-backed adapters may still have a live bridge on
    * that port.
    */
-  async suspendTurn(): Promise<HarnessV1ResumeState> {
+  async suspendTurn(): Promise<HarnessV1ContinueTurnState> {
     if (this.stopped || this.underlyingSession == null) {
       throw new Error(
         `Harness session ${this.sessionId} is not active and cannot be suspended.`,
@@ -290,9 +294,10 @@ export class HarnessAgentSession {
     }
     const session = this.underlyingSession;
     const raw = await session.doSuspendTurn();
-    const validated = await validateResumeStateData({
+    const validated = await validateLifecycleStateData({
       harness: this.harness,
-      state: raw as HarnessV1ResumeState,
+      state: raw,
+      expectedType: 'continue-turn',
     });
     // Drop the in-process references without stopping the sandbox or releasing
     // the port lease: bridge-backed adapters may keep using that port.
@@ -306,21 +311,22 @@ export class HarnessAgentSession {
     return Array.from(this.pendingToolApprovals.values());
   }
 
-  private withPendingToolApprovals(
-    state: HarnessV1ResumeState,
-  ): HarnessV1ResumeState {
+  private withPendingToolApprovals<STATE extends HarnessV1LifecycleState>(
+    state: STATE,
+  ): STATE {
     const pendingToolApprovals = this.getPendingToolApprovals();
     if (pendingToolApprovals.length === 0) {
       return {
+        type: state.type,
         harnessId: state.harnessId,
         specificationVersion: state.specificationVersion,
         data: state.data,
-      };
+      } as STATE;
     }
     return {
       ...state,
       pendingToolApprovals,
-    };
+    } as STATE;
   }
 
   private endLocalHandle(options: { releasePortLease: boolean }): void {

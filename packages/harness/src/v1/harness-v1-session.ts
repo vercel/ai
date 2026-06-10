@@ -3,7 +3,10 @@ import type { HarnessV1Observability } from './harness-v1-observability';
 import type { HarnessV1PermissionMode } from './harness-v1-permission-mode';
 import type { HarnessV1Prompt } from './harness-v1-prompt';
 import type { HarnessV1PromptControl } from './harness-v1-prompt-control';
-import type { HarnessV1ResumeState } from './harness-v1-resume-state';
+import type {
+  HarnessV1ContinueTurnState,
+  HarnessV1ResumeSessionState,
+} from './harness-v1-lifecycle-state';
 import type { HarnessV1Skill } from './harness-v1-skill';
 import type { HarnessV1StreamPart } from './harness-v1-stream-part';
 import type { HarnessV1ToolSpec } from './harness-v1-tool-spec';
@@ -32,11 +35,18 @@ export type HarnessV1StartOptions = {
   readonly skills?: ReadonlyArray<HarnessV1Skill>;
 
   /**
-   * Optional resume payload returned by a prior session lifecycle method. When
-   * provided, the adapter should resume the existing session rather than create
-   * a fresh one.
+   * Optional resume payload returned by a prior between-turn session lifecycle
+   * method. When provided, the adapter should resume the existing session before
+   * accepting a new prompt.
    */
-  readonly resumeFrom?: HarnessV1ResumeState;
+  readonly resumeFrom?: HarnessV1ResumeSessionState;
+
+  /**
+   * Optional continuation payload returned by `doSuspendTurn`. When provided,
+   * the adapter should resume the existing session in a shape ready for
+   * `doContinueTurn` rather than for a fresh prompt.
+   */
+  readonly continueFrom?: HarnessV1ContinueTurnState;
 
   /**
    * Approval policy for built-in adapter-native tool use. Custom host-executed
@@ -166,8 +176,8 @@ export type HarnessV1Session = {
   readonly sessionId: string;
 
   /**
-   * Whether this session was created from a resume payload. Fresh sessions
-   * report `false`; resumed sessions report `true`.
+   * Whether this session was created from `resumeFrom` or `continueFrom`. Fresh
+   * sessions report `false`; resumed sessions report `true`.
    */
   readonly isResume: boolean;
 
@@ -205,7 +215,7 @@ export type HarnessV1Session = {
    * Continue the in-flight turn **without a new user prompt**, returning the
    * same control surface as `doPromptTurn`. Used to keep consuming a turn that
    * was interrupted at a process boundary (the workflow slice loop), after the
-   * session itself has been resumed via `doStart({ resumeFrom })`:
+   * session itself has been resumed via `doStart({ continueFrom })`:
    *
    *  - When the runtime's turn is still live and reachable (bridge `attach` /
    *    `replay`), the adapter subscribes to its events and resolves `done` on
@@ -224,7 +234,7 @@ export type HarnessV1Session = {
 
   /**
    * Gracefully freeze the active turn **at a precise cursor while keeping the
-   * runtime alive**, returning the resume payload.
+   * runtime alive**, returning the continuation payload.
    *
    * This is the slice-boundary primitive. The adapter stops host-side
    * consumption of the in-flight turn without telling the runtime to stop:
@@ -241,27 +251,27 @@ export type HarnessV1Session = {
    * this is for an active turn at a slice boundary rather than a between-turn
    * session handoff. Required on every adapter.
    */
-  doSuspendTurn(): PromiseLike<HarnessV1ResumeState>;
+  doSuspendTurn(): PromiseLike<HarnessV1ContinueTurnState>;
 
   /**
    * Detach from the underlying runtime without tearing it down, returning a
-   * payload the host can later pass to `HarnessV1.doStart({ resumeFrom })`
-   * to reconnect. After `doDetach`, no further methods on this session
-   * instance may be called.
+   * payload the host can later pass to
+   * `HarnessV1.doStart({ resumeFrom })` to reconnect before a new turn. After
+   * `doDetach`, no further methods on this session instance may be called.
    *
    * Required. Adapters that cannot keep a live runtime parked still return the
-   * best resume state they can while leaving the sandbox running.
+   * best resume session state they can while leaving the sandbox running.
    */
-  doDetach(): PromiseLike<HarnessV1ResumeState>;
+  doDetach(): PromiseLike<HarnessV1ResumeSessionState>;
 
   /**
    * Persist enough state to resume later, then stop the underlying runtime.
    * After `doStop`, no further methods on this session instance may be called.
    */
-  doStop(): PromiseLike<HarnessV1ResumeState>;
+  doStop(): PromiseLike<HarnessV1ResumeSessionState>;
 
   /**
-   * Stop the underlying runtime without returning resume state. After
+   * Stop the underlying runtime without returning lifecycle state. After
    * `doDestroy`, no further methods on this session instance may be called.
    */
   doDestroy(): PromiseLike<void>;
