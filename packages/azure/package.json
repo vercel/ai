@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/azure",
-  "version": "4.0.0-canary.72",
+  "version": "4.0.0-canary.73",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -42,6 +42,7 @@
     }
   },
   "dependencies": {
+    "@ai-sdk/deepseek": "workspace:*",
     "@ai-sdk/openai": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*"
