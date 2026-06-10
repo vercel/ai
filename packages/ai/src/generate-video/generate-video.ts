@@ -2,10 +2,14 @@ import type {
   Experimental_VideoModelV4,
   Experimental_VideoModelV4CallOptions,
   Experimental_VideoModelV4File,
+  Experimental_VideoModelV4Result,
+  Experimental_VideoModelV4OperationStatusResult,
+  Experimental_VideoModelV4OperationWebhook,
   SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   convertBase64ToUint8Array,
+  delay,
   withUserAgentSuffix,
   type DataContent,
   detectMediaType,
@@ -17,6 +21,7 @@ import {
   type GeneratedFile,
 } from '../generate-text/generated-file';
 import { logWarnings } from '../logger/log-warnings';
+import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { resolveVideoModel } from '../model/resolve-model';
 import type { VideoModel } from '../types/video-model';
 import type { VideoModelResponseMetadata } from '../types/video-model-response-metadata';
@@ -35,6 +40,37 @@ export type GenerateVideoPrompt =
     };
 
 /**
+ * Polling configuration for models that support the asynchronous
+ * start/status flow.
+ */
+export type GenerateVideoPollOptions = {
+  /**
+   * Interval between status checks in milliseconds.
+   *
+   * @default 5000
+   */
+  intervalMs?: number;
+
+  /**
+   * Maximum time to wait for completion in milliseconds.
+   *
+   * @default 600000 (10 minutes)
+   */
+  timeoutMs?: number;
+};
+
+/**
+ * Webhook factory for models that support the asynchronous start/status flow.
+ *
+ * The factory should return a URL for the provider to send notifications to,
+ * and a `received` promise that resolves when the notification arrives.
+ */
+export type GenerateVideoWebhookFactory = () => PromiseLike<{
+  url: string;
+  received: PromiseLike<Experimental_VideoModelV4OperationWebhook>;
+}>;
+
+/**
  * Generates videos using a video model.
  *
  * @param model - The video model to use.
@@ -50,6 +86,8 @@ export type GenerateVideoPrompt =
  * @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
  * @param abortSignal - An optional abort signal that can be used to cancel the call.
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
+ * @param poll - Polling configuration for models that support the start/status flow.
+ * @param webhook - Webhook factory for models that support the start/status flow.
  *
  * @returns A result object that contains the generated videos.
  */
@@ -70,6 +108,8 @@ export async function experimental_generateVideo({
   abortSignal,
   headers,
   download: downloadFn = defaultDownload,
+  poll,
+  webhook,
 }: {
   /**
    * The video model to use.
@@ -97,7 +137,7 @@ export async function experimental_generateVideo({
   aspectRatio?: `${number}:${number}`;
 
   /**
-   * Resolution of the videos to generate. Must have the format `{width}x{height}`.
+   * Resolution of the videos to generate. Must have the format `{width}x${height}`.
    */
   resolution?: `${number}x${number}`;
 
@@ -150,6 +190,23 @@ export async function experimental_generateVideo({
     url: URL;
     abortSignal?: AbortSignal;
   }) => Promise<{ data: Uint8Array; mediaType: string | undefined }>;
+
+  /**
+   * Polling configuration for models that support the asynchronous
+   * start/status flow. When provided and the model implements `doStart`
+   * and `doStatus`, the SDK will orchestrate polling automatically.
+   */
+  poll?: GenerateVideoPollOptions;
+
+  /**
+   * Webhook factory for models that support the asynchronous
+   * start/status flow. When provided and the model implements `doStart`
+   * and `doStatus`, the SDK will use webhooks instead of polling.
+   *
+   * The factory should return a URL for the provider to send notifications to,
+   * and a `received` promise that resolves when the notification arrives.
+   */
+  webhook?: GenerateVideoWebhookFactory;
 }): Promise<GenerateVideoResult> {
   const model = resolveVideoModel(modelArg);
 
@@ -168,6 +225,34 @@ export async function experimental_generateVideo({
   const maxVideosPerCallWithDefault =
     maxVideosPerCall ?? (await invokeModelMaxVideosPerCall(model)) ?? 1;
 
+  // Determine whether to use the start/status flow:
+  const hasStartStatus = model.doStart != null && model.doStatus != null;
+  const useStartStatus =
+    hasStartStatus &&
+    (poll != null || webhook != null || model.doGenerate == null);
+
+  // Validate model capabilities
+  if (model.doGenerate == null && !hasStartStatus) {
+    throw new Error(
+      `Video model ${model.modelId} does not implement doGenerate or doStart/doStatus.`,
+    );
+  }
+
+  // Warn if poll/webhook provided but model doesn't support start/status
+  if ((poll != null || webhook != null) && !hasStartStatus) {
+    logWarnings({
+      warnings: [
+        {
+          type: 'other',
+          message:
+            'poll/webhook options were provided but the model does not support doStart/doStatus. Falling back to doGenerate.',
+        },
+      ],
+      provider: model.provider,
+      model: model.modelId,
+    });
+  }
+
   // parallelize calls to the model:
   const callCount = Math.ceil(n / maxVideosPerCallWithDefault);
   const callVideoCounts = Array.from({ length: callCount }, (_, index) => {
@@ -176,31 +261,42 @@ export async function experimental_generateVideo({
   });
 
   const results = await Promise.all(
-    callVideoCounts.map(
-      async callVideoCount =>
-        await retry(() =>
-          model.doGenerate({
-            prompt,
-            n: callVideoCount,
-            aspectRatio,
-            resolution,
-            duration,
-            fps,
-            seed,
-            image,
-            providerOptions: providerOptions ?? {},
-            headers: headersWithUserAgent,
-            abortSignal,
-          } satisfies Experimental_VideoModelV4CallOptions),
-        ),
-    ),
+    callVideoCounts.map(async callVideoCount => {
+      const callOptions: Experimental_VideoModelV4CallOptions = {
+        prompt,
+        n: callVideoCount,
+        aspectRatio,
+        resolution,
+        duration,
+        fps,
+        seed,
+        image,
+        providerOptions: providerOptions ?? {},
+        headers: headersWithUserAgent,
+        abortSignal,
+      };
+
+      if (useStartStatus) {
+        return executeStartStatusFlow({
+          model,
+          callOptions,
+          poll,
+          webhook,
+          abortSignal,
+          headers: headersWithUserAgent,
+          retry,
+        });
+      }
+
+      return retry(() => model.doGenerate!(callOptions));
+    }),
   );
 
   // collect result videos, warnings, and response metadata
   const videos: Array<GeneratedFile> = [];
   const warnings: Array<Warning> = [];
   const responses: Array<VideoModelResponseMetadata> = [];
-  const providerMetadata: SharedV4ProviderMetadata = {};
+  let providerMetadata: SharedV4ProviderMetadata = {};
 
   for (const result of results) {
     for (const videoData of result.videos) {
@@ -272,34 +368,8 @@ export async function experimental_generateVideo({
       providerMetadata: result.providerMetadata,
     });
 
-    if (result.providerMetadata != null) {
-      for (const [providerName, metadata] of Object.entries(
-        result.providerMetadata,
-      )) {
-        const existingMetadata = providerMetadata[providerName];
-        if (existingMetadata != null && typeof existingMetadata === 'object') {
-          providerMetadata[providerName] = {
-            ...existingMetadata,
-            ...metadata,
-          };
-
-          // Merge videos arrays if both exist
-          if (
-            'videos' in existingMetadata &&
-            Array.isArray(existingMetadata.videos) &&
-            'videos' in metadata &&
-            Array.isArray(metadata.videos)
-          ) {
-            (providerMetadata[providerName] as { videos: unknown[] }).videos = [
-              ...existingMetadata.videos,
-              ...metadata.videos,
-            ];
-          }
-        } else {
-          providerMetadata[providerName] = metadata;
-        }
-      }
-    }
+    providerMetadata =
+      mergeProviderMetadata(providerMetadata, result.providerMetadata) ?? {};
   }
 
   if (videos.length === 0) {
@@ -321,6 +391,268 @@ export async function experimental_generateVideo({
     responses,
     providerMetadata,
   };
+}
+
+async function executeStartStatusFlow({
+  model,
+  callOptions,
+  poll: pollConfig,
+  webhook: webhookFactory,
+  abortSignal,
+  headers,
+  retry,
+}: {
+  model: Experimental_VideoModelV4;
+  callOptions: Experimental_VideoModelV4CallOptions;
+  poll?: GenerateVideoPollOptions;
+  webhook?: GenerateVideoWebhookFactory;
+  abortSignal?: AbortSignal;
+  headers?: Record<string, string | undefined>;
+  retry: <OUTPUT>(fn: () => PromiseLike<OUTPUT>) => PromiseLike<OUTPUT>;
+}): Promise<Experimental_VideoModelV4Result> {
+  // 1. If webhook and provider supports it, set up the webhook
+  const earlyWarnings: Experimental_VideoModelV4Result['warnings'] = [];
+  let webhookUrl: string | undefined;
+  let webhookReceived:
+    | PromiseLike<Experimental_VideoModelV4OperationWebhook>
+    | undefined;
+
+  if (webhookFactory != null) {
+    if (model.handleWebhookOption != null) {
+      const result = await model.handleWebhookOption({
+        webhook: webhookFactory,
+      });
+      webhookUrl = result.webhookUrl;
+      webhookReceived = result.received;
+    } else {
+      earlyWarnings.push({
+        type: 'unsupported',
+        feature: 'webhook',
+        details:
+          'This model does not support webhooks. Falling back to polling.',
+      });
+    }
+  }
+
+  // 2. Start the generation
+  const startResult = await retry(() =>
+    model.doStart!({
+      ...callOptions,
+      webhookUrl,
+    }),
+  );
+
+  const allWarnings = [...earlyWarnings, ...startResult.warnings];
+  let operationProviderMetadata = startResult.providerMetadata;
+
+  let completedResult: Extract<
+    Experimental_VideoModelV4OperationStatusResult,
+    { status: 'completed' }
+  >;
+
+  if (webhookReceived != null) {
+    // 3a. Webhook flow: wait for webhook, then get final status
+    await waitForWebhook({
+      received: webhookReceived,
+      timeoutMs: pollConfig?.timeoutMs ?? 600_000,
+      abortSignal,
+    });
+
+    const statusResult = await retry(() =>
+      model.doStatus!({
+        operation: startResult.operation,
+        abortSignal,
+        headers,
+      }),
+    );
+
+    if (statusResult.status === 'error') {
+      throw new Error(statusResult.error);
+    }
+
+    if (statusResult.warnings != null) {
+      allWarnings.push(...statusResult.warnings);
+    }
+    operationProviderMetadata = mergeProviderMetadata(
+      operationProviderMetadata,
+      statusResult.providerMetadata,
+    );
+
+    if (statusResult.status !== 'completed') {
+      throw new Error(
+        'Video generation did not complete after webhook notification.',
+      );
+    }
+
+    completedResult = statusResult;
+  } else {
+    // 3b. Polling flow (also used as fallback when webhook not supported)
+    const pollResult = await pollUntilComplete({
+      model,
+      operation: startResult.operation,
+      pollConfig,
+      abortSignal,
+      headers,
+      retry,
+    });
+
+    completedResult = pollResult.result;
+    allWarnings.push(...pollResult.warnings);
+    operationProviderMetadata = mergeProviderMetadata(
+      operationProviderMetadata,
+      pollResult.providerMetadata,
+    );
+  }
+
+  return {
+    videos: completedResult.videos,
+    warnings: allWarnings,
+    providerMetadata: operationProviderMetadata,
+    response: completedResult.response,
+  };
+}
+
+async function waitForWebhook({
+  received,
+  timeoutMs,
+  abortSignal,
+}: {
+  received: PromiseLike<Experimental_VideoModelV4OperationWebhook>;
+  timeoutMs: number;
+  abortSignal?: AbortSignal;
+}) {
+  // Cancel the timeout delay once the webhook arrives (or we abort/time out),
+  // so its timer does not keep the event loop alive on the success path.
+  const timeoutController = new AbortController();
+  try {
+    await Promise.race([
+      received,
+      delay(timeoutMs, {
+        abortSignal: mergeAbortSignals(abortSignal, timeoutController.signal),
+      }).then(() => {
+        throw new Error(`Video generation timed out after ${timeoutMs}ms.`);
+      }),
+    ]);
+  } finally {
+    timeoutController.abort();
+  }
+}
+
+function mergeProviderMetadata(
+  ...metadataList: Array<SharedV4ProviderMetadata | undefined>
+): SharedV4ProviderMetadata | undefined {
+  let merged: SharedV4ProviderMetadata | undefined;
+
+  for (const metadata of metadataList) {
+    if (metadata == null) {
+      continue;
+    }
+
+    merged ??= {};
+
+    for (const [providerName, metadataValue] of Object.entries(metadata)) {
+      const existingMetadata = merged[providerName];
+      if (
+        existingMetadata != null &&
+        typeof existingMetadata === 'object' &&
+        metadataValue != null &&
+        typeof metadataValue === 'object'
+      ) {
+        merged[providerName] = {
+          ...existingMetadata,
+          ...metadataValue,
+        };
+
+        if (
+          'videos' in existingMetadata &&
+          Array.isArray(existingMetadata.videos) &&
+          'videos' in metadataValue &&
+          Array.isArray(metadataValue.videos)
+        ) {
+          (merged[providerName] as { videos: unknown[] }).videos = [
+            ...existingMetadata.videos,
+            ...metadataValue.videos,
+          ];
+        }
+      } else {
+        merged[providerName] = metadataValue;
+      }
+    }
+  }
+
+  return merged;
+}
+
+async function pollUntilComplete({
+  model,
+  operation,
+  pollConfig,
+  abortSignal,
+  headers,
+  retry,
+}: {
+  model: Experimental_VideoModelV4;
+  operation: unknown;
+  pollConfig?: GenerateVideoPollOptions;
+  abortSignal?: AbortSignal;
+  headers?: Record<string, string | undefined>;
+  retry: <OUTPUT>(fn: () => PromiseLike<OUTPUT>) => PromiseLike<OUTPUT>;
+}): Promise<{
+  result: Extract<
+    Experimental_VideoModelV4OperationStatusResult,
+    { status: 'completed' }
+  >;
+  warnings: Experimental_VideoModelV4Result['warnings'];
+  providerMetadata?: SharedV4ProviderMetadata;
+}> {
+  const intervalMs = pollConfig?.intervalMs ?? 5000;
+  const timeoutMs = pollConfig?.timeoutMs ?? 600_000;
+
+  const warnings: Experimental_VideoModelV4Result['warnings'] = [];
+  let providerMetadata: SharedV4ProviderMetadata | undefined;
+  const startTime = Date.now();
+
+  while (true) {
+    const elapsedMs = Date.now() - startTime;
+
+    if (elapsedMs >= timeoutMs) {
+      throw new Error(`Video generation timed out after ${timeoutMs}ms.`);
+    }
+
+    await delay(Math.min(intervalMs, timeoutMs - elapsedMs), { abortSignal });
+
+    if (Date.now() - startTime >= timeoutMs) {
+      throw new Error(`Video generation timed out after ${timeoutMs}ms.`);
+    }
+
+    const statusResult = await retry(() =>
+      model.doStatus!({
+        operation,
+        abortSignal,
+        headers,
+      }),
+    );
+
+    if (statusResult.status === 'error') {
+      throw new Error(statusResult.error);
+    }
+
+    if (statusResult.warnings != null) {
+      warnings.push(...statusResult.warnings);
+    }
+    providerMetadata = mergeProviderMetadata(
+      providerMetadata,
+      statusResult.providerMetadata,
+    );
+
+    if (statusResult.status === 'completed') {
+      return {
+        result: statusResult,
+        warnings,
+        providerMetadata,
+      };
+    }
+  }
 }
 
 function normalizePrompt(promptArg: GenerateVideoPrompt): {

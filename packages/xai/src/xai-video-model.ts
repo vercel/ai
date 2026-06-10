@@ -1,17 +1,18 @@
 import {
   AISDKError,
-  type Experimental_VideoModelV4,
+  type Experimental_VideoModelV4 as VideoModelV4,
+  type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
+  type Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertUint8ArrayToBase64,
   createJsonResponseHandler,
-  delay,
+  type FetchFunction,
   getFromApi,
   parseProviderOptions,
   postJsonToApi,
-  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { xaiFailedResponseHandler } from './xai-error';
@@ -58,7 +59,7 @@ function resolveVideoMode(
   return undefined;
 }
 
-export class XaiVideoModel implements Experimental_VideoModelV4 {
+export class XaiVideoModel implements VideoModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1;
 
@@ -71,10 +72,27 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
     private config: XaiVideoModelConfig,
   ) {}
 
-  async doGenerate(
-    options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_VideoModelV4['doGenerate']>>> {
-    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+  private async buildRequestBody(options: {
+    prompt?: string;
+    n?: number;
+    image?:
+      | { type: 'url'; url: string }
+      | { type: 'file'; data: string | Uint8Array; mediaType: string };
+    aspectRatio?: string;
+    resolution?: string;
+    duration?: number;
+    fps?: number;
+    seed?: number;
+    providerOptions?: Record<string, Record<string, unknown>>;
+  }): Promise<{
+    body: Record<string, unknown>;
+    warnings: SharedV4Warning[];
+    xaiOptions: XaiParsedVideoModelOptions | undefined;
+    isEdit: boolean;
+    isExtension: boolean;
+    hasReferenceImages: boolean;
+    effectiveMode: XaiParsedVideoModelOptions['mode'] | undefined;
+  }> {
     const warnings: SharedV4Warning[] = [];
 
     const xaiOptions = (await parseProviderOptions({
@@ -246,6 +264,24 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
       }
     }
 
+    return {
+      body,
+      warnings,
+      xaiOptions,
+      isEdit,
+      isExtension,
+      hasReferenceImages,
+      effectiveMode,
+    };
+  }
+
+  async doStart(
+    options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
+  ): Promise<VideoModelV4OperationStartResult> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { body, warnings, isEdit, isExtension } =
+      await this.buildRequestBody(options);
+
     const baseURL = this.config.baseURL ?? 'https://api.x.ai/v1';
 
     // Determine endpoint based on mode
@@ -258,8 +294,7 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
       endpoint = `${baseURL}/videos/generations`;
     }
 
-    // Step 1: Create video generation/edit/extension request
-    const { value: createResponse } = await postJsonToApi({
+    const { value: createResponse, responseHeaders } = await postJsonToApi({
       url: endpoint,
       headers: combineHeaders(this.config.headers(), options.headers),
       body,
@@ -275,108 +310,130 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
     if (!requestId) {
       throw new AISDKError({
         name: 'XAI_VIDEO_GENERATION_ERROR',
-        message: `No request_id returned from xAI API. Response: ${JSON.stringify(createResponse)}`,
+        message: `No request_id returned from xAI API.`,
       });
     }
 
-    // Step 2: Poll for completion
-    const pollIntervalMs = xaiOptions?.pollIntervalMs ?? 5000;
-    const pollTimeoutMs = xaiOptions?.pollTimeoutMs ?? 600000;
-    const startTime = Date.now();
-    let responseHeaders: Record<string, string> | undefined;
+    return {
+      operation: { requestId },
+      warnings,
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders,
+      },
+    };
+  }
 
-    while (true) {
-      await delay(pollIntervalMs, { abortSignal: options.abortSignal });
+  async doStatus(
+    options: Parameters<NonNullable<VideoModelV4['doStatus']>>[0],
+  ): Promise<VideoModelV4OperationStatusResult> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { requestId } = options.operation as { requestId: string };
+    const baseURL = this.config.baseURL ?? 'https://api.x.ai/v1';
 
-      if (Date.now() - startTime > pollTimeoutMs) {
-        throw new AISDKError({
-          name: 'XAI_VIDEO_GENERATION_TIMEOUT',
-          message: `Video generation timed out after ${pollTimeoutMs}ms`,
-        });
-      }
+    const { value: statusResponse, responseHeaders } = await getFromApi({
+      url: `${baseURL}/videos/${requestId}`,
+      headers: combineHeaders(this.config.headers(), options.headers),
+      successfulResponseHandler: createJsonResponseHandler(
+        xaiVideoStatusResponseSchema,
+      ),
+      failedResponseHandler: xaiFailedResponseHandler,
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
 
-      const { value: statusResponse, responseHeaders: pollHeaders } =
-        await getFromApi({
-          url: `${baseURL}/videos/${requestId}`,
-          headers: combineHeaders(this.config.headers(), options.headers),
-          successfulResponseHandler: createJsonResponseHandler(
-            xaiVideoStatusResponseSchema,
-          ),
-          failedResponseHandler: xaiFailedResponseHandler,
-          abortSignal: options.abortSignal,
-          fetch: this.config.fetch,
-        });
-
-      responseHeaders = pollHeaders;
-
-      if (
-        statusResponse.status === 'done' ||
-        (statusResponse.status == null && statusResponse.video?.url)
-      ) {
-        if (statusResponse.video?.respect_moderation === false) {
-          throw new AISDKError({
-            name: 'XAI_VIDEO_MODERATION_ERROR',
-            message:
-              'Video generation was blocked due to a content policy violation.',
-          });
-        }
-
-        if (!statusResponse.video?.url) {
-          throw new AISDKError({
-            name: 'XAI_VIDEO_GENERATION_ERROR',
-            message:
-              'Video generation completed but no video URL was returned.',
-          });
-        }
-
-        return {
-          videos: [
-            {
-              type: 'url' as const,
-              url: statusResponse.video.url,
-              mediaType: 'video/mp4',
-            },
-          ],
-          warnings,
-          response: {
-            timestamp: currentDate,
-            modelId: this.modelId,
-            headers: responseHeaders,
-          },
-          providerMetadata: {
-            xai: {
-              requestId,
-              videoUrl: statusResponse.video.url,
-              ...(statusResponse.video.duration != null
-                ? { duration: statusResponse.video.duration }
-                : {}),
-              ...(statusResponse.usage?.cost_in_usd_ticks != null
-                ? { costInUsdTicks: statusResponse.usage.cost_in_usd_ticks }
-                : {}),
-              ...(statusResponse.progress != null
-                ? { progress: statusResponse.progress }
-                : {}),
-            },
-          },
-        };
-      }
-
-      if (statusResponse.status === 'expired') {
-        throw new AISDKError({
-          name: 'XAI_VIDEO_GENERATION_EXPIRED',
-          message: 'Video generation request expired.',
-        });
-      }
-
-      if (statusResponse.status === 'failed') {
-        throw new AISDKError({
-          name: 'XAI_VIDEO_GENERATION_FAILED',
-          message: 'Video generation failed.',
-        });
-      }
-
-      // 'pending' → continue polling
+    if (statusResponse.status === 'expired') {
+      return {
+        status: 'error' as const,
+        error: 'Video generation request expired.',
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
+        },
+      };
     }
+
+    if (statusResponse.status === 'failed') {
+      const errorDetails =
+        statusResponse.error?.message ?? statusResponse.error?.code;
+
+      return {
+        status: 'error' as const,
+        error:
+          errorDetails != null
+            ? `Video generation failed: ${errorDetails}`
+            : 'Video generation failed.',
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
+        },
+      };
+    }
+
+    if (
+      statusResponse.status === 'done' ||
+      (statusResponse.status == null && statusResponse.video?.url)
+    ) {
+      if (statusResponse.video?.respect_moderation === false) {
+        throw new AISDKError({
+          name: 'XAI_VIDEO_MODERATION_ERROR',
+          message:
+            'Video generation was blocked due to a content policy violation.',
+        });
+      }
+
+      if (!statusResponse.video?.url) {
+        throw new AISDKError({
+          name: 'XAI_VIDEO_GENERATION_ERROR',
+          message: 'Video generation completed but no video URL was returned.',
+        });
+      }
+
+      return {
+        status: 'completed',
+        videos: [
+          {
+            type: 'url',
+            url: statusResponse.video.url,
+            mediaType: 'video/mp4',
+          },
+        ],
+        warnings: [],
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
+        },
+        providerMetadata: {
+          xai: {
+            requestId,
+            videoUrl: statusResponse.video.url,
+            ...(statusResponse.video.duration != null
+              ? { duration: statusResponse.video.duration }
+              : {}),
+            ...(statusResponse.usage?.cost_in_usd_ticks != null
+              ? { costInUsdTicks: statusResponse.usage.cost_in_usd_ticks }
+              : {}),
+            ...(statusResponse.progress != null
+              ? { progress: statusResponse.progress }
+              : {}),
+          },
+        },
+      };
+    }
+
+    // pending status
+    return {
+      status: 'pending',
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders,
+      },
+    };
   }
 }
 

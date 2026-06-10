@@ -38,8 +38,8 @@ export class ProdiaVideoModel implements Experimental_VideoModelV4 {
   ) {}
 
   async doGenerate(
-    options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_VideoModelV4['doGenerate']>>> {
+    options: Parameters<NonNullable<Experimental_VideoModelV4['doGenerate']>>[0],
+  ): Promise<Awaited<ReturnType<NonNullable<Experimental_VideoModelV4['doGenerate']>>>> {
     const warnings: Array<SharedV4Warning> = [];
 
     const prodiaOptions = await parseProviderOptions({
@@ -234,7 +234,7 @@ function createVideoMultipartResponseHandler() {
 
 async function resolveVideoFileData(
   file: NonNullable<
-    Parameters<Experimental_VideoModelV4['doGenerate']>[0]['image']
+    Parameters<NonNullable<Experimental_VideoModelV4['doGenerate']>>[0]['image']
   >,
   fetchFunction?: FetchFunction,
 ): Promise<{ bytes: Uint8Array; mediaType: string }> {

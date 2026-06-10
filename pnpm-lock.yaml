@@ -415,6 +415,9 @@ importers:
       effect:
         specifier: 3.18.4
         version: 3.18.4
+      eventsource:
+        specifier: ^4.1.0
+        version: 4.1.0
       google-auth-library:
         specifier: ^9.15.1
         version: 9.15.1(encoding@0.1.13)
@@ -13588,6 +13591,10 @@ packages:
   eventsource@3.0.7:
     resolution: {integrity: sha512-CRT1WTyuQoD771GW56XEZFQ/ZoSfWid1alKGDYMmkt2yl8UXrVR4pspqWNEcqKvVIzg6PAltWjxcSSPrboA4iA==}
     engines: {node: '>=18.0.0'}
+
+  eventsource@4.1.0:
+    resolution: {integrity: sha512-2GuF51iuHX6A9xdTccMTsNb7VO0lHZihApxhvQzJB5A03DvHDd2FQepodbMaztPBmBcE/ox7o2gqaxGhYB9LhQ==}
+    engines: {node: '>=20.0.0'}
 
   execa@5.1.1:
     resolution: {integrity: sha512-8uSpZZocAZRBAPIEINJj3Lo9HyGitllczc27Eh5YYojjMFMn8yHMDMaUHE2Jqfq05D/wucwI4JGURyXt1vchyg==}
@@ -32534,6 +32541,10 @@ snapshots:
   eventsource-parser@3.0.8: {}
 
   eventsource@3.0.7:
+    dependencies:
+      eventsource-parser: 3.0.8
+
+  eventsource@4.1.0:
     dependencies:
       eventsource-parser: 3.0.8
 

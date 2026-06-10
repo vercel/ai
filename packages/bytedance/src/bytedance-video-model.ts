@@ -135,8 +135,8 @@ export class ByteDanceVideoModel implements Experimental_VideoModelV4 {
   ) {}
 
   async doGenerate(
-    options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_VideoModelV4['doGenerate']>>> {
+    options: Parameters<NonNullable<Experimental_VideoModelV4['doGenerate']>>[0],
+  ): Promise<Awaited<ReturnType<NonNullable<Experimental_VideoModelV4['doGenerate']>>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV4Warning[] = [];
 

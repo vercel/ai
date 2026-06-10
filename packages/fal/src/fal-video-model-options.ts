@@ -4,8 +4,6 @@ import { z } from 'zod/v4';
 export type FalVideoModelOptions = {
   loop?: boolean | null;
   motionStrength?: number | null;
-  pollIntervalMs?: number | null;
-  pollTimeoutMs?: number | null;
   resolution?: string | null;
   negativePrompt?: string | null;
   promptOptimizer?: boolean | null;
@@ -22,10 +20,6 @@ export const falVideoModelOptionsSchema = lazySchema(() =>
 
         // Motion strength (provider-specific)
         motionStrength: z.number().min(0).max(1).nullish(),
-
-        // Polling configuration
-        pollIntervalMs: z.number().positive().nullish(),
-        pollTimeoutMs: z.number().positive().nullish(),
 
         // Resolution (model-specific, e.g., '480p', '720p', '1080p')
         resolution: z.string().nullish(),

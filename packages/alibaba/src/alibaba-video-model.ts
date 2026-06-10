@@ -1,6 +1,9 @@
 import {
   AISDKError,
-  type Experimental_VideoModelV4,
+  type Experimental_VideoModelV4 as VideoModelV4,
+  type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
+  type Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
+  type SharedV4ProviderMetadata,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
@@ -8,7 +11,6 @@ import {
   convertUint8ArrayToBase64,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
-  delay,
   getFromApi,
   parseProviderOptions,
   postJsonToApi,
@@ -91,7 +93,7 @@ function detectMode(modelId: string): 't2v' | 'i2v' | 'r2v' {
   return 't2v';
 }
 
-export class AlibabaVideoModel implements Experimental_VideoModelV4 {
+export class AlibabaVideoModel implements VideoModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1;
 
@@ -104,10 +106,14 @@ export class AlibabaVideoModel implements Experimental_VideoModelV4 {
     private readonly config: AlibabaVideoModelConfig,
   ) {}
 
-  async doGenerate(
-    options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_VideoModelV4['doGenerate']>>> {
-    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+  private async buildRequest(
+    options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
+  ): Promise<{
+    input: Record<string, unknown>;
+    parameters: Record<string, unknown>;
+    warnings: SharedV4Warning[];
+    alibabaOptions: AlibabaVideoModelOptions | undefined;
+  }> {
     const warnings: SharedV4Warning[] = [];
     const mode = detectMode(this.modelId);
 
@@ -228,8 +234,80 @@ export class AlibabaVideoModel implements Experimental_VideoModelV4 {
       });
     }
 
-    // Step 1: Create task
-    const { value: createResponse } = await postJsonToApi({
+    return { input, parameters, warnings, alibabaOptions };
+  }
+
+  private buildCompletedResult(
+    statusResponse: AlibabaVideoTaskStatusResponse,
+    responseHeaders: Record<string, string> | undefined,
+    warnings: SharedV4Warning[],
+    currentDate: Date,
+  ): {
+    status: 'completed';
+    videos: Array<{ type: 'url'; url: string; mediaType: string }>;
+    warnings: SharedV4Warning[];
+    providerMetadata: SharedV4ProviderMetadata;
+    response: {
+      timestamp: Date;
+      modelId: string;
+      headers: Record<string, string> | undefined;
+    };
+  } {
+    const taskId = statusResponse.output?.task_id;
+    const videoUrl = statusResponse.output?.video_url;
+
+    if (!videoUrl) {
+      throw new AISDKError({
+        name: 'ALIBABA_VIDEO_GENERATION_ERROR',
+        message: `No video URL in response. Task ID: ${taskId}`,
+      });
+    }
+
+    return {
+      status: 'completed',
+      videos: [
+        {
+          type: 'url',
+          url: videoUrl,
+          mediaType: 'video/mp4',
+        },
+      ],
+      warnings,
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders,
+      },
+      providerMetadata: {
+        alibaba: {
+          taskId,
+          videoUrl,
+          ...(statusResponse.output?.actual_prompt
+            ? { actualPrompt: statusResponse.output.actual_prompt }
+            : {}),
+          ...(statusResponse.usage
+            ? {
+                usage: {
+                  duration: statusResponse.usage.duration,
+                  outputVideoDuration:
+                    statusResponse.usage.output_video_duration,
+                  resolution: statusResponse.usage.SR,
+                  size: statusResponse.usage.size,
+                },
+              }
+            : {}),
+        },
+      },
+    };
+  }
+
+  async doStart(
+    options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
+  ): Promise<VideoModelV4OperationStartResult> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { input, parameters, warnings } = await this.buildRequest(options);
+
+    const { value: createResponse, responseHeaders } = await postJsonToApi({
       url: `${this.config.baseURL}/api/v1/services/aigc/video-generation/video-synthesis`,
       headers: combineHeaders(
         await resolve(this.config.headers),
@@ -259,97 +337,67 @@ export class AlibabaVideoModel implements Experimental_VideoModelV4 {
       });
     }
 
-    // Step 2: Poll for task completion
-    const pollIntervalMs = alibabaOptions?.pollIntervalMs ?? 5000;
-    const pollTimeoutMs = alibabaOptions?.pollTimeoutMs ?? 600000;
-    const startTime = Date.now();
-    let finalResponse: AlibabaVideoTaskStatusResponse | undefined;
-    let responseHeaders: Record<string, string> | undefined;
-
-    while (true) {
-      await delay(pollIntervalMs, { abortSignal: options.abortSignal });
-
-      if (Date.now() - startTime > pollTimeoutMs) {
-        throw new AISDKError({
-          name: 'ALIBABA_VIDEO_GENERATION_TIMEOUT',
-          message: `Video generation timed out after ${pollTimeoutMs}ms`,
-        });
-      }
-
-      const { value: statusResponse, responseHeaders: pollHeaders } =
-        await getFromApi({
-          url: `${this.config.baseURL}/api/v1/tasks/${taskId}`,
-          headers: combineHeaders(
-            await resolve(this.config.headers),
-            options.headers,
-          ),
-          successfulResponseHandler: createJsonResponseHandler(
-            alibabaVideoTaskStatusSchema,
-          ),
-          failedResponseHandler: alibabaVideoFailedResponseHandler,
-          abortSignal: options.abortSignal,
-          fetch: this.config.fetch,
-        });
-
-      responseHeaders = pollHeaders;
-      const taskStatus = statusResponse.output?.task_status;
-
-      if (taskStatus === 'SUCCEEDED') {
-        finalResponse = statusResponse;
-        break;
-      }
-
-      if (taskStatus === 'FAILED' || taskStatus === 'CANCELED') {
-        throw new AISDKError({
-          name: 'ALIBABA_VIDEO_GENERATION_FAILED',
-          message: `Video generation ${taskStatus.toLowerCase()}. Task ID: ${taskId}. ${statusResponse.output?.message ?? ''}`,
-        });
-      }
-
-      // Continue polling for PENDING, RUNNING, UNKNOWN statuses
-    }
-
-    const videoUrl = finalResponse?.output?.video_url;
-    if (!videoUrl) {
-      throw new AISDKError({
-        name: 'ALIBABA_VIDEO_GENERATION_ERROR',
-        message: `No video URL in response. Task ID: ${taskId}`,
-      });
-    }
-
     return {
-      videos: [
-        {
-          type: 'url',
-          url: videoUrl,
-          mediaType: 'video/mp4',
-        },
-      ],
+      operation: { taskId },
       warnings,
       response: {
         timestamp: currentDate,
         modelId: this.modelId,
         headers: responseHeaders,
       },
-      providerMetadata: {
-        alibaba: {
-          taskId,
-          videoUrl,
-          ...(finalResponse?.output?.actual_prompt
-            ? { actualPrompt: finalResponse.output.actual_prompt }
-            : {}),
-          ...(finalResponse?.usage
-            ? {
-                usage: {
-                  duration: finalResponse.usage.duration,
-                  outputVideoDuration:
-                    finalResponse.usage.output_video_duration,
-                  resolution: finalResponse.usage.SR,
-                  size: finalResponse.usage.size,
-                },
-              }
-            : {}),
+    };
+  }
+
+  async doStatus(
+    options: Parameters<NonNullable<VideoModelV4['doStatus']>>[0],
+  ): Promise<VideoModelV4OperationStatusResult> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { taskId } = options.operation as { taskId: string };
+
+    const { value: statusResponse, responseHeaders } = await getFromApi({
+      url: `${this.config.baseURL}/api/v1/tasks/${taskId}`,
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
+      successfulResponseHandler: createJsonResponseHandler(
+        alibabaVideoTaskStatusSchema,
+      ),
+      failedResponseHandler: alibabaVideoFailedResponseHandler,
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    const taskStatus = statusResponse.output?.task_status;
+
+    if (taskStatus === 'SUCCEEDED') {
+      return this.buildCompletedResult(
+        statusResponse,
+        responseHeaders,
+        [],
+        currentDate,
+      );
+    }
+
+    if (taskStatus === 'FAILED' || taskStatus === 'CANCELED') {
+      return {
+        status: 'error' as const,
+        error:
+          `Video generation ${taskStatus.toLowerCase()}. Task ID: ${taskId}. ${statusResponse.output?.message ?? ''}`.trim(),
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
         },
+      };
+    }
+
+    return {
+      status: 'pending',
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders,
       },
     };
   }
