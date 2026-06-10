@@ -22,20 +22,20 @@ npx skills add vercel/ai
 
 ## Provider Instance
 
-You can import the default provider instance `deepseek` from `@ai-sdk/deepseek`:
+You can import the default provider instance `deepSeek` from `@ai-sdk/deepseek`:
 
 ```ts
-import { deepseek } from '@ai-sdk/deepseek';
+import { deepSeek } from '@ai-sdk/deepseek';
 ```
 
 ## Example
 
 ```ts
-import { deepseek } from '@ai-sdk/deepseek';
+import { deepSeek } from '@ai-sdk/deepseek';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: deepseek('deepseek-chat'),
+  model: deepSeek('deepseek-v4-flash'),
   prompt: 'Write a JavaScript function that sorts a list:',
 });
 ```

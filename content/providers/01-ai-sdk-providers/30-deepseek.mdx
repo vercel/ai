@@ -75,7 +75,7 @@ import { deepSeek } from '@ai-sdk/deepseek';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: deepSeek('deepseek-chat'),
+  model: deepSeek('deepseek-v4-flash'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -83,19 +83,26 @@ const { text } = await generateText({
 You can also use the `.chat()` or `.languageModel()` factory methods:
 
 ```ts
-const model = deepSeek.chat('deepseek-chat');
+const model = deepSeek.chat('deepseek-v4-flash');
 // or
-const model = deepSeek.languageModel('deepseek-chat');
+const model = deepSeek.languageModel('deepseek-v4-flash');
 ```
 
 DeepSeek language models can be used in the `streamText` function
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
+<Note>
+  DeepSeek's `deepseek-chat` and `deepseek-reasoner` compatibility aliases are
+  scheduled for deprecation on 2026-07-24 at 15:59 UTC. During the transition,
+  they route to the non-thinking and thinking modes of `deepseek-v4-flash`,
+  respectively. Prefer `deepseek-v4-flash` or `deepseek-v4-pro` for new code.
+</Note>
+
 The following optional provider options are available for DeepSeek models:
 
 - `thinking` _object_
 
-  Optional. Controls thinking mode (chain-of-thought reasoning). You can enable thinking mode either by using the `deepseek-reasoner` model or by setting this option.
+  Optional. Controls thinking mode (chain-of-thought reasoning). DeepSeek V4 models support both thinking and non-thinking modes, and thinking mode defaults to `enabled`.
   - `type`: `'adaptive' | 'enabled' | 'disabled'` - Enable, disable, or let the model decide (`adaptive`) when to think. See [DeepSeek's thinking mode docs](https://api-docs.deepseek.com/guides/thinking_mode).
 
 - `reasoningEffort` _'low' | 'medium' | 'high' | 'xhigh' | 'max'_
@@ -115,7 +122,7 @@ import {
 import { generateText } from 'ai';
 
 const { text, reasoning } = await generateText({
-  model: deepSeek('deepseek-chat'),
+  model: deepSeek('deepseek-v4-pro'),
   prompt: 'How many "r"s are in the word "strawberry"?',
   providerOptions: {
     deepseek: {
@@ -128,15 +135,20 @@ const { text, reasoning } = await generateText({
 
 ### Reasoning
 
-DeepSeek has reasoning support for the `deepseek-reasoner` model. The reasoning is exposed through streaming:
+DeepSeek V4 models support reasoning when thinking mode is enabled. The reasoning is exposed through streaming:
 
 ```ts
 import { deepSeek } from '@ai-sdk/deepseek';
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: deepSeek('deepseek-reasoner'),
+  model: deepSeek('deepseek-v4-pro'),
   prompt: 'How many "r"s are in the word "strawberry"?',
+  providerOptions: {
+    deepseek: {
+      thinking: { type: 'enabled' },
+    },
+  },
 });
 
 for await (const part of result.stream) {
@@ -162,7 +174,7 @@ import { deepSeek } from '@ai-sdk/deepseek';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: deepSeek('deepseek-chat'),
+  model: deepSeek('deepseek-v4-flash'),
   prompt: 'Your prompt here',
 });
 
@@ -184,8 +196,8 @@ The metrics include:
 
 | Model               | Text Generation     | Object Generation   | Image Input         | Tool Usage          | Tool Streaming      |
 | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `deepseek-chat`     | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `deepseek-reasoner` | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `deepseek-v4-flash` | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `deepseek-v4-pro`   | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   Please see the [DeepSeek
