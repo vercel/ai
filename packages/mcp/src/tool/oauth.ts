@@ -114,6 +114,60 @@ function normalizeUrl(url: string | URL): string {
   return new URL(url).href;
 }
 
+function assertSameOriginEndpoint({
+  endpoint,
+  issuer,
+  label,
+}: {
+  endpoint: string | undefined;
+  issuer: URL;
+  label: string;
+}): void {
+  if (!endpoint) {
+    return;
+  }
+
+  const endpointUrl = new URL(endpoint);
+  if (endpointUrl.origin !== issuer.origin) {
+    throw new MCPClientOAuthError({
+      message: `OAuth ${label} ${endpointUrl.href} must have the same origin as issuer ${issuer.origin}`,
+    });
+  }
+}
+
+function assertAuthorizationServerMetadataAllowed(
+  authorizationServerUrl: string | URL,
+  metadata?: AuthorizationServerMetadata,
+): void {
+  if (!metadata) {
+    return;
+  }
+
+  const expectedAuthorizationServerUrl = new URL(authorizationServerUrl);
+  const issuer = new URL(metadata.issuer);
+  if (issuer.origin !== expectedAuthorizationServerUrl.origin) {
+    throw new MCPClientOAuthError({
+      message: `OAuth authorization server issuer ${issuer.href} must match the expected authorization server origin ${expectedAuthorizationServerUrl.origin}`,
+    });
+  }
+
+  assertSameOriginEndpoint({
+    endpoint: metadata.authorization_endpoint,
+    issuer,
+    label: 'authorization endpoint',
+  });
+  assertSameOriginEndpoint({
+    endpoint: metadata.token_endpoint,
+    issuer,
+    label: 'token endpoint',
+  });
+  assertSameOriginEndpoint({
+    endpoint: metadata.registration_endpoint,
+    issuer,
+    label: 'registration endpoint',
+  });
+}
+
 function createAuthorizationServerInformation(
   authorizationServerUrl: string | URL,
   metadata?: AuthorizationServerMetadata,
@@ -1121,6 +1175,7 @@ async function authInternal(
       fetchFn,
     },
   );
+  assertAuthorizationServerMetadataAllowed(authorizationServerUrl, metadata);
   const currentAuthorizationServerInformation =
     createAuthorizationServerInformation(authorizationServerUrl, metadata);
 
@@ -1252,6 +1307,34 @@ async function authInternal(
         throw error;
       }
     }
+  }
+
+  if (
+    clientInformation.client_secret &&
+    !(await getStoredAuthorizationServerInformation({
+      provider,
+      clientInformation,
+    }))
+  ) {
+    await provider.invalidateCredentials?.('client');
+
+    if (!provider.saveClientInformation) {
+      throw new Error(
+        'OAuth client information must be saveable for dynamic registration',
+      );
+    }
+
+    const fullInformation = await registerClient(authorizationServerUrl, {
+      metadata,
+      clientMetadata: provider.clientMetadata,
+      fetchFn,
+    });
+
+    clientInformation = addAuthorizationServerInformationToClientInformation(
+      fullInformation,
+      currentAuthorizationServerInformation,
+    );
+    await provider.saveClientInformation(clientInformation);
   }
 
   /** Start authorization and persist the AS pin before redirecting */
