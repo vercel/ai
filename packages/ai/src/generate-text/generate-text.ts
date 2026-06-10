@@ -114,6 +114,7 @@ import type { ToolOrder } from './tool-order';
 import type { ToolOutput } from './tool-output';
 import type { TypedToolResult } from './tool-result';
 import type { ToolsContextParameter } from './tools-context-parameter';
+import { validateApprovedToolApprovals } from './validate-tool-approvals';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -576,12 +577,35 @@ export async function generateText<
     const initialMessages = initialPrompt.messages;
     const initialResponseMessages: Array<ResponseMessage> = [];
 
-    const { approvedToolApprovals, deniedToolApprovals } =
-      collectToolApprovals<TOOLS>({ messages: initialMessages });
+    const {
+      approvedToolApprovals,
+      deniedToolApprovals: collectedDeniedToolApprovals,
+    } = collectToolApprovals<TOOLS>({ messages: initialMessages });
 
-    const localApprovedToolApprovals = approvedToolApprovals.filter(
-      toolApproval => !toolApproval.toolCall.providerExecuted,
-    );
+    // Re-validate client-supplied approvals against the tool input schema and
+    // re-apply the approval policy before executing them. The approvals are
+    // reconstructed from the messages array, which in the documented `useChat`
+    // flow originates from the client; without this, a forged assistant message
+    // could bypass schema validation and the needsApproval policy via the
+    // approval-replay path.
+    const {
+      approvedToolApprovals: localApprovedToolApprovals,
+      deniedToolApprovals: revalidationDeniedToolApprovals,
+    } = await validateApprovedToolApprovals<TOOLS, RUNTIME_CONTEXT>({
+      approvedToolApprovals: approvedToolApprovals.filter(
+        toolApproval => !toolApproval.toolCall.providerExecuted,
+      ),
+      tools,
+      toolApproval,
+      messages: initialMessages,
+      toolsContext,
+      runtimeContext,
+    });
+
+    const deniedToolApprovals = [
+      ...collectedDeniedToolApprovals,
+      ...revalidationDeniedToolApprovals,
+    ];
 
     if (
       deniedToolApprovals.length > 0 ||

@@ -6,7 +6,9 @@ import type {
   SharedV4ProviderOptions,
 } from '@ai-sdk/provider';
 import {
+  asSchema,
   getErrorMessage,
+  safeValidateTypes,
   validateTypes,
   type Context,
   type HasRequiredKey,
@@ -1368,6 +1370,62 @@ export class WorkflowAgent<
       for (const approval of approvedToolApprovals) {
         const tool = (this.tools as ToolSet)[approval.toolName];
         if (tool && typeof tool.execute === 'function') {
+          // Re-validate the client-supplied tool approval before executing it.
+          // The approval is reconstructed from the message history, which is
+          // client-controlled in the documented flow; without this, a forged
+          // assistant message could invoke the tool with attacker-chosen,
+          // unvalidated arguments via the approval-replay path.
+
+          // Re-check that the tool actually declares needsApproval. The normal
+          // path only emits approval-request parts for tools that declare it, so
+          // an approval for a tool without needsApproval is clearly fabricated.
+          if (!tool.needsApproval) {
+            const reason = `Tool "${approval.toolName}" does not require approval`;
+            toolResultContent.push({
+              type: 'tool-result' as const,
+              toolCallId: approval.toolCallId,
+              toolName: approval.toolName,
+              output: await createLanguageModelToolResultOutput({
+                toolCallId: approval.toolCallId,
+                toolName: approval.toolName,
+                input: approval.input,
+                output: reason,
+                tool,
+                errorMode: 'text',
+                supportedUrls: {},
+                download,
+              }),
+            });
+            continue;
+          }
+
+          if (tool.inputSchema != null) {
+            const validation = await safeValidateTypes({
+              value: approval.input,
+              schema: asSchema(tool.inputSchema),
+            });
+
+            if (!validation.success) {
+              const reason = getErrorMessage(validation.error);
+              toolResultContent.push({
+                type: 'tool-result' as const,
+                toolCallId: approval.toolCallId,
+                toolName: approval.toolName,
+                output: await createLanguageModelToolResultOutput({
+                  toolCallId: approval.toolCallId,
+                  toolName: approval.toolName,
+                  input: approval.input,
+                  output: reason,
+                  tool,
+                  errorMode: 'text',
+                  supportedUrls: {},
+                  download,
+                }),
+              });
+              continue;
+            }
+          }
+
           try {
             const { execute } = tool;
             const resolvedContext = await resolveToolContext({
