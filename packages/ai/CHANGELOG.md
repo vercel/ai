@@ -1,5 +1,12 @@
 # ai
 
+## 6.0.200
+
+### Patch Changes
+
+- 14098e7: fix(ai): reject `streamText` result promises with `NoOutputGeneratedError` when the model stream ends without producing any output. Previously such streams resolved with an empty step. Incomplete streams with partial output still resolve with the partial result.
+- 2cabe9c: Harden UI message stream processing against prototype pollution from chunk IDs.
+
 ## 6.0.199
 
 ### Patch Changes
