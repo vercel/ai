@@ -1758,8 +1758,8 @@ describe('auth function', () => {
     (mockProvider.clientInformation as Mock).mockResolvedValue({
       client_id: 'test-client',
       client_secret: 'test-secret',
-      authorization_server: 'https://api.example.com/mcp-server',
-      token_endpoint: 'https://api.example.com/token',
+      authorization_server: 'https://auth.example.com/',
+      token_endpoint: 'https://auth.example.com/token',
     });
     (mockProvider.tokens as Mock).mockResolvedValue({
       access_token: 'old-access',
