@@ -50,6 +50,7 @@ describe('doEmbed', () => {
         type: 'binary',
         headers: {
           'content-type': 'application/json',
+          'x-amzn-bedrock-input-token-count': '6',
         },
         body: Buffer.from(
           JSON.stringify({
@@ -63,6 +64,7 @@ describe('doEmbed', () => {
         type: 'binary',
         headers: {
           'content-type': 'application/json',
+          'x-amzn-bedrock-input-token-count': '6',
         },
         body: Buffer.from(
           JSON.stringify({
@@ -156,7 +158,7 @@ describe('doEmbed', () => {
         0.04,
       ]
     `);
-    expect(Number.isNaN(usage?.tokens)).toBe(true);
+    expect(usage?.tokens).toBe(6);
 
     const body = await server.calls[0].requestBodyJson;
     expect(body).toEqual({
@@ -188,7 +190,7 @@ describe('doEmbed', () => {
         0.04,
       ]
     `);
-    expect(Number.isNaN(usage?.tokens)).toBe(true);
+    expect(usage?.tokens).toBe(6);
 
     const body = await server.calls[0].requestBodyJson;
     expect(body).toEqual({
@@ -197,6 +199,32 @@ describe('doEmbed', () => {
       truncate: undefined,
       output_dimension: undefined,
     });
+  });
+
+  it('should return NaN usage for Cohere models when the token count header is absent', async () => {
+    server.urls[cohereV4EmbedUrl].response = {
+      type: 'binary',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: Buffer.from(
+        JSON.stringify({
+          embeddings: { float: [mockEmbeddings[0]] },
+        }),
+      ),
+    };
+
+    const cohereV4Model = new AmazonBedrockEmbeddingModel('cohere.embed-v4:0', {
+      baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+      headers: mockConfigHeaders,
+      fetch: fakeFetchWithAuth,
+    });
+
+    const { usage } = await cohereV4Model.doEmbed({
+      values: [testValues[0]],
+    });
+
+    expect(Number.isNaN(usage?.tokens)).toBe(true);
   });
 
   it('should pass outputDimension for Cohere v4 embedding models', async () => {
