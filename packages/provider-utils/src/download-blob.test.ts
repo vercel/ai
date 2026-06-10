@@ -250,6 +250,7 @@ describe('downloadBlob() SSRF protection', () => {
 
   it('should reject redirects to private IP addresses', async () => {
     const originalFetch = globalThis.fetch;
+    const onCancel = vi.fn();
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
@@ -261,6 +262,9 @@ describe('downloadBlob() SSRF protection', () => {
           controller.enqueue(new TextEncoder().encode('secret'));
           controller.close();
         },
+        cancel() {
+          onCancel();
+        },
       }),
     } as unknown as Response);
 
@@ -268,6 +272,9 @@ describe('downloadBlob() SSRF protection', () => {
       await expect(downloadBlob('https://evil.com/redirect')).rejects.toThrow(
         DownloadError,
       );
+      // Body must be cancelled so the open-redirect rejection does not leak
+      // the underlying socket.
+      expect(onCancel).toHaveBeenCalled();
     } finally {
       globalThis.fetch = originalFetch;
     }
@@ -275,6 +282,7 @@ describe('downloadBlob() SSRF protection', () => {
 
   it('should reject redirects to localhost', async () => {
     const originalFetch = globalThis.fetch;
+    const onCancel = vi.fn();
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
@@ -286,6 +294,9 @@ describe('downloadBlob() SSRF protection', () => {
           controller.enqueue(new TextEncoder().encode('secret'));
           controller.close();
         },
+        cancel() {
+          onCancel();
+        },
       }),
     } as unknown as Response);
 
@@ -293,6 +304,7 @@ describe('downloadBlob() SSRF protection', () => {
       await expect(downloadBlob('https://evil.com/redirect')).rejects.toThrow(
         DownloadError,
       );
+      expect(onCancel).toHaveBeenCalled();
     } finally {
       globalThis.fetch = originalFetch;
     }

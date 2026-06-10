@@ -30,6 +30,7 @@ describe('download SSRF redirect protection', () => {
   });
 
   it('should reject redirects to private IP addresses', async () => {
+    const onCancel = vi.fn();
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
@@ -41,15 +42,23 @@ describe('download SSRF redirect protection', () => {
           controller.enqueue(new TextEncoder().encode('secret'));
           controller.close();
         },
+        cancel() {
+          onCancel();
+        },
       }),
     } as unknown as Response);
 
     await expect(
       download({ url: new URL('https://evil.com/redirect') }),
     ).rejects.toThrow(DownloadError);
+
+    // Body must be cancelled so the open-redirect rejection does not leak the
+    // underlying socket.
+    expect(onCancel).toHaveBeenCalled();
   });
 
   it('should reject redirects to localhost', async () => {
+    const onCancel = vi.fn();
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
@@ -61,12 +70,17 @@ describe('download SSRF redirect protection', () => {
           controller.enqueue(new TextEncoder().encode('secret'));
           controller.close();
         },
+        cancel() {
+          onCancel();
+        },
       }),
     } as unknown as Response);
 
     await expect(
       download({ url: new URL('https://evil.com/redirect') }),
     ).rejects.toThrow(DownloadError);
+
+    expect(onCancel).toHaveBeenCalled();
   });
 
   it('should allow redirects to safe URLs', async () => {
