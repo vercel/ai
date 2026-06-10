@@ -13,7 +13,9 @@ import {
   tool,
   type ModelMessage,
   type Experimental_SandboxSession as SandboxSession,
+  type Tool,
   type ToolExecuteFunction,
+  type ToolResultOutput,
 } from '@ai-sdk/provider-utils';
 import { mockId } from '@ai-sdk/provider-utils/test';
 import {
@@ -1249,6 +1251,90 @@ describe('generateText', () => {
           },
         ]
       `);
+    });
+  });
+
+  describe('class-based tool `this` binding', () => {
+    // A class-based tool whose `execute` and `toModelOutput` both rely on `this`.
+    // This guards against re-introducing a "this-binding guard" that would
+    // destructure these methods off the tool before calling them and thereby
+    // break the binding.
+    // See https://github.com/vercel/ai/pull/15917#discussion_r3376474765
+    it('should preserve `this` for execute and toModelOutput', async () => {
+      class CalculatorTool implements Tool {
+        readonly inputSchema = z.object({ a: z.number(), b: z.number() });
+        private readonly prefix = 'calc';
+
+        async execute(input: { a: number; b: number }) {
+          // accesses `this.prefix`, requiring `this` to be bound to the
+          // tool instance when `execute` is invoked.
+          return { id: this.prefix, sum: input.a + input.b };
+        }
+
+        toModelOutput({ output }: { output: unknown }): ToolResultOutput {
+          // accesses `this.prefix`, requiring `this` to be bound to the
+          // tool instance when `toModelOutput` is invoked.
+          const { sum } = output as { sum: number };
+          return { type: 'text', value: `${this.prefix}:${sum}` };
+        }
+      }
+
+      let step1Prompt: LanguageModelV4Prompt | undefined;
+      let responseCount = 0;
+
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async ({ prompt }) => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  ...dummyResponseValues,
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-1',
+                      toolName: 'calculator',
+                      input: `{ "a": 1, "b": 2 }`,
+                    },
+                  ],
+                  finishReason: { unified: 'tool-calls', raw: undefined },
+                };
+              case 1:
+                step1Prompt = prompt;
+                return {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: 'Done.' }],
+                };
+              default:
+                throw new Error(`Unexpected response count: ${responseCount}`);
+            }
+          },
+        }),
+        tools: { calculator: new CalculatorTool() },
+        prompt: 'test-input',
+        stopWhen: isStepCount(3),
+      });
+
+      // `execute` ran with `this` bound to the tool instance:
+      expect(result.toolResults[0].output).toStrictEqual({
+        id: 'calc',
+        sum: 3,
+      });
+
+      // `toModelOutput` ran with `this` bound and its value was sent to the model:
+      expect(step1Prompt).toContainEqual({
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'calculator',
+            output: { type: 'text', value: 'calc:3' },
+          },
+        ],
+        providerOptions: undefined,
+      });
     });
   });
 
