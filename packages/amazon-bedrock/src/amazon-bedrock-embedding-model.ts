@@ -171,9 +171,7 @@ export class AmazonBedrockEmbeddingModel implements EmbeddingModelV4 {
       embedding = response.embeddings.float[0];
     }
 
-    // Extract token count based on response format. Cohere responses don't
-    // include a token count in the body, so fall back to the InvokeModel
-    // response header (NaN when the header is absent).
+    // Extract token count based on response format
     const headerTokenCount = Number(
       responseHeaders?.['x-amzn-bedrock-input-token-count'],
     );
