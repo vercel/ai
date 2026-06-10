@@ -208,7 +208,7 @@ describe('doEmbed', () => {
       ),
     };
 
-    const cohereV4Model = new AmazonBedrockEmbeddingModel('cohere.embed-v4:0', {
+    const cohereV4Model = new BedrockEmbeddingModel('cohere.embed-v4:0', {
       baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
       headers: mockConfigHeaders,
       fetch: fakeFetchWithAuth,
