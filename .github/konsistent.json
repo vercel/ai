@@ -36,6 +36,8 @@
         "!packages/angular",
         "!packages/codemod",
         "!packages/devtools",
+        "!packages/harness",
+        "!packages/harness-*",
         "!packages/langchain",
         "!packages/llamaindex",
         "!packages/mcp",
@@ -45,12 +47,14 @@
         "!packages/provider-utils",
         "!packages/react",
         "!packages/rsc",
+        "!packages/sandbox-*",
         "!packages/svelte",
         "!packages/test-server",
         "!packages/tui",
         "!packages/valibot",
         "!packages/vue",
-        "!packages/workflow"
+        "!packages/workflow",
+        "!packages/workflow-harness"
       ],
       "must": [
         {
@@ -89,6 +93,7 @@
             "packages/gateway/src/gateway-embedding-model.ts",
             "packages/gateway/src/gateway-image-model.ts",
             "packages/gateway/src/gateway-language-model.ts",
+            "packages/gateway/src/gateway-realtime-model.ts",
             "packages/gateway/src/gateway-reranking-model.ts",
             "packages/gateway/src/gateway-speech-model.ts",
             "packages/gateway/src/gateway-transcription-model.ts",
@@ -114,6 +119,107 @@
         "aisdk/provider-language-model-file-must-import-workflow-serialization",
         "aisdk/provider-model-options-file-must-export-model-options-type",
         "aisdk/provider-model-options-file-with-subtype-must-export-model-options-type"
+      ]
+    },
+    {
+      "name": "harness-package-must-export-required-symbols",
+      "description": "Every harness package must have specific files that export a specific set of symbols.",
+      "paths": ["packages/harness-{harnessId}/src/index.ts"],
+      "must": [
+        {
+          "name": "harness-package-must-export-harness-creator-and-settings",
+          "description": "Every harness package must export a harness creator function and settings from its index.ts file.",
+          "must": {
+            "export": [
+              {
+                "name": "create${harnessId.toPascalCase()}",
+                "from": "./${harnessId}-harness"
+              }
+            ],
+            "exportConstants": ["${harnessId.toCamelCase()}"],
+            "exportTypes": [
+              {
+                "name": "${harnessId.toPascalCase()}HarnessSettings",
+                "from": "./${harnessId}-harness"
+              }
+            ],
+            "haveFiles": ["${harnessId}-harness.ts"]
+          }
+        },
+        {
+          "name": "harness-file-must-export-harness-creator-and-settings-type",
+          "description": "Every harness file must export a harness creator function and a harness settings type.",
+          "for": { "files": ["${harnessId}-harness.ts"] },
+          "must": {
+            "importTypes": [
+              {
+                "name": "HarnessV1",
+                "from": "@ai-sdk/harness"
+              }
+            ],
+            "exportFunctions": [
+              {
+                "name": "create${harnessId.toPascalCase()}",
+                "receiveParamOfType": "${harnessId.toPascalCase()}HarnessSettings",
+                "returnValueOfType": "HarnessV1"
+              }
+            ],
+            "exportTypes": ["${harnessId.toPascalCase()}HarnessSettings"]
+          }
+        }
+      ]
+    },
+    {
+      "name": "sandbox-package-must-export-required-symbols",
+      "description": "Every sandbox package must have specific files that export a specific set of symbols.",
+      "paths": ["packages/sandbox-{sandboxId}/src/index.ts"],
+      "must": [
+        {
+          "name": "sandbox-package-must-export-sandbox-creator-and-settings",
+          "description": "Every sandbox package must export a sandbox creator function and settings from its index.ts file.",
+          "must": {
+            "export": [
+              {
+                "name": "create${sandboxId.toPascalCase()}Sandbox",
+                "from": "./${sandboxId}-sandbox"
+              }
+            ],
+            "exportTypes": [
+              {
+                "name": "${sandboxId.toPascalCase()}SandboxSettings",
+                "from": "./${sandboxId}-sandbox"
+              }
+            ],
+            "haveFiles": ["${sandboxId}-sandbox.ts"]
+          }
+        },
+        {
+          "name": "sandbox-file-must-export-sandbox-creator-and-settings-type",
+          "description": "Every sandbox file must export a sandbox creator function and a sandbox settings type.",
+          "for": { "files": ["{sandboxId}-sandbox.ts"] },
+          "must": {
+            "importTypes": [
+              {
+                "name": "HarnessV1SandboxProvider",
+                "from": "@ai-sdk/harness"
+              }
+            ],
+            "exportClasses": [
+              {
+                "name": "${sandboxId.toPascalCase()}SandboxProvider",
+                "implement": ["HarnessV1SandboxProvider"]
+              }
+            ],
+            "exportFunctions": [
+              {
+                "name": "create${sandboxId.toPascalCase()}Sandbox",
+                "receiveParamOfType": "${sandboxId.toPascalCase()}SandboxSettings",
+                "returnValueOfType": "HarnessV1SandboxProvider"
+              }
+            ],
+            "exportTypes": ["${sandboxId.toPascalCase()}SandboxSettings"]
+          }
+        }
       ]
     }
   ],

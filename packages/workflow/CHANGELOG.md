@@ -1,5 +1,47 @@
 # @ai-sdk/workflow
 
+## 1.0.0-canary.86
+
+### Patch Changes
+
+- Updated dependencies [a5018ab]
+- Updated dependencies [21d3d60]
+- Updated dependencies [426dbbb]
+- Updated dependencies [7fd3360]
+  - ai@7.0.0-canary.169
+
+## 1.0.0-canary.85
+
+### Patch Changes
+
+- 1e4b350: Honor `tool.toModelOutput` in `WorkflowAgent`.
+
+  `WorkflowAgent` now routes successful local, provider-executed, and approved tool results through each tool's optional `toModelOutput` hook, matching `generateText`, `streamText`, and `ToolLoopAgent`. Previously the hook was ignored and results were always serialized as `text` or `json`.
+
+  Internally exports the shared tool-result model-output helpers from `ai/internal`, and uses the shared `getErrorMessage` behavior for workflow tool error results.
+
+- Updated dependencies [1e4b350]
+  - ai@7.0.0-canary.168
+
+## 1.0.0-canary.84
+
+### Patch Changes
+
+- Updated dependencies [4757690]
+- Updated dependencies [eeefc3f]
+- Updated dependencies [b79b6a8]
+  - ai@7.0.0-canary.167
+
+## 1.0.0-canary.83
+
+### Patch Changes
+
+- 19736ee: feat(ai): rename onStepFinish to onStepEnd
+- Updated dependencies [19736ee]
+- Updated dependencies [d66ae02]
+- Updated dependencies [e4182bd]
+  - ai@7.0.0-canary.166
+
 ## 1.0.0-canary.82
 
 ### Patch Changes

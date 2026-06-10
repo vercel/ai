@@ -2508,6 +2508,209 @@ describe('streamText', () => {
         'No output generated. Check the stream for errors.',
       );
     });
+
+    it('should reject when provider stream closes before finish chunk', async () => {
+      const onError = vi.fn();
+      const onStepFinish = vi.fn();
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'stream-start',
+              warnings: [],
+            },
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        onError,
+        onStepFinish,
+      });
+
+      await result.consumeStream();
+
+      await expect(result.text).rejects.toThrow(
+        'No output generated. The model stream ended without a finish chunk.',
+      );
+      await expect(result.steps).rejects.toThrow(
+        'No output generated. The model stream ended without a finish chunk.',
+      );
+      await expect(result.finishReason).rejects.toThrow(
+        'No output generated. The model stream ended without a finish chunk.',
+      );
+      await expect(result.totalUsage).rejects.toThrow(
+        'No output generated. The model stream ended without a finish chunk.',
+      );
+      expect(onError).toHaveBeenCalledWith({
+        error: expect.objectContaining({
+          message:
+            'No output generated. The model stream ended without a finish chunk.',
+        }),
+      });
+
+      expect(onStepFinish).not.toHaveBeenCalled();
+    });
+
+    it('should resolve with partial output when provider stream closes before finish chunk after producing output', async () => {
+      const onError = vi.fn();
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'stream-start',
+              warnings: [],
+            },
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-delta', id: '1', delta: ', world' },
+            // stream truncated: no text-end, no finish chunk
+          ]),
+        }),
+        prompt: 'test-input',
+        onError,
+      });
+
+      await result.consumeStream();
+
+      expect(await result.text).toStrictEqual('Hello, world');
+      expect(await result.finishReason).toStrictEqual('other');
+      expect(await result.steps).toHaveLength(1);
+      expect(onError).not.toHaveBeenCalled();
+    });
+
+    it('should reject result promises when provider stream errors after metadata', async () => {
+      const onConsumeError = vi.fn();
+
+      const result = streamText({
+        model: createTestModel({
+          stream: new ReadableStream<LanguageModelV4StreamPart>({
+            start(controller) {
+              controller.enqueue({ type: 'stream-start', warnings: [] });
+              controller.enqueue({
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              });
+              queueMicrotask(() => {
+                controller.error(new Error('simulated provider stream error'));
+              });
+            },
+          }),
+        }),
+        prompt: 'test-input',
+      });
+
+      await expect(
+        result.consumeStream({ onError: onConsumeError }),
+      ).resolves.not.toThrow();
+
+      await expect(result.text).rejects.toThrow(
+        'simulated provider stream error',
+      );
+      await expect(result.steps).rejects.toThrow(
+        'simulated provider stream error',
+      );
+      await expect(result.finishReason).rejects.toThrow(
+        'simulated provider stream error',
+      );
+      await expect(result.totalUsage).rejects.toThrow(
+        'simulated provider stream error',
+      );
+      expect(onConsumeError).toHaveBeenCalledWith(
+        new Error('simulated provider stream error'),
+      );
+    });
+
+    it('should reject when provider stream is incomplete on a continuation step', async () => {
+      const onError = vi.fn();
+      const onStepFinish = vi.fn();
+      let responseCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  stream: convertArrayToReadableStream([
+                    { type: 'stream-start', warnings: [] },
+                    {
+                      type: 'tool-call',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: '{}',
+                    },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'tool-calls', raw: undefined },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+              case 1:
+                // continuation step ends without a finish chunk:
+                return {
+                  stream: convertArrayToReadableStream([
+                    { type: 'stream-start', warnings: [] },
+                    {
+                      type: 'response-metadata',
+                      id: 'id-1',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(0),
+                    },
+                  ]),
+                };
+              default:
+                throw new Error(`Unexpected response count: ${responseCount}`);
+            }
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({}),
+            execute: async () => 'result1',
+          }),
+        },
+        prompt: 'test-input',
+        stopWhen: isStepCount(3),
+        onError,
+        onStepFinish,
+      });
+
+      await result.consumeStream();
+
+      await expect(result.steps).rejects.toThrow(
+        'No output generated. The model stream ended without a finish chunk.',
+      );
+      await expect(result.finishReason).rejects.toThrow(
+        'No output generated. The model stream ended without a finish chunk.',
+      );
+      await expect(result.totalUsage).rejects.toThrow(
+        'No output generated. The model stream ended without a finish chunk.',
+      );
+      expect(onError).toHaveBeenCalledWith({
+        error: expect.objectContaining({
+          message:
+            'No output generated. The model stream ended without a finish chunk.',
+        }),
+      });
+
+      expect(onStepFinish).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('retries', () => {
@@ -3100,6 +3303,11 @@ describe('streamText', () => {
             { type: 'text-delta', id: '1', delta: ', ' },
             { type: 'text-delta', id: '1', delta: 'world!' },
             { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
           ]),
         }),
         prompt: 'test-input',
@@ -16608,6 +16816,72 @@ describe('streamText', () => {
       expect(receivedAbortSignals[0]).toBe(receivedAbortSignals[1]);
     });
 
+    it('should clear the step timeout on normal completion of a multi-step run', async () => {
+      const receivedAbortSignals: (AbortSignal | undefined)[] = [];
+      let stepCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async ({ abortSignal }) => {
+            receivedAbortSignals.push(abortSignal);
+            stepCount++;
+            if (stepCount === 1) {
+              return {
+                stream: convertArrayToReadableStream([
+                  {
+                    type: 'tool-call',
+                    toolCallType: 'function',
+                    toolCallId: 'call-1',
+                    toolName: 'tool1',
+                    input: `{ "value": "test" }`,
+                  },
+                  {
+                    type: 'finish',
+                    finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+                    usage: testUsage,
+                  },
+                ]),
+              };
+            }
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Final response' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'tool result',
+          },
+        },
+        prompt: 'test-input',
+        timeout: { stepMs: 50 }, // small step timeout
+        stopWhen: isStepCount(2),
+        onError: () => {},
+      });
+
+      // Both steps finish synchronously, well within stepMs.
+      await result.consumeStream();
+
+      // Advance well past stepMs: because each step's timeout is cleared on
+      // finish, the (shared) abort signal must NOT fire. If the timers leaked,
+      // a stale step timer would abort the signal here.
+      await vi.advanceTimersByTimeAsync(100);
+
+      expect(stepCount).toBe(2);
+      expect(receivedAbortSignals[0]?.aborted).toBe(false);
+      expect(receivedAbortSignals[1]?.aborted).toBe(false);
+    });
+
     it('should support both totalMs and stepMs together', async () => {
       let receivedAbortSignal: AbortSignal | undefined;
 
@@ -16637,6 +16911,61 @@ describe('streamText', () => {
       await result.consumeStream();
 
       expect(receivedAbortSignal).toBeDefined();
+    });
+
+    it('should abort when step timeout expires', async () => {
+      let receivedAbortSignal: AbortSignal | undefined;
+      const delayedPromise = new DelayedPromise<void>();
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async ({ abortSignal }) => {
+            receivedAbortSignal = abortSignal;
+            return {
+              stream: new ReadableStream({
+                async start(controller) {
+                  // Open the stream but stall before producing any content,
+                  // modelling a model that returns 200 OK and then idles.
+                  // The step timeout must abort this stalled step.
+                  await delayedPromise.promise;
+
+                  controller.enqueue({ type: 'text-start', id: '1' });
+                  controller.enqueue({
+                    type: 'text-delta',
+                    id: '1',
+                    delta: 'Hello',
+                  });
+                  controller.enqueue({ type: 'text-end', id: '1' });
+                  controller.enqueue({
+                    type: 'finish',
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                    usage: testUsage,
+                  });
+                  controller.close();
+                },
+              }),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        timeout: { stepMs: 50 }, // 50ms step timeout
+        onError: () => {},
+      });
+
+      // Start consuming the stream (won't complete until delayedPromise resolves)
+      const consumePromise = result.consumeStream();
+
+      // Advance time past the step timeout
+      await vi.advanceTimersByTimeAsync(100);
+
+      // Resolve the delayed promise to allow the stream to finish
+      delayedPromise.resolve(undefined);
+
+      await consumePromise;
+
+      // The abort signal should have been triggered due to step timeout
+      expect(receivedAbortSignal?.aborted).toBe(true);
+      expect((receivedAbortSignal?.reason as Error)?.name).toBe('TimeoutError');
     });
 
     it('should forward chunkMs as abort signal to model', async () => {

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/deepseek",
-  "version": "3.0.0-canary.51",
+  "version": "3.0.0-canary.52",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -15,7 +15,8 @@
     "!src/**/__snapshots__",
     "!src/**/__fixtures__",
     "CHANGELOG.md",
-    "README.md"
+    "README.md",
+    "internal.d.ts"
   ],
   "directories": {
     "doc": "./docs"
@@ -39,6 +40,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./internal": {
+      "types": "./dist/internal/index.d.ts",
+      "import": "./dist/internal/index.js",
+      "default": "./dist/internal/index.js"
     }
   },
   "dependencies": {

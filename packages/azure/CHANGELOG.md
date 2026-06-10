@@ -1,5 +1,27 @@
 # @ai-sdk/azure
 
+## 4.0.0-canary.73
+
+### Patch Changes
+
+- b23b042: feat(azure): add deepseek model support to azure
+- Updated dependencies [b23b042]
+  - @ai-sdk/deepseek@3.0.0-canary.52
+
+## 4.0.0-canary.72
+
+### Patch Changes
+
+- Updated dependencies [ae7f932]
+  - @ai-sdk/openai@4.0.0-canary.71
+
+## 4.0.0-canary.71
+
+### Patch Changes
+
+- Updated dependencies [6a5800e]
+  - @ai-sdk/openai@4.0.0-canary.70
+
 ## 4.0.0-canary.70
 
 ### Patch Changes

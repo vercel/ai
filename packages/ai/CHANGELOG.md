@@ -1,5 +1,55 @@
 # ai
 
+## 7.0.0-canary.169
+
+### Patch Changes
+
+- a5018ab: fix(ai): return schema-transformed elements in array output mode
+
+  Previously final array output validation checked each element against the schema but returned the raw model output. Array output now returns the validated values so Zod transforms, coercions, defaults, and pipes are applied consistently with object output.
+
+- 21d3d60: feat(harness): implement harness specification
+- 426dbbb: fix(ai): reject `streamText` result promises with `NoOutputGeneratedError` when the model stream ends without producing any output. Previously such streams resolved with an empty step. Incomplete streams with partial output still resolve with the partial result.
+- 7fd3360: Harden UI message stream processing against prototype pollution from chunk IDs.
+
+## 7.0.0-canary.168
+
+### Patch Changes
+
+- 1e4b350: Honor `tool.toModelOutput` in `WorkflowAgent`.
+
+  `WorkflowAgent` now routes successful local, provider-executed, and approved tool results through each tool's optional `toModelOutput` hook, matching `generateText`, `streamText`, and `ToolLoopAgent`. Previously the hook was ignored and results were always serialized as `text` or `json`.
+
+  Internally exports the shared tool-result model-output helpers from `ai/internal`, and uses the shared `getErrorMessage` behavior for workflow tool error results.
+
+- Updated dependencies [a3bb04a]
+  - @ai-sdk/gateway@4.0.0-canary.102
+
+## 7.0.0-canary.167
+
+### Patch Changes
+
+- 4757690: feat(ai): rename onObjectStepFinish to onObjectStepEnd
+- eeefc3f: fix(ai): enforce `timeout.stepMs` for the whole step in `streamText`
+
+  Previously `streamText`'s step timer was cleared synchronously right after the step's stream was registered, before the stream produced anything, so `stepMs` never aborted a step that stalled before emitting content. The step timer now survives until the step's stream finishes or aborts, matching `generateText`. `chunkMs`/`totalMs` and normal step-finish cleanup are unchanged.
+
+- b79b6a8: fix(ai): add approval guard for denied tool outputs
+- Updated dependencies [6b4d325]
+  - @ai-sdk/gateway@4.0.0-canary.101
+
+## 7.0.0-canary.166
+
+### Patch Changes
+
+- 19736ee: feat(ai): rename onStepFinish to onStepEnd
+- d66ae02: Return validated elements from generateText array output
+- e4182bd: chore: rm export of OutputInterface
+- Updated dependencies [24bb123]
+- Updated dependencies [c44fcc8]
+- Updated dependencies [97e480a]
+  - @ai-sdk/gateway@4.0.0-canary.100
+
 ## 7.0.0-canary.165
 
 ### Patch Changes

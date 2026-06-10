@@ -1,5 +1,12 @@
 # @ai-sdk/xai
 
+## 4.0.0-canary.72
+
+### Patch Changes
+
+- 7486744: Add xAI speech-to-text transcription support.
+- 7486744: feat(provider/xai): add text-to-speech support
+
 ## 4.0.0-canary.71
 
 ### Patch Changes
