@@ -435,7 +435,7 @@ describe('deepseek', () => {
 
     expect(parts[parts.length - 1]).toMatchInlineSnapshot(`
       {
-        "finishReason": "stop",
+        "finishReason": "error",
         "providerMetadata": {
           "azure": {
             "promptCacheHitTokens": 2,
