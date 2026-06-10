@@ -704,10 +704,13 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             case 'tool-approval-request': {
               const toolInvocation = getToolInvocation(chunk.toolCallId);
               toolInvocation.state = 'approval-requested';
-              toolInvocation.approval =
-                chunk.isAutomatic === true
-                  ? { id: chunk.approvalId, isAutomatic: true }
-                  : { id: chunk.approvalId };
+              toolInvocation.approval = {
+                id: chunk.approvalId,
+                ...(chunk.isAutomatic === true ? { isAutomatic: true } : {}),
+                ...(chunk.signature != null
+                  ? { signature: chunk.signature }
+                  : {}),
+              };
               write();
               break;
             }
