@@ -1,3 +1,12 @@
+import type { DeepSeekLanguageModelOptions } from '@ai-sdk/deepseek';
+
+export type AzureDeepSeekLanguageModelOptions = Omit<
+  DeepSeekLanguageModelOptions,
+  'thinking'
+>;
+/** @deprecated Use `AzureDeepSeekLanguageModelOptions` instead. */
+export type AzureDeepSeekChatOptions = AzureDeepSeekLanguageModelOptions;
+
 export type {
   OpenAILanguageModelResponsesOptions,
   /** @deprecated Use `OpenAILanguageModelResponsesOptions` instead. */

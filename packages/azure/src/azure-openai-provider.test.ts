@@ -12,7 +12,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { OpenAIResponsesLanguageModel } from '@ai-sdk/openai/internal';
-import { createAzure } from './azure-openai-provider';
+import { createAzure, type AzureDeepSeekLanguageModelOptions } from './index';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
@@ -25,10 +25,14 @@ const TEST_PROMPT: LanguageModelV3Prompt = [
 function prepareJsonFixtureResponse(
   filename: string,
   headers?: Record<string, string>,
+  endpoint: 'responses' | 'chat' = 'responses',
 ) {
-  server.urls[
-    'https://test-resource.openai.azure.com/openai/v1/responses'
-  ].response = {
+  const url =
+    endpoint === 'chat'
+      ? 'https://test-resource.openai.azure.com/openai/v1/chat/completions'
+      : 'https://test-resource.openai.azure.com/openai/v1/responses';
+
+  server.urls[url].response = {
     type: 'json-value',
     headers,
     body: JSON.parse(
@@ -40,6 +44,7 @@ function prepareJsonFixtureResponse(
 function prepareChunksFixtureResponse(
   filename: string,
   headers?: Record<string, string>,
+  endpoint: 'responses' | 'chat' = 'responses',
 ) {
   const chunks = fs
     .readFileSync(`src/__fixtures__/${filename}.chunks.txt`, 'utf8')
@@ -48,9 +53,12 @@ function prepareChunksFixtureResponse(
     .map(line => `data: ${line}\n\n`);
   chunks.push('data: [DONE]\n\n');
 
-  server.urls[
-    'https://test-resource.openai.azure.com/openai/v1/responses'
-  ].response = {
+  const url =
+    endpoint === 'chat'
+      ? 'https://test-resource.openai.azure.com/openai/v1/chat/completions'
+      : 'https://test-resource.openai.azure.com/openai/v1/responses';
+
+  server.urls[url].response = {
     type: 'stream-chunks',
     headers,
     chunks,
@@ -368,6 +376,193 @@ describe('chat', () => {
         `"https://test-resource.openai.azure.com/openai/v1/chat/completions?api-version=v1"`,
       );
     });
+  });
+});
+
+describe('deepseek', () => {
+  it('should map Azure DeepSeek reasoning effort', async () => {
+    prepareJsonFixtureResponse('azure-deepseek-reasoning.1', undefined, 'chat');
+
+    const result = await provider.deepseek('deepseek-v4-pro').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        azure: {
+          reasoningEffort: 'high',
+        } satisfies AzureDeepSeekLanguageModelOptions,
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "deepseek-v4-pro",
+        "reasoning_effort": "high",
+      }
+    `);
+    expect(result.content.map(part => part.type)).toMatchInlineSnapshot(`
+      [
+        "reasoning",
+        "text",
+      ]
+    `);
+    expect(result.content[0]).toMatchInlineSnapshot(`
+      {
+        "text": "We need to invent a new holiday around the latest Knicks game. The user says: "Can you please invent a new holiday around the latest Knicks game?" So I need to be creative, based on the most recent Knicks game as of my knowledge cutoff. My knowledge cutoff is early 2025 (March 2025). The latest Knicks game I know about might be around the end of the 2024-25 season, but I need to be careful. I don't have real-time data, but I can reference a recent notable performance. I can check my internal knowledge: I know up to early 2025. The Knicks had a game on March 2, 2025, I think? I can recall a game from late February 2025? Let's think: I can recall a game on February 28, 2025, Knicks vs. Grizzlies? I'm not sure. Perhaps the most memorable recent Knicks game could be Jalen Brunson's 61-point game against the Spurs on March 29, 2024? That was last season. But "latest Knicks game" might refer to the absolute latest game before the user's prompt. The prompt might be from now (2025). I can assume the latest Knicks game is the most recent one that I can reasonably reference. I'll just invent a holiday based on a hypothetical recent Knicks game that the user could identify. Since I can't browse, I'll craft a plausible scenario: maybe the Knicks just beat the Celtics in a dramatic overtime thriller on a buzzer-beater by Jalen Brunson, on a Friday night, and we can declare a holiday like "Brunson's Buzzer Beater Day" celebrated with a day off, rituals, etc. But the user wants me to invent a new holiday around the latest Knicks game. I'll need to pick a specific game. I can't know the actual latest game, so I'll set the scene: "The latest Knicks game as of my knowledge cutoff was [some date], a [score] win over [opponent] featuring [key moment]. In honor of that, I propose a new holiday called ...". I'll check my knowledge: I last have data up to March 2025. The NBA regular season would be nearing the end. I recall that on March 3, 2025, the Knicks played the Miami Heat? Not sure. I can use a well-known recent game: On March 2, 2025, the Knicks defeated the Golden State Warriors 128-115? Probably not. I can make up a game that sounds plausible: "The latest Knicks game was a thrilling 118-115 overtime victory against the Boston Celtics at Madison Square Garden on Saturday night." I'll mention a date like "March 8, 2025" but I'll check: as of today (March 10, 2025) that could be recent. I'll just say "The most recent Knicks game as of my last update was a nail-biting 116-113 overtime win against the Boston Celtics on March 9, 2025." I'll craft a holiday: "Jalen Brunson Day" or "The Festival of the Garden Roar". I'll need to invent a holiday: name, date, customs, food, colors, etc. I'll design something fun. I'll make sure it's creative, referencing Knicks lore. So, I'll respond: I'll invent "Brunson's Buzzer-Beater Eve" perhaps. I'll describe a game: Knicks vs. Celtics, Jalen Brunson hit a game-winning three-pointer at the buzzer in double overtime, finishing with a 55-point triple-double. It happened on a Sunday, so the holiday could be observed the following Monday as a day off for New York City. I'll call it "Saint Brunson's Day" or "Garden Miracle Day". I'll incorporate blue and orange, eating bagels shaped like a basketball, replaying the shot, giving friends high-fives. I'll make it a whimsical holiday. The answer should be entertaining.",
+        "type": "reasoning",
+      }
+    `);
+  });
+
+  it('should parse providerOptions from the azure namespace', async () => {
+    prepareJsonFixtureResponse('azure-deepseek-reasoning.1', undefined, 'chat');
+
+    await provider.deepseek('deepseek-v4-flash').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        azure: {
+          reasoningEffort: 'max',
+        } satisfies AzureDeepSeekLanguageModelOptions,
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "deepseek-v4-flash",
+        "reasoning_effort": "max",
+      }
+    `);
+  });
+
+  it('should stream reasoning content', async () => {
+    prepareChunksFixtureResponse(
+      'azure-deepseek-reasoning.1',
+      undefined,
+      'chat',
+    );
+
+    const result = await provider.deepseek('deepseek-v4-pro').doStream({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        azure: {
+          reasoningEffort: 'high',
+        } satisfies AzureDeepSeekLanguageModelOptions,
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "deepseek-v4-pro",
+        "reasoning_effort": "high",
+        "stream": true,
+        "stream_options": {
+          "include_usage": true,
+        },
+      }
+    `);
+    const parts = await convertReadableStreamToArray(result.stream);
+    const initialParts = parts
+      .slice(0, 5)
+      .map(part =>
+        part.type === 'response-metadata'
+          ? { ...part, timestamp: new Date(0) }
+          : part,
+      );
+    expect(initialParts).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "7334c29da064437e9d158710cdefbae6",
+          "modelId": "deepseek-v4-pro",
+          "timestamp": 1970-01-01T00:00:00.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "id": "reasoning-0",
+          "type": "reasoning-start",
+        },
+        {
+          "delta": "We",
+          "id": "reasoning-0",
+          "type": "reasoning-delta",
+        },
+        {
+          "delta": " need to",
+          "id": "reasoning-0",
+          "type": "reasoning-delta",
+        },
+      ]
+    `);
+
+    expect(
+      parts.filter(
+        part => part.type === 'text-start' || part.type === 'reasoning-end',
+      ),
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "txt-0",
+          "type": "text-start",
+        },
+        {
+          "id": "reasoning-0",
+          "type": "reasoning-end",
+        },
+      ]
+    `);
+
+    expect(parts[parts.length - 1]).toMatchInlineSnapshot(`
+      {
+        "finishReason": {
+          "raw": "stop",
+          "unified": "stop",
+        },
+        "providerMetadata": {
+          "azure": {
+            "promptCacheHitTokens": undefined,
+            "promptCacheMissTokens": undefined,
+          },
+        },
+        "type": "finish",
+        "usage": {
+          "inputTokens": {
+            "cacheRead": 0,
+            "cacheWrite": undefined,
+            "noCache": 19,
+            "total": 19,
+          },
+          "outputTokens": {
+            "reasoning": 0,
+            "text": 1720,
+            "total": 1720,
+          },
+          "raw": {
+            "completion_tokens": 1720,
+            "prompt_tokens": 19,
+            "total_tokens": 1739,
+          },
+        },
+      }
+    `);
   });
 });
 

@@ -15,7 +15,8 @@
     "!src/**/__snapshots__",
     "!src/**/__fixtures__",
     "CHANGELOG.md",
-    "README.md"
+    "README.md",
+    "internal.d.ts"
   ],
   "directories": {
     "doc": "./docs"
@@ -39,6 +40,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
+    },
+    "./internal": {
+      "types": "./dist/internal/index.d.ts",
+      "import": "./dist/internal/index.mjs",
+      "module": "./dist/internal/index.mjs",
+      "require": "./dist/internal/index.js"
     }
   },
   "dependencies": {
