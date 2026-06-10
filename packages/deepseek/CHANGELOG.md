@@ -1,5 +1,11 @@
 # @ai-sdk/deepseek
 
+## 1.0.42
+
+### Patch Changes
+
+- f04ecd8: feat(azure): add deepseek model support to azure
+
 ## 1.0.41
 
 ### Patch Changes
