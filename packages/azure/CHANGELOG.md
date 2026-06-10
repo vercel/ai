@@ -1,5 +1,13 @@
 # @ai-sdk/azure
 
+## 3.0.72
+
+### Patch Changes
+
+- 79f0ae6: feat(azure): add deepseek model support to azure
+- Updated dependencies [79f0ae6]
+  - @ai-sdk/deepseek@2.0.36
+
 ## 3.0.71
 
 ### Patch Changes
