@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 1.0.47
+
+### Patch Changes
+
+- bf1d6bd: fix(mcp): prevent mcp oauth credential exfiltration during rediscovery
+
 ## 1.0.46
 
 ### Patch Changes
