@@ -293,6 +293,8 @@ describe('downloadBlob() SSRF protection', () => {
     // response. SSRF is not reachable from the browser, so we re-issue the
     // request with `redirect: 'follow'` and let the platform follow it.
     const originalFetch = globalThis.fetch;
+    const globalThisAny = globalThis as { document?: unknown };
+    globalThisAny.document = {};
     const content = new TextEncoder().encode('image bytes');
     const fetchMock = vi
       .fn()
@@ -332,6 +334,32 @@ describe('downloadBlob() SSRF protection', () => {
           redirect: 'follow',
         },
       );
+    } finally {
+      delete globalThisAny.document;
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('should fail closed on an opaque redirect outside the browser', async () => {
+    // A spec-compliant server runtime may return an opaque redirect for
+    // `redirect: 'manual'`. Since the hop cannot be validated and SSRF is
+    // reachable on the server, we must reject rather than follow it natively.
+    const originalFetch = globalThis.fetch;
+    const fetchMock = vi.fn().mockResolvedValueOnce({
+      type: 'opaqueredirect',
+      status: 0,
+      ok: false,
+      headers: new Headers(),
+      body: null,
+    } as unknown as Response);
+    globalThis.fetch = fetchMock;
+
+    try {
+      await expect(
+        downloadBlob('https://example.com/redirect'),
+      ).rejects.toThrow(DownloadError);
+      // The opaque redirect must not be followed.
+      expect(fetchMock).toHaveBeenCalledTimes(1);
     } finally {
       globalThis.fetch = originalFetch;
     }

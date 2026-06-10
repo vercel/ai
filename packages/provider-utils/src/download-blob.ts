@@ -37,12 +37,22 @@ export async function downloadBlob(
         redirect: 'manual',
       });
 
-      // Browsers return an unreadable opaque response for `redirect: 'manual'`,
-      // so the hop cannot be validated here. SSRF is not reachable from the
-      // browser anyway (fetch is constrained by CORS and cannot reach a
-      // server's internal network or cloud-metadata), so re-issue the request
-      // letting the platform follow redirects natively.
+      // A `redirect: 'manual'` request yields an unreadable opaque response in
+      // the browser (and in other spec-compliant fetch implementations), so the
+      // redirect target cannot be validated here. In a real browser this is
+      // safe to follow natively because SSRF is not reachable (fetch is
+      // constrained by CORS and cannot reach a server's internal network or
+      // cloud-metadata). On any other runtime we cannot validate the hop, so we
+      // fail closed rather than follow it blindly and bypass the SSRF guard.
       if (response.type === 'opaqueredirect') {
+        if (
+          typeof (globalThis as { document?: unknown }).document === 'undefined'
+        ) {
+          throw new DownloadError({
+            url,
+            message: `Redirect from ${currentUrl} could not be validated and was blocked`,
+          });
+        }
         response = await fetch(currentUrl, {
           signal: options?.abortSignal,
           redirect: 'follow',

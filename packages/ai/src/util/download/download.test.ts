@@ -63,6 +63,8 @@ describe('download SSRF redirect protection', () => {
   });
 
   it('should let the browser follow redirects natively on an opaque redirect', async () => {
+    const globalThisAny = globalThis as { document?: unknown };
+    globalThisAny.document = {};
     const content = new Uint8Array([1, 2, 3]);
     const fetchMock = vi
       .fn()
@@ -86,21 +88,44 @@ describe('download SSRF redirect protection', () => {
       } as unknown as Response);
     globalThis.fetch = fetchMock;
 
-    const result = await download({
-      url: new URL('https://example.com/image.png'),
-    });
-    expect(result.data).toEqual(content);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(fetchMock).toHaveBeenNthCalledWith(
-      1,
-      'https://example.com/image.png',
-      expect.objectContaining({ redirect: 'manual' }),
-    );
-    expect(fetchMock).toHaveBeenNthCalledWith(
-      2,
-      'https://example.com/image.png',
-      expect.objectContaining({ redirect: 'follow' }),
-    );
+    try {
+      const result = await download({
+        url: new URL('https://example.com/image.png'),
+      });
+      expect(result.data).toEqual(content);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(fetchMock).toHaveBeenNthCalledWith(
+        1,
+        'https://example.com/image.png',
+        expect.objectContaining({ redirect: 'manual' }),
+      );
+      expect(fetchMock).toHaveBeenNthCalledWith(
+        2,
+        'https://example.com/image.png',
+        expect.objectContaining({ redirect: 'follow' }),
+      );
+    } finally {
+      delete globalThisAny.document;
+    }
+  });
+
+  it('should fail closed on an opaque redirect outside the browser', async () => {
+    // A spec-compliant server runtime may return an opaque redirect for
+    // `redirect: 'manual'`. Since the hop cannot be validated and SSRF is
+    // reachable on the server, we must reject rather than follow it natively.
+    const fetchMock = vi.fn().mockResolvedValueOnce({
+      type: 'opaqueredirect',
+      status: 0,
+      ok: false,
+      headers: new Headers(),
+      body: null,
+    } as unknown as Response);
+    globalThis.fetch = fetchMock;
+
+    await expect(
+      download({ url: new URL('https://example.com/redirect') }),
+    ).rejects.toThrow(DownloadError);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('should follow redirects to safe URLs', async () => {
