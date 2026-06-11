@@ -56,6 +56,17 @@ const defaultSettings = () =>
     onError: () => {},
   }) as const;
 
+type ObjectPrototypeState = {
+  providerMetadata?: unknown;
+  text?: unknown;
+};
+
+function clearObjectPrototypeState() {
+  const objectPrototype = Object.prototype as ObjectPrototypeState;
+  delete objectPrototype.providerMetadata;
+  delete objectPrototype.text;
+}
+
 const testUsage = {
   inputTokens: 3,
   outputTokens: 10,
@@ -1478,6 +1489,129 @@ describe('streamText', () => {
           error: new Error('test error'),
         },
       ]);
+    });
+
+    it('should not read Object.prototype for missing text part ids', async () => {
+      clearObjectPrototypeState();
+      const protoKey: string = '__proto__';
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-delta', id: protoKey, delta: 'Hello' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        onError: () => {},
+      });
+
+      try {
+        expect(
+          await convertAsyncIterableToArray(result.fullStream),
+        ).toContainEqual({
+          type: 'error',
+          error: `text part ${protoKey} not found`,
+        });
+
+        expect(Object.hasOwn(Object.prototype, 'providerMetadata')).toBe(false);
+        expect(Object.hasOwn(Object.prototype, 'text')).toBe(false);
+      } finally {
+        clearObjectPrototypeState();
+      }
+    });
+
+    it('should not read Object.prototype for missing text part ids after finish-step', async () => {
+      clearObjectPrototypeState();
+      const protoKey: string = '__proto__';
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: testUsage,
+            },
+            { type: 'text-delta', id: protoKey, delta: 'polluted' },
+          ]),
+        }),
+        prompt: 'test-input',
+        onError: () => {},
+      });
+
+      try {
+        expect(
+          await convertAsyncIterableToArray(result.fullStream),
+        ).toContainEqual({
+          type: 'error',
+          error: `text part ${protoKey} not found`,
+        });
+
+        expect(Object.hasOwn(Object.prototype, 'providerMetadata')).toBe(false);
+        expect(Object.hasOwn(Object.prototype, 'text')).toBe(false);
+      } finally {
+        clearObjectPrototypeState();
+      }
+    });
+
+    it('should not read Object.prototype for missing reasoning part ids', async () => {
+      clearObjectPrototypeState();
+      const protoKey: string = '__proto__';
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'reasoning-delta', id: protoKey, delta: 'Thinking...' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        onError: () => {},
+      });
+
+      try {
+        expect(
+          await convertAsyncIterableToArray(result.fullStream),
+        ).toContainEqual({
+          type: 'error',
+          error: `reasoning part ${protoKey} not found`,
+        });
+
+        expect(Object.hasOwn(Object.prototype, 'providerMetadata')).toBe(false);
+        expect(Object.hasOwn(Object.prototype, 'text')).toBe(false);
+      } finally {
+        clearObjectPrototypeState();
+      }
     });
 
     it('should invoke onError callback when error is thrown', async () => {
