@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.198
+
+### Patch Changes
+
+- b02267c: Harden UI message stream processing against prototype pollution from chunk IDs.
+
 ## 5.0.197
 
 ### Patch Changes
