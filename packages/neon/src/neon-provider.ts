@@ -32,6 +32,47 @@ const neonErrorStructure: ProviderErrorStructure<NeonErrorData> = {
   errorToMessage: data => data.error.message,
 };
 
+/**
+ * Recursively remove the JSON Schema `$schema` marker.
+ *
+ * The AI SDK emits `$schema` in tool parameter schemas and structured-output
+ * schemas. Some Neon AI Gateway backends (notably Gemini, whose function
+ * declarations use an OpenAPI subset) reject unknown fields and fail the whole
+ * request. Other backends simply ignore the marker, so stripping it everywhere
+ * is safe and makes tool calling / structured outputs portable across models.
+ */
+function stripJsonSchemaMarker(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(stripJsonSchemaMarker);
+  }
+  if (value !== null && typeof value === 'object') {
+    const result: Record<string, unknown> = {};
+    for (const [key, entry] of Object.entries(value)) {
+      if (key === '$schema') {
+        continue;
+      }
+      result[key] = stripJsonSchemaMarker(entry);
+    }
+    return result;
+  }
+  return value;
+}
+
+function transformNeonRequestBody(
+  args: Record<string, any>,
+): Record<string, any> {
+  const transformed = { ...args };
+  if (transformed.tools != null) {
+    transformed.tools = stripJsonSchemaMarker(transformed.tools);
+  }
+  if (transformed.response_format != null) {
+    transformed.response_format = stripJsonSchemaMarker(
+      transformed.response_format,
+    );
+  }
+  return transformed;
+}
+
 export interface NeonProviderSettings {
   /**
    * Neon AI Gateway base URL — the branch-scoped host root, e.g.
@@ -124,6 +165,11 @@ export function createNeon(options: NeonProviderSettings = {}): NeonProvider {
       headers: getHeaders,
       fetch: options.fetch,
       errorStructure: neonErrorStructure,
+      transformRequestBody: transformNeonRequestBody,
+      // Use native structured outputs (`response_format: json_schema`) so
+      // `generateObject` works without requiring the prompt to mention "json"
+      // (the `json_object` fallback) and without a separate tool round-trip.
+      supportsStructuredOutputs: true,
       // The gateway returns token usage in streaming chunks natively, and
       // forwarding `stream_options` to provider-native backends (e.g. Gemini)
       // is rejected. So we intentionally do not opt into `include_usage`.

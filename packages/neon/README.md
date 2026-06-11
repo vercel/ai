@@ -65,6 +65,21 @@ The authoritative, always-current catalog is shown in the Neon Console under the
 
 Any other catalog id can be passed as a plain string.
 
+## Capabilities and limitations
+
+The gateway is a single OpenAI-compatible endpoint that proxies to multiple upstream providers. The following work across the catalog:
+
+- `generateText` / `streamText` (text, system prompts, multi-turn)
+- Tool calling (single and multi-step, generate and stream)
+- `generateObject` (structured output)
+- Image (vision) input
+
+Backend-specific notes:
+
+- **`streamObject`** works for OpenAI, Google, and Meta models; Databricks-hosted Anthropic (Claude) models reject structured output while streaming — use `generateObject` instead.
+- **Sampling parameters** are passed through, so they only work where the backend supports them (e.g. Anthropic rejects `temperature`+`topP` together and `frequencyPenalty`/`presencePenalty`/`seed`; OpenAI reasoning models require the default `temperature` and reject `stop`; `reasoningEffort` applies to OpenAI models). This matches how other AI SDK providers behave for unsupported parameters.
+- **Image generation (`generateImage`) and embeddings (`embed`/`embedMany`) are not offered** by the gateway and throw `NoSuchModelError`.
+
 ## Documentation
 
 For more information about the Neon AI Gateway, please visit:

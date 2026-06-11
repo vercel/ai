@@ -125,6 +125,63 @@ describe('NeonChatLanguageModel', () => {
     });
   });
 
+  describe('request transforms', () => {
+    it('strips the $schema marker from tool parameters (gateway backends like Gemini reject it)', async () => {
+      const fetch = createJsonFixtureFetchMock('neon-chat-completion');
+      const model = createProvider(fetch).chat('databricks-gemini-2-5-flash');
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'function',
+            name: 'weather',
+            description: 'Get the weather',
+            inputSchema: {
+              $schema: 'http://json-schema.org/draft-07/schema#',
+              type: 'object',
+              properties: { location: { type: 'string' } },
+              required: ['location'],
+            },
+          },
+        ],
+      });
+
+      const body = JSON.parse(fetch.mock.calls[0][1].body as string);
+      expect(body.tools[0].function.parameters.$schema).toBeUndefined();
+      expect(body.tools[0].function.parameters.type).toBe('object');
+      expect(body.tools[0].function.parameters.properties.location.type).toBe(
+        'string',
+      );
+    });
+
+    it('uses json_schema structured outputs and strips $schema from the schema', async () => {
+      const fetch = createJsonFixtureFetchMock('neon-chat-completion');
+      const model = createProvider(fetch).chat('databricks-gpt-5-mini');
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          name: 'person',
+          schema: {
+            $schema: 'http://json-schema.org/draft-07/schema#',
+            type: 'object',
+            properties: { name: { type: 'string' } },
+            required: ['name'],
+            additionalProperties: false,
+          },
+        },
+      });
+
+      const body = JSON.parse(fetch.mock.calls[0][1].body as string);
+      expect(body.response_format.type).toBe('json_schema');
+      expect(body.response_format.json_schema.name).toBe('person');
+      expect(body.response_format.json_schema.schema.$schema).toBeUndefined();
+      expect(body.response_format.json_schema.schema.type).toBe('object');
+    });
+  });
+
   describe('doStream', () => {
     it('streams unified chat completion chunks as text deltas', async () => {
       const fetch = createStreamFixtureFetchMock('neon-chat-completion');

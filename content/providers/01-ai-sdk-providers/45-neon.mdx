@@ -123,3 +123,36 @@ The authoritative, always-current catalog is shown in the Neon Console under the
   The model catalog is managed by Neon and may change over time. Any catalog id
   can be passed as a plain string, so models not listed above still work.
 </Note>
+
+## Capabilities and Limitations
+
+The Neon AI Gateway exposes a single OpenAI-compatible endpoint that proxies to multiple upstream providers (Anthropic, OpenAI, Google, Meta, and more). The following AI SDK features are supported through `@ai-sdk/neon` across the catalog:
+
+- `generateText` / `streamText` (text generation, system prompts, multi-turn) — all models
+- Tool calling (`generateText` / `streamText`, multi-step) — all models
+- `generateObject` (structured output) — all models
+- Image (vision) input — all vision-capable models
+
+### Streaming structured output
+
+`streamObject` works for OpenAI, Google, and Meta models. Databricks-hosted Anthropic (Claude) models reject structured output while streaming (`Structured output is not currently supported with streaming`); use `generateObject` for those models instead.
+
+### Sampling parameters
+
+Because the gateway passes requests through to heterogeneous backends, some standard sampling parameters are only honored by the backends that support them. Setting an unsupported parameter surfaces as a provider error from that backend — the same way it would when calling that model through any OpenAI-compatible interface:
+
+| Parameter                          | Constraint                                                                 |
+| ---------------------------------- | ------------------------------------------------------------------------- |
+| `temperature` + `topP` together    | Anthropic models accept only one of the two                               |
+| `temperature` ≠ default            | OpenAI reasoning models (e.g. `gpt-5*`) require the default value          |
+| `frequencyPenalty` / `presencePenalty` | Not supported by Anthropic, OpenAI reasoning, or Llama models          |
+| `seed`                             | Not supported by Anthropic or Llama models                                |
+| `stopSequences`                    | Not supported by OpenAI reasoning models                                  |
+| `reasoningEffort` (provider option)| Applies to OpenAI models; Anthropic and Gemini reject it                  |
+
+### Not offered by the gateway
+
+The gateway serves chat/text models only. The following throw `NoSuchModelError`:
+
+- Image generation (`generateImage`)
+- Embeddings (`embed` / `embedMany`)
