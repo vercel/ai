@@ -61,6 +61,7 @@ import {
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
 import { consumeStream } from '../util/consume-stream';
+import { createIdMap } from '../util/create-id-map';
 import { createStitchableStream } from '../util/create-stitchable-stream';
 import type { DownloadFunction } from '../util/download/download-function';
 import { now as originalNow } from '../util/now';
@@ -672,7 +673,7 @@ class DefaultStreamTextResult<
         text: string;
         providerMetadata: ProviderMetadata | undefined;
       }
-    > = {};
+    > = createIdMap();
 
     let activeReasoningContent: Record<
       string,
@@ -681,7 +682,7 @@ class DefaultStreamTextResult<
         text: string;
         providerMetadata: ProviderMetadata | undefined;
       }
-    > = {};
+    > = createIdMap();
 
     const eventProcessor = new TransformStream<
       EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>,
@@ -828,6 +829,14 @@ class DefaultStreamTextResult<
         }
 
         if (part.type === 'start-step') {
+<<<<<<< HEAD
+=======
+          // reset the recorded data when a new step starts:
+          recordedContent = [];
+          activeReasoningContent = createIdMap();
+          activeTextContent = createIdMap();
+
+>>>>>>> 5291f7eec4 (Backport: fix: Harden stream text processing and middleware against prototype pollution from stream part IDs (#16018))
           recordedRequest = part.request;
           recordedWarnings = part.warnings;
         }
