@@ -3036,12 +3036,56 @@ describe('doStream', () => {
     `);
   });
 
-  it('should handle error stream parts', async () => {
+  it('should throw an api error when the first stream chunk is an error', async () => {
     server.urls['https://api.openai.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
       chunks: [
         `data: {"error":{"message": "The server had an error processing your request. Sorry about that! You can retry your request, or contact us through our ` +
           `help center at help.openai.com if you keep seeing this error.","type":"server_error","param":null,"code":null}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    await expect(
+      model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      }),
+    ).rejects.toMatchObject({
+      message:
+        'The server had an error processing your request. Sorry about that! You can retry your request, or contact us through our help center at help.openai.com if you keep seeing this error.',
+      statusCode: 500,
+      isRetryable: true,
+    });
+  });
+
+  it('should preserve numeric status codes from early stream errors', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"error":{"message":"bad request","type":"provider_error","param":null,"code":400}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    await expect(
+      model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      }),
+    ).rejects.toMatchObject({
+      message: 'bad request',
+      statusCode: 400,
+      isRetryable: false,
+    });
+  });
+
+  it('should forward error stream parts after output has started', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-error-after-output","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":"Hello"},"finish_reason":null}]}\n\n`,
+        `data: {"error":{"message":"stream failed after output","type":"server_error","param":null,"code":null}}\n\n`,
         'data: [DONE]\n\n',
       ],
     };
@@ -3058,13 +3102,32 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
+          "id": "chatcmpl-error-after-output",
+          "modelId": "gpt-3.5-turbo-0613",
+          "timestamp": 2023-12-15T16:17:00.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Hello",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
           "error": {
             "code": null,
-            "message": "The server had an error processing your request. Sorry about that! You can retry your request, or contact us through our help center at help.openai.com if you keep seeing this error.",
+            "message": "stream failed after output",
             "param": null,
             "type": "server_error",
           },
           "type": "error",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
         },
         {
           "finishReason": {

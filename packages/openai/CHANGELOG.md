@@ -1,5 +1,18 @@
 # @ai-sdk/openai
 
+## 4.0.0-canary.72
+
+### Patch Changes
+
+- Updated dependencies [bae5e2b]
+  - @ai-sdk/provider-utils@5.0.0-canary.47
+
+## 4.0.0-canary.71
+
+### Patch Changes
+
+- ae7f932: fix(openai): throw retryable errors for OpenAI stream failures before output starts
+
 ## 4.0.0-canary.70
 
 ### Patch Changes

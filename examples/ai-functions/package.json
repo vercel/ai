@@ -2,6 +2,7 @@
   "name": "@example/ai-functions",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
   "dependencies": {
     "@ai-sdk/alibaba": "workspace:*",
     "@ai-sdk/amazon-bedrock": "workspace:*",
@@ -26,6 +27,10 @@
     "@ai-sdk/google": "workspace:*",
     "@ai-sdk/google-vertex": "workspace:*",
     "@ai-sdk/groq": "workspace:*",
+    "@ai-sdk/harness": "workspace:*",
+    "@ai-sdk/harness-claude-code": "workspace:*",
+    "@ai-sdk/harness-codex": "workspace:*",
+    "@ai-sdk/harness-pi": "workspace:*",
     "@ai-sdk/huggingface": "workspace:*",
     "@ai-sdk/hume": "workspace:*",
     "@ai-sdk/klingai": "workspace:*",

@@ -79,6 +79,15 @@
       "path": "packages/groq"
     },
     {
+      "path": "packages/harness-claude-code"
+    },
+    {
+      "path": "packages/harness-codex"
+    },
+    {
+      "path": "packages/harness-pi"
+    },
+    {
       "path": "packages/harness"
     },
     {
