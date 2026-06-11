@@ -1,5 +1,13 @@
 # ai
 
+## 6.0.201
+
+### Patch Changes
+
+- 0c8c0ed: fix(ai): return schema-transformed elements in array output mode
+
+  Previously final array output validation checked each element against the schema but returned the raw model output. Array output now returns the validated values so Zod transforms, coercions, defaults, and pipes are applied consistently with object output.
+
 ## 6.0.200
 
 ### Patch Changes
