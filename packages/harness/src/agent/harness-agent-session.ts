@@ -286,8 +286,8 @@ export class HarnessAgentSession {
   /**
    * Gracefully freeze the active turn at the slice boundary and return the
    * continuation payload, **leaving the sandbox/runtime running** so the next
-   * process can continue. Resolves once the in-flight `stream()`/`continueTurn()`
-   * has cleanly wound down at a precise cursor (see
+   * process can continue. Resolves once the in-flight `stream()` /
+   * `continueStream()` has cleanly wound down at a precise cursor (see
    * `doSuspendTurn`).
    *
    * After this call the session is marked stopped. This in-process handle no

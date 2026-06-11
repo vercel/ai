@@ -94,7 +94,8 @@ export interface HarnessAgentCallExtensions {
  *    `session.stop()`. The framework validates `resumeFrom` against the
  *    harness's `lifecycleStateSchema` before handing it to the adapter.
  *    `createSession({ sessionId, continueFrom })` resumes from state returned
- *    by `session.suspendTurn()` before `continueTurn()`.
+ *    by `session.suspendTurn()` before `continueStream()` /
+ *    `continueGenerate()`.
  *  - **Host tool execution.** User tools passed in `settings.tools` are
  *    executed on the host whenever the underlying runtime calls them;
  *    the result is fed back to the harness via `submitToolResult`.
@@ -374,6 +375,37 @@ export class HarnessAgent<
   }
 
   /**
+   * Continue the in-flight turn **without a new prompt**, draining it like
+   * {@link generate}. Used after `createSession({ continueFrom })` to finish
+   * consuming a turn that crossed a process boundary.
+   */
+  async continueGenerate(options: {
+    session: HarnessAgentSession;
+    toolApprovalContinuations?: readonly HarnessAgentToolApprovalContinuation[];
+    abortSignal?: AbortSignal;
+  }): Promise<
+    GenerateTextResult<
+      HarnessAllTools<THarness, TUserTools>,
+      RUNTIME_CONTEXT,
+      never
+    >
+  > {
+    const runtimeContext = {} as RUNTIME_CONTEXT;
+
+    const { result, done } = this._startTurn({
+      session: options.session,
+      turnInput: {
+        mode: 'continue',
+        toolApprovalContinuations: options.toolApprovalContinuations ?? [],
+      },
+      runtimeContext,
+      abortSignal: options.abortSignal,
+    });
+    await done;
+    return this._toGenerateResult(result);
+  }
+
+  /**
    * Continue the in-flight turn **without a new prompt**, streaming its events
    * like {@link stream}. Used to keep consuming a turn that is still running
    * (or finished) in the runtime after a process boundary — the workflow slice
@@ -381,7 +413,7 @@ export class HarnessAgent<
    * `doContinueTurn`; what it can guarantee (lossless attach vs. lossy rerun)
    * follows from how the adapter resumed the session.
    */
-  async continueTurn(options: {
+  async continueStream(options: {
     session: HarnessAgentSession;
     toolApprovalContinuations?: readonly HarnessAgentToolApprovalContinuation[];
     abortSignal?: AbortSignal;
@@ -394,17 +426,14 @@ export class HarnessAgent<
   > {
     const runtimeContext = {} as RUNTIME_CONTEXT;
 
-    const { result } = options.session.continueTurn<
-      HarnessAllTools<THarness, TUserTools>,
-      RUNTIME_CONTEXT
-    >({
-      instructions: this.settings.instructions,
-      tools: this.tools,
-      toolSpecs: this._toToolSpecs(),
+    const { result } = this._startTurn({
+      session: options.session,
+      turnInput: {
+        mode: 'continue',
+        toolApprovalContinuations: options.toolApprovalContinuations ?? [],
+      },
       runtimeContext,
       abortSignal: options.abortSignal,
-      telemetry: this.settings.telemetry,
-      toolApprovalContinuations: options.toolApprovalContinuations,
     });
     return result;
   }

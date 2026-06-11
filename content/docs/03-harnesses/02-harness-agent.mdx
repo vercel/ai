@@ -169,6 +169,31 @@ const session = await agent.createSession(
 `HarnessAgent` validates that the resume state was produced by the same harness
 adapter before handing it to the runtime.
 
+## Continue a Suspended Turn
+
+For advanced workflows that must hand off an active turn across a process
+boundary, suspend the turn and persist the continuation state:
+
+```ts
+const continuationState = await session.suspendTurn();
+await persistContinuationState({ chatId, continuationState });
+```
+
+Resume the session with `continueFrom`, then continue the turn without sending a
+new prompt:
+
+```ts
+const session = await agent.createSession({
+  sessionId: chatId,
+  continueFrom: continuationState,
+});
+
+const result = await agent.continueStream({ session });
+```
+
+Use `continueStream()` for incremental output, or `continueGenerate()` to drain
+the continued turn and return a `GenerateTextResult`.
+
 ## Prepare the Sandbox
 
 Use `onSandboxSession` to prepare files, install lightweight utilities, or write

@@ -1,5 +1,6 @@
 import type {
   HarnessV1,
+  HarnessV1ContinueTurnOptions,
   HarnessV1ContinueTurnState,
   HarnessV1NetworkSandboxSession,
   HarnessV1PromptControl,
@@ -30,11 +31,18 @@ function mockHarness(options: {
       output: unknown;
     }) => Promise<void>,
   ) => HarnessV1StreamPart[];
+  continueScript?: (
+    submitToolResult: (input: {
+      toolCallId: string;
+      output: unknown;
+    }) => Promise<void>,
+  ) => HarnessV1StreamPart[];
 }): {
   harness: HarnessV1;
   prompts: HarnessV1PromptTurnOptions['prompt'][];
   toolResults: { toolCallId: string; output: unknown }[];
   doStart: ReturnType<typeof vi.fn>;
+  doContinueTurn: ReturnType<typeof vi.fn>;
   doStop: ReturnType<typeof vi.fn>;
   doDestroy: ReturnType<typeof vi.fn>;
   doCompact: ReturnType<typeof vi.fn>;
@@ -56,6 +64,22 @@ function mockHarness(options: {
   const doStop = vi.fn(async () => resumeState);
   const doDestroy = vi.fn(async () => {});
   const doCompact = vi.fn(async (_customInstructions?: string) => {});
+  const doContinueTurn = vi.fn(async (opts: HarnessV1ContinueTurnOptions) => {
+    const control: HarnessV1PromptControl = {
+      submitToolResult: async input => {
+        toolResults.push(input);
+      },
+      done: Promise.resolve(),
+    };
+    const events =
+      options.continueScript?.(async input => {
+        await control.submitToolResult(input);
+      }) ?? [];
+    queueMicrotask(() => {
+      for (const event of events) opts.emit(event);
+    });
+    return control;
+  });
   let session: HarnessV1Session;
   const doStart = vi.fn(async () => session);
 
@@ -83,10 +107,7 @@ function mockHarness(options: {
     doDetach: async () => resumeState,
     doStop,
     doDestroy,
-    doContinueTurn: async () => ({
-      submitToolResult: async () => {},
-      done: Promise.resolve(),
-    }),
+    doContinueTurn,
     doSuspendTurn: async () => continueState,
   };
 
@@ -100,6 +121,7 @@ function mockHarness(options: {
     prompts,
     toolResults,
     doStart,
+    doContinueTurn,
     doStop,
     doDestroy,
     doCompact,
@@ -349,6 +371,120 @@ describe('HarnessAgent', () => {
     expect(types).toContain('finish-step');
     expect(types).toContain('finish');
     expect(await result.text).toBe('Hi');
+
+    await session.destroy();
+  });
+
+  test('continueStream() continues an in-flight turn and streams translated parts', async () => {
+    const { harness, doContinueTurn, prompts } = mockHarness({
+      script: () => [],
+      continueScript: () => [
+        { type: 'stream-start' },
+        { type: 'text-delta', id: 't1', delta: 'Still running' },
+        {
+          type: 'finish-step',
+          finishReason: { unified: 'stop', raw: undefined },
+          usage: {
+            inputTokens: {
+              total: undefined,
+              noCache: undefined,
+              cacheRead: undefined,
+              cacheWrite: undefined,
+            },
+            outputTokens: {
+              total: undefined,
+              text: undefined,
+              reasoning: undefined,
+            },
+          },
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: undefined },
+          totalUsage: {
+            inputTokens: {
+              total: undefined,
+              noCache: undefined,
+              cacheRead: undefined,
+              cacheWrite: undefined,
+            },
+            outputTokens: {
+              total: undefined,
+              text: undefined,
+              reasoning: undefined,
+            },
+          },
+        },
+      ],
+    });
+
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+    const session = await agent.createSession();
+    const result = await agent.continueStream({ session });
+
+    const types: string[] = [];
+    for await (const part of result.fullStream) {
+      types.push(part.type);
+    }
+
+    expect(types).toContain('text-delta');
+    expect(types).toContain('finish-step');
+    expect(types).toContain('finish');
+    expect(await result.text).toBe('Still running');
+    expect(prompts).toEqual([]);
+    expect(doContinueTurn).toHaveBeenCalledTimes(1);
+
+    await session.destroy();
+  });
+
+  test('continueGenerate() continues an in-flight turn and returns generated text', async () => {
+    const { harness, doContinueTurn, prompts } = mockHarness({
+      script: () => [],
+      continueScript: () => [
+        { type: 'stream-start' },
+        { type: 'text-start', id: 't1' },
+        { type: 'text-delta', id: 't1', delta: 'Completed' },
+        { type: 'text-end', id: 't1' },
+        {
+          type: 'finish-step',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          usage: {
+            inputTokens: {
+              total: 3,
+              noCache: 3,
+              cacheRead: undefined,
+              cacheWrite: undefined,
+            },
+            outputTokens: { total: 1, text: 1, reasoning: undefined },
+          },
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          totalUsage: {
+            inputTokens: {
+              total: 3,
+              noCache: 3,
+              cacheRead: undefined,
+              cacheWrite: undefined,
+            },
+            outputTokens: { total: 1, text: 1, reasoning: undefined },
+          },
+        },
+      ],
+    });
+
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+    const session = await agent.createSession();
+    const result = await agent.continueGenerate({ session });
+
+    expect(result.text).toBe('Completed');
+    expect(result.finishReason).toBe('stop');
+    expect(result.rawFinishReason).toBe('end_turn');
+    expect(result.usage.inputTokens).toBe(3);
+    expect(result.usage.outputTokens).toBe(1);
+    expect(prompts).toEqual([]);
+    expect(doContinueTurn).toHaveBeenCalledTimes(1);
 
     await session.destroy();
   });
