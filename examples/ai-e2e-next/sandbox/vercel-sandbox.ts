@@ -28,11 +28,7 @@ const rootDirectory = '/vercel/sandbox';
 // Without OIDC, @vercel/sandbox reports a missing `x-vercel-oidc-token`
 // header when creating or retrieving sandboxes.
 export class VercelSandboxSession implements SandboxSession {
-  constructor(
-    public readonly sandbox: Awaited<
-      ReturnType<typeof VercelSandboxSDK.create>
-    >,
-  ) {}
+  constructor(public readonly sandbox: VercelSandboxSDK) {}
 
   private resolvePath(path: string): string {
     return isAbsolute(path) ? path : join(rootDirectory, path);
@@ -194,7 +190,7 @@ export class VercelSandboxSession implements SandboxSession {
   }
 
   get description() {
-    return `Vercel Sandbox: ${this.sandbox.sandboxId}\nRoot directory: ${rootDirectory}`;
+    return `Vercel Sandbox: ${this.sandbox.name}\nRoot directory: ${rootDirectory}`;
   }
 }
 
