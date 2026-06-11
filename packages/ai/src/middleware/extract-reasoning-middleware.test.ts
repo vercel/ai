@@ -23,6 +23,46 @@ const testUsage: LanguageModelV3Usage = {
   },
 };
 
+<<<<<<< HEAD
+=======
+type ObjectPrototypeState = {
+  afterSwitch?: unknown;
+  buffer?: unknown;
+  isFirstText?: unknown;
+  providerMetadata?: unknown;
+  text?: unknown;
+};
+
+function clearObjectPrototypeState() {
+  const objectPrototype = Object.prototype as ObjectPrototypeState;
+  delete objectPrototype.afterSwitch;
+  delete objectPrototype.buffer;
+  delete objectPrototype.isFirstText;
+  delete objectPrototype.providerMetadata;
+  delete objectPrototype.text;
+}
+
+function normalizeStreamPerformance(parts: Array<TextStreamPart<any>>) {
+  return parts.map(part =>
+    part.type === 'finish-step'
+      ? {
+          ...part,
+          performance: {
+            effectiveOutputTokensPerSecond: 0,
+            outputTokensPerSecond: 0,
+            inputTokensPerSecond: 0,
+            effectiveTotalTokensPerSecond: 0,
+            responseTimeMs: 0,
+            stepTimeMs: 0,
+            timeToFirstOutputMs: 0,
+            toolExecutionMs: {},
+          },
+        }
+      : part,
+  );
+}
+
+>>>>>>> 329583183f (fix: Harden stream text processing and middleware against prototype pollution from stream part IDs (#16006))
 describe('extractReasoningMiddleware', () => {
   describe('wrapGenerate', () => {
     it('should extract reasoning from <think> tags', async () => {
@@ -248,6 +288,53 @@ describe('extractReasoningMiddleware', () => {
   });
 
   describe('wrapStream', () => {
+    it('should not read Object.prototype for missing text part ids', async () => {
+      clearObjectPrototypeState();
+      const protoKey: string = '__proto__';
+
+      const mockModel = new MockLanguageModelV4({
+        async doStream() {
+          return {
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              { type: 'text-delta', id: protoKey, delta: 'Hello' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          };
+        },
+      });
+
+      const result = streamText({
+        model: wrapLanguageModel({
+          model: mockModel,
+          middleware: extractReasoningMiddleware({ tagName: 'think' }),
+        }),
+        prompt: 'Hello, how can I help?',
+        onError: () => {},
+      });
+
+      try {
+        await convertAsyncIterableToArray(result.stream);
+
+        expect(Object.hasOwn(Object.prototype, 'afterSwitch')).toBe(false);
+        expect(Object.hasOwn(Object.prototype, 'buffer')).toBe(false);
+        expect(Object.hasOwn(Object.prototype, 'isFirstText')).toBe(false);
+        expect(Object.hasOwn(Object.prototype, 'providerMetadata')).toBe(false);
+        expect(Object.hasOwn(Object.prototype, 'text')).toBe(false);
+      } finally {
+        clearObjectPrototypeState();
+      }
+    });
+
     it('should extract reasoning from split <think> tags', async () => {
       const mockModel = new MockLanguageModelV3({
         async doStream() {
