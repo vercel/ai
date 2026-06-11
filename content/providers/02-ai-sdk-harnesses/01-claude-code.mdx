@@ -133,7 +133,8 @@ const harness = createClaudeCode({
 
 ## Sandbox
 
-Claude Code requires a network sandbox with at least one exposed port:
+Claude Code requires a network sandbox with at least one exposed port,
+e.g. `@ai-sdk/sandbox-vercel`:
 
 ```ts
 const sandbox = createVercelSandbox({
@@ -141,8 +142,6 @@ const sandbox = createVercelSandbox({
   ports: [4000],
 });
 ```
-
-`@ai-sdk/sandbox-vercel` is the supported provider today.
 
 ## Built-in Tools
 

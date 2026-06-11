@@ -42,9 +42,9 @@ Install the core harness package, a harness adapter, and a sandbox provider:
   </Tabs>
 </div>
 
-`@ai-sdk/sandbox-vercel` is the supported sandbox provider for bridge-backed
-harnesses such as Claude Code and Codex. Pi can also run with
-`@ai-sdk/sandbox-just-bash` because it does not need a sandbox-exposed port.
+Bridge-backed harnesses such as Claude Code and Codex require using real network sandbox
+like  `@ai-sdk/sandbox-vercel`. Host-runtime harnesses such as Pi can also run with
+`@ai-sdk/sandbox-just-bash` because they do not need a sandbox-exposed port.
 
 ## Create an Agent
 

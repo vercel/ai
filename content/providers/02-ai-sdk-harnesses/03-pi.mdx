@@ -120,15 +120,14 @@ such as `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `ANTHROPIC_API_KEY`, or
 ## Sandbox
 
 Pi needs a `HarnessV1SandboxProvider`, but it does not require exposed ports.
-You can use `@ai-sdk/sandbox-vercel`:
+You can use a network sandbox adapter like `@ai-sdk/sandbox-vercel`, or a
+local emulation like `@ai-sdk/sandbox-just-bash`:
 
 ```ts
 const sandbox = createVercelSandbox({
   runtime: 'node24',
 });
 ```
-
-For local non-networked flows, Pi can also use `@ai-sdk/sandbox-just-bash`.
 
 ## Built-in Tools
 
