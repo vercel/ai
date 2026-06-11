@@ -73,7 +73,9 @@ export class BedrockEmbeddingModel implements EmbeddingModelV3 {
     // adapt here based on the modelId.
     const isNovaModel =
       this.modelId.startsWith('amazon.nova-') && this.modelId.includes('embed');
-    const isCohereModel = this.modelId.startsWith('cohere.embed-');
+    // Use `includes` so cross-region inference profile ids (e.g.
+    // `us.cohere.embed-v4:0`, `global.cohere.embed-v4:0`) are detected too.
+    const isCohereModel = this.modelId.includes('cohere.embed-');
 
     const args = isNovaModel
       ? {
