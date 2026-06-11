@@ -5,7 +5,7 @@
 ## Setup
 
 ```bash
-npm i @ai-sdk/harness-pi @ai-sdk/harness @ai-sdk/sandbox-vercel @earendil-works/pi-coding-agent
+npm i @ai-sdk/harness-pi @ai-sdk/harness @ai-sdk/sandbox-vercel
 ```
 
 ## Usage

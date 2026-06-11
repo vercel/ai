@@ -37,11 +37,9 @@
   "dependencies": {
     "@ai-sdk/harness": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
+    "@earendil-works/pi-coding-agent": "^0.77.0",
     "typebox": "^1.1.38",
     "zod": "3.25.76"
-  },
-  "peerDependencies": {
-    "@earendil-works/pi-coding-agent": "^0.77.0"
   },
   "devDependencies": {
     "@types/node": "22.19.19",

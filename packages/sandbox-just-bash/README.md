@@ -34,7 +34,7 @@ console.log(stdout); // "hi"
 
 `networkSandboxSession.restricted()` is typed as `Experimental_SandboxSession` and is the surface to hand to user tools. The network sandbox session's `getPortUrl` throws (just-bash has no port story) and `setNetworkPolicy` is omitted (no local enforcement primitive).
 
-To wrap an already-created `just-bash` `Sandbox` (e.g. with a custom `fs`), pass it via `sandbox`:
+To wrap an already-created `just-bash` `Sandbox` (e.g. with a custom `fs`), pass it via `sandbox`. Install `just-bash` directly if your application imports `Sandbox`, `OverlayFs`, or other `just-bash` exports:
 
 ```ts
 import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
