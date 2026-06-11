@@ -1,0 +1,200 @@
+---
+title: Regolo.AI
+description: Use Regolo.AI with the AI SDK.
+---
+
+# Regolo.AI Provider
+
+[Regolo.AI](https://regolo.ai/) is a European LLM provider that offers access to open-source models through an OpenAI-compatible API.
+
+It provides zero data-retention and runs on 100% green energy infrastructure. The platform supports various models including Llama, Qwen, and other open-weight models.
+
+For a complete list of available models, visit the [Regolo Catalog](https://regolo.ai/models/). For detailed API documentation, see the [Regolo Docs](https://docs.regolo.ai/).
+
+For examples of using Regolo.AI with the OpenAI Agents SDK, see the blog post [Use OpenAI Agents SDK with LLaMA 3.3 and Regolo](https://regolo.ai/use-openais-agents-sdk-with-an-open-model/).
+
+## Setup
+
+The Regolo.AI provider is available via the `@ai-sdk/openai-compatible` module as it is compatible with the OpenAI API.
+
+You can install it with
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/openai-compatible" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/openai-compatible" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/openai-compatible" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @ai-sdk/openai-compatible" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+To use Regolo.AI, you can create a custom provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const regolo = createOpenAICompatible({
+  name: 'regolo',
+  baseURL: 'https://api.regolo.ai/v1',
+  apiKey: process.env.REGOLO_API_KEY,
+});
+```
+
+<Note>
+  You need to obtain an API key from [dashboard.regolo.ai](https://dashboard.regolo.ai).
+  Navigate to the Virtual Keys section to create a new key.
+</Note>
+
+## Language Models
+
+You can interact with Regolo.AI models using a provider instance.
+The first argument is the model id, e.g. `Llama-3.3-70B-Instruct`.
+
+```ts
+const model = regolo('Llama-3.3-70B-Instruct');
+```
+
+###### You can find the full list of available models on the [Regolo Catalog](https://docs.regolo.ai/catalog/).
+
+### Example
+
+You can use Regolo.AI language models to generate text with the `generateText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const regolo = createOpenAICompatible({
+  name: 'regolo',
+  baseURL: 'https://api.regolo.ai/v1',
+  apiKey: process.env.REGOLO_API_KEY,
+});
+
+const { text } = await generateText({
+  model: regolo('Llama-3.3-70B-Instruct'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+Regolo.AI language models can also be used with `streamText`.
+
+### Reasoning Models
+
+Regolo.AI supports reasoning models (models with thinking/reasoning tokens) such as `gpt-oss-120b`.
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const regolo = createOpenAICompatible({
+  name: 'regolo',
+  baseURL: 'https://api.regolo.ai/v1',
+  apiKey: process.env.REGOLO_API_KEY,
+});
+
+const { text, reasoning } = await generateText({
+  model: regolo('gpt-oss-120b'),
+  prompt: 'Solve this step by step: What is 15 * 23?',
+});
+```
+
+## Embedding Models
+
+You can create models that call the Regolo.AI embeddings API using the `.embeddingModel()` factory method.
+
+```ts
+const model = regolo.embeddingModel('BAAI/bge-large-en-v1.5');
+```
+
+### Example - Embedding a Single Value
+
+```tsx
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { embed } from 'ai';
+
+const regolo = createOpenAICompatible({
+  name: 'regolo',
+  baseURL: 'https://api.regolo.ai/v1',
+  apiKey: process.env.REGOLO_API_KEY,
+});
+
+// 'embedding' is a single embedding object (number[])
+const { embedding } = await embed({
+  model: regolo.embeddingModel('BAAI/bge-large-en-v1.5'),
+  value: 'sunny day at the beach',
+});
+```
+
+### Example - Embedding Many Values
+
+When loading data, e.g. when preparing a data store for retrieval-augmented generation (RAG),
+it is often useful to embed many values at once (batch embedding).
+
+The AI SDK provides the [`embedMany`](/docs/reference/ai-sdk-core/embed-many) function for this purpose.
+Similar to `embed`, you can use it with embeddings models,
+e.g. `regolo.embeddingModel('BAAI/bge-large-en-v1.5')`.
+
+```tsx
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { embedMany } from 'ai';
+
+const regolo = createOpenAICompatible({
+  name: 'regolo',
+  baseURL: 'https://api.regolo.ai/v1',
+  apiKey: process.env.REGOLO_API_KEY,
+});
+
+// 'embeddings' is an array of embedding objects (number[][]).
+// It is sorted in the same order as the input values.
+const { embeddings } = await embedMany({
+  model: regolo.embeddingModel('BAAI/bge-large-en-v1.5'),
+  values: [
+    'sunny day at the beach',
+    'rainy afternoon in the city',
+    'snowy night in the mountains',
+  ],
+});
+```
+
+## Image Models
+
+You can create image models using the `.imageModel()` factory method:
+
+```ts
+const model = regolo.imageModel('model-id');
+```
+
+### Example - Image Generation
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateImage } from 'ai';
+
+const regolo = createOpenAICompatible({
+  name: 'regolo',
+  baseURL: 'https://api.regolo.ai/v1',
+  apiKey: process.env.REGOLO_API_KEY,
+});
+
+const { images } = await generateImage({
+  model: regolo.imageModel('flux'),
+  prompt: 'A futuristic cityscape at sunset',
+});
+```
+
+## Additional Features
+
+Regolo.AI supports additional features through the OpenAI-compatible API:
+
+- **Vision** - Image understanding with multi-modal inputs
+- **Function Calling** - Tool calling with structured outputs
+- **Streaming** - Real-time text streaming
+- **System Messages** - Support for system prompts
