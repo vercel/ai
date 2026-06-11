@@ -1,5 +1,61 @@
 # ai
 
+## 7.0.0-canary.170
+
+### Patch Changes
+
+- bae5e2b: fix(security): re-validate tool approvals from client message history before execution
+
+  The approval-replay path in `generateText`/`streamText` (and `WorkflowAgent.stream`) reconstructed approved tool calls from the client-supplied messages array and executed them without re-validating input against the tool's schema or re-applying the approval policy. A client could forge an assistant message with a pre-approved tool-call part and have the server execute a tool with attacker-chosen arguments.
+
+  The replay path now validates HMAC signature (when `experimental_toolApprovalSecret` is configured), re-validates tool-call input against the tool's input schema, and re-resolves the approval policy before execution.
+
+- 69d7128: fix(workflow): reuse the core tool-approval validation in WorkflowAgent
+
+  `WorkflowAgent.stream` previously reconstructed approved tool calls with a copy of the core collection logic and validated them inline. Because the logic was duplicated, it could drift from the hardened `generateText`/`streamText` implementation. WorkflowAgent now collects approvals via the shared `collectToolApprovals` and re-validates each one through the shared `validateApprovedToolApprovals` (input-schema re-validation, HMAC signature verification when configured, and approval-policy re-resolution) in addition to its existing `needsApproval` guard, so a client-forged approval cannot execute a tool with unvalidated input. The duplicated collector was removed; `collectToolApprovals` and `validateApprovedToolApprovals` are now exported from `ai/internal`.
+
+- Updated dependencies [bae5e2b]
+  - @ai-sdk/provider-utils@5.0.0-canary.47
+  - @ai-sdk/gateway@4.0.0-canary.103
+
+## 7.0.0-canary.169
+
+### Patch Changes
+
+- a5018ab: fix(ai): return schema-transformed elements in array output mode
+
+  Previously final array output validation checked each element against the schema but returned the raw model output. Array output now returns the validated values so Zod transforms, coercions, defaults, and pipes are applied consistently with object output.
+
+- 21d3d60: feat(harness): implement harness specification
+- 426dbbb: fix(ai): reject `streamText` result promises with `NoOutputGeneratedError` when the model stream ends without producing any output. Previously such streams resolved with an empty step. Incomplete streams with partial output still resolve with the partial result.
+- 7fd3360: Harden UI message stream processing against prototype pollution from chunk IDs.
+
+## 7.0.0-canary.168
+
+### Patch Changes
+
+- 1e4b350: Honor `tool.toModelOutput` in `WorkflowAgent`.
+
+  `WorkflowAgent` now routes successful local, provider-executed, and approved tool results through each tool's optional `toModelOutput` hook, matching `generateText`, `streamText`, and `ToolLoopAgent`. Previously the hook was ignored and results were always serialized as `text` or `json`.
+
+  Internally exports the shared tool-result model-output helpers from `ai/internal`, and uses the shared `getErrorMessage` behavior for workflow tool error results.
+
+- Updated dependencies [a3bb04a]
+  - @ai-sdk/gateway@4.0.0-canary.102
+
+## 7.0.0-canary.167
+
+### Patch Changes
+
+- 4757690: feat(ai): rename onObjectStepFinish to onObjectStepEnd
+- eeefc3f: fix(ai): enforce `timeout.stepMs` for the whole step in `streamText`
+
+  Previously `streamText`'s step timer was cleared synchronously right after the step's stream was registered, before the stream produced anything, so `stepMs` never aborted a step that stalled before emitting content. The step timer now survives until the step's stream finishes or aborts, matching `generateText`. `chunkMs`/`totalMs` and normal step-finish cleanup are unchanged.
+
+- b79b6a8: fix(ai): add approval guard for denied tool outputs
+- Updated dependencies [6b4d325]
+  - @ai-sdk/gateway@4.0.0-canary.101
+
 ## 7.0.0-canary.166
 
 ### Patch Changes

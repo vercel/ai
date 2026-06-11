@@ -1,5 +1,18 @@
 # @ai-sdk/anthropic
 
+## 4.0.0-canary.65
+
+### Patch Changes
+
+- Updated dependencies [bae5e2b]
+  - @ai-sdk/provider-utils@5.0.0-canary.47
+
+## 4.0.0-canary.64
+
+### Patch Changes
+
+- 6b4d325: feat(provider/anthropic): add support for `claude-fable-5` and the `fallbacks` API parameter
+
 ## 4.0.0-canary.63
 
 ### Patch Changes

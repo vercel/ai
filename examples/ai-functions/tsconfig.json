@@ -97,6 +97,18 @@
       "path": "../../packages/groq"
     },
     {
+      "path": "../../packages/harness"
+    },
+    {
+      "path": "../../packages/harness-claude-code"
+    },
+    {
+      "path": "../../packages/harness-codex"
+    },
+    {
+      "path": "../../packages/harness-pi"
+    },
+    {
       "path": "../../packages/huggingface"
     },
     {
@@ -152,6 +164,12 @@
     },
     {
       "path": "../../packages/revai"
+    },
+    {
+      "path": "../../packages/sandbox-just-bash"
+    },
+    {
+      "path": "../../packages/sandbox-vercel"
     },
     {
       "path": "../../packages/togetherai"

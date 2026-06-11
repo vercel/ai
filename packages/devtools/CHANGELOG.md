@@ -1,5 +1,11 @@
 # @ai-sdk/devtools
 
+## 1.0.0-canary.29
+
+### Patch Changes
+
+- 4757690: feat(ai): rename onObjectStepFinish to onObjectStepEnd
+
 ## 1.0.0-canary.28
 
 ### Patch Changes

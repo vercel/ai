@@ -432,7 +432,7 @@ export async function generateObject<
 
     await notify({
       event: stepFinishEvent,
-      callbacks: [resolvedOnStepEnd, telemetryDispatcher.onObjectStepFinish],
+      callbacks: [resolvedOnStepEnd, telemetryDispatcher.onObjectStepEnd],
     });
 
     const object = await parseAndValidateObjectResultWithRepair(

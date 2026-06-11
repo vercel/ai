@@ -1,5 +1,40 @@
 # @ai-sdk/vue
 
+## 4.0.0-canary.170
+
+### Patch Changes
+
+- Updated dependencies [bae5e2b]
+- Updated dependencies [69d7128]
+  - ai@7.0.0-canary.170
+  - @ai-sdk/provider-utils@5.0.0-canary.47
+
+## 4.0.0-canary.169
+
+### Patch Changes
+
+- Updated dependencies [a5018ab]
+- Updated dependencies [21d3d60]
+- Updated dependencies [426dbbb]
+- Updated dependencies [7fd3360]
+  - ai@7.0.0-canary.169
+
+## 4.0.0-canary.168
+
+### Patch Changes
+
+- Updated dependencies [1e4b350]
+  - ai@7.0.0-canary.168
+
+## 4.0.0-canary.167
+
+### Patch Changes
+
+- Updated dependencies [4757690]
+- Updated dependencies [eeefc3f]
+- Updated dependencies [b79b6a8]
+  - ai@7.0.0-canary.167
+
 ## 4.0.0-canary.166
 
 ### Patch Changes
