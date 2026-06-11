@@ -293,6 +293,57 @@ describe('MCPClient', () => {
     expect(tools).not.toHaveProperty('nonexistent-tool');
   });
 
+  it('should not return server tools named after Object.prototype properties unless explicitly allowed', async () => {
+    const mockTransport = new MockMCPTransport({
+      overrideTools: [
+        {
+          name: 'allowed-tool',
+          description: 'An explicitly allowed tool',
+          inputSchema: {
+            type: 'object',
+            properties: { foo: { type: 'string' } },
+          },
+        },
+        {
+          name: 'constructor',
+          description: 'Tool named after an inherited prototype property',
+          inputSchema: { type: 'object' },
+        },
+        {
+          name: 'toString',
+          description: 'Tool named after an inherited prototype property',
+          inputSchema: { type: 'object' },
+        },
+        {
+          name: '__proto__',
+          description: 'Tool named after an inherited prototype property',
+          inputSchema: { type: 'object' },
+        },
+      ],
+    });
+
+    client = await createMCPClient({
+      transport: mockTransport,
+    });
+
+    const tools = await client.tools({
+      schemas: {
+        'allowed-tool': {
+          inputSchema: z.object({ foo: z.string() }),
+        },
+      },
+    });
+
+    expect(Object.keys(tools)).toEqual(['allowed-tool']);
+    expect(Object.prototype.hasOwnProperty.call(tools, 'constructor')).toBe(
+      false,
+    );
+    expect(Object.prototype.hasOwnProperty.call(tools, 'toString')).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(tools, '__proto__')).toBe(
+      false,
+    );
+  });
+
   it('should error when calling tool with misconfigured parameters', async () => {
     createMockTransport.mockImplementation(
       () =>
