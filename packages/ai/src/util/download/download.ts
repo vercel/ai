@@ -1,8 +1,8 @@
-import { DownloadError } from './download-error';
 import {
+  DownloadError,
   readResponseWithSizeLimit,
   DEFAULT_MAX_DOWNLOAD_SIZE,
-  validateDownloadUrl,
+  fetchWithValidatedRedirects,
   withUserAgentSuffix,
   getRuntimeEnvironmentUserAgent,
 } from '@ai-sdk/provider-utils';
@@ -28,21 +28,18 @@ export const download = async ({
   abortSignal?: AbortSignal;
 }) => {
   const urlText = url.toString();
-  validateDownloadUrl(urlText);
   try {
-    const response = await fetch(urlText, {
-      headers: withUserAgentSuffix(
-        {},
-        `ai-sdk/${VERSION}`,
-        getRuntimeEnvironmentUserAgent(),
-      ),
-      signal: abortSignal,
-    });
+    const headers = withUserAgentSuffix(
+      {},
+      `ai-sdk/${VERSION}`,
+      getRuntimeEnvironmentUserAgent(),
+    );
 
-    // Validate final URL after redirects to prevent SSRF via open redirect
-    if (response.redirected) {
-      validateDownloadUrl(response.url);
-    }
+    const response = await fetchWithValidatedRedirects({
+      url: urlText,
+      headers,
+      abortSignal,
+    });
 
     if (!response.ok) {
       throw new DownloadError({
