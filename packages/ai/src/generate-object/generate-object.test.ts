@@ -887,7 +887,7 @@ describe('generateObject', () => {
     });
 
     it('should return transformed array elements', async () => {
-      const model = new MockLanguageModelV3({
+      const model = new MockLanguageModelV2({
         doGenerate: {
           ...dummyResponseValues,
           content: [
