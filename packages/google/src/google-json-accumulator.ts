@@ -276,6 +276,35 @@ function parsePath(rawPath: string): Array<string | number> {
   return segments;
 }
 
+const hasOwn = Object.prototype.hasOwnProperty;
+
+/**
+ * Checks only direct properties so path traversal never follows the prototype chain.
+ */
+function hasOwnProperty(
+  obj: Record<string | number, unknown>,
+  key: string | number,
+): boolean {
+  return hasOwn.call(obj, key);
+}
+
+/**
+ * Defines path values as own data properties so special keys like `__proto__`
+ * cannot invoke prototype setters while accumulating streamed arguments.
+ */
+function defineOwnProperty(
+  obj: Record<string | number, unknown>,
+  key: string | number,
+  value: unknown,
+): void {
+  Object.defineProperty(obj, key, {
+    value,
+    enumerable: true,
+    configurable: true,
+    writable: true,
+  });
+}
+
 /**
  * Traverses a nested object along the given path segments and returns the leaf value.
  *
@@ -289,7 +318,9 @@ function getNestedValue(
   let current: unknown = obj;
   for (const pathSegment of segments) {
     if (current == null || typeof current !== 'object') return undefined;
-    current = (current as Record<string | number, unknown>)[pathSegment];
+    const currentRecord = current as Record<string | number, unknown>;
+    if (!hasOwnProperty(currentRecord, pathSegment)) return undefined;
+    current = currentRecord[pathSegment];
   }
   return current;
 }
@@ -309,12 +340,16 @@ function setNestedValue(
   for (let i = 0; i < segments.length - 1; i++) {
     const pathSegment = segments[i];
     const nextSeg = segments[i + 1];
-    if (current[pathSegment] == null) {
-      current[pathSegment] = typeof nextSeg === 'number' ? [] : {};
+    if (!hasOwnProperty(current, pathSegment) || current[pathSegment] == null) {
+      defineOwnProperty(
+        current,
+        pathSegment,
+        typeof nextSeg === 'number' ? [] : {},
+      );
     }
     current = current[pathSegment] as Record<string | number, unknown>;
   }
-  current[segments[segments.length - 1]] = value;
+  defineOwnProperty(current, segments[segments.length - 1], value);
 }
 
 /**
