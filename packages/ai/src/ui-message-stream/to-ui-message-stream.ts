@@ -1,4 +1,4 @@
-import { getErrorMessage, type ToolSet } from '@ai-sdk/provider-utils';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 import type {
   TextStreamPart,
   UIMessageStreamOptions,
@@ -25,7 +25,7 @@ export function toUIMessageStream<
   sendSources = false,
   sendStart = true,
   sendFinish = true,
-  onError = getErrorMessage,
+  onError = () => 'An error occurred.', // prevent leaking server error details to the client by default
   messageMetadata,
   originalMessages,
   generateMessageId,

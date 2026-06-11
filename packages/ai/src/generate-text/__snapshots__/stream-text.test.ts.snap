@@ -221,7 +221,7 @@ exports[`streamText > result.pipeUIMessageStreamToResponse > should mask error m
   "data: {"type":"start-step"}
 
 ",
-  "data: {"type":"error","errorText":"error"}
+  "data: {"type":"error","errorText":"An error occurred."}
 
 ",
   "data: {"type":"finish-step"}
@@ -646,7 +646,7 @@ exports[`streamText > result.toUIMessageStream > should mask error messages by d
     "type": "start-step",
   },
   {
-    "errorText": "error",
+    "errorText": "An error occurred.",
     "type": "error",
   },
   {
@@ -735,7 +735,7 @@ exports[`streamText > result.toUIMessageStreamResponse > should mask error messa
   "data: {"type":"start-step"}
 
 ",
-  "data: {"type":"error","errorText":"error"}
+  "data: {"type":"error","errorText":"An error occurred."}
 
 ",
   "data: {"type":"finish-step"}
