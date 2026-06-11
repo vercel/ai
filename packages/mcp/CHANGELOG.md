@@ -1,5 +1,14 @@
 # @ai-sdk/mcp
 
+## 1.0.48
+
+### Patch Changes
+
+- 26d93a4: fix(mcp): add optional hook to validate authorization servers
+- 3c9ad04: fix(mcp): support official sdk protocol version negotiation
+- Updated dependencies [942f2f8]
+  - @ai-sdk/provider-utils@4.0.28
+
 ## 1.0.47
 
 ### Patch Changes

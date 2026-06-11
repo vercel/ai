@@ -1,5 +1,15 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.116
+
+### Patch Changes
+
+- f0b5c16: fix(provider/amazon-bedrock): detect Cohere embedding models behind cross-region inference profile ids
+- Updated dependencies [942f2f8]
+  - @ai-sdk/provider-utils@4.0.28
+  - @ai-sdk/anthropic@3.0.83
+  - @ai-sdk/openai@3.0.70
+
 ## 4.0.115
 
 ### Patch Changes

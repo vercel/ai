@@ -1,5 +1,13 @@
 # @ai-sdk/open-responses
 
+## 1.0.17
+
+### Patch Changes
+
+- 06dd28f: Harden streamed tool call argument handling against prototype pollution.
+- Updated dependencies [942f2f8]
+  - @ai-sdk/provider-utils@4.0.28
+
 ## 1.0.16
 
 ### Patch Changes
