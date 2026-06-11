@@ -10,6 +10,7 @@ import {
   delay,
   type FetchFunction,
   getFromApi,
+  isSameOrigin,
   lazySchema,
   parseProviderOptions,
   postJsonToApi,
@@ -279,10 +280,13 @@ export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV3 {
     for (const generatedSample of response.generateVideoResponse
       .generatedSamples) {
       if (generatedSample.video?.uri) {
-        // Append API key to URL for authentication during download
-        const urlWithAuth = apiKey
-          ? `${generatedSample.video.uri}${generatedSample.video.uri.includes('?') ? '&' : '?'}key=${apiKey}`
-          : generatedSample.video.uri;
+        // Append the API key to the download URL for authentication, but only
+        // when the response-supplied URI stays on the provider's own origin —
+        // otherwise the key would leak to whatever host the response names.
+        const urlWithAuth =
+          apiKey && isSameOrigin(generatedSample.video.uri, this.config.baseURL)
+            ? `${generatedSample.video.uri}${generatedSample.video.uri.includes('?') ? '&' : '?'}key=${apiKey}`
+            : generatedSample.video.uri;
 
         videos.push({
           type: 'url',
