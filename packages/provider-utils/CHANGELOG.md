@@ -1,5 +1,36 @@
 # @ai-sdk/provider-utils
 
+## 5.0.0-canary.47
+
+### Patch Changes
+
+- bae5e2b: fix(security): re-validate tool approvals from client message history before execution
+
+  The approval-replay path in `generateText`/`streamText` (and `WorkflowAgent.stream`) reconstructed approved tool calls from the client-supplied messages array and executed them without re-validating input against the tool's schema or re-applying the approval policy. A client could forge an assistant message with a pre-approved tool-call part and have the server execute a tool with attacker-chosen arguments.
+
+  The replay path now validates HMAC signature (when `experimental_toolApprovalSecret` is configured), re-validates tool-call input against the tool's input schema, and re-resolves the approval policy before execution.
+
+## 5.0.0-canary.46
+
+### Patch Changes
+
+- Updated dependencies [ce769dd]
+  - @ai-sdk/provider@4.0.0-canary.18
+
+## 5.0.0-canary.45
+
+### Patch Changes
+
+- ee798eb: chore(provider-utils): rename `Experimental_Sandbox` to `Experimental_SandboxSession`
+- daf6637: feat(provider-utils): add `env` option to `spawn` and `run` methods of `Experimental_SandboxSession`
+
+## 5.0.0-canary.44
+
+### Patch Changes
+
+- 6c93e36: feat(provider-utils): add `spawnCommand` method to `Experimental_Sandbox` to allow for detached command execution
+- f617ac2: feat(provider-utils): narrow `tool()` return type to `ExecutableTool<...>` when `execute` is provided
+
 ## 5.0.0-canary.43
 
 ### Patch Changes

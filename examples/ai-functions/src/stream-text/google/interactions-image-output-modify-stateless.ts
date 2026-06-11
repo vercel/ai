@@ -32,7 +32,7 @@ run(async () => {
     },
   });
 
-  for await (const part of turn1.fullStream) {
+  for await (const part of turn1.stream) {
     switch (part.type) {
       case 'text-delta': {
         process.stdout.write(part.text);
@@ -72,7 +72,7 @@ run(async () => {
     },
   });
 
-  for await (const part of turn2.fullStream) {
+  for await (const part of turn2.stream) {
     switch (part.type) {
       case 'text-delta': {
         process.stdout.write(part.text);

@@ -18,6 +18,8 @@ export type AnthropicModelId =
   | 'claude-sonnet-4-6'
   | 'claude-opus-4-6'
   | 'claude-opus-4-7'
+  | 'claude-opus-4-8'
+  | 'claude-fable-5'
   | (string & {});
 
 /**
@@ -25,6 +27,12 @@ export type AnthropicModelId =
  * These options apply to individual file parts (documents).
  */
 export const anthropicFilePartProviderOptions = z.object({
+  /**
+   * Upload this file into the code execution container instead of sending it as
+   * a normal document or image content block.
+   */
+  containerUpload: z.boolean().optional(),
+
   /**
    * Citation configuration for this document.
    * When enabled, this document will generate citations in the response.
@@ -229,6 +237,34 @@ export const anthropicLanguageModelOptions = z.object({
    * See https://platform.claude.com/docs/en/build-with-claude/data-residency
    */
   inferenceGeo: z.enum(['us', 'global']).optional(),
+
+  /**
+   * Server-side fallback chain.
+   *
+   * When the primary model's safety classifiers block a turn, the API
+   * automatically retries it on the next model in the chain, server-side. A
+   * `content-filter` finish reason means the entire chain refused.
+   *
+   * Each entry is merged into the request as a direct request to that entry's
+   * model, so it must be formatted accordingly: `model` is required, and an
+   * entry may additionally override `max_tokens`, `thinking`, `output_config`,
+   * and `speed` for that attempt only (`speed` additionally requires the speed
+   * beta). The value is passed through to the API as-is.
+   *
+   * The required `server-side-fallback-2026-06-01` beta is added automatically
+   * when this option is set.
+   */
+  fallbacks: z
+    .array(
+      z.object({
+        model: z.string(),
+        max_tokens: z.number().int().optional(),
+        thinking: z.record(z.string(), z.unknown()).optional(),
+        output_config: z.record(z.string(), z.unknown()).optional(),
+        speed: z.enum(['fast', 'standard']).optional(),
+      }),
+    )
+    .optional(),
 
   /**
    * A set of beta features to enable.

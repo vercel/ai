@@ -1,4 +1,8 @@
-import { streamText } from 'ai';
+import {
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+} from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 export async function POST(req: Request) {
@@ -10,5 +14,7 @@ export async function POST(req: Request) {
     prompt,
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }

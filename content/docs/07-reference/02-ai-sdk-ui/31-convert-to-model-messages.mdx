@@ -8,7 +8,12 @@ description: Convert useChat messages to ModelMessages for AI functions (API Ref
 The `convertToModelMessages` function is used to transform an array of UI messages from the `useChat` hook into an array of `ModelMessage` objects. These `ModelMessage` objects are compatible with AI core functions like `streamText`.
 
 ```ts filename="app/api/chat/route.ts"
-import { convertToModelMessages, streamText } from 'ai';
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+} from 'ai';
 __PROVIDER_IMPORT__;
 
 export async function POST(req: Request) {
@@ -19,7 +24,9 @@ export async function POST(req: Request) {
     messages: await convertToModelMessages(messages),
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 
@@ -110,7 +117,12 @@ The `convertToModelMessages` function supports converting custom data parts atta
 By default, data parts in user messages are filtered out during conversion. To include them, provide a `convertDataPart` callback that transforms data parts into text or file parts that the model can understand:
 
 ```ts filename="app/api/chat/route.ts"
-import { convertToModelMessages, streamText } from 'ai';
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+} from 'ai';
 
 type CustomUIMessage = UIMessage<
   never,
@@ -148,7 +160,9 @@ export async function POST(req: Request) {
     }),
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 

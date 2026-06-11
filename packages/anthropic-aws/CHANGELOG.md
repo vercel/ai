@@ -1,5 +1,54 @@
 # @ai-sdk/anthropic-aws
 
+## 1.0.0-canary.6
+
+### Patch Changes
+
+- Updated dependencies [bae5e2b]
+  - @ai-sdk/provider-utils@5.0.0-canary.47
+  - @ai-sdk/anthropic@4.0.0-canary.65
+
+## 1.0.0-canary.5
+
+### Patch Changes
+
+- Updated dependencies [6b4d325]
+  - @ai-sdk/anthropic@4.0.0-canary.64
+
+## 1.0.0-canary.4
+
+### Patch Changes
+
+- Updated dependencies [ce769dd]
+  - @ai-sdk/provider@4.0.0-canary.18
+  - @ai-sdk/anthropic@4.0.0-canary.63
+  - @ai-sdk/provider-utils@5.0.0-canary.46
+
+## 1.0.0-canary.3
+
+### Patch Changes
+
+- Updated dependencies [ee798eb]
+- Updated dependencies [daf6637]
+  - @ai-sdk/provider-utils@5.0.0-canary.45
+  - @ai-sdk/anthropic@4.0.0-canary.62
+
+## 1.0.0-canary.2
+
+### Patch Changes
+
+- Updated dependencies [e02f041]
+  - @ai-sdk/anthropic@4.0.0-canary.61
+
+## 1.0.0-canary.1
+
+### Patch Changes
+
+- Updated dependencies [6c93e36]
+- Updated dependencies [f617ac2]
+  - @ai-sdk/provider-utils@5.0.0-canary.44
+  - @ai-sdk/anthropic@4.0.0-canary.60
+
 ## 1.0.0-canary.0
 
 ### Major Changes

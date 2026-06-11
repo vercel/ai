@@ -322,7 +322,11 @@ class DefaultMCPClient implements MCPClient {
 
       this.serverCapabilities = result.capabilities;
       this._serverInfo = result.serverInfo;
-      this.transport.protocolVersion = result.protocolVersion;
+      if (this.transport.setProtocolVersion) {
+        this.transport.setProtocolVersion(result.protocolVersion);
+      } else {
+        this.transport.protocolVersion = result.protocolVersion;
+      }
       this._serverInstructions = result.instructions;
 
       // Complete initialization handshake:
@@ -805,6 +809,15 @@ class DefaultMCPClient implements MCPClient {
 
   private async onRequestMessage(request: JSONRPCRequest): Promise<void> {
     try {
+      if (request.method === 'ping') {
+        await this.transport.send({
+          jsonrpc: '2.0',
+          id: request.id,
+          result: {},
+        });
+        return;
+      }
+
       if (request.method !== 'elicitation/create') {
         await this.transport.send({
           jsonrpc: '2.0',

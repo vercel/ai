@@ -11,8 +11,10 @@ export interface LangGraphEventState {
   >;
   /** Accumulates message chunks for later reference */
   messageConcat: Record<string, AIMessageChunk>;
-  /** Maps tool call IDs to their message IDs (for chunks that don't include the ID) */
+  /** Tracks which tool call IDs have emitted tool-input-start */
   emittedToolCalls: Set<string>;
+  /** Tracks which tool call IDs have emitted complete tool inputs */
+  emittedToolInputs: Set<string>;
   /** Maps image IDs to their message IDs (for chunks that don't include the ID) */
   emittedImages: Set<string>;
   /** Maps reasoning block IDs to their message IDs (for chunks that don't include the ID) */
@@ -28,6 +30,20 @@ export interface LangGraphEventState {
   currentStep: number | null;
   /** Maps tool call key (name:argsJson) to tool call ID for HITL interrupt handling */
   emittedToolCallsByKey: Map<string, string>;
+  /** Tracks source IDs already emitted to avoid duplicates across messages/values events */
+  emittedSourceIds: Set<string>;
+}
+
+/**
+ * A LangChain citation projected to the fields the AI SDK source parts can carry.
+ */
+export interface NormalizedCitation {
+  url?: string;
+  title?: string;
+  source?: string;
+  citedText?: string;
+  startIndex?: number;
+  endIndex?: number;
 }
 
 /**

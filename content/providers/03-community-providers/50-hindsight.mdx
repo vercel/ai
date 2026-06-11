@@ -129,7 +129,13 @@ In multi-user applications, create tools inside your request handler so each req
 
 ```ts
 // app/api/chat/route.ts
-import { streamText, isStepCount, convertToModelMessages } from 'ai';
+import {
+  createUIMessageStreamResponse,
+  streamText,
+  isStepCount,
+  convertToModelMessages,
+  toUIMessageStream,
+} from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { HindsightClient } from '@vectorize-io/hindsight-client';
 import { createHindsightTools } from '@vectorize-io/hindsight-ai-sdk';
@@ -146,13 +152,17 @@ export async function POST(req: Request) {
     bankId: userId,
   });
 
-  return streamText({
+  const result = streamText({
     model: openai('gpt-4o'),
     tools,
     stopWhen: isStepCount(5),
     system: 'You are a helpful assistant with long-term memory.',
     messages: await convertToModelMessages(messages),
-  }).toUIMessageStreamResponse();
+  });
+
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 

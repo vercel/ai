@@ -1,5 +1,192 @@
 # ai
 
+## 7.0.0-canary.170
+
+### Patch Changes
+
+- bae5e2b: fix(security): re-validate tool approvals from client message history before execution
+
+  The approval-replay path in `generateText`/`streamText` (and `WorkflowAgent.stream`) reconstructed approved tool calls from the client-supplied messages array and executed them without re-validating input against the tool's schema or re-applying the approval policy. A client could forge an assistant message with a pre-approved tool-call part and have the server execute a tool with attacker-chosen arguments.
+
+  The replay path now validates HMAC signature (when `experimental_toolApprovalSecret` is configured), re-validates tool-call input against the tool's input schema, and re-resolves the approval policy before execution.
+
+- 69d7128: fix(workflow): reuse the core tool-approval validation in WorkflowAgent
+
+  `WorkflowAgent.stream` previously reconstructed approved tool calls with a copy of the core collection logic and validated them inline. Because the logic was duplicated, it could drift from the hardened `generateText`/`streamText` implementation. WorkflowAgent now collects approvals via the shared `collectToolApprovals` and re-validates each one through the shared `validateApprovedToolApprovals` (input-schema re-validation, HMAC signature verification when configured, and approval-policy re-resolution) in addition to its existing `needsApproval` guard, so a client-forged approval cannot execute a tool with unvalidated input. The duplicated collector was removed; `collectToolApprovals` and `validateApprovedToolApprovals` are now exported from `ai/internal`.
+
+- Updated dependencies [bae5e2b]
+  - @ai-sdk/provider-utils@5.0.0-canary.47
+  - @ai-sdk/gateway@4.0.0-canary.103
+
+## 7.0.0-canary.169
+
+### Patch Changes
+
+- a5018ab: fix(ai): return schema-transformed elements in array output mode
+
+  Previously final array output validation checked each element against the schema but returned the raw model output. Array output now returns the validated values so Zod transforms, coercions, defaults, and pipes are applied consistently with object output.
+
+- 21d3d60: feat(harness): implement harness specification
+- 426dbbb: fix(ai): reject `streamText` result promises with `NoOutputGeneratedError` when the model stream ends without producing any output. Previously such streams resolved with an empty step. Incomplete streams with partial output still resolve with the partial result.
+- 7fd3360: Harden UI message stream processing against prototype pollution from chunk IDs.
+
+## 7.0.0-canary.168
+
+### Patch Changes
+
+- 1e4b350: Honor `tool.toModelOutput` in `WorkflowAgent`.
+
+  `WorkflowAgent` now routes successful local, provider-executed, and approved tool results through each tool's optional `toModelOutput` hook, matching `generateText`, `streamText`, and `ToolLoopAgent`. Previously the hook was ignored and results were always serialized as `text` or `json`.
+
+  Internally exports the shared tool-result model-output helpers from `ai/internal`, and uses the shared `getErrorMessage` behavior for workflow tool error results.
+
+- Updated dependencies [a3bb04a]
+  - @ai-sdk/gateway@4.0.0-canary.102
+
+## 7.0.0-canary.167
+
+### Patch Changes
+
+- 4757690: feat(ai): rename onObjectStepFinish to onObjectStepEnd
+- eeefc3f: fix(ai): enforce `timeout.stepMs` for the whole step in `streamText`
+
+  Previously `streamText`'s step timer was cleared synchronously right after the step's stream was registered, before the stream produced anything, so `stepMs` never aborted a step that stalled before emitting content. The step timer now survives until the step's stream finishes or aborts, matching `generateText`. `chunkMs`/`totalMs` and normal step-finish cleanup are unchanged.
+
+- b79b6a8: fix(ai): add approval guard for denied tool outputs
+- Updated dependencies [6b4d325]
+  - @ai-sdk/gateway@4.0.0-canary.101
+
+## 7.0.0-canary.166
+
+### Patch Changes
+
+- 19736ee: feat(ai): rename onStepFinish to onStepEnd
+- d66ae02: Return validated elements from generateText array output
+- e4182bd: chore: rm export of OutputInterface
+- Updated dependencies [24bb123]
+- Updated dependencies [c44fcc8]
+- Updated dependencies [97e480a]
+  - @ai-sdk/gateway@4.0.0-canary.100
+
+## 7.0.0-canary.165
+
+### Patch Changes
+
+- ce769dd: feat(provider): add experimental Realtime API support for voice conversations
+
+  Adds first-class support for realtime (speech-to-speech) APIs:
+
+  - `Experimental_RealtimeModelV4` spec in `@ai-sdk/provider` with normalized event types and factory
+  - OpenAI, Google, and xAI realtime provider implementations
+  - `openai.experimental_realtime()` / `google.experimental_realtime()` / `xai.experimental_realtime()` work in both server and browser
+  - `.getToken()` static method on each provider for server-side ephemeral token creation
+  - `experimental_getRealtimeToolDefinitions` helper for provider session tool definitions
+  - `experimental_useRealtime` hook in `@ai-sdk/react` returning `UIMessage[]` (aligned with `useChat`), with `onToolCall` and `addToolOutput` for client-driven tool execution
+  - `inputAudioTranscription` session config for showing transcribed user audio messages when supported by the provider
+
+- Updated dependencies [ce769dd]
+  - @ai-sdk/provider@4.0.0-canary.18
+  - @ai-sdk/gateway@4.0.0-canary.99
+  - @ai-sdk/provider-utils@5.0.0-canary.46
+
+## 7.0.0-canary.164
+
+### Patch Changes
+
+- Updated dependencies [9876183]
+  - @ai-sdk/gateway@4.0.0-canary.98
+
+## 7.0.0-canary.163
+
+### Patch Changes
+
+- ee798eb: chore(provider-utils): rename `Experimental_Sandbox` to `Experimental_SandboxSession`
+- c907622: Add a `toolOrder` option to control the order in which tools are sent to provider APIs.
+- Updated dependencies [ee798eb]
+- Updated dependencies [daf6637]
+  - @ai-sdk/provider-utils@5.0.0-canary.45
+  - @ai-sdk/gateway@4.0.0-canary.97
+
+## 7.0.0-canary.162
+
+### Patch Changes
+
+- Updated dependencies [83877a1]
+  - @ai-sdk/gateway@4.0.0-canary.96
+
+## 7.0.0-canary.161
+
+### Patch Changes
+
+- Updated dependencies [a3261db]
+  - @ai-sdk/gateway@4.0.0-canary.95
+
+## 7.0.0-canary.160
+
+### Patch Changes
+
+- Updated dependencies [712873e]
+  - @ai-sdk/gateway@4.0.0-canary.94
+
+## 7.0.0-canary.159
+
+### Patch Changes
+
+- b5092f5: fix(ai): do not re-validate tool input for output-error parts in validateUIMessages
+
+## 7.0.0-canary.158
+
+### Patch Changes
+
+- bcce2dd: feat(stream-text): expose standalone stream transformation helpers and deprecate the equivalent `streamText` result methods.
+
+  The new `toUIMessageChunk` and `toUIMessageStream` helpers let you convert a `streamText` `stream` (or any compatible `ReadableStream<TextStreamPart<TOOLS>>`) into UI message chunks without going through the result object — useful for custom transports, tests, and other producers of `TextStreamPart`.
+
+  `result.toUIMessageStreamResponse(options)` and `result.pipeUIMessageStreamToResponse(response, options)` can migrate by passing `toUIMessageStream({ stream: result.stream, ...options })` to `createUIMessageStreamResponse` or `pipeUIMessageStreamToResponse`.
+
+  The new `toTextStream` helper extracts text deltas from a `streamText` `stream`, so `result.toTextStreamResponse(options)` and `result.pipeTextStreamToResponse(response, options)` can migrate to `createTextStreamResponse({ stream: toTextStream({ stream: result.stream }), ...options })` and `pipeTextStreamToResponse({ response, stream: toTextStream({ stream: result.stream }), ...options })`.
+
+  `result.toUIMessageStream`, `result.toUIMessageStreamResponse`, `result.pipeUIMessageStreamToResponse`, `result.toTextStreamResponse`, and `result.pipeTextStreamToResponse` are now `@deprecated`. They still work in v7 and will be removed in the next major release. Migration snippets are in the v6 → v7 migration guide.
+
+## 7.0.0-canary.157
+
+### Patch Changes
+
+- Updated dependencies [e02f041]
+  - @ai-sdk/gateway@4.0.0-canary.93
+
+## 7.0.0-canary.156
+
+### Patch Changes
+
+- 023550e: Deprecate `streamText` result `fullStream` in favor of `stream`.
+- e92fc45: feat(ai): introduce onAbort hook to close telemetry spans
+
+## 7.0.0-canary.155
+
+### Patch Changes
+
+- e67d80e: fix: rename onFinish to onEnd
+- 6cca112: feat: add timeBetweenOutputTokensMs stats
+- 82fc0ab: fix(ai): pass all stream text parts to `onChunk`
+- 76fd58c: fix: consider file outputs and tool calls for time to first output
+
+## 7.0.0-canary.154
+
+### Patch Changes
+
+- 594029e: feat(ai): wrap the model call in telemetry context
+
+## 7.0.0-canary.153
+
+### Patch Changes
+
+- 6c93e36: feat(provider-utils): add `spawnCommand` method to `Experimental_Sandbox` to allow for detached command execution
+- Updated dependencies [6c93e36]
+- Updated dependencies [f617ac2]
+  - @ai-sdk/provider-utils@5.0.0-canary.44
+  - @ai-sdk/gateway@4.0.0-canary.92
+
 ## 7.0.0-canary.152
 
 ### Patch Changes

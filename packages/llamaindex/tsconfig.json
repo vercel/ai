@@ -8,7 +8,7 @@
       "dom",
       "dom.iterable",
       "esnext"
-    ],
+    ]
   },
   "exclude": [
     "dist",
@@ -19,9 +19,6 @@
   "references": [
     {
       "path": "../ai"
-    },
-    {
-      "path": "../provider-utils"
     }
   ]
 }

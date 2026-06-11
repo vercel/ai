@@ -346,7 +346,7 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'description',
               isOptional: true,
-              type: 'string | ((options: { context: CONTEXT; experimental_sandbox?: Experimental_Sandbox }) => string)',
+              type: 'string | ((options: { context: CONTEXT; experimental_sandbox?: Experimental_SandboxSession }) => string)',
               description:
                 'Information about the purpose of the tool including details on how and when it can be used by the model. Provide a string for a fixed description, or a function to derive the description from the tool-specific context and optional experimental sandbox before each model call.',
             },
@@ -609,6 +609,13 @@ To see `streamText` in action, check out [these examples](#examples).
         'Limits the tools that are available for the model to call without changing the tool call and result types in the result. All tools are active by default. Tool names are restricted to the string keys of the tool set.',
     },
     {
+      name: 'toolOrder',
+      type: 'ToolOrder<TOOLS>',
+      isOptional: true,
+      description:
+        'Controls the order in which tools are sent to the provider. The list can be partial. Tools not listed in `toolOrder` are sent after the listed tools, sorted alphabetically. Tool names are restricted to the string keys of the tool set.',
+    },
+    {
       name: 'toolApproval',
       type: 'ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>',
       isOptional: true,
@@ -696,7 +703,7 @@ To see `streamText` in action, check out [these examples](#examples).
                     },
                     {
                       name: 'experimental_sandbox',
-                      type: 'Experimental_Sandbox | undefined',
+                      type: 'Experimental_SandboxSession | undefined',
                       isOptional: true,
                       description:
                         'The experimental sandbox environment passed via the `experimental_sandbox` setting.',
@@ -734,6 +741,13 @@ To see `streamText` in action, check out [these examples](#examples).
                 'If provided, only these tools are enabled/available for this step.',
             },
             {
+              name: 'toolOrder',
+              type: 'ToolOrder<TOOLS>',
+              isOptional: true,
+              description:
+                'If provided, overrides the order in which tools are sent to the provider for this step. Tools not listed are appended alphabetically.',
+            },
+            {
               name: 'instructions',
               type: 'Instructions',
               isOptional: true,
@@ -762,7 +776,7 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'experimental_sandbox',
-              type: 'Experimental_Sandbox',
+              type: 'Experimental_SandboxSession',
               isOptional: true,
               description:
                 'Experimental sandbox environment for this step. Changing it will affect tool execution in this step only.',
@@ -793,7 +807,7 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'experimental_sandbox',
-      type: 'Experimental_Sandbox',
+      type: 'Experimental_SandboxSession',
       isOptional: true,
       description:
         'Experimental sandbox environment that is passed through to `prepareStep`, tool description functions, and tool execution. Tools can access it from their description function options and execution options.',
@@ -898,22 +912,23 @@ To see `streamText` in action, check out [these examples](#examples).
       type: '(event: OnChunkResult) => Promise<void> |void',
       isOptional: true,
       description:
-        'Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.',
+        'Callback that is called for each stream part. The stream processing will pause until the callback promise is resolved.',
       properties: [
         {
           type: 'OnChunkResult',
           parameters: [
             {
               name: 'chunk',
-              type: 'TextStreamPart',
-              description: 'The chunk of the stream.',
+              type: 'TextStreamPart<TOOLS>',
+              description:
+                'The stream part. This is the same union as `stream` and includes `start`, `start-step`, `text-start`, `text-delta`, `text-end`, `reasoning-start`, `reasoning-delta`, `reasoning-end`, `custom`, `source`, `file`, `reasoning-file`, `tool-call`, `tool-input-start`, `tool-input-delta`, `tool-input-end`, `tool-result`, `tool-error`, `tool-output-denied`, `tool-approval-request`, `tool-approval-response`, `finish-step`, `finish`, `abort`, `error`, and `raw`.',
               properties: [
                 {
                   type: 'TextStreamPart',
                   parameters: [
                     {
                       name: 'type',
-                      type: "'text'",
+                      type: "'text-delta'",
                       description:
                         'The type to identify the object as text delta.',
                     },
@@ -929,9 +944,9 @@ To see `streamText` in action, check out [these examples](#examples).
                   parameters: [
                     {
                       name: 'type',
-                      type: "'reasoning'",
+                      type: "'reasoning-delta'",
                       description:
-                        'The type to identify the object as reasoning.',
+                        'The type to identify the object as reasoning delta.',
                     },
                     {
                       name: 'text',
@@ -1012,12 +1027,12 @@ To see `streamText` in action, check out [these examples](#examples).
                   parameters: [
                     {
                       name: 'type',
-                      type: "'tool-call-streaming-start'",
+                      type: "'tool-input-start'",
                       description:
-                        'Indicates the start of a tool call streaming. Only available when streaming tool calls.',
+                        'Indicates the start of streamed tool input.',
                     },
                     {
-                      name: 'toolCallId',
+                      name: 'id',
                       type: 'string',
                       description: 'The id of the tool call.',
                     },
@@ -1034,12 +1049,12 @@ To see `streamText` in action, check out [these examples](#examples).
                   parameters: [
                     {
                       name: 'type',
-                      type: "'tool-call-delta'",
+                      type: "'tool-input-delta'",
                       description:
-                        'The type to identify the object as tool call delta. Only available when streaming tool calls.',
+                        'The type to identify the object as streamed tool input delta.',
                     },
                     {
-                      name: 'toolCallId',
+                      name: 'id',
                       type: 'string',
                       description: 'The id of the tool call.',
                     },
@@ -1050,9 +1065,9 @@ To see `streamText` in action, check out [these examples](#examples).
                         'The name of the tool, which typically would be the name of the function.',
                     },
                     {
-                      name: 'argsTextDelta',
+                      name: 'delta',
                       type: 'string',
-                      description: 'The text delta of the tool call arguments.',
+                      description: 'The text delta of the tool input.',
                     },
                   ],
                 },
@@ -1261,13 +1276,13 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'onStepFinish',
-      type: '(result: onStepFinishResult) => Promise<void> | void',
+      name: 'onStepEnd',
+      type: '(result: StepResult<TOOLS>) => Promise<void> | void',
       isOptional: true,
-      description: 'Callback that is called when a step is finished.',
+      description: 'Callback that is called when a step ends.',
       properties: [
         {
-          type: 'onStepFinishResult',
+          type: 'StepResult',
           parameters: [
             {
               name: 'stepType',
@@ -1396,13 +1411,13 @@ To see `streamText` in action, check out [these examples](#examples).
                       name: 'outputTokensPerSecond',
                       type: 'number | undefined',
                       description:
-                        'Number of output tokens per second after the first output token was received. Only available for streaming steps.',
+                        'Number of output tokens per second after the first generated output chunk was received. Only available for streaming steps.',
                     },
                     {
                       name: 'inputTokensPerSecond',
                       type: 'number | undefined',
                       description:
-                        'Number of input tokens processed per second before the first output token was received. Only available for streaming steps.',
+                        'Number of input tokens processed per second before the first generated output chunk was received. Only available for streaming steps.',
                     },
                     {
                       name: 'effectiveTotalTokensPerSecond',
@@ -1429,10 +1444,16 @@ To see `streamText` in action, check out [these examples](#examples).
                         'Time spent executing each client-side tool call in the step in milliseconds, keyed by tool call ID.',
                     },
                     {
-                      name: 'timeToFirstOutputTokenMs',
+                      name: 'timeToFirstOutputMs',
                       type: 'number | undefined',
                       description:
-                        'Time until the first text, reasoning, or tool input delta was received in milliseconds. Only available for streaming steps.',
+                        'Time until the first generated output chunk was received in milliseconds. Only available for streaming steps.',
+                    },
+                    {
+                      name: 'timeBetweenOutputChunksMs',
+                      type: 'OutputChunkTimingStats | undefined',
+                      description:
+                        'Timing statistics for the gaps between generated output chunks in milliseconds. Only available for streaming steps with at least two output chunks.',
                     },
                   ],
                 },
@@ -1588,14 +1609,21 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'onFinish',
-      type: '(result: OnFinishResult) => Promise<void> | void',
+      name: 'onStepFinish',
+      type: 'GenerateTextOnStepFinishCallback<TOOLS>',
+      isOptional: true,
+      description:
+        'Deprecated. Use `onStepEnd` instead. This alias is only used as a fallback when `onStepEnd` is not provided.',
+    },
+    {
+      name: 'onEnd',
+      type: '(result: OnEndResult) => Promise<void> | void',
       isOptional: true,
       description:
         'Callback that is called when the LLM response and all request tool executions (for tools that have an `execute` function) are finished.',
       properties: [
         {
-          type: 'OnFinishResult',
+          type: 'OnEndResult',
           parameters: [
             {
               name: 'finishReason',
@@ -1941,6 +1969,12 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
+      name: 'onFinish',
+      type: '(result: OnEndResult) => Promise<void> | void',
+      isOptional: true,
+      description: 'Deprecated alias for `onEnd`.',
+    },
+    {
       name: 'onAbort',
       type: '(event: OnAbortResult) => Promise<void> | void',
       isOptional: true,
@@ -2005,6 +2039,12 @@ To see `streamText` in action, check out [these examples](#examples).
               type: 'ActiveTools<TOOLS>',
               description:
                 'Limits which tools are available for the model to call.',
+            },
+            {
+              name: 'toolOrder',
+              type: 'ToolOrder<TOOLS>',
+              description:
+                'Controls the order in which tools are sent to the provider.',
             },
             {
               name: 'maxOutputTokens',
@@ -2152,6 +2192,12 @@ To see `streamText` in action, check out [these examples](#examples).
               name: 'activeTools',
               type: 'ActiveTools<TOOLS>',
               description: 'Limits which tools are available for this step.',
+            },
+            {
+              name: 'toolOrder',
+              type: 'ToolOrder<TOOLS>',
+              description:
+                'Controls the order in which tools are sent to the provider for this step.',
             },
             {
               name: 'steps',
@@ -2307,7 +2353,7 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'performance',
-              type: '{ responseTimeMs: number; effectiveOutputTokensPerSecond: number; outputTokensPerSecond: number | undefined; inputTokensPerSecond: number | undefined; effectiveTotalTokensPerSecond: number; timeToFirstOutputTokenMs: number | undefined }',
+              type: '{ responseTimeMs: number; effectiveOutputTokensPerSecond: number; outputTokensPerSecond: number | undefined; inputTokensPerSecond: number | undefined; effectiveTotalTokensPerSecond: number; timeToFirstOutputMs: number | undefined; timeBetweenOutputChunksMs?: OutputChunkTimingStats }',
               description: 'Performance metrics for the model call.',
               properties: [
                 {
@@ -2329,13 +2375,13 @@ To see `streamText` in action, check out [these examples](#examples).
                       name: 'outputTokensPerSecond',
                       type: 'number | undefined',
                       description:
-                        'Number of output tokens per second after the first output token was received. Only available for streaming model calls.',
+                        'Number of output tokens per second after the first generated output chunk was received. Only available for streaming model calls.',
                     },
                     {
                       name: 'inputTokensPerSecond',
                       type: 'number | undefined',
                       description:
-                        'Number of input tokens processed per second before the first output token was received. Only available for streaming model calls.',
+                        'Number of input tokens processed per second before the first generated output chunk was received. Only available for streaming model calls.',
                     },
                     {
                       name: 'effectiveTotalTokensPerSecond',
@@ -2344,10 +2390,16 @@ To see `streamText` in action, check out [these examples](#examples).
                         'Effective number of input and output tokens per second over the full language model response.',
                     },
                     {
-                      name: 'timeToFirstOutputTokenMs',
+                      name: 'timeToFirstOutputMs',
                       type: 'number | undefined',
                       description:
-                        'Time until the first text, reasoning, or tool input delta was received in milliseconds. Only available for streaming model calls.',
+                        'Time until the first generated output chunk was received in milliseconds. Only available for streaming model calls.',
+                    },
+                    {
+                      name: 'timeBetweenOutputChunksMs',
+                      type: 'OutputChunkTimingStats | undefined',
+                      description:
+                        'Timing statistics for the gaps between generated output chunks in milliseconds. Only available for streaming model calls with at least two output chunks.',
                     },
                   ],
                 },
@@ -3167,7 +3219,7 @@ To see `streamText` in action, check out [these examples](#examples).
         'The final step. This is a shortcut for `steps.at(-1)`. Automatically consumes the stream.',
     },
     {
-      name: 'fullStream',
+      name: 'stream',
       type: 'AsyncIterable<TextStreamPart<TOOLS>> & ReadableStream<TextStreamPart<TOOLS>>',
       description:
         'A stream with all events, including text deltas, tool calls, tool results, and errors. You can use it as either an AsyncIterable or a ReadableStream. Only errors that stop the stream, such as network errors, are thrown.',
@@ -3613,13 +3665,13 @@ To see `streamText` in action, check out [these examples](#examples).
               name: 'outputTokensPerSecond',
               type: 'number | undefined',
               description:
-                'Number of output tokens per second after the first output token was received. Only available for streaming steps.',
+                'Number of output tokens per second after the first generated output chunk was received. Only available for streaming steps.',
             },
             {
               name: 'inputTokensPerSecond',
               type: 'number | undefined',
               description:
-                'Number of input tokens processed per second before the first output token was received. Only available for streaming steps.',
+                'Number of input tokens processed per second before the first generated output chunk was received. Only available for streaming steps.',
             },
             {
               name: 'effectiveTotalTokensPerSecond',
@@ -3646,10 +3698,16 @@ To see `streamText` in action, check out [these examples](#examples).
                         'Time spent executing each client-side tool call in the step in milliseconds, keyed by tool call ID.',
                     },
                     {
-              name: 'timeToFirstOutputTokenMs',
+                      name: 'timeToFirstOutputMs',
                       type: 'number | undefined',
                       description:
-                        'Time until the first text, reasoning, or tool input delta was received in milliseconds. Only available for streaming steps.',
+                        'Time until the first generated output chunk was received in milliseconds. Only available for streaming steps.',
+                    },
+                    {
+                      name: 'timeBetweenOutputChunksMs',
+                      type: 'OutputChunkTimingStats | undefined',
+                      description:
+                        'Timing statistics for the gaps between generated output chunks in milliseconds. Only available for streaming steps with at least two output chunks.',
                     },
                   ],
                 },
@@ -3837,6 +3895,12 @@ To see `streamText` in action, check out [these examples](#examples).
           ],
         },
       ],
+    },
+    {
+      name: 'fullStream',
+      type: 'AsyncIterable<TextStreamPart<TOOLS>> & ReadableStream<TextStreamPart<TOOLS>>',
+      description:
+        'Deprecated. Use `stream` instead. A stream with all events, including text deltas, tool calls, tool results, and errors.',
     },
     {
       name: 'partialOutputStream',

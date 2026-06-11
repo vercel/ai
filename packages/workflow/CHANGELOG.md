@@ -1,5 +1,163 @@
 # @ai-sdk/workflow
 
+## 1.0.0-canary.87
+
+### Patch Changes
+
+- bae5e2b: fix(security): re-validate tool approvals from client message history before execution
+
+  The approval-replay path in `generateText`/`streamText` (and `WorkflowAgent.stream`) reconstructed approved tool calls from the client-supplied messages array and executed them without re-validating input against the tool's schema or re-applying the approval policy. A client could forge an assistant message with a pre-approved tool-call part and have the server execute a tool with attacker-chosen arguments.
+
+  The replay path now validates HMAC signature (when `experimental_toolApprovalSecret` is configured), re-validates tool-call input against the tool's input schema, and re-resolves the approval policy before execution.
+
+- 69d7128: fix(workflow): reuse the core tool-approval validation in WorkflowAgent
+
+  `WorkflowAgent.stream` previously reconstructed approved tool calls with a copy of the core collection logic and validated them inline. Because the logic was duplicated, it could drift from the hardened `generateText`/`streamText` implementation. WorkflowAgent now collects approvals via the shared `collectToolApprovals` and re-validates each one through the shared `validateApprovedToolApprovals` (input-schema re-validation, HMAC signature verification when configured, and approval-policy re-resolution) in addition to its existing `needsApproval` guard, so a client-forged approval cannot execute a tool with unvalidated input. The duplicated collector was removed; `collectToolApprovals` and `validateApprovedToolApprovals` are now exported from `ai/internal`.
+
+- Updated dependencies [bae5e2b]
+- Updated dependencies [69d7128]
+  - ai@7.0.0-canary.170
+  - @ai-sdk/provider-utils@5.0.0-canary.47
+
+## 1.0.0-canary.86
+
+### Patch Changes
+
+- Updated dependencies [a5018ab]
+- Updated dependencies [21d3d60]
+- Updated dependencies [426dbbb]
+- Updated dependencies [7fd3360]
+  - ai@7.0.0-canary.169
+
+## 1.0.0-canary.85
+
+### Patch Changes
+
+- 1e4b350: Honor `tool.toModelOutput` in `WorkflowAgent`.
+
+  `WorkflowAgent` now routes successful local, provider-executed, and approved tool results through each tool's optional `toModelOutput` hook, matching `generateText`, `streamText`, and `ToolLoopAgent`. Previously the hook was ignored and results were always serialized as `text` or `json`.
+
+  Internally exports the shared tool-result model-output helpers from `ai/internal`, and uses the shared `getErrorMessage` behavior for workflow tool error results.
+
+- Updated dependencies [1e4b350]
+  - ai@7.0.0-canary.168
+
+## 1.0.0-canary.84
+
+### Patch Changes
+
+- Updated dependencies [4757690]
+- Updated dependencies [eeefc3f]
+- Updated dependencies [b79b6a8]
+  - ai@7.0.0-canary.167
+
+## 1.0.0-canary.83
+
+### Patch Changes
+
+- 19736ee: feat(ai): rename onStepFinish to onStepEnd
+- Updated dependencies [19736ee]
+- Updated dependencies [d66ae02]
+- Updated dependencies [e4182bd]
+  - ai@7.0.0-canary.166
+
+## 1.0.0-canary.82
+
+### Patch Changes
+
+- Updated dependencies [ce769dd]
+  - @ai-sdk/provider@4.0.0-canary.18
+  - ai@7.0.0-canary.165
+  - @ai-sdk/provider-utils@5.0.0-canary.46
+
+## 1.0.0-canary.81
+
+### Patch Changes
+
+- ai@7.0.0-canary.164
+
+## 1.0.0-canary.80
+
+### Patch Changes
+
+- Updated dependencies [ee798eb]
+- Updated dependencies [daf6637]
+- Updated dependencies [c907622]
+  - @ai-sdk/provider-utils@5.0.0-canary.45
+  - ai@7.0.0-canary.163
+
+## 1.0.0-canary.79
+
+### Patch Changes
+
+- ai@7.0.0-canary.162
+
+## 1.0.0-canary.78
+
+### Patch Changes
+
+- ai@7.0.0-canary.161
+
+## 1.0.0-canary.77
+
+### Patch Changes
+
+- ai@7.0.0-canary.160
+
+## 1.0.0-canary.76
+
+### Patch Changes
+
+- Updated dependencies [b5092f5]
+  - ai@7.0.0-canary.159
+
+## 1.0.0-canary.75
+
+### Patch Changes
+
+- Updated dependencies [bcce2dd]
+  - ai@7.0.0-canary.158
+
+## 1.0.0-canary.74
+
+### Patch Changes
+
+- ai@7.0.0-canary.157
+
+## 1.0.0-canary.73
+
+### Patch Changes
+
+- Updated dependencies [023550e]
+- Updated dependencies [e92fc45]
+  - ai@7.0.0-canary.156
+
+## 1.0.0-canary.72
+
+### Patch Changes
+
+- Updated dependencies [e67d80e]
+- Updated dependencies [6cca112]
+- Updated dependencies [82fc0ab]
+- Updated dependencies [76fd58c]
+  - ai@7.0.0-canary.155
+
+## 1.0.0-canary.71
+
+### Patch Changes
+
+- Updated dependencies [594029e]
+  - ai@7.0.0-canary.154
+
+## 1.0.0-canary.70
+
+### Patch Changes
+
+- Updated dependencies [6c93e36]
+- Updated dependencies [f617ac2]
+  - @ai-sdk/provider-utils@5.0.0-canary.44
+  - ai@7.0.0-canary.153
+
 ## 1.0.0-canary.69
 
 ### Patch Changes

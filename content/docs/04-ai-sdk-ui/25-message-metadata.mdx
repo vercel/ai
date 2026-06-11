@@ -38,10 +38,15 @@ export type MyUIMessage = UIMessage<MessageMetadata>;
 
 ### Sending Metadata from the Server
 
-Use the `messageMetadata` callback in `toUIMessageStreamResponse` to send metadata at different streaming stages:
+Use the `messageMetadata` callback in `toUIMessageStream` to send metadata at different streaming stages:
 
-```ts filename="app/api/chat/route.ts" highlight="11-20"
-import { convertToModelMessages, streamText } from 'ai';
+```ts filename="app/api/chat/route.ts" highlight="16-27"
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+} from 'ai';
 __PROVIDER_IMPORT__;
 import type { MyUIMessage } from '@/types';
 
@@ -53,24 +58,27 @@ export async function POST(req: Request) {
     messages: await convertToModelMessages(messages),
   });
 
-  return result.toUIMessageStreamResponse({
-    originalMessages: messages, // pass this in for type-safe return objects
-    messageMetadata: ({ part }) => {
-      // Send metadata when streaming starts
-      if (part.type === 'start') {
-        return {
-          createdAt: Date.now(),
-          model: 'your-model-id',
-        };
-      }
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({
+      stream: result.stream,
+      originalMessages: messages, // pass this in for type-safe return objects
+      messageMetadata: ({ part }) => {
+        // Send metadata when streaming starts
+        if (part.type === 'start') {
+          return {
+            createdAt: Date.now(),
+            model: 'your-model-id',
+          };
+        }
 
-      // Send additional metadata when streaming completes
-      if (part.type === 'finish') {
-        return {
-          totalTokens: part.totalUsage.totalTokens,
-        };
-      }
-    },
+        // Send additional metadata when streaming completes
+        if (part.type === 'finish') {
+          return {
+            totalTokens: part.totalUsage.totalTokens,
+          };
+        }
+      },
+    }),
   });
 }
 ```

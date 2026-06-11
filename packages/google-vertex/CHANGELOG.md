@@ -1,5 +1,108 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-canary.106
+
+### Patch Changes
+
+- Updated dependencies [bae5e2b]
+  - @ai-sdk/provider-utils@5.0.0-canary.47
+  - @ai-sdk/anthropic@4.0.0-canary.65
+  - @ai-sdk/google@4.0.0-canary.80
+  - @ai-sdk/openai-compatible@3.0.0-canary.55
+
+## 5.0.0-canary.105
+
+### Patch Changes
+
+- 6dd2fd7: feat(provider/google-vertex): add Google Cloud Speech-to-Text transcription model support
+- 6b4d325: feat(provider/anthropic): add support for `claude-fable-5` and the `fallbacks` API parameter
+- Updated dependencies [6b4d325]
+  - @ai-sdk/anthropic@4.0.0-canary.64
+
+## 5.0.0-canary.104
+
+### Patch Changes
+
+- Updated dependencies [ce769dd]
+  - @ai-sdk/provider@4.0.0-canary.18
+  - @ai-sdk/google@4.0.0-canary.79
+  - @ai-sdk/anthropic@4.0.0-canary.63
+  - @ai-sdk/openai-compatible@3.0.0-canary.54
+  - @ai-sdk/provider-utils@5.0.0-canary.46
+
+## 5.0.0-canary.103
+
+### Patch Changes
+
+- 2ce3c65: feat(provider/google-vertex): add Gemini text-to-speech (speech) model support
+- Updated dependencies [2ce3c65]
+  - @ai-sdk/google@4.0.0-canary.78
+
+## 5.0.0-canary.102
+
+### Patch Changes
+
+- Updated dependencies [ee798eb]
+- Updated dependencies [daf6637]
+  - @ai-sdk/provider-utils@5.0.0-canary.45
+  - @ai-sdk/anthropic@4.0.0-canary.62
+  - @ai-sdk/google@4.0.0-canary.77
+  - @ai-sdk/openai-compatible@3.0.0-canary.53
+
+## 5.0.0-canary.101
+
+### Patch Changes
+
+- ec2e752: fix(google-vertex): support regional endpoints for vertex MaaS
+
+## 5.0.0-canary.100
+
+### Patch Changes
+
+- b70f6ec: fix(google-vertex): support for eu/us multi region gemini endpoints
+
+## 5.0.0-canary.99
+
+### Patch Changes
+
+- bb93832: fix(vertex-anthropic): support eu/us multi-region anthropic endpoints
+- Updated dependencies [b563707]
+  - @ai-sdk/google@4.0.0-canary.76
+
+## 5.0.0-canary.98
+
+### Patch Changes
+
+- 00a0f36: feat(google, google-vertex): added `gemini-embedding-2`, `deep-research-max-preview-04-2026` and `deep-research-preview-04-2026`
+- Updated dependencies [00a0f36]
+  - @ai-sdk/google@4.0.0-canary.75
+
+## 5.0.0-canary.97
+
+### Patch Changes
+
+- e02f041: feat(provider/anthropic): add support for `claude-opus-4-8`
+- Updated dependencies [e02f041]
+  - @ai-sdk/anthropic@4.0.0-canary.61
+
+## 5.0.0-canary.96
+
+### Patch Changes
+
+- Updated dependencies [a8d70b6]
+  - @ai-sdk/google@4.0.0-canary.74
+
+## 5.0.0-canary.95
+
+### Patch Changes
+
+- Updated dependencies [6c93e36]
+- Updated dependencies [f617ac2]
+  - @ai-sdk/provider-utils@5.0.0-canary.44
+  - @ai-sdk/anthropic@4.0.0-canary.60
+  - @ai-sdk/google@4.0.0-canary.73
+  - @ai-sdk/openai-compatible@3.0.0-canary.52
+
 ## 5.0.0-canary.94
 
 ### Patch Changes

@@ -1,4 +1,5 @@
 import type * as McpTransportModule from './mcp-transport';
+import type { MCPTransport } from './mcp-transport';
 import { z } from 'zod/v4';
 import { MCPClientError } from '../error/mcp-client-error';
 import { createMCPClient } from './mcp-client';
@@ -14,7 +15,7 @@ import {
   type GetPromptResult,
   type Configuration,
 } from './types';
-import type { JSONRPCRequest } from './json-rpc-message';
+import type { JSONRPCMessage, JSONRPCRequest } from './json-rpc-message';
 import {
   beforeEach,
   afterEach,
@@ -26,6 +27,48 @@ import {
 } from 'vitest';
 
 const createMockTransport = vi.fn(config => new MockMCPTransport(config));
+
+class GetterOnlyProtocolVersionTransport implements MCPTransport {
+  private readonly transport: MockMCPTransport;
+  private negotiatedProtocolVersion?: string;
+
+  onmessage?: (message: JSONRPCMessage) => void;
+  onclose?: () => void;
+  onerror?: (error: Error) => void;
+
+  constructor(protocolVersion: string) {
+    this.transport = new MockMCPTransport({
+      initializeResult: {
+        protocolVersion,
+        serverInfo: { name: 'mock-mcp-server', version: '1.0.0' },
+        capabilities: { tools: {} },
+      },
+    });
+  }
+
+  get protocolVersion(): string | undefined {
+    return this.negotiatedProtocolVersion;
+  }
+
+  setProtocolVersion(version: string): void {
+    this.negotiatedProtocolVersion = version;
+  }
+
+  async start(): Promise<void> {
+    await this.transport.start();
+  }
+
+  async send(message: JSONRPCMessage): Promise<void> {
+    this.transport.onmessage = this.onmessage;
+    this.transport.onclose = this.onclose;
+    this.transport.onerror = this.onerror;
+    await this.transport.send(message);
+  }
+
+  async close(): Promise<void> {
+    await this.transport.close();
+  }
+}
 
 vi.mock('./mcp-transport.ts', async importOriginal => {
   const actual = await importOriginal<typeof McpTransportModule>();
@@ -1198,6 +1241,39 @@ describe('MCPClient', () => {
     });
   });
 
+  describe('ping support', () => {
+    it('should respond to ping requests with an empty result per MCP spec', async () => {
+      client = await createMCPClient({
+        transport: { type: 'sse', url: 'https://example.com/sse' },
+      });
+
+      const transportInstance = createMockTransport.mock.results.at(-1)
+        ?.value as MockMCPTransport;
+      const sendSpy = vi.spyOn(transportInstance, 'send');
+
+      const pingRequest = {
+        jsonrpc: '2.0' as const,
+        id: 99,
+        method: 'ping' as const,
+      };
+
+      transportInstance.onmessage?.(pingRequest);
+
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const pingResponse = sendSpy.mock.calls.find(
+        ([message]) => 'id' in message && message.id === 99,
+      );
+
+      expect(pingResponse?.[0]).toMatchObject({
+        jsonrpc: '2.0',
+        id: 99,
+        result: {},
+      });
+    });
+  });
+
   it('should use onUncaughtError callback if provided', async () => {
     const onUncaughtError = vi.fn();
     const mockTransport = new MockMCPTransport({
@@ -2168,6 +2244,16 @@ describe('MCPClient', () => {
       });
 
       expect(mockTransport.protocolVersion).toBe('2025-06-18');
+    });
+
+    it('should support transports with getter-only protocolVersion and setProtocolVersion', async () => {
+      const transport = new GetterOnlyProtocolVersionTransport('2025-06-18');
+
+      client = await createMCPClient({
+        transport,
+      });
+
+      expect(transport.protocolVersion).toBe('2025-06-18');
     });
   });
 });

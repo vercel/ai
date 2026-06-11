@@ -446,25 +446,25 @@ export function buildGoogleInteractionsStreamTransform({
               open.kind === 'text' ||
               open.kind === 'image')
           ) {
-            const img = event.delta as
+            const imageDelta = event.delta as
               | { data?: string; mime_type?: string; uri?: string }
               | undefined;
             const google: Record<string, string> = {};
             if (interactionId != null) google.interactionId = interactionId;
             const providerMetadata =
               Object.keys(google).length > 0 ? { google } : undefined;
-            if (img?.data != null && img.data.length > 0) {
+            if (imageDelta?.data != null && imageDelta.data.length > 0) {
               controller.enqueue({
                 type: 'file',
-                mediaType: img.mime_type ?? 'image/png',
-                data: { type: 'data', data: img.data },
+                mediaType: imageDelta.mime_type ?? 'image/png',
+                data: { type: 'data', data: imageDelta.data },
                 ...(providerMetadata ? { providerMetadata } : {}),
               });
-            } else if (img?.uri != null && img.uri.length > 0) {
+            } else if (imageDelta?.uri != null && imageDelta.uri.length > 0) {
               controller.enqueue({
                 type: 'file',
-                mediaType: img.mime_type ?? 'image/png',
-                data: { type: 'url', url: new URL(img.uri) },
+                mediaType: imageDelta.mime_type ?? 'image/png',
+                data: { type: 'url', url: new URL(imageDelta.uri) },
                 ...(providerMetadata ? { providerMetadata } : {}),
               });
             }

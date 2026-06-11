@@ -12,6 +12,7 @@ import type {
   GenerateObjectStepStartEvent,
 } from '../generate-object/structured-output-events';
 import type {
+  GenerateTextAbortEvent,
   GenerateTextEndEvent,
   GenerateTextStartEvent,
   GenerateTextStepEndEvent,
@@ -61,15 +62,19 @@ export interface TelemetryDispatcher {
   onLanguageModelCallEnd?: OnLanguageModelCallEndCallback;
   onToolExecutionStart?: Callback<ToolExecutionStartEvent>;
   onToolExecutionEnd?: Callback<ToolExecutionEndEvent>;
+  onStepEnd?: Callback<GenerateTextStepEndEvent>;
+  /** @deprecated Use `onStepEnd` instead. */
   onStepFinish?: Callback<GenerateTextStepEndEvent>;
   onObjectStepStart?: Callback<GenerateObjectStepStartEvent>;
-  onObjectStepFinish?: Callback<GenerateObjectStepEndEvent>;
+  onObjectStepEnd?: Callback<GenerateObjectStepEndEvent>;
   onEmbedStart?: Callback<EmbeddingModelCallStartEvent>;
   onEmbedEnd?: Callback<EmbeddingModelCallEndEvent>;
   onRerankStart?: Callback<RerankingModelCallStartEvent>;
   onRerankEnd?: Callback<RerankingModelCallEndEvent>;
   onEnd?: Callback<OperationEndEvent>;
+  onAbort?: Callback<GenerateTextAbortEvent<ToolSet>>;
   onError?: Callback<unknown>;
+  executeLanguageModelCall?: Telemetry['executeLanguageModelCall'];
   executeTool?: Telemetry['executeTool'];
 }
 
@@ -136,6 +141,13 @@ export interface Telemetry {
    * and results, usage statistics, finish reason, and optional request/response
    * bodies.
    */
+  onStepEnd?: Callback<InferTelemetryEvent<GenerateTextStepEndEvent>>;
+
+  /**
+   * Called when an individual step (single LLM invocation) completes.
+   *
+   * @deprecated Use `onStepEnd` instead.
+   */
   onStepFinish?: Callback<InferTelemetryEvent<GenerateTextStepEndEvent>>;
 
   /**
@@ -154,9 +166,7 @@ export interface Telemetry {
    *
    * @deprecated
    */
-  onObjectStepFinish?: Callback<
-    InferTelemetryEvent<GenerateObjectStepEndEvent>
-  >;
+  onObjectStepEnd?: Callback<InferTelemetryEvent<GenerateObjectStepEndEvent>>;
 
   /**
    * Called when an individual embedding model call (doEmbed) begins.
@@ -193,6 +203,12 @@ export interface Telemetry {
   onEnd?: Callback<InferTelemetryEvent<OperationEndEvent>>;
 
   /**
+   * Called when a streaming text generation operation is aborted before it
+   * completes.
+   */
+  onAbort?: Callback<InferTelemetryEvent<GenerateTextAbortEvent<ToolSet>>>;
+
+  /**
    * Called when an unrecoverable error occurs during the generation lifecycle.
    * The error value is untyped — it may be an `Error` instance, an `AISDKError`,
    * or any thrown value.
@@ -200,6 +216,19 @@ export interface Telemetry {
    * Use this to record error details on telemetry spans and set error status.
    */
   onError?: Callback<unknown>;
+
+  /**
+   * Optionally runs the language model call in a telemetry-integration-specific context. This enables
+   * auto-instrumented model provider requests to become children of the current
+   * model-call span.
+   *
+   * @param options.callId - The call ID of the generation.
+   * @param options.execute - The function that performs the model call.
+   */
+  executeLanguageModelCall?: <T>(options: {
+    callId: string;
+    execute: () => PromiseLike<T>;
+  }) => PromiseLike<T>;
 
   /**
    * Optionally runs the tool execute function in a telemetry-integration-specific context. This enables

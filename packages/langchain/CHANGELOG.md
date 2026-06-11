@@ -1,5 +1,146 @@
 # @ai-sdk/langchain
 
+## 3.0.0-canary.170
+
+### Patch Changes
+
+- Updated dependencies [bae5e2b]
+- Updated dependencies [69d7128]
+  - ai@7.0.0-canary.170
+
+## 3.0.0-canary.169
+
+### Patch Changes
+
+- Updated dependencies [a5018ab]
+- Updated dependencies [21d3d60]
+- Updated dependencies [426dbbb]
+- Updated dependencies [7fd3360]
+  - ai@7.0.0-canary.169
+
+## 3.0.0-canary.168
+
+### Patch Changes
+
+- Updated dependencies [1e4b350]
+  - ai@7.0.0-canary.168
+
+## 3.0.0-canary.167
+
+### Patch Changes
+
+- Updated dependencies [4757690]
+- Updated dependencies [eeefc3f]
+- Updated dependencies [b79b6a8]
+  - ai@7.0.0-canary.167
+
+## 3.0.0-canary.166
+
+### Patch Changes
+
+- c231e42: Surface LangChain citation annotations as spec-compliant `source-url` / `source-document` UI message parts. Previously, citations attached to text content blocks (e.g. from web search or RAG) were dropped entirely instead of being emitted as AI SDK source parts. Citation metadata (`citedText`, `startIndex`, `endIndex`, `source`) is preserved under `providerMetadata.langchain`.
+- Updated dependencies [19736ee]
+- Updated dependencies [d66ae02]
+- Updated dependencies [e4182bd]
+  - ai@7.0.0-canary.166
+
+## 3.0.0-canary.165
+
+### Patch Changes
+
+- Updated dependencies [ce769dd]
+  - ai@7.0.0-canary.165
+
+## 3.0.0-canary.164
+
+### Patch Changes
+
+- ai@7.0.0-canary.164
+
+## 3.0.0-canary.163
+
+### Patch Changes
+
+- 6e23bf2: fix(langchain): register key mapping for tool calls emitted via messages mode for HITL interrupt matching
+- Updated dependencies [ee798eb]
+- Updated dependencies [c907622]
+  - ai@7.0.0-canary.163
+
+## 3.0.0-canary.162
+
+### Patch Changes
+
+- 3711955: fix(langchain): reset streamEvents text between model invocations
+  - ai@7.0.0-canary.162
+
+## 3.0.0-canary.161
+
+### Patch Changes
+
+- ai@7.0.0-canary.161
+
+## 3.0.0-canary.160
+
+### Patch Changes
+
+- ai@7.0.0-canary.160
+
+## 3.0.0-canary.159
+
+### Patch Changes
+
+- Updated dependencies [b5092f5]
+  - ai@7.0.0-canary.159
+
+## 3.0.0-canary.158
+
+### Patch Changes
+
+- Updated dependencies [bcce2dd]
+  - ai@7.0.0-canary.158
+
+## 3.0.0-canary.157
+
+### Patch Changes
+
+- ai@7.0.0-canary.157
+
+## 3.0.0-canary.156
+
+### Patch Changes
+
+- Updated dependencies [023550e]
+- Updated dependencies [e92fc45]
+  - ai@7.0.0-canary.156
+
+## 3.0.0-canary.155
+
+### Patch Changes
+
+- Updated dependencies [e67d80e]
+- Updated dependencies [6cca112]
+- Updated dependencies [82fc0ab]
+- Updated dependencies [76fd58c]
+  - ai@7.0.0-canary.155
+
+## 3.0.0-canary.154
+
+### Patch Changes
+
+- Updated dependencies [594029e]
+  - ai@7.0.0-canary.154
+
+## 3.0.0-canary.153
+
+### Patch Changes
+
+- 62ae6c7: fix(langchain): recognize Python `AIMessageChunk` plain message objects from RemoteGraph streams
+
+  Python `langchain-core` serializes streaming message chunks with `type: "AIMessageChunk"`, while TypeScript `langchain-core` uses `type: "ai"`. The `toUIMessageStream` adapter previously only matched the TypeScript form, silently dropping text deltas and tool-call events when streaming from Python LangGraph servers via `RemoteGraph`.
+
+- Updated dependencies [6c93e36]
+  - ai@7.0.0-canary.153
+
 ## 3.0.0-canary.152
 
 ### Patch Changes

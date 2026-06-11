@@ -144,7 +144,7 @@ run(async () => {
 
   let fullResponse = '';
 
-  for await (const delta of result.fullStream) {
+  for await (const delta of result.stream) {
     switch (delta.type) {
       case 'text-delta': {
         fullResponse += delta.text;

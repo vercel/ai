@@ -196,7 +196,7 @@ export class GoogleJSONAccumulator {
     const startIdx = this.pathStack.length - 1;
 
     for (let i = startIdx; i < targetContainer.length; i++) {
-      const seg = targetContainer[i];
+      const pathSegment = targetContainer[i];
       const parentEntry = this.pathStack[this.pathStack.length - 1];
 
       if (parentEntry.childCount > 0) {
@@ -204,8 +204,8 @@ export class GoogleJSONAccumulator {
       }
       parentEntry.childCount++;
 
-      if (typeof seg === 'string') {
-        fragment += `${JSON.stringify(seg)}:`;
+      if (typeof pathSegment === 'string') {
+        fragment += `${JSON.stringify(pathSegment)}:`;
       }
 
       const childSeg =
@@ -214,7 +214,7 @@ export class GoogleJSONAccumulator {
 
       fragment += isArray ? '[' : '{';
 
-      this.pathStack.push({ segment: seg, isArray, childCount: 0 });
+      this.pathStack.push({ segment: pathSegment, isArray, childCount: 0 });
     }
 
     return fragment;
@@ -287,9 +287,9 @@ function getNestedValue(
   segments: Array<string | number>,
 ): unknown {
   let current: unknown = obj;
-  for (const seg of segments) {
+  for (const pathSegment of segments) {
     if (current == null || typeof current !== 'object') return undefined;
-    current = (current as Record<string | number, unknown>)[seg];
+    current = (current as Record<string | number, unknown>)[pathSegment];
   }
   return current;
 }
@@ -307,12 +307,12 @@ function setNestedValue(
 ): void {
   let current: Record<string | number, unknown> = obj;
   for (let i = 0; i < segments.length - 1; i++) {
-    const seg = segments[i];
+    const pathSegment = segments[i];
     const nextSeg = segments[i + 1];
-    if (current[seg] == null) {
-      current[seg] = typeof nextSeg === 'number' ? [] : {};
+    if (current[pathSegment] == null) {
+      current[pathSegment] = typeof nextSeg === 'number' ? [] : {};
     }
-    current = current[seg] as Record<string | number, unknown>;
+    current = current[pathSegment] as Record<string | number, unknown>;
   }
   current[segments[segments.length - 1]] = value;
 }

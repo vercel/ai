@@ -221,10 +221,13 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       : googleOptions?.serviceTier;
 
     const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
-    const supportsFunctionResponseParts = this.modelId.startsWith('gemini-3');
+    const isGemini3Model = /^gemini-3[.-]/.test(this.modelId);
+    const supportsFunctionResponseParts = isGemini3Model;
 
     const { contents, systemInstruction } = convertToGoogleMessages(prompt, {
       isGemmaModel,
+      isGemini3Model,
+      onWarning: warning => warnings.push(warning),
       providerOptionsNames,
       supportsFunctionResponseParts,
     });

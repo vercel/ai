@@ -230,6 +230,9 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                       approvalId: part.approval.id,
                       toolCallId: part.toolCallId,
                       isAutomatic: part.approval.isAutomatic,
+                      ...(part.approval.signature != null
+                        ? { signature: part.approval.signature }
+                        : {}),
                     });
                   }
 
@@ -346,7 +349,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                         output: {
                           type: 'error-text' as const,
                           value:
-                            toolPart.approval.reason ??
+                            toolPart.approval?.reason ??
                             'Tool call execution denied.',
                         },
                         ...(toolPart.callProviderMetadata != null

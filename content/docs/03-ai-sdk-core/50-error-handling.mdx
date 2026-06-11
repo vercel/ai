@@ -51,7 +51,7 @@ try {
 
 ## Handling streaming errors (streaming with `error` support)
 
-Full streams support error parts.
+The `stream` result supports error parts.
 You can handle those parts similar to other parts.
 It is recommended to also add a try-catch block for errors that
 happen outside of the streaming.
@@ -61,12 +61,12 @@ import { streamText } from 'ai';
 __PROVIDER_IMPORT__;
 
 try {
-  const { fullStream } = streamText({
+  const { stream } = streamText({
     model: __MODEL__,
     prompt: 'Write a vegetarian lasagna recipe for 4 people.',
   });
 
-  for await (const part of fullStream) {
+  for await (const part of stream) {
     switch (part.type) {
       // ... handle other part types
 
@@ -97,7 +97,7 @@ try {
 
 When streams are aborted (e.g., via chat stop button), you may want to perform cleanup operations like updating stored messages in your UI. Use the `onAbort` callback to handle these cases.
 
-The `onAbort` callback is called when a stream is aborted via `AbortSignal`, but `onFinish` is not called. This ensures you can still update your UI state appropriately.
+The `onAbort` callback is called when a stream is aborted via `AbortSignal`, but `onEnd` is not called. This ensures you can still update your UI state appropriately.
 
 ```ts highlight="5-9"
 import { streamText } from 'ai';
@@ -110,7 +110,7 @@ const { textStream } = streamText({
     // Update stored messages or perform cleanup
     console.log('Stream aborted after', steps.length, 'steps');
   },
-  onFinish: ({ steps, totalUsage }) => {
+  onEnd: ({ steps, totalUsage }) => {
     // This is called on normal completion
     console.log('Stream completed normally');
   },
@@ -131,12 +131,12 @@ You can also handle abort events directly in the stream:
 import { streamText } from 'ai';
 __PROVIDER_IMPORT__;
 
-const { fullStream } = streamText({
+const { stream } = streamText({
   model: __MODEL__,
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 
-for await (const chunk of fullStream) {
+for await (const chunk of stream) {
   switch (chunk.type) {
     case 'abort': {
       // Handle abort directly in stream

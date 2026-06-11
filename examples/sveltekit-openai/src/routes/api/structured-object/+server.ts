@@ -1,4 +1,4 @@
-import { Output, streamText } from 'ai';
+import { Output, createTextStreamResponse, streamText, toTextStream } from 'ai';
 import { notificationSchema } from '../../structured-object/schema.js';
 import { createOpenAI } from '@ai-sdk/openai';
 import { env } from '$env/dynamic/private';
@@ -20,5 +20,7 @@ export async function POST({ request }: { request: Request }) {
     },
   });
 
-  return result.toTextStreamResponse();
+  return createTextStreamResponse({
+    stream: toTextStream({ stream: result.stream }),
+  });
 }

@@ -47,13 +47,13 @@ export function mockTextModel(text: string) {
 export function mockSequenceModel(responses: MockResponseDescriptor[]) {
   return mockProvider({
     doStream: async (options: any) => {
-      const idx = Math.min(
+      const responseIndex = Math.min(
         options.prompt.filter((m: any) => m.role === 'assistant').length,
         responses.length - 1,
       );
-      const r = responses[idx];
+      const selectedResponse = responses[responseIndex];
       const parts =
-        r.type === 'text'
+        selectedResponse.type === 'text'
           ? [
               { type: 'stream-start', warnings: [] },
               {
@@ -63,7 +63,7 @@ export function mockSequenceModel(responses: MockResponseDescriptor[]) {
                 timestamp: new Date(),
               },
               { type: 'text-start', id: '1' },
-              { type: 'text-delta', id: '1', delta: r.text },
+              { type: 'text-delta', id: '1', delta: selectedResponse.text },
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
@@ -84,9 +84,9 @@ export function mockSequenceModel(responses: MockResponseDescriptor[]) {
               },
               {
                 type: 'tool-call',
-                toolCallId: `call-${idx + 1}`,
-                toolName: r.toolName,
-                input: r.input,
+                toolCallId: `call-${responseIndex + 1}`,
+                toolName: selectedResponse.toolName,
+                input: selectedResponse.input,
               },
               {
                 type: 'finish',
@@ -100,7 +100,7 @@ export function mockSequenceModel(responses: MockResponseDescriptor[]) {
       return {
         stream: new ReadableStream({
           start(c) {
-            for (const p of parts as any[]) c.enqueue(p);
+            for (const streamPart of parts as any[]) c.enqueue(streamPart);
             c.close();
           },
         }),

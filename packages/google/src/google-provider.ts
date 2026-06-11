@@ -5,6 +5,9 @@ import type {
   ImageModelV4,
   LanguageModelV4,
   ProviderV4,
+  Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
+  Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
+  SpeechModelV4,
 } from '@ai-sdk/provider';
 import {
   generateId,
@@ -28,12 +31,15 @@ import { GoogleImageModel } from './google-image-model';
 import { GoogleFiles } from './google-files';
 import { GoogleVideoModel } from './google-video-model';
 import type { GoogleVideoModelId } from './google-video-settings';
+import { GoogleSpeechModel } from './google-speech-model';
+import type { GoogleSpeechModelId } from './google-speech-model-options';
 import {
   GoogleInteractionsLanguageModel,
   type GoogleInteractionsModelInput,
 } from './interactions/google-interactions-language-model';
 import type { GoogleInteractionsModelId } from './interactions/google-interactions-language-model-options';
 import type { GoogleInteractionsAgentName } from './interactions/google-interactions-agent';
+import { GoogleRealtimeModel } from './realtime/google-realtime-model';
 
 export interface GoogleProvider extends ProviderV4 {
   (modelId: GoogleModelId): LanguageModelV4;
@@ -85,6 +91,16 @@ export interface GoogleProvider extends ProviderV4 {
    */
   videoModel(modelId: GoogleVideoModelId): Experimental_VideoModelV4;
 
+  /**
+   * Creates a model for speech generation (text-to-speech).
+   */
+  speech(modelId: GoogleSpeechModelId): SpeechModelV4;
+
+  /**
+   * Creates a model for speech generation (text-to-speech).
+   */
+  speechModel(modelId: GoogleSpeechModelId): SpeechModelV4;
+
   files(): FilesV4;
 
   /**
@@ -101,6 +117,8 @@ export interface GoogleProvider extends ProviderV4 {
       | { agent: GoogleInteractionsAgentName }
       | { managedAgent: string },
   ): LanguageModelV4;
+
+  experimental_realtime: RealtimeFactoryV4;
 
   tools: typeof googleTools;
 }
@@ -223,6 +241,41 @@ export function createGoogle(
       generateId: options.generateId ?? generateId,
     });
 
+  const createRealtimeModel = (modelId: string) =>
+    new GoogleRealtimeModel(modelId, {
+      provider: `${providerName}.realtime`,
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
+  const createSpeechModel = (modelId: GoogleSpeechModelId) =>
+    new GoogleSpeechModel(modelId, {
+      provider: `${providerName}.speech`,
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
+  const experimentalRealtimeFactory = Object.assign(
+    (modelId: string) => createRealtimeModel(modelId),
+    {
+      getToken: async (tokenOptions: RealtimeFactoryV4GetTokenOptions) => {
+        const model = createRealtimeModel(tokenOptions.model);
+        const secret = await model.doCreateClientSecret({
+          sessionConfig: tokenOptions.sessionConfig,
+          expiresAfterSeconds: tokenOptions.expiresAfterSeconds,
+        });
+
+        return {
+          token: secret.token,
+          url: secret.url,
+          expiresAt: secret.expiresAt,
+        };
+      },
+    },
+  ) as RealtimeFactoryV4;
+
   const createInteractionsModel = (
     modelIdOrAgent:
       | GoogleInteractionsModelId
@@ -262,7 +315,10 @@ export function createGoogle(
   provider.imageModel = createImageModel;
   provider.video = createVideoModel;
   provider.videoModel = createVideoModel;
+  provider.experimental_realtime = experimentalRealtimeFactory;
   provider.files = createFiles;
+  provider.speech = createSpeechModel;
+  provider.speechModel = createSpeechModel;
   provider.interactions = createInteractionsModel;
   provider.tools = googleTools;
 

@@ -14,20 +14,46 @@ pnpm add @ai-sdk/devtools
 
 ## Requirements
 
-- AI SDK v6 beta (`ai@^6.0.0-beta.0`)
+- AI SDK v7 canary (`ai@canary`)
 - Node.js compatible runtime
 
 ## Usage
 
-### 1. Add the middleware to your model
+### 1. Register the telemetry integration
+
+Register `DevToolsTelemetry` globally so it captures all AI SDK calls:
 
 ```typescript
-import { wrapLanguageModel } from 'ai';
-import { devToolsMiddleware } from '@ai-sdk/devtools';
+import { registerTelemetry } from 'ai';
+import { DevToolsTelemetry } from '@ai-sdk/devtools';
 
-const model = wrapLanguageModel({
-  middleware: devToolsMiddleware(),
+registerTelemetry(DevToolsTelemetry());
+```
+
+Telemetry is enabled automatically once an integration is registered:
+
+```typescript
+import { generateText } from 'ai';
+
+const result = await generateText({
   model: yourModel,
+  prompt: 'What cities are in the United States?',
+});
+```
+
+You can also pass the integration to individual calls instead of registering it
+globally:
+
+```typescript
+import { streamText } from 'ai';
+import { DevToolsTelemetry } from '@ai-sdk/devtools';
+
+const result = streamText({
+  model: yourModel,
+  prompt: 'Hello!',
+  telemetry: {
+    integrations: [DevToolsTelemetry()],
+  },
 });
 ```
 
@@ -39,21 +65,26 @@ npx @ai-sdk/devtools
 
 Open http://localhost:4983 to view your AI SDK interactions.
 
+If you are using a monorepo, start DevTools from the same workspace where your
+AI SDK code runs.
+
 ## How it works
 
-The middleware intercepts all `generateText` and `streamText` calls, capturing:
+The `DevToolsTelemetry` integration hooks into the AI SDK telemetry lifecycle to
+capture `generateText`, `streamText`, `generateObject`, and `streamObject` calls.
+It captures:
 
 - Input parameters and prompts
 - Output content and tool calls
 - Token usage and timing
-- Raw provider request/response data
+- Raw provider data
 
 Data is stored locally in a JSON file (`.devtools/generations.json`) and served through a web UI.
 
 ### Data flow
 
 ```
-AI SDK call → devToolsMiddleware → JSON file → Hono API → React UI
+AI SDK call -> DevToolsTelemetry -> JSON file -> Hono API -> React UI
 ```
 
 ### Key concepts

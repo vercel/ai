@@ -1536,6 +1536,164 @@ describe('AnthropicLanguageModel', () => {
       `);
     });
 
+    describe('refusal stop reason', () => {
+      it('should map a classifier refusal to content-filter and expose stop details', async () => {
+        prepareJsonFixtureResponse('anthropic-refusal');
+
+        const result = await provider('claude-fable-5').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.finishReason).toMatchInlineSnapshot(`
+          {
+            "raw": "refusal",
+            "unified": "content-filter",
+          }
+        `);
+        expect(result.providerMetadata?.anthropic?.stopDetails)
+          .toMatchInlineSnapshot(`
+          {
+            "category": "cyber",
+            "explanation": "This request triggered restrictions on violative cyber content and was blocked under Anthropic's Usage Policy.",
+            "recommendedModel": "claude-fable-5",
+            "type": "refusal",
+          }
+        `);
+      });
+
+      it('should map a refusal without stop details to content-filter and omit stop details', async () => {
+        prepareJsonFixtureResponse('anthropic-refusal-no-details');
+
+        const result = await provider('claude-fable-5').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.finishReason).toMatchInlineSnapshot(`
+          {
+            "raw": "refusal",
+            "unified": "content-filter",
+          }
+        `);
+        expect(result.providerMetadata?.anthropic?.stopDetails).toBeUndefined();
+      });
+    });
+
+    describe('fallbacks', () => {
+      it('should pass fallbacks to the request body and add the beta header', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await provider('claude-fable-5').doGenerate({
+          prompt: TEST_PROMPT,
+          maxOutputTokens: 1024,
+          providerOptions: {
+            anthropic: {
+              fallbacks: [
+                {
+                  model: 'claude-opus-4-8',
+                  max_tokens: 8192,
+                  thinking: { type: 'disabled' },
+                  speed: 'fast',
+                },
+              ],
+            } satisfies AnthropicLanguageModelOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "fallbacks": [
+              {
+                "max_tokens": 8192,
+                "model": "claude-opus-4-8",
+                "speed": "fast",
+                "thinking": {
+                  "type": "disabled",
+                },
+              },
+            ],
+            "max_tokens": 1024,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-fable-5",
+          }
+        `);
+
+        expect(server.calls[0].requestHeaders['anthropic-beta']).toBe(
+          'server-side-fallback-2026-06-01',
+        );
+      });
+
+      it('should not add the beta header when fallbacks is an empty array', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await provider('claude-fable-5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              fallbacks: [],
+            } satisfies AnthropicLanguageModelOptions,
+          },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.fallbacks).toBeUndefined();
+        expect(
+          server.calls[0].requestHeaders['anthropic-beta'],
+        ).toBeUndefined();
+      });
+
+      it('should drop the fallback content block and surface the fallback iteration', async () => {
+        prepareJsonFixtureResponse('anthropic-fallback');
+
+        const result = await provider('claude-fable-5').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        // The `fallback` content block is dropped; only the served answer text remains.
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "text": "The printing press was invented by Johannes Gutenberg around 1440.",
+              "type": "text",
+            },
+          ]
+        `);
+
+        // The fallback hop is preserved in the Anthropic-specific iterations.
+        expect(result.providerMetadata?.anthropic?.iterations)
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "inputTokens": 408,
+              "model": "claude-fable-5",
+              "outputTokens": 0,
+              "type": "message",
+            },
+            {
+              "inputTokens": 412,
+              "model": "claude-opus-4-8",
+              "outputTokens": 264,
+              "type": "fallback_message",
+            },
+          ]
+        `);
+
+        // Top-level usage reflects the served (fallback) answer, not the
+        // blocked primary attempt (which had 0 output tokens).
+        expect(result.usage.inputTokens.total).toBe(412);
+        expect(result.usage.outputTokens.total).toBe(264);
+      });
+    });
+
     it('should expose the raw response headers', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'json-value',
@@ -4104,6 +4262,185 @@ describe('AnthropicLanguageModel', () => {
       });
     });
 
+    describe('code execution file uploads', () => {
+      it('should send container upload content with code execution tool and parse results', async () => {
+        prepareJsonFixtureResponse('anthropic-code-execution-file-upload.1');
+
+        const result = await model.doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Analyze this CSV data.',
+                },
+                {
+                  type: 'file',
+                  mediaType: 'text/csv',
+                  data: {
+                    type: 'reference',
+                    reference: { anthropic: 'file-csv-12345' },
+                  },
+                  providerOptions: {
+                    anthropic: {
+                      containerUpload: true,
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.code_execution_20250825',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Analyze this CSV data.",
+                    "type": "text",
+                  },
+                  {
+                    "file_id": "file-csv-12345",
+                    "type": "container_upload",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+            "tools": [
+              {
+                "name": "code_execution",
+                "type": "code_execution_20250825",
+              },
+            ],
+          }
+        `);
+
+        expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+          {
+            "anthropic-beta": "files-api-2025-04-14,code-execution-2025-08-25",
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+            "x-api-key": "test-api-key",
+          }
+        `);
+
+        expect(result.content).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              type: 'tool-call',
+              toolCallId: 'srvtoolu_01Bxt8MXPF5wYdD7KH2HLPzR',
+              toolName: 'code_execution',
+              input:
+                '{"type":"text_editor_code_execution","command":"view","path":"$INPUT_DIR/sample.csv"}',
+              providerExecuted: true,
+            }),
+            expect.objectContaining({
+              type: 'tool-result',
+              toolCallId: 'srvtoolu_01Bxt8MXPF5wYdD7KH2HLPzR',
+              toolName: 'code_execution',
+              result: expect.objectContaining({
+                type: 'text_editor_code_execution_view_result',
+                content: expect.stringContaining(
+                  'month,revenue,expenses,profit',
+                ),
+              }),
+            }),
+            expect.objectContaining({
+              type: 'tool-call',
+              toolCallId: 'srvtoolu_0142vFu9QyCKuFZ2X14zqBLR',
+              toolName: 'code_execution',
+              providerExecuted: true,
+            }),
+            expect.objectContaining({
+              type: 'tool-result',
+              toolCallId: 'srvtoolu_0142vFu9QyCKuFZ2X14zqBLR',
+              toolName: 'code_execution',
+              result: expect.objectContaining({
+                type: 'bash_code_execution_result',
+                stdout: expect.stringContaining('Total Profit: $35400'),
+              }),
+            }),
+          ]),
+        );
+
+        expect(result.providerMetadata?.anthropic?.container).toMatchObject({
+          id: 'container_011CbJPykM9av9Vj1cQkVu87',
+        });
+      });
+
+      it('should send container id for a follow-up code execution turn', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await model.doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Use the uploaded CSV from the existing container.',
+                },
+              ],
+            },
+          ],
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.code_execution_20250825',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+          providerOptions: {
+            anthropic: {
+              container: {
+                id: 'container_12345',
+              },
+            } satisfies AnthropicLanguageModelOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "container": "container_12345",
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Use the uploaded CSV from the existing container.",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+            "tools": [
+              {
+                "name": "code_execution",
+                "type": "code_execution_20250825",
+              },
+            ],
+          }
+        `);
+      });
+    });
+
     describe('agent skills', () => {
       it('should send request body with skills in container', async () => {
         prepareJsonFixtureResponse(
@@ -6638,6 +6975,79 @@ describe('AnthropicLanguageModel', () => {
       });
     });
 
+    it('should map a streamed classifier refusal to content-filter and expose stop details', async () => {
+      prepareChunksFixtureResponse('anthropic-refusal');
+
+      const { stream } = await provider('claude-fable-5').doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+      const finishPart = result.find(part => part.type === 'finish');
+
+      expect(finishPart).toMatchObject({
+        type: 'finish',
+        finishReason: {
+          unified: 'content-filter',
+          raw: 'refusal',
+        },
+      });
+      expect(
+        finishPart?.type === 'finish'
+          ? finishPart.providerMetadata?.anthropic?.stopDetails
+          : undefined,
+      ).toMatchInlineSnapshot(`
+        {
+          "category": "cyber",
+          "explanation": "This request triggered restrictions on violative cyber content and was blocked under Anthropic's Usage Policy.",
+          "recommendedModel": "claude-fable-5",
+          "type": "refusal",
+        }
+      `);
+    });
+
+    it('should drop the streamed fallback content block and surface the fallback iteration', async () => {
+      prepareChunksFixtureResponse('anthropic-fallback');
+
+      const { stream } = await provider('claude-fable-5').doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+
+      // No content parts are emitted for the dropped `fallback` block; only
+      // the served answer text streams through.
+      const textDeltas = result
+        .filter(part => part.type === 'text-delta')
+        .map(part => (part.type === 'text-delta' ? part.delta : ''))
+        .join('');
+      expect(textDeltas).toBe(
+        'The printing press was invented by Johannes Gutenberg around 1440.',
+      );
+
+      const finishPart = result.find(part => part.type === 'finish');
+      expect(
+        finishPart?.type === 'finish'
+          ? finishPart.providerMetadata?.anthropic?.iterations
+          : undefined,
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "inputTokens": 408,
+            "model": "claude-fable-5",
+            "outputTokens": 0,
+            "type": "message",
+          },
+          {
+            "inputTokens": 412,
+            "model": "claude-opus-4-8",
+            "outputTokens": 264,
+            "type": "fallback_message",
+          },
+        ]
+      `);
+    });
+
     it('should stream reasoning deltas', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'stream-chunks',
@@ -8417,6 +8827,137 @@ describe('AnthropicLanguageModel', () => {
         `);
       });
     });
+
+    describe('code execution file uploads', () => {
+      it('should stream container upload code execution results', async () => {
+        prepareChunksFixtureResponse('anthropic-code-execution-file-upload.1');
+
+        const result = await model.doStream({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Analyze this CSV data.',
+                },
+                {
+                  type: 'file',
+                  mediaType: 'text/csv',
+                  data: {
+                    type: 'reference',
+                    reference: { anthropic: 'file-csv-12345' },
+                  },
+                  providerOptions: {
+                    anthropic: {
+                      containerUpload: true,
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.code_execution_20250825',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(result.stream);
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Analyze this CSV data.",
+                    "type": "text",
+                  },
+                  {
+                    "file_id": "file-csv-12345",
+                    "type": "container_upload",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+            "stream": true,
+            "tools": [
+              {
+                "name": "code_execution",
+                "type": "code_execution_20250825",
+              },
+            ],
+          }
+        `);
+
+        expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+          {
+            "anthropic-beta": "files-api-2025-04-14,code-execution-2025-08-25",
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+            "x-api-key": "test-api-key",
+          }
+        `);
+
+        expect(parts).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              type: 'tool-call',
+              toolCallId: 'srvtoolu_01UAM7DM8XEfNwyddFNKpVp2',
+              toolName: 'code_execution',
+              input: expect.stringContaining('$INPUT_DIR/sample.csv'),
+              providerExecuted: true,
+            }),
+            expect.objectContaining({
+              type: 'tool-result',
+              toolCallId: 'srvtoolu_01UAM7DM8XEfNwyddFNKpVp2',
+              toolName: 'code_execution',
+              result: expect.objectContaining({
+                type: 'text_editor_code_execution_view_result',
+                content: expect.stringContaining(
+                  'month,revenue,expenses,profit',
+                ),
+              }),
+            }),
+            expect.objectContaining({
+              type: 'tool-call',
+              toolCallId: 'srvtoolu_01P2RuXQdkVngtqpdr2dQhv2',
+              toolName: 'code_execution',
+              input: expect.stringContaining('python /tmp/analyze_data.py'),
+              providerExecuted: true,
+            }),
+            expect.objectContaining({
+              type: 'tool-result',
+              toolCallId: 'srvtoolu_01P2RuXQdkVngtqpdr2dQhv2',
+              toolName: 'code_execution',
+              result: expect.objectContaining({
+                type: 'bash_code_execution_result',
+                stdout: expect.stringContaining('Total Profit: $35,400.00'),
+              }),
+            }),
+            expect.objectContaining({
+              type: 'finish',
+              providerMetadata: {
+                anthropic: expect.objectContaining({
+                  container: expect.objectContaining({
+                    id: 'container_011CbJQ7DqpL337rdwQ76jnu',
+                  }),
+                }),
+              },
+            }),
+          ]),
+        );
+      });
+    });
+
     describe('mcp servers', () => {
       it('should stream code execution tool results', async () => {
         prepareChunksFixtureResponse('anthropic-mcp.1');
@@ -10062,6 +10603,32 @@ describe('AnthropicLanguageModel', () => {
 });
 
 describe('getModelCapabilities', () => {
+  it('should return correct capabilities for claude-opus-4-8', () => {
+    expect(getModelCapabilities('claude-opus-4-8')).toMatchInlineSnapshot(`
+      {
+        "isKnownModel": true,
+        "maxOutputTokens": 128000,
+        "rejectsSamplingParameters": true,
+        "supportsAdaptiveThinking": true,
+        "supportsStructuredOutput": true,
+        "supportsXhighEffort": true,
+      }
+    `);
+  });
+
+  it('should return correct capabilities for claude-fable-5', () => {
+    expect(getModelCapabilities('claude-fable-5')).toMatchInlineSnapshot(`
+      {
+        "isKnownModel": true,
+        "maxOutputTokens": 128000,
+        "rejectsSamplingParameters": true,
+        "supportsAdaptiveThinking": true,
+        "supportsStructuredOutput": true,
+        "supportsXhighEffort": true,
+      }
+    `);
+  });
+
   it('should return correct capabilities for claude-opus-4-7', () => {
     expect(getModelCapabilities('claude-opus-4-7')).toMatchInlineSnapshot(`
       {

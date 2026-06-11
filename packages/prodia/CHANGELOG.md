@@ -1,5 +1,40 @@
 # @ai-sdk/prodia
 
+## 2.0.0-canary.51
+
+### Patch Changes
+
+- 6e8917f: fix(prodia): validate user-supplied image URLs before fetching (SSRF)
+
+  The Prodia video model's `resolveVideoFileData` fetched a user-supplied `image` URL directly with `fetch()`, bypassing the SDK's SSRF guard. An attacker who could supply the image URL could make the server request internal endpoints (e.g. cloud metadata) and have the response uploaded to Prodia's API. The URL is now downloaded via `downloadBlob`, which routes through `validateDownloadUrl` and rejects private/internal addresses, matching the pattern used by other providers.
+
+- Updated dependencies [bae5e2b]
+  - @ai-sdk/provider-utils@5.0.0-canary.47
+
+## 2.0.0-canary.50
+
+### Patch Changes
+
+- Updated dependencies [ce769dd]
+  - @ai-sdk/provider@4.0.0-canary.18
+  - @ai-sdk/provider-utils@5.0.0-canary.46
+
+## 2.0.0-canary.49
+
+### Patch Changes
+
+- Updated dependencies [ee798eb]
+- Updated dependencies [daf6637]
+  - @ai-sdk/provider-utils@5.0.0-canary.45
+
+## 2.0.0-canary.48
+
+### Patch Changes
+
+- Updated dependencies [6c93e36]
+- Updated dependencies [f617ac2]
+  - @ai-sdk/provider-utils@5.0.0-canary.44
+
 ## 2.0.0-canary.47
 
 ### Patch Changes

@@ -21,7 +21,7 @@ run(async () => {
     prompt: 'Navigate to https://example.com with default launch options',
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     if (part.type === 'tool-call') {
       console.log('Tool call:', part.toolName, part.input);
     }

@@ -56,13 +56,14 @@ describe('google-vertex-maas-provider', () => {
     // Trigger lazy init
     provider('test-model');
 
-    expect(createOpenAICompatible).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: 'vertex.maas',
-        baseURL:
-          'https://aiplatform.googleapis.com/v1/projects/test-project/locations/global/endpoints/openapi',
-      }),
-    );
+    expect(vi.mocked(createOpenAICompatible).mock.calls[0][0])
+      .toMatchInlineSnapshot(`
+        {
+          "baseURL": "https://aiplatform.googleapis.com/v1/projects/test-project/locations/global/endpoints/openapi",
+          "fetch": undefined,
+          "name": "vertex.maas",
+        }
+      `);
   });
 
   it('should create a provider with correct base URL for regional location', () => {
@@ -73,13 +74,32 @@ describe('google-vertex-maas-provider', () => {
 
     provider('test-model');
 
-    expect(createOpenAICompatible).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: 'vertex.maas',
-        baseURL:
-          'https://aiplatform.googleapis.com/v1/projects/test-project/locations/us-central1/endpoints/openapi',
-      }),
-    );
+    expect(vi.mocked(createOpenAICompatible).mock.calls[0][0])
+      .toMatchInlineSnapshot(`
+        {
+          "baseURL": "https://us-central1-aiplatform.googleapis.com/v1/projects/test-project/locations/us-central1/endpoints/openapi",
+          "fetch": undefined,
+          "name": "vertex.maas",
+        }
+      `);
+  });
+
+  it('should create a provider with correct base URL for multi-region location', () => {
+    const provider = createGoogleVertexMaas({
+      project: 'test-project',
+      location: 'eu',
+    });
+
+    provider('test-model');
+
+    expect(vi.mocked(createOpenAICompatible).mock.calls[0][0])
+      .toMatchInlineSnapshot(`
+        {
+          "baseURL": "https://aiplatform.eu.rep.googleapis.com/v1/projects/test-project/locations/eu/endpoints/openapi",
+          "fetch": undefined,
+          "name": "vertex.maas",
+        }
+      `);
   });
 
   it('should default to global location when not specified', () => {
@@ -181,7 +201,7 @@ describe('google-vertex-maas-provider', () => {
     expect(createOpenAICompatible).toHaveBeenCalledWith(
       expect.objectContaining({
         baseURL:
-          'https://aiplatform.googleapis.com/v1/projects/test-project/locations/us-central1/endpoints/openapi',
+          'https://us-central1-aiplatform.googleapis.com/v1/projects/test-project/locations/us-central1/endpoints/openapi',
       }),
     );
   });
