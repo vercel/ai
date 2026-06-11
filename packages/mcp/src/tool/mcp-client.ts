@@ -498,7 +498,10 @@ class DefaultMCPClient implements MCPClient {
       const listToolsResult = await this.listTools();
 
       for (const { name, description, inputSchema } of listToolsResult.tools) {
-        if (schemas !== 'automatic' && !Object.hasOwn(schemas, name)) {
+        if (
+          schemas !== 'automatic' &&
+          !Object.prototype.hasOwnProperty.call(schemas, name)
+        ) {
           continue;
         }
 
