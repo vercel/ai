@@ -11,16 +11,11 @@ export { convertImageModelFileToDataUri } from './convert-image-model-file-to-da
 export { convertToFormData } from './convert-to-form-data';
 export { downloadBlob } from './download-blob';
 export { DownloadError } from './download-error';
-<<<<<<< HEAD
 export {
   readResponseWithSizeLimit,
   DEFAULT_MAX_DOWNLOAD_SIZE,
 } from './read-response-with-size-limit';
-=======
 export { fetchWithValidatedRedirects } from './fetch-with-validated-redirects';
-export { extractLines } from './extract-lines';
-export * from './extract-response-headers';
->>>>>>> 375fdd7eea (fix(provider-utils,ai): harden download SSRF guard against hostname and redirect bypasses (#15980))
 export * from './fetch-function';
 export { createIdGenerator, generateId, type IdGenerator } from './generate-id';
 export * from './get-error-message';
@@ -28,11 +23,7 @@ export * from './get-from-api';
 export { getRuntimeEnvironmentUserAgent } from './get-runtime-environment-user-agent';
 export { injectJsonInstructionIntoMessages } from './inject-json-instruction';
 export * from './is-abort-error';
-<<<<<<< HEAD
-=======
 export { isBrowserRuntime } from './is-browser-runtime';
-export { isBuffer } from './is-buffer';
->>>>>>> 375fdd7eea (fix(provider-utils,ai): harden download SSRF guard against hostname and redirect bypasses (#15980))
 export { isNonNullable } from './is-non-nullable';
 export { isUrlSupported } from './is-url-supported';
 export * from './load-api-key';
