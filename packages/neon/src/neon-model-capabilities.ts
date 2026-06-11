@@ -5,6 +5,37 @@ export type NeonModelFamily =
   | 'meta'
   | 'other';
 
+/**
+ * Which gateway endpoint a model should be routed to.
+ *
+ * - `anthropic`: native Messages API — unlocks streaming structured output and
+ *   native reasoning for Claude models.
+ * - `openai`: native Responses API — unlocks models served only natively (e.g.
+ *   Codex) plus native reasoning and the image-generation tool.
+ * - `mlflow`: the unified, OpenAI-compatible endpoint (the fallback). Gemini is
+ *   routed here because the gateway's native Gemini endpoint does not support
+ *   streaming (`streamGenerateContent` is rejected), whereas the unified
+ *   endpoint streams Gemini responses normally.
+ */
+export type NeonModelRoute = 'anthropic' | 'openai' | 'mlflow';
+
+export function getNeonModelRoute(modelId: string): NeonModelRoute {
+  const id = modelId.toLowerCase();
+  if (id.includes('claude')) {
+    return 'anthropic';
+  }
+  // OpenAI proprietary models (gpt-4/gpt-5 families, Codex) are served only via
+  // the native Responses API. `gpt-oss` is open-weight and served on the
+  // unified chat endpoint, so it is intentionally excluded here.
+  if (
+    (id.includes('gpt-') && !id.includes('gpt-oss')) ||
+    id.includes('codex')
+  ) {
+    return 'openai';
+  }
+  return 'mlflow';
+}
+
 export interface NeonModelCapabilities {
   family: NeonModelFamily;
   supportsTemperature: boolean;
@@ -68,9 +99,13 @@ export function getNeonModelCapabilities(
     return { family: 'google', ...PERMISSIVE, supportsReasoningEffort: false };
   }
 
-  // OpenAI GPT-5 reasoning family: rejects penalties and stop. The original
-  // gpt-5 / gpt-5-mini / gpt-5-nano also require the default temperature and
-  // reject topP; gpt-5.1+ (a minor version digit follows) accept them again.
+  // OpenAI GPT-5 reasoning family (routed to the native Responses API). The
+  // Responses model already strips parameters the Responses API doesn't accept
+  // (penalties, seed, stop), but its reasoning-model detection matches the bare
+  // model id (`gpt-5`), which the gateway's `databricks-` prefix defeats. So we
+  // only need to handle the temperature/topP restriction here: the original
+  // gpt-5 / gpt-5-mini / gpt-5-nano require the default temperature and reject
+  // topP, while gpt-5.1+ (a minor version digit follows) accept them again.
   if (/gpt-5/.test(id)) {
     const hasMinorVersion = /gpt-5[.-]\d/.test(id);
     return {
@@ -78,9 +113,9 @@ export function getNeonModelCapabilities(
       supportsTemperature: hasMinorVersion,
       supportsTopP: hasMinorVersion,
       temperatureTopPMutuallyExclusive: false,
-      supportsPenalties: false,
+      supportsPenalties: true,
       supportsSeed: true,
-      supportsStopSequences: false,
+      supportsStopSequences: true,
       supportsReasoningEffort: true,
     };
   }

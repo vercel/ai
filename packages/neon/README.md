@@ -65,20 +65,32 @@ The authoritative, always-current catalog is shown in the Neon Console under the
 
 Any other catalog id can be passed as a plain string.
 
+## Routing
+
+The Neon gateway exposes provider-native endpoints alongside a unified, OpenAI-compatible MLflow endpoint. To maximize feature coverage (and support models that are only served natively, such as **Codex**), the provider routes each model to the best endpoint based on its id:
+
+| Model family | Endpoint | Why |
+| --- | --- | --- |
+| Anthropic (`databricks-claude-*`) | native Messages API | streaming structured output + native reasoning |
+| OpenAI (`databricks-gpt-*`, `*-codex`) | native Responses API | Codex (native-only), native reasoning, image-gen tool |
+| Everything else (Gemini, Llama, Qwen, gpt-oss, ...) | unified MLflow endpoint | broad coverage; Gemini is here because its native gateway endpoint does not support streaming |
+
+This is transparent — you always use the same `neon('databricks-...')` call, the same base URL, and the same token.
+
 ## Capabilities and limitations
 
-The gateway is a single OpenAI-compatible endpoint that proxies to multiple upstream providers. The following work across the catalog:
+Verified across Anthropic, OpenAI (incl. Codex), Google, and Meta models:
 
 - `generateText` / `streamText` (text, system prompts, multi-turn)
 - Tool calling (single and multi-step, generate and stream)
-- `generateObject` (structured output)
+- `generateObject` / `streamObject` (structured output)
 - Image (vision) input
 
-Backend-specific notes:
+Notes:
 
-- **`streamObject`** works for OpenAI, Google, and Meta models; Databricks-hosted Anthropic (Claude) models reject structured output while streaming — use `generateObject` instead.
-- **Sampling parameters**: the gateway proxies to heterogeneous backends that accept different parameter subsets. The provider detects the model family and **drops unsupported parameters with an AI SDK warning** (`result.warnings`) instead of failing the request — e.g. Anthropic drops `frequencyPenalty`/`presencePenalty`/`seed` and `topP` (when `temperature` is set); `gpt-5*` reasoning models drop penalties/`stop` (and `temperature`/`topP` for `gpt-5`/`-mini`/`-nano`); `reasoningEffort` is dropped for Anthropic/Gemini. Unknown models are passed through unchanged.
-- **Image generation (`generateImage`) and embeddings (`embed`/`embedMany`) are not offered** by the gateway and throw `NoSuchModelError`.
+- **Sampling parameters**: native-routed models use the official provider's parameter handling. For MLflow-routed models the provider detects the family and **drops unsupported parameters with an AI SDK warning** (`result.warnings`) instead of failing — e.g. Meta (Llama) drops `frequencyPenalty`/`presencePenalty`/`seed`; `reasoningEffort` is dropped for Gemini. Unknown models pass through unchanged.
+- **Image generation (`generateImage`) and embeddings (`embed`/`embedMany`) are not offered** by the gateway and throw `NoSuchModelError`. (Image generation is available only as the OpenAI Responses `image_generation` *tool*, and is currently limited by the gateway's response-size cap.)
+- **`gpt-oss-*`** models return a non-standard response shape on the unified endpoint and are not fully supported.
 
 ## Documentation
 

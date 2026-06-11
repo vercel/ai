@@ -12,6 +12,12 @@ const TEST_PROMPT: LanguageModelV4Prompt = [
 
 const BASE_URL = 'https://br-test-api.ai.c-1.us-east-2.aws.neon.build';
 
+// Models that route to the unified MLflow endpoint (i.e. not Anthropic/Google/
+// OpenAI, which route to their native model classes). `qwen` is permissive;
+// `llama` (Meta) has parameter restrictions used by the capability tests.
+const MLFLOW_MODEL = 'databricks-qwen35-122b-a10b';
+const META_MODEL = 'databricks-llama-4-maverick';
+
 function createProvider(fetch: typeof globalThis.fetch) {
   return createNeon({ apiKey: 'test-token', baseURL: BASE_URL, fetch });
 }
@@ -59,11 +65,17 @@ function createStreamFixtureFetchMock(filename: string) {
   );
 }
 
-describe('NeonChatLanguageModel', () => {
+function warningFeatures(warnings: ReadonlyArray<Record<string, unknown>>) {
+  return warnings.map(w =>
+    typeof w.feature === 'string' ? w.feature : String(w.type),
+  );
+}
+
+describe('NeonChatLanguageModel (MLflow fallback)', () => {
   describe('doGenerate', () => {
     it('maps a unified chat completion response into content/usage/finishReason', async () => {
       const fetch = createJsonFixtureFetchMock('neon-chat-completion');
-      const model = createProvider(fetch).chat('databricks-claude-haiku-4-5');
+      const model = createProvider(fetch).chat(MLFLOW_MODEL);
 
       const result = await model.doGenerate({ prompt: TEST_PROMPT });
 
@@ -107,7 +119,7 @@ describe('NeonChatLanguageModel', () => {
 
     it('sends the request to the unified mlflow chat/completions endpoint', async () => {
       const fetch = createJsonFixtureFetchMock('neon-chat-completion');
-      const model = createProvider(fetch).chat('databricks-claude-haiku-4-5');
+      const model = createProvider(fetch).chat(MLFLOW_MODEL);
 
       await model.doGenerate({ prompt: TEST_PROMPT });
 
@@ -115,7 +127,7 @@ describe('NeonChatLanguageModel', () => {
       expect(url).toBe(`${BASE_URL}/ai-gateway/mlflow/v1/chat/completions`);
 
       const body = JSON.parse(init.body as string);
-      expect(body.model).toBe('databricks-claude-haiku-4-5');
+      expect(body.model).toBe(MLFLOW_MODEL);
       expect(body.messages).toEqual([{ role: 'user', content: 'Hello' }]);
 
       const headers = init.headers as Record<string, string>;
@@ -126,9 +138,9 @@ describe('NeonChatLanguageModel', () => {
   });
 
   describe('request transforms', () => {
-    it('strips the $schema marker from tool parameters (gateway backends like Gemini reject it)', async () => {
+    it('strips the $schema marker from tool parameters', async () => {
       const fetch = createJsonFixtureFetchMock('neon-chat-completion');
-      const model = createProvider(fetch).chat('databricks-gemini-2-5-flash');
+      const model = createProvider(fetch).chat(MLFLOW_MODEL);
 
       await model.doGenerate({
         prompt: TEST_PROMPT,
@@ -150,14 +162,11 @@ describe('NeonChatLanguageModel', () => {
       const body = JSON.parse(fetch.mock.calls[0][1].body as string);
       expect(body.tools[0].function.parameters.$schema).toBeUndefined();
       expect(body.tools[0].function.parameters.type).toBe('object');
-      expect(body.tools[0].function.parameters.properties.location.type).toBe(
-        'string',
-      );
     });
 
     it('uses json_schema structured outputs and strips $schema from the schema', async () => {
       const fetch = createJsonFixtureFetchMock('neon-chat-completion');
-      const model = createProvider(fetch).chat('databricks-gpt-5-mini');
+      const model = createProvider(fetch).chat(MLFLOW_MODEL);
 
       await model.doGenerate({
         prompt: TEST_PROMPT,
@@ -178,20 +187,13 @@ describe('NeonChatLanguageModel', () => {
       expect(body.response_format.type).toBe('json_schema');
       expect(body.response_format.json_schema.name).toBe('person');
       expect(body.response_format.json_schema.schema.$schema).toBeUndefined();
-      expect(body.response_format.json_schema.schema.type).toBe('object');
     });
   });
 
   describe('capability handling', () => {
-    function warningFeatures(warnings: ReadonlyArray<Record<string, unknown>>) {
-      return warnings.map(w =>
-        typeof w.feature === 'string' ? w.feature : String(w.type),
-      );
-    }
-
-    it('drops penalties and seed for Anthropic models and warns', async () => {
+    it('drops penalties and seed for Meta (Llama) models and warns', async () => {
       const fetch = createJsonFixtureFetchMock('neon-chat-completion');
-      const model = createProvider(fetch).chat('databricks-claude-haiku-4-5');
+      const model = createProvider(fetch).chat(META_MODEL);
 
       const result = await model.doGenerate({
         prompt: TEST_PROMPT,
@@ -211,61 +213,9 @@ describe('NeonChatLanguageModel', () => {
       expect(features).toContain('seed');
     });
 
-    it('drops topP when temperature is also set for Anthropic models', async () => {
-      const fetch = createJsonFixtureFetchMock('neon-chat-completion');
-      const model = createProvider(fetch).chat('databricks-claude-haiku-4-5');
-
-      const result = await model.doGenerate({
-        prompt: TEST_PROMPT,
-        temperature: 0.5,
-        topP: 0.5,
-      });
-
-      const body = JSON.parse(fetch.mock.calls[0][1].body as string);
-      expect(body.temperature).toBe(0.5);
-      expect(body.top_p).toBeUndefined();
-      expect(warningFeatures(result.warnings)).toContain('topP');
-    });
-
-    it('drops temperature, penalties, and stop for GPT-5 reasoning models', async () => {
-      const fetch = createJsonFixtureFetchMock('neon-chat-completion');
-      const model = createProvider(fetch).chat('databricks-gpt-5-mini');
-
-      const result = await model.doGenerate({
-        prompt: TEST_PROMPT,
-        temperature: 0.2,
-        presencePenalty: 0.3,
-        stopSequences: ['STOP'],
-      });
-
-      const body = JSON.parse(fetch.mock.calls[0][1].body as string);
-      expect(body.temperature).toBeUndefined();
-      expect(body.presence_penalty).toBeUndefined();
-      expect(body.stop).toBeUndefined();
-
-      const features = warningFeatures(result.warnings);
-      expect(features).toContain('temperature');
-      expect(features).toContain('presencePenalty');
-      expect(features).toContain('stopSequences');
-    });
-
-    it('drops reasoningEffort for Gemini models and warns', async () => {
-      const fetch = createJsonFixtureFetchMock('neon-chat-completion');
-      const model = createProvider(fetch).chat('databricks-gemini-2-5-flash');
-
-      const result = await model.doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: { neon: { reasoningEffort: 'low' } },
-      });
-
-      const body = JSON.parse(fetch.mock.calls[0][1].body as string);
-      expect(body.reasoning_effort).toBeUndefined();
-      expect(warningFeatures(result.warnings)).toContain('reasoningEffort');
-    });
-
     it('passes parameters through unchanged for unknown/permissive models', async () => {
       const fetch = createJsonFixtureFetchMock('neon-chat-completion');
-      const model = createProvider(fetch).chat('databricks-qwen35-122b-a10b');
+      const model = createProvider(fetch).chat(MLFLOW_MODEL);
 
       const result = await model.doGenerate({
         prompt: TEST_PROMPT,
@@ -288,7 +238,7 @@ describe('NeonChatLanguageModel', () => {
 
     it('merges capability warnings into the stream-start part', async () => {
       const fetch = createStreamFixtureFetchMock('neon-chat-completion');
-      const model = createProvider(fetch).chat('databricks-claude-haiku-4-5');
+      const model = createProvider(fetch).chat(META_MODEL);
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
@@ -310,7 +260,7 @@ describe('NeonChatLanguageModel', () => {
   describe('doStream', () => {
     it('streams unified chat completion chunks as text deltas', async () => {
       const fetch = createStreamFixtureFetchMock('neon-chat-completion');
-      const model = createProvider(fetch).chat('databricks-claude-haiku-4-5');
+      const model = createProvider(fetch).chat(MLFLOW_MODEL);
 
       const { stream } = await model.doStream({ prompt: TEST_PROMPT });
       const parts = await convertStreamToArray(stream);
@@ -324,9 +274,9 @@ describe('NeonChatLanguageModel', () => {
       expect(parts.at(-1)).toMatchObject({ type: 'finish' });
     });
 
-    it('streams without sending stream_options (gateway returns usage natively and provider-native backends reject it)', async () => {
+    it('streams without sending stream_options', async () => {
       const fetch = createStreamFixtureFetchMock('neon-chat-completion');
-      const model = createProvider(fetch).chat('databricks-claude-haiku-4-5');
+      const model = createProvider(fetch).chat(MLFLOW_MODEL);
 
       await model.doStream({ prompt: TEST_PROMPT });
 

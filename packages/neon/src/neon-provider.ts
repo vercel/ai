@@ -5,6 +5,7 @@ import {
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  generateId,
   loadApiKey,
   loadSetting,
   withoutTrailingSlash,
@@ -12,8 +13,11 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import { NeonAnthropicLanguageModel } from './neon-anthropic-language-model';
 import { NeonChatLanguageModel } from './neon-chat-language-model';
 import type { NeonChatModelId } from './neon-chat-options';
+import { getNeonModelRoute } from './neon-model-capabilities';
+import { NeonResponsesLanguageModel } from './neon-responses-language-model';
 import { VERSION } from './version';
 
 const neonErrorSchema = z.object({
@@ -128,24 +132,20 @@ export interface NeonProvider extends ProviderV4 {
   textEmbeddingModel(modelId: string): never;
 }
 
-// Unified, OpenAI-compatible surface served by the Neon AI Gateway. Keeping the
-// path internal lets the env-configured base URL stay as the bare branch host.
-const MLFLOW_PATH = '/ai-gateway/mlflow/v1';
-
 export function createNeon(options: NeonProviderSettings = {}): NeonProvider {
   // Resolved lazily so that `createNeon()` and the default `neon` instance do
   // not throw at import time when configuration is supplied via the environment.
-  const getBaseURL = () =>
-    `${withoutTrailingSlash(
+  const getHost = () =>
+    withoutTrailingSlash(
       loadSetting({
         settingValue: options.baseURL,
         environmentVariableName: 'NEON_AI_GATEWAY_BASE_URL',
         settingName: 'baseURL',
         description: 'Neon AI Gateway base URL',
       }),
-    )}${MLFLOW_PATH}`;
+    );
 
-  const getHeaders = () =>
+  const getHeaders = (extra?: Record<string, string>) =>
     withUserAgentSuffix(
       {
         Authorization: `Bearer ${loadApiKey({
@@ -153,15 +153,40 @@ export function createNeon(options: NeonProviderSettings = {}): NeonProvider {
           environmentVariableName: 'NEON_AI_GATEWAY_TOKEN',
           description: 'Neon AI Gateway token',
         })}`,
+        ...extra,
         ...options.headers,
       },
       `ai-sdk/neon/${VERSION}`,
     );
 
-  const createLanguageModel = (modelId: NeonChatModelId) =>
+  // Anthropic models -> native Messages API (unlocks streaming structured
+  // output and native reasoning for Claude).
+  const createAnthropicModel = (modelId: NeonChatModelId) =>
+    new NeonAnthropicLanguageModel(modelId, {
+      provider: 'neon.anthropic',
+      baseURL: `${getHost()}/ai-gateway/anthropic/v1`,
+      headers: () => getHeaders({ 'anthropic-version': '2023-06-01' }),
+      fetch: options.fetch,
+      generateId,
+    });
+
+  // OpenAI models (incl. Codex, which is only served natively) -> Responses API.
+  const createOpenAIModel = (modelId: NeonChatModelId) =>
+    new NeonResponsesLanguageModel(modelId, {
+      provider: 'neon.openai.responses',
+      url: ({ path }) => `${getHost()}/ai-gateway/openai/v1${path}`,
+      headers: getHeaders,
+      fetch: options.fetch,
+      fileIdPrefixes: ['file-'],
+    });
+
+  // Everything else (Gemini, Llama, Qwen, gpt-oss, ...) -> unified, OpenAI-
+  // compatible MLflow endpoint. Gemini is here because its native gateway
+  // endpoint does not support streaming.
+  const createChatModel = (modelId: NeonChatModelId) =>
     new NeonChatLanguageModel(modelId, {
       provider: 'neon.chat',
-      url: ({ path }) => `${getBaseURL()}${path}`,
+      url: ({ path }) => `${getHost()}/ai-gateway/mlflow/v1${path}`,
       headers: getHeaders,
       fetch: options.fetch,
       errorStructure: neonErrorStructure,
@@ -171,9 +196,20 @@ export function createNeon(options: NeonProviderSettings = {}): NeonProvider {
       // (the `json_object` fallback) and without a separate tool round-trip.
       supportsStructuredOutputs: true,
       // The gateway returns token usage in streaming chunks natively, and
-      // forwarding `stream_options` to provider-native backends (e.g. Gemini)
-      // is rejected. So we intentionally do not opt into `include_usage`.
+      // forwarding `stream_options` to provider-native backends is rejected.
+      // So we intentionally do not opt into `include_usage`.
     });
+
+  const createLanguageModel = (modelId: NeonChatModelId): LanguageModelV4 => {
+    switch (getNeonModelRoute(modelId)) {
+      case 'anthropic':
+        return createAnthropicModel(modelId);
+      case 'openai':
+        return createOpenAIModel(modelId);
+      default:
+        return createChatModel(modelId);
+    }
+  };
 
   const provider = (modelId: NeonChatModelId) => createLanguageModel(modelId);
 

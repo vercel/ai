@@ -124,35 +124,36 @@ The authoritative, always-current catalog is shown in the Neon Console under the
   can be passed as a plain string, so models not listed above still work.
 </Note>
 
+## Routing
+
+The Neon gateway exposes provider-native endpoints alongside a unified, OpenAI-compatible MLflow endpoint. To maximize feature coverage — and to support models that are only served natively, such as **Codex** — the provider routes each model to the best endpoint based on its id. This is transparent: you always use the same `neon('databricks-...')` call, base URL, and token.
+
+| Model family                          | Endpoint              | Notes                                                              |
+| ------------------------------------- | --------------------- | ----------------------------------------------------------------- |
+| Anthropic (`databricks-claude-*`)     | native Messages API   | Streaming structured output and native reasoning.                 |
+| OpenAI (`databricks-gpt-*`, `*-codex`)| native Responses API  | Required for Codex; native reasoning and the image-generation tool.|
+| Everything else (Gemini, Llama, ...)  | unified MLflow endpoint| Broad coverage. Gemini is routed here because its native gateway endpoint does not support streaming. |
+
 ## Capabilities and Limitations
 
-The Neon AI Gateway exposes a single OpenAI-compatible endpoint that proxies to multiple upstream providers (Anthropic, OpenAI, Google, Meta, and more). The following AI SDK features are supported through `@ai-sdk/neon` across the catalog:
+Verified across Anthropic, OpenAI (including Codex), Google, and Meta models:
 
-- `generateText` / `streamText` (text generation, system prompts, multi-turn) — all models
-- Tool calling (`generateText` / `streamText`, multi-step) — all models
-- `generateObject` (structured output) — all models
-- Image (vision) input — all vision-capable models
-
-### Streaming structured output
-
-`streamObject` works for OpenAI, Google, and Meta models. Databricks-hosted Anthropic (Claude) models reject structured output while streaming (`Structured output is not currently supported with streaming`); use `generateObject` for those models instead.
+- `generateText` / `streamText` (text generation, system prompts, multi-turn)
+- Tool calling (`generateText` / `streamText`, single and multi-step)
+- `generateObject` / `streamObject` (structured output)
+- Image (vision) input
 
 ### Sampling parameters
 
-The gateway proxies to heterogeneous backends that each accept a different subset of sampling parameters. Rather than letting the backend reject the request, the provider detects the model family and **drops parameters a backend doesn't support, emitting an AI SDK warning** (`result.warnings`) instead of failing — the same approach the official OpenAI provider uses for reasoning models. Detection is heuristic (prefix-based); unknown/untested models are passed through unchanged.
+Native-routed models (Anthropic, OpenAI) use the official provider's parameter handling. For MLflow-routed models, the gateway proxies to heterogeneous backends that accept different parameter subsets, so the provider detects the model family and **drops parameters a backend doesn't support, emitting an AI SDK warning** (`result.warnings`) instead of failing the request. Detection is heuristic (prefix-based); unknown models are passed through unchanged.
 
-| Parameter                              | Dropped (with a warning) for                                          |
-| -------------------------------------- | -------------------------------------------------------------------- |
-| `topP` (when `temperature` is also set)| Anthropic models (accept only one of `temperature`/`topP`)           |
-| `temperature` / `topP`                 | OpenAI reasoning models that require defaults (`gpt-5`, `gpt-5-mini`, `gpt-5-nano`) |
-| `frequencyPenalty` / `presencePenalty` | Anthropic, OpenAI (`gpt-5*`), and Llama models                       |
-| `seed`                                 | Anthropic and Llama models                                           |
-| `stopSequences`                        | OpenAI (`gpt-5*`) models                                             |
-| `reasoningEffort` (provider option)    | Anthropic and Gemini models (applies to OpenAI models)              |
+| Parameter                              | Dropped (with a warning) for       |
+| -------------------------------------- | ---------------------------------- |
+| `frequencyPenalty` / `presencePenalty` | Meta (Llama) models                |
+| `seed`                                 | Meta (Llama) models                |
+| `reasoningEffort` (provider option)    | Gemini models                      |
 
 ### Not offered by the gateway
 
-The gateway serves chat/text models only. The following throw `NoSuchModelError`:
-
-- Image generation (`generateImage`)
-- Embeddings (`embed` / `embedMany`)
+- **Image generation (`generateImage`)** and **embeddings (`embed` / `embedMany`)** throw `NoSuchModelError` — there are no image or embeddings endpoints on the gateway. (Image generation is available only as the OpenAI Responses `image_generation` *tool*, and is currently constrained by the gateway's response-size limit.)
+- **`gpt-oss-*`** models return a non-standard response shape on the unified endpoint and are not fully supported.

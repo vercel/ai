@@ -8,6 +8,12 @@
   "exclude": ["dist", "build", "node_modules", "tsup.config.ts"],
   "references": [
     {
+      "path": "../anthropic"
+    },
+    {
+      "path": "../openai"
+    },
+    {
       "path": "../openai-compatible"
     },
     {
