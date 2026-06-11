@@ -312,16 +312,12 @@ class DefaultMCPClient implements MCPClient {
 
       this.serverCapabilities = result.capabilities;
       this._serverInfo = result.serverInfo;
-<<<<<<< HEAD
-=======
       if (this.transport.setProtocolVersion) {
         this.transport.setProtocolVersion(result.protocolVersion);
       } else {
         this.transport.protocolVersion = result.protocolVersion;
       }
->>>>>>> 3e0b82f6ed (fix(mcp): support official sdk protocol version negotiation (#15976))
       this._serverInstructions = result.instructions;
-      this.transport.protocolVersion = result.protocolVersion;
 
       // Complete initialization handshake:
       await this.notification({
