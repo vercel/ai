@@ -865,8 +865,8 @@ class DefaultStreamTextResult<
           recordedSteps.push(currentStepResult);
 
           recordedContent = [];
-          activeReasoningContent = {};
-          activeTextContent = {};
+          activeReasoningContent = createIdMap();
+          activeTextContent = createIdMap();
 
           recordedResponseMessages.push(...stepMessages);
 
