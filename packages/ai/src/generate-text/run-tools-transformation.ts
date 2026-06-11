@@ -28,6 +28,7 @@ import {
   type GeneratedFile,
 } from './generated-file';
 import { isApprovalNeeded } from './is-approval-needed';
+import { maybeSignApproval } from './tool-approval-signature';
 import { parseToolCall } from './parse-tool-call';
 import type { ToolApprovalRequestOutput } from './tool-approval-request-output';
 import type { TypedToolCall } from './tool-call';
@@ -128,6 +129,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   abortSignal,
   repairToolCall,
   experimental_context,
+  toolApprovalSecret,
   generateId,
   stepNumber,
   model,
@@ -143,6 +145,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   abortSignal: AbortSignal | undefined;
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
   experimental_context: unknown;
+  toolApprovalSecret?: string | Uint8Array;
   generateId: IdGenerator;
   stepNumber?: number;
   model?: { provider: string; modelId: string };
@@ -328,10 +331,20 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                 experimental_context,
               })
             ) {
+              const approvalId = generateId();
+              const signature = await maybeSignApproval({
+                secret: toolApprovalSecret,
+                approvalId,
+                toolCallId: toolCall.toolCallId,
+                toolName: toolCall.toolName,
+                input: toolCall.input,
+              });
+
               toolResultsStreamController!.enqueue({
                 type: 'tool-approval-request',
-                approvalId: generateId(),
+                approvalId,
                 toolCall,
+                ...(signature != null ? { signature } : {}),
               });
               break;
             }
