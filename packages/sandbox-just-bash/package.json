@@ -36,15 +36,12 @@
   },
   "dependencies": {
     "@ai-sdk/harness": "workspace:*",
-    "@ai-sdk/provider-utils": "workspace:*"
-  },
-  "peerDependencies": {
-    "just-bash": "^2.14.0"
+    "@ai-sdk/provider-utils": "workspace:*",
+    "just-bash": "^2.14.5"
   },
   "devDependencies": {
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
-    "just-bash": "^2.14.5",
     "tsup": "^8.5.1",
     "typescript": "5.8.3"
   },
