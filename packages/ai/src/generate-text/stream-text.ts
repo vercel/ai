@@ -829,14 +829,11 @@ class DefaultStreamTextResult<
         }
 
         if (part.type === 'start-step') {
-<<<<<<< HEAD
-=======
           // reset the recorded data when a new step starts:
           recordedContent = [];
           activeReasoningContent = createIdMap();
           activeTextContent = createIdMap();
 
->>>>>>> 5291f7eec4 (Backport: fix: Harden stream text processing and middleware against prototype pollution from stream part IDs (#16018))
           recordedRequest = part.request;
           recordedWarnings = part.warnings;
         }

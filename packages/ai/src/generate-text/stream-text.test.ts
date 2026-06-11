@@ -56,14 +56,6 @@ const defaultSettings = () =>
     onError: () => {},
   }) as const;
 
-<<<<<<< HEAD
-const testUsage = {
-  inputTokens: 3,
-  outputTokens: 10,
-  totalTokens: 13,
-  reasoningTokens: undefined,
-  cachedInputTokens: undefined,
-=======
 type ObjectPrototypeState = {
   providerMetadata?: unknown;
   text?: unknown;
@@ -75,19 +67,12 @@ function clearObjectPrototypeState() {
   delete objectPrototype.text;
 }
 
-const testUsage: LanguageModelV3Usage = {
-  inputTokens: {
-    total: 3,
-    noCache: 3,
-    cacheRead: undefined,
-    cacheWrite: undefined,
-  },
-  outputTokens: {
-    total: 10,
-    text: 10,
-    reasoning: undefined,
-  },
->>>>>>> 5291f7eec4 (Backport: fix: Harden stream text processing and middleware against prototype pollution from stream part IDs (#16018))
+const testUsage = {
+  inputTokens: 3,
+  outputTokens: 10,
+  totalTokens: 13,
+  reasoningTokens: undefined,
+  cachedInputTokens: undefined,
 };
 
 const testUsage2 = {
