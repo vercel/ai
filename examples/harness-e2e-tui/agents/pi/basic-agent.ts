@@ -1,8 +1,8 @@
-import { HarnessAgent } from '@ai-sdk/harness/agent';
 import {
+  HarnessAgent,
   createFileReporter,
   createTraceTreeReporter,
-} from '@ai-sdk/harness/observability';
+} from '@ai-sdk/harness/agent';
 import { pi } from '@ai-sdk/harness-pi';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import type { InferUITools, UIMessage } from 'ai';

@@ -2,12 +2,14 @@ export {
   createFileReporter,
   type FileReporter,
   type FileReporterOptions,
-} from '../src/observability/file-reporter';
+} from './file-reporter';
 export {
   createTraceTreeReporter,
   type TraceTreeReporterOptions,
-} from '../src/observability/trace-tree-reporter';
+} from './trace-tree-reporter';
 export type {
+  HarnessDebugConfig,
+  HarnessDebugLevel,
   HarnessDiagnostic,
   HarnessDiagnosticConsumer,
-} from '../src/agent/harness-diagnostics';
+} from './types';

@@ -266,6 +266,58 @@ export default function Chat() {
 
 Only call `addToolApprovalResponse` for manual approvals. Automatic approvals and denials already include approval state in the stream.
 
+## Security Considerations
+
+### Trust model
+
+In the standard `useChat` pattern, the server rebuilds the conversation from the messages the client sends each turn. The server does not persist conversation state between requests. This means the message history is client-controlled input.
+
+Tool approvals reconstructed from this history are re-validated before execution: the tool input is checked against the tool's schema, and the approval policy is re-evaluated. However, without additional protection, a client that crafts a valid-looking approval for a schema-conforming input can bypass the human-in-the-loop step.
+
+If your tools perform sensitive operations (modifying data, spending money, calling external APIs, accessing private resources), use `experimental_toolApprovalSecret` to cryptographically bind approvals to the server that issued them.
+
+### Signing approvals with `experimental_toolApprovalSecret`
+
+When you provide a secret, the server HMAC-signs each approval request at issuance and verifies the signature when the approval is replayed. A forged or tampered approval is rejected before the tool executes.
+
+```ts highlight="6"
+const result = await streamText({
+  model: __MODEL__,
+  tools: { deleteFile, runQuery },
+  toolApproval: { deleteFile: 'user-approval', runQuery: 'user-approval' },
+  experimental_toolApprovalSecret: process.env.TOOL_APPROVAL_SECRET,
+  messages,
+});
+```
+
+The signature binds the approval to the exact tool name, tool call ID, and input arguments. Changing any of these after signing invalidates the approval.
+
+**Setting up the secret:**
+
+1. Generate a high-entropy random string (at least 32 bytes):
+   ```bash
+   openssl rand -base64 32
+   ```
+2. Store it as an environment variable accessible to all server instances:
+   ```
+   TOOL_APPROVAL_SECRET=your-generated-secret-here
+   ```
+3. Pass it to `generateText` or `streamText` via `experimental_toolApprovalSecret`.
+
+Every serverless instance that might handle a request needs the same secret, since one instance signs the approval and a different instance may verify it on the next turn.
+
+**Behavior when configured:**
+
+- Approval requests without a valid signature are rejected (fail-closed)
+- No secret configured: approvals work as before (backward compatible)
+- The secret is never sent to the client or included in the stream
+
+<Note>
+  `experimental_toolApprovalSecret` is not yet supported on `WorkflowAgent`. For
+  durable workflows, the workflow runtime provides its own persistence layer
+  that can be used to verify approvals.
+</Note>
+
 ## Related APIs
 
 - Use `toolApproval` with `ToolLoopAgent`, `generateText`, and `streamText`.

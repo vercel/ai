@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/harness",
-  "version": "1.0.0-canary.3",
+  "version": "1.0.0-canary.4",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -46,11 +46,6 @@
       "types": "./dist/utils/index.d.ts",
       "import": "./dist/utils/index.js",
       "default": "./dist/utils/index.js"
-    },
-    "./observability": {
-      "types": "./dist/observability/index.d.ts",
-      "import": "./dist/observability/index.js",
-      "default": "./dist/observability/index.js"
     },
     "./bridge": {
       "types": "./dist/bridge/index.d.ts",

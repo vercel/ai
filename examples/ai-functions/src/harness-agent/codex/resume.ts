@@ -4,13 +4,15 @@
  * Within a single Node process this example simulates the REST-server
  * flow: turn 1 runs, the session is stopped, the agent reference is dropped,
  * and a fresh `HarnessAgent` instance picks the conversation back up using
- * the persisted `HarnessV1ResumeSessionState`. The resume payload carries the Codex
+ * the persisted `HarnessAgentResumeSessionState`. The resume payload carries the Codex
  * `threadId`; the bridge takes the
  * `codex.resumeThread(...)` branch on the second turn so the model
  * remembers the name from turn 1.
  */
-import { HarnessAgent } from '@ai-sdk/harness/agent';
-import type { HarnessV1ResumeSessionState } from '@ai-sdk/harness';
+import {
+  HarnessAgent,
+  type HarnessAgentResumeSessionState,
+} from '@ai-sdk/harness/agent';
 import { codex } from '@ai-sdk/harness-codex';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { printFullStream } from '../../lib/print-full-stream';
@@ -25,7 +27,7 @@ run(async () => {
 
   // Turn 1: introduce the name.
   let sessionId: string;
-  let resumeState: HarnessV1ResumeSessionState;
+  let resumeState: HarnessAgentResumeSessionState;
   {
     const agent = new HarnessAgent({ harness: codex, sandbox });
     const session = await agent.createSession();

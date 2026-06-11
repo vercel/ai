@@ -255,6 +255,7 @@ export function toUIMessageChunk<
         approvalId: part.approvalId,
         toolCallId: part.toolCall.toolCallId,
         ...(part.isAutomatic != null ? { isAutomatic: part.isAutomatic } : {}),
+        ...(part.signature != null ? { signature: part.signature } : {}),
       };
     }
 

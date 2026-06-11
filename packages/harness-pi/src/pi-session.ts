@@ -15,10 +15,10 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { Type } from 'typebox';
 import type {
-  HarnessV1ContinueOptions,
+  HarnessV1ContinueTurnOptions,
   HarnessV1ContinueTurnState,
   HarnessV1PromptControl,
-  HarnessV1PromptOptions,
+  HarnessV1PromptTurnOptions,
   HarnessV1NetworkSandboxSession,
   HarnessV1PermissionMode,
   HarnessV1ResumeSessionState,
@@ -694,7 +694,7 @@ export async function createPiSession(
     // sandbox, i.e. `rerun`.
 
     doPromptTurn: async (
-      promptOpts: HarnessV1PromptOptions,
+      promptOpts: HarnessV1PromptTurnOptions,
     ): Promise<HarnessV1PromptControl> => {
       let text = extractUserText(promptOpts.prompt);
       if (!instructionsApplied && promptOpts.instructions) {
@@ -711,7 +711,7 @@ export async function createPiSession(
     },
 
     doContinueTurn: async (
-      continueOpts: HarnessV1ContinueOptions,
+      continueOpts: HarnessV1ContinueTurnOptions,
     ): Promise<HarnessV1PromptControl> => {
       if (activeTurn != null) {
         currentEmit = continueOpts.emit;

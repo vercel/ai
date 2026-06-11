@@ -1,5 +1,11 @@
 # @ai-sdk/harness
 
+## 1.0.0-canary.4
+
+### Patch Changes
+
+- 3d9a50c: feat(harness): implement harness adapters for Claude Code, Codex, Pi
+
 ## 1.0.0-canary.3
 
 ### Patch Changes

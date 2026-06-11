@@ -1,13 +1,13 @@
 import type {
-  HarnessV1,
-  HarnessV1PermissionMode,
-  HarnessV1SandboxProvider,
-  HarnessV1Skill,
-} from '../v1';
-import type {
   HarnessDebugConfig,
   HarnessDiagnostic,
-} from './harness-diagnostics';
+} from './observability/types';
+import type { HarnessV1SandboxProvider } from '../v1';
+import type {
+  HarnessAgentAdapter,
+  HarnessAgentPermissionMode,
+  HarnessAgentSkill,
+} from './harness-agent-types';
 import type {
   Experimental_SandboxSession as SandboxSession,
   ToolSet,
@@ -26,7 +26,7 @@ export type HarnessAgentToolApprovalConfiguration = Readonly<
  * `stream` and are not duplicated here.
  */
 export type HarnessAgentSettings<
-  THarness extends HarnessV1<any> = HarnessV1,
+  THarness extends HarnessAgentAdapter<any> = HarnessAgentAdapter,
   TUserTools extends ToolSet = {},
 > = {
   /**
@@ -45,7 +45,7 @@ export type HarnessAgentSettings<
   /**
    * Tools available to the underlying runtime in addition to the harness's
    * own builtins. The agent forwards each tool to the harness as a
-   * `HarnessV1ToolSpec`; when the runtime calls one, the agent executes
+   * `HarnessAgentToolSpec`; when the runtime calls one, the agent executes
    * `tool.execute()` on the host and submits the result back to the harness.
    *
    * User tools take precedence over harness builtins on key collision —
@@ -58,7 +58,7 @@ export type HarnessAgentSettings<
    * the session. Each adapter decides how to surface skills (file in the
    * working tree, prompt prefix, …).
    */
-  readonly skills?: ReadonlyArray<HarnessV1Skill>;
+  readonly skills?: ReadonlyArray<HarnessAgentSkill>;
 
   /**
    * Instructions for the underlying agent runtime. Adapters prepend this to
@@ -71,7 +71,7 @@ export type HarnessAgentSettings<
    * Built-in tool permission mode. Defaults to `'allow-all'`, preserving the
    * existing bypass-permissions behavior unless users opt in.
    */
-  readonly permissionMode?: HarnessV1PermissionMode;
+  readonly permissionMode?: HarnessAgentPermissionMode;
 
   /**
    * Per custom-tool approval statuses. This mirrors AI SDK `toolApproval`

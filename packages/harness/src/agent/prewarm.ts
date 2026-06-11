@@ -1,4 +1,5 @@
-import type { HarnessV1, HarnessV1SandboxProvider } from '../v1';
+import type { HarnessV1SandboxProvider } from '../v1';
+import type { HarnessAgentAdapter } from './harness-agent-types';
 import {
   applyBootstrapRecipe,
   hashBootstrap,
@@ -19,7 +20,7 @@ import {
  * named template sandbox).
  */
 export async function prewarmHarness(options: {
-  readonly harness: HarnessV1;
+  readonly harness: HarnessAgentAdapter;
   readonly sandboxProvider: HarnessV1SandboxProvider;
   readonly abortSignal?: AbortSignal;
 }): Promise<void> {

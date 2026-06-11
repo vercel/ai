@@ -128,8 +128,6 @@ export type HarnessV1PromptTurnOptions = {
   readonly emit: (event: HarnessV1StreamPart) => void;
 };
 
-export type HarnessV1PromptOptions = HarnessV1PromptTurnOptions;
-
 /**
  * Options passed to `HarnessV1Session.doContinueTurn`.
  *
@@ -157,8 +155,6 @@ export type HarnessV1ContinueTurnOptions = {
    */
   readonly emit: (event: HarnessV1StreamPart) => void;
 };
-
-export type HarnessV1ContinueOptions = HarnessV1ContinueTurnOptions;
 
 /**
  * Active harness session, returned by `HarnessV1.doStart`.

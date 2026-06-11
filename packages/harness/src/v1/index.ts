@@ -5,9 +5,7 @@ export type {
   HarnessV1BootstrapFile,
 } from './harness-v1-bootstrap';
 export type {
-  HarnessV1ContinueOptions,
   HarnessV1ContinueTurnOptions,
-  HarnessV1PromptOptions,
   HarnessV1PromptTurnOptions,
   HarnessV1Session,
   HarnessV1StartOptions,

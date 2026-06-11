@@ -142,6 +142,7 @@ import type { ToolOrder } from './tool-order';
 import type { ToolOutput } from './tool-output';
 import type { StaticToolOutputDenied } from './tool-output-denied';
 import type { ToolsContextParameter } from './tools-context-parameter';
+import { validateApprovedToolApprovals } from './validate-tool-approvals';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -337,6 +338,7 @@ export function streamText<
   experimental_sandbox: sandbox,
   output,
   toolApproval,
+  experimental_toolApprovalSecret,
   experimental_telemetry,
   telemetry = experimental_telemetry,
   prepareStep,
@@ -453,6 +455,13 @@ export function streamText<
      * This configuration takes precedence over tool-defined approval settings.
      */
     toolApproval?: ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>;
+
+    /**
+     * Secret for HMAC-signing tool approval requests. When set, the server
+     * signs each approval request at issuance and verifies the signature when
+     * the approval is replayed, preventing client-forged approvals.
+     */
+    experimental_toolApprovalSecret?: string | Uint8Array;
 
     /**
      * Optional function that you can use to provide different settings for a step.
@@ -689,6 +698,7 @@ export function streamText<
     stopConditions: asArray(stopWhen),
     output,
     toolApproval,
+    experimental_toolApprovalSecret,
     providerOptions,
     prepareStep,
     timeout,
@@ -885,6 +895,7 @@ class DefaultStreamTextResult<
     stopConditions,
     output,
     toolApproval,
+    experimental_toolApprovalSecret,
     providerOptions,
     prepareStep,
     now,
@@ -937,6 +948,7 @@ class DefaultStreamTextResult<
     >;
     output: OUTPUT | undefined;
     toolApproval: ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT> | undefined;
+    experimental_toolApprovalSecret: string | Uint8Array | undefined;
     providerOptions: ProviderOptions | undefined;
     prepareStep:
       | PrepareStepFunction<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>
@@ -1509,12 +1521,27 @@ class DefaultStreamTextResult<
 
       // initial tool execution step stream
       if (deniedToolApprovals.length > 0 || approvedToolApprovals.length > 0) {
-        const localApprovedToolApprovals = approvedToolApprovals.filter(
-          toolApproval => !toolApproval.toolCall.providerExecuted,
-        );
-        const localDeniedToolApprovals = deniedToolApprovals.filter(
-          toolApproval => !toolApproval.toolCall.providerExecuted,
-        );
+        const {
+          approvedToolApprovals: localApprovedToolApprovals,
+          deniedToolApprovals: revalidationDeniedToolApprovals,
+        } = await validateApprovedToolApprovals<TOOLS, RUNTIME_CONTEXT>({
+          approvedToolApprovals: approvedToolApprovals.filter(
+            toolApproval => !toolApproval.toolCall.providerExecuted,
+          ),
+          tools,
+          toolApproval,
+          messages: initialMessages,
+          toolsContext,
+          runtimeContext,
+          toolApprovalSecret: experimental_toolApprovalSecret,
+        });
+
+        const localDeniedToolApprovals = [
+          ...deniedToolApprovals.filter(
+            toolApproval => !toolApproval.toolCall.providerExecuted,
+          ),
+          ...revalidationDeniedToolApprovals,
+        ];
 
         const deniedProviderExecutedToolApprovals = deniedToolApprovals.filter(
           toolApproval => toolApproval.toolCall.providerExecuted,
@@ -1844,6 +1871,7 @@ class DefaultStreamTextResult<
             toolsContext,
             toolApproval,
             runtimeContext,
+            toolApprovalSecret: experimental_toolApprovalSecret,
             generateId,
 
             // the callbacks need to be passed down and handled by executeToolCall

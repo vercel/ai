@@ -5,11 +5,11 @@ import {
   weatherForecastSkill,
   weatherInstructions,
 } from '@/lib/weather-utils';
-import { HarnessAgent } from '@ai-sdk/harness/agent';
 import {
+  HarnessAgent,
   createFileReporter,
   createTraceTreeReporter,
-} from '@ai-sdk/harness/observability';
+} from '@ai-sdk/harness/agent';
 import { codex } from '@ai-sdk/harness-codex';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import type { InferUITools, UIMessage } from 'ai';
