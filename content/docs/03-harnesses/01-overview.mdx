@@ -16,6 +16,11 @@ The AI SDK harness abstraction is separate from the provider/model abstraction.
 Providers expose models to AI SDK Core functions such as `generateText` and
 `streamText`. Harnesses expose agent runtimes to `HarnessAgent`.
 
+Using a harness does not mean giving up customization. `HarnessAgent` lets you
+provide your own instructions, skills, AI SDK tools, permission settings,
+sandbox setup hooks, and adapter-specific configuration while preserving the
+runtime behavior that makes each harness powerful.
+
 The two abstractions are decoupled, but they use compatible primitives where
 possible. Harness output is projected into AI SDK stream and response types, so
 surfaces that consume AI SDK model streams can also consume harness streams. For
