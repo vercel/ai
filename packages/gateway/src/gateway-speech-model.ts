@@ -126,6 +126,11 @@ const gatewaySpeechWarningSchema = z.discriminatedUnion('type', [
     details: z.string().optional(),
   }),
   z.object({
+    type: z.literal('deprecated'),
+    setting: z.string(),
+    message: z.string(),
+  }),
+  z.object({
     type: z.literal('other'),
     message: z.string(),
   }),
