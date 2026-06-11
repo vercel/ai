@@ -1,0 +1,53 @@
+---
+title: Skills
+description: Use skills with AI SDK harnesses.
+---
+
+# Harness Skills
+
+[Skills](https://agentskills.io/) are reusable instruction bundles that can
+be useful for project conventions, workflow guidance, domain-specific procedures,
+or any other instructions that should be discoverable by the underlying harness
+runtime. You can make skills available to a `HarnessAgent` for the lifetime of a
+session.
+
+## Define Skills
+
+Pass skills to `HarnessAgent` with the `skills` setting:
+
+```ts
+const agent = new HarnessAgent({
+  harness: claudeCode,
+  sandbox: createVercelSandbox({
+    runtime: 'node24',
+    ports: [4000],
+  }),
+  skills: [
+    {
+      name: 'careful-refactors',
+      description: 'Make small, low-risk code changes.',
+      content:
+        'Prefer minimal diffs. Preserve public APIs. Run the narrowest relevant tests before broad checks.',
+    },
+  ],
+});
+```
+
+Each skill has:
+
+- `name`: stable identifier for the skill.
+- `description`: short model-facing summary.
+- `content`: full instruction content.
+
+## When to Use Skills
+
+Use skills for reusable instructions that should be available on demand, instead of
+always being loaded into the agent's context like regular `instructions`.
+
+Use `instructions` for broad agent behavior and current-session priorities.
+
+## Related
+
+- [HarnessAgent](/docs/harnesses/harness-agent)
+- [Harness tools](/docs/harnesses/tools)
+- [Harness adapters](/docs/harnesses/harness-adapters)
