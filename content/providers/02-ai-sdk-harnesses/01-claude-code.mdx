@@ -53,7 +53,7 @@ when the first session starts.
 import { claudeCode, createClaudeCode } from '@ai-sdk/harness-claude-code';
 ```
 
-`claudeCode` is equivalent to `createClaudeCode()`.
+`claudeCode` is equivalent to `createClaudeCode()` with its default configuration.
 
 ## Basic Usage
 
@@ -75,7 +75,7 @@ const session = await agent.createSession();
 try {
   const result = await agent.generate({
     session,
-    prompt: 'Read README.md and summarize the project.',
+    prompt: 'Check the test failures and fix the production code.',
   });
 
   console.log(result.text);
@@ -90,7 +90,7 @@ Use `createClaudeCode()` to configure the runtime:
 
 ```ts
 const harness = createClaudeCode({
-  model: 'claude-sonnet-4-5',
+  model: 'claude-sonnet-4-6',
   maxTurns: 10,
   thinking: 'adaptive',
 });
@@ -108,8 +108,7 @@ Settings:
 ## Authentication
 
 By default, authentication is resolved from the host environment and forwarded
-to the sandbox bridge. The adapter checks AI Gateway first, then direct
-Anthropic credentials.
+to the sandbox bridge. The adapter checks for AI Gateway and Anthropic credentials.
 
 Supported environment variables:
 
@@ -145,10 +144,18 @@ const sandbox = createVercelSandbox({
 
 ## Built-in Tools
 
-The adapter exposes Claude Code built-ins through `agent.tools`, including
-common tools such as `read`, `write`, `edit`, `bash`, `glob`, `grep`, and
-`webSearch`, plus Claude Code native tools such as `Agent`, `TodoWrite`, and
-MCP resource tools.
+The adapter exposes these common Claude Code built-ins through `agent.tools`:
+
+- `read`
+- `write`
+- `edit`
+- `bash`
+- `glob`
+- `grep`
+- `webSearch`
+
+Additional Claude Code built-ins may also appear in `agent.tools` when they do
+not fit a common tool shape.
 
 Claude Code supports built-in tool approval requests when `permissionMode` is
 `allow-reads` or `allow-edits`.

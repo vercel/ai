@@ -52,7 +52,7 @@ the first session starts.
 import { codex, createCodex } from '@ai-sdk/harness-codex';
 ```
 
-`codex` is equivalent to `createCodex()`.
+`codex` is equivalent to `createCodex()` with its default configuration.
 
 ## Basic Usage
 
@@ -74,7 +74,7 @@ const session = await agent.createSession();
 try {
   const result = await agent.generate({
     session,
-    prompt: 'List the files in this workspace and describe their purpose.',
+    prompt: 'Check the test failures and fix the production code.',
   });
 
   console.log(result.text);
@@ -89,7 +89,7 @@ Use `createCodex()` to configure the runtime:
 
 ```ts
 const harness = createCodex({
-  model: 'gpt-5.3-codex',
+  model: 'gpt-5.5',
   reasoningEffort: 'high',
   webSearch: true,
 });
@@ -107,8 +107,7 @@ Settings:
 ## Authentication
 
 By default, authentication is resolved from the host environment and forwarded
-to the sandbox bridge. The adapter checks AI Gateway first, then OpenAI
-credentials.
+to the sandbox bridge. The adapter checks for AI Gateway and OpenAI credentials.
 
 Supported environment variables:
 
@@ -148,10 +147,13 @@ const sandbox = createVercelSandbox({
 
 ## Built-in Tools
 
-The adapter exposes Codex built-ins through `agent.tools`:
+The adapter exposes these common Codex built-ins through `agent.tools`:
 
 - `bash`
 - `webSearch`
+
+Additional Codex built-ins may also appear in `agent.tools` when they do not
+fit a common tool shape.
 
 Codex file changes may also appear as dynamic `fileChange` tool parts because
 some Codex file mutations do not originate from a visible model-callable tool.
@@ -159,11 +161,6 @@ some Codex file mutations do not originate from a visible model-callable tool.
 Codex does not currently support built-in tool approval requests. Use
 `permissionMode: 'allow-all'` with this adapter. Host-executed AI SDK tool
 approvals still work.
-
-## Skills
-
-Codex does not auto-discover a native skills directory. When you pass `skills`
-to `HarnessAgent`, the adapter inlines them into the user prompt for each turn.
 
 ## Related
 

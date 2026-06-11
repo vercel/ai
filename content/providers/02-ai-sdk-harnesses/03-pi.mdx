@@ -50,7 +50,7 @@ inside the sandbox.
 import { pi, createPi } from '@ai-sdk/harness-pi';
 ```
 
-`pi` is equivalent to `createPi()`.
+`pi` is equivalent to `createPi()` with its default configuration.
 
 ## Basic Usage
 
@@ -71,7 +71,7 @@ const session = await agent.createSession();
 try {
   const result = await agent.generate({
     session,
-    prompt: 'Read README.md and summarize the project.',
+    prompt: 'Check the test failures and fix the production code.',
   });
 
   console.log(result.text);
@@ -131,7 +131,7 @@ const sandbox = createVercelSandbox({
 
 ## Built-in Tools
 
-The adapter exposes Pi built-ins through `agent.tools`:
+The adapter exposes these common Pi built-ins through `agent.tools`:
 
 - `read`
 - `write`
@@ -140,6 +140,9 @@ The adapter exposes Pi built-ins through `agent.tools`:
 - `grep`
 - `glob`
 - `ls`
+
+Additional Pi built-ins may also appear in `agent.tools` when they do not fit a
+common tool shape.
 
 Pi supports built-in tool approval requests when `permissionMode` is
 `allow-reads` or `allow-edits`.
