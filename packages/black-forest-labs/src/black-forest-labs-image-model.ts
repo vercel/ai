@@ -243,9 +243,9 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
     const { value: imageBytes, responseHeaders } = await getFromApi({
       url: imageUrl,
       // Only send credentials if the response-supplied URL points back at the
-      // provider's own origin; the image is typically delivered from a CDN, so
-      // the API key must not travel to a foreign host.
-      headers: isSameOrigin(imageUrl, this.config.baseURL)
+      // provider; the image is typically delivered from a CDN, so the API key
+      // must not travel to a foreign host.
+      headers: isTrustedUrl(imageUrl, this.config.baseURL)
         ? combinedHeaders
         : undefined,
       abortSignal,
@@ -327,8 +327,8 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
       const { value } = await getFromApi({
         url: url.toString(),
         // The polling URL comes from the provider response; only send
-        // credentials when it stays on the provider's own origin.
-        headers: isSameOrigin(url.toString(), this.config.baseURL)
+        // credentials when it stays on a trusted provider host.
+        headers: isTrustedUrl(url.toString(), this.config.baseURL)
           ? headers
           : undefined,
         failedResponseHandler: bflFailedResponseHandler,
@@ -360,6 +360,29 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
     }
 
     throw new Error('Black Forest Labs generation timed out.');
+  }
+}
+
+/**
+ * Black Forest Labs returns response-supplied URLs (polling and delivery) on
+ * sibling cluster hosts of the API origin (e.g. `api.us1.bfl.ai` for a base
+ * URL on `api.bfl.ai`), so a strict same-origin check against the configured
+ * base URL is not enough. Credentials may also be sent to any https host under
+ * the official `bfl.ai` domain.
+ */
+function isTrustedUrl(url: string, baseUrl: string): boolean {
+  if (isSameOrigin(url, baseUrl)) {
+    return true;
+  }
+
+  try {
+    const { protocol, hostname } = new URL(url);
+    return (
+      protocol === 'https:' &&
+      (hostname === 'bfl.ai' || hostname.endsWith('.bfl.ai'))
+    );
+  } catch {
+    return false;
   }
 }
 
