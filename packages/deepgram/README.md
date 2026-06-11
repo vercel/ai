@@ -68,7 +68,7 @@ const { text, language } = await transcribe({
 
 ```ts
 import { deepgram } from '@ai-sdk/deepgram';
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 
 const { audio } = await generateSpeech({
   model: deepgram.speech('aura-2-helena-en'),

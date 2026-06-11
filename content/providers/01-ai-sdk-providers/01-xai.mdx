@@ -548,7 +548,7 @@ Use xAI speech models with the `generateSpeech` function:
 
 ```ts
 import { xai } from '@ai-sdk/xai';
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 
 const result = await generateSpeech({
   model: xai.speech(),
@@ -597,7 +597,7 @@ You can pass xAI-specific controls using `providerOptions.xai`:
 
 ```ts
 import { xai, type XaiSpeechModelOptions } from '@ai-sdk/xai';
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 
 const result = await generateSpeech({
   model: xai.speech(),

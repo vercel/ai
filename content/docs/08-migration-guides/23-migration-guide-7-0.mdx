@@ -84,6 +84,30 @@ export const myProvider = customProvider({
 This is only an import and symbol rename. The `customProvider` options and
 behavior are unchanged.
 
+### Speech: `experimental_generateSpeech` Renamed to `generateSpeech`
+
+The speech generation function has graduated out of experimental status and has been renamed to `generateSpeech`. The `Experimental_SpeechResult` type has also been renamed to `SpeechResult`.
+
+```tsx filename="AI SDK 6"
+import { experimental_generateSpeech as generateSpeech } from 'ai';
+
+const result = await generateSpeech({
+  model: yourSpeechModel,
+  text: 'Hello',
+});
+```
+
+```tsx filename="AI SDK 7"
+import { generateSpeech } from 'ai';
+
+const result = await generateSpeech({
+  model: yourSpeechModel,
+  text: 'Hello',
+});
+```
+
+The old `experimental_generateSpeech` and `Experimental_SpeechResult` exports continue to work as deprecated aliases in AI SDK 7 and will be removed in a future major release.
+
 ### Prompt Instructions: `system` Renamed to `instructions`
 
 The top-level prompt option for system instructions has been renamed from
