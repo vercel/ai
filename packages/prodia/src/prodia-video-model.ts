@@ -5,15 +5,22 @@ import type {
 import {
   combineHeaders,
   convertBase64ToUint8Array,
+<<<<<<< HEAD
   lazySchema,
+=======
+  downloadBlob,
+>>>>>>> 6e8917f184 (fix(prodia): validate user-supplied image URLs before fetching (SSRF) (#15990))
   parseJSON,
   parseProviderOptions,
   postFormDataToApi,
   postToApi,
   resolve,
   zodSchema,
+<<<<<<< HEAD
   type InferSchema,
   type FetchFunction,
+=======
+>>>>>>> 6e8917f184 (fix(prodia): validate user-supplied image URLs before fetching (SSRF) (#15990))
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
@@ -84,7 +91,7 @@ export class ProdiaVideoModel implements Experimental_VideoModelV3 {
       // img2vid: multipart form-data request
       const imageData = await resolveVideoFileData(
         options.image,
-        this.config.fetch,
+        options.abortSignal,
       );
       const formData = new FormData();
       formData.append(
@@ -253,7 +260,7 @@ async function resolveVideoFileData(
   file: NonNullable<
     Parameters<Experimental_VideoModelV3['doGenerate']>[0]['image']
   >,
-  fetchFunction?: FetchFunction,
+  abortSignal?: AbortSignal,
 ): Promise<{ bytes: Uint8Array; mediaType: string }> {
   if (file.type === 'file') {
     const data =
@@ -262,11 +269,12 @@ async function resolveVideoFileData(
         : file.data;
     return { bytes: data, mediaType: file.mediaType };
   }
-  // URL type - fetch the data
-  const response = await (fetchFunction ?? globalThis.fetch)(file.url);
-  const arrayBuffer = await response.arrayBuffer();
-  const mediaType =
-    response.headers.get('content-type') ?? 'application/octet-stream';
+  // URL type - download via downloadBlob so the user-supplied URL is routed
+  // through the SSRF guard (validateDownloadUrl) instead of being fetched
+  // directly, preventing requests to private/internal addresses.
+  const blob = await downloadBlob(file.url, { abortSignal });
+  const arrayBuffer = await blob.arrayBuffer();
+  const mediaType = blob.type || 'application/octet-stream';
   return { bytes: new Uint8Array(arrayBuffer), mediaType };
 }
 
