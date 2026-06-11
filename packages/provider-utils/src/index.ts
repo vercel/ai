@@ -4,6 +4,8 @@ export * from './delay';
 export { DelayedPromise } from './delayed-promise';
 export * from './extract-response-headers';
 export { DownloadError } from './download-error';
+export { fetchWithValidatedRedirects } from './fetch-with-validated-redirects';
+export { isBrowserRuntime } from './is-browser-runtime';
 export {
   readResponseWithSizeLimit,
   DEFAULT_MAX_DOWNLOAD_SIZE,
