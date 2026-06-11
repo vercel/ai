@@ -1,0 +1,147 @@
+---
+title: Pi
+description: Learn how to use the Pi harness adapter.
+---
+
+# Pi Harness
+
+The Pi harness adapter connects `HarnessAgent` to
+`@earendil-works/pi-coding-agent`. Pi runs in the host Node.js process and uses
+the sandbox as a remote filesystem and shell. It does not install a bridge
+inside the sandbox.
+
+## Setup
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet
+      text="pnpm add @ai-sdk/harness @ai-sdk/harness-pi @ai-sdk/sandbox-vercel @vercel/sandbox @earendil-works/pi-coding-agent"
+      dark
+    />
+  </Tab>
+  <Tab>
+    <Snippet
+      text="npm install @ai-sdk/harness @ai-sdk/harness-pi @ai-sdk/sandbox-vercel @vercel/sandbox @earendil-works/pi-coding-agent"
+      dark
+    />
+  </Tab>
+  <Tab>
+    <Snippet
+      text="yarn add @ai-sdk/harness @ai-sdk/harness-pi @ai-sdk/sandbox-vercel @vercel/sandbox @earendil-works/pi-coding-agent"
+      dark
+    />
+  </Tab>
+  <Tab>
+    <Snippet
+      text="bun add @ai-sdk/harness @ai-sdk/harness-pi @ai-sdk/sandbox-vercel @vercel/sandbox @earendil-works/pi-coding-agent"
+      dark
+    />
+  </Tab>
+</Tabs>
+
+## Import
+
+```ts
+import { pi, createPi } from '@ai-sdk/harness-pi';
+```
+
+`pi` is equivalent to `createPi()`.
+
+## Basic Usage
+
+```ts
+import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { pi } from '@ai-sdk/harness-pi';
+import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+
+const agent = new HarnessAgent({
+  harness: pi,
+  sandbox: createVercelSandbox({
+    runtime: 'node24',
+  }),
+});
+
+const session = await agent.createSession();
+
+try {
+  const result = await agent.generate({
+    session,
+    prompt: 'Read README.md and summarize the project.',
+  });
+
+  console.log(result.text);
+} finally {
+  await session.destroy();
+}
+```
+
+## Adapter Settings
+
+Use `createPi()` to configure the runtime:
+
+```ts
+const harness = createPi({
+  model: 'anthropic/claude-sonnet-4.6',
+  thinkingLevel: 'medium',
+});
+```
+
+Settings:
+
+- `auth`: AI Gateway or custom provider environment configuration.
+- `model`: Pi model id or model name.
+- `thinkingLevel`: Pi thinking budget level.
+
+## Authentication
+
+Pi can use AI Gateway credentials or custom provider environment variables.
+When no explicit auth is configured, it checks the host environment for
+`AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN`.
+
+```ts
+const harness = createPi({
+  auth: {
+    gateway: {
+      apiKey: process.env.AI_GATEWAY_API_KEY,
+    },
+  },
+});
+```
+
+For multiple providers, pass `auth.customEnv` with standard environment pairs
+such as `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `ANTHROPIC_API_KEY`, or
+`ANTHROPIC_BASE_URL`.
+
+## Sandbox
+
+Pi needs a `HarnessV1SandboxProvider`, but it does not require exposed ports.
+You can use `@ai-sdk/sandbox-vercel`:
+
+```ts
+const sandbox = createVercelSandbox({
+  runtime: 'node24',
+});
+```
+
+For local non-networked flows, Pi can also use `@ai-sdk/sandbox-just-bash`.
+
+## Built-in Tools
+
+The adapter exposes Pi built-ins through `agent.tools`:
+
+- `read`
+- `write`
+- `edit`
+- `bash`
+- `grep`
+- `glob`
+- `ls`
+
+Pi supports built-in tool approval requests when `permissionMode` is
+`allow-reads` or `allow-edits`.
+
+## Related
+
+- [HarnessAgent](/docs/harnesses/harness-agent)
+- [Harness tools](/docs/harnesses/tools)
+- [Harness adapters](/docs/harnesses/harness-adapters)

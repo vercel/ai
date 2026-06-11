@@ -1,0 +1,132 @@
+---
+title: Harness Adapters
+description: Learn about the available AI SDK harness adapters.
+---
+
+# Harness Adapters
+
+Harness adapters connect `HarnessAgent` to a specific agent runtime. They are
+the harness equivalent of AI SDK model providers: each adapter wraps one runtime
+and normalizes its sessions, stream events, tools, usage, lifecycle state, and
+configuration into the harness contract.
+
+The implemented adapters are:
+
+| Harness     | Package                       | Runtime                                   | Sandbox requirement                    |
+| ----------- | ----------------------------- | ----------------------------------------- | -------------------------------------- |
+| Claude Code | `@ai-sdk/harness-claude-code` | `@anthropic-ai/claude-agent-sdk` bridge   | Network sandbox with at least one port |
+| Codex       | `@ai-sdk/harness-codex`       | `@openai/codex-sdk` bridge                | Network sandbox with at least one port |
+| Pi          | `@ai-sdk/harness-pi`          | `@earendil-works/pi-coding-agent` in host | Sandbox provider; no port required     |
+
+## Claude Code
+
+Claude Code is backed by `@anthropic-ai/claude-agent-sdk`. The adapter installs
+and runs a bridge inside the sandbox, then connects to it from the host over a
+WebSocket.
+
+```ts
+import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { createClaudeCode } from '@ai-sdk/harness-claude-code';
+import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+
+const agent = new HarnessAgent({
+  harness: createClaudeCode({
+    model: 'claude-sonnet-4-5',
+    thinking: 'adaptive',
+  }),
+  sandbox: createVercelSandbox({
+    runtime: 'node24',
+    ports: [4000],
+  }),
+});
+```
+
+Key settings:
+
+- `auth`: direct Anthropic or AI Gateway authentication.
+- `model`: Claude model id for the underlying CLI.
+- `maxTurns`: maximum internal turns before yielding.
+- `thinking`: `off`, `on`, or `adaptive`.
+- `port`: bridge port override.
+- `startupTimeoutMs`: bridge startup timeout.
+
+See [Claude Code Harness](/providers/ai-sdk-harnesses/claude-code).
+
+## Codex
+
+Codex is backed by `@openai/codex-sdk`. The adapter installs and runs a bridge
+inside the sandbox and streams Codex events through the harness contract.
+
+```ts
+import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { createCodex } from '@ai-sdk/harness-codex';
+import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+
+const agent = new HarnessAgent({
+  harness: createCodex({
+    reasoningEffort: 'high',
+    webSearch: true,
+  }),
+  sandbox: createVercelSandbox({
+    runtime: 'node24',
+    ports: [4000],
+  }),
+});
+```
+
+Key settings:
+
+- `auth`: OpenAI, OpenAI-compatible, or AI Gateway authentication.
+- `model`: Codex model id. If omitted, the adapter pins its default.
+- `reasoningEffort`: `low`, `medium`, or `high`.
+- `webSearch`: enable live web search.
+- `port`: bridge port override.
+- `startupTimeoutMs`: bridge startup timeout.
+
+See [Codex Harness](/providers/ai-sdk-harnesses/codex).
+
+## Pi
+
+Pi is backed by `@earendil-works/pi-coding-agent`. It runs in the host process
+and uses the sandbox as a remote filesystem and shell. Because there is no
+in-sandbox bridge, Pi does not require exposed ports.
+
+```ts
+import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { createPi } from '@ai-sdk/harness-pi';
+import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+
+const agent = new HarnessAgent({
+  harness: createPi({
+    thinkingLevel: 'medium',
+  }),
+  sandbox: createVercelSandbox({
+    runtime: 'node24',
+  }),
+});
+```
+
+Key settings:
+
+- `auth`: AI Gateway or custom provider environment configuration.
+- `model`: Pi model id or model name.
+- `thinkingLevel`: Pi thinking budget level.
+
+See [Pi Harness](/providers/ai-sdk-harnesses/pi).
+
+## Choosing a Sandbox
+
+Use `@ai-sdk/sandbox-vercel` for Claude Code and Codex because their bridges
+need a network sandbox with resolvable ports. Use `@ai-sdk/sandbox-vercel` or
+`@ai-sdk/sandbox-just-bash` for Pi.
+
+## Skills
+
+`HarnessAgent` accepts a `skills` array and each adapter decides how to surface
+those skills:
+
+- Claude Code materializes skills for the runtime's native skill loading.
+- Codex inlines skills into user prompts.
+- Pi passes skills into its runtime session.
+
+Keep skills concise and runtime-appropriate.

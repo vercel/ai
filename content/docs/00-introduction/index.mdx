@@ -13,14 +13,21 @@ Integrating large language models (LLMs) into applications is complicated and he
 
 The AI SDK standardizes integrating artificial intelligence (AI) models across [supported providers](/docs/foundations/providers-and-models). This enables developers to focus on building great AI applications, not waste time on technical details.
 
+The AI SDK also includes a [harness abstraction](/docs/harnesses) for using
+established agent harnesses such as Claude Code, Codex, and Pi through
+`HarnessAgent`. Harnesses are decoupled from model providers, but use compatible
+stream and response primitives so AI SDK UI and agent surfaces can consume them
+in the same way.
+
 For example, here’s how you can generate text with various models using the AI SDK:
 
 <PreviewSwitchProviders />
 
-The AI SDK has two main libraries:
+The AI SDK has these primary surfaces:
 
 - **[AI SDK Core](/docs/ai-sdk-core):** A unified API for generating text, structured objects, tool calls, and building agents with LLMs.
 - **[AI SDK UI](/docs/ai-sdk-ui):** A set of framework-agnostic hooks for quickly building chat and generative user interface.
+- **[AI SDK Harnesses](/docs/harnesses):** A uniform API for running established agent harnesses with `HarnessAgent`.
 
 ## Model Providers
 
