@@ -59,6 +59,38 @@ describe('BlackForestLabsImageModel', () => {
         body: Buffer.from('test-binary-content'),
       },
     },
+    'https://cdn.evil.example/image.png': {
+      response: {
+        type: 'binary',
+        body: Buffer.from('test-binary-content'),
+      },
+    },
+    'https://api.bfl.ai/v1/test-model': {
+      response: {
+        type: 'json-value',
+        body: {
+          id: 'req-123',
+          polling_url: 'https://api.us1.bfl.ai/v1/get_result',
+        },
+      },
+    },
+    'https://api.us1.bfl.ai/v1/get_result': {
+      response: {
+        type: 'json-value',
+        body: {
+          status: 'Ready',
+          result: {
+            sample: 'https://delivery-us1.bfl.ai/image.png',
+          },
+        },
+      },
+    },
+    'https://delivery-us1.bfl.ai/image.png': {
+      response: {
+        type: 'binary',
+        body: Buffer.from('test-binary-content'),
+      },
+    },
   });
 
   describe('doGenerate', () => {
@@ -221,6 +253,55 @@ describe('BlackForestLabsImageModel', () => {
       expect(server.calls[2].requestUrl).toBe(
         'https://api.example.com/image.png',
       );
+    });
+
+    it('does not send the API key when the result URL is on a foreign origin', async () => {
+      server.urls['https://api.example.com/poll'].response = {
+        type: 'json-value',
+        body: {
+          status: 'Ready',
+          result: { sample: 'https://cdn.evil.example/image.png' },
+        },
+      };
+
+      const model = createBasicModel();
+      await model.doGenerate({
+        prompt,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      const downloadCall = server.calls.find(
+        call => call.requestUrl === 'https://cdn.evil.example/image.png',
+      );
+      expect(downloadCall).toBeDefined();
+      expect(downloadCall!.requestHeaders['x-key']).toBeUndefined();
+    });
+
+    it('sends the API key when the polling URL is on a sibling bfl.ai cluster host', async () => {
+      const model = new BlackForestLabsImageModel('test-model', {
+        provider: 'black-forest-labs.image',
+        baseURL: 'https://api.bfl.ai/v1',
+        headers: () => ({ 'x-key': 'test-key' }),
+      });
+
+      await model.doGenerate({
+        prompt,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      const pollCall = server.calls.find(call =>
+        call.requestUrl.startsWith('https://api.us1.bfl.ai/v1/get_result'),
+      );
+      expect(pollCall).toBeDefined();
+      expect(pollCall!.requestHeaders['x-key']).toBe('test-key');
     });
 
     it('merges provider and request headers for submit call', async () => {

@@ -15,6 +15,7 @@ export * from './get-from-api';
 export { getRuntimeEnvironmentUserAgent } from './get-runtime-environment-user-agent';
 export { injectJsonInstructionIntoMessages } from './inject-json-instruction';
 export * from './is-abort-error';
+export { isSameOrigin } from './is-same-origin';
 export { isUrlSupported } from './is-url-supported';
 export * from './load-api-key';
 export { loadOptionalSetting } from './load-optional-setting';
