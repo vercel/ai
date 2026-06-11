@@ -1,4 +1,4 @@
-import { getErrorMessage, type ToolSet } from '@ai-sdk/provider-utils';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 import type { TextStreamPart } from '../generate-text/stream-text-result';
 import type {
   InferUIMessageData,
@@ -38,7 +38,7 @@ export function toUIMessageChunk<
     sendSources = false,
     sendStart = true,
     sendFinish = true,
-    onError = getErrorMessage,
+    onError = () => 'An error occurred.', // prevent leaking server error details to the client by default
     messageMetadata,
     responseMessageId,
   }: ToUIMessageChunkOptions<TOOLS, UI_MESSAGE> = {},
