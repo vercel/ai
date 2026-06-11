@@ -78,7 +78,7 @@ const model = deepgram.speech('aura-2-helena-en');
 You can use the model with the `generateSpeech` function:
 
 ```ts
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 import { deepgram } from '@ai-sdk/deepgram';
 
 const result = await generateSpeech({
@@ -90,7 +90,7 @@ const result = await generateSpeech({
 You can also pass additional provider-specific options using the `providerOptions` argument:
 
 ```ts highlight="7-11"
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 import { deepgram, type DeepgramSpeechModelOptions } from '@ai-sdk/deepgram';
 
 const result = await generateSpeech({
