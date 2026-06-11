@@ -1,5 +1,5 @@
 {
-  "name": "node-tealtiger-governance",
+  "name": "next-tealtiger-governance",
   "version": "0.0.0",
   "private": true,
   "description": "Governance middleware example using tealtiger-ai-sdk",
