@@ -152,7 +152,7 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
         telemetry: { isEnabled: false },
       });
 
-      await telemetry.traceTelemetrySpan?.({
+      await telemetry.runInTracingChannelSpan?.({
         type: 'generateText',
         event,
         execute: async () => undefined,
@@ -170,7 +170,7 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
         telemetry: { functionId: 'enabled-function' },
       });
 
-      await telemetry.traceTelemetrySpan!({
+      await telemetry.runInTracingChannelSpan!({
         type: 'generateText',
         event,
         execute: async () => undefined,
@@ -217,7 +217,7 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
         telemetry: { functionId: 'execution-function' },
       });
 
-      await telemetry.traceTelemetrySpan!({
+      await telemetry.runInTracingChannelSpan!({
         type: 'languageModelCall',
         event: {
           callId: 'language-model-call',
@@ -276,7 +276,7 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
         telemetry: { functionId: 'execution-function' },
       });
 
-      await telemetry.traceTelemetrySpan!({
+      await telemetry.runInTracingChannelSpan!({
         type: 'executeTool',
         event: {
           callId: 'tool-call',

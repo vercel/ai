@@ -1,7 +1,7 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AI_SDK_TELEMETRY_TRACING_CHANNEL } from './tracing-channel';
-import { traceTelemetryChannelPromise } from './tracing-channel-publisher';
+import { runWithTracingChannelSpan } from './tracing-channel-publisher';
 import { isNodeRuntime } from '../util/is-node-runtime';
 
 // Mock the runtime guard so we can drive both branches deterministically,
@@ -17,7 +17,7 @@ const runningOnNode =
   typeof process !== 'undefined' && process.release?.name === 'node';
 
 describe.runIf(runningOnNode)(
-  'traceTelemetryChannelPromise runtime switch',
+  'runWithTracingChannelSpan runtime switch',
   () => {
     const message = {
       type: 'languageModelCall' as const,
@@ -50,7 +50,7 @@ describe.runIf(runningOnNode)(
       const unsubscribe = subscribe(start);
 
       try {
-        const result = await traceTelemetryChannelPromise(
+        const result = await runWithTracingChannelSpan(
           message,
           async () => 'result',
         );
@@ -71,7 +71,7 @@ describe.runIf(runningOnNode)(
       const unsubscribe = subscribe(start);
 
       try {
-        const result = await traceTelemetryChannelPromise(
+        const result = await runWithTracingChannelSpan(
           message,
           async () => 'result',
         );

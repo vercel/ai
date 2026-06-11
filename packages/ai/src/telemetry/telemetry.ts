@@ -37,7 +37,7 @@ import type {
 import type { Callback } from '../util/callback';
 import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import type { TelemetryTracingEventType } from './tracing-channel';
-import type { TelemetrySpanContext } from './tracing-channel-publisher';
+import type { TracingChannelContext } from './tracing-channel-publisher';
 
 export type InferTelemetryEvent<EVENT> = EVENT &
   Omit<
@@ -59,27 +59,24 @@ type OperationEndEvent =
 
 export interface TelemetryDispatcher {
   /**
-   * Runs the operation inside a diagnostics-channel tracing span.
-   *
-   * The `event` payload describes the span selected by `type`: operation spans
-   * use the corresponding start event, step spans use `{ callId, stepNumber }`,
-   * and tool/model-call spans use their start-event context.
+   * Runs awaited work inside a diagnostics-channel tracing span.
    */
-  traceTelemetrySpan?: <T>(options: {
+  runInTracingChannelSpan?: <T>(options: {
     type: TelemetryTracingEventType;
     event: unknown;
     execute: () => PromiseLike<T>;
   }) => Promise<T>;
+
   /**
    * Opens a tracing span context whose completion is observed separately.
    * This is used by streamed operations that must preserve stream timing while
    * still creating child spans with the correct parent.
    */
-  openTelemetrySpanContext?: (options: {
+  startTracingChannelContext?: (options: {
     type: TelemetryTracingEventType;
     event: unknown;
     completion: PromiseLike<unknown>;
-  }) => TelemetrySpanContext | undefined;
+  }) => TracingChannelContext | undefined;
   onStart?: Callback<OperationStartEvent>;
   onStepStart?: Callback<GenerateTextStepStartEvent>;
   onLanguageModelCallStart?: OnLanguageModelCallStartCallback;

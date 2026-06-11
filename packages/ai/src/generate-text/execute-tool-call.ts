@@ -52,7 +52,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   onToolExecutionStart,
   onToolExecutionEnd,
   executeToolInTelemetryContext = async ({ execute }) => await execute(),
-  traceTelemetrySpan = async ({ execute }) => await execute(),
+  runInTracingChannelSpan = async ({ execute }) => await execute(),
 }: {
   toolCall: TypedToolCall<TOOLS>;
   tools: TOOLS | undefined;
@@ -72,7 +72,9 @@ export async function executeToolCall<TOOLS extends ToolSet>({
       execute: () => PromiseLike<T>;
     },
   ) => PromiseLike<T>;
-  traceTelemetrySpan?: NonNullable<TelemetryDispatcher['traceTelemetrySpan']>;
+  runInTracingChannelSpan?: NonNullable<
+    TelemetryDispatcher['runInTracingChannelSpan']
+  >;
 }): Promise<
   | {
       output: ToolOutput<TOOLS>;
@@ -103,7 +105,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
     ...toolExecutionContext,
   };
 
-  return await traceTelemetrySpan({
+  return await runInTracingChannelSpan({
     type: 'executeTool',
     event: baseCallbackEvent,
     execute: async () => {

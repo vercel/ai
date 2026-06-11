@@ -8,7 +8,7 @@ import type {
 } from './telemetry';
 import {
   openTelemetryChannelSpanContext,
-  traceTelemetryChannelPromise,
+  runWithTracingChannelSpan,
 } from './tracing-channel-publisher';
 import { getGlobalTelemetryIntegrations } from './telemetry-registry';
 import type { TelemetryOptions } from './telemetry-options';
@@ -26,7 +26,7 @@ type TelemetryCallbackKey = Exclude<
       ? K
       : never]: true;
   },
-  'traceTelemetrySpan' | 'openTelemetrySpanContext'
+  'runInTracingChannelSpan' | 'startTracingChannelContext'
 >;
 
 /**
@@ -123,8 +123,8 @@ export function createTelemetryDispatcher({
     .filter(Boolean) as Array<NonNullable<Telemetry['executeTool']>>;
 
   return {
-    traceTelemetrySpan: async ({ type, event, execute }) =>
-      await traceTelemetryChannelPromise(
+    runInTracingChannelSpan: async ({ type, event, execute }) =>
+      await runWithTracingChannelSpan(
         {
           type,
           event: augmentEvent(event, telemetryMetadata),
@@ -132,7 +132,7 @@ export function createTelemetryDispatcher({
         execute,
       ),
 
-    openTelemetrySpanContext: ({ type, event, completion }) =>
+    startTracingChannelContext: ({ type, event, completion }) =>
       openTelemetryChannelSpanContext({
         message: {
           type,
@@ -181,7 +181,7 @@ export function createTelemetryDispatcher({
           executeWrapper({ ...augmentedEvent, execute: innerExecute });
       }
 
-      return await traceTelemetryChannelPromise(
+      return await runWithTracingChannelSpan(
         { type: 'languageModelCall', event: augmentedEvent },
         wrappedExecute,
       );

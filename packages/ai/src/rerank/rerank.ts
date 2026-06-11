@@ -133,8 +133,8 @@ export async function rerank<VALUE extends JSONObject | string>({
     telemetry,
   });
 
-  const traceTelemetrySpan =
-    telemetryDispatcher.traceTelemetrySpan ??
+  const runInTracingChannelSpan =
+    telemetryDispatcher.runInTracingChannelSpan ??
     (async <T>({ execute }: { execute: () => PromiseLike<T> }) =>
       await execute());
 
@@ -208,7 +208,7 @@ export async function rerank<VALUE extends JSONObject | string>({
     providerOptions,
   };
 
-  return await traceTelemetrySpan({
+  return await runInTracingChannelSpan({
     type: 'rerank',
     event: startEvent,
     execute: async () => {

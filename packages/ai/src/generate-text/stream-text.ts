@@ -1511,13 +1511,15 @@ class DefaultStreamTextResult<
         toolsContext,
       };
 
-      const streamTextContext = telemetryDispatcher.openTelemetrySpanContext?.({
-        type: 'streamText',
-        event: startEvent,
-        completion: self._totalUsage.promise.then(() => undefined),
-      });
-      const runInStreamTextSpan = <T>(execute: () => T): T =>
-        streamTextContext?.run(execute) ?? execute();
+      const streamTextTracingChannelContext =
+        telemetryDispatcher.startTracingChannelContext?.({
+          type: 'streamText',
+          event: startEvent,
+          completion: self._totalUsage.promise.then(() => undefined),
+        });
+      // Re-enter the streamText tracing context after stream setup returns.
+      const runInStreamTextTracingChannelContext = <T>(execute: () => T): T =>
+        streamTextTracingChannelContext?.run(execute) ?? execute();
 
       await notify({
         event: startEvent,
@@ -1605,7 +1607,8 @@ class DefaultStreamTextResult<
                   telemetryDispatcher.onToolExecutionEnd,
                 ),
                 executeToolInTelemetryContext: telemetryDispatcher.executeTool,
-                traceTelemetrySpan: telemetryDispatcher.traceTelemetrySpan,
+                runInTracingChannelSpan:
+                  telemetryDispatcher.runInTracingChannelSpan,
                 onPreliminaryToolResult: result => {
                   toolExecutionStepStreamController?.enqueue(result);
                 },
@@ -1718,13 +1721,15 @@ class DefaultStreamTextResult<
         try {
           stepFinish = new DelayedPromise<void>();
 
-          const stepContext = telemetryDispatcher.openTelemetrySpanContext?.({
-            type: 'step',
-            event: { callId, stepNumber: currentStep },
-            completion: stepFinish.promise,
-          });
-          const runInStepSpan = <T>(execute: () => T): T =>
-            stepContext?.run(execute) ?? execute();
+          const stepTracingChannelContext =
+            telemetryDispatcher.startTracingChannelContext?.({
+              type: 'step',
+              event: { callId, stepNumber: currentStep },
+              completion: stepFinish.promise,
+            });
+          // Re-enter the current step before creating child spans.
+          const runInStepTracingChannelContext = <T>(execute: () => T): T =>
+            stepTracingChannelContext?.run(execute) ?? execute();
 
           const responseMessagesFromPreviousSteps = recordedSteps.flatMap(
             step => step.response.messages,
@@ -1805,7 +1810,7 @@ class DefaultStreamTextResult<
             stream: languageModelStream,
             request,
             response,
-          } = await runInStepSpan(() =>
+          } = await runInStepTracingChannelContext(() =>
             retry(async () =>
               streamLanguageModelCall({
                 model: prepareStepResult?.model ?? model,
@@ -1883,18 +1888,19 @@ class DefaultStreamTextResult<
               runtimeContext,
             });
 
-          const traceTelemetrySpanInStep =
-            telemetryDispatcher.traceTelemetrySpan == null
+          // Create child spans under the current step context.
+          const runInTracingChannelSpanInStep =
+            telemetryDispatcher.runInTracingChannelSpan == null
               ? undefined
               : <T>(
                   options: Parameters<
-                    NonNullable<TelemetryDispatcher['traceTelemetrySpan']>
+                    NonNullable<TelemetryDispatcher['runInTracingChannelSpan']>
                   >[0] & {
                     execute: () => PromiseLike<T>;
                   },
                 ) =>
-                  runInStepSpan(() =>
-                    telemetryDispatcher.traceTelemetrySpan!(options),
+                  runInStepTracingChannelContext(() =>
+                    telemetryDispatcher.runInTracingChannelSpan!(options),
                   );
 
           const streamWithToolResults = executeToolsFromStream({
@@ -1923,7 +1929,7 @@ class DefaultStreamTextResult<
             ),
 
             executeToolInTelemetryContext: telemetryDispatcher.executeTool,
-            traceTelemetrySpan: traceTelemetrySpanInStep,
+            runInTracingChannelSpan: runInTracingChannelSpanInStep,
           });
 
           // Conditionally include request.body based on include settings.
@@ -2224,7 +2230,7 @@ class DefaultStreamTextResult<
                     }))
                   ) {
                     try {
-                      await runInStreamTextSpan(() =>
+                      await runInStreamTextTracingChannelContext(() =>
                         streamStep({
                           currentStep: currentStep + 1,
                           usage: combinedUsage,
@@ -2261,7 +2267,7 @@ class DefaultStreamTextResult<
         }
       }
 
-      await runInStreamTextSpan(() =>
+      await runInStreamTextTracingChannelContext(() =>
         // add the initial stream to the stitchable stream
         streamStep({
           currentStep: 0,

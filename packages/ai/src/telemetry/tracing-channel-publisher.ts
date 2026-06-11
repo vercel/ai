@@ -10,7 +10,7 @@ type DiagnosticsChannel = typeof diagnosticsChannelModule;
 type AsyncHooks = typeof asyncHooksModule;
 type AsyncResource = asyncHooksModule.AsyncResource;
 
-export type TelemetrySpanContext = {
+export type TracingChannelContext = {
   run<T>(execute: () => T): T;
 };
 
@@ -66,7 +66,7 @@ function loadBuiltinModule<T>(id: string): T | undefined {
  * if tracing itself throws, and prevents falling back by calling `execute` a
  * second time.
  */
-export async function traceTelemetryChannelPromise<T>(
+export async function runWithTracingChannelSpan<T>(
   message: TelemetryTracingChannelMessage,
   execute: () => PromiseLike<T>,
 ): Promise<T> {
@@ -137,7 +137,7 @@ export function openTelemetryChannelSpanContext({
 }: {
   message: TelemetryTracingChannelMessage;
   completion: PromiseLike<unknown>;
-}): TelemetrySpanContext | undefined {
+}): TracingChannelContext | undefined {
   if (!isNodeRuntime()) {
     return undefined;
   }

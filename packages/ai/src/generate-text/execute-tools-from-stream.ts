@@ -49,7 +49,7 @@ export function executeToolsFromStream<
   onToolExecutionStart,
   onToolExecutionEnd,
   executeToolInTelemetryContext,
-  traceTelemetrySpan,
+  runInTracingChannelSpan,
 }: {
   stream: ReadableStream<LanguageModelStreamPart<TOOLS>>;
   tools: TOOLS | undefined;
@@ -66,7 +66,9 @@ export function executeToolsFromStream<
   onToolExecutionStart?: Arrayable<OnToolExecutionStartCallback<TOOLS>>;
   onToolExecutionEnd?: Arrayable<OnToolExecutionEndCallback<TOOLS>>;
   executeToolInTelemetryContext?: Telemetry['executeTool'];
-  traceTelemetrySpan?: NonNullable<TelemetryDispatcher['traceTelemetrySpan']>;
+  runInTracingChannelSpan?: NonNullable<
+    TelemetryDispatcher['runInTracingChannelSpan']
+  >;
 }): ReadableStream<ExecuteToolsStreamPart<TOOLS>> {
   const toolCallsToExecute: Array<TypedToolCall<TOOLS>> = [];
 
@@ -212,7 +214,7 @@ export function executeToolsFromStream<
                     onToolExecutionStart,
                     onToolExecutionEnd,
                     executeToolInTelemetryContext,
-                    traceTelemetrySpan,
+                    runInTracingChannelSpan,
                     onPreliminaryToolResult: result => {
                       controller.enqueue(result);
                     },

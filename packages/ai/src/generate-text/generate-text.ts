@@ -550,8 +550,8 @@ export async function generateText<
     includeToolsContext: telemetry?.includeToolsContext,
   });
 
-  const traceTelemetrySpan =
-    telemetryDispatcher.traceTelemetrySpan ??
+  const runInTracingChannelSpan =
+    telemetryDispatcher.runInTracingChannelSpan ??
     (async <T>({ execute }: { execute: () => PromiseLike<T> }) =>
       await execute());
 
@@ -651,7 +651,7 @@ export async function generateText<
               ],
             }),
           executeToolInTelemetryContext: telemetryDispatcher.executeTool,
-          traceTelemetrySpan,
+          runInTracingChannelSpan,
         });
 
         const toolContent: Array<any> = [];
@@ -737,7 +737,7 @@ export async function generateText<
         const stepNumber = steps.length;
 
         try {
-          await traceTelemetrySpan({
+          await runInTracingChannelSpan({
             type: 'step',
             event: { callId, stepNumber },
             execute: async () => {
@@ -1139,7 +1139,7 @@ export async function generateText<
                     }),
                   executeToolInTelemetryContext:
                     telemetryDispatcher.executeTool,
-                  traceTelemetrySpan,
+                  runInTracingChannelSpan,
                 });
 
                 for (const result of toolExecutionResults) {
@@ -1388,7 +1388,7 @@ export async function generateText<
     }
   };
 
-  return await traceTelemetrySpan({
+  return await runInTracingChannelSpan({
     type: 'generateText',
     event: generateTextStartEvent,
     execute: executeGenerateText,
@@ -1407,7 +1407,7 @@ async function executeTools<TOOLS extends ToolSet>({
   onToolExecutionStart,
   onToolExecutionEnd,
   executeToolInTelemetryContext,
-  traceTelemetrySpan,
+  runInTracingChannelSpan,
 }: {
   toolCalls: Array<TypedToolCall<TOOLS>>;
   tools: TOOLS;
@@ -1420,7 +1420,9 @@ async function executeTools<TOOLS extends ToolSet>({
   onToolExecutionStart?: OnToolExecutionStartCallback<TOOLS>;
   onToolExecutionEnd?: OnToolExecutionEndCallback<TOOLS>;
   executeToolInTelemetryContext?: Telemetry['executeTool'];
-  traceTelemetrySpan?: NonNullable<TelemetryDispatcher['traceTelemetrySpan']>;
+  runInTracingChannelSpan?: NonNullable<
+    TelemetryDispatcher['runInTracingChannelSpan']
+  >;
 }): Promise<
   Array<{
     output: ToolOutput<TOOLS>;
@@ -1442,7 +1444,7 @@ async function executeTools<TOOLS extends ToolSet>({
           onToolExecutionStart,
           onToolExecutionEnd,
           executeToolInTelemetryContext,
-          traceTelemetrySpan,
+          runInTracingChannelSpan,
         }),
     ),
   );

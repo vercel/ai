@@ -135,8 +135,8 @@ export async function embed({
     telemetry,
   });
 
-  const traceTelemetrySpan =
-    telemetryDispatcher.traceTelemetrySpan ??
+  const runInTracingChannelSpan =
+    telemetryDispatcher.runInTracingChannelSpan ??
     (async <T>({ execute }: { execute: () => PromiseLike<T> }) =>
       await execute());
 
@@ -151,7 +151,7 @@ export async function embed({
     providerOptions,
   };
 
-  return await traceTelemetrySpan({
+  return await runInTracingChannelSpan({
     type: 'embed',
     event: startEvent,
     execute: async () => {
