@@ -2501,7 +2501,7 @@ class DefaultStreamTextResult<
     sendSources = false,
     sendStart = true,
     sendFinish = true,
-    onError = getErrorMessage,
+    onError = () => 'An error occurred.', // prevent leaking server error details to the client by default
   }: UIMessageStreamOptions<UI_MESSAGE> = {}): AsyncIterableStream<
     InferUIMessageChunk<UI_MESSAGE>
   > {
