@@ -184,9 +184,9 @@ Apple provides speech-to-text transcription using `SpeechAnalyzer` and `SpeechTr
 
 ```ts
 import { apple } from '@react-native-ai/apple';
-import { experimental_transcribe } from 'ai';
+import { transcribe } from 'ai';
 
-const response = await experimental_transcribe({
+const response = await transcribe({
   model: apple.transcriptionModel(),
   audio: audioBuffer,
 });

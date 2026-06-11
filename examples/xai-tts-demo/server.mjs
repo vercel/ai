@@ -5,7 +5,7 @@ import { createServer } from 'node:http';
 import { xai } from '@ai-sdk/xai';
 import {
   experimental_generateSpeech as generateSpeech,
-  experimental_transcribe as transcribe,
+  transcribe,
 } from 'ai';
 
 const PORT = Number(process.env.PORT) || 5051;

@@ -5,12 +5,10 @@ description: API Reference for transcribe.
 
 # `transcribe()`
 
-<Note type="warning">`transcribe` is an experimental feature.</Note>
-
 Generates a transcript from an audio file.
 
 ```ts
-import { experimental_transcribe as transcribe } from 'ai';
+import { transcribe } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { readFile } from 'fs/promises';
 
@@ -25,7 +23,7 @@ console.log(transcript);
 ## Import
 
 <Snippet
-  text={`import { experimental_transcribe as transcribe } from "ai"`}
+  text={`import { transcribe } from "ai"`}
   prompt={false}
 />
 
