@@ -204,9 +204,9 @@ Convert text to speech:
 
 ```ts
 import { apple } from '@react-native-ai/apple';
-import { experimental_generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 
-const response = await experimental_generateSpeech({
+const response = await generateSpeech({
   model: apple.speechModel(),
   text: 'Hello from Apple on-device speech!',
   language: 'en-US',
@@ -218,7 +218,7 @@ const response = await experimental_generateSpeech({
 You can configure the voice to use for speech synthesis by passing its identifier to the `voice` option.
 
 ```ts
-const response = await experimental_generateSpeech({
+const response = await generateSpeech({
   model: apple.speechModel(),
   text: 'Custom voice example',
   voice: 'com.apple.ttsbundle.Samantha-compact',

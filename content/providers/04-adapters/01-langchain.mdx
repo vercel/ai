@@ -150,7 +150,7 @@ export async function POST(req: Request) {
 
   const stream = await agent.stream(
     { messages: langchainMessages },
-    { streamMode: ['values', 'messages'] },
+    { streamMode: ['values', 'messages', 'tools'] },
   );
 
   return createUIMessageStreamResponse({
@@ -158,6 +158,8 @@ export async function POST(req: Request) {
   });
 }
 ```
+
+Use the `tools` stream mode to stream LangGraph tool progress. The adapter converts `on_tool_event` events to preliminary tool output (`preliminary: true`) and the final `on_tool_end` event to final tool output.
 
 ## Example: LangGraph
 
@@ -247,7 +249,7 @@ export async function POST(req: Request) {
   with `createAgent`, and migrating existing LCEL applications that rely on
   callbacks - **`graph.stream()` with `streamMode`**: Best for LangGraph
   applications where you need structured state updates via `values`, `messages`,
-  or `custom` modes
+  `tools`, or `custom` modes
 </Note>
 
 ## Example: Custom Data Streaming
@@ -487,7 +489,7 @@ return createUIMessageStreamResponse({
 // Works with LangGraph streams
 const graphStream = await graph.stream(
   { messages },
-  { streamMode: ['values', 'messages'] },
+  { streamMode: ['values', 'messages', 'tools'] },
 );
 return createUIMessageStreamResponse({
   stream: toUIMessageStream(graphStream),

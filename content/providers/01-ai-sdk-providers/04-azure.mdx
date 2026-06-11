@@ -1117,7 +1117,7 @@ const model = azure.speech('your-tts-deployment-name');
 
 ```ts
 import { azure } from '@ai-sdk/azure';
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 
 const result = await generateSpeech({
   model: azure.speech('your-tts-deployment-name'),
@@ -1130,7 +1130,7 @@ You can also pass additional provider-specific options using the `providerOption
 
 ```ts
 import { azure, type OpenAISpeechModelOptions } from '@ai-sdk/azure';
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 
 const result = await generateSpeech({
   model: azure.speech('your-tts-deployment-name'),

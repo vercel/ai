@@ -4,7 +4,7 @@
 import { createServer } from 'node:http';
 import { xai } from '@ai-sdk/xai';
 import {
-  experimental_generateSpeech as generateSpeech,
+  generateSpeech,
   experimental_transcribe as transcribe,
 } from 'ai';
 

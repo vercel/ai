@@ -11,8 +11,10 @@ export interface LangGraphEventState {
   >;
   /** Accumulates message chunks for later reference */
   messageConcat: Record<string, AIMessageChunk>;
-  /** Maps tool call IDs to their message IDs (for chunks that don't include the ID) */
+  /** Tracks which tool call IDs have emitted tool-input-start */
   emittedToolCalls: Set<string>;
+  /** Tracks which tool call IDs have emitted complete tool inputs */
+  emittedToolInputs: Set<string>;
   /** Maps image IDs to their message IDs (for chunks that don't include the ID) */
   emittedImages: Set<string>;
   /** Maps reasoning block IDs to their message IDs (for chunks that don't include the ID) */
