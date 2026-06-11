@@ -1,5 +1,13 @@
 # ai
 
+## 7.0.0-canary.171
+
+### Patch Changes
+
+- 89ad56f: Promote `generateSpeech` and `SpeechResult` to stable exports.
+- f9a496f: Promote `transcribe` and `TranscriptionResult` to stable exports, with deprecated experimental aliases for backwards compatibility.
+- 3295831: Harden stream text processing and middleware against prototype pollution from stream part IDs.
+
 ## 7.0.0-canary.170
 
 ### Patch Changes
