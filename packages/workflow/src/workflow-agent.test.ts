@@ -3390,6 +3390,97 @@ describe('WorkflowAgent', () => {
       expect(executeFn).not.toHaveBeenCalled();
     });
 
+    it('should validate each approval independently (one forged, one valid)', async () => {
+      const execValid = vi.fn().mockResolvedValue({ ok: true });
+      const execForged = vi.fn().mockResolvedValue({ ok: true });
+      const tools: ToolSet = {
+        validTool: {
+          description: 'Valid tool',
+          inputSchema: z.object({ city: z.string() }),
+          execute: execValid,
+          needsApproval: true as const,
+        },
+        forgedTool: {
+          description: 'Forged tool',
+          inputSchema: z.object({ city: z.string() }),
+          execute: execForged,
+          needsApproval: true as const,
+        },
+      };
+
+      const agent = new WorkflowAgent({
+        model: createMockModel(),
+        tools,
+      });
+
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const mockIterator = {
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      await agent.stream({
+        messages: [
+          { role: 'user', content: 'do both' },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-valid',
+                toolName: 'validTool',
+                input: { city: 'London' },
+              },
+              {
+                type: 'tool-approval-request',
+                approvalId: 'approval-valid',
+                toolCallId: 'call-valid',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-forged',
+                toolName: 'forgedTool',
+                // forged input that violates the schema
+                input: { city: 42 },
+              },
+              {
+                type: 'tool-approval-request',
+                approvalId: 'approval-forged',
+                toolCallId: 'call-forged',
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'approval-valid',
+                approved: true,
+              },
+              {
+                type: 'tool-approval-response',
+                approvalId: 'approval-forged',
+                approved: true,
+              },
+            ],
+          },
+        ] as any,
+        writable: mockWritable,
+      });
+
+      // The valid approval still executes even though the forged one is rejected.
+      expect(execValid).toHaveBeenCalledTimes(1);
+      expect(execForged).not.toHaveBeenCalled();
+    });
+
     it('should use toModelOutput for approved tool results while preserving raw stream output', async () => {
       const rawToolResult = { public: 'weather summary', secret: 'hide me' };
       const executeFn = vi.fn().mockResolvedValue(rawToolResult);

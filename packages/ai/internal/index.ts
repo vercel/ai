@@ -37,4 +37,9 @@ export { createTelemetryDispatcher } from '../src/telemetry/create-telemetry-dis
 export { createRestrictedTelemetryDispatcher } from '../src/generate-text/restricted-telemetry-dispatcher';
 export { DefaultStepResult } from '../src/generate-text/step-result';
 export { parseToolCall } from '../src/generate-text/parse-tool-call';
+export {
+  collectToolApprovals,
+  type CollectedToolApprovals,
+} from '../src/generate-text/collect-tool-approvals';
+export { validateApprovedToolApprovals } from '../src/generate-text/validate-tool-approvals';
 export { toResponseMessages } from '../src/generate-text/to-response-messages';
