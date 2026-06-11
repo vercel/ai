@@ -113,6 +113,7 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
           type: 'tool-approval-request',
           approvalId: part.approvalId,
           toolCallId: part.toolCall.toolCallId,
+          ...(part.signature != null ? { signature: part.signature } : {}),
         });
         break;
     }

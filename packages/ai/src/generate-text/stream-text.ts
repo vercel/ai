@@ -82,6 +82,7 @@ import { mergeObjects } from '../util/merge-objects';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
 import { collectToolApprovals } from './collect-tool-approvals';
+import { validateApprovedToolApprovals } from './validate-tool-approvals';
 import type {
   OnFinishEvent,
   OnStartEvent,
@@ -359,6 +360,7 @@ export function streamText<
   experimental_onToolCallStart: onToolCallStart,
   experimental_onToolCallFinish: onToolCallFinish,
   experimental_context,
+  experimental_toolApprovalSecret,
   experimental_include: include,
   _internal: { now = originalNow, generateId = originalGenerateId } = {},
   ...settings
@@ -533,6 +535,15 @@ export function streamText<
     experimental_context?: unknown;
 
     /**
+     * Secret for HMAC-signing tool approval requests. When set, the server
+     * signs each approval request at issuance and verifies the signature when
+     * the approval is replayed, preventing client-forged approvals.
+     *
+     * Experimental (can break in patch releases).
+     */
+    experimental_toolApprovalSecret?: string | Uint8Array;
+
+    /**
      * Settings for controlling what data is included in step results.
      * Disabling inclusion can help reduce memory usage when processing
      * large payloads like images.
@@ -608,6 +619,7 @@ export function streamText<
     now,
     generateId,
     experimental_context,
+    experimental_toolApprovalSecret,
     download,
     include,
   });
@@ -792,6 +804,7 @@ class DefaultStreamTextResult<
     onToolCallStart,
     onToolCallFinish,
     experimental_context,
+    experimental_toolApprovalSecret,
     download,
     include,
   }: {
@@ -828,6 +841,7 @@ class DefaultStreamTextResult<
       | undefined;
     originalAbortSignal: AbortSignal | undefined;
     experimental_context: unknown;
+    experimental_toolApprovalSecret: string | Uint8Array | undefined;
     download: DownloadFunction | undefined;
     include: { requestBody?: boolean } | undefined;
 
@@ -1402,12 +1416,29 @@ class DefaultStreamTextResult<
           deniedToolApprovals.length > 0 ||
           approvedToolApprovals.length > 0
         ) {
-          const localApprovedToolApprovals = approvedToolApprovals.filter(
-            toolApproval => !toolApproval.toolCall.providerExecuted,
-          );
-          const localDeniedToolApprovals = deniedToolApprovals.filter(
-            toolApproval => !toolApproval.toolCall.providerExecuted,
-          );
+          // Re-validate approvals reconstructed from the client-supplied
+          // message history before executing them: verify the HMAC signature
+          // (when a secret is configured), re-validate the input against the
+          // tool's schema, and re-resolve whether the tool requires approval.
+          const {
+            approvedToolApprovals: localApprovedToolApprovals,
+            deniedToolApprovals: revalidationDeniedToolApprovals,
+          } = await validateApprovedToolApprovals<TOOLS>({
+            approvedToolApprovals: approvedToolApprovals.filter(
+              toolApproval => !toolApproval.toolCall.providerExecuted,
+            ),
+            tools,
+            messages: initialMessages,
+            experimental_context,
+            toolApprovalSecret: experimental_toolApprovalSecret,
+          });
+
+          const localDeniedToolApprovals = [
+            ...deniedToolApprovals.filter(
+              toolApproval => !toolApproval.toolCall.providerExecuted,
+            ),
+            ...revalidationDeniedToolApprovals,
+          ];
 
           const deniedProviderExecutedToolApprovals =
             deniedToolApprovals.filter(
@@ -1728,6 +1759,7 @@ class DefaultStreamTextResult<
               repairToolCall,
               abortSignal,
               experimental_context,
+              toolApprovalSecret: experimental_toolApprovalSecret,
               generateId,
               stepNumber: recordedSteps.length,
               model: stepModelInfo,
