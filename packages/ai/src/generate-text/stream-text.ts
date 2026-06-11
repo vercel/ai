@@ -1752,7 +1752,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     sendSources = false,
     sendStart = true,
     sendFinish = true,
-    onError = getErrorMessage,
+    onError = () => 'An error occurred.', // prevent leaking server error details to the client by default
   }: UIMessageStreamOptions<UI_MESSAGE> = {}): AsyncIterableStream<
     InferUIMessageChunk<UI_MESSAGE>
   > {
