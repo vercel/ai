@@ -2,7 +2,7 @@ import {
   googleVertex,
   type GoogleVertexTranscriptionModelOptions,
 } from '@ai-sdk/google-vertex';
-import { experimental_transcribe as transcribe } from 'ai';
+import { transcribe } from 'ai';
 import { readFile } from 'fs/promises';
 import { run } from '../../lib/run';
 
