@@ -659,6 +659,64 @@ describe('OpenResponsesLanguageModel', () => {
       });
     });
 
+    it('should not pollute Object.prototype from tool call item ids', async () => {
+      const originalArgumentsDescriptor = Object.getOwnPropertyDescriptor(
+        Object.prototype,
+        'arguments',
+      );
+
+      try {
+        server.urls[URL].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: ${JSON.stringify({
+              type: 'response.function_call_arguments.done',
+              item_id: '__proto__',
+              output_index: 0,
+              arguments: 'polluted',
+              sequence_number: 0,
+            })}\n\n`,
+            `data: ${JSON.stringify({
+              type: 'response.completed',
+              response: {
+                incomplete_details: null,
+                status: 'completed',
+                usage: {
+                  input_tokens: 0,
+                  input_tokens_details: { cached_tokens: 0 },
+                  output_tokens: 0,
+                  output_tokens_details: { reasoning_tokens: 0 },
+                  total_tokens: 0,
+                },
+              },
+              sequence_number: 1,
+            })}\n\n`,
+            'data: [DONE]\n\n',
+          ],
+        };
+
+        const result = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        await convertReadableStreamToArray(result.stream);
+
+        expect(
+          Object.getOwnPropertyDescriptor(Object.prototype, 'arguments'),
+        ).toStrictEqual(originalArgumentsDescriptor);
+      } finally {
+        if (originalArgumentsDescriptor == null) {
+          delete (Object.prototype as { arguments?: unknown }).arguments;
+        } else {
+          Reflect.defineProperty(
+            Object.prototype,
+            'arguments',
+            originalArgumentsDescriptor,
+          );
+        }
+      }
+    });
+
     describe('pdf input file', () => {
       it('should stream content from pdf input', async () => {
         prepareChunksFixtureResponse('openai-pdf-input-file.1');
