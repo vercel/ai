@@ -9,6 +9,11 @@ The Codex harness adapter connects `HarnessAgent` to Codex through
 `@openai/codex-sdk`. The adapter runs a bridge inside the sandbox and streams
 Codex thread events back to the host over a sandbox-exposed WebSocket.
 
+<Note>
+  Harness packages are **experimental**. Expect breaking changes between
+  releases as this early API gets further refined.
+</Note>
+
 ## Setup
 
 <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
