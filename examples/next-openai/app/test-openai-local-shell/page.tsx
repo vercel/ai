@@ -2,7 +2,7 @@
 
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { OpenAILocalShellMessage } from '@/app/api/chat-openai-local-shell/route';
+import type { OpenAILocalShellMessage } from '@/app/api/chat-openai-local-shell/route';
 import ChatInput from '@/components/chat-input';
 import LocalShellView from '@/components/tool/openai-local-shell-view';
 

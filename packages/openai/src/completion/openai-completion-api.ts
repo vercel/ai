@@ -1,7 +1,7 @@
 import { z } from 'zod/v4';
 import { openaiErrorDataSchema } from '../openai-error';
 import {
-  InferValidator,
+  type InferValidator,
   lazyValidator,
   zodSchema,
 } from '@ai-sdk/provider-utils';

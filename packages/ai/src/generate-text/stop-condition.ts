@@ -1,5 +1,5 @@
-import { StepResult } from './step-result';
-import { ToolSet } from './tool-set';
+import type { StepResult } from './step-result';
+import type { ToolSet } from './tool-set';
 
 export type StopCondition<TOOLS extends ToolSet> = (options: {
   steps: Array<StepResult<TOOLS>>;

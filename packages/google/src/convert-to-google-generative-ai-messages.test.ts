@@ -71,6 +71,7 @@ describe('thought signatures', () => {
                   "args": {
                     "value": "test",
                   },
+                  "id": "call1",
                   "name": "test",
                 },
                 "thoughtSignature": "sig3",
@@ -282,6 +283,7 @@ describe('tool messages', () => {
           parts: [
             {
               functionResponse: {
+                id: 'testCallId',
                 name: 'testFunction',
                 response: {
                   name: 'testFunction',
@@ -387,6 +389,7 @@ describe('assistant messages', () => {
             "parts": [
               {
                 "functionResponse": {
+                  "id": "testCallId",
                   "name": "imageGenerator",
                   "parts": [
                     {
@@ -449,6 +452,7 @@ describe('assistant messages', () => {
             "parts": [
               {
                 "functionResponse": {
+                  "id": "testCallId",
                   "name": "imageGenerator",
                   "parts": [
                     {
@@ -511,6 +515,7 @@ describe('assistant messages', () => {
             "parts": [
               {
                 "functionResponse": {
+                  "id": "testCallId",
                   "name": "imageGenerator",
                   "response": {
                     "content": "Here is the generated image:",
@@ -562,6 +567,7 @@ describe('parallel tool calls', () => {
 
     expect(result.contents[0].parts[0]).toEqual({
       functionCall: {
+        id: 'call1',
         args: { city: 'paris' },
         name: 'checkweather',
       },
@@ -570,6 +576,7 @@ describe('parallel tool calls', () => {
 
     expect(result.contents[0].parts[1]).toEqual({
       functionCall: {
+        id: 'call2',
         args: { city: 'london' },
         name: 'checkweather',
       },
@@ -612,6 +619,7 @@ describe('tool results with thought signatures', () => {
 
     expect(result.contents[0].parts[0]).toEqual({
       functionCall: {
+        id: 'call1',
         args: { userId: '123' },
         name: 'readdata',
       },
@@ -620,6 +628,7 @@ describe('tool results with thought signatures', () => {
 
     expect(result.contents[1].parts[0]).toEqual({
       functionResponse: {
+        id: 'call1',
         name: 'readdata',
         response: {
           content: 'file not found',

@@ -1,4 +1,4 @@
-import { GenerateImageUIToolInvocation } from '@/tool/generate-image-tool';
+import type { GenerateImageUIToolInvocation } from '@/tool/generate-image-tool';
 
 export default function GenerateImageView({
   invocation,

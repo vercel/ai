@@ -28,7 +28,7 @@
       "path": "examples/nest"
     },
     {
-      "path": "examples/next"
+      "path": "examples/next-agent"
     },
     {
       "path": "examples/next-fastapi"
@@ -38,9 +38,6 @@
     },
     {
       "path": "examples/next-langchain"
-    },
-    {
-      "path": "examples/next-openai"
     },
     {
       "path": "examples/next-openai-kasada-bot-protection"
@@ -56,6 +53,12 @@
     },
     {
       "path": "examples/next-openai-upstash-rate-limits"
+    },
+    {
+      "path": "examples/next-openai"
+    },
+    {
+      "path": "examples/next"
     },
     {
       "path": "examples/node-http-server"

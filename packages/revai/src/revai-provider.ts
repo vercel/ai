@@ -1,15 +1,15 @@
 import {
-  TranscriptionModelV2,
-  ProviderV2,
+  type TranscriptionModelV2,
+  type ProviderV2,
   NoSuchModelError,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
+  type FetchFunction,
   loadApiKey,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { RevaiTranscriptionModel } from './revai-transcription-model';
-import { RevaiTranscriptionModelId } from './revai-transcription-options';
+import type { RevaiTranscriptionModelId } from './revai-transcription-options';
 import { VERSION } from './version';
 
 export interface RevaiProvider extends ProviderV2 {

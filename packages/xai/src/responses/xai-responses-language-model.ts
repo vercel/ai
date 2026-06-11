@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV2,
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
@@ -7,15 +7,15 @@ import {
   LanguageModelV2Usage,
 } from '@ai-sdk/provider';
 import {
+  type FetchFunction,
+  type ParseResult,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
-  FetchFunction,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import type { z } from 'zod/v4';
 import { convertXaiResponsesUsage } from './convert-xai-responses-usage';
 import { getResponseMetadata } from '../get-response-metadata';
 import {
@@ -24,7 +24,7 @@ import {
 } from './xai-responses-api';
 import { mapXaiResponsesFinishReason } from './map-xai-responses-finish-reason';
 import {
-  XaiResponsesModelId,
+  type XaiResponsesModelId,
   xaiResponsesProviderOptions,
 } from './xai-responses-options';
 import { xaiFailedResponseHandler } from '../xai-error';
@@ -57,6 +57,11 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
 
   readonly supportedUrls: Record<string, RegExp[]> = {
     'image/*': [/^https?:\/\/.*$/],
+    // xAI's Responses API accepts non-image documents (PDF, plain text, CSV, etc.) as
+    // `{ type: 'input_file', file_url }`. Keeping these URLs intact here lets them pass
+    // through to the converter instead of being downloaded to bytes by the SDK.
+    'application/pdf': [/^https?:\/\/.*$/],
+    'text/*': [/^https?:\/\/.*$/],
   };
 
   private async getArgs({
@@ -436,15 +441,18 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
             if (event.type === 'response.reasoning_summary_part.added') {
               const blockId = `reasoning-${event.item_id}`;
 
-              controller.enqueue({
-                type: 'reasoning-start',
-                id: blockId,
-                providerMetadata: {
-                  xai: {
-                    itemId: event.item_id,
+              if (activeReasoning[event.item_id] == null) {
+                activeReasoning[event.item_id] = {};
+                controller.enqueue({
+                  type: 'reasoning-start',
+                  id: blockId,
+                  providerMetadata: {
+                    xai: {
+                      itemId: event.item_id,
+                    },
                   },
-                },
-              });
+                });
+              }
             }
 
             if (event.type === 'response.reasoning_summary_text.delta') {

@@ -1,27 +1,34 @@
-import {
+import type {
   LanguageModelV2CallWarning,
   LanguageModelV2StreamPart,
 } from '@ai-sdk/provider';
 import {
+  type ModelMessage,
   executeTool,
   generateId,
   getErrorMessage,
-  ModelMessage,
 } from '@ai-sdk/provider-utils';
-import { Tracer } from '@opentelemetry/api';
+import type { Tracer } from '@opentelemetry/api';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { FinishReason, LanguageModelUsage, ProviderMetadata } from '../types';
-import { Source } from '../types/language-model';
-import { DefaultGeneratedFileWithType, GeneratedFile } from './generated-file';
+import type { TelemetrySettings } from '../telemetry/telemetry-settings';
+import type {
+  FinishReason,
+  LanguageModelUsage,
+  ProviderMetadata,
+} from '../types';
+import type { Source } from '../types/language-model';
+import {
+  type GeneratedFile,
+  DefaultGeneratedFileWithType,
+} from './generated-file';
 import { parseToolCall } from './parse-tool-call';
-import { TypedToolCall } from './tool-call';
-import { ToolCallRepairFunction } from './tool-call-repair-function';
-import { TypedToolError } from './tool-error';
-import { TypedToolResult } from './tool-result';
-import { ToolSet } from './tool-set';
+import type { TypedToolCall } from './tool-call';
+import type { ToolCallRepairFunction } from './tool-call-repair-function';
+import type { TypedToolError } from './tool-error';
+import type { TypedToolResult } from './tool-result';
+import type { ToolSet } from './tool-set';
 
 export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
   // Text blocks:

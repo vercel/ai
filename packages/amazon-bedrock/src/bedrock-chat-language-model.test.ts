@@ -1,10 +1,10 @@
-import { LanguageModelV2Prompt } from '@ai-sdk/provider';
+import type { LanguageModelV2Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import { beforeEach, describe, expect, vi, it } from 'vitest';
 import { injectFetchHeaders } from './inject-fetch-headers';
-import {
+import type {
   BedrockReasoningContentBlock,
   BedrockRedactedReasoningContentBlock,
 } from './bedrock-api-types';
@@ -16,6 +16,7 @@ const mockPrepareAnthropicTools = vi.mocked(prepareTools);
 
 vi.mock('@ai-sdk/anthropic/internal', async importOriginal => {
   const original =
+    // oxlint-disable-next-line typescript-eslint/consistent-type-imports
     await importOriginal<typeof import('@ai-sdk/anthropic/internal')>();
   return {
     ...original,

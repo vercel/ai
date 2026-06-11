@@ -1,5 +1,10 @@
 import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
-import { stepCountIs, streamText, ToolCallPart, ToolResultPart } from 'ai';
+import {
+  type ToolCallPart,
+  type ToolResultPart,
+  stepCountIs,
+  streamText,
+} from 'ai';
 import 'dotenv/config';
 
 async function main() {

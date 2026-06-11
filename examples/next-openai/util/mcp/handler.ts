@@ -1,8 +1,8 @@
-import { ServerOptions } from '@modelcontextprotocol/sdk/server/index.js';
+import type { ServerOptions } from '@modelcontextprotocol/sdk/server/index.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { ServerResponse } from 'http';
-import { NextRequest } from 'next/server';
+import type { ServerResponse } from 'http';
+import type { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { convertNextRequestToIncomingMessage } from './incoming-message';
 

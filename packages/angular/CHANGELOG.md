@@ -1,5 +1,135 @@
 # @ai-sdk/angular
 
+## 1.0.199
+
+### Patch Changes
+
+- Updated dependencies [040dc83]
+  - ai@5.0.199
+
+## 1.0.198
+
+### Patch Changes
+
+- Updated dependencies [b02267c]
+  - ai@5.0.198
+
+## 1.0.197
+
+### Patch Changes
+
+- ai@5.0.197
+
+## 1.0.196
+
+### Patch Changes
+
+- ai@5.0.196
+
+## 1.0.195
+
+### Patch Changes
+
+- ai@5.0.195
+
+## 1.0.194
+
+### Patch Changes
+
+- ai@5.0.194
+
+## 1.0.193
+
+### Patch Changes
+
+- ai@5.0.193
+
+## 1.0.192
+
+### Patch Changes
+
+- ai@5.0.192
+
+## 1.0.191
+
+### Patch Changes
+
+- ai@5.0.191
+
+## 1.0.190
+
+### Patch Changes
+
+- ai@5.0.190
+
+## 1.0.189
+
+### Patch Changes
+
+- ai@5.0.189
+
+## 1.0.188
+
+### Patch Changes
+
+- Updated dependencies [1760d76]
+  - ai@5.0.188
+
+## 1.0.187
+
+### Patch Changes
+
+- ai@5.0.187
+
+## 1.0.186
+
+### Patch Changes
+
+- ai@5.0.186
+
+## 1.0.185
+
+### Patch Changes
+
+- ai@5.0.185
+
+## 1.0.184
+
+### Patch Changes
+
+- Updated dependencies [cb911d2]
+  - ai@5.0.184
+
+## 1.0.183
+
+### Patch Changes
+
+- ai@5.0.183
+
+## 1.0.182
+
+### Patch Changes
+
+- ai@5.0.182
+
+## 1.0.181
+
+### Patch Changes
+
+- 783fa6c: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [783fa6c]
+- Updated dependencies [c327fb9]
+  - @ai-sdk/provider-utils@3.0.25
+  - ai@5.0.181
+
+## 1.0.180
+
+### Patch Changes
+
+- Updated dependencies [0a00b9b]
+  - ai@5.0.180
+  - @ai-sdk/provider-utils@3.0.24
+
 ## 1.0.179
 
 ### Patch Changes

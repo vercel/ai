@@ -1,9 +1,9 @@
 import {
-  LanguageModelV2CallWarning,
-  LanguageModelV2DataContent,
-  LanguageModelV2Message,
-  LanguageModelV2Prompt,
-  SharedV2ProviderMetadata,
+  type LanguageModelV2CallWarning,
+  type LanguageModelV2DataContent,
+  type LanguageModelV2Message,
+  type LanguageModelV2Prompt,
+  type SharedV2ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
@@ -12,12 +12,12 @@ import {
   validateTypes,
 } from '@ai-sdk/provider-utils';
 import {
-  AnthropicAssistantMessage,
-  AnthropicMessagesPrompt,
+  type AnthropicAssistantMessage,
+  type AnthropicMessagesPrompt,
+  type AnthropicToolResultContent,
+  type AnthropicUserMessage,
+  type AnthropicWebFetchToolResultContent,
   anthropicReasoningMetadataSchema,
-  AnthropicToolResultContent,
-  AnthropicUserMessage,
-  AnthropicWebFetchToolResultContent,
 } from './anthropic-messages-api';
 import { anthropicFilePartProviderOptions } from './anthropic-messages-options';
 import { CacheControlValidator } from './get-cache-control';
@@ -101,21 +101,21 @@ export async function convertToAnthropicMessagesPrompt({
 
     switch (type) {
       case 'system': {
-        if (system != null) {
-          throw new UnsupportedFunctionalityError({
-            functionality:
-              'Multiple system messages that are separated by user/assistant messages',
-          });
-        }
-
-        system = block.messages.map(({ content, providerOptions }) => ({
-          type: 'text',
+        const content = block.messages.map(({ content, providerOptions }) => ({
+          type: 'text' as const,
           text: content,
           cache_control: validator.getCacheControl(providerOptions, {
             type: 'system message',
             canCache: true,
           }),
         }));
+
+        if (system == null) {
+          system = content;
+        } else {
+          messages.push({ role: 'system', content });
+          betas.add('mid-conversation-system-2026-04-07');
+        }
 
         break;
       }

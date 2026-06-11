@@ -1,10 +1,10 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import {
+  type ToolCallPart,
+  type ToolResultPart,
   extractReasoningMiddleware,
   stepCountIs,
   streamText,
-  ToolCallPart,
-  ToolResultPart,
   wrapLanguageModel,
 } from 'ai';
 import 'dotenv/config';

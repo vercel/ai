@@ -1,4 +1,7 @@
-import { STREAMABLE_VALUE_TYPE, StreamableValue } from './streamable-value';
+import {
+  type StreamableValue,
+  STREAMABLE_VALUE_TYPE,
+} from './streamable-value';
 
 export function isStreamableValue(value: unknown): value is StreamableValue {
   return (

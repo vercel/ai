@@ -1,26 +1,26 @@
 import {
-  JSONObject,
-  LanguageModelV2Message,
-  LanguageModelV2Prompt,
-  SharedV2ProviderMetadata,
+  type JSONObject,
+  type LanguageModelV2Message,
+  type LanguageModelV2Prompt,
+  type SharedV2ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
 import {
+  type BedrockAssistantMessage,
+  type BedrockCachePoint,
+  type BedrockDocumentFormat,
+  type BedrockDocumentMimeType,
+  type BedrockImageFormat,
+  type BedrockImageMimeType,
+  type BedrockMessages,
+  type BedrockSystemMessages,
+  type BedrockUserMessage,
   BEDROCK_CACHE_POINT,
   BEDROCK_DOCUMENT_MIME_TYPES,
   BEDROCK_IMAGE_MIME_TYPES,
-  BedrockAssistantMessage,
-  BedrockCachePoint,
-  BedrockDocumentFormat,
-  BedrockDocumentMimeType,
-  BedrockImageFormat,
-  BedrockImageMimeType,
-  BedrockMessages,
-  BedrockSystemMessages,
-  BedrockUserMessage,
 } from './bedrock-api-types';
-import { bedrockReasoningMetadataSchema } from './bedrock-chat-language-model';
+import { bedrockReasoningMetadataSchema } from './bedrock-reasoning-metadata';
 import { bedrockFilePartProviderOptions } from './bedrock-chat-options';
 
 function getCachePoint(
@@ -284,6 +284,33 @@ export async function convertToBedrockChatMessages(
                       },
                     });
                   }
+                } else if (
+                  part.providerOptions == null ||
+                  Object.keys(part.providerOptions).every(
+                    k => k === 'bedrock' || k === 'amazonBedrock',
+                  )
+                ) {
+                  // No foreign-provider metadata — preserve text. This covers
+                  // the prefill case where the caller hand-crafts a reasoning
+                  // block without a signature. Forwarding reasoning that was
+                  // signed by a different provider (e.g. anthropic) would
+                  // cause Bedrock to reject with
+                  // `thinking.signature: Field required`, so we drop those.
+                  // trim the last text part if it's the last message in the
+                  // block because Bedrock does not allow trailing whitespace
+                  // in pre-filled assistant responses
+                  bedrockContent.push({
+                    reasoningContent: {
+                      reasoningText: {
+                        text: trimIfLast(
+                          isLastBlock,
+                          isLastMessage,
+                          isLastContentPart,
+                          part.text,
+                        ),
+                      },
+                    },
+                  });
                 }
 
                 break;

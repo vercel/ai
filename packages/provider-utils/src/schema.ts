@@ -1,13 +1,16 @@
-import { JSONSchema7 } from '@ai-sdk/provider';
-import * as z3 from 'zod/v3';
-import * as z4 from 'zod/v4';
-import { Validator, validatorSymbol, type ValidationResult } from './validator';
-import { zodSchema } from './zod-schema';
+import type { JSONSchema7 } from '@ai-sdk/provider';
+import type * as z3 from 'zod/v3';
+import type * as z4 from 'zod/v4';
+import {
+  type Validator,
+  validatorSymbol,
+  type ValidationResult,
+} from './validator';
 
 /**
  * Used to mark schemas so we can support both Zod and custom schemas.
  */
-const schemaSymbol = Symbol.for('vercel.ai.schema');
+export const schemaSymbol = Symbol.for('vercel.ai.schema');
 
 export type Schema<OBJECT = unknown> = Validator<OBJECT> & {
   /**
@@ -95,30 +98,4 @@ export function jsonSchema<OBJECT = unknown>(
     },
     validate,
   };
-}
-
-function isSchema(value: unknown): value is Schema {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    schemaSymbol in value &&
-    value[schemaSymbol] === true &&
-    'jsonSchema' in value &&
-    'validate' in value
-  );
-}
-
-export function asSchema<OBJECT>(
-  schema: FlexibleSchema<OBJECT> | undefined,
-): Schema<OBJECT> {
-  return schema == null
-    ? jsonSchema({
-        properties: {},
-        additionalProperties: false,
-      })
-    : isSchema(schema)
-      ? schema
-      : typeof schema === 'function'
-        ? schema()
-        : zodSchema(schema);
 }

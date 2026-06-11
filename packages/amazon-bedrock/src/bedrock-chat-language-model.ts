@@ -1,4 +1,4 @@
-import {
+import type {
   JSONObject,
   LanguageModelV2,
   LanguageModelV2CallWarning,
@@ -11,9 +11,9 @@ import {
   LanguageModelV2FunctionTool,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
-  ParseResult,
-  Resolvable,
+  type FetchFunction,
+  type ParseResult,
+  type Resolvable,
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
@@ -23,15 +23,16 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
+  type BedrockConverseInput,
+  type BedrockStopReason,
   BEDROCK_STOP_REASONS,
-  BedrockConverseInput,
-  BedrockStopReason,
 } from './bedrock-api-types';
 import {
-  BedrockChatModelId,
+  type BedrockChatModelId,
   bedrockProviderOptions,
 } from './bedrock-chat-options';
 import { BedrockErrorSchema } from './bedrock-error';
+import type { BedrockReasoningMetadata } from './bedrock-reasoning-metadata';
 import { createBedrockEventStreamResponseHandler } from './bedrock-event-stream-response-handler';
 import { prepareTools } from './bedrock-prepare-tools';
 import { convertToBedrockChatMessages } from './convert-to-bedrock-chat-messages';
@@ -1035,11 +1036,7 @@ const BedrockStreamSchema = z.object({
   validationException: z.record(z.string(), z.unknown()).nullish(),
 });
 
-export const bedrockReasoningMetadataSchema = z.object({
-  signature: z.string().optional(),
-  redactedData: z.string().optional(),
-});
-
-export type BedrockReasoningMetadata = z.infer<
-  typeof bedrockReasoningMetadataSchema
->;
+export {
+  type BedrockReasoningMetadata,
+  bedrockReasoningMetadataSchema,
+} from './bedrock-reasoning-metadata';

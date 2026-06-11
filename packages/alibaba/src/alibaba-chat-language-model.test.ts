@@ -10,7 +10,9 @@ vi.mock('./version', () => ({
 }));
 
 vi.mock('@ai-sdk/provider-utils', async importOriginal => {
-  const mod = await importOriginal<typeof import('@ai-sdk/provider-utils')>();
+  const mod =
+    // oxlint-disable-next-line typescript-eslint/consistent-type-imports
+    await importOriginal<typeof import('@ai-sdk/provider-utils')>();
   return { ...mod, generateId: () => 'test-reasoning-id' };
 });
 

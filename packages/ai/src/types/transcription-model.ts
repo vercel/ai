@@ -1,4 +1,4 @@
-import {
+import type {
   TranscriptionModelV2,
   TranscriptionModelV2CallWarning,
 } from '@ai-sdk/provider';

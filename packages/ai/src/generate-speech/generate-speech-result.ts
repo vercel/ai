@@ -1,7 +1,7 @@
-import { JSONValue } from '@ai-sdk/provider';
-import { SpeechModelResponseMetadata } from '../types/speech-model-response-metadata';
-import { SpeechWarning } from '../types';
-import { GeneratedAudioFile } from './generated-audio-file';
+import type { JSONValue } from '@ai-sdk/provider';
+import type { SpeechModelResponseMetadata } from '../types/speech-model-response-metadata';
+import type { SpeechWarning } from '../types';
+import type { GeneratedAudioFile } from './generated-audio-file';
 
 /**
 The result of a `generateSpeech` call.

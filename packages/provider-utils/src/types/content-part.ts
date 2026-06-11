@@ -1,6 +1,6 @@
-import { LanguageModelV2ToolResultOutput } from '@ai-sdk/provider';
-import { ProviderOptions } from './provider-options';
-import { DataContent } from './data-content';
+import type { LanguageModelV2ToolResultOutput } from '@ai-sdk/provider';
+import type { ProviderOptions } from './provider-options';
+import type { DataContent } from './data-content';
 
 /**
 Text content part of a prompt. It contains a string of text.

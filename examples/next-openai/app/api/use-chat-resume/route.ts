@@ -5,12 +5,12 @@ import {
 } from '@/util/chat-store';
 import { openai } from '@ai-sdk/openai';
 import {
+  type UIMessage,
   convertToModelMessages,
   createUIMessageStream,
   generateId,
   JsonToSseTransformStream,
   streamText,
-  UIMessage,
 } from 'ai';
 import { after } from 'next/server';
 import { createResumableStreamContext } from 'resumable-stream';

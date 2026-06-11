@@ -1,4 +1,4 @@
-import { SpeechModelV2, SpeechModelV2CallWarning } from '@ai-sdk/provider';
+import type { SpeechModelV2, SpeechModelV2CallWarning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
@@ -6,9 +6,9 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { HumeConfig } from './hume-config';
+import type { HumeConfig } from './hume-config';
 import { humeFailedResponseHandler } from './hume-error';
-import { HumeSpeechAPITypes } from './hume-api-types';
+import type { HumeSpeechAPITypes } from './hume-api-types';
 
 // https://dev.hume.ai/reference/text-to-speech-tts/synthesize-file
 const humeSpeechCallOptionsSchema = z.object({

@@ -1,5 +1,5 @@
 import { AISDKError } from '@ai-sdk/provider';
-import { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
+import type { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
 
 /**
 Error that is thrown when no transcript was generated.

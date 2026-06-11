@@ -1,7 +1,7 @@
 import {
+  type TranscriptionModelV2,
+  type TranscriptionModelV2CallWarning,
   AISDKError,
-  TranscriptionModelV2,
-  TranscriptionModelV2CallWarning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -15,9 +15,9 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { GladiaConfig } from './gladia-config';
+import type { GladiaConfig } from './gladia-config';
 import { gladiaFailedResponseHandler } from './gladia-error';
-import { GladiaTranscriptionInitiateAPITypes } from './gladia-api-types';
+import type { GladiaTranscriptionInitiateAPITypes } from './gladia-api-types';
 
 // https://docs.gladia.io/api-reference/v2/pre-recorded/init
 const gladiaProviderOptionsSchema = z.object({

@@ -1,10 +1,10 @@
 import { openai as provider } from '@ai-sdk/openai';
-import { LanguageModelV2 } from '@ai-sdk/provider';
-import { APICallError } from 'ai';
+import type { LanguageModelV2 } from '@ai-sdk/provider';
+import type { APICallError } from 'ai';
 import 'dotenv/config';
 import { expect } from 'vitest';
 import {
-  ModelWithCapabilities,
+  type ModelWithCapabilities,
   createEmbeddingModelWithCapabilities,
   createFeatureTestSuite,
   createLanguageModelWithCapabilities,

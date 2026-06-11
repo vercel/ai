@@ -1,6 +1,6 @@
-import { Attributes } from '@opentelemetry/api';
-import { CallSettings } from '../prompt/call-settings';
-import { TelemetrySettings } from './telemetry-settings';
+import type { Attributes } from '@opentelemetry/api';
+import type { CallSettings } from '../prompt/call-settings';
+import type { TelemetrySettings } from './telemetry-settings';
 
 export function getBaseTelemetryAttributes({
   model,

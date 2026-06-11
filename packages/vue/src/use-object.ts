@@ -1,5 +1,5 @@
 import { ref, type Ref } from 'vue';
-import swrv from 'swrv';
+import swrv, { type default as SWRVDefault } from 'swrv';
 import {
   isAbortError,
   safeValidateTypes,
@@ -13,8 +13,8 @@ import {
   parsePartialJson,
   type Schema,
 } from 'ai';
-import * as z3 from 'zod/v3';
-import * as z4 from 'zod/v4';
+import type * as z3 from 'zod/v3';
+import type * as z4 from 'zod/v4';
 
 // use function to allow for mocking in tests
 const getOriginalFetch = () => fetch;
@@ -77,7 +77,7 @@ export type Experimental_UseObjectHelpers<RESULT, INPUT> = {
 let uniqueId = 0;
 
 // @ts-expect-error - some issues with the default export of useSWRV
-const useSWRV = (swrv.default as (typeof import('swrv'))['default']) || swrv;
+const useSWRV = (swrv.default as SWRVDefault) || swrv;
 const store: Record<string, any> = {};
 
 export const experimental_useObject = function useObject<

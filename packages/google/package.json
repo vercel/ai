@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/google",
-  "version": "2.0.70",
+  "version": "2.0.74",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -60,7 +60,8 @@
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vercel/ai.git"
+    "url": "https://github.com/vercel/ai",
+    "directory": "packages/google"
   },
   "bugs": {
     "url": "https://github.com/vercel/ai/issues"

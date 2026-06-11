@@ -1,5 +1,5 @@
 import { z } from 'zod/v4';
-import { InferUITool, UIMessage } from './ui-messages';
+import type { InferUITool, UIMessage } from './ui-messages';
 import {
   safeValidateUIMessages,
   validateUIMessages,

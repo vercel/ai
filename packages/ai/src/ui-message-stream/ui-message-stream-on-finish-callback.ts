@@ -1,5 +1,5 @@
-import { FinishReason } from '../types/language-model';
-import { UIMessage } from '../ui/ui-messages';
+import type { FinishReason } from '../types/language-model';
+import type { UIMessage } from '../ui/ui-messages';
 
 export type UIMessageStreamOnFinishCallback<UI_MESSAGE extends UIMessage> =
   (event: {

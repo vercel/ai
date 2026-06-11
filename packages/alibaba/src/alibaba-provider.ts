@@ -1,34 +1,27 @@
 import {
+  type EmbeddingModelV2,
   type LanguageModelV2,
   NoSuchModelError,
   type ProviderV2,
 } from '@ai-sdk/provider';
 import {
-  createJsonErrorResponseHandler,
   type FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
 import { AlibabaLanguageModel } from './alibaba-chat-language-model';
 import type { AlibabaChatModelId } from './alibaba-chat-options';
+import {
+  type AlibabaErrorData,
+  alibabaFailedResponseHandler,
+} from './alibaba-error';
+import { AlibabaEmbeddingModel } from './alibaba-embedding-model';
+import type { AlibabaEmbeddingModelId } from './alibaba-embedding-options';
 import { VERSION } from './version';
 
-export type AlibabaErrorData = z.infer<typeof alibabaErrorDataSchema>;
-
-const alibabaErrorDataSchema = z.object({
-  error: z.object({
-    message: z.string(),
-    code: z.string().nullish(),
-    type: z.string().nullish(),
-  }),
-});
-
-export const alibabaFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: alibabaErrorDataSchema,
-  errorToMessage: data => data.error.message,
-});
+export type { AlibabaErrorData };
+export { alibabaFailedResponseHandler };
 
 export interface AlibabaProvider extends ProviderV2 {
   (modelId: AlibabaChatModelId): LanguageModelV2;
@@ -42,6 +35,23 @@ export interface AlibabaProvider extends ProviderV2 {
    * Creates a chat model for text generation.
    */
   chatModel(modelId: AlibabaChatModelId): LanguageModelV2;
+
+  /**
+   * Creates a model for text embeddings.
+   */
+  embedding(modelId: AlibabaEmbeddingModelId): EmbeddingModelV2<string>;
+
+  /**
+   * Creates a model for text embeddings.
+   */
+  textEmbedding(modelId: AlibabaEmbeddingModelId): EmbeddingModelV2<string>;
+
+  /**
+   * Creates a model for text embeddings.
+   */
+  textEmbeddingModel(
+    modelId: AlibabaEmbeddingModelId,
+  ): EmbeddingModelV2<string>;
 }
 
 export interface AlibabaProviderSettings {
@@ -50,6 +60,13 @@ export interface AlibabaProviderSettings {
    * The default prefix is `https://dashscope-intl.aliyuncs.com/compatible-mode/v1`.
    */
   baseURL?: string;
+
+  /**
+   * Use a different URL prefix for embedding API calls.
+   * The embedding API uses the DashScope native endpoint (not the OpenAI-compatible endpoint).
+   * The default prefix is `https://dashscope-intl.aliyuncs.com/api/v1`.
+   */
+  embeddingBaseURL?: string;
 
   /**
    * API key that is being sent using the `Authorization` header.
@@ -87,6 +104,10 @@ export function createAlibaba(
     withoutTrailingSlash(options.baseURL) ??
     'https://dashscope-intl.aliyuncs.com/compatible-mode/v1';
 
+  const embeddingBaseURL =
+    withoutTrailingSlash(options.embeddingBaseURL) ??
+    'https://dashscope-intl.aliyuncs.com/api/v1';
+
   const getHeaders = () =>
     withUserAgentSuffix(
       {
@@ -109,6 +130,14 @@ export function createAlibaba(
       includeUsage: options.includeUsage ?? true,
     });
 
+  const createEmbeddingModel = (modelId: AlibabaEmbeddingModelId) =>
+    new AlibabaEmbeddingModel(modelId, {
+      provider: 'alibaba.embedding',
+      baseURL: embeddingBaseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const provider = function (modelId: AlibabaChatModelId) {
     if (new.target) {
       throw new Error(
@@ -122,13 +151,12 @@ export function createAlibaba(
   provider.specificationVersion = 'v2' as const;
   provider.languageModel = createLanguageModel;
   provider.chatModel = createLanguageModel;
+  provider.embedding = createEmbeddingModel;
+  provider.textEmbedding = createEmbeddingModel;
+  provider.textEmbeddingModel = createEmbeddingModel;
 
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
-  };
-
-  provider.textEmbeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
   };
 
   return provider;

@@ -1,4 +1,4 @@
-import { ProviderMetadata } from '../types/provider-metadata';
+import type { ProviderMetadata } from '../types/provider-metadata';
 
 /**
  * Reasoning output of a text generation. It contains a reasoning.

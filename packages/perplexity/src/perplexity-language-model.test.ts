@@ -1,15 +1,15 @@
 // TEST FILE DOES NOT USE THE PROVIDER `createPerplexity`
 
 import { describe, it, expect } from 'vitest';
-import { LanguageModelV2Prompt } from '@ai-sdk/provider';
+import type { LanguageModelV2Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   convertReadableStreamToArray,
   mockId,
 } from '@ai-sdk/provider-utils/test';
-import { z } from 'zod/v4';
+import type { z } from 'zod/v4';
 import {
-  perplexityImageSchema,
+  type perplexityImageSchema,
   PerplexityLanguageModel,
 } from './perplexity-language-model';
 

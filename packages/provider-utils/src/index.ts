@@ -34,8 +34,8 @@ export {
 export * from './remove-undefined-entries';
 export * from './resolve';
 export * from './response-handler';
+export { asSchema } from './as-schema';
 export {
-  asSchema,
   jsonSchema,
   lazySchema,
   type FlexibleSchema,

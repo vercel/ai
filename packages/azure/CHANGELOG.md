@@ -1,5 +1,47 @@
 # @ai-sdk/azure
 
+## 2.0.110
+
+### Patch Changes
+
+- f04ecd8: feat(azure): add deepseek model support to azure
+- Updated dependencies [f04ecd8]
+  - @ai-sdk/deepseek@1.0.42
+
+## 2.0.109
+
+### Patch Changes
+
+- 1a78f97: Add Microsoft Entra ID token provider authentication for Azure OpenAI.
+
+## 2.0.108
+
+### Patch Changes
+
+- Updated dependencies [3a7454a]
+  - @ai-sdk/openai@2.0.106
+
+## 2.0.107
+
+### Patch Changes
+
+- 783fa6c: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [783fa6c]
+  - @ai-sdk/provider-utils@3.0.25
+  - @ai-sdk/provider@2.0.3
+  - @ai-sdk/openai@2.0.105
+
+## 2.0.106
+
+### Patch Changes
+
+- 0a00b9b: trigger release for all packages after provenance setup
+- Updated dependencies [0a00b9b]
+- Updated dependencies [11c7bdd]
+  - @ai-sdk/openai@2.0.104
+  - @ai-sdk/provider@2.0.2
+  - @ai-sdk/provider-utils@3.0.24
+
 ## 2.0.105
 
 ### Patch Changes

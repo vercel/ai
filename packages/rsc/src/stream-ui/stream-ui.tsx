@@ -1,22 +1,25 @@
-import { LanguageModelV2, LanguageModelV2CallWarning } from '@ai-sdk/provider';
+import type {
+  LanguageModelV2,
+  LanguageModelV2CallWarning,
+} from '@ai-sdk/provider';
 import {
-  InferSchema,
-  ProviderOptions,
+  type InferSchema,
+  type ProviderOptions,
   safeParseJSON,
 } from '@ai-sdk/provider-utils';
-import { ReactNode } from 'react';
-import * as z3 from 'zod/v3';
-import * as z4 from 'zod/v4';
+import type { ReactNode } from 'react';
+import type * as z3 from 'zod/v3';
+import type * as z4 from 'zod/v4';
 import {
-  CallWarning,
-  FinishReason,
-  LanguageModelUsage,
-  ToolChoice,
-  Prompt,
-  CallSettings,
+  type CallWarning,
+  type FinishReason,
+  type LanguageModelUsage,
+  type ToolChoice,
+  type Prompt,
+  type CallSettings,
+  type Schema,
   InvalidToolInputError,
   NoSuchToolError,
-  Schema,
 } from 'ai';
 import {
   standardizePrompt,
@@ -96,6 +99,7 @@ export async function streamUI<
   system,
   prompt,
   messages,
+  allowSystemInMessages,
   maxRetries,
   abortSignal,
   headers,
@@ -263,6 +267,7 @@ functionality that can be fully encapsulated in the provider.
     system,
     prompt,
     messages,
+    allowSystemInMessages,
   } as Prompt);
   const result = await retry(async () =>
     model.doStream({

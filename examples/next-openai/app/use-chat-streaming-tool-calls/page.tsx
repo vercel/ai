@@ -6,7 +6,7 @@ import {
   DefaultChatTransport,
   lastAssistantMessageIsCompleteWithToolCalls,
 } from 'ai';
-import { StreamingToolCallsMessage } from '../api/use-chat-streaming-tool-calls/route';
+import type { StreamingToolCallsMessage } from '../api/use-chat-streaming-tool-calls/route';
 
 export default function Chat() {
   const { messages, status, sendMessage, addToolOutput } =

@@ -1,7 +1,7 @@
 import {
-  LanguageModelV2CallWarning,
-  LanguageModelV2Prompt,
-  LanguageModelV2ToolCallPart,
+  type LanguageModelV2CallWarning,
+  type LanguageModelV2Prompt,
+  type LanguageModelV2ToolCallPart,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
@@ -15,7 +15,7 @@ import {
   localShellOutputSchema,
 } from '../tool/local-shell';
 import { webSearchOutputSchema } from '../tool/web-search';
-import {
+import type {
   OpenAIResponsesFunctionCallOutput,
   OpenAIResponsesInput,
   OpenAIResponsesReasoning,

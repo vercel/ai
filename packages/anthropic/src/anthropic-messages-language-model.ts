@@ -1,47 +1,49 @@
 import {
+  type JSONObject,
+  type LanguageModelV2,
+  type LanguageModelV2CallWarning,
+  type LanguageModelV2Content,
+  type LanguageModelV2FinishReason,
+  type LanguageModelV2FunctionTool,
+  type LanguageModelV2Prompt,
+  type LanguageModelV2Source,
+  type LanguageModelV2StreamPart,
+  type LanguageModelV2Usage,
+  type SharedV2ProviderMetadata,
   APICallError,
-  JSONObject,
-  LanguageModelV2,
-  LanguageModelV2CallWarning,
-  LanguageModelV2Content,
-  LanguageModelV2FinishReason,
-  LanguageModelV2FunctionTool,
-  LanguageModelV2Prompt,
-  LanguageModelV2Source,
-  LanguageModelV2StreamPart,
-  LanguageModelV2Usage,
-  SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
+  type FetchFunction,
+  type InferValidator,
+  type ParseResult,
+  type Resolvable,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
-  FetchFunction,
   generateId,
-  InferValidator,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
-  Resolvable,
   resolve,
 } from '@ai-sdk/provider-utils';
 import { anthropicFailedResponseHandler } from './anthropic-error';
-import { AnthropicMessageMetadata } from './anthropic-message-metadata';
+import type { AnthropicMessageMetadata } from './anthropic-message-metadata';
 import {
-  AnthropicContainer,
+  type AnthropicContainer,
+  type AnthropicReasoningMetadata,
+  type AnthropicStopDetails,
+  type Citation,
   anthropicMessagesChunkSchema,
   anthropicMessagesResponseSchema,
-  AnthropicReasoningMetadata,
-  Citation,
 } from './anthropic-messages-api';
 import {
-  AnthropicMessagesModelId,
+  type AnthropicMessagesModelId,
   anthropicProviderOptions,
 } from './anthropic-messages-options';
 import { prepareTools } from './anthropic-prepare-tools';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { CacheControlValidator } from './get-cache-control';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
+import { sanitizeJsonSchema } from './sanitize-json-schema';
 
 function createCitationSource(
   citation: Citation,
@@ -333,7 +335,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
             responseFormat.schema != null && {
               format: {
                 type: 'json_schema',
-                schema: responseFormat.schema,
+                schema: sanitizeJsonSchema(responseFormat.schema),
               },
             }),
         },
@@ -344,22 +346,16 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       ...(anthropicOptions?.inferenceGeo && {
         inference_geo: anthropicOptions.inferenceGeo,
       }),
+      ...(anthropicOptions?.fallbacks &&
+        anthropicOptions.fallbacks.length > 0 && {
+          fallbacks: anthropicOptions.fallbacks,
+        }),
       ...(anthropicOptions?.cacheControl && {
         cache_control: anthropicOptions.cacheControl,
       }),
       ...(anthropicOptions?.metadata?.userId != null && {
         metadata: { user_id: anthropicOptions.metadata.userId },
       }),
-
-      // structured output:
-      ...(useStructuredOutput &&
-        responseFormat?.type === 'json' &&
-        responseFormat.schema != null && {
-          output_format: {
-            type: 'json_schema',
-            schema: responseFormat.schema,
-          },
-        }),
 
       // container with agent skills:
       ...(anthropicOptions?.container && {
@@ -531,6 +527,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
     if (anthropicOptions?.speed === 'fast') {
       betas.add('fast-mode-2026-02-01');
+    }
+
+    if (anthropicOptions?.fallbacks && anthropicOptions.fallbacks.length > 0) {
+      betas.add('server-side-fallback-2026-06-01');
     }
 
     // structured output:
@@ -944,13 +944,33 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
           });
           break;
         }
+
+        // Server-side fallback marker: the AI SDK has no content primitive for
+        // a model hop, so drop it. The hop is still observable via
+        // usage.iterations.
+        case 'fallback': {
+          break;
+        }
       }
     }
 
     let inputTokens: number;
     let outputTokens: number;
 
-    if (response.usage.iterations && response.usage.iterations.length > 0) {
+    // A turn served by a server-side fallback is the exception to summing the
+    // iterations: the served answer comes from the fallback model, so the
+    // executor `message` iteration is the blocked primary attempt (zero
+    // output). The top-level totals already reflect the fallback answer, so
+    // they are used directly.
+    const servedByFallback = response.usage.iterations?.some(
+      iter => iter.type === 'fallback_message',
+    );
+
+    if (
+      response.usage.iterations &&
+      response.usage.iterations.length > 0 &&
+      !servedByFallback
+    ) {
       const totals = response.usage.iterations.reduce(
         (acc, iter) => ({
           input: acc.input + iter.input_tokens,
@@ -964,6 +984,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       inputTokens = response.usage.input_tokens;
       outputTokens = response.usage.output_tokens;
     }
+
+    const stopDetails = mapAnthropicStopDetails(response.stop_details);
 
     return {
       content,
@@ -991,9 +1013,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
           cacheCreationInputTokens:
             response.usage.cache_creation_input_tokens ?? null,
           stopSequence: response.stop_sequence ?? null,
+          ...(stopDetails != null ? { stopDetails } : {}),
           iterations: response.usage.iterations
             ? response.usage.iterations.map(iter => ({
                 type: iter.type,
+                ...(iter.model != null ? { model: iter.model } : {}),
                 inputTokens: iter.input_tokens,
                 outputTokens: iter.output_tokens,
               }))
@@ -1120,9 +1144,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     let rawUsage: JSONObject | undefined = undefined;
     let cacheCreationInputTokens: number | null = null;
     let stopSequence: string | null = null;
+    let stopDetails: AnthropicMessageMetadata['stopDetails'] = undefined;
     let container: AnthropicMessageMetadata['container'] | null = null;
     let iterations: Array<{
-      type: 'compaction' | 'message';
+      type: 'compaction' | 'message' | 'advisor_message' | 'fallback_message';
+      model?: string | null;
       input_tokens: number;
       output_tokens: number;
     }> | null = null;
@@ -1174,6 +1200,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
             case 'content_block_start': {
               const contentBlockType = value.content_block.type;
+
+              // Server-side fallback marker: the AI SDK has no content
+              // primitive for a model hop, so drop it. The hop is still
+              // observable via usage.iterations.
+              if (contentBlockType === 'fallback') {
+                return;
+              }
 
               blockType = contentBlockType;
 
@@ -1662,7 +1695,20 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                 iterations = value.usage.iterations;
               }
 
-              if (value.usage.iterations && value.usage.iterations.length > 0) {
+              // A turn served by a server-side fallback is the exception to
+              // summing the iterations: the served answer comes from the
+              // fallback model, so the executor `message` iteration is the
+              // blocked primary attempt (zero output). The top-level totals
+              // already reflect the fallback answer, so they are used directly.
+              const servedByFallback = value.usage.iterations?.some(
+                iter => iter.type === 'fallback_message',
+              );
+
+              if (
+                value.usage.iterations &&
+                value.usage.iterations.length > 0 &&
+                !servedByFallback
+              ) {
                 const totals = value.usage.iterations.reduce(
                   (acc, iter) => ({
                     input: acc.input + iter.input_tokens,
@@ -1689,6 +1735,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                 finishReason: value.delta.stop_reason,
                 isJsonResponseFromTool: usesJsonResponseTool,
               });
+
+              stopDetails = mapAnthropicStopDetails(value.delta.stop_details);
 
               stopSequence = value.delta.stop_sequence ?? null;
               container =
@@ -1780,9 +1828,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                     usage: (rawUsage as JSONObject) ?? null,
                     cacheCreationInputTokens,
                     stopSequence,
+                    ...(stopDetails != null ? { stopDetails } : {}),
                     iterations: iterations
                       ? iterations.map(iter => ({
                           type: iter.type,
+                          ...(iter.model != null ? { model: iter.model } : {}),
                           inputTokens: iter.input_tokens,
                           outputTokens: iter.output_tokens,
                         }))
@@ -1864,7 +1914,11 @@ function getModelCapabilities(modelId: string): {
   rejectsSamplingParameters: boolean;
   isKnownModel: boolean;
 } {
-  if (modelId.includes('claude-opus-4-7')) {
+  if (
+    modelId.includes('claude-opus-4-8') ||
+    modelId.includes('claude-opus-4-7') ||
+    modelId.includes('claude-fable-5')
+  ) {
     return {
       maxOutputTokens: 128000,
       supportsStructuredOutput: true,
@@ -1938,4 +1992,23 @@ function getModelCapabilities(modelId: string): {
       isKnownModel: false,
     };
   }
+}
+
+function mapAnthropicStopDetails(
+  stopDetails: AnthropicStopDetails | null | undefined,
+): AnthropicMessageMetadata['stopDetails'] | undefined {
+  if (stopDetails == null) {
+    return undefined;
+  }
+
+  return {
+    type: stopDetails.type,
+    ...(stopDetails.category != null ? { category: stopDetails.category } : {}),
+    ...(stopDetails.explanation != null
+      ? { explanation: stopDetails.explanation }
+      : {}),
+    ...(stopDetails.recommended_model != null
+      ? { recommendedModel: stopDetails.recommended_model }
+      : {}),
+  };
 }

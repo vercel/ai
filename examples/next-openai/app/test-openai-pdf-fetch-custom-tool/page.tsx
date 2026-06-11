@@ -4,7 +4,7 @@ import ChatInput from '@/components/chat-input';
 import FetchPDFView from '@/components/tool/fetch-pdf-view';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { OpenAIFetchPDFMessage } from '@/app/api/chat-openai-fetch-pdf-custom-tool/route';
+import type { OpenAIFetchPDFMessage } from '@/app/api/chat-openai-fetch-pdf-custom-tool/route';
 
 export default function TestOpenAIFileGenerationPDF() {
   const { status, sendMessage, messages } = useChat<OpenAIFetchPDFMessage>({

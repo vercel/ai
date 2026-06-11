@@ -1,8 +1,10 @@
-import type { CompletionRequestOptions, UseCompletionOptions } from 'ai';
-import { callCompletionApi } from 'ai';
-import swrv from 'swrv';
-import type { Ref } from 'vue';
-import { ref, unref } from 'vue';
+import {
+  type CompletionRequestOptions,
+  type UseCompletionOptions,
+  callCompletionApi,
+} from 'ai';
+import swrv, { type default as SWRVDefault } from 'swrv';
+import { type Ref, ref, unref } from 'vue';
 
 export type { UseCompletionOptions };
 
@@ -45,7 +47,7 @@ export type UseCompletionHelpers = {
 let uniqueId = 0;
 
 // @ts-expect-error - some issues with the default export of useSWRV
-const useSWRV = (swrv.default as (typeof import('swrv'))['default']) || swrv;
+const useSWRV = (swrv.default as SWRVDefault) || swrv;
 const store: Record<string, any> = {};
 
 export function useCompletion({

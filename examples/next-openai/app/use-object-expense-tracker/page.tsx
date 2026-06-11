@@ -2,9 +2,9 @@
 
 import { experimental_useObject as useObject } from '@ai-sdk/react';
 import {
-  Expense,
+  type Expense,
+  type PartialExpense,
   expenseSchema,
-  PartialExpense,
 } from '../api/use-object-expense-tracker/schema';
 import { useState } from 'react';
 

@@ -1,7 +1,7 @@
-import { ModelMessage } from '@ai-sdk/provider-utils';
+import type { ModelMessage } from '@ai-sdk/provider-utils';
 import { describe, expect, it } from 'vitest';
 import { convertToModelMessages } from './convert-to-model-messages';
-import { UIMessage } from './ui-messages';
+import type { UIMessage } from './ui-messages';
 
 describe('convertToModelMessages', () => {
   describe('system message', () => {

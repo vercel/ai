@@ -1,6 +1,6 @@
-import { ZodDateDef } from 'zod/v3';
-import { Refs } from '../refs';
-import { DateStrategy } from '../options';
+import type { ZodDateDef } from 'zod/v3';
+import type { Refs } from '../refs';
+import type { DateStrategy } from '../options';
 
 export type JsonSchema7DateType =
   | {

@@ -1,8 +1,8 @@
 import { weatherTool } from '@/tool/weather-tool';
 import { openai } from '@ai-sdk/openai';
 import {
+  type Experimental_InferAgentUIMessage as InferAgentUIMessage,
   Experimental_Agent as Agent,
-  Experimental_InferAgentUIMessage as InferAgentUIMessage,
   stepCountIs,
 } from 'ai';
 

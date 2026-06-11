@@ -1,4 +1,4 @@
-import { Tool, ToolCallOptions, ToolExecuteFunction } from './tool';
+import { type ToolCallOptions, type ToolExecuteFunction, Tool } from './tool';
 import { isAsyncIterable } from '../is-async-iterable';
 
 export async function* executeTool<INPUT, OUTPUT>({

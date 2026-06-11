@@ -1,6 +1,6 @@
-import { StandardSchemaV1 } from '@standard-schema/spec';
+import type { StandardSchemaV1 } from '@standard-schema/spec';
 import { describe, expectTypeOf, it } from 'vitest';
-import { InferValidator } from './validator';
+import type { InferValidator } from './validator';
 
 describe('InferValidator type', () => {
   it('should work with fixed inputSchema', () => {

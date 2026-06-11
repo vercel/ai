@@ -1,6 +1,6 @@
 import { InvalidArgumentError } from '@ai-sdk/provider';
 import { safeValidateTypes } from './validate-types';
-import { FlexibleValidator } from './validator';
+import type { FlexibleValidator } from './validator';
 
 export async function parseProviderOptions<OPTIONS>({
   provider,

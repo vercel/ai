@@ -1,4 +1,4 @@
-import { SharedV2ProviderOptions } from '../../shared';
+import type { SharedV2ProviderOptions } from '../../shared';
 
 export type ImageModelV2CallOptions = {
   /**

@@ -1,10 +1,10 @@
 import {
-  LanguageModelV2CallWarning,
-  LanguageModelV2Prompt,
+  type LanguageModelV2CallWarning,
+  type LanguageModelV2Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
-import { XaiChatPrompt } from './xai-chat-prompt';
+import type { XaiChatPrompt } from './xai-chat-prompt';
 
 export function convertToXaiChatMessages(prompt: LanguageModelV2Prompt): {
   messages: XaiChatPrompt;

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolve, Resolvable } from './resolve';
+import { type Resolvable, resolve } from './resolve';
 
 describe('resolve', () => {
   // Test raw values

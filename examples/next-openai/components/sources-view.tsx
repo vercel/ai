@@ -4,7 +4,7 @@ import {
   SourcesContent,
   SourcesTrigger,
 } from './ai-elements/sources';
-import { SourceUrlUIPart } from 'ai';
+import type { SourceUrlUIPart } from 'ai';
 
 const SourcesView = ({ sources }: { sources: SourceUrlUIPart[] }) => {
   if (sources.length === 0) {

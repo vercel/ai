@@ -1,5 +1,5 @@
-import { LanguageModelV2ToolResultOutput } from '@ai-sdk/provider';
-import {
+import type { LanguageModelV2ToolResultOutput } from '@ai-sdk/provider';
+import type {
   FilePart,
   ImagePart,
   ProviderOptions,

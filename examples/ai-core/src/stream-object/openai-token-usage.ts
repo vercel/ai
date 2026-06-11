@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { streamObject, LanguageModelUsage } from 'ai';
+import { type LanguageModelUsage, streamObject } from 'ai';
 import 'dotenv/config';
 import { z } from 'zod';
 

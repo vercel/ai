@@ -12,7 +12,7 @@ import {
   registerClient,
   auth,
 } from './oauth';
-import { AuthorizationServerMetadata } from './oauth-types';
+import type { AuthorizationServerMetadata } from './oauth-types';
 import { ServerError } from '../error/oauth-error';
 import { LATEST_PROTOCOL_VERSION } from './types';
 

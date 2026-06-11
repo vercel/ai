@@ -1,4 +1,4 @@
-import {
+import type {
   JSONValue,
   SpeechModelV2,
   SpeechModelV2CallWarning,
@@ -16,8 +16,8 @@ import * as logWarningsModule from '../logger/log-warnings';
 import { MockSpeechModelV2 } from '../test/mock-speech-model-v2';
 import { generateSpeech } from './generate-speech';
 import {
+  type GeneratedAudioFile,
   DefaultGeneratedAudioFile,
-  GeneratedAudioFile,
 } from './generated-audio-file';
 
 const audio = new Uint8Array([1, 2, 3, 4]); // Sample audio data

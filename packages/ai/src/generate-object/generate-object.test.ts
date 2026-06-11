@@ -1,6 +1,6 @@
 import {
+  type LanguageModelV2CallWarning,
   JSONParseError,
-  LanguageModelV2CallWarning,
   TypeValidationError,
 } from '@ai-sdk/provider';
 import { jsonSchema } from '@ai-sdk/provider-utils';
@@ -884,6 +884,36 @@ describe('generateObject', () => {
         "type": "json",
       }
     `);
+    });
+
+    it('should return transformed array elements', async () => {
+      const model = new MockLanguageModelV2({
+        doGenerate: {
+          ...dummyResponseValues,
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                elements: [{ content: 'element 1' }, { content: 'element 2' }],
+              }),
+            },
+          ],
+        },
+      });
+
+      const result = await generateObject({
+        model,
+        schema: z.object({
+          content: z
+            .string()
+            .transform(value => value.length)
+            .pipe(z.number()),
+        }),
+        output: 'array',
+        prompt: 'prompt',
+      });
+
+      expect(result.object).toStrictEqual([{ content: 9 }, { content: 9 }]);
     });
   });
 

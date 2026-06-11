@@ -1,17 +1,20 @@
-import { GoogleErrorData, google as provider } from '@ai-sdk/google';
-import { APICallError, ImageModelV2, LanguageModelV2 } from '@ai-sdk/provider';
+import { type GoogleErrorData, google as provider } from '@ai-sdk/google';
+import type {
+  APICallError,
+  ImageModelV2,
+  LanguageModelV2,
+} from '@ai-sdk/provider';
 import 'dotenv/config';
 import { expect } from 'vitest';
 import {
-  ModelWithCapabilities,
+  type ModelWithCapabilities,
   createEmbeddingModelWithCapabilities,
   createFeatureTestSuite,
   createLanguageModelWithCapabilities,
   createImageModelWithCapabilities,
   defaultChatModelCapabilities,
 } from './feature-test-suite';
-import { wrapLanguageModel } from 'ai';
-import { defaultSettingsMiddleware } from 'ai';
+import { wrapLanguageModel, defaultSettingsMiddleware } from 'ai';
 
 const createChatModel = (
   modelId: string,

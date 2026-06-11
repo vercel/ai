@@ -1,6 +1,6 @@
 'use client';
 
-import { AnthropicWebSearchMessage } from '@/app/api/anthropic-web-search/route';
+import type { AnthropicWebSearchMessage } from '@/app/api/anthropic-web-search/route';
 import ChatInput from '@/components/chat-input';
 import AnthropicWebSearchView from '@/components/tool/anthropic-web-search-view';
 import { useChat } from '@ai-sdk/react';

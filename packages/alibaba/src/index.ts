@@ -5,6 +5,10 @@ export type {
   AlibabaLanguageModelOptions as AlibabaProviderOptions,
 } from './alibaba-chat-options';
 export type { AlibabaCacheControl } from './alibaba-chat-prompt';
+export type {
+  AlibabaEmbeddingModelId,
+  AlibabaEmbeddingModelOptions,
+} from './alibaba-embedding-options';
 export {
   type AlibabaProvider,
   type AlibabaProviderSettings,

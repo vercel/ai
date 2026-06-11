@@ -3,7 +3,7 @@
 import ChatInput from '@/components/chat-input';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { UseChatToolsMessage } from '../api/test-invalid-tool-call/route';
+import type { UseChatToolsMessage } from '../api/test-invalid-tool-call/route';
 
 export default function Chat() {
   const { messages, sendMessage, status } = useChat<UseChatToolsMessage>({

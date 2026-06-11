@@ -1,5 +1,5 @@
-import { ToolResultPart } from './content-part';
-import { ProviderOptions } from './provider-options';
+import type { ToolResultPart } from './content-part';
+import type { ProviderOptions } from './provider-options';
 
 /**
 A tool message. It contains the result of one or more tool calls.

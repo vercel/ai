@@ -1,5 +1,10 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { stepCountIs, streamText, ToolCallPart, ToolResultPart } from 'ai';
+import {
+  type ToolCallPart,
+  type ToolResultPart,
+  stepCountIs,
+  streamText,
+} from 'ai';
 import 'dotenv/config';
 import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';

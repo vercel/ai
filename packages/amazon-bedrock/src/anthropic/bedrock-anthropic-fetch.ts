@@ -1,6 +1,6 @@
 import {
+  type FetchFunction,
   convertBase64ToUint8Array,
-  FetchFunction,
   safeParseJSON,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';

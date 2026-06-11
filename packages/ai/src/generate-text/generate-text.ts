@@ -1,26 +1,26 @@
-import {
+import type {
   LanguageModelV2,
   LanguageModelV2Content,
   LanguageModelV2ToolCall,
 } from '@ai-sdk/provider';
 import {
+  type IdGenerator,
+  type ProviderOptions,
   createIdGenerator,
   executeTool,
   getErrorMessage,
-  IdGenerator,
-  ProviderOptions,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
-import { Tracer } from '@opentelemetry/api';
+import type { Tracer } from '@opentelemetry/api';
 import { NoOutputSpecifiedError } from '../error/no-output-specified-error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
-import { ModelMessage } from '../prompt';
-import { CallSettings } from '../prompt/call-settings';
+import type { ModelMessage } from '../prompt';
+import type { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
-import { Prompt } from '../prompt/prompt';
+import type { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
@@ -29,33 +29,33 @@ import { getTracer } from '../telemetry/get-tracer';
 import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { LanguageModel, ToolChoice } from '../types';
-import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
+import type { TelemetrySettings } from '../telemetry/telemetry-settings';
+import type { LanguageModel, ToolChoice } from '../types';
+import { type LanguageModelUsage, addLanguageModelUsage } from '../types/usage';
 import { asArray } from '../util/as-array';
-import { DownloadFunction } from '../util/download/download-function';
+import type { DownloadFunction } from '../util/download/download-function';
 import { prepareRetries } from '../util/prepare-retries';
-import { ContentPart } from './content-part';
+import type { ContentPart } from './content-part';
 import { extractTextContent } from './extract-text-content';
-import { GenerateTextResult } from './generate-text-result';
+import type { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile } from './generated-file';
-import { Output } from './output';
+import type { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
-import { PrepareStepFunction } from './prepare-step';
-import { ResponseMessage } from './response-message';
-import { DefaultStepResult, StepResult } from './step-result';
+import type { PrepareStepFunction } from './prepare-step';
+import type { ResponseMessage } from './response-message';
+import { type StepResult, DefaultStepResult } from './step-result';
 import {
+  type StopCondition,
   isStopConditionMet,
   stepCountIs,
-  StopCondition,
 } from './stop-condition';
 import { toResponseMessages } from './to-response-messages';
-import { TypedToolCall } from './tool-call';
-import { ToolCallRepairFunction } from './tool-call-repair-function';
-import { TypedToolError } from './tool-error';
-import { ToolOutput } from './tool-output';
-import { TypedToolResult } from './tool-result';
-import { ToolSet } from './tool-set';
+import type { TypedToolCall } from './tool-call';
+import type { ToolCallRepairFunction } from './tool-call-repair-function';
+import type { TypedToolError } from './tool-error';
+import type { ToolOutput } from './tool-output';
+import type { TypedToolResult } from './tool-result';
+import type { ToolSet } from './tool-set';
 import { VERSION } from '../version';
 
 const originalGenerateId = createIdGenerator({
@@ -129,6 +129,7 @@ export async function generateText<
   system,
   prompt,
   messages,
+  allowSystemInMessages,
   maxRetries: maxRetriesArg,
   abortSignal,
   headers,
@@ -273,6 +274,7 @@ A function that attempts to repair a tool call that failed to parse.
     system,
     prompt,
     messages,
+    allowSystemInMessages,
   } as Prompt);
 
   const tracer = getTracer(telemetry);

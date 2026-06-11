@@ -1,10 +1,10 @@
-import { LanguageModelV2Prompt } from '@ai-sdk/provider';
+import type { LanguageModelV2Prompt } from '@ai-sdk/provider';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createDeepSeek } from '../deepseek-provider';
-import { DeepSeekChatOptions } from './deepseek-chat-options';
+import type { DeepSeekChatOptions } from './deepseek-chat-options';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -120,6 +120,86 @@ describe('DeepSeekChatLanguageModel', () => {
         });
 
         expect(result).toMatchSnapshot();
+      });
+    });
+
+    describe('reasoning_effort', () => {
+      beforeEach(() => {
+        prepareJsonFixtureResponse('deepseek-text');
+      });
+
+      it.each(['low', 'medium', 'xhigh'] as const)(
+        'should pass providerOptions reasoningEffort %s through to the API',
+        async effort => {
+          await provider.chat('deepseek-reasoner').doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              deepseek: {
+                reasoningEffort: effort,
+              } satisfies DeepSeekChatOptions,
+            },
+          });
+
+          expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+            effort,
+          );
+        },
+      );
+
+      it('should pass providerOptions thinking.type=adaptive through to the API', async () => {
+        await provider.chat('deepseek-reasoner').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            deepseek: {
+              thinking: { type: 'adaptive' },
+            } satisfies DeepSeekChatOptions,
+          },
+        });
+
+        expect((await server.calls[0].requestBodyJson).thinking).toStrictEqual({
+          type: 'adaptive',
+        });
+      });
+
+      it('should pass providerOptions reasoningEffort', async () => {
+        await provider.chat('deepseek-reasoner').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            deepseek: {
+              reasoningEffort: 'max',
+            } satisfies DeepSeekChatOptions,
+          },
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.reasoning_effort).toBe('max');
+        expect(requestBody.thinking).toBeUndefined();
+      });
+
+      it('should not send reasoning_effort when thinking is disabled', async () => {
+        await provider.chat('deepseek-reasoner').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            deepseek: {
+              thinking: { type: 'disabled' },
+              reasoningEffort: 'high',
+            } satisfies DeepSeekChatOptions,
+          },
+        });
+
+        expect(
+          (await server.calls[0].requestBodyJson).reasoning_effort,
+        ).toBeUndefined();
+      });
+
+      it('should not set reasoning_effort when not specified', async () => {
+        await provider.chat('deepseek-reasoner').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(
+          (await server.calls[0].requestBodyJson).reasoning_effort,
+        ).toBeUndefined();
       });
     });
 

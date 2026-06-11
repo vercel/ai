@@ -1,4 +1,4 @@
-import { ServerResponse } from 'node:http';
+import type { ServerResponse } from 'node:http';
 import { prepareHeaders } from '../util/prepare-headers';
 import { writeToServerResponse } from '../util/write-to-server-response';
 

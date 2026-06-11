@@ -1,4 +1,4 @@
-import {
+import type {
   TranscriptionModelV2,
   TranscriptionModelV2CallOptions,
   TranscriptionModelV2CallWarning,
@@ -11,13 +11,13 @@ import {
   parseProviderOptions,
   postFormDataToApi,
 } from '@ai-sdk/provider-utils';
-import { OpenAIConfig } from '../openai-config';
+import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { openaiTranscriptionResponseSchema } from './openai-transcription-api';
 import {
-  OpenAITranscriptionModelId,
+  type OpenAITranscriptionModelId,
+  type OpenAITranscriptionProviderOptions,
   openAITranscriptionProviderOptions,
-  OpenAITranscriptionProviderOptions,
 } from './openai-transcription-options';
 
 export type OpenAITranscriptionCallOptions = Omit<

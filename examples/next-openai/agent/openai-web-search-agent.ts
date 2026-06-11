@@ -1,6 +1,6 @@
 import {
+  type Experimental_InferAgentUIMessage as InferAgentUIMessage,
   Experimental_Agent as Agent,
-  Experimental_InferAgentUIMessage as InferAgentUIMessage,
 } from 'ai';
 import { openai } from '@ai-sdk/openai';
 

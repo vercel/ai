@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { groqProviderOptions, GroqProviderOptions } from './groq-chat-options';
+import {
+  type GroqProviderOptions,
+  groqProviderOptions,
+} from './groq-chat-options';
 
 describe('groqProviderOptions', () => {
   describe('reasoningEffort', () => {

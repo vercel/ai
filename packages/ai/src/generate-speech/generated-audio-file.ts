@@ -1,5 +1,5 @@
 import {
-  GeneratedFile,
+  type GeneratedFile,
   DefaultGeneratedFile,
 } from '../generate-text/generated-file';
 

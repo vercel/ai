@@ -46,6 +46,26 @@ const azure = createAzure({
 });
 ```
 
+For Microsoft Entra ID authentication, you can provide a token provider.
+Install `@azure/identity` separately if you want to use its credential helpers:
+
+```ts
+import { createAzure } from '@ai-sdk/azure';
+import {
+  DefaultAzureCredential,
+  getBearerTokenProvider,
+} from '@azure/identity';
+
+const credential = new DefaultAzureCredential();
+const scope = 'https://cognitiveservices.azure.com/.default';
+const tokenProvider = getBearerTokenProvider(credential, scope);
+
+const azure = createAzure({
+  resourceName: 'your-resource-name',
+  tokenProvider,
+});
+```
+
 You can use the following optional settings to customize the OpenAI provider instance:
 
 - **resourceName** _string_
@@ -60,6 +80,11 @@ You can use the following optional settings to customize the OpenAI provider ins
 
   API key that is being sent using the `api-key` header.
   It defaults to the `AZURE_API_KEY` environment variable.
+
+- **tokenProvider** _() => Promise&lt;string&gt;_
+
+  Microsoft Entra ID token provider that returns an access token to be sent using the `Authorization` header.
+  When provided, this is used instead of `apiKey`.
 
 - **apiVersion** _string_
 
@@ -245,6 +270,33 @@ The following optional provider options are available for OpenAI chat models:
 
   A unique identifier representing your end-user, which can help OpenAI to
   monitor and detect abuse. Learn more.
+
+### DeepSeek Chat Models
+
+You can create Azure-hosted DeepSeek chat models using the `.deepseek()` factory method:
+
+```ts
+const model = azure.deepseek('your-deepseek-deployment-name');
+```
+
+Use this factory for Azure DeepSeek models that support DeepSeek's chat
+reasoning fields, such as `deepseek-v4-pro` and `deepseek-v4-flash`. The
+factory parses streamed `reasoning_content` as AI SDK reasoning parts.
+
+```ts
+import { azure, type AzureDeepSeekLanguageModelOptions } from '@ai-sdk/azure';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: azure.deepseek('your-deepseek-deployment-name'),
+  prompt: 'How many "r"s are in the word "strawberry"?',
+  providerOptions: {
+    azure: {
+      reasoningEffort: 'high',
+    } satisfies AzureDeepSeekLanguageModelOptions,
+  },
+});
+```
 
 ### Responses Models
 

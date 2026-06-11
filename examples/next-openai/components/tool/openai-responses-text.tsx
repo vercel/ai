@@ -1,7 +1,7 @@
 'use client';
 
 import { Response } from '@/components/ai-elements/response';
-import { TextUIPart } from 'ai';
+import type { TextUIPart } from 'ai';
 import { z } from 'zod/v4';
 
 export const openaiResponsesTextUIPartProviderMetadataSchema = z.object({

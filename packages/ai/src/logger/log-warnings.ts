@@ -1,4 +1,4 @@
-import {
+import type {
   ImageModelV2CallWarning,
   LanguageModelV2CallWarning,
   SpeechModelV2CallWarning,

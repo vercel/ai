@@ -146,7 +146,80 @@ describe('convertToXaiResponsesInput', () => {
       `);
     });
 
-    it('should throw for unsupported file types', async () => {
+    it('should convert non-image file parts with URL to input_file with file_url', async () => {
+      const result = await convertToXaiResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'summarize this PDF' },
+              {
+                type: 'file',
+                mediaType: 'application/pdf',
+                data: new URL('https://example.com/document.pdf'),
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "summarize this PDF",
+                "type": "input_text",
+              },
+              {
+                "file_url": "https://example.com/document.pdf",
+                "type": "input_file",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+      expect(result.inputWarnings).toEqual([]);
+    });
+
+    it('should convert text/* file parts with URL to input_file with file_url', async () => {
+      const result = await convertToXaiResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'analyze this CSV' },
+              {
+                type: 'file',
+                mediaType: 'text/csv',
+                data: new URL('https://example.com/data.csv'),
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "analyze this CSV",
+                "type": "input_text",
+              },
+              {
+                "file_url": "https://example.com/data.csv",
+                "type": "input_file",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+    });
+
+    it('should throw for non-image file parts provided as inline bytes', async () => {
       await expect(
         convertToXaiResponsesInput({
           prompt: [

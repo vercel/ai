@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV2Content,
   LanguageModelV2Middleware,
 } from '@ai-sdk/provider';

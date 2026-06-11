@@ -1,4 +1,4 @@
-import { ReasoningPart } from '@ai-sdk/provider-utils';
+import type { ReasoningPart } from '@ai-sdk/provider-utils';
 
 export function asReasoningText(
   reasoningParts: Array<ReasoningPart>,

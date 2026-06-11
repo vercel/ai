@@ -1,6 +1,6 @@
 import {
-  CompletionRequestOptions,
-  UseCompletionOptions,
+  type CompletionRequestOptions,
+  type UseCompletionOptions,
   callCompletionApi,
 } from 'ai';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';

@@ -2,6 +2,7 @@ import {
   loadOptionalSetting,
   withoutTrailingSlash,
   type FetchFunction,
+  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { asGatewayError, GatewayAuthenticationError } from './errors';
 import {
@@ -37,7 +38,6 @@ import type {
   ImageModelV2,
   ProviderV2,
 } from '@ai-sdk/provider';
-import { withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { VERSION } from './version';
 
 export interface GatewayProvider extends ProviderV2 {

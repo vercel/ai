@@ -1,5 +1,5 @@
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
-import { streamText, tool, ModelMessage } from 'ai';
+import { type ModelMessage, streamText, tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../lib/run';
 

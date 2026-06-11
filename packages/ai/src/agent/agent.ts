@@ -1,23 +1,23 @@
-import { IdGenerator, ProviderOptions } from '@ai-sdk/provider-utils';
+import type { IdGenerator, ProviderOptions } from '@ai-sdk/provider-utils';
 import {
+  type GenerateTextOnStepFinishCallback,
   generateText,
-  GenerateTextOnStepFinishCallback,
 } from '../generate-text/generate-text';
-import { GenerateTextResult } from '../generate-text/generate-text-result';
-import { Output } from '../generate-text/output';
-import { PrepareStepFunction } from '../generate-text/prepare-step';
-import { StopCondition } from '../generate-text/stop-condition';
+import type { GenerateTextResult } from '../generate-text/generate-text-result';
+import type { Output } from '../generate-text/output';
+import type { PrepareStepFunction } from '../generate-text/prepare-step';
+import type { StopCondition } from '../generate-text/stop-condition';
 import { streamText } from '../generate-text/stream-text';
-import { StreamTextResult } from '../generate-text/stream-text-result';
-import { ToolCallRepairFunction } from '../generate-text/tool-call-repair-function';
-import { ToolSet } from '../generate-text/tool-set';
-import { CallSettings } from '../prompt/call-settings';
-import { Prompt } from '../prompt/prompt';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { LanguageModel, ToolChoice } from '../types/language-model';
-import { ProviderMetadata } from '../types/provider-metadata';
+import type { StreamTextResult } from '../generate-text/stream-text-result';
+import type { ToolCallRepairFunction } from '../generate-text/tool-call-repair-function';
+import type { ToolSet } from '../generate-text/tool-set';
+import type { CallSettings } from '../prompt/call-settings';
+import type { Prompt } from '../prompt/prompt';
+import type { TelemetrySettings } from '../telemetry/telemetry-settings';
+import type { LanguageModel, ToolChoice } from '../types/language-model';
+import type { ProviderMetadata } from '../types/provider-metadata';
 import { convertToModelMessages } from '../ui/convert-to-model-messages';
-import { InferUITools, UIMessage } from '../ui/ui-messages';
+import type { InferUITools, UIMessage } from '../ui/ui-messages';
 
 export type AgentSettings<
   TOOLS extends ToolSet,

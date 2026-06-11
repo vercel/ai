@@ -1,4 +1,4 @@
-import { LanguageModelV2ProviderDefinedTool } from '@ai-sdk/provider';
+import type { LanguageModelV2ProviderDefinedTool } from '@ai-sdk/provider';
 import { expect, it } from 'vitest';
 import { prepareTools } from './google-prepare-tools';
 

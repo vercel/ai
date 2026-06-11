@@ -1,5 +1,5 @@
 import type { ProviderV2 } from '@ai-sdk/provider';
-import { LanguageModelMiddleware } from '../types/language-model-middleware';
+import type { LanguageModelMiddleware } from '../types/language-model-middleware';
 import { wrapLanguageModel } from './wrap-language-model';
 
 /**

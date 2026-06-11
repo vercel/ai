@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/azure",
-  "version": "2.0.105",
+  "version": "2.0.110",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -30,6 +30,7 @@
     }
   },
   "dependencies": {
+    "@ai-sdk/deepseek": "workspace:*",
     "@ai-sdk/openai": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*"
@@ -54,7 +55,8 @@
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vercel/ai.git"
+    "url": "https://github.com/vercel/ai",
+    "directory": "packages/azure"
   },
   "bugs": {
     "url": "https://github.com/vercel/ai/issues"

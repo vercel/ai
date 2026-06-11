@@ -1,6 +1,6 @@
 'use client';
 
-import { OpenAIImageGenerationMessage } from '@/app/api/chat-openai-image-generation/route';
+import type { OpenAIImageGenerationMessage } from '@/app/api/chat-openai-image-generation/route';
 import ChatInput from '@/components/chat-input';
 import ImageGenerationView from '@/components/tool/openai-image-generation-view';
 import { useChat } from '@ai-sdk/react';

@@ -2,7 +2,7 @@ import { fail } from 'assert';
 import { z } from 'zod/v4';
 import { verifyNoObjectGeneratedError } from '../error/verify-no-object-generated-error';
 import { object } from './output';
-import { FinishReason } from '../types';
+import type { FinishReason } from '../types';
 import { describe, it, expect } from 'vitest';
 
 const context = {

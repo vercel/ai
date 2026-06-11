@@ -19,7 +19,7 @@ jobs:
     if: github.event_name == 'pull_request_target'
     steps:
       - name: Create access token for GitHub App
-        uses: actions/create-github-app-token@v3
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         id: app-token
         with:
           app-id: ${{ vars.VERCEL_AI_SDK_GITHUB_APP_CLIENT_ID }}
@@ -32,7 +32,7 @@ jobs:
           permission-pull-requests: write
 
       - name: Checkout Repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           token: ${{ steps.app-token.outputs.token }}
 
@@ -54,7 +54,7 @@ jobs:
 
       - name: Determine appropriate labels
         id: classify-issue
-        uses: vercel/ai-action@v2
+        uses: vercel/ai-action@bd265252c9d1d8295ceda28dadb56ad9321c8ccc # v2.2.0
         with:
           model: 'openai/gpt-4o'
           api-key: ${{ secrets.AI_GATEWAY_API_KEY }}
@@ -178,7 +178,7 @@ jobs:
     if: github.event_name == 'issues'
     steps:
       - name: Create access token for GitHub App
-        uses: actions/create-github-app-token@v3
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         id: app-token
         with:
           app-id: ${{ vars.VERCEL_AI_SDK_GITHUB_APP_CLIENT_ID }}
@@ -189,7 +189,7 @@ jobs:
           permission-issues: write
 
       - name: Checkout Repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           token: ${{ steps.app-token.outputs.token }}
 
@@ -203,7 +203,7 @@ jobs:
 
       - name: Determine appropriate labels
         id: classify-issue
-        uses: vercel/ai-action@v2
+        uses: vercel/ai-action@bd265252c9d1d8295ceda28dadb56ad9321c8ccc # v2.2.0
         with:
           model: 'openai/gpt-4o'
           api-key: ${{ secrets.AI_GATEWAY_API_KEY }}

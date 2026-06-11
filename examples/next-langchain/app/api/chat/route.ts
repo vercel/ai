@@ -1,7 +1,7 @@
 import { toUIMessageStream } from '@ai-sdk/langchain';
 import { AIMessage, HumanMessage } from '@langchain/core/messages';
 import { ChatOpenAI } from '@langchain/openai';
-import { createUIMessageStreamResponse, UIMessage } from 'ai';
+import { type UIMessage, createUIMessageStreamResponse } from 'ai';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;

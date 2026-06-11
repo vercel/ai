@@ -1,0 +1,7 @@
+{"id":"deepseek-chatcmpl-1","object":"chat.completion.chunk","created":1781043300,"model":"deepseek-v4-pro","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":null},"finish_reason":null}],"usage":null}
+{"id":"deepseek-chatcmpl-1","object":"chat.completion.chunk","created":1781043300,"model":"deepseek-v4-pro","choices":[{"index":0,"delta":{"content":null,"reasoning_content":"Count"},"finish_reason":null}],"usage":null}
+{"id":"deepseek-chatcmpl-1","object":"chat.completion.chunk","created":1781043300,"model":"deepseek-v4-pro","choices":[{"index":0,"delta":{"content":null,"reasoning_content":" carefully."},"finish_reason":null}],"usage":null}
+{"id":"deepseek-chatcmpl-1","object":"chat.completion.chunk","created":1781043301,"model":"deepseek-v4-pro","choices":[{"index":0,"delta":{"content":"There"},"finish_reason":null}],"usage":null}
+{"id":"deepseek-chatcmpl-1","object":"chat.completion.chunk","created":1781043301,"model":"deepseek-v4-pro","choices":[{"index":0,"delta":{"content":" are three r's."},"finish_reason":null}],"usage":null}
+{"id":"deepseek-chatcmpl-1","object":"chat.completion.chunk","created":1781043301,"model":"deepseek-v4-pro","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":null}
+{"id":"deepseek-chatcmpl-1","object":"chat.completion.chunk","created":1781043301,"model":"deepseek-v4-pro","choices":[],"usage":{"prompt_tokens":8,"completion_tokens":12,"completion_tokens_details":{"reasoning_tokens":5},"prompt_cache_hit_tokens":2,"prompt_cache_miss_tokens":6,"total_tokens":20}}

@@ -8,7 +8,7 @@ import {
 } from 'ai';
 import { processToolCalls } from './utils';
 import { tools } from './tools';
-import { HumanInTheLoopUIMessage } from './types';
+import type { HumanInTheLoopUIMessage } from './types';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;

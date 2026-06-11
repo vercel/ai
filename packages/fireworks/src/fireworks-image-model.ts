@@ -1,12 +1,12 @@
-import { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
+import type { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
 import {
+  type FetchFunction,
   combineHeaders,
   createBinaryResponseHandler,
   createStatusCodeErrorResponseHandler,
-  FetchFunction,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { FireworksImageModelId } from './fireworks-image-options';
+import type { FireworksImageModelId } from './fireworks-image-options';
 
 interface FireworksImageModelBackendConfig {
   urlFormat: 'workflows' | 'image_generation';

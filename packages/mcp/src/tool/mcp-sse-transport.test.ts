@@ -3,8 +3,8 @@ import {
   TestResponseController,
 } from '@ai-sdk/test-server/with-vitest';
 import { MCPClientError } from '../error/mcp-client-error';
-import { SseMCPTransport } from './mcp-sse-transport';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { deserializeMessage, SseMCPTransport } from './mcp-sse-transport';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LATEST_PROTOCOL_VERSION } from './types';
 
 describe('SseMCPTransport', () => {
@@ -130,6 +130,46 @@ describe('SseMCPTransport', () => {
     const error = await errorPromise;
     expect(error).toBeInstanceOf(MCPClientError);
     expect((error as Error).message).toContain('Failed to parse message');
+
+    await transport.close();
+  });
+
+  it('should reject SSE messages containing __proto__ (prototype pollution)', async () => {
+    const controller = new TestResponseController();
+
+    server.urls['http://localhost:3000/sse'].response = {
+      type: 'controlled-stream',
+      controller,
+    };
+
+    const errorPromise = new Promise<unknown>(resolve => {
+      transport.onerror = err => resolve(err);
+    });
+
+    const connectPromise = transport.start();
+
+    controller.write(
+      'event: endpoint\ndata: http://localhost:3000/messages\n\n',
+    );
+    await connectPromise;
+
+    const malicious =
+      '{"jsonrpc":"2.0","id":1,"result":{"__proto__":{"polluted":true}}}';
+    controller.write(`event: message\ndata: ${malicious}\n\n`);
+
+    const error = await errorPromise;
+    expect(error).toBeInstanceOf(MCPClientError);
+    expect({
+      message: (error as Error).message,
+      cause: ((error as { cause?: Error }).cause as Error | undefined)?.message,
+    }).toMatchInlineSnapshot(`
+      {
+        "cause": "JSON parsing failed: Text: {"jsonrpc":"2.0","id":1,"result":{"__proto__":{"polluted":true}}}.
+      Error message: Object contains forbidden prototype property",
+        "message": "MCP SSE Transport Error: Failed to parse message",
+      }
+    `);
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
 
     await transport.close();
   });
@@ -283,5 +323,37 @@ describe('SseMCPTransport', () => {
     expect(server.calls[1].requestUserAgent).toContain('ai-sdk/');
 
     await transport.close();
+  });
+});
+
+describe('deserializeMessage', () => {
+  it('should reject payloads containing __proto__ (prototype pollution)', async () => {
+    const malicious =
+      '{"jsonrpc":"2.0","id":1,"result":{"__proto__":{"polluted":true}}}';
+
+    await expect(
+      deserializeMessage(malicious),
+    ).rejects.toThrowErrorMatchingInlineSnapshot(
+      `
+      [AI_JSONParseError: JSON parsing failed: Text: {"jsonrpc":"2.0","id":1,"result":{"__proto__":{"polluted":true}}}.
+      Error message: Object contains forbidden prototype property]
+    `,
+    );
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+  });
+
+  it('should reject payloads containing constructor.prototype', async () => {
+    const malicious =
+      '{"jsonrpc":"2.0","id":1,"result":{"constructor":{"prototype":{"polluted":true}}}}';
+
+    await expect(
+      deserializeMessage(malicious),
+    ).rejects.toThrowErrorMatchingInlineSnapshot(
+      `
+      [AI_JSONParseError: JSON parsing failed: Text: {"jsonrpc":"2.0","id":1,"result":{"constructor":{"prototype":{"polluted":true}}}}.
+      Error message: Object contains forbidden prototype property]
+    `,
+    );
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
   });
 });

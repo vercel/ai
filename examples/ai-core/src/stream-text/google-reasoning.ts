@@ -1,4 +1,4 @@
-import { google, GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
+import { type GoogleGenerativeAIProviderOptions, google } from '@ai-sdk/google';
 import { stepCountIs, streamText } from 'ai';
 import 'dotenv/config';
 import { weatherTool } from '../tools/weather-tool';
