@@ -58,6 +58,7 @@ import {
   type StreamTextOnToolCallStartCallback,
 } from './stream-text';
 import type { StreamTextResult, TextStreamPart } from './stream-text-result';
+import { verifyToolApprovalSignature } from './tool-approval-signature';
 import type { ToolSet } from './tool-set';
 
 const [nodeMajor, nodeMinor] = process.versions.node.split('.').map(Number);
@@ -21044,6 +21045,73 @@ describe('streamText', () => {
             },
           ]
         `);
+      });
+    });
+
+    describe('when a tool needs approval and a tool approval secret is configured', () => {
+      let result: StreamTextResult<any, any>;
+
+      beforeEach(async () => {
+        result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: `{ "value": "value" }`,
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+          prompt: 'test-input',
+          _internal: {
+            generateId: mockId({ prefix: 'id' }),
+          },
+          experimental_toolApprovalSecret: 'test-secret',
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async () => 'result1',
+              needsApproval: true,
+            }),
+          },
+        });
+      });
+
+      // Regression: the HMAC signature must reach the client over the UI
+      // message stream, otherwise replayed approvals would always fail the
+      // "missing signature" check when a secret is configured.
+      it('should forward the HMAC signature on the UI message stream approval request', async () => {
+        const chunks = await convertAsyncIterableToArray(
+          result.toUIMessageStream(),
+        );
+        const approvalRequest = chunks.find(
+          chunk => chunk.type === 'tool-approval-request',
+        ) as { signature?: string } | undefined;
+
+        expect(approvalRequest).toMatchObject({
+          type: 'tool-approval-request',
+          approvalId: 'id-1',
+          toolCallId: 'call-1',
+          signature: expect.any(String),
+        });
+
+        const valid = await verifyToolApprovalSignature({
+          secret: 'test-secret',
+          signature: approvalRequest!.signature!,
+          approvalId: 'id-1',
+          toolCallId: 'call-1',
+          toolName: 'tool1',
+          input: { value: 'value' },
+        });
+        expect(valid).toBe(true);
       });
     });
 
