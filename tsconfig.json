@@ -121,6 +121,9 @@
       "path": "packages/moonshotai"
     },
     {
+      "path": "packages/neon"
+    },
+    {
       "path": "packages/open-responses"
     },
     {

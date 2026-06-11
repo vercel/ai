@@ -1,0 +1,20 @@
+{
+  "model": "global.anthropic.claude-haiku-4-5-20251001-v1:0",
+  "choices": [
+    {
+      "message": { "role": "assistant", "content": "Hello, world today." },
+      "index": 0,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "cache_read_input_tokens": 0,
+    "completion_tokens": 8,
+    "prompt_tokens": 16,
+    "total_tokens": 24,
+    "cache_creation_input_tokens": 0
+  },
+  "object": "chat.completion",
+  "id": "msg_bdrk_01SNiE27rc5SpSnTxkK4sL1F",
+  "created": 1781150443
+}

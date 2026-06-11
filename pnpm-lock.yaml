@@ -173,7 +173,7 @@ importers:
         version: 0.545.0(react@18.3.1)
       next:
         specifier: ^15.5.18
-        version: 15.5.18(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+        version: 15.5.18(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -334,6 +334,9 @@ importers:
       '@ai-sdk/moonshotai':
         specifier: workspace:*
         version: link:../../packages/moonshotai
+      '@ai-sdk/neon':
+        specifier: workspace:*
+        version: link:../../packages/neon
       '@ai-sdk/open-responses':
         specifier: workspace:*
         version: link:../../packages/open-responses
@@ -625,7 +628,7 @@ importers:
         version: 2.1.1
       next:
         specifier: ^15.5.18
-        version: 15.5.18(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+        version: 15.5.18(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -861,7 +864,7 @@ importers:
         version: link:../../packages/ai
       next:
         specifier: ^15.5.18
-        version: 15.5.18(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+        version: 15.5.18(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -919,7 +922,7 @@ importers:
         version: link:../../packages/ai
       next:
         specifier: ^15.5.18
-        version: 15.5.18(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+        version: 15.5.18(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -971,7 +974,7 @@ importers:
         version: 1.7.0(next@15.5.18(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))
       next:
         specifier: ^15.5.18
-        version: 15.5.18(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+        version: 15.5.18(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -1017,7 +1020,7 @@ importers:
         version: 1.7.0(next@15.5.18(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))
       next:
         specifier: ^15.5.18
-        version: 15.5.18(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+        version: 15.5.18(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -1075,7 +1078,7 @@ importers:
         version: 0.561.0(react@18.3.1)
       next:
         specifier: ^15.5.18
-        version: 15.5.18(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+        version: 15.5.18(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -1121,13 +1124,13 @@ importers:
         version: link:../../packages/react
       '@vercel/functions':
         specifier: ^3.6.0
-        version: 3.6.0(@aws-sdk/credential-provider-web-identity@3.972.49)
+        version: 3.6.0(@aws-sdk/credential-provider-web-identity@3.972.13)
       ai:
         specifier: workspace:*
         version: link:../../packages/ai
       next:
         specifier: ^15.5.18
-        version: 15.5.18(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+        version: 15.5.18(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -1173,7 +1176,7 @@ importers:
         version: link:../../packages/ai
       next:
         specifier: ^15.5.18
-        version: 15.5.18(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+        version: 15.5.18(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -1231,7 +1234,7 @@ importers:
         version: link:../../packages/ai
       next:
         specifier: ^15.5.18
-        version: 15.5.18(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+        version: 15.5.18(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -1283,7 +1286,7 @@ importers:
         version: 0.55.0(@opentelemetry/api@1.9.1)
       '@sentry/nextjs':
         specifier: ^10.53.1
-        version: 10.53.1(@opentelemetry/core@2.7.1(@opentelemetry/api@1.9.1))(@opentelemetry/exporter-trace-otlp-http@0.211.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(encoding@0.1.13)(next@15.5.18(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))(react@18.3.1)(webpack@5.105.0(lightningcss@1.32.0)(postcss@8.5.14))
+        version: 10.53.1(@opentelemetry/core@2.7.1(@opentelemetry/api@1.9.1))(@opentelemetry/exporter-trace-otlp-http@0.211.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(encoding@0.1.13)(next@15.5.18(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))(react@18.3.1)(webpack@5.105.0(lightningcss@1.32.0)(postcss@8.5.14))
       '@sentry/opentelemetry':
         specifier: 8.22.0
         version: 8.22.0(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.7.1(@opentelemetry/api@1.9.1))(@opentelemetry/instrumentation@0.52.1(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(@opentelemetry/semantic-conventions@1.41.1)
@@ -1295,7 +1298,7 @@ importers:
         version: link:../../packages/ai
       next:
         specifier: ^15.5.18
-        version: 15.5.18(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+        version: 15.5.18(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -1347,7 +1350,7 @@ importers:
         version: link:../../packages/ai
       next:
         specifier: ^15.5.18
-        version: 15.5.18(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+        version: 15.5.18(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -1402,7 +1405,7 @@ importers:
         version: link:../../packages/ai
       next:
         specifier: ^15.5.18
-        version: 15.5.18(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+        version: 15.5.18(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -1504,7 +1507,7 @@ importers:
         version: 3.5.12
       nuxt:
         specifier: 3.14.159
-        version: 3.14.159(@parcel/watcher@2.5.6)(@types/node@22.19.19)(@upstash/redis@1.38.0)(@vercel/functions@3.6.0(@aws-sdk/credential-provider-web-identity@3.972.49))(aws4fetch@1.0.20)(db0@0.3.4)(eslint@9.39.3(jiti@2.7.0))(ioredis@5.10.1)(less@4.4.0)(lightningcss@1.32.0)(magicast@0.5.3)(optionator@0.9.4)(rollup@4.60.4)(sass@1.90.0)(terser@5.47.1)(typescript@5.9.3)(vite@5.4.21(@types/node@22.19.19)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.47.1))
+        version: 3.14.159(@parcel/watcher@2.5.6)(@types/node@22.19.19)(@upstash/redis@1.38.0)(@vercel/functions@3.6.0)(aws4fetch@1.0.20)(db0@0.3.4)(encoding@0.1.13)(eslint@9.39.3(jiti@2.7.0))(ioredis@5.10.1)(less@4.4.0)(lightningcss@1.32.0)(magicast@0.5.3)(optionator@0.9.4)(rollup@4.60.4)(sass@1.90.0)(terser@5.47.1)(typescript@5.9.3)(vite@5.4.21(@types/node@22.19.19)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.47.1))
       tailwindcss:
         specifier: 3.4.15
         version: 3.4.15(ts-node@10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.21))(@types/node@22.19.19)(typescript@5.9.3))
@@ -2911,6 +2914,34 @@ importers:
         specifier: 3.25.76
         version: 3.25.76
 
+  packages/neon:
+    dependencies:
+      '@ai-sdk/openai-compatible':
+        specifier: workspace:*
+        version: link:../openai-compatible
+      '@ai-sdk/provider':
+        specifier: workspace:*
+        version: link:../provider
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../provider-utils
+    devDependencies:
+      '@types/node':
+        specifier: 22.19.19
+        version: 22.19.19
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(jiti@2.7.0)(postcss@8.5.14)(tsx@4.22.0)(typescript@5.8.3)(yaml@2.9.0)
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+
   packages/open-responses:
     dependencies:
       '@ai-sdk/provider':
@@ -4121,50 +4152,6 @@ packages:
 
   '@antfu/utils@0.7.10':
     resolution: {integrity: sha512-+562v9k4aI80m1+VuMHehNJWLOFjBnXn3tdOitzD0il5b7smkSBal4+a3oKiQTbrwMmN/TBUMDvbdoWDehgOww==}
-
-  '@anthropic-ai/claude-agent-sdk-darwin-arm64@0.3.168':
-    resolution: {integrity: sha512-tvFGCGVX9tesGBzfpK008nRmv91pd3ToapDpJbjdwiFSLGWT9n+dc/qurwgxgv9VwWRvV8nWTc3zLRSFI8Lf2g==}
-    cpu: [arm64]
-    os: [darwin]
-
-  '@anthropic-ai/claude-agent-sdk-darwin-x64@0.3.168':
-    resolution: {integrity: sha512-J5dZUCrwjz4+gY2dAds2rMDWWSdcMl9jEDpZIzKNCx0f0KlJfE1C7/+stOJaBv6tGj8d/mmzcfBCeNBS1KScgA==}
-    cpu: [x64]
-    os: [darwin]
-
-  '@anthropic-ai/claude-agent-sdk-linux-arm64-musl@0.3.168':
-    resolution: {integrity: sha512-uOFtBJjntrYkXlHPRK+cTx1pCc37XxGQ/kN3KBK/KoIDcIrmU8DcX2WUw5IJHJqpG2Qjb7gZ5xAbcw3WTmduwQ==}
-    cpu: [arm64]
-    os: [linux]
-    libc: [musl]
-
-  '@anthropic-ai/claude-agent-sdk-linux-arm64@0.3.168':
-    resolution: {integrity: sha512-K9fltcI0VJBr21z4t0iJ4aArFtiS9UwhmMGkxl1jAIM0jatGqiHHbbk+qaCB04va3U6vaflukgtmbpogSB36yQ==}
-    cpu: [arm64]
-    os: [linux]
-    libc: [glibc]
-
-  '@anthropic-ai/claude-agent-sdk-linux-x64-musl@0.3.168':
-    resolution: {integrity: sha512-JwYD7oxYlIVYDFhgj+QVHgWbJUVGMXsiecB6WQ5VS5u4OqUorivJPFYPaP469otMj4HFtkDupESB+7Zp4jMmUw==}
-    cpu: [x64]
-    os: [linux]
-    libc: [musl]
-
-  '@anthropic-ai/claude-agent-sdk-linux-x64@0.3.168':
-    resolution: {integrity: sha512-0Fw4ICZopwKbqNQo64HqkpJw5cqxOxFOV/w8GCS2hDsJ+0aogmK/B78t4iV6rFHIkC076Nm5UH14FP1eOIJ3OA==}
-    cpu: [x64]
-    os: [linux]
-    libc: [glibc]
-
-  '@anthropic-ai/claude-agent-sdk-win32-arm64@0.3.168':
-    resolution: {integrity: sha512-NREaLXAxl23pEzoU7bmX6u8MibAYEY2t8XP5xtj/vMO6UwxFjT3YgGsTuQcnFP+1qsjWaOBCia2ZQnqI68Y0Ng==}
-    cpu: [arm64]
-    os: [win32]
-
-  '@anthropic-ai/claude-agent-sdk-win32-x64@0.3.168':
-    resolution: {integrity: sha512-Ha3eivz2Wm4y3BR+Xpn/r+CBM8ARC6knYDLbjLqH/DxjKahr6WB60xQkBD1U6wchT6w7zfIQqQGbucuUOTTuew==}
-    cpu: [x64]
-    os: [win32]
 
   '@anthropic-ai/claude-agent-sdk@0.3.168':
     resolution: {integrity: sha512-C7n9uS1fsAt9lFKw/ovsFNAlPI7UXE2uPQbOzzKLpDNjfFR5spthALhV49b01PtYWEzTo3W3OJfgCv6wooXtYg==}
@@ -21485,44 +21472,11 @@ snapshots:
 
   '@antfu/utils@0.7.10': {}
 
-  '@anthropic-ai/claude-agent-sdk-darwin-arm64@0.3.168':
-    optional: true
-
-  '@anthropic-ai/claude-agent-sdk-darwin-x64@0.3.168':
-    optional: true
-
-  '@anthropic-ai/claude-agent-sdk-linux-arm64-musl@0.3.168':
-    optional: true
-
-  '@anthropic-ai/claude-agent-sdk-linux-arm64@0.3.168':
-    optional: true
-
-  '@anthropic-ai/claude-agent-sdk-linux-x64-musl@0.3.168':
-    optional: true
-
-  '@anthropic-ai/claude-agent-sdk-linux-x64@0.3.168':
-    optional: true
-
-  '@anthropic-ai/claude-agent-sdk-win32-arm64@0.3.168':
-    optional: true
-
-  '@anthropic-ai/claude-agent-sdk-win32-x64@0.3.168':
-    optional: true
-
   '@anthropic-ai/claude-agent-sdk@0.3.168(@anthropic-ai/sdk@0.91.1(zod@3.25.76))(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@3.25.76))(zod@3.25.76)':
     dependencies:
       '@anthropic-ai/sdk': 0.91.1(zod@3.25.76)
       '@modelcontextprotocol/sdk': 1.29.0(@cfworker/json-schema@4.1.1)(zod@3.25.76)
       zod: 3.25.76
-    optionalDependencies:
-      '@anthropic-ai/claude-agent-sdk-darwin-arm64': 0.3.168
-      '@anthropic-ai/claude-agent-sdk-darwin-x64': 0.3.168
-      '@anthropic-ai/claude-agent-sdk-linux-arm64': 0.3.168
-      '@anthropic-ai/claude-agent-sdk-linux-arm64-musl': 0.3.168
-      '@anthropic-ai/claude-agent-sdk-linux-x64': 0.3.168
-      '@anthropic-ai/claude-agent-sdk-linux-x64-musl': 0.3.168
-      '@anthropic-ai/claude-agent-sdk-win32-arm64': 0.3.168
-      '@anthropic-ai/claude-agent-sdk-win32-x64': 0.3.168
 
   '@anthropic-ai/sdk@0.91.1(zod@3.25.76)':
     dependencies:
@@ -29011,7 +28965,7 @@ snapshots:
       '@sentry/types': 8.22.0
       '@sentry/utils': 8.22.0
 
-  '@sentry/nextjs@10.53.1(@opentelemetry/core@2.7.1(@opentelemetry/api@1.9.1))(@opentelemetry/exporter-trace-otlp-http@0.211.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(encoding@0.1.13)(next@15.5.18(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))(react@18.3.1)(webpack@5.105.0(lightningcss@1.32.0)(postcss@8.5.14))':
+  '@sentry/nextjs@10.53.1(@opentelemetry/core@2.7.1(@opentelemetry/api@1.9.1))(@opentelemetry/exporter-trace-otlp-http@0.211.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(encoding@0.1.13)(next@15.5.18(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))(react@18.3.1)(webpack@5.105.0(lightningcss@1.32.0)(postcss@8.5.14))':
     dependencies:
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/semantic-conventions': 1.41.1
@@ -29024,7 +28978,7 @@ snapshots:
       '@sentry/react': 10.53.1(react@18.3.1)
       '@sentry/vercel-edge': 10.53.1
       '@sentry/webpack-plugin': 5.3.0(encoding@0.1.13)(webpack@5.105.0(lightningcss@1.32.0)(postcss@8.5.14))
-      next: 15.5.18(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+      next: 15.5.18(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
       rollup: 4.60.4
       stacktrace-parser: 0.1.11
     transitivePeerDependencies:
@@ -30196,12 +30150,6 @@ snapshots:
     optionalDependencies:
       '@aws-sdk/credential-provider-web-identity': 3.972.13
 
-  '@vercel/functions@3.6.0(@aws-sdk/credential-provider-web-identity@3.972.49)':
-    dependencies:
-      '@vercel/oidc': 3.4.1
-    optionalDependencies:
-      '@aws-sdk/credential-provider-web-identity': 3.972.49
-
   '@vercel/kv@0.2.4':
     dependencies:
       '@upstash/redis': 1.24.3
@@ -30974,7 +30922,7 @@ snapshots:
       semver: 7.7.4
       watchpack: 2.5.1
     optionalDependencies:
-      next: 15.5.18(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+      next: 15.5.18(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
     transitivePeerDependencies:
       - '@opentelemetry/api'
       - '@swc/helpers'
@@ -34255,7 +34203,7 @@ snapshots:
 
   geist@1.7.0(next@15.5.18(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)):
     dependencies:
-      next: 15.5.18(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+      next: 15.5.18(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
 
   generator-function@2.0.1: {}
 
@@ -37256,7 +37204,7 @@ snapshots:
       - '@babel/core'
       - babel-plugin-macros
 
-  next@15.5.18(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0):
+  next@15.5.18(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0):
     dependencies:
       '@next/env': 15.5.18
       '@swc/helpers': 0.5.15
@@ -37264,7 +37212,7 @@ snapshots:
       postcss: 8.4.31
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
-      styled-jsx: 5.1.6(react@18.3.1)
+      styled-jsx: 5.1.6(@babel/core@7.29.0)(react@18.3.1)
     optionalDependencies:
       '@next/swc-darwin-arm64': 15.5.18
       '@next/swc-darwin-x64': 15.5.18
@@ -37335,7 +37283,7 @@ snapshots:
       - '@babel/core'
       - babel-plugin-macros
 
-  nitropack@2.13.4(@upstash/redis@1.38.0)(@vercel/functions@3.6.0(@aws-sdk/credential-provider-web-identity@3.972.49))(aws4fetch@1.0.20):
+  nitropack@2.13.4(@upstash/redis@1.38.0)(@vercel/functions@3.6.0)(aws4fetch@1.0.20)(encoding@0.1.13):
     dependencies:
       '@cloudflare/kv-asset-handler': 0.4.2
       '@rollup/plugin-alias': 6.0.0(rollup@4.60.4)
@@ -37402,7 +37350,7 @@ snapshots:
       unenv: 2.0.0-rc.24
       unimport: 6.3.0
       unplugin-utils: 0.3.1
-      unstorage: 1.17.5(@upstash/redis@1.38.0)(@vercel/functions@3.6.0(@aws-sdk/credential-provider-web-identity@3.972.49))(aws4fetch@1.0.20)(db0@0.3.4)(ioredis@5.10.1)
+      unstorage: 1.17.5(@upstash/redis@1.38.0)(@vercel/functions@3.6.0)(aws4fetch@1.0.20)(db0@0.3.4)(ioredis@5.10.1)
       untyped: 2.0.0
       unwasm: 0.5.3
       youch: 4.1.1
@@ -37629,7 +37577,7 @@ snapshots:
 
   nuxi@3.35.2: {}
 
-  nuxt@3.14.159(@parcel/watcher@2.5.6)(@types/node@22.19.19)(@upstash/redis@1.38.0)(@vercel/functions@3.6.0(@aws-sdk/credential-provider-web-identity@3.972.49))(aws4fetch@1.0.20)(db0@0.3.4)(eslint@9.39.3(jiti@2.7.0))(ioredis@5.10.1)(less@4.4.0)(lightningcss@1.32.0)(magicast@0.5.3)(optionator@0.9.4)(rollup@4.60.4)(sass@1.90.0)(terser@5.47.1)(typescript@5.9.3)(vite@5.4.21(@types/node@22.19.19)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.47.1)):
+  nuxt@3.14.159(@parcel/watcher@2.5.6)(@types/node@22.19.19)(@upstash/redis@1.38.0)(@vercel/functions@3.6.0)(aws4fetch@1.0.20)(db0@0.3.4)(encoding@0.1.13)(eslint@9.39.3(jiti@2.7.0))(ioredis@5.10.1)(less@4.4.0)(lightningcss@1.32.0)(magicast@0.5.3)(optionator@0.9.4)(rollup@4.60.4)(sass@1.90.0)(terser@5.47.1)(typescript@5.9.3)(vite@5.4.21(@types/node@22.19.19)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.47.1)):
     dependencies:
       '@nuxt/devalue': 2.0.2
       '@nuxt/devtools': 1.6.3(rollup@4.60.4)(vite@5.4.21(@types/node@22.19.19)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.47.1))(vue@3.5.13(typescript@5.9.3))
@@ -37666,7 +37614,7 @@ snapshots:
       magic-string: 0.30.21
       mlly: 1.8.2
       nanotar: 0.1.1
-      nitropack: 2.13.4(@upstash/redis@1.38.0)(@vercel/functions@3.6.0(@aws-sdk/credential-provider-web-identity@3.972.49))(aws4fetch@1.0.20)
+      nitropack: 2.13.4(@upstash/redis@1.38.0)(@vercel/functions@3.6.0)(aws4fetch@1.0.20)(encoding@0.1.13)
       nuxi: 3.35.2
       nypm: 0.3.12
       ofetch: 1.5.1
@@ -37689,7 +37637,7 @@ snapshots:
       unimport: 3.14.6(rollup@4.60.4)
       unplugin: 1.16.1
       unplugin-vue-router: 0.10.9(rollup@4.60.4)(vue-router@4.5.0(vue@3.5.13(typescript@5.9.3)))(vue@3.5.13(typescript@5.9.3))
-      unstorage: 1.17.5(@upstash/redis@1.38.0)(@vercel/functions@3.6.0(@aws-sdk/credential-provider-web-identity@3.972.49))(aws4fetch@1.0.20)(db0@0.3.4)(ioredis@5.10.1)
+      unstorage: 1.17.5(@upstash/redis@1.38.0)(@vercel/functions@3.6.0)(aws4fetch@1.0.20)(db0@0.3.4)(ioredis@5.10.1)
       untyped: 1.5.2
       vue: 3.5.13(typescript@5.9.3)
       vue-bundle-renderer: 2.2.0
@@ -40184,10 +40132,12 @@ snapshots:
     dependencies:
       inline-style-parser: 0.2.7
 
-  styled-jsx@5.1.6(react@18.3.1):
+  styled-jsx@5.1.6(@babel/core@7.29.0)(react@18.3.1):
     dependencies:
       client-only: 0.0.1
       react: 18.3.1
+    optionalDependencies:
+      '@babel/core': 7.29.0
 
   styled-jsx@5.1.6(react@19.0.0-rc-cc1ec60d0d-20240607):
     dependencies:
@@ -41309,7 +41259,7 @@ snapshots:
       picomatch: 4.0.4
       webpack-virtual-modules: 0.6.2
 
-  unstorage@1.17.5(@upstash/redis@1.38.0)(@vercel/functions@3.6.0(@aws-sdk/credential-provider-web-identity@3.972.49))(aws4fetch@1.0.20)(db0@0.3.4)(ioredis@5.10.1):
+  unstorage@1.17.5(@upstash/redis@1.38.0)(@vercel/functions@3.6.0)(aws4fetch@1.0.20)(db0@0.3.4)(ioredis@5.10.1):
     dependencies:
       anymatch: 3.1.3
       chokidar: 5.0.0
@@ -41321,7 +41271,7 @@ snapshots:
       ufo: 1.6.4
     optionalDependencies:
       '@upstash/redis': 1.38.0
-      '@vercel/functions': 3.6.0(@aws-sdk/credential-provider-web-identity@3.972.49)
+      '@vercel/functions': 3.6.0(@aws-sdk/credential-provider-web-identity@3.972.13)
       aws4fetch: 1.0.20
       db0: 0.3.4
       ioredis: 5.10.1

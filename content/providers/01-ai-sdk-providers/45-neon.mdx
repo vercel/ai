@@ -1,0 +1,125 @@
+---
+title: Neon
+description: Learn how to use the Neon AI Gateway with the AI SDK.
+---
+
+# Neon Provider
+
+The [Neon](https://neon.com) provider gives the AI SDK access to the **Neon AI Gateway**, a branch-scoped gateway that serves a unified catalog of foundation models (Anthropic, OpenAI, Google, Meta, and more) through an OpenAI-compatible endpoint.
+
+Because the gateway is branch-scoped, both the gateway URL and the platform token come from the Neon Console: open your project, select a branch, and go to the **AI Gateway** tab. The token is shown only once when you generate it.
+
+## Setup
+
+The Neon provider is available via the `@ai-sdk/neon` module. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/neon" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/neon" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/neon" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add @ai-sdk/neon" dark />
+  </Tab>
+</Tabs>
+
+## Configuration
+
+The gateway URL is branch-scoped and therefore has no default — you must provide it. Set both values from the **AI Gateway** tab as environment variables:
+
+```bash
+# The branch host root; the provider appends the gateway path internally.
+NEON_AI_GATEWAY_BASE_URL="https://<branch-id>-api.ai.<region>.aws.neon.tech"
+# The platform token (shown once when generated).
+NEON_AI_GATEWAY_TOKEN="nt_live_..."
+```
+
+## Provider Instance
+
+You can import the default provider instance `neon` from `@ai-sdk/neon`:
+
+```ts
+import { neon } from '@ai-sdk/neon';
+```
+
+For custom configuration, you can import `createNeon` and create a provider instance with your settings:
+
+```ts
+import { createNeon } from '@ai-sdk/neon';
+
+const neon = createNeon({
+  baseURL: process.env.NEON_AI_GATEWAY_BASE_URL,
+  apiKey: process.env.NEON_AI_GATEWAY_TOKEN,
+});
+```
+
+You can use the following optional settings to customize the Neon provider instance:
+
+- **baseURL** _string_
+
+  The branch-scoped gateway host root, e.g. `https://<branch-id>-api.ai.<region>.aws.neon.tech`. The unified gateway path is appended automatically. Defaults to the `NEON_AI_GATEWAY_BASE_URL` environment variable.
+
+- **apiKey** _string_
+
+  The platform token sent using the `Authorization` header. Defaults to the `NEON_AI_GATEWAY_TOKEN` environment variable.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+
+## Language Models
+
+You can create language models using a provider instance:
+
+```ts
+import { neon } from '@ai-sdk/neon';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: neon('databricks-claude-haiku-4-5'),
+  prompt: 'Summarize Postgres for me.',
+});
+```
+
+Neon language models can also be used in the `streamText` function
+(see [AI SDK Core](/docs/ai-sdk-core)).
+
+You can also use the `.languageModel()` and `.chat()` methods:
+
+```ts
+const model = neon.languageModel('databricks-claude-haiku-4-5');
+const model = neon.chat('databricks-claude-haiku-4-5');
+```
+
+## Models
+
+The authoritative, always-current catalog is shown in the Neon Console under the branch's **AI Gateway** tab. Model ids follow the `databricks-<model>` convention. Commonly available models include:
+
+| Model                                  | Provider  |
+| -------------------------------------- | --------- |
+| `databricks-claude-opus-4-8`           | Anthropic |
+| `databricks-claude-sonnet-4-6`         | Anthropic |
+| `databricks-claude-sonnet-4-5`         | Anthropic |
+| `databricks-claude-haiku-4-5`          | Anthropic |
+| `databricks-gpt-5`                     | OpenAI    |
+| `databricks-gpt-5-mini`                | OpenAI    |
+| `databricks-gpt-5-nano`                | OpenAI    |
+| `databricks-gemini-2-5-pro`            | Google    |
+| `databricks-gemini-2-5-flash`          | Google    |
+| `databricks-llama-4-maverick`          | Meta      |
+| `databricks-meta-llama-3-3-70b-instruct` | Meta    |
+
+<Note>
+  The model catalog is managed by Neon and may change over time. Any catalog id
+  can be passed as a plain string, so models not listed above still work.
+</Note>

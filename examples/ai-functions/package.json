@@ -39,6 +39,7 @@
     "@ai-sdk/mcp": "workspace:*",
     "@ai-sdk/mistral": "workspace:*",
     "@ai-sdk/moonshotai": "workspace:*",
+    "@ai-sdk/neon": "workspace:*",
     "@ai-sdk/open-responses": "workspace:*",
     "@ai-sdk/openai": "workspace:*",
     "@ai-sdk/openai-compatible": "workspace:*",
