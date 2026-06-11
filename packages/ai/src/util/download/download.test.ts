@@ -30,13 +30,22 @@ describe('download SSRF redirect protection', () => {
   });
 
   it('should reject a redirect to a private IP without requesting it', async () => {
+    const onCancel = vi.fn();
     const fetchMock = vi.fn().mockResolvedValueOnce({
       ok: false,
       status: 302,
       headers: new Headers({
         location: 'http://169.254.169.254/latest/meta-data/',
       }),
-      body: null,
+      body: new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode('redirecting'));
+          controller.close();
+        },
+        cancel() {
+          onCancel();
+        },
+      }),
     } as unknown as Response);
     globalThis.fetch = fetchMock;
 
@@ -45,14 +54,26 @@ describe('download SSRF redirect protection', () => {
     ).rejects.toThrow(DownloadError);
     // The redirect target must never be requested.
     expect(fetchMock).toHaveBeenCalledTimes(1);
+    // Body must be cancelled so the open-redirect rejection does not leak the
+    // underlying socket.
+    expect(onCancel).toHaveBeenCalled();
   });
 
   it('should reject a redirect to localhost without requesting it', async () => {
+    const onCancel = vi.fn();
     const fetchMock = vi.fn().mockResolvedValueOnce({
       ok: false,
       status: 307,
       headers: new Headers({ location: 'http://localhost:8080/admin' }),
-      body: null,
+      body: new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode('redirecting'));
+          controller.close();
+        },
+        cancel() {
+          onCancel();
+        },
+      }),
     } as unknown as Response);
     globalThis.fetch = fetchMock;
 
@@ -60,6 +81,7 @@ describe('download SSRF redirect protection', () => {
       download({ url: new URL('https://evil.com/redirect') }),
     ).rejects.toThrow(DownloadError);
     expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(onCancel).toHaveBeenCalled();
   });
 
   it('should let the browser follow redirects natively on an opaque redirect', async () => {
@@ -249,6 +271,58 @@ describe('download', () => {
     } catch (error: unknown) {
       expect(error).toBeInstanceOf(DownloadError);
     }
+  });
+
+  it('should cancel the body on non-ok response (prevents socket leak)', async () => {
+    const onCancel = vi.fn();
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      statusText: 'Not Found',
+      headers: new Headers(),
+      body: new ReadableStream({
+        start(controller) {
+          controller.enqueue(new Uint8Array(10));
+          controller.close();
+        },
+        cancel() {
+          onCancel();
+        },
+      }),
+    } as unknown as Response);
+
+    await expect(
+      download({ url: new URL('http://example.com/not-found') }),
+    ).rejects.toThrow(DownloadError);
+
+    expect(onCancel).toHaveBeenCalled();
+  });
+
+  it('should cancel the body when Content-Length exceeds limit (prevents socket leak)', async () => {
+    const onCancel = vi.fn();
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({
+        'content-type': 'application/octet-stream',
+        'content-length': `${3 * 1024 * 1024 * 1024}`,
+      }),
+      body: new ReadableStream({
+        start(controller) {
+          controller.enqueue(new Uint8Array(10));
+          controller.close();
+        },
+        cancel() {
+          onCancel();
+        },
+      }),
+    } as unknown as Response);
+
+    await expect(
+      download({ url: new URL('http://example.com/large') }),
+    ).rejects.toThrow(DownloadError);
+
+    expect(onCancel).toHaveBeenCalled();
   });
 
   it('should abort when response exceeds default size limit', async () => {
