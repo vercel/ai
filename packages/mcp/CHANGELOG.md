@@ -1,5 +1,25 @@
 # @ai-sdk/mcp
 
+## 2.0.0-canary.62
+
+### Patch Changes
+
+- e33ad0b: fix(mcp): add optional hook to validate authorization servers
+- 3e0b82f: fix(mcp): support official sdk protocol version negotiation
+
+## 2.0.0-canary.61
+
+### Patch Changes
+
+- Updated dependencies [bae5e2b]
+  - @ai-sdk/provider-utils@5.0.0-canary.47
+
+## 2.0.0-canary.60
+
+### Patch Changes
+
+- f0c6770: fix(mcp): prevent mcp oauth credential exfiltration during rediscovery
+
 ## 2.0.0-canary.59
 
 ### Patch Changes

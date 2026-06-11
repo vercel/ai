@@ -94,6 +94,14 @@ export interface OAuthClientProvider {
   saveAuthorizationServerInformation?(
     authorizationServerInformation: OAuthAuthorizationServerInformation,
   ): void | Promise<void>;
+  /**
+   * Validates an authorization server URL discovered from MCP protected resource
+   * metadata before the client fetches its OAuth metadata.
+   */
+  validateAuthorizationServerURL?(
+    serverUrl: string | URL,
+    authorizationServerUrl: string | URL,
+  ): void | Promise<void>;
   state?(): string | Promise<string>;
   saveState?(state: string): void | Promise<void>;
   storedState?(): string | undefined | Promise<string | undefined>;
@@ -1112,6 +1120,12 @@ async function authInternal(
     serverUrl,
     provider,
     resourceMetadata,
+  );
+
+  /** Let applications constrain discovered AS URLs before metadata fetches. */
+  await provider.validateAuthorizationServerURL?.(
+    serverUrl,
+    authorizationServerUrl,
   );
 
   /** Discover AS metadata and derive the credential pin for this flow */

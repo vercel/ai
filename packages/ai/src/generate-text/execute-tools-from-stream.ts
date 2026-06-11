@@ -12,6 +12,7 @@ import type { Telemetry } from '../telemetry/telemetry';
 import { executeToolCall } from './execute-tool-call';
 import { resolveToolApproval } from './resolve-tool-approval';
 import type { LanguageModelStreamPart } from './stream-language-model-call';
+import { maybeSignApproval } from './tool-approval-signature';
 import type { ToolApprovalConfiguration } from './tool-approval-configuration';
 import type { TypedToolCall } from './tool-call';
 import type {
@@ -43,6 +44,7 @@ export function executeToolsFromStream<
   toolsContext,
   toolApproval,
   runtimeContext,
+  toolApprovalSecret,
   generateId,
   onToolExecutionStart,
   onToolExecutionEnd,
@@ -58,6 +60,7 @@ export function executeToolsFromStream<
   toolsContext: InferToolSetContext<TOOLS>;
   toolApproval?: ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>;
   runtimeContext: RUNTIME_CONTEXT;
+  toolApprovalSecret?: string | Uint8Array;
   generateId: IdGenerator;
   onToolExecutionStart?: Arrayable<OnToolExecutionStartCallback<TOOLS>>;
   onToolExecutionEnd?: Arrayable<OnToolExecutionEndCallback<TOOLS>>;
@@ -105,25 +108,46 @@ export function executeToolsFromStream<
               runtimeContext,
             });
 
+            // Tools that don't require approval ('not-applicable') must not
+            // consume an approval id, so that id generation stays stable for
+            // callers that rely on deterministic id sequences. They execute
+            // directly (when not provider-executed).
+            if (toolApprovalStatus.type === 'not-applicable') {
+              if (tool.execute != null && chunk.providerExecuted !== true) {
+                toolCallsToExecute.push(chunk);
+              }
+
+              return;
+            }
+
+            const approvalId = generateId();
+            const signature = await maybeSignApproval({
+              secret: toolApprovalSecret,
+              approvalId,
+              toolCallId: chunk.toolCallId,
+              toolName: chunk.toolName,
+              input: chunk.input,
+            });
+
             switch (toolApprovalStatus.type) {
               case 'user-approval': {
                 controller.enqueue({
                   type: 'tool-approval-request',
-                  approvalId: generateId(),
+                  approvalId,
                   toolCall: chunk,
+                  ...(signature != null ? { signature } : {}),
                 });
 
                 return; // don't execute tool
               }
 
               case 'denied': {
-                const approvalId = generateId();
-
                 controller.enqueue({
                   type: 'tool-approval-request',
                   approvalId,
                   toolCall: chunk,
                   isAutomatic: true,
+                  ...(signature != null ? { signature } : {}),
                 });
                 controller.enqueue({
                   type: 'tool-approval-response',
@@ -138,13 +162,12 @@ export function executeToolsFromStream<
               }
 
               case 'approved': {
-                const approvalId = generateId();
-
                 controller.enqueue({
                   type: 'tool-approval-request',
                   approvalId,
                   toolCall: chunk,
                   isAutomatic: true,
+                  ...(signature != null ? { signature } : {}),
                 });
                 controller.enqueue({
                   type: 'tool-approval-response',
@@ -157,12 +180,10 @@ export function executeToolsFromStream<
 
                 break; // continue with tool execution
               }
-
-              case 'not-applicable':
-                break; // continue with tool execution
             }
 
-            // Only execute tools that are not provider-executed:
+            // approved tool calls continue to execution (when not
+            // provider-executed):
             if (tool.execute != null && chunk.providerExecuted !== true) {
               toolCallsToExecute.push(chunk);
             }

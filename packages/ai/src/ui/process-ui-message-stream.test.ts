@@ -7638,6 +7638,125 @@ describe('processUIMessageStream', () => {
     });
   });
 
+  describe('tool approval request with signature', () => {
+    beforeEach(async () => {
+      const stream = createUIMessageStream([
+        {
+          type: 'start',
+        },
+        {
+          type: 'start-step',
+        },
+        {
+          input: {
+            value: 'value',
+          },
+          toolCallId: 'call-1',
+          toolName: 'tool1',
+          type: 'tool-input-available',
+        },
+        {
+          approvalId: 'id-1',
+          toolCallId: 'call-1',
+          type: 'tool-approval-request',
+          signature: 'test-sig',
+        },
+        {
+          type: 'finish-step',
+        },
+        {
+          type: 'finish',
+        },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+    });
+
+    it('should propagate signature into the approval object', async () => {
+      const toolPart = state!.message.parts.find(
+        part => part.type === 'tool-tool1',
+      ) as any;
+
+      expect(toolPart.state).toBe('approval-requested');
+      expect(toolPart.approval).toEqual({
+        id: 'id-1',
+        signature: 'test-sig',
+      });
+    });
+  });
+
+  describe('tool approval request without signature', () => {
+    beforeEach(async () => {
+      const stream = createUIMessageStream([
+        {
+          type: 'start',
+        },
+        {
+          type: 'start-step',
+        },
+        {
+          input: {
+            value: 'value',
+          },
+          toolCallId: 'call-1',
+          toolName: 'tool1',
+          type: 'tool-input-available',
+        },
+        {
+          approvalId: 'id-1',
+          toolCallId: 'call-1',
+          type: 'tool-approval-request',
+        },
+        {
+          type: 'finish-step',
+        },
+        {
+          type: 'finish',
+        },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+    });
+
+    it('should not include signature in the approval object', async () => {
+      const toolPart = state!.message.parts.find(
+        part => part.type === 'tool-tool1',
+      ) as any;
+
+      expect(toolPart.state).toBe('approval-requested');
+      expect(toolPart.approval).toEqual({
+        id: 'id-1',
+      });
+      expect(toolPart.approval).not.toHaveProperty('signature');
+    });
+  });
+
   describe('automatic tool approval denial (static tool)', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([

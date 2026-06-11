@@ -109,7 +109,7 @@ export const harnessV1BridgeHelloSchema = z.object({
 
 /**
  * The bridge's reply to an inbound `detach`. Carries the adapter-specific
- * payload the host serializes into `HarnessV1ResumeState`.
+ * payload the host serializes into lifecycle state `data`.
  */
 export const harnessV1BridgeDetachSchema = z.object({
   type: z.literal('bridge-detach'),

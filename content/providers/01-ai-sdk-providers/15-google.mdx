@@ -1977,7 +1977,7 @@ The `voice` argument can be set to one of Gemini's [30 prebuilt voices](https://
 e.g. `Kore`, `Puck`, `Zephyr`, or `Charon`. Voice names are case-sensitive. It defaults to `Kore`.
 
 ```ts highlight="6"
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 import { google } from '@ai-sdk/google';
 
 const result = await generateSpeech({
@@ -2000,7 +2000,7 @@ For multi-speaker dialogue, pass a `multiSpeakerVoiceConfig` through `providerOp
 name must match a name used in the input text. When set, it overrides the top-level `voice`.
 
 ```ts highlight="8-23"
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 import { google, type GoogleSpeechModelOptions } from '@ai-sdk/google';
 
 const result = await generateSpeech({

@@ -1056,7 +1056,7 @@ When using useDeploymentBasedUrls, the default api-version is not valid. You mus
 You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the input language in ISO-639-1 (e.g. `en`) format will improve accuracy and latency.
 
 ```ts highlight="6"
-import { experimental_transcribe as transcribe } from 'ai';
+import { transcribe } from 'ai';
 import { azure, type OpenAITranscriptionModelOptions } from '@ai-sdk/azure';
 import { readFile } from 'fs/promises';
 
@@ -1117,7 +1117,7 @@ const model = azure.speech('your-tts-deployment-name');
 
 ```ts
 import { azure } from '@ai-sdk/azure';
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 
 const result = await generateSpeech({
   model: azure.speech('your-tts-deployment-name'),
@@ -1130,7 +1130,7 @@ You can also pass additional provider-specific options using the `providerOption
 
 ```ts
 import { azure, type OpenAISpeechModelOptions } from '@ai-sdk/azure';
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 
 const result = await generateSpeech({
   model: azure.speech('your-tts-deployment-name'),

@@ -1,10 +1,10 @@
 import { cancelResponseBody } from './cancel-response-body';
 import { DownloadError } from './download-error';
+import { fetchWithValidatedRedirects } from './fetch-with-validated-redirects';
 import {
   readResponseWithSizeLimit,
   DEFAULT_MAX_DOWNLOAD_SIZE,
 } from './read-response-with-size-limit';
-import { validateDownloadUrl } from './validate-download-url';
 
 /**
  * Download a file from a URL and return it as a Blob.
@@ -21,23 +21,11 @@ export async function downloadBlob(
   url: string,
   options?: { maxBytes?: number; abortSignal?: AbortSignal },
 ): Promise<Blob> {
-  validateDownloadUrl(url);
   try {
-    const response = await fetch(url, {
-      signal: options?.abortSignal,
+    const response = await fetchWithValidatedRedirects({
+      url,
+      abortSignal: options?.abortSignal,
     });
-
-    // Validate final URL after redirects to prevent SSRF via open redirect
-    if (response.redirected) {
-      try {
-        validateDownloadUrl(response.url);
-      } catch (error) {
-        // Release the connection before rejecting so an attacker-controlled
-        // open redirect cannot leak open sockets.
-        await cancelResponseBody(response);
-        throw error;
-      }
-    }
 
     if (!response.ok) {
       // Release the connection before rejecting so an error status from an

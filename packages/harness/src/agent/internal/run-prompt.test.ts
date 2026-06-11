@@ -46,17 +46,20 @@ function fakeSession(
     doContinueTurn: async opts => emitScript(opts.emit),
     doCompact: async () => {},
     doDetach: async () => ({
+      type: 'resume-session',
       harnessId: 'fake',
       specificationVersion: 'harness-v1',
       data: {},
     }),
     doStop: async () => ({
+      type: 'resume-session',
       harnessId: 'fake',
       specificationVersion: 'harness-v1',
       data: {},
     }),
     doDestroy: async () => {},
     doSuspendTurn: async () => ({
+      type: 'continue-turn',
       harnessId: 'fake',
       specificationVersion: 'harness-v1',
       data: {},

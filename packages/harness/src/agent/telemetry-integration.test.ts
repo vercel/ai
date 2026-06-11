@@ -41,17 +41,20 @@ function scriptedHarness(script: HarnessV1StreamPart[]): HarnessV1 {
       done: Promise.resolve(),
     }),
     doDetach: async () => ({
+      type: 'resume-session',
       harnessId: 'mock',
       specificationVersion: 'harness-v1',
       data: {},
     }),
     doStop: async () => ({
+      type: 'resume-session',
       harnessId: 'mock',
       specificationVersion: 'harness-v1',
       data: {},
     }),
     doDestroy: async () => {},
     doSuspendTurn: async () => ({
+      type: 'continue-turn',
       harnessId: 'mock',
       specificationVersion: 'harness-v1',
       data: {},

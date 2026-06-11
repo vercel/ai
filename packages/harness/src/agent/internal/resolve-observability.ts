@@ -6,7 +6,7 @@ import type {
   HarnessDebugLevel,
   HarnessDiagnostic,
   HarnessDiagnosticConsumer,
-} from '../harness-diagnostics';
+} from '../observability/types';
 import type { HarnessAgentSettings } from '../harness-agent-settings';
 
 const ENV_TRUTHY = new Set(['1', 'true', 'yes', 'on']);

@@ -15,7 +15,7 @@ export interface HarnessV1NetworkSandboxSession extends SandboxSession {
   /**
    * Stable identifier for the underlying sandbox resource. Used by the
    * harness session manager as the durable lookup key for cross-process
-   * resume — the framework persists this on the resume payload so a future
+   * resume — the framework persists this on lifecycle state so a future
    * process can call `HarnessV1SandboxProvider.resume?({ sessionId })` and
    * reach the same resource. Providers populate it from their native
    * identifier (Vercel: the sandbox name; just-bash: a UUID minted at

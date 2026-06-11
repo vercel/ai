@@ -1,5 +1,18 @@
 # @ai-sdk/open-responses
 
+## 2.0.0-canary.52
+
+### Patch Changes
+
+- fb82a6c: Harden streamed tool call argument handling against prototype pollution.
+
+## 2.0.0-canary.51
+
+### Patch Changes
+
+- Updated dependencies [bae5e2b]
+  - @ai-sdk/provider-utils@5.0.0-canary.47
+
 ## 2.0.0-canary.50
 
 ### Patch Changes

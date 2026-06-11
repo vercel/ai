@@ -7,6 +7,7 @@ import {
   createStatusCodeErrorResponseHandler,
   delay,
   getFromApi,
+  isSameOrigin,
   postJsonToApi,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
@@ -286,10 +287,15 @@ export class FireworksImageModel implements ImageModelV4 {
       abortSignal,
     });
 
-    // Download the image from the URL
+    // Download the image from the URL. The URL comes from the provider
+    // response and typically points at a CDN, so only send credentials when it
+    // stays on the provider's own origin (never leak the API key to a CDN or an
+    // attacker-named host).
     const { value: imageBytes, responseHeaders } = await getFromApi({
       url: imageUrl,
-      headers,
+      headers: isSameOrigin(imageUrl, this.config.baseURL)
+        ? headers
+        : undefined,
       abortSignal,
       failedResponseHandler: createStatusCodeErrorResponseHandler(),
       successfulResponseHandler: createBinaryResponseHandler(),

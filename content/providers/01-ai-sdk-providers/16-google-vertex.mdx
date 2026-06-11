@@ -1308,7 +1308,7 @@ generation with the AI SDK see [generateSpeech()](/docs/reference/ai-sdk-core/ge
 
 ```ts
 import { googleVertex } from '@ai-sdk/google-vertex';
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 
 const result = await generateSpeech({
   model: googleVertex.speech('gemini-2.5-flash-tts'),
@@ -1342,7 +1342,7 @@ You can transcribe audio with Google Cloud Speech-to-Text models using the
 
 ```ts
 import { googleVertex } from '@ai-sdk/google-vertex';
-import { experimental_transcribe as transcribe } from 'ai';
+import { transcribe } from 'ai';
 import { readFile } from 'fs/promises';
 
 const result = await transcribe({

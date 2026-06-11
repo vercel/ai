@@ -5,13 +5,11 @@ description: Learn how to transcribe audio with the AI SDK.
 
 # Transcription
 
-<Note type="warning">Transcription is an experimental feature.</Note>
-
 The AI SDK provides the [`transcribe`](/docs/reference/ai-sdk-core/transcribe)
 function to transcribe audio using a transcription model.
 
 ```ts
-import { experimental_transcribe as transcribe } from 'ai';
+import { transcribe } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { readFile } from 'fs/promises';
 
@@ -39,7 +37,7 @@ const durationInSeconds = transcript.durationInSeconds; // duration of the trans
 Transcription models often have provider or model-specific settings which you can set using the `providerOptions` parameter.
 
 ```ts highlight="8-12"
-import { experimental_transcribe as transcribe } from 'ai';
+import { transcribe } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { readFile } from 'fs/promises';
 
@@ -60,7 +58,7 @@ When `audio` is a URL, the SDK downloads the file with a default **2 GiB** size 
 You can customize this using `createDownload`:
 
 ```ts highlight="1,8"
-import { experimental_transcribe as transcribe, createDownload } from 'ai';
+import { transcribe, createDownload } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const transcript = await transcribe({
@@ -73,7 +71,7 @@ const transcript = await transcribe({
 You can also provide a fully custom download function:
 
 ```ts highlight="6-12"
-import { experimental_transcribe as transcribe } from 'ai';
+import { transcribe } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const transcript = await transcribe({
@@ -92,7 +90,7 @@ const transcript = await transcribe({
 If a download exceeds the size limit, a `DownloadError` is thrown:
 
 ```ts
-import { experimental_transcribe as transcribe, DownloadError } from 'ai';
+import { transcribe, DownloadError } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 try {
@@ -117,7 +115,7 @@ This is particularly useful when combined with URL downloads to prevent long-run
 
 ```ts highlight="8"
 import { openai } from '@ai-sdk/openai';
-import { experimental_transcribe as transcribe } from 'ai';
+import { transcribe } from 'ai';
 
 const transcript = await transcribe({
   model: openai.transcription('whisper-1'),
@@ -133,7 +131,7 @@ that you can use to add custom headers to the transcription request.
 
 ```ts highlight="8"
 import { openai } from '@ai-sdk/openai';
-import { experimental_transcribe as transcribe } from 'ai';
+import { transcribe } from 'ai';
 import { readFile } from 'fs/promises';
 
 const transcript = await transcribe({
@@ -149,7 +147,7 @@ Warnings (e.g. unsupported parameters) are available on the `warnings` property.
 
 ```ts
 import { openai } from '@ai-sdk/openai';
-import { experimental_transcribe as transcribe } from 'ai';
+import { transcribe } from 'ai';
 import { readFile } from 'fs/promises';
 
 const transcript = await transcribe({
@@ -175,10 +173,7 @@ The error preserves the following information to help you log the issue:
 - `cause`: The cause of the error. You can use this for more detailed error handling.
 
 ```ts
-import {
-  experimental_transcribe as transcribe,
-  NoTranscriptGeneratedError,
-} from 'ai';
+import { transcribe, NoTranscriptGeneratedError } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { readFile } from 'fs/promises';
 
@@ -226,5 +221,6 @@ try {
 | [Google Vertex](/providers/ai-sdk-providers/google-vertex#transcription-models) | `chirp_2`                |
 | [Google Vertex](/providers/ai-sdk-providers/google-vertex#transcription-models) | `chirp_3`                |
 | [Google Vertex](/providers/ai-sdk-providers/google-vertex#transcription-models) | `telephony`              |
+| [xAI](/providers/ai-sdk-providers/xai#transcription-models)                     | `default`                |
 
 Above are a small subset of the transcription models supported by the AI SDK providers. For more, see the respective provider documentation.

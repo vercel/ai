@@ -52,12 +52,12 @@ export type HarnessV1<TBuiltinTools extends ToolSet = ToolSet> = {
   readonly supportsBuiltinToolApprovals?: boolean;
 
   /**
-   * Optional schema for resume payloads returned by the session lifecycle.
-   * When present, the adapter promises that exported state validated by this
-   * schema can be re-imported in a future `doStart({ resumeFrom })` call.
-   * Hosts use this to persist and re-hydrate resume payloads safely.
+   * Optional schema for the adapter-defined `data` payload returned by session
+   * lifecycle methods. When present, the adapter promises that exported state
+   * validated by this schema can be re-imported in a future
+   * `doStart({ resumeFrom })` or `doStart({ continueFrom })` call.
    */
-  readonly resumeStateSchema?: FlexibleSchema<unknown>;
+  readonly lifecycleStateSchema?: FlexibleSchema<unknown>;
 
   /**
    * Optional bootstrap recipe. When defined, the harness session manager
@@ -75,9 +75,9 @@ export type HarnessV1<TBuiltinTools extends ToolSet = ToolSet> = {
   }) => PromiseLike<HarnessV1Bootstrap>;
 
   /**
-   * Start a fresh session (or resume via `resumeFrom`). The host then issues
-   * prompts against the returned session, ending with `doDetach`, `doStop`, or
-   * `doDestroy`.
+   * Start a fresh session, resume a parked session via `resumeFrom`, or resume
+   * an interrupted turn via `continueFrom`. The host then issues prompts against
+   * the returned session, ending with `doDetach`, `doStop`, or `doDestroy`.
    */
   doStart(options: HarnessV1StartOptions): PromiseLike<HarnessV1Session>;
 };
