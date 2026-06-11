@@ -23,3 +23,21 @@ npm install
 
 # Run the example
 npx tsx src/index.ts
+```
+
+
+## How It Works
+
+`tealtiger-ai-sdk` implements `LanguageModelV3Middleware`, hooking into:
+
+| Hook | What it does |
+|------|-------------|
+| `transformParams` | PII redaction, injection detection (pre-request) |
+| `wrapGenerate` | Cost tracking, circuit breaker, audit logging |
+| `wrapStream` | Same governance for streaming responses |
+
+## Links
+
+- [tealtiger-ai-sdk on npm](https://www.npmjs.com/package/tealtiger-ai-sdk)
+- [TealTiger Documentation](https://docs.tealtiger.ai)
+- [Source Code](https://github.com/agentguard-ai/tealtiger/tree/main/packages/tealtiger-ai-sdk)
