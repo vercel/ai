@@ -33,6 +33,7 @@ const server = createTestServer({
   },
   'https://api.gladia.io/v2/pre-recorded': {},
   [initiateFixture.result_url]: {},
+  'https://cdn.evil.example/v2/pre-recorded/result': {},
 });
 
 function prepareJsonFixtureResponse(headers?: Record<string, string>) {
@@ -61,6 +62,30 @@ describe('doGenerate', () => {
       expect(await server.calls[1].requestBodyJson).toMatchObject({
         audio_url: uploadFixture.audio_url,
       });
+    });
+
+    it('does not send the API key when the result URL is on a foreign origin', async () => {
+      const foreignResultUrl =
+        'https://cdn.evil.example/v2/pre-recorded/result';
+      server.urls['https://api.gladia.io/v2/pre-recorded'].response = {
+        type: 'json-value',
+        body: { ...initiateFixture, result_url: foreignResultUrl },
+      };
+      server.urls[foreignResultUrl].response = {
+        type: 'json-value',
+        body: resultFixture,
+      };
+
+      await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+      const pollCall = server.calls.find(
+        call => call.requestUrl === foreignResultUrl,
+      );
+      expect(pollCall).toBeDefined();
+      expect(pollCall!.requestHeaders['x-gladia-key']).toBeUndefined();
     });
 
     it('should pass headers', async () => {

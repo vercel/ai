@@ -25,6 +25,7 @@ export { injectJsonInstructionIntoMessages } from './inject-json-instruction';
 export * from './is-abort-error';
 export { isBrowserRuntime } from './is-browser-runtime';
 export { isNonNullable } from './is-non-nullable';
+export { isSameOrigin } from './is-same-origin';
 export { isUrlSupported } from './is-url-supported';
 export * from './load-api-key';
 export { loadOptionalSetting } from './load-optional-setting';
