@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.115
+
+### Patch Changes
+
+- c97ede5: fix(provider/amazon-bedrock): extract Cohere embedding token usage from response header
+
 ## 4.0.114
 
 ### Patch Changes
