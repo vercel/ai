@@ -89,8 +89,27 @@ Verified across Anthropic, OpenAI (incl. Codex), Google, and Meta models:
 Notes:
 
 - **Sampling parameters**: native-routed models use the official provider's parameter handling. For MLflow-routed models the provider detects the family and **drops unsupported parameters with an AI SDK warning** (`result.warnings`) instead of failing — e.g. Meta (Llama) drops `frequencyPenalty`/`presencePenalty`/`seed`; `reasoningEffort` is dropped for Gemini. Unknown models pass through unchanged.
-- **Image generation (`generateImage`) and embeddings (`embed`/`embedMany`) are not offered** by the gateway and throw `NoSuchModelError`. (Image generation is available only as the OpenAI Responses `image_generation` *tool*, and is currently limited by the gateway's response-size cap.)
-- **`gpt-oss-*`** models return a non-standard response shape on the unified endpoint and are not fully supported.
+- **`generateImage()` and embeddings (`embed`/`embedMany`) are not offered** by the gateway and throw `NoSuchModelError` (there are no image or embeddings endpoints).
+- **Image generation** is available on OpenAI models via the Responses `image_generation` tool. Use `streamText` (not `generateText`): the image comes back as a `tool-result` part, and streaming avoids the gateway's non-streaming response-size cap and read timeout.
+
+```ts
+import { streamText } from 'ai';
+import { neon } from '@ai-sdk/neon';
+import { imageGeneration } from '@ai-sdk/openai/internal';
+
+const result = streamText({
+  model: neon('databricks-gpt-5-mini'),
+  prompt: 'Generate an image of a red apple on a wooden table',
+  tools: { image: imageGeneration({ partialImages: 3 }) },
+});
+for await (const part of result.fullStream) {
+  if (part.type === 'tool-result' && 'result' in part.output) {
+    const png = Buffer.from(part.output.result as string, 'base64'); // the image
+  }
+}
+```
+
+- **`gpt-oss-*`** models return a non-standard ("harmony") response shape on the unified endpoint and are not fully supported.
 
 ## Documentation
 

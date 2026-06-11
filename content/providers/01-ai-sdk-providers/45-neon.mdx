@@ -153,7 +153,30 @@ Native-routed models (Anthropic, OpenAI) use the official provider's parameter h
 | `seed`                                 | Meta (Llama) models                |
 | `reasoningEffort` (provider option)    | Gemini models                      |
 
+### Image generation
+
+Image generation is available on OpenAI models via the Responses `image_generation` tool (there is no `generateImage()` image-model endpoint). Use `streamText` rather than `generateText`: streaming returns the image as a `tool-result` part and avoids the gateway's non-streaming response-size cap and read timeout (a single blocking call returns a large base64 body that can exceed those limits).
+
+```ts
+import { streamText } from 'ai';
+import { neon } from '@ai-sdk/neon';
+import { imageGeneration } from '@ai-sdk/openai/internal';
+
+const result = streamText({
+  model: neon('databricks-gpt-5-mini'),
+  prompt: 'Generate an image of a red apple on a wooden table',
+  tools: { image: imageGeneration({ partialImages: 3 }) },
+});
+
+for await (const part of result.fullStream) {
+  if (part.type === 'tool-result' && 'result' in part.output) {
+    const png = Buffer.from(part.output.result as string, 'base64');
+    // save or use the image
+  }
+}
+```
+
 ### Not offered by the gateway
 
-- **Image generation (`generateImage`)** and **embeddings (`embed` / `embedMany`)** throw `NoSuchModelError` — there are no image or embeddings endpoints on the gateway. (Image generation is available only as the OpenAI Responses `image_generation` *tool*, and is currently constrained by the gateway's response-size limit.)
-- **`gpt-oss-*`** models return a non-standard response shape on the unified endpoint and are not fully supported.
+- **`generateImage()`** and **embeddings (`embed` / `embedMany`)** throw `NoSuchModelError` — there are no image-model or embeddings endpoints on the gateway.
+- **`gpt-oss-*`** models return a non-standard ("harmony") response shape on the unified endpoint and are not fully supported.
