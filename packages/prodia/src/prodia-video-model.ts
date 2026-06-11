@@ -5,22 +5,15 @@ import type {
 import {
   combineHeaders,
   convertBase64ToUint8Array,
-<<<<<<< HEAD
-  lazySchema,
-=======
   downloadBlob,
->>>>>>> 6e8917f184 (fix(prodia): validate user-supplied image URLs before fetching (SSRF) (#15990))
+  lazySchema,
   parseJSON,
   parseProviderOptions,
   postFormDataToApi,
   postToApi,
   resolve,
   zodSchema,
-<<<<<<< HEAD
   type InferSchema,
-  type FetchFunction,
-=======
->>>>>>> 6e8917f184 (fix(prodia): validate user-supplied image URLs before fetching (SSRF) (#15990))
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
