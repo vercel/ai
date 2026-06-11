@@ -2,7 +2,7 @@ import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, test } from 'vitest';
-import type { HarnessDiagnostic } from '../agent/harness-diagnostics';
+import type { HarnessDiagnostic } from './types';
 import { createFileReporter } from './file-reporter';
 
 function tmp(): string {

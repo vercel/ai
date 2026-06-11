@@ -8,7 +8,7 @@ function randomWeather() {
 
 /**
  * Host-executed weather tool forwarded to the underlying runtime as a
- * `HarnessV1ToolSpec`. The runtime calls `get_weather`, the agent runs this
+ * `HarnessAgentToolSpec`. The runtime calls `get_weather`, the agent runs this
  * `execute` on the host, and streams the result back. The generator yields a
  * preliminary `loading` state before the resolved reading so the UI can show
  * progress while the lookup is in flight.

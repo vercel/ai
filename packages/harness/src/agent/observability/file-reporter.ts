@@ -1,9 +1,6 @@
 import { appendFileSync, mkdirSync } from 'node:fs';
 import type { Telemetry } from 'ai';
-import type {
-  HarnessDiagnostic,
-  HarnessDiagnosticConsumer,
-} from '../agent/harness-diagnostics';
+import type { HarnessDiagnostic, HarnessDiagnosticConsumer } from './types';
 
 /**
  * A harness observability reporter that writes a unified, non-lossy

@@ -1,8 +1,8 @@
 import type {
-  HarnessV1,
-  HarnessV1Session,
-  HarnessV1StreamPart,
-} from '@ai-sdk/harness';
+  HarnessAgentAdapter,
+  HarnessAgentAdapterSession,
+  HarnessAgentStreamPart,
+} from '@ai-sdk/harness/agent';
 import {
   isLoopFinished,
   streamText,
@@ -17,7 +17,7 @@ import {
 /**
  * Mock harness for testing `HarnessAgent` end-to-end against real provider
  * APIs. Wraps `streamText` under the hood and translates its stream parts
- * back into `HarnessV1StreamPart` events so the surrounding `HarnessAgent`
+ * back into `HarnessAgentStreamPart` events so the surrounding `HarnessAgent`
  * plumbing exercises its real translation + multi-turn machinery.
  *
  * Caveat: tool execution is delegated to `streamText` itself rather than
@@ -31,7 +31,7 @@ export function mockHarness(options: {
   model: LanguageModel;
   tools?: ToolSet;
   providerOptions?: Parameters<typeof streamText>[0]['providerOptions'];
-}): HarnessV1 {
+}): HarnessAgentAdapter {
   return {
     specificationVersion: 'harness-v1',
     harnessId: 'mock',
@@ -42,7 +42,7 @@ export function mockHarness(options: {
       // messages so the underlying model has the full context.
       const history: ModelMessage[] = [];
 
-      const session: HarnessV1Session = {
+      const session: HarnessAgentAdapterSession = {
         sessionId: startOpts.sessionId,
         isResume: false,
         doPromptTurn: async promptOpts => {
@@ -127,12 +127,12 @@ export function mockHarness(options: {
 
 /**
  * Reverse of `@ai-sdk/harness-agent`'s `translateStreamPart`: maps each AI
- * SDK `TextStreamPart` back to a `HarnessV1StreamPart` so it can flow
+ * SDK `TextStreamPart` back to a `HarnessAgentStreamPart` so it can flow
  * through the harness contract.
  */
 function translateBackward(
   part: TextStreamPart<ToolSet>,
-): HarnessV1StreamPart | null {
+): HarnessAgentStreamPart | null {
   switch (part.type) {
     case 'start':
       return { type: 'stream-start' };
@@ -168,7 +168,7 @@ function translateBackward(
         toolCallId: part.toolCallId,
         toolName: part.toolName,
         result: part.output as Extract<
-          HarnessV1StreamPart,
+          HarnessAgentStreamPart,
           { type: 'tool-result' }
         >['result'],
       };

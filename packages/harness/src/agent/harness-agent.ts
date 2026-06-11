@@ -1,14 +1,8 @@
 import { HarnessCapabilityUnsupportedError } from '../errors/harness-capability-unsupported-error';
 import type {
-  HarnessV1,
   HarnessV1Bootstrap,
-  HarnessV1ContinueTurnState,
   HarnessV1NetworkSandboxSession,
-  HarnessV1Prompt,
-  HarnessV1ResumeSessionState,
   HarnessV1SandboxProvider,
-  HarnessV1ToolSpec,
-  HarnessV1PermissionMode,
 } from '../v1';
 import {
   asSchema,
@@ -28,6 +22,14 @@ import type {
 } from 'ai';
 import type { HarnessAgentSettings } from './harness-agent-settings';
 import { HarnessAgentSession } from './harness-agent-session';
+import type {
+  HarnessAgentAdapter,
+  HarnessAgentContinueTurnState,
+  HarnessAgentPermissionMode,
+  HarnessAgentPrompt,
+  HarnessAgentResumeSessionState,
+  HarnessAgentToolSpec,
+} from './harness-agent-types';
 import {
   collectHarnessAgentToolApprovalContinuations,
   type HarnessAgentToolApprovalContinuation,
@@ -47,15 +49,15 @@ import {
   resolvePermissionMode,
 } from './internal/permission-mode';
 
-/** Extract the builtin tool set type from a `HarnessV1<...>` parameter. */
-type BuiltinToolsOf<H> = H extends HarnessV1<infer T> ? T : never;
+/** Extract the builtin tool set type from a harness adapter parameter. */
+type BuiltinToolsOf<H> = H extends HarnessAgentAdapter<infer T> ? T : never;
 
 /**
  * Type-level merge of a harness's builtin tools with user-defined tools.
  * User tools override builtins on key collision.
  */
 export type HarnessAllTools<
-  THarness extends HarnessV1<any>,
+  THarness extends HarnessAgentAdapter<any>,
   TUserTools extends ToolSet,
 > = Omit<BuiltinToolsOf<THarness>, keyof TUserTools> & TUserTools;
 
@@ -75,7 +77,7 @@ export interface HarnessAgentCallExtensions {
 
 /**
  * AI SDK `Agent` implementation that drives a third-party agent runtime
- * through a `HarnessV1` adapter (Claude Code, Codex, …).
+ * through a harness adapter (Claude Code, Codex, …).
  *
  * Behaviour summary:
  *  - **Stateless definition.** Construct once at module scope. The agent
@@ -106,7 +108,7 @@ export interface HarnessAgentCallExtensions {
  *    via `experimental_sandbox`.
  */
 export class HarnessAgent<
-  THarness extends HarnessV1<any> = HarnessV1,
+  THarness extends HarnessAgentAdapter<any> = HarnessAgentAdapter,
   TUserTools extends ToolSet = {},
   RUNTIME_CONTEXT extends Context = Context,
 > implements Agent<
@@ -128,7 +130,7 @@ export class HarnessAgent<
 
   private readonly settings: HarnessAgentSettings<THarness, TUserTools>;
   private readonly userTools: TUserTools;
-  private readonly permissionMode: HarnessV1PermissionMode;
+  private readonly permissionMode: HarnessAgentPermissionMode;
 
   constructor(settings: HarnessAgentSettings<THarness, TUserTools>) {
     this.settings = settings;
@@ -181,13 +183,13 @@ export class HarnessAgent<
      * framework validates it against `harness.lifecycleStateSchema` before
      * handing it to the adapter.
      */
-    resumeFrom?: HarnessV1ResumeSessionState;
+    resumeFrom?: HarnessAgentResumeSessionState;
     /**
      * Continuation payload returned by a prior `session.suspendTurn()`. Must be
      * accompanied by the original `sessionId`; the framework validates it before
      * handing it to the adapter.
      */
-    continueFrom?: HarnessV1ContinueTurnState;
+    continueFrom?: HarnessAgentContinueTurnState;
     abortSignal?: AbortSignal;
   }): Promise<HarnessAgentSession> {
     const sessionId = options?.sessionId ?? generateId();
@@ -203,7 +205,7 @@ export class HarnessAgent<
       );
     }
 
-    let validatedResumeFrom: HarnessV1ResumeSessionState | undefined;
+    let validatedResumeFrom: HarnessAgentResumeSessionState | undefined;
     if (resumeFrom != null) {
       validatedResumeFrom = await validateLifecycleStateData({
         harness,
@@ -212,7 +214,7 @@ export class HarnessAgent<
       });
     }
 
-    let validatedContinueFrom: HarnessV1ContinueTurnState | undefined;
+    let validatedContinueFrom: HarnessAgentContinueTurnState | undefined;
     if (continueFrom != null) {
       validatedContinueFrom = await validateLifecycleStateData({
         harness,
@@ -412,7 +414,7 @@ export class HarnessAgent<
   private _startTurn(input: {
     session: HarnessAgentSession;
     turnInput:
-      | { mode: 'prompt'; prompt: HarnessV1Prompt }
+      | { mode: 'prompt'; prompt: HarnessAgentPrompt }
       | {
           mode: 'continue';
           toolApprovalContinuations: readonly HarnessAgentToolApprovalContinuation[];
@@ -506,7 +508,7 @@ export class HarnessAgent<
     prompt?: string | ModelMessage[];
     messages?: ModelMessage[];
   }):
-    | { mode: 'prompt'; prompt: HarnessV1Prompt }
+    | { mode: 'prompt'; prompt: HarnessAgentPrompt }
     | {
         mode: 'continue';
         toolApprovalContinuations: readonly HarnessAgentToolApprovalContinuation[];
@@ -543,8 +545,8 @@ export class HarnessAgent<
    * executed by the runtime and the bridge already knows about them — we
    * never re-declare them over the wire.
    */
-  private _toToolSpecs(): HarnessV1ToolSpec[] {
-    const specs: HarnessV1ToolSpec[] = [];
+  private _toToolSpecs(): HarnessAgentToolSpec[] {
+    const specs: HarnessAgentToolSpec[] = [];
     for (const [name, tool] of Object.entries(
       this.userTools as Record<string, unknown>,
     )) {
@@ -552,12 +554,12 @@ export class HarnessAgent<
         description?: string;
         inputSchema?: unknown;
       };
-      let inputSchema: HarnessV1ToolSpec['inputSchema'];
+      let inputSchema: HarnessAgentToolSpec['inputSchema'];
       if (t.inputSchema != null) {
         try {
           inputSchema = asSchema(
             t.inputSchema as Parameters<typeof asSchema>[0],
-          ).jsonSchema as HarnessV1ToolSpec['inputSchema'];
+          ).jsonSchema as HarnessAgentToolSpec['inputSchema'];
         } catch {
           // tools without a usable schema are still forwarded by name
         }

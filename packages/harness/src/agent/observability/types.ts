@@ -1,13 +1,11 @@
 /*
  * Host/consumer-facing observability types.
  *
- * These are deliberately NOT part of the `HarnessV1` adapter spec (`src/v1`):
- * no harness adapter implements or consumes them. Adapters only deal with the
- * wire frames (`HarnessV1BridgeSandboxLog` / `HarnessV1BridgeDebugEvent`) and
- * the `HarnessV1Observability` handle the framework hands to `doStart`. The
+ * These are deliberately NOT part of the versioned adapter spec: no harness
+ * adapter implements or consumes them. Adapters only deal with bridge wire
+ * frames and the observability handle the framework hands to `doStart`. The
  * framework normalizes those frames into the `HarnessDiagnostic` shape below
- * for consumers (`HarnessAgentSettings.onLog`) and reporters. Hence no `V1`
- * affix and a home outside the spec.
+ * for consumers (`HarnessAgentSettings.onLog`) and reporters.
  */
 
 /** Severity of a diagnostic. */

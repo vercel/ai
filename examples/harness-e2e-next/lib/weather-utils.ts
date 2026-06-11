@@ -1,9 +1,9 @@
-import type { HarnessV1Skill } from '@ai-sdk/harness';
+import type { HarnessAgentSkill } from '@ai-sdk/harness/agent';
 
 export const weatherInstructions =
   'You are a weather-focused assistant. Be concise, accurate, and explicit about when you are using the local weather tool.';
 
-export const weatherForecastSkill: HarnessV1Skill = {
+export const weatherForecastSkill: HarnessAgentSkill = {
   name: 'weather-forecast',
   description:
     'Use the weather forecast tool before answering forecast or temperature questions.',
@@ -11,7 +11,7 @@ export const weatherForecastSkill: HarnessV1Skill = {
     'When the user asks about weather, temperature, or forecast conditions, call the `get_weather` tool before answering.',
 };
 
-export const weatherCodesSkill: HarnessV1Skill = {
+export const weatherCodesSkill: HarnessAgentSkill = {
   name: 'weather-codes',
   description: 'Look up the meaning of a numeric weather code.',
   content:
