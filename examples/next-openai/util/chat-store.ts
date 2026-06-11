@@ -1,10 +1,5 @@
-<<<<<<< HEAD:examples/next-openai/util/chat-store.ts
 import { type UIMessage, generateId } from 'ai';
-import { existsSync, mkdirSync } from 'fs';
-=======
-import { generateId, type UIMessage } from 'ai';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
->>>>>>> 7ff3155d3e (Backport: fix: prevent chat persistence path traversal (#16014)):examples/ai-e2e-next/util/chat-store.ts
 import { readFile, writeFile } from 'fs/promises';
 import path from 'path';
 
