@@ -236,6 +236,7 @@ const arrayOutputStrategy = <ELEMENT>(
       }
 
       const inputArray = value.elements as Array<JSONObject>;
+      const resultArray: Array<ELEMENT> = [];
 
       // check that each element in the array is of the correct type:
       for (const element of inputArray) {
@@ -243,9 +244,10 @@ const arrayOutputStrategy = <ELEMENT>(
         if (!result.success) {
           return result;
         }
+        resultArray.push(result.value);
       }
 
-      return { success: true, value: inputArray as Array<ELEMENT> };
+      return { success: true, value: resultArray };
     },
 
     createElementStream(
