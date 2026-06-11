@@ -1507,7 +1507,7 @@ describe('streamText', () => {
             { type: 'text-delta', id: protoKey, delta: 'Hello' },
             {
               type: 'finish',
-              finishReason: { unified: 'stop', raw: 'stop' },
+              finishReason: 'stop',
               usage: testUsage,
             },
           ]),
@@ -1547,7 +1547,7 @@ describe('streamText', () => {
             { type: 'reasoning-delta', id: protoKey, delta: 'Thinking...' },
             {
               type: 'finish',
-              finishReason: { unified: 'stop', raw: 'stop' },
+              finishReason: 'stop',
               usage: testUsage,
             },
           ]),

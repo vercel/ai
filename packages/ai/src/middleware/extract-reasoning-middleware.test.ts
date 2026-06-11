@@ -262,7 +262,7 @@ describe('extractReasoningMiddleware', () => {
       clearObjectPrototypeState();
       const protoKey: string = '__proto__';
 
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV2({
         async doStream() {
           return {
             stream: convertArrayToReadableStream([
@@ -275,7 +275,7 @@ describe('extractReasoningMiddleware', () => {
               { type: 'text-delta', id: protoKey, delta: 'Hello' },
               {
                 type: 'finish',
-                finishReason: { unified: 'stop', raw: 'stop' },
+                finishReason: 'stop',
                 usage: testUsage,
               },
             ]),
