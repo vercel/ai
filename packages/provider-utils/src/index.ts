@@ -18,6 +18,7 @@ export {
 } from './detect-media-type';
 export { downloadBlob } from './download-blob';
 export { DownloadError } from './download-error';
+export { fetchWithValidatedRedirects } from './fetch-with-validated-redirects';
 export { extractLines } from './extract-lines';
 export * from './extract-response-headers';
 export * from './fetch-function';
@@ -29,6 +30,7 @@ export { getRuntimeEnvironmentUserAgent } from './get-runtime-environment-user-a
 export type { HasRequiredKey } from './has-required-key';
 export { injectJsonInstructionIntoMessages } from './inject-json-instruction';
 export * from './is-abort-error';
+export { isBrowserRuntime } from './is-browser-runtime';
 export { isBuffer } from './is-buffer';
 export { isNonNullable } from './is-non-nullable';
 export { isProviderReference } from './is-provider-reference';

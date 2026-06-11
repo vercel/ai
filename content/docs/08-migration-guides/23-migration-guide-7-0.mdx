@@ -112,9 +112,41 @@ const result: GenerateImageResult = await generateImage({
 });
 ```
 
+### Transcription: `experimental_transcribe` Renamed to `transcribe`
+
+The transcription API has graduated out of experimental status and has been
+renamed to `transcribe`. The `Experimental_TranscriptionResult` type has also
+been renamed to `TranscriptionResult`.
+
+```tsx filename="AI SDK 6"
+import {
+  experimental_transcribe as transcribe,
+  type Experimental_TranscriptionResult,
+} from 'ai';
+
+const result: Experimental_TranscriptionResult = await transcribe({
+  model: yourTranscriptionModel,
+  audio,
+});
+```
+
+```tsx filename="AI SDK 7"
+import { transcribe, type TranscriptionResult } from 'ai';
+
+const result: TranscriptionResult = await transcribe({
+  model: yourTranscriptionModel,
+  audio,
+});
+```
+
+The old names continue to work as deprecated aliases in AI SDK 7 and will be
+removed in a future major release.
+
 ### Speech: `experimental_generateSpeech` Renamed to `generateSpeech`
 
-The speech generation function has graduated out of experimental status and has been renamed to `generateSpeech`. The `Experimental_SpeechResult` type has also been renamed to `SpeechResult`.
+The speech generation function has graduated out of experimental status and has
+been renamed to `generateSpeech`. The `Experimental_SpeechResult` type has also
+been renamed to `SpeechResult`.
 
 ```tsx filename="AI SDK 6"
 import { experimental_generateSpeech as generateSpeech } from 'ai';
@@ -134,7 +166,9 @@ const result = await generateSpeech({
 });
 ```
 
-The old `experimental_generateSpeech` and `Experimental_SpeechResult` exports continue to work as deprecated aliases in AI SDK 7 and will be removed in a future major release.
+The old `experimental_generateSpeech` and `Experimental_SpeechResult` exports
+continue to work as deprecated aliases in AI SDK 7 and will be removed in a
+future major release.
 
 ### Prompt Instructions: `system` Renamed to `instructions`
 
