@@ -1,0 +1,126 @@
+---
+title: LLMBase
+description: Use the LLMBase OpenAI compatible API with the AI SDK.
+---
+
+# LLMBase Provider
+
+[LLMBase](https://llmbase.ai) is a privacy-focused, sovereign AI platform for
+hosted open-source models. Its direct inference API is OpenAI-compatible, so you
+can use it with the AI SDK through the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+The LLMBase provider is available via the `@ai-sdk/openai-compatible` module as
+it is compatible with the OpenAI API. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/openai-compatible" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/openai-compatible" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/openai-compatible" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @ai-sdk/openai-compatible" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+To use LLMBase, create a custom provider instance with the
+`createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const llmbase = createOpenAICompatible({
+  name: 'llmbase',
+  baseURL: 'https://api.llmbase.ai/v1',
+  apiKey: process.env.LLMBASE_API_KEY,
+  includeUsage: true,
+  supportsStructuredOutputs: true,
+});
+```
+
+<Note>
+  Create an inference API key in the LLMBase dashboard and set it as the
+  `LLMBASE_API_KEY` environment variable. Direct AI SDK integrations should use
+  the `https://api.llmbase.ai/v1` inference endpoint with a `llmbase_...` key.
+  LLMBase chat-agent keys (`llmbase_chat_...`) are for subscription-backed agent
+  tools such as OpenClaw and Hermes.
+</Note>
+
+## Language Models
+
+You can create LLMBase models using a provider instance. The first argument is
+the model ID from the LLMBase model list, for example
+`deepseek/deepseek-v4-flash`.
+
+```ts
+const model = llmbase('deepseek/deepseek-v4-flash');
+```
+
+### Example
+
+You can use LLMBase language models to generate text with the `generateText`
+function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const llmbase = createOpenAICompatible({
+  name: 'llmbase',
+  baseURL: 'https://api.llmbase.ai/v1',
+  apiKey: process.env.LLMBASE_API_KEY,
+  includeUsage: true,
+  supportsStructuredOutputs: true,
+});
+
+const { text } = await generateText({
+  model: llmbase('deepseek/deepseek-v4-flash'),
+  prompt: 'Write a short deployment checklist.',
+});
+
+console.log(text);
+```
+
+LLMBase language models can also generate text in a streaming fashion with the
+`streamText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const llmbase = createOpenAICompatible({
+  name: 'llmbase',
+  baseURL: 'https://api.llmbase.ai/v1',
+  apiKey: process.env.LLMBASE_API_KEY,
+  includeUsage: true,
+  supportsStructuredOutputs: true,
+});
+
+const result = streamText({
+  model: llmbase('deepseek/deepseek-v4-flash'),
+  prompt: 'Write a short haiku about private inference.',
+});
+
+for await (const message of result.textStream) {
+  console.log(message);
+}
+```
+
+You can list available models from the OpenAI-compatible models endpoint:
+
+```bash
+curl https://api.llmbase.ai/v1/models \
+  -H "Authorization: Bearer $LLMBASE_API_KEY"
+```
+
+Use `https://api.llmbase.ai/v1/models?metadata=true` when you need detailed
+model metadata such as context length, modalities, pricing, and supported
+features.
