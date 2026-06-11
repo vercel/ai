@@ -182,6 +182,131 @@ describe('NeonChatLanguageModel', () => {
     });
   });
 
+  describe('capability handling', () => {
+    function warningFeatures(warnings: ReadonlyArray<Record<string, unknown>>) {
+      return warnings.map(w =>
+        typeof w.feature === 'string' ? w.feature : String(w.type),
+      );
+    }
+
+    it('drops penalties and seed for Anthropic models and warns', async () => {
+      const fetch = createJsonFixtureFetchMock('neon-chat-completion');
+      const model = createProvider(fetch).chat('databricks-claude-haiku-4-5');
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        frequencyPenalty: 0.5,
+        presencePenalty: 0.5,
+        seed: 7,
+      });
+
+      const body = JSON.parse(fetch.mock.calls[0][1].body as string);
+      expect(body.frequency_penalty).toBeUndefined();
+      expect(body.presence_penalty).toBeUndefined();
+      expect(body.seed).toBeUndefined();
+
+      const features = warningFeatures(result.warnings);
+      expect(features).toContain('frequencyPenalty');
+      expect(features).toContain('presencePenalty');
+      expect(features).toContain('seed');
+    });
+
+    it('drops topP when temperature is also set for Anthropic models', async () => {
+      const fetch = createJsonFixtureFetchMock('neon-chat-completion');
+      const model = createProvider(fetch).chat('databricks-claude-haiku-4-5');
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        temperature: 0.5,
+        topP: 0.5,
+      });
+
+      const body = JSON.parse(fetch.mock.calls[0][1].body as string);
+      expect(body.temperature).toBe(0.5);
+      expect(body.top_p).toBeUndefined();
+      expect(warningFeatures(result.warnings)).toContain('topP');
+    });
+
+    it('drops temperature, penalties, and stop for GPT-5 reasoning models', async () => {
+      const fetch = createJsonFixtureFetchMock('neon-chat-completion');
+      const model = createProvider(fetch).chat('databricks-gpt-5-mini');
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        temperature: 0.2,
+        presencePenalty: 0.3,
+        stopSequences: ['STOP'],
+      });
+
+      const body = JSON.parse(fetch.mock.calls[0][1].body as string);
+      expect(body.temperature).toBeUndefined();
+      expect(body.presence_penalty).toBeUndefined();
+      expect(body.stop).toBeUndefined();
+
+      const features = warningFeatures(result.warnings);
+      expect(features).toContain('temperature');
+      expect(features).toContain('presencePenalty');
+      expect(features).toContain('stopSequences');
+    });
+
+    it('drops reasoningEffort for Gemini models and warns', async () => {
+      const fetch = createJsonFixtureFetchMock('neon-chat-completion');
+      const model = createProvider(fetch).chat('databricks-gemini-2-5-flash');
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: { neon: { reasoningEffort: 'low' } },
+      });
+
+      const body = JSON.parse(fetch.mock.calls[0][1].body as string);
+      expect(body.reasoning_effort).toBeUndefined();
+      expect(warningFeatures(result.warnings)).toContain('reasoningEffort');
+    });
+
+    it('passes parameters through unchanged for unknown/permissive models', async () => {
+      const fetch = createJsonFixtureFetchMock('neon-chat-completion');
+      const model = createProvider(fetch).chat('databricks-qwen35-122b-a10b');
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        frequencyPenalty: 0.5,
+        seed: 7,
+        temperature: 0.5,
+        topP: 0.5,
+      });
+
+      const body = JSON.parse(fetch.mock.calls[0][1].body as string);
+      expect(body.frequency_penalty).toBe(0.5);
+      expect(body.seed).toBe(7);
+      expect(body.temperature).toBe(0.5);
+      expect(body.top_p).toBe(0.5);
+
+      const features = warningFeatures(result.warnings);
+      expect(features).not.toContain('frequencyPenalty');
+      expect(features).not.toContain('seed');
+    });
+
+    it('merges capability warnings into the stream-start part', async () => {
+      const fetch = createStreamFixtureFetchMock('neon-chat-completion');
+      const model = createProvider(fetch).chat('databricks-claude-haiku-4-5');
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        seed: 7,
+      });
+      const parts = await convertStreamToArray(stream);
+
+      const startPart = parts.find(p => p.type === 'stream-start') as
+        | { type: 'stream-start'; warnings: Array<Record<string, unknown>> }
+        | undefined;
+      expect(startPart).toBeDefined();
+      expect(warningFeatures(startPart!.warnings)).toContain('seed');
+
+      const body = JSON.parse(fetch.mock.calls[0][1].body as string);
+      expect(body.seed).toBeUndefined();
+    });
+  });
+
   describe('doStream', () => {
     it('streams unified chat completion chunks as text deltas', async () => {
       const fetch = createStreamFixtureFetchMock('neon-chat-completion');

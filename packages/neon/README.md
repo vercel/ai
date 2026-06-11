@@ -77,7 +77,7 @@ The gateway is a single OpenAI-compatible endpoint that proxies to multiple upst
 Backend-specific notes:
 
 - **`streamObject`** works for OpenAI, Google, and Meta models; Databricks-hosted Anthropic (Claude) models reject structured output while streaming — use `generateObject` instead.
-- **Sampling parameters** are passed through, so they only work where the backend supports them (e.g. Anthropic rejects `temperature`+`topP` together and `frequencyPenalty`/`presencePenalty`/`seed`; OpenAI reasoning models require the default `temperature` and reject `stop`; `reasoningEffort` applies to OpenAI models). This matches how other AI SDK providers behave for unsupported parameters.
+- **Sampling parameters**: the gateway proxies to heterogeneous backends that accept different parameter subsets. The provider detects the model family and **drops unsupported parameters with an AI SDK warning** (`result.warnings`) instead of failing the request — e.g. Anthropic drops `frequencyPenalty`/`presencePenalty`/`seed` and `topP` (when `temperature` is set); `gpt-5*` reasoning models drop penalties/`stop` (and `temperature`/`topP` for `gpt-5`/`-mini`/`-nano`); `reasoningEffort` is dropped for Anthropic/Gemini. Unknown models are passed through unchanged.
 - **Image generation (`generateImage`) and embeddings (`embed`/`embedMany`) are not offered** by the gateway and throw `NoSuchModelError`.
 
 ## Documentation

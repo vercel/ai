@@ -139,16 +139,16 @@ The Neon AI Gateway exposes a single OpenAI-compatible endpoint that proxies to 
 
 ### Sampling parameters
 
-Because the gateway passes requests through to heterogeneous backends, some standard sampling parameters are only honored by the backends that support them. Setting an unsupported parameter surfaces as a provider error from that backend — the same way it would when calling that model through any OpenAI-compatible interface:
+The gateway proxies to heterogeneous backends that each accept a different subset of sampling parameters. Rather than letting the backend reject the request, the provider detects the model family and **drops parameters a backend doesn't support, emitting an AI SDK warning** (`result.warnings`) instead of failing — the same approach the official OpenAI provider uses for reasoning models. Detection is heuristic (prefix-based); unknown/untested models are passed through unchanged.
 
-| Parameter                          | Constraint                                                                 |
-| ---------------------------------- | ------------------------------------------------------------------------- |
-| `temperature` + `topP` together    | Anthropic models accept only one of the two                               |
-| `temperature` ≠ default            | OpenAI reasoning models (e.g. `gpt-5*`) require the default value          |
-| `frequencyPenalty` / `presencePenalty` | Not supported by Anthropic, OpenAI reasoning, or Llama models          |
-| `seed`                             | Not supported by Anthropic or Llama models                                |
-| `stopSequences`                    | Not supported by OpenAI reasoning models                                  |
-| `reasoningEffort` (provider option)| Applies to OpenAI models; Anthropic and Gemini reject it                  |
+| Parameter                              | Dropped (with a warning) for                                          |
+| -------------------------------------- | -------------------------------------------------------------------- |
+| `topP` (when `temperature` is also set)| Anthropic models (accept only one of `temperature`/`topP`)           |
+| `temperature` / `topP`                 | OpenAI reasoning models that require defaults (`gpt-5`, `gpt-5-mini`, `gpt-5-nano`) |
+| `frequencyPenalty` / `presencePenalty` | Anthropic, OpenAI (`gpt-5*`), and Llama models                       |
+| `seed`                                 | Anthropic and Llama models                                           |
+| `stopSequences`                        | OpenAI (`gpt-5*`) models                                             |
+| `reasoningEffort` (provider option)    | Anthropic and Gemini models (applies to OpenAI models)              |
 
 ### Not offered by the gateway
 
