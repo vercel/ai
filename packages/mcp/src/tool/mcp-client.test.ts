@@ -335,9 +335,13 @@ describe('MCPClient', () => {
     });
 
     expect(Object.keys(tools)).toEqual(['allowed-tool']);
-    expect(Object.hasOwn(tools, 'constructor')).toBe(false);
-    expect(Object.hasOwn(tools, 'toString')).toBe(false);
-    expect(Object.hasOwn(tools, '__proto__')).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(tools, 'constructor')).toBe(
+      false,
+    );
+    expect(Object.prototype.hasOwnProperty.call(tools, 'toString')).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(tools, '__proto__')).toBe(
+      false,
+    );
   });
 
   it('should error when calling tool with misconfigured parameters', async () => {
