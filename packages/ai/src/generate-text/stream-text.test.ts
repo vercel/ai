@@ -75,9 +75,6 @@ const defaultSettings = () =>
     onError: () => {},
   }) as const;
 
-<<<<<<< HEAD
-const testUsage: LanguageModelV3Usage = {
-=======
 type ObjectPrototypeState = {
   providerMetadata?: unknown;
   text?: unknown;
@@ -89,8 +86,7 @@ function clearObjectPrototypeState() {
   delete objectPrototype.text;
 }
 
-const testUsage: LanguageModelV4Usage = {
->>>>>>> 329583183f (fix: Harden stream text processing and middleware against prototype pollution from stream part IDs (#16006))
+const testUsage: LanguageModelV3Usage = {
   inputTokens: {
     total: 3,
     noCache: 3,
@@ -1832,12 +1828,12 @@ describe('streamText', () => {
       });
 
       try {
-        expect(await convertAsyncIterableToArray(result.stream)).toContainEqual(
-          {
-            type: 'error',
-            error: `text part ${protoKey} not found`,
-          },
-        );
+        expect(
+          await convertAsyncIterableToArray(result.fullStream),
+        ).toContainEqual({
+          type: 'error',
+          error: `text part ${protoKey} not found`,
+        });
 
         expect(Object.hasOwn(Object.prototype, 'providerMetadata')).toBe(false);
         expect(Object.hasOwn(Object.prototype, 'text')).toBe(false);
@@ -1872,12 +1868,12 @@ describe('streamText', () => {
       });
 
       try {
-        expect(await convertAsyncIterableToArray(result.stream)).toContainEqual(
-          {
-            type: 'error',
-            error: `reasoning part ${protoKey} not found`,
-          },
-        );
+        expect(
+          await convertAsyncIterableToArray(result.fullStream),
+        ).toContainEqual({
+          type: 'error',
+          error: `reasoning part ${protoKey} not found`,
+        });
 
         expect(Object.hasOwn(Object.prototype, 'providerMetadata')).toBe(false);
         expect(Object.hasOwn(Object.prototype, 'text')).toBe(false);

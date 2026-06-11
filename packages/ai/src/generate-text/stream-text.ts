@@ -905,12 +905,7 @@ class DefaultStreamTextResult<
         text: string;
         providerMetadata: ProviderMetadata | undefined;
       }
-<<<<<<< HEAD
-    > = {};
-=======
     > = createIdMap();
-    let recordedNoOutputError: NoOutputGeneratedError | undefined;
->>>>>>> 329583183f (fix: Harden stream text processing and middleware against prototype pollution from stream part IDs (#16006))
 
     const eventProcessor = new TransformStream<
       EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>,

@@ -197,7 +197,7 @@ describe('extractJsonMiddleware', () => {
       clearObjectPrototypeState();
       const protoKey: string = '__proto__';
 
-      const mockModel = new MockLanguageModelV4({
+      const mockModel = new MockLanguageModelV3({
         async doStream() {
           return {
             stream: convertArrayToReadableStream([
@@ -228,7 +228,7 @@ describe('extractJsonMiddleware', () => {
       });
 
       try {
-        await convertAsyncIterableToArray(result.stream);
+        await convertAsyncIterableToArray(result.fullStream);
 
         expect(Object.hasOwn(Object.prototype, 'buffer')).toBe(false);
         expect(Object.hasOwn(Object.prototype, 'providerMetadata')).toBe(false);

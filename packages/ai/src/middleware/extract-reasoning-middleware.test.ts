@@ -23,8 +23,6 @@ const testUsage: LanguageModelV3Usage = {
   },
 };
 
-<<<<<<< HEAD
-=======
 type ObjectPrototypeState = {
   afterSwitch?: unknown;
   buffer?: unknown;
@@ -42,27 +40,6 @@ function clearObjectPrototypeState() {
   delete objectPrototype.text;
 }
 
-function normalizeStreamPerformance(parts: Array<TextStreamPart<any>>) {
-  return parts.map(part =>
-    part.type === 'finish-step'
-      ? {
-          ...part,
-          performance: {
-            effectiveOutputTokensPerSecond: 0,
-            outputTokensPerSecond: 0,
-            inputTokensPerSecond: 0,
-            effectiveTotalTokensPerSecond: 0,
-            responseTimeMs: 0,
-            stepTimeMs: 0,
-            timeToFirstOutputMs: 0,
-            toolExecutionMs: {},
-          },
-        }
-      : part,
-  );
-}
-
->>>>>>> 329583183f (fix: Harden stream text processing and middleware against prototype pollution from stream part IDs (#16006))
 describe('extractReasoningMiddleware', () => {
   describe('wrapGenerate', () => {
     it('should extract reasoning from <think> tags', async () => {
@@ -292,7 +269,7 @@ describe('extractReasoningMiddleware', () => {
       clearObjectPrototypeState();
       const protoKey: string = '__proto__';
 
-      const mockModel = new MockLanguageModelV4({
+      const mockModel = new MockLanguageModelV3({
         async doStream() {
           return {
             stream: convertArrayToReadableStream([
@@ -323,7 +300,7 @@ describe('extractReasoningMiddleware', () => {
       });
 
       try {
-        await convertAsyncIterableToArray(result.stream);
+        await convertAsyncIterableToArray(result.fullStream);
 
         expect(Object.hasOwn(Object.prototype, 'afterSwitch')).toBe(false);
         expect(Object.hasOwn(Object.prototype, 'buffer')).toBe(false);
