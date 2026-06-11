@@ -120,7 +120,7 @@ const { embedding } = await embed({
 
 ```ts
 import { aihubmix } from '@aihubmix/ai-sdk-provider';
-import { experimental_transcribe as transcribe } from 'ai';
+import { transcribe } from 'ai';
 
 const { text } = await transcribe({
   model: aihubmix.transcription('whisper-1'),
@@ -240,7 +240,7 @@ console.log('Usage:', usage);
 
 ```ts
 import { aihubmix } from '@aihubmix/ai-sdk-provider';
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 
 const { audio } = await generateSpeech({
   model: aihubmix.speech('tts-1'),

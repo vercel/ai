@@ -1,2 +1,19 @@
-export { transcribe as experimental_transcribe } from './transcribe';
-export type { TranscriptionResult as Experimental_TranscriptionResult } from './transcribe-result';
+import type { TranscriptionResult } from './transcribe-result';
+import { transcribe } from './transcribe';
+
+export { transcribe } from './transcribe';
+export type { TranscriptionResult } from './transcribe-result';
+
+// deprecated exports
+
+/**
+ * @deprecated Use `transcribe` instead.
+ */
+const experimental_transcribe = transcribe;
+export { experimental_transcribe };
+
+/**
+ * @deprecated Use `TranscriptionResult` instead.
+ */
+type Experimental_TranscriptionResult = TranscriptionResult;
+export type { Experimental_TranscriptionResult };

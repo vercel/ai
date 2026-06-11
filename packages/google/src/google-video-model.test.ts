@@ -317,6 +317,23 @@ describe('GoogleVideoModel', () => {
       });
     });
 
+    it('should NOT append the API key when the download URL is on a foreign origin', async () => {
+      const model = createMockModel({
+        apiKey: 'test-api-key',
+        videos: [{ video: { uri: 'https://cdn.evil.example/video-123.mp4' } }],
+      });
+
+      const result = await model.doGenerate({ ...defaultOptions });
+
+      // The key must not travel to a host the provider response named: the URL
+      // is returned verbatim, without the `?key=` credential appended.
+      expect(result.videos[0]).toStrictEqual({
+        type: 'url',
+        url: 'https://cdn.evil.example/video-123.mp4',
+        mediaType: 'video/mp4',
+      });
+    });
+
     it('should return multiple videos', async () => {
       const model = createMockModel({
         apiKey: 'test-key',
