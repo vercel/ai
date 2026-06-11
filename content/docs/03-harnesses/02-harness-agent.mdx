@@ -124,8 +124,10 @@ End every session explicitly:
 
 - `session.destroy()` stops the runtime and discards resumability.
 - `session.detach()` parks the runtime and sandbox, returns resume state, and
-  keeps the sandbox warm for a later attach.
-- `session.stop()` saves resume state, then stops the runtime and sandbox.
+  keeps the sandbox warm for a later attach. If the turn is unfinished, the
+  resume state includes the continuation state.
+- `session.stop()` saves resume state, then stops the runtime and sandbox. If
+  the turn is unfinished, the resume state includes the continuation state.
 - `session.suspendTurn()` is for advanced active-turn continuation across a
   process boundary.
 
@@ -167,7 +169,9 @@ const session = await agent.createSession(
 ```
 
 `HarnessAgent` validates that the resume state was produced by the same harness
-adapter before handing it to the runtime.
+adapter before handing it to the runtime. If the resume state includes an
+unfinished turn, call `continueStream()` or `continueGenerate()` before sending a
+new prompt.
 
 ## Continue a Suspended Turn
 
@@ -179,8 +183,8 @@ const continuationState = await session.suspendTurn();
 await persistContinuationState({ chatId, continuationState });
 ```
 
-Resume the session with `continueFrom`, then continue the turn without sending a
-new prompt:
+When you only have raw continuation state from `suspendTurn()`, resume with
+`continueFrom`, then continue the turn without sending a new prompt:
 
 ```ts
 const session = await agent.createSession({

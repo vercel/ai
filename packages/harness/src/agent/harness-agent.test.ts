@@ -42,7 +42,9 @@ function mockHarness(options: {
   prompts: HarnessV1PromptTurnOptions['prompt'][];
   toolResults: { toolCallId: string; output: unknown }[];
   doStart: ReturnType<typeof vi.fn>;
+  doDetach: ReturnType<typeof vi.fn>;
   doContinueTurn: ReturnType<typeof vi.fn>;
+  doSuspendTurn: ReturnType<typeof vi.fn>;
   doStop: ReturnType<typeof vi.fn>;
   doDestroy: ReturnType<typeof vi.fn>;
   doCompact: ReturnType<typeof vi.fn>;
@@ -64,6 +66,8 @@ function mockHarness(options: {
   const doStop = vi.fn(async () => resumeState);
   const doDestroy = vi.fn(async () => {});
   const doCompact = vi.fn(async (_customInstructions?: string) => {});
+  const doDetach = vi.fn(async () => resumeState);
+  const doSuspendTurn = vi.fn(async () => continueState);
   const doContinueTurn = vi.fn(async (opts: HarnessV1ContinueTurnOptions) => {
     const control: HarnessV1PromptControl = {
       submitToolResult: async input => {
@@ -104,11 +108,11 @@ function mockHarness(options: {
       return control;
     },
     doCompact,
-    doDetach: async () => resumeState,
+    doDetach,
     doStop,
     doDestroy,
     doContinueTurn,
-    doSuspendTurn: async () => continueState,
+    doSuspendTurn,
   };
 
   return {
@@ -121,7 +125,9 @@ function mockHarness(options: {
     prompts,
     toolResults,
     doStart,
+    doDetach,
     doContinueTurn,
+    doSuspendTurn,
     doStop,
     doDestroy,
     doCompact,
@@ -160,6 +166,7 @@ function makeSandboxProvider(
 function makeLifecycleSession(options: {
   underlyingSession?: Partial<HarnessV1Session>;
   sandboxSessionOverrides?: Partial<HarnessV1NetworkSandboxSession>;
+  turnState?: 'idle' | 'running' | 'awaiting-approval' | 'suspended';
 }): {
   session: HarnessAgentSession;
   resumeState: HarnessV1ResumeSessionState;
@@ -234,6 +241,7 @@ function makeLifecycleSession(options: {
       sandboxProvider,
       sessionWorkDir: '/work/mock-lifecycle-session',
       toolApproval: undefined,
+      turnState: options.turnState,
     }),
     resumeState,
     continueState,
@@ -419,7 +427,14 @@ describe('HarnessAgent', () => {
     });
 
     const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
-    const session = await agent.createSession();
+    const session = await agent.createSession({
+      continueFrom: {
+        type: 'continue-turn',
+        harnessId: 'mock',
+        specificationVersion: 'harness-v1',
+        data: {},
+      },
+    });
     const result = await agent.continueStream({ session });
 
     const types: string[] = [];
@@ -475,7 +490,14 @@ describe('HarnessAgent', () => {
     });
 
     const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
-    const session = await agent.createSession();
+    const session = await agent.createSession({
+      continueFrom: {
+        type: 'continue-turn',
+        harnessId: 'mock',
+        specificationVersion: 'harness-v1',
+        data: {},
+      },
+    });
     const result = await agent.continueGenerate({ session });
 
     expect(result.text).toBe('Completed');
@@ -485,6 +507,128 @@ describe('HarnessAgent', () => {
     expect(result.usage.outputTokens).toBe(1);
     expect(prompts).toEqual([]);
     expect(doContinueTurn).toHaveBeenCalledTimes(1);
+
+    await session.destroy();
+  });
+
+  test('continueStream() rejects when there is no unfinished turn', async () => {
+    const { harness } = mockHarness({ script: () => [] });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+    const session = await agent.createSession();
+
+    await expect(agent.continueStream({ session })).rejects.toThrow(
+      /no unfinished turn to continue/,
+    );
+
+    await session.destroy();
+  });
+
+  test('resumeFrom.continueFrom resumes a session that must continue before accepting a new prompt', async () => {
+    const { harness, doContinueTurn, prompts } = mockHarness({
+      script: () => [
+        { type: 'text-delta', id: 't2', delta: 'after' },
+        {
+          type: 'finish-step',
+          finishReason: { unified: 'stop', raw: undefined },
+          usage: {
+            inputTokens: {
+              total: undefined,
+              noCache: undefined,
+              cacheRead: undefined,
+              cacheWrite: undefined,
+            },
+            outputTokens: {
+              total: undefined,
+              text: undefined,
+              reasoning: undefined,
+            },
+          },
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: undefined },
+          totalUsage: {
+            inputTokens: {
+              total: undefined,
+              noCache: undefined,
+              cacheRead: undefined,
+              cacheWrite: undefined,
+            },
+            outputTokens: {
+              total: undefined,
+              text: undefined,
+              reasoning: undefined,
+            },
+          },
+        },
+      ],
+      continueScript: () => [
+        { type: 'text-delta', id: 't1', delta: 'continued' },
+        {
+          type: 'finish-step',
+          finishReason: { unified: 'stop', raw: undefined },
+          usage: {
+            inputTokens: {
+              total: undefined,
+              noCache: undefined,
+              cacheRead: undefined,
+              cacheWrite: undefined,
+            },
+            outputTokens: {
+              total: undefined,
+              text: undefined,
+              reasoning: undefined,
+            },
+          },
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: undefined },
+          totalUsage: {
+            inputTokens: {
+              total: undefined,
+              noCache: undefined,
+              cacheRead: undefined,
+              cacheWrite: undefined,
+            },
+            outputTokens: {
+              total: undefined,
+              text: undefined,
+              reasoning: undefined,
+            },
+          },
+        },
+      ],
+    });
+
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+    const session = await agent.createSession({
+      sessionId: 's1',
+      resumeFrom: {
+        type: 'resume-session',
+        harnessId: 'mock',
+        specificationVersion: 'harness-v1',
+        data: {},
+        continueFrom: {
+          type: 'continue-turn',
+          harnessId: 'mock',
+          specificationVersion: 'harness-v1',
+          data: {},
+        },
+      },
+    });
+
+    await expect(
+      agent.generate({ session, prompt: 'new prompt too early' }),
+    ).rejects.toThrow(/must be continued/);
+
+    const continued = await agent.continueGenerate({ session });
+    expect(continued.text).toBe('continued');
+    const after = await agent.generate({ session, prompt: 'new prompt now' });
+    expect(after.text).toBe('after');
+
+    expect(doContinueTurn).toHaveBeenCalledTimes(1);
+    expect(prompts).toEqual(['new prompt now']);
 
     await session.destroy();
   });
@@ -551,6 +695,23 @@ describe('HarnessAgent', () => {
     expect(sandboxSessionEvents).toEqual([{ sessionWorkDir: '/work/mock-s1' }]);
 
     await session.destroy();
+  });
+
+  test('createSession() rejects resume state with top-level pending tool approvals', async () => {
+    const { harness } = mockHarness({ script: () => [] });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+
+    await expect(
+      agent.createSession({
+        resumeFrom: {
+          type: 'resume-session',
+          harnessId: 'mock',
+          specificationVersion: 'harness-v1',
+          data: {},
+          pendingToolApprovals: [],
+        } as HarnessV1ResumeSessionState,
+      }),
+    ).rejects.toThrow(/cannot contain pending tool approvals/);
   });
 
   test('host-side tools are executed and the result is submitted back', async () => {
@@ -620,6 +781,130 @@ describe('HarnessAgent', () => {
     expect(result.toolCalls[0]!.toolName).toBe('echo');
 
     await session.destroy();
+  });
+
+  test('session.detach() after a tool approval pause returns resume state with nested continuation state', async () => {
+    const { harness, doDetach, doSuspendTurn } = mockHarness({
+      script: () => [
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          input: JSON.stringify({ city: 'SF' }),
+        },
+      ],
+    });
+    const weather = tool({
+      description: 'Get weather',
+      inputSchema: z.object({ city: z.string() }),
+      execute: async ({ city }: { city: string }) => ({ city }),
+    });
+    const agent = new HarnessAgent({
+      harness,
+      tools: { weather },
+      toolApproval: { weather: 'user-approval' },
+      sandbox: makeSandboxProvider(),
+    });
+    const session = await agent.createSession();
+    const result = await agent.stream({ session, prompt: 'go' });
+
+    const parts: string[] = [];
+    for await (const part of result.fullStream) {
+      parts.push(part.type);
+    }
+    const state = await session.detach();
+
+    expect(parts).toContain('tool-approval-request');
+    expect(state).toEqual({
+      type: 'resume-session',
+      harnessId: 'mock',
+      specificationVersion: 'harness-v1',
+      data: {},
+      continueFrom: {
+        type: 'continue-turn',
+        harnessId: 'mock',
+        specificationVersion: 'harness-v1',
+        data: {},
+        pendingToolApprovals: [
+          {
+            approvalId: expect.any(String),
+            toolCallId: 'c1',
+            toolName: 'weather',
+            input: JSON.stringify({ city: 'SF' }),
+            kind: 'custom',
+            providerExecuted: false,
+          },
+        ],
+      },
+    });
+    expect(doDetach).not.toHaveBeenCalled();
+    expect(doSuspendTurn).toHaveBeenCalledTimes(1);
+  });
+
+  test('session.detach() from UI stream onFinish uses between-turn resume state after normal completion', async () => {
+    const { harness, doDetach, doSuspendTurn } = mockHarness({
+      script: () => [
+        { type: 'text-start', id: 't1' },
+        { type: 'text-delta', id: 't1', delta: 'done' },
+        { type: 'text-end', id: 't1' },
+        {
+          type: 'finish-step',
+          finishReason: { unified: 'stop', raw: undefined },
+          usage: {
+            inputTokens: {
+              total: undefined,
+              noCache: undefined,
+              cacheRead: undefined,
+              cacheWrite: undefined,
+            },
+            outputTokens: {
+              total: undefined,
+              text: undefined,
+              reasoning: undefined,
+            },
+          },
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: undefined },
+          totalUsage: {
+            inputTokens: {
+              total: undefined,
+              noCache: undefined,
+              cacheRead: undefined,
+              cacheWrite: undefined,
+            },
+            outputTokens: {
+              total: undefined,
+              text: undefined,
+              reasoning: undefined,
+            },
+          },
+        },
+      ],
+    });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+    const session = await agent.createSession();
+    const result = await agent.stream({ session, prompt: 'go' });
+    let detachState: HarnessV1ResumeSessionState | undefined;
+
+    const uiStream = result.toUIMessageStream({
+      onFinish: async () => {
+        detachState = await session.detach();
+      },
+    });
+    for await (const chunk of uiStream) {
+      expect(chunk).toBeDefined();
+    }
+
+    expect(detachState).toEqual({
+      type: 'resume-session',
+      harnessId: 'mock',
+      specificationVersion: 'harness-v1',
+      data: {},
+    });
+    expect(doDetach).toHaveBeenCalledTimes(1);
+    expect(doSuspendTurn).not.toHaveBeenCalled();
   });
 
   test('a single session can drive multiple generate() turns', async () => {
@@ -809,6 +1094,42 @@ describe('HarnessAgent', () => {
     expect(doDestroy).not.toHaveBeenCalled();
     expect(sandboxStop).toHaveBeenCalledTimes(1);
     expect(sandboxDestroy).not.toHaveBeenCalled();
+  });
+
+  test('session.stop() wraps unfinished turns as nested continuation state and stops the sandbox', async () => {
+    const {
+      session,
+      continueState,
+      doStop,
+      doDestroy,
+      sandboxStop,
+      sandboxDestroy,
+    } = makeLifecycleSession({ turnState: 'suspended' });
+
+    await expect(session.stop()).resolves.toEqual({
+      type: 'resume-session',
+      harnessId: 'mock',
+      specificationVersion: 'harness-v1',
+      data: continueState.data,
+      continueFrom: continueState,
+    });
+
+    expect(doStop).not.toHaveBeenCalled();
+    expect(doDestroy).not.toHaveBeenCalled();
+    expect(sandboxStop).toHaveBeenCalledTimes(1);
+    expect(sandboxDestroy).not.toHaveBeenCalled();
+  });
+
+  test('session.suspendTurn() returns raw continuation state and detaches the local handle', async () => {
+    const { session, continueState, doDetach, doStop, sandboxStop } =
+      makeLifecycleSession({ turnState: 'running' });
+
+    await expect(session.suspendTurn()).resolves.toEqual(continueState);
+
+    expect(doDetach).not.toHaveBeenCalled();
+    expect(doStop).not.toHaveBeenCalled();
+    expect(sandboxStop).not.toHaveBeenCalled();
+    await expect(session.suspendTurn()).rejects.toThrow(/not active/);
   });
 
   test('session.destroy() destroys the sandbox without saving state', async () => {

@@ -224,6 +224,11 @@ export class HarnessAgent<
       });
     }
 
+    const effectiveContinueFrom =
+      validatedContinueFrom ?? validatedResumeFrom?.continueFrom;
+    const isResumedSession =
+      validatedResumeFrom != null || effectiveContinueFrom != null;
+
     let recipe: HarnessV1Bootstrap | undefined;
     let identity: string | undefined;
 
@@ -235,7 +240,7 @@ export class HarnessAgent<
     const acquiredSandboxSession = await this._acquireSandbox({
       sandboxProvider,
       sessionId,
-      isResume: validatedResumeFrom != null || validatedContinueFrom != null,
+      isResume: isResumedSession,
       recipe,
       identity,
       abortSignal,
@@ -255,7 +260,7 @@ export class HarnessAgent<
        * Adapter bootstrap is one-time work for fresh sessions. The consumer
        * hook runs for every acquired sandbox session after the work dir exists.
        */
-      if (validatedResumeFrom == null && recipe != null && identity != null) {
+      if (!isResumedSession && recipe != null && identity != null) {
         await applyBootstrapRecipe(
           sandboxSession.restricted(),
           recipe,
@@ -289,7 +294,7 @@ export class HarnessAgent<
         sessionId,
         skills: this.settings.skills,
         resumeFrom: validatedResumeFrom,
-        continueFrom: validatedContinueFrom,
+        continueFrom: effectiveContinueFrom,
         permissionMode: this.permissionMode,
         abortSignal,
         observability: buildObservability({ settings: this.settings }),
@@ -308,9 +313,14 @@ export class HarnessAgent<
         leasedBridgePort,
         sessionWorkDir,
         toolApproval: this.settings.toolApproval,
-        pendingToolApprovals:
-          validatedResumeFrom?.pendingToolApprovals ??
-          validatedContinueFrom?.pendingToolApprovals,
+        pendingToolApprovals: effectiveContinueFrom?.pendingToolApprovals,
+        turnState:
+          effectiveContinueFrom == null
+            ? 'idle'
+            : effectiveContinueFrom.pendingToolApprovals != null &&
+                effectiveContinueFrom.pendingToolApprovals.length > 0
+              ? 'awaiting-approval'
+              : 'suspended',
       });
     } catch (error) {
       await cleanupAfterStartFailure({
