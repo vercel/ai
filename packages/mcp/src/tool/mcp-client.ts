@@ -618,7 +618,7 @@ class DefaultMCPClient implements MCPClient {
       _meta,
     } of definitions.tools) {
       const resolvedTitle = title ?? annotations?.title;
-      if (schemas !== 'automatic' && !(name in schemas)) {
+      if (schemas !== 'automatic' && !Object.hasOwn(schemas, name)) {
         continue;
       }
 
