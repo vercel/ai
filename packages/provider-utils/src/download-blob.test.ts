@@ -293,8 +293,8 @@ describe('downloadBlob() SSRF protection', () => {
     // response. SSRF is not reachable from the browser, so we re-issue the
     // request with `redirect: 'follow'` and let the platform follow it.
     const originalFetch = globalThis.fetch;
-    const globalThisAny = globalThis as { document?: unknown };
-    globalThisAny.document = {};
+    const globalThisAny = globalThis as { window?: unknown };
+    globalThisAny.window = {};
     const content = new TextEncoder().encode('image bytes');
     const fetchMock = vi
       .fn()
@@ -335,7 +335,7 @@ describe('downloadBlob() SSRF protection', () => {
         },
       );
     } finally {
-      delete globalThisAny.document;
+      delete globalThisAny.window;
       globalThis.fetch = originalFetch;
     }
   });

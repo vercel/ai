@@ -63,8 +63,8 @@ describe('download SSRF redirect protection', () => {
   });
 
   it('should let the browser follow redirects natively on an opaque redirect', async () => {
-    const globalThisAny = globalThis as { document?: unknown };
-    globalThisAny.document = {};
+    const globalThisAny = globalThis as { window?: unknown };
+    globalThisAny.window = {};
     const content = new Uint8Array([1, 2, 3]);
     const fetchMock = vi
       .fn()
@@ -105,7 +105,7 @@ describe('download SSRF redirect protection', () => {
         expect.objectContaining({ redirect: 'follow' }),
       );
     } finally {
-      delete globalThisAny.document;
+      delete globalThisAny.window;
     }
   });
 

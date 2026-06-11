@@ -96,20 +96,28 @@ function isIPv4(hostname: string): boolean {
 
 function isPrivateIPv4(ip: string): boolean {
   const parts = ip.split('.').map(Number);
-  const [a, b] = parts;
+  const [a, b, c] = parts;
 
   // 0.0.0.0/8
   if (a === 0) return true;
   // 10.0.0.0/8
   if (a === 10) return true;
+  // 100.64.0.0/10 (CGNAT, used by some cloud providers for internal traffic)
+  if (a === 100 && b >= 64 && b <= 127) return true;
   // 127.0.0.0/8
   if (a === 127) return true;
   // 169.254.0.0/16
   if (a === 169 && b === 254) return true;
   // 172.16.0.0/12
   if (a === 172 && b >= 16 && b <= 31) return true;
+  // 192.0.0.0/24 (IETF protocol assignments)
+  if (a === 192 && b === 0 && c === 0) return true;
   // 192.168.0.0/16
   if (a === 192 && b === 168) return true;
+  // 198.18.0.0/15 (benchmarking)
+  if (a === 198 && (b === 18 || b === 19)) return true;
+  // 240.0.0.0/4 (reserved, includes 255.255.255.255 broadcast)
+  if (a >= 240) return true;
 
   return false;
 }
@@ -183,6 +191,12 @@ function isPrivateIPv6(ip: string): boolean {
 
   // fe80::/10 (link-local)
   if ((groups[0] & 0xffc0) === 0xfe80) return true;
+
+  // fec0::/10 (site-local, deprecated but still routable internally)
+  if ((groups[0] & 0xffc0) === 0xfec0) return true;
+
+  // ff00::/8 (multicast)
+  if ((groups[0] & 0xff00) === 0xff00) return true;
 
   // Addresses that embed an IPv4 address in their last 32 bits. For these we
   // extract the embedded IPv4 and reuse the IPv4 private-range checks, so that

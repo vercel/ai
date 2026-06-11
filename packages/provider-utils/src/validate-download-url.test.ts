@@ -289,4 +289,62 @@ describe('validateDownloadUrl', () => {
       ).not.toThrow();
     });
   });
+
+  // Additional reserved/internal IPv4 ranges that must not be reachable.
+  describe('additional reserved IPv4 ranges', () => {
+    it('should block 100.64.0.0/10 (CGNAT)', () => {
+      expect(() => validateDownloadUrl('http://100.64.0.1/file')).toThrow(
+        DownloadError,
+      );
+      expect(() => validateDownloadUrl('http://100.127.255.255/file')).toThrow(
+        DownloadError,
+      );
+    });
+
+    it('should allow 100.63.x.x and 100.128.x.x (public)', () => {
+      expect(() => validateDownloadUrl('http://100.63.0.1/file')).not.toThrow();
+      expect(() =>
+        validateDownloadUrl('http://100.128.0.1/file'),
+      ).not.toThrow();
+    });
+
+    it('should block 198.18.0.0/15 (benchmarking)', () => {
+      expect(() => validateDownloadUrl('http://198.18.0.1/file')).toThrow(
+        DownloadError,
+      );
+      expect(() => validateDownloadUrl('http://198.19.255.255/file')).toThrow(
+        DownloadError,
+      );
+    });
+
+    it('should block 192.0.0.0/24 (IETF protocol assignments)', () => {
+      expect(() => validateDownloadUrl('http://192.0.0.1/file')).toThrow(
+        DownloadError,
+      );
+    });
+
+    it('should block 240.0.0.0/4 (reserved) and the broadcast address', () => {
+      expect(() => validateDownloadUrl('http://240.0.0.1/file')).toThrow(
+        DownloadError,
+      );
+      expect(() => validateDownloadUrl('http://255.255.255.255/file')).toThrow(
+        DownloadError,
+      );
+    });
+  });
+
+  // Additional internal IPv6 ranges.
+  describe('additional reserved IPv6 ranges', () => {
+    it('should block fec0::/10 (site-local)', () => {
+      expect(() => validateDownloadUrl('http://[fec0::1]/file')).toThrow(
+        DownloadError,
+      );
+    });
+
+    it('should block ff00::/8 (multicast)', () => {
+      expect(() => validateDownloadUrl('http://[ff02::1]/file')).toThrow(
+        DownloadError,
+      );
+    });
+  });
 });
