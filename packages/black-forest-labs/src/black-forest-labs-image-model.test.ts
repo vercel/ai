@@ -71,6 +71,12 @@ describe('BlackForestLabsImageModel', () => {
         body: Buffer.from('test-binary-content'),
       },
     },
+    'https://cdn.evil.example/image.png': {
+      response: {
+        type: 'binary',
+        body: Buffer.from('test-binary-content'),
+      },
+    },
   });
 
   describe('doGenerate', () => {
@@ -304,6 +310,34 @@ describe('BlackForestLabsImageModel', () => {
       expect(server.calls[2].requestUrl).toBe(
         'https://api.example.com/image.png',
       );
+    });
+
+    it('does not send the API key when the result URL is on a foreign origin', async () => {
+      server.urls['https://api.example.com/poll'].response = {
+        type: 'json-value',
+        body: {
+          status: 'Ready',
+          result: { sample: 'https://cdn.evil.example/image.png' },
+        },
+      };
+
+      const model = createBasicModel();
+      await model.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      const downloadCall = server.calls.find(
+        call => call.requestUrl === 'https://cdn.evil.example/image.png',
+      );
+      expect(downloadCall).toBeDefined();
+      expect(downloadCall!.requestHeaders['x-key']).toBeUndefined();
     });
 
     it('merges provider and request headers for submit call', async () => {

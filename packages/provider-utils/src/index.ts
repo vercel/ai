@@ -30,6 +30,7 @@ export type { HasRequiredKey } from './has-required-key';
 export { injectJsonInstructionIntoMessages } from './inject-json-instruction';
 export * from './is-abort-error';
 export { isBuffer } from './is-buffer';
+export { isSameOrigin } from './is-same-origin';
 export { isNonNullable } from './is-non-nullable';
 export { isProviderReference } from './is-provider-reference';
 export { isUrlSupported } from './is-url-supported';

@@ -7,6 +7,7 @@ import {
   createStatusCodeErrorResponseHandler,
   delay,
   getFromApi,
+  isSameOrigin,
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -241,7 +242,12 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
 
     const { value: imageBytes, responseHeaders } = await getFromApi({
       url: imageUrl,
-      headers: combinedHeaders,
+      // Only send credentials if the response-supplied URL points back at the
+      // provider's own origin; the image is typically delivered from a CDN, so
+      // the API key must not travel to a foreign host.
+      headers: isSameOrigin(imageUrl, this.config.baseURL)
+        ? combinedHeaders
+        : undefined,
       abortSignal,
       failedResponseHandler: createStatusCodeErrorResponseHandler(),
       successfulResponseHandler: createBinaryResponseHandler(),
@@ -320,7 +326,11 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
     for (let i = 0; i < maxPollAttempts; i++) {
       const { value } = await getFromApi({
         url: url.toString(),
-        headers,
+        // The polling URL comes from the provider response; only send
+        // credentials when it stays on the provider's own origin.
+        headers: isSameOrigin(url.toString(), this.config.baseURL)
+          ? headers
+          : undefined,
         failedResponseHandler: bflFailedResponseHandler,
         successfulResponseHandler: createJsonResponseHandler(bflPollSchema),
         abortSignal,
