@@ -7,8 +7,8 @@
     "start": "tsx src/index.ts"
   },
   "dependencies": {
-    "ai": "latest",
-    "@ai-sdk/openai": "latest",
+    "ai": "workspace:*",
+    "@ai-sdk/openai": "workspace:*",
     "tealtiger-ai-sdk": "^0.1.0",
     "zod": "^3.22.0"
   },
