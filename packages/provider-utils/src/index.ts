@@ -15,6 +15,7 @@ export {
   readResponseWithSizeLimit,
   DEFAULT_MAX_DOWNLOAD_SIZE,
 } from './read-response-with-size-limit';
+export { fetchWithValidatedRedirects } from './fetch-with-validated-redirects';
 export * from './fetch-function';
 export { createIdGenerator, generateId, type IdGenerator } from './generate-id';
 export * from './get-error-message';
@@ -22,6 +23,7 @@ export * from './get-from-api';
 export { getRuntimeEnvironmentUserAgent } from './get-runtime-environment-user-agent';
 export { injectJsonInstructionIntoMessages } from './inject-json-instruction';
 export * from './is-abort-error';
+export { isBrowserRuntime } from './is-browser-runtime';
 export { isNonNullable } from './is-non-nullable';
 export { isUrlSupported } from './is-url-supported';
 export * from './load-api-key';
