@@ -1,5 +1,15 @@
 # @ai-sdk/harness
 
+## 1.0.0-canary.5
+
+### Patch Changes
+
+- d77bed4: chore(harness): separate harness spec types (v1) from consumer-facing types
+- Updated dependencies [bae5e2b]
+- Updated dependencies [69d7128]
+  - ai@7.0.0-canary.170
+  - @ai-sdk/provider-utils@5.0.0-canary.47
+
 ## 1.0.0-canary.4
 
 ### Patch Changes

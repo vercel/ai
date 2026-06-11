@@ -1,5 +1,14 @@
 # @ai-sdk/sandbox-just-bash
 
+## 1.0.0-canary.5
+
+### Patch Changes
+
+- Updated dependencies [d77bed4]
+- Updated dependencies [bae5e2b]
+  - @ai-sdk/harness@1.0.0-canary.5
+  - @ai-sdk/provider-utils@5.0.0-canary.47
+
 ## 1.0.0-canary.4
 
 ### Patch Changes
