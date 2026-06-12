@@ -218,6 +218,30 @@ describe('gateway.experimental_realtime', () => {
   );
 
   serverOnlyIt(
+    'tolerates a null expiresAt from the mint endpoint and omits it from the result',
+    async () => {
+      const fetch = vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({ token: 'vcst_minted', expiresAt: null }),
+            {
+              status: 200,
+              headers: { 'content-type': 'application/json' },
+            },
+          ),
+      );
+      const mintGateway = createGateway({ apiKey: 'vck_test-token', fetch });
+
+      const result = await mintGateway.experimental_realtime.getToken({
+        model: 'openai/gpt-realtime',
+      });
+
+      expect(result.token).toBe('vcst_minted');
+      expect('expiresAt' in result).toBe(false);
+    },
+  );
+
+  serverOnlyIt(
     'carries teamIdOrSlug through realtime WebSocket protocols',
     () => {
       const scopedGateway = createGateway({

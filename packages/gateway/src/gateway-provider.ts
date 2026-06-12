@@ -226,7 +226,7 @@ const AI_GATEWAY_PROTOCOL_VERSION = '0.0.1';
 /** Response shape of `POST /v1/realtime/client-secrets`. `expiresAt` is epoch seconds. */
 const gatewayClientSecretResponseSchema = z.object({
   token: z.string(),
-  expiresAt: z.number().optional(),
+  expiresAt: z.number().nullish(),
 });
 
 /**
