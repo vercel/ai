@@ -6,10 +6,10 @@ import { createAgentUIStreamResponse } from 'ai';
 import { Sandbox } from '@vercel/sandbox';
 import { VercelSandboxSession } from '@/sandbox/vercel-sandbox';
 
-async function getSandbox(name?: string) {
-  if (name != null) {
+async function getSandbox(sandboxName?: string) {
+  if (sandboxName != null) {
     try {
-      const sandbox = await Sandbox.get({ name });
+      const sandbox = await Sandbox.get({ name: sandboxName });
       if (sandbox.status !== 'stopped' && sandbox.status !== 'failed') {
         return sandbox;
       }
@@ -21,15 +21,15 @@ async function getSandbox(name?: string) {
   return Sandbox.create({ timeout: 60_000 * 3 });
 }
 
-function getLatestSandboxId(messages: SandboxAgentUIMessage[]) {
-  return messages.findLast(message => message.metadata?.sandboxId)?.metadata
-    ?.sandboxId;
+function getLatestSandboxName(messages: SandboxAgentUIMessage[]) {
+  return messages.findLast(message => message.metadata?.sandboxName)?.metadata
+    ?.sandboxName;
 }
 
 export async function POST(req: Request) {
   const { messages }: { messages: SandboxAgentUIMessage[] } = await req.json();
 
-  const vercelSandbox = await getSandbox(getLatestSandboxId(messages));
+  const vercelSandbox = await getSandbox(getLatestSandboxName(messages));
 
   const sandbox = new VercelSandboxSession(vercelSandbox);
 
@@ -40,7 +40,7 @@ export async function POST(req: Request) {
     experimental_sandbox: sandbox,
     messageMetadata: ({ part }) => {
       if (part.type === 'start') {
-        return { sandboxId: vercelSandbox.name };
+        return { sandboxName: vercelSandbox.name };
       }
     },
   });

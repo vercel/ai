@@ -1929,6 +1929,72 @@ describe('auth function', () => {
     expect(evilTokenRequests).toHaveLength(0);
   });
 
+  it('allows providers to reject discovered authorization server URLs before metadata discovery', async () => {
+    const validateAuthorizationServerURL = vi.fn(() => {
+      throw new Error('Unexpected authorization server');
+    });
+
+    mockFetch.mockImplementation(url => {
+      const urlString = url.toString();
+
+      if (urlString.includes('/.well-known/oauth-protected-resource')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            resource: 'https://api.example.com/mcp-server',
+            authorization_servers: ['https://evil.example'],
+          }),
+        });
+      } else if (
+        urlString ===
+        'https://evil.example/.well-known/oauth-authorization-server'
+      ) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            issuer: 'https://evil.example',
+            authorization_endpoint: 'https://evil.example/authorize',
+            token_endpoint: 'https://evil.example/token',
+            response_types_supported: ['code'],
+            code_challenge_methods_supported: ['S256'],
+          }),
+        });
+      }
+
+      return Promise.resolve({ ok: false, status: 404 });
+    });
+
+    (mockProvider.clientInformation as Mock).mockResolvedValue({
+      client_id: 'real-client',
+      client_secret: 'real-secret',
+    });
+    (mockProvider.tokens as Mock).mockResolvedValue(undefined);
+    const providerWithValidation = {
+      ...mockProvider,
+      validateAuthorizationServerURL,
+    };
+
+    await expect(
+      auth(providerWithValidation, {
+        serverUrl: 'https://api.example.com/mcp-server',
+      }),
+    ).rejects.toThrow('Unexpected authorization server');
+
+    expect(validateAuthorizationServerURL).toHaveBeenCalledWith(
+      'https://api.example.com/mcp-server',
+      'https://evil.example',
+    );
+    expect(
+      mockFetch.mock.calls.some(
+        call =>
+          call[0].toString() ===
+          'https://evil.example/.well-known/oauth-authorization-server',
+      ),
+    ).toBe(false);
+  });
+
   it('skips default PRM resource validation when custom validateResourceURL is provided', async () => {
     const mockValidateResourceURL = vi.fn().mockResolvedValue(undefined);
     const providerWithCustomValidation = {

@@ -7,6 +7,7 @@ import {
   createStatusCodeErrorResponseHandler,
   delay,
   getFromApi,
+  isSameOrigin,
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -241,7 +242,12 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
 
     const { value: imageBytes, responseHeaders } = await getFromApi({
       url: imageUrl,
-      headers: combinedHeaders,
+      // Only send credentials if the response-supplied URL points back at the
+      // provider; the image is typically delivered from a CDN, so the API key
+      // must not travel to a foreign host.
+      headers: isTrustedUrl(imageUrl, this.config.baseURL)
+        ? combinedHeaders
+        : undefined,
       abortSignal,
       failedResponseHandler: createStatusCodeErrorResponseHandler(),
       successfulResponseHandler: createBinaryResponseHandler(),
@@ -320,7 +326,11 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
     for (let i = 0; i < maxPollAttempts; i++) {
       const { value } = await getFromApi({
         url: url.toString(),
-        headers,
+        // The polling URL comes from the provider response; only send
+        // credentials when it stays on a trusted provider host.
+        headers: isTrustedUrl(url.toString(), this.config.baseURL)
+          ? headers
+          : undefined,
         failedResponseHandler: bflFailedResponseHandler,
         successfulResponseHandler: createJsonResponseHandler(bflPollSchema),
         abortSignal,
@@ -350,6 +360,29 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
     }
 
     throw new Error('Black Forest Labs generation timed out.');
+  }
+}
+
+/**
+ * Black Forest Labs returns response-supplied URLs (polling and delivery) on
+ * sibling cluster hosts of the API origin (e.g. `api.us1.bfl.ai` for a base
+ * URL on `api.bfl.ai`), so a strict same-origin check against the configured
+ * base URL is not enough. Credentials may also be sent to any https host under
+ * the official `bfl.ai` domain.
+ */
+function isTrustedUrl(url: string, baseUrl: string): boolean {
+  if (isSameOrigin(url, baseUrl)) {
+    return true;
+  }
+
+  try {
+    const { protocol, hostname } = new URL(url);
+    return (
+      protocol === 'https:' &&
+      (hostname === 'bfl.ai' || hostname.endsWith('.bfl.ai'))
+    );
+  } catch {
+    return false;
   }
 }
 
