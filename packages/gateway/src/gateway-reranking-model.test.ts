@@ -55,7 +55,6 @@ describe('GatewayRerankingModel', () => {
     warnings?: Array<
       | { type: 'unsupported'; feature: string; details?: string }
       | { type: 'compatibility'; feature: string; details?: string }
-      | { type: 'deprecated'; setting: string; message: string }
       | { type: 'other'; message: string }
     >;
     headers?: Record<string, string>;

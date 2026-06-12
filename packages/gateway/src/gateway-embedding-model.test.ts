@@ -46,7 +46,6 @@ describe('GatewayEmbeddingModel', () => {
     warnings?: Array<
       | { type: 'unsupported'; feature: string; details?: string }
       | { type: 'compatibility'; feature: string; details?: string }
-      | { type: 'deprecated'; setting: string; message: string }
       | { type: 'other'; message: string }
     >;
     headers?: Record<string, string>;
@@ -112,9 +111,9 @@ describe('GatewayEmbeddingModel', () => {
     it('should extract warnings', async () => {
       const mockWarnings = [
         {
-          type: 'deprecated' as const,
-          setting: 'dimensions',
-          message: 'Use outputDimensions instead.',
+          type: 'unsupported' as const,
+          feature: 'dimensions',
+          details: 'Ignored by this model.',
         },
       ];
 
