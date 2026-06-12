@@ -13,13 +13,8 @@ export interface LangGraphEventState {
   /** Tracks which message IDs have been seen */
   messageSeen: Map<string, LangGraphMessageSeen>;
   /** Accumulates message chunks for later reference */
-<<<<<<< HEAD
-  messageConcat: Record<string, AIMessageChunk>;
-  /** Maps tool call IDs to their message IDs (for chunks that don't include the ID) */
-=======
   messageConcat: Map<string, AIMessageChunk>;
   /** Tracks which tool call IDs have emitted tool-input-start */
->>>>>>> c1afaed145 (fix(langchain): prevent polluting global object.prototype (#16082))
   emittedToolCalls: Set<string>;
   /** Maps image IDs to their message IDs (for chunks that don't include the ID) */
   emittedImages: Set<string>;

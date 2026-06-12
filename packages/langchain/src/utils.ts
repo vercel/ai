@@ -16,14 +16,6 @@ import {
   type UserContent,
 } from 'ai';
 
-<<<<<<< HEAD
-import {
-  type LangGraphEventState,
-  type ReasoningContentBlock,
-  type ThinkingContentBlock,
-  type GPT5ReasoningOutput,
-  type ImageGenerationOutput,
-=======
 import type {
   LangGraphEventState,
   LangGraphMessageSeen,
@@ -31,8 +23,6 @@ import type {
   ThinkingContentBlock,
   GPT5ReasoningOutput,
   ImageGenerationOutput,
-  NormalizedCitation,
->>>>>>> c1afaed145 (fix(langchain): prevent polluting global object.prototype (#16082))
 } from './types';
 
 /**
@@ -1172,44 +1162,26 @@ export function processLangGraphEvent(
              * If this chunk has an id, store it for future lookups by index
              */
             if (toolCallChunk.id) {
-<<<<<<< HEAD
-              toolCallInfoByIndex[msgId] ??= {};
-              toolCallInfoByIndex[msgId][idx] = {
-                id: toolCallChunk.id,
-                name:
-                  toolCallChunk.name ||
-                  concatChunk?.tool_call_chunks?.[idx]?.name ||
-                  'unknown',
-              };
-=======
               getOrCreateToolCallInfoByIndex(toolCallInfoByIndex, msgId).set(
-                toolCallIndex,
+                idx,
                 {
                   id: toolCallChunk.id,
                   name:
                     toolCallChunk.name ||
-                    concatChunk?.tool_call_chunks?.[toolCallIndex]?.name ||
+                    concatChunk?.tool_call_chunks?.[idx]?.name ||
                     'unknown',
                 },
               );
->>>>>>> c1afaed145 (fix(langchain): prevent polluting global object.prototype (#16082))
             }
 
             /**
              * Get the tool call ID from the chunk, stored info, or accumulated chunks
              */
-            const storedToolCallInfo = toolCallInfoByIndex
-              .get(msgId)
-              ?.get(toolCallIndex);
+            const storedToolCallInfo = toolCallInfoByIndex.get(msgId)?.get(idx);
             const toolCallId =
               toolCallChunk.id ||
-<<<<<<< HEAD
-              toolCallInfoByIndex[msgId]?.[idx]?.id ||
-              concatChunk?.tool_call_chunks?.[idx]?.id;
-=======
               storedToolCallInfo?.id ||
-              concatChunk?.tool_call_chunks?.[toolCallIndex]?.id;
->>>>>>> c1afaed145 (fix(langchain): prevent polluting global object.prototype (#16082))
+              concatChunk?.tool_call_chunks?.[idx]?.id;
 
             /**
              * Skip if we don't have a proper tool call ID - we'll handle it in values
@@ -1220,13 +1192,8 @@ export function processLangGraphEvent(
 
             const toolName =
               toolCallChunk.name ||
-<<<<<<< HEAD
-              toolCallInfoByIndex[msgId]?.[idx]?.name ||
-              concatChunk?.tool_call_chunks?.[idx]?.name ||
-=======
               storedToolCallInfo?.name ||
-              concatChunk?.tool_call_chunks?.[toolCallIndex]?.name ||
->>>>>>> c1afaed145 (fix(langchain): prevent polluting global object.prototype (#16082))
+              concatChunk?.tool_call_chunks?.[idx]?.name ||
               'unknown';
 
             /**
@@ -1234,20 +1201,6 @@ export function processLangGraphEvent(
              * (even if args is empty - the first chunk often has empty args)
              * Set dynamic: true to enable HITL approval requests
              */
-<<<<<<< HEAD
-            if (!messageSeen[msgId]?.tool?.[toolCallId]) {
-              controller.enqueue({
-                type: 'tool-input-start',
-                toolCallId: toolCallId,
-                toolName: toolName,
-                dynamic: true,
-              });
-
-              messageSeen[msgId] ??= {};
-              messageSeen[msgId].tool ??= {};
-              messageSeen[msgId].tool![toolCallId] = true;
-              emittedToolCalls.add(toolCallId);
-=======
             const seen = messageSeen.get(msgId);
             if (!seen?.tool?.has(toolCallId)) {
               const updatedSeen = getOrCreateMessageSeen(messageSeen, msgId);
@@ -1263,7 +1216,6 @@ export function processLangGraphEvent(
                   dynamic: true,
                 });
               }
->>>>>>> c1afaed145 (fix(langchain): prevent polluting global object.prototype (#16082))
             }
 
             /**
