@@ -162,10 +162,16 @@ function appendLegacyToolResultParts(
         });
         break;
       case 'file': {
-        if (
-          contentPart.data.type === 'data' &&
-          getTopLevelMediaType(contentPart.mediaType) === 'image'
-        ) {
+        if (contentPart.data.type === 'data') {
+          // Emit base64-data file parts as top-level `inlineData`, regardless
+          // of media type. The previous behavior only emitted `inlineData` for
+          // images and fell through to `JSON.stringify(contentPart)` for
+          // everything else (PDF, audio, video, etc.), which the Gemini API
+          // then tokenized as raw text. For a single 5-page PDF that's the
+          // difference between ~2,800 document tokens and >4,000,000 text
+          // tokens — instantly tripping the 1,048,576 input-token limit on
+          // pre-Gemini-3 models. See #16072.
+          const topLevelMediaType = getTopLevelMediaType(contentPart.mediaType);
           parts.push(
             {
               inlineData: {
@@ -174,7 +180,10 @@ function appendLegacyToolResultParts(
               },
             },
             {
-              text: 'Tool executed successfully and returned this image as a response',
+              text:
+                topLevelMediaType === 'image'
+                  ? 'Tool executed successfully and returned this image as a response'
+                  : 'Tool executed successfully and returned this file as a response',
             },
           );
         } else {

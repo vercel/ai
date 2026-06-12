@@ -944,7 +944,69 @@ describe('tool messages', () => {
         text: 'Tool executed successfully and returned this image as a response',
       },
       {
-        text: `{"type":"file","data":{"type":"data","data":"base64pdfdata"},"mediaType":"application/pdf","filename":"report.pdf"}`,
+        inlineData: {
+          mimeType: 'application/pdf',
+          data: 'base64pdfdata',
+        },
+      },
+      {
+        text: 'Tool executed successfully and returned this file as a response',
+      },
+    ]);
+  });
+
+  it('should emit inlineData for non-image base64 tool-result file parts on the legacy path', async () => {
+    // Regression for #16072. The pre-Gemini-3 legacy path previously only
+    // emitted `inlineData` for images and stringified everything else, which
+    // turned a 5-page PDF into 4M+ text tokens and tripped the input-token
+    // limit. The fix routes every base64-data file part through `inlineData`,
+    // regardless of media type.
+    const result = convertToGoogleMessages(
+      [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'documentReader',
+              toolCallId: 'pdfCallId',
+              output: {
+                type: 'content',
+                value: [
+                  { type: 'text', text: 'metadata' },
+                  {
+                    type: 'file',
+                    data: { type: 'data', data: 'base64pdfdata' },
+                    mediaType: 'application/pdf',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+      { supportsFunctionResponseParts: false },
+    );
+
+    expect(result.contents[0].parts).toEqual([
+      {
+        functionResponse: {
+          id: 'pdfCallId',
+          name: 'documentReader',
+          response: {
+            name: 'documentReader',
+            content: 'metadata',
+          },
+        },
+      },
+      {
+        inlineData: {
+          mimeType: 'application/pdf',
+          data: 'base64pdfdata',
+        },
+      },
+      {
+        text: 'Tool executed successfully and returned this file as a response',
       },
     ]);
   });
