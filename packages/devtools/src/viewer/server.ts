@@ -52,9 +52,6 @@ const projectRoot = path.resolve(__dirname, '../..');
 // Client directory: dist/client in both cases
 const clientDir = path.join(projectRoot, 'dist/client');
 
-// Track the DB path from the most recent notify call so all reads
-// use the correct file, even when the viewer runs in a different CWD.
-let remoteDbPath: string | undefined;
 let viewerPort = 4983;
 
 export const app = new Hono();
@@ -92,7 +89,7 @@ app.use('/api/*', async (c, next) => {
 
 // API Routes
 app.get('/api/runs', async c => {
-  await reloadDb(remoteDbPath);
+  await reloadDb();
   const runs = await getRuns();
   // Only return root-level runs (no parent) in the sidebar list
   const rootRuns = runs.filter(r => !r.parent_run_id);
@@ -143,7 +140,7 @@ app.get('/api/runs', async c => {
 });
 
 app.get('/api/runs/:id', async c => {
-  await reloadDb(remoteDbPath);
+  await reloadDb();
   const data = await getRunWithSteps(c.req.param('id'));
   if (!data) {
     return c.json({ error: 'Run not found' }, 404);
@@ -259,12 +256,11 @@ app.get('/api/events', c => {
 // Notification endpoint (called by middleware/integration)
 app.post('/api/notify', async c => {
   const body = await c.req.json();
-  if (body.dbPath) {
-    remoteDbPath = body.dbPath;
-  }
-  // Reload database from disk, using the remote dbPath if provided so the
-  // viewer works even when started from a different directory than the app.
-  await reloadDb(remoteDbPath);
+  // The database location is taken only from server-side configuration; any
+  // `dbPath` in the request body is ignored to prevent the viewer from being
+  // pointed at an arbitrary file (VULN-11550). Set `AI_SDK_DEVTOOLS_DB_PATH` to
+  // run the viewer against a database in a different directory.
+  await reloadDb();
   broadcastToClients('update', body);
   return c.json({ success: true });
 });

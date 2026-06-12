@@ -3,6 +3,23 @@ import fs from 'node:fs';
 
 const DB_DIR = path.join(process.cwd(), '.devtools');
 const DB_PATH = path.join(DB_DIR, 'generations.json');
+
+// Cap how many bytes we read from a database file. Guards against a synchronous
+// hang / OOM if the configured file is enormous or a special device file.
+const MAX_DB_BYTES = 100 * 1024 * 1024; // 100 MB
+
+/**
+ * The database location is determined solely by server-side configuration —
+ * never by a path supplied over the network (see VULN-11550). A custom location
+ * can be set with the `AI_SDK_DEVTOOLS_DB_PATH` env var when the viewer runs in
+ * a different working directory than the app; otherwise the default
+ * `<cwd>/.devtools/generations.json` is used. Resolved lazily so the env var can
+ * be set before the viewer starts.
+ */
+const getConfiguredDbPath = (): string =>
+  process.env.AI_SDK_DEVTOOLS_DB_PATH
+    ? path.resolve(process.env.AI_SDK_DEVTOOLS_DB_PATH)
+    : DB_PATH;
 const DEVTOOLS_PORT = process.env.AI_SDK_DEVTOOLS_PORT
   ? parseInt(process.env.AI_SDK_DEVTOOLS_PORT)
   : 4983;
@@ -102,16 +119,26 @@ const ensureGitignore = (): void => {
   }
 };
 
-const readDb = (): Database => {
+/**
+ * Reads and parses a database file, returning null if it does not exist, is not
+ * a regular file (e.g. a device file like /dev/zero), exceeds the size cap, or
+ * fails to parse. Never throws.
+ */
+const readDbFile = (filePath: string): Database | null => {
   try {
-    if (fs.existsSync(DB_PATH)) {
-      const content = fs.readFileSync(DB_PATH, 'utf-8');
-      return JSON.parse(content);
+    const stat = fs.statSync(filePath, { throwIfNoEntry: false });
+    if (!stat || !stat.isFile() || stat.size > MAX_DB_BYTES) {
+      return null;
     }
+    return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
   } catch {
-    // If file is corrupted, start fresh
+    // Missing/corrupted/oversized file: start fresh.
+    return null;
   }
-  return { runs: [], steps: [] };
+};
+
+const readDb = (): Database => {
+  return readDbFile(DB_PATH) ?? { runs: [], steps: [] };
 };
 
 const writeDb = (db: Database): void => {
@@ -143,23 +170,16 @@ const saveDb = (db: Database): void => {
 /**
  * Reload the database from disk.
  * Used by the viewer server to pick up changes made by the middleware/integration.
- * When a remote dbPath is provided (from a notify POST), reads from that path
- * instead of the local CWD-based path, so the viewer works regardless of where
- * it was started.
+ *
+ * The location is always taken from server-side configuration
+ * (`getConfiguredDbPath()`); it is never derived from a network request. A prior
+ * version accepted a `dbPath` from the `/api/notify` POST body and read it
+ * directly, allowing any web page the developer visited to point the viewer at
+ * an arbitrary file (VULN-11550). To run the viewer against a database in a
+ * different directory, set the `AI_SDK_DEVTOOLS_DB_PATH` env var.
  */
-export const reloadDb = async (remoteDbPath?: string): Promise<void> => {
-  if (remoteDbPath) {
-    try {
-      if (fs.existsSync(remoteDbPath)) {
-        const content = fs.readFileSync(remoteDbPath, 'utf-8');
-        dbCache = JSON.parse(content);
-        return;
-      }
-    } catch {
-      // Fall through to default
-    }
-  }
-  dbCache = readDb();
+export const reloadDb = async (): Promise<void> => {
+  dbCache = readDbFile(getConfiguredDbPath()) ?? { runs: [], steps: [] };
 };
 
 export const createRun = async (
