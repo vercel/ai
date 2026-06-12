@@ -1,5 +1,12 @@
 # @ai-sdk/langchain
 
+## 2.0.211
+
+### Patch Changes
+
+- b51014f: fix(langchain): prevent polluting global object.prototype
+  - ai@6.0.204
+
 ## 2.0.210
 
 ### Patch Changes
