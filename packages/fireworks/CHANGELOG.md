@@ -1,5 +1,11 @@
 # @ai-sdk/fireworks
 
+## 1.0.42
+
+### Patch Changes
+
+- 2a76dca: Enable `includeUsage` for Fireworks so streaming responses report token usage
+
 ## 1.0.41
 
 ### Patch Changes
