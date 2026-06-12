@@ -20,9 +20,13 @@ import {
   type HarnessV1Skill,
   type HarnessV1StreamPart,
 } from '@ai-sdk/harness';
-import { classifyDiskLog, SandboxChannel } from '@ai-sdk/harness/utils';
 import {
-  safeParseJSON,
+  classifyDiskLog,
+  markBridgeStarting,
+  SandboxChannel,
+  waitForBridgeReady,
+} from '@ai-sdk/harness/utils';
+import {
   type Experimental_SandboxProcess,
   type Experimental_SandboxSession,
 } from '@ai-sdk/provider-utils';
@@ -30,7 +34,6 @@ import { WebSocket } from 'ws';
 import { z } from 'zod';
 import { resolveCodexEnv, type CodexAuthOptions } from './codex-auth';
 import {
-  bridgeReadySchema,
   outboundMessageSchema,
   type InboundMessage,
   type OutboundMessage,
@@ -338,6 +341,13 @@ export function createCodex(
         });
       }
 
+      await markBridgeStarting({
+        sandbox: session,
+        bridgeStateDir,
+        bridgeType: 'codex',
+        abortSignal: startOpts.abortSignal,
+      });
+
       const proc = await session.spawn({
         command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${workDir} --bridge-state-dir ${bridgeStateDir} --bootstrap-dir ${BOOTSTRAP_DIR}`,
         env,
@@ -346,9 +356,27 @@ export function createCodex(
 
       const { port: boundPort } = await waitForBridgeReady({
         proc,
+        sandbox: session,
+        bridgeStateDir,
+        bridgeType: 'codex',
         timeoutMs,
         abortSignal: startOpts.abortSignal,
+        createTimeoutError: () =>
+          new Error('codex bridge did not become ready in time.'),
+        createExitError: () =>
+          new Error('codex bridge exited before becoming ready.'),
       });
+      void drainRest(proc.stdout);
+      /*
+       * Bridge stderr is the only diagnostic channel for what happens
+       * inside the sandbox once the bridge is running (uncaught
+       * exceptions, Codex SDK errors, network failures). Forward it
+       * line-by-line to the host console so a mid-turn bridge crash can
+       * be inspected from `pnpm dev` logs without redeploying. The
+       * bridge itself writes nothing to stderr in steady state, so this
+       * is silent on the happy path.
+       */
+      void forwardBridgeStderr(proc.stderr);
 
       const wsUrl =
         (await sandboxSession.getPortUrl({
@@ -535,86 +563,6 @@ function safeCodexSkillFilePath({
 
 function shellQuote(value: string): string {
   return `'${value.replace(/'/g, `'\\''`)}'`;
-}
-
-async function waitForBridgeReady({
-  proc,
-  timeoutMs,
-  abortSignal,
-}: {
-  proc: Experimental_SandboxProcess;
-  timeoutMs: number;
-  abortSignal: AbortSignal | undefined;
-}): Promise<{ port: number }> {
-  const reader = proc.stdout.pipeThrough(new TextDecoderStream()).getReader();
-
-  const decoder = lineDecoder();
-
-  const deadline = Date.now() + timeoutMs;
-  try {
-    while (true) {
-      if (abortSignal?.aborted) {
-        await proc.kill();
-        throw abortSignal.reason ?? new DOMException('Aborted', 'AbortError');
-      }
-      const remaining = deadline - Date.now();
-      if (remaining <= 0) {
-        await proc.kill();
-        throw new Error('codex bridge did not become ready in time.');
-      }
-      const { value, done } = (await Promise.race([
-        reader.read(),
-        new Promise(resolve =>
-          setTimeout(
-            () => resolve({ value: undefined, done: false }),
-            remaining,
-          ),
-        ),
-      ])) as ReadableStreamReadResult<string>;
-      if (done) {
-        throw new Error('codex bridge exited before becoming ready.');
-      }
-      if (value === undefined) continue;
-      for (const line of decoder.push(value)) {
-        const parsed = await safeParseJSON({
-          text: line,
-          schema: bridgeReadySchema,
-        });
-        if (parsed.success) return { port: parsed.value.port };
-      }
-    }
-  } finally {
-    reader.releaseLock();
-    void drainRest(proc.stdout);
-    /*
-     * Bridge stderr is the only diagnostic channel for what happens
-     * inside the sandbox once the bridge is running (uncaught
-     * exceptions, Codex SDK errors, network failures). Forward it
-     * line-by-line to the host console so a mid-turn bridge crash can
-     * be inspected from `pnpm dev` logs without redeploying. The
-     * bridge itself writes nothing to stderr in steady state, so this
-     * is silent on the happy path.
-     */
-    void forwardBridgeStderr(proc.stderr);
-  }
-}
-
-function lineDecoder() {
-  let buffer = '';
-  return {
-    push(chunk: string): string[] {
-      buffer += chunk;
-      const lines: string[] = [];
-      let nl: number;
-      while ((nl = buffer.indexOf('\n')) !== -1) {
-        const raw = buffer.slice(0, nl);
-        buffer = buffer.slice(nl + 1);
-        const line = raw.replace(/\r$/, '').trim();
-        if (line.length > 0) lines.push(line);
-      }
-      return lines;
-    },
-  };
 }
 
 async function forwardBridgeStderr(

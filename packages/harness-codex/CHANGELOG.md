@@ -1,5 +1,13 @@
 # @ai-sdk/harness-codex
 
+## 1.0.0-canary.4
+
+### Patch Changes
+
+- aae0138: fix(harness): make listening for sandbox bridge readiness compatible with Bun
+- Updated dependencies [aae0138]
+  - @ai-sdk/harness@1.0.0-canary.8
+
 ## 1.0.0-canary.3
 
 ### Patch Changes
