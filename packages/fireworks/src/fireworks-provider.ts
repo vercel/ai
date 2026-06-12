@@ -131,6 +131,7 @@ export function createFireworks(
   const createChatModel = (modelId: FireworksChatModelId) => {
     return new OpenAICompatibleChatLanguageModel(modelId, {
       ...getCommonModelConfig('chat'),
+      includeUsage: true,
       errorStructure: fireworksErrorStructure,
     });
   };
@@ -138,6 +139,7 @@ export function createFireworks(
   const createCompletionModel = (modelId: FireworksCompletionModelId) =>
     new OpenAICompatibleCompletionLanguageModel(modelId, {
       ...getCommonModelConfig('completion'),
+      includeUsage: true,
       errorStructure: fireworksErrorStructure,
     });
 
