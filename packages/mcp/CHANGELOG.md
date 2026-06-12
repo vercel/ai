@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 2.0.0-canary.65
+
+### Patch Changes
+
+- b29e087: fix (mcp): handle SSE messages without explicit event fields
+
 ## 2.0.0-canary.64
 
 ### Patch Changes
