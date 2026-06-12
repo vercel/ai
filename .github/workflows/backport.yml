@@ -162,6 +162,14 @@ jobs:
           MERGED=$(echo "$PR" | jq -r '.merged')
           [ "$MERGED" = "true" ] || skip "PR #${PR_NUMBER} is not merged"
 
+          # Gate on the backport label before anything else — in particular
+          # before the fork-detection comment below. The `closed` trigger fires
+          # for every merged PR, so without this an unlabeled fork PR would be
+          # spammed with a "use workflow_dispatch" comment it never asked for.
+          HAS_BACKPORT_LABEL=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/labels" \
+            --jq 'any(.[]; .name == "backport")')
+          [ "$HAS_BACKPORT_LABEL" = "true" ] || skip "PR #${PR_NUMBER} does not have the backport label"
+
           HEAD_REPO=$(echo "$PR" | jq -r '.head.repo.full_name // empty')
           if [ "$EVENT_NAME" = "pull_request" ] && [ "$HEAD_REPO" != "$REPO" ]; then
             {
@@ -186,10 +194,6 @@ jobs:
             main|release-v*) ;;
             *) skip "PR #${PR_NUMBER} targets unsupported base branch: ${BASE_REF}" ;;
           esac
-
-          HAS_BACKPORT_LABEL=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/labels" \
-            --jq 'any(.[]; .name == "backport")')
-          [ "$HAS_BACKPORT_LABEL" = "true" ] || skip "PR #${PR_NUMBER} does not have the backport label"
 
           set_output "should-backport" "true"
           set_output "pr-number" "$PR_NUMBER"
