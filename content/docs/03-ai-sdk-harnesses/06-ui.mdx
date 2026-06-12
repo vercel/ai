@@ -94,9 +94,11 @@ export const agent = new HarnessAgent({
 
 ## Session Store
 
-Persist only the opaque resume state returned by the session lifecycle method.
-The chat id can also be the harness `sessionId`, which gives the sandbox a
-stable identity across requests and processes.
+Persist only the opaque resume state returned by `session.detach()`. If the
+turn paused for approval or was otherwise interrupted, that resume state carries
+the continuation state internally. The chat id can also be the harness
+`sessionId`, which gives the sandbox a stable identity across requests and
+processes.
 
 ```ts filename='app/api/chat/session-store.ts'
 import type {
@@ -189,10 +191,12 @@ wrap the agent to inject the required session. `HarnessAgent.stream()` requires
 
 Use `session.detach()` when you want to park the harness runtime and keep the
 sandbox warm for the next request. Bridge-backed adapters can usually reattach
-or replay efficiently.
+or replay efficiently. If the turn is unfinished, `detach()` includes the turn
+continuation state in the returned resume state.
 
 Use `session.stop()` when you want to save resume state and stop the runtime and
-sandbox after each turn. The next request resumes from persisted state.
+sandbox after each turn. The next request resumes from persisted state and
+continues any unfinished turn before accepting a new prompt.
 
 ## Rendering Harness Parts
 

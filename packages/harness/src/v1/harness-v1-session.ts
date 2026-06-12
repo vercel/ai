@@ -33,16 +33,16 @@ export type HarnessV1StartOptions = {
   readonly skills?: ReadonlyArray<HarnessV1Skill>;
 
   /**
-   * Optional resume payload returned by a prior between-turn session lifecycle
-   * method. When provided, the adapter should resume the existing session before
-   * accepting a new prompt.
+   * Optional resume payload returned by a prior session lifecycle method. When
+   * provided, the adapter should resume the existing session before accepting a
+   * new prompt or continuing a nested unfinished turn.
    */
   readonly resumeFrom?: HarnessV1ResumeSessionState;
 
   /**
-   * Optional continuation payload returned by `doSuspendTurn`. When provided,
-   * the adapter should resume the existing session in a shape ready for
-   * `doContinueTurn` rather than for a fresh prompt.
+   * Optional continuation payload returned by `doSuspendTurn`, or nested in
+   * `resumeFrom`. When provided, the adapter should resume the existing session
+   * in a shape ready for `doContinueTurn` rather than for a fresh prompt.
    */
   readonly continueFrom?: HarnessV1ContinueTurnState;
 

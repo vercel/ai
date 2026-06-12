@@ -160,7 +160,7 @@ When approval is required, the stream pauses after a `tool-approval-request`.
 Continue the same session by sending a tool approval response message. In UI
 flows, `useChat` sends those messages for you when you add the approval result.
 In direct agent code, pass the approval response as `messages` on the next
-`stream()` call.
+`stream()` or `generate()` call.
 
 ## Built-in Approval Support
 
