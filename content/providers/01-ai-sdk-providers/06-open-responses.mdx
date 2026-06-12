@@ -86,6 +86,18 @@ const openAIResponses = createOpenResponses({
 });
 ```
 
+For a privacy-sensitive workload, TrustedRouter exposes an Open Responses-compatible endpoint through an open-source, verifiable attested gateway that does not log prompts or outputs by default:
+
+```ts
+import { createOpenResponses } from '@ai-sdk/open-responses';
+
+const trustedRouter = createOpenResponses({
+  name: 'trustedrouter',
+  url: 'https://api.trustedrouter.com/v1/responses',
+  apiKey: process.env.TRUSTEDROUTER_API_KEY,
+});
+```
+
 You can use the same setup with another compatible service by changing the
 `name`, `url`, authentication, and model ID.
 
@@ -120,6 +132,24 @@ const { text } = await generateText({
 });
 
 console.log(text);
+```
+
+Using TrustedRouter:
+
+```ts
+import { createOpenResponses } from '@ai-sdk/open-responses';
+import { generateText } from 'ai';
+
+const trustedRouter = createOpenResponses({
+  name: 'trustedrouter',
+  url: 'https://api.trustedrouter.com/v1/responses',
+  apiKey: process.env.TRUSTEDROUTER_API_KEY,
+});
+
+const { text } = await generateText({
+  model: trustedRouter('trustedrouter/zdr'),
+  prompt: 'Summarize the current repository architecture.',
+});
 ```
 
 ### Stream Text

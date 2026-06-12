@@ -34,6 +34,18 @@ const openResponses = createOpenResponses({
 
 You can use this instance to access models served by any Open Responses compatible endpoint.
 
+For privacy-sensitive workloads, TrustedRouter exposes an Open Responses-compatible endpoint through an open-source, verifiable attested gateway. It does not log prompts or outputs by default:
+
+```ts
+import { createOpenResponses } from '@ai-sdk/open-responses';
+
+const trustedRouter = createOpenResponses({
+  name: 'trustedrouter',
+  url: 'https://api.trustedrouter.com/v1/responses',
+  apiKey: process.env.TRUSTEDROUTER_API_KEY,
+});
+```
+
 ## Example
 
 ```ts
@@ -48,6 +60,25 @@ const openResponses = createOpenResponses({
 const { text } = await generateText({
   model: openResponses('mistralai/ministral-3-14b-reasoning'),
   prompt: 'Invent a new holiday and describe its traditions.',
+  maxOutputTokens: 100,
+});
+```
+
+Using TrustedRouter:
+
+```ts
+import { createOpenResponses } from '@ai-sdk/open-responses';
+import { generateText } from 'ai';
+
+const trustedRouter = createOpenResponses({
+  name: 'trustedrouter',
+  url: 'https://api.trustedrouter.com/v1/responses',
+  apiKey: process.env.TRUSTEDROUTER_API_KEY,
+});
+
+const { text } = await generateText({
+  model: trustedRouter('trustedrouter/zdr'),
+  prompt: 'Summarize the current repository architecture.',
   maxOutputTokens: 100,
 });
 ```
