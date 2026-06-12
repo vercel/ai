@@ -384,19 +384,13 @@ export function toUIMessageStream<TState = unknown>(
    * State for LangGraph stream handling
    */
   const langGraphState: LangGraphEventState = {
-    messageSeen: {} as Record<
-      string,
-      { text?: boolean; reasoning?: boolean; tool?: Record<string, boolean> }
-    >,
-    messageConcat: {} as Record<string, AIMessageChunk>,
+    messageSeen: new Map(),
+    messageConcat: new Map(),
     emittedToolCalls: new Set<string>(),
     emittedImages: new Set<string>(),
     emittedReasoningIds: new Set<string>(),
-    messageReasoningIds: {} as Record<string, string>,
-    toolCallInfoByIndex: {} as Record<
-      string,
-      Record<number, { id: string; name: string }>
-    >,
+    messageReasoningIds: new Map(),
+    toolCallInfoByIndex: new Map(),
     currentStep: null as number | null,
     emittedToolCallsByKey: new Map<string, string>(),
   };
@@ -540,7 +534,7 @@ export function toUIMessageStream<TState = unknown>(
            * This handles streams without values events (e.g. streamMode: 'messages')
            * where the values handler never ran to emit *-end events.
            */
-          for (const [id, seen] of Object.entries(langGraphState.messageSeen)) {
+          for (const [id, seen] of langGraphState.messageSeen) {
             if (seen.text) {
               controller.enqueue({ type: 'text-end', id });
             }
