@@ -180,7 +180,7 @@ export class SseMCPTransport implements MCPTransport {
                   this.endpoint = endpoint;
                   this.connected = true;
                   resolve();
-                } else if (event === 'message') {
+                } else if (!event || event === 'message') {
                   try {
                     const message = await parseJSONRPCMessage(data);
                     this.onmessage?.(message);
