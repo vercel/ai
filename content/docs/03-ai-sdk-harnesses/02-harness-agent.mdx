@@ -67,20 +67,28 @@ export const agent = new HarnessAgent({
 Construct the agent at module scope. It holds configuration, not a live session.
 Live state belongs to `HarnessAgentSession`.
 
+To use this agent, ensure environment variables with sandbox and harness credentials
+are set.
+
 ## Run a Turn
 
 ```ts
 const session = await agent.createSession();
 
+let exitCode = 0;
 try {
   const result = await agent.generate({
     session,
-    prompt: 'Read package.json and summarize the available scripts.',
+    prompt: 'Create a short TODO.md for this repository.',
   });
 
   console.log(result.text);
+} catch (err) {
+  exitCode = 1;
+  console.error(err);
 } finally {
   await session.destroy();
+  process.exit(exitCode);
 }
 ```
 
@@ -91,19 +99,24 @@ Use `stream()` for incremental output:
 ```ts
 const session = await agent.createSession();
 
+let exitCode = 0;
 try {
   const result = await agent.stream({
     session,
     prompt: 'Create a short TODO.md for this repository.',
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     if (part.type === 'text-delta') {
       process.stdout.write(part.text);
     }
   }
+} catch (err) {
+  exitCode = 1;
+  console.error(err);
 } finally {
   await session.destroy();
+  process.exit(exitCode);
 }
 ```
 
@@ -140,7 +153,7 @@ const session = await agent.createSession({ sessionId: chatId });
 try {
   const result = await agent.stream({ session, messages });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     if (part.type === 'text-delta') {
       process.stdout.write(part.text);
     }
