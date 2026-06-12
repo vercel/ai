@@ -11,6 +11,7 @@ import {
   getStepsForRun,
   clearDatabase,
   reloadDb,
+  validateRemoteDbPath,
 } from '../db.js';
 
 // SSE client management
@@ -219,9 +220,23 @@ app.get('/api/events', c => {
 
 // Notification endpoint (called by middleware)
 app.post('/api/notify', async c => {
+<<<<<<< HEAD
   const body = await c.req.json();
   // Reload database from disk to pick up changes from middleware
   await reloadDb();
+=======
+  const body = (await c.req.json()) as Record<string, unknown>;
+  if (body.dbPath !== undefined) {
+    const validatedDbPath = validateRemoteDbPath(body.dbPath);
+    if (!validatedDbPath) {
+      return c.text('Invalid dbPath', 400);
+    }
+    remoteDbPath = validatedDbPath;
+  }
+  // Reload database from disk, using the remote dbPath if provided so the
+  // viewer works even when started from a different directory than the app.
+  await reloadDb(remoteDbPath);
+>>>>>>> 275674e5ea (fix(devtools): validate viewer database paths (#16049))
   broadcastToClients('update', body);
   return c.json({ success: true });
 });
