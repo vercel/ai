@@ -22,14 +22,14 @@ const serverOnlyIt = typeof globalThis.window === 'undefined' ? it : it.skip;
 const createTestModel = (
   modelId = 'openai/gpt-realtime',
   baseURL = 'https://ai-gateway.vercel.sh/v4/ai',
-  token = 'vck_test-token',
+  token = 'vcst_test-secret',
   teamIdOrSlug?: string,
 ) =>
   new GatewayRealtimeModel(modelId, {
     provider: 'gateway.realtime',
     baseURL,
     ...(teamIdOrSlug !== undefined && { teamIdOrSlug }),
-    getAuthToken: async () => ({ token, authMethod: 'api-key' }),
+    createClientSecret: async () => ({ token }),
   });
 
 describe('GatewayRealtimeModel', () => {
@@ -41,9 +41,9 @@ describe('GatewayRealtimeModel', () => {
   });
 
   describe('doCreateClientSecret', () => {
-    it('returns the gateway auth token and a wss realtime url with the ai-model-id query', async () => {
+    it('returns the minted client secret and a wss realtime url with the ai-model-id query', async () => {
       const result = await createTestModel().doCreateClientSecret();
-      expect(result.token).toBe('vck_test-token');
+      expect(result.token).toBe('vcst_test-secret');
       expect(result.url).toBe(
         'wss://ai-gateway.vercel.sh/v4/ai/realtime-model?ai-model-id=openai%2Fgpt-realtime',
       );
@@ -68,17 +68,32 @@ describe('GatewayRealtimeModel', () => {
       );
     });
 
-    it('returns an oidc token unchanged', async () => {
+    it('forwards modelId + expiresAfterSeconds to the mint hook and surfaces expiresAt', async () => {
+      const createClientSecret = vi.fn(async () => ({
+        token: 'vcst_minted',
+        expiresAt: 1_700_000_060,
+      }));
       const model = new GatewayRealtimeModel('openai/gpt-realtime-2', {
         provider: 'gateway.realtime',
         baseURL: 'https://ai-gateway.vercel.sh/v4/ai',
-        getAuthToken: async () => ({
-          token: 'oidc-token',
-          authMethod: 'oidc',
-        }),
+        createClientSecret,
       });
-      const result = await model.doCreateClientSecret();
-      expect(result.token).toBe('oidc-token');
+
+      const result = await model.doCreateClientSecret({
+        expiresAfterSeconds: 120,
+      });
+
+      expect(createClientSecret).toHaveBeenCalledWith({
+        modelId: 'openai/gpt-realtime-2',
+        expiresAfterSeconds: 120,
+      });
+      expect(result.token).toBe('vcst_minted');
+      expect(result.expiresAt).toBe(1_700_000_060);
+    });
+
+    it('omits expiresAt when the mint hook does not return one', async () => {
+      const result = await createTestModel().doCreateClientSecret();
+      expect('expiresAt' in result).toBe(false);
     });
   });
 
@@ -158,15 +173,49 @@ describe('gateway.experimental_realtime', () => {
     expect(model.provider).toBe('gateway.realtime');
   });
 
-  serverOnlyIt('returns a Gateway auth token + url via getToken', async () => {
-    const result = await gateway.experimental_realtime.getToken({
-      model: 'openai/gpt-realtime',
-    });
-    expect(result.token).toBe('vck_test-token');
-    expect(result.url).toBe(
-      'wss://ai-gateway.vercel.sh/v4/ai/realtime-model?ai-model-id=openai%2Fgpt-realtime',
-    );
-  });
+  serverOnlyIt(
+    'mints a vcst_ client secret via /v1/realtime/client-secrets and returns it with the wss url',
+    async () => {
+      let capturedMintUrl = '';
+      const fetch = vi.fn(
+        async (input: string | URL | Request, _init?: RequestInit) => {
+          const url = input instanceof Request ? input.url : input.toString();
+          capturedMintUrl = url;
+          return new Response(
+            JSON.stringify({ token: 'vcst_minted', expiresAt: 1_700_000_060 }),
+            { status: 200, headers: { 'content-type': 'application/json' } },
+          );
+        },
+      );
+      const mintGateway = createGateway({ apiKey: 'vck_test-token', fetch });
+
+      const result = await mintGateway.experimental_realtime.getToken({
+        model: 'openai/gpt-realtime',
+        expiresAfterSeconds: 120,
+      });
+
+      // Minted token (not the raw key), and the mint hit the v1 route on the
+      // gateway origin — not the realtime baseURL path (/v4/ai).
+      expect(result.token).toBe('vcst_minted');
+      expect(result.expiresAt).toBe(1_700_000_060);
+      expect(result.url).toBe(
+        'wss://ai-gateway.vercel.sh/v4/ai/realtime-model?ai-model-id=openai%2Fgpt-realtime',
+      );
+      expect(capturedMintUrl).toBe(
+        'https://ai-gateway.vercel.sh/v1/realtime/client-secrets',
+      );
+
+      // The request body forwarded the model and the TTL.
+      const init = fetch.mock.calls[0]?.[1] as RequestInit;
+      expect(JSON.parse(init.body as string)).toMatchObject({
+        model: 'openai/gpt-realtime',
+        expiresIn: 120,
+      });
+      // Authenticated with the long-lived key.
+      const sentHeaders = new Headers(init.headers);
+      expect(sentHeaders.get('authorization')).toBe('Bearer vck_test-token');
+    },
+  );
 
   serverOnlyIt(
     'carries teamIdOrSlug through realtime WebSocket protocols',
@@ -177,7 +226,7 @@ describe('gateway.experimental_realtime', () => {
       });
       const model = scopedGateway.experimental_realtime('openai/gpt-realtime');
       const config = model.getWebSocketConfig({
-        token: 'vck_test-token',
+        token: 'vcst_test-secret',
         url: 'wss://ai-gateway.vercel.sh/v4/ai/realtime-model?ai-model-id=openai%2Fgpt-realtime',
       });
 
@@ -187,21 +236,26 @@ describe('gateway.experimental_realtime', () => {
     },
   );
 
-  it('rejects creating a realtime model in browsers', () => {
+  it('allows building the realtime codec model in browsers (no minting)', () => {
+    // Building the model is just the event codec + WS-config helper, which the
+    // browser needs to drive the transport with a server-minted token. No
+    // credential is touched here, so it must not throw.
     withBrowserGlobal(() => {
-      expect(() =>
-        gateway.experimental_realtime('openai/gpt-realtime'),
-      ).toThrow(/cannot be used in browsers/);
+      const model = gateway.experimental_realtime('openai/gpt-realtime');
+      expect(model.specificationVersion).toBe('v4');
+      expect(
+        model.getWebSocketConfig({ token: 'vcst_x', url: 'wss://x/y' }).url,
+      ).toBe('wss://x/y');
     });
   });
 
-  it('rejects getToken in browsers', async () => {
+  it('rejects minting (getToken) in browsers — the credential must stay server-side', async () => {
     await withBrowserGlobal(async () => {
       await expect(
         gateway.experimental_realtime.getToken({
           model: 'openai/gpt-realtime',
         }),
-      ).rejects.toThrow(/cannot be used in browsers/);
+      ).rejects.toThrow(/must be minted server-side/);
     });
   });
 });
