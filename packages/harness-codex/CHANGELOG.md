@@ -1,5 +1,19 @@
 # @ai-sdk/harness-codex
 
+## 1.0.0-canary.3
+
+### Patch Changes
+
+- 1ea15a3: fix(harness): fix various bugs with harness skills not being correctly processed by the harness adapters
+- e551763: fix(harness): avoid using peer dependencies for underlying harness and sandbox SDKs
+- Updated dependencies [3d87086]
+- Updated dependencies [aeda373]
+- Updated dependencies [1ea15a3]
+- Updated dependencies [375fdd7]
+- Updated dependencies [b4507d5]
+  - @ai-sdk/harness@1.0.0-canary.7
+  - @ai-sdk/provider-utils@5.0.0-canary.48
+
 ## 1.0.0-canary.2
 
 ### Patch Changes

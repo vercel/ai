@@ -1,5 +1,19 @@
 # @ai-sdk/harness
 
+## 1.0.0-canary.7
+
+### Patch Changes
+
+- 3d87086: fix(harness): guard against invalid resuming a session vs continuing a turn
+- 1ea15a3: fix(harness): fix various bugs with harness skills not being correctly processed by the harness adapters
+- Updated dependencies [aeda373]
+- Updated dependencies [25a64f8]
+- Updated dependencies [375fdd7]
+- Updated dependencies [f18b08f]
+- Updated dependencies [b4507d5]
+  - @ai-sdk/provider-utils@5.0.0-canary.48
+  - ai@7.0.0-canary.172
+
 ## 1.0.0-canary.6
 
 ### Patch Changes
