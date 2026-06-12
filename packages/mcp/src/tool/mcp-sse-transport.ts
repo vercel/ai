@@ -161,14 +161,23 @@ export class SseMCPTransport implements MCPTransport {
                 const { event, data } = value;
 
                 if (event === 'endpoint') {
-                  this.endpoint = new URL(data, this.url);
+                  if (this.endpoint) {
+                    continue;
+                  }
 
-                  if (this.endpoint.origin !== this.url.origin) {
+                  const endpoint = new URL(data, this.url);
+
+                  if (endpoint.origin !== this.url.origin) {
+                    this.connected = false;
+                    this.endpoint = undefined;
+                    this.sseConnection?.close();
+                    this.abortController?.abort();
                     throw new MCPClientError({
-                      message: `MCP SSE Transport Error: Endpoint origin does not match connection origin: ${this.endpoint.origin}`,
+                      message: `MCP SSE Transport Error: Endpoint origin does not match connection origin: ${endpoint.origin}`,
                     });
                   }
 
+                  this.endpoint = endpoint;
                   this.connected = true;
                   resolve();
                 } else if (event === 'message') {
@@ -217,6 +226,7 @@ export class SseMCPTransport implements MCPTransport {
 
   async close(): Promise<void> {
     this.connected = false;
+    this.endpoint = undefined;
     this.sseConnection?.close();
     this.abortController?.abort();
     this.onclose?.();
