@@ -528,7 +528,12 @@ function composeUserMessage({
   text: string;
   instructions: string | undefined;
   skills:
-    | ReadonlyArray<{ name: string; description: string; content: string }>
+    | ReadonlyArray<{
+        name: string;
+        description: string;
+        content: string;
+        files?: ReadonlyArray<{ path: string; content: string }>;
+      }>
     | undefined;
   toolUsageBlock: string | undefined;
 }): string {
@@ -552,6 +557,12 @@ function composeUserMessage({
     const lines: string[] = ['## Available skills'];
     for (const skill of skills) {
       lines.push('', `### ${skill.name}`, skill.description, '', skill.content);
+      if (skill.files && skill.files.length > 0) {
+        lines.push('', 'Skill files:');
+        for (const file of skill.files) {
+          lines.push('', `#### ${file.path}`, file.content);
+        }
+      }
     }
     blocks.push(lines.join('\n'));
   }

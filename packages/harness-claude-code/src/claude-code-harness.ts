@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   commonTool,
@@ -506,6 +507,7 @@ export function createClaudeCode(
             sandboxId,
             debug: startOpts.observability?.debug,
             permissionMode: startOpts.permissionMode,
+            skills: startOpts.skills ?? [],
           });
         } catch {
           // Bridge no longer reachable — recover by respawning below.
@@ -632,6 +634,7 @@ export function createClaudeCode(
         sandboxId,
         debug: startOpts.observability?.debug,
         permissionMode: startOpts.permissionMode,
+        skills: startOpts.skills ?? [],
       });
     },
   };
@@ -652,10 +655,11 @@ function resolveBridgePort(
 }
 
 /**
- * Materialise skill files into `${workdir}/.claude/skills/<name>.md`. The
- * `claude` CLI auto-discovers skills from that directory on startup, so the
- * files have to be in place before the bridge is spawned. Each file uses
- * the YAML-frontmatter shape the CLI expects.
+ * Materialise skill files into
+ * `${workdir}/.claude/skills/<name>/SKILL.md`. The `claude` CLI
+ * auto-discovers skills from that directory on startup, so the files have to
+ * be in place before the bridge is spawned. Each file uses the
+ * YAML-frontmatter shape the CLI expects.
  */
 async function writeSkills({
   sandbox,
@@ -668,15 +672,65 @@ async function writeSkills({
   skills: ReadonlyArray<HarnessV1Skill>;
   abortSignal?: AbortSignal;
 }): Promise<void> {
+  for (const skill of skills) {
+    safeClaudeSkillName(skill.name);
+    for (const file of skill.files ?? []) {
+      safeClaudeSkillFilePath({
+        skillName: skill.name,
+        filePath: file.path,
+      });
+    }
+  }
+
   await sandbox.run({
     command: `mkdir -p ${workdir}/.claude/skills`,
     abortSignal,
   });
   for (const skill of skills) {
-    const path = `${workdir}/.claude/skills/${skill.name}.md`;
+    const name = safeClaudeSkillName(skill.name);
+    const skillDir = `${workdir}/.claude/skills/${name}`;
+    const path = `${skillDir}/SKILL.md`;
     const content = `---\nname: ${skill.name}\ndescription: ${skill.description}\n---\n\n${skill.content}\n`;
     await sandbox.writeTextFile({ path, content, abortSignal });
+    for (const file of skill.files ?? []) {
+      const filePath = safeClaudeSkillFilePath({
+        skillName: skill.name,
+        filePath: file.path,
+      });
+      await sandbox.writeTextFile({
+        path: `${skillDir}/${filePath}`,
+        content: file.content,
+        abortSignal,
+      });
+    }
   }
+}
+
+function safeClaudeSkillName(name: string): string {
+  if (!/^[A-Za-z0-9._-]+$/.test(name) || name === '.' || name === '..') {
+    throw new Error(`Invalid Claude Code skill name: ${name}`);
+  }
+  return name;
+}
+
+function safeClaudeSkillFilePath({
+  skillName,
+  filePath,
+}: {
+  skillName: string;
+  filePath: string;
+}): string {
+  const normalized = path.posix.normalize(filePath);
+  if (
+    normalized === '.' ||
+    normalized.startsWith('../') ||
+    path.posix.isAbsolute(normalized)
+  ) {
+    throw new Error(
+      `Invalid Claude Code skill file path for ${skillName}: ${filePath}`,
+    );
+  }
+  return normalized;
 }
 
 async function readBridgeAsset(name: string): Promise<string> {
@@ -1063,6 +1117,7 @@ function createSession({
   sandboxId,
   debug,
   permissionMode,
+  skills,
 }: {
   sessionId: string;
   channel: ClaudeCodeChannel;
@@ -1079,6 +1134,7 @@ function createSession({
   sandboxId: string;
   debug: HarnessV1DebugConfig | undefined;
   permissionMode: HarnessV1PermissionMode | undefined;
+  skills: ReadonlyArray<HarnessV1Skill>;
 }): HarnessV1Session {
   let stopped = false;
   let stopPromise: Promise<void> | undefined;
@@ -1259,6 +1315,9 @@ function createSession({
         model,
         maxTurns,
         thinking,
+        ...(skills.length > 0
+          ? { skills: skills.map(skill => skill.name) }
+          : {}),
         ...(permissionMode ? { permissionMode } : {}),
         ...(debug ? { debug } : {}),
         ...(pendingResumeFlag ? { continue: true } : {}),
@@ -1307,6 +1366,9 @@ function createSession({
           model,
           maxTurns,
           thinking,
+          ...(skills.length > 0
+            ? { skills: skills.map(skill => skill.name) }
+            : {}),
           ...(permissionMode ? { permissionMode } : {}),
           ...(debug ? { debug } : {}),
           continue: true,

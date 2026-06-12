@@ -15,6 +15,13 @@ export async function writePiSkills(args: {
   readonly abortSignal?: AbortSignal;
 }): Promise<void> {
   for (const skill of args.skills) {
+    safePiMetadataSegment(skill.name, 'skill');
+    for (const file of skill.files ?? []) {
+      safePiSkillFilePath({ skillName: skill.name, filePath: file.path });
+    }
+  }
+
+  for (const skill of args.skills) {
     const name = safePiMetadataSegment(skill.name, 'skill');
     const remotePath = path.posix.join(
       args.sessionWorkDir,
@@ -28,5 +35,40 @@ export async function writePiSkills(args: {
       content: renderPiSkillFile(skill),
       ...(args.abortSignal ? { abortSignal: args.abortSignal } : {}),
     });
+    for (const file of skill.files ?? []) {
+      const filePath = safePiSkillFilePath({
+        skillName: skill.name,
+        filePath: file.path,
+      });
+      await args.sandbox.writeTextFile({
+        path: path.posix.join(
+          args.sessionWorkDir,
+          '.pi',
+          'skills',
+          name,
+          filePath,
+        ),
+        content: file.content,
+        ...(args.abortSignal ? { abortSignal: args.abortSignal } : {}),
+      });
+    }
   }
+}
+
+function safePiSkillFilePath({
+  skillName,
+  filePath,
+}: {
+  skillName: string;
+  filePath: string;
+}): string {
+  const normalized = path.posix.normalize(filePath);
+  if (
+    normalized === '.' ||
+    normalized.startsWith('../') ||
+    path.posix.isAbsolute(normalized)
+  ) {
+    throw new Error(`Invalid Pi skill file path for ${skillName}: ${filePath}`);
+  }
+  return normalized;
 }

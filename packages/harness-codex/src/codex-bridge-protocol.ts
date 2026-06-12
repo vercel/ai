@@ -26,6 +26,9 @@ export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
         name: z.string(),
         description: z.string(),
         content: z.string(),
+        files: z
+          .array(z.object({ path: z.string(), content: z.string() }))
+          .optional(),
       }),
     )
     .optional(),

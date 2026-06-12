@@ -764,6 +764,14 @@ function createSession({
                 name: s.name,
                 description: s.description,
                 content: s.content,
+                ...(s.files
+                  ? {
+                      files: s.files.map(file => ({
+                        path: file.path,
+                        content: file.content,
+                      })),
+                    }
+                  : {}),
               })),
             }
           : {}),
