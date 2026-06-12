@@ -70,7 +70,11 @@ const sandboxWorkDir = '/sandbox/workspace';
 
 function makeOps(behaviors: Parameters<typeof makeMockSandbox>[0]) {
   const env = makeMockSandbox(behaviors);
-  const paths = createPiPathMapper(hostWorkDir, sandboxWorkDir);
+  const paths = createPiPathMapper({
+    hostWorkDir,
+    sandboxWorkDir,
+    readableRoots: [{ sandboxDir: '/home/vercel-sandbox/.agents/skills' }],
+  });
   const ops = createPiRemoteOps({ sandbox: env.sandbox, paths });
   return { ...env, paths, ops };
 }
@@ -93,6 +97,17 @@ describe('createPiRemoteOps.readBuffer', () => {
       /Path not found/,
     );
   });
+
+  it('reads configured sandbox skill roots', async () => {
+    const skillPath =
+      '/home/vercel-sandbox/.agents/skills/weather-codes/SKILL.md';
+    const env = makeOps({
+      readBinary: p =>
+        p === skillPath ? new TextEncoder().encode('skill') : null,
+    });
+    const buf = await env.ops.readBuffer(skillPath);
+    expect(buf.toString('utf8')).toBe('skill');
+  });
 });
 
 describe('createPiRemoteOps.writeFile', () => {
@@ -111,7 +126,7 @@ describe('createPiRemoteOps.writeFile', () => {
     const sandboxEnv = makeMockSandbox({ readBinary: () => null });
     const ops = createPiRemoteOps({
       sandbox: sandboxEnv.sandbox,
-      paths: createPiPathMapper(hostWorkDir, sandboxWorkDir),
+      paths: createPiPathMapper({ hostWorkDir, sandboxWorkDir }),
       onFileChange,
     });
     await ops.writeFile('a.txt', 'x');
@@ -129,7 +144,7 @@ describe('createPiRemoteOps.writeFile', () => {
     });
     const ops = createPiRemoteOps({
       sandbox: sandboxEnv.sandbox,
-      paths: createPiPathMapper(hostWorkDir, sandboxWorkDir),
+      paths: createPiPathMapper({ hostWorkDir, sandboxWorkDir }),
       onFileChange,
     });
     await ops.writeFile('a.txt', 'x');
@@ -149,7 +164,7 @@ describe('createPiRemoteOps.editFile', () => {
     });
     const ops = createPiRemoteOps({
       sandbox: sandboxEnv.sandbox,
-      paths: createPiPathMapper(hostWorkDir, sandboxWorkDir),
+      paths: createPiPathMapper({ hostWorkDir, sandboxWorkDir }),
     });
     const result = await ops.editFile('a.txt', 'old text', 'new text');
     expect(result).toBe('new text here, and old text again');
@@ -161,7 +176,7 @@ describe('createPiRemoteOps.editFile', () => {
     });
     const ops = createPiRemoteOps({
       sandbox: sandboxEnv.sandbox,
-      paths: createPiPathMapper(hostWorkDir, sandboxWorkDir),
+      paths: createPiPathMapper({ hostWorkDir, sandboxWorkDir }),
     });
     await expect(ops.editFile('a.txt', 'missing', 'x')).rejects.toThrow(
       /not found/,

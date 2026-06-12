@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   commonTool,
@@ -23,6 +24,7 @@ import { classifyDiskLog, SandboxChannel } from '@ai-sdk/harness/utils';
 import {
   safeParseJSON,
   type Experimental_SandboxProcess,
+  type Experimental_SandboxSession,
 } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
 import { z } from 'zod';
@@ -36,6 +38,11 @@ import {
 
 type CodexChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 type CodexRespawnStrategy = 'replay' | 'rerun';
+
+type WriteSkillsResult = {
+  readonly homeDir: string;
+  readonly codexHomeDir: string;
+};
 
 /*
  * The model the adapter pins when the consumer configures none. The Codex SDK
@@ -258,7 +265,6 @@ export function createCodex(
             channel: attachChannel,
             // The live bridge was spawned by another process; no process handle.
             proc: undefined,
-            skills: startOpts.skills,
             model: settings.model ?? DEFAULT_CODEX_MODEL,
             reasoningEffort: settings.reasoningEffort,
             webSearch: settings.webSearch,
@@ -302,10 +308,24 @@ export function createCodex(
 
       const port = resolveBridgePort(sandboxSession, settings.port);
       const token = randomBytes(32).toString('hex');
+      const codexSkillSetup =
+        startOpts.skills && startOpts.skills.length > 0
+          ? await writeSkills({
+              sandbox: session,
+              skills: startOpts.skills,
+              abortSignal: startOpts.abortSignal,
+            })
+          : undefined;
       const env = {
         ...resolveCodexEnv(settings.auth),
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),
+        ...(codexSkillSetup
+          ? {
+              HOME: codexSkillSetup.homeDir,
+              CODEX_HOME: codexSkillSetup.codexHomeDir,
+            }
+          : {}),
         ...(respawnStrategy === 'replay'
           ? { BRIDGE_REPLAY_FROM_DISK: '1' }
           : {}),
@@ -355,7 +375,6 @@ export function createCodex(
         sessionId: startOpts.sessionId,
         channel,
         proc,
-        skills: startOpts.skills,
         model: settings.model ?? DEFAULT_CODEX_MODEL,
         reasoningEffort: settings.reasoningEffort,
         webSearch: settings.webSearch,
@@ -403,6 +422,119 @@ async function readBridgeAsset(name: string): Promise<string> {
     }
   }
   throw lastErr ?? new Error(`bridge asset not found: ${name}`);
+}
+
+async function writeSkills({
+  sandbox,
+  skills,
+  abortSignal,
+}: {
+  sandbox: Experimental_SandboxSession;
+  skills: ReadonlyArray<HarnessV1Skill>;
+  abortSignal?: AbortSignal;
+}): Promise<WriteSkillsResult> {
+  for (const skill of skills) {
+    safeCodexSkillName(skill.name);
+    for (const file of skill.files ?? []) {
+      safeCodexSkillFilePath({
+        skillName: skill.name,
+        filePath: file.path,
+      });
+    }
+  }
+
+  const homeDir = await resolveSandboxHomeDir({ sandbox, abortSignal });
+  const codexHomeDir = path.posix.join(homeDir, '.codex');
+  await sandbox.run({
+    command: `mkdir -p ${shellQuote(codexHomeDir)}`,
+    abortSignal,
+  });
+
+  const rootDir = path.posix.join(homeDir, '.agents', 'skills');
+  await sandbox.run({
+    command: `mkdir -p ${shellQuote(rootDir)}`,
+    abortSignal,
+  });
+
+  for (const skill of skills) {
+    const name = safeCodexSkillName(skill.name);
+    const skillDir = path.posix.join(rootDir, name);
+    const content = `---\nname: ${skill.name}\ndescription: ${skill.description}\n---\n\n${skill.content}`;
+
+    await sandbox.writeTextFile({
+      path: path.posix.join(skillDir, 'SKILL.md'),
+      content,
+      abortSignal,
+    });
+
+    for (const file of skill.files ?? []) {
+      const filePath = safeCodexSkillFilePath({
+        skillName: skill.name,
+        filePath: file.path,
+      });
+      await sandbox.writeTextFile({
+        path: path.posix.join(skillDir, filePath),
+        content: file.content,
+        abortSignal,
+      });
+    }
+  }
+
+  return {
+    homeDir,
+    codexHomeDir,
+  };
+}
+
+async function resolveSandboxHomeDir({
+  sandbox,
+  abortSignal,
+}: {
+  sandbox: Experimental_SandboxSession;
+  abortSignal?: AbortSignal;
+}): Promise<string> {
+  const result = await sandbox.run({
+    command: 'printf "%s" "$HOME"',
+    abortSignal,
+  });
+  const homeDir = result.stdout.trim();
+  if (result.exitCode !== 0 || !homeDir || !path.posix.isAbsolute(homeDir)) {
+    throw new Error(
+      `Unable to resolve sandbox HOME directory: ${result.stderr || result.stdout}`,
+    );
+  }
+  return homeDir;
+}
+
+function safeCodexSkillName(name: string): string {
+  if (!/^[A-Za-z0-9._-]+$/.test(name) || name === '.' || name === '..') {
+    throw new Error(`Invalid Codex skill name: ${name}`);
+  }
+  return name;
+}
+
+function safeCodexSkillFilePath({
+  skillName,
+  filePath,
+}: {
+  skillName: string;
+  filePath: string;
+}): string {
+  const normalized = path.posix.normalize(filePath);
+  if (
+    normalized === '.' ||
+    normalized.startsWith('../') ||
+    path.posix.isAbsolute(normalized)
+  ) {
+    throw new Error(
+      `Invalid Codex skill file path for ${skillName}: ${filePath}`,
+    );
+  }
+  return normalized;
+}
+
+function shellQuote(value: string): string {
+  return `'${value.replace(/'/g, `'\\''`)}'`;
 }
 
 async function waitForBridgeReady({
@@ -536,7 +668,6 @@ function createSession({
   sessionId,
   channel,
   proc,
-  skills,
   model,
   reasoningEffort,
   webSearch,
@@ -554,7 +685,6 @@ function createSession({
   channel: CodexChannel;
   /** Undefined on `attach` — the live bridge was spawned by another process. */
   proc: Experimental_SandboxProcess | undefined;
-  skills: ReadonlyArray<HarnessV1Skill> | undefined;
   model: string | undefined;
   reasoningEffort: 'low' | 'medium' | 'high' | undefined;
   webSearch: boolean | undefined;
@@ -758,15 +888,6 @@ function createSession({
         reasoningEffort,
         webSearch,
         ...(permissionMode ? { permissionMode } : {}),
-        ...(skills && skills.length > 0
-          ? {
-              skills: skills.map(s => ({
-                name: s.name,
-                description: s.description,
-                content: s.content,
-              })),
-            }
-          : {}),
         ...(pendingResumeThreadId
           ? { resumeThreadId: pendingResumeThreadId }
           : {}),

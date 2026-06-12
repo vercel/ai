@@ -28,9 +28,7 @@ export type HarnessV1StartOptions = {
 
   /**
    * Skills made available to the underlying runtime for the lifetime of
-   * the session. Adapters decide how to surface them — the `claude` CLI
-   * picks them up from `.claude/skills/*.md`, while the `codex` adapter
-   * inlines them into every user message.
+   * the session. Adapters decide how to surface them.
    */
   readonly skills?: ReadonlyArray<HarnessV1Skill>;
 
