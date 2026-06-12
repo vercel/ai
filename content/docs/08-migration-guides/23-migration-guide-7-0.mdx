@@ -84,6 +84,34 @@ export const myProvider = customProvider({
 This is only an import and symbol rename. The `customProvider` options and
 behavior are unchanged.
 
+### Image Generation: Remove Deprecated `experimental_generateImage` Export
+
+The deprecated `experimental_generateImage` export has been removed in AI SDK 7. Replace it with `generateImage`.
+
+The deprecated `Experimental_GenerateImageResult` type export has also been removed. Replace it with `GenerateImageResult`.
+
+```tsx filename="AI SDK 6"
+import {
+  experimental_generateImage,
+  type Experimental_GenerateImageResult,
+} from 'ai';
+
+const result: Experimental_GenerateImageResult =
+  await experimental_generateImage({
+    model: yourImageModel,
+    prompt: 'A red panda eating bamboo',
+  });
+```
+
+```tsx filename="AI SDK 7"
+import { generateImage, type GenerateImageResult } from 'ai';
+
+const result: GenerateImageResult = await generateImage({
+  model: yourImageModel,
+  prompt: 'A red panda eating bamboo',
+});
+```
+
 ### Transcription: `experimental_transcribe` Renamed to `transcribe`
 
 The transcription API has graduated out of experimental status and has been
