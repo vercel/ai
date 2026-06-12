@@ -15,7 +15,7 @@ export const weatherCodesSkill: HarnessAgentSkill = {
   name: 'weather-codes',
   description: 'Look up the meaning of a numeric weather code.',
   content:
-    'To map a numeric weather code to a human-readable description, read the `./weather-codes.md` file in the working directory.',
+    "To map a numeric weather code to a human-readable description, read the `weather-codes.md` file in the working directory - NOT in this skill's directory, but the primary work dir.",
 };
 
 export const WEATHER_CODES_REFERENCE = `# Weather code reference
