@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 1.0.50
+
+### Patch Changes
+
+- ac40275: fix(mcp): validate oauth metadata issuer during discovery
+
 ## 1.0.49
 
 ### Patch Changes
