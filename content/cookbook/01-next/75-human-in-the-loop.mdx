@@ -10,6 +10,15 @@ When building agentic systems, it's important to add human-in-the-loop (HITL) fu
 
 This recipe shows how to add a human approval step to a Next.js chatbot using the AI SDK's native tool execution approval feature.
 
+<Note type="warning">
+  The approval state is replayed through client-controlled message history, so
+  by default it is a UX affordance, not a security boundary — a malicious client
+  can forge an approval and run the tool with schema-valid arguments. For tools
+  that perform sensitive actions, set `experimental_toolApprovalSecret` to bind
+  approvals to the server that issued them. See
+  [Tool Approvals → Security Considerations](/docs/agents/tool-approvals#security-considerations).
+</Note>
+
 ## Background
 
 To understand how to implement this functionality, let's look at how tool calling works in a Next.js chatbot application with the AI SDK.

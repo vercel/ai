@@ -9,6 +9,17 @@ By default, tools with an `execute` function run automatically when the model ca
 
 `toolApproval` is useful for tools that can modify data, spend money, execute code, send messages, access private data, or perform any other sensitive action.
 
+<Note type="warning">
+  By default, tool approvals are a human-in-the-loop UX affordance, **not** a
+  server-side security boundary. In the standard `useChat` pattern the approval
+  is replayed through client-controlled message history, so a malicious client
+  can forge an approval and run an approved tool with schema-valid arguments —
+  no human in the loop. If a tool performs a sensitive action, you **must** set
+  [`experimental_toolApprovalSecret`](#signing-approvals-with-experimental_toolapprovalsecret)
+  so approvals are cryptographically bound to the server that issued them. See
+  [Security Considerations](#security-considerations).
+</Note>
+
 <Note>
   `toolApproval` applies to tools executed by the AI SDK. Provider-executed
   tools run provider-side and do not use AI SDK tool approvals.
@@ -272,9 +283,11 @@ Only call `addToolApprovalResponse` for manual approvals. Automatic approvals an
 
 In the standard `useChat` pattern, the server rebuilds the conversation from the messages the client sends each turn. The server does not persist conversation state between requests. This means the message history is client-controlled input.
 
-Tool approvals reconstructed from this history are re-validated before execution: the tool input is checked against the tool's schema, and the approval policy is re-evaluated. However, without additional protection, a client that crafts a valid-looking approval for a schema-conforming input can bypass the human-in-the-loop step.
+Tool approvals reconstructed from this history are re-validated before execution: the tool input is checked against the tool's schema, and the approval policy is re-evaluated. These checks constrain _what_ can run (the input must match the schema) but do not prove that a human actually approved it.
 
-If your tools perform sensitive operations (modifying data, spending money, calling external APIs, accessing private resources), use `experimental_toolApprovalSecret` to cryptographically bind approvals to the server that issued them.
+This means that **without `experimental_toolApprovalSecret`, the approval step is not a security boundary**: a client can submit a tool part in the `approval-responded` state with `approved: true` and the SDK will execute the approved tool with any schema-conforming arguments, with no human in the loop. The AI SDK has never treated unsigned, client-supplied approvals as a server-side authorization control.
+
+If your tools perform sensitive operations (modifying data, spending money, calling external APIs, accessing private resources), you must use `experimental_toolApprovalSecret` to cryptographically bind approvals to the server that issued them. Otherwise, treat the approval step as a UX affordance only and enforce authorization inside the tool's `execute` (or upstream of it).
 
 ### Signing approvals with `experimental_toolApprovalSecret`
 
@@ -309,7 +322,7 @@ Every serverless instance that might handle a request needs the same secret, sin
 **Behavior when configured:**
 
 - Approval requests without a valid signature are rejected (fail-closed)
-- No secret configured: approvals work as before (backward compatible)
+- No secret configured: unsigned client-supplied approvals are trusted as-is — the human-in-the-loop step can be bypassed and is not a security boundary (see [Trust model](#trust-model))
 - The secret is never sent to the client or included in the stream
 
 <Note>
