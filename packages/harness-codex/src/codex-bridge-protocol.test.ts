@@ -72,14 +72,6 @@ describe('inboundMessageSchema', () => {
         model: 'gpt-5.1',
         reasoningEffort: 'high',
         webSearch: true,
-        skills: [
-          {
-            name: 'demo',
-            description: 'Demo skill.',
-            content: 'Use the demo reference.',
-            files: [{ path: 'reference.md', content: '# Reference' }],
-          },
-        ],
       }),
     ).not.toThrow();
   });
