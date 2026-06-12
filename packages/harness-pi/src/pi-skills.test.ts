@@ -16,7 +16,7 @@ describe('writePiSkills', () => {
 
     await writePiSkills({
       sandbox: makeSandbox(writes),
-      sessionWorkDir: '/workspace',
+      sandboxHomeDir: '/home/vercel-sandbox',
       skills: [
         {
           name: 'demo',
@@ -29,12 +29,12 @@ describe('writePiSkills', () => {
 
     expect(writes).toEqual([
       {
-        path: '/workspace/.pi/skills/demo/SKILL.md',
+        path: '/home/vercel-sandbox/.agents/skills/demo/SKILL.md',
         content:
           '---\nname: demo\ndescription: Demo skill.\n---\n\nUse reference.md.',
       },
       {
-        path: '/workspace/.pi/skills/demo/reference.md',
+        path: '/home/vercel-sandbox/.agents/skills/demo/reference.md',
         content: '# Reference',
       },
     ]);
@@ -46,7 +46,7 @@ describe('writePiSkills', () => {
     await expect(
       writePiSkills({
         sandbox: makeSandbox(writes),
-        sessionWorkDir: '/workspace',
+        sandboxHomeDir: '/home/vercel-sandbox',
         skills: [
           {
             name: 'demo',

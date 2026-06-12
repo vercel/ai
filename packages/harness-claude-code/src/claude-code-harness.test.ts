@@ -79,6 +79,9 @@ function fakeNetworkSandboxSessionForStartupSuccess({
   const session = {
     run: async ({ command }: { command: string }) => {
       runs.push(command);
+      if (command === 'printf "%s" "$HOME"') {
+        return { exitCode: 0, stdout: '/home/vercel-sandbox', stderr: '' };
+      }
       return { exitCode: 0, stdout: '', stderr: '' };
     },
     readTextFile: async () => null,
@@ -247,13 +250,11 @@ describe('createClaudeCode adapter', () => {
         skills: ['weather-forecast', 'weather-codes'],
       });
 
-      expect(runs).toContain(
-        'mkdir -p /vercel/sandbox/claude-code-s1/.claude/skills',
-      );
+      expect(runs).toContain("mkdir -p '/home/vercel-sandbox'/.claude/skills");
       expect(writes.map(write => write.path)).toEqual([
-        '/vercel/sandbox/claude-code-s1/.claude/skills/weather-forecast/SKILL.md',
-        '/vercel/sandbox/claude-code-s1/.claude/skills/weather-forecast/reference.md',
-        '/vercel/sandbox/claude-code-s1/.claude/skills/weather-codes/SKILL.md',
+        '/home/vercel-sandbox/.claude/skills/weather-forecast/SKILL.md',
+        '/home/vercel-sandbox/.claude/skills/weather-forecast/reference.md',
+        '/home/vercel-sandbox/.claude/skills/weather-codes/SKILL.md',
       ]);
       expect(writes[0].content).toContain('name: weather-forecast');
       expect(writes[1].content).toBe('# Forecast reference');
@@ -314,7 +315,7 @@ describe('createClaudeCode adapter', () => {
     ).rejects.toThrow('Invalid Claude Code skill file path');
     expect(writes).toEqual([]);
     expect(runs).not.toContain(
-      'mkdir -p /vercel/sandbox/claude-code-s1/.claude/skills',
+      "mkdir -p '/home/vercel-sandbox'/.claude/skills",
     );
   });
 
