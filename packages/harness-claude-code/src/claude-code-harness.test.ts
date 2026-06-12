@@ -213,7 +213,11 @@ describe('createClaudeCode adapter', () => {
 
       const writes: Array<{ path: string; content: string }> = [];
       const runs: string[] = [];
-      const harness = createClaudeCode({ startupTimeoutMs: 1000 });
+      // Generous startup budget: this exercises the happy path (skill files +
+      // bridge handshake), not the timeout path. A tight value flakes under
+      // parallel CI load because the budget also covers the WebSocket
+      // open + `bridge-hello` round trip.
+      const harness = createClaudeCode({ startupTimeoutMs: 10_000 });
       const session = await harness.doStart({
         sessionId: 's1',
         sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
@@ -262,7 +266,7 @@ describe('createClaudeCode adapter', () => {
     } finally {
       await new Promise<void>(resolve => wss.close(() => resolve()));
     }
-  });
+  }, 15_000);
 
   it('rejects unsafe skill names before writing skill files', async () => {
     const writes: Array<{ path: string; content: string }> = [];
