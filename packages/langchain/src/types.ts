@@ -1,29 +1,34 @@
 import { type AIMessageChunk } from '@langchain/core/messages';
 
+export interface LangGraphMessageSeen {
+  text?: boolean;
+  reasoning?: boolean;
+  tool?: Set<string>;
+}
+
 /**
  * State for LangGraph event processing
  */
 export interface LangGraphEventState {
   /** Tracks which message IDs have been seen */
-  messageSeen: Record<
-    string,
-    { text?: boolean; reasoning?: boolean; tool?: Record<string, boolean> }
-  >;
+  messageSeen: Map<string, LangGraphMessageSeen>;
   /** Accumulates message chunks for later reference */
+<<<<<<< HEAD
   messageConcat: Record<string, AIMessageChunk>;
   /** Maps tool call IDs to their message IDs (for chunks that don't include the ID) */
+=======
+  messageConcat: Map<string, AIMessageChunk>;
+  /** Tracks which tool call IDs have emitted tool-input-start */
+>>>>>>> c1afaed145 (fix(langchain): prevent polluting global object.prototype (#16082))
   emittedToolCalls: Set<string>;
   /** Maps image IDs to their message IDs (for chunks that don't include the ID) */
   emittedImages: Set<string>;
   /** Maps reasoning block IDs to their message IDs (for chunks that don't include the ID) */
   emittedReasoningIds: Set<string>;
   /** Maps message IDs to their reasoning block IDs (for chunks that don't include the ID) */
-  messageReasoningIds: Record<string, string>;
+  messageReasoningIds: Map<string, string>;
   /** Maps message ID + tool call index to tool call info (for streaming chunks without ID) */
-  toolCallInfoByIndex: Record<
-    string,
-    Record<number, { id: string; name: string }>
-  >;
+  toolCallInfoByIndex: Map<string, Map<number, { id: string; name: string }>>;
   /** Tracks the current LangGraph step for start-step/finish-step events */
   currentStep: number | null;
   /** Maps tool call key (name:argsJson) to tool call ID for HITL interrupt handling */
