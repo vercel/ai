@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 2.0.0-canary.64
+
+### Patch Changes
+
+- 024a6b4: fix(mcp): validate oauth metadata issuer during discovery
+
 ## 2.0.0-canary.63
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @ai-sdk/fireworks
 
+## 3.0.0-canary.57
+
+### Patch Changes
+
+- 38010a1: Enable `includeUsage` for Fireworks so streaming responses report token usage
+
 ## 3.0.0-canary.56
 
 ### Patch Changes

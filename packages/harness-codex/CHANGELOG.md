@@ -1,5 +1,11 @@
 # @ai-sdk/harness-codex
 
+## 1.0.0-canary.5
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.0-canary.9
+
 ## 1.0.0-canary.4
 
 ### Patch Changes

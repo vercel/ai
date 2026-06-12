@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 4.0.0-canary.105
+
+### Patch Changes
+
+- efec111: chore(provider/gateway): update gateway model settings files
+
 ## 4.0.0-canary.104
 
 ### Patch Changes
