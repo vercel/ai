@@ -1,5 +1,16 @@
 # @ai-sdk/gateway
 
+## 4.0.0-canary.104
+
+### Patch Changes
+
+- 8c17bf8: fix(gateway): surface provider warnings in embedding and reranking responses
+- 558777f: fix(gateway): accept deprecated warnings in image, speech, transcription, and video responses
+- Updated dependencies [aeda373]
+- Updated dependencies [375fdd7]
+- Updated dependencies [b4507d5]
+  - @ai-sdk/provider-utils@5.0.0-canary.48
+
 ## 4.0.0-canary.103
 
 ### Patch Changes

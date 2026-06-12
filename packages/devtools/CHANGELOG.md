@@ -1,5 +1,12 @@
 # @ai-sdk/devtools
 
+## 1.0.0-canary.30
+
+### Patch Changes
+
+- 32ce45c: fix(devtools): secure devtools viewer api access
+- 275674e: fix(devtools): validate viewer database paths
+
 ## 1.0.0-canary.29
 
 ### Patch Changes
