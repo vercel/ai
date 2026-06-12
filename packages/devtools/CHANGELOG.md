@@ -1,5 +1,11 @@
 # @ai-sdk/devtools
 
+## 0.0.19
+
+### Patch Changes
+
+- f27afa8: fix(devtools): secure devtools viewer api access
+
 ## 0.0.18
 
 ### Patch Changes
