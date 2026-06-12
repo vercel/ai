@@ -8,6 +8,7 @@ import {
   SettingsManager,
   type AgentSession,
   type AgentToolResult,
+  type Skill,
   type ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
 import { mkdir, rm } from 'node:fs/promises';
@@ -27,6 +28,7 @@ import type {
   HarnessV1StreamPart,
   HarnessV1ToolSpec,
 } from '@ai-sdk/harness';
+import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
 import { resolvePiAuth, type PiAuthOptions } from './pi-auth';
 import { getPiTerminalError, parseNativeEvent } from './pi-events';
 import { createPiModelResolver } from './pi-model-resolver';
@@ -46,6 +48,7 @@ import { toolSpecToTypeBoxParameters } from './pi-typebox-adapter';
 import {
   extractUserText,
   frameInstructions,
+  safePiMetadataSegment,
   serializeToolOutput,
 } from './pi-utils';
 import { PiWorkspaceVfs } from './pi-workspace-vfs';
@@ -63,23 +66,75 @@ const HARNESS_ID = 'pi';
 const parkedPiSessions = new Map<string, HarnessV1Session>();
 
 /**
+ * Whether a discovered resource path belongs to a specific directory.
+ */
+function isWithinDirectory(parent: string, child: string): boolean {
+  const rel = path.relative(parent, child);
+  return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
+}
+
+/**
  * Whether a discovered resource path belongs to the session workspace — either
  * the sandbox-side working directory the model sees (`sessionWorkDir`) or its
- * host-side mirror (`hostWorkDir`). Pi runs in the host process and would
- * otherwise surface the host developer's personal skills (`~/.agents/skills`,
- * `~/.pi/agent/skills`) to the model; those resolve to host paths the
- * sandbox-backed tools cannot reach, so they are filtered out.
+ * host-side mirror (`hostWorkDir`).
  */
 function isWithinWorkspace(
   candidate: string,
   sessionWorkDir: string,
   hostWorkDir: string,
 ): boolean {
-  const inside = (parent: string, child: string): boolean => {
-    const rel = path.relative(parent, child);
-    return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
-  };
-  return inside(sessionWorkDir, candidate) || inside(hostWorkDir, candidate);
+  return (
+    isWithinDirectory(sessionWorkDir, candidate) ||
+    isWithinDirectory(hostWorkDir, candidate)
+  );
+}
+
+function createHarnessPiSkills({
+  skills,
+  sandboxSkillRootDir,
+}: {
+  skills: ReadonlyArray<HarnessV1Skill>;
+  sandboxSkillRootDir: string;
+}): Skill[] {
+  return skills.map(skill => {
+    const name = safePiMetadataSegment(skill.name, 'skill');
+    const baseDir = path.posix.join(sandboxSkillRootDir, name);
+    const filePath = path.posix.join(baseDir, 'SKILL.md');
+    return {
+      name: skill.name,
+      description: skill.description,
+      filePath,
+      baseDir,
+      sourceInfo: {
+        path: filePath,
+        source: 'harness',
+        scope: 'temporary',
+        origin: 'top-level',
+        baseDir,
+      },
+      disableModelInvocation: false,
+    };
+  });
+}
+
+async function resolveSandboxHomeDir({
+  sandbox,
+  abortSignal,
+}: {
+  sandbox: Experimental_SandboxSession;
+  abortSignal?: AbortSignal;
+}): Promise<string> {
+  const result = await sandbox.run({
+    command: 'printf "%s" "$HOME"',
+    ...(abortSignal ? { abortSignal } : {}),
+  });
+  const homeDir = result.stdout.trim();
+  if (result.exitCode !== 0 || !homeDir || !path.posix.isAbsolute(homeDir)) {
+    throw new Error(
+      `Unable to resolve sandbox HOME directory: ${result.stderr || result.stdout}`,
+    );
+  }
+  return homeDir;
 }
 
 const PI_NATIVE_BUILTIN_NAMES = [
@@ -187,13 +242,23 @@ export async function createPiSession(
 
   const sandbox = input.sandboxSession.restricted();
   const permissionMode = input.permissionMode ?? 'allow-all';
+  let sandboxSkillRootDir: string | undefined;
+  let harnessSkills: Skill[] = [];
 
-  // Materialise skills into the sandbox workspace once. The host's VFS will
-  // make them visible to Pi's `DefaultResourceLoader` after mount + sync.
+  // Materialise harness-provided skills into sandbox HOME, not the workspace.
   if (input.skills.length > 0) {
+    const sandboxHomeDir = await resolveSandboxHomeDir({
+      sandbox,
+      ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
+    });
+    sandboxSkillRootDir = path.posix.join(sandboxHomeDir, '.agents', 'skills');
+    harnessSkills = createHarnessPiSkills({
+      skills: input.skills,
+      sandboxSkillRootDir,
+    });
     await writePiSkills({
       sandbox,
-      sessionWorkDir: input.sessionWorkDir,
+      sandboxHomeDir,
       skills: input.skills,
       ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
     });
@@ -228,7 +293,13 @@ export async function createPiSession(
   const workspaceVfs = new PiWorkspaceVfs();
   workspaceVfs.mount(hostWorkDir, sessionWorkDir);
 
-  const paths = createPiPathMapper(hostWorkDir, sessionWorkDir);
+  const paths = createPiPathMapper({
+    hostWorkDir,
+    sandboxWorkDir: sessionWorkDir,
+    readableRoots: sandboxSkillRootDir
+      ? [{ sandboxDir: sandboxSkillRootDir }]
+      : [],
+  });
 
   // Pi auth + model registry are global to this Pi session. These live on the
   // real host filesystem (`hostAgentDir`), never in the sandbox/workspace.
@@ -260,16 +331,19 @@ export async function createPiSession(
     // The harness does not expose extensions, themes, or prompt templates, so
     // disable those entirely — this also avoids loading and executing a host
     // developer's personal Pi extensions inside the server process. Skills are
-    // kept (the harness writes project skills into `.pi/skills`) but filtered
-    // to the workspace so host-home skills never reach the model.
+    // kept but filtered to workspace project skills plus harness-provided
+    // skills whose files live in sandbox HOME.
     noExtensions: true,
     noThemes: true,
     noPromptTemplates: true,
     skillsOverride: base => ({
       ...base,
-      skills: base.skills.filter(skill =>
-        isWithinWorkspace(skill.filePath, sessionWorkDir, hostWorkDir),
-      ),
+      skills: [
+        ...base.skills.filter(skill =>
+          isWithinWorkspace(skill.filePath, sessionWorkDir, hostWorkDir),
+        ),
+        ...harnessSkills,
+      ],
     }),
   });
   await resourceLoader.reload();

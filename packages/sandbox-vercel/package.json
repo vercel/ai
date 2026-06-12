@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/sandbox-vercel",
-  "version": "1.0.0-canary.5",
+  "version": "1.0.0-canary.6",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -36,15 +36,12 @@
   },
   "dependencies": {
     "@ai-sdk/harness": "workspace:*",
-    "@ai-sdk/provider-utils": "workspace:*"
-  },
-  "peerDependencies": {
+    "@ai-sdk/provider-utils": "workspace:*",
     "@vercel/sandbox": "^2.0.1"
   },
   "devDependencies": {
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
-    "@vercel/sandbox": "^2.0.1",
     "tsup": "^8.5.1",
     "typescript": "5.8.3"
   },

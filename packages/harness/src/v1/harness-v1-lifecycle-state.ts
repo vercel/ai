@@ -27,13 +27,6 @@ type HarnessV1LifecycleStateBase = {
    * responsible for any necessary encoding.
    */
   readonly data: JSONValue;
-
-  /**
-   * Framework-owned pending approval records. These are intentionally outside
-   * adapter-defined `data` so callers can persist the entire lifecycle payload
-   * without the harness framework owning storage.
-   */
-  readonly pendingToolApprovals?: readonly HarnessV1PendingToolApproval[];
 };
 
 /**
@@ -43,6 +36,12 @@ type HarnessV1LifecycleStateBase = {
  */
 export type HarnessV1ResumeSessionState = HarnessV1LifecycleStateBase & {
   readonly type: 'resume-session';
+
+  /**
+   * Optional unfinished-turn state. When present, the session must be resumed
+   * before the turn is continued.
+   */
+  readonly continueFrom?: HarnessV1ContinueTurnState;
 };
 
 /**
@@ -52,6 +51,13 @@ export type HarnessV1ResumeSessionState = HarnessV1LifecycleStateBase & {
  */
 export type HarnessV1ContinueTurnState = HarnessV1LifecycleStateBase & {
   readonly type: 'continue-turn';
+
+  /**
+   * Framework-owned pending approval records. These are intentionally outside
+   * adapter-defined `data` so callers can persist the entire lifecycle payload
+   * without the harness framework owning storage.
+   */
+  readonly pendingToolApprovals?: readonly HarnessV1PendingToolApproval[];
 };
 
 export type HarnessV1LifecycleState =

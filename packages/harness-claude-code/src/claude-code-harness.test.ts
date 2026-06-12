@@ -3,6 +3,7 @@ import {
   type HarnessV1NetworkSandboxSession,
 } from '@ai-sdk/harness';
 import type * as NodeFsPromises from 'node:fs/promises';
+import { WebSocketServer } from 'ws';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createClaudeCode } from './claude-code-harness';
 
@@ -60,6 +61,53 @@ function fakeNetworkSandboxSessionForStartupFailure({
     ports: [port],
     async getPortUrl() {
       return `ws://127.0.0.1:${port}`;
+    },
+    async stop() {},
+    ...session,
+  } as unknown as HarnessV1NetworkSandboxSession;
+}
+
+function fakeNetworkSandboxSessionForStartupSuccess({
+  bridgePortUrl,
+  writes,
+  runs,
+}: {
+  bridgePortUrl: string;
+  writes: Array<{ path: string; content: string }>;
+  runs: string[];
+}): HarnessV1NetworkSandboxSession {
+  const session = {
+    run: async ({ command }: { command: string }) => {
+      runs.push(command);
+      if (command === 'printf "%s" "$HOME"') {
+        return { exitCode: 0, stdout: '/home/vercel-sandbox', stderr: '' };
+      }
+      return { exitCode: 0, stdout: '', stderr: '' };
+    },
+    readTextFile: async () => null,
+    writeTextFile: async ({
+      path,
+      content,
+    }: {
+      path: string;
+      content: string;
+    }) => {
+      writes.push({ path, content });
+    },
+    spawn: async () => ({
+      stdout: textStream('{"type":"bridge-ready","port":4319}\n'),
+      stderr: textStream(''),
+      kill: async () => {},
+      wait: async () => ({ exitCode: 0 }),
+    }),
+  };
+  return {
+    id: 'test-sandbox',
+    defaultWorkingDirectory: '/vercel/sandbox',
+    restricted: () => session,
+    ports: [4319],
+    async getPortUrl() {
+      return bridgePortUrl;
     },
     async stop() {},
     ...session,
@@ -132,6 +180,147 @@ describe('createClaudeCode adapter', () => {
         sessionWorkDir: '/vercel/sandbox/claude-code-s1',
       }),
     ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
+  });
+
+  it('writes standard Claude skill files and enables their names on start', async () => {
+    const wss = new WebSocketServer({ port: 0 });
+    const port = await new Promise<number>(resolve => {
+      wss.on('listening', () => {
+        const address = wss.address();
+        if (typeof address === 'object' && address !== null) {
+          resolve(address.port);
+        }
+      });
+    });
+    try {
+      const startMessage = new Promise<Record<string, unknown>>(resolve => {
+        wss.on('connection', ws => {
+          setTimeout(() => {
+            ws.send(JSON.stringify({ type: 'bridge-hello' }));
+          }, 0);
+          ws.on('message', raw => {
+            const message = JSON.parse(raw.toString('utf8')) as Record<
+              string,
+              unknown
+            >;
+            if (message.type === 'start') {
+              resolve(message);
+              ws.send(JSON.stringify({ type: 'finish' }));
+            }
+          });
+        });
+      });
+
+      const writes: Array<{ path: string; content: string }> = [];
+      const runs: string[] = [];
+      // Generous startup budget: this exercises the happy path (skill files +
+      // bridge handshake), not the timeout path. A tight value flakes under
+      // parallel CI load because the budget also covers the WebSocket
+      // open + `bridge-hello` round trip.
+      const harness = createClaudeCode({ startupTimeoutMs: 10_000 });
+      const session = await harness.doStart({
+        sessionId: 's1',
+        sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+          bridgePortUrl: `ws://127.0.0.1:${port}`,
+          writes,
+          runs,
+        }),
+        sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+        skills: [
+          {
+            name: 'weather-forecast',
+            description: 'Use the weather forecast tool.',
+            content: 'Call `get_weather` before answering forecasts.',
+            files: [
+              {
+                path: 'reference.md',
+                content: '# Forecast reference',
+              },
+            ],
+          },
+          {
+            name: 'weather-codes',
+            description: 'Read weather code reference.',
+            content: 'Read `weather-codes.md` for code descriptions.',
+          },
+        ],
+      });
+      const control = await session.doPromptTurn({
+        prompt: 'which skills do you have available?',
+        emit: () => {},
+      });
+      void Promise.resolve(control.done).catch(() => {});
+      await expect(startMessage).resolves.toMatchObject({
+        skills: ['weather-forecast', 'weather-codes'],
+      });
+
+      expect(runs).toContain("mkdir -p '/home/vercel-sandbox'/.claude/skills");
+      expect(writes.map(write => write.path)).toEqual([
+        '/home/vercel-sandbox/.claude/skills/weather-forecast/SKILL.md',
+        '/home/vercel-sandbox/.claude/skills/weather-forecast/reference.md',
+        '/home/vercel-sandbox/.claude/skills/weather-codes/SKILL.md',
+      ]);
+      expect(writes[0].content).toContain('name: weather-forecast');
+      expect(writes[1].content).toBe('# Forecast reference');
+      await session.doDestroy();
+    } finally {
+      await new Promise<void>(resolve => wss.close(() => resolve()));
+    }
+  }, 15_000);
+
+  it('rejects unsafe skill names before writing skill files', async () => {
+    const writes: Array<{ path: string; content: string }> = [];
+    const harness = createClaudeCode();
+
+    await expect(
+      harness.doStart({
+        sessionId: 's1',
+        sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+          bridgePortUrl: 'ws://127.0.0.1:1',
+          writes,
+          runs: [],
+        }),
+        sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+        skills: [
+          {
+            name: '../weather',
+            description: 'unsafe',
+            content: 'unsafe',
+          },
+        ],
+      }),
+    ).rejects.toThrow('Invalid Claude Code skill name');
+    expect(writes).toEqual([]);
+  });
+
+  it('rejects unsafe skill file paths before writing skill files', async () => {
+    const writes: Array<{ path: string; content: string }> = [];
+    const runs: string[] = [];
+    const harness = createClaudeCode();
+
+    await expect(
+      harness.doStart({
+        sessionId: 's1',
+        sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+          bridgePortUrl: 'ws://127.0.0.1:1',
+          writes,
+          runs,
+        }),
+        sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+        skills: [
+          {
+            name: 'weather',
+            description: 'unsafe',
+            content: 'unsafe',
+            files: [{ path: '../weather-codes.md', content: 'unsafe' }],
+          },
+        ],
+      }),
+    ).rejects.toThrow('Invalid Claude Code skill file path');
+    expect(writes).toEqual([]);
+    expect(runs).not.toContain(
+      "mkdir -p '/home/vercel-sandbox'/.claude/skills",
+    );
   });
 
   it('includes bridge startup stdout, stderr, and exit code when ready never arrives', async () => {
