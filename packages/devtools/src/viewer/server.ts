@@ -1,7 +1,6 @@
 import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
-import { cors } from 'hono/cors';
 import { streamSSE } from 'hono/streaming';
 import path from 'path';
 import fs from 'fs';
@@ -53,10 +52,40 @@ const projectRoot = path.resolve(__dirname, '../..');
 // Client directory: dist/client in both cases
 const clientDir = path.join(projectRoot, 'dist/client');
 
-const app = new Hono();
+let viewerPort = 4983;
 
-// Enable CORS for development
-app.use('/*', cors());
+export const app = new Hono();
+
+const getAllowedHosts = () =>
+  new Set([
+    `localhost:${viewerPort}`,
+    `127.0.0.1:${viewerPort}`,
+    `[::1]:${viewerPort}`,
+  ]);
+
+const getAllowedOrigins = () =>
+  new Set([
+    `http://localhost:${viewerPort}`,
+    `http://127.0.0.1:${viewerPort}`,
+    `http://[::1]:${viewerPort}`,
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://[::1]:5173',
+  ]);
+
+app.use('/api/*', async (c, next) => {
+  const host = c.req.header('host');
+  if (!host || !getAllowedHosts().has(host)) {
+    return c.text('Forbidden', 403);
+  }
+
+  const origin = c.req.header('origin');
+  if (origin && !getAllowedOrigins().has(origin)) {
+    return c.text('Forbidden', 403);
+  }
+
+  await next();
+});
 
 // API Routes
 app.get('/api/runs', async c => {
@@ -244,10 +273,13 @@ app.get('*', async c => {
 });
 
 export const startViewer = (port = 4983) => {
+  viewerPort = port;
+
   const server = serve(
     {
       fetch: app.fetch,
       port,
+      hostname: 'localhost',
     },
     () => {
       if (isDevMode) {
