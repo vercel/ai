@@ -128,6 +128,47 @@ describe('bridge readiness utilities', () => {
     expect(readTextFile).toHaveBeenCalledTimes(2);
   });
 
+  it('waits for the poll interval between metadata reads', async () => {
+    vi.useFakeTimers();
+    try {
+      const proc = makeProcess({ stdout: pendingStream() });
+      const reads: string[] = [
+        JSON.stringify({ type: 'claude-code', state: 'starting' }),
+        JSON.stringify({
+          type: 'claude-code',
+          port: 4319,
+          state: 'waiting',
+        }),
+      ];
+      const readTextFile = vi.fn(async () => reads.shift() ?? null);
+
+      const result = waitForBridgeReady({
+        proc,
+        sandbox: makeSandbox({ readTextFile }),
+        bridgeStateDir: '/state',
+        bridgeType: 'claude-code',
+        timeoutMs: 1_000,
+        pollIntervalMs: 50,
+      });
+
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(readTextFile).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(49);
+      expect(readTextFile).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(1);
+      await expect(result).resolves.toMatchObject({
+        port: 4319,
+        source: 'metadata',
+      });
+      expect(readTextFile).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('marks bridge startup metadata', async () => {
     const writes: Array<{ path: string; content: string }> = [];
 

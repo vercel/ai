@@ -85,6 +85,7 @@ export async function waitForBridgeReady({
   const deadline = Date.now() + timeoutMs;
   let pendingStdoutRead: Promise<ReadableStreamReadResult<string>> | undefined;
   let pendingMetaRead: Promise<number | undefined> | undefined;
+  let nextMetaReadAt = 0;
   let cancelReader = false;
 
   try {
@@ -108,17 +109,32 @@ export async function waitForBridgeReady({
       }
 
       pendingStdoutRead ??= reader.read();
-      pendingMetaRead ??= readBridgeMetaReady({
-        sandbox,
-        bridgeStateDir,
-        bridgeType,
-        abortSignal,
-      });
+      const metaReadDelayMs = Math.max(0, nextMetaReadAt - Date.now());
+      if (pendingMetaRead === undefined && metaReadDelayMs === 0) {
+        pendingMetaRead = readBridgeMetaReady({
+          sandbox,
+          bridgeStateDir,
+          bridgeType,
+          abortSignal,
+        });
+      }
 
       const result = await Promise.race([
         pendingStdoutRead.then(read => ({ source: 'stdout' as const, read })),
-        pendingMetaRead.then(port => ({ source: 'metadata' as const, port })),
-        sleep(Math.min(remaining, pollIntervalMs)).then(() => undefined),
+        ...(pendingMetaRead === undefined
+          ? []
+          : [
+              pendingMetaRead.then(port => ({
+                source: 'metadata' as const,
+                port,
+              })),
+            ]),
+        sleep(
+          Math.min(
+            remaining,
+            pendingMetaRead === undefined ? metaReadDelayMs : pollIntervalMs,
+          ),
+        ).then(() => undefined),
       ]);
 
       if (result === undefined) continue;
@@ -133,6 +149,7 @@ export async function waitForBridgeReady({
             stdoutTail: [...stdoutTail],
           };
         }
+        nextMetaReadAt = Date.now() + pollIntervalMs;
         continue;
       }
 
