@@ -20,6 +20,7 @@ import type {
 
 import type {
   LangGraphEventState,
+  LangGraphMessageSeen,
   ReasoningContentBlock,
   ThinkingContentBlock,
   GPT5ReasoningOutput,
@@ -1175,6 +1176,38 @@ function formatToolError(error: unknown): string {
 }
 
 /**
+ * Returns per-message bookkeeping, creating it on first use.
+ * Map keys keep remote-controlled message IDs like "__proto__" from touching Object.prototype.
+ */
+function getOrCreateMessageSeen(
+  messageSeen: LangGraphEventState['messageSeen'],
+  msgId: string,
+): LangGraphMessageSeen {
+  let seen = messageSeen.get(msgId);
+  if (!seen) {
+    seen = {};
+    messageSeen.set(msgId, seen);
+  }
+  return seen;
+}
+
+/**
+ * Returns the per-index tool call metadata for a message, creating it on first use.
+ * Later streamed chunks use this to recover tool call IDs/names from earlier chunks.
+ */
+function getOrCreateToolCallInfoByIndex(
+  toolCallInfoByIndex: LangGraphEventState['toolCallInfoByIndex'],
+  msgId: string,
+): Map<number, { id: string; name: string }> {
+  let toolCallInfo = toolCallInfoByIndex.get(msgId);
+  if (!toolCallInfo) {
+    toolCallInfo = new Map();
+    toolCallInfoByIndex.set(msgId, toolCallInfo);
+  }
+  return toolCallInfo;
+}
+
+/**
  * Processes a LangGraph event and emits UI message chunks.
  *
  * @param event - The event to process.
@@ -1257,16 +1290,16 @@ export function processLangGraphEvent(
           : null;
       if (langgraphStep !== null && langgraphStep !== state.currentStep) {
         if (state.currentStep !== null) {
-          for (const [id, seen] of Object.entries(messageSeen)) {
+          for (const [id, seen] of messageSeen) {
             if (seen.text) {
               controller.enqueue({ type: 'text-end', id });
             }
             if (seen.reasoning) {
               controller.enqueue({ type: 'reasoning-end', id });
             }
-            delete messageSeen[id];
-            delete messageConcat[id];
-            delete messageReasoningIds[id];
+            messageSeen.delete(id);
+            messageConcat.delete(id);
+            messageReasoningIds.delete(id);
           }
           controller.enqueue({ type: 'finish-step' });
         }
@@ -1279,17 +1312,19 @@ export function processLangGraphEvent(
        * Note: Only works for actual class instances, not serialized messages
        */
       if (AIMessageChunk.isInstance(msg)) {
-        if (messageConcat[msgId]) {
-          messageConcat[msgId] = messageConcat[msgId].concat(
-            msg,
-          ) as AIMessageChunk;
+        const existingMessage = messageConcat.get(msgId);
+        if (existingMessage) {
+          messageConcat.set(
+            msgId,
+            existingMessage.concat(msg) as AIMessageChunk,
+          );
         } else {
-          messageConcat[msgId] = msg;
+          messageConcat.set(msgId, msg);
         }
       }
 
       if (isAIMessageChunk(msg)) {
-        const concatChunk = messageConcat[msgId];
+        const concatChunk = messageConcat.get(msgId);
 
         /**
          * Handle image generation outputs from additional_kwargs.tool_outputs
@@ -1348,22 +1383,27 @@ export function processLangGraphEvent(
              * If this chunk has an id, store it for future lookups by index
              */
             if (toolCallChunk.id) {
-              toolCallInfoByIndex[msgId] ??= {};
-              toolCallInfoByIndex[msgId][toolCallIndex] = {
-                id: toolCallChunk.id,
-                name:
-                  toolCallChunk.name ||
-                  concatChunk?.tool_call_chunks?.[toolCallIndex]?.name ||
-                  'unknown',
-              };
+              getOrCreateToolCallInfoByIndex(toolCallInfoByIndex, msgId).set(
+                toolCallIndex,
+                {
+                  id: toolCallChunk.id,
+                  name:
+                    toolCallChunk.name ||
+                    concatChunk?.tool_call_chunks?.[toolCallIndex]?.name ||
+                    'unknown',
+                },
+              );
             }
 
             /**
              * Get the tool call ID from the chunk, stored info, or accumulated chunks
              */
+            const storedToolCallInfo = toolCallInfoByIndex
+              .get(msgId)
+              ?.get(toolCallIndex);
             const toolCallId =
               toolCallChunk.id ||
-              toolCallInfoByIndex[msgId]?.[toolCallIndex]?.id ||
+              storedToolCallInfo?.id ||
               concatChunk?.tool_call_chunks?.[toolCallIndex]?.id;
 
             /**
@@ -1375,7 +1415,7 @@ export function processLangGraphEvent(
 
             const toolName =
               toolCallChunk.name ||
-              toolCallInfoByIndex[msgId]?.[toolCallIndex]?.name ||
+              storedToolCallInfo?.name ||
               concatChunk?.tool_call_chunks?.[toolCallIndex]?.name ||
               'unknown';
 
@@ -1384,10 +1424,11 @@ export function processLangGraphEvent(
              * (even if args is empty - the first chunk often has empty args)
              * Set dynamic: true to enable HITL approval requests
              */
-            if (!messageSeen[msgId]?.tool?.[toolCallId]) {
-              messageSeen[msgId] ??= {};
-              messageSeen[msgId].tool ??= {};
-              messageSeen[msgId].tool![toolCallId] = true;
+            const seen = messageSeen.get(msgId);
+            if (!seen?.tool?.has(toolCallId)) {
+              const updatedSeen = getOrCreateMessageSeen(messageSeen, msgId);
+              updatedSeen.tool ??= new Set();
+              updatedSeen.tool.add(toolCallId);
 
               if (!emittedToolCalls.has(toolCallId)) {
                 emittedToolCalls.add(toolCallId);
@@ -1428,8 +1469,8 @@ export function processLangGraphEvent(
         // Capture reasoning ID when we first see it (even if no content yet)
         const chunkReasoningId = extractReasoningId(msg);
         if (chunkReasoningId) {
-          if (!messageReasoningIds[msgId]) {
-            messageReasoningIds[msgId] = chunkReasoningId;
+          if (!messageReasoningIds.has(msgId)) {
+            messageReasoningIds.set(msgId, chunkReasoningId);
           }
           // Immediately mark as emitted to prevent values from duplicating
           // This must happen as soon as we see the ID, before content arrives
@@ -1440,12 +1481,12 @@ export function processLangGraphEvent(
         if (reasoning) {
           // Use stored reasoning ID, or current chunk's ID, or fall back to message ID
           const reasoningId =
-            messageReasoningIds[msgId] ?? chunkReasoningId ?? msgId;
+            messageReasoningIds.get(msgId) ?? chunkReasoningId ?? msgId;
 
-          if (!messageSeen[msgId]?.reasoning) {
+          const seen = messageSeen.get(msgId);
+          if (!seen?.reasoning) {
             controller.enqueue({ type: 'reasoning-start', id: msgId });
-            messageSeen[msgId] ??= {};
-            messageSeen[msgId].reasoning = true;
+            getOrCreateMessageSeen(messageSeen, msgId).reasoning = true;
           }
 
           // Streaming chunks have delta text, emit directly without slicing
@@ -1463,10 +1504,10 @@ export function processLangGraphEvent(
          */
         const text = getMessageText(msg);
         if (text) {
-          if (!messageSeen[msgId]?.text) {
+          const seen = messageSeen.get(msgId);
+          if (!seen?.text) {
             controller.enqueue({ type: 'text-start', id: msgId });
-            messageSeen[msgId] ??= {};
-            messageSeen[msgId].text = true;
+            getOrCreateMessageSeen(messageSeen, msgId).text = true;
           }
 
           controller.enqueue({
@@ -1615,16 +1656,16 @@ export function processLangGraphEvent(
       /**
        * Finalize all pending message chunks
        */
-      for (const [id, seen] of Object.entries(messageSeen)) {
+      for (const [id, seen] of messageSeen) {
         if (seen.text) controller.enqueue({ type: 'text-end', id });
         if (seen.tool) {
-          for (const [toolCallId, toolCallSeen] of Object.entries(seen.tool)) {
-            const concatMsg = messageConcat[id];
+          for (const toolCallId of seen.tool) {
+            const concatMsg = messageConcat.get(id);
             const toolCall = concatMsg?.tool_calls?.find(
               call => call.id === toolCallId,
             );
 
-            if (toolCallSeen && toolCall) {
+            if (toolCall) {
               emittedToolCalls.add(toolCallId);
               // Store mapping for HITL interrupt lookup
               const toolCallKey = `${toolCall.name}:${JSON.stringify(toolCall.args)}`;
@@ -1647,9 +1688,9 @@ export function processLangGraphEvent(
           controller.enqueue({ type: 'reasoning-end', id });
         }
 
-        delete messageSeen[id];
-        delete messageConcat[id];
-        delete messageReasoningIds[id];
+        messageSeen.delete(id);
+        messageConcat.delete(id);
+        messageReasoningIds.delete(id);
       }
 
       /**
@@ -1828,7 +1869,7 @@ export function processLangGraphEvent(
              *    AND tool_calls. We skip those to avoid duplicate reasoning entries.)
              */
             const reasoningId = extractReasoningId(msg);
-            const wasStreamedThisRequest = !!messageSeen[msgId];
+            const wasStreamedThisRequest = messageSeen.has(msgId);
             const hasToolCalls = toolCalls && toolCalls.length > 0;
 
             /**
