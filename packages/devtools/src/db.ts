@@ -3,6 +3,9 @@ import fs from 'node:fs';
 
 const DEVTOOLS_DB_DIR = '.devtools';
 const DEVTOOLS_DB_FILE = 'generations.json';
+// Cap how many bytes we read from a remote database file. Guards against a
+// synchronous hang / OOM if the file is enormous.
+const MAX_DB_BYTES = 100 * 1024 * 1024; // 100 MB
 const DB_DIR = path.join(process.cwd(), DEVTOOLS_DB_DIR);
 const DB_PATH = path.join(DB_DIR, DEVTOOLS_DB_FILE);
 const DEVTOOLS_PORT = process.env.AI_SDK_DEVTOOLS_PORT
@@ -168,7 +171,7 @@ export const validateRemoteDbPath = (dbPath: unknown): string | undefined => {
 
   try {
     const stats = fs.statSync(normalizedPath);
-    if (!stats.isFile()) {
+    if (!stats.isFile() || stats.size > MAX_DB_BYTES) {
       return undefined;
     }
 

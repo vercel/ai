@@ -101,4 +101,20 @@ describe('devtools db path validation', () => {
 
     await expect(db.getRuns()).resolves.toEqual([]);
   });
+
+  it('rejects devtools databases larger than the size cap', async () => {
+    const { db, tempDir } = await loadDbModule();
+    const dbPath = path.join(tempDir, 'app', '.devtools', 'generations.json');
+
+    fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+    // Sparse file just over the 100 MB cap — reports a large size without
+    // consuming disk, standing in for a huge / OOM-inducing database.
+    fs.writeFileSync(dbPath, '');
+    fs.truncateSync(dbPath, 100 * 1024 * 1024 + 1);
+
+    expect(db.validateRemoteDbPath(dbPath)).toBeUndefined();
+    await db.reloadDb(dbPath);
+
+    await expect(db.getRuns()).resolves.toEqual([]);
+  });
 });
