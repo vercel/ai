@@ -48,15 +48,21 @@ const createTestModel = (
 describe('GatewayRerankingModel', () => {
   function prepareJsonResponse({
     ranking = dummyRanking,
+    warnings,
     headers,
   }: {
     ranking?: Array<{ index: number; relevanceScore: number }>;
+    warnings?: Array<
+      | { type: 'unsupported'; feature: string; details?: string }
+      | { type: 'compatibility'; feature: string; details?: string }
+      | { type: 'other'; message: string }
+    >;
     headers?: Record<string, string>;
   } = {}) {
     server.urls['https://api.test.com/reranking-model'].response = {
       type: 'json-value',
       headers,
-      body: { ranking },
+      body: { ranking, ...(warnings && { warnings }) },
     };
   }
 
@@ -106,6 +112,36 @@ describe('GatewayRerankingModel', () => {
       });
 
       expect(ranking).toStrictEqual(dummyRanking);
+    });
+
+    it('should extract warnings', async () => {
+      const mockWarnings = [
+        {
+          type: 'unsupported' as const,
+          feature: 'topN',
+          details: 'This model ignores topN.',
+        },
+      ];
+
+      prepareJsonResponse({ warnings: mockWarnings });
+
+      const { warnings } = await createTestModel().doRerank({
+        documents: testDocuments,
+        query: testQuery,
+      });
+
+      expect(warnings).toStrictEqual(mockWarnings);
+    });
+
+    it('should default warnings to an empty array when absent', async () => {
+      prepareJsonResponse();
+
+      const { warnings } = await createTestModel().doRerank({
+        documents: testDocuments,
+        query: testQuery,
+      });
+
+      expect(warnings).toStrictEqual([]);
     });
 
     it('should send documents and query in request body', async () => {
