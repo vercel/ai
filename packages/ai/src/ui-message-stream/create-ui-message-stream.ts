@@ -1,6 +1,5 @@
 import {
   generateId as generateIdFunc,
-  getErrorMessage,
   type IdGenerator,
 } from '@ai-sdk/provider-utils';
 import type { UIMessage } from '../ui/ui-messages';
@@ -15,7 +14,7 @@ import type { UIMessageStreamWriter } from './ui-message-stream-writer';
  * Creates a UI message stream that can be used to send messages to the client.
  *
  * @param options.execute - A function that is called with a writer to write UI message chunks to the stream.
- * @param options.onError - A function that extracts an error message from an error. Defaults to `getErrorMessage`.
+ * @param options.onError - A function that extracts an error message from an error. Defaults to `() => 'An error occurred.'` so server-side error details are not leaked to the client; supply your own to surface richer messages.
  * @param options.originalMessages - The original messages. If provided, persistence mode is assumed
  *   and a message ID is provided for the response message.
  * @param options.onStepEnd - A callback that is called when each step ends. Useful for persisting intermediate messages.
@@ -27,7 +26,7 @@ import type { UIMessageStreamWriter } from './ui-message-stream-writer';
  */
 export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
   execute,
-  onError = getErrorMessage,
+  onError = () => 'An error occurred.', // prevent leaking server error details to the client by default
   originalMessages,
   onStepEnd,
   onStepFinish,

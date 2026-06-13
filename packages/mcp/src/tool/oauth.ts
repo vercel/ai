@@ -94,6 +94,14 @@ export interface OAuthClientProvider {
   saveAuthorizationServerInformation?(
     authorizationServerInformation: OAuthAuthorizationServerInformation,
   ): void | Promise<void>;
+  /**
+   * Validates an authorization server URL discovered from MCP protected resource
+   * metadata before the client fetches its OAuth metadata.
+   */
+  validateAuthorizationServerURL?(
+    serverUrl: string | URL,
+    authorizationServerUrl: string | URL,
+  ): void | Promise<void>;
   state?(): string | Promise<string>;
   saveState?(state: string): void | Promise<void>;
   storedState?(): string | undefined | Promise<string | undefined>;
@@ -434,23 +442,30 @@ export async function discoverOAuthProtectedResourceMetadata(
  */
 export function buildDiscoveryUrls(
   authorizationServerUrl: string | URL,
-): { url: URL; type: 'oauth' | 'oidc' }[] {
+): { url: URL; type: 'oauth' | 'oidc'; expectedIssuer: string }[] {
   const url =
     typeof authorizationServerUrl === 'string'
       ? new URL(authorizationServerUrl)
       : authorizationServerUrl;
   const hasPath = url.pathname !== '/';
-  const urlsToTry: { url: URL; type: 'oauth' | 'oidc' }[] = [];
+  const rootIssuer = url.origin;
+  const urlsToTry: {
+    url: URL;
+    type: 'oauth' | 'oidc';
+    expectedIssuer: string;
+  }[] = [];
 
   if (!hasPath) {
     urlsToTry.push({
       url: new URL('/.well-known/oauth-authorization-server', url.origin),
       type: 'oauth',
+      expectedIssuer: rootIssuer,
     });
 
     urlsToTry.push({
       url: new URL('/.well-known/openid-configuration', url.origin),
       type: 'oidc',
+      expectedIssuer: rootIssuer,
     });
 
     return urlsToTry;
@@ -460,6 +475,7 @@ export function buildDiscoveryUrls(
   if (pathname.endsWith('/')) {
     pathname = pathname.slice(0, -1);
   }
+  const pathIssuer = `${url.origin}${pathname}`;
 
   urlsToTry.push({
     url: new URL(
@@ -467,24 +483,39 @@ export function buildDiscoveryUrls(
       url.origin,
     ),
     type: 'oauth',
+    expectedIssuer: pathIssuer,
   });
 
   urlsToTry.push({
     url: new URL('/.well-known/oauth-authorization-server', url.origin),
     type: 'oauth',
+    expectedIssuer: rootIssuer,
   });
 
   urlsToTry.push({
     url: new URL(`/.well-known/openid-configuration${pathname}`, url.origin),
     type: 'oidc',
+    expectedIssuer: pathIssuer,
   });
 
   urlsToTry.push({
     url: new URL(`${pathname}/.well-known/openid-configuration`, url.origin),
     type: 'oidc',
+    expectedIssuer: pathIssuer,
   });
 
   return urlsToTry;
+}
+
+function assertMetadataIssuerMatches(
+  metadata: AuthorizationServerMetadata,
+  expectedIssuer: string,
+): void {
+  if (metadata.issuer !== expectedIssuer) {
+    throw new MCPClientOAuthError({
+      message: `OAuth authorization server metadata issuer ${metadata.issuer} does not match expected issuer ${expectedIssuer}`,
+    });
+  }
 }
 
 export async function discoverAuthorizationServerMetadata(
@@ -501,7 +532,7 @@ export async function discoverAuthorizationServerMetadata(
 
   const urlsToTry = buildDiscoveryUrls(authorizationServerUrl);
 
-  for (const { url: endpointUrl, type } of urlsToTry) {
+  for (const { url: endpointUrl, type, expectedIssuer } of urlsToTry) {
     const response = await fetchWithCorsRetry(endpointUrl, headers, fetchFn);
 
     if (!response) {
@@ -523,11 +554,14 @@ export async function discoverAuthorizationServerMetadata(
     }
 
     if (type === 'oauth') {
-      return OAuthMetadataSchema.parse(await response.json());
+      const metadata = OAuthMetadataSchema.parse(await response.json());
+      assertMetadataIssuerMatches(metadata, expectedIssuer);
+      return metadata;
     } else {
       const metadata = OpenIdProviderDiscoveryMetadataSchema.parse(
         await response.json(),
       );
+      assertMetadataIssuerMatches(metadata, expectedIssuer);
 
       // MCP spec requires OIDC providers to support S256 PKCE
       if (!metadata.code_challenge_methods_supported?.includes('S256')) {
@@ -1112,6 +1146,12 @@ async function authInternal(
     serverUrl,
     provider,
     resourceMetadata,
+  );
+
+  /** Let applications constrain discovered AS URLs before metadata fetches. */
+  await provider.validateAuthorizationServerURL?.(
+    serverUrl,
+    authorizationServerUrl,
   );
 
   /** Discover AS metadata and derive the credential pin for this flow */

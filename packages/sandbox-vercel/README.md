@@ -7,7 +7,7 @@ _This package is **experimental**._
 ## Setup
 
 ```bash
-npm i @ai-sdk/sandbox-vercel @vercel/sandbox
+npm i @ai-sdk/sandbox-vercel
 ```
 
 ## Usage
@@ -50,7 +50,7 @@ const sandbox = createVercelSandbox({
 });
 ```
 
-To wrap an already-created `@vercel/sandbox` `Sandbox` instead — e.g. when you need credentials or options outside the factory's settings, or you want to share one sandbox across multiple harness sessions — pass it via `sandbox`. The network sandbox session's `stop()` is a no-op in this case; the caller owns the lifecycle.
+To wrap an already-created `@vercel/sandbox` `Sandbox` instead — e.g. when you need credentials or options outside the factory's settings, or you want to share one sandbox across multiple harness sessions — pass it via `sandbox`. Install `@vercel/sandbox` directly if your application imports `Sandbox`. The network sandbox session's `stop()` is a no-op in this case; the caller owns the lifecycle.
 
 ```ts
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';

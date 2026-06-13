@@ -1,7 +1,6 @@
 import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
-import { cors } from 'hono/cors';
 import { streamSSE } from 'hono/streaming';
 import path from 'path';
 import fs from 'fs';
@@ -12,6 +11,7 @@ import {
   getStepsForRun,
   clearDatabase,
   reloadDb,
+  validateRemoteDbPath,
 } from '../db.js';
 
 // SSE client management
@@ -56,11 +56,40 @@ const clientDir = path.join(projectRoot, 'dist/client');
 // Track the DB path from the most recent notify call so all reads
 // use the correct file, even when the viewer runs in a different CWD.
 let remoteDbPath: string | undefined;
+let viewerPort = 4983;
 
-const app = new Hono();
+export const app = new Hono();
 
-// Enable CORS for development
-app.use('/*', cors());
+const getAllowedHosts = () =>
+  new Set([
+    `localhost:${viewerPort}`,
+    `127.0.0.1:${viewerPort}`,
+    `[::1]:${viewerPort}`,
+  ]);
+
+const getAllowedOrigins = () =>
+  new Set([
+    `http://localhost:${viewerPort}`,
+    `http://127.0.0.1:${viewerPort}`,
+    `http://[::1]:${viewerPort}`,
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://[::1]:5173',
+  ]);
+
+app.use('/api/*', async (c, next) => {
+  const host = c.req.header('host');
+  if (!host || !getAllowedHosts().has(host)) {
+    return c.text('Forbidden', 403);
+  }
+
+  const origin = c.req.header('origin');
+  if (origin && !getAllowedOrigins().has(origin)) {
+    return c.text('Forbidden', 403);
+  }
+
+  await next();
+});
 
 // API Routes
 app.get('/api/runs', async c => {
@@ -230,9 +259,13 @@ app.get('/api/events', c => {
 
 // Notification endpoint (called by middleware/integration)
 app.post('/api/notify', async c => {
-  const body = await c.req.json();
-  if (body.dbPath) {
-    remoteDbPath = body.dbPath;
+  const body = (await c.req.json()) as Record<string, unknown>;
+  if (body.dbPath !== undefined) {
+    const validatedDbPath = validateRemoteDbPath(body.dbPath);
+    if (!validatedDbPath) {
+      return c.text('Invalid dbPath', 400);
+    }
+    remoteDbPath = validatedDbPath;
   }
   // Reload database from disk, using the remote dbPath if provided so the
   // viewer works even when started from a different directory than the app.
@@ -288,10 +321,13 @@ app.get('*', async c => {
 });
 
 export const startViewer = (port = 4983) => {
+  viewerPort = port;
+
   const server = serve(
     {
       fetch: app.fetch,
       port,
+      hostname: 'localhost',
     },
     () => {
       if (isDevMode) {

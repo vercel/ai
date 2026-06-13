@@ -1,5 +1,37 @@
 # @ai-sdk/sandbox-just-bash
 
+## 1.0.0-canary.9
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.0-canary.9
+
+## 1.0.0-canary.8
+
+### Patch Changes
+
+- Updated dependencies [aae0138]
+  - @ai-sdk/harness@1.0.0-canary.8
+
+## 1.0.0-canary.7
+
+### Patch Changes
+
+- e551763: fix(harness): avoid using peer dependencies for underlying harness and sandbox SDKs
+- Updated dependencies [3d87086]
+- Updated dependencies [aeda373]
+- Updated dependencies [1ea15a3]
+- Updated dependencies [375fdd7]
+- Updated dependencies [b4507d5]
+  - @ai-sdk/harness@1.0.0-canary.7
+  - @ai-sdk/provider-utils@5.0.0-canary.48
+
+## 1.0.0-canary.6
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.0-canary.6
+
 ## 1.0.0-canary.5
 
 ### Patch Changes

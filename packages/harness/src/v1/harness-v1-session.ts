@@ -28,23 +28,21 @@ export type HarnessV1StartOptions = {
 
   /**
    * Skills made available to the underlying runtime for the lifetime of
-   * the session. Adapters decide how to surface them — the `claude` CLI
-   * picks them up from `.claude/skills/*.md`, while the `codex` adapter
-   * inlines them into every user message.
+   * the session. Adapters decide how to surface them.
    */
   readonly skills?: ReadonlyArray<HarnessV1Skill>;
 
   /**
-   * Optional resume payload returned by a prior between-turn session lifecycle
-   * method. When provided, the adapter should resume the existing session before
-   * accepting a new prompt.
+   * Optional resume payload returned by a prior session lifecycle method. When
+   * provided, the adapter should resume the existing session before accepting a
+   * new prompt or continuing a nested unfinished turn.
    */
   readonly resumeFrom?: HarnessV1ResumeSessionState;
 
   /**
-   * Optional continuation payload returned by `doSuspendTurn`. When provided,
-   * the adapter should resume the existing session in a shape ready for
-   * `doContinueTurn` rather than for a fresh prompt.
+   * Optional continuation payload returned by `doSuspendTurn`, or nested in
+   * `resumeFrom`. When provided, the adapter should resume the existing session
+   * in a shape ready for `doContinueTurn` rather than for a fresh prompt.
    */
   readonly continueFrom?: HarnessV1ContinueTurnState;
 

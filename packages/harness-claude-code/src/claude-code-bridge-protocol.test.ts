@@ -69,6 +69,7 @@ describe('inboundMessageSchema', () => {
         model: 'claude-sonnet-4-5',
         maxTurns: 5,
         thinking: 'adaptive',
+        skills: ['weather-forecast', 'weather-codes'],
         permissionMode: 'allow-edits',
       }),
     ).not.toThrow();

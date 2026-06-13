@@ -210,7 +210,6 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   const userMessage = composeUserMessage({
     text: start.prompt,
     instructions: start.instructions,
-    skills: start.skills,
     // Temporary workaround for upstream codex MCP-tool bug — see ./cli-relay.ts
     toolUsageBlock:
       cliShimPath && start.tools && start.tools.length > 0
@@ -522,14 +521,10 @@ function defaultUsage(): Record<string, unknown> {
 function composeUserMessage({
   text,
   instructions,
-  skills,
   toolUsageBlock,
 }: {
   text: string;
   instructions: string | undefined;
-  skills:
-    | ReadonlyArray<{ name: string; description: string; content: string }>
-    | undefined;
   toolUsageBlock: string | undefined;
 }): string {
   const blocks: string[] = [];
@@ -547,13 +542,6 @@ function composeUserMessage({
         `${instructions}\n` +
         '</session-instructions>',
     );
-  }
-  if (skills && skills.length > 0) {
-    const lines: string[] = ['## Available skills'];
-    for (const skill of skills) {
-      lines.push('', `### ${skill.name}`, skill.description, '', skill.content);
-    }
-    blocks.push(lines.join('\n'));
   }
   if (toolUsageBlock) blocks.push(toolUsageBlock);
   blocks.push(instructions ? `<user-message>\n${text}\n</user-message>` : text);
