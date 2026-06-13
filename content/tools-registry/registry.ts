@@ -612,7 +612,7 @@ const { text } = await generateText({
   tools, // checkAgentScope, verifyAgentCertificate, emitBehaviorEvent, getBehaviorRiskScore
   prompt: 'Verify the certificate and check if the agent can execute a trade.',
 });`,
-    docsUrl: 'https://www.kakunin.ai/docs/integrations/vercel-ai-sdk',
+    docsUrl: 'https://www.kakunin.ai/docs/vercel-ai-sdk',
     apiKeyUrl: 'https://www.kakunin.ai/dashboard/api-keys',
     websiteUrl: 'https://www.kakunin.ai',
     npmUrl: 'https://www.npmjs.com/package/@kakunin/ai-sdk',
