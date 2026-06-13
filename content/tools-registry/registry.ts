@@ -584,4 +584,38 @@ console.log(result.text);`,
     websiteUrl: 'https://nitrosend.com',
     npmUrl: 'https://www.npmjs.com/package/@nitrosend/ai-sdk',
   },
+  {
+    slug: 'kakunin',
+    name: 'Kakunin',
+    description:
+      'Enforce cryptographic scope validation and behavioral compliance auditing for Vercel AI SDK agents. Includes tools to verify agent certificates, check permitted actions, retrieve risk scores, and log events to an immutable audit ledger compliant with MiCA and the EU AI Act.',
+    packageName: '@kakunin/ai-sdk',
+    tags: ['compliance', 'security', 'certificates', 'audit-log'],
+    apiKeyEnvName: 'KAKUNIN_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @kakunin/ai-sdk',
+      npm: 'npm install @kakunin/ai-sdk',
+      yarn: 'yarn add @kakunin/ai-sdk',
+      bun: 'bun add @kakunin/ai-sdk',
+    },
+    codeExample: `import { generateText } from 'ai';
+import { createKakuninTools } from '@kakunin/ai-sdk';
+import { openai } from '@ai-sdk/openai';
+
+const tools = createKakuninTools({
+  apiKey: process.env.KAKUNIN_API_KEY,
+  agentId: 'agt-your-agent-id',
+});
+
+const { text } = await generateText({
+  model: openai('gpt-4o'),
+  tools, // checkAgentScope, verifyAgentCertificate, emitBehaviorEvent, getBehaviorRiskScore
+  prompt: 'Verify the certificate and check if the agent can execute a trade.',
+});`,
+    docsUrl: 'https://www.kakunin.ai/docs/integrations/vercel-ai-sdk',
+    apiKeyUrl: 'https://www.kakunin.ai/dashboard/api-keys',
+    websiteUrl: 'https://www.kakunin.ai',
+    npmUrl: 'https://www.npmjs.com/package/@kakunin/ai-sdk',
+  },
 ];
+
