@@ -13,6 +13,12 @@ export const DEFAULT_PI_GATEWAY_MODEL_ID = 'anthropic/claude-sonnet-4.6';
 export function createPiModelResolver(
   modelRegistry: ModelRegistry,
   env: NodeJS.ProcessEnv = process.env,
+  /**
+   * Provider ids to prefer when a model id is published under more than one
+   * provider. Populated from any custom `providers` registered for the session,
+   * so dispatch uses the provider whose credential the caller actually seeded.
+   */
+  preferredProviders: ReadonlyArray<string> = [],
 ) {
   let cachedModels: PiModel[] | undefined;
 
@@ -38,11 +44,21 @@ export function createPiModelResolver(
     const matches = (m: PiModel) =>
       m.id === effectiveId || m.name === effectiveId;
 
-    // When gateway creds are present, prefer the gateway-routed entry for the
-    // given id. Pi's catalog lists the same model id under multiple providers
-    // (e.g. `anthropic/claude-sonnet-4.6` exists under both `openrouter` and
-    // `vercel-ai-gateway`); without this preference Pi would dispatch through
-    // a provider we didn't register, which fails with "No API key found".
+    // Pi's catalog lists the same model id under multiple providers (e.g.
+    // `gpt-5.5` is published under `openai-codex`, `openai`, `openrouter`,
+    // `vercel-ai-gateway`, ...). Without disambiguation Pi may dispatch through
+    // a provider the caller never registered, which fails with "No API key
+    // found".
+    //
+    // Preference order:
+    //  1. An explicitly registered custom provider (see `providers`), so a
+    //     caller-seeded credential is the one actually used.
+    //  2. The gateway-routed entry when gateway creds are present.
+    //  3. The first matching entry.
+    for (const provider of preferredProviders) {
+      const preferred = models.find(m => m.provider === provider && matches(m));
+      if (preferred) return preferred;
+    }
     return (
       (useGateway &&
         models.find(m => m.provider === 'vercel-ai-gateway' && matches(m))) ||
