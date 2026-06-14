@@ -3,6 +3,7 @@ import {
   TestResponseController,
 } from '@ai-sdk/test-server/with-vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { createMCPClient } from './mcp-client';
 import { HttpMCPTransport } from './mcp-http-transport';
 import { LATEST_PROTOCOL_VERSION } from './types';
 import { MCPClientError } from '../error/mcp-client-error';
