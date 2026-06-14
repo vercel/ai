@@ -286,10 +286,10 @@ export class FireworksImageModel implements ImageModelV4 {
       abortSignal,
     });
 
-    // Download the image from the URL
+    // Download the image from the server-supplied URL without provider headers:
+    // the URL is an off-origin host, so forwarding the API key would leak it.
     const { value: imageBytes, responseHeaders } = await getFromApi({
       url: imageUrl,
-      headers,
       abortSignal,
       failedResponseHandler: createStatusCodeErrorResponseHandler(),
       successfulResponseHandler: createBinaryResponseHandler(),
