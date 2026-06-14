@@ -1,6 +1,7 @@
 import { z } from 'zod/v4';
 import type { GatewayError } from './gateway-error';
 import { GatewayAuthenticationError } from './gateway-authentication-error';
+import { GatewayForbiddenError } from './gateway-forbidden-error';
 import { GatewayInvalidRequestError } from './gateway-invalid-request-error';
 import { GatewayRateLimitError } from './gateway-rate-limit-error';
 import {
@@ -76,6 +77,8 @@ export async function createGatewayErrorFromResponse({
     }
     case 'internal_server_error':
       return new GatewayInternalServerError({ message, statusCode, cause });
+    case 'forbidden':
+      return new GatewayForbiddenError({ message, statusCode, cause });
     default:
       return new GatewayInternalServerError({ message, statusCode, cause });
   }
