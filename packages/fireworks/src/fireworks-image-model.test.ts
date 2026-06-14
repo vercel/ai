@@ -771,6 +771,26 @@ describe('FireworksImageModel', () => {
       );
     });
 
+    it('should not forward provider credentials to the result image download', async () => {
+      const model = createAsyncModel();
+
+      await model.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      // calls[2] is the download of the server-supplied result image url, which
+      // is an off-origin host. provider credentials must not be sent there.
+      expect(server.calls[2].requestUrl).toBe('https://example.com/image.png');
+      expect(server.calls[2].requestHeaders['api-key']).toBeUndefined();
+    });
+
     it('should poll multiple times until Ready', async () => {
       let pollCount = 0;
 
