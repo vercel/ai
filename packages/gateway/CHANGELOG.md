@@ -1,5 +1,12 @@
 # @ai-sdk/gateway
 
+## 3.0.131
+
+### Patch Changes
+
+- 6160ced: fix(gateway): surface provider warnings in embedding and reranking responses
+- c9b8abd: fix(provider/gateway): map `forbidden` error responses to GatewayForbiddenError instead of GatewayInternalServerError
+
 ## 3.0.130
 
 ### Patch Changes
