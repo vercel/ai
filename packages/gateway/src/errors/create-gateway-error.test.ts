@@ -7,6 +7,7 @@ import {
   GatewayModelNotFoundError,
   GatewayInternalServerError,
   GatewayFailedDependencyError,
+  GatewayForbiddenError,
   GatewayResponseError,
   type GatewayErrorResponse,
 } from './index';
@@ -46,6 +47,25 @@ describe('Valid error responses', () => {
     expect(error).toBeInstanceOf(GatewayInvalidRequestError);
     expect(error.message).toBe('Missing required parameter');
     expect(error.statusCode).toBe(400);
+  });
+
+  it('should create GatewayForbiddenError for forbidden type', async () => {
+    const response: GatewayErrorResponse = {
+      error: {
+        message: 'Request denied by a routing rule.',
+        type: 'forbidden',
+      },
+    };
+
+    const error = await createGatewayErrorFromResponse({
+      response,
+      statusCode: 403,
+    });
+
+    expect(error).toBeInstanceOf(GatewayForbiddenError);
+    expect(error.message).toBe('Request denied by a routing rule.');
+    expect(error.statusCode).toBe(403);
+    expect(error.type).toBe('forbidden');
   });
 
   it('should create GatewayRateLimitError for rate_limit_exceeded type', async () => {
