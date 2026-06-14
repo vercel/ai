@@ -63,6 +63,30 @@ describe('AnthropicLanguageModel', () => {
   }
 
   describe('doGenerate', () => {
+    it('should send cache diagnostics previous message id and beta header', async () => {
+      prepareJsonFixtureResponse('anthropic-text');
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            diagnostics: {
+              previousMessageId: 'msg_previous_123',
+            },
+          } satisfies AnthropicLanguageModelOptions,
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        diagnostics: {
+          previous_message_id: 'msg_previous_123',
+        },
+      });
+      expect(server.calls[0].requestHeaders).toMatchObject({
+        'anthropic-beta': 'cache-diagnosis-2026-04-07',
+      });
+    });
+
     describe('reasoning (thinking enabled)', () => {
       it('should pass thinking config; add budget tokens; clear out temperature, top_p, top_k; and return warnings', async () => {
         prepareJsonFixtureResponse('anthropic-text');
