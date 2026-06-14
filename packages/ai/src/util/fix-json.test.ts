@@ -80,6 +80,20 @@ describe('string', () => {
       '"value with unicode \u003C"',
     );
   });
+
+  test('should handle incomplete unicode escape sequences', () => {
+    const fixedRootString = fixJson('"value with \\u12');
+    assert.strictEqual(fixedRootString, '"value with "');
+    assert.doesNotThrow(() => JSON.parse(fixedRootString));
+
+    const fixedObjectValue = fixJson('{"a":"text \\u00');
+    assert.strictEqual(fixedObjectValue, '{"a":"text "}');
+    assert.doesNotThrow(() => JSON.parse(fixedObjectValue));
+
+    const fixedEmptyUnicodeEscape = fixJson('{"a":"\\u');
+    assert.strictEqual(fixedEmptyUnicodeEscape, '{"a":""}');
+    assert.doesNotThrow(() => JSON.parse(fixedEmptyUnicodeEscape));
+  });
 });
 
 describe('array', () => {
