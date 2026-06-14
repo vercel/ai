@@ -128,6 +128,20 @@ export const anthropicLanguageModelOptions = z.object({
     .optional(),
 
   /**
+   * Cache diagnostics configuration for diagnosing prompt cache misses.
+   *
+   * See https://platform.claude.com/docs/en/build-with-claude/cache-diagnostics.
+   */
+  diagnostics: z
+    .object({
+      /**
+       * Previous Anthropic message id used to diagnose cache behavior across requests.
+       */
+      previousMessageId: z.string().optional(),
+    })
+    .optional(),
+
+  /**
    * Metadata to include with the request.
    *
    * See https://platform.claude.com/docs/en/api/messages/create for details.
