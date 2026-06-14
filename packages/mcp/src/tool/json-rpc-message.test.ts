@@ -18,7 +18,6 @@ describe('JSON-RPC schema exports', () => {
     const notification = {
       jsonrpc: '2.0',
       method: 'notifications/progress',
-      params: { progressToken: 'token', progress: 1 },
     };
     const response = { jsonrpc: '2.0', id: '1', result: {} };
     const error = {
