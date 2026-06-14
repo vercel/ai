@@ -1,5 +1,17 @@
 import { AISDKError } from './ai-sdk-error';
 
+function stringifyMessage(message: unknown): string {
+  if (typeof message === 'string') {
+    return message;
+  }
+
+  try {
+    return JSON.stringify(message);
+  } catch {
+    return String(message);
+  }
+}
+
 const name = 'AI_APICallError';
 const marker = `vercel.ai.error.${name}`;
 const symbol = Symbol.for(marker);
@@ -32,7 +44,7 @@ export class APICallError extends AISDKError {
         statusCode >= 500), // server error
     data,
   }: {
-    message: string;
+    message: unknown;
     url: string;
     requestBodyValues: unknown;
     statusCode?: number;
@@ -42,7 +54,7 @@ export class APICallError extends AISDKError {
     isRetryable?: boolean;
     data?: unknown;
   }) {
-    super({ name, message, cause });
+    super({ name, message: stringifyMessage(message), cause });
 
     this.url = url;
     this.requestBodyValues = requestBodyValues;
