@@ -35,6 +35,12 @@ export type GatewayProviderOptions = {
   /** Entity identifier against which quota is tracked. */
   quotaEntityId?: string;
 
+  /**
+   * Restrict routing to models that carry all of the given capability tags.
+   * Currently supports `'implicit-caching'`.
+   */
+  requireModelTags?: Array<'implicit-caching'>;
+
   /** Unified service tier intent. */
   serviceTier?: 'flex' | 'priority';
 

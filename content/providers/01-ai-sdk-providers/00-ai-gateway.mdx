@@ -936,6 +936,12 @@ The following gateway provider options are available:
 
   The unique identifier for the entity against which quota is tracked. Used for quota management and enforcement purposes.
 
+- **requireModelTags** _Array&lt;'implicit-caching'&gt;_
+
+  Restricts routing to provider models that carry all of the specified capability tags. Currently supports `'implicit-caching'`, which limits routing to models that perform automatic (implicit) prompt caching. Applies to both BYOK and system credentials, since the capability is a property of the model rather than the credential. If no provider model for the requested model satisfies the tags, the request fails. Unsupported tag values are rejected.
+
+  Example: `requireModelTags: ['implicit-caching']` will only route to models that support implicit caching.
+
 - **providerTimeouts** _object_
 
   Per-provider timeouts for BYOK credentials in milliseconds. Controls how long to wait for a provider to start responding before falling back to the next available provider.
@@ -1084,6 +1090,25 @@ const { text } = await generateText({
   providerOptions: {
     gateway: {
       quotaEntityId: 'org-123',
+    } satisfies GatewayProviderOptions,
+  },
+});
+```
+
+#### Require Model Tags Example
+
+Set `requireModelTags` to restrict routing to provider models that carry the specified capability tags. This applies to both BYOK and system credentials, since the capability is a property of the model rather than the credential. Currently `'implicit-caching'` is supported, which limits routing to models that perform automatic prompt caching. If no provider model for the requested model satisfies the tags, the request fails.
+
+```ts
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: 'openai/gpt-4.1',
+  prompt: 'Summarize this report...',
+  providerOptions: {
+    gateway: {
+      requireModelTags: ['implicit-caching'],
     } satisfies GatewayProviderOptions,
   },
 });
