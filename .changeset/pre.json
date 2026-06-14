@@ -246,6 +246,7 @@
     "fuzzy-ravens-decide",
     "fuzzy-tools-destroy",
     "gateway-audio-models",
+    "gateway-forbidden-error",
     "gateway-realtime-model",
     "gateway-service-tier-option",
     "gateway-vercel-access-tokens",
