@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 4.0.0-canary.106
+
+### Patch Changes
+
+- ca2cf45: fix(provider/gateway): map `forbidden` error responses to GatewayForbiddenError instead of GatewayInternalServerError
+
 ## 4.0.0-canary.105
 
 ### Patch Changes
