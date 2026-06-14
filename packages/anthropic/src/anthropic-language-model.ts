@@ -730,6 +730,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       betas.add('server-side-fallback-2026-06-01');
     }
 
+    if (anthropicOptions?.diagnostics?.previousMessageId != null) {
+      betas.add('cache-diagnosis-2026-04-07');
+    }
+
     const defaultEagerInputStreaming =
       stream && (anthropicOptions?.toolStreaming ?? true);
 
