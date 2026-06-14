@@ -25,7 +25,18 @@ type State =
 // is assumed that the resulting JSON will be processed by a standard
 // JSON parser that will detect any invalid JSON.
 function removeIncompleteTrailingUnicodeEscape(input: string): string {
-  return input.replace(/\\u[0-9a-fA-F]{0,3}$/, '');
+  const match = /\\u[0-9a-fA-F]{0,3}$/.exec(input);
+
+  if (match == null) {
+    return input;
+  }
+
+  let backslashCount = 0;
+  for (let i = match.index; i >= 0 && input[i] === '\\'; i--) {
+    backslashCount++;
+  }
+
+  return backslashCount % 2 === 1 ? input.slice(0, match.index) : input;
 }
 
 export function fixJson(input: string): string {
