@@ -6,7 +6,7 @@ function stringifyMessage(message: unknown): string {
   }
 
   try {
-    return JSON.stringify(message);
+    return JSON.stringify(message) ?? String(message);
   } catch {
     return String(message);
   }
