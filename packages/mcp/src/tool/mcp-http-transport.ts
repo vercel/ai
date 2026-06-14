@@ -21,6 +21,10 @@ import {
 } from './oauth';
 import { LATEST_PROTOCOL_VERSION } from './types';
 
+function isMessageEvent(event: string | undefined): boolean {
+  return event === undefined || event === 'message';
+}
+
 /**
  * HTTP MCP transport implementing the Streamable HTTP style.
  *
@@ -269,7 +273,7 @@ export class HttpMCPTransport implements MCPTransport {
                 const { done, value } = await reader.read();
                 if (done) return;
                 const { event, data } = value;
-                if (event === 'message') {
+                if (isMessageEvent(event)) {
                   try {
                     const msg = await parseJSONRPCMessage(data);
                     this.onmessage?.(msg);
@@ -417,7 +421,7 @@ export class HttpMCPTransport implements MCPTransport {
               this.lastInboundEventId = id;
             }
 
-            if (event === 'message') {
+            if (isMessageEvent(event)) {
               try {
                 const msg = await parseJSONRPCMessage(data);
                 this.onmessage?.(msg);
