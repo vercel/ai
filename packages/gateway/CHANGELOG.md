@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.101
+
+### Patch Changes
+
+- 3a5c051: fix(provider/gateway): map `forbidden` error responses to GatewayForbiddenError instead of GatewayInternalServerError
+
 ## 2.0.100
 
 ### Patch Changes
