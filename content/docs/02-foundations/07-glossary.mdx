@@ -1,0 +1,177 @@
+---
+title: Glossary
+description: Shared terminology used across the AI SDK documentation and codebase.
+---
+
+# Glossary
+
+This glossary defines the core terms used throughout the AI SDK documentation
+and codebase. Use these terms consistently when writing docs, examples, issues,
+and pull requests.
+
+## AI SDK functions
+
+### AI function
+
+A user-facing function that orchestrates one or more model calls through the AI
+SDK, such as [`generateText`](/docs/reference/ai-sdk-core/generate-text),
+[`streamText`](/docs/reference/ai-sdk-core/stream-text),
+[`generateObject`](/docs/reference/ai-sdk-core/generate-object), or
+[`streamObject`](/docs/reference/ai-sdk-core/stream-object).
+
+Avoid: "helper", "wrapper", or "utility" when referring to these public APIs.
+
+### Language model call
+
+A request to a language model that takes messages, prompt data, tools, settings,
+and provider options, then returns model output. The call may produce a complete
+result or a stream.
+
+Use "language model call" when describing the operation performed by the model.
+Avoid using "generation" as a catch-all term when the same concept also covers
+streaming, tool calls, or structured object output.
+
+## Models and providers
+
+### Model
+
+A callable object created by a provider and passed to AI SDK functions. For
+example, `openai('gpt-4o')` returns a model that can be used with `generateText`
+or `streamText`.
+
+Avoid using "model" for the provider package itself.
+
+### Model ID
+
+A provider-specific string identifying a model variant, such as `'gpt-4o'`,
+`'claude-3-5-sonnet-latest'`, or `'gemini-2.5-pro'`.
+
+Avoid: "model name" when the value is specifically the provider's identifier.
+
+### Provider
+
+A package or factory that creates models for a specific AI service. Examples
+include [`@ai-sdk/openai`](/providers/ai-sdk-providers/openai),
+[`@ai-sdk/anthropic`](/providers/ai-sdk-providers/anthropic), and
+[`@ai-sdk/google`](/providers/ai-sdk-providers/google).
+
+Avoid: "adapter", "connector", or "client" when referring to AI SDK providers.
+
+### Provider package
+
+An installable package that exposes a provider, such as `@ai-sdk/openai` or
+`@ai-sdk/anthropic`.
+
+Use this term when you need to distinguish the npm package from the provider
+function it exports.
+
+### Provider specification
+
+The contract a provider implements so it can work with the AI SDK. The provider
+specification is published as [`@ai-sdk/provider`](https://www.npmjs.com/package/@ai-sdk/provider).
+
+Use this term when discussing the interface between provider packages and AI SDK
+Core.
+
+### Provider options
+
+Provider-specific options passed through to the provider without being
+interpreted by the AI SDK. Use provider options for features that only exist on
+specific providers, such as provider-specific reasoning, caching, or safety
+settings.
+
+See [Provider Options](/docs/foundations/provider-options).
+
+## Prompts, messages, and output
+
+### Prompt
+
+The instructions and context sent to a model. In the AI SDK, prompts are usually
+represented as a `prompt` string or a sequence of messages.
+
+### Message
+
+A structured unit of conversation passed to or returned from a model. Messages
+can represent system instructions, user input, assistant output, or tool-related
+content.
+
+### Output
+
+The data returned by a model call. Output may be plain text, structured objects,
+tool calls, files, images, audio, or a stream of incremental parts depending on
+the AI SDK function and model capabilities.
+
+Avoid using "response" when you specifically mean the final `text`, `object`, or
+stream part returned by an AI SDK function.
+
+### Stream
+
+An incremental result from a model call. Streaming lets applications render model
+output and tool progress as it becomes available instead of waiting for the full
+result.
+
+See [Streaming](/docs/foundations/streaming).
+
+## Tools and agents
+
+### Tool
+
+An action the model can call. A tool has an optional description, an input
+schema, and an execute function.
+
+See [Tools](/docs/foundations/tools).
+
+### Tool call
+
+A model request to invoke a tool with arguments that match the tool's input
+schema.
+
+### Tool result
+
+The output returned by a tool after it runs. Tool results can be sent back to the
+model so it can continue the interaction with the new information.
+
+### Agent
+
+A system that uses a model in a loop to choose steps, call tools, observe tool
+results, and continue until a goal is complete or a stopping condition is met.
+
+See [Agents](/docs/agents).
+
+## Runtime hooks
+
+### Listener
+
+A callback-like API that observes events emitted by an AI SDK function while it
+runs. Use "listener" when the API is event-oriented and may receive multiple
+updates over the lifetime of a model call.
+
+### Callback
+
+A function passed into another function to be invoked later, often for a specific
+lifecycle event.
+
+Use the more specific term "listener" or "observer" when the API is intentionally
+structured around observation rather than one-off callback execution.
+
+### Observer
+
+An object or function that watches an operation without changing its behavior.
+Use "observer" for concepts that are read-only by design.
+
+## Package naming
+
+### AI SDK Core
+
+The core package and APIs for calling models, generating text or objects,
+streaming output, using tools, and handling provider integrations.
+
+### AI SDK UI
+
+The UI-layer packages and hooks for building chat, completion, and generative UI
+experiences on top of AI SDK Core.
+
+### AI SDK RSC
+
+The React Server Components package. AI SDK RSC is experimental and has been
+superseded for most new applications by AI SDK UI.
