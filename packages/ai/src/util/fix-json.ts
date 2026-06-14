@@ -24,6 +24,10 @@ type State =
 // Please note that invalid JSON is not considered/covered, because it
 // is assumed that the resulting JSON will be processed by a standard
 // JSON parser that will detect any invalid JSON.
+function removeIncompleteTrailingUnicodeEscape(input: string): string {
+  return input.replace(/\\u[0-9a-fA-F]{0,3}$/, '');
+}
+
 export function fixJson(input: string): string {
   const stack: State[] = ['ROOT'];
   let lastValidIndex = -1;
@@ -362,6 +366,7 @@ export function fixJson(input: string): string {
 
     switch (state) {
       case 'INSIDE_STRING': {
+        result = removeIncompleteTrailingUnicodeEscape(result);
         result += '"';
         break;
       }
