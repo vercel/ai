@@ -34,6 +34,7 @@ export {
   GatewayError,
   GatewayAuthenticationError,
   GatewayFailedDependencyError,
+  GatewayForbiddenError,
   GatewayInvalidRequestError,
   GatewayRateLimitError,
   GatewayModelNotFoundError,
