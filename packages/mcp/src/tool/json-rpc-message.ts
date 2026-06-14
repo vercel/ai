@@ -4,7 +4,7 @@ import { BaseParamsSchema, RequestSchema, ResultSchema } from './types';
 
 const JSONRPC_VERSION = '2.0';
 
-const JSONRPCRequestSchema = z
+export const JSONRPCRequestSchema = z
   .object({
     jsonrpc: z.literal(JSONRPC_VERSION),
     id: z.union([z.string(), z.number().int()]),
@@ -14,7 +14,7 @@ const JSONRPCRequestSchema = z
 
 export type JSONRPCRequest = z.infer<typeof JSONRPCRequestSchema>;
 
-const JSONRPCResponseSchema = z
+export const JSONRPCResponseSchema = z
   .object({
     jsonrpc: z.literal(JSONRPC_VERSION),
     id: z.union([z.string(), z.number().int()]),
@@ -24,7 +24,7 @@ const JSONRPCResponseSchema = z
 
 export type JSONRPCResponse = z.infer<typeof JSONRPCResponseSchema>;
 
-const JSONRPCErrorSchema = z
+export const JSONRPCErrorSchema = z
   .object({
     jsonrpc: z.literal(JSONRPC_VERSION),
     id: z.union([z.string(), z.number().int()]),
@@ -38,7 +38,7 @@ const JSONRPCErrorSchema = z
 
 export type JSONRPCError = z.infer<typeof JSONRPCErrorSchema>;
 
-const JSONRPCNotificationSchema = z
+export const JSONRPCNotificationSchema = z
   .object({
     jsonrpc: z.literal(JSONRPC_VERSION),
   })
