@@ -495,6 +495,11 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       ...(anthropicOptions?.metadata?.userId != null && {
         metadata: { user_id: anthropicOptions.metadata.userId },
       }),
+      ...(anthropicOptions?.diagnostics?.previousMessageId != null && {
+        diagnostics: {
+          previous_message_id: anthropicOptions.diagnostics.previousMessageId,
+        },
+      }),
 
       // mcp servers:
       ...(anthropicOptions?.mcpServers &&
