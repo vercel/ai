@@ -93,6 +93,10 @@ describe('string', () => {
     const fixedEmptyUnicodeEscape = fixJson('{"a":"\\u');
     assert.strictEqual(fixedEmptyUnicodeEscape, '{"a":""}');
     assert.doesNotThrow(() => JSON.parse(fixedEmptyUnicodeEscape));
+
+    const fixedEscapedBackslashBeforeU = fixJson('{"a":"\\\\u12');
+    assert.strictEqual(fixedEscapedBackslashBeforeU, '{"a":"\\\\u12"}');
+    assert.doesNotThrow(() => JSON.parse(fixedEscapedBackslashBeforeU));
   });
 });
 
