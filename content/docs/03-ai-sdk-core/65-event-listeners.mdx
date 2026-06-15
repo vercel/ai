@@ -17,7 +17,7 @@ import { generateText } from 'ai';
 const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'What is the weather in San Francisco?',
-  experimental_onStart: event => {
+  onStart: event => {
     console.log('Generation started:', event.modelId);
   },
   onEnd: event => {
@@ -33,24 +33,24 @@ const result = await generateText({
 <PropertiesTable
   content={[
     {
-      name: 'experimental_onStart',
+      name: 'onStart',
       type: '(event: GenerateTextStartEvent) => void | Promise<void>',
       description: 'Called when generation begins, before any LLM calls.',
     },
     {
-      name: 'experimental_onStepStart',
+      name: 'onStepStart',
       type: '(event: GenerateTextStepStartEvent) => void | Promise<void>',
       description:
         'Called when a step (LLM call) begins, before the provider is called.',
     },
     {
-      name: 'experimental_onLanguageModelCallStart',
+      name: 'onLanguageModelCallStart',
       type: '(event: LanguageModelCallStartEvent) => void | Promise<void>',
       description:
-        'Called immediately before the provider model call begins. Unlike `experimental_onStepStart`, this is scoped to model work only.',
+        'Called immediately before the provider model call begins. Unlike `onStepStart`, this is scoped to model work only.',
     },
     {
-      name: 'experimental_onLanguageModelCallEnd',
+      name: 'onLanguageModelCallEnd',
       type: '(event: LanguageModelCallEndEvent) => void | Promise<void>',
       description:
         'Called after the model response has been normalized and parsed, but before any client-side tool execution begins.',
@@ -80,21 +80,21 @@ const result = await generateText({
 />
 
 For multi-step text generations that use tools, the callback order is typically
-`experimental_onStepStart` -> `experimental_onLanguageModelCallStart` ->
-`experimental_onLanguageModelCallEnd` -> tool execution callbacks -> `onStepEnd`.
+`onStepStart` -> `onLanguageModelCallStart` ->
+`onLanguageModelCallEnd` -> tool execution callbacks -> `onStepEnd`.
 
 ### `embed` / `embedMany`
 
 <PropertiesTable
   content={[
     {
-      name: 'experimental_onStart',
+      name: 'onStart',
       type: '(event: EmbedStartEvent) => void | Promise<void>',
       description:
         'Called when the embedding operation begins, before the embedding model is called.',
     },
     {
-      name: 'experimental_onEnd',
+      name: 'onEnd',
       type: '(event: EmbedEndEvent) => void | Promise<void>',
       description:
         'Called when the embedding operation completes, after the embedding model returns.',
@@ -107,13 +107,13 @@ For multi-step text generations that use tools, the callback order is typically
 <PropertiesTable
   content={[
     {
-      name: 'experimental_onStart',
+      name: 'onStart',
       type: '(event: RerankStartEvent) => void | Promise<void>',
       description:
         'Called when the reranking operation begins, before the reranking model is called.',
     },
     {
-      name: 'experimental_onEnd',
+      name: 'onEnd',
       type: '(event: RerankEndEvent) => void | Promise<void>',
       description:
         'Called when the reranking operation completes, after the reranking model returns.',
@@ -125,7 +125,7 @@ For multi-step text generations that use tools, the callback order is typically
 
 ### `generateText` / `streamText`
 
-#### `experimental_onStart`
+#### `onStart`
 
 Called when the generation operation begins, before any LLM calls are made.
 
@@ -133,7 +133,7 @@ Called when the generation operation begins, before any LLM calls are made.
 const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'Hello!',
-  experimental_onStart: event => {
+  onStart: event => {
     console.log('Model:', event.modelId);
     console.log('Messages:', event.messages.length);
   },
@@ -268,7 +268,7 @@ const result = await generateText({
   ]}
 />
 
-#### `experimental_onStepStart`
+#### `onStepStart`
 
 Called before each step (LLM call) begins. Useful for tracking multi-step generations.
 
@@ -276,7 +276,7 @@ Called before each step (LLM call) begins. Useful for tracking multi-step genera
 const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'Hello!',
-  experimental_onStepStart: event => {
+  onStepStart: event => {
     console.log('Step:', event.stepNumber);
     console.log('Messages:', event.messages.length);
   },
@@ -382,17 +382,17 @@ const result = await generateText({
   ]}
 />
 
-#### `experimental_onLanguageModelCallStart`
+#### `onLanguageModelCallStart`
 
 Called immediately before the provider model call begins. Unlike
-`experimental_onStepStart`, this callback is scoped to model work only and
+`onStepStart`, this callback is scoped to model work only and
 excludes any later client-side tool execution.
 
 ```ts
 const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'Hello!',
-  experimental_onLanguageModelCallStart: event => {
+  onLanguageModelCallStart: event => {
     console.log('Model call:', event.modelId);
     console.log('Messages:', event.messages.length);
   },
@@ -434,7 +434,7 @@ const result = await generateText({
   ]}
 />
 
-#### `experimental_onLanguageModelCallEnd`
+#### `onLanguageModelCallEnd`
 
 Called after the model response has been normalized and parsed, but before any
 client-side tool execution begins.
@@ -443,7 +443,7 @@ client-side tool execution begins.
 const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'What is the weather?',
-  experimental_onLanguageModelCallEnd: event => {
+  onLanguageModelCallEnd: event => {
     console.log('Finish reason:', event.finishReason);
     console.log('Content parts:', event.content.length);
   },
@@ -1060,7 +1060,7 @@ const result = await generateText({
 
 ### `embed` / `embedMany`
 
-#### `experimental_onStart`
+#### `onStart`
 
 Called when the embedding operation begins, before the embedding model is called. Both `embed` and `embedMany` share the same event interface; the `operationId` field distinguishes them (`'ai.embed'` vs `'ai.embedMany'`), and the `value` field is a single string for `embed` or an array of strings for `embedMany`.
 
@@ -1070,7 +1070,7 @@ import { embed } from 'ai';
 const result = await embed({
   model: openai.embedding('text-embedding-3-small'),
   value: 'sunny day at the beach',
-  experimental_onStart: event => {
+  onStart: event => {
     console.log('Operation:', event.operationId);
     console.log('Model:', event.model.modelId);
   },
@@ -1124,7 +1124,7 @@ const result = await embed({
   ]}
 />
 
-#### `experimental_onEnd`
+#### `onEnd`
 
 Called when the embedding operation completes. For `embed`, `embedding` is a single vector and `response` is a single response object. For `embedMany`, `embedding` is an array of vectors and `response` is an array of response objects (one per chunk).
 
@@ -1134,7 +1134,7 @@ import { embedMany } from 'ai';
 const result = await embedMany({
   model: openai.embedding('text-embedding-3-small'),
   values: ['sunny day at the beach', 'rainy afternoon in the city'],
-  experimental_onEnd: event => {
+  onEnd: event => {
     console.log('Operation:', event.operationId);
     console.log('Usage:', event.usage);
   },
@@ -1196,7 +1196,7 @@ const result = await embedMany({
 
 ### `rerank`
 
-#### `experimental_onStart`
+#### `onStart`
 
 Called when the reranking operation begins, before the reranking model is called.
 
@@ -1207,7 +1207,7 @@ const result = await rerank({
   model: cohere.reranking('rerank-v3.5'),
   documents: ['sunny day at the beach', 'rainy afternoon in the city'],
   query: 'talk about rain',
-  experimental_onStart: event => {
+  onStart: event => {
     console.log('Operation:', event.operationId);
     console.log('Model:', event.model.modelId);
   },
@@ -1269,7 +1269,7 @@ const result = await rerank({
   ]}
 />
 
-#### `experimental_onEnd`
+#### `onEnd`
 
 Called when the reranking operation completes, after the reranking model returns.
 
@@ -1280,7 +1280,7 @@ const result = await rerank({
   model: cohere.reranking('rerank-v3.5'),
   documents: ['sunny day at the beach', 'rainy afternoon in the city'],
   query: 'talk about rain',
-  experimental_onEnd: event => {
+  onEnd: event => {
     console.log('Operation:', event.operationId);
     console.log('Rankings:', event.ranking.length);
   },
@@ -1348,7 +1348,7 @@ import { generateText } from 'ai';
 const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'Hello!',
-  experimental_onStart: event => {
+  onStart: event => {
     console.log(`[${new Date().toISOString()}] Generation started`, {
       model: event.modelId,
       provider: event.provider,
@@ -1407,13 +1407,13 @@ import { embedMany } from 'ai';
 const result = await embedMany({
   model: openai.embedding('text-embedding-3-small'),
   values: ['sunny day at the beach', 'rainy afternoon in the city'],
-  experimental_onStart: event => {
+  onStart: event => {
     console.log(`Embedding started (${event.operationId})`, {
       model: event.model.modelId,
       valueCount: Array.isArray(event.value) ? event.value.length : 1,
     });
   },
-  experimental_onEnd: event => {
+  onEnd: event => {
     console.log(`Embedding complete (${event.operationId})`, {
       tokens: event.usage.tokens,
     });
@@ -1429,7 +1429,7 @@ Errors thrown inside callbacks are caught and do not break the generation, embed
 const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'Hello!',
-  experimental_onStart: () => {
+  onStart: () => {
     throw new Error('This error is caught internally');
     // Generation continues normally
   },

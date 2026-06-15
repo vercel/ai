@@ -197,9 +197,15 @@ export type GenerateTextInclude = {
  * @param experimental_sandbox - The sandbox environment that is passed through to tool execution.
  * @param runtimeContext - User-defined runtime context that flows through the entire generation lifecycle.
  * @param experimental_refineToolInput - Optional mapping of tool names to functions that refine parsed tool inputs before tools are executed and before outputs, callbacks, and telemetry are recorded.
- * @param experimental_onStart - Callback invoked when generation begins, before any LLM calls.
- * @param experimental_onStepStart - Callback invoked when each step begins, before the provider is called.
+ * @param onStart - Callback invoked when generation begins, before any LLM calls.
+ * @param experimental_onStart - Deprecated alias for `onStart`.
+ * @param onStepStart - Callback invoked when each step begins, before the provider is called.
+ * @param experimental_onStepStart - Deprecated alias for `onStepStart`.
  * Receives step number, messages (in ModelMessage format), tools, and runtimeContext.
+ * @param onLanguageModelCallStart - Callback invoked immediately before each provider model call begins.
+ * @param experimental_onLanguageModelCallStart - Deprecated alias for `onLanguageModelCallStart`.
+ * @param onLanguageModelCallEnd - Callback invoked after each provider model call response is normalized and parsed.
+ * @param experimental_onLanguageModelCallEnd - Deprecated alias for `onLanguageModelCallEnd`.
  * @param onToolExecutionStart - Callback invoked before each tool execution begins.
  * Receives tool name, call ID, input, and context.
  * @param experimental_onToolCallStart - Deprecated alias for `onToolExecutionStart`.
@@ -253,10 +259,14 @@ export async function generateText<
     generateCallId = originalGenerateCallId,
     now = originalNow,
   } = {},
-  experimental_onStart: onStart,
-  experimental_onStepStart: onStepStart,
-  experimental_onLanguageModelCallStart: onLanguageModelCallStart,
-  experimental_onLanguageModelCallEnd: onLanguageModelCallEnd,
+  onStart,
+  experimental_onStart,
+  onStepStart,
+  experimental_onStepStart,
+  onLanguageModelCallStart,
+  experimental_onLanguageModelCallStart,
+  onLanguageModelCallEnd,
+  experimental_onLanguageModelCallEnd,
   onToolExecutionStart,
   onToolExecutionEnd,
   experimental_onToolCallStart,
@@ -381,6 +391,18 @@ export async function generateText<
      * Callback that is called when the generateText operation begins,
      * before any LLM calls are made.
      */
+    onStart?: GenerateTextOnStartCallback<
+      NoInfer<TOOLS>,
+      NoInfer<RUNTIME_CONTEXT>,
+      NoInfer<OUTPUT>
+    >;
+
+    /**
+     * Callback that is called when the generateText operation begins,
+     * before any LLM calls are made.
+     *
+     * @deprecated Use `onStart` instead.
+     */
     experimental_onStart?: GenerateTextOnStartCallback<
       NoInfer<TOOLS>,
       NoInfer<RUNTIME_CONTEXT>,
@@ -391,6 +413,18 @@ export async function generateText<
      * Callback that is called when a step (LLM call) begins,
      * before the provider is called.
      */
+    onStepStart?: GenerateTextOnStepStartCallback<
+      NoInfer<TOOLS>,
+      NoInfer<RUNTIME_CONTEXT>,
+      NoInfer<OUTPUT>
+    >;
+
+    /**
+     * Callback that is called when a step (LLM call) begins,
+     * before the provider is called.
+     *
+     * @deprecated Use `onStepStart` instead.
+     */
     experimental_onStepStart?: GenerateTextOnStepStartCallback<
       NoInfer<TOOLS>,
       NoInfer<RUNTIME_CONTEXT>,
@@ -400,11 +434,26 @@ export async function generateText<
     /**
      * Callback that is called immediately before the provider model call begins.
      */
+    onLanguageModelCallStart?: OnLanguageModelCallStartCallback;
+
+    /**
+     * Callback that is called immediately before the provider model call begins.
+     *
+     * @deprecated Use `onLanguageModelCallStart` instead.
+     */
     experimental_onLanguageModelCallStart?: OnLanguageModelCallStartCallback;
 
     /**
      * Callback that is called after the model response has been normalized and parsed,
      * but before any client-side tool execution begins.
+     */
+    onLanguageModelCallEnd?: OnLanguageModelCallEndCallback<NoInfer<TOOLS>>;
+
+    /**
+     * Callback that is called after the model response has been normalized and parsed,
+     * but before any client-side tool execution begins.
+     *
+     * @deprecated Use `onLanguageModelCallEnd` instead.
      */
     experimental_onLanguageModelCallEnd?: OnLanguageModelCallEndCallback<
       NoInfer<TOOLS>
@@ -502,6 +551,12 @@ export async function generateText<
 
   const model = resolveLanguageModel(modelArg);
   const stopConditions = asArray(stopWhen);
+  const resolvedOnStart = onStart ?? experimental_onStart;
+  const resolvedOnStepStart = onStepStart ?? experimental_onStepStart;
+  const resolvedOnLanguageModelCallStart =
+    onLanguageModelCallStart ?? experimental_onLanguageModelCallStart;
+  const resolvedOnLanguageModelCallEnd =
+    onLanguageModelCallEnd ?? experimental_onLanguageModelCallEnd;
   const resolvedOnToolExecutionStart =
     onToolExecutionStart ?? experimental_onToolCallStart;
   const resolvedOnToolExecutionEnd =
@@ -579,7 +634,7 @@ export async function generateText<
       runtimeContext,
       toolsContext,
     },
-    callbacks: [onStart, telemetryDispatcher.onStart],
+    callbacks: [resolvedOnStart, telemetryDispatcher.onStart],
   });
 
   try {
@@ -817,7 +872,7 @@ export async function generateText<
             stepToolChoice,
             toolsContext,
           },
-          callbacks: [onStepStart, telemetryDispatcher.onStepStart],
+          callbacks: [resolvedOnStepStart, telemetryDispatcher.onStepStart],
         });
 
         await notify({
@@ -831,7 +886,7 @@ export async function generateText<
             ...callSettings,
           },
           callbacks: [
-            onLanguageModelCallStart,
+            resolvedOnLanguageModelCallStart,
             telemetryDispatcher.onLanguageModelCallStart as
               | undefined
               | OnLanguageModelCallStartCallback,
@@ -939,7 +994,7 @@ export async function generateText<
             },
           },
           callbacks: [
-            onLanguageModelCallEnd,
+            resolvedOnLanguageModelCallEnd,
             telemetryDispatcher.onLanguageModelCallEnd as
               | undefined
               | OnLanguageModelCallEndCallback<TOOLS>,
