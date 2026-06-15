@@ -1,5 +1,11 @@
 # @ai-sdk/sandbox-vercel
 
+## 1.0.0-canary.13
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.0-canary.13
+
 ## 1.0.0-canary.12
 
 ### Patch Changes
