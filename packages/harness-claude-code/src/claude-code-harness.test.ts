@@ -285,6 +285,74 @@ describe('createClaudeCode adapter', () => {
     }
   }, 15_000);
 
+  it('forwards outputSchema on the start message when an output schema is requested', async () => {
+    const wss = new WebSocketServer({ port: 0 });
+    const port = await new Promise<number>(resolve => {
+      wss.on('listening', () => {
+        const address = wss.address();
+        if (typeof address === 'object' && address !== null) {
+          resolve(address.port);
+        }
+      });
+    });
+    try {
+      const startMessage = new Promise<Record<string, unknown>>(resolve => {
+        wss.on('connection', ws => {
+          setTimeout(() => {
+            ws.send(JSON.stringify({ type: 'bridge-hello' }));
+          }, 0);
+          ws.on('message', raw => {
+            const message = JSON.parse(raw.toString('utf8')) as Record<
+              string,
+              unknown
+            >;
+            if (message.type === 'start') {
+              resolve(message);
+              ws.send(
+                JSON.stringify({
+                  type: 'finish',
+                  finishReason: { unified: 'stop' },
+                  totalUsage: { inputTokens: {}, outputTokens: {} },
+                  seq: 1,
+                }),
+              );
+            }
+          });
+        });
+      });
+
+      const writes: Array<{ path: string; content: string }> = [];
+      const runs: string[] = [];
+      const harness = createClaudeCode({ startupTimeoutMs: 10_000 });
+      const session = await harness.doStart({
+        sessionId: 's1',
+        sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+          bridgePortUrl: `ws://127.0.0.1:${port}`,
+          writes,
+          runs,
+        }),
+        sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      });
+      const schema = {
+        type: 'object',
+        properties: { ok: { type: 'boolean' } },
+        required: ['ok'],
+      };
+      const control = await session.doPromptTurn({
+        prompt: 'classify',
+        outputSchema: schema,
+        emit: () => {},
+      });
+      void Promise.resolve(control.done).catch(() => {});
+      await expect(startMessage).resolves.toMatchObject({
+        outputSchema: schema,
+      });
+      await session.doDestroy();
+    } finally {
+      await new Promise<void>(resolve => wss.close(() => resolve()));
+    }
+  }, 15_000);
+
   it('rejects unsafe skill names before writing skill files', async () => {
     const writes: Array<{ path: string; content: string }> = [];
     const harness = createClaudeCode();

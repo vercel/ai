@@ -75,6 +75,22 @@ describe('inboundMessageSchema', () => {
     ).not.toThrow();
   });
 
+  it('accepts a start message carrying an outputSchema', () => {
+    const parsed = inboundMessageSchema.parse({
+      type: 'start',
+      prompt: 'classify',
+      outputSchema: {
+        type: 'object',
+        properties: { ok: { type: 'boolean' } },
+        required: ['ok'],
+      },
+    });
+    expect(parsed).toMatchObject({
+      type: 'start',
+      outputSchema: { type: 'object' },
+    });
+  });
+
   it('accepts a tool-result message', () => {
     expect(() =>
       inboundMessageSchema.parse({
