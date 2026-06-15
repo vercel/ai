@@ -15,6 +15,10 @@ import {
 } from './oauth';
 import { LATEST_PROTOCOL_VERSION } from './types';
 
+function isMessageEvent(event: string | undefined): boolean {
+  return event === undefined || event === 'message';
+}
+
 export class SseMCPTransport implements MCPTransport {
   private endpoint?: URL;
   private abortController?: AbortController;
@@ -164,7 +168,7 @@ export class SseMCPTransport implements MCPTransport {
                   this.endpoint = endpoint;
                   this.connected = true;
                   resolve();
-                } else if (event === 'message') {
+                } else if (isMessageEvent(event)) {
                   try {
                     const message = await parseJSONRPCMessage(data);
                     this.onmessage?.(message);

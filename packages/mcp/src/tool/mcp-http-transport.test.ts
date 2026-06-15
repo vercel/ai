@@ -224,6 +224,29 @@ describe('HttpMCPTransport', () => {
     expect((error as Error).message).toContain('POSTing to endpoint');
   });
 
+  it('should handle inbound SSE messages without explicit event field', async () => {
+    const controller = new TestResponseController();
+    server.urls['http://localhost:4000/mcp'].response = {
+      type: 'controlled-stream',
+      controller,
+      headers: { 'content-type': 'text/event-stream' },
+    };
+
+    const message = { jsonrpc: '2.0' as const, id: 1, result: { ok: true } };
+    const messagePromise = new Promise(resolve => {
+      transport.onmessage = msg => resolve(msg);
+    });
+
+    await transport.start();
+    await vi.waitFor(() => {
+      expect(server.calls[0]?.requestMethod).toBe('GET');
+    });
+
+    controller.write(`data: ${JSON.stringify(message)}\n\n`);
+
+    expect(await messagePromise).toEqual(message);
+  });
+
   it('should handle invalid JSON-RPC messages from inbound SSE', async () => {
     const controller = new TestResponseController();
     server.urls['http://localhost:4000/mcp'].response = {
