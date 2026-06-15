@@ -1,5 +1,12 @@
 # @ai-sdk/policy
 
+## 1.0.0-canary.12
+
+### Patch Changes
+
+- Updated dependencies [6ec57f5]
+  - ai@7.0.0-canary.175
+
 ## 1.0.0-canary.11
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # @ai-sdk/tui
 
+## 1.0.0-canary.10
+
+### Patch Changes
+
+- Updated dependencies [6ec57f5]
+  - ai@7.0.0-canary.175
+
 ## 1.0.0-canary.9
 
 ### Patch Changes
