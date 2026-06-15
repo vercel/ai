@@ -1,5 +1,11 @@
 # @ai-sdk/harness
 
+## 1.0.0-canary.11
+
+### Patch Changes
+
+- be83911: fix(harness): reject bridge startup when the WebSocket port cannot be bound
+
 ## 1.0.0-canary.10
 
 ### Patch Changes
