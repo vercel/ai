@@ -458,7 +458,8 @@ Called once before any model calls are made.
     {
       name: 'operationId',
       type: 'string',
-      description: "Operation type, such as 'ai.generateText' or 'ai.streamText'.",
+      description:
+        "Operation type, such as 'ai.generateText' or 'ai.streamText'.",
     },
     {
       name: 'provider',
@@ -697,7 +698,8 @@ Called before a local tool's `execute` function runs.
     {
       name: 'toolCall',
       type: 'TypedToolCall',
-      description: 'The tool call that is about to execute, including `toolCallId`, `toolName`, and `input`.',
+      description:
+        'The tool call that is about to execute, including `toolCallId`, `toolName`, and `input`.',
     },
     {
       name: 'messages',
@@ -748,7 +750,8 @@ Called after a local tool's `execute` function completes or errors.
     {
       name: 'toolOutput',
       type: "{ type: 'tool-result'; output: unknown } | { type: 'tool-error'; error: unknown }",
-      description: 'Discriminated union representing either a successful tool result or a tool error.',
+      description:
+        'Discriminated union representing either a successful tool result or a tool error.',
     },
   ]}
 />
@@ -818,12 +821,14 @@ Called after each step completes. The event is the full `StepResult` for that st
     {
       name: 'request',
       type: 'LanguageModelRequestMetadata',
-      description: 'Request metadata, including request body and request messages when included.',
+      description:
+        'Request metadata, including request body and request messages when included.',
     },
     {
       name: 'response',
       type: 'LanguageModelResponseMetadata',
-      description: 'Response metadata, including response headers, body, and messages when included.',
+      description:
+        'Response metadata, including response headers, body, and messages when included.',
     },
     {
       name: 'runtimeContext',
@@ -1007,7 +1012,8 @@ For `embed`, `value` is a single string. For `embedMany`, `value` is an array of
     {
       name: 'response',
       type: '{ headers?: Record<string, string>; body?: unknown } | Array<{ headers?: Record<string, string>; body?: unknown } | undefined> | undefined',
-      description: 'Response data. For `embedMany`, this can be one response per chunk.',
+      description:
+        'Response data. For `embedMany`, this can be one response per chunk.',
     },
   ]}
 />
@@ -1108,7 +1114,8 @@ For `embed`, `value` is a single string. For `embedMany`, `value` is an array of
     {
       name: 'ranking',
       type: 'Array<{ originalIndex: number; score: number; document: JSONObject | string }>',
-      description: 'Reranked results sorted by relevance score in descending order.',
+      description:
+        'Reranked results sorted by relevance score in descending order.',
     },
     {
       name: 'warnings',
