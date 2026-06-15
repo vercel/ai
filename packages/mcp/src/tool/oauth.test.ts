@@ -557,6 +557,25 @@ describe('discoverAuthorizationServerMetadata', () => {
     code_challenge_methods_supported: ['S256'],
   };
 
+  it('returns OAuth metadata when issuer matches path-aware discovery issuer', async () => {
+    const tenantMetadata = {
+      ...validOAuthMetadata,
+      issuer: 'https://auth.example.com/tenant1',
+    };
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => tenantMetadata,
+    });
+
+    const metadata = await discoverAuthorizationServerMetadata(
+      'https://auth.example.com/tenant1',
+    );
+
+    expect(metadata).toEqual(tenantMetadata);
+  });
+
   it('tries URLs in order and returns first successful metadata', async () => {
     // First OAuth URL fails with 404
     mockFetch.mockResolvedValueOnce({
@@ -586,6 +605,41 @@ describe('discoverAuthorizationServerMetadata', () => {
     expect(calls[1][0].toString()).toBe(
       'https://auth.example.com/.well-known/oauth-authorization-server',
     );
+  });
+
+  it('rejects OAuth metadata when issuer does not match discovery issuer', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        ...validOAuthMetadata,
+        issuer: 'https://login.real-idp.com',
+      }),
+    });
+
+    await expect(
+      discoverAuthorizationServerMetadata('https://attacker.example/tenantA'),
+    ).rejects.toThrow(/does not match expected issuer/);
+  });
+
+  it('rejects OIDC metadata when issuer does not match discovery issuer', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+    });
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        ...validOpenIdMetadata,
+        issuer: 'https://login.real-idp.com',
+      }),
+    });
+
+    await expect(
+      discoverAuthorizationServerMetadata('https://auth.example.com'),
+    ).rejects.toThrow(/does not match expected issuer/);
   });
 
   it('throws error when OIDC provider does not support S256 PKCE', async () => {
@@ -627,7 +681,7 @@ describe('discoverAuthorizationServerMetadata', () => {
     });
 
     const metadata = await discoverAuthorizationServerMetadata(
-      'https://mcp.example.com',
+      'https://auth.example.com',
     );
 
     expect(metadata).toEqual(validOpenIdMetadata);
@@ -1520,7 +1574,7 @@ describe('auth function', () => {
           ok: true,
           status: 200,
           json: async () => ({
-            issuer: 'https://auth.example.com',
+            issuer: 'https://resource.example.com',
             authorization_endpoint: 'https://auth.example.com/authorize',
             token_endpoint: 'https://auth.example.com/token',
             registration_endpoint: 'https://auth.example.com/register',
@@ -2147,7 +2201,7 @@ describe('auth function', () => {
           ok: true,
           status: 200,
           json: async () => ({
-            issuer: 'https://auth.example.com',
+            issuer: 'https://api.example.com/mcp-server',
             authorization_endpoint: 'https://auth.example.com/authorize',
             token_endpoint: 'https://auth.example.com/token',
             response_types_supported: ['code'],
@@ -2206,7 +2260,7 @@ describe('auth function', () => {
           ok: true,
           status: 200,
           json: async () => ({
-            issuer: 'https://auth.example.com',
+            issuer: 'https://api.example.com/mcp-server',
             authorization_endpoint: 'https://auth.example.com/authorize',
             token_endpoint: 'https://auth.example.com/token',
             response_types_supported: ['code'],
@@ -2276,7 +2330,7 @@ describe('auth function', () => {
           ok: true,
           status: 200,
           json: async () => ({
-            issuer: 'https://auth.example.com',
+            issuer: 'https://api.example.com/mcp-server',
             authorization_endpoint: 'https://auth.example.com/authorize',
             token_endpoint: 'https://auth.example.com/token',
             response_types_supported: ['code'],
@@ -2358,7 +2412,7 @@ describe('auth function', () => {
           ok: true,
           status: 200,
           json: async () => ({
-            issuer: 'https://auth.example.com',
+            issuer: 'https://resource.example.com',
             authorization_endpoint: 'https://auth.example.com/authorize',
             token_endpoint: 'https://auth.example.com/token',
             response_types_supported: ['code'],
@@ -2519,7 +2573,7 @@ describe('OAuth state validation', () => {
           ok: true,
           status: 200,
           json: async () => ({
-            issuer: 'https://auth.example.com',
+            issuer: 'https://resource.example.com',
             authorization_endpoint: 'https://auth.example.com/authorize',
             token_endpoint: 'https://auth.example.com/token',
             response_types_supported: ['code'],
@@ -2549,7 +2603,7 @@ describe('OAuth state validation', () => {
           ok: true,
           status: 200,
           json: async () => ({
-            issuer: 'https://auth.example.com',
+            issuer: 'https://resource.example.com',
             authorization_endpoint: 'https://auth.example.com/authorize',
             token_endpoint: 'https://auth.example.com/token',
             registration_endpoint: 'https://auth.example.com/register',

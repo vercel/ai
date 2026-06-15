@@ -1,5 +1,18 @@
 # @ai-sdk/langchain
 
+## 3.0.0-canary.174
+
+### Patch Changes
+
+- ai@7.0.0-canary.174
+
+## 3.0.0-canary.173
+
+### Patch Changes
+
+- c1afaed: fix(langchain): prevent polluting global object.prototype
+  - ai@7.0.0-canary.173
+
 ## 3.0.0-canary.172
 
 ### Patch Changes

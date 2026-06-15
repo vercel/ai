@@ -205,7 +205,14 @@ describe('createClaudeCode adapter', () => {
             >;
             if (message.type === 'start') {
               resolve(message);
-              ws.send(JSON.stringify({ type: 'finish' }));
+              ws.send(
+                JSON.stringify({
+                  type: 'finish',
+                  finishReason: { unified: 'stop' },
+                  totalUsage: { inputTokens: {}, outputTokens: {} },
+                  seq: 1,
+                }),
+              );
             }
           });
         });
@@ -254,14 +261,24 @@ describe('createClaudeCode adapter', () => {
         skills: ['weather-forecast', 'weather-codes'],
       });
 
+      const skillWrites = writes.filter(
+        write => !write.path.endsWith('/bridge-meta.json'),
+      );
+      const bridgeMetaWrite = writes.find(write =>
+        write.path.endsWith('/bridge-meta.json'),
+      );
       expect(runs).toContain("mkdir -p '/home/vercel-sandbox'/.claude/skills");
-      expect(writes.map(write => write.path)).toEqual([
+      expect(bridgeMetaWrite).toEqual({
+        path: '/vercel/sandbox/.agent-runs/s1/bridge/bridge-meta.json',
+        content: JSON.stringify({ type: 'claude-code', state: 'starting' }),
+      });
+      expect(skillWrites.map(write => write.path)).toEqual([
         '/home/vercel-sandbox/.claude/skills/weather-forecast/SKILL.md',
         '/home/vercel-sandbox/.claude/skills/weather-forecast/reference.md',
         '/home/vercel-sandbox/.claude/skills/weather-codes/SKILL.md',
       ]);
-      expect(writes[0].content).toContain('name: weather-forecast');
-      expect(writes[1].content).toBe('# Forecast reference');
+      expect(skillWrites[0].content).toContain('name: weather-forecast');
+      expect(skillWrites[1].content).toBe('# Forecast reference');
       await session.doDestroy();
     } finally {
       await new Promise<void>(resolve => wss.close(() => resolve()));

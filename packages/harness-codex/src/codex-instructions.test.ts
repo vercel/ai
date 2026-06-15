@@ -290,7 +290,17 @@ describe('codex adapter — skills', () => {
     expect(runCommands).toContain(
       "mkdir -p '/home/vercel-sandbox/.agents/skills'",
     );
-    expect(writes).toEqual([
+    const skillWrites = writes.filter(
+      write => !write.path.endsWith('/bridge-meta.json'),
+    );
+    const bridgeMetaWrite = writes.find(write =>
+      write.path.endsWith('/bridge-meta.json'),
+    );
+    expect(bridgeMetaWrite).toEqual({
+      path: '/wd/.agent-runs/s1/bridge/bridge-meta.json',
+      content: JSON.stringify({ type: 'codex', state: 'starting' }),
+    });
+    expect(skillWrites).toEqual([
       {
         path: '/home/vercel-sandbox/.agents/skills/demo/SKILL.md',
         content:
