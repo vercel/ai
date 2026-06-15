@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 3.0.132
+
+### Patch Changes
+
+- e962dda: Backport: chore(provider/gateway): update gateway model settings files
+
 ## 3.0.131
 
 ### Patch Changes
