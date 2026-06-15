@@ -2,13 +2,36 @@ import type {
   Experimental_RealtimeModelV4ClientEvent as RealtimeModelV4ClientEvent,
   Experimental_RealtimeModelV4ServerEvent as RealtimeModelV4ServerEvent,
   Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
+  Experimental_RealtimeModelV4Usage as RealtimeModelV4Usage,
 } from '@ai-sdk/provider';
+
+type XaiRealtimeTokenDetails = {
+  audio_tokens?: number;
+  text_tokens?: number;
+};
+
+type XaiRealtimeInputTokenDetails = XaiRealtimeTokenDetails & {
+  cached_tokens?: number;
+  cached_tokens_details?: XaiRealtimeTokenDetails;
+};
+
+type XaiRealtimeResponseUsage = {
+  input_token_details?: XaiRealtimeInputTokenDetails;
+  output_token_details?: XaiRealtimeTokenDetails;
+};
+
+type XaiRealtimeTranscriptionUsage = {
+  type?: string;
+  seconds?: number;
+  output_tokens?: number;
+  input_token_details?: XaiRealtimeTokenDetails;
+};
 
 type XaiRealtimeWireEvent = {
   type: string;
   session?: { id?: string };
   item?: { id?: string } & Record<string, unknown>;
-  response?: { id?: string; status?: string };
+  response?: { id?: string; status?: string; usage?: XaiRealtimeResponseUsage };
   error?: { message?: string; code?: string };
   item_id: string;
   previous_item_id?: string;
@@ -21,6 +44,7 @@ type XaiRealtimeWireEvent = {
   arguments: string;
   message?: string;
   code?: string;
+  usage?: XaiRealtimeTranscriptionUsage;
 };
 
 export function parseXaiRealtimeServerEvent(
@@ -73,13 +97,16 @@ export function parseXaiRealtimeServerEvent(
         raw,
       };
 
-    case 'conversation.item.input_audio_transcription.completed':
+    case 'conversation.item.input_audio_transcription.completed': {
+      const usage = mapTranscriptionUsage(event.usage);
       return {
         type: 'input-transcription-completed',
         itemId: event.item_id,
         transcript: event.transcript ?? '',
+        ...(usage != null ? { usage } : {}),
         raw,
       };
+    }
 
     case 'response.created':
       return {
@@ -88,13 +115,16 @@ export function parseXaiRealtimeServerEvent(
         raw,
       };
 
-    case 'response.done':
+    case 'response.done': {
+      const usage = mapResponseUsage(event.response?.usage);
       return {
         type: 'response-done',
         responseId: event.response?.id ?? event.response_id,
         status: event.response?.status ?? 'completed',
+        ...(usage != null ? { usage } : {}),
         raw,
       };
+    }
 
     case 'response.output_item.added':
       return {
@@ -223,6 +253,64 @@ export function parseXaiRealtimeServerEvent(
     default:
       return { type: 'custom', rawType: type, raw };
   }
+}
+
+/**
+ * Maps xAI realtime `response.done` usage to normalized usage. xAI speaks the
+ * OpenAI realtime wire shape, so input buckets are gross (cache-inclusive) with
+ * the cached portion surfaced separately.
+ */
+function mapResponseUsage(
+  usage: XaiRealtimeResponseUsage | undefined,
+): RealtimeModelV4Usage | undefined {
+  if (usage == null) return undefined;
+
+  const input = usage.input_token_details;
+  const output = usage.output_token_details;
+  const cached = input?.cached_tokens_details;
+
+  return compactUsage({
+    inputAudioTokens: input?.audio_tokens,
+    inputTextTokens: input?.text_tokens,
+    outputAudioTokens: output?.audio_tokens,
+    outputTextTokens: output?.text_tokens,
+    cachedInputAudioTokens: cached?.audio_tokens,
+    cachedInputTextTokens: cached?.text_tokens,
+  });
+}
+
+/**
+ * Maps xAI realtime transcription-completed usage to normalized usage.
+ * Duration-billed transcription reports `seconds`; token-billed reports tokens.
+ */
+function mapTranscriptionUsage(
+  usage: XaiRealtimeTranscriptionUsage | undefined,
+): RealtimeModelV4Usage | undefined {
+  if (usage == null) return undefined;
+
+  if (usage.type === 'duration') {
+    return usage.seconds != null ? { audioSeconds: usage.seconds } : undefined;
+  }
+
+  const input = usage.input_token_details;
+  return compactUsage({
+    inputAudioTokens: input?.audio_tokens,
+    inputTextTokens: input?.text_tokens,
+    outputTextTokens: usage.output_tokens,
+  });
+}
+
+/** Drop `undefined` fields; return `undefined` when nothing is observable. */
+function compactUsage(
+  usage: RealtimeModelV4Usage,
+): RealtimeModelV4Usage | undefined {
+  const result: RealtimeModelV4Usage = {};
+  for (const [key, value] of Object.entries(usage)) {
+    if (value != null) {
+      result[key as keyof RealtimeModelV4Usage] = value;
+    }
+  }
+  return Object.keys(result).length > 0 ? result : undefined;
 }
 
 export function serializeXaiRealtimeClientEvent(

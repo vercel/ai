@@ -4,6 +4,7 @@ import type {
   Experimental_RealtimeModelV4FunctionCallOutput as RealtimeModelV4FunctionCallOutput,
   Experimental_RealtimeModelV4ServerEvent as RealtimeModelV4ServerEvent,
   Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
+  Experimental_RealtimeModelV4Usage as RealtimeModelV4Usage,
 } from '@ai-sdk/provider';
 import { safeParseJSON } from '@ai-sdk/provider-utils';
 import { convertJSONSchemaToOpenAPISchema } from '../convert-json-schema-to-openapi-schema';
@@ -28,6 +29,19 @@ type GoogleRealtimeServerContent = {
   turnComplete?: boolean;
 };
 
+type GoogleRealtimeTokenDetail = {
+  modality?: string;
+  tokenCount?: number;
+};
+
+type GoogleRealtimeUsageMetadata = {
+  promptTokenCount?: number;
+  responseTokenCount?: number;
+  totalTokenCount?: number;
+  promptTokensDetails?: GoogleRealtimeTokenDetail[];
+  responseTokensDetails?: GoogleRealtimeTokenDetail[];
+};
+
 type GoogleRealtimeWireEvent = {
   setupComplete?: unknown;
   toolCall?: {
@@ -36,6 +50,7 @@ type GoogleRealtimeWireEvent = {
   toolCallCancellation?: unknown;
   serverContent?: GoogleRealtimeServerContent;
   inputTranscription?: { text?: string };
+  usageMetadata?: GoogleRealtimeUsageMetadata;
 };
 
 /**
@@ -123,7 +138,11 @@ export class GoogleRealtimeEventMapper {
     }
 
     if (data.serverContent != null) {
-      return this.parseServerContent(data.serverContent, raw);
+      return this.parseServerContent(
+        data.serverContent,
+        raw,
+        data.usageMetadata,
+      );
     }
 
     if (data.inputTranscription?.text != null) {
@@ -141,6 +160,7 @@ export class GoogleRealtimeEventMapper {
   private parseServerContent(
     serverContent: GoogleRealtimeServerContent,
     raw: unknown,
+    usageMetadata?: GoogleRealtimeUsageMetadata,
   ): RealtimeModelV4ServerEvent | RealtimeModelV4ServerEvent[] {
     const events: RealtimeModelV4ServerEvent[] = [];
 
@@ -223,10 +243,12 @@ export class GoogleRealtimeEventMapper {
           raw,
         });
       }
+      const usage = mapGoogleUsage(usageMetadata);
       events.push({
         type: 'response-done',
         responseId: this.responseId,
         status: 'completed',
+        ...(usage != null ? { usage } : {}),
         raw,
       });
       // Mark the turn closed but defer advancing the counter until the next
@@ -294,6 +316,65 @@ export class GoogleRealtimeEventMapper {
 
     return null;
   }
+}
+
+/**
+ * Maps Gemini Live `usageMetadata` to normalized usage. Google reports usage
+ * per modality in `promptTokensDetails` / `responseTokensDetails`; when those
+ * are absent we fall back to the aggregate token counts as text tokens.
+ */
+function mapGoogleUsage(
+  usageMetadata: GoogleRealtimeUsageMetadata | undefined,
+): RealtimeModelV4Usage | undefined {
+  if (usageMetadata == null) return undefined;
+
+  const input = sumByModality(usageMetadata.promptTokensDetails);
+  const output = sumByModality(usageMetadata.responseTokensDetails);
+
+  return compactUsage({
+    inputTextTokens:
+      usageMetadata.promptTokensDetails != null
+        ? input.text
+        : usageMetadata.promptTokenCount,
+    inputAudioTokens: input.audio,
+    outputTextTokens:
+      usageMetadata.responseTokensDetails != null
+        ? output.text
+        : usageMetadata.responseTokenCount,
+    outputAudioTokens: output.audio,
+  });
+}
+
+/** Aggregate Gemini per-modality token details into text/audio buckets. */
+function sumByModality(details: GoogleRealtimeTokenDetail[] | undefined): {
+  text?: number;
+  audio?: number;
+} {
+  if (details == null) return {};
+  const totals: { text?: number; audio?: number } = {};
+  for (const detail of details) {
+    const count = detail.tokenCount ?? 0;
+    const modality = detail.modality?.toUpperCase();
+    if (modality === 'AUDIO') {
+      totals.audio = (totals.audio ?? 0) + count;
+    } else if (modality === 'TEXT') {
+      totals.text = (totals.text ?? 0) + count;
+    }
+  }
+  return totals;
+}
+
+/** Drop `undefined` fields; return `undefined` when nothing is observable. */
+function compactUsage(
+  usage: RealtimeModelV4Usage,
+): RealtimeModelV4Usage | undefined {
+  const result: RealtimeModelV4Usage = {};
+  for (const [key, value] of Object.entries(usage)) {
+    if (value != null) {
+      result[key as keyof RealtimeModelV4Usage] = value;
+    }
+  }
+  return Object.keys(result).length > 0 ? result : undefined;
 }
 
 async function serializeFunctionCallOutput(

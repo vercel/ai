@@ -3,6 +3,7 @@ import type {
   Experimental_RealtimeModelV4ClientEvent as RealtimeModelV4ClientEvent,
   Experimental_RealtimeModelV4ClientSecretOptions as RealtimeModelV4ClientSecretOptions,
   Experimental_RealtimeModelV4ClientSecretResult as RealtimeModelV4ClientSecretResult,
+  Experimental_RealtimeModelV4ServerConnection as RealtimeModelV4ServerConnection,
   Experimental_RealtimeModelV4ServerEvent as RealtimeModelV4ServerEvent,
   Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
 } from '@ai-sdk/provider';
@@ -85,6 +86,17 @@ export class XaiRealtimeModel implements RealtimeModelV4 {
     };
   }
 
+  getServerConnection(): RealtimeModelV4ServerConnection {
+    // xAI exposes only the conversational voice endpoint, so `intent` is
+    // ignored. The model is selected via the `model` query parameter; without
+    // it the server silently falls back to its default voice model.
+    const url = new URL(this.config.baseURL);
+    return {
+      url: `wss://${url.host}${url.pathname.replace(/\/$/, '')}/realtime?model=${encodeURIComponent(this.modelId)}`,
+      headers: definedHeaders(this.config.headers()),
+    };
+  }
+
   parseServerEvent(raw: unknown): RealtimeModelV4ServerEvent {
     return parseXaiRealtimeServerEvent(raw);
   }
@@ -98,4 +110,17 @@ export class XaiRealtimeModel implements RealtimeModelV4 {
   ): Record<string, unknown> {
     return buildXaiSessionConfig(config);
   }
+}
+
+/** Drop headers with `undefined` values so the result is a `Record<string, string>`. */
+function definedHeaders(
+  headers: Record<string, string | undefined>,
+): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const [key, value] of Object.entries(headers)) {
+    if (value != null) {
+      result[key] = value;
+    }
+  }
+  return result;
 }

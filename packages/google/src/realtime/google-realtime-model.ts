@@ -3,6 +3,7 @@ import type {
   Experimental_RealtimeModelV4ClientEvent as RealtimeModelV4ClientEvent,
   Experimental_RealtimeModelV4ClientSecretOptions as RealtimeModelV4ClientSecretOptions,
   Experimental_RealtimeModelV4ClientSecretResult as RealtimeModelV4ClientSecretResult,
+  Experimental_RealtimeModelV4ServerConnection as RealtimeModelV4ServerConnection,
   Experimental_RealtimeModelV4ServerEvent as RealtimeModelV4ServerEvent,
   Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
 } from '@ai-sdk/provider';
@@ -14,6 +15,13 @@ import {
 
 const realtimeWebSocketPath =
   'google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained';
+
+// Server-side connections use the unconstrained Bidi endpoint: a trusted server
+// holds the API key and sends the session `setup` over the socket, rather than
+// baking it into an ephemeral token at mint time (which the constrained
+// endpoint requires).
+const realtimeServerWebSocketPath =
+  'google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent';
 
 function getRealtimeBaseURL(baseURL: string): URL {
   const url = new URL(baseURL);
@@ -39,6 +47,26 @@ function getWebSocketURL(baseURL: string): string {
   url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
   url.pathname = `${url.pathname.replace(/\/$/, '')}/ws/${realtimeWebSocketPath}`;
   return url.toString();
+}
+
+function getServerWebSocketURL(baseURL: string): string {
+  const url = getRealtimeBaseURL(baseURL);
+  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+  url.pathname = `${url.pathname.replace(/\/$/, '')}/ws/${realtimeServerWebSocketPath}`;
+  return url.toString();
+}
+
+/** Drop headers with `undefined` values so the result is a `Record<string, string>`. */
+function definedHeaders(
+  headers: Record<string, string | undefined>,
+): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const [key, value] of Object.entries(headers)) {
+    if (value != null) {
+      result[key] = value;
+    }
+  }
+  return result;
 }
 
 export type GoogleRealtimeModelConfig = {
@@ -137,6 +165,17 @@ export class GoogleRealtimeModel implements RealtimeModelV4 {
   } {
     return {
       url: `${options.url}?access_token=${encodeURIComponent(options.token)}`,
+    };
+  }
+
+  getServerConnection(): RealtimeModelV4ServerConnection {
+    // A trusted server connects to the unconstrained Bidi endpoint with the
+    // long-lived API key in headers (`x-goog-api-key`) and sends the session
+    // `setup` over the socket. `intent` is ignored — Gemini Live exposes only
+    // the conversational endpoint.
+    return {
+      url: getServerWebSocketURL(this.config.baseURL),
+      headers: definedHeaders(this.config.headers()),
     };
   }
 

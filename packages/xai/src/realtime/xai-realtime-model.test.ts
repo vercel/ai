@@ -29,6 +29,17 @@ describe('XaiRealtimeModel', () => {
     });
   });
 
+  describe('getServerConnection', () => {
+    it('builds the voice URL with the model query param and forwards headers', () => {
+      const connection = createModel().getServerConnection();
+
+      expect(connection.url).toBe(
+        'wss://api.x.ai/v1/realtime?model=grok-voice-latest',
+      );
+      expect(connection.headers).toEqual({ authorization: 'Bearer test-key' });
+    });
+  });
+
   describe('serializeClientEvent', () => {
     it('drops conversation-item-truncate (unsupported over WebSocket)', () => {
       const result = createModel().serializeClientEvent({

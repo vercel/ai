@@ -2,13 +2,40 @@ import type {
   Experimental_RealtimeModelV4ClientEvent as RealtimeModelV4ClientEvent,
   Experimental_RealtimeModelV4ServerEvent as RealtimeModelV4ServerEvent,
   Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
+  Experimental_RealtimeModelV4Usage as RealtimeModelV4Usage,
 } from '@ai-sdk/provider';
+
+type OpenAIRealtimeTokenDetails = {
+  audio_tokens?: number;
+  text_tokens?: number;
+};
+
+type OpenAIRealtimeInputTokenDetails = OpenAIRealtimeTokenDetails & {
+  cached_tokens?: number;
+  cached_tokens_details?: OpenAIRealtimeTokenDetails;
+};
+
+type OpenAIRealtimeResponseUsage = {
+  input_token_details?: OpenAIRealtimeInputTokenDetails;
+  output_token_details?: OpenAIRealtimeTokenDetails;
+};
+
+type OpenAIRealtimeTranscriptionUsage = {
+  type?: string;
+  seconds?: number;
+  output_tokens?: number;
+  input_token_details?: OpenAIRealtimeTokenDetails;
+};
 
 type OpenAIRealtimeWireEvent = {
   type: string;
   session?: { id?: string };
   item?: { id?: string } & Record<string, unknown>;
-  response?: { id?: string; status?: string };
+  response?: {
+    id?: string;
+    status?: string;
+    usage?: OpenAIRealtimeResponseUsage;
+  };
   error?: { message?: string; code?: string };
   item_id: string;
   previous_item_id?: string;
@@ -21,6 +48,7 @@ type OpenAIRealtimeWireEvent = {
   arguments: string;
   message?: string;
   code?: string;
+  usage?: OpenAIRealtimeTranscriptionUsage;
 };
 
 /**
@@ -76,13 +104,16 @@ export function parseOpenAIRealtimeServerEvent(
         raw,
       };
 
-    case 'conversation.item.input_audio_transcription.completed':
+    case 'conversation.item.input_audio_transcription.completed': {
+      const usage = mapTranscriptionUsage(event.usage);
       return {
         type: 'input-transcription-completed',
         itemId: event.item_id,
         transcript: event.transcript ?? '',
+        ...(usage != null ? { usage } : {}),
         raw,
       };
+    }
 
     // ── Response lifecycle ──────────────────────────────────────────
     case 'response.created':
@@ -92,13 +123,16 @@ export function parseOpenAIRealtimeServerEvent(
         raw,
       };
 
-    case 'response.done':
+    case 'response.done': {
+      const usage = mapResponseUsage(event.response?.usage);
       return {
         type: 'response-done',
         responseId: event.response?.id ?? event.response_id,
         status: event.response?.status ?? 'completed',
+        ...(usage != null ? { usage } : {}),
         raw,
       };
+    }
 
     // ── Output item lifecycle ───────────────────────────────────────
     case 'response.output_item.added':
@@ -224,6 +258,66 @@ export function parseOpenAIRealtimeServerEvent(
     default:
       return { type: 'custom', rawType: type, raw };
   }
+}
+
+/**
+ * Maps OpenAI realtime `response.done` usage to normalized usage.
+ *
+ * Input buckets are reported gross (cache-inclusive) with the cached portion
+ * surfaced separately, so consumers can apply their own cached-vs-uncached
+ * billing split without re-reading `raw`.
+ */
+function mapResponseUsage(
+  usage: OpenAIRealtimeResponseUsage | undefined,
+): RealtimeModelV4Usage | undefined {
+  if (usage == null) return undefined;
+
+  const input = usage.input_token_details;
+  const output = usage.output_token_details;
+  const cached = input?.cached_tokens_details;
+
+  return compactUsage({
+    inputAudioTokens: input?.audio_tokens,
+    inputTextTokens: input?.text_tokens,
+    outputAudioTokens: output?.audio_tokens,
+    outputTextTokens: output?.text_tokens,
+    cachedInputAudioTokens: cached?.audio_tokens,
+    cachedInputTextTokens: cached?.text_tokens,
+  });
+}
+
+/**
+ * Maps OpenAI realtime transcription-completed usage to normalized usage.
+ * Duration-billed transcription reports `seconds`; token-billed reports tokens.
+ */
+function mapTranscriptionUsage(
+  usage: OpenAIRealtimeTranscriptionUsage | undefined,
+): RealtimeModelV4Usage | undefined {
+  if (usage == null) return undefined;
+
+  if (usage.type === 'duration') {
+    return usage.seconds != null ? { audioSeconds: usage.seconds } : undefined;
+  }
+
+  const input = usage.input_token_details;
+  return compactUsage({
+    inputAudioTokens: input?.audio_tokens,
+    inputTextTokens: input?.text_tokens,
+    outputTextTokens: usage.output_tokens,
+  });
+}
+
+/** Drop `undefined` fields; return `undefined` when nothing is observable. */
+function compactUsage(
+  usage: RealtimeModelV4Usage,
+): RealtimeModelV4Usage | undefined {
+  const result: RealtimeModelV4Usage = {};
+  for (const [key, value] of Object.entries(usage)) {
+    if (value != null) {
+      result[key as keyof RealtimeModelV4Usage] = value;
+    }
+  }
+  return Object.keys(result).length > 0 ? result : undefined;
 }
 
 /**

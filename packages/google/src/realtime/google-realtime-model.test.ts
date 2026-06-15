@@ -182,6 +182,27 @@ describe('GoogleRealtimeModel', () => {
     });
   });
 
+  describe('getServerConnection', () => {
+    it('connects to the unconstrained Bidi endpoint with the API key header', () => {
+      const model = new GoogleRealtimeModel('gemini-2.0-flash-live-001', {
+        provider: 'google.realtime',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: () => ({
+          'x-goog-api-key': 'test-key',
+          'x-undefined': undefined,
+        }),
+      });
+
+      const connection = model.getServerConnection();
+
+      expect(connection.url).toBe(
+        'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent',
+      );
+      expect(connection.headers).toEqual({ 'x-goog-api-key': 'test-key' });
+      expect(connection.protocols).toBeUndefined();
+    });
+  });
+
   describe('getWebSocketConfig', () => {
     it('returns URL with access_token query param', () => {
       const model = new GoogleRealtimeModel('gemini-2.0-flash-live-001', {

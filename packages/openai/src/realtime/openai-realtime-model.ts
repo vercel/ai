@@ -3,8 +3,10 @@ import type {
   Experimental_RealtimeModelV4ClientEvent as RealtimeModelV4ClientEvent,
   Experimental_RealtimeModelV4ClientSecretOptions as RealtimeModelV4ClientSecretOptions,
   Experimental_RealtimeModelV4ClientSecretResult as RealtimeModelV4ClientSecretResult,
+  Experimental_RealtimeModelV4ServerConnection as RealtimeModelV4ServerConnection,
   Experimental_RealtimeModelV4ServerEvent as RealtimeModelV4ServerEvent,
   Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
+  Experimental_RealtimeModelV4SessionIntent as RealtimeModelV4SessionIntent,
 } from '@ai-sdk/provider';
 import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {
@@ -95,6 +97,19 @@ export class OpenAIRealtimeModel implements RealtimeModelV4 {
     };
   }
 
+  getServerConnection(options?: {
+    intent?: RealtimeModelV4SessionIntent;
+  }): RealtimeModelV4ServerConnection {
+    return {
+      url: buildServerUrl(
+        this.config.baseURL,
+        this.modelId,
+        options?.intent ?? 'conversation',
+      ),
+      headers: definedHeaders(this.config.headers()),
+    };
+  }
+
   parseServerEvent(raw: unknown): RealtimeModelV4ServerEvent {
     return parseOpenAIRealtimeServerEvent(raw);
   }
@@ -108,4 +123,45 @@ export class OpenAIRealtimeModel implements RealtimeModelV4 {
   ): Record<string, unknown> {
     return buildOpenAISessionConfig(config, this.modelId);
   }
+}
+
+/**
+ * Builds the upstream realtime WebSocket URL for a server-initiated connection.
+ *
+ * The OpenAI realtime endpoint varies by intent:
+ *  - conversation:  `/realtime?model=<id>`
+ *  - transcription: `/realtime?intent=transcription` (no model; the
+ *      transcription model is set in the client's `session.update` — a `?model=`
+ *      here would open a voice session instead)
+ *  - translation:   `/realtime/translations?model=<id>`
+ */
+function buildServerUrl(
+  baseURL: string,
+  modelId: string,
+  intent: RealtimeModelV4SessionIntent,
+): string {
+  const url = new URL(baseURL);
+  const base = `wss://${url.host}${url.pathname.replace(/\/$/, '')}`;
+
+  switch (intent) {
+    case 'transcription':
+      return `${base}/realtime?intent=transcription`;
+    case 'translation':
+      return `${base}/realtime/translations?model=${encodeURIComponent(modelId)}`;
+    default:
+      return `${base}/realtime?model=${encodeURIComponent(modelId)}`;
+  }
+}
+
+/** Drop headers with `undefined` values so the result is a `Record<string, string>`. */
+function definedHeaders(
+  headers: Record<string, string | undefined>,
+): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const [key, value] of Object.entries(headers)) {
+    if (value != null) {
+      result[key] = value;
+    }
+  }
+  return result;
 }

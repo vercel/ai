@@ -43,4 +43,41 @@ describe('OpenAIRealtimeModel', () => {
       });
     });
   });
+
+  describe('getServerConnection', () => {
+    const model = new OpenAIRealtimeModel('gpt-realtime', {
+      provider: 'openai.realtime',
+      baseURL: 'https://api.openai.com/v1',
+      headers: () => ({
+        authorization: 'Bearer test-key',
+        'OpenAI-Beta': 'realtime=v1',
+        'x-undefined': undefined,
+      }),
+    });
+
+    it('builds the conversation URL and forwards defined headers', () => {
+      const connection = model.getServerConnection();
+
+      expect(connection.url).toBe(
+        'wss://api.openai.com/v1/realtime?model=gpt-realtime',
+      );
+      // Undefined header values are dropped.
+      expect(connection.headers).toEqual({
+        authorization: 'Bearer test-key',
+        'OpenAI-Beta': 'realtime=v1',
+      });
+    });
+
+    it('builds the transcription URL (model goes in session.update)', () => {
+      expect(model.getServerConnection({ intent: 'transcription' }).url).toBe(
+        'wss://api.openai.com/v1/realtime?intent=transcription',
+      );
+    });
+
+    it('builds the translation URL with the model query param', () => {
+      expect(model.getServerConnection({ intent: 'translation' }).url).toBe(
+        'wss://api.openai.com/v1/realtime/translations?model=gpt-realtime',
+      );
+    });
+  });
 });

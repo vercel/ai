@@ -702,3 +702,55 @@ describe('buildGoogleSessionConfig', () => {
     expect(result.model).toBe('models/gemini-2.0-flash');
   });
 });
+
+describe('GoogleRealtimeEventMapper usage', () => {
+  it('attaches per-modality usage to response-done on turnComplete', () => {
+    const mapper = new GoogleRealtimeEventMapper();
+    const events = mapper.parseServerEvent({
+      serverContent: { turnComplete: true },
+      usageMetadata: {
+        promptTokenCount: 60,
+        responseTokenCount: 200,
+        promptTokensDetails: [
+          { modality: 'AUDIO', tokenCount: 50 },
+          { modality: 'TEXT', tokenCount: 10 },
+        ],
+        responseTokensDetails: [{ modality: 'AUDIO', tokenCount: 200 }],
+      },
+    });
+
+    const list = Array.isArray(events) ? events : [events];
+    const done = list.find(e => e.type === 'response-done');
+    expect(done?.type === 'response-done' && done.usage).toEqual({
+      inputAudioTokens: 50,
+      inputTextTokens: 10,
+      outputAudioTokens: 200,
+    });
+  });
+
+  it('falls back to aggregate counts as text when modality details are absent', () => {
+    const mapper = new GoogleRealtimeEventMapper();
+    const events = mapper.parseServerEvent({
+      serverContent: { turnComplete: true },
+      usageMetadata: { promptTokenCount: 12, responseTokenCount: 34 },
+    });
+
+    const list = Array.isArray(events) ? events : [events];
+    const done = list.find(e => e.type === 'response-done');
+    expect(done?.type === 'response-done' && done.usage).toEqual({
+      inputTextTokens: 12,
+      outputTextTokens: 34,
+    });
+  });
+
+  it('omits usage when no usageMetadata is present', () => {
+    const mapper = new GoogleRealtimeEventMapper();
+    const events = mapper.parseServerEvent({
+      serverContent: { turnComplete: true },
+    });
+
+    const list = Array.isArray(events) ? events : [events];
+    const done = list.find(e => e.type === 'response-done');
+    expect(done?.type === 'response-done' && done.usage).toBeUndefined();
+  });
+});
