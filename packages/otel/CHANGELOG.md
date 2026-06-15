@@ -1,5 +1,12 @@
 # @ai-sdk/otel
 
+## 1.0.0-beta.124
+
+### Patch Changes
+
+- Updated dependencies [b097c52]
+  - ai@7.0.0-beta.178
+
 ## 1.0.0-beta.123
 
 ### Patch Changes

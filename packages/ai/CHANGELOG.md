@@ -1,5 +1,13 @@
 # ai
 
+## 7.0.0-beta.178
+
+### Patch Changes
+
+- b097c52: feat(ai): use tracing channels to track parent-child context
+- Updated dependencies [15eb253]
+  - @ai-sdk/gateway@4.0.0-beta.109
+
 ## 7.0.0-beta.177
 
 ### Patch Changes
