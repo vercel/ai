@@ -1,0 +1,143 @@
+---
+title: Dynamic Feed
+description: Live, verifiable data tools for AI agents via MCP
+---
+
+# Dynamic Feed
+
+[Dynamic Feed](https://dynamicfeed.ai) is a live-data tool layer for AI agents. It exposes **87 tools across 19 verticals** — weather, natural hazards, CVEs, space/orbital, sanctions, macro-economics, shipping, DNS, and more — via a keyless remote [MCP](https://dynamicfeed.ai/mcp) endpoint and a REST batch API.
+
+Every response carries a provenance envelope (`source`, `licence`, `measured_at`, `age_seconds`) and is Ed25519-signed. The signature is tamper-evidence and proof-of-existence; the public key is published at `https://dynamicfeed.ai/.well-known/keys` so you can verify offline.
+
+The endpoint is **keyless** — no API key or sign-up needed to start.
+
+## Setup
+
+The AI SDK connects to Dynamic Feed via `createMCPClient` from `@ai-sdk/mcp`. No additional package install is required.
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/mcp ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/mcp ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/mcp ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @ai-sdk/mcp ai" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+Create a client pointed at the Dynamic Feed MCP endpoint:
+
+```ts
+import { createMCPClient } from '@ai-sdk/mcp';
+
+const dynamicFeed = await createMCPClient({
+  transport: {
+    type: 'http',
+    url: 'https://dynamicfeed.ai/mcp',
+  },
+});
+```
+
+## Examples
+
+### `generateText` with live data tools
+
+```ts
+import { createMCPClient } from '@ai-sdk/mcp';
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const dynamicFeed = await createMCPClient({
+  transport: { type: 'http', url: 'https://dynamicfeed.ai/mcp' },
+});
+
+const tools = await dynamicFeed.tools();
+
+const { text } = await generateText({
+  model: openai('gpt-4o'),
+  tools,
+  prompt: 'Any earthquakes above magnitude 5 in the last 24 hours?',
+});
+
+console.log(text);
+await dynamicFeed.close();
+```
+
+### `streamText` with hazard awareness
+
+```ts
+import { createMCPClient } from '@ai-sdk/mcp';
+import { streamText } from 'ai';
+import { anthropic } from '@ai-sdk/anthropic';
+
+const dynamicFeed = await createMCPClient({
+  transport: { type: 'http', url: 'https://dynamicfeed.ai/mcp' },
+});
+
+const tools = await dynamicFeed.tools();
+
+const result = streamText({
+  model: anthropic('claude-sonnet-4-5'),
+  tools,
+  prompt: 'What active hazards are near Sydney, Australia right now?',
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+
+await dynamicFeed.close();
+```
+
+### Verifying a signed response
+
+All Dynamic Feed responses include a `signature` field. You can verify it against the published Ed25519 public key:
+
+```ts
+import { createMCPClient } from '@ai-sdk/mcp';
+import { generateObject } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
+
+const dynamicFeed = await createMCPClient({
+  transport: { type: 'http', url: 'https://dynamicfeed.ai/mcp' },
+});
+
+const tools = await dynamicFeed.tools();
+
+// Call the reality_check tool to fact-check a claim against live data
+const { object } = await generateObject({
+  model: openai('gpt-4o'),
+  tools,
+  schema: z.object({ verdict: z.string(), source: z.string() }),
+  prompt: 'Fact-check this claim and return a verdict: "The latest Python release is 3.12"',
+});
+
+console.log(object);
+await dynamicFeed.close();
+```
+
+## Features
+
+- **87 keyless tools** — no API key to call the MCP endpoint
+- **Provenance envelope** on every datapoint: `source`, `licence`, `measured_at`, `age_seconds`
+- **Ed25519 signatures** — tamper-evidence; verify offline with the public key at `https://dynamicfeed.ai/.well-known/keys`
+- **19 verticals**: weather, hazards, CVEs/security, space/orbital, sanctions, macro, shipping, transit, DNS, and more
+- **Streamable HTTP transport** — compatible with the AI SDK's `createMCPClient`
+
+## Additional Resources
+
+- [Dynamic Feed MCP endpoint](https://dynamicfeed.ai/mcp)
+- [Tool catalog](https://dynamicfeed.ai/tools)
+- [Source catalog & licences](https://dynamicfeed.ai/sources)
+- [Signing key & verification](https://dynamicfeed.ai/.well-known/keys)
+- [Python adapters (LangChain, CrewAI, LlamaIndex, Pydantic AI)](https://pypi.org/project/dynamicfeed-tools/)
+- [npm MCP runner](https://www.npmjs.com/package/dynamicfeed-mcp)
+- License: MIT (client) — data licences declared per-source in the source catalog
