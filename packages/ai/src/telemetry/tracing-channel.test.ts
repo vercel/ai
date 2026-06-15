@@ -4,16 +4,24 @@ import { tool } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
+import { embed } from '../embed/embed';
 import { generateText } from '../generate-text';
 import { streamText } from '../generate-text/stream-text';
 import { isStepCount } from '../generate-text/stop-condition';
+import { rerank } from '../rerank/rerank';
+import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
+import { MockRerankingModelV4 } from '../test/mock-reranking-model-v4';
 import { createTelemetryDispatcher } from './create-telemetry-dispatcher';
 import {
   AI_SDK_TELEMETRY_TRACING_CHANNEL,
   type TelemetryTracingChannelMessage,
 } from './tracing-channel';
 import { isNodeRuntime } from '../util/is-node-runtime';
+
+type TelemetryTracingChannelAsyncEndMessage = TelemetryTracingChannelMessage & {
+  result?: unknown;
+};
 
 async function collectTracingChannelStartMessages(
   run: () => Promise<void>,
@@ -89,6 +97,35 @@ async function collectTracingChannelEventSequence(
   }
 
   return events;
+}
+
+async function collectTracingChannelAsyncEndMessages(
+  run: () => Promise<void>,
+): Promise<TelemetryTracingChannelAsyncEndMessage[]> {
+  const messages: TelemetryTracingChannelAsyncEndMessage[] = [];
+
+  const tracingChannel = diagnosticsChannel.tracingChannel(
+    AI_SDK_TELEMETRY_TRACING_CHANNEL,
+  );
+  const subscribers = {
+    start() {},
+    end() {},
+    asyncStart() {},
+    asyncEnd(message: unknown) {
+      messages.push(message as TelemetryTracingChannelAsyncEndMessage);
+    },
+    error() {},
+  };
+
+  tracingChannel.subscribe(subscribers);
+
+  try {
+    await run();
+  } finally {
+    tracingChannel.unsubscribe(subscribers);
+  }
+
+  return messages;
 }
 
 async function collectTracingChannelParentage(
@@ -519,6 +556,137 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
         "asyncEnd streamText",
       ]
     `);
+  });
+
+  it('traces the current embed lifecycle sequence', async () => {
+    const sequence = await collectTracingChannelEventSequence(async () => {
+      await embed({
+        model: new MockEmbeddingModelV4({
+          doEmbed: async () => ({
+            embeddings: [[0.1, 0.2, 0.3]],
+            usage: { tokens: 10 },
+            warnings: [],
+          }),
+        }),
+        value: 'sunny day at the beach',
+        telemetry: {
+          functionId: 'tracing-channel-embed-test',
+        },
+      });
+    });
+
+    expect(sequence).toMatchInlineSnapshot(`
+      [
+        "bindStart embed",
+        "asyncEnd embed",
+      ]
+    `);
+  });
+
+  it('traces the current rerank lifecycle sequence', async () => {
+    const sequence = await collectTracingChannelEventSequence(async () => {
+      await rerank({
+        model: new MockRerankingModelV4({
+          doRerank: async () => ({
+            ranking: [
+              { index: 2, relevanceScore: 0.9 },
+              { index: 0, relevanceScore: 0.8 },
+            ],
+            warnings: [],
+          }),
+        }),
+        documents: [
+          'sunny day at the beach',
+          'rainy day in the city',
+          'cloudy day in the mountains',
+        ],
+        query: 'weather',
+        telemetry: {
+          functionId: 'tracing-channel-rerank-test',
+        },
+      });
+    });
+
+    expect(sequence).toMatchInlineSnapshot(`
+      [
+        "bindStart rerank",
+        "asyncEnd rerank",
+      ]
+    `);
+  });
+
+  it('publishes the embed result on asyncEnd', async () => {
+    const messages = await collectTracingChannelAsyncEndMessages(async () => {
+      await embed({
+        model: new MockEmbeddingModelV4({
+          doEmbed: async () => ({
+            embeddings: [[0.1, 0.2, 0.3]],
+            usage: { tokens: 10 },
+            warnings: [],
+          }),
+        }),
+        value: 'sunny day at the beach',
+        telemetry: {
+          functionId: 'tracing-channel-embed-result-test',
+        },
+      });
+    });
+
+    const embedMessage = messages.find(message => message.type === 'embed');
+
+    expect(embedMessage?.result).toMatchObject({
+      value: 'sunny day at the beach',
+      embedding: [0.1, 0.2, 0.3],
+      usage: { tokens: 10 },
+      warnings: [],
+    });
+  });
+
+  it('publishes the rerank result on asyncEnd', async () => {
+    const messages = await collectTracingChannelAsyncEndMessages(async () => {
+      await rerank({
+        model: new MockRerankingModelV4({
+          doRerank: async () => ({
+            ranking: [
+              { index: 2, relevanceScore: 0.9 },
+              { index: 0, relevanceScore: 0.8 },
+            ],
+            warnings: [],
+          }),
+        }),
+        documents: [
+          'sunny day at the beach',
+          'rainy day in the city',
+          'cloudy day in the mountains',
+        ],
+        query: 'weather',
+        telemetry: {
+          functionId: 'tracing-channel-rerank-result-test',
+        },
+      });
+    });
+
+    const rerankMessage = messages.find(message => message.type === 'rerank');
+
+    expect(rerankMessage?.result).toMatchObject({
+      originalDocuments: [
+        'sunny day at the beach',
+        'rainy day in the city',
+        'cloudy day in the mountains',
+      ],
+      ranking: [
+        {
+          originalIndex: 2,
+          score: 0.9,
+          document: 'cloudy day in the mountains',
+        },
+        {
+          originalIndex: 0,
+          score: 0.8,
+          document: 'sunny day at the beach',
+        },
+      ],
+    });
   });
 
   it('preserves streamText tracing-channel parentage with a tool call', async () => {
