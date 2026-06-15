@@ -11,6 +11,7 @@ import type {
   HarnessV1StreamPart,
 } from '../v1';
 import { tool } from '@ai-sdk/provider-utils';
+import { NoObjectGeneratedError, Output } from 'ai';
 import { describe, expect, test, vi } from 'vitest';
 import { z } from 'zod';
 import { HarnessAgent } from './harness-agent';
@@ -40,6 +41,7 @@ function mockHarness(options: {
 }): {
   harness: HarnessV1;
   prompts: HarnessV1PromptTurnOptions['prompt'][];
+  outputSchemas: HarnessV1PromptTurnOptions['outputSchema'][];
   toolResults: { toolCallId: string; output: unknown }[];
   doStart: ReturnType<typeof vi.fn>;
   doDetach: ReturnType<typeof vi.fn>;
@@ -50,6 +52,7 @@ function mockHarness(options: {
   doCompact: ReturnType<typeof vi.fn>;
 } {
   const prompts: HarnessV1PromptTurnOptions['prompt'][] = [];
+  const outputSchemas: HarnessV1PromptTurnOptions['outputSchema'][] = [];
   const toolResults: { toolCallId: string; output: unknown }[] = [];
   const resumeState = {
     type: 'resume-session' as const,
@@ -69,6 +72,7 @@ function mockHarness(options: {
   const doDetach = vi.fn(async () => resumeState);
   const doSuspendTurn = vi.fn(async () => continueState);
   const doContinueTurn = vi.fn(async (opts: HarnessV1ContinueTurnOptions) => {
+    outputSchemas.push(opts.outputSchema);
     const control: HarnessV1PromptControl = {
       submitToolResult: async input => {
         toolResults.push(input);
@@ -92,6 +96,7 @@ function mockHarness(options: {
     isResume: false,
     doPromptTurn: async (opts: HarnessV1PromptTurnOptions) => {
       prompts.push(opts.prompt);
+      outputSchemas.push(opts.outputSchema);
       const control: HarnessV1PromptControl = {
         submitToolResult: async input => {
           toolResults.push(input);
@@ -123,6 +128,7 @@ function mockHarness(options: {
       doStart,
     },
     prompts,
+    outputSchemas,
     toolResults,
     doStart,
     doDetach,
@@ -1295,5 +1301,293 @@ describe('HarnessAgent', () => {
     await expect(
       agent.generate({ session, prompt: 'after stop' }),
     ).rejects.toThrow(/has ended/);
+  });
+});
+
+describe('HarnessAgent structured output', () => {
+  const zeroUsage = {
+    inputTokens: {
+      total: undefined,
+      noCache: undefined,
+      cacheRead: undefined,
+      cacheWrite: undefined,
+    },
+    outputTokens: { total: undefined, text: undefined, reasoning: undefined },
+  };
+
+  // A text-only turn whose single assistant text part is exactly `text` — the
+  // shape both runtimes converge on for structured output (Codex's final
+  // message, Claude's normalized `structured_output`).
+  function finalTextScript(text: string): HarnessV1StreamPart[] {
+    return [
+      { type: 'stream-start' },
+      { type: 'text-start', id: 't1' },
+      { type: 'text-delta', id: 't1', delta: text },
+      { type: 'text-end', id: 't1' },
+      {
+        type: 'finish-step',
+        finishReason: { unified: 'stop', raw: 'end_turn' },
+        usage: zeroUsage,
+      },
+      {
+        type: 'finish',
+        finishReason: { unified: 'stop', raw: 'end_turn' },
+        totalUsage: zeroUsage,
+      },
+    ];
+  }
+
+  const objectSchema = z.object({
+    sentiment: z.enum(['positive', 'negative']),
+    score: z.number(),
+  });
+
+  test('generate() returns a typed, validated result.output and forwards the schema down', async () => {
+    const { harness, outputSchemas } = mockHarness({
+      script: () =>
+        finalTextScript(JSON.stringify({ sentiment: 'positive', score: 0.92 })),
+    });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+    const session = await agent.createSession();
+
+    const result = await agent.generate({
+      session,
+      prompt: 'classify',
+      output: Output.object({ schema: objectSchema }),
+    });
+
+    expect(result.output).toEqual({ sentiment: 'positive', score: 0.92 });
+    // Schema is enforced down-path: the bare JSON Schema reaches the adapter.
+    expect(outputSchemas).toHaveLength(1);
+    expect(outputSchemas[0]).toMatchObject({ type: 'object' });
+
+    await session.destroy();
+  });
+
+  test('stream() partialOutputStream / experimental_partialOutputStream emit the object once (terminal-only)', async () => {
+    const { harness } = mockHarness({
+      script: () =>
+        finalTextScript(JSON.stringify({ sentiment: 'negative', score: 0.1 })),
+    });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+    const session = await agent.createSession();
+
+    const result = await agent.stream({
+      session,
+      prompt: 'classify',
+      output: Output.object({ schema: objectSchema }),
+    });
+
+    const partials: unknown[] = [];
+    for await (const partial of result.partialOutputStream) {
+      partials.push(partial);
+    }
+    expect(partials).toEqual([{ sentiment: 'negative', score: 0.1 }]);
+    expect(await result.output).toEqual({ sentiment: 'negative', score: 0.1 });
+
+    await session.destroy();
+  });
+
+  test('stream() experimental_partialOutputStream mirrors partialOutputStream', async () => {
+    const { harness } = mockHarness({
+      script: () =>
+        finalTextScript(JSON.stringify({ sentiment: 'positive', score: 1 })),
+    });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+    const session = await agent.createSession();
+
+    const result = await agent.stream({
+      session,
+      prompt: 'classify',
+      output: Output.object({ schema: objectSchema }),
+    });
+
+    const partials: unknown[] = [];
+    for await (const partial of result.experimental_partialOutputStream) {
+      partials.push(partial);
+    }
+    expect(partials).toEqual([{ sentiment: 'positive', score: 1 }]);
+
+    await session.destroy();
+  });
+
+  test('stream() elementStream emits array elements at turn-end for Output.array', async () => {
+    const elements = [{ id: 1 }, { id: 2 }, { id: 3 }];
+    const { harness } = mockHarness({
+      script: () => finalTextScript(JSON.stringify({ elements })),
+    });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+    const session = await agent.createSession();
+
+    const result = await agent.stream({
+      session,
+      prompt: 'list',
+      output: Output.array({ element: z.object({ id: z.number() }) }),
+    });
+
+    const got: unknown[] = [];
+    for await (const element of result.elementStream) {
+      got.push(element);
+    }
+    expect(got).toEqual(elements);
+    expect(await result.output).toEqual(elements);
+
+    await session.destroy();
+  });
+
+  test('generate() throws NoObjectGeneratedError when the final text is not schema-conformant', async () => {
+    const { harness } = mockHarness({
+      script: () => finalTextScript('this is not json'),
+    });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+    const session = await agent.createSession();
+
+    await expect(
+      agent.generate({
+        session,
+        prompt: 'classify',
+        output: Output.object({ schema: objectSchema }),
+      }),
+    ).rejects.toThrowError(NoObjectGeneratedError);
+
+    await session.destroy();
+  });
+
+  test('stream() result.output rejects with NoObjectGeneratedError on a non-conformant result', async () => {
+    const { harness } = mockHarness({
+      script: () => finalTextScript(JSON.stringify({ sentiment: 'maybe' })),
+    });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+    const session = await agent.createSession();
+
+    const result = await agent.stream({
+      session,
+      prompt: 'classify',
+      output: Output.object({ schema: objectSchema }),
+    });
+
+    await expect(result.output).rejects.toThrowError(NoObjectGeneratedError);
+
+    await session.destroy();
+  });
+
+  test('output surfaces throw when no output specification was supplied', async () => {
+    const { harness } = mockHarness({ script: () => finalTextScript('hi') });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+    const session = await agent.createSession();
+
+    const result = await agent.stream({ session, prompt: 'hi' });
+    await result.consumeStream();
+    expect(() => (result as { output: unknown }).output).toThrow(
+      /no `output` specification/,
+    );
+
+    await session.destroy();
+  });
+
+  test('continueGenerate() carries the output across a suspended turn', async () => {
+    const { harness, outputSchemas, doContinueTurn, prompts } = mockHarness({
+      script: () => [],
+      continueScript: () =>
+        finalTextScript(JSON.stringify({ sentiment: 'negative', score: 0.2 })),
+    });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+    const session = await agent.createSession({
+      continueFrom: {
+        type: 'continue-turn',
+        harnessId: 'mock',
+        specificationVersion: 'harness-v1',
+        data: {},
+      },
+    });
+
+    const result = await agent.continueGenerate({
+      session,
+      output: Output.object({ schema: objectSchema }),
+    });
+
+    expect(result.output).toEqual({ sentiment: 'negative', score: 0.2 });
+    expect(outputSchemas).toHaveLength(1);
+    expect(outputSchemas[0]).toMatchObject({ type: 'object' });
+    expect(prompts).toEqual([]);
+    expect(doContinueTurn).toHaveBeenCalledTimes(1);
+
+    await session.destroy();
+  });
+
+  test('continueStream() carries the output across a suspended turn', async () => {
+    const { harness, outputSchemas } = mockHarness({
+      script: () => [],
+      continueScript: () =>
+        finalTextScript(JSON.stringify({ sentiment: 'positive', score: 0.7 })),
+    });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+    const session = await agent.createSession({
+      continueFrom: {
+        type: 'continue-turn',
+        harnessId: 'mock',
+        specificationVersion: 'harness-v1',
+        data: {},
+      },
+    });
+
+    const result = await agent.continueStream({
+      session,
+      output: Output.object({ schema: objectSchema }),
+    });
+
+    expect(await result.output).toEqual({ sentiment: 'positive', score: 0.7 });
+    expect(outputSchemas[0]).toMatchObject({ type: 'object' });
+
+    await session.destroy();
+  });
+
+  test('partialOutputStream and experimental_partialOutputStream are independent streams on one result', async () => {
+    const { harness } = mockHarness({
+      script: () =>
+        finalTextScript(JSON.stringify({ sentiment: 'positive', score: 0.5 })),
+    });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+    const session = await agent.createSession();
+
+    const result = await agent.stream({
+      session,
+      prompt: 'classify',
+      output: Output.object({ schema: objectSchema }),
+    });
+
+    // Reading both partial aliases on the same result must not lock a shared
+    // stream — each getter builds a fresh stream.
+    const a: unknown[] = [];
+    for await (const partial of result.partialOutputStream) a.push(partial);
+    const b: unknown[] = [];
+    for await (const partial of result.experimental_partialOutputStream) {
+      b.push(partial);
+    }
+    expect(a).toEqual([{ sentiment: 'positive', score: 0.5 }]);
+    expect(b).toEqual([{ sentiment: 'positive', score: 0.5 }]);
+
+    await session.destroy();
+  });
+
+  test('elementStream throws for non-array (Output.object) output', async () => {
+    const { harness } = mockHarness({
+      script: () =>
+        finalTextScript(JSON.stringify({ sentiment: 'negative', score: 0 })),
+    });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+    const session = await agent.createSession();
+
+    const result = await agent.stream({
+      session,
+      prompt: 'classify',
+      output: Output.object({ schema: objectSchema }),
+    });
+
+    expect(() => result.elementStream).toThrow(/only available for array/);
+    // The object output itself still resolves.
+    expect(await result.output).toEqual({ sentiment: 'negative', score: 0 });
+
+    await session.destroy();
   });
 });

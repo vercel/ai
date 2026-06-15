@@ -18,12 +18,13 @@ import {
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import type {
+  JSONValue,
   LanguageModelV4FinishReason,
   LanguageModelV4ToolCall,
   LanguageModelV4Usage,
 } from '@ai-sdk/provider';
 import { parseToolCall } from 'ai/internal';
-import type { ContentPart, TelemetryOptions, TextStreamPart } from 'ai';
+import type { ContentPart, Output, TelemetryOptions, TextStreamPart } from 'ai';
 import type { HarnessAgentToolApprovalContinuation } from '../harness-agent-tool-approval-continuation';
 import type { HarnessAgentToolApprovalConfiguration } from '../harness-agent-settings';
 import { HarnessStreamTextResult } from './harness-stream-text-result';
@@ -47,6 +48,7 @@ import { resolveCustomToolApproval } from './permission-mode';
 export function runPrompt<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context,
+  OUTPUT extends Output.Output = never,
 >(input: {
   harness: HarnessV1;
   session: HarnessV1Session;
@@ -61,6 +63,16 @@ export function runPrompt<
   instructions: string | undefined;
   tools: TOOLS;
   toolSpecs: HarnessV1ToolSpec[];
+  /**
+   * Output specification for the turn, if any. Used host-side to parse and
+   * validate the final result. Drives the typed `result.output` surface.
+   */
+  output?: OUTPUT;
+  /**
+   * Bare JSON Schema forwarded to the runtime down-path so it enforces the
+   * schema during generation. Derived from `output` by the caller.
+   */
+  outputSchema?: JSONValue;
   sandboxSession: SandboxSession;
   sessionWorkDir: string;
   runtimeContext: RUNTIME_CONTEXT;
@@ -75,16 +87,17 @@ export function runPrompt<
   onToolApprovalSettled?: (approvalId: string) => void;
   onTurnFinished?: () => void;
 }): {
-  result: HarnessStreamTextResult<TOOLS, RUNTIME_CONTEXT>;
+  result: HarnessStreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
   done: Promise<void>;
 } {
-  const result = new HarnessStreamTextResult<TOOLS, RUNTIME_CONTEXT>({
+  const result = new HarnessStreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>({
     tools: input.tools,
     runtimeContext: input.runtimeContext,
     // toolsContext is not configurable for harnesses; pass undefined cast.
     toolsContext: undefined as never,
     harnessId: input.harness.harnessId,
     sessionId: input.session.sessionId,
+    output: input.output,
   });
   const pendingToolApprovals = input.pendingToolApprovals ?? [];
   const onPendingToolApproval = input.onPendingToolApproval ?? (() => {});
@@ -108,6 +121,7 @@ export function runPrompt<
             ? emit =>
                 input.session.doContinueTurn({
                   tools: input.toolSpecs,
+                  outputSchema: input.outputSchema,
                   abortSignal: input.abortSignal,
                   emit,
                 })
@@ -121,6 +135,7 @@ export function runPrompt<
                   prompt: input.prompt,
                   tools: input.toolSpecs,
                   instructions: input.instructions,
+                  outputSchema: input.outputSchema,
                   abortSignal: input.abortSignal,
                   emit,
                 });

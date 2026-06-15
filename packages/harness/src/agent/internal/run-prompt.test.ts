@@ -3,7 +3,7 @@ import {
   type Experimental_SandboxSession,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
-import type { TextStreamPart } from 'ai';
+import { NoObjectGeneratedError, Output, type TextStreamPart } from 'ai';
 import { describe, expect, test } from 'vitest';
 import { z } from 'zod';
 import type {
@@ -604,5 +604,51 @@ describe('runPrompt host tool generator results', () => {
     expect(results).toHaveLength(1);
     expect(results[0].preliminary).toBe(true);
     expect(results[0].output).toEqual({ path: 'src/foo.ts' });
+  });
+});
+
+describe('runPrompt structured output', () => {
+  const schema = z.object({ ok: z.boolean() });
+
+  function finalTextEvents(text: string): HarnessV1StreamPart[] {
+    return [{ type: 'text-delta', id: 't1', delta: text }, ...finishEvents];
+  }
+
+  test('resolves output when the final text is schema-conformant', async () => {
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession(finalTextEvents(JSON.stringify({ ok: true }))),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {} as ToolSet,
+      toolSpecs: [],
+      output: Output.object({ schema }),
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+    });
+
+    await done;
+    expect(await result.output).toEqual({ ok: true });
+  });
+
+  test('rejects output when the final text is not schema-conformant', async () => {
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession(finalTextEvents('not valid json')),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {} as ToolSet,
+      toolSpecs: [],
+      output: Output.object({ schema }),
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+    });
+
+    await done;
+    await expect(result.output).rejects.toThrowError(NoObjectGeneratedError);
   });
 });

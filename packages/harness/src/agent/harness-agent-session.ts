@@ -1,5 +1,6 @@
+import type { JSONValue } from '@ai-sdk/provider';
 import type { Context, ToolSet } from '@ai-sdk/provider-utils';
-import type { StreamTextResult, TelemetryOptions } from 'ai';
+import type { Output, StreamTextResult, TelemetryOptions } from 'ai';
 import type { HarnessAgentToolApprovalConfiguration } from './harness-agent-settings';
 import type {
   HarnessV1NetworkSandboxSession,
@@ -22,8 +23,9 @@ import { runPrompt } from './internal/run-prompt';
 type HarnessAgentTurnResult<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context,
+  OUTPUT extends Output.Output = never,
 > = {
-  result: StreamTextResult<TOOLS, RUNTIME_CONTEXT, never>;
+  result: StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
   done: Promise<void>;
 };
 
@@ -134,27 +136,35 @@ export class HarnessAgentSession {
     return this.sessionWorkDir;
   }
 
-  promptTurn<TOOLS extends ToolSet, RUNTIME_CONTEXT extends Context>(options: {
+  promptTurn<
+    TOOLS extends ToolSet,
+    RUNTIME_CONTEXT extends Context,
+    OUTPUT extends Output.Output = never,
+  >(options: {
     prompt: HarnessAgentPrompt;
     instructions: string | undefined;
     tools: TOOLS;
     toolSpecs: HarnessAgentToolSpec[];
+    output?: OUTPUT;
+    outputSchema?: JSONValue;
     runtimeContext: RUNTIME_CONTEXT;
     abortSignal: AbortSignal | undefined;
     telemetry: TelemetryOptions | undefined;
-  }): HarnessAgentTurnResult<TOOLS, RUNTIME_CONTEXT> {
+  }): HarnessAgentTurnResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
     const session = this.requireReusableSession();
     this.requirePromptableTurn();
     const sandboxSession = this.getSandboxSession();
     const turnId = this.startTrackedTurn();
     try {
-      const turn = runPrompt<TOOLS, RUNTIME_CONTEXT>({
+      const turn = runPrompt<TOOLS, RUNTIME_CONTEXT, OUTPUT>({
         harness: this.harness,
         session,
         prompt: options.prompt,
         instructions: options.instructions,
         tools: options.tools,
         toolSpecs: options.toolSpecs,
+        output: options.output,
+        outputSchema: options.outputSchema,
         sandboxSession: sandboxSession.restricted(),
         sessionWorkDir: this.sessionWorkDir,
         runtimeContext: options.runtimeContext,
@@ -184,29 +194,34 @@ export class HarnessAgentSession {
   continueTurn<
     TOOLS extends ToolSet,
     RUNTIME_CONTEXT extends Context,
+    OUTPUT extends Output.Output = never,
   >(options: {
     instructions: string | undefined;
     tools: TOOLS;
     toolSpecs: HarnessAgentToolSpec[];
+    output?: OUTPUT;
+    outputSchema?: JSONValue;
     runtimeContext: RUNTIME_CONTEXT;
     abortSignal: AbortSignal | undefined;
     telemetry: TelemetryOptions | undefined;
     toolApprovalContinuations?:
       | readonly HarnessAgentToolApprovalContinuation[]
       | undefined;
-  }): HarnessAgentTurnResult<TOOLS, RUNTIME_CONTEXT> {
+  }): HarnessAgentTurnResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
     const session = this.requireReusableSession();
     this.requireContinuableTurn();
     const sandboxSession = this.getSandboxSession();
     const turnId = this.startTrackedTurn();
     try {
-      const turn = runPrompt<TOOLS, RUNTIME_CONTEXT>({
+      const turn = runPrompt<TOOLS, RUNTIME_CONTEXT, OUTPUT>({
         harness: this.harness,
         session,
         mode: 'continue',
         instructions: options.instructions,
         tools: options.tools,
         toolSpecs: options.toolSpecs,
+        output: options.output,
+        outputSchema: options.outputSchema,
         sandboxSession: sandboxSession.restricted(),
         sessionWorkDir: this.sessionWorkDir,
         runtimeContext: options.runtimeContext,
