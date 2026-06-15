@@ -1,5 +1,12 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.0-canary.7
+
+### Patch Changes
+
+- Updated dependencies [be83911]
+  - @ai-sdk/harness@1.0.0-canary.11
+
 ## 1.0.0-canary.6
 
 ### Patch Changes
