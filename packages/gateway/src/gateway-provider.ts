@@ -1,9 +1,13 @@
 import {
+  createJsonErrorResponseHandler,
+  createJsonResponseHandler,
   loadOptionalSetting,
+  postJsonToApi,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
 import { asGatewayError, GatewayAuthenticationError } from './errors';
 import {
   GATEWAY_AUTH_METHOD_HEADER,
@@ -219,6 +223,12 @@ export interface GatewayProviderSettings {
 
 const AI_GATEWAY_PROTOCOL_VERSION = '0.0.1';
 
+/** Response shape of `POST /v1/realtime/client-secrets`. `expiresAt` is epoch seconds. */
+const gatewayClientSecretResponseSchema = z.object({
+  token: z.string(),
+  expiresAt: z.number().nullish(),
+});
+
 /**
  * Create a remote provider instance.
  */
@@ -275,6 +285,49 @@ export function createGateway(
         statusCode: 401,
         cause: error,
       });
+    }
+  };
+
+  // Mints a short-lived realtime client secret (`vcst_`) via the Gateway's
+  // `/v1/realtime/client-secrets` route, authenticated with the long-lived
+  // Gateway credential. Server-side only (asserted) — the credential never
+  // belongs in a browser; the browser receives only the minted token. The
+  // mint route lives at the gateway origin's `/v1/realtime/client-secrets`,
+  // not under the realtime `baseURL` path (which targets `/v4/ai`), so the
+  // URL is resolved against the origin.
+  const mintRealtimeClientSecret = async (params: {
+    modelId: string;
+    expiresAfterSeconds?: number;
+  }): Promise<{ token: string; expiresAt?: number }> => {
+    assertGatewayRealtimeServerEnvironment();
+    const auth = await getRealtimeAuthToken();
+    const headers = createAuthHeaders(auth);
+    const url = new URL('/v1/realtime/client-secrets', baseURL).toString();
+    try {
+      const { value } = await postJsonToApi({
+        url,
+        headers,
+        body: {
+          model: params.modelId,
+          ...(params.expiresAfterSeconds != null && {
+            expiresIn: params.expiresAfterSeconds,
+          }),
+        },
+        successfulResponseHandler: createJsonResponseHandler(
+          gatewayClientSecretResponseSchema,
+        ),
+        failedResponseHandler: createJsonErrorResponseHandler({
+          errorSchema: z.any(),
+          errorToMessage: data => data,
+        }),
+        fetch: options.fetch,
+      });
+      return {
+        token: value.token,
+        ...(value.expiresAt != null && { expiresAt: value.expiresAt }),
+      };
+    } catch (error) {
+      throw await asGatewayError(error, await parseAuthMethod(headers));
     }
   };
 
@@ -468,21 +521,25 @@ export function createGateway(
   provider.transcriptionModel = createTranscriptionModel;
   provider.transcription = createTranscriptionModel;
 
-  const createRealtimeModel = (modelId: GatewayRealtimeModelId) => {
-    assertGatewayRealtimeServerEnvironment();
-    return new GatewayRealtimeModel(modelId, {
+  // No server-environment guard here: building the realtime model is just the
+  // event codec + WebSocket-config helper, which the browser legitimately
+  // needs to drive the transport with a server-minted client secret. The
+  // server-only boundary is enforced on minting itself
+  // (`mintRealtimeClientSecret`), which requires the Gateway credential.
+  const createRealtimeModel = (modelId: GatewayRealtimeModelId) =>
+    new GatewayRealtimeModel(modelId, {
       provider: 'gateway.realtime',
       baseURL,
       teamIdOrSlug: options.teamIdOrSlug,
-      getAuthToken: getRealtimeAuthToken,
+      createClientSecret: mintRealtimeClientSecret,
     });
-  };
   provider.experimental_realtime = Object.assign(
     (modelId: GatewayRealtimeModelId) => createRealtimeModel(modelId),
     {
       getToken: async (tokenOptions: RealtimeFactoryV4GetTokenOptions) => {
-        const model = createRealtimeModel(tokenOptions.model);
-        const secret = await model.doCreateClientSecret();
+        const { model: modelId, ...secretOptions } = tokenOptions;
+        const model = createRealtimeModel(modelId);
+        const secret = await model.doCreateClientSecret(secretOptions);
         return {
           token: secret.token,
           url: secret.url,
@@ -527,7 +584,7 @@ export async function getGatewayAuthToken(
 function assertGatewayRealtimeServerEnvironment(): void {
   if (typeof globalThis.window !== 'undefined') {
     throw new Error(
-      'AI Gateway realtime models cannot be used in browsers yet. Use gateway.experimental_realtime from server-side code only.',
+      'AI Gateway realtime client secrets must be minted server-side: minting needs your Gateway credential, which must never reach the browser. Call gateway.experimental_realtime.getToken() from your server and pass the returned token to the client.',
     );
   }
 }
