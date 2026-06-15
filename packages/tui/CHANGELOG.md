@@ -1,5 +1,13 @@
 # @ai-sdk/tui
 
+## 1.0.0-beta.12
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - ai@7.0.0-beta.177
+
 ## 1.0.0-canary.11
 
 ### Patch Changes
