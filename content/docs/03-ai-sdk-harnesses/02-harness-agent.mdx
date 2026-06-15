@@ -120,6 +120,88 @@ try {
 }
 ```
 
+## Structured Output
+
+Pass an `output` specification to `generate()` or `stream()` to get a validated,
+typed object back instead of free-form text. This mirrors the `output` API on
+`generateText` / `streamText` / `ToolLoopAgent`, so a `HarnessAgent` turn is a
+drop-in alternative for staged-decision steps (triage, routing, review, judging).
+
+```ts
+import { Output } from 'ai';
+import { z } from 'zod';
+
+const session = await agent.createSession();
+
+try {
+  const result = await agent.generate({
+    session,
+    prompt: 'Classify the sentiment of: "I love this!"',
+    output: Output.object({
+      schema: z.object({
+        sentiment: z.enum(['positive', 'negative', 'neutral']),
+        confidence: z.number(),
+      }),
+    }),
+  });
+
+  // `result.output` is typed as { sentiment: ...; confidence: number }
+  console.log(result.output.sentiment);
+} finally {
+  await session.destroy();
+}
+```
+
+`output` is supplied **per call**, not at construction. A single long-lived
+session can therefore use a different schema on each turn, which is what
+staged pipelines need.
+
+### How enforcement works
+
+The schema is enforced twice: the underlying runtime constrains generation
+down-path, and the framework re-validates the result host-side using the same
+`Output` specification core uses. A result that cannot be parsed or fails
+validation throws `NoObjectGeneratedError`, identical to the `generateObject` /
+`Output` path you already know.
+
+| Harness         | Enforcement                                                                    |
+| --------------- | ------------------------------------------------------------------------------ |
+| **Codex**       | Native `outputSchema` on the turn; the object is the final message.            |
+| **Claude Code** | Native `outputFormat: { type: 'json_schema' }`; read from `structured_output`. |
+| **Pi**          | Not supported. Requesting `output` throws `HarnessCapabilityUnsupportedError`. |
+
+Pi has no native schema enforcement and does not fall back to best-effort
+parsing, so it rejects an output schema before driving the runtime: `generate()`
+rejects at the call, and `stream()` surfaces the `HarnessCapabilityUnsupportedError`
+on the returned result (when you `await result.output` or consume the stream).
+Choose Codex or Claude Code for structured-output stages.
+
+### Streaming structured output
+
+The underlying runtimes only materialize the object at turn-end, so the
+streaming structured-output surfaces are terminal-only: they emit once and then
+close. On a structured-output turn the adapters surface the validated object as
+the assistant text and do not stream intermediate assistant prose (reasoning
+still streams); use `output` / `partialOutputStream` to read the object.
+
+```ts
+const result = await agent.stream({
+  session,
+  prompt: 'List three repository tasks.',
+  output: Output.array({ element: z.object({ title: z.string() }) }),
+});
+
+// `elementStream` emits each element at turn-end; `partialOutputStream` emits
+// the complete object once. `await result.output` resolves the validated value.
+for await (const element of result.elementStream) {
+  console.log(element.title);
+}
+```
+
+When resuming a suspended turn, re-pass the same `output` to
+`continueGenerate()` / `continueStream()` so the result is validated (and the
+schema re-enforced if the turn is re-driven).
+
 ## Messages and History
 
 A harness session owns its native conversation history. When you pass `messages`

@@ -28,8 +28,13 @@ The AI SDK includes the following harness adapters:
 
 ## Adapter Capabilities
 
-| Adapter                                                | Runtime location | Custom tools        | Custom skills       | Built-in tool approval |
-| ------------------------------------------------------ | ---------------- | ------------------- | ------------------- | ---------------------- |
-| [Claude Code](/providers/ai-sdk-harnesses/claude-code) | Sandbox bridge   | <Check size={18} /> | <Check size={18} /> | <Check size={18} />    |
-| [Codex](/providers/ai-sdk-harnesses/codex)             | Sandbox bridge   | <Check size={18} /> | <Check size={18} /> | <Cross size={18} />    |
-| [Pi](/providers/ai-sdk-harnesses/pi)                   | Host process     | <Check size={18} /> | <Check size={18} /> | <Check size={18} />    |
+| Adapter                                                | Runtime location | Custom tools        | Custom skills       | Built-in tool approval | Structured output   |
+| ------------------------------------------------------ | ---------------- | ------------------- | ------------------- | ---------------------- | ------------------- |
+| [Claude Code](/providers/ai-sdk-harnesses/claude-code) | Sandbox bridge   | <Check size={18} /> | <Check size={18} /> | <Check size={18} />    | <Check size={18} /> |
+| [Codex](/providers/ai-sdk-harnesses/codex)             | Sandbox bridge   | <Check size={18} /> | <Check size={18} /> | <Cross size={18} />    | <Check size={18} /> |
+| [Pi](/providers/ai-sdk-harnesses/pi)                   | Host process     | <Check size={18} /> | <Check size={18} /> | <Check size={18} />    | <Cross size={18} /> |
+
+Structured output (passing `output` to `generate()` / `stream()`) is enforced
+natively by Codex and Claude Code. Pi has no native schema enforcement and
+throws `HarnessCapabilityUnsupportedError` when an output schema is requested.
+See [Structured Output](/docs/ai-sdk-harnesses/harness-agent#structured-output).
