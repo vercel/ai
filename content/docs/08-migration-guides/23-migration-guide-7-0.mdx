@@ -293,8 +293,58 @@ const result = await generateText({
 const result = await generateText({
   model: yourModel,
   prompt: 'Hello!',
-  experimental_onStart: ({ instructions }) => {
+  onStart: ({ instructions }) => {
     console.log(instructions);
+  },
+});
+```
+
+#### `experimental_onStart` Renamed to `onStart`
+
+The generation start callback for `generateText`, `streamText`, and agents has
+been renamed from `experimental_onStart` to `onStart`.
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello!',
+  experimental_onStart: () => {
+    console.log('Generation started');
+  },
+});
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello!',
+  onStart: () => {
+    console.log('Generation started');
+  },
+});
+```
+
+#### `experimental_onStepStart` Renamed to `onStepStart`
+
+The per-step start callback for `generateText`, `streamText`, and agents has
+been renamed from `experimental_onStepStart` to `onStepStart`.
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello!',
+  experimental_onStepStart: ({ stepNumber }) => {
+    console.log(`Step ${stepNumber} started`);
+  },
+});
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello!',
+  onStepStart: ({ stepNumber }) => {
+    console.log(`Step ${stepNumber} started`);
   },
 });
 ```
