@@ -1,5 +1,11 @@
 # @ai-sdk/harness-pi
 
+## 1.0.0-canary.9
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.0-canary.13
+
 ## 1.0.0-canary.8
 
 ### Patch Changes
