@@ -96,33 +96,34 @@ for await (const chunk of result.textStream) {
 await dynamicFeed.close();
 ```
 
-### Verifying a signed response
+### Fact-check against live data (tool-calling)
 
-All Dynamic Feed responses include a `signature` field. You can verify it against the published Ed25519 public key:
+`generateText` supports tool-calling, so the model can actually invoke Dynamic Feed tools such as `reality_check`:
 
 ```ts
 import { createMCPClient } from '@ai-sdk/mcp';
-import { generateObject } from 'ai';
+import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
-import { z } from 'zod';
 
 const dynamicFeed = await createMCPClient({
   transport: { type: 'http', url: 'https://dynamicfeed.ai/mcp' },
 });
-
 const tools = await dynamicFeed.tools();
 
-// Call the reality_check tool to fact-check a claim against live data
-const { object } = await generateObject({
+const { text } = await generateText({
   model: openai('gpt-4o'),
   tools,
-  schema: z.object({ verdict: z.string(), source: z.string() }),
-  prompt: 'Fact-check this claim and return a verdict: "The latest Python release is 3.12"',
+  maxSteps: 3,
+  prompt: 'Fact-check this claim against live data: "The latest Python release is 3.12"',
 });
 
-console.log(object);
+console.log(text);
 await dynamicFeed.close();
 ```
+
+### Verifying a signed response
+
+Every Dynamic Feed tool result includes a `signature` (Ed25519). Verify it offline: drop the `signature` field, canonicalize the rest (JSON, keys sorted, compact separators), and check it against the published key at `https://dynamicfeed.ai/.well-known/keys`. A reference verifier is at `https://dynamicfeed.ai/verify.js`, or verify in the browser at `https://dynamicfeed.ai/verify`. The signature is proof-of-existence and tamper-evidence — not a claim that the data is true.
 
 ## Features
 
