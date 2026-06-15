@@ -1,5 +1,56 @@
 # @ai-sdk/harness
 
+## 1.0.0-canary.13
+
+### Patch Changes
+
+- ai@7.0.0-canary.176
+
+## 1.0.0-canary.12
+
+### Patch Changes
+
+- Updated dependencies [6ec57f5]
+  - ai@7.0.0-canary.175
+
+## 1.0.0-canary.11
+
+### Patch Changes
+
+- be83911: fix(harness): reject bridge startup when the WebSocket port cannot be bound
+
+## 1.0.0-canary.10
+
+### Patch Changes
+
+- ai@7.0.0-canary.174
+
+## 1.0.0-canary.9
+
+### Patch Changes
+
+- ai@7.0.0-canary.173
+
+## 1.0.0-canary.8
+
+### Patch Changes
+
+- aae0138: fix(harness): make listening for sandbox bridge readiness compatible with Bun
+
+## 1.0.0-canary.7
+
+### Patch Changes
+
+- 3d87086: fix(harness): guard against invalid resuming a session vs continuing a turn
+- 1ea15a3: fix(harness): fix various bugs with harness skills not being correctly processed by the harness adapters
+- Updated dependencies [aeda373]
+- Updated dependencies [25a64f8]
+- Updated dependencies [375fdd7]
+- Updated dependencies [f18b08f]
+- Updated dependencies [b4507d5]
+  - @ai-sdk/provider-utils@5.0.0-canary.48
+  - ai@7.0.0-canary.172
+
 ## 1.0.0-canary.6
 
 ### Patch Changes

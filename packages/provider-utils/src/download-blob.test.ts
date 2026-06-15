@@ -8,12 +8,14 @@ function createMockStreamResponse({
   status = 200,
   statusText = 'OK',
   headers = {},
+  onCancel,
 }: {
   body?: Uint8Array;
   ok?: boolean;
   status?: number;
   statusText?: string;
   headers?: Record<string, string>;
+  onCancel?: () => void;
 }): Response {
   const responseHeaders = new Headers(headers);
 
@@ -23,6 +25,9 @@ function createMockStreamResponse({
           start(controller) {
             controller.enqueue(body);
             controller.close();
+          },
+          cancel() {
+            onCancel?.();
           },
         })
       : null;
@@ -135,6 +140,44 @@ describe('downloadBlob()', () => {
     }
   });
 
+  it('should cancel the body on non-ok response (prevents socket leak)', async () => {
+    const onCancel = vi.fn();
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      createMockStreamResponse({
+        ok: false,
+        status: 404,
+        statusText: 'Not Found',
+        body: new Uint8Array(10),
+        onCancel,
+      }),
+    );
+
+    await expect(
+      downloadBlob('https://example.com/not-found.png'),
+    ).rejects.toThrow(DownloadError);
+
+    expect(onCancel).toHaveBeenCalled();
+  });
+
+  it('should cancel the body when Content-Length exceeds limit (prevents socket leak)', async () => {
+    const onCancel = vi.fn();
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      createMockStreamResponse({
+        body: new Uint8Array(10),
+        headers: {
+          'content-length': `${3 * 1024 * 1024 * 1024}`,
+        },
+        onCancel,
+      }),
+    );
+
+    await expect(downloadBlob('https://example.com/huge.bin')).rejects.toThrow(
+      DownloadError,
+    );
+
+    expect(onCancel).toHaveBeenCalled();
+  });
+
   it('should abort when response exceeds default size limit', async () => {
     globalThis.fetch = vi.fn().mockResolvedValue(
       createMockStreamResponse({
@@ -209,14 +252,18 @@ describe('downloadBlob() SSRF protection', () => {
 
   it('should reject a redirect to a private IP without requesting it', async () => {
     const originalFetch = globalThis.fetch;
-    const fetchMock = vi.fn().mockResolvedValueOnce({
-      ok: false,
-      status: 302,
-      headers: new Headers({
-        location: 'http://169.254.169.254/latest/meta-data/',
+    const onCancel = vi.fn();
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      createMockStreamResponse({
+        ok: false,
+        status: 302,
+        headers: {
+          location: 'http://169.254.169.254/latest/meta-data/',
+        },
+        body: new TextEncoder().encode('redirecting'),
+        onCancel,
       }),
-      body: null,
-    } as unknown as Response);
+    );
     globalThis.fetch = fetchMock;
 
     try {
@@ -229,6 +276,9 @@ describe('downloadBlob() SSRF protection', () => {
         signal: undefined,
         redirect: 'manual',
       });
+      // Body must be cancelled so the open-redirect rejection does not leak
+      // the underlying socket.
+      expect(onCancel).toHaveBeenCalled();
     } finally {
       globalThis.fetch = originalFetch;
     }
@@ -236,12 +286,16 @@ describe('downloadBlob() SSRF protection', () => {
 
   it('should reject a redirect to localhost without requesting it', async () => {
     const originalFetch = globalThis.fetch;
-    const fetchMock = vi.fn().mockResolvedValueOnce({
-      ok: false,
-      status: 307,
-      headers: new Headers({ location: 'http://localhost:8080/admin' }),
-      body: null,
-    } as unknown as Response);
+    const onCancel = vi.fn();
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      createMockStreamResponse({
+        ok: false,
+        status: 307,
+        headers: { location: 'http://localhost:8080/admin' },
+        body: new TextEncoder().encode('redirecting'),
+        onCancel,
+      }),
+    );
     globalThis.fetch = fetchMock;
 
     try {
@@ -249,6 +303,7 @@ describe('downloadBlob() SSRF protection', () => {
         DownloadError,
       );
       expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(onCancel).toHaveBeenCalled();
     } finally {
       globalThis.fetch = originalFetch;
     }

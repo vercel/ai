@@ -96,7 +96,7 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
 
   const readBuffer = async (inputPath: string): Promise<Buffer> => {
     const bytes = await options.sandbox.readBinaryFile({
-      path: options.paths.toSandboxPath(inputPath),
+      path: options.paths.toReadableSandboxPath(inputPath),
     });
     if (!bytes) {
       throw new Error(`Path not found: ${inputPath}`);
@@ -140,7 +140,7 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
     inputPath: string = '.',
     limit: number = 500,
   ): Promise<string[]> => {
-    const remotePath = options.paths.toSandboxPath(inputPath);
+    const remotePath = options.paths.toReadableSandboxPath(inputPath);
     const result = await runShell(
       [
         `if [ ! -e ${shellQuote(remotePath)} ]; then echo "__PI_LS_NOT_FOUND__"; exit 2; fi`,
@@ -173,7 +173,7 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
     inputPath: string = '.',
     limit: number = 1_000,
   ): Promise<string[]> => {
-    const remotePath = options.paths.toSandboxPath(inputPath);
+    const remotePath = options.paths.toReadableSandboxPath(inputPath);
     const result = await runShell(
       [
         `if [ ! -e ${shellQuote(remotePath)} ]; then echo "__PI_FIND_NOT_FOUND__"; exit 2; fi`,
@@ -217,8 +217,12 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
       limit?: number;
     },
   ): Promise<string> => {
-    const remotePath = options.paths.toSandboxPath(input.path ?? '.');
+    const remotePath = options.paths.toReadableSandboxPath(input.path ?? '.');
     const relativeTarget = options.paths.toRelativePath(remotePath);
+    const targetPath =
+      relativeTarget.startsWith('../') || path.posix.isAbsolute(relativeTarget)
+        ? remotePath
+        : relativeTarget;
     const flags = [
       '-R',
       '-n',
@@ -235,7 +239,7 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
       [
         `if [ ! -e ${shellQuote(remotePath)} ]; then echo "__PI_GREP_NOT_FOUND__"; exit 2; fi`,
         `cd ${shellQuote(options.paths.sandboxWorkDir)}`,
-        `grep ${flags.map(shellQuote).join(' ')} -- ${shellQuote(pattern)} ${shellQuote(relativeTarget)} 2>/dev/null | head -n ${limit}`,
+        `grep ${flags.map(shellQuote).join(' ')} -- ${shellQuote(pattern)} ${shellQuote(targetPath)} 2>/dev/null | head -n ${limit}`,
       ].join('; '),
     );
 

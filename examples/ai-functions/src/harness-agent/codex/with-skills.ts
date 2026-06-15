@@ -14,7 +14,7 @@ import { run } from '../../lib/run';
  * This example: a skill teaching the agent a fictional, project-specific
  * release-notes format. The prompt is a request to draft release notes —
  * the kind of task the description points at — so the agent pulls the skill
- * in to know the format.
+ * in and reads the attached format reference file.
  */
 run(async () => {
   const sandbox = createVercelSandbox({
@@ -33,6 +33,12 @@ run(async () => {
           'Use when the user asks to write, draft, or update release notes. Provides our team-specific format that you will not know otherwise.',
         content: `# Release notes format
 
+Before drafting release notes, read \`release-notes-format.md\`. It is the source of truth for the section order, tone, PR reference style, and version-tag rule.`,
+        files: [
+          {
+            path: 'release-notes-format.md',
+            content: `# Release notes format reference
+
 Structure release notes as exactly three top-level sections in this order:
 
 ## Highlights
@@ -48,6 +54,8 @@ Each item: a one-line summary followed by a "**Migration:**" sub-bullet.
 Omit this section entirely if there are no breaking changes.
 
 End the document with the version tag on a line by itself, prefixed with \`v\`.`,
+          },
+        ],
       },
     ],
   });

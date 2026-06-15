@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/harness-codex",
-  "version": "1.0.0-canary.2",
+  "version": "1.0.0-beta.9",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -41,11 +41,9 @@
     "ws": "^8.20.1",
     "zod": "3.25.76"
   },
-  "peerDependencies": {
-    "@openai/codex-sdk": "^0.130.0"
-  },
   "devDependencies": {
     "@modelcontextprotocol/sdk": "1.29.0",
+    "@openai/codex-sdk": "0.130.0",
     "@types/node": "22.19.19",
     "@types/ws": "^8.5.13",
     "@vercel/ai-tsconfig": "workspace:*",

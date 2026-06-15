@@ -105,7 +105,7 @@ export type LanguageModelCallEndEvent<TOOLS extends ToolSet = ToolSet> =
   };
 
 /**
- * Callback that is set using the `experimental_onLanguageModelCallStart` option.
+ * Callback that is set using the `onLanguageModelCallStart` option.
  *
  * Called immediately before the provider model call begins.
  * Unlike step-start callbacks, this is scoped to model work only and
@@ -117,7 +117,7 @@ export type OnLanguageModelCallStartCallback =
   Callback<LanguageModelCallStartEvent>;
 
 /**
- * Callback that is set using the `experimental_onLanguageModelCallEnd` option.
+ * Callback that is set using the `onLanguageModelCallEnd` option.
  *
  * Called after the model response has been normalized and parsed, but before
  * any client-side tool execution begins.

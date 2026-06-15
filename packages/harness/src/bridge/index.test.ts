@@ -78,6 +78,21 @@ function connect(port: number): Promise<Client> {
 }
 
 describe('runBridge', () => {
+  it('rejects when the requested port is already in use', async () => {
+    const handle = await startBridge(async () => {});
+
+    await expect(
+      runBridge<{ type: 'start' }>({
+        bridgeType: 'test',
+        bridgeStateDir: `${process.env.TMPDIR ?? '/tmp'}/harness-bridge-port-conflict`,
+        port: handle.port,
+        token: TOKEN,
+        onStart: async () => {},
+        onExit: () => {},
+      }),
+    ).rejects.toMatchObject({ code: 'EADDRINUSE' });
+  });
+
   it('greets with bridge-hello and stamps a monotonic seq on emitted events', async () => {
     const handle = await startBridge(async (_start, turn) => {
       turn.emit({ type: 'text-delta', delta: 'a' });

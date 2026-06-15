@@ -35,6 +35,7 @@ import { argv, stdout } from 'node:process';
 import * as claudeAgentSdk from '@anthropic-ai/claude-agent-sdk';
 import * as mcpServerModule from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
+import { toClaudeSkillsOption } from './claude-skills-option';
 
 /*
  * Native Claude Code tool name → cross-harness common name. Tools outside this
@@ -328,6 +329,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     pendingUserMessages: turn.pendingUserMessages,
     abortSignal: abortCtl.signal,
   });
+  const skillsOption = toClaudeSkillsOption(start.skills);
   const permissionOptions = createPermissionOptions({
     start,
     turn,
@@ -341,6 +343,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     options: {
       ...(start.model ? { model: start.model } : {}),
       ...(start.maxTurns !== undefined ? { maxTurns: start.maxTurns } : {}),
+      ...(skillsOption ? { skills: skillsOption } : {}),
       ...(toThinkingConfig(start.thinking)
         ? { thinking: toThinkingConfig(start.thinking) }
         : {}),

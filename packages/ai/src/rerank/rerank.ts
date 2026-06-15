@@ -46,8 +46,10 @@ export async function rerank<VALUE extends JSONObject | string>({
   providerOptions,
   experimental_telemetry,
   telemetry = experimental_telemetry,
-  experimental_onStart: onStart,
-  experimental_onEnd: onEnd,
+  onStart,
+  experimental_onStart,
+  onEnd,
+  experimental_onEnd,
   _internal: { generateCallId = originalGenerateCallId } = {},
 }: {
   /**
@@ -111,11 +113,27 @@ export async function rerank<VALUE extends JSONObject | string>({
    * Callback that is called when the rerank operation begins,
    * before the reranking model is called.
    */
+  onStart?: Callback<RerankStartEvent>;
+
+  /**
+   * Callback that is called when the rerank operation begins,
+   * before the reranking model is called.
+   *
+   * @deprecated Use `onStart` instead.
+   */
   experimental_onStart?: Callback<RerankStartEvent>;
 
   /**
    * Callback that is called when the rerank operation completes,
    * after the reranking model returns.
+   */
+  onEnd?: Callback<RerankEndEvent>;
+
+  /**
+   * Callback that is called when the rerank operation completes,
+   * after the reranking model returns.
+   *
+   * @deprecated Use `onEnd` instead.
    */
   experimental_onEnd?: Callback<RerankEndEvent>;
 
@@ -128,6 +146,8 @@ export async function rerank<VALUE extends JSONObject | string>({
 }): Promise<RerankResult<VALUE>> {
   const model = resolveRerankingModel(modelArg);
   const callId = generateCallId();
+  const resolvedOnStart = onStart ?? experimental_onStart;
+  const resolvedOnEnd = onEnd ?? experimental_onEnd;
 
   const telemetryDispatcher = createTelemetryDispatcher({
     telemetry,
@@ -152,7 +172,7 @@ export async function rerank<VALUE extends JSONObject | string>({
         headers,
         providerOptions,
       },
-      callbacks: [onStart, telemetryDispatcher.onStart],
+      callbacks: [resolvedOnStart, telemetryDispatcher.onStart],
     });
 
     await notify({
@@ -171,7 +191,7 @@ export async function rerank<VALUE extends JSONObject | string>({
           modelId: model.modelId,
         },
       },
-      callbacks: [onEnd, telemetryDispatcher.onEnd],
+      callbacks: [resolvedOnEnd, telemetryDispatcher.onEnd],
     });
 
     return new DefaultRerankResult({
@@ -214,7 +234,7 @@ export async function rerank<VALUE extends JSONObject | string>({
     execute: async () => {
       await notify({
         event: startEvent,
-        callbacks: [onStart, telemetryDispatcher.onStart],
+        callbacks: [resolvedOnStart, telemetryDispatcher.onStart],
       });
 
       try {
@@ -295,7 +315,7 @@ export async function rerank<VALUE extends JSONObject | string>({
               body: response?.body,
             },
           },
-          callbacks: [onEnd, telemetryDispatcher.onEnd],
+          callbacks: [resolvedOnEnd, telemetryDispatcher.onEnd],
         });
 
         return new DefaultRerankResult({
