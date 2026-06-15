@@ -85,7 +85,7 @@ results. If a tool needs server-side values such as credentials, scoped
 permissions, or default settings, pass them through `toolsContext` and declare
 them with the tool's `contextSchema`.
 
-```ts highlight="8-15,21-31,37-49"
+```ts highlight="12-15,20-27,31-40"
 import { ToolLoopAgent, tool } from 'ai';
 import { z } from 'zod';
 
@@ -139,7 +139,7 @@ Pass `experimental_sandbox` when an agent tool needs a command or code execution
 environment. The experimental sandbox is a per-call value, so provide it to `generate()`,
 `stream()`, or the agent UI stream helper that invokes the agent.
 
-```ts highlight="8-16,25"
+```ts highlight="13,19-23,31"
 const agent = new ToolLoopAgent({
   model: __MODEL__,
   instructions: 'You are a coding assistant. Use the shell tool when needed.',
