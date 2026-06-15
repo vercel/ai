@@ -47,8 +47,10 @@ export async function embed({
   headers,
   experimental_telemetry,
   telemetry = experimental_telemetry,
-  experimental_onStart: onStart,
-  experimental_onEnd: onEnd,
+  onStart,
+  experimental_onStart,
+  onEnd,
+  experimental_onEnd,
   _internal: { generateCallId = originalGenerateCallId } = {},
 }: {
   /**
@@ -102,11 +104,27 @@ export async function embed({
    * Callback that is called when the embed operation begins,
    * before the embedding model is called.
    */
+  onStart?: Callback<EmbedStartEvent>;
+
+  /**
+   * Callback that is called when the embed operation begins,
+   * before the embedding model is called.
+   *
+   * @deprecated Use `onStart` instead.
+   */
   experimental_onStart?: Callback<EmbedStartEvent>;
 
   /**
    * Callback that is called when the embed operation completes,
    * after the embedding model returns.
+   */
+  onEnd?: Callback<EmbedEndEvent>;
+
+  /**
+   * Callback that is called when the embed operation completes,
+   * after the embedding model returns.
+   *
+   * @deprecated Use `onEnd` instead.
    */
   experimental_onEnd?: Callback<EmbedEndEvent>;
 
@@ -123,6 +141,8 @@ export async function embed({
     maxRetries: maxRetriesArg,
     abortSignal,
   });
+  const resolvedOnStart = onStart ?? experimental_onStart;
+  const resolvedOnEnd = onEnd ?? experimental_onEnd;
 
   const headersWithUserAgent = withUserAgentSuffix(
     headers ?? {},
@@ -146,7 +166,7 @@ export async function embed({
       headers: headersWithUserAgent,
       providerOptions,
     },
-    callbacks: [onStart, telemetryDispatcher.onStart],
+    callbacks: [resolvedOnStart, telemetryDispatcher.onStart],
   });
 
   try {
@@ -214,7 +234,7 @@ export async function embed({
         providerMetadata,
         response,
       },
-      callbacks: [onEnd, telemetryDispatcher.onEnd],
+      callbacks: [resolvedOnEnd, telemetryDispatcher.onEnd],
     });
 
     return new DefaultEmbedResult({

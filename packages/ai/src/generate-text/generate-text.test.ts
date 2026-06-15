@@ -2652,6 +2652,53 @@ describe('generateText', () => {
     });
   });
 
+  describe('stable lifecycle callback aliases', () => {
+    it('should prefer stable callbacks over deprecated experimental aliases', async () => {
+      const calls: string[] = [];
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            content: [{ type: 'text', text: 'Hello!' }],
+            ...dummyResponseValues,
+          }),
+        }),
+        prompt: 'test-input',
+        onStart: async () => {
+          calls.push('onStart');
+        },
+        experimental_onStart: async () => {
+          calls.push('experimental_onStart');
+        },
+        onStepStart: async () => {
+          calls.push('onStepStart');
+        },
+        experimental_onStepStart: async () => {
+          calls.push('experimental_onStepStart');
+        },
+        onLanguageModelCallStart: async () => {
+          calls.push('onLanguageModelCallStart');
+        },
+        experimental_onLanguageModelCallStart: async () => {
+          calls.push('experimental_onLanguageModelCallStart');
+        },
+        onLanguageModelCallEnd: async () => {
+          calls.push('onLanguageModelCallEnd');
+        },
+        experimental_onLanguageModelCallEnd: async () => {
+          calls.push('experimental_onLanguageModelCallEnd');
+        },
+      });
+
+      expect(calls).toEqual([
+        'onStart',
+        'onStepStart',
+        'onLanguageModelCallStart',
+        'onLanguageModelCallEnd',
+      ]);
+    });
+  });
+
   describe('options.experimental_onLanguageModelCallStart and experimental_onLanguageModelCallEnd', () => {
     it('should fire the model-call callbacks before tool execution and step finish', async () => {
       const callOrder: string[] = [];

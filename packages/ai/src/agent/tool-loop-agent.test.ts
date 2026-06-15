@@ -1198,6 +1198,54 @@ describe('ToolLoopAgent', () => {
     });
   });
 
+  describe('stable callback aliases', () => {
+    it('should prefer stable callbacks over deprecated experimental aliases', async () => {
+      const onStartCalls: string[] = [];
+
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            content: [{ type: 'text', text: 'reply' }],
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: {
+              cachedInputTokens: undefined,
+              inputTokens: {
+                total: 3,
+                noCache: 3,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 10,
+                text: 10,
+                reasoning: undefined,
+              },
+            },
+            warnings: [],
+          }),
+        }),
+        onStart: async () => {
+          onStartCalls.push('constructor-onStart');
+        },
+        experimental_onStart: async () => {
+          onStartCalls.push('constructor-experimental_onStart');
+        },
+      });
+
+      await agent.generate({
+        prompt: 'Hello, world!',
+        onStart: async () => {
+          onStartCalls.push('method-onStart');
+        },
+        experimental_onStart: async () => {
+          onStartCalls.push('method-experimental_onStart');
+        },
+      });
+
+      expect(onStartCalls).toEqual(['constructor-onStart', 'method-onStart']);
+    });
+  });
+
   describe('experimental_onStart', () => {
     describe('generate', () => {
       let doGenerateOptions: LanguageModelV4CallOptions | undefined;

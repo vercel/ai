@@ -237,6 +237,33 @@ describe('logWarnings', () => {
   });
 });
 
+describe('stable callback aliases', () => {
+  it('should prefer stable callbacks over deprecated experimental aliases', async () => {
+    const calls: string[] = [];
+
+    await embed({
+      model: new MockEmbeddingModelV4({
+        doEmbed: mockEmbed([testValue], [dummyEmbedding]),
+      }),
+      value: testValue,
+      onStart: async () => {
+        calls.push('onStart');
+      },
+      experimental_onStart: async () => {
+        calls.push('experimental_onStart');
+      },
+      onEnd: async () => {
+        calls.push('onEnd');
+      },
+      experimental_onEnd: async () => {
+        calls.push('experimental_onEnd');
+      },
+    });
+
+    expect(calls).toEqual(['onStart', 'onEnd']);
+  });
+});
+
 describe('options.experimental_onStart', () => {
   it('should send correct event information', async () => {
     let startEvent!: EmbedStartEvent;

@@ -80,4 +80,18 @@ describe('streamObject', () => {
     >();
     expectTypeOf<typeof result.object>().toEqualTypeOf<Promise<number[]>>();
   });
+
+  it('should support stable start callbacks', () => {
+    streamObject({
+      schema: z.object({ number: z.number() }),
+      model: undefined!,
+      prompt: 'test',
+      onStart: event => {
+        expectTypeOf(event.operationId).toEqualTypeOf<string>();
+      },
+      onStepStart: event => {
+        expectTypeOf(event.stepNumber).toEqualTypeOf<0>();
+      },
+    });
+  });
 });
