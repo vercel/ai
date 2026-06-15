@@ -213,6 +213,7 @@ describe('doGenerate', () => {
 
       expect(server.calls[1].requestHeaders).toMatchObject({
         'x-gladia-key': 'test-api-key',
+        'x-gladia-version': 'ai-sdk/0.0.0-test',
         'content-type': 'application/json',
         'custom-provider-header': 'provider-header-value',
         'custom-request-header': 'request-header-value',

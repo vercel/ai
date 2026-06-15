@@ -63,6 +63,7 @@ export function createGladia(
           environmentVariableName: 'GLADIA_API_KEY',
           description: 'Gladia',
         }),
+        'x-gladia-version': `ai-sdk/${VERSION}`,
         ...options.headers,
       },
       `ai-sdk/gladia/${VERSION}`,
