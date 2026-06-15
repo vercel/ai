@@ -11,7 +11,6 @@ type OpenAIRealtimeTokenDetails = {
 };
 
 type OpenAIRealtimeInputTokenDetails = OpenAIRealtimeTokenDetails & {
-  cached_tokens?: number;
   cached_tokens_details?: OpenAIRealtimeTokenDetails;
 };
 

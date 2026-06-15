@@ -91,8 +91,10 @@ export class XaiRealtimeModel implements RealtimeModelV4 {
     // ignored. The model is selected via the `model` query parameter; without
     // it the server silently falls back to its default voice model.
     const url = new URL(this.config.baseURL);
+    const protocol = url.protocol === 'http:' ? 'ws:' : 'wss:';
+    const base = `${protocol}//${url.host}${url.pathname.replace(/\/$/, '')}`;
     return {
-      url: `wss://${url.host}${url.pathname.replace(/\/$/, '')}/realtime?model=${encodeURIComponent(this.modelId)}`,
+      url: `${base}/realtime?model=${encodeURIComponent(this.modelId)}`,
       headers: definedHeaders(this.config.headers()),
     };
   }

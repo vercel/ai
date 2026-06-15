@@ -243,6 +243,10 @@ export class GoogleRealtimeEventMapper {
           raw,
         });
       }
+      // Usage is attached to `response-done`, which is emitted on `turnComplete`.
+      // This assumes Gemini delivers the turn's final `usageMetadata` on the
+      // same message as `turnComplete`; a usage-only trailing frame (no
+      // `turnComplete`) would not be captured here.
       const usage = mapGoogleUsage(usageMetadata);
       events.push({
         type: 'response-done',
@@ -320,8 +324,15 @@ export class GoogleRealtimeEventMapper {
 
 /**
  * Maps Gemini Live `usageMetadata` to normalized usage. Google reports usage
- * per modality in `promptTokensDetails` / `responseTokensDetails`; when those
- * are absent we fall back to the aggregate token counts as text tokens.
+ * per modality in `promptTokensDetails` / `responseTokensDetails`.
+ *
+ * Caveats (the normalized usage type only has text/audio buckets):
+ * - Only AUDIO and TEXT modality entries are summed. Other modalities (e.g.
+ *   IMAGE/VIDEO from screen-share or video input) are dropped, so for such
+ *   sessions the normalized input total will be lower than what Google billed.
+ * - When details are absent we fall back to the aggregate counts as TEXT. On an
+ *   audio turn that omits details this misclassifies audio tokens as text, which
+ *   matters to a consumer applying per-modality pricing.
  */
 function mapGoogleUsage(
   usageMetadata: GoogleRealtimeUsageMetadata | undefined,

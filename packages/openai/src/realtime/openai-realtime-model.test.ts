@@ -79,5 +79,17 @@ describe('OpenAIRealtimeModel', () => {
         'wss://api.openai.com/v1/realtime/translations?model=gpt-realtime',
       );
     });
+
+    it('uses ws:// for an http base URL (local/proxy)', () => {
+      const localModel = new OpenAIRealtimeModel('gpt-realtime', {
+        provider: 'openai.realtime',
+        baseURL: 'http://localhost:8787/v1',
+        headers: () => ({ authorization: 'Bearer test-key' }),
+      });
+
+      expect(localModel.getServerConnection().url).toBe(
+        'ws://localhost:8787/v1/realtime?model=gpt-realtime',
+      );
+    });
   });
 });

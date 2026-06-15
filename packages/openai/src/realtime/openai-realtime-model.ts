@@ -141,7 +141,8 @@ function buildServerUrl(
   intent: RealtimeModelV4SessionIntent,
 ): string {
   const url = new URL(baseURL);
-  const base = `wss://${url.host}${url.pathname.replace(/\/$/, '')}`;
+  const protocol = url.protocol === 'http:' ? 'ws:' : 'wss:';
+  const base = `${protocol}//${url.host}${url.pathname.replace(/\/$/, '')}`;
 
   switch (intent) {
     case 'transcription':

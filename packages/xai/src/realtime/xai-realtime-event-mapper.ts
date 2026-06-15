@@ -11,7 +11,6 @@ type XaiRealtimeTokenDetails = {
 };
 
 type XaiRealtimeInputTokenDetails = XaiRealtimeTokenDetails & {
-  cached_tokens?: number;
   cached_tokens_details?: XaiRealtimeTokenDetails;
 };
 

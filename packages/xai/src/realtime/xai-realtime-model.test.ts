@@ -38,6 +38,18 @@ describe('XaiRealtimeModel', () => {
       );
       expect(connection.headers).toEqual({ authorization: 'Bearer test-key' });
     });
+
+    it('uses ws:// for an http base URL (local/proxy)', () => {
+      const localModel = new XaiRealtimeModel('grok-voice-latest', {
+        provider: 'xai.realtime',
+        baseURL: 'http://localhost:8787/v1',
+        headers: () => ({ authorization: 'Bearer test-key' }),
+      });
+
+      expect(localModel.getServerConnection().url).toBe(
+        'ws://localhost:8787/v1/realtime?model=grok-voice-latest',
+      );
+    });
   });
 
   describe('serializeClientEvent', () => {

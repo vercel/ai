@@ -20,6 +20,6 @@ export type {
   RealtimeModelV4SessionIntent as Experimental_RealtimeModelV4SessionIntent,
 } from './realtime-model-v4-server-connection';
 export type { RealtimeModelV4ServerEvent as Experimental_RealtimeModelV4ServerEvent } from './realtime-model-v4-server-event';
-export type { RealtimeModelV4Usage as Experimental_RealtimeModelV4Usage } from './realtime-model-v4-usage';
 export type { RealtimeModelV4SessionConfig as Experimental_RealtimeModelV4SessionConfig } from './realtime-model-v4-session-config';
 export type { RealtimeModelV4ToolDefinition as Experimental_RealtimeModelV4ToolDefinition } from './realtime-model-v4-tool-definition';
+export type { RealtimeModelV4Usage as Experimental_RealtimeModelV4Usage } from './realtime-model-v4-usage';
