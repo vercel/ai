@@ -223,9 +223,40 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   const textByItem = new Map<string, string>();
   const reasoningByItem = new Map<string, string>();
 
+  /*
+   * Structured-output turns: the authoritative result is the runtime's final
+   * `agent_message` (constrained to the schema), not the streamed prose. We
+   * suppress streamed assistant text so the final step's text is the JSON alone
+   * (reasoning still flows — the host never folds it into step text), capture
+   * the latest agent_message text, and emit it as a single assistant text part
+   * at turn end. Without this, intermediate prose in a multi-message turn would
+   * concatenate into finalStep.text and break the host's parseCompleteOutput.
+   * This mirrors the Claude bridge's structured_output normalization, keeping
+   * the host parser adapter-agnostic.
+   */
+  const enforceOutput = start.outputSchema != null;
+  const translateEmit: Emit = enforceOutput
+    ? msg => {
+        if (
+          msg.type === 'text-start' ||
+          msg.type === 'text-delta' ||
+          msg.type === 'text-end'
+        ) {
+          return;
+        }
+        emit(msg);
+      }
+    : emit;
+  let finalAgentMessageText: string | undefined;
+
   try {
     const { events } = await thread.runStreamed(userMessage, {
       signal: turn.abortSignal,
+      // Native schema enforcement. Codex constrains the turn's final
+      // `agent_message.text` to this JSON Schema; the host re-validates it.
+      ...(start.outputSchema != null
+        ? { outputSchema: start.outputSchema }
+        : {}),
     });
     for await (const event of events as AsyncIterable<CodexEvent>) {
       if (turn.abortSignal.aborted) break;
@@ -246,8 +277,25 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       ) {
         continue;
       }
+      if (enforceOutput) {
+        // Capture the latest agent_message text; the final one is the object.
+        if (
+          event.item?.type === 'agent_message' &&
+          typeof event.item.text === 'string'
+        ) {
+          finalAgentMessageText = event.item.text;
+        }
+        // Emit the captured object as the sole assistant text immediately
+        // before the turn's finish-step, so finalStep.text is exactly the JSON.
+        if (event.type === 'turn.completed' && finalAgentMessageText != null) {
+          const id = randomUUID();
+          emit({ type: 'text-start', id });
+          emit({ type: 'text-delta', id, delta: finalAgentMessageText });
+          emit({ type: 'text-end', id });
+        }
+      }
       translateAndEmit(event, {
-        send: emit,
+        send: translateEmit,
         textByItem,
         reasoningByItem,
         setTurnUsage: u => (turnUsage = u),

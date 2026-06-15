@@ -335,3 +335,35 @@ describe('codex adapter — skills', () => {
     expect(writes).toEqual([]);
   });
 });
+
+describe('codex adapter — output schema forwarding', () => {
+  beforeEach(() => {
+    sentMessages.length = 0;
+    openCalls.length = 0;
+    runCommands.length = 0;
+    spawnEnvs.length = 0;
+    writes.length = 0;
+  });
+
+  const schema = {
+    type: 'object',
+    properties: { ok: { type: 'boolean' } },
+    required: ['ok'],
+  };
+
+  it('forwards outputSchema on the start message for a prompt turn', async () => {
+    const session = await startSession();
+    await session.doPromptTurn({
+      prompt: 'classify',
+      outputSchema: schema,
+      emit: () => {},
+    });
+    expect(lastStart().outputSchema).toEqual(schema);
+  });
+
+  it('omits outputSchema when no schema is requested', async () => {
+    const session = await startSession();
+    await session.doPromptTurn({ prompt: 'plain', emit: () => {} });
+    expect(lastStart().outputSchema).toBeUndefined();
+  });
+});
