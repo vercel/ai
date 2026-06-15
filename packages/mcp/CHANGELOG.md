@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 0.0.20
+
+### Patch Changes
+
+- 1673f7b: fix (mcp): handle SSE messages without explicit event fields
+
 ## 0.0.19
 
 ### Patch Changes
