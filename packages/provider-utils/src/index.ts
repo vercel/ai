@@ -38,28 +38,12 @@ export { parseJsonEventStream } from './parse-json-event-stream';
 export { parseProviderOptions } from './parse-provider-options';
 export * from './post-to-api';
 export {
-<<<<<<< HEAD
   createProviderToolFactory,
   createProviderToolFactoryWithOutputSchema,
   type ProviderToolFactory,
   type ProviderToolFactoryWithOutputSchema,
 } from './provider-tool-factory';
-=======
-  createProviderDefinedToolFactory,
-  createProviderDefinedToolFactoryWithOutputSchema,
-  type ProviderDefinedToolFactory,
-  type ProviderDefinedToolFactoryWithOutputSchema,
-} from './provider-defined-tool-factory';
-export {
-  createProviderExecutedToolFactory,
-  type ProviderExecutedToolFactory,
-} from './provider-executed-tool-factory';
 export { cancelResponseBody } from './cancel-response-body';
-export {
-  DEFAULT_MAX_DOWNLOAD_SIZE,
-  readResponseWithSizeLimit,
-} from './read-response-with-size-limit';
->>>>>>> b4507d5069 (fix(provider-utils): cancel response body on download rejection to prevent socket leak (#15968))
 export * from './remove-undefined-entries';
 export * from './resolve';
 export * from './response-handler';
