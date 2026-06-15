@@ -1,5 +1,11 @@
 # @ai-sdk/sandbox-just-bash
 
+## 1.0.0-canary.12
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.0-canary.12
+
 ## 1.0.0-canary.11
 
 ### Patch Changes
