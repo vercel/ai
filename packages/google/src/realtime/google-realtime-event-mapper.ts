@@ -326,6 +326,12 @@ export class GoogleRealtimeEventMapper {
  * Maps Gemini Live `usageMetadata` to normalized usage. Google reports usage
  * per modality in `promptTokensDetails` / `responseTokensDetails`.
  *
+ * Field names are Live-API-specific: the Live `UsageMetadata` uses
+ * `responseTokenCount` / `responseTokensDetails` for output, NOT the
+ * `candidatesTokenCount` / `candidatesTokensDetails` of the regular
+ * `generateContent` response (see google-language-model.ts). Do not "align"
+ * these to `candidates*` — they are different wire shapes.
+ *
  * Caveats (the normalized usage type only has text/audio buckets):
  * - Only AUDIO and TEXT modality entries are summed. Other modalities (e.g.
  *   IMAGE/VIDEO from screen-share or video input) are dropped, so for such
