@@ -14,7 +14,12 @@ import type {
 } from '../generate-text/generate-text-events';
 import type { GenerateTextResult } from '../generate-text/generate-text-result';
 import type { Output } from '../generate-text/output';
-import type { StreamTextTransform } from '../generate-text/stream-text';
+import type {
+  StreamTextOnAbortCallback,
+  StreamTextOnChunkCallback,
+  StreamTextOnErrorCallback,
+  StreamTextTransform,
+} from '../generate-text/stream-text';
 import type { StreamTextResult } from '../generate-text/stream-text-result';
 import type {
   OnToolExecutionEndCallback,
@@ -135,6 +140,24 @@ export type AgentStreamParameters<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
 > = AgentCallParameters<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT> & {
+  /**
+   * Callback that is called for each chunk of the stream.
+   * The stream processing will pause until the callback promise is resolved.
+   */
+  onChunk?: StreamTextOnChunkCallback<TOOLS>;
+
+  /**
+   * Callback that is invoked when an error occurs during streaming.
+   * You can use it to log errors.
+   * The stream processing will pause until the callback promise is resolved.
+   */
+  onError?: StreamTextOnErrorCallback;
+
+  /**
+   * Callback that is called when the stream is aborted.
+   */
+  onAbort?: StreamTextOnAbortCallback<TOOLS, RUNTIME_CONTEXT>;
+
   /**
    * Optional stream transformations.
    * They are applied in the order they are provided.

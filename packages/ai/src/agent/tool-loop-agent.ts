@@ -95,6 +95,9 @@ export class ToolLoopAgent<
       | 'onStepFinish'
       | 'onEnd'
       | 'onFinish'
+      | 'onChunk'
+      | 'onError'
+      | 'onAbort'
     > &
       Prompt
   > {
@@ -119,6 +122,9 @@ export class ToolLoopAgent<
       onStepFinish: _settingsOnStepFinish,
       onFinish: _settingsOnFinish,
       onEnd: _settingsOnEnd,
+      onChunk: _settingsOnChunk,
+      onError: _settingsOnError,
+      onAbort: _settingsOnAbort,
       ...settingsWithoutCallbacks
     } = this.settings;
 
@@ -241,6 +247,9 @@ export class ToolLoopAgent<
     timeout,
     experimental_sandbox: sandbox,
     experimental_transform,
+    onChunk,
+    onError,
+    onAbort,
     experimental_onStart,
     experimental_onStepStart,
     onToolExecutionStart,
@@ -263,6 +272,18 @@ export class ToolLoopAgent<
       timeout,
       experimental_sandbox: sandbox,
       experimental_transform,
+      onChunk:
+        this.settings.onChunk != null || onChunk != null
+          ? mergeCallbacks(this.settings.onChunk, onChunk)
+          : undefined,
+      onError:
+        this.settings.onError != null || onError != null
+          ? mergeCallbacks(this.settings.onError, onError)
+          : undefined,
+      onAbort:
+        this.settings.onAbort != null || onAbort != null
+          ? mergeCallbacks(this.settings.onAbort, onAbort)
+          : undefined,
       experimental_onStart: mergeCallbacks(
         this.settings.experimental_onStart,
         experimental_onStart as

@@ -142,6 +142,34 @@ describe('ToolLoopAgent', () => {
   });
 
   describe('stream', () => {
+    it('should accept stream callbacks in settings and stream parameters', () => {
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4(),
+        onChunk: ({ chunk }) => {
+          expectTypeOf(chunk.type).toMatchTypeOf<string>();
+        },
+        onError: ({ error }) => {
+          expectTypeOf(error).toEqualTypeOf<unknown>();
+        },
+        onAbort: ({ steps }) => {
+          expectTypeOf(steps).toMatchTypeOf<Array<unknown>>();
+        },
+      });
+
+      agent.stream({
+        prompt: 'Hello, world!',
+        onChunk: ({ chunk }) => {
+          expectTypeOf(chunk.type).toMatchTypeOf<string>();
+        },
+        onError: ({ error }) => {
+          expectTypeOf(error).toEqualTypeOf<unknown>();
+        },
+        onAbort: ({ steps }) => {
+          expectTypeOf(steps).toMatchTypeOf<Array<unknown>>();
+        },
+      });
+    });
+
     it('should not allow system prompt', () => {
       const agent = new ToolLoopAgent({
         model: new MockLanguageModelV4(),
