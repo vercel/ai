@@ -1,5 +1,14 @@
 # @ai-sdk/cohere
 
+## 4.0.0-beta.53
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/provider-utils@5.0.0-beta.49
+  - @ai-sdk/provider@4.0.0-beta.19
+
 ## 4.0.0-canary.52
 
 ### Patch Changes

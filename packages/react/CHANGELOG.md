@@ -1,5 +1,16 @@
 # @ai-sdk/react
 
+## 4.0.0-beta.181
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/mcp@2.0.0-beta.66
+  - @ai-sdk/provider-utils@5.0.0-beta.49
+  - @ai-sdk/provider@4.0.0-beta.19
+  - ai@7.0.0-beta.177
+
 ## 4.0.0-canary.180
 
 ### Patch Changes

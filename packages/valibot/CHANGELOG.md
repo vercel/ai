@@ -1,5 +1,13 @@
 # @ai-sdk/valibot
 
+## 3.0.0-beta.49
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/provider-utils@5.0.0-beta.49
+
 ## 3.0.0-canary.48
 
 ### Patch Changes

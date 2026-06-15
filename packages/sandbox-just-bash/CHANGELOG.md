@@ -1,5 +1,14 @@
 # @ai-sdk/sandbox-just-bash
 
+## 1.0.0-beta.14
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/harness@1.0.0-beta.14
+  - @ai-sdk/provider-utils@5.0.0-beta.49
+
 ## 1.0.0-canary.13
 
 ### Patch Changes
