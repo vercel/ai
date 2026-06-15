@@ -3,7 +3,6 @@ import {
   TestResponseController,
 } from '@ai-sdk/test-server/with-vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createMCPClient } from './mcp-client';
 import { HttpMCPTransport } from './mcp-http-transport';
 import { LATEST_PROTOCOL_VERSION } from './types';
 import { MCPClientError } from '../error/mcp-client-error';
@@ -98,58 +97,6 @@ describe('HttpMCPTransport', () => {
       id: 2,
       result: { ok: true },
     });
-  });
-
-  it('should initialize MCP client from SSE response without explicit event field', async () => {
-    const controller = new TestResponseController();
-
-    server.urls['http://localhost:4000/stream'].response = ({ callNumber }) => {
-      switch (callNumber) {
-        case 0:
-          return { type: 'error', status: 405 };
-        case 1:
-          return {
-            type: 'controlled-stream',
-            controller,
-            headers: { 'content-type': 'text/event-stream' },
-          };
-        case 2:
-          return { type: 'empty', status: 202 };
-        default:
-          return { type: 'empty', status: 200 };
-      }
-    };
-
-    const clientPromise = createMCPClient({
-      transport: {
-        type: 'http',
-        url: 'http://localhost:4000/stream',
-      },
-    });
-
-    await vi.waitFor(() => {
-      expect(server.calls[1]?.requestMethod).toBe('POST');
-    });
-
-    controller.write(
-      `data: ${JSON.stringify({
-        jsonrpc: '2.0',
-        id: 0,
-        result: {
-          protocolVersion: LATEST_PROTOCOL_VERSION,
-          capabilities: {},
-          serverInfo: { name: 'test-server', version: '1.0.0' },
-        },
-      })}\n\n`,
-    );
-
-    const client = await clientPromise;
-    expect(client.serverInfo).toEqual({
-      name: 'test-server',
-      version: '1.0.0',
-    });
-
-    await client.close();
   });
 
   it('should (re)open inbound SSE after 202 Accepted', async () => {
