@@ -134,13 +134,24 @@ export async function prepareTools({
       : functionTools;
 
   for (const tool of filteredFunctionTools) {
+    // Bedrock rejects strict on tools for claude-opus-4-7 and claude-opus-4-8
+    // https://docs.aws.amazon.com/bedrock/latest/userguide/count-tokens.html
+    const supportsStrictOnTools =
+      !modelId.includes('claude-opus-4-7') &&
+      !modelId.includes('claude-opus-4-8');
+
+    const strictTools =
+      tool.strict != null && supportsStrictOnTools
+        ? { strict: tool.strict }
+        : {};
+
     amazonBedrockTools.push({
       toolSpec: {
         name: tool.name,
         ...(tool.description?.trim() !== ''
           ? { description: tool.description }
           : {}),
-        ...(tool.strict != null ? { strict: tool.strict } : {}),
+        ...strictTools,
         inputSchema: {
           json: tool.inputSchema as JSONObject,
         },
