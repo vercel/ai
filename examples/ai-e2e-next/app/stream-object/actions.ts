@@ -3,8 +3,7 @@
 import { openai } from '@ai-sdk/openai';
 import { Output, streamText } from 'ai';
 import { createStreamableValue } from '@ai-sdk/rsc';
-import { PartialNotification, notificationSchema } from './schema';
-
+import { notificationSchema, type PartialNotification } from './schema';
 export async function generateNotifications(context: string) {
   const notificationsStream = createStreamableValue<PartialNotification>();
 

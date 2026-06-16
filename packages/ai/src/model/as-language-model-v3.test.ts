@@ -1,4 +1,4 @@
-import { LanguageModelV2 } from '@ai-sdk/provider';
+import type { LanguageModelV2 } from '@ai-sdk/provider';
 import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,

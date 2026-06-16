@@ -3,7 +3,12 @@
   $schema: "https://docs.renovatebot.com/renovate-schema.json",
 
   // Extend from recommended base configuration
-  extends: ["config:recommended", ":disableDependencyDashboard"],
+  // helpers:pinGitHubActionDigests pins actions to immutable commit SHAs and updates them via digest PRs
+  extends: [
+    "config:recommended",
+    ":disableDependencyDashboard",
+    "helpers:pinGitHubActionDigests"
+  ],
 
   // Timezone for schedules (adjust as needed)
   timezone: "America/Los_Angeles",

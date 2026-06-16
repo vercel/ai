@@ -1,7 +1,7 @@
-import { EmbeddingModel } from './embedding-model';
-import { LanguageModel } from './language-model';
-import { ImageModel } from './image-model';
-import { RerankingModel } from './reranking-model';
+import type { EmbeddingModel } from './embedding-model';
+import type { LanguageModel } from './language-model';
+import type { ImageModel } from './image-model';
+import type { RerankingModel } from './reranking-model';
 
 /**
  * Provider for language, text embedding, and image models.

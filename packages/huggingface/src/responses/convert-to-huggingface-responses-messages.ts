@@ -1,8 +1,12 @@
 import {
-  SharedV4Warning,
-  LanguageModelV4Prompt,
   UnsupportedFunctionalityError,
+  type SharedV4Warning,
+  type LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
+import {
+  getTopLevelMediaType,
+  resolveFullMediaType,
+} from '@ai-sdk/provider-utils';
 
 export async function convertToHuggingFaceResponsesMessages({
   prompt,
@@ -31,23 +35,33 @@ export async function convertToHuggingFaceResponsesMessages({
                 return { type: 'input_text', text: part.text };
               }
               case 'file': {
-                if (part.mediaType.startsWith('image/')) {
-                  const mediaType =
-                    part.mediaType === 'image/*'
-                      ? 'image/jpeg'
-                      : part.mediaType;
-
-                  return {
-                    type: 'input_image',
-                    image_url:
-                      part.data instanceof URL
-                        ? part.data.toString()
-                        : `data:${mediaType};base64,${part.data}`,
-                  };
-                } else {
-                  throw new UnsupportedFunctionalityError({
-                    functionality: `file part media type ${part.mediaType}`,
-                  });
+                switch (part.data.type) {
+                  case 'reference': {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: 'file parts with provider references',
+                    });
+                  }
+                  case 'text': {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: 'text file parts',
+                    });
+                  }
+                  case 'url':
+                  case 'data': {
+                    if (getTopLevelMediaType(part.mediaType) === 'image') {
+                      return {
+                        type: 'input_image',
+                        image_url:
+                          part.data.type === 'url'
+                            ? part.data.url.toString()
+                            : `data:${resolveFullMediaType({ part })};base64,${part.data.data}`,
+                      };
+                    } else {
+                      throw new UnsupportedFunctionalityError({
+                        functionality: `file part media type ${part.mediaType}`,
+                      });
+                    }
+                  }
                 }
               }
               default: {

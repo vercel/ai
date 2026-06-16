@@ -1,12 +1,12 @@
-import type {
-  Experimental_VideoModelV4,
-  Experimental_VideoModelV4CallOptions,
-  Experimental_VideoModelV4File,
-  Experimental_VideoModelV4VideoData,
-  SharedV4ProviderMetadata,
-  SharedV4Warning,
+import {
+  APICallError,
+  type Experimental_VideoModelV4,
+  type Experimental_VideoModelV4CallOptions,
+  type Experimental_VideoModelV4File,
+  type Experimental_VideoModelV4VideoData,
+  type SharedV4ProviderMetadata,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
-import { APICallError } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertUint8ArrayToBase64,
@@ -60,7 +60,9 @@ export class GatewayVideoModel implements Experimental_VideoModelV4 {
       headers: Record<string, string> | undefined;
     };
   }> {
-    const resolvedHeaders = await resolve(this.config.headers());
+    const resolvedHeaders = this.config.headers
+      ? await resolve(this.config.headers)
+      : undefined;
     try {
       const { responseHeaders, value: responseBody } = await postJsonToApi({
         url: this.getUrl(),
@@ -178,7 +180,10 @@ export class GatewayVideoModel implements Experimental_VideoModelV4 {
         },
       };
     } catch (error) {
-      throw await asGatewayError(error, await parseAuthMethod(resolvedHeaders));
+      throw await asGatewayError(
+        error,
+        await parseAuthMethod(resolvedHeaders ?? {}),
+      );
     }
   }
 
@@ -233,6 +238,11 @@ const gatewayVideoWarningSchema = z.discriminatedUnion('type', [
     type: z.literal('compatibility'),
     feature: z.string(),
     details: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('deprecated'),
+    setting: z.string(),
+    message: z.string(),
   }),
   z.object({
     type: z.literal('other'),

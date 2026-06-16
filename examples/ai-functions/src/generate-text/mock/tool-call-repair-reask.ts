@@ -47,11 +47,11 @@ run(async () => {
       tools,
       error,
       messages,
-      system,
+      instructions,
     }) => {
       const result = await generateText({
         model: openai('gpt-4o'),
-        system,
+        instructions,
         messages: [
           ...messages,
           {

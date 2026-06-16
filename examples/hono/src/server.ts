@@ -2,9 +2,12 @@ import { openai } from '@ai-sdk/openai';
 import { serve } from '@hono/node-server';
 import {
   createAgentUIStreamResponse,
+  createTextStreamResponse,
   createUIMessageStream,
   createUIMessageStreamResponse,
   streamText,
+  toTextStream,
+  toUIMessageStream,
 } from 'ai';
 import 'dotenv/config';
 import { Hono } from 'hono';
@@ -30,7 +33,9 @@ app.post('/', async c => {
     model: openai('gpt-4o'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 });
 
 app.post('/text', async c => {
@@ -39,7 +44,9 @@ app.post('/text', async c => {
     model: openai('gpt-4o'),
     prompt: 'Write a short poem about coding.',
   });
-  return result.toTextStreamResponse();
+  return createTextStreamResponse({
+    stream: toTextStream({ stream: result.stream }),
+  });
 });
 
 app.post('/stream-data', async c => {
@@ -63,7 +70,8 @@ app.post('/stream-data', async c => {
       });
 
       writer.merge(
-        result.toUIMessageStream({
+        toUIMessageStream({
+          stream: result.stream,
           sendStart: false,
           onError: error => {
             // Error messages are masked by default for security reasons.

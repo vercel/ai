@@ -44,7 +44,8 @@ run(async () => {
 
   await result.consumeStream();
 
-  const providerMetadata = await result.providerMetadata;
+  const finalStep = await result.finalStep;
+  const providerMetadata = finalStep.providerMetadata;
 
   console.log(
     'Streaming usage information:',
@@ -94,7 +95,8 @@ run(async () => {
 
   await cachedResult.consumeStream();
 
-  const cachedProviderMetadata = await cachedResult.providerMetadata;
+  const cachedFinalStep = await cachedResult.finalStep;
+  const cachedProviderMetadata = cachedFinalStep.providerMetadata;
 
   console.log(
     'Streaming usage information:',

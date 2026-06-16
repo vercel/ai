@@ -43,7 +43,7 @@ export default function Page() {
             </div>
 
             {message.parts.map((part, index) => {
-              if (part.type === 'custom' && part.kind === 'openai-compaction') {
+              if (part.type === 'custom' && part.kind === 'openai.compaction') {
                 return (
                   <div
                     key={index}

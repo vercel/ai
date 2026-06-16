@@ -40,6 +40,6 @@ export const createDefaultDownloadFunction =
       requestedDownloads.map(async requestedDownload =>
         requestedDownload.isUrlSupportedByModel
           ? null
-          : download(requestedDownload),
+          : await download(requestedDownload),
       ),
     );

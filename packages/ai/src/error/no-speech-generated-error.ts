@@ -1,5 +1,5 @@
 import { AISDKError } from '@ai-sdk/provider';
-import { SpeechModelResponseMetadata } from '../types/speech-model-response-metadata';
+import type { SpeechModelResponseMetadata } from '../types/speech-model-response-metadata';
 
 const name = 'AI_NoSpeechGeneratedError';
 const marker = `vercel.ai.error.${name}`;

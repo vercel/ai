@@ -1,4 +1,4 @@
-import { stepCountIs, streamText, tool } from 'ai';
+import { isStepCount, streamText, tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 import { azure } from '@ai-sdk/azure';
@@ -38,7 +38,7 @@ run(async () => {
         },
       }),
     },
-    stopWhen: stepCountIs(20),
+    stopWhen: isStepCount(20),
     providerOptions: {
       openai: {
         reasoningEffort: 'high',
@@ -57,7 +57,7 @@ run(async () => {
     ],
   });
 
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     switch (chunk.type) {
       case 'reasoning-start':
         process.stdout.write('\x1b[34m');

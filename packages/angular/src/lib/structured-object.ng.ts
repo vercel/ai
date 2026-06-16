@@ -14,7 +14,6 @@ import {
   parsePartialJson,
   type DeepPartial,
 } from 'ai';
-
 export type StructuredObjectOptions<
   SCHEMA extends FlexibleSchema,
   RESULT = InferSchema<SCHEMA>,

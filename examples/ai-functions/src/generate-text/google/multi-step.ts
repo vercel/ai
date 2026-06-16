@@ -1,5 +1,5 @@
 import { google } from '@ai-sdk/google';
-import { generateText, stepCountIs, tool } from 'ai';
+import { generateText, isStepCount, tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
@@ -28,7 +28,7 @@ run(async () => {
         }),
       }),
     },
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
     // prompt: 'What is the weather in my current location?',
     prompt: 'What is the weather in Paris?',
   });

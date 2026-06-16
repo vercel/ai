@@ -1,18 +1,18 @@
-import { ModelMessage, tool } from '@ai-sdk/provider-utils';
+import { tool, type ModelMessage } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
-import { UglyTransformedStreamTextPart } from './create-stream-text-part-transform';
+import type { LanguageModelStreamPart } from './stream-language-model-call';
 import { invokeToolCallbacksFromStream } from './invoke-tool-callbacks-from-stream';
 
 describe('invokeToolCallbacksFromStream', () => {
   it('should invoke tool callbacks in order and pass through the stream', async () => {
     const recordedCalls: unknown[] = [];
     const abortController = new AbortController();
-    const experimentalContext = { requestId: 'req-1' };
+    const runtimeContext = { requestId: 'req-1' };
     const stepInputMessages: Array<ModelMessage> = [
       { role: 'user', content: 'test-input' },
     ];
@@ -32,7 +32,7 @@ describe('invokeToolCallbacksFromStream', () => {
       }),
     };
 
-    const chunks: Array<UglyTransformedStreamTextPart<typeof tools>> = [
+    const chunks: Array<LanguageModelStreamPart<typeof tools>> = [
       { type: 'text-delta', id: 'text-1', text: 'hello' },
       { type: 'tool-input-start', id: 'call-1', toolName: 'test-tool' },
       { type: 'tool-input-delta', id: 'call-1', delta: '{"value":"' },
@@ -51,7 +51,7 @@ describe('invokeToolCallbacksFromStream', () => {
       tools,
       stepInputMessages,
       abortSignal: abortController.signal,
-      experimental_context: experimentalContext,
+      runtimeContext,
     });
     const resultChunks = await convertReadableStreamToArray(result);
     const recordedCallsForSnapshot = recordedCalls.map(call => ({
@@ -103,7 +103,7 @@ describe('invokeToolCallbacksFromStream', () => {
         {
           "options": {
             "abortSignal": "[AbortSignal]",
-            "experimental_context": {
+            "context": {
               "requestId": "req-1",
             },
             "messages": [
@@ -119,7 +119,7 @@ describe('invokeToolCallbacksFromStream', () => {
         {
           "options": {
             "abortSignal": "[AbortSignal]",
-            "experimental_context": {
+            "context": {
               "requestId": "req-1",
             },
             "inputTextDelta": "{"value":"",
@@ -136,7 +136,7 @@ describe('invokeToolCallbacksFromStream', () => {
         {
           "options": {
             "abortSignal": "[AbortSignal]",
-            "experimental_context": {
+            "context": {
               "requestId": "req-1",
             },
             "inputTextDelta": "Sparkle Day"}",
@@ -153,7 +153,7 @@ describe('invokeToolCallbacksFromStream', () => {
         {
           "options": {
             "abortSignal": "[AbortSignal]",
-            "experimental_context": {
+            "context": {
               "requestId": "req-1",
             },
             "input": {

@@ -1,5 +1,5 @@
 import {
-  createProviderToolFactoryWithOutputSchema,
+  createProviderDefinedToolFactoryWithOutputSchema,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -24,7 +24,7 @@ export const localShellOutputSchema = lazySchema(() =>
   zodSchema(z.object({ output: z.string() })),
 );
 
-export const localShell = createProviderToolFactoryWithOutputSchema<
+export const localShell = createProviderDefinedToolFactoryWithOutputSchema<
   {
     /**
      * Execute a shell command on the server.

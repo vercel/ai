@@ -1,4 +1,4 @@
-import { JSONSchema7 } from '@ai-sdk/provider';
+import type { JSONSchema7 } from '@ai-sdk/provider';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
 import { it, expect } from 'vitest';
 

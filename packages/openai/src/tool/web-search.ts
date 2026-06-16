@@ -1,5 +1,5 @@
 import {
-  createProviderToolFactoryWithOutputSchema,
+  createProviderExecutedToolFactory,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -36,6 +36,7 @@ export const webSearchOutputSchema = lazySchema(() =>
           z.object({
             type: z.literal('search'),
             query: z.string().optional(),
+            queries: z.array(z.string()).optional(),
           }),
           z.object({
             type: z.literal('openPage'),
@@ -60,7 +61,7 @@ export const webSearchOutputSchema = lazySchema(() =>
   ),
 );
 
-export const webSearchToolFactory = createProviderToolFactoryWithOutputSchema<
+export const webSearchToolFactory = createProviderExecutedToolFactory<
   {
     // Web search doesn't take input parameters - it's controlled by the prompt
   },
@@ -78,8 +79,15 @@ export const webSearchToolFactory = createProviderToolFactoryWithOutputSchema<
 
           /**
            * The search query.
+           *
+           * @deprecated Use `queries` instead.
            */
           query?: string;
+
+          /**
+           * The search queries the model used.
+           */
+          queries?: string[];
         }
       | {
           /**

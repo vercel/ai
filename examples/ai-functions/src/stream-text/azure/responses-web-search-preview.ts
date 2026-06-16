@@ -29,7 +29,7 @@ run(async () => {
   console.log(await result.toolCalls);
   console.log(await result.toolResults);
   console.log('\n=== Web Search Preview Annotations ===');
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'text-end':
         {

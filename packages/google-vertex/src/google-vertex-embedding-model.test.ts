@@ -3,7 +3,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import * as fs from 'node:fs';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createVertex } from './google-vertex-provider';
+import { createGoogleVertex } from './google-vertex-provider-base';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
@@ -136,10 +136,10 @@ describe('GoogleVertexEmbeddingModel', () => {
       `);
     });
 
-    it('should accept vertex as provider options key', async () => {
+    it('should accept googleVertex as provider options key', async () => {
       await model.doEmbed({
         values: testValues,
-        providerOptions: { vertex: mockProviderOptions },
+        providerOptions: { googleVertex: mockProviderOptions },
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
@@ -252,7 +252,7 @@ describe('GoogleVertexEmbeddingModel', () => {
   it('should pass headers correctly', async () => {
     prepareJsonFixtureResponse('google-vertex-embedding');
 
-    const provider = createVertex({
+    const provider = createGoogleVertex({
       project: 'test-project',
       location: 'us-central1',
       headers: { 'X-Custom-Header': 'custom-value' },

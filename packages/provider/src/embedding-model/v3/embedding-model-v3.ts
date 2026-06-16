@@ -1,5 +1,5 @@
-import { EmbeddingModelV3CallOptions } from './embedding-model-v3-call-options';
-import { EmbeddingModelV3Result } from './embedding-model-v3-result';
+import type { EmbeddingModelV3CallOptions } from './embedding-model-v3-call-options';
+import type { EmbeddingModelV3Result } from './embedding-model-v3-result';
 
 /**
  * Specification for an embedding model that implements the embedding model

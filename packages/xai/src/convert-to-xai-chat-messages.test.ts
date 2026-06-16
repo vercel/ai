@@ -42,7 +42,7 @@ describe('convertToXaiChatMessages', () => {
           {
             type: 'file',
             mediaType: 'image/png',
-            data: Buffer.from([0, 1, 2, 3]),
+            data: { type: 'data' as const, data: Buffer.from([0, 1, 2, 3]) },
           },
         ],
       },
@@ -71,7 +71,10 @@ describe('convertToXaiChatMessages', () => {
           {
             type: 'file',
             mediaType: 'image/jpeg',
-            data: new URL('https://example.com/image.jpg'),
+            data: {
+              type: 'url' as const,
+              url: new URL('https://example.com/image.jpg'),
+            },
           },
         ],
       },
@@ -91,6 +94,90 @@ describe('convertToXaiChatMessages', () => {
     ]);
   });
 
+  it('should convert image file parts with provider reference', () => {
+    const { messages, warnings } = convertToXaiChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: {
+              type: 'reference' as const,
+              reference: { xai: 'file-abc123', openai: 'file-xyz789' },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(warnings).toEqual([]);
+    expect(messages).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            file: { file_id: 'file-abc123' },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should convert non-image file parts with provider reference', () => {
+    const { messages, warnings } = convertToXaiChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            mediaType: 'application/pdf',
+            data: {
+              type: 'reference' as const,
+              reference: { xai: 'file-pdf456' },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(warnings).toEqual([]);
+    expect(messages).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            file: { file_id: 'file-pdf456' },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should throw error when provider reference is missing xai key', () => {
+    expect(() => {
+      convertToXaiChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: {
+                type: 'reference' as const,
+                reference: { openai: 'file-xyz789' },
+              },
+            },
+          ],
+        },
+      ]);
+    }).toThrow(
+      "No provider reference found for provider 'xai'. Available providers: openai",
+    );
+  });
+
   it('should throw error for unsupported file types', () => {
     expect(() => {
       convertToXaiChatMessages([
@@ -100,7 +187,7 @@ describe('convertToXaiChatMessages', () => {
             {
               type: 'file',
               mediaType: 'application/pdf',
-              data: Buffer.from([0, 1, 2, 3]),
+              data: { type: 'data' as const, data: Buffer.from([0, 1, 2, 3]) },
             },
           ],
         },
@@ -239,5 +326,92 @@ describe('convertToXaiChatMessages', () => {
         ],
       },
     ]);
+  });
+
+  describe('top-level-only media type resolution', () => {
+    const pngBase64 = 'iVBORw0KGgo=';
+
+    it('passes full image/png through unchanged for inline data', () => {
+      const { messages } = convertToXaiChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: { type: 'data', data: pngBase64 },
+            },
+          ],
+        },
+      ]);
+
+      expect((messages[0].content as unknown[])[0]).toEqual({
+        type: 'image_url',
+        image_url: { url: `data:image/png;base64,${pngBase64}` },
+      });
+    });
+
+    it('detects image subtype from inline bytes for top-level "image"', () => {
+      const { messages } = convertToXaiChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'image',
+              data: { type: 'data', data: pngBase64 },
+            },
+          ],
+        },
+      ]);
+
+      expect((messages[0].content as unknown[])[0]).toEqual({
+        type: 'image_url',
+        image_url: { url: `data:image/png;base64,${pngBase64}` },
+      });
+    });
+
+    it('passes through URL source for top-level-only image', () => {
+      const { messages } = convertToXaiChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'image',
+              data: {
+                type: 'url',
+                url: new URL('https://example.com/x.png'),
+              },
+            },
+          ],
+        },
+      ]);
+
+      expect((messages[0].content as unknown[])[0]).toEqual({
+        type: 'image_url',
+        image_url: { url: 'https://example.com/x.png' },
+      });
+    });
+
+    it('normalizes image/* wildcard via detection', () => {
+      const { messages } = convertToXaiChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'image/*',
+              data: { type: 'data', data: pngBase64 },
+            },
+          ],
+        },
+      ]);
+
+      expect((messages[0].content as unknown[])[0]).toEqual({
+        type: 'image_url',
+        image_url: { url: `data:image/png;base64,${pngBase64}` },
+      });
+    });
   });
 });

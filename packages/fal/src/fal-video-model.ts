@@ -10,52 +10,18 @@ import {
   createJsonResponseHandler,
   delay,
   getFromApi,
-  lazySchema,
+  isSameOrigin,
   parseProviderOptions,
   postJsonToApi,
-  zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { FalConfig } from './fal-config';
 import { falErrorDataSchema, falFailedResponseHandler } from './fal-error';
+import {
+  falVideoModelOptionsSchema,
+  type FalVideoModelOptions,
+} from './fal-video-model-options';
 import type { FalVideoModelId } from './fal-video-settings';
-
-export type FalVideoModelOptions = {
-  loop?: boolean | null;
-  motionStrength?: number | null;
-  pollIntervalMs?: number | null;
-  pollTimeoutMs?: number | null;
-  resolution?: string | null;
-  negativePrompt?: string | null;
-  promptOptimizer?: boolean | null;
-  [key: string]: unknown; // For passthrough
-};
-
-// Provider options schema for FAL video generation
-export const falVideoModelOptionsSchema = lazySchema(() =>
-  zodSchema(
-    z
-      .object({
-        // Video loop - only for Luma models
-        loop: z.boolean().nullish(),
-
-        // Motion strength (provider-specific)
-        motionStrength: z.number().min(0).max(1).nullish(),
-
-        // Polling configuration
-        pollIntervalMs: z.number().positive().nullish(),
-        pollTimeoutMs: z.number().positive().nullish(),
-
-        // Resolution (model-specific, e.g., '480p', '720p', '1080p')
-        resolution: z.string().nullish(),
-
-        // Model-specific parameters
-        negativePrompt: z.string().nullish(),
-        promptOptimizer: z.boolean().nullish(),
-      })
-      .passthrough(),
-  ),
-);
 
 interface FalVideoModelConfig extends FalConfig {
   _internal?: {
@@ -153,12 +119,13 @@ export class FalVideoModel implements Experimental_VideoModelV4 {
       }
     }
 
+    const submitUrl = this.config.url({
+      path: `https://queue.fal.run/fal-ai/${this.normalizedModelId}`,
+      modelId: this.modelId,
+    });
     const { value: queueResponse } = await postJsonToApi({
-      url: this.config.url({
-        path: `https://queue.fal.run/fal-ai/${this.normalizedModelId}`,
-        modelId: this.modelId,
-      }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      url: submitUrl,
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: falFailedResponseHandler,
       successfulResponseHandler:
@@ -183,13 +150,18 @@ export class FalVideoModel implements Experimental_VideoModelV4 {
 
     while (true) {
       try {
+        const statusUrl = this.config.url({
+          path: responseUrl,
+          modelId: this.modelId,
+        });
         const { value: statusResponse, responseHeaders: statusHeaders } =
           await getFromApi({
-            url: this.config.url({
-              path: responseUrl,
-              modelId: this.modelId,
-            }),
-            headers: combineHeaders(this.config.headers(), options.headers),
+            url: statusUrl,
+            // The status URL comes from the queue response; only send
+            // credentials when it stays on the provider's own origin.
+            headers: isSameOrigin(statusUrl, submitUrl)
+              ? combineHeaders(this.config.headers?.(), options.headers)
+              : undefined,
             failedResponseHandler: async ({
               response,
               url,

@@ -1,10 +1,10 @@
-import { vertex } from '@ai-sdk/google-vertex';
+import { googleVertex } from '@ai-sdk/google-vertex';
 import { embed } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const { embedding, usage, warnings } = await embed({
-    model: vertex.embeddingModel('gemini-embedding-001'),
+    model: googleVertex.embeddingModel('gemini-embedding-001'),
     value: 'sunny day at the beach',
   });
 

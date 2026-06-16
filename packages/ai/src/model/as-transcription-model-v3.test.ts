@@ -1,4 +1,4 @@
-import { TranscriptionModelV2 } from '@ai-sdk/provider';
+import type { TranscriptionModelV2 } from '@ai-sdk/provider';
 import { asTranscriptionModelV3 } from './as-transcription-model-v3';
 import { MockTranscriptionModelV2 } from '../test/mock-transcription-model-v2';
 import { MockTranscriptionModelV3 } from '../test/mock-transcription-model-v3';

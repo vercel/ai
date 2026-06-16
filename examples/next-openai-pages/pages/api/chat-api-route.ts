@@ -1,6 +1,10 @@
 import { openai } from '@ai-sdk/openai';
-import { streamText } from 'ai';
-import { NextApiRequest, NextApiResponse } from 'next';
+import {
+  pipeUIMessageStreamToResponse,
+  streamText,
+  toUIMessageStream,
+} from 'ai';
+import type { NextApiRequest, NextApiResponse } from 'next';
 
 export default async function handler(
   request: NextApiRequest,
@@ -15,5 +19,8 @@ export default async function handler(
 
   // write the data stream to the response
   // Note: this is sent as a single response, not a stream
-  result.pipeUIMessageStreamToResponse(response);
+  pipeUIMessageStreamToResponse({
+    response,
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }

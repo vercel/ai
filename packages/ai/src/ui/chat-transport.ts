@@ -1,6 +1,6 @@
-import { UIMessageChunk } from '../ui-message-stream';
-import { ChatRequestOptions } from './chat';
-import { UIMessage } from './ui-messages';
+import type { UIMessageChunk } from '../ui-message-stream';
+import type { ChatRequestOptions } from './chat';
+import type { UIMessage } from './ui-messages';
 
 /**
  * Transport interface for handling chat message communication and streaming.

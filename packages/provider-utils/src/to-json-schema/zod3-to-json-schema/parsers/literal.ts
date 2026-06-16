@@ -1,4 +1,4 @@
-import { ZodLiteralDef } from 'zod/v3';
+import type { ZodLiteralDef } from 'zod/v3';
 
 export type JsonSchema7LiteralType =
   | {

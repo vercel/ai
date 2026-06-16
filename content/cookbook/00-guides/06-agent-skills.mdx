@@ -186,8 +186,8 @@ const loadSkillTool = tool({
   inputSchema: z.object({
     name: z.string().describe('The skill name to load'),
   }),
-  execute: async ({ name }, { experimental_context }) => {
-    const { sandbox, skills } = experimental_context as {
+  execute: async ({ name }, { context }) => {
+    const { sandbox, skills } = context as {
       sandbox: Sandbox;
       skills: SkillMetadata[];
     };
@@ -230,8 +230,8 @@ const callOptionsSchema = z.object({
 const readFileTool = tool({
   description: 'Read a file from the filesystem',
   inputSchema: z.object({ path: z.string() }),
-  execute: async ({ path }, { experimental_context }) => {
-    const { sandbox } = experimental_context as { sandbox: Sandbox };
+  execute: async ({ path }, { context }) => {
+    const { sandbox } = context as { sandbox: Sandbox };
     return sandbox.readFile(path, 'utf-8');
   },
 });
@@ -239,8 +239,8 @@ const readFileTool = tool({
 const bashTool = tool({
   description: 'Execute a bash command',
   inputSchema: z.object({ command: z.string() }),
-  execute: async ({ command }, { experimental_context }) => {
-    const { sandbox } = experimental_context as { sandbox: Sandbox };
+  execute: async ({ command }, { context }) => {
+    const { sandbox } = context as { sandbox: Sandbox };
     return sandbox.exec(command);
   },
 });
@@ -256,7 +256,7 @@ const agent = new ToolLoopAgent({
   prepareCall: ({ options, ...settings }) => ({
     ...settings,
     instructions: `${settings.instructions}\n\n${buildSkillsPrompt(options.skills)}`,
-    experimental_context: {
+    context: {
       sandbox: options.sandbox,
       skills: options.skills,
     },

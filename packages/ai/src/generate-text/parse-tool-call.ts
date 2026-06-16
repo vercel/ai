@@ -1,43 +1,53 @@
-import { LanguageModelV4ToolCall } from '@ai-sdk/provider';
+import type { LanguageModelV4ToolCall } from '@ai-sdk/provider';
 import {
   asSchema,
-  ModelMessage,
   safeParseJSON,
   safeValidateTypes,
-  SystemModelMessage,
+  type InferToolInput,
+  type ModelMessage,
+  type ToolSet,
 } from '@ai-sdk/provider-utils';
 import { InvalidToolInputError } from '../error/invalid-tool-input-error';
 import { NoSuchToolError } from '../error/no-such-tool-error';
 import { ToolCallRepairError } from '../error/tool-call-repair-error';
-import { DynamicToolCall, TypedToolCall } from './tool-call';
-import { ToolCallRepairFunction } from './tool-call-repair-function';
-import { ToolSet } from './tool-set';
+import type { Instructions } from '../prompt';
+import type { DynamicToolCall, TypedToolCall } from './tool-call';
+import type { ToolCallRepairFunction } from './tool-call-repair-function';
+import type { ToolInputRefinement } from './tool-input-refinement';
 
 export async function parseToolCall<TOOLS extends ToolSet>({
   toolCall,
   tools,
   repairToolCall,
-  system,
+  refineToolInput,
   messages,
+  instructions,
 }: {
   toolCall: LanguageModelV4ToolCall;
   tools: TOOLS | undefined;
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
-  system: string | SystemModelMessage | Array<SystemModelMessage> | undefined;
+  refineToolInput?: ToolInputRefinement<TOOLS> | undefined;
+  instructions: Instructions | undefined;
   messages: ModelMessage[];
 }): Promise<TypedToolCall<TOOLS>> {
   try {
     if (tools == null) {
       // provider-executed dynamic tools are not part of our list of tools:
       if (toolCall.providerExecuted && toolCall.dynamic) {
-        return await parseProviderExecutedDynamicToolCall(toolCall);
+        return await refineParsedToolCallInput({
+          toolCall: await parseProviderExecutedDynamicToolCall(toolCall),
+          refineToolInput,
+        });
       }
 
       throw new NoSuchToolError({ toolName: toolCall.toolName });
     }
 
     try {
-      return await doParseToolCall({ toolCall, tools });
+      return await refineParsedToolCallInput({
+        toolCall: await doParseToolCall({ toolCall, tools }),
+        refineToolInput,
+      });
     } catch (error) {
       if (
         repairToolCall == null ||
@@ -59,7 +69,8 @@ export async function parseToolCall<TOOLS extends ToolSet>({
             const { inputSchema } = tools[toolName];
             return await asSchema(inputSchema).jsonSchema;
           },
-          system,
+          instructions,
+          system: instructions,
           messages,
           error,
         });
@@ -75,12 +86,16 @@ export async function parseToolCall<TOOLS extends ToolSet>({
         throw error;
       }
 
-      return await doParseToolCall({ toolCall: repairedToolCall, tools });
+      return await refineParsedToolCallInput({
+        toolCall: await doParseToolCall({ toolCall: repairedToolCall, tools }),
+        refineToolInput,
+      });
     }
   } catch (error) {
     // use parsed input when possible
     const parsedInput = await safeParseJSON({ text: toolCall.input });
     const input = parsedInput.success ? parsedInput.value : toolCall.input;
+    const tool = tools?.[toolCall.toolName];
 
     // TODO AI SDK 6: special invalid tool call parts
     return {
@@ -91,11 +106,31 @@ export async function parseToolCall<TOOLS extends ToolSet>({
       dynamic: true,
       invalid: true,
       error,
-      title: tools?.[toolCall.toolName]?.title,
+      title: tool?.title,
       providerExecuted: toolCall.providerExecuted,
       providerMetadata: toolCall.providerMetadata,
+      ...(tool?.metadata != null ? { toolMetadata: tool.metadata } : {}),
     };
   }
+}
+
+async function refineParsedToolCallInput<TOOLS extends ToolSet>({
+  toolCall,
+  refineToolInput,
+}: {
+  toolCall: TypedToolCall<TOOLS>;
+  refineToolInput: ToolInputRefinement<TOOLS> | undefined;
+}): Promise<TypedToolCall<TOOLS>> {
+  const refine = refineToolInput?.[toolCall.toolName];
+
+  if (refine == null) {
+    return toolCall;
+  }
+
+  return {
+    ...toolCall,
+    input: await refine(toolCall.input as InferToolInput<TOOLS[keyof TOOLS]>),
+  } as TypedToolCall<TOOLS>;
 }
 
 async function parseProviderExecutedDynamicToolCall(
@@ -173,6 +208,7 @@ async function doParseToolCall<TOOLS extends ToolSet>({
         input: parseResult.value,
         providerExecuted: toolCall.providerExecuted,
         providerMetadata: toolCall.providerMetadata,
+        ...(tool.metadata != null ? { toolMetadata: tool.metadata } : {}),
         dynamic: true,
         title: tool.title,
       }
@@ -183,6 +219,7 @@ async function doParseToolCall<TOOLS extends ToolSet>({
         input: parseResult.value,
         providerExecuted: toolCall.providerExecuted,
         providerMetadata: toolCall.providerMetadata,
+        ...(tool.metadata != null ? { toolMetadata: tool.metadata } : {}),
         title: tool.title,
       };
 }

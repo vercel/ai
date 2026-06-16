@@ -1,4 +1,7 @@
-import { ImageModelV4, ImageModelV4ProviderMetadata } from '@ai-sdk/provider';
+import type {
+  ImageModelV4,
+  ImageModelV4ProviderMetadata,
+} from '@ai-sdk/provider';
 import {
   convertBase64ToUint8Array,
   convertUint8ArrayToBase64,
@@ -15,7 +18,7 @@ import {
 } from 'vitest';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockImageModelV4 } from '../test/mock-image-model-v4';
-import { Warning } from '../types/warning';
+import type { Warning } from '../types/warning';
 import { generateImage } from './generate-image';
 
 const prompt = 'sunny day at the beach';
@@ -1375,46 +1378,5 @@ describe('data URL handling', () => {
         mediaType: 'image/jpeg',
       },
     ]);
-  });
-});
-
-describe('deprecated APIs', () => {
-  it('experimental_generateImage should still work', async () => {
-    // Import the deprecated export
-    const { experimental_generateImage } = await import('./index');
-
-    const result = await experimental_generateImage({
-      model: new MockImageModelV4({
-        doGenerate: async () =>
-          createMockResponse({
-            images: [pngBase64],
-          }),
-      }),
-      prompt,
-    });
-
-    expect(result.images).toHaveLength(1);
-    expect(result.image.base64).toBe(pngBase64);
-  });
-
-  it('Experimental_GenerateImageResult type should be exported', async () => {
-    // Import the deprecated exports
-    const { experimental_generateImage } = await import('./index');
-    type ResultType = import('./index').Experimental_GenerateImageResult;
-
-    const result: ResultType = await experimental_generateImage({
-      model: new MockImageModelV4({
-        doGenerate: async () =>
-          createMockResponse({
-            images: [pngBase64],
-          }),
-      }),
-      prompt,
-    });
-
-    // Type assertions to verify the shape is correct
-    expect(result.images).toBeDefined();
-    expect(result.image).toBeDefined();
-    expect(result.warnings).toBeDefined();
   });
 });

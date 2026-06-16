@@ -1,8 +1,8 @@
-import {
-  type LanguageModelV4FinishReason,
-  type LanguageModelV4Usage,
-  type LanguageModelV4Middleware,
-  type LanguageModelV4StreamPart,
+import type {
+  LanguageModelV4FinishReason,
+  LanguageModelV4Usage,
+  LanguageModelV4Middleware,
+  LanguageModelV4StreamPart,
 } from '@ai-sdk/provider';
 import {
   createRun,

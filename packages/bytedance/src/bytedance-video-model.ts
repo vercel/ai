@@ -29,6 +29,8 @@ export type ByteDanceVideoProviderOptions = {
   draft?: boolean | null;
   lastFrameImage?: string | null;
   referenceImages?: string[] | null;
+  referenceVideos?: string[] | null;
+  referenceAudio?: string[] | null;
   pollIntervalMs?: number | null;
   pollTimeoutMs?: number | null;
   [key: string]: unknown;
@@ -43,6 +45,8 @@ const HANDLED_PROVIDER_OPTIONS = new Set([
   'draft',
   'lastFrameImage',
   'referenceImages',
+  'referenceVideos',
+  'referenceAudio',
   'pollIntervalMs',
   'pollTimeoutMs',
 ]);
@@ -59,6 +63,8 @@ export const byteDanceVideoProviderOptionsSchema = lazySchema(() =>
         draft: z.boolean().nullish(),
         lastFrameImage: z.string().nullish(),
         referenceImages: z.array(z.string()).nullish(),
+        referenceVideos: z.array(z.string()).nullish(),
+        referenceAudio: z.array(z.string()).nullish(),
         pollIntervalMs: z.number().positive().nullish(),
         pollTimeoutMs: z.number().positive().nullish(),
       })
@@ -173,6 +179,9 @@ export class ByteDanceVideoModel implements Experimental_VideoModelV4 {
       content.push({
         type: 'image_url',
         image_url: { url: convertImageModelFileToDataUri(options.image) },
+        ...(byteDanceOptions?.lastFrameImage != null
+          ? { role: 'first_frame' }
+          : {}),
       });
     }
 
@@ -195,6 +204,34 @@ export class ByteDanceVideoModel implements Experimental_VideoModelV4 {
           type: 'image_url',
           image_url: { url: imageUrl },
           role: 'reference_image',
+        });
+      }
+    }
+
+    // Add reference videos if provided
+    if (
+      byteDanceOptions?.referenceVideos != null &&
+      byteDanceOptions.referenceVideos.length > 0
+    ) {
+      for (const videoUrl of byteDanceOptions.referenceVideos) {
+        content.push({
+          type: 'video_url',
+          video_url: { url: videoUrl },
+          role: 'reference_video',
+        });
+      }
+    }
+
+    // Add reference audio if provided
+    if (
+      byteDanceOptions?.referenceAudio != null &&
+      byteDanceOptions.referenceAudio.length > 0
+    ) {
+      for (const audioUrl of byteDanceOptions.referenceAudio) {
+        content.push({
+          type: 'audio_url',
+          audio_url: { url: audioUrl },
+          role: 'reference_audio',
         });
       }
     }
@@ -244,7 +281,6 @@ export class ByteDanceVideoModel implements Experimental_VideoModelV4 {
       if (byteDanceOptions.draft != null) {
         body.draft = byteDanceOptions.draft;
       }
-
       // Pass through any additional options not explicitly handled
       for (const [key, value] of Object.entries(byteDanceOptions)) {
         if (!HANDLED_PROVIDER_OPTIONS.has(key)) {

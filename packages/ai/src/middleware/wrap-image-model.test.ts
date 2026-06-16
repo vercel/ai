@@ -1,4 +1,4 @@
-import {
+import type {
   ImageModelV4CallOptions,
   ImageModelV4Middleware,
 } from '@ai-sdk/provider';

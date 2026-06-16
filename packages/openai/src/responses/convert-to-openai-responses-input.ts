@@ -1,16 +1,19 @@
 import {
-  LanguageModelV4Prompt,
-  LanguageModelV4ToolApprovalResponsePart,
-  SharedV4Warning,
   UnsupportedFunctionalityError,
+  type LanguageModelV4Prompt,
+  type LanguageModelV4ToolApprovalResponsePart,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   convertToBase64,
+  getTopLevelMediaType,
   isNonNullable,
   parseJSON,
   parseProviderOptions,
-  ToolNameMapping,
+  resolveFullMediaType,
+  resolveProviderReference,
   validateTypes,
+  type ToolNameMapping,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
@@ -22,7 +25,7 @@ import {
   localShellOutputSchema,
 } from '../tool/local-shell';
 import { shellInputSchema, shellOutputSchema } from '../tool/shell';
-import {
+import type {
   OpenAIResponsesCompactionItem,
   OpenAIResponsesCustomToolCallOutput,
   OpenAIResponsesFunctionCallOutput,
@@ -34,9 +37,15 @@ import {
   toolSearchOutputSchema,
 } from '../tool/tool-search';
 
+function serializeToolCallArguments(input: unknown): string {
+  return JSON.stringify(input === undefined ? {} : input);
+}
+
 /**
- * Check if a string is a file ID based on the given prefixes
- * Returns false if prefixes is undefined (disables file ID detection)
+ * This is soft-deprecated. Use provider references instead. Kept for backward compatibility
+ * with the `fileIdPrefixes` option.
+ *
+ * TODO: remove in v8
  */
 function isFileId(data: string, prefixes?: readonly string[]): boolean {
   if (!prefixes) return false;
@@ -49,8 +58,10 @@ export async function convertToOpenAIResponsesInput({
   systemMessageMode,
   providerOptionsName,
   fileIdPrefixes,
+  passThroughUnsupportedFiles = false,
   store,
   hasConversation = false,
+  hasPreviousResponseId = false,
   hasLocalShellTool = false,
   hasShellTool = false,
   hasApplyPatchTool = false,
@@ -60,9 +71,12 @@ export async function convertToOpenAIResponsesInput({
   toolNameMapping: ToolNameMapping;
   systemMessageMode: 'system' | 'developer' | 'remove';
   providerOptionsName: string;
+  /** @deprecated Use provider references instead. */
   fileIdPrefixes?: readonly string[];
+  passThroughUnsupportedFiles?: boolean;
   store: boolean;
   hasConversation?: boolean; // when true, skip assistant messages that already have item IDs
+  hasPreviousResponseId?: boolean; // when true, skip reasoning and function-call items that already exist in the previous response chain
   hasLocalShellTool?: boolean;
   hasShellTool?: boolean;
   hasApplyPatchTool?: boolean;
@@ -113,46 +127,86 @@ export async function convertToOpenAIResponsesInput({
                 return { type: 'input_text', text: part.text };
               }
               case 'file': {
-                if (part.mediaType.startsWith('image/')) {
-                  const mediaType =
-                    part.mediaType === 'image/*'
-                      ? 'image/jpeg'
-                      : part.mediaType;
+                switch (part.data.type) {
+                  case 'reference': {
+                    const fileId = resolveProviderReference({
+                      reference: part.data.reference,
+                      provider: providerOptionsName,
+                    });
 
-                  return {
-                    type: 'input_image',
-                    ...(part.data instanceof URL
-                      ? { image_url: part.data.toString() }
-                      : typeof part.data === 'string' &&
-                          isFileId(part.data, fileIdPrefixes)
-                        ? { file_id: part.data }
-                        : {
-                            image_url: `data:${mediaType};base64,${convertToBase64(part.data)}`,
-                          }),
-                    detail:
-                      part.providerOptions?.[providerOptionsName]?.imageDetail,
-                  };
-                } else if (part.mediaType === 'application/pdf') {
-                  if (part.data instanceof URL) {
+                    if (getTopLevelMediaType(part.mediaType) === 'image') {
+                      return {
+                        type: 'input_image',
+                        file_id: fileId,
+                        detail:
+                          part.providerOptions?.[providerOptionsName]
+                            ?.imageDetail,
+                      };
+                    }
+
                     return {
                       type: 'input_file',
-                      file_url: part.data.toString(),
+                      file_id: fileId,
                     };
                   }
-                  return {
-                    type: 'input_file',
-                    ...(typeof part.data === 'string' &&
-                    isFileId(part.data, fileIdPrefixes)
-                      ? { file_id: part.data }
-                      : {
-                          filename: part.filename ?? `part-${index}.pdf`,
-                          file_data: `data:application/pdf;base64,${convertToBase64(part.data)}`,
-                        }),
-                  };
-                } else {
-                  throw new UnsupportedFunctionalityError({
-                    functionality: `file part media type ${part.mediaType}`,
-                  });
+                  case 'text': {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: 'text file parts',
+                    });
+                  }
+                  case 'url':
+                  case 'data': {
+                    const topLevel = getTopLevelMediaType(part.mediaType);
+
+                    if (topLevel === 'image') {
+                      return {
+                        type: 'input_image',
+                        ...(part.data.type === 'url'
+                          ? { image_url: part.data.url.toString() }
+                          : typeof part.data.data === 'string' &&
+                              isFileId(part.data.data, fileIdPrefixes)
+                            ? { file_id: part.data.data }
+                            : {
+                                image_url: `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`,
+                              }),
+                        detail:
+                          part.providerOptions?.[providerOptionsName]
+                            ?.imageDetail,
+                      };
+                    } else {
+                      if (part.data.type === 'url') {
+                        return {
+                          type: 'input_file',
+                          file_url: part.data.url.toString(),
+                        };
+                      }
+
+                      const fullMediaType = resolveFullMediaType({ part });
+                      if (
+                        fullMediaType !== 'application/pdf' &&
+                        !passThroughUnsupportedFiles
+                      ) {
+                        throw new UnsupportedFunctionalityError({
+                          functionality: `file part media type ${fullMediaType}`,
+                        });
+                      }
+
+                      return {
+                        type: 'input_file',
+                        ...(typeof part.data.data === 'string' &&
+                        isFileId(part.data.data, fileIdPrefixes)
+                          ? { file_id: part.data.data }
+                          : {
+                              filename:
+                                part.filename ??
+                                (fullMediaType === 'application/pdf'
+                                  ? `part-${index}.pdf`
+                                  : `part-${index}`),
+                              file_data: `data:${fullMediaType};base64,${convertToBase64(part.data.data)}`,
+                            }),
+                      };
+                    }
+                  }
                 }
               }
             }
@@ -168,9 +222,10 @@ export async function convertToOpenAIResponsesInput({
         for (const part of content) {
           switch (part.type) {
             case 'text': {
-              const providerOpts = part.providerOptions?.[providerOptionsName];
-              const id = providerOpts?.itemId as string | undefined;
-              const phase = providerOpts?.phase as
+              const providerOptions =
+                part.providerOptions?.[providerOptionsName];
+              const id = providerOptions?.itemId as string | undefined;
+              const phase = providerOptions?.phase as
                 | 'commentary'
                 | 'final_answer'
                 | null
@@ -205,6 +260,18 @@ export async function convertToOpenAIResponsesInput({
                     };
                   }
                 ).providerMetadata?.[providerOptionsName]?.itemId) as
+                | string
+                | undefined;
+
+              const namespace = (part.providerOptions?.[providerOptionsName]
+                ?.namespace ??
+                (
+                  part as {
+                    providerMetadata?: {
+                      [providerOptionsName]?: { namespace?: string };
+                    };
+                  }
+                ).providerMetadata?.[providerOptionsName]?.namespace) as
                 | string
                 | undefined;
 
@@ -254,7 +321,29 @@ export async function convertToOpenAIResponsesInput({
                 break;
               }
 
-              if (store && id != null) {
+              // When chaining with a previous response id, items already part
+              // of that response chain must not be resent.
+              if (hasPreviousResponseId && store && id != null) {
+                break;
+              }
+
+              // Provider-defined tool calls (local_shell, shell, apply_patch,
+              // and custom tools) are stored by the API and can be sent as an
+              // `item_reference` to reduce payload size. Plain client-executed
+              // function calls must NOT be: the matching `function_call_output`
+              // can only reference the call by `call_id` (`call_...`), which
+              // the API cannot reconcile with an item id (`fc_...`) or an
+              // `item_reference`. Sending either breaks call/output pairing and
+              // makes follow-up requests fail with "No tool call found for
+              // function call output with call_id", most visibly with parallel
+              // tool calls across multiple steps.
+              const isProviderDefinedToolCall =
+                (hasLocalShellTool && resolvedToolName === 'local_shell') ||
+                (hasShellTool && resolvedToolName === 'shell') ||
+                (hasApplyPatchTool && resolvedToolName === 'apply_patch') ||
+                (customProviderToolNames?.has(resolvedToolName) ?? false);
+
+              if (store && id != null && isProviderDefinedToolCall) {
                 input.push({ type: 'item_reference', id });
                 break;
               }
@@ -335,8 +424,8 @@ export async function convertToOpenAIResponsesInput({
                 type: 'function_call',
                 call_id: part.toolCallId,
                 name: resolvedToolName,
-                arguments: JSON.stringify(part.input),
-                id,
+                arguments: serializeToolCallArguments(part.input),
+                ...(namespace != null && { namespace }),
               });
               break;
             }
@@ -453,7 +542,10 @@ export async function convertToOpenAIResponsesInput({
 
               const reasoningId = providerOptions?.itemId;
 
-              if (hasConversation && reasoningId != null) {
+              if (
+                (hasConversation || hasPreviousResponseId) &&
+                reasoningId != null
+              ) {
                 break;
               }
 
@@ -546,10 +638,10 @@ export async function convertToOpenAIResponsesInput({
             }
 
             case 'custom': {
-              if (part.kind === 'openai-compaction') {
-                const providerOpts =
+              if (part.kind === 'openai.compaction') {
+                const providerOptions =
                   part.providerOptions?.[providerOptionsName];
-                const id = providerOpts?.itemId as string | undefined;
+                const id = providerOptions?.itemId as string | undefined;
 
                 if (hasConversation && id != null) {
                   break;
@@ -560,7 +652,7 @@ export async function convertToOpenAIResponsesInput({
                   break;
                 }
 
-                const encryptedContent = providerOpts?.encryptedContent as
+                const encryptedContent = providerOptions?.encryptedContent as
                   | string
                   | undefined;
 
@@ -712,7 +804,7 @@ export async function convertToOpenAIResponsesInput({
                 outputValue = output.value;
                 break;
               case 'execution-denied':
-                outputValue = output.reason ?? 'Tool execution denied.';
+                outputValue = output.reason ?? 'Tool call execution denied.';
                 break;
               case 'json':
               case 'error-json':
@@ -724,22 +816,50 @@ export async function convertToOpenAIResponsesInput({
                     switch (item.type) {
                       case 'text':
                         return { type: 'input_text' as const, text: item.text };
-                      case 'image-data':
-                        return {
-                          type: 'input_image' as const,
-                          image_url: `data:${item.mediaType};base64,${item.data}`,
-                        };
-                      case 'image-url':
-                        return {
-                          type: 'input_image' as const,
-                          image_url: item.url,
-                        };
-                      case 'file-data':
-                        return {
-                          type: 'input_file' as const,
-                          filename: item.filename ?? 'data',
-                          file_data: `data:${item.mediaType};base64,${item.data}`,
-                        };
+                      case 'file': {
+                        const topLevel = getTopLevelMediaType(item.mediaType);
+                        const imageDetail =
+                          item.providerOptions?.[providerOptionsName]
+                            ?.imageDetail;
+
+                        if (item.data.type === 'data') {
+                          const fullMediaType = resolveFullMediaType({
+                            part: item,
+                          });
+                          if (topLevel === 'image') {
+                            return {
+                              type: 'input_image' as const,
+                              image_url: `data:${fullMediaType};base64,${convertToBase64(item.data.data)}`,
+                              detail: imageDetail,
+                            };
+                          }
+                          return {
+                            type: 'input_file' as const,
+                            filename: item.filename ?? 'data',
+                            file_data: `data:${fullMediaType};base64,${convertToBase64(item.data.data)}`,
+                          };
+                        }
+
+                        if (item.data.type === 'url') {
+                          if (topLevel === 'image') {
+                            return {
+                              type: 'input_image' as const,
+                              image_url: item.data.url.toString(),
+                              detail: imageDetail,
+                            };
+                          }
+                          return {
+                            type: 'input_file' as const,
+                            file_url: item.data.url.toString(),
+                          };
+                        }
+
+                        warnings.push({
+                          type: 'other',
+                          message: `unsupported custom tool content part type: ${item.type} with data type: ${item.data.type}`,
+                        });
+                        return undefined;
+                      }
                       default:
                         warnings.push({
                           type: 'other',
@@ -768,7 +888,7 @@ export async function convertToOpenAIResponsesInput({
               contentValue = output.value;
               break;
             case 'execution-denied':
-              contentValue = output.reason ?? 'Tool execution denied.';
+              contentValue = output.reason ?? 'Tool call execution denied.';
               break;
             case 'json':
             case 'error-json':
@@ -782,26 +902,49 @@ export async function convertToOpenAIResponsesInput({
                       return { type: 'input_text' as const, text: item.text };
                     }
 
-                    case 'image-data': {
-                      return {
-                        type: 'input_image' as const,
-                        image_url: `data:${item.mediaType};base64,${item.data}`,
-                      };
-                    }
+                    case 'file': {
+                      const topLevel = getTopLevelMediaType(item.mediaType);
+                      const imageDetail =
+                        item.providerOptions?.[providerOptionsName]
+                          ?.imageDetail;
 
-                    case 'image-url': {
-                      return {
-                        type: 'input_image' as const,
-                        image_url: item.url,
-                      };
-                    }
+                      if (item.data.type === 'data') {
+                        const fullMediaType = resolveFullMediaType({
+                          part: item,
+                        });
+                        if (topLevel === 'image') {
+                          return {
+                            type: 'input_image' as const,
+                            image_url: `data:${fullMediaType};base64,${convertToBase64(item.data.data)}`,
+                            detail: imageDetail,
+                          };
+                        }
+                        return {
+                          type: 'input_file' as const,
+                          filename: item.filename ?? 'data',
+                          file_data: `data:${fullMediaType};base64,${convertToBase64(item.data.data)}`,
+                        };
+                      }
 
-                    case 'file-data': {
-                      return {
-                        type: 'input_file' as const,
-                        filename: item.filename ?? 'data',
-                        file_data: `data:${item.mediaType};base64,${item.data}`,
-                      };
+                      if (item.data.type === 'url') {
+                        if (topLevel === 'image') {
+                          return {
+                            type: 'input_image' as const,
+                            image_url: item.data.url.toString(),
+                            detail: imageDetail,
+                          };
+                        }
+                        return {
+                          type: 'input_file' as const,
+                          file_url: item.data.url.toString(),
+                        };
+                      }
+
+                      warnings.push({
+                        type: 'other',
+                        message: `unsupported tool content part type: ${item.type} with data type: ${item.data.type}`,
+                      });
+                      return undefined;
                     }
 
                     default: {

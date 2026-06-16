@@ -1,7 +1,6 @@
 import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
-import { cors } from 'hono/cors';
 import { streamSSE } from 'hono/streaming';
 import path from 'path';
 import fs from 'fs';
@@ -12,6 +11,7 @@ import {
   getStepsForRun,
   clearDatabase,
   reloadDb,
+  validateRemoteDbPath,
 } from '../db.js';
 
 // SSE client management
@@ -53,17 +53,52 @@ const projectRoot = path.resolve(__dirname, '../..');
 // Client directory: dist/client in both cases
 const clientDir = path.join(projectRoot, 'dist/client');
 
-const app = new Hono();
+// Track the DB path from the most recent notify call so all reads
+// use the correct file, even when the viewer runs in a different CWD.
+let remoteDbPath: string | undefined;
+let viewerPort = 4983;
 
-// Enable CORS for development
-app.use('/*', cors());
+export const app = new Hono();
+
+const getAllowedHosts = () =>
+  new Set([
+    `localhost:${viewerPort}`,
+    `127.0.0.1:${viewerPort}`,
+    `[::1]:${viewerPort}`,
+  ]);
+
+const getAllowedOrigins = () =>
+  new Set([
+    `http://localhost:${viewerPort}`,
+    `http://127.0.0.1:${viewerPort}`,
+    `http://[::1]:${viewerPort}`,
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://[::1]:5173',
+  ]);
+
+app.use('/api/*', async (c, next) => {
+  const host = c.req.header('host');
+  if (!host || !getAllowedHosts().has(host)) {
+    return c.text('Forbidden', 403);
+  }
+
+  const origin = c.req.header('origin');
+  if (origin && !getAllowedOrigins().has(origin)) {
+    return c.text('Forbidden', 403);
+  }
+
+  await next();
+});
 
 // API Routes
 app.get('/api/runs', async c => {
+  await reloadDb(remoteDbPath);
   const runs = await getRuns();
-  // Include step count, first message, and error status for each run
+  // Only return root-level runs (no parent) in the sidebar list
+  const rootRuns = runs.filter(r => !r.parent_run_id);
   const runsWithMeta = await Promise.all(
-    runs.map(async run => {
+    rootRuns.map(async run => {
       const steps = await getStepsForRun(run.id);
       let firstMessage = 'No user message';
       let hasError = false;
@@ -109,15 +144,49 @@ app.get('/api/runs', async c => {
 });
 
 app.get('/api/runs/:id', async c => {
+  await reloadDb(remoteDbPath);
   const data = await getRunWithSteps(c.req.param('id'));
   if (!data) {
     return c.json({ error: 'Run not found' }, 404);
   }
   // Compute isInProgress from steps (any step without duration_ms or error)
   const isInProgress = data.steps.some(s => s.duration_ms === null && !s.error);
+
+  // Recursively collect all descendant runs so the viewer can render
+  const allRuns = await getRuns();
+
+  interface DescendantRun {
+    run: (typeof allRuns)[number] & { isInProgress: boolean };
+    steps: Awaited<ReturnType<typeof getStepsForRun>>;
+    childRuns: DescendantRun[];
+  }
+
+  async function getDescendantRuns(
+    parentRunId: string,
+  ): Promise<DescendantRun[]> {
+    const children = allRuns.filter(r => r.parent_run_id === parentRunId);
+    return Promise.all(
+      children.map(async childRun => {
+        const childSteps = await getStepsForRun(childRun.id);
+        const childIsInProgress = childSteps.some(
+          s => s.duration_ms === null && !s.error,
+        );
+        const grandchildren = await getDescendantRuns(childRun.id);
+        return {
+          run: { ...childRun, isInProgress: childIsInProgress },
+          steps: childSteps,
+          childRuns: grandchildren,
+        };
+      }),
+    );
+  }
+
+  const childRuns = await getDescendantRuns(data.run.id);
+
   return c.json({
     run: { ...data.run, isInProgress },
     steps: data.steps,
+    childRuns,
   });
 });
 
@@ -188,11 +257,19 @@ app.get('/api/events', c => {
   });
 });
 
-// Notification endpoint (called by middleware)
+// Notification endpoint (called by middleware/integration)
 app.post('/api/notify', async c => {
-  const body = await c.req.json();
-  // Reload database from disk to pick up changes from middleware
-  await reloadDb();
+  const body = (await c.req.json()) as Record<string, unknown>;
+  if (body.dbPath !== undefined) {
+    const validatedDbPath = validateRemoteDbPath(body.dbPath);
+    if (!validatedDbPath) {
+      return c.text('Invalid dbPath', 400);
+    }
+    remoteDbPath = validatedDbPath;
+  }
+  // Reload database from disk, using the remote dbPath if provided so the
+  // viewer works even when started from a different directory than the app.
+  await reloadDb(remoteDbPath);
   broadcastToClients('update', body);
   return c.json({ success: true });
 });
@@ -244,10 +321,13 @@ app.get('*', async c => {
 });
 
 export const startViewer = (port = 4983) => {
+  viewerPort = port;
+
   const server = serve(
     {
       fetch: app.fetch,
       port,
+      hostname: 'localhost',
     },
     () => {
       if (isDevMode) {

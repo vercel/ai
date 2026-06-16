@@ -1,13 +1,15 @@
-import {
+import type { JSONObject } from '@ai-sdk/provider';
+import type {
   InferToolInput,
   InferToolOutput,
   Tool,
   ToolCall,
+  ToolSet,
 } from '@ai-sdk/provider-utils';
-import { ToolSet } from '../generate-text';
-import { ProviderMetadata } from '../types/provider-metadata';
-import { DeepPartial } from '../util/deep-partial';
-import { ValueOf } from '../util/value-of';
+import type { ProviderMetadata } from '../types/provider-metadata';
+import type { ProviderReference } from '../types/provider-reference';
+import type { DeepPartial } from '../util/deep-partial';
+import type { ValueOf } from '../util/value-of';
 
 /**
  * The data types that can be used in the UI message for the UI message data parts.
@@ -117,9 +119,9 @@ export type CustomContentUIPart = {
   type: 'custom';
 
   /**
-   * The kind of custom content, in the format `{provider}-{provider-type}`.
+   * The kind of custom content, in the format `{provider}.{provider-type}`.
    */
-  kind: string;
+  kind: `${string}.${string}`;
 
   /**
    * The provider metadata.
@@ -179,7 +181,14 @@ export type FileUIPart = {
   type: 'file';
 
   /**
-   * IANA media type of the file.
+   * Either a full IANA media type (`type/subtype`, e.g. `image/png`) or just
+   * the top-level IANA segment (e.g. `image`, `audio`, `video`, `text`).
+   *
+   * `*`-subtype wildcards (e.g. `image/*`) are normalized as equivalent to the
+   * top-level segment alone (e.g. `image`). Providers can use the helpers in
+   * `@ai-sdk/provider-utils` (`isFullMediaType`, `getTopLevelMediaType`,
+   * `detectMediaType`) to resolve the field according to their API
+   * requirements.
    *
    * @see https://www.iana.org/assignments/media-types/media-types.xhtml
    */
@@ -195,6 +204,13 @@ export type FileUIPart = {
    * It can either be a URL to a hosted file or a [Data URL](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URLs).
    */
   url: string;
+
+  /**
+   * Provider reference for files uploaded via `uploadFile`.
+   * Maps provider names to provider-specific file identifiers.
+   * When present, takes precedence over `url` in model messages.
+   */
+  providerReference?: ProviderReference;
 
   /**
    * The provider metadata.
@@ -266,6 +282,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
    */
   toolCallId: string;
   title?: string;
+  toolMetadata?: JSONObject;
 
   /**
    * Whether the tool call was executed by the provider.
@@ -274,7 +291,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
 } & (
   | {
       state: 'input-streaming';
-      input: DeepPartial<asUITool<TOOL>['input']> | undefined;
+      input?: DeepPartial<asUITool<TOOL>['input']> | undefined;
       output?: never;
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
@@ -298,6 +315,8 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         id: string;
         approved?: never;
         reason?: never;
+        isAutomatic?: boolean;
+        signature?: string;
       };
     }
   | {
@@ -310,6 +329,8 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         id: string;
         approved: boolean;
         reason?: string;
+        isAutomatic?: boolean;
+        signature?: string;
       };
     }
   | {
@@ -324,6 +345,8 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         id: string;
         approved: true;
         reason?: string;
+        isAutomatic?: boolean;
+        signature?: string;
       };
     }
   | {
@@ -338,6 +361,8 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         id: string;
         approved: true;
         reason?: string;
+        isAutomatic?: boolean;
+        signature?: string;
       };
     }
   | {
@@ -350,6 +375,8 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         id: string;
         approved: false;
         reason?: string;
+        isAutomatic?: boolean;
+        signature?: string;
       };
     }
 );
@@ -373,6 +400,7 @@ export type DynamicToolUIPart = {
    */
   toolCallId: string;
   title?: string;
+  toolMetadata?: JSONObject;
 
   /**
    * Whether the tool call was executed by the provider.
@@ -381,7 +409,7 @@ export type DynamicToolUIPart = {
 } & (
   | {
       state: 'input-streaming';
-      input: unknown | undefined;
+      input?: unknown;
       output?: never;
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
@@ -405,6 +433,8 @@ export type DynamicToolUIPart = {
         id: string;
         approved?: never;
         reason?: never;
+        isAutomatic?: boolean;
+        signature?: string;
       };
     }
   | {
@@ -417,6 +447,8 @@ export type DynamicToolUIPart = {
         id: string;
         approved: boolean;
         reason?: string;
+        isAutomatic?: boolean;
+        signature?: string;
       };
     }
   | {
@@ -431,6 +463,8 @@ export type DynamicToolUIPart = {
         id: string;
         approved: true;
         reason?: string;
+        isAutomatic?: boolean;
+        signature?: string;
       };
     }
   | {
@@ -444,6 +478,8 @@ export type DynamicToolUIPart = {
         id: string;
         approved: true;
         reason?: string;
+        isAutomatic?: boolean;
+        signature?: string;
       };
     }
   | {
@@ -456,6 +492,8 @@ export type DynamicToolUIPart = {
         id: string;
         approved: false;
         reason?: string;
+        isAutomatic?: boolean;
+        signature?: string;
       };
     }
 );
@@ -539,11 +577,6 @@ export function isToolUIPart<TOOLS extends UITools>(
 ): part is ToolUIPart<TOOLS> | DynamicToolUIPart {
   return isStaticToolUIPart(part) || isDynamicToolUIPart(part);
 }
-
-/**
- * @deprecated Use isToolUIPart instead.
- */
-export const isToolOrDynamicToolUIPart = isToolUIPart;
 
 /**
  * Returns the name of the static tool.

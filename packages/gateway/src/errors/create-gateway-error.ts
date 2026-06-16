@@ -8,15 +8,15 @@ import {
   modelNotFoundParamSchema,
 } from './gateway-model-not-found-error';
 import { GatewayInternalServerError } from './gateway-internal-server-error';
+import { GatewayFailedDependencyError } from './gateway-failed-dependency-error';
+import { GatewayForbiddenError } from './gateway-forbidden-error';
 import { GatewayResponseError } from './gateway-response-error';
 import {
-  InferSchema,
   lazySchema,
   safeValidateTypes,
-  validateTypes,
   zodSchema,
+  type InferSchema,
 } from '@ai-sdk/provider-utils';
-
 export async function createGatewayErrorFromResponse({
   response,
   statusCode,
@@ -98,6 +98,20 @@ export async function createGatewayErrorFromResponse({
     }
     case 'internal_server_error':
       return new GatewayInternalServerError({
+        message,
+        statusCode,
+        cause,
+        generationId,
+      });
+    case 'failed_dependency':
+      return new GatewayFailedDependencyError({
+        message,
+        statusCode,
+        cause,
+        generationId,
+      });
+    case 'forbidden':
+      return new GatewayForbiddenError({
         message,
         statusCode,
         cause,

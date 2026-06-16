@@ -1,5 +1,14 @@
-import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
-import { stepCountIs, ModelMessage, streamText, tool, APICallError } from 'ai';
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
+import {
+  isStepCount,
+  streamText,
+  tool,
+  APICallError,
+  type ModelMessage,
+} from 'ai';
 import * as readline from 'node:readline/promises';
 import { z } from 'zod';
 import { run } from '../../lib/run';
@@ -35,7 +44,7 @@ run(async () => {
           }),
         }),
       },
-      stopWhen: stepCountIs(5),
+      stopWhen: isStepCount(5),
       messages,
       onError: ({ error }) => {
         console.log('onError');
@@ -55,7 +64,7 @@ run(async () => {
     });
 
     process.stdout.write('\nAssistant: ');
-    for await (const chunk of result.fullStream) {
+    for await (const chunk of result.stream) {
       switch (chunk.type) {
         case 'raw':
           console.log(JSON.stringify(chunk.rawValue, null, 2));

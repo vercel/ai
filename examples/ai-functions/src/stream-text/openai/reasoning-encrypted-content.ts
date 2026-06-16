@@ -2,10 +2,9 @@ import { streamText } from 'ai';
 import { run } from '../../lib/run';
 import {
   openai,
-  OpenAILanguageModelResponsesOptions,
-  OpenaiResponsesReasoningProviderMetadata,
+  type OpenAILanguageModelResponsesOptions,
+  type OpenaiResponsesReasoningProviderMetadata,
 } from '@ai-sdk/openai';
-
 run(async () => {
   const result = streamText({
     model: openai('gpt-5'),
@@ -20,7 +19,7 @@ run(async () => {
     },
   });
 
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     switch (chunk.type) {
       case 'reasoning-start':
         process.stdout.write('\x1b[34m');

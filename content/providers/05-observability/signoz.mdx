@@ -8,7 +8,7 @@ description: Monitor, observe and debug your AI SDK application with SigNoz
 [SigNoz](https://signoz.io/) is a single tool for all your monitoring and observability needs. Here are a few reasons why you should choose SigNoz:
 
 - Single tool for observability(logs, metrics, and traces)
-- Built on top of [OpenTelemetry](https://opentelemetry.io/), the open-source standard which frees you from any type of vendor lock-in
+- Built on top of [OpenTelemetry](https://opentelemetry.io/), the open-source standard which frees you from any type of vendor lock-in
 - Correlated logs, metrics and traces for much richer context while debugging
 - Uses ClickHouse (used by likes of Uber & Cloudflare) as datastore - an extremely fast and highly optimized storage for observability data
 - DIY Query builder, PromQL, and ClickHouse queries to fulfill all your use-cases around querying observability data
@@ -24,13 +24,13 @@ Check out detailed instructions on how to set up OpenTelemetry instrumentation i
 
 ## Send traces directly to SigNoz Cloud
 
-**Step 1.** Install OpenTelemetry packages
+**Step 1.** Install OpenTelemetry packages
 
 ```bash
-npm install @vercel/otel @opentelemetry/api
+npm install @vercel/otel @opentelemetry/api @ai-sdk/otel
 ```
 
-**Step 2.** Update **`next.config.mjs`** to include instrumentationHook
+**Step 2.** Update **`next.config.mjs`** to include instrumentationHook
 
 > This step is only needed when using NextJs 14 and below
 
@@ -45,13 +45,18 @@ const nextConfig = {
 export default nextConfig;
 ```
 
-**Step 3.** Create **`instrumentation.ts`** file(in root project directory)
+**Step 3.** Create **`instrumentation.ts`** file(in root project directory)
 
 ```jsx
+import { registerTelemetry } from 'ai';
+import { LegacyOpenTelemetry } from '@ai-sdk/otel';
 import { registerOTel, OTLPHttpJsonTraceExporter } from '@vercel/otel';
 // Add otel logging
 import { diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api';
 diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ERROR); // set diag log level to DEBUG when debugging
+
+registerTelemetry(new LegacyOpenTelemetry());
+
 export function register() {
   registerOTel({
     serviceName: '<service_name>',
@@ -63,9 +68,9 @@ export function register() {
 }
 ```
 
-- **`<service_name>`** is the name of your service
-- Set the **`<region>`** to match your SigNoz Cloud [**region**](https://signoz.io/docs/ingestion/signoz-cloud/overview/#endpoint)
-- Replace **`<your-ingestion-key>`** with your SigNoz [**ingestion key**](https://signoz.io/docs/ingestion/signoz-cloud/keys/)
+- **`<service_name>`** is the name of your service
+- Set the **`<region>`** to match your SigNoz Cloud [**region**](https://signoz.io/docs/ingestion/signoz-cloud/overview/#endpoint)
+- Replace **`<your-ingestion-key>`** with your SigNoz [**ingestion key**](https://signoz.io/docs/ingestion/signoz-cloud/keys/)
 
 > The instrumentation file should be in the root of your project and not inside the app or pages directory. If you're using the src folder, then place the file inside src alongside pages and app.
 
@@ -73,62 +78,65 @@ Your Next.js app should be properly instrumented now.
 
 ## Enable Telemetry for Vercel AI SDK
 
-The Vercel AI SDK uses [OpenTelemetry](https://signoz.io/blog/what-is-opentelemetry/) to collect telemetry data. OpenTelemetry is an open-source observability framework designed to provide standardized instrumentation for collecting telemetry data.
+The Vercel AI SDK uses [OpenTelemetry](https://signoz.io/blog/what-is-opentelemetry/) to collect telemetry data. OpenTelemetry is an open-source observability framework designed to provide standardized instrumentation for collecting telemetry data.
 
 ## Enabling Telemetry
 
-Check out more detailed information about Vercel AI SDK’s telemetry options visit [here](https://ai-sdk.dev/docs/ai-sdk-core/telemetry#telemetry).
+Check out more detailed information about Vercel AI SDK's telemetry options visit [here](https://ai-sdk.dev/docs/ai-sdk-core/telemetry#telemetry).
 
-You can then use the `experimental_telemetry` option to enable telemetry on specific function calls while the feature is experimental:
+With `@ai-sdk/otel` installed and `registerTelemetry` added to your `instrumentation.ts` (see Step 3 above), telemetry is captured automatically on every AI SDK call:
 
 ```jsx
 const result = await generateText({
   model: openai('gpt-5-mini'),
   prompt: 'Write a short story about a cat.',
-  experimental_telemetry: { isEnabled: true },
 });
 ```
 
-When telemetry is enabled, you can also control whether you want to record the input values and the output values for the function. By default, both are enabled. You can disable them by setting the `recordInputs` and `recordOutputs` options to `false`.
+You can also control whether you want to record the input values and the output values for the function. By default, both are enabled. You can disable them by setting the `recordInputs` and `recordOutputs` options to `false`.
 
 ```jsx
-experimental_telemetry: { isEnabled: true, recordInputs: false, recordOutputs: false}
+telemetry: { recordInputs: false, recordOutputs: false }
 ```
 
 Disabling the recording of inputs and outputs can be useful for privacy, data transfer, and performance reasons. You might, for example, want to disable recording inputs if they contain sensitive information.
 
 ## Telemetry Metadata
 
-You can provide a `functionId` to identify the function that the telemetry data is for, and `metadata` to include additional information in the telemetry data.
+You can provide a `functionId` to identify the function that the telemetry data is for, and `context` to include additional information in the telemetry data.
 
 ```jsx
 const result = await generateText({
   model: openai('gpt-5-mini'),
   prompt: 'Write a short story about a cat.',
-  experimental_telemetry: {
-    isEnabled: true,
+  context: {
+    something: 'custom',
+    someOtherThing: 'other-value',
+  },
+  telemetry: {
     functionId: 'my-awesome-function',
-    metadata: {
-      something: 'custom',
-      someOtherThing: 'other-value',
-    },
   },
 });
 ```
 
 ## Custom Tracer
 
-You may provide a `tracer` which must return an OpenTelemetry `Tracer`. This is useful in situations where you want your traces to use a `TracerProvider` other than the one provided by the `@opentelemetry/api` singleton.
+If you want your traces to use a `TracerProvider` other than the one provided by the `@opentelemetry/api` singleton, pass a custom `Tracer` to the `LegacyOpenTelemetry` constructor:
 
 ```jsx
+import { registerTelemetry, generateText } from 'ai';
+import { LegacyOpenTelemetry } from '@ai-sdk/otel';
+
 const tracerProvider = new NodeTracerProvider();
+registerTelemetry(
+  new LegacyOpenTelemetry({
+    tracer: tracerProvider.getTracer('ai'),
+  }),
+);
+
 const result = await generateText({
   model: openai('gpt-5-mini'),
   prompt: 'Write a short story about a cat.',
-  experimental_telemetry: {
-    isEnabled: true,
-    tracer: tracerProvider.getTracer('ai'),
-  },
 });
 ```
 

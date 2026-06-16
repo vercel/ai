@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { createFireworks } from './fireworks-provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
 import {
@@ -112,6 +112,14 @@ describe('FireworksProvider', () => {
       const model = provider.chatModel(modelId);
 
       expect(model).toBeInstanceOf(OpenAICompatibleChatLanguageModel);
+    });
+
+    it('should set includeUsage so streaming responses report token usage', () => {
+      const provider = createFireworks();
+      provider.chatModel('test-model');
+
+      const config = OpenAICompatibleChatLanguageModelMock.mock.calls[0][1];
+      expect(config.includeUsage).toBe(true);
     });
 
     it('should pass transformRequestBody that converts thinking options', () => {
@@ -255,6 +263,16 @@ describe('FireworksProvider', () => {
       const model = provider.completionModel(modelId);
 
       expect(model).toBeInstanceOf(OpenAICompatibleCompletionLanguageModel);
+    });
+
+    it('should set includeUsage so streaming responses report token usage', () => {
+      const provider = createFireworks();
+      provider.completionModel('test-model');
+
+      const config = (
+        OpenAICompatibleCompletionLanguageModel as unknown as Mock
+      ).mock.calls[0][1];
+      expect(config.includeUsage).toBe(true);
     });
   });
 

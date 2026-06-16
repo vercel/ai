@@ -72,7 +72,7 @@ You can also trace runs with tool calls:
 
 ```ts
 import * as ai from 'ai';
-import { tool, stepCountIs } from 'ai';
+import { tool, isStepCount } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
@@ -102,7 +102,7 @@ await generateText({
         `Here is the tracking information for ${orderId}`,
     }),
   },
-  stopWhen: stepCountIs(5),
+  stopWhen: isStepCount(5),
 });
 ```
 
@@ -117,7 +117,7 @@ want to group runs together in LangSmith:
 
 ```ts
 import * as ai from 'ai';
-import { tool, stepCountIs } from 'ai';
+import { tool, isStepCount } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
@@ -150,7 +150,7 @@ const wrapper = traceable(
             `Here is the tracking information for ${orderId}`,
         }),
       },
-      stopWhen: stepCountIs(5),
+      stopWhen: isStepCount(5),
     });
     return text;
   },

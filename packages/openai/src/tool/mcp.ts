@@ -1,9 +1,9 @@
 import {
-  createProviderToolFactoryWithOutputSchema,
+  createProviderExecutedToolFactory,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
-import { JSONValue } from '@ai-sdk/provider';
+import type { JSONValue } from '@ai-sdk/provider';
 import { z } from 'zod/v4';
 
 const jsonValueSchema: z.ZodType<JSONValue> = z.lazy(() =>
@@ -105,7 +105,7 @@ type McpArgs = {
   serverUrl?: string;
 };
 
-export const mcpToolFactory = createProviderToolFactoryWithOutputSchema<
+export const mcpToolFactory = createProviderExecutedToolFactory<
   {},
   {
     type: 'call';

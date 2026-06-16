@@ -1,5 +1,9 @@
 import { openai } from '@ai-sdk/openai';
-import { streamText } from 'ai';
+import {
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+} from 'ai';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -33,5 +37,7 @@ export async function POST(req: Request) {
   });
 
   // Respond with the stream
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }

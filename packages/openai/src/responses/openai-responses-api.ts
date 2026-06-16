@@ -1,5 +1,9 @@
-import { JSONObject, JSONSchema7, JSONValue } from '@ai-sdk/provider';
-import { InferSchema, lazySchema, zodSchema } from '@ai-sdk/provider-utils';
+import type { JSONObject, JSONSchema7, JSONValue } from '@ai-sdk/provider';
+import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 const jsonValueSchema: z.ZodType<JSONValue> = z.lazy(() =>
@@ -96,6 +100,7 @@ export type OpenAIResponsesFunctionCall = {
   name: string;
   arguments: string;
   id?: string;
+  namespace?: string;
 };
 
 export type OpenAIResponsesFunctionCallOutput = {
@@ -107,6 +112,7 @@ export type OpenAIResponsesFunctionCallOutput = {
         | { type: 'input_text'; text: string }
         | { type: 'input_image'; image_url: string }
         | { type: 'input_file'; filename: string; file_data: string }
+        | { type: 'input_file'; file_url: string }
       >;
 };
 
@@ -280,14 +286,22 @@ export type OpenAIResponsesFileSearchToolCompoundFilter = {
   >;
 };
 
+export type OpenAIResponsesFunctionTool = {
+  type: 'function';
+  name: string;
+  description: string | undefined;
+  parameters: JSONSchema7;
+  strict?: boolean;
+  defer_loading?: boolean;
+};
+
 export type OpenAIResponsesTool =
+  | OpenAIResponsesFunctionTool
   | {
-      type: 'function';
+      type: 'namespace';
       name: string;
-      description: string | undefined;
-      parameters: JSONSchema7;
-      strict?: boolean;
-      defer_loading?: boolean;
+      description: string;
+      tools: Array<OpenAIResponsesFunctionTool>;
     }
   | {
       type: 'apply_patch';
@@ -464,6 +478,30 @@ export type OpenAIResponsesReasoning = {
   }>;
 };
 
+// Captured from the Responses API when OpenAI returned an early
+// insufficient_quota stream error after HTTP 200. This shape differs from the
+// currently documented ResponseErrorEvent below.
+const openaiResponsesNestedErrorChunkSchema = z.object({
+  type: z.literal('error'),
+  sequence_number: z.number(),
+  error: z.object({
+    type: z.string(),
+    code: z.string(),
+    message: z.string(),
+    param: z.string().nullish(),
+  }),
+});
+
+// Current OpenAI OpenAPI docs define ResponseErrorEvent with top-level
+// code/message/param fields.
+const openaiResponsesErrorChunkSchema = z.object({
+  type: z.literal('error'),
+  sequence_number: z.number(),
+  code: z.string().nullish(),
+  message: z.string(),
+  param: z.string().nullish(),
+});
+
 export const openaiResponsesChunkSchema = lazySchema(() =>
   zodSchema(
     z.union([
@@ -504,6 +542,32 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
         }),
       }),
       z.object({
+        type: z.literal('response.failed'),
+        sequence_number: z.number(),
+        response: z.object({
+          error: z
+            .object({
+              code: z.string().nullish(),
+              message: z.string(),
+            })
+            .nullish(),
+          incomplete_details: z.object({ reason: z.string() }).nullish(),
+          usage: z
+            .object({
+              input_tokens: z.number(),
+              input_tokens_details: z
+                .object({ cached_tokens: z.number().nullish() })
+                .nullish(),
+              output_tokens: z.number(),
+              output_tokens_details: z
+                .object({ reasoning_tokens: z.number().nullish() })
+                .nullish(),
+            })
+            .nullish(),
+          service_tier: z.string().nullish(),
+        }),
+      }),
+      z.object({
         type: z.literal('response.created'),
         response: z.object({
           id: z.string(),
@@ -532,6 +596,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             call_id: z.string(),
             name: z.string(),
             arguments: z.string(),
+            namespace: z.string().nullish(),
           }),
           z.object({
             type: z.literal('web_search_call'),
@@ -681,6 +746,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             name: z.string(),
             arguments: z.string(),
             status: z.literal('completed'),
+            namespace: z.string().nullish(),
           }),
           z.object({
             type: z.literal('custom_tool_call'),
@@ -718,6 +784,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
                 z.object({
                   type: z.literal('search'),
                   query: z.string().nullish(),
+                  queries: z.array(z.string()).nullish(),
                   sources: z
                     .array(
                       z.discriminatedUnion('type', [
@@ -994,16 +1061,8 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
         output_index: z.number(),
         diff: z.string(),
       }),
-      z.object({
-        type: z.literal('error'),
-        sequence_number: z.number(),
-        error: z.object({
-          type: z.string(),
-          code: z.string(),
-          message: z.string(),
-          param: z.string().nullish(),
-        }),
-      }),
+      openaiResponsesNestedErrorChunkSchema,
+      openaiResponsesErrorChunkSchema,
       z
         .object({ type: z.string() })
         .loose()
@@ -1115,6 +1174,7 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
                   z.object({
                     type: z.literal('search'),
                     query: z.string().nullish(),
+                    queries: z.array(z.string()).nullish(),
                     sources: z
                       .array(
                         z.discriminatedUnion('type', [
@@ -1196,6 +1256,7 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
               name: z.string(),
               arguments: z.string(),
               id: z.string(),
+              namespace: z.string().nullish(),
             }),
             z.object({
               type: z.literal('custom_tool_call'),

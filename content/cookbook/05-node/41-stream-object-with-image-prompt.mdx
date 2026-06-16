@@ -40,8 +40,9 @@ async function main() {
             text: 'list all the stamps in these passport pages?',
           },
           {
-            type: 'image',
-            image: new URL(
+            type: 'file',
+            mediaType: 'image',
+            data: new URL(
               'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/WW2_Spanish_official_passport.jpg/1498px-WW2_Spanish_official_passport.jpg',
             ),
           },
@@ -92,8 +93,9 @@ async function main() {
             text: 'list all the stamps in these passport pages?',
           },
           {
-            type: 'image',
-            image: fs.readFileSync('./data/passport.png', {
+            type: 'file',
+            mediaType: 'image',
+            data: fs.readFileSync('./data/passport.png', {
               encoding: 'base64',
             }),
           },

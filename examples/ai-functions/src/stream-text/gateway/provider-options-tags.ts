@@ -1,4 +1,4 @@
-import type { GatewayLanguageModelOptions } from '@ai-sdk/gateway';
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
@@ -10,7 +10,7 @@ run(async () => {
       gateway: {
         user: 'user-123',
         tags: ['chat', 'v2'],
-      } satisfies GatewayLanguageModelOptions,
+      } satisfies GatewayProviderOptions,
     },
   });
 
@@ -19,7 +19,7 @@ run(async () => {
   }
 
   console.log();
-  console.log('Provider metadata:', await result.providerMetadata);
+  console.log('Provider metadata:', (await result.finalStep).providerMetadata);
   console.log('Token usage:', await result.usage);
   console.log('Finish reason:', await result.finishReason);
 });

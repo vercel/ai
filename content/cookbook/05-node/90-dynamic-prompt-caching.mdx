@@ -106,11 +106,11 @@ export function addCacheControlToMessages({
 
 ## Using the Utility
 
-Integrate the utility into your agent using the `prepareStep` callback with `generateText` and `maxSteps`:
+Integrate the utility into your agent using the `prepareStep` callback with `generateText` and `stopWhen`:
 
 ```ts
 import { anthropic } from '@ai-sdk/anthropic';
-import { generateText, tool } from 'ai';
+import { generateText, tool, isStepCount } from 'ai';
 import { z } from 'zod';
 import { addCacheControlToMessages } from './add-cache-control-to-messages';
 
@@ -118,7 +118,7 @@ async function main() {
   const result = await generateText({
     model: anthropic('claude-sonnet-4-5'),
     prompt: 'Help me analyze this codebase and suggest improvements.',
-    maxSteps: 10,
+    stopWhen: isStepCount(10),
     tools: {
       // your tools here
       analyzeFile: tool({

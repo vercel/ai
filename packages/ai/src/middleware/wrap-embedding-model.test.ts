@@ -1,4 +1,4 @@
-import {
+import type {
   EmbeddingModelV4CallOptions,
   EmbeddingModelV4Middleware,
 } from '@ai-sdk/provider';

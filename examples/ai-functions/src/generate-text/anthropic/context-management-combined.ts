@@ -135,7 +135,7 @@ run(async () => {
 
   console.log('Text:', result.text);
 
-  const contextManagement = result.providerMetadata?.anthropic
+  const contextManagement = result.finalStep.providerMetadata?.anthropic
     ?.contextManagement as {
     appliedEdits: Array<{
       type: string;

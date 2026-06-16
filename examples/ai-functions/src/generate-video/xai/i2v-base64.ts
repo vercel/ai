@@ -1,4 +1,4 @@
-import { type XaiVideoModelOptions, xai } from '@ai-sdk/xai';
+import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
 import { experimental_generateVideo as generateVideo } from 'ai';
 import fs from 'node:fs';
 import { presentVideos } from '../../lib/present-video';
@@ -6,7 +6,7 @@ import { run } from '../../lib/run';
 import { withSpinner } from '../../lib/spinner';
 
 run(async () => {
-  const { videos } = await withSpinner(
+  const { video } = await withSpinner(
     'Generating xAI image-to-video from base64...',
     () =>
       generateVideo({
@@ -24,5 +24,5 @@ run(async () => {
       }),
   );
 
-  await presentVideos(videos);
+  await presentVideos([video]);
 });

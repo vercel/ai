@@ -1,12 +1,16 @@
-import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
 import {
   convertToModelMessages,
-  InferUITools,
+  createUIMessageStreamResponse,
   streamText,
-  UIDataTypes,
-  UIMessage,
+  toUIMessageStream,
+  type InferUITools,
+  type UIDataTypes,
+  type UIMessage,
 } from 'ai';
-
 const tools = {
   web_search: openai.tools.webSearch({
     searchContextSize: 'high',
@@ -44,5 +48,7 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }

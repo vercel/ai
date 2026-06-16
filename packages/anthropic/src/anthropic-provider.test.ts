@@ -1,6 +1,6 @@
 /* eslint-disable turbo/no-undeclared-env-vars */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { createAnthropic } from './anthropic-provider';
 
 vi.mock('./version', () => ({

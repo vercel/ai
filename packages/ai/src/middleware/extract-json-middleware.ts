@@ -2,7 +2,8 @@ import type {
   LanguageModelV4Content,
   LanguageModelV4StreamPart,
 } from '@ai-sdk/provider';
-import { LanguageModelMiddleware } from '../types/language-model-middleware';
+import type { LanguageModelMiddleware } from '../types/language-model-middleware';
+import { createIdMap } from '../util/create-id-map';
 
 /**
  * Default transform function that strips markdown code fences from text.
@@ -68,7 +69,7 @@ export function extractJsonMiddleware(options?: {
           buffer: string;
           prefixStripped: boolean;
         }
-      > = {};
+      > = createIdMap();
 
       const SUFFIX_BUFFER_SIZE = 12;
 

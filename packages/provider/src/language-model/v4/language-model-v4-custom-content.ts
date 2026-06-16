@@ -1,4 +1,4 @@
-import { SharedV4ProviderMetadata } from '../../shared/v4/shared-v4-provider-metadata';
+import type { SharedV4ProviderMetadata } from '../../shared/v4/shared-v4-provider-metadata';
 
 /**
  * A provider-specific content block that does not map to another standardized
@@ -8,9 +8,9 @@ export type LanguageModelV4CustomContent = {
   type: 'custom';
 
   /**
-   * The kind of custom content, in the format `{provider}-{provider-type}`.
+   * The kind of custom content, in the format `{provider}.{provider-type}`.
    */
-  kind: string;
+  kind: `${string}.${string}`;
 
   /**
    * Additional provider-specific options. They are passed through

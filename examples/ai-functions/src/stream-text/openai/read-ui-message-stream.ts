@@ -1,5 +1,12 @@
 import { openai } from '@ai-sdk/openai';
-import { readUIMessageStream, stepCountIs, streamText, Tool, tool } from 'ai';
+import {
+  readUIMessageStream,
+  isStepCount,
+  streamText,
+  toUIMessageStream,
+  tool,
+  type Tool,
+} from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
@@ -29,12 +36,12 @@ run(async () => {
         },
       }),
     },
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
     prompt: 'What is the weather in Tokyo?',
   });
 
   for await (const uiMessage of readUIMessageStream({
-    stream: result.toUIMessageStream(),
+    stream: toUIMessageStream({ stream: result.stream }),
   })) {
     console.clear();
     console.log(JSON.stringify(uiMessage, null, 2));

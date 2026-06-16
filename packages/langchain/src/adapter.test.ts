@@ -665,11 +665,61 @@ describe('toUIMessageStream', () => {
     `);
   });
 
+  it('should handle reasoning when message ID changes between chunks', async () => {
+    // Simulates GPT-5 streaming where the message ID switches mid-stream.
+    // Each distinct msgId should get its own reasoning lifecycle.
+    const chunk1 = new AIMessageChunk({
+      id: 'run-test-001',
+      content: [{ type: 'reasoning', reasoning: 'Thinking about this...' }],
+    });
+
+    const chunk2 = new AIMessageChunk({
+      id: 'msg_test-002',
+      content: [{ type: 'reasoning', reasoning: ' More reasoning.' }],
+    });
+
+    const inputStream = convertArrayToReadableStream([
+      ['messages', [chunk1, { langgraph_step: 1 }]],
+      ['messages', [chunk2, { langgraph_step: 1 }]],
+      ['values', {}],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    // Extract reasoning events
+    const reasoningEvents = result.filter((e: unknown) => {
+      const event = e as { type: string };
+      return (
+        event.type === 'reasoning-start' ||
+        event.type === 'reasoning-delta' ||
+        event.type === 'reasoning-end'
+      );
+    }) as Array<{ type: string; id: string; delta?: string }>;
+
+    // The key invariant: every reasoning-delta must be preceded by a
+    // reasoning-start with the SAME id.
+    const startIds = new Set(
+      reasoningEvents.filter(e => e.type === 'reasoning-start').map(e => e.id),
+    );
+    for (const event of reasoningEvents) {
+      if (event.type === 'reasoning-delta') {
+        expect(startIds.has(event.id)).toBe(true);
+      }
+    }
+
+    // Both msgIds should have reasoning-start events
+    expect(startIds.size).toBe(2);
+    expect(startIds.has('run-test-001')).toBe(true);
+    expect(startIds.has('msg_test-002')).toBe(true);
+  });
+
   it('should handle reasoning followed by text content', async () => {
     // Reasoning chunk
-    const reasoningChunk = new AIMessageChunk({ id: 'msg-1', content: '' });
-    Object.defineProperty(reasoningChunk, 'contentBlocks', {
-      get: () => [{ type: 'reasoning', reasoning: 'Thinking about this...' }],
+    const reasoningChunk = new AIMessageChunk({
+      id: 'msg-1',
+      content: [{ type: 'reasoning', reasoning: 'Thinking about this...' }],
     });
 
     // Text chunk
@@ -728,9 +778,9 @@ describe('toUIMessageStream', () => {
 
   it('should handle reasoning with tool calls', async () => {
     // Reasoning before tool call
-    const reasoningChunk = new AIMessageChunk({ id: 'msg-1', content: '' });
-    Object.defineProperty(reasoningChunk, 'contentBlocks', {
-      get: () => [
+    const reasoningChunk = new AIMessageChunk({
+      id: 'msg-1',
+      content: [
         { type: 'reasoning', reasoning: 'I need to search for this...' },
       ],
     });
@@ -796,14 +846,49 @@ describe('toUIMessageStream', () => {
     `);
   });
 
+  it('should emit reasoning-end before finish-step when no values event', async () => {
+    // Simulates streamMode: 'messages' (no values) with multi-step reasoning.
+    // Without values events, the adapter must still emit reasoning-end
+    // before finish-step to avoid orphaned reasoning parts on the client.
+    const reasoningChunk1 = new AIMessageChunk({
+      id: 'run-step1',
+      content: [{ type: 'reasoning', reasoning: 'Step 1 thinking...' }],
+    });
+
+    const textChunk2 = new AIMessageChunk({
+      id: 'run-step2',
+      content: 'Answer from step 2',
+    });
+
+    const inputStream = convertArrayToReadableStream([
+      ['messages', [reasoningChunk1, { langgraph_step: 1 }]],
+      ['messages', [textChunk2, { langgraph_step: 2 }]],
+      // No values events!
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    const types = result.map((e: unknown) => (e as { type: string }).type);
+
+    // reasoning-end must appear before finish-step
+    const reasoningEndIdx = types.indexOf('reasoning-end');
+    const finishStepIdx = types.indexOf('finish-step');
+    expect(reasoningEndIdx).toBeGreaterThan(-1);
+    expect(finishStepIdx).toBeGreaterThan(-1);
+    expect(reasoningEndIdx).toBeLessThan(finishStepIdx);
+
+    // Also verify text-end appears before finish at the end
+    const textEndIdx = types.lastIndexOf('text-end');
+    expect(textEndIdx).toBeGreaterThan(-1);
+  });
+
   it('should handle model stream with reasoning contentBlocks', async () => {
     // Non-array events are treated as model stream chunks (AIMessageChunk)
     const reasoningChunk = new AIMessageChunk({
-      content: '',
+      content: [{ type: 'reasoning', reasoning: 'Thinking...' }],
       id: 'test-1',
-    });
-    Object.defineProperty(reasoningChunk, 'contentBlocks', {
-      get: () => [{ type: 'reasoning', reasoning: 'Thinking...' }],
     });
 
     const textChunk = new AIMessageChunk({
@@ -1869,6 +1954,246 @@ describe('toUIMessageStream with streamEvents', () => {
       ]
     `);
   });
+
+  it('should emit source-url parts for citation annotations and dedupe them', async () => {
+    const inputStream = convertArrayToReadableStream([
+      {
+        event: 'on_chat_model_stream',
+        data: {
+          chunk: {
+            id: 'src-msg-1',
+            content: [
+              {
+                type: 'text',
+                text: 'Answer',
+                annotations: [
+                  {
+                    type: 'citation',
+                    url: 'https://example.com',
+                    title: 'Example',
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      },
+      {
+        event: 'on_chat_model_stream',
+        data: {
+          chunk: {
+            id: 'src-msg-1',
+            content: [
+              {
+                type: 'text',
+                text: ' continued',
+                annotations: [{ type: 'citation', url: 'https://example.com' }],
+              },
+            ],
+          },
+        },
+      },
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(result.filter(c => c.type === 'source-url')).toEqual([
+      {
+        type: 'source-url',
+        sourceId: 'https://example.com',
+        url: 'https://example.com',
+        title: 'Example',
+      },
+    ]);
+  });
+});
+
+describe('toUIMessageStream with LangGraph tools stream mode', () => {
+  it('should handle full tools stream sequence', async () => {
+    const inputStream = convertArrayToReadableStream([
+      [
+        'tools',
+        {
+          event: 'on_tool_start',
+          toolCallId: 'call-weather',
+          name: 'get_weather',
+          input: { city: 'SF' },
+        },
+      ],
+      [
+        'tools',
+        {
+          event: 'on_tool_event',
+          toolCallId: 'call-weather',
+          name: 'get_weather',
+          data: { status: 'loading', message: 'Fetching weather' },
+        },
+      ],
+      [
+        'tools',
+        {
+          event: 'on_tool_end',
+          toolCallId: 'call-weather',
+          name: 'get_weather',
+          output: { temperature: 72, condition: 'sunny' },
+        },
+      ],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "start",
+        },
+        {
+          "dynamic": true,
+          "toolCallId": "call-weather",
+          "toolName": "get_weather",
+          "type": "tool-input-start",
+        },
+        {
+          "dynamic": true,
+          "input": {
+            "city": "SF",
+          },
+          "toolCallId": "call-weather",
+          "toolName": "get_weather",
+          "type": "tool-input-available",
+        },
+        {
+          "output": {
+            "message": "Fetching weather",
+            "status": "loading",
+          },
+          "preliminary": true,
+          "toolCallId": "call-weather",
+          "type": "tool-output-available",
+        },
+        {
+          "output": {
+            "condition": "sunny",
+            "temperature": 72,
+          },
+          "toolCallId": "call-weather",
+          "type": "tool-output-available",
+        },
+        {
+          "type": "finish",
+        },
+      ]
+    `);
+  });
+
+  it('should synthesize tool input lifecycle before output-only tools events', async () => {
+    const inputStream = convertArrayToReadableStream([
+      [
+        'tools',
+        {
+          event: 'on_tool_end',
+          toolCallId: 'call-weather',
+          name: 'get_weather',
+          output: { temperature: 72 },
+        },
+      ],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(result).toEqual([
+      { type: 'start' },
+      {
+        type: 'tool-input-start',
+        toolCallId: 'call-weather',
+        toolName: 'get_weather',
+        dynamic: true,
+      },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'call-weather',
+        toolName: 'get_weather',
+        input: undefined,
+        dynamic: true,
+      },
+      {
+        type: 'tool-output-available',
+        toolCallId: 'call-weather',
+        output: { temperature: 72 },
+      },
+      { type: 'finish' },
+    ]);
+  });
+
+  it('should dedupe tool-input-available across mixed messages, values, and tools events', async () => {
+    const streamedChunk = {
+      content: '',
+      id: 'ai-msg-1',
+      type: 'ai',
+      tool_call_chunks: [
+        {
+          id: 'call-weather',
+          name: 'get_weather',
+          args: '{"city":"SF"}',
+          index: 0,
+        },
+      ],
+    };
+
+    const valuesData = {
+      messages: [
+        {
+          content: '',
+          id: 'ai-msg-1',
+          type: 'ai',
+          tool_calls: [
+            {
+              id: 'call-weather',
+              name: 'get_weather',
+              args: { city: 'SF' },
+            },
+          ],
+        },
+      ],
+    };
+
+    const inputStream = convertArrayToReadableStream([
+      ['messages', [streamedChunk]],
+      [
+        'tools',
+        {
+          event: 'on_tool_start',
+          toolCallId: 'call-weather',
+          name: 'get_weather',
+          input: { city: 'SF' },
+        },
+      ],
+      ['values', valuesData],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+    const toolInputAvailableEvents = result.filter(
+      event => event.type === 'tool-input-available',
+    );
+
+    expect(toolInputAvailableEvents).toEqual([
+      {
+        type: 'tool-input-available',
+        toolCallId: 'call-weather',
+        toolName: 'get_weather',
+        input: { city: 'SF' },
+        dynamic: true,
+      },
+    ]);
+  });
 });
 
 describe('toUIMessageStream LangGraph finish events', () => {
@@ -2039,6 +2364,233 @@ describe('toUIMessageStream with LangGraph HITL fixture', () => {
     await expect(JSON.stringify(result, null, 2)).toMatchFileSnapshot(
       './__snapshots__/react-agent-tool-calling.json',
     );
+  });
+});
+
+describe('toUIMessageStream HITL interrupt key matching with dual streamMode', () => {
+  beforeEach(() => {
+    vi.spyOn(Date, 'now').mockReturnValue(1234567890);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should match interrupt to tool call emitted via messages mode', async () => {
+    // This test verifies the fix for HITL interrupt key matching when using
+    // streamMode: ["messages", "values"]. The tool call is first emitted via
+    // messages mode, then the values event contains the same tool call plus
+    // an __interrupt__. The interrupt handler must find the original tool call ID.
+    const originalToolCallId = 'call_abc123';
+
+    const inputStream = convertArrayToReadableStream([
+      // 1. messages mode: AI streams a tool call
+      [
+        'messages',
+        [
+          {
+            lc: 1,
+            type: 'constructor',
+            id: ['langchain_core', 'messages', 'AIMessageChunk'],
+            kwargs: {
+              id: 'ai-msg-1',
+              content: [],
+              tool_call_chunks: [
+                {
+                  id: originalToolCallId,
+                  name: 'delete_file',
+                  args: '{"filename":"report.pdf"}',
+                  index: 0,
+                },
+              ],
+              tool_calls: [],
+            },
+          },
+          {
+            tags: [],
+            langgraph_step: 1,
+            langgraph_node: 'agent',
+          },
+        ],
+      ],
+      // 2. values mode: full state with same tool call + __interrupt__
+      [
+        'values',
+        {
+          messages: [
+            {
+              type: 'constructor',
+              id: ['langchain_core', 'messages', 'HumanMessage'],
+              kwargs: { id: 'human-1', content: 'Delete report.pdf' },
+            },
+            {
+              type: 'constructor',
+              id: ['langchain_core', 'messages', 'AIMessage'],
+              kwargs: {
+                id: 'ai-msg-1',
+                content: '',
+                tool_calls: [
+                  {
+                    id: originalToolCallId,
+                    name: 'delete_file',
+                    args: { filename: 'report.pdf' },
+                    type: 'tool_call',
+                  },
+                ],
+              },
+            },
+          ],
+          __interrupt__: [
+            {
+              value: {
+                actionRequests: [
+                  {
+                    name: 'delete_file',
+                    args: { filename: 'report.pdf' },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    // Find the tool-approval-request event
+    const approvalEvents = result.filter(
+      (e: { type: string }) => e.type === 'tool-approval-request',
+    );
+
+    expect(approvalEvents).toHaveLength(1);
+    // The approval must reference the ORIGINAL tool call ID from messages mode,
+    // not a fallback-generated ID like "hitl-delete_file-1234567890"
+    expect(approvalEvents[0]).toMatchObject({
+      type: 'tool-approval-request',
+      approvalId: originalToolCallId,
+      toolCallId: originalToolCallId,
+    });
+
+    // The interrupt handler should NOT emit duplicate tool-input-start/available
+    // since the tool call was already emitted via messages mode
+    const toolInputStartEvents = result.filter(
+      (e: { type: string; toolCallId?: string }) =>
+        e.type === 'tool-input-start' && e.toolCallId !== originalToolCallId,
+    );
+    expect(toolInputStartEvents).toHaveLength(0);
+  });
+
+  it('should handle interrupt for tool call only emitted via values mode', async () => {
+    // When there's no prior messages event, the values handler should
+    // still register the key mapping correctly
+    const toolCallId = 'call_values_only';
+
+    const inputStream = convertArrayToReadableStream([
+      [
+        'values',
+        {
+          messages: [
+            {
+              type: 'constructor',
+              id: ['langchain_core', 'messages', 'HumanMessage'],
+              kwargs: { id: 'human-1', content: 'Delete report.pdf' },
+            },
+            {
+              type: 'constructor',
+              id: ['langchain_core', 'messages', 'AIMessage'],
+              kwargs: {
+                id: 'ai-msg-1',
+                content: '',
+                tool_calls: [
+                  {
+                    id: toolCallId,
+                    name: 'delete_file',
+                    args: { filename: 'report.pdf' },
+                    type: 'tool_call',
+                  },
+                ],
+              },
+            },
+          ],
+          __interrupt__: [
+            {
+              value: {
+                actionRequests: [
+                  {
+                    name: 'delete_file',
+                    args: { filename: 'report.pdf' },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    const approvalEvents = result.filter(
+      (e: { type: string }) => e.type === 'tool-approval-request',
+    );
+
+    expect(approvalEvents).toHaveLength(1);
+    expect(approvalEvents[0]).toMatchObject({
+      toolCallId: toolCallId,
+    });
+  });
+});
+
+describe('toUIMessageStream end-to-end with processUIMessageStream', () => {
+  // These tests verify that the adapter output is valid for the client-side
+  // processUIMessageStream by feeding real fixture data through both.
+  // This catches bugs where reasoning-start is missing before reasoning-delta.
+
+  async function assertAdapterOutputIsValidForClient(
+    fixtureData: unknown[],
+  ): Promise<void> {
+    const inputStream = convertArrayToReadableStream(fixtureData);
+    const chunks = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    // Verify invariant: every reasoning-delta must be preceded by a
+    // reasoning-start with the same ID (and not yet closed by reasoning-end)
+    const activeReasoningParts = new Set<string>();
+    for (const chunk of chunks) {
+      const c = chunk as { type: string; id?: string };
+      switch (c.type) {
+        case 'reasoning-start':
+          activeReasoningParts.add(c.id!);
+          break;
+        case 'reasoning-delta':
+          expect(activeReasoningParts.has(c.id!)).toBe(true);
+          break;
+        case 'reasoning-end':
+          activeReasoningParts.delete(c.id!);
+          break;
+        case 'finish-step':
+          activeReasoningParts.clear();
+          break;
+      }
+    }
+  }
+
+  it('LANGGRAPH_RESPONSE_1 (GPT-5 reasoning + tool call)', async () => {
+    await assertAdapterOutputIsValidForClient(LANGGRAPH_RESPONSE_1);
+  });
+
+  it('LANGGRAPH_RESPONSE_2 (GPT-5 HITL follow-up turn)', async () => {
+    await assertAdapterOutputIsValidForClient(LANGGRAPH_RESPONSE_2);
+  });
+
+  it('REACT_AGENT_TOOL_CALLING (GPT-5 multi-step reasoning + parallel tools)', async () => {
+    await assertAdapterOutputIsValidForClient(REACT_AGENT_TOOL_CALLING);
   });
 });
 

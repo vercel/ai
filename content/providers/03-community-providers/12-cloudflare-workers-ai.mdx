@@ -95,7 +95,7 @@ export default {
 
 ```typescript
 import { createWorkersAI } from 'workers-ai-provider';
-import { streamText } from 'ai';
+import { createTextStreamResponse, streamText, toTextStream } from 'ai';
 
 type Env = {
   AI: Ai;
@@ -109,7 +109,8 @@ export default {
       prompt: 'Write a 50-word essay about hello world.',
     });
 
-    return result.toTextStreamResponse({
+    return createTextStreamResponse({
+      stream: toTextStream({ stream: result.stream }),
       headers: {
         // add these headers to ensure that the
         // response is chunked and streamed

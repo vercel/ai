@@ -1,5 +1,10 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { convertToModelMessages, streamText } from 'ai';
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+} from 'ai';
 
 export default defineLazyEventHandler(async () => {
   const openai = createOpenAI({
@@ -23,6 +28,8 @@ export default defineLazyEventHandler(async () => {
     });
 
     // Respond with the stream
-    return result.toUIMessageStreamResponse();
+    return createUIMessageStreamResponse({
+      stream: toUIMessageStream({ stream: result.stream }),
+    });
   });
 });

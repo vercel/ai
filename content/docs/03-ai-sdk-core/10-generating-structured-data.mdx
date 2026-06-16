@@ -281,7 +281,7 @@ For more advanced validation or different structures, see [the Output API refere
 One of the key advantages of using structured output with `generateText` and `streamText` is the ability to combine it with tool calling.
 
 ```ts
-import { generateText, Output, tool, stepCountIs } from 'ai';
+import { generateText, Output, tool, isStepCount } from 'ai';
 __PROVIDER_IMPORT__;
 import { z } from 'zod';
 
@@ -303,7 +303,7 @@ const { output } = await generateText({
       recommendation: z.string(),
     }),
   }),
-  stopWhen: stepCountIs(5),
+  stopWhen: isStepCount(5),
   prompt: 'What should I wear in San Francisco today?',
 });
 ```

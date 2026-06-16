@@ -12,7 +12,7 @@ run(async () => {
   });
 
   console.log(result1.text);
-  console.log(result1.providerMetadata?.google);
+  console.log(result1.finalStep.providerMetadata?.google);
   // e.g.
   // {
   //   groundingMetadata: null,
@@ -31,7 +31,7 @@ run(async () => {
   });
 
   console.log(result2.text);
-  console.log(result2.providerMetadata?.google);
+  console.log(result2.finalStep.providerMetadata?.google);
 
   // e.g.
   // {

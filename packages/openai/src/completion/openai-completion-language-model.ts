@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV4,
   LanguageModelV4CallOptions,
   LanguageModelV4FinishReason,
@@ -12,32 +12,35 @@ import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
-  FetchFunction,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
+  type FetchFunction,
+  type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
+import { throwIfOpenAIStreamErrorBeforeOutput } from '../openai-stream-error';
 import {
   convertOpenAICompletionUsage,
-  OpenAICompletionUsage,
+  type OpenAICompletionUsage,
 } from './convert-openai-completion-usage';
 import { convertToOpenAICompletionPrompt } from './convert-to-openai-completion-prompt';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 import {
-  OpenAICompletionChunk,
   openaiCompletionChunkSchema,
   openaiCompletionResponseSchema,
+  type OpenAICompletionChunk,
 } from './openai-completion-api';
 import {
-  OpenAICompletionModelId,
   openaiLanguageModelCompletionOptions,
-} from './openai-completion-options';
-
+  type OpenAICompletionModelId,
+} from './openai-completion-language-model-options';
 type OpenAICompletionConfig = {
   provider: string;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
 };
@@ -51,6 +54,20 @@ export class OpenAICompletionLanguageModel implements LanguageModelV4 {
 
   private get providerOptionsName(): string {
     return this.config.provider.split('.')[0].trim();
+  }
+
+  static [WORKFLOW_SERIALIZE](model: OpenAICompletionLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: OpenAICompletionModelId;
+    config: OpenAICompletionConfig;
+  }) {
+    return new OpenAICompletionLanguageModel(options.modelId, options.config);
   }
 
   constructor(
@@ -174,7 +191,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV4 {
         path: '/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: args,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -224,12 +241,14 @@ export class OpenAICompletionLanguageModel implements LanguageModelV4 {
       },
     };
 
+    const url = this.config.url({
+      path: '/completions',
+      modelId: this.modelId,
+    });
+
     const { responseHeaders, value: response } = await postJsonToApi({
-      url: this.config.url({
-        path: '/completions',
-        modelId: this.modelId,
-      }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      url,
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -237,6 +256,15 @@ export class OpenAICompletionLanguageModel implements LanguageModelV4 {
       ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
+    });
+
+    const checkedResponse = await throwIfOpenAIStreamErrorBeforeOutput({
+      stream: response,
+      getError: chunk => ('error' in chunk ? chunk.error : undefined),
+      isOutputChunk: isOpenAICompletionOutputChunk,
+      url,
+      requestBodyValues: body,
+      responseHeaders,
     });
 
     let finishReason: LanguageModelV4FinishReason = {
@@ -247,8 +275,8 @@ export class OpenAICompletionLanguageModel implements LanguageModelV4 {
     let usage: OpenAICompletionUsage | undefined = undefined;
     let isFirstChunk = true;
 
-    return {
-      stream: response.pipeThrough(
+    const result = {
+      stream: checkedResponse.pipeThrough(
         new TransformStream<
           ParseResult<OpenAICompletionChunk>,
           LanguageModelV4StreamPart
@@ -332,5 +360,13 @@ export class OpenAICompletionLanguageModel implements LanguageModelV4 {
       request: { body },
       response: { headers: responseHeaders },
     };
+
+    return result;
   }
+}
+
+function isOpenAICompletionOutputChunk(chunk: OpenAICompletionChunk): boolean {
+  return (
+    !('error' in chunk) && chunk.choices.some(choice => choice.text.length > 0)
+  );
 }

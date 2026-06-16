@@ -1,10 +1,10 @@
-import { LanguageModelV4Usage } from '@ai-sdk/provider';
+import type { LanguageModelV4Usage } from '@ai-sdk/provider';
 import { delay } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { asLanguageModelUsage } from 'ai/internal';
 import { MockLanguageModelV4 } from 'ai/test';
 import React from 'react';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { streamUI } from './stream-ui';
 
@@ -111,6 +111,14 @@ const mockToolModel = new MockLanguageModelV4({
 });
 
 describe('result.value', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('should render text', async () => {
     const result = await streamUI({
       model: mockTextModel,
@@ -132,6 +140,52 @@ describe('result.value', () => {
     expect(rendered).toMatchSnapshot();
   });
 
+  it('should pass instructions to the model prompt', async () => {
+    let prompt: unknown;
+
+    await streamUI({
+      model: new MockLanguageModelV4({
+        doStream: async options => {
+          prompt = options.prompt;
+
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '0' },
+              { type: 'text-delta', id: '0', delta: 'Hello' },
+              { type: 'text-end', id: '0' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          };
+        },
+      }),
+      instructions: 'You are a helpful assistant.',
+      prompt: 'Hello!',
+    });
+
+    expect(prompt).toMatchInlineSnapshot(`
+      [
+        {
+          "content": "You are a helpful assistant.",
+          "role": "system",
+        },
+        {
+          "content": [
+            {
+              "text": "Hello!",
+              "type": "text",
+            },
+          ],
+          "providerOptions": undefined,
+          "role": "user",
+        },
+      ]
+    `);
+  });
+
   it('should render tool call results', async () => {
     const result = await streamUI({
       model: mockToolModel,
@@ -150,7 +204,9 @@ describe('result.value', () => {
       },
     });
 
-    const rendered = await simulateFlightServerRender(result.value);
+    const renderedPromise = simulateFlightServerRender(result.value);
+    await vi.runAllTimersAsync();
+    const rendered = await renderedPromise;
     expect(rendered).toMatchSnapshot();
   });
 
@@ -173,7 +229,9 @@ describe('result.value', () => {
       },
     });
 
-    const rendered = await simulateFlightServerRender(result.value);
+    const renderedPromise = simulateFlightServerRender(result.value);
+    await vi.runAllTimersAsync();
+    const rendered = await renderedPromise;
     expect(rendered).toMatchSnapshot();
   });
 
@@ -205,6 +263,8 @@ describe('rsc - streamUI() onFinish callback', () => {
   >[0];
 
   beforeEach(async () => {
+    vi.useFakeTimers();
+
     const ui = await streamUI({
       model: mockToolModel,
       prompt: '',
@@ -226,7 +286,13 @@ describe('rsc - streamUI() onFinish callback', () => {
     });
 
     // consume stream
-    await simulateFlightServerRender(ui.value);
+    const renderPromise = simulateFlightServerRender(ui.value);
+    await vi.runAllTimersAsync();
+    await renderPromise;
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('should contain token usage', () => {

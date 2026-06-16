@@ -1,5 +1,5 @@
 import { AISDKError } from '@ai-sdk/provider';
-import { UglyTransformedStreamTextPart } from '../generate-text/create-stream-text-part-transform';
+import type { LanguageModelStreamPart } from '../generate-text/stream-language-model-call';
 
 const name = 'AI_InvalidStreamPartError';
 const marker = `vercel.ai.error.${name}`;
@@ -8,13 +8,13 @@ const symbol = Symbol.for(marker);
 export class InvalidStreamPartError extends AISDKError {
   private readonly [symbol] = true; // used in isInstance
 
-  readonly chunk: UglyTransformedStreamTextPart<any>;
+  readonly chunk: LanguageModelStreamPart<any>;
 
   constructor({
     chunk,
     message,
   }: {
-    chunk: UglyTransformedStreamTextPart<any>;
+    chunk: LanguageModelStreamPart<any>;
     message: string;
   }) {
     super({ name, message });

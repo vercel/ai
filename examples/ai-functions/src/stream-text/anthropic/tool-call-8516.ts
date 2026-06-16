@@ -3,7 +3,7 @@ import { streamText, tool } from 'ai';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 import { print } from '../../lib/print';
-import z from 'zod';
+import { z } from 'zod';
 
 run(async () => {
   const result = streamText({

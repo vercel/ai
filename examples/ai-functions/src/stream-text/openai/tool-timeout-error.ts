@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { streamText, stepCountIs, tool } from 'ai';
+import { streamText, isStepCount, tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
@@ -25,11 +25,11 @@ run(async () => {
     timeout: {
       toolMs: 500,
     },
-    stopWhen: stepCountIs(2),
+    stopWhen: isStepCount(2),
     prompt: 'Search for "hello world"',
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     if (part.type === 'tool-call') {
       console.log(`tool-call: ${part.toolName}(${JSON.stringify(part.input)})`);
     }

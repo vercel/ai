@@ -6,7 +6,6 @@ import {
   type CreateUIMessage,
   type UIMessage,
 } from 'ai';
-
 export type { CreateUIMessage, UIMessage };
 
 export class Chat<

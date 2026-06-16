@@ -83,7 +83,10 @@ describe('convertToXaiResponsesInput', () => {
               {
                 type: 'file',
                 mediaType: 'image/jpeg',
-                data: new URL('https://example.com/image.jpg'),
+                data: {
+                  type: 'url' as const,
+                  url: new URL('https://example.com/image.jpg'),
+                },
               },
             ],
           },
@@ -120,7 +123,10 @@ describe('convertToXaiResponsesInput', () => {
               {
                 type: 'file',
                 mediaType: 'image/png',
-                data: new Uint8Array([1, 2, 3]),
+                data: {
+                  type: 'data' as const,
+                  data: new Uint8Array([1, 2, 3]),
+                },
               },
             ],
           },
@@ -146,7 +152,86 @@ describe('convertToXaiResponsesInput', () => {
       `);
     });
 
-    it('should throw for unsupported file types', async () => {
+    it('should convert non-image file parts with URL to input_file with file_url', async () => {
+      const result = await convertToXaiResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'summarize this PDF' },
+              {
+                type: 'file',
+                mediaType: 'application/pdf',
+                data: {
+                  type: 'url' as const,
+                  url: new URL('https://example.com/document.pdf'),
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "summarize this PDF",
+                "type": "input_text",
+              },
+              {
+                "file_url": "https://example.com/document.pdf",
+                "type": "input_file",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+      expect(result.inputWarnings).toEqual([]);
+    });
+
+    it('should convert text/* file parts with URL to input_file with file_url', async () => {
+      const result = await convertToXaiResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'analyze this CSV' },
+              {
+                type: 'file',
+                mediaType: 'text/csv',
+                data: {
+                  type: 'url' as const,
+                  url: new URL('https://example.com/data.csv'),
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "analyze this CSV",
+                "type": "input_text",
+              },
+              {
+                "file_url": "https://example.com/data.csv",
+                "type": "input_file",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+    });
+
+    it('should throw for non-image file parts provided as inline bytes', async () => {
       await expect(
         convertToXaiResponsesInput({
           prompt: [
@@ -157,7 +242,10 @@ describe('convertToXaiResponsesInput', () => {
                 {
                   type: 'file',
                   mediaType: 'application/pdf',
-                  data: new Uint8Array([1, 2, 3]),
+                  data: {
+                    type: 'data' as const,
+                    data: new Uint8Array([1, 2, 3]),
+                  },
                 },
               ],
             },
@@ -458,6 +546,172 @@ describe('convertToXaiResponsesInput', () => {
           },
         ]
       `);
+    });
+
+    it('should round-trip reasoning with encrypted content in multi-turn', async () => {
+      const result = await convertToXaiResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'What is the capital of France?' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'The user is asking about geography.',
+                providerOptions: {
+                  xai: {
+                    itemId: 'rs_789',
+                    reasoningEncryptedContent: 'encrypted_xyz',
+                  },
+                },
+              },
+              { type: 'text', text: 'The capital of France is Paris.' },
+            ],
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'And what about Germany?' }],
+          },
+        ],
+      });
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "What is the capital of France?",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "encrypted_content": "encrypted_xyz",
+            "id": "rs_789",
+            "status": "completed",
+            "summary": [
+              {
+                "text": "The user is asking about geography.",
+                "type": "summary_text",
+              },
+            ],
+            "type": "reasoning",
+          },
+          {
+            "content": "The capital of France is Paris.",
+            "id": undefined,
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "text": "And what about Germany?",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+      expect(result.inputWarnings).toEqual([]);
+    });
+  });
+
+  describe('top-level-only media type resolution', () => {
+    const pngBase64 = 'iVBORw0KGgo=';
+
+    it('passes full image/png through unchanged for inline data', async () => {
+      const result = await convertToXaiResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: { type: 'data', data: pngBase64 },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect((result.input[0] as { content: unknown[] }).content[0]).toEqual({
+        type: 'input_image',
+        image_url: `data:image/png;base64,${pngBase64}`,
+      });
+    });
+
+    it('detects image subtype from inline bytes for top-level "image"', async () => {
+      const result = await convertToXaiResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image',
+                data: { type: 'data', data: pngBase64 },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect((result.input[0] as { content: unknown[] }).content[0]).toEqual({
+        type: 'input_image',
+        image_url: `data:image/png;base64,${pngBase64}`,
+      });
+    });
+
+    it('passes through URL source for top-level-only image', async () => {
+      const result = await convertToXaiResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image',
+                data: {
+                  type: 'url',
+                  url: new URL('https://example.com/x.png'),
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect((result.input[0] as { content: unknown[] }).content[0]).toEqual({
+        type: 'input_image',
+        image_url: 'https://example.com/x.png',
+      });
+    });
+
+    it('normalizes image/* wildcard via detection', async () => {
+      const result = await convertToXaiResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image/*',
+                data: { type: 'data', data: pngBase64 },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect((result.input[0] as { content: unknown[] }).content[0]).toEqual({
+        type: 'input_image',
+        image_url: `data:image/png;base64,${pngBase64}`,
+      });
     });
   });
 });

@@ -29,10 +29,10 @@ The DeepInfra provider is available via the `@ai-sdk/deepinfra` module. You can 
 
 ## Provider Instance
 
-You can import the default provider instance `deepinfra` from `@ai-sdk/deepinfra`:
+You can import the default provider instance `deepInfra` from `@ai-sdk/deepinfra`:
 
 ```ts
-import { deepinfra } from '@ai-sdk/deepinfra';
+import { deepInfra } from '@ai-sdk/deepinfra';
 ```
 
 If you need a customized setup, you can import `createDeepInfra` from `@ai-sdk/deepinfra` and create a provider instance with your settings:
@@ -40,7 +40,7 @@ If you need a customized setup, you can import `createDeepInfra` from `@ai-sdk/d
 ```ts
 import { createDeepInfra } from '@ai-sdk/deepinfra';
 
-const deepinfra = createDeepInfra({
+const deepInfra = createDeepInfra({
   apiKey: process.env.DEEPINFRA_API_KEY ?? '',
 });
 ```
@@ -76,11 +76,11 @@ You can use the following optional settings to customize the DeepInfra provider 
 You can create language models using a provider instance. The first argument is the model ID, for example:
 
 ```ts
-import { deepinfra } from '@ai-sdk/deepinfra';
+import { deepInfra } from '@ai-sdk/deepinfra';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: deepinfra('meta-llama/Meta-Llama-3.1-70B-Instruct'),
+  model: deepInfra('meta-llama/Meta-Llama-3.1-70B-Instruct'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -128,11 +128,11 @@ You can create DeepInfra image models using the `.image()` factory method.
 For more on image generation with the AI SDK see [generateImage()](/docs/reference/ai-sdk-core/generate-image).
 
 ```ts
-import { deepinfra } from '@ai-sdk/deepinfra';
+import { deepInfra } from '@ai-sdk/deepinfra';
 import { generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: deepinfra.image('stabilityai/sd3.5'),
+  model: deepInfra.image('stabilityai/sd3.5'),
   prompt: 'A futuristic cityscape at sunset',
   aspectRatio: '16:9',
 });
@@ -150,11 +150,11 @@ const { image } = await generateImage({
 You can pass model-specific parameters using the `providerOptions.deepinfra` field:
 
 ```ts
-import { deepinfra } from '@ai-sdk/deepinfra';
+import { deepInfra } from '@ai-sdk/deepinfra';
 import { generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: deepinfra.image('stabilityai/sd3.5'),
+  model: deepInfra.image('stabilityai/sd3.5'),
   prompt: 'A futuristic cityscape at sunset',
   aspectRatio: '16:9',
   providerOptions: {
@@ -177,7 +177,7 @@ Transform an existing image using text prompts:
 const imageBuffer = readFileSync('./input-image.png');
 
 const { images } = await generateImage({
-  model: deepinfra.image('Qwen/Qwen-Image-Edit'),
+  model: deepInfra.image('Qwen/Qwen-Image-Edit'),
   prompt: {
     text: 'Turn the cat into a golden retriever dog',
     images: [imageBuffer],
@@ -195,7 +195,7 @@ const image = readFileSync('./input-image.png');
 const mask = readFileSync('./mask.png');
 
 const { images } = await generateImage({
-  model: deepinfra.image('Qwen/Qwen-Image-Edit'),
+  model: deepInfra.image('Qwen/Qwen-Image-Edit'),
   prompt: {
     text: 'A sunlit indoor lounge area with a pool containing a flamingo',
     images: [image],
@@ -213,7 +213,7 @@ const cat = readFileSync('./cat.png');
 const dog = readFileSync('./dog.png');
 
 const { images } = await generateImage({
-  model: deepinfra.image('Qwen/Qwen-Image-Edit'),
+  model: deepInfra.image('Qwen/Qwen-Image-Edit'),
   prompt: {
     text: 'Create a scene with both animals together, playing as friends',
     images: [cat, dog],
@@ -258,11 +258,11 @@ You can create DeepInfra embedding models using the `.embeddingModel()` factory 
 For more on embedding models with the AI SDK see [embed()](/docs/reference/ai-sdk-core/embed).
 
 ```ts
-import { deepinfra } from '@ai-sdk/deepinfra';
+import { deepInfra } from '@ai-sdk/deepinfra';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
-  model: deepinfra.embeddingModel('BAAI/bge-large-en-v1.5'),
+  model: deepInfra.embeddingModel('BAAI/bge-large-en-v1.5'),
   value: 'sunny day at the beach',
 });
 ```

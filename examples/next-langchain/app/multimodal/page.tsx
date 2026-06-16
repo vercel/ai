@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { ChatMessage } from '../../components/chat-message';
 import { ThinkingIndicator } from '../../components/thinking-indicator';
-import { type CustomDataMessage } from '../types';
+import type { CustomDataMessage } from '../types';
 
 const transport = new DefaultChatTransport({
   api: '/api/multimodal',

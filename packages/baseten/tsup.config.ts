@@ -4,7 +4,7 @@ import packageJson from './package.json';
 export default defineConfig([
   {
     entry: ['src/index.ts'],
-    format: ['cjs', 'esm'],
+    format: ['esm'],
     dts: true,
     sourcemap: true,
     define: {

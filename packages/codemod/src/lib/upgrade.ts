@@ -1,6 +1,6 @@
 import debug from 'debug';
-import { transform, TransformErrors } from './transform';
-import { TransformOptions } from './transform-options';
+import { transform, type TransformErrors } from './transform';
+import type { TransformOptions } from './transform-options';
 import { SingleBar, Presets } from 'cli-progress';
 
 const bundle = [
@@ -116,7 +116,7 @@ function runCodemods(
   bar.start(modCount, 0, { codemod: 'Starting...' });
   const allErrors: TransformErrors = [];
   let notImplementedAvailable = false;
-  for (const [index, codemod] of codemods.entries()) {
+  for (const [_index, codemod] of codemods.entries()) {
     const { errors, notImplementedErrors } = transform(codemod, cwd, options, {
       logStatus: false,
     });
@@ -172,7 +172,7 @@ export function upgrade(options: TransformOptions) {
   bar.start(modCount, 0, { codemod: 'Starting...' });
   const allErrors: TransformErrors = [];
   let notImplementedAvailable = false;
-  for (const [index, codemod] of bundle.entries()) {
+  for (const [_index, codemod] of bundle.entries()) {
     const { errors, notImplementedErrors } = transform(codemod, cwd, options, {
       logStatus: false,
     });

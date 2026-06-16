@@ -1,17 +1,32 @@
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
-import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
+import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { consumeStream } from '../util/consume-stream';
 import {
   createStreamingUIMessageState,
   processUIMessageStream,
-  StreamingUIMessageState,
+  type StreamingUIMessageState,
 } from './process-ui-message-stream';
-import { InferUIMessageData, UIMessage } from './ui-messages';
+import type { InferUIMessageData, UIMessage } from './ui-messages';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { UIMessageStreamError } from '../error/ui-message-stream-error';
 
 function createUIMessageStream(parts: UIMessageChunk[]) {
   return convertArrayToReadableStream(parts);
+}
+
+type ObjectPrototypeState = {
+  input?: unknown;
+  providerMetadata?: unknown;
+  state?: unknown;
+  text?: unknown;
+};
+
+function clearObjectPrototypeState() {
+  const objectPrototype = Object.prototype as ObjectPrototypeState;
+  delete objectPrototype.input;
+  delete objectPrototype.providerMetadata;
+  delete objectPrototype.state;
+  delete objectPrototype.text;
 }
 
 describe('processUIMessageStream', () => {
@@ -321,6 +336,130 @@ describe('processUIMessageStream', () => {
         'Received tool-input-delta for missing tool call with ID "tool-1". ' +
           'Ensure a "tool-input-start" chunk is sent before any "tool-input-delta" chunks.',
       );
+    });
+
+    it('should not read Object.prototype for missing text part ids', async () => {
+      clearObjectPrototypeState();
+
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        { type: 'text-delta', id: '__proto__', delta: 'Hello' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      try {
+        await expect(
+          consumeStream({
+            stream: processUIMessageStream({
+              stream,
+              runUpdateMessageJob,
+              onError: error => {
+                throw error;
+              },
+            }),
+            onError: error => {
+              throw error;
+            },
+          }),
+        ).rejects.toThrow(
+          'Received text-delta for missing text part with ID "__proto__". ' +
+            'Ensure a "text-start" chunk is sent before any "text-delta" chunks.',
+        );
+
+        expect(Object.hasOwn(Object.prototype, 'providerMetadata')).toBe(false);
+        expect(Object.hasOwn(Object.prototype, 'text')).toBe(false);
+      } finally {
+        clearObjectPrototypeState();
+      }
+    });
+
+    it('should not read Object.prototype for missing reasoning part ids', async () => {
+      clearObjectPrototypeState();
+
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        { type: 'reasoning-delta', id: '__proto__', delta: 'Thinking...' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      try {
+        await expect(
+          consumeStream({
+            stream: processUIMessageStream({
+              stream,
+              runUpdateMessageJob,
+              onError: error => {
+                throw error;
+              },
+            }),
+            onError: error => {
+              throw error;
+            },
+          }),
+        ).rejects.toThrow(
+          'Received reasoning-delta for missing reasoning part with ID "__proto__". ' +
+            'Ensure a "reasoning-start" chunk is sent before any "reasoning-delta" chunks.',
+        );
+
+        expect(Object.hasOwn(Object.prototype, 'providerMetadata')).toBe(false);
+        expect(Object.hasOwn(Object.prototype, 'text')).toBe(false);
+      } finally {
+        clearObjectPrototypeState();
+      }
+    });
+
+    it('should not read Object.prototype for missing partial tool call ids', async () => {
+      clearObjectPrototypeState();
+
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        {
+          type: 'tool-input-delta',
+          toolCallId: '__proto__',
+          inputTextDelta: '{"key":',
+        },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      try {
+        await expect(
+          consumeStream({
+            stream: processUIMessageStream({
+              stream,
+              runUpdateMessageJob,
+              onError: error => {
+                throw error;
+              },
+            }),
+            onError: error => {
+              throw error;
+            },
+          }),
+        ).rejects.toThrow(
+          'Received tool-input-delta for missing tool call with ID "__proto__". ' +
+            'Ensure a "tool-input-start" chunk is sent before any "tool-input-delta" chunks.',
+        );
+
+        expect(Object.hasOwn(Object.prototype, 'input')).toBe(false);
+        expect(Object.hasOwn(Object.prototype, 'text')).toBe(false);
+      } finally {
+        clearObjectPrototypeState();
+      }
     });
 
     it('should throw descriptive error when text-end is received without text-start', async () => {
@@ -5682,6 +5821,71 @@ describe('processUIMessageStream', () => {
         testProvider: { itemId: 'result-item' },
       });
     });
+
+    it('should preserve tool metadata on dynamic tool parts', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-1',
+          toolName: 'tool-name',
+          input: { query: 'test' },
+          dynamic: true,
+          toolMetadata: { clientName: 'MyMCPClient' },
+        },
+        {
+          type: 'tool-output-available',
+          toolCallId: 'tool-call-1',
+          output: { result: 'provider-result' },
+          dynamic: true,
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      const toolPart = state!.message.parts.find(
+        (part: any) => part.toolCallId === 'tool-call-1',
+      ) as any;
+
+      expect(toolPart).toMatchInlineSnapshot(`
+        {
+          "errorText": undefined,
+          "input": {
+            "query": "test",
+          },
+          "output": {
+            "result": "provider-result",
+          },
+          "preliminary": undefined,
+          "providerExecuted": undefined,
+          "rawInput": undefined,
+          "state": "output-available",
+          "title": undefined,
+          "toolCallId": "tool-call-1",
+          "toolMetadata": {
+            "clientName": "MyMCPClient",
+          },
+          "toolName": "tool-name",
+          "type": "dynamic-tool",
+        }
+      `);
+    });
   });
 
   it('should call onToolCall for client-executed tools', async () => {
@@ -7434,6 +7638,435 @@ describe('processUIMessageStream', () => {
     });
   });
 
+  describe('tool approval request with signature', () => {
+    beforeEach(async () => {
+      const stream = createUIMessageStream([
+        {
+          type: 'start',
+        },
+        {
+          type: 'start-step',
+        },
+        {
+          input: {
+            value: 'value',
+          },
+          toolCallId: 'call-1',
+          toolName: 'tool1',
+          type: 'tool-input-available',
+        },
+        {
+          approvalId: 'id-1',
+          toolCallId: 'call-1',
+          type: 'tool-approval-request',
+          signature: 'test-sig',
+        },
+        {
+          type: 'finish-step',
+        },
+        {
+          type: 'finish',
+        },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+    });
+
+    it('should propagate signature into the approval object', async () => {
+      const toolPart = state!.message.parts.find(
+        part => part.type === 'tool-tool1',
+      ) as any;
+
+      expect(toolPart.state).toBe('approval-requested');
+      expect(toolPart.approval).toEqual({
+        id: 'id-1',
+        signature: 'test-sig',
+      });
+    });
+  });
+
+  describe('tool approval request without signature', () => {
+    beforeEach(async () => {
+      const stream = createUIMessageStream([
+        {
+          type: 'start',
+        },
+        {
+          type: 'start-step',
+        },
+        {
+          input: {
+            value: 'value',
+          },
+          toolCallId: 'call-1',
+          toolName: 'tool1',
+          type: 'tool-input-available',
+        },
+        {
+          approvalId: 'id-1',
+          toolCallId: 'call-1',
+          type: 'tool-approval-request',
+        },
+        {
+          type: 'finish-step',
+        },
+        {
+          type: 'finish',
+        },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+    });
+
+    it('should not include signature in the approval object', async () => {
+      const toolPart = state!.message.parts.find(
+        part => part.type === 'tool-tool1',
+      ) as any;
+
+      expect(toolPart.state).toBe('approval-requested');
+      expect(toolPart.approval).toEqual({
+        id: 'id-1',
+      });
+      expect(toolPart.approval).not.toHaveProperty('signature');
+    });
+  });
+
+  describe('automatic tool approval denial (static tool)', () => {
+    beforeEach(async () => {
+      const stream = createUIMessageStream([
+        { type: 'start' },
+        { type: 'start-step' },
+        {
+          input: {
+            value: 'value',
+          },
+          toolCallId: 'call-1',
+          toolName: 'tool1',
+          type: 'tool-input-available',
+        },
+        {
+          approvalId: 'id-1',
+          isAutomatic: true,
+          toolCallId: 'call-1',
+          type: 'tool-approval-request',
+        },
+        {
+          approvalId: 'id-1',
+          approved: false,
+          reason: 'Policy denied execution',
+          type: 'tool-approval-response',
+        },
+        {
+          toolCallId: 'call-1',
+          type: 'tool-output-denied',
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+    });
+
+    it('should keep automatic approval metadata through denial', () => {
+      expect(writeCalls.map(call => call.message.parts[1]))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "errorText": undefined,
+            "input": {
+              "value": "value",
+            },
+            "output": undefined,
+            "preliminary": undefined,
+            "providerExecuted": undefined,
+            "rawInput": undefined,
+            "state": "input-available",
+            "title": undefined,
+            "toolCallId": "call-1",
+            "type": "tool-tool1",
+          },
+          {
+            "approval": {
+              "id": "id-1",
+              "isAutomatic": true,
+            },
+            "errorText": undefined,
+            "input": {
+              "value": "value",
+            },
+            "output": undefined,
+            "preliminary": undefined,
+            "providerExecuted": undefined,
+            "rawInput": undefined,
+            "state": "approval-requested",
+            "title": undefined,
+            "toolCallId": "call-1",
+            "type": "tool-tool1",
+          },
+          {
+            "approval": {
+              "approved": false,
+              "id": "id-1",
+              "isAutomatic": true,
+              "reason": "Policy denied execution",
+            },
+            "errorText": undefined,
+            "input": {
+              "value": "value",
+            },
+            "output": undefined,
+            "preliminary": undefined,
+            "providerExecuted": undefined,
+            "rawInput": undefined,
+            "state": "approval-responded",
+            "title": undefined,
+            "toolCallId": "call-1",
+            "type": "tool-tool1",
+          },
+          {
+            "approval": {
+              "approved": false,
+              "id": "id-1",
+              "isAutomatic": true,
+              "reason": "Policy denied execution",
+            },
+            "errorText": undefined,
+            "input": {
+              "value": "value",
+            },
+            "output": undefined,
+            "preliminary": undefined,
+            "providerExecuted": undefined,
+            "rawInput": undefined,
+            "state": "output-denied",
+            "title": undefined,
+            "toolCallId": "call-1",
+            "type": "tool-tool1",
+          },
+        ]
+      `);
+
+      expect(state!.message.parts[1]).toMatchInlineSnapshot(`
+        {
+          "approval": {
+            "approved": false,
+            "id": "id-1",
+            "isAutomatic": true,
+            "reason": "Policy denied execution",
+          },
+          "errorText": undefined,
+          "input": {
+            "value": "value",
+          },
+          "output": undefined,
+          "preliminary": undefined,
+          "providerExecuted": undefined,
+          "rawInput": undefined,
+          "state": "output-denied",
+          "title": undefined,
+          "toolCallId": "call-1",
+          "type": "tool-tool1",
+        }
+      `);
+    });
+  });
+
+  describe('automatic tool approval with execution (dynamic tool)', () => {
+    beforeEach(async () => {
+      const stream = createUIMessageStream([
+        { type: 'start' },
+        { type: 'start-step' },
+        {
+          dynamic: true,
+          input: {
+            value: 'value',
+          },
+          toolCallId: 'call-1',
+          toolName: 'tool1',
+          type: 'tool-input-available',
+        },
+        {
+          approvalId: 'id-1',
+          isAutomatic: true,
+          toolCallId: 'call-1',
+          type: 'tool-approval-request',
+        },
+        {
+          approvalId: 'id-1',
+          approved: true,
+          reason: 'trusted internal tool',
+          type: 'tool-approval-response',
+        },
+        {
+          output: 'result1',
+          toolCallId: 'call-1',
+          type: 'tool-output-available',
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+    });
+
+    it('should keep automatic approval metadata through execution', () => {
+      expect(writeCalls.map(call => call.message.parts[1]))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "errorText": undefined,
+            "input": {
+              "value": "value",
+            },
+            "output": undefined,
+            "preliminary": undefined,
+            "providerExecuted": undefined,
+            "state": "input-available",
+            "title": undefined,
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "dynamic-tool",
+          },
+          {
+            "approval": {
+              "id": "id-1",
+              "isAutomatic": true,
+            },
+            "errorText": undefined,
+            "input": {
+              "value": "value",
+            },
+            "output": undefined,
+            "preliminary": undefined,
+            "providerExecuted": undefined,
+            "state": "approval-requested",
+            "title": undefined,
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "dynamic-tool",
+          },
+          {
+            "approval": {
+              "approved": true,
+              "id": "id-1",
+              "isAutomatic": true,
+              "reason": "trusted internal tool",
+            },
+            "errorText": undefined,
+            "input": {
+              "value": "value",
+            },
+            "output": undefined,
+            "preliminary": undefined,
+            "providerExecuted": undefined,
+            "state": "approval-responded",
+            "title": undefined,
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "dynamic-tool",
+          },
+          {
+            "approval": {
+              "approved": true,
+              "id": "id-1",
+              "isAutomatic": true,
+              "reason": "trusted internal tool",
+            },
+            "errorText": undefined,
+            "input": {
+              "value": "value",
+            },
+            "output": "result1",
+            "preliminary": undefined,
+            "providerExecuted": undefined,
+            "rawInput": undefined,
+            "state": "output-available",
+            "title": undefined,
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "dynamic-tool",
+          },
+        ]
+      `);
+
+      expect(state!.message.parts[1]).toMatchInlineSnapshot(`
+        {
+          "approval": {
+            "approved": true,
+            "id": "id-1",
+            "isAutomatic": true,
+            "reason": "trusted internal tool",
+          },
+          "errorText": undefined,
+          "input": {
+            "value": "value",
+          },
+          "output": "result1",
+          "preliminary": undefined,
+          "providerExecuted": undefined,
+          "rawInput": undefined,
+          "state": "output-available",
+          "title": undefined,
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "dynamic-tool",
+        }
+      `);
+    });
+  });
+
   describe('initial tool execution after approval (static tool)', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
@@ -8650,7 +9283,7 @@ describe('processUIMessageStream', () => {
         { type: 'start', messageId: 'msg-123' },
         {
           type: 'custom',
-          kind: 'test-provider-compaction',
+          kind: 'test-provider.compaction',
           providerMetadata: { openai: { itemId: 'cmp_123' } },
         },
         { type: 'finish' },
@@ -8676,7 +9309,7 @@ describe('processUIMessageStream', () => {
       expect(state!.message.parts).toEqual([
         {
           type: 'custom',
-          kind: 'test-provider-compaction',
+          kind: 'test-provider.compaction',
           providerMetadata: {
             openai: {
               itemId: 'cmp_123',

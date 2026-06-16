@@ -1,5 +1,5 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { stepCountIs, streamText, tool } from 'ai';
+import { isStepCount, streamText, tool } from 'ai';
 import { z } from 'zod';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
@@ -14,7 +14,7 @@ const conditions = [
 run(async () => {
   const result = streamText({
     model: anthropic('claude-sonnet-4-5'),
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
     tools: {
       weather: tool({
         description: 'Get the weather in a location',

@@ -1,5 +1,5 @@
 import {
-  createProviderToolFactoryWithOutputSchema,
+  createProviderExecutedToolFactory,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -40,7 +40,7 @@ const toolSearchBm25_20251119InputSchema = lazySchema(() =>
   ),
 );
 
-const factory = createProviderToolFactoryWithOutputSchema<
+const factory = createProviderExecutedToolFactory<
   {
     /**
      * A natural language query to search for tools.
