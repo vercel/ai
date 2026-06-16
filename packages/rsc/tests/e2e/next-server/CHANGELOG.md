@@ -4,6 +4,12 @@
 
 ### Patch Changes
 
+- ai@7.0.0-beta.179
+
+## 0.0.1-beta.0
+
+### Patch Changes
+
 - Updated dependencies [b097c52]
   - ai@7.0.0-beta.178
 
