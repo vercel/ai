@@ -1,5 +1,18 @@
 # ai
 
+## 5.0.204
+
+### Patch Changes
+
+- 9169261: fix(provider-utils): cancel response body on download rejection to prevent socket leak
+
+  When a download was rejected early — because the `Content-Length` header exceeded the size limit, the response status was not ok, or a redirect resolved to a blocked URL — the fetch response body was left unconsumed and uncancelled. With WHATWG Fetch/undici this leaves the underlying TCP socket open instead of returning it to the connection pool, allowing an attacker-controlled origin to exhaust file descriptors and cause a denial of service. The body is now cancelled on all early-rejection paths in `readResponseWithSizeLimit` and `download`, and `fetchWithValidatedRedirects` cancels each redirect hop's body before following or rejecting the next hop.
+
+- Updated dependencies [dd9349d]
+- Updated dependencies [9169261]
+  - @ai-sdk/gateway@2.0.103
+  - @ai-sdk/provider-utils@3.0.27
+
 ## 5.0.203
 
 ### Patch Changes
