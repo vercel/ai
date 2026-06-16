@@ -1,0 +1,74 @@
+---
+title: TokenMix
+description: Use the TokenMix OpenAI-compatible API gateway with the AI SDK.
+---
+
+# TokenMix Provider
+
+[TokenMix](https://tokenmix.ai/) is an OpenAI-compatible API gateway that provides 300+ models across 17 vendors -- including OpenAI, Anthropic, and Google, plus Chinese models that are otherwise hard to access from outside China (Qwen, DeepSeek, Doubao, GLM, Kimi, Hunyuan) -- behind a single base URL and API key.
+
+Because TokenMix implements the OpenAI API, you can use it with the AI SDK via the [`@ai-sdk/openai-compatible`](https://www.npmjs.com/package/@ai-sdk/openai-compatible) package.
+
+## Setup
+
+The TokenMix provider is available via the `@ai-sdk/openai-compatible` module. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/openai-compatible" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/openai-compatible" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/openai-compatible" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add @ai-sdk/openai-compatible" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+To use TokenMix, create a provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const tokenmix = createOpenAICompatible({
+  name: 'tokenmix',
+  baseURL: 'https://api.tokenmix.ai/v1',
+  apiKey: process.env.TOKENMIX_API_KEY,
+});
+```
+
+## Language Models
+
+You can interact with models on TokenMix using a provider instance. The first argument is the model id, e.g. `deepseek/deepseek-v3.2`.
+
+```ts
+const model = tokenmix('deepseek/deepseek-v3.2');
+```
+
+### Example
+
+You can use TokenMix language models to generate text with the `generateText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const tokenmix = createOpenAICompatible({
+  name: 'tokenmix',
+  baseURL: 'https://api.tokenmix.ai/v1',
+  apiKey: process.env.TOKENMIX_API_KEY,
+});
+
+const { text } = await generateText({
+  model: tokenmix('qwen/qwen3.7-max'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+TokenMix language models can also be used with `streamText`.
