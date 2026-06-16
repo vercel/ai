@@ -35,6 +35,7 @@ export class MockMCPTransport implements MCPTransport {
   private resourceContents;
   private prompts;
   private promptResults;
+  private completions;
   private failOnInvalidToolParams;
   private initializeResult;
   private sendError;
@@ -93,6 +94,7 @@ export class MockMCPTransport implements MCPTransport {
         mimeType: 'text/plain',
       },
     ],
+    completions,
     failOnInvalidToolParams = false,
     initializeResult,
     sendError = false,
@@ -123,6 +125,7 @@ export class MockMCPTransport implements MCPTransport {
         _meta?: Record<string, unknown>;
       } & ({ text: string } | { blob: string })
     >;
+    completions?: string[];
     failOnInvalidToolParams?: boolean;
     initializeResult?: Record<string, unknown>;
     sendError?: boolean;
@@ -132,6 +135,7 @@ export class MockMCPTransport implements MCPTransport {
     this.resources = resources;
     this.prompts = prompts;
     this.promptResults = promptResults;
+    this.completions = completions;
     this.resourceTemplates = resourceTemplates;
     this.resourceContents = resourceContents;
     this.failOnInvalidToolParams = failOnInvalidToolParams;
@@ -167,6 +171,7 @@ export class MockMCPTransport implements MCPTransport {
               ...(this.tools.length > 0 ? { tools: {} } : {}),
               ...(this.resources.length > 0 ? { resources: {} } : {}),
               ...(this.prompts.length > 0 ? { prompts: {} } : {}),
+              ...(this.completions ? { completions: {} } : {}),
             },
           },
         });
@@ -218,6 +223,20 @@ export class MockMCPTransport implements MCPTransport {
           id: message.id,
           result: {
             resourceTemplates: this.resourceTemplates,
+          },
+        });
+      }
+
+      if (message.method === 'completion/complete') {
+        await delay(10);
+        this.onmessage?.({
+          jsonrpc: '2.0',
+          id: message.id,
+          result: {
+            completion: {
+              values: this.completions ?? [],
+              hasMore: false,
+            },
           },
         });
       }

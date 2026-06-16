@@ -114,6 +114,7 @@ const ServerCapabilitiesSchema = z.looseObject({
       listChanged: z.optional(z.boolean()),
     }),
   ),
+  completions: z.optional(z.object({}).loose()),
   elicitation: z.optional(ElicitationCapabilitySchema),
 });
 
@@ -295,6 +296,35 @@ export const ReadResourceResultSchema = ResultSchema.extend({
   ),
 });
 export type ReadResourceResult = z.infer<typeof ReadResourceResultSchema>;
+
+// Completions
+// @see https://modelcontextprotocol.io/specification/2025-06-18/server/utilities/completion
+export const CompleteRequestParamsSchema = z.object({
+  ref: z.union([
+    z.object({ type: z.literal('ref/prompt'), name: z.string() }),
+    z.object({ type: z.literal('ref/resource'), uri: z.string() }),
+  ]),
+  argument: z.object({
+    name: z.string(),
+    value: z.string(),
+  }),
+  context: z.optional(
+    z.object({
+      // Previously-resolved variables in a URI template or prompt.
+      arguments: z.optional(z.record(z.string(), z.string())),
+    }),
+  ),
+});
+export type CompleteRequestParams = z.infer<typeof CompleteRequestParamsSchema>;
+
+export const CompleteResultSchema = ResultSchema.extend({
+  completion: z.looseObject({
+    values: z.array(z.string()).max(100),
+    total: z.optional(z.number().int()),
+    hasMore: z.optional(z.boolean()),
+  }),
+});
+export type CompleteResult = z.infer<typeof CompleteResultSchema>;
 
 // Prompts
 const PromptArgumentSchema = z

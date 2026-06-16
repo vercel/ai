@@ -8,6 +8,7 @@ import {
   ListToolsResult,
   ElicitationRequestSchema,
   type CallToolResult,
+  type CompleteResult,
   type ListResourceTemplatesResult,
   type ListResourcesResult,
   type ReadResourceResult,
@@ -741,6 +742,41 @@ describe('MCPClient', () => {
         },
       ]
     `);
+  });
+
+  it('should complete a resource template variable', async () => {
+    client = await createMCPClient({
+      transport: new MockMCPTransport({
+        completions: ['namespace-a', 'namespace-b'],
+      }),
+    });
+
+    const result = await client.complete({
+      params: {
+        ref: { type: 'ref/resource', uri: 'file:///{path}' },
+        argument: { name: 'path', value: 'name' },
+        context: { arguments: { other: 'value' } },
+      },
+    });
+
+    expectTypeOf(result).toEqualTypeOf<CompleteResult>();
+    expect(result.completion.values).toEqual(['namespace-a', 'namespace-b']);
+    expect(result.completion.hasMore).toBe(false);
+  });
+
+  it('should throw when the server does not support completions', async () => {
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    await expect(
+      client.complete({
+        params: {
+          ref: { type: 'ref/resource', uri: 'file:///{path}' },
+          argument: { name: 'path', value: '' },
+        },
+      }),
+    ).rejects.toThrow('Server does not support completions');
   });
 
   it('should list prompts from the server', async () => {

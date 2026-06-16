@@ -28,6 +28,7 @@ import {
 import { getMCPAppToolMeta, MCP_APP_MIME_TYPE } from './mcp-apps';
 import {
   CallToolResultSchema,
+  CompleteResultSchema,
   ElicitationRequestSchema,
   ElicitResultSchema,
   InitializeResultSchema,
@@ -41,6 +42,8 @@ import {
   SUPPORTED_PROTOCOL_VERSIONS,
   type CallToolResult,
   type ClientCapabilities,
+  type CompleteRequestParams,
+  type CompleteResult,
   type Configuration,
   type Configuration as ClientConfiguration,
   type ElicitationRequest,
@@ -185,6 +188,16 @@ export interface MCPClient {
   listResourceTemplates(options?: {
     options?: RequestOptions;
   }): Promise<ListResourceTemplatesResult>;
+
+  /**
+   * Requests completion suggestions for a prompt argument or resource
+   * template variable. Requires the server to advertise the `completions`
+   * capability.
+   */
+  complete(args: {
+    params: CompleteRequestParams;
+    options?: RequestOptions;
+  }): Promise<CompleteResult>;
 
   experimental_listPrompts(options?: {
     params?: PaginatedRequest['params'];
@@ -376,6 +389,13 @@ class DefaultMCPClient implements MCPClient {
           });
         }
         break;
+      case 'completion/complete':
+        if (!this.serverCapabilities.completions) {
+          throw new MCPClientError({
+            message: `Server does not support completions`,
+          });
+        }
+        break;
       default:
         throw new MCPClientError({
           message: `Unsupported method: ${method}`,
@@ -534,6 +554,20 @@ class DefaultMCPClient implements MCPClient {
     } catch (error) {
       throw error;
     }
+  }
+
+  private async completeInternal({
+    params,
+    options,
+  }: {
+    params: CompleteRequestParams;
+    options?: RequestOptions;
+  }): Promise<CompleteResult> {
+    return this.request({
+      request: { method: 'completion/complete', params },
+      resultSchema: CompleteResultSchema,
+      options,
+    });
   }
 
   private async listPromptsInternal({
@@ -770,6 +804,16 @@ class DefaultMCPClient implements MCPClient {
     options?: RequestOptions;
   } = {}): Promise<ListResourceTemplatesResult> {
     return this.listResourceTemplatesInternal({ options });
+  }
+
+  complete({
+    params,
+    options,
+  }: {
+    params: CompleteRequestParams;
+    options?: RequestOptions;
+  }): Promise<CompleteResult> {
+    return this.completeInternal({ params, options });
   }
 
   experimental_listPrompts({
