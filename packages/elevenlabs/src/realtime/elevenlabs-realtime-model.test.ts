@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { createElevenLabs } from '../elevenlabs-provider';
 import { ElevenLabsRealtimeModel } from './elevenlabs-realtime-model';
 
 describe('ElevenLabsRealtimeModel', () => {
@@ -67,6 +68,35 @@ describe('ElevenLabsRealtimeModel', () => {
         url: 'wss://api.elevenlabs.io/v1/convai/conversation?token=test',
       }),
     ).toEqual({
+      url: 'wss://api.elevenlabs.io/v1/convai/conversation?token=test',
+    });
+  });
+
+  it('exposes the realtime factory from the provider', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        signed_url: 'wss://api.elevenlabs.io/v1/convai/conversation?token=test',
+      }),
+    });
+    const provider = createElevenLabs({
+      apiKey: 'test-key',
+      fetch: mockFetch as unknown as typeof fetch,
+    });
+
+    const model = provider.experimental_realtime('agent_123');
+    expect(model.provider).toBe('elevenlabs.realtime');
+    expect(model.modelId).toBe('agent_123');
+
+    await expect(
+      provider.experimental_realtime.getToken({
+        model: 'agent_123',
+        sessionConfig: {
+          instructions: 'Be helpful.',
+        },
+      }),
+    ).resolves.toEqual({
+      token: 'wss://api.elevenlabs.io/v1/convai/conversation?token=test',
       url: 'wss://api.elevenlabs.io/v1/convai/conversation?token=test',
     });
   });
