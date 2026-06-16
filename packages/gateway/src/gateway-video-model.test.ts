@@ -488,6 +488,7 @@ describe('GatewayVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         headers: {
           'X-Custom-Header': 'custom-value',
         },
@@ -544,6 +545,7 @@ describe('GatewayVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         abortSignal: abortController.signal,
         providerOptions: {},
       });
@@ -573,6 +575,7 @@ describe('GatewayVideoModel', () => {
           duration: undefined,
           fps: undefined,
           seed: undefined,
+          generateAudio: undefined,
           providerOptions: {},
         }),
       ).rejects.toThrow();
@@ -600,6 +603,7 @@ describe('GatewayVideoModel', () => {
           duration: undefined,
           fps: undefined,
           seed: undefined,
+          generateAudio: undefined,
           providerOptions: {},
         }),
       ).rejects.toThrow();
@@ -629,6 +633,7 @@ describe('GatewayVideoModel', () => {
           duration: undefined,
           fps: undefined,
           seed: undefined,
+          generateAudio: undefined,
           providerOptions: {},
         }),
       ).rejects.toThrow('Rate limit exceeded');
@@ -658,6 +663,7 @@ describe('GatewayVideoModel', () => {
           duration: undefined,
           fps: undefined,
           seed: undefined,
+          generateAudio: undefined,
           providerOptions: {},
         }),
       ).rejects.toThrow('All providers failed');
@@ -679,6 +685,7 @@ describe('GatewayVideoModel', () => {
           duration: undefined,
           fps: undefined,
           seed: undefined,
+          generateAudio: undefined,
           providerOptions: {},
         }),
       ).rejects.toThrow();
@@ -883,6 +890,7 @@ describe('GatewayVideoModel', () => {
           duration: undefined,
           fps: undefined,
           seed: undefined,
+          generateAudio: undefined,
           providerOptions: {},
         });
 
@@ -910,6 +918,7 @@ describe('GatewayVideoModel', () => {
           duration: undefined,
           fps: undefined,
           seed: undefined,
+          generateAudio: undefined,
           providerOptions: {},
         });
 
@@ -936,6 +945,7 @@ describe('GatewayVideoModel', () => {
           duration: undefined,
           fps: undefined,
           seed: undefined,
+          generateAudio: undefined,
           providerOptions: {},
         });
 
@@ -965,6 +975,7 @@ describe('GatewayVideoModel', () => {
           duration: undefined,
           fps: undefined,
           seed: undefined,
+          generateAudio: undefined,
           providerOptions: {},
         });
 
