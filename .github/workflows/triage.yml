@@ -9,7 +9,8 @@ on:
       - main
       - release-v*
 
-permissions: {}
+permissions:
+  contents: read
 
 jobs:
   triage_pull_request:

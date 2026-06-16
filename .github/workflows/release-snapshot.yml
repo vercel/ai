@@ -32,6 +32,9 @@ name: Release Snapshot
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   release-snapshot:
     name: Release Snapshot

@@ -13,6 +13,9 @@ on:
     paths:
       - '.changeset/*.md'
 
+permissions:
+  contents: read
+
 jobs:
   verify-changesets:
     runs-on: ubuntu-latest
