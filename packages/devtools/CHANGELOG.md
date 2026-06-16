@@ -1,5 +1,11 @@
 # @ai-sdk/devtools
 
+## 1.0.0-beta.32
+
+### Patch Changes
+
+- b05f5ee: fix: bump hono to ^4.12.25 to resolve CVE-2026-54290 (CORS Middleware reflects any Origin with credentials when origin defaults to the wildcard)
+
 ## 1.0.0-beta.31
 
 ### Patch Changes

@@ -216,6 +216,7 @@
     "fix-empty-delta-role",
     "fix-gateway-reranking-modeltype",
     "fix-gemini3-missing-thought-signature-main",
+    "fix-hono-cve-2026-54290",
     "fix-langchain-python-aimessagechunk",
     "fix-mcp-iserror-output-schema",
     "fix-mistral-cached-tokens",
