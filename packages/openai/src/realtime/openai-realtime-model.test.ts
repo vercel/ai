@@ -56,27 +56,31 @@ describe('OpenAIRealtimeModel', () => {
     });
 
     it('builds the conversation URL and forwards defined headers', () => {
-      const connection = model.getServerConnection();
-
-      expect(connection.url).toBe(
-        'wss://api.openai.com/v1/realtime?model=gpt-realtime',
-      );
       // Undefined header values are dropped.
-      expect(connection.headers).toEqual({
-        authorization: 'Bearer test-key',
-        'OpenAI-Beta': 'realtime=v1',
-      });
+      expect(model.getServerConnection()).toMatchInlineSnapshot(`
+        {
+          "headers": {
+            "OpenAI-Beta": "realtime=v1",
+            "authorization": "Bearer test-key",
+          },
+          "url": "wss://api.openai.com/v1/realtime?model=gpt-realtime",
+        }
+      `);
     });
 
     it('builds the transcription URL (model goes in session.update)', () => {
-      expect(model.getServerConnection({ intent: 'transcription' }).url).toBe(
-        'wss://api.openai.com/v1/realtime?intent=transcription',
+      expect(
+        model.getServerConnection({ intent: 'transcription' }).url,
+      ).toMatchInlineSnapshot(
+        `"wss://api.openai.com/v1/realtime?intent=transcription"`,
       );
     });
 
     it('builds the translation URL with the model query param', () => {
-      expect(model.getServerConnection({ intent: 'translation' }).url).toBe(
-        'wss://api.openai.com/v1/realtime/translations?model=gpt-realtime',
+      expect(
+        model.getServerConnection({ intent: 'translation' }).url,
+      ).toMatchInlineSnapshot(
+        `"wss://api.openai.com/v1/realtime/translations?model=gpt-realtime"`,
       );
     });
 
@@ -87,8 +91,8 @@ describe('OpenAIRealtimeModel', () => {
         headers: () => ({ authorization: 'Bearer test-key' }),
       });
 
-      expect(localModel.getServerConnection().url).toBe(
-        'ws://localhost:8787/v1/realtime?model=gpt-realtime',
+      expect(localModel.getServerConnection().url).toMatchInlineSnapshot(
+        `"ws://localhost:8787/v1/realtime?model=gpt-realtime"`,
       );
     });
   });

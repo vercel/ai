@@ -23,14 +23,17 @@ describe('parseXaiRealtimeServerEvent usage', () => {
       type: 'response-done',
       responseId: 'resp_1',
     });
-    expect(event.type === 'response-done' && event.usage).toEqual({
-      inputAudioTokens: 80,
-      inputTextTokens: 20,
-      outputAudioTokens: 120,
-      outputTextTokens: 6,
-      cachedInputAudioTokens: 16,
-      cachedInputTextTokens: 4,
-    });
+    expect(event.type === 'response-done' && event.usage)
+      .toMatchInlineSnapshot(`
+      {
+        "cachedInputAudioTokens": 16,
+        "cachedInputTextTokens": 4,
+        "inputAudioTokens": 80,
+        "inputTextTokens": 20,
+        "outputAudioTokens": 120,
+        "outputTextTokens": 6,
+      }
+    `);
   });
 
   it('omits usage when response.done carries none', () => {

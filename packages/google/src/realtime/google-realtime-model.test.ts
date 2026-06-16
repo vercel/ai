@@ -193,13 +193,14 @@ describe('GoogleRealtimeModel', () => {
         }),
       });
 
-      const connection = model.getServerConnection();
-
-      expect(connection.url).toBe(
-        'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent',
-      );
-      expect(connection.headers).toEqual({ 'x-goog-api-key': 'test-key' });
-      expect(connection.protocols).toBeUndefined();
+      expect(model.getServerConnection()).toMatchInlineSnapshot(`
+        {
+          "headers": {
+            "x-goog-api-key": "test-key",
+          },
+          "url": "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent",
+        }
+      `);
     });
   });
 

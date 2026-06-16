@@ -31,12 +31,14 @@ describe('XaiRealtimeModel', () => {
 
   describe('getServerConnection', () => {
     it('builds the voice URL with the model query param and forwards headers', () => {
-      const connection = createModel().getServerConnection();
-
-      expect(connection.url).toBe(
-        'wss://api.x.ai/v1/realtime?model=grok-voice-latest',
-      );
-      expect(connection.headers).toEqual({ authorization: 'Bearer test-key' });
+      expect(createModel().getServerConnection()).toMatchInlineSnapshot(`
+        {
+          "headers": {
+            "authorization": "Bearer test-key",
+          },
+          "url": "wss://api.x.ai/v1/realtime?model=grok-voice-latest",
+        }
+      `);
     });
 
     it('uses ws:// for an http base URL (local/proxy)', () => {
@@ -46,8 +48,8 @@ describe('XaiRealtimeModel', () => {
         headers: () => ({ authorization: 'Bearer test-key' }),
       });
 
-      expect(localModel.getServerConnection().url).toBe(
-        'ws://localhost:8787/v1/realtime?model=grok-voice-latest',
+      expect(localModel.getServerConnection().url).toMatchInlineSnapshot(
+        `"ws://localhost:8787/v1/realtime?model=grok-voice-latest"`,
       );
     });
   });

@@ -721,11 +721,13 @@ describe('GoogleRealtimeEventMapper usage', () => {
 
     const list = Array.isArray(events) ? events : [events];
     const done = list.find(e => e.type === 'response-done');
-    expect(done?.type === 'response-done' && done.usage).toEqual({
-      inputAudioTokens: 50,
-      inputTextTokens: 10,
-      outputAudioTokens: 200,
-    });
+    expect(done?.type === 'response-done' && done.usage).toMatchInlineSnapshot(`
+      {
+        "inputAudioTokens": 50,
+        "inputTextTokens": 10,
+        "outputAudioTokens": 200,
+      }
+    `);
   });
 
   it('falls back to aggregate counts as text when modality details are absent', () => {
@@ -737,10 +739,12 @@ describe('GoogleRealtimeEventMapper usage', () => {
 
     const list = Array.isArray(events) ? events : [events];
     const done = list.find(e => e.type === 'response-done');
-    expect(done?.type === 'response-done' && done.usage).toEqual({
-      inputTextTokens: 12,
-      outputTextTokens: 34,
-    });
+    expect(done?.type === 'response-done' && done.usage).toMatchInlineSnapshot(`
+      {
+        "inputTextTokens": 12,
+        "outputTextTokens": 34,
+      }
+    `);
   });
 
   it('omits usage when no usageMetadata is present', () => {

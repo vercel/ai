@@ -27,14 +27,17 @@ describe('parseOpenAIRealtimeServerEvent usage', () => {
       responseId: 'resp_1',
     });
     // Input buckets are gross (cache-inclusive); cached surfaced separately.
-    expect(event.type === 'response-done' && event.usage).toEqual({
-      inputAudioTokens: 100,
-      inputTextTokens: 40,
-      outputAudioTokens: 200,
-      outputTextTokens: 12,
-      cachedInputAudioTokens: 30,
-      cachedInputTextTokens: 10,
-    });
+    expect(event.type === 'response-done' && event.usage)
+      .toMatchInlineSnapshot(`
+      {
+        "cachedInputAudioTokens": 30,
+        "cachedInputTextTokens": 10,
+        "inputAudioTokens": 100,
+        "inputTextTokens": 40,
+        "outputAudioTokens": 200,
+        "outputTextTokens": 12,
+      }
+    `);
   });
 
   it('omits usage when response.done carries none', () => {
@@ -53,9 +56,12 @@ describe('parseOpenAIRealtimeServerEvent usage', () => {
       usage: { type: 'duration', seconds: 3.5 },
     });
 
-    expect(
-      event.type === 'input-transcription-completed' && event.usage,
-    ).toEqual({ audioSeconds: 3.5 });
+    expect(event.type === 'input-transcription-completed' && event.usage)
+      .toMatchInlineSnapshot(`
+      {
+        "audioSeconds": 3.5,
+      }
+    `);
   });
 
   it('extracts token usage from a transcription completion', () => {
@@ -70,13 +76,14 @@ describe('parseOpenAIRealtimeServerEvent usage', () => {
       },
     });
 
-    expect(
-      event.type === 'input-transcription-completed' && event.usage,
-    ).toEqual({
-      inputAudioTokens: 50,
-      inputTextTokens: 4,
-      outputTextTokens: 8,
-    });
+    expect(event.type === 'input-transcription-completed' && event.usage)
+      .toMatchInlineSnapshot(`
+      {
+        "inputAudioTokens": 50,
+        "inputTextTokens": 4,
+        "outputTextTokens": 8,
+      }
+    `);
   });
 });
 
