@@ -253,3 +253,34 @@ The following provider options are available:
 | ------------------------ | ------------------- | ------------------- | ------------------- | ------------------- |
 | `scribe_v1`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `scribe_v1_experimental` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+
+## Realtime Models
+
+You can create realtime voice-agent models using the `.experimental_realtime()` factory method.
+
+The model id is an ElevenAgents `agent_id`, not a text-to-speech model id.
+
+```ts
+const model = elevenLabs.experimental_realtime('agent_123');
+```
+
+The realtime model uses ElevenAgents WebSockets and signed URLs for browser-safe authentication.
+It supports bidirectional audio/text, user transcripts, agent audio/text responses, and client tool calls.
+
+You can pass ElevenAgents-specific session overrides using `providerOptions.elevenlabs`:
+
+```ts
+import type { ElevenLabsRealtimeModelOptions } from '@ai-sdk/elevenlabs';
+
+const sessionConfig = {
+  instructions: 'You are a helpful support agent.',
+  voice: '21m00Tcm4TlvDq8ikWAM',
+  providerOptions: {
+    elevenlabs: {
+      dynamicVariables: {
+        user_name: 'John',
+      },
+    } satisfies ElevenLabsRealtimeModelOptions,
+  },
+};
+```
