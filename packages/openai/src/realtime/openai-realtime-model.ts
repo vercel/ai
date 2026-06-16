@@ -8,7 +8,10 @@ import type {
   Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
   Experimental_RealtimeModelV4SessionIntent as RealtimeModelV4SessionIntent,
 } from '@ai-sdk/provider';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
+import {
+  type FetchFunction,
+  removeUndefinedEntries,
+} from '@ai-sdk/provider-utils';
 import {
   buildOpenAISessionConfig,
   parseOpenAIRealtimeServerEvent,
@@ -106,7 +109,7 @@ export class OpenAIRealtimeModel implements RealtimeModelV4 {
         this.modelId,
         options?.intent ?? 'conversation',
       ),
-      headers: definedHeaders(this.config.headers()),
+      headers: removeUndefinedEntries(this.config.headers()),
     };
   }
 
@@ -152,17 +155,4 @@ function buildServerUrl(
     default:
       return `${base}/realtime?model=${encodeURIComponent(modelId)}`;
   }
-}
-
-/** Drop headers with `undefined` values so the result is a `Record<string, string>`. */
-function definedHeaders(
-  headers: Record<string, string | undefined>,
-): Record<string, string> {
-  const result: Record<string, string> = {};
-  for (const [key, value] of Object.entries(headers)) {
-    if (value != null) {
-      result[key] = value;
-    }
-  }
-  return result;
 }

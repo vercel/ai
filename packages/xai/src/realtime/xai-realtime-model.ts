@@ -7,7 +7,10 @@ import type {
   Experimental_RealtimeModelV4ServerEvent as RealtimeModelV4ServerEvent,
   Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
 } from '@ai-sdk/provider';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
+import {
+  type FetchFunction,
+  removeUndefinedEntries,
+} from '@ai-sdk/provider-utils';
 import {
   buildXaiSessionConfig,
   parseXaiRealtimeServerEvent,
@@ -95,7 +98,7 @@ export class XaiRealtimeModel implements RealtimeModelV4 {
     const base = `${protocol}//${url.host}${url.pathname.replace(/\/$/, '')}`;
     return {
       url: `${base}/realtime?model=${encodeURIComponent(this.modelId)}`,
-      headers: definedHeaders(this.config.headers()),
+      headers: removeUndefinedEntries(this.config.headers()),
     };
   }
 
@@ -112,17 +115,4 @@ export class XaiRealtimeModel implements RealtimeModelV4 {
   ): Record<string, unknown> {
     return buildXaiSessionConfig(config);
   }
-}
-
-/** Drop headers with `undefined` values so the result is a `Record<string, string>`. */
-function definedHeaders(
-  headers: Record<string, string | undefined>,
-): Record<string, string> {
-  const result: Record<string, string> = {};
-  for (const [key, value] of Object.entries(headers)) {
-    if (value != null) {
-      result[key] = value;
-    }
-  }
-  return result;
 }

@@ -7,7 +7,10 @@ import type {
   Experimental_RealtimeModelV4ServerEvent as RealtimeModelV4ServerEvent,
   Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
 } from '@ai-sdk/provider';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
+import {
+  type FetchFunction,
+  removeUndefinedEntries,
+} from '@ai-sdk/provider-utils';
 import {
   GoogleRealtimeEventMapper,
   buildGoogleSessionConfig,
@@ -54,19 +57,6 @@ function getServerWebSocketURL(baseURL: string): string {
   url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
   url.pathname = `${url.pathname.replace(/\/$/, '')}/ws/${realtimeServerWebSocketPath}`;
   return url.toString();
-}
-
-/** Drop headers with `undefined` values so the result is a `Record<string, string>`. */
-function definedHeaders(
-  headers: Record<string, string | undefined>,
-): Record<string, string> {
-  const result: Record<string, string> = {};
-  for (const [key, value] of Object.entries(headers)) {
-    if (value != null) {
-      result[key] = value;
-    }
-  }
-  return result;
 }
 
 export type GoogleRealtimeModelConfig = {
@@ -175,7 +165,7 @@ export class GoogleRealtimeModel implements RealtimeModelV4 {
     // the conversational endpoint.
     return {
       url: getServerWebSocketURL(this.config.baseURL),
-      headers: definedHeaders(this.config.headers()),
+      headers: removeUndefinedEntries(this.config.headers()),
     };
   }
 
