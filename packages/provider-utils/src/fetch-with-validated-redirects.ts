@@ -1,3 +1,4 @@
+import { cancelResponseBody } from './cancel-response-body';
 import { DownloadError } from './download-error';
 import { isBrowserRuntime } from './is-browser-runtime';
 import { validateDownloadUrl } from './validate-download-url';
@@ -68,6 +69,10 @@ export async function fetchWithValidatedRedirects({
 
     const location = response.headers.get('location');
     if (response.status >= 300 && response.status < 400 && location) {
+      // Release the redirect response's connection before moving to the next
+      // hop. Whether that hop is followed or rejected by the SSRF guard, an
+      // unconsumed 3xx body would leak the underlying socket.
+      await cancelResponseBody(response);
       currentUrl = new URL(location, currentUrl).toString();
       continue;
     }
