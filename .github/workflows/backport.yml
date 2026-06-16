@@ -22,15 +22,16 @@ on:
 concurrency: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.event.inputs.pull_request_number || github.sha }}
 
 permissions:
-  contents: write
-  issues: write
-  pull-requests: write
+  contents: read
 
 jobs:
   resolve-pr:
     name: Resolve backport PR
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
     if: github.repository_owner == 'vercel'
     outputs:
       should-backport: ${{ steps.resolve.outputs.should-backport }}
@@ -322,6 +323,10 @@ jobs:
     concurrency:
       group: backport-${{ needs.resolve-pr.outputs.pr-number }}-${{ needs.find-branch.outputs.release-branch }}
       cancel-in-progress: false
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
 
     steps:
       - name: Configure Git
