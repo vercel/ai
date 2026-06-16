@@ -1913,10 +1913,10 @@ importers:
         version: link:../provider
       '@hono/node-server':
         specifier: ^1.13.7
-        version: 1.19.9(hono@4.12.3)
+        version: 1.19.9(hono@4.12.25)
       hono:
-        specifier: ^4.6.14
-        version: 4.12.3
+        specifier: ^4.12.25
+        version: 4.12.25
     devDependencies:
       '@radix-ui/react-collapsible':
         specifier: ^1.1.12
@@ -13989,6 +13989,10 @@ packages:
     resolution: {integrity: sha512-Eaw2YTGM6WOxA6CXbckaEvslr2Ne4NFsKrvc0v97JD5awbmeBLO5w9Ho9L9kmKonrwF9RJlW6BxT1PVv/agBHQ==}
     engines: {node: '>=16.9.0'}
 
+  hono@4.12.25:
+    resolution: {integrity: sha512-2NFaIyNVgJmBs/ecmtGzlmluTFs5cHEWGTdu0t1HBwYzoGXOL5nUQBRMXsXWla5i4KkG//QMzVP88m1+I3fdAQ==}
+    engines: {node: '>=16.9.0'}
+
   hono@4.12.3:
     resolution: {integrity: sha512-SFsVSjp8sj5UumXOOFlkZOG6XS9SJDKw0TbwFeV+AJ8xlST8kxK5Z/5EYa111UY8732lK2S/xB653ceuaoGwpg==}
     engines: {node: '>=16.9.0'}
@@ -23891,6 +23895,10 @@ snapshots:
     dependencies:
       hono: 4.11.9
 
+  '@hono/node-server@1.19.9(hono@4.12.25)':
+    dependencies:
+      hono: 4.12.25
+
   '@hono/node-server@1.19.9(hono@4.12.3)':
     dependencies:
       hono: 4.12.3
@@ -33699,6 +33707,8 @@ snapshots:
   headers-polyfill@4.0.3: {}
 
   hono@4.11.9: {}
+
+  hono@4.12.25: {}
 
   hono@4.12.3: {}
 
