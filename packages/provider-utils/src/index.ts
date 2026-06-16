@@ -34,6 +34,7 @@ export {
   type ProviderDefinedToolFactory,
   type ProviderDefinedToolFactoryWithOutputSchema,
 } from './provider-defined-tool-factory';
+export { cancelResponseBody } from './cancel-response-body';
 export * from './remove-undefined-entries';
 export * from './resolve';
 export * from './response-handler';
