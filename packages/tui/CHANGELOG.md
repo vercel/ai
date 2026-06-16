@@ -1,5 +1,11 @@
 # @ai-sdk/tui
 
+## 1.0.0-beta.14
+
+### Patch Changes
+
+- ai@7.0.0-beta.179
+
 ## 1.0.0-beta.13
 
 ### Patch Changes
