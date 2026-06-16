@@ -116,6 +116,7 @@ describe('ProdiaVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         image: undefined,
         providerOptions: {},
       });
@@ -163,6 +164,7 @@ describe('ProdiaVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         image: undefined,
         providerOptions: {
           prodia: {
@@ -191,6 +193,7 @@ describe('ProdiaVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         image: undefined,
         providerOptions: {},
       });
@@ -212,6 +215,7 @@ describe('ProdiaVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         image: undefined,
         providerOptions: {},
       });
@@ -232,6 +236,7 @@ describe('ProdiaVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         image: undefined,
         providerOptions: {},
       });
@@ -257,6 +262,7 @@ describe('ProdiaVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         image: undefined,
         providerOptions: {},
         headers: {
@@ -282,6 +288,7 @@ describe('ProdiaVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         image: undefined,
         providerOptions: {},
       });
@@ -306,6 +313,7 @@ describe('ProdiaVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         image: undefined,
         providerOptions: {},
       });
@@ -337,6 +345,7 @@ describe('ProdiaVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         image: undefined,
         providerOptions: {},
       });
@@ -369,6 +378,7 @@ describe('ProdiaVideoModel', () => {
           duration: undefined,
           fps: undefined,
           seed: undefined,
+          generateAudio: undefined,
           image: undefined,
           providerOptions: {},
         }),

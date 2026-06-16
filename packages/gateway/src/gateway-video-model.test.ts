@@ -111,6 +111,7 @@ describe('GatewayVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         providerOptions: {},
       });
 
@@ -137,6 +138,7 @@ describe('GatewayVideoModel', () => {
         duration: 5,
         fps: 24,
         seed: 42,
+        generateAudio: true,
         providerOptions: {
           fal: { motionStrength: 0.8 },
         },
@@ -151,6 +153,7 @@ describe('GatewayVideoModel', () => {
         duration: 5,
         fps: 24,
         seed: 42,
+        generateAudio: true,
         providerOptions: { fal: { motionStrength: 0.8 } },
       });
     });
@@ -168,6 +171,7 @@ describe('GatewayVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         providerOptions: {},
       });
 
@@ -182,6 +186,7 @@ describe('GatewayVideoModel', () => {
       expect(requestBody).not.toHaveProperty('duration');
       expect(requestBody).not.toHaveProperty('fps');
       expect(requestBody).not.toHaveProperty('seed');
+      expect(requestBody).not.toHaveProperty('generateAudio');
     });
 
     it('should return videos array correctly', async () => {
@@ -200,6 +205,7 @@ describe('GatewayVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         providerOptions: {},
       });
 
@@ -225,6 +231,7 @@ describe('GatewayVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         providerOptions: {},
       });
 
@@ -256,6 +263,7 @@ describe('GatewayVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         providerOptions: {},
       });
 
@@ -282,6 +290,7 @@ describe('GatewayVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         providerOptions: {},
       });
 
@@ -308,6 +317,7 @@ describe('GatewayVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         providerOptions: {},
       });
 
@@ -328,6 +338,7 @@ describe('GatewayVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         providerOptions: {},
       });
 
@@ -353,6 +364,7 @@ describe('GatewayVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         providerOptions: {},
       });
 
@@ -383,6 +395,7 @@ describe('GatewayVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         providerOptions: {},
       });
 
@@ -412,6 +425,7 @@ describe('GatewayVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         providerOptions: {},
       });
 
@@ -432,6 +446,7 @@ describe('GatewayVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         providerOptions: {},
       });
 
@@ -452,6 +467,7 @@ describe('GatewayVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         providerOptions: {},
       });
 
@@ -504,6 +520,7 @@ describe('GatewayVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         providerOptions: {},
       });
 
@@ -689,6 +706,7 @@ describe('GatewayVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         providerOptions: {},
       });
 
@@ -707,6 +725,7 @@ describe('GatewayVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         providerOptions: {
           fal: {
             motionStrength: 0.8,
@@ -746,6 +765,7 @@ describe('GatewayVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         providerOptions: {},
       });
 
@@ -778,6 +798,7 @@ describe('GatewayVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         providerOptions: {},
       });
 
@@ -819,6 +840,7 @@ describe('GatewayVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         providerOptions: {},
       });
 
