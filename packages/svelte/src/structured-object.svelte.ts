@@ -18,7 +18,6 @@ import {
   KeyedStructuredObjectStore,
   type StructuredObjectStore,
 } from './structured-object-context.svelte.js';
-
 export type Experimental_StructuredObjectOptions<
   SCHEMA extends FlexibleSchema,
   RESULT = InferSchema<SCHEMA>,

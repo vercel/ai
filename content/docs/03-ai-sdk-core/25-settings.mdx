@@ -9,12 +9,13 @@ Large language models (LLMs) typically provide settings to augment their output.
 
 All AI SDK functions support the following common settings in addition to the model, the [prompt](./prompts), and additional provider-specific settings:
 
-```ts highlight="3-5"
+```ts highlight="3-6"
 const result = await generateText({
   model: __MODEL__,
   maxOutputTokens: 512,
   temperature: 0.3,
   maxRetries: 5,
+  timeout: 10000,
   prompt: 'Invent a new holiday and describe its traditions.',
 });
 ```
@@ -25,6 +26,10 @@ const result = await generateText({
   the `warnings` property in the result object to see if any warnings were
   generated.
 </Note>
+
+## Language Model Call Options
+
+Language model call options (`LanguageModelCallOptions`) are settings that influence how the language model generates its response — token limits, sampling behavior, penalties, stop sequences, seed, and reasoning. They are forwarded to the underlying model.
 
 ### `maxOutputTokens`
 
@@ -102,6 +107,10 @@ If you also set reasoning-related options in `providerOptions` (e.g. `openai.rea
 
 See the [reasoning guide](/docs/ai-sdk-core/reasoning) for details on per-provider mapping and migration from `providerOptions`.
 
+## Request Options
+
+Request options (`RequestOptions`) are settings that affect transport, retries, cancellation, and timeouts — not model generation behavior. They control how the SDK communicates with the provider's API.
+
 ### `maxRetries`
 
 Maximum number of retries. Set to 0 to disable retries. Default: `2`.
@@ -129,11 +138,13 @@ An optional timeout in milliseconds. The call will be aborted if it takes longer
 
 This is a convenience parameter that creates an abort signal internally. It can be used alongside `abortSignal` - if both are provided, the call will abort when either condition is met.
 
-You can specify the timeout either as a number (milliseconds) or as an object with `totalMs`, `stepMs`, and/or `chunkMs` properties:
+You can specify the timeout either as a number (milliseconds) or as an object with the following properties:
 
 - `totalMs`: The total timeout for the entire call including all steps.
 - `stepMs`: The timeout for each individual step (LLM call). This is useful for multi-step generations where you want to limit the time spent on each step independently.
 - `chunkMs`: The timeout between stream chunks (streaming only). The call will abort if no new chunk is received within this duration. This is useful for detecting stalled streams.
+- `toolMs`: The default timeout for all tool executions. If a tool takes longer, it aborts and returns a tool-error so the model can respond or retry.
+- `tools`: Per-tool timeout overrides using `{toolName}Ms` keys (e.g. `weatherMs`, `slowApiMs`). Takes precedence over `toolMs`. Tool names are type-checked for autocomplete.
 
 #### Example: 5 second timeout (number format)
 
@@ -185,6 +196,36 @@ const result = streamText({
   model: __MODEL__,
   prompt: 'Invent a new holiday and describe its traditions.',
   timeout: { chunkMs: 5000 }, // abort if no chunk received for 5 seconds
+});
+```
+
+#### Example: Tool execution timeout
+
+```ts
+const result = await generateText({
+  model: __MODEL__,
+  tools: { weather: weatherTool, slowApi: slowApiTool },
+  timeout: {
+    toolMs: 5000, // 5 seconds default for all tools
+  },
+  prompt: 'What is the weather in San Francisco?',
+});
+```
+
+#### Example: Per-tool timeout overrides
+
+```ts
+const result = await generateText({
+  model: __MODEL__,
+  tools: { weather: weatherTool, slowApi: slowApiTool },
+  timeout: {
+    toolMs: 5000, // default for all tools
+    tools: {
+      weatherMs: 3000, // 3 seconds for weather tool
+      slowApiMs: 10000, // 10 seconds for slow API tool
+    },
+  },
+  prompt: 'What is the weather in San Francisco?',
 });
 ```
 

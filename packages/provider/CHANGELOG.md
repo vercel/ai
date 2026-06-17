@@ -1,5 +1,104 @@
 # @ai-sdk/provider
 
+## 4.0.0-beta.19
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+
+## 4.0.0-canary.18
+
+### Patch Changes
+
+- ce769dd: feat(provider): add experimental Realtime API support for voice conversations
+
+  Adds first-class support for realtime (speech-to-speech) APIs:
+
+  - `Experimental_RealtimeModelV4` spec in `@ai-sdk/provider` with normalized event types and factory
+  - OpenAI, Google, and xAI realtime provider implementations
+  - `openai.experimental_realtime()` / `google.experimental_realtime()` / `xai.experimental_realtime()` work in both server and browser
+  - `.getToken()` static method on each provider for server-side ephemeral token creation
+  - `experimental_getRealtimeToolDefinitions` helper for provider session tool definitions
+  - `experimental_useRealtime` hook in `@ai-sdk/react` returning `UIMessage[]` (aligned with `useChat`), with `onToolCall` and `addToolOutput` for client-driven tool execution
+  - `inputAudioTranscription` session config for showing transcribed user audio messages when supported by the provider
+
+## 4.0.0-canary.17
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+
+## 4.0.0-canary.16
+
+### Major Changes
+
+- 5463d0d: feat(provider): align tool result output content file part types with top-level message file part types
+
+## 4.0.0-canary.15
+
+### Patch Changes
+
+- 0c4c275: trigger initial canary release
+
+## 4.0.0-beta.14
+
+### Major Changes
+
+- 9bd6512: feat(provider): change file part data property to be tagged with a type and remove the image part type
+
+### Patch Changes
+
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+
+## 4.0.0-beta.13
+
+### Patch Changes
+
+- 9f0e36c: trigger release for all packages after provenance setup
+
+## 4.0.0-beta.12
+
+### Patch Changes
+
+- ff5eba1: feat: roll `image-*` tool output types into their equivalent `file-*` types
+
+## 4.0.0-beta.11
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+
+## 4.0.0-beta.10
+
+### Patch Changes
+
+- 176466a: chore(provider): align V4 model return types to have their own definitions across all model interfaces
+
+## 4.0.0-beta.9
+
+### Patch Changes
+
+- e311194: feat(ai): allow passing provider instance to `uploadFile` and `uploadSkill` as shorthand
+
+## 4.0.0-beta.8
+
+### Patch Changes
+
+- 34bd95d: feat(ai): add support for uploading provider skills using the provider references abstraction
+- 008271d: feat(openai-compatible): emit warning when using kebab-case instead of camelCase
+
+## 4.0.0-beta.7
+
+### Patch Changes
+
+- 6fd51c0: fix(provider): preserve error type prefix in getErrorMessage
+
+## 4.0.0-beta.6
+
+### Patch Changes
+
+- c29a26f: feat(provider): add support for provider references and uploading files as supported per provider
+
 ## 4.0.0-beta.5
 
 ### Patch Changes

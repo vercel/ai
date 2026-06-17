@@ -1,4 +1,8 @@
-import { SpeechModelV2, SpeechModelV3, SpeechModelV4 } from '@ai-sdk/provider';
+import type {
+  SpeechModelV2,
+  SpeechModelV3,
+  SpeechModelV4,
+} from '@ai-sdk/provider';
 
 /**
  * Speech model that is used by the AI SDK.

@@ -3,6 +3,8 @@
 The **[Deepgram provider](https://ai-sdk.dev/providers/ai-sdk-providers/deepgram)** for the [AI SDK](https://ai-sdk.dev/docs)
 contains transcription model support for the Deepgram transcription API and speech model support for the Deepgram text-to-speech API.
 
+> **Deploying to Vercel?** With Vercel's AI Gateway you can access Deepgram (and hundreds of models from other providers) — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
+
 ## Setup
 
 The Deepgram provider is available in the `@ai-sdk/deepgram` module. You can install it with
@@ -33,7 +35,7 @@ import { deepgram } from '@ai-sdk/deepgram';
 
 ```ts
 import { deepgram } from '@ai-sdk/deepgram';
-import { experimental_transcribe as transcribe } from 'ai';
+import { transcribe } from 'ai';
 
 const { text } = await transcribe({
   model: deepgram.transcription('nova-3'),
@@ -47,7 +49,7 @@ const { text } = await transcribe({
 
 ```ts
 import { deepgram } from '@ai-sdk/deepgram';
-import { experimental_transcribe as transcribe } from 'ai';
+import { transcribe } from 'ai';
 
 const { text, language } = await transcribe({
   model: deepgram.transcription('nova-3'),
@@ -66,7 +68,7 @@ const { text, language } = await transcribe({
 
 ```ts
 import { deepgram } from '@ai-sdk/deepgram';
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 
 const { audio } = await generateSpeech({
   model: deepgram.speech('aura-2-helena-en'),

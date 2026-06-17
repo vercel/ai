@@ -219,7 +219,7 @@ const model = fal.transcription('wizper');
 You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the `batchSize` option will increase the number of audio chunks processed in parallel.
 
 ```ts highlight="6"
-import { experimental_transcribe as transcribe } from 'ai';
+import { transcribe } from 'ai';
 import { fal, type FalTranscriptionModelOptions } from '@ai-sdk/fal';
 import { readFile } from 'fs/promises';
 
@@ -277,7 +277,7 @@ You can create models that call Fal text-to-speech endpoints using the `.speech(
 ### Basic Usage
 
 ```ts
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 import { fal } from '@ai-sdk/fal';
 
 const result = await generateSpeech({
@@ -303,7 +303,6 @@ const result = await generateSpeech({
 Pass provider-specific options via `providerOptions.fal` depending on the model:
 
 - **voice_setting** _object_
-
   - `voice_id` (string): predefined voice ID
   - `speed` (number): 0.5–2.0
   - `vol` (number): 0–10

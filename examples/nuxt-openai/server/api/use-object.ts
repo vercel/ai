@@ -1,5 +1,5 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { Output, streamText } from 'ai';
+import { createTextStreamResponse, Output, streamText, toTextStream } from 'ai';
 import { notificationSchema } from '~/shared/notification-schema';
 
 export default defineLazyEventHandler(async () => {
@@ -16,6 +16,8 @@ export default defineLazyEventHandler(async () => {
       output: Output.object({ schema: notificationSchema }),
     });
 
-    return result.toTextStreamResponse();
+    return createTextStreamResponse({
+      stream: toTextStream({ stream: result.stream }),
+    });
   });
 });

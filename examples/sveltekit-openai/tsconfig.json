@@ -27,9 +27,6 @@
     },
     {
       "path": "../../packages/svelte"
-    },
-    {
-      "path": "../../packages/ai"
     }
   ]
 }

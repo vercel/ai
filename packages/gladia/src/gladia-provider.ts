@@ -1,12 +1,12 @@
 import {
-  TranscriptionModelV4,
-  ProviderV4,
   NoSuchModelError,
+  type TranscriptionModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   loadApiKey,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { GladiaTranscriptionModel } from './gladia-transcription-model';
 import { VERSION } from './version';

@@ -1,19 +1,19 @@
 import {
   createIdGenerator,
-  ProviderOptions,
   withUserAgentSuffix,
+  type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveEmbeddingModel } from '../model/resolve-model';
-import { getGlobalTelemetryIntegration } from '../telemetry/get-global-telemetry-integration';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { EmbeddingModel } from '../types';
+import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
+import type { TelemetryOptions } from '../telemetry/telemetry-options';
+import type { EmbeddingModel } from '../types';
+import type { Callback } from '../util/callback';
 import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
-import type { EmbedOnFinishEvent, EmbedOnStartEvent } from './embed-events';
-import { EmbedResult } from './embed-result';
 import { VERSION } from '../version';
-import type { Listener } from '../util/notify';
+import type { EmbedEndEvent, EmbedStartEvent } from './embed-events';
+import type { EmbedResult } from './embed-result';
 
 const originalGenerateCallId = createIdGenerator({
   prefix: 'call',
@@ -30,7 +30,7 @@ const originalGenerateCallId = createIdGenerator({
  * @param abortSignal - An optional abort signal that can be used to cancel the call.
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  *
- * @param experimental_telemetry - Optional telemetry configuration (experimental).
+ * @param telemetry - Optional telemetry configuration.
  *
  * @param providerOptions - Additional provider-specific options. They are passed through
  * to the provider from the AI SDK and enable provider-specific
@@ -45,9 +45,12 @@ export async function embed({
   maxRetries: maxRetriesArg,
   abortSignal,
   headers,
-  experimental_telemetry: telemetry,
-  experimental_onStart: onStart,
-  experimental_onFinish: onFinish,
+  experimental_telemetry,
+  telemetry = experimental_telemetry,
+  onStart,
+  experimental_onStart,
+  onEnd,
+  experimental_onEnd,
   _internal: { generateCallId = originalGenerateCallId } = {},
 }: {
   /**
@@ -86,21 +89,44 @@ export async function embed({
   providerOptions?: ProviderOptions;
 
   /**
-   * Optional telemetry configuration (experimental).
+   * Optional telemetry configuration.
    */
-  experimental_telemetry?: TelemetrySettings;
+  telemetry?: TelemetryOptions;
+
+  /**
+   * Optional telemetry configuration.
+   *
+   * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
+   */
+  experimental_telemetry?: TelemetryOptions;
 
   /**
    * Callback that is called when the embed operation begins,
    * before the embedding model is called.
    */
-  experimental_onStart?: Listener<EmbedOnStartEvent>;
+  onStart?: Callback<EmbedStartEvent>;
+
+  /**
+   * Callback that is called when the embed operation begins,
+   * before the embedding model is called.
+   *
+   * @deprecated Use `onStart` instead.
+   */
+  experimental_onStart?: Callback<EmbedStartEvent>;
 
   /**
    * Callback that is called when the embed operation completes,
    * after the embedding model returns.
    */
-  experimental_onFinish?: Listener<EmbedOnFinishEvent>;
+  onEnd?: Callback<EmbedEndEvent>;
+
+  /**
+   * Callback that is called when the embed operation completes,
+   * after the embedding model returns.
+   *
+   * @deprecated Use `onEnd` instead.
+   */
+  experimental_onEnd?: Callback<EmbedEndEvent>;
 
   /**
    * Internal. For test use only. May change without notice.
@@ -115,6 +141,8 @@ export async function embed({
     maxRetries: maxRetriesArg,
     abortSignal,
   });
+  const resolvedOnStart = onStart ?? experimental_onStart;
+  const resolvedOnEnd = onEnd ?? experimental_onEnd;
 
   const headersWithUserAgent = withUserAgentSuffix(
     headers ?? {},
@@ -123,121 +151,121 @@ export async function embed({
 
   const callId = generateCallId();
 
-  const createGlobalTelemetry = getGlobalTelemetryIntegration();
-  const globalTelemetry = createGlobalTelemetry({
-    integrations: telemetry?.integrations,
+  const telemetryDispatcher = createTelemetryDispatcher({
+    telemetry,
   });
 
-  await notify({
-    event: {
-      callId,
-      operationId: 'ai.embed',
-      provider: model.provider,
-      modelId: model.modelId,
-      value,
-      maxRetries,
-      abortSignal,
-      headers: headersWithUserAgent,
-      providerOptions,
-      isEnabled: telemetry?.isEnabled,
-      recordInputs: telemetry?.recordInputs,
-      recordOutputs: telemetry?.recordOutputs,
-      functionId: telemetry?.functionId,
-      metadata: telemetry?.metadata,
-    },
-    callbacks: [onStart, globalTelemetry.onStart],
-  });
+  const runInTracingChannelSpan =
+    telemetryDispatcher.runInTracingChannelSpan ??
+    (async <T>({ execute }: { execute: () => PromiseLike<T> }) =>
+      await execute());
 
-  try {
-    const { embedding, usage, warnings, response, providerMetadata } =
-      await retry(async () => {
-        const embedCallId = generateCallId();
+  const startEvent = {
+    callId,
+    operationId: 'ai.embed',
+    provider: model.provider,
+    modelId: model.modelId,
+    value,
+    maxRetries,
+    headers: headersWithUserAgent,
+    providerOptions,
+  };
 
-        await notify({
-          event: {
-            callId,
-            embedCallId,
-            operationId: 'ai.embed.doEmbed',
-            provider: model.provider,
-            modelId: model.modelId,
-            values: [value],
-            isEnabled: telemetry?.isEnabled,
-            recordInputs: telemetry?.recordInputs,
-            recordOutputs: telemetry?.recordOutputs,
-            functionId: telemetry?.functionId,
-            metadata: telemetry?.metadata,
-          },
-          callbacks: [globalTelemetry.onEmbedStart],
-        });
-
-        const modelResponse = await model.doEmbed({
-          values: [value],
-          abortSignal,
-          headers: headersWithUserAgent,
-          providerOptions,
-        });
-
-        const embedding = modelResponse.embeddings[0];
-        const usage = modelResponse.usage ?? { tokens: NaN };
-
-        await notify({
-          event: {
-            callId,
-            embedCallId,
-            operationId: 'ai.embed.doEmbed',
-            provider: model.provider,
-            modelId: model.modelId,
-            values: [value],
-            embeddings: modelResponse.embeddings,
-            usage,
-          },
-          callbacks: [globalTelemetry.onEmbedFinish],
-        });
-
-        return {
-          embedding,
-          usage,
-          warnings: modelResponse.warnings,
-          providerMetadata: modelResponse.providerMetadata,
-          response: modelResponse.response,
-        };
+  return await runInTracingChannelSpan({
+    type: 'embed',
+    event: startEvent,
+    execute: async () => {
+      await notify({
+        event: startEvent,
+        callbacks: [resolvedOnStart, telemetryDispatcher.onStart],
       });
 
-    logWarnings({ warnings, provider: model.provider, model: model.modelId });
+      try {
+        const { embedding, usage, warnings, response, providerMetadata } =
+          await retry(async () => {
+            const embedCallId = generateCallId();
 
-    await notify({
-      event: {
-        callId,
-        operationId: 'ai.embed',
-        provider: model.provider,
-        modelId: model.modelId,
-        value,
-        embedding,
-        usage,
-        warnings,
-        providerMetadata,
-        response,
-        isEnabled: telemetry?.isEnabled,
-        recordInputs: telemetry?.recordInputs,
-        recordOutputs: telemetry?.recordOutputs,
-        functionId: telemetry?.functionId,
-        metadata: telemetry?.metadata,
-      },
-      callbacks: [onFinish, globalTelemetry.onFinish],
-    });
+            await notify({
+              event: {
+                callId,
+                embedCallId,
+                operationId: 'ai.embed.doEmbed',
+                provider: model.provider,
+                modelId: model.modelId,
+                values: [value],
+              },
+              callbacks: [telemetryDispatcher.onEmbedStart],
+            });
 
-    return new DefaultEmbedResult({
-      value,
-      embedding,
-      usage,
-      warnings,
-      providerMetadata,
-      response,
-    });
-  } catch (error) {
-    await globalTelemetry.onError?.({ callId, error });
-    throw error;
-  }
+            const modelResponse = await model.doEmbed({
+              values: [value],
+              abortSignal,
+              headers: headersWithUserAgent,
+              providerOptions,
+            });
+
+            const embedding = modelResponse.embeddings[0];
+            const usage = modelResponse.usage ?? { tokens: NaN };
+
+            await notify({
+              event: {
+                callId,
+                embedCallId,
+                operationId: 'ai.embed.doEmbed',
+                provider: model.provider,
+                modelId: model.modelId,
+                values: [value],
+                embeddings: modelResponse.embeddings,
+                usage,
+              },
+              callbacks: [telemetryDispatcher.onEmbedEnd],
+            });
+
+            return {
+              embedding,
+              usage,
+              warnings: modelResponse.warnings ?? [],
+              providerMetadata: modelResponse.providerMetadata,
+              response: modelResponse.response,
+            };
+          });
+
+        logWarnings({
+          warnings,
+          provider: model.provider,
+          model: model.modelId,
+        });
+
+        await notify({
+          event: {
+            callId,
+            operationId: 'ai.embed',
+            provider: model.provider,
+            modelId: model.modelId,
+            value,
+            embedding,
+            usage,
+            warnings,
+            providerMetadata,
+            response,
+          },
+          callbacks: [resolvedOnEnd, telemetryDispatcher.onEnd],
+        });
+
+        return new DefaultEmbedResult({
+          value,
+          embedding,
+          usage,
+          warnings,
+          providerMetadata,
+          response,
+        });
+      } catch (error) {
+        await telemetryDispatcher.onError?.({ callId, error });
+        throw error;
+      }
+    },
+  });
 }
 
 class DefaultEmbedResult implements EmbedResult {

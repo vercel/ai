@@ -1,5 +1,5 @@
 import {
-  createProviderToolFactoryWithOutputSchema,
+  createProviderExecutedToolFactory,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -41,7 +41,7 @@ const mcpServerOutputSchema = lazySchema(() =>
   ),
 );
 
-const mcpServerToolFactory = createProviderToolFactoryWithOutputSchema<
+const mcpServerToolFactory = createProviderExecutedToolFactory<
   {},
   {
     name: string;

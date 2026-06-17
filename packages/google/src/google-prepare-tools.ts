@@ -1,19 +1,21 @@
 import {
-  LanguageModelV4CallOptions,
-  SharedV4Warning,
   UnsupportedFunctionalityError,
+  type LanguageModelV4CallOptions,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
-import { GoogleGenerativeAIModelId } from './google-generative-ai-options';
+import type { GoogleModelId } from './google-language-model-options';
 
 export function prepareTools({
   tools,
   toolChoice,
   modelId,
+  isVertexProvider = false,
 }: {
   tools: LanguageModelV4CallOptions['tools'];
   toolChoice?: LanguageModelV4CallOptions['toolChoice'];
-  modelId: GoogleGenerativeAIModelId;
+  modelId: GoogleModelId;
+  isVertexProvider?: boolean;
 }): {
   tools:
     | Array<
@@ -30,10 +32,12 @@ export function prepareTools({
   toolConfig:
     | undefined
     | {
-        functionCallingConfig: {
+        functionCallingConfig?: {
           mode: 'AUTO' | 'NONE' | 'ANY' | 'VALIDATED';
           allowedFunctionNames?: string[];
+          streamFunctionCallArguments?: boolean;
         };
+        includeServerSideToolInvocations?: boolean;
       };
   toolWarnings: SharedV4Warning[];
 } {
@@ -47,13 +51,14 @@ export function prepareTools({
       'gemini-flash-latest',
       'gemini-flash-lite-latest',
       'gemini-pro-latest',
-    ] as const satisfies GoogleGenerativeAIModelId[]
+    ] as const satisfies GoogleModelId[]
   ).some(id => id === modelId);
   const isGemini2orNewer =
     modelId.includes('gemini-2') ||
     modelId.includes('gemini-3') ||
     modelId.includes('nano-banana') ||
     isLatest;
+  const isGemini3orNewer = modelId.includes('gemini-3');
   const supportsFileSearch =
     modelId.includes('gemini-2.5') || modelId.includes('gemini-3');
 
@@ -65,7 +70,7 @@ export function prepareTools({
   const hasFunctionTools = tools.some(tool => tool.type === 'function');
   const hasProviderTools = tools.some(tool => tool.type === 'provider');
 
-  if (hasFunctionTools && hasProviderTools) {
+  if (hasFunctionTools && hasProviderTools && !isGemini3orNewer) {
     toolWarnings.push({
       type: 'unsupported',
       feature: `combination of function and provider-defined tools`,
@@ -120,7 +125,7 @@ export function prepareTools({
               type: 'unsupported',
               feature: `provider-defined tool ${tool.id}`,
               details:
-                'The code execution tools is not supported with other Gemini models than Gemini 2.',
+                'The code execution tool is not supported with other Gemini models than Gemini 2.',
             });
           }
           break;
@@ -177,6 +182,61 @@ export function prepareTools({
           break;
       }
     });
+
+    if (hasFunctionTools && isGemini3orNewer && googleTools.length > 0) {
+      const functionDeclarations: Array<{
+        name: string;
+        description: string;
+        parameters: unknown;
+      }> = [];
+      for (const tool of tools) {
+        if (tool.type === 'function') {
+          functionDeclarations.push({
+            name: tool.name,
+            description: tool.description ?? '',
+            parameters: convertJSONSchemaToOpenAPISchema(tool.inputSchema),
+          });
+        }
+      }
+
+      const combinedToolConfig: {
+        functionCallingConfig: {
+          mode: 'VALIDATED' | 'ANY' | 'NONE';
+          allowedFunctionNames?: string[];
+        };
+        includeServerSideToolInvocations?: true;
+      } = {
+        functionCallingConfig: { mode: 'VALIDATED' },
+        ...(!isVertexProvider && {
+          includeServerSideToolInvocations: true,
+        }),
+      };
+
+      if (toolChoice != null) {
+        switch (toolChoice.type) {
+          case 'auto':
+            break;
+          case 'none':
+            combinedToolConfig.functionCallingConfig = { mode: 'NONE' };
+            break;
+          case 'required':
+            combinedToolConfig.functionCallingConfig = { mode: 'ANY' };
+            break;
+          case 'tool':
+            combinedToolConfig.functionCallingConfig = {
+              mode: 'ANY',
+              allowedFunctionNames: [toolChoice.toolName],
+            };
+            break;
+        }
+      }
+
+      return {
+        tools: [...googleTools, { functionDeclarations }],
+        toolConfig: combinedToolConfig,
+        toolWarnings,
+      };
+    }
 
     return {
       tools: googleTools.length > 0 ? googleTools : undefined,

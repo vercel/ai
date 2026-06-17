@@ -1,10 +1,10 @@
 import { rollDieToolWithProgrammaticCalling } from '@/tool/roll-die-tool-with-programmatic-calling';
 import {
   anthropic,
-  type AnthropicLanguageModelOptions,
   forwardAnthropicContainerIdFromLastStep,
+  type AnthropicLanguageModelOptions,
 } from '@ai-sdk/anthropic';
-import { InferAgentUIMessage, ToolLoopAgent } from 'ai';
+import { ToolLoopAgent, type InferAgentUIMessage } from 'ai';
 import { z } from 'zod';
 
 export const anthropicProgrammaticToolCallingAgent = new ToolLoopAgent({

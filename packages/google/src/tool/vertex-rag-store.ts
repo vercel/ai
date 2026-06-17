@@ -1,4 +1,8 @@
-import { createProviderToolFactory } from '@ai-sdk/provider-utils';
+import {
+  createProviderExecutedToolFactory,
+  lazySchema,
+  zodSchema,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 // https://cloud.google.com/vertex-ai/generative-ai/docs/rag-engine/use-vertexai-search#generate-content-using-gemini-api
@@ -9,7 +13,8 @@ import { z } from 'zod/v4';
  *
  * @note Only works with Vertex Gemini models.
  */
-export const vertexRagStore = createProviderToolFactory<
+export const vertexRagStore = createProviderExecutedToolFactory<
+  {},
   {},
   {
     /**
@@ -24,8 +29,6 @@ export const vertexRagStore = createProviderToolFactory<
   }
 >({
   id: 'google.vertex_rag_store',
-  inputSchema: z.object({
-    ragCorpus: z.string(),
-    topK: z.number().optional(),
-  }),
+  inputSchema: lazySchema(() => zodSchema(z.object({}))),
+  outputSchema: lazySchema(() => zodSchema(z.object({}))),
 });

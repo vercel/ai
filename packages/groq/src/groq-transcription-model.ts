@@ -1,4 +1,4 @@
-import { TranscriptionModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import type { TranscriptionModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
@@ -6,15 +6,18 @@ import {
   mediaTypeToExtension,
   parseProviderOptions,
   postFormDataToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { GroqConfig } from './groq-config';
+import type { GroqConfig } from './groq-config';
 import { groqFailedResponseHandler } from './groq-error';
 import {
-  GroqTranscriptionModelId,
   groqTranscriptionModelOptions,
-} from './groq-transcription-options';
-import { GroqTranscriptionAPITypes } from './groq-api-types';
+  type GroqTranscriptionModelId,
+} from './groq-transcription-model-options';
+import type { GroqTranscriptionAPITypes } from './groq-api-types';
 
 interface GroqTranscriptionModelConfig extends GroqConfig {
   _internal?: {
@@ -27,6 +30,20 @@ export class GroqTranscriptionModel implements TranscriptionModelV4 {
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: GroqTranscriptionModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: GroqTranscriptionModelId;
+    config: GroqTranscriptionModelConfig;
+  }) {
+    return new GroqTranscriptionModel(options.modelId, options.config);
   }
 
   constructor(
@@ -115,7 +132,7 @@ export class GroqTranscriptionModel implements TranscriptionModelV4 {
         path: '/audio/transcriptions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       formData,
       failedResponseHandler: groqFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(

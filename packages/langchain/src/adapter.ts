@@ -1,12 +1,12 @@
 import {
   SystemMessage,
-  BaseMessage,
-  AIMessageChunk,
+  type BaseMessage,
+  type AIMessageChunk,
 } from '@langchain/core/messages';
 import {
+  convertToModelMessages,
   type UIMessage,
   type UIMessageChunk,
-  convertToModelMessages,
   type ModelMessage,
 } from 'ai';
 import {
@@ -18,9 +18,11 @@ import {
   parseLangGraphEvent,
   isToolResultPart,
   extractReasoningFromContentBlocks,
+  extractCitationsFromContentBlocks,
+  emitSourceChunks,
 } from './utils';
-import { type LangGraphEventState } from './types';
-import { type StreamCallbacks } from './stream-callbacks';
+import type { LangGraphEventState } from './types';
+import type { StreamCallbacks } from './stream-callbacks';
 
 /**
  * Converts AI SDK UIMessages to LangChain BaseMessage objects.
@@ -132,6 +134,7 @@ function processStreamEventsEvent(
     textStarted: boolean;
     textMessageId: string | null;
     reasoningMessageId: string | null;
+    emittedSourceIds: Set<string>;
   },
   controller: ReadableStreamDefaultController<UIMessageChunk>,
 ): void {
@@ -150,8 +153,41 @@ function processStreamEventsEvent(
   switch (event.event) {
     case 'on_chat_model_start': {
       /**
-       * Handle model start - capture message metadata if available
-       * run_id is at event level in v2, but check data for backwards compatibility
+       * End the previous model turn's reasoning stream before a new LLM invocation.
+       * Without this, reasoning-delta chunks from the next turn could attach to the
+       * wrong reasoning part in the UI message stream.
+       */
+      if (state.reasoningStarted) {
+        controller.enqueue({
+          type: 'reasoning-end',
+          id:
+            state.reasoningMessageId != null
+              ? state.reasoningMessageId
+              : state.messageId,
+        });
+        state.reasoningStarted = false;
+        state.reasoningMessageId = null;
+      }
+
+      /**
+       * End the previous model turn's text stream before a new LLM invocation.
+       * The streamEvents adapter otherwise leaves `textStarted` true, so all later
+       * text-delta chunks append to the first text part — tools still grow the parts
+       * array, which breaks chronological order in the assistant message.
+       */
+      if (state.textStarted) {
+        controller.enqueue({
+          type: 'text-end',
+          id:
+            state.textMessageId != null ? state.textMessageId : state.messageId,
+        });
+        state.textStarted = false;
+        state.textMessageId = null;
+      }
+
+      /**
+       * Handle model start — capture message metadata if available.
+       * `run_id` is on the event in streamEvents v2; fall back to `data` for compatibility.
        */
       const runId = event.run_id || (event.data.run_id as string | undefined);
       if (runId) {
@@ -240,6 +276,16 @@ function processStreamEventsEvent(
             delta: text,
             id: state.textMessageId ?? state.messageId,
           });
+        }
+
+        const citations = extractCitationsFromContentBlocks(chunk);
+        if (citations.length > 0) {
+          emitSourceChunks(
+            citations,
+            state.messageId,
+            state.emittedSourceIds,
+            controller,
+          );
         }
       }
       break;
@@ -378,27 +424,24 @@ export function toUIMessageStream<TState = unknown>(
     textMessageId: null as string | null,
     /** Track the ID used for reasoning-start to ensure reasoning-end uses the same ID */
     reasoningMessageId: null as string | null,
+    emittedSourceIds: new Set<string>(),
   };
 
   /**
    * State for LangGraph stream handling
    */
   const langGraphState: LangGraphEventState = {
-    messageSeen: {} as Record<
-      string,
-      { text?: boolean; reasoning?: boolean; tool?: Record<string, boolean> }
-    >,
-    messageConcat: {} as Record<string, AIMessageChunk>,
+    messageSeen: new Map(),
+    messageConcat: new Map(),
     emittedToolCalls: new Set<string>(),
+    emittedToolInputs: new Set<string>(),
     emittedImages: new Set<string>(),
     emittedReasoningIds: new Set<string>(),
-    messageReasoningIds: {} as Record<string, string>,
-    toolCallInfoByIndex: {} as Record<
-      string,
-      Record<number, { id: string; name: string }>
-    >,
+    messageReasoningIds: new Map(),
+    toolCallInfoByIndex: new Map(),
     currentStep: null as number | null,
     emittedToolCallsByKey: new Map<string, string>(),
+    emittedSourceIds: new Set<string>(),
   };
 
   /**
@@ -535,6 +578,20 @@ export function toUIMessageStream<TState = unknown>(
           }
           controller.enqueue({ type: 'finish' });
         } else if (streamType === 'langgraph') {
+          /**
+           * Close any open text/reasoning parts before finishing.
+           * This handles streams without values events (e.g. streamMode: 'messages')
+           * where the values handler never ran to emit *-end events.
+           */
+          for (const [id, seen] of langGraphState.messageSeen) {
+            if (seen.text) {
+              controller.enqueue({ type: 'text-end', id });
+            }
+            if (seen.reasoning) {
+              controller.enqueue({ type: 'reasoning-end', id });
+            }
+          }
+
           /**
            * Emit finish-step if a step was started
            */

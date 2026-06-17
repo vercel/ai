@@ -1,5 +1,5 @@
-import { openai } from '@ai-sdk/openai';
-import { ChatAddToolApproveResponseFunction, UIToolInvocation } from 'ai';
+import type { openai } from '@ai-sdk/openai';
+import type { ChatAddToolApproveResponseFunction, UIToolInvocation } from 'ai';
 
 export default function LocalShellView({
   invocation,

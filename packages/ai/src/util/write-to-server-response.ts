@@ -1,4 +1,4 @@
-import { ServerResponse } from 'node:http';
+import type { ServerResponse } from 'node:http';
 
 /**
  * Writes the content of a stream to a server response.

@@ -1,4 +1,4 @@
-import { ReasoningUIPart } from 'ai';
+import type { ReasoningUIPart } from 'ai';
 import {
   Reasoning,
   ReasoningContent,

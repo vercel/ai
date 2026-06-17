@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV4,
   LanguageModelV4CallOptions,
   LanguageModelV4Content,
@@ -17,21 +17,26 @@ import {
   isCustomReasoning,
   jsonSchema,
   mapReasoningToProviderEffort,
-  ParseResult,
+  parseProviderOptions,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { convertToOpenResponsesInput } from './convert-to-open-responses-input';
 import {
-  FunctionToolParam,
-  OpenResponsesRequestBody,
-  OpenResponsesResponseBody,
-  OpenResponsesChunk,
   openResponsesErrorSchema,
-  ToolChoiceParam,
+  type FunctionToolParam,
+  type OpenResponsesRequestBody,
+  type OpenResponsesResponseBody,
+  type OpenResponsesChunk,
+  type ToolChoiceParam,
 } from './open-responses-api';
 import { mapOpenResponsesFinishReason } from './map-open-responses-finish-reason';
-import { OpenResponsesConfig } from './open-responses-config';
+import type { OpenResponsesConfig } from './open-responses-config';
+import { openResponsesLanguageModelOptions } from './open-responses-language-model-options';
 
 export class OpenResponsesLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
@@ -39,6 +44,20 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
   readonly modelId: string;
 
   private readonly config: OpenResponsesConfig;
+
+  static [WORKFLOW_SERIALIZE](model: OpenResponsesLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: OpenResponsesConfig;
+  }) {
+    return new OpenResponsesLanguageModel(options.modelId, options.config);
+  }
 
   constructor(modelId: string, config: OpenResponsesConfig) {
     this.modelId = modelId;
@@ -130,6 +149,12 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
           }
         : undefined;
 
+    const openResponsesOptions = await parseProviderOptions({
+      provider: this.config.providerOptionsName,
+      providerOptions,
+      schema: openResponsesLanguageModelOptions,
+    });
+
     const resolvedReasoningEffort = isCustomReasoning(reasoning)
       ? reasoning === 'none'
         ? 'none'
@@ -157,8 +182,16 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
         presence_penalty: presencePenalty,
         frequency_penalty: frequencyPenalty,
         reasoning:
-          resolvedReasoningEffort != null
-            ? { effort: resolvedReasoningEffort }
+          resolvedReasoningEffort != null ||
+          openResponsesOptions?.reasoningSummary != null
+            ? {
+                ...(resolvedReasoningEffort != null && {
+                  effort: resolvedReasoningEffort,
+                }),
+                ...(openResponsesOptions?.reasoningSummary != null && {
+                  summary: openResponsesOptions.reasoningSummary,
+                }),
+              }
             : undefined,
         tools: functionTools?.length ? functionTools : undefined,
         tool_choice: convertedToolChoice,
@@ -179,7 +212,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url: this.config.url,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: openResponsesErrorSchema,
@@ -284,7 +317,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.config.url,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: {
         ...body,
         stream: true,
@@ -293,7 +326,6 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
         errorSchema: openResponsesErrorSchema,
         errorToMessage: error => error.error.message,
       }),
-      // TODO consider validation
       successfulResponseHandler: createEventSourceResponseHandler(z.any()),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
@@ -347,10 +379,10 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       unified: 'other',
       raw: undefined,
     };
-    const toolCallsByItemId: Record<
+    const toolCallsByItemId = new Map<
       string,
       { toolName?: string; toolCallId?: string; arguments?: string }
-    > = {};
+    >();
 
     return {
       stream: response.pipeThrough(
@@ -382,41 +414,43 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
               chunk.type === 'response.output_item.added' &&
               chunk.item.type === 'function_call'
             ) {
-              toolCallsByItemId[chunk.item.id] = {
+              toolCallsByItemId.set(chunk.item.id, {
                 toolName: chunk.item.name,
                 toolCallId: chunk.item.call_id,
                 arguments: chunk.item.arguments,
-              };
+              });
             } else if (
-              (chunk as { type: string }).type ===
-              'response.function_call_arguments.delta'
+              chunk.type === 'response.function_call_arguments.delta'
             ) {
-              const functionCallChunk = chunk as {
-                item_id: string;
-                delta: string;
-              };
-              const toolCall =
-                toolCallsByItemId[functionCallChunk.item_id] ??
-                (toolCallsByItemId[functionCallChunk.item_id] = {});
+              const functionCallChunk = chunk;
+              const toolCall = toolCallsByItemId.get(functionCallChunk.item_id);
+
+              if (toolCall == null) {
+                toolCallsByItemId.set(functionCallChunk.item_id, {
+                  arguments: functionCallChunk.delta,
+                });
+                return;
+              }
+
               toolCall.arguments =
                 (toolCall.arguments ?? '') + functionCallChunk.delta;
-            } else if (
-              (chunk as { type: string }).type ===
-              'response.function_call_arguments.done'
-            ) {
-              const functionCallChunk = chunk as {
-                item_id: string;
-                arguments: string;
-              };
-              const toolCall =
-                toolCallsByItemId[functionCallChunk.item_id] ??
-                (toolCallsByItemId[functionCallChunk.item_id] = {});
+            } else if (chunk.type === 'response.function_call_arguments.done') {
+              const functionCallChunk = chunk;
+              const toolCall = toolCallsByItemId.get(functionCallChunk.item_id);
+
+              if (toolCall == null) {
+                toolCallsByItemId.set(functionCallChunk.item_id, {
+                  arguments: functionCallChunk.arguments,
+                });
+                return;
+              }
+
               toolCall.arguments = functionCallChunk.arguments;
             } else if (
               chunk.type === 'response.output_item.done' &&
               chunk.item.type === 'function_call'
             ) {
-              const toolCall = toolCallsByItemId[chunk.item.id];
+              const toolCall = toolCallsByItemId.get(chunk.item.id);
               const toolName = toolCall?.toolName ?? chunk.item.name;
               const toolCallId = toolCall?.toolCallId ?? chunk.item.call_id;
               const input = toolCall?.arguments ?? chunk.item.arguments ?? '';
@@ -429,7 +463,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
               });
               hasToolCalls = true;
 
-              delete toolCallsByItemId[chunk.item.id];
+              toolCallsByItemId.delete(chunk.item.id);
             }
 
             // Reasoning events (note: response.reasoning_text.delta is an LM Studio extension, not in official spec)

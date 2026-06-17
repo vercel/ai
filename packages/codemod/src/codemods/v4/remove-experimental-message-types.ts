@@ -1,4 +1,4 @@
-import { Identifier } from 'jscodeshift';
+import type { Identifier } from 'jscodeshift';
 import { createTransformer } from '../lib/create-transformer';
 
 export default createTransformer((fileInfo, api, options, context) => {

@@ -1,24 +1,27 @@
-import { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertImageModelFileToDataUri,
   createBinaryResponseHandler,
   createJsonResponseHandler,
   createStatusCodeErrorResponseHandler,
-  FetchFunction,
   getFromApi,
   parseProviderOptions,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { xaiFailedResponseHandler } from './xai-error';
-import { xaiImageModelOptions } from './xai-image-options';
-import { XaiImageModelId } from './xai-image-settings';
+import { xaiImageModelOptions } from './xai-image-model-options';
+import type { XaiImageModelId } from './xai-image-settings';
 
 interface XaiImageModelConfig {
   provider: string;
   baseURL: string | undefined;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
   _internal?: {
     currentDate?: () => Date;
@@ -31,6 +34,20 @@ export class XaiImageModel implements ImageModelV4 {
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: XaiImageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: XaiImageModelId;
+    config: XaiImageModelConfig;
+  }) {
+    return new XaiImageModel(options.modelId, options.config);
   }
 
   constructor(
@@ -135,7 +152,7 @@ export class XaiImageModel implements ImageModelV4 {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { value: response, responseHeaders } = await postJsonToApi({
       url: `${baseURL}${endpoint}`,
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: combineHeaders(this.config.headers?.(), headers),
       body,
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(

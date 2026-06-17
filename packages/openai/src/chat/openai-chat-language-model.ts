@@ -1,5 +1,4 @@
-import {
-  InvalidResponseDataError,
+import type {
   LanguageModelV4,
   LanguageModelV4CallOptions,
   LanguageModelV4Content,
@@ -11,40 +10,44 @@ import {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
-  ParseResult,
+  StreamingToolCallTracker,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
   isCustomReasoning,
-  isParsableJson,
   parseProviderOptions,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
+  type FetchFunction,
+  type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
+import { throwIfOpenAIStreamErrorBeforeOutput } from '../openai-stream-error';
 import {
-  OpenAIChatUsage,
   convertOpenAIChatUsage,
+  type OpenAIChatUsage,
 } from './convert-openai-chat-usage';
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 import {
-  OpenAIChatChunk,
   openaiChatChunkSchema,
   openaiChatResponseSchema,
+  type OpenAIChatChunk,
 } from './openai-chat-api';
 import {
-  OpenAIChatModelId,
   openaiLanguageModelChatOptions,
-} from './openai-chat-options';
+  type OpenAIChatModelId,
+} from './openai-chat-language-model-options';
 import { prepareChatTools } from './openai-chat-prepare-tools';
 
 type OpenAIChatConfig = {
   provider: string;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
 };
@@ -59,6 +62,20 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
   };
 
   private readonly config: OpenAIChatConfig;
+
+  static [WORKFLOW_SERIALIZE](model: OpenAIChatLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: OpenAIChatModelId;
+    config: OpenAIChatConfig;
+  }) {
+    return new OpenAIChatLanguageModel(options.modelId, options.config);
+  }
 
   constructor(modelId: OpenAIChatModelId, config: OpenAIChatConfig) {
     this.modelId = modelId;
@@ -335,7 +352,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
         path: '/chat/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -377,7 +394,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
     // provider metadata:
     const completionTokenDetails = response.usage?.completion_tokens_details;
-    const promptTokenDetails = response.usage?.prompt_tokens_details;
     const providerMetadata: SharedV4ProviderMetadata = { openai: {} };
     if (completionTokenDetails?.accepted_prediction_tokens != null) {
       providerMetadata.openai.acceptedPredictionTokens =
@@ -422,12 +438,14 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
       },
     };
 
+    const url = this.config.url({
+      path: '/chat/completions',
+      modelId: this.modelId,
+    });
+
     const { responseHeaders, value: response } = await postJsonToApi({
-      url: this.config.url({
-        path: '/chat/completions',
-        modelId: this.modelId,
-      }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      url,
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -437,15 +455,16 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
       fetch: this.config.fetch,
     });
 
-    const toolCalls: Array<{
-      id: string;
-      type: 'function';
-      function: {
-        name: string;
-        arguments: string;
-      };
-      hasFinished: boolean;
-    }> = [];
+    const checkedResponse = await throwIfOpenAIStreamErrorBeforeOutput({
+      stream: response,
+      getError: chunk => ('error' in chunk ? chunk.error : undefined),
+      isOutputChunk: isOpenAIChatOutputChunk,
+      url,
+      requestBodyValues: body,
+      responseHeaders,
+    });
+
+    let toolCallTracker: StreamingToolCallTracker;
 
     let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
@@ -457,13 +476,17 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
     const providerMetadata: SharedV4ProviderMetadata = { openai: {} };
 
-    return {
-      stream: response.pipeThrough(
+    const result = {
+      stream: checkedResponse.pipeThrough(
         new TransformStream<
           ParseResult<OpenAIChatChunk>,
           LanguageModelV4StreamPart
         >({
           start(controller) {
+            toolCallTracker = new StreamingToolCallTracker(controller, {
+              generateId,
+              typeValidation: 'if-present',
+            });
             controller.enqueue({ type: 'stream-start', warnings });
           },
 
@@ -555,124 +578,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
             if (delta.tool_calls != null) {
               for (const toolCallDelta of delta.tool_calls) {
-                const index = toolCallDelta.index;
-
-                // Tool call start. OpenAI returns all information except the arguments in the first chunk.
-                if (toolCalls[index] == null) {
-                  if (
-                    toolCallDelta.type != null &&
-                    toolCallDelta.type !== 'function'
-                  ) {
-                    throw new InvalidResponseDataError({
-                      data: toolCallDelta,
-                      message: `Expected 'function' type.`,
-                    });
-                  }
-
-                  if (toolCallDelta.id == null) {
-                    throw new InvalidResponseDataError({
-                      data: toolCallDelta,
-                      message: `Expected 'id' to be a string.`,
-                    });
-                  }
-
-                  if (toolCallDelta.function?.name == null) {
-                    throw new InvalidResponseDataError({
-                      data: toolCallDelta,
-                      message: `Expected 'function.name' to be a string.`,
-                    });
-                  }
-
-                  controller.enqueue({
-                    type: 'tool-input-start',
-                    id: toolCallDelta.id,
-                    toolName: toolCallDelta.function.name,
-                  });
-
-                  toolCalls[index] = {
-                    id: toolCallDelta.id,
-                    type: 'function',
-                    function: {
-                      name: toolCallDelta.function.name,
-                      arguments: toolCallDelta.function.arguments ?? '',
-                    },
-                    hasFinished: false,
-                  };
-
-                  const toolCall = toolCalls[index];
-
-                  if (
-                    toolCall.function?.name != null &&
-                    toolCall.function?.arguments != null
-                  ) {
-                    // send delta if the argument text has already started:
-                    if (toolCall.function.arguments.length > 0) {
-                      controller.enqueue({
-                        type: 'tool-input-delta',
-                        id: toolCall.id,
-                        delta: toolCall.function.arguments,
-                      });
-                    }
-
-                    // check if tool call is complete
-                    // (some providers send the full tool call in one chunk):
-                    if (isParsableJson(toolCall.function.arguments)) {
-                      controller.enqueue({
-                        type: 'tool-input-end',
-                        id: toolCall.id,
-                      });
-
-                      controller.enqueue({
-                        type: 'tool-call',
-                        toolCallId: toolCall.id ?? generateId(),
-                        toolName: toolCall.function.name,
-                        input: toolCall.function.arguments,
-                      });
-                      toolCall.hasFinished = true;
-                    }
-                  }
-
-                  continue;
-                }
-
-                // existing tool call, merge if not finished
-                const toolCall = toolCalls[index];
-
-                if (toolCall.hasFinished) {
-                  continue;
-                }
-
-                if (toolCallDelta.function?.arguments != null) {
-                  toolCall.function!.arguments +=
-                    toolCallDelta.function?.arguments ?? '';
-                }
-
-                // send delta
-                controller.enqueue({
-                  type: 'tool-input-delta',
-                  id: toolCall.id,
-                  delta: toolCallDelta.function.arguments ?? '',
-                });
-
-                // check if tool call is complete
-                if (
-                  toolCall.function?.name != null &&
-                  toolCall.function?.arguments != null &&
-                  isParsableJson(toolCall.function.arguments)
-                ) {
-                  controller.enqueue({
-                    type: 'tool-input-end',
-                    id: toolCall.id,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallId: toolCall.id ?? generateId(),
-                    toolName: toolCall.function.name,
-                    input: toolCall.function.arguments,
-                  });
-                  toolCall.hasFinished = true;
-                }
+                toolCallTracker.processDelta(toolCallDelta);
               }
             }
 
@@ -695,6 +601,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
               controller.enqueue({ type: 'text-end', id: '0' });
             }
 
+            toolCallTracker.flush();
+
             controller.enqueue({
               type: 'finish',
               finishReason,
@@ -707,5 +615,23 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
       request: { body },
       response: { headers: responseHeaders },
     };
+
+    return result;
   }
+}
+
+function isOpenAIChatOutputChunk(chunk: OpenAIChatChunk): boolean {
+  if ('error' in chunk) {
+    return false;
+  }
+
+  return chunk.choices.some(choice => {
+    const delta = choice.delta;
+
+    return (
+      (delta?.content != null && delta.content.length > 0) ||
+      (delta?.tool_calls != null && delta.tool_calls.length > 0) ||
+      (delta?.annotations != null && delta.annotations.length > 0)
+    );
+  });
 }

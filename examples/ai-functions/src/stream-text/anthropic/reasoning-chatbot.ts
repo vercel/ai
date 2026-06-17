@@ -1,5 +1,5 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
-import { stepCountIs, ModelMessage, streamText, tool } from 'ai';
+import { isStepCount, streamText, tool, type ModelMessage } from 'ai';
 import * as readline from 'node:readline/promises';
 import { z } from 'zod';
 import { run } from '../../lib/run';
@@ -46,7 +46,7 @@ run(async () => {
           }),
         }),
       },
-      stopWhen: stepCountIs(5),
+      stopWhen: isStepCount(5),
       maxRetries: 0,
       reasoning: 'medium',
       onError: error => {
@@ -55,7 +55,7 @@ run(async () => {
     });
 
     process.stdout.write('\nAssistant: ');
-    for await (const part of result.fullStream) {
+    for await (const part of result.stream) {
       if (part.type === 'reasoning-delta') {
         process.stdout.write('\x1b[34m' + part.text + '\x1b[0m');
       } else if (part.type === 'text-delta') {

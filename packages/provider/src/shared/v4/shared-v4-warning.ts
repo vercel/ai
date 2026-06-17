@@ -39,6 +39,22 @@ export type SharedV4Warning =
     }
   | {
       /**
+       * A deprecated feature or option is being used.
+       */
+      type: 'deprecated';
+
+      /**
+       * The deprecated setting or feature name.
+       */
+      setting: string;
+
+      /**
+       * A human-readable message explaining what to use instead.
+       */
+      message: string;
+    }
+  | {
+      /**
        * Other warning.
        */
       type: 'other';

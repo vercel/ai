@@ -1,7 +1,12 @@
 import { openai } from '@ai-sdk/openai';
 import { saveChat } from '@util/chat-store';
-import { convertToModelMessages, streamText, UIMessage } from 'ai';
-
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+  type UIMessage,
+} from 'ai';
 export async function POST(req: Request) {
   const { messages, chatId }: { messages: UIMessage[]; chatId: string } =
     await req.json();
@@ -20,10 +25,13 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toUIMessageStreamResponse({
-    originalMessages: messages,
-    onFinish: ({ messages }) => {
-      saveChat({ chatId, messages });
-    },
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({
+      stream: result.stream,
+      originalMessages: messages,
+      onFinish: ({ messages }) => {
+        saveChat({ chatId, messages });
+      },
+    }),
   });
 }

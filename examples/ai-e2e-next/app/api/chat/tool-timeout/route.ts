@@ -1,13 +1,15 @@
 import { openai } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
-  InferUITools,
-  stepCountIs,
+  createUIMessageStreamResponse,
+  isStepCount,
   streamText,
   tool,
-  UIDataTypes,
-  UIMessage,
+  toUIMessageStream,
   validateUIMessages,
+  type InferUITools,
+  type UIDataTypes,
+  type UIMessage,
 } from 'ai';
 import { z } from 'zod';
 
@@ -49,14 +51,16 @@ export async function POST(req: Request) {
   const result = streamText({
     model: openai('gpt-5.4'),
     messages: await convertToModelMessages(messages),
-    system:
+    instructions:
       'You are a helpful weather assistant. When a tool times out, explain to the user that the weather service is unavailable and suggest they try again later.',
     tools,
     timeout: {
       toolMs: 1000,
     },
-    stopWhen: stepCountIs(2),
+    stopWhen: isStepCount(2),
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }

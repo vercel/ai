@@ -1,11 +1,11 @@
 import 'dotenv/config';
 import { expect } from 'vitest';
-import { xai as provider, XaiErrorData } from '@ai-sdk/xai';
+import { xai as provider } from '@ai-sdk/xai';
 import {
   createFeatureTestSuite,
   createLanguageModelWithCapabilities,
 } from './feature-test-suite';
-import { APICallError } from '@ai-sdk/provider';
+import type { APICallError } from '@ai-sdk/provider';
 
 const createChatModel = (modelId: string) =>
   createLanguageModelWithCapabilities(provider.chat(modelId));
@@ -34,7 +34,7 @@ createFeatureTestSuite({
   timeout: 30000,
   customAssertions: {
     errorValidator: (error: APICallError) => {
-      expect((error.data as XaiErrorData).error.message).toContain('model');
+      expect(error.message).toContain('model');
     },
   },
 })();

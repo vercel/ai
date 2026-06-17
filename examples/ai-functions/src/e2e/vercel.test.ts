@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { expect } from 'vitest';
 import { vercel as provider } from '@ai-sdk/vercel';
-import { APICallError } from 'ai';
+import type { APICallError } from 'ai';
 import {
   createFeatureTestSuite,
   createLanguageModelWithCapabilities,

@@ -2,6 +2,8 @@
 
 The **[Together.ai provider](https://ai-sdk.dev/providers/ai-sdk-providers/togetherai)** for the [AI SDK](https://ai-sdk.dev/docs) contains language model support for the [Together.ai](https://together.ai) platform.
 
+> **Deploying to Vercel?** With Vercel's AI Gateway you can access Together.ai (and hundreds of models from other providers) — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
+
 ## Setup
 
 The Together.ai provider is available in the `@ai-sdk/togetherai` module. You can install it with

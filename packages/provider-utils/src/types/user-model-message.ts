@@ -1,5 +1,5 @@
-import { FilePart, ImagePart, TextPart } from './content-part';
-import { ProviderOptions } from './provider-options';
+import type { FilePart, ImagePart, TextPart } from './content-part';
+import type { ProviderOptions } from './provider-options';
 
 /**
  * A user message. It can contain text or a combination of text and images.

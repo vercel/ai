@@ -16,8 +16,9 @@ run(async () => {
         content: [
           { type: 'text', text: 'Describe the image in detail.' },
           {
-            type: 'image',
-            image: dataUrl,
+            type: 'file',
+            mediaType: 'image',
+            data: dataUrl,
           },
         ],
       },

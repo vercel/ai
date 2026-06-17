@@ -1,4 +1,4 @@
-import { ImageModelV2 } from '@ai-sdk/provider';
+import type { ImageModelV2 } from '@ai-sdk/provider';
 import { asImageModelV3 } from './as-image-model-v3';
 import { MockImageModelV2 } from '../test/mock-image-model-v2';
 import { MockImageModelV3 } from '../test/mock-image-model-v3';

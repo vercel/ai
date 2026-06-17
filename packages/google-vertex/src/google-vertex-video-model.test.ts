@@ -17,7 +17,7 @@ const defaultOptions = {
   fps: undefined,
   seed: undefined,
   providerOptions: {
-    vertex: {
+    googleVertex: {
       pollIntervalMs: 10, // Use short polling interval for tests
     },
   },
@@ -392,14 +392,17 @@ describe('GoogleVertexVideoModel', () => {
 
       const result = await model.doGenerate({ ...defaultOptions });
 
+      const expectedPayload = {
+        videos: [
+          {
+            mimeType: 'video/mp4',
+          },
+        ],
+      };
       expect(result.providerMetadata).toStrictEqual({
-        'google-vertex': {
-          videos: [
-            {
-              mimeType: 'video/mp4',
-            },
-          ],
-        },
+        googleVertex: expectedPayload,
+        'google-vertex': expectedPayload,
+        vertex: expectedPayload,
       });
     });
 
@@ -417,15 +420,18 @@ describe('GoogleVertexVideoModel', () => {
 
       const result = await model.doGenerate({ ...defaultOptions });
 
+      const expectedPayload = {
+        videos: [
+          {
+            gcsUri: 'gs://bucket/video.mp4',
+            mimeType: 'video/mp4',
+          },
+        ],
+      };
       expect(result.providerMetadata).toStrictEqual({
-        'google-vertex': {
-          videos: [
-            {
-              gcsUri: 'gs://bucket/video.mp4',
-              mimeType: 'video/mp4',
-            },
-          ],
-        },
+        googleVertex: expectedPayload,
+        'google-vertex': expectedPayload,
+        vertex: expectedPayload,
       });
     });
   });
@@ -497,7 +503,7 @@ describe('GoogleVertexVideoModel', () => {
       await model.doGenerate({
         ...defaultOptions,
         providerOptions: {
-          vertex: {
+          googleVertex: {
             pollIntervalMs: 10,
             personGeneration: 'allow_adult',
           },
@@ -526,7 +532,7 @@ describe('GoogleVertexVideoModel', () => {
       await model.doGenerate({
         ...defaultOptions,
         providerOptions: {
-          vertex: {
+          googleVertex: {
             pollIntervalMs: 10,
             negativePrompt: 'blurry, low quality',
           },
@@ -555,7 +561,7 @@ describe('GoogleVertexVideoModel', () => {
       await model.doGenerate({
         ...defaultOptions,
         providerOptions: {
-          vertex: {
+          googleVertex: {
             pollIntervalMs: 10,
             generateAudio: true,
           },
@@ -592,7 +598,7 @@ describe('GoogleVertexVideoModel', () => {
       await model.doGenerate({
         ...defaultOptions,
         providerOptions: {
-          vertex: {
+          googleVertex: {
             pollIntervalMs: 10,
             gcsOutputDirectory: 'gs://bucket/output/',
           },
@@ -621,7 +627,7 @@ describe('GoogleVertexVideoModel', () => {
       await model.doGenerate({
         ...defaultOptions,
         providerOptions: {
-          vertex: {
+          googleVertex: {
             pollIntervalMs: 10,
             referenceImages: [
               { bytesBase64Encoded: 'reference-image-data' },
@@ -810,7 +816,7 @@ describe('GoogleVertexVideoModel', () => {
         model.doGenerate({
           ...defaultOptions,
           providerOptions: {
-            vertex: {
+            googleVertex: {
               pollIntervalMs: 10,
               pollTimeoutMs: 50,
             },
@@ -866,7 +872,7 @@ describe('GoogleVertexVideoModel', () => {
         model.doGenerate({
           ...defaultOptions,
           providerOptions: {
-            vertex: {
+            googleVertex: {
               pollIntervalMs: 10,
             },
           },

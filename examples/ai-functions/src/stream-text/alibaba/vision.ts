@@ -14,8 +14,9 @@ run(async () => {
             text: 'What color is this image? Answer in one word.',
           },
           {
-            type: 'image',
-            image: 'https://placehold.co/10x10/red/red.png',
+            type: 'file',
+            mediaType: 'image',
+            data: 'https://placehold.co/10x10/red/red.png',
           },
         ],
       },

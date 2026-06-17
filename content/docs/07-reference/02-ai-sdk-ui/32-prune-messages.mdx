@@ -8,7 +8,12 @@ description: API Reference for pruneMessages.
 The `pruneMessages` function is used to prune or filter an array of `ModelMessage` objects. This is useful for reducing message context (to save tokens), removing intermediate reasoning, or trimming tool calls and empty messages before sending to an LLM.
 
 ```ts filename="app/api/chat/route.ts"
-import { pruneMessages, streamText } from 'ai';
+import {
+  createUIMessageStreamResponse,
+  pruneMessages,
+  streamText,
+  toUIMessageStream,
+} from 'ai';
 __PROVIDER_IMPORT__;
 
 export async function POST(req: Request) {
@@ -26,7 +31,9 @@ export async function POST(req: Request) {
     messages: prunedMessages,
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 

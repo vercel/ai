@@ -1,6 +1,6 @@
 import { loadChat } from '@util/chat-store';
 import Chat from './chat';
-import { UIMessage } from 'ai';
+import type { UIMessage } from 'ai';
 
 export default async function Page(props: { params: Promise<{ id: string }> }) {
   // get the chat ID from the URL:

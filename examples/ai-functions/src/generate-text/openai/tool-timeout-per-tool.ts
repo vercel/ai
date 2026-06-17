@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { generateText, stepCountIs, tool } from 'ai';
+import { generateText, isStepCount, tool } from 'ai';
 import { z } from 'zod';
 import { weatherTool } from '../../tools/weather-tool';
 import { run } from '../../lib/run';
@@ -30,7 +30,7 @@ run(async () => {
         weatherMs: 3000,
       },
     },
-    stopWhen: stepCountIs(2),
+    stopWhen: isStepCount(2),
     prompt: 'What is the weather in San Francisco?',
   });
 

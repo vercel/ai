@@ -39,7 +39,7 @@ Before submitting your tool, ensure you have:
        yarn: 'yarn add your-package-name',
        bun: 'bun add your-package-name',
      },
-     codeExample: `import { generateText, gateway, stepCountIs } from 'ai';
+     codeExample: `import { generateText, gateway, isStepCount } from 'ai';
    import { yourTool } from 'your-package-name';
 
    const { text } = await generateText({
@@ -48,7 +48,7 @@ Before submitting your tool, ensure you have:
      tools: {
        yourTool: yourTool(),
      },
-     stopWhen: stepCountIs(3),
+     stopWhen: isStepCount(3),
    });
 
    console.log(text);`,
@@ -62,7 +62,6 @@ Before submitting your tool, ensure you have:
 3. **Provide a working code example**
 
    Your `codeExample` should:
-
    - Be a complete, working example
    - Show realistic usage of your tool
    - Use the latest AI SDK patterns

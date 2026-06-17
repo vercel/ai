@@ -1,10 +1,10 @@
-import { huggingface } from '@ai-sdk/huggingface';
+import { huggingFace } from '@ai-sdk/huggingface';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: huggingface('deepseek-ai/DeepSeek-R1'),
+    model: huggingFace('deepseek-ai/DeepSeek-R1'),
     messages: [
       {
         role: 'user',

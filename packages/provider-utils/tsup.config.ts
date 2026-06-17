@@ -3,7 +3,7 @@ import { defineConfig } from 'tsup';
 export default defineConfig([
   {
     entry: ['src/index.ts'],
-    format: ['cjs', 'esm'],
+    format: ['esm'],
     dts: true,
     sourcemap: true,
     // Keep library target conservative for wide compatibility
@@ -19,7 +19,7 @@ export default defineConfig([
   {
     entry: ['src/test/index.ts'],
     outDir: 'dist/test',
-    format: ['cjs', 'esm'],
+    format: ['esm'],
     dts: true,
     sourcemap: true,
     // Chai uses BigInt literals; ensure the target supports it and avoid bundling chai

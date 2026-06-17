@@ -2,18 +2,28 @@ import {
   EventSourceParserStream,
   withUserAgentSuffix,
   getRuntimeEnvironmentUserAgent,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { MCPClientError } from '../error/mcp-client-error';
-import { JSONRPCMessage, JSONRPCMessageSchema } from './json-rpc-message';
-import { MCPTransport } from './mcp-transport';
+import {
+  JSONRPCMessageSchema,
+  parseJSONRPCMessage,
+  type JSONRPCMessage,
+} from './json-rpc-message';
+import type { MCPTransport } from './mcp-transport';
 import { VERSION } from '../version';
 import {
-  OAuthClientProvider,
   extractResourceMetadataUrl,
   UnauthorizedError,
   auth,
+  type AuthResult,
+  type OAuthClientProvider,
 } from './oauth';
 import { LATEST_PROTOCOL_VERSION } from './types';
+
+function isMessageEvent(event: string | undefined): boolean {
+  return event === undefined || event === 'message';
+}
 
 /**
  * HTTP MCP transport implementing the Streamable HTTP style.
@@ -31,6 +41,8 @@ export class HttpMCPTransport implements MCPTransport {
   private sessionId?: string;
   private inboundSseConnection?: { close: () => void };
   private redirectMode: RequestRedirect;
+  private fetchFn: FetchFunction;
+  private authPromise?: Promise<AuthResult>;
 
   // Inbound SSE resumption and reconnection state
   private lastInboundEventId?: string;
@@ -45,22 +57,30 @@ export class HttpMCPTransport implements MCPTransport {
   onclose?: () => void;
   onerror?: (error: unknown) => void;
   onmessage?: (message: JSONRPCMessage) => void;
+  protocolVersion?: string;
 
   constructor({
     url,
     headers,
     authProvider,
     redirect = 'error',
+    fetch: fetchFn,
   }: {
     url: string;
     headers?: Record<string, string>;
     authProvider?: OAuthClientProvider;
     redirect?: 'follow' | 'error';
+    fetch?: FetchFunction;
   }) {
     this.url = new URL(url);
     this.headers = headers;
     this.authProvider = authProvider;
     this.redirectMode = redirect;
+    this.fetchFn = fetchFn ?? globalThis.fetch;
+  }
+
+  setProtocolVersion(version: string): void {
+    this.protocolVersion = version;
   }
 
   private async commonHeaders(
@@ -69,7 +89,7 @@ export class HttpMCPTransport implements MCPTransport {
     const headers: Record<string, string> = {
       ...this.headers,
       ...base,
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
+      'mcp-protocol-version': this.protocolVersion ?? LATEST_PROTOCOL_VERSION,
     };
 
     if (this.sessionId) {
@@ -88,6 +108,27 @@ export class HttpMCPTransport implements MCPTransport {
       `ai-sdk/${VERSION}`,
       getRuntimeEnvironmentUserAgent(),
     );
+  }
+
+  /**
+   * Runs a single OAuth recovery flow for concurrent 401 responses.
+   */
+  private authorizeOnce(resourceMetadataUrl?: URL): Promise<AuthResult> {
+    if (!this.authProvider) {
+      return Promise.resolve('REDIRECT');
+    }
+
+    if (!this.authPromise) {
+      this.authPromise = auth(this.authProvider, {
+        serverUrl: this.url,
+        resourceMetadataUrl,
+        fetchFn: this.fetchFn,
+      }).finally(() => {
+        this.authPromise = undefined;
+      });
+    }
+
+    return this.authPromise;
   }
 
   async start(): Promise<void> {
@@ -111,7 +152,7 @@ export class HttpMCPTransport implements MCPTransport {
         !this.abortController.signal.aborted
       ) {
         const headers = await this.commonHeaders({});
-        await fetch(this.url, {
+        await this.fetchFn(this.url.href, {
           method: 'DELETE',
           headers,
           signal: this.abortController.signal,
@@ -140,7 +181,7 @@ export class HttpMCPTransport implements MCPTransport {
           redirect: this.redirectMode,
         } satisfies RequestInit;
 
-        const response = await fetch(this.url, init);
+        const response = await this.fetchFn(this.url.href, init);
 
         const sessionId = response.headers.get('mcp-session-id');
         if (sessionId) {
@@ -150,10 +191,7 @@ export class HttpMCPTransport implements MCPTransport {
         if (response.status === 401 && this.authProvider && !triedAuth) {
           this.resourceMetadataUrl = extractResourceMetadataUrl(response);
           try {
-            const result = await auth(this.authProvider, {
-              serverUrl: this.url,
-              resourceMetadataUrl: this.resourceMetadataUrl,
-            });
+            const result = await this.authorizeOnce(this.resourceMetadataUrl);
             if (result !== 'AUTHORIZED') {
               const error = new UnauthorizedError();
               throw error;
@@ -187,6 +225,9 @@ export class HttpMCPTransport implements MCPTransport {
 
           const error = new MCPClientError({
             message: errorMessage,
+            statusCode: response.status,
+            url: this.url.href,
+            responseBody: text ?? undefined,
           });
           this.onerror?.(error);
           throw error;
@@ -203,9 +244,13 @@ export class HttpMCPTransport implements MCPTransport {
         if (contentType.includes('application/json')) {
           const data = await response.json();
           const messages: JSONRPCMessage[] = Array.isArray(data)
-            ? data.map((m: unknown) => JSONRPCMessageSchema.parse(m))
+            ? data.map((message: unknown) =>
+                JSONRPCMessageSchema.parse(message),
+              )
             : [JSONRPCMessageSchema.parse(data)];
-          for (const m of messages) this.onmessage?.(m);
+          for (const jsonRpcMessage of messages) {
+            this.onmessage?.(jsonRpcMessage);
+          }
           return;
         }
 
@@ -214,6 +259,8 @@ export class HttpMCPTransport implements MCPTransport {
             const error = new MCPClientError({
               message:
                 'MCP HTTP Transport Error: text/event-stream response without body',
+              statusCode: response.status,
+              url: this.url.href,
             });
             this.onerror?.(error);
             throw error;
@@ -230,10 +277,10 @@ export class HttpMCPTransport implements MCPTransport {
                 const { done, value } = await reader.read();
                 if (done) return;
                 const { event, data } = value;
-                if (event === 'message') {
+                if (isMessageEvent(event)) {
                   try {
-                    const msg = JSONRPCMessageSchema.parse(JSON.parse(data));
-                    this.onmessage?.(msg);
+                    const jsonRpcMessage = await parseJSONRPCMessage(data);
+                    this.onmessage?.(jsonRpcMessage);
                   } catch (error) {
                     const e = new MCPClientError({
                       message:
@@ -258,6 +305,8 @@ export class HttpMCPTransport implements MCPTransport {
 
         const error = new MCPClientError({
           message: `MCP HTTP Transport Error: Unexpected content type: ${contentType}`,
+          statusCode: response.status,
+          url: this.url.href,
         });
         this.onerror?.(error);
         throw error;
@@ -314,7 +363,7 @@ export class HttpMCPTransport implements MCPTransport {
         headers['last-event-id'] = resumeToken;
       }
 
-      const response = await fetch(this.url.href, {
+      const response = await this.fetchFn(this.url.href, {
         method: 'GET',
         headers,
         signal: this.abortController?.signal,
@@ -329,10 +378,7 @@ export class HttpMCPTransport implements MCPTransport {
       if (response.status === 401 && this.authProvider && !triedAuth) {
         this.resourceMetadataUrl = extractResourceMetadataUrl(response);
         try {
-          const result = await auth(this.authProvider, {
-            serverUrl: this.url,
-            resourceMetadataUrl: this.resourceMetadataUrl,
-          });
+          const result = await this.authorizeOnce(this.resourceMetadataUrl);
           if (result !== 'AUTHORIZED') {
             const error = new UnauthorizedError();
             this.onerror?.(error);
@@ -352,6 +398,8 @@ export class HttpMCPTransport implements MCPTransport {
       if (!response.ok || !response.body) {
         const error = new MCPClientError({
           message: `MCP HTTP Transport Error: GET SSE failed: ${response.status} ${response.statusText}`,
+          statusCode: response.status,
+          url: this.url.href,
         });
         this.onerror?.(error);
         return;
@@ -377,10 +425,10 @@ export class HttpMCPTransport implements MCPTransport {
               this.lastInboundEventId = id;
             }
 
-            if (event === 'message') {
+            if (isMessageEvent(event)) {
               try {
-                const msg = JSONRPCMessageSchema.parse(JSON.parse(data));
-                this.onmessage?.(msg);
+                const jsonRpcMessage = await parseJSONRPCMessage(data);
+                this.onmessage?.(jsonRpcMessage);
               } catch (error) {
                 const e = new MCPClientError({
                   message: 'MCP HTTP Transport Error: Failed to parse message',

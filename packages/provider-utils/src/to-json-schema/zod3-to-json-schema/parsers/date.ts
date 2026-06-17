@@ -1,6 +1,6 @@
-import { ZodDateDef } from 'zod/v3';
-import { Refs } from '../refs';
-import { DateStrategy } from '../options';
+import type { ZodDateDef } from 'zod/v3';
+import type { Refs } from '../refs';
+import type { DateStrategy } from '../options';
 
 export type JsonSchema7DateType =
   | {
@@ -22,7 +22,7 @@ export function parseDateDef(
 
   if (Array.isArray(strategy)) {
     return {
-      anyOf: strategy.map((item, i) => parseDateDef(def, refs, item)),
+      anyOf: strategy.map(item => parseDateDef(def, refs, item)),
     };
   }
 

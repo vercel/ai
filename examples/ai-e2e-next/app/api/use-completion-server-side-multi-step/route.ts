@@ -1,5 +1,11 @@
 import { openai } from '@ai-sdk/openai';
-import { stepCountIs, streamText, tool } from 'ai';
+import {
+  createUIMessageStreamResponse,
+  isStepCount,
+  streamText,
+  toUIMessageStream,
+  tool,
+} from 'ai';
 import { z } from 'zod';
 
 // Allow streaming responses up to 60 seconds
@@ -23,10 +29,12 @@ export async function POST(req: Request) {
         }),
       }),
     },
-    stopWhen: stepCountIs(4),
+    stopWhen: isStepCount(4),
     prompt,
   });
 
   // Respond with the stream
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }

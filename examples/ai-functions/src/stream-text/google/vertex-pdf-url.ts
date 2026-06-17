@@ -1,10 +1,10 @@
-import { vertex } from '@ai-sdk/google-vertex';
+import { googleVertex } from '@ai-sdk/google-vertex';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: vertex('gemini-pro-experimental'),
+    model: googleVertex('gemini-pro-experimental'),
     messages: [
       {
         role: 'user',

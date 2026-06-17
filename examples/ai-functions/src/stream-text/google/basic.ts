@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 run(async () => {
   const result = streamText({
     model: google('gemini-2.5-pro'),
-    system: 'You are a comedian. Only give funny answers.',
+    instructions: 'You are a comedian. Only give funny answers.',
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
@@ -13,7 +13,7 @@ run(async () => {
     process.stdout.write(textPart);
   }
 
-  const googleMetadata = (await result.providerMetadata)?.google;
+  const googleMetadata = (await result.finalStep).providerMetadata?.google;
 
   console.log();
   console.log('Token usage:', await result.usage);

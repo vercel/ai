@@ -1,15 +1,13 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport } from 'ai';
+import { DefaultChatTransport, isDataUIPart } from 'ai';
 import { useState, useEffect, useRef } from 'react';
 import {
-  MCPElicitationUIMessage,
-  ElicitationAction,
   ElicitationDataTypes,
+  type MCPElicitationUIMessage,
+  type ElicitationAction,
 } from '@/app/api/chat/mcp-elicitation/types';
-import { isDataUIPart } from 'ai';
-
 export default function MCPElicitationChat() {
   const [input, setInput] = useState('');
   const [showModal, setShowModal] = useState(false);

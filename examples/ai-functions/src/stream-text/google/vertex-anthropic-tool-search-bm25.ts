@@ -1,5 +1,5 @@
 import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
-import { streamText, tool, stepCountIs } from 'ai';
+import { streamText, tool, isStepCount } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
@@ -7,7 +7,7 @@ run(async () => {
   const result = streamText({
     model: vertexAnthropic('claude-sonnet-4-5'),
     prompt: 'What is the weather in San Francisco?',
-    stopWhen: stepCountIs(10),
+    stopWhen: isStepCount(10),
     tools: {
       toolSearch: vertexAnthropic.tools.toolSearchBm25_20251119(),
 
@@ -68,7 +68,7 @@ run(async () => {
     },
   });
 
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     switch (chunk.type) {
       case 'text-delta': {
         process.stdout.write(chunk.text);

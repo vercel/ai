@@ -1,10 +1,8 @@
-import { ServerOptions } from '@modelcontextprotocol/sdk/server/index.js';
+import type { ServerOptions } from '@modelcontextprotocol/sdk/server/index.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { ServerResponse } from 'http';
-import { NextRequest } from 'next/server';
+import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
+import type { NextRequest } from 'next/server';
 import { z } from 'zod';
-import { convertNextRequestToIncomingMessage } from './incoming-message';
 
 export const mcpApiHandler = initializeMcpApiHandler({
   initializationCallback: server => {
@@ -39,38 +37,38 @@ function initializeMcpApiHandler({
   initializationCallback: (server: McpServer) => void;
   serverOptions?: ServerOptions;
 }) {
-  return async function mcpApiHandler(req: NextRequest, res: ServerResponse) {
+  return async function mcpApiHandler(req: NextRequest) {
     const url = new URL(req.url || '', 'https://example.com');
 
     if (url.pathname === '/chat/mcp/server') {
       if (req.method === 'GET') {
         console.log('Received GET MCP request');
-        res.writeHead(405, { 'Content-Type': 'application/json' }).end(
-          JSON.stringify({
+        return Response.json(
+          {
             jsonrpc: '2.0',
             error: {
               code: -32000,
               message: 'Method not allowed.',
             },
             id: null,
-          }),
+          },
+          { status: 405 },
         );
-        return;
       }
 
       if (req.method === 'DELETE') {
         console.log('Received DELETE MCP request');
-        res.writeHead(405, { 'Content-Type': 'application/json' }).end(
-          JSON.stringify({
+        return Response.json(
+          {
             jsonrpc: '2.0',
             error: {
               code: -32000,
               message: 'Method not allowed.',
             },
             id: null,
-          }),
+          },
+          { status: 405 },
         );
-        return;
       }
 
       console.log('New MCP connection', req.url, req.method);
@@ -86,18 +84,20 @@ function initializeMcpApiHandler({
           },
           serverOptions,
         );
-        const statelessTransport = new StreamableHTTPServerTransport({
-          sessionIdGenerator: undefined,
-        });
+        const statelessTransport = new WebStandardStreamableHTTPServerTransport(
+          {
+            sessionIdGenerator: undefined,
+          },
+        );
         initializationCallback(server);
         await server.connect(statelessTransport);
 
-        const incomingMessage = await convertNextRequestToIncomingMessage(req);
-        await statelessTransport.handleRequest(incomingMessage, res);
+        return statelessTransport.handleRequest(req);
       }
     } else {
-      res.statusCode = 404;
-      res.end('Not found');
+      return new Response('Not found', { status: 404 });
     }
+
+    return new Response('Method not allowed', { status: 405 });
   };
 }

@@ -22,6 +22,7 @@ describe('prepareResponsesTools', () => {
           "tools": [
             {
               "allowed_domains": undefined,
+              "enable_image_search": undefined,
               "enable_image_understanding": undefined,
               "excluded_domains": undefined,
               "type": "web_search",
@@ -52,6 +53,7 @@ describe('prepareResponsesTools', () => {
               "wikipedia.org",
               "example.com",
             ],
+            "enable_image_search": undefined,
             "enable_image_understanding": undefined,
             "excluded_domains": undefined,
             "type": "web_search",
@@ -78,10 +80,38 @@ describe('prepareResponsesTools', () => {
         [
           {
             "allowed_domains": undefined,
+            "enable_image_search": undefined,
             "enable_image_understanding": undefined,
             "excluded_domains": [
               "spam.com",
             ],
+            "type": "web_search",
+          },
+        ]
+      `);
+    });
+
+    it('should prepare web_search tool with image search', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'xai.web_search',
+            name: 'web_search',
+            args: {
+              enableImageSearch: true,
+            },
+          },
+        ],
+      });
+
+      expect(result.tools).toMatchInlineSnapshot(`
+        [
+          {
+            "allowed_domains": undefined,
+            "enable_image_search": true,
+            "enable_image_understanding": undefined,
+            "excluded_domains": undefined,
             "type": "web_search",
           },
         ]
@@ -106,6 +136,7 @@ describe('prepareResponsesTools', () => {
         [
           {
             "allowed_domains": undefined,
+            "enable_image_search": undefined,
             "enable_image_understanding": true,
             "excluded_domains": undefined,
             "type": "web_search",

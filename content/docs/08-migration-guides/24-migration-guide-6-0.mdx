@@ -87,10 +87,10 @@ npx @ai-sdk/codemod v6/rename-text-embedding-to-embedding src/
 The `Experimental_Agent` class has been replaced with the `ToolLoopAgent` class. Two key changes:
 
 1. The `system` parameter has been renamed to `instructions`
-2. The default `stopWhen` has changed from `stepCountIs(1)` to `stepCountIs(20)`
+2. The default `stopWhen` has changed from `isStepCount(1)` to `isStepCount(20)`
 
 ```tsx filename="AI SDK 5"
-import { Experimental_Agent as Agent, stepCountIs } from 'ai';
+import { Experimental_Agent as Agent, isStepCount } from 'ai';
 __PROVIDER_IMPORT__;
 
 const agent = new Agent({
@@ -99,7 +99,7 @@ const agent = new Agent({
   tools: {
     // your tools here
   },
-  stopWhen: stepCountIs(20), // Required for multi-step agent loops
+  stopWhen: isStepCount(20), // Required for multi-step agent loops
 });
 
 const result = await agent.generate({
@@ -117,7 +117,7 @@ const agent = new ToolLoopAgent({
   tools: {
     // your tools here
   },
-  // stopWhen defaults to stepCountIs(20)
+  // stopWhen defaults to isStepCount(20)
 });
 
 const result = await agent.generate({

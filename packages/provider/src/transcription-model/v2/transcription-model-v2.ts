@@ -1,7 +1,7 @@
-import { JSONValue } from '../../json-value';
-import { SharedV2Headers } from '../../shared';
-import { TranscriptionModelV2CallOptions } from './transcription-model-v2-call-options';
-import { TranscriptionModelV2CallWarning } from './transcription-model-v2-call-warning';
+import type { JSONValue } from '../../json-value';
+import type { SharedV2Headers } from '../../shared';
+import type { TranscriptionModelV2CallOptions } from './transcription-model-v2-call-options';
+import type { TranscriptionModelV2CallWarning } from './transcription-model-v2-call-warning';
 
 /**
  * Transcription model specification version 2.

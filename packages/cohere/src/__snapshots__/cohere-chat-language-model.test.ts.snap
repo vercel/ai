@@ -622,7 +622,7 @@ exports[`doStream > error handling > should handle unparsable stream parts 1`] =
   },
   {
     "error": [AI_JSONParseError: JSON parsing failed: Text: {unparsable}.
-Error message: Expected property name or '}' in JSON at position 1 (line 1 column 2)],
+Error message: SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)],
     "type": "error",
   },
   {

@@ -1,4 +1,4 @@
-import { ZodBigIntDef } from 'zod/v3';
+import type { ZodBigIntDef } from 'zod/v3';
 
 export type JsonSchema7BigintType = {
   type: 'integer';

@@ -1,6 +1,6 @@
-import { JSONValue } from '../../json-value/json-value';
-import { SharedV2ProviderOptions } from '../../shared/v2/shared-v2-provider-options';
-import { LanguageModelV2DataContent } from './language-model-v2-data-content';
+import type { JSONValue } from '../../json-value/json-value';
+import type { SharedV2ProviderOptions } from '../../shared/v2/shared-v2-provider-options';
+import type { LanguageModelV2DataContent } from './language-model-v2-data-content';
 
 /**
  * A prompt is a list of messages.

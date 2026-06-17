@@ -1,5 +1,5 @@
-import { SharedV4ProviderOptions } from '../../shared';
-import { VideoModelV4File } from './video-model-v4-file';
+import type { SharedV4ProviderOptions } from '../../shared';
+import type { VideoModelV4File } from './video-model-v4-file';
 
 export type VideoModelV4CallOptions = {
   /**

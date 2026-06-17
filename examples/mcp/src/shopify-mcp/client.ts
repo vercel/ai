@@ -2,8 +2,7 @@ import { openai } from '@ai-sdk/openai';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { streamText } from 'ai';
 import 'dotenv/config';
-import { createMCPClient, MCPClient } from '@ai-sdk/mcp';
-
+import { createMCPClient, type MCPClient } from '@ai-sdk/mcp';
 async function main() {
   const transport = new StreamableHTTPClientTransport(
     new URL('https://cowboy.com/api/mcp'),
@@ -25,7 +24,7 @@ async function main() {
     const result = streamText({
       model: openai('gpt-4o-mini'),
       tools,
-      system: 'You are a helpful chatbot',
+      instructions: 'You are a helpful chatbot',
       prompt: 'What tools are available for me to call?',
       onFinish: async () => {
         await mcpClient.close();

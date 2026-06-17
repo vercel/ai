@@ -1,11 +1,10 @@
 import {
-  ImageModelV4,
-  ImageModelV4File,
-  SharedV4Warning,
   InvalidResponseDataError,
+  type ImageModelV4,
+  type ImageModelV4File,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   combineHeaders,
   createBinaryResponseHandler,
   createJsonResponseHandler,
@@ -14,12 +13,16 @@ import {
   delay,
   getFromApi,
   postJsonToApi,
-  InferSchema,
   lazySchema,
   parseProviderOptions,
   zodSchema,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { LumaImageSettings, LumaReferenceType } from './luma-image-settings';
+import { lumaImageModelOptionsSchema } from './luma-image-model-options';
+import type { LumaReferenceType } from './luma-image-settings';
 import { z } from 'zod/v4';
 
 const DEFAULT_POLL_INTERVAL_MILLIS = 500;
@@ -28,7 +31,7 @@ const DEFAULT_MAX_POLL_ATTEMPTS = 60000 / DEFAULT_POLL_INTERVAL_MILLIS;
 interface LumaImageModelConfig {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string>;
+  headers?: () => Record<string, string>;
   fetch?: FetchFunction;
   _internal?: {
     currentDate?: () => Date;
@@ -45,6 +48,20 @@ export class LumaImageModel implements ImageModelV4 {
     return this.config.provider;
   }
 
+  static [WORKFLOW_SERIALIZE](model: LumaImageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: LumaImageModelConfig;
+  }) {
+    return new LumaImageModel(options.modelId, options.config);
+  }
+
   constructor(
     readonly modelId: string,
     private readonly config: LumaImageModelConfig,
@@ -52,7 +69,6 @@ export class LumaImageModel implements ImageModelV4 {
 
   async doGenerate({
     prompt,
-    n,
     size,
     aspectRatio,
     seed,
@@ -108,7 +124,7 @@ export class LumaImageModel implements ImageModelV4 {
     );
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const fullHeaders = combineHeaders(this.config.headers(), headers);
+    const fullHeaders = combineHeaders(this.config.headers?.(), headers);
     const { value: generationResponse, responseHeaders } = await postJsonToApi({
       url: this.getLumaGenerationsUrl(),
       headers: fullHeaders,
@@ -380,62 +396,3 @@ export type LumaErrorData = z.infer<typeof lumaErrorSchema>;
  *
  * @see https://docs.lumalabs.ai/docs/image-generation
  */
-export const lumaImageModelOptionsSchema = lazySchema(() =>
-  zodSchema(
-    z
-      .object({
-        /**
-         * The type of image reference to use when providing input images.
-         * - `image`: Guide generation using reference images (up to 4). Default.
-         * - `style`: Apply a specific style from reference image(s).
-         * - `character`: Create consistent characters from reference images (up to 4).
-         * - `modify_image`: Transform a single input image with prompt guidance.
-         */
-        referenceType: z
-          .enum(['image', 'style', 'character', 'modify_image'])
-          .nullish(),
-
-        /**
-         * Per-image configuration array. Each entry corresponds to an image in `prompt.images`.
-         * Allows setting individual weights for each reference image.
-         */
-        images: z
-          .array(
-            z.object({
-              /**
-               * The weight of this image's influence on the generation.
-               * - For `image`: Higher weight = closer to reference (default: 0.85)
-               * - For `style`: Higher weight = stronger style influence (default: 0.8)
-               * - For `modify_image`: Higher weight = closer to input, lower = more creative (default: 1.0)
-               */
-              weight: z.number().min(0).max(1).nullish(),
-
-              /**
-               * The identity name for character references.
-               * Used with `character` to specify which identity group the image belongs to.
-               * Luma supports multiple identities (e.g., 'identity0', 'identity1') for generating
-               * images with multiple consistent characters.
-               * Default: 'identity0'
-               */
-              id: z.string().nullish(),
-            }),
-          )
-          .nullish(),
-
-        /**
-         * Override the polling interval in milliseconds (default 500).
-         */
-        pollIntervalMillis: z.number().nullish(),
-
-        /**
-         * Override the maximum number of polling attempts (default 120).
-         */
-        maxPollAttempts: z.number().nullish(),
-      })
-      .passthrough(),
-  ),
-);
-
-export type LumaImageModelOptions = InferSchema<
-  typeof lumaImageModelOptionsSchema
->;

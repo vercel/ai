@@ -4,11 +4,11 @@ import {
 } from '@ai-sdk/anthropic';
 import {
   extractReasoningMiddleware,
-  stepCountIs,
+  isStepCount,
   streamText,
-  ToolCallPart,
-  ToolResultPart,
   wrapLanguageModel,
+  type ToolCallPart,
+  type ToolResultPart,
 } from 'ai';
 import { weatherTool } from '../../tools/weather-tool';
 import { run } from '../../lib/run';
@@ -32,7 +32,7 @@ run(async () => {
       weather: weatherTool,
     },
     prompt: 'What is the weather in San Francisco?',
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
   });
 
   let enteredReasoning = false;
@@ -40,7 +40,7 @@ run(async () => {
   const toolCalls: ToolCallPart[] = [];
   const toolResponses: ToolResultPart[] = [];
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'reasoning-delta': {
         if (!enteredReasoning) {

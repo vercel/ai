@@ -1,5 +1,5 @@
 import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
-import { generateText, tool, stepCountIs } from 'ai';
+import { generateText, tool, isStepCount } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
@@ -7,7 +7,7 @@ run(async () => {
   const result = await generateText({
     model: vertexAnthropic('claude-sonnet-4-5'),
     prompt: 'Find out weather data in SF',
-    stopWhen: stepCountIs(10),
+    stopWhen: isStepCount(10),
     onStepFinish: step => {
       console.log(`\n=== Step Response ===`);
       console.dir(step.response.body, { depth: Infinity });

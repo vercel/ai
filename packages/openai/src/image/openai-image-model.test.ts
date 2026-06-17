@@ -70,6 +70,43 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should map provider options to snake_case for /images/generations', async () => {
+    prepareJsonFixtureResponse('openai-image');
+
+    await provider.image('gpt-image-1').doGenerate({
+      prompt,
+      files: undefined,
+      mask: undefined,
+      n: 1,
+      size: '1024x1024',
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {
+        openai: {
+          quality: 'high',
+          background: 'transparent',
+          moderation: 'low',
+          outputFormat: 'webp',
+          outputCompression: 80,
+          user: 'user-123',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gpt-image-1',
+      prompt,
+      n: 1,
+      size: '1024x1024',
+      quality: 'high',
+      background: 'transparent',
+      moderation: 'low',
+      output_format: 'webp',
+      output_compression: 80,
+      user: 'user-123',
+    });
+  });
+
   it('should pass headers', async () => {
     prepareJsonFixtureResponse('openai-image');
 
@@ -252,6 +289,33 @@ describe('doGenerate', () => {
       await server.calls[server.calls.length - 1].requestBodyJson;
     expect(requestBody).toStrictEqual({
       model: 'gpt-image-1',
+      prompt,
+      n: 1,
+      size: '1024x1024',
+    });
+
+    expect(requestBody).not.toHaveProperty('response_format');
+  });
+
+  it('should not include response_format for gpt-image-2', async () => {
+    prepareJsonFixtureResponse('openai-image');
+
+    const gptImageModel = provider.image('gpt-image-2');
+    await gptImageModel.doGenerate({
+      prompt,
+      files: undefined,
+      mask: undefined,
+      n: 1,
+      size: '1024x1024',
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {},
+    });
+
+    const requestBody =
+      await server.calls[server.calls.length - 1].requestBodyJson;
+    expect(requestBody).toStrictEqual({
+      model: 'gpt-image-2',
       prompt,
       n: 1,
       size: '1024x1024',
@@ -642,6 +706,41 @@ describe('doGenerate - image editing', () => {
     expect(await server.calls[0].requestBodyMultipart).toMatchObject({
       quality: 'high',
       background: 'transparent',
+    });
+  });
+
+  it('should map provider options to snake_case for /images/edits', async () => {
+    prepareEditFixtureResponse('openai-image-edit');
+
+    await provider.image('gpt-image-1').doGenerate({
+      prompt,
+      files: [
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: new Uint8Array([137, 80, 78, 71]),
+        },
+      ],
+      mask: undefined,
+      n: 1,
+      size: '1024x1024',
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {
+        openai: {
+          inputFidelity: 'high',
+          outputFormat: 'webp',
+          outputCompression: 80,
+          user: 'user-123',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyMultipart).toMatchObject({
+      input_fidelity: 'high',
+      output_format: 'webp',
+      output_compression: '80',
+      user: 'user-123',
     });
   });
 

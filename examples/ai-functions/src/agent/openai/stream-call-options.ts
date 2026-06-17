@@ -1,5 +1,8 @@
-import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
-import { LanguageModel, ToolLoopAgent } from 'ai';
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
+import { ToolLoopAgent, type LanguageModel } from 'ai';
 import { z } from 'zod';
 import { print } from '../../lib/print';
 import { printFullStream } from '../../lib/print-full-stream';

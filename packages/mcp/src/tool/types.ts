@@ -1,6 +1,6 @@
 import { z } from 'zod/v4';
-import { JSONObject } from '@ai-sdk/provider';
-import { FlexibleSchema, Tool } from '@ai-sdk/provider-utils';
+import type { JSONObject } from '@ai-sdk/provider';
+import type { FlexibleSchema, Tool } from '@ai-sdk/provider-utils';
 
 export const LATEST_PROTOCOL_VERSION = '2025-11-25';
 export const SUPPORTED_PROTOCOL_VERSIONS = [
@@ -9,6 +9,13 @@ export const SUPPORTED_PROTOCOL_VERSIONS = [
   '2025-03-26',
   '2024-11-05',
 ];
+
+export type McpProviderMetadata = {
+  clientName?: string;
+  title?: string;
+  toolName?: string;
+  app?: JSONObject;
+};
 
 /** MCP tool metadata - keys should follow MCP _meta key format specification */
 const ToolMetaSchema = z.optional(z.record(z.string(), z.unknown()));
@@ -56,8 +63,10 @@ export type McpToolSet<TOOL_SCHEMAS extends ToolSchemas = 'automatic'> =
 const ClientOrServerImplementationSchema = z.looseObject({
   name: z.string(),
   version: z.string(),
+  title: z.optional(z.string()),
 });
 
+// Maps to `Implementation` in the MCP specification
 export type Configuration = z.infer<typeof ClientOrServerImplementationSchema>;
 
 export const BaseParamsSchema = z.looseObject({
@@ -232,10 +241,24 @@ const EmbeddedResourceSchema = z
     resource: z.union([TextResourceContentsSchema, BlobResourceContentsSchema]),
   })
   .loose();
+const ResourceLinkContentSchema = z
+  .object({
+    type: z.literal('resource_link'),
+    uri: z.string(),
+    name: z.string(),
+    description: z.optional(z.string()),
+    mimeType: z.optional(z.string()),
+  })
+  .loose();
 
 export const CallToolResultSchema = ResultSchema.extend({
   content: z.array(
-    z.union([TextContentSchema, ImageContentSchema, EmbeddedResourceSchema]),
+    z.union([
+      TextContentSchema,
+      ImageContentSchema,
+      EmbeddedResourceSchema,
+      ResourceLinkContentSchema,
+    ]),
   ),
   /**
    * @see https://modelcontextprotocol.io/specification/2025-06-18/server/tools#structured-content
@@ -304,6 +327,7 @@ const PromptMessageSchema = z
       TextContentSchema,
       ImageContentSchema,
       EmbeddedResourceSchema,
+      ResourceLinkContentSchema,
     ]),
   })
   .loose();

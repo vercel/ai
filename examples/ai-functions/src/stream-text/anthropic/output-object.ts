@@ -1,13 +1,13 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { Output, stepCountIs, streamText } from 'ai';
-import z from 'zod';
+import { Output, isStepCount, streamText } from 'ai';
+import { z } from 'zod';
 import { run } from '../../lib/run';
 import { weatherTool } from '../../tools/weather-tool';
 
 run(async () => {
   const result = streamText({
     model: anthropic('claude-sonnet-4-5'),
-    stopWhen: stepCountIs(20),
+    stopWhen: isStepCount(20),
     output: Output.object({
       schema: z.object({
         elements: z.array(

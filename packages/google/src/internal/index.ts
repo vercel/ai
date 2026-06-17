@@ -1,3 +1,4 @@
-export * from '../google-generative-ai-language-model';
+export * from '../google-language-model';
+export * from '../google-speech-model';
 export { googleTools } from '../google-tools';
-export type { GoogleGenerativeAIModelId } from '../google-generative-ai-options';
+export type { GoogleModelId } from '../google-language-model-options';

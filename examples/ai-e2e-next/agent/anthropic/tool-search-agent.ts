@@ -1,5 +1,10 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { InferAgentUIMessage, tool, ToolLoopAgent, UIToolInvocation } from 'ai';
+import {
+  tool,
+  ToolLoopAgent,
+  type InferAgentUIMessage,
+  type UIToolInvocation,
+} from 'ai';
 import { z } from 'zod';
 
 const weatherTool = tool({

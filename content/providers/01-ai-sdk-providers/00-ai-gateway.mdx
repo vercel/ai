@@ -29,7 +29,7 @@ For most use cases, you can use the AI Gateway directly with a model string:
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'openai/gpt-5',
+  model: 'openai/gpt-5.4',
   prompt: 'Hello world',
 });
 ```
@@ -39,7 +39,7 @@ const { text } = await generateText({
 import { generateText, gateway } from 'ai';
 
 const { text } = await generateText({
-  model: gateway('openai/gpt-5'),
+  model: gateway('openai/gpt-5.4'),
   prompt: 'Hello world',
 });
 ```
@@ -61,7 +61,7 @@ import { gateway } from 'ai';
 
 You may want to create a custom provider instance when you need to:
 
-- Set custom configuration options (API key, base URL, headers)
+- Set custom configuration options (API key, Vercel access token, base URL, headers)
 - Use the provider in a [provider registry](/docs/ai-sdk-core/provider-management)
 - Wrap the provider with [middleware](/docs/ai-sdk-core/middleware)
 - Use different settings for different parts of your application
@@ -80,12 +80,19 @@ You can use the following optional settings to customize the AI Gateway provider
 
 - **baseURL** _string_
 
-  Use a different URL prefix for API calls. The default prefix is `https://ai-gateway.vercel.sh/v3/ai`.
+  Use a different URL prefix for API calls. The default prefix is `https://ai-gateway.vercel.sh/v4/ai`.
 
 - **apiKey** _string_
 
-  API key that is being sent using the `Authorization` header. It defaults to
-  the `AI_GATEWAY_API_KEY` environment variable.
+  API key or Vercel access token that is being sent using the `Authorization`
+  header. It defaults to the `AI_GATEWAY_API_KEY` environment variable.
+  Supports AI Gateway API keys, Vercel personal access tokens, and Vercel app
+  access tokens.
+
+- **teamIdOrSlug** _string_
+
+  Vercel team ID or slug used to scope model requests when authenticating with
+  multi-team Vercel access tokens.
 
 - **headers** _Record&lt;string,string&gt;_
 
@@ -104,7 +111,7 @@ You can use the following optional settings to customize the AI Gateway provider
 
 ## Authentication
 
-The Gateway provider supports two authentication methods:
+The Gateway provider supports the following authentication methods:
 
 ### API Key Authentication
 
@@ -124,15 +131,37 @@ const gateway = createGateway({
 });
 ```
 
+### Vercel Access Token Authentication for Model Requests
+
+For dynamic runtime authentication of model requests, pass a Vercel personal
+access token or Vercel app access token to a custom Gateway provider instance:
+
+```ts
+import { createGateway } from 'ai';
+
+const gateway = createGateway({
+  apiKey: 'your_vercel_access_token_here',
+  teamIdOrSlug: 'your-team', // required for multi-team tokens
+});
+```
+
+`apiKey` takes precedence over `AI_GATEWAY_API_KEY` and OIDC.
+
+<Note>
+  Vercel access tokens with `teamIdOrSlug` are supported for model requests.
+  Gateway helper methods such as `getCredits`, `getSpendReport`, and
+  `getGenerationInfo` require an AI Gateway API key or OIDC authentication.
+</Note>
+
 ### OIDC Authentication (Vercel Deployments)
 
-When deployed to Vercel, the AI Gateway provider supports authenticating using [OIDC (OpenID Connect)
-tokens](https://vercel.com/docs/oidc) without API Keys.
+When deployed to Vercel, the AI Gateway provider supports authenticating model
+requests using [OIDC (OpenID Connect) tokens](https://vercel.com/docs/oidc)
+without API Keys.
 
 #### How OIDC Authentication Works
 
 1. **In Production/Preview Deployments**:
-
    - OIDC authentication is automatically handled
    - No manual configuration needed
    - Tokens are automatically obtained and refreshed
@@ -147,8 +176,8 @@ tokens](https://vercel.com/docs/oidc) without API Keys.
      - You'll need to run `vercel env pull` again to refresh the token before it expires
 
 <Note>
-  If an API Key is present (either passed directly or via environment), it will
-  always be used, even if invalid.
+  If an API key or Vercel access token is present (either passed directly or via
+  environment), it will always be used instead of OIDC, even if invalid.
 </Note>
 
 Read more about using OIDC tokens in the [Vercel AI Gateway docs](https://vercel.com/docs/ai-gateway#using-the-ai-gateway-with-a-vercel-oidc-token).
@@ -158,6 +187,8 @@ Read more about using OIDC tokens in the [Vercel AI Gateway docs](https://vercel
 You can connect your own provider credentials to use with Vercel AI Gateway. This lets you use your existing provider accounts and access private resources.
 
 To set up BYOK, add your provider credentials in your Vercel team's AI Gateway settings. Once configured, AI Gateway automatically uses your credentials. No code changes are needed.
+
+For providers like Azure where you can use custom deployment names, you can configure model mappings to map gateway model slugs to your deployment names. See [model mappings](https://vercel.com/docs/ai-gateway/byok#model-mappings) for details.
 
 Learn more in the [BYOK documentation](https://vercel.com/docs/ai-gateway/byok).
 
@@ -169,12 +200,110 @@ You can create language models using a provider instance. The first argument is 
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'openai/gpt-5',
+  model: 'openai/gpt-5.4',
   prompt: 'Explain quantum computing in simple terms',
 });
 ```
 
 AI Gateway language models can also be used in the `streamText` function and support structured data generation with [`Output`](/docs/reference/ai-sdk-core/output) (see [AI SDK Core](/docs/ai-sdk-core)).
+
+## Reranking Models
+
+You can create reranking models using the `rerankingModel` method on the provider instance:
+
+```ts
+import { rerank } from 'ai';
+import { gateway } from '@ai-sdk/gateway';
+
+const { ranking } = await rerank({
+  model: gateway.rerankingModel('cohere/rerank-v3.5'),
+  query: 'What is the capital of France?',
+  documents: [
+    'Paris is the capital of France.',
+    'Berlin is the capital of Germany.',
+    'Madrid is the capital of Spain.',
+  ],
+  topN: 2,
+});
+
+console.log(ranking);
+// [
+//   { originalIndex: 0, score: 0.89, document: 'Paris is the capital of France.' },
+//   { originalIndex: 2, score: 0.15, document: 'Madrid is the capital of Spain.' },
+// ]
+```
+
+Reranking models are useful for improving search results in retrieval-augmented generation (RAG) pipelines by re-scoring candidate documents after an initial retrieval step.
+
+## Realtime Models
+
+<Note type="warning">
+  Realtime support is experimental and the API may change in patch releases.
+</Note>
+
+You can create realtime models for bidirectional audio/text WebSocket sessions using the `experimental_realtime` method on the provider instance. The first argument is the model ID in the format `creator/model-name`:
+
+```ts
+import { gateway } from '@ai-sdk/gateway';
+
+const model = gateway.experimental_realtime('openai/gpt-realtime-2');
+```
+
+The Gateway normalizes realtime the same way it normalizes every other modality: your client speaks the [normalized AI SDK realtime protocol](/docs/ai-sdk-core/realtime) and the Gateway translates to and from the upstream provider server-side. This means the same client code works regardless of which provider backs the model.
+
+Gateway realtime v0 is server-side only. Calling `gateway.experimental_realtime()` in a browser throws an error. `getToken()` returns the Gateway auth token resolved by the provider (`apiKey`, `AI_GATEWAY_API_KEY`, or Vercel OIDC token), so do not expose it to browser clients.
+
+```ts
+import { gateway } from '@ai-sdk/gateway';
+
+// Server-side only. Do not return this token to browser clients.
+const token = await gateway.experimental_realtime.getToken({
+  model: 'openai/gpt-realtime-2',
+});
+```
+
+<Note>
+  Gateway realtime v0 does not mint a provider-style short-lived client secret.
+  Gateway-minted ephemeral secrets are planned as future work; browser support
+  should wait for that flow.
+</Note>
+
+<Note>
+  The Gateway WebSocket route transports auth via the versioned
+  `Sec-WebSocket-Protocol` subprotocol and the model id via the `?ai-model-id=`
+  query - the WebSocket transport of the `Authorization` and `ai-model-id`
+  headers the HTTP routes use. Subprotocol values must fit the WebSocket token
+  grammar, and the complete `Sec-WebSocket-Protocol` header should stay compact
+  (under an 8 KiB safe header budget).
+</Note>
+
+### Provider Options
+
+Gateway [provider options](#gateway-provider-options) — `tags`, `user`, `byok`, compliance flags, and so on — are set under `providerOptions.gateway` in the **session configuration**, mirroring how they ride the request body on the non-realtime routes. Include them in the session configuration you send to the Gateway, and the Gateway applies them server-side:
+
+```ts
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
+
+const gatewayOptions: GatewayProviderOptions = {
+  tags: ['cooking-coach', 'v2'],
+  user: 'user-123',
+};
+
+const sessionConfig = {
+  instructions: 'You are a concise voice assistant.',
+  providerOptions: { gateway: gatewayOptions },
+};
+```
+
+The `GatewayProviderOptions` type is exported from `@ai-sdk/gateway` for stable client-facing fields. The type also accepts service-owned option keys so the Gateway service can add or change server-side options without requiring an SDK release for every schema change. Runtime validation is owned by the Gateway service.
+
+<Note>
+  Provider options are sent in the first `session.update` frame (after the
+  socket opens), so connect-time options such as `byok` and quota selection
+  require a Gateway that resolves them from that frame. Routing knobs like
+  `order` / `only` do not apply to realtime, where the Gateway selects the
+  WebSocket-capable provider.
+</Note>
 
 ## Available Models
 
@@ -215,7 +344,7 @@ availableModels.models.forEach(model => {
 
 // Use any discovered model with plain string
 const { text } = await generateText({
-  model: availableModels.models[0].id, // e.g., 'openai/gpt-4o'
+  model: availableModels.models[0].id, // e.g., 'openai/gpt-5.4'
   prompt: 'Hello world',
 });
 ```
@@ -266,7 +395,7 @@ console.log(`Prompt tokens: ${generation.promptTokens}`);
 console.log(`Completion tokens: ${generation.completionTokens}`);
 ```
 
-With `streamText`, you can capture the generation ID from the first chunk via `fullStream`:
+With `streamText`, you can capture the generation ID from the first chunk via `stream`:
 
 ```ts
 import { gateway, streamText } from 'ai';
@@ -278,7 +407,7 @@ const result = streamText({
 
 let generationId: string | undefined;
 
-for await (const part of result.fullStream) {
+for await (const part of result.stream) {
   if (!generationId && part.providerMetadata?.gateway?.generationId) {
     generationId = part.providerMetadata.gateway.generationId as string;
     console.log(`Generation ID (early): ${generationId}`);
@@ -326,7 +455,7 @@ It returns a `GatewayGenerationInfo` object with the following fields:
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-4',
+  model: 'anthropic/claude-sonnet-4.6',
   prompt: 'Write a haiku about programming',
 });
 
@@ -339,7 +468,7 @@ console.log(text);
 import { streamText } from 'ai';
 
 const { textStream } = await streamText({
-  model: 'openai/gpt-5',
+  model: 'openai/gpt-5.4',
   prompt: 'Explain the benefits of serverless architecture',
 });
 
@@ -377,13 +506,13 @@ const { text } = await generateText({
 Some providers offer tools that are executed by the provider itself, such as [OpenAI's web search tool](/providers/ai-sdk-providers/openai#web-search-tool). To use these tools through AI Gateway, import the provider to access the tool definitions:
 
 ```ts
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const result = await generateText({
-  model: 'openai/gpt-5-mini',
+  model: 'openai/gpt-5.4-mini',
   prompt: 'What is the Vercel AI Gateway?',
-  stopWhen: stepCountIs(10),
+  stopWhen: isStepCount(10),
   tools: {
     web_search: openai.tools.webSearch({}),
   },
@@ -410,7 +539,7 @@ The Perplexity Search tool enables models to search the web using [Perplexity's 
 import { gateway, generateText } from 'ai';
 
 const result = await generateText({
-  model: 'openai/gpt-5-nano',
+  model: 'openai/gpt-5.4-nano',
   prompt: 'Search for news about AI regulations in January 2025.',
   tools: {
     perplexity_search: gateway.tools.perplexitySearch(),
@@ -428,7 +557,7 @@ You can also configure the search with optional parameters:
 import { gateway, generateText } from 'ai';
 
 const result = await generateText({
-  model: 'openai/gpt-5-nano',
+  model: 'openai/gpt-5.4-nano',
   prompt:
     'Search for news about AI regulations from the first week of January 2025.',
   tools: {
@@ -482,14 +611,14 @@ The tool works with both `generateText` and `streamText`:
 import { gateway, streamText } from 'ai';
 
 const result = streamText({
-  model: 'openai/gpt-5-nano',
+  model: 'openai/gpt-5.4-nano',
   prompt: 'Search for the latest news about AI regulations.',
   tools: {
     perplexity_search: gateway.tools.perplexitySearch(),
   },
 });
 
-for await (const part of result.fullStream) {
+for await (const part of result.stream) {
   switch (part.type) {
     case 'text-delta':
       process.stdout.write(part.text);
@@ -512,7 +641,7 @@ The Parallel Search tool enables models to search the web using [Parallel AI's S
 import { gateway, generateText } from 'ai';
 
 const result = await generateText({
-  model: 'openai/gpt-5-nano',
+  model: 'openai/gpt-5.4-nano',
   prompt: 'Research the latest developments in quantum computing.',
   tools: {
     parallel_search: gateway.tools.parallelSearch(),
@@ -530,7 +659,7 @@ You can also configure the search with optional parameters:
 import { gateway, generateText } from 'ai';
 
 const result = await generateText({
-  model: 'openai/gpt-5-nano',
+  model: 'openai/gpt-5.4-nano',
   prompt: 'Find detailed information about TypeScript 5.0 features.',
   tools: {
     parallel_search: gateway.tools.parallelSearch({
@@ -556,7 +685,6 @@ The Parallel Search tool supports the following optional configuration options:
 - **mode** _'one-shot' | 'agentic'_
 
   Mode preset for different use cases:
-
   - `'one-shot'` - Comprehensive results with longer excerpts for single-response answers (default)
   - `'agentic'` - Concise, token-efficient results optimized for multi-step agentic workflows
 
@@ -567,7 +695,6 @@ The Parallel Search tool supports the following optional configuration options:
 - **sourcePolicy** _object_
 
   Source policy for controlling which domains to include/exclude:
-
   - `includeDomains` - List of domains to include in search results
   - `excludeDomains` - List of domains to exclude from search results
   - `afterDate` - Only include results published after this date (ISO 8601 format)
@@ -575,14 +702,12 @@ The Parallel Search tool supports the following optional configuration options:
 - **excerpts** _object_
 
   Excerpt configuration for controlling result length:
-
   - `maxCharsPerResult` - Maximum characters per result
   - `maxCharsTotal` - Maximum total characters across all results
 
 - **fetchPolicy** _object_
 
   Fetch policy for controlling content freshness:
-
   - `maxAgeSeconds` - Maximum age in seconds for cached content (set to 0 for always fresh)
 
 The tool works with both `generateText` and `streamText`:
@@ -591,14 +716,14 @@ The tool works with both `generateText` and `streamText`:
 import { gateway, streamText } from 'ai';
 
 const result = streamText({
-  model: 'openai/gpt-5-nano',
+  model: 'openai/gpt-5.4-nano',
   prompt: 'Research the latest AI safety guidelines.',
   tools: {
     parallel_search: gateway.tools.parallelSearch(),
   },
 });
 
-for await (const part of result.fullStream) {
+for await (const part of result.stream) {
   switch (part.type) {
     case 'text-delta':
       process.stdout.write(part.text);
@@ -624,7 +749,7 @@ import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'openai/gpt-5',
+  model: 'openai/gpt-5.4',
   prompt: 'Summarize this document...',
   providerOptions: {
     gateway: {
@@ -725,7 +850,7 @@ import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-4',
+  model: 'anthropic/claude-sonnet-4.6',
   prompt: 'Explain quantum computing',
   providerOptions: {
     gateway: {
@@ -750,11 +875,24 @@ The following gateway provider options are available:
 
   Example: `only: ['anthropic', 'vertex']` will only allow routing to Anthropic or Vertex AI.
 
+- **sort** _'cost' | 'ttft' | 'tps'_
+
+  Sorts available providers by a performance or cost metric before routing. The gateway will try the best-scoring provider first and fall back through the rest in sorted order. If unspecified, providers are ordered using the gateway's default system ranking.
+  - `'cost'` — lowest cost first
+  - `'ttft'` — lowest time-to-first-token first
+  - `'tps'` — highest tokens-per-second first
+
+  When combined with `order`, the user-specified providers are promoted to the front while remaining providers follow the sorted order.
+
+  Example: `sort: 'ttft'` will route to the provider with the fastest time-to-first-token.
+
+  When `sort` is active, the response's `providerMetadata.gateway.routing.sort` object contains the sort option used, the resulting execution order, per-provider metric values, and any providers that were deprioritized.
+
 - **models** _string[]_
 
   Specifies fallback models to use when the primary model fails or is unavailable. The gateway will try the primary model first (specified in the `model` parameter), then try each model in this array in order until one succeeds.
 
-  Example: `models: ['openai/gpt-5-nano', 'gemini-2.0-flash']` will try the fallback models in order if the primary model fails.
+  Example: `models: ['openai/gpt-5.4-nano', 'gemini-3-flash-preview']` will try the fallback models in order if the primary model fails.
 
 - **user** _string_
 
@@ -774,15 +912,29 @@ The following gateway provider options are available:
 
   Each provider can have multiple credentials (tried in order). The structure is a record where keys are provider slugs and values are arrays of credential objects.
 
-  Examples:
+  Each credential can optionally include a `modelMappings` array to map AI Gateway model slugs to your deployment names (for example, custom Azure deployment names). If a BYOK request fails, the gateway falls back to system credentials using the default model name.
 
+  Examples:
   - Single provider: `byok: { 'anthropic': [{ apiKey: 'sk-ant-...' }] }`
   - Multiple credentials: `byok: { 'vertex': [{ project: 'proj-1', googleCredentials: { privateKey: '...', clientEmail: '...' } }, { project: 'proj-2', googleCredentials: { privateKey: '...', clientEmail: '...' } }] }`
   - Multiple providers: `byok: { 'anthropic': [{ apiKey: '...' }], 'bedrock': [{ accessKeyId: '...', secretAccessKey: '...' }] }`
+  - With model mappings: `byok: { 'azure': [{ apiKey: '...', resourceName: '...', modelMappings: [{ gatewayModelSlug: 'openai/gpt-5.4-nano', customModelId: 'my-deployment' }] }] }`
 
 - **zeroDataRetention** _boolean_
 
-  Restricts routing requests to providers that have zero data retention policies.
+  Restricts routing to providers with zero data retention agreements with Vercel for AI Gateway. BYOK credentials are skipped by default, since your provider agreements differ from Vercel's. When this filter is on, AI Gateway routes only to providers Vercel has ZDR agreements with for the model. If you have BYOK keys marked as ZDR, those keys are tried first, then AI Gateway falls back to its system credentials. You are responsible for the accuracy of that marking. Applies to both account-wide and request-level ZDR. The request fails if no ZDR-eligible credentials are available. Request-level ZDR is only available for Vercel Pro and Enterprise plans.
+
+- **disallowPromptTraining** _boolean_
+
+  Restricts routing to providers that have agreements with Vercel for AI Gateway to not use prompts for model training. When using BYOK credentials, this filter is not applied. If BYOK credentials fail and the request falls back to system credentials, only providers that do not train on prompt data will be used. If there are no providers available for the model that disallow prompt training, the request will fail.
+
+- **hipaaCompliant** _boolean_
+
+  Restricts routing to models and tools from providers that have signed a BAA with Vercel for the use of AI Gateway (requires Vercel HIPAA BAA add on). BYOK credentials are skipped when `hipaaCompliant` is set to `true` to ensure that requests are only routed to providers that support HIPAA compliance.
+
+- **quotaEntityId** _string_
+
+  The unique identifier for the entity against which quota is tracked. Used for quota management and enforcement purposes.
 
 - **providerTimeouts** _object_
 
@@ -792,6 +944,32 @@ The following gateway provider options are available:
 
   For full details, see [Provider Timeouts](https://vercel.com/docs/ai-gateway/models-and-providers/provider-timeouts).
 
+- **serviceTier** _'flex' | 'priority'_
+
+  Unified service tier intent. The gateway translates it into whichever
+  per-provider option each provider expects, and overrides any tier
+  also set in the per-provider options. Leave unset for provider
+  default. See the [OpenAI](/providers/ai-sdk-providers/openai),
+  [Google Generative AI](/providers/ai-sdk-providers/google-generative-ai),
+  and [Google Vertex AI](/providers/ai-sdk-providers/google-vertex)
+  provider docs for tier semantics, model availability, and graceful
+  downgrade behavior on each provider.
+
+  ```ts
+  import type { GatewayProviderOptions } from '@ai-sdk/gateway';
+  import { generateText } from 'ai';
+
+  const { text } = await generateText({
+    model: 'openai/gpt-5-mini',
+    prompt: 'Hello',
+    providerOptions: {
+      gateway: {
+        serviceTier: 'priority',
+      } satisfies GatewayProviderOptions,
+    },
+  });
+  ```
+
 You can combine these options to have fine-grained control over routing and tracking:
 
 ```ts
@@ -799,7 +977,7 @@ import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-4',
+  model: 'anthropic/claude-sonnet-4.6',
   prompt: 'Write a haiku about programming',
   providerOptions: {
     gateway: {
@@ -819,38 +997,93 @@ import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'openai/gpt-4o', // Primary model
+  model: 'openai/gpt-5.4', // Primary model
   prompt: 'Write a TypeScript haiku',
   providerOptions: {
     gateway: {
-      models: ['openai/gpt-5-nano', 'gemini-2.0-flash'], // Fallback models
+      models: ['openai/gpt-5.4-nano', 'gemini-3-flash-preview'], // Fallback models
     } satisfies GatewayProviderOptions,
   },
 });
 
 // This will:
-// 1. Try openai/gpt-4o first
-// 2. If it fails, try openai/gpt-5-nano
-// 3. If that fails, try gemini-2.0-flash
+// 1. Try openai/gpt-5.4 first
+// 2. If it fails, try openai/gpt-5.4-nano
+// 3. If that fails, try gemini-3-flash-preview
 // 4. Return the result from the first model that succeeds
 ```
 
 #### Zero Data Retention Example
 
-Set `zeroDataRetention` to true to ensure requests are only routed to providers
-that have zero data retention policies. When `zeroDataRetention` is `false` or not
-specified, there is no enforcement of restricting routing.
+Set `zeroDataRetention` to true to route requests to providers with zero data retention agreements with Vercel for AI Gateway. BYOK credentials are skipped by default, since your provider agreements differ from Vercel's. When this filter is on, AI Gateway routes only to providers Vercel has ZDR agreements with for the model. If you have BYOK keys marked as ZDR, those keys are tried first, then AI Gateway falls back to its system credentials. You are responsible for the accuracy of that marking. Applies to both account-wide and request-level ZDR. The request fails if no ZDR-eligible credentials are available. When `zeroDataRetention` is `false` or not specified, there is no enforcement of restricting routing. Request-level ZDR is only available for Vercel Pro and Enterprise plans.
 
 ```ts
 import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: 'anthropic/claude-sonnet-4.6',
   prompt: 'Analyze this sensitive document...',
   providerOptions: {
     gateway: {
       zeroDataRetention: true,
+    } satisfies GatewayProviderOptions,
+  },
+});
+```
+
+#### Disallow Prompt Training Example
+
+Set `disallowPromptTraining` to true to route requests to providers that have agreements with Vercel for AI Gateway to not use prompts for model training. When using BYOK credentials, this filter is not applied. If BYOK credentials fail and the request falls back to system credentials, only providers that do not train on prompt data will be used. If there are no providers available for the model that disallow prompt training, the request will fail. When `disallowPromptTraining` is `false` or not specified, there is no enforcement of restricting routing.
+
+```ts
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-4.6',
+  prompt: 'Analyze this proprietary business data...',
+  providerOptions: {
+    gateway: {
+      disallowPromptTraining: true,
+    } satisfies GatewayProviderOptions,
+  },
+});
+```
+
+#### HIPAA Compliance Example
+
+Set `hipaaCompliant` to true to route requests only to models or tools by providers that have signed a BAA with Vercel for the use of AI Gateway. If the model or tool does not have a HIPAA-compliant provider, the request will fail. When `hipaaCompliant` is `false` or not specified, there is no enforcement of restricting routing. BYOK credentials are skipped when `hipaaCompliant` is set to `true` to ensure that requests are only routed to providers that support HIPAA compliance.
+
+```ts
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-4.6',
+  prompt: 'Analyze this patient data...',
+  providerOptions: {
+    gateway: {
+      hipaaCompliant: true,
+    } satisfies GatewayProviderOptions,
+  },
+});
+```
+
+#### Quota Entity ID Example
+
+Set `quotaEntityId` to track and enforce quota against a specific entity. This is useful for multi-tenant applications where you need to manage quota at the entity level (e.g., per organization or team).
+
+```ts
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-4.6',
+  prompt: 'Summarize this report...',
+  providerOptions: {
+    gateway: {
+      quotaEntityId: 'org-123',
     } satisfies GatewayProviderOptions,
   },
 });
@@ -866,7 +1099,7 @@ import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-4',
+  model: 'anthropic/claude-sonnet-4.6',
   prompt: 'Explain quantum computing',
   providerOptions: {
     gateway: {

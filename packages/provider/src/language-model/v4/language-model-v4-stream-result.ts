@@ -1,5 +1,5 @@
-import { SharedV4Headers } from '../../shared';
-import { LanguageModelV4StreamPart } from './language-model-v4-stream-part';
+import type { SharedV4Headers } from '../../shared';
+import type { LanguageModelV4StreamPart } from './language-model-v4-stream-part';
 
 /**
  * The result of a language model doStream call.

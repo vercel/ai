@@ -1,5 +1,10 @@
 import { cohere } from '@ai-sdk/cohere';
-import { streamText, ModelMessage, ToolCallPart, ToolResultPart } from 'ai';
+import {
+  streamText,
+  type ModelMessage,
+  type ToolCallPart,
+  type ToolResultPart,
+} from 'ai';
 import { weatherTool } from '../../tools/weather-tool';
 import { run } from '../../lib/run';
 
@@ -22,7 +27,7 @@ run(async () => {
   const toolCalls: ToolCallPart[] = [];
   const toolResponses: ToolResultPart[] = [];
 
-  for await (const delta of result.fullStream) {
+  for await (const delta of result.stream) {
     console.log(delta);
 
     switch (delta.type) {

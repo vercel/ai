@@ -1,14 +1,18 @@
-import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
 import {
   convertToModelMessages,
-  InferUITools,
+  createUIMessageStreamResponse,
   streamText,
-  ToolSet,
-  UIDataTypes,
-  UIMessage,
+  toUIMessageStream,
   validateUIMessages,
+  type InferUITools,
+  type ToolSet,
+  type UIDataTypes,
+  type UIMessage,
 } from 'ai';
-
 export const maxDuration = 30;
 
 const tools = {
@@ -41,7 +45,7 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toUIMessageStreamResponse({
-    sendSources: true,
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream, sendSources: true }),
   });
 }

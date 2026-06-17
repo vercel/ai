@@ -242,6 +242,48 @@ describe('isUrlSupported', () => {
     });
   });
 
+  describe('top-level-only media types', () => {
+    it('should match a `type/*` key for a top-level-only media type', () => {
+      expect(
+        isUrlSupported({
+          mediaType: 'image',
+          url: 'https://example.com/cat.png',
+          supportedUrls: { 'image/*': [/https:\/\/example\.com\/.+/] },
+        }),
+      ).toBe(true);
+    });
+
+    it('should match the wildcard `*` key for a top-level-only media type', () => {
+      expect(
+        isUrlSupported({
+          mediaType: 'image',
+          url: 'https://example.com',
+          supportedUrls: { '*': [/https:\/\/example\.com/] },
+        }),
+      ).toBe(true);
+    });
+
+    it('should NOT match a specific `type/subtype` key for a top-level-only media type', () => {
+      expect(
+        isUrlSupported({
+          mediaType: 'image',
+          url: 'https://example.com/cat.png',
+          supportedUrls: { 'image/png': [/https:\/\/example\.com\/.+/] },
+        }),
+      ).toBe(false);
+    });
+
+    it('should NOT match a different top-level `type/*` key', () => {
+      expect(
+        isUrlSupported({
+          mediaType: 'image',
+          url: 'https://example.com/audio.mp3',
+          supportedUrls: { 'audio/*': [/https:\/\/example\.com\/.+/] },
+        }),
+      ).toBe(false);
+    });
+  });
+
   describe('empty URL arrays for a media type', () => {
     it('should return false if the specific media type has an empty URL array', async () => {
       expect(

@@ -1,18 +1,18 @@
 import {
   APICallError,
-  JSONValue,
-  LanguageModelV4,
-  LanguageModelV4Prompt,
-  LanguageModelV4CallOptions,
-  LanguageModelV4Content,
-  LanguageModelV4FinishReason,
-  LanguageModelV4GenerateResult,
-  LanguageModelV4ProviderTool,
-  LanguageModelV4StreamPart,
-  LanguageModelV4StreamResult,
-  LanguageModelV4ToolApprovalRequest,
-  SharedV4ProviderMetadata,
-  SharedV4Warning,
+  type JSONValue,
+  type LanguageModelV4,
+  type LanguageModelV4Prompt,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4Content,
+  type LanguageModelV4FinishReason,
+  type LanguageModelV4GenerateResult,
+  type LanguageModelV4ProviderTool,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4StreamResult,
+  type LanguageModelV4ToolApprovalRequest,
+  type SharedV4ProviderMetadata,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -20,54 +20,58 @@ import {
   createJsonResponseHandler,
   createToolNameMapping,
   generateId,
-  InferSchema,
   isCustomReasoning,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
+  type InferSchema,
+  type ParseResult,
 } from '@ai-sdk/provider-utils';
-import { OpenAIConfig } from '../openai-config';
+import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
-import { applyPatchInputSchema } from '../tool/apply-patch';
-import {
+import { throwIfOpenAIStreamErrorBeforeOutput } from '../openai-stream-error';
+import type { applyPatchInputSchema } from '../tool/apply-patch';
+import type {
   codeInterpreterInputSchema,
   codeInterpreterOutputSchema,
 } from '../tool/code-interpreter';
-import { fileSearchOutputSchema } from '../tool/file-search';
-import { imageGenerationOutputSchema } from '../tool/image-generation';
-import { localShellInputSchema } from '../tool/local-shell';
-import { mcpOutputSchema } from '../tool/mcp';
-import { shellInputSchema, shellOutputSchema } from '../tool/shell';
-import {
+import type { fileSearchOutputSchema } from '../tool/file-search';
+import type { imageGenerationOutputSchema } from '../tool/image-generation';
+import type { localShellInputSchema } from '../tool/local-shell';
+import type { mcpOutputSchema } from '../tool/mcp';
+import type { shellInputSchema, shellOutputSchema } from '../tool/shell';
+import type {
   toolSearchInputSchema,
   toolSearchOutputSchema,
 } from '../tool/tool-search';
-import { webSearchOutputSchema } from '../tool/web-search';
+import type { webSearchOutputSchema } from '../tool/web-search';
 import {
   convertOpenAIResponsesUsage,
-  OpenAIResponsesUsage,
+  type OpenAIResponsesUsage,
 } from './convert-openai-responses-usage';
 import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
 import {
-  OpenAIResponsesChunk,
   openaiResponsesChunkSchema,
-  OpenAIResponsesIncludeOptions,
-  OpenAIResponsesIncludeValue,
-  OpenAIResponsesLogprobs,
   openaiResponsesResponseSchema,
-  OpenAIResponsesWebSearchAction,
-  OpenAIResponsesApplyPatchOperationDiffDeltaChunk,
-  OpenAIResponsesApplyPatchOperationDiffDoneChunk,
+  type OpenAIResponsesChunk,
+  type OpenAIResponsesIncludeOptions,
+  type OpenAIResponsesIncludeValue,
+  type OpenAIResponsesLogprobs,
+  type OpenAIResponsesWebSearchAction,
+  type OpenAIResponsesApplyPatchOperationDiffDeltaChunk,
+  type OpenAIResponsesApplyPatchOperationDiffDoneChunk,
 } from './openai-responses-api';
 import {
-  OpenAIResponsesModelId,
   openaiLanguageModelResponsesOptionsSchema,
   TOP_LOGPROBS_MAX,
-} from './openai-responses-options';
+  type OpenAIResponsesModelId,
+} from './openai-responses-language-model-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
-import {
+import type {
   ResponsesCompactionProviderMetadata,
   ResponsesProviderMetadata,
   ResponsesReasoningProviderMetadata,
@@ -106,6 +110,20 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
   readonly modelId: OpenAIResponsesModelId;
 
   private readonly config: OpenAIConfig;
+
+  static [WORKFLOW_SERIALIZE](model: OpenAIResponsesLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: OpenAIResponsesModelId;
+    config: OpenAIConfig;
+  }) {
+    return new OpenAIResponsesLanguageModel(options.modelId, options.config);
+  }
 
   constructor(modelId: OpenAIResponsesModelId, config: OpenAIConfig) {
     this.modelId = modelId;
@@ -216,6 +234,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     } = await prepareResponsesTools({
       tools,
       toolChoice,
+      allowedTools: openaiOptions?.allowedTools ?? undefined,
       toolNameMapping,
       customProviderToolNames,
     });
@@ -231,8 +250,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             : modelCapabilities.systemMessageMode),
         providerOptionsName,
         fileIdPrefixes: this.config.fileIdPrefixes,
+        passThroughUnsupportedFiles:
+          openaiOptions?.passThroughUnsupportedFiles ?? false,
         store: openaiOptions?.store ?? true,
         hasConversation: openaiOptions?.conversation != null,
+        hasPreviousResponseId: openaiOptions?.previousResponseId != null,
         hasLocalShellTool: hasOpenAITool('openai.local_shell'),
         hasShellTool: hasOpenAITool('openai.shell'),
         hasApplyPatchTool: hasOpenAITool('openai.apply_patch'),
@@ -494,7 +516,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -786,6 +808,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             providerMetadata: {
               [providerOptionsName]: {
                 itemId: part.id,
+                ...(part.namespace != null && { namespace: part.namespace }),
               },
             },
           });
@@ -1058,12 +1081,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       isShellProviderExecuted,
     } = await this.getArgs(options);
 
+    const url = this.config.url({
+      path: '/responses',
+      modelId: this.modelId,
+    });
+
     const { responseHeaders, value: response } = await postJsonToApi({
-      url: this.config.url({
-        path: '/responses',
-        modelId: this.modelId,
-      }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      url,
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: {
         ...body,
         stream: true,
@@ -1074,6 +1099,19 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
+    });
+
+    const checkedResponse = await throwIfOpenAIStreamErrorBeforeOutput({
+      stream: response,
+      getError: chunk =>
+        isErrorChunk(chunk) ||
+        (isResponseFailedChunk(chunk) && chunk.response.error != null)
+          ? chunk
+          : undefined,
+      isOutputChunk: isResponseOutputChunk,
+      url,
+      requestBodyValues: body,
+      responseHeaders,
     });
 
     const self = this;
@@ -1136,9 +1174,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
     let serviceTier: string | undefined;
     const hostedToolSearchCallIds: string[] = [];
+    let encounteredStreamError = false;
 
-    return {
-      stream: response.pipeThrough(
+    const result = {
+      stream: checkedResponse.pipeThrough(
         new TransformStream<
           ParseResult<OpenAIResponsesChunk>,
           LanguageModelV4StreamPart
@@ -1409,6 +1448,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 controller.enqueue({
                   type: 'tool-input-end',
                   id: value.item.call_id,
+                  ...(value.item.namespace != null && {
+                    providerMetadata: {
+                      [providerOptionsName]: {
+                        namespace: value.item.namespace,
+                      },
+                    },
+                  }),
                 });
 
                 controller.enqueue({
@@ -1419,6 +1465,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   providerMetadata: {
                     [providerOptionsName]: {
                       itemId: value.item.id,
+                      ...(value.item.namespace != null && {
+                        namespace: value.item.namespace,
+                      }),
                     },
                   },
                 });
@@ -2057,6 +2106,22 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 raw: incompleteReason ?? 'error',
               };
               usage = value.response.usage ?? undefined;
+
+              if (!encounteredStreamError && value.response.error != null) {
+                encounteredStreamError = true;
+                controller.enqueue({
+                  type: 'error',
+                  error: {
+                    type: 'response.failed',
+                    sequence_number: value.sequence_number,
+                    response: {
+                      error: value.response.error,
+                      incomplete_details: value.response.incomplete_details,
+                      service_tier: value.response.service_tier,
+                    },
+                  },
+                });
+              }
             } else if (isResponseAnnotationAddedChunk(value)) {
               ongoingAnnotations.push(value.annotation);
               if (value.annotation.type === 'url_citation') {
@@ -2126,6 +2191,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 });
               }
             } else if (isErrorChunk(value)) {
+              encounteredStreamError = true;
+              finishReason = { unified: 'error', raw: 'error' };
               controller.enqueue({ type: 'error', error: value });
             }
           },
@@ -2151,6 +2218,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       request: { body },
       response: { headers: responseHeaders },
     };
+
+    return result;
   }
 }
 
@@ -2260,6 +2329,15 @@ function isErrorChunk(
   return chunk.type === 'error';
 }
 
+function isResponseOutputChunk(chunk: OpenAIResponsesChunk): boolean {
+  return !(
+    chunk.type === 'response.created' ||
+    chunk.type === 'response.failed' ||
+    chunk.type === 'error' ||
+    chunk.type === 'unknown_chunk'
+  );
+}
+
 function mapWebSearchOutput(
   action: OpenAIResponsesWebSearchAction | null | undefined,
 ): InferSchema<typeof webSearchOutputSchema> {
@@ -2270,7 +2348,11 @@ function mapWebSearchOutput(
   switch (action.type) {
     case 'search':
       return {
-        action: { type: 'search', query: action.query ?? undefined },
+        action: {
+          type: 'search',
+          query: action.query ?? undefined,
+          ...(action.queries != null && { queries: action.queries }),
+        },
         // include sources when provided by the Responses API (behind include flag)
         ...(action.sources != null && { sources: action.sources }),
       };

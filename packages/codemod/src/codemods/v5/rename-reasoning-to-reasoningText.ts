@@ -1,4 +1,4 @@
-import { ASTPath } from 'jscodeshift';
+import type { ASTPath } from 'jscodeshift';
 import { createTransformer } from '../lib/create-transformer';
 
 /*
@@ -88,7 +88,7 @@ export default createTransformer((fileInfo, api, options, context) => {
     });
 
   // Step 2b: Look for `for...of` loops on `steps`
-  const forOfPaths = root
+  root
     .find(j.ForOfStatement)
     .filter(path => {
       const right = path.node.right;

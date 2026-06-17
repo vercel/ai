@@ -4,6 +4,8 @@ This package provides a foundation for implementing providers that expose an Ope
 
 The primary [OpenAI provider](../openai/README.md) is more feature-rich, including OpenAI-specific experimental and legacy features. This package offers a lighter-weight alternative focused on core OpenAI-compatible functionality.
 
+> **Deploying to Vercel?** With Vercel's AI Gateway you can access hundreds of models from any provider — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
+
 ## Setup
 
 The provider is available in the `@ai-sdk/openai-compatible` module. You can install it with

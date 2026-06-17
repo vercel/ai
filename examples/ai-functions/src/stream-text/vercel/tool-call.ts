@@ -1,5 +1,10 @@
 import { vercel } from '@ai-sdk/vercel';
-import { streamText, ToolCallPart, ToolResultPart, ModelMessage } from 'ai';
+import {
+  streamText,
+  type ToolCallPart,
+  type ToolResultPart,
+  type ModelMessage,
+} from 'ai';
 import { weatherTool } from '../../tools/weather-tool';
 import { run } from '../../lib/run';
 
@@ -22,7 +27,7 @@ run(async () => {
   const toolCalls: ToolCallPart[] = [];
   const toolResponses: ToolResultPart[] = [];
 
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     switch (chunk.type) {
       case 'text-delta': {
         process.stdout.write(chunk.text);

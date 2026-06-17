@@ -1,4 +1,4 @@
-import { RerankingModelV4 } from '@ai-sdk/provider';
+import type { RerankingModelV4 } from '@ai-sdk/provider';
 import { notImplemented } from './not-implemented';
 
 export class MockRerankingModelV4 implements RerankingModelV4 {

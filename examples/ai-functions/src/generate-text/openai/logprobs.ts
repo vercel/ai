@@ -1,7 +1,7 @@
 import {
   openai,
   type OpenAILanguageModelChatOptions,
-  OpenaiResponsesProviderMetadata,
+  type OpenaiResponsesProviderMetadata,
 } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
@@ -17,7 +17,7 @@ run(async () => {
     },
   });
 
-  const providerMetadata = result.providerMetadata as
+  const providerMetadata = result.finalStep.providerMetadata as
     | OpenaiResponsesProviderMetadata
     | undefined;
   if (!providerMetadata) return;

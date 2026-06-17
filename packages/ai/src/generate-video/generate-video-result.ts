@@ -1,7 +1,7 @@
-import { GeneratedFile } from '../generate-text';
-import { VideoModelProviderMetadata } from '../types/video-model';
-import { VideoModelResponseMetadata } from '../types/video-model-response-metadata';
-import { Warning } from '../types/warning';
+import type { GeneratedFile } from '../generate-text';
+import type { VideoModelProviderMetadata } from '../types/video-model';
+import type { VideoModelResponseMetadata } from '../types/video-model-response-metadata';
+import type { Warning } from '../types/warning';
 
 /**
  * The result of an `experimental_generateVideo` call.

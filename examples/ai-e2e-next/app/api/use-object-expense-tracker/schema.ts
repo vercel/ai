@@ -1,4 +1,4 @@
-import { DeepPartial } from 'ai';
+import type { DeepPartial } from 'ai';
 import { z } from 'zod';
 
 export const expenseSchema = z.object({

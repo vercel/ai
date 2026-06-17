@@ -1,7 +1,5 @@
 import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
-import type { InferSchema, Resolvable } from '@ai-sdk/provider-utils';
 import {
-  FetchFunction,
   combineHeaders,
   createBinaryResponseHandler,
   createJsonErrorResponseHandler,
@@ -9,15 +7,22 @@ import {
   createStatusCodeErrorResponseHandler,
   delay,
   getFromApi,
-  lazySchema,
+  isSameOrigin,
   parseProviderOptions,
   postJsonToApi,
   resolve,
-  zodSchema,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type Resolvable,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import type { BlackForestLabsAspectRatio } from './black-forest-labs-image-settings';
-import { BlackForestLabsImageModelId } from './black-forest-labs-image-settings';
+import { blackForestLabsImageModelOptionsSchema } from './black-forest-labs-image-model-options';
+import type {
+  BlackForestLabsAspectRatio,
+  BlackForestLabsImageModelId,
+} from './black-forest-labs-image-settings';
 
 const DEFAULT_POLL_INTERVAL_MILLIS = 500;
 const DEFAULT_POLL_TIMEOUT_MILLIS = 60000;
@@ -46,6 +51,20 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: BlackForestLabsImageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: BlackForestLabsImageModelId;
+    config: BlackForestLabsImageModelConfig;
+  }) {
+    return new BlackForestLabsImageModel(options.modelId, options.config);
   }
 
   constructor(
@@ -108,10 +127,12 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
       throw new Error('Black Forest Labs supports up to 10 input images.');
     }
 
+    const inputImageField =
+      this.modelId === 'flux-pro-1.0-fill' ? 'image' : 'input_image';
     const inputImagesObj: Record<string, string> = inputImages.reduce<
       Record<string, string>
     >((acc, img, index) => {
-      acc[`input_image${index === 0 ? '' : `_${index + 1}`}`] = img;
+      acc[`${inputImageField}${index === 0 ? '' : `_${index + 1}`}`] = img;
       return acc;
     }, {});
 
@@ -221,7 +242,12 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
 
     const { value: imageBytes, responseHeaders } = await getFromApi({
       url: imageUrl,
-      headers: combinedHeaders,
+      // Only send credentials if the response-supplied URL points back at the
+      // provider; the image is typically delivered from a CDN, so the API key
+      // must not travel to a foreign host.
+      headers: isTrustedUrl(imageUrl, this.config.baseURL)
+        ? combinedHeaders
+        : undefined,
       abortSignal,
       failedResponseHandler: createStatusCodeErrorResponseHandler(),
       successfulResponseHandler: createBinaryResponseHandler(),
@@ -300,7 +326,11 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
     for (let i = 0; i < maxPollAttempts; i++) {
       const { value } = await getFromApi({
         url: url.toString(),
-        headers,
+        // The polling URL comes from the provider response; only send
+        // credentials when it stays on a trusted provider host.
+        headers: isTrustedUrl(url.toString(), this.config.baseURL)
+          ? headers
+          : undefined,
         failedResponseHandler: bflFailedResponseHandler,
         successfulResponseHandler: createJsonResponseHandler(bflPollSchema),
         abortSignal,
@@ -333,50 +363,28 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
   }
 }
 
-export const blackForestLabsImageModelOptionsSchema = lazySchema(() =>
-  zodSchema(
-    z.object({
-      imagePrompt: z.string().optional(),
-      imagePromptStrength: z.number().min(0).max(1).optional(),
-      /** @deprecated use prompt.images instead */
-      inputImage: z.string().optional(),
-      /** @deprecated use prompt.images instead */
-      inputImage2: z.string().optional(),
-      /** @deprecated use prompt.images instead */
-      inputImage3: z.string().optional(),
-      /** @deprecated use prompt.images instead */
-      inputImage4: z.string().optional(),
-      /** @deprecated use prompt.images instead */
-      inputImage5: z.string().optional(),
-      /** @deprecated use prompt.images instead */
-      inputImage6: z.string().optional(),
-      /** @deprecated use prompt.images instead */
-      inputImage7: z.string().optional(),
-      /** @deprecated use prompt.images instead */
-      inputImage8: z.string().optional(),
-      /** @deprecated use prompt.images instead */
-      inputImage9: z.string().optional(),
-      /** @deprecated use prompt.images instead */
-      inputImage10: z.string().optional(),
-      steps: z.number().int().positive().optional(),
-      guidance: z.number().min(0).optional(),
-      width: z.number().int().min(256).max(1920).optional(),
-      height: z.number().int().min(256).max(1920).optional(),
-      outputFormat: z.enum(['jpeg', 'png']).optional(),
-      promptUpsampling: z.boolean().optional(),
-      raw: z.boolean().optional(),
-      safetyTolerance: z.number().int().min(0).max(6).optional(),
-      webhookSecret: z.string().optional(),
-      webhookUrl: z.url().optional(),
-      pollIntervalMillis: z.number().int().positive().optional(),
-      pollTimeoutMillis: z.number().int().positive().optional(),
-    }),
-  ),
-);
+/**
+ * Black Forest Labs returns response-supplied URLs (polling and delivery) on
+ * sibling cluster hosts of the API origin (e.g. `api.us1.bfl.ai` for a base
+ * URL on `api.bfl.ai`), so a strict same-origin check against the configured
+ * base URL is not enough. Credentials may also be sent to any https host under
+ * the official `bfl.ai` domain.
+ */
+function isTrustedUrl(url: string, baseUrl: string): boolean {
+  if (isSameOrigin(url, baseUrl)) {
+    return true;
+  }
 
-export type BlackForestLabsImageModelOptions = InferSchema<
-  typeof blackForestLabsImageModelOptionsSchema
->;
+  try {
+    const { protocol, hostname } = new URL(url);
+    return (
+      protocol === 'https:' &&
+      (hostname === 'bfl.ai' || hostname.endsWith('.bfl.ai'))
+    );
+  } catch {
+    return false;
+  }
+}
 
 function convertSizeToAspectRatio(
   size: string,

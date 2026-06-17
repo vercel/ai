@@ -1,9 +1,9 @@
 'use client';
 
-import { StreamableValue, useStreamableValue } from '@ai-sdk/rsc';
+import { useStreamableValue, type StreamableValue } from '@ai-sdk/rsc';
 import { useState } from 'react';
 import { generateNotifications } from './actions';
-import { PartialNotification } from './schema';
+import type { PartialNotification } from './schema';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;

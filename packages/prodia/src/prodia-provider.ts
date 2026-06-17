@@ -1,15 +1,15 @@
 import {
+  NoSuchModelError,
   type Experimental_VideoModelV4,
   type ImageModelV4,
   type LanguageModelV4,
-  NoSuchModelError,
   type ProviderV4,
 } from '@ai-sdk/provider';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { ProdiaImageModel } from './prodia-image-model';
 import type { ProdiaImageModelId } from './prodia-image-settings';

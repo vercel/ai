@@ -1,4 +1,4 @@
-import { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
   mockId,
@@ -735,7 +735,7 @@ describe('HuggingFaceResponsesLanguageModel', () => {
               {
                 type: 'file',
                 mediaType: 'image/jpeg',
-                data: 'AQIDBA==',
+                data: { type: 'data' as const, data: 'AQIDBA==' },
               },
             ],
           },
@@ -755,6 +755,30 @@ describe('HuggingFaceResponsesLanguageModel', () => {
           },
         ]
       `);
+    });
+
+    it('should throw for file parts with provider references', async () => {
+      await expect(
+        createModel('Qwen/Qwen2.5-VL-32B-Instruct').doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  mediaType: 'image/jpeg',
+                  data: {
+                    type: 'reference' as const,
+                    reference: { huggingface: 'file-ref-123' },
+                  },
+                },
+              ],
+            },
+          ],
+        }),
+      ).rejects.toThrow(
+        "'file parts with provider references' functionality not supported",
+      );
     });
 
     it('should handle assistant messages', async () => {
@@ -1539,6 +1563,109 @@ describe('HuggingFaceResponsesLanguageModel', () => {
 
       requestBody = await server.calls[1].requestBodyJson;
       expect(requestBody.tool_choice).toBe('required');
+    });
+  });
+
+  describe('top-level-only media type resolution', () => {
+    const pngBase64 = 'iVBORw0KGgo=';
+
+    it('passes full image/png through unchanged for inline data', async () => {
+      const { convertToHuggingFaceResponsesMessages } =
+        await import('./convert-to-huggingface-responses-messages');
+      const result = await convertToHuggingFaceResponsesMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: { type: 'data', data: pngBase64 },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(((result.input as any[])[0].content as unknown[])[0]).toEqual({
+        type: 'input_image',
+        image_url: `data:image/png;base64,${pngBase64}`,
+      });
+    });
+
+    it('detects image subtype from inline bytes for top-level "image"', async () => {
+      const { convertToHuggingFaceResponsesMessages } =
+        await import('./convert-to-huggingface-responses-messages');
+      const result = await convertToHuggingFaceResponsesMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image',
+                data: { type: 'data', data: pngBase64 },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(((result.input as any[])[0].content as unknown[])[0]).toEqual({
+        type: 'input_image',
+        image_url: `data:image/png;base64,${pngBase64}`,
+      });
+    });
+
+    it('passes through URL source for top-level-only image', async () => {
+      const { convertToHuggingFaceResponsesMessages } =
+        await import('./convert-to-huggingface-responses-messages');
+      const result = await convertToHuggingFaceResponsesMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image',
+                data: {
+                  type: 'url',
+                  url: new URL('https://example.com/x.png'),
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(((result.input as any[])[0].content as unknown[])[0]).toEqual({
+        type: 'input_image',
+        image_url: 'https://example.com/x.png',
+      });
+    });
+
+    it('normalizes image/* wildcard via detection', async () => {
+      const { convertToHuggingFaceResponsesMessages } =
+        await import('./convert-to-huggingface-responses-messages');
+      const result = await convertToHuggingFaceResponsesMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image/*',
+                data: { type: 'data', data: pngBase64 },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(((result.input as any[])[0].content as unknown[])[0]).toEqual({
+        type: 'input_image',
+        image_url: `data:image/png;base64,${pngBase64}`,
+      });
     });
   });
 });

@@ -40,7 +40,7 @@ run(async () => {
     },
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'text-start': {
         const isCompaction =
@@ -71,7 +71,7 @@ run(async () => {
     }
   }
 
-  const metadata = (await result.providerMetadata)?.anthropic;
+  const metadata = (await result.finalStep).providerMetadata?.anthropic;
   const iterations = metadata?.iterations as
     | Array<{
         type: string;
