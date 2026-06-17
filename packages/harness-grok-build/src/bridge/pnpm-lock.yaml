@@ -1,0 +1,113 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    dependencies:
+      '@xai-official/grok':
+        specifier: 0.2.51
+        version: 0.2.51
+      ws:
+        specifier: 8.20.1
+        version: 8.20.1
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+
+packages:
+
+  '@iarna/toml@3.0.0':
+    resolution: {integrity: sha512-td6ZUkz2oS3VeleBcN+m//Q6HlCFCPrnI0FZhrt/h4XqLEdOyYp2u21nd8MdsR+WJy5r9PTDaHTDDfhf4H4l6Q==}
+
+  '@xai-official/grok-darwin-arm64@0.2.51':
+    resolution: {integrity: sha512-HKkXN+1ui1P4SqRJNIWgjMZZEP47+1H+utNxD0R/cUPHOZd7oP7si/fNJMk8BVwTxkDtNuOtoIdHxt1TinwgmA==}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@xai-official/grok-darwin-x64@0.2.51':
+    resolution: {integrity: sha512-JAQ/VLnbkvhgvFMsmesX2HaCLcp+hEu88koLTG344rSJJ2VSCv5SZGYS6zTPlvBV5E54v/fq9RdMSahM2HLt5A==}
+    cpu: [x64]
+    os: [darwin]
+
+  '@xai-official/grok-linux-arm64@0.2.51':
+    resolution: {integrity: sha512-pnAizhZolOYu9swOx7STTanzfWRm5vyW6jkh4TsQd0SjRDj8UsNgkRdhXS72Sk6dxfQd1/0BAROl8ogs1+/NYQ==}
+    cpu: [arm64]
+    os: [linux]
+
+  '@xai-official/grok-linux-x64@0.2.51':
+    resolution: {integrity: sha512-TmJPsUETGgfxKyDg3ra7mmcdWIBIRgKDJ1NKPOj7RzkaskLv3QXiX7n8oXkxcLAoXsz9RRvsSCUMaDYFHDgrOQ==}
+    cpu: [x64]
+    os: [linux]
+
+  '@xai-official/grok-win32-arm64@0.2.51':
+    resolution: {integrity: sha512-VTNoLVgtQAvvIx03fzqb51jga1czD7tjtl2l53DaeY23MakSr4VZp/2XTX+39J9rM2GnqwZ2xTL0oH48eoHtmQ==}
+    cpu: [arm64]
+    os: [win32]
+
+  '@xai-official/grok-win32-x64@0.2.51':
+    resolution: {integrity: sha512-qp0krbn1GHuV+mlHes9v13NlmgAaI53QE8MpqiXr74Jyn4aho+vHbRAJbKTQsHcpoOeqAunl0zNbtRVyLxoVGw==}
+    cpu: [x64]
+    os: [win32]
+
+  '@xai-official/grok@0.2.51':
+    resolution: {integrity: sha512-HZp/7PljrHeT/bKwzZ+fwOlKi9Q42O+kB9G5LA2Pv3xTLa1Sr2eIIqIMjb8e0cOC/qVsFZkEe/wNCqU+R/bnoA==}
+    engines: {node: '>=20'}
+    cpu: [arm64, x64]
+    os: [darwin, linux, win32]
+    hasBin: true
+
+  ws@8.20.1:
+    resolution: {integrity: sha512-It4dO0K5v//JtTXuPkfEOaI3uUN87iYPnqo/ZzqCoG3g8uhA66QUMs/SrM0YK7/NAu+r4LMh/9dq2A7k+rHs+w==}
+    engines: {node: '>=10.0.0'}
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: '>=5.0.2'
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
+
+  zod@3.25.76:
+    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
+
+snapshots:
+
+  '@iarna/toml@3.0.0': {}
+
+  '@xai-official/grok-darwin-arm64@0.2.51':
+    optional: true
+
+  '@xai-official/grok-darwin-x64@0.2.51':
+    optional: true
+
+  '@xai-official/grok-linux-arm64@0.2.51':
+    optional: true
+
+  '@xai-official/grok-linux-x64@0.2.51':
+    optional: true
+
+  '@xai-official/grok-win32-arm64@0.2.51':
+    optional: true
+
+  '@xai-official/grok-win32-x64@0.2.51':
+    optional: true
+
+  '@xai-official/grok@0.2.51':
+    dependencies:
+      '@iarna/toml': 3.0.0
+    optionalDependencies:
+      '@xai-official/grok-darwin-arm64': 0.2.51
+      '@xai-official/grok-darwin-x64': 0.2.51
+      '@xai-official/grok-linux-arm64': 0.2.51
+      '@xai-official/grok-linux-x64': 0.2.51
+      '@xai-official/grok-win32-arm64': 0.2.51
+      '@xai-official/grok-win32-x64': 0.2.51
+
+  ws@8.20.1: {}
+
+  zod@3.25.76: {}
