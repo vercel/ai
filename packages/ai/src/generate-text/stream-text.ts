@@ -2734,7 +2734,9 @@ class DefaultStreamTextResult<
               controller.enqueue({
                 type: 'tool-output-available',
                 toolCallId: part.toolCallId,
-                output: part.output,
+                // UI stream chunks are serialized as JSON, which drops undefined
+                // properties. Use null so tool outputs always keep the output field.
+                output: part.output === undefined ? null : part.output,
                 ...(part.providerExecuted != null
                   ? { providerExecuted: part.providerExecuted }
                   : {}),
