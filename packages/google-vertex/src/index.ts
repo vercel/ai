@@ -1,5 +1,9 @@
 export type { GoogleVertexEmbeddingModelOptions } from './google-vertex-embedding-options';
 export type {
+  GoogleVertexTranscriptionModelId,
+  GoogleVertexTranscriptionModelOptions,
+} from './google-vertex-transcription-model-options';
+export type {
   GoogleVertexImageModelOptions,
   /** @deprecated Use `GoogleVertexImageModelOptions` instead. */
   GoogleVertexImageModelOptions as GoogleVertexImageProviderOptions,
