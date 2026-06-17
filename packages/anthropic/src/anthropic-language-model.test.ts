@@ -5127,7 +5127,7 @@ describe('AnthropicLanguageModel', () => {
         expect(result.content).toMatchInlineSnapshot(`
           [
             {
-              "input": "{"type":"programmatic-tool-call","code":"print(\\"Hello, World!\\")"}",
+              "input": "{"code":"print(\\"Hello, World!\\")"}",
               "providerExecuted": true,
               "toolCallId": "tool_1",
               "toolName": "code_execution",
@@ -5283,6 +5283,80 @@ describe('AnthropicLanguageModel', () => {
             "x-api-key": "test-api-key",
           }
         `);
+      });
+    });
+
+    describe('code execution 20250825 — user-registered code_execution input is not mangled (regression for #15951)', () => {
+      // When the user registers `code_execution` as a tool, the call goes through the
+      // non-dynamic path: input validation runs against the user's tool schema. The
+      // `programmatic-tool-call` discriminator must NOT be injected at the SDK layer,
+      // because the user's schema doesn't expect it.
+      //
+      // The dynamic path (user has a web tool but did NOT register code_execution) is
+      // covered by the existing `programmatic tool calling` and `agent skills` describes
+      // above — there, the injection is correct because validation is bypassed.
+
+      const TEST_PROMPT = [
+        {
+          role: 'user' as const,
+          content: [
+            { type: 'text' as const, text: 'View /skills/example/SKILL.md' },
+          ],
+        },
+      ];
+
+      it('non-streaming: does not inject programmatic-tool-call into code_execution input when the tool is user-registered', async () => {
+        // Direct code_execution call (programmatic code) — the L1054 path.
+        // Before this fix: SDK rewrote the input to
+        //   { type: "programmatic-tool-call", code: "..." }
+        // which failed validation against a user-registered code_execution schema
+        // that doesn't expect the discriminator (e.g. anthropic.tools.codeExecution_20250825).
+        // After this fix: the rewrite only fires when markCodeExecutionDynamic is true,
+        // i.e. when the call is auto-triggered (user did not register code_execution).
+
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            type: 'message',
+            id: 'msg_test',
+            role: 'assistant',
+            model: 'claude-3-haiku-20240307',
+            content: [
+              {
+                type: 'server_tool_use',
+                id: 'srvtoolu_test',
+                name: 'code_execution',
+                input: { code: 'print("hi")' },
+              },
+            ],
+            stop_reason: 'tool_use',
+            usage: { input_tokens: 15, output_tokens: 25 },
+          },
+        };
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.code_execution_20250825',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+        });
+
+        const toolCall = result.content.find(
+          part => part.type === 'tool-call',
+        ) as any;
+        expect(toolCall).toBeDefined();
+        expect(toolCall.toolName).toBe('code_execution');
+        expect(toolCall.input).not.toContain('programmatic-tool-call');
+        expect(JSON.parse(toolCall.input)).toEqual({
+          code: 'print("hi")',
+        });
+        // Sanity: when the call IS dynamic (no user registration of code_execution),
+        // the rewrite path is still exercised by the existing fixture tests above.
       });
     });
 

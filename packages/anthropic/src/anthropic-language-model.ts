@@ -1044,8 +1044,13 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             part.name === 'code_execution' ||
             part.name === 'web_fetch'
           ) {
-            // For code_execution, inject 'programmatic-tool-call' type when input has { code } format
+            // For code_execution, inject 'programmatic-tool-call' type when input has { code } format.
+            // Only inject when the call is treated as dynamic (i.e. the user did not register
+            // 'code_execution' as a tool). If the user did register it, the user's tool schema
+            // must validate the input as the API sent it; injecting a discriminator the user's
+            // schema doesn't expect causes AI_InvalidToolInputError.
             const inputToSerialize =
+              markCodeExecutionDynamic &&
               part.name === 'code_execution' &&
               part.input != null &&
               typeof part.input === 'object' &&
@@ -2112,10 +2117,15 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       });
 
                       // For code_execution, inject 'programmatic-tool-call' type
-                      // when input has { code } format (programmatic tool calling)
+                      // when input has { code } format (programmatic tool calling).
+                      // Only inject when the call is treated as dynamic; see the matching
+                      // gate above in the non-streaming response path.
                       let finalInput =
                         contentBlock.input === '' ? '{}' : contentBlock.input;
-                      if (contentBlock.providerToolName === 'code_execution') {
+                      if (
+                        markCodeExecutionDynamic &&
+                        contentBlock.providerToolName === 'code_execution'
+                      ) {
                         try {
                           const parsed = JSON.parse(finalInput);
                           if (
@@ -2255,7 +2265,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
                     // for the code execution 20250825, we need to add
                     // the type to the delta and change the tool name.
+                    // Only inject when the call is treated as dynamic; matches the gate
+                    // applied to the non-streaming and streaming tool-call-end paths.
                     if (
+                      markCodeExecutionDynamic &&
                       contentBlock.firstDelta &&
                       contentBlock.providerToolName === 'code_execution'
                     ) {
