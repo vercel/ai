@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 4.0.0-beta.83
+
+### Patch Changes
+
+- bdb9ea1: chore(google): remove now obsolete Interactions API `Api-Revision` header
+
 ## 4.0.0-beta.82
 
 ### Patch Changes

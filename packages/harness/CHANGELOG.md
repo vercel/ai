@@ -1,5 +1,11 @@
 # @ai-sdk/harness
 
+## 1.0.0-beta.17
+
+### Patch Changes
+
+- 534dac6: fix(harness): fix incomplete OIDC token support for AI Gateway auth in harness adapters
+
 ## 1.0.0-beta.16
 
 ### Patch Changes
