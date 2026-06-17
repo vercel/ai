@@ -209,9 +209,8 @@ console.log(result.output);
 `CallSettings` has been split into `LanguageModelCallOptions` (model-facing options) and `RequestOptions` (transport options). Replace usages in custom wrappers or helpers:
 
 - `CallSettings` → `LanguageModelCallOptions & Omit<RequestOptions, 'timeout'>` (note: `CallSettings` never included `timeout`)
-- `prepareCallSettings` → `prepareLanguageModelCallOptions`
 
-Both deprecated names remain available in AI SDK 7.
+The deprecated `CallSettings` type remains available in AI SDK 7.
 
 #### Stop Condition Helper Rename: `stepCountIs` -> `isStepCount`
 
