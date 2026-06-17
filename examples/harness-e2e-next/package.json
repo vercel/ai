@@ -16,7 +16,7 @@
     "@ai-sdk/provider-utils": "workspace:*",
     "@ai-sdk/react": "workspace:*",
     "@ai-sdk/sandbox-vercel": "workspace:*",
-    "@earendil-works/pi-coding-agent": "^0.77.0",
+    "@earendil-works/pi-coding-agent": "^0.78.1",
     "@vercel/sandbox": "^2.0.1",
     "ai": "workspace:*",
     "clsx": "^2.1.1",
