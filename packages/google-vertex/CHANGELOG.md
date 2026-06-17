@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 4.0.147
+
+### Patch Changes
+
+- 454d804: feat(provider/google-vertex): add Google Cloud Speech-to-Text transcription model support
+
 ## 4.0.146
 
 ### Patch Changes
