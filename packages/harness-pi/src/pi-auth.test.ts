@@ -33,6 +33,24 @@ describe('resolvePiAuth', () => {
     });
   });
 
+  it('uses env gateway auth when explicit gateway only sets base URL', () => {
+    const r = makeRegistries();
+    const env = resolvePiAuth(
+      { gateway: { baseUrl: 'https://gw.example' } },
+      { VERCEL_OIDC_TOKEN: 'oidc-env' },
+      { authStorage: r.authStorage, modelRegistry: r.modelRegistry },
+    );
+    expect(env).toEqual({
+      AI_GATEWAY_API_KEY: 'oidc-env',
+      AI_GATEWAY_BASE_URL: 'https://gw.example',
+    });
+    expect(r.registerProvider).toHaveBeenCalledWith('vercel-ai-gateway', {
+      apiKey: 'oidc-env',
+      baseUrl: 'https://gw.example',
+      authHeader: true,
+    });
+  });
+
   it('uses customEnv when provided and registers all known providers', () => {
     const r = makeRegistries();
     const env = resolvePiAuth(
