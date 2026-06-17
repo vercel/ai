@@ -59,6 +59,12 @@ You can use the following optional settings to customize the Alibaba provider in
   native endpoint (not the OpenAI-compatible endpoint).
   The default prefix is `https://dashscope-intl.aliyuncs.com`.
 
+- **embeddingBaseURL** _string_
+
+  Use a different URL prefix for embedding API calls. The embedding API uses the DashScope
+  native endpoint (not the OpenAI-compatible endpoint).
+  The default prefix is `https://dashscope-intl.aliyuncs.com/api/v1`.
+
 - **apiKey** _string_
 
   API key that is being sent using the `Authorization` header. It defaults to
@@ -232,6 +238,91 @@ const { text, usage } = await generateText({
 ```
 
 **Note:** The minimum content length for a cache block is 1,024 tokens.
+
+## Embedding Models
+
+You can create text embedding models using the `.embedding()` factory method.
+For more on embeddings with the AI SDK see [`embed()`](/docs/reference/ai-sdk-core/embed)
+and [`embedMany()`](/docs/reference/ai-sdk-core/embed-many).
+
+```ts
+const model = alibaba.embedding('text-embedding-v4');
+```
+
+You can use Alibaba embedding models to generate embeddings with the `embed` function:
+
+```ts
+import { alibaba, type AlibabaEmbeddingModelOptions } from '@ai-sdk/alibaba';
+import { embed } from 'ai';
+
+const { embedding, usage } = await embed({
+  model: alibaba.embedding('text-embedding-v4'),
+  value: 'sunny day at the beach',
+  providerOptions: {
+    alibaba: {
+      textType: 'document',
+      dimension: 1024,
+      outputType: 'dense',
+    } satisfies AlibabaEmbeddingModelOptions,
+  },
+});
+```
+
+Use `embedMany` to embed multiple text values. Alibaba text embedding models support
+up to 10 values per API call; larger batches are split automatically by `embedMany`.
+
+```ts
+import { alibaba, type AlibabaEmbeddingModelOptions } from '@ai-sdk/alibaba';
+import { embedMany } from 'ai';
+
+const { embeddings } = await embedMany({
+  model: alibaba.embedding('text-embedding-v4'),
+  values: [
+    'sunny day at the beach',
+    'rainy afternoon in the city',
+    'snowy night in the mountains',
+  ],
+  providerOptions: {
+    alibaba: {
+      textType: 'document',
+      dimension: 1024,
+    } satisfies AlibabaEmbeddingModelOptions,
+  },
+});
+```
+
+Alibaba embedding models support additional provider options that can be passed via
+`providerOptions.alibaba`:
+
+- **textType** _'query' | 'document'_
+
+  Differentiates query text from document text for asymmetric retrieval tasks.
+  Defaults to `document`.
+
+- **dimension** _number_
+
+  The dimension of the output embedding vectors. Defaults to 1024.
+  `text-embedding-v4` also supports 1536 and 2048 dimensions.
+
+- **outputType** _'dense' | 'sparse' | 'dense&sparse'_
+
+  Specifies the output vector type. Defaults to `dense`.
+  The AI SDK embedding interface returns dense `number[]` vectors, so sparse-only
+  output is not supported and will throw. Use `dense&sparse` to receive dense
+  embeddings in `embedding`/`embeddings` and sparse vectors in
+  `providerMetadata.alibaba.sparseEmbeddings`.
+
+### Embedding Model Capabilities
+
+| Model               | Default Dimensions | Flexible Dimensions                      | Max Values per Call |
+| ------------------- | ------------------ | ---------------------------------------- | ------------------- |
+| `text-embedding-v4` | 1024               | 64, 128, 256, 512, 768, 1024, 1536, 2048 | 10                  |
+| `text-embedding-v3` | 1024               | 512, 768, 1024                           | 10                  |
+
+<Note>
+  The tables above list currently documented Alibaba text embedding models. You
+  can also pass any available provider model ID as a string if needed.
+</Note>
 
 ## Video Models
 

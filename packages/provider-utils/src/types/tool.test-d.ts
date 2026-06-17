@@ -5,7 +5,7 @@ import type { ToolResultOutput } from './content-part';
 import type { Context } from './context';
 import type { ExecutableTool } from './executable-tool';
 import type { ModelMessage } from './model-message';
-import type { Experimental_SandboxSession as SandboxSession } from './sandbox';
+import type { SandboxSession } from './sandbox';
 import {
   dynamicTool,
   tool,

@@ -1,5 +1,81 @@
 # @ai-sdk/openai
 
+## 4.0.0-beta.74
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/provider-utils@5.0.0-beta.49
+  - @ai-sdk/provider@4.0.0-beta.19
+
+## 4.0.0-canary.73
+
+### Patch Changes
+
+- Updated dependencies [aeda373]
+- Updated dependencies [375fdd7]
+- Updated dependencies [b4507d5]
+  - @ai-sdk/provider-utils@5.0.0-canary.48
+
+## 4.0.0-canary.72
+
+### Patch Changes
+
+- Updated dependencies [bae5e2b]
+  - @ai-sdk/provider-utils@5.0.0-canary.47
+
+## 4.0.0-canary.71
+
+### Patch Changes
+
+- ae7f932: fix(openai): throw retryable errors for OpenAI stream failures before output starts
+
+## 4.0.0-canary.70
+
+### Patch Changes
+
+- 6a5800e: feat(openai): add namespaces for tool definitions
+
+## 4.0.0-canary.69
+
+### Patch Changes
+
+- ce769dd: feat(provider): add experimental Realtime API support for voice conversations
+
+  Adds first-class support for realtime (speech-to-speech) APIs:
+
+  - `Experimental_RealtimeModelV4` spec in `@ai-sdk/provider` with normalized event types and factory
+  - OpenAI, Google, and xAI realtime provider implementations
+  - `openai.experimental_realtime()` / `google.experimental_realtime()` / `xai.experimental_realtime()` work in both server and browser
+  - `.getToken()` static method on each provider for server-side ephemeral token creation
+  - `experimental_getRealtimeToolDefinitions` helper for provider session tool definitions
+  - `experimental_useRealtime` hook in `@ai-sdk/react` returning `UIMessage[]` (aligned with `useChat`), with `onToolCall` and `addToolOutput` for client-driven tool execution
+  - `inputAudioTranscription` session config for showing transcribed user audio messages when supported by the provider
+
+- Updated dependencies [ce769dd]
+  - @ai-sdk/provider@4.0.0-canary.18
+  - @ai-sdk/provider-utils@5.0.0-canary.46
+
+## 4.0.0-canary.68
+
+### Patch Changes
+
+- 94eba1b: fix(openai): round-trip `namespace` on function_call input items
+
+  When `tool_search` dispatches a deferred tool, the resulting `function_call` carries a `namespace` field identifying which deferred-tool group the model picked. `#14789` preserved this on the read side (`providerMetadata.openai.namespace`), but the write side still serialized `function_call` input items without `namespace`. Multi-step / multi-turn conversations then failed with `Missing namespace for function_call '<name>'. ... Round-trip the model's function_call item with its namespace field included.`
+
+  `convert-to-openai-responses-input.ts` now reads `namespace` from `providerOptions.openai.namespace` (or `providerMetadata.openai.namespace`) on `tool-call` parts and includes it on the serialized `function_call` item, mirroring how `itemId` is round-tripped.
+
+## 4.0.0-canary.67
+
+### Patch Changes
+
+- 61bcdb5: fix(provider/openai): send client-executed tool calls as full function_call items in the Responses API so they pair with their function_call_output by call_id
+- Updated dependencies [ee798eb]
+- Updated dependencies [daf6637]
+  - @ai-sdk/provider-utils@5.0.0-canary.45
+
 ## 4.0.0-canary.66
 
 ### Patch Changes

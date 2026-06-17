@@ -54,5 +54,7 @@ export type {
   /** @deprecated Use `GoogleProviderSettings` instead. */
   GoogleProviderSettings as GoogleGenerativeAIProviderSettings,
 } from './google-provider';
+export { GoogleRealtimeModel as Experimental_GoogleRealtimeModel } from './realtime/google-realtime-model';
+export type { GoogleRealtimeModelConfig as Experimental_GoogleRealtimeModelConfig } from './realtime/google-realtime-model';
 
 export { VERSION } from './version';

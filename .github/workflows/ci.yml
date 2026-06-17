@@ -10,6 +10,9 @@ on:
       - main
       - release-v*
 
+permissions:
+  contents: read
+
 jobs:
   check:
     name: 'Lint & Format'
@@ -32,6 +35,9 @@ jobs:
 
       - name: Run ultracite check
         run: pnpm run check
+
+      - name: Validate docs <PropertiesTable> usage
+        run: pnpm run validate:docs
 
   konsistent:
     name: 'Code Consistency'

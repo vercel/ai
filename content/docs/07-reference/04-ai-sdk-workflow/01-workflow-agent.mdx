@@ -325,11 +325,18 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
       ],
     },
     {
+      name: 'onStepEnd',
+      type: 'WorkflowAgentOnStepEndCallback',
+      isOptional: true,
+      description:
+        'Callback invoked after each agent step completes. If also specified in `stream()`, both callbacks fire (constructor first).',
+    },
+    {
       name: 'onStepFinish',
       type: 'WorkflowAgentOnStepFinishCallback',
       isOptional: true,
       description:
-        'Callback invoked after each agent step completes. If also specified in `stream()`, both callbacks fire (constructor first).',
+        'Deprecated. Use `onStepEnd` instead. This alias is only used as a fallback when `onStepEnd` is not provided.',
     },
     {
       name: 'onEnd',
@@ -586,11 +593,18 @@ const result = await agent.stream({
         'Per-call onToolExecutionEnd callback. If also specified in the constructor, both fire (constructor first).',
     },
     {
+      name: 'onStepEnd',
+      type: 'WorkflowAgentOnStepEndCallback',
+      isOptional: true,
+      description:
+        'Per-call onStepEnd callback. If also specified in the constructor, both fire (constructor first).',
+    },
+    {
       name: 'onStepFinish',
       type: 'WorkflowAgentOnStepFinishCallback',
       isOptional: true,
       description:
-        'Per-call onStepFinish callback. If also specified in the constructor, both fire (constructor first).',
+        'Deprecated. Use `onStepEnd` instead. This alias is only used as a fallback when `onStepEnd` is not provided.',
     },
     {
       name: 'onEnd',
@@ -890,7 +904,7 @@ const agent = new WorkflowAgent({
   tools: { weather: weatherTool },
 
   // Agent-wide callbacks
-  onStepFinish({ usage }) {
+  onStepEnd({ usage }) {
     console.log('Tokens used:', usage.totalTokens);
   },
 });
@@ -899,7 +913,7 @@ const result = await agent.stream({
   messages,
 
   // Per-call callbacks (both fire)
-  onStepFinish({ usage }) {
+  onStepEnd({ usage }) {
     await trackUsage(usage);
   },
 

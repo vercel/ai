@@ -11,7 +11,7 @@ import type {
 import type { LanguageModelUsage } from '../types/usage';
 
 /**
- * Event passed to the `experimental_onStart` callback of
+ * Event passed to the `onStart` callback of
  * `generateObject` and `streamObject`.
  *
  * Called when the operation begins, before any LLM call.
@@ -77,7 +77,7 @@ export interface GenerateObjectStartEvent {
 }
 
 /**
- * Event passed to the `experimental_onStepStart` callback of
+ * Event passed to the `onStepStart` callback of
  * `generateObject` and `streamObject`.
  *
  * Called when the model call (step) begins, before the provider is called.
@@ -109,7 +109,7 @@ export interface GenerateObjectStepStartEvent {
 }
 
 /**
- * Event passed to the `onStepFinish` callback of
+ * Event passed to the `onStepEnd` callback of
  * `generateObject` and `streamObject`.
  *
  * Called when the model call (step) completes, with the raw result

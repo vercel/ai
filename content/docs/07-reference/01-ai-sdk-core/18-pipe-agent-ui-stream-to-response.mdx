@@ -97,11 +97,18 @@ export async function handler(req, res) {
         'Optional stream text transformation(s) applied to agent output.',
     },
     {
+      name: 'onStepEnd',
+      type: 'GenerateTextOnStepEndCallback',
+      isRequired: false,
+      description:
+        'Callback invoked after each agent step (LLM/tool call) completes. Useful for tracking token usage, per-step performance, or logging intermediate steps.',
+    },
+    {
       name: 'onStepFinish',
       type: 'GenerateTextOnStepFinishCallback',
       isRequired: false,
       description:
-        'Callback invoked after each agent step (LLM/tool call) completes. Useful for tracking token usage, per-step performance, or logging intermediate steps.',
+        'Deprecated. Use `onStepEnd` instead. This alias is only used as a fallback when `onStepEnd` is not provided.',
     },
     {
       name: '...UIMessageStreamResponseInit & UIMessageStreamOptions',

@@ -5,7 +5,10 @@ import type {
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import type { ServerResponse } from 'node:http';
-import type { GenerateTextOnStepFinishCallback } from '../generate-text/generate-text-events';
+import type {
+  GenerateTextOnStepEndCallback,
+  GenerateTextOnStepFinishCallback,
+} from '../generate-text/generate-text-events';
 import type { Output } from '../generate-text/output';
 import type { StreamTextTransform } from '../generate-text/stream-text';
 import type { UIMessageStreamOptions } from '../generate-text/stream-text-result';
@@ -27,7 +30,8 @@ import { createAgentUIStream } from './create-agent-ui-stream';
  * @param experimental_sandbox - The sandbox environment that is passed through to tool execution. Optional.
  * @param options - The options for the agent. Optional.
  * @param experimental_transform - Stream transformations. Optional.
- * @param onStepFinish - Callback that is called when each step is finished. Optional.
+ * @param onStepEnd - Callback that is called when each step ends. Optional.
+ * @param onStepFinish - Deprecated alias for `onStepEnd`. Optional.
  * @param headers - Additional headers for the response. Optional.
  * @param status - The status code for the response. Optional.
  * @param statusText - The status text for the response. Optional.
@@ -55,6 +59,8 @@ export async function pipeAgentUIStreamToResponse<
   experimental_sandbox?: SandboxSession;
   options?: CALL_OPTIONS;
   experimental_transform?: Arrayable<StreamTextTransform<TOOLS>>;
+  onStepEnd?: GenerateTextOnStepEndCallback<TOOLS>;
+  /** @deprecated Use `onStepEnd` instead. */
   onStepFinish?: GenerateTextOnStepFinishCallback<TOOLS>;
 } & UIMessageStreamResponseInit &
   UIMessageStreamOptions<

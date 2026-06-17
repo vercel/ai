@@ -26,15 +26,18 @@ export class JustBashSandboxSession implements SandboxSession {
   async run({
     command,
     workingDirectory,
+    env,
     abortSignal,
   }: {
     command: string;
     workingDirectory?: string;
+    env?: Record<string, string>;
     abortSignal?: AbortSignal;
   }) {
     const proc = await this.spawn({
       command,
       workingDirectory,
+      env,
       abortSignal,
     });
 
@@ -50,10 +53,12 @@ export class JustBashSandboxSession implements SandboxSession {
   async spawn({
     command,
     workingDirectory,
+    env,
     abortSignal,
   }: {
     command: string;
     workingDirectory?: string;
+    env?: Record<string, string>;
     abortSignal?: AbortSignal;
   }): Promise<Experimental_SandboxProcess> {
     abortSignal?.throwIfAborted();
@@ -63,6 +68,7 @@ export class JustBashSandboxSession implements SandboxSession {
       args: ['-c', command],
       detached: true,
       ...(workingDirectory !== undefined ? { cwd: workingDirectory } : {}),
+      ...(env !== undefined ? { env } : {}),
       ...(abortSignal !== undefined ? { signal: abortSignal } : {}),
     });
 

@@ -37,7 +37,7 @@ import {
 } from '../prompt/request-options';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
-import type { Telemetry } from '../telemetry/telemetry';
+import type { Telemetry, TelemetryDispatcher } from '../telemetry/telemetry';
 import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import type {
   LanguageModel,
@@ -69,6 +69,7 @@ import {
 import type {
   GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
+  GenerateTextOnStepEndCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
 } from './generate-text-events';
@@ -109,9 +110,12 @@ import type {
   OnToolExecutionStartCallback,
 } from './tool-execution-events';
 import type { ToolInputRefinement } from './tool-input-refinement';
+import type { ToolOrder } from './tool-order';
 import type { ToolOutput } from './tool-output';
 import type { TypedToolResult } from './tool-result';
 import type { ToolsContextParameter } from './tools-context-parameter';
+import { maybeSignApproval } from './tool-approval-signature';
+import { validateApprovedToolApprovals } from './validate-tool-approvals';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -157,6 +161,7 @@ export type GenerateTextInclude = {
  *
  * @param tools - Tools that are accessible to and can be called by the model. The model needs to support calling tools.
  * @param toolChoice - The tool choice strategy. Default: 'auto'.
+ * @param toolOrder - Controls the order in which tools are sent to the provider. Tools not listed are appended alphabetically.
  *
  * @param system - A system message that will be part of the prompt.
  * @param prompt - A simple text prompt. You can either use `prompt` or `messages` but not both.
@@ -192,9 +197,15 @@ export type GenerateTextInclude = {
  * @param experimental_sandbox - The sandbox environment that is passed through to tool execution.
  * @param runtimeContext - User-defined runtime context that flows through the entire generation lifecycle.
  * @param experimental_refineToolInput - Optional mapping of tool names to functions that refine parsed tool inputs before tools are executed and before outputs, callbacks, and telemetry are recorded.
- * @param experimental_onStart - Callback invoked when generation begins, before any LLM calls.
- * @param experimental_onStepStart - Callback invoked when each step begins, before the provider is called.
+ * @param onStart - Callback invoked when generation begins, before any LLM calls.
+ * @param experimental_onStart - Deprecated alias for `onStart`.
+ * @param onStepStart - Callback invoked when each step begins, before the provider is called.
+ * @param experimental_onStepStart - Deprecated alias for `onStepStart`.
  * Receives step number, messages (in ModelMessage format), tools, and runtimeContext.
+ * @param onLanguageModelCallStart - Callback invoked immediately before each provider model call begins.
+ * @param experimental_onLanguageModelCallStart - Deprecated alias for `onLanguageModelCallStart`.
+ * @param onLanguageModelCallEnd - Callback invoked after each provider model call response is normalized and parsed.
+ * @param experimental_onLanguageModelCallEnd - Deprecated alias for `onLanguageModelCallEnd`.
  * @param onToolExecutionStart - Callback invoked before each tool execution begins.
  * Receives tool name, call ID, input, and context.
  * @param experimental_onToolCallStart - Deprecated alias for `onToolExecutionStart`.
@@ -229,10 +240,12 @@ export async function generateText<
   experimental_sandbox: sandbox,
   output,
   toolApproval,
+  experimental_toolApprovalSecret,
   experimental_telemetry,
   telemetry = experimental_telemetry,
   providerOptions,
   activeTools,
+  toolOrder,
   prepareStep,
   experimental_repairToolCall: repairToolCall,
   experimental_refineToolInput: refineToolInput,
@@ -246,14 +259,19 @@ export async function generateText<
     generateCallId = originalGenerateCallId,
     now = originalNow,
   } = {},
-  experimental_onStart: onStart,
-  experimental_onStepStart: onStepStart,
-  experimental_onLanguageModelCallStart: onLanguageModelCallStart,
-  experimental_onLanguageModelCallEnd: onLanguageModelCallEnd,
+  onStart,
+  experimental_onStart,
+  onStepStart,
+  experimental_onStepStart,
+  onLanguageModelCallStart,
+  experimental_onLanguageModelCallStart,
+  onLanguageModelCallEnd,
+  experimental_onLanguageModelCallEnd,
   onToolExecutionStart,
   onToolExecutionEnd,
   experimental_onToolCallStart,
   experimental_onToolCallFinish,
+  onStepEnd,
   onStepFinish,
   onFinish,
   onEnd = onFinish,
@@ -317,6 +335,15 @@ export async function generateText<
     activeTools?: ActiveTools<NoInfer<TOOLS>>;
 
     /**
+     * Controls the order in which tools are sent to the provider.
+     *
+     * The list can be partial. Tools not listed in `toolOrder` are sent after
+     * the listed tools, sorted alphabetically. This can improve provider-side
+     * caching by keeping tool definitions in a stable order.
+     */
+    toolOrder?: ToolOrder<NoInfer<TOOLS>>;
+
+    /**
      * Optional specification for parsing structured outputs from the LLM response.
      */
     output?: OUTPUT;
@@ -327,6 +354,13 @@ export async function generateText<
      * This configuration takes precedence over tool-defined approval settings.
      */
     toolApproval?: ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>;
+
+    /**
+     * Secret for HMAC-signing tool approval requests. When set, the server
+     * signs each approval request at issuance and verifies the signature when
+     * the approval is replayed, preventing client-forged approvals.
+     */
+    experimental_toolApprovalSecret?: string | Uint8Array;
 
     /**
      * Custom download function to use for URLs.
@@ -357,6 +391,18 @@ export async function generateText<
      * Callback that is called when the generateText operation begins,
      * before any LLM calls are made.
      */
+    onStart?: GenerateTextOnStartCallback<
+      NoInfer<TOOLS>,
+      NoInfer<RUNTIME_CONTEXT>,
+      NoInfer<OUTPUT>
+    >;
+
+    /**
+     * Callback that is called when the generateText operation begins,
+     * before any LLM calls are made.
+     *
+     * @deprecated Use `onStart` instead.
+     */
     experimental_onStart?: GenerateTextOnStartCallback<
       NoInfer<TOOLS>,
       NoInfer<RUNTIME_CONTEXT>,
@@ -367,6 +413,18 @@ export async function generateText<
      * Callback that is called when a step (LLM call) begins,
      * before the provider is called.
      */
+    onStepStart?: GenerateTextOnStepStartCallback<
+      NoInfer<TOOLS>,
+      NoInfer<RUNTIME_CONTEXT>,
+      NoInfer<OUTPUT>
+    >;
+
+    /**
+     * Callback that is called when a step (LLM call) begins,
+     * before the provider is called.
+     *
+     * @deprecated Use `onStepStart` instead.
+     */
     experimental_onStepStart?: GenerateTextOnStepStartCallback<
       NoInfer<TOOLS>,
       NoInfer<RUNTIME_CONTEXT>,
@@ -376,11 +434,26 @@ export async function generateText<
     /**
      * Callback that is called immediately before the provider model call begins.
      */
+    onLanguageModelCallStart?: OnLanguageModelCallStartCallback;
+
+    /**
+     * Callback that is called immediately before the provider model call begins.
+     *
+     * @deprecated Use `onLanguageModelCallStart` instead.
+     */
     experimental_onLanguageModelCallStart?: OnLanguageModelCallStartCallback;
 
     /**
      * Callback that is called after the model response has been normalized and parsed,
      * but before any client-side tool execution begins.
+     */
+    onLanguageModelCallEnd?: OnLanguageModelCallEndCallback<NoInfer<TOOLS>>;
+
+    /**
+     * Callback that is called after the model response has been normalized and parsed,
+     * but before any client-side tool execution begins.
+     *
+     * @deprecated Use `onLanguageModelCallEnd` instead.
      */
     experimental_onLanguageModelCallEnd?: OnLanguageModelCallEndCallback<
       NoInfer<TOOLS>
@@ -411,7 +484,17 @@ export async function generateText<
     experimental_onToolCallFinish?: OnToolExecutionEndCallback<NoInfer<TOOLS>>;
 
     /**
-     * Callback that is called when each step (LLM call) is finished, including intermediate steps.
+     * Callback that is called when each step (LLM call) ends, including intermediate steps.
+     */
+    onStepEnd?: GenerateTextOnStepEndCallback<
+      NoInfer<TOOLS>,
+      NoInfer<RUNTIME_CONTEXT>
+    >;
+
+    /**
+     * Callback that is called when each step (LLM call) ends, including intermediate steps.
+     *
+     * @deprecated Use `onStepEnd` instead.
      */
     onStepFinish?: GenerateTextOnStepFinishCallback<
       NoInfer<TOOLS>,
@@ -468,10 +551,17 @@ export async function generateText<
 
   const model = resolveLanguageModel(modelArg);
   const stopConditions = asArray(stopWhen);
+  const resolvedOnStart = onStart ?? experimental_onStart;
+  const resolvedOnStepStart = onStepStart ?? experimental_onStepStart;
+  const resolvedOnLanguageModelCallStart =
+    onLanguageModelCallStart ?? experimental_onLanguageModelCallStart;
+  const resolvedOnLanguageModelCallEnd =
+    onLanguageModelCallEnd ?? experimental_onLanguageModelCallEnd;
   const resolvedOnToolExecutionStart =
     onToolExecutionStart ?? experimental_onToolCallStart;
   const resolvedOnToolExecutionEnd =
     onToolExecutionEnd ?? experimental_onToolCallFinish;
+  const resolvedOnStepEnd = onStepEnd ?? onStepFinish;
 
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
   const stepTimeoutMs = getStepTimeoutMs(timeout);
@@ -515,766 +605,852 @@ export async function generateText<
     includeToolsContext: telemetry?.includeToolsContext,
   });
 
-  await notify({
-    event: {
-      callId,
-      operationId: 'ai.generateText',
-      provider: model.provider,
-      modelId: model.modelId,
-      instructions: initialPrompt.instructions,
-      messages: initialPrompt.messages,
-      tools,
-      toolChoice,
-      activeTools,
-      maxOutputTokens: callSettings.maxOutputTokens,
-      temperature: callSettings.temperature,
-      topP: callSettings.topP,
-      topK: callSettings.topK,
-      presencePenalty: callSettings.presencePenalty,
-      frequencyPenalty: callSettings.frequencyPenalty,
-      stopSequences: callSettings.stopSequences,
-      seed: callSettings.seed,
-      reasoning: callSettings.reasoning,
-      maxRetries,
-      timeout,
-      headers: headersWithUserAgent,
-      providerOptions,
-      output,
-      runtimeContext,
-      toolsContext,
-    },
-    callbacks: [onStart, telemetryDispatcher.onStart],
-  });
+  const runInTracingChannelSpan =
+    telemetryDispatcher.runInTracingChannelSpan ??
+    (async <T>({ execute }: { execute: () => PromiseLike<T> }) =>
+      await execute());
 
-  try {
-    const initialMessages = initialPrompt.messages;
-    const initialResponseMessages: Array<ResponseMessage> = [];
+  const generateTextStartEvent = {
+    callId,
+    operationId: 'ai.generateText',
+    provider: model.provider,
+    modelId: model.modelId,
+    instructions: initialPrompt.instructions,
+    messages: initialPrompt.messages,
+    tools,
+    toolChoice,
+    activeTools,
+    toolOrder,
+    maxOutputTokens: callSettings.maxOutputTokens,
+    temperature: callSettings.temperature,
+    topP: callSettings.topP,
+    topK: callSettings.topK,
+    presencePenalty: callSettings.presencePenalty,
+    frequencyPenalty: callSettings.frequencyPenalty,
+    stopSequences: callSettings.stopSequences,
+    seed: callSettings.seed,
+    reasoning: callSettings.reasoning,
+    maxRetries,
+    timeout,
+    headers: headersWithUserAgent,
+    providerOptions,
+    output,
+    runtimeContext,
+    toolsContext,
+  };
 
-    const { approvedToolApprovals, deniedToolApprovals } =
-      collectToolApprovals<TOOLS>({ messages: initialMessages });
+  const executeGenerateText = async () => {
+    await notify({
+      event: generateTextStartEvent,
+      callbacks: [resolvedOnStart, telemetryDispatcher.onStart],
+    });
 
-    const localApprovedToolApprovals = approvedToolApprovals.filter(
-      toolApproval => !toolApproval.toolCall.providerExecuted,
-    );
+    try {
+      const initialMessages = initialPrompt.messages;
+      const initialResponseMessages: Array<ResponseMessage> = [];
 
-    if (
-      deniedToolApprovals.length > 0 ||
-      localApprovedToolApprovals.length > 0
-    ) {
-      const toolResults = await executeTools({
-        toolCalls: localApprovedToolApprovals.map(
-          toolApproval => toolApproval.toolCall,
+      const {
+        approvedToolApprovals,
+        deniedToolApprovals: collectedDeniedToolApprovals,
+      } = collectToolApprovals<TOOLS>({ messages: initialMessages });
+
+      const {
+        approvedToolApprovals: localApprovedToolApprovals,
+        deniedToolApprovals: revalidationDeniedToolApprovals,
+      } = await validateApprovedToolApprovals<TOOLS, RUNTIME_CONTEXT>({
+        approvedToolApprovals: approvedToolApprovals.filter(
+          toolApproval => !toolApproval.toolCall.providerExecuted,
         ),
-        tools: tools as TOOLS,
-        callId,
+        tools,
+        toolApproval,
         messages: initialMessages,
-        abortSignal: mergedAbortSignal,
-        timeout,
-        experimental_sandbox: sandbox,
         toolsContext,
-        onToolExecutionStart: event =>
-          notify({
-            event,
-            callbacks: [
-              resolvedOnToolExecutionStart,
-              telemetryDispatcher.onToolExecutionStart,
-            ],
-          }),
-        onToolExecutionEnd: event =>
-          notify({
-            event,
-            callbacks: [
-              resolvedOnToolExecutionEnd,
-              telemetryDispatcher.onToolExecutionEnd,
-            ],
-          }),
-        executeToolInTelemetryContext: telemetryDispatcher.executeTool,
+        runtimeContext,
+        toolApprovalSecret: experimental_toolApprovalSecret,
       });
 
-      const toolContent: Array<any> = [];
+      const deniedToolApprovals = [
+        ...collectedDeniedToolApprovals,
+        ...revalidationDeniedToolApprovals,
+      ];
 
-      // add regular tool results for approved tool calls:
-      for (const result of toolResults) {
-        const output = result.output;
-        const modelOutput = await createToolModelOutput({
-          toolCallId: output.toolCallId,
-          input: output.input,
-          tool: tools?.[output.toolName],
-          output: output.type === 'tool-result' ? output.output : output.error,
-          errorMode: output.type === 'tool-error' ? 'text' : 'none',
-        });
-
-        toolContent.push({
-          type: 'tool-result' as const,
-          toolCallId: output.toolCallId,
-          toolName: output.toolName,
-          output: modelOutput,
-        });
-      }
-
-      // add execution denied tool results for all denied tool approvals:
-      for (const toolApproval of deniedToolApprovals) {
-        toolContent.push({
-          type: 'tool-result' as const,
-          toolCallId: toolApproval.toolCall.toolCallId,
-          toolName: toolApproval.toolCall.toolName,
-          output: {
-            type: 'execution-denied' as const,
-            reason: toolApproval.approvalResponse.reason,
-            // For provider-executed tools, include approvalId so provider can correlate
-            ...(toolApproval.toolCall.providerExecuted && {
-              providerOptions: {
-                openai: {
-                  approvalId: toolApproval.approvalResponse.approvalId,
-                },
-              },
-            }),
-          },
-        });
-      }
-
-      initialResponseMessages.push({
-        role: 'tool',
-        content: toolContent,
-      });
-    }
-
-    const callSettings = prepareLanguageModelCallOptions(settings);
-
-    let currentModelResponse: LanguageModelV4GenerateResult & {
-      response: { id: string; timestamp: Date; modelId: string };
-    };
-    let clientToolCalls: Array<TypedToolCall<TOOLS>> = [];
-    let clientToolOutputs: Array<ToolOutput<TOOLS>> = [];
-    let toolApprovalResponses: Array<ToolApprovalResponseOutput<TOOLS>> = [];
-    let deniedToolApprovalResponses: Array<ToolApprovalResponseOutput<TOOLS>> =
-      [];
-    const steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['steps'] =
-      [];
-    let instructionsForNextStep = initialPrompt.instructions;
-    let messagesForNextStep = [...initialMessages, ...initialResponseMessages];
-
-    // Track provider-executed tool calls that support deferred results
-    // (e.g., code_execution in programmatic tool calling scenarios).
-    // These tools may not return their results in the same turn as their call.
-    const pendingDeferredToolCalls = new Map<string, { toolName: string }>();
-
-    do {
-      // Set up step timeout if configured
-      const stepTimeoutId = setAbortTimeout({
-        abortController: stepAbortController,
-        label: 'Step',
-        timeoutMs: stepTimeoutMs,
-      });
-
-      try {
-        const accumulatedResponseMessages = [
-          ...initialResponseMessages,
-          ...steps.flatMap(step => step.response.messages),
-        ];
-        const stepInputMessages = messagesForNextStep;
-
-        const prepareStepResult = await prepareStep?.({
-          model,
-          steps,
-          stepNumber: steps.length,
-          instructions: instructionsForNextStep,
-          initialInstructions: initialPrompt.instructions,
-          messages: stepInputMessages,
-          initialMessages,
-          responseMessages: accumulatedResponseMessages,
-          runtimeContext,
-          toolsContext,
+      if (
+        deniedToolApprovals.length > 0 ||
+        localApprovedToolApprovals.length > 0
+      ) {
+        const toolResults = await executeTools({
+          toolCalls: localApprovedToolApprovals.map(
+            toolApproval => toolApproval.toolCall,
+          ),
+          tools: tools as TOOLS,
+          callId,
+          messages: initialMessages,
+          abortSignal: mergedAbortSignal,
+          timeout,
           experimental_sandbox: sandbox,
+          toolsContext,
+          onToolExecutionStart: event =>
+            notify({
+              event,
+              callbacks: [
+                resolvedOnToolExecutionStart,
+                telemetryDispatcher.onToolExecutionStart,
+              ],
+            }),
+          onToolExecutionEnd: event =>
+            notify({
+              event,
+              callbacks: [
+                resolvedOnToolExecutionEnd,
+                telemetryDispatcher.onToolExecutionEnd,
+              ],
+            }),
+          executeToolInTelemetryContext: telemetryDispatcher.executeTool,
+          runInTracingChannelSpan,
         });
 
-        const stepSandbox = prepareStepResult?.experimental_sandbox ?? sandbox;
+        const toolContent: Array<any> = [];
 
-        const stepModel = resolveLanguageModel(
-          prepareStepResult?.model ?? model,
-        );
+        // add regular tool results for approved tool calls:
+        for (const result of toolResults) {
+          const output = result.output;
+          const modelOutput = await createToolModelOutput({
+            toolCallId: output.toolCallId,
+            input: output.input,
+            tool: tools?.[output.toolName],
+            output:
+              output.type === 'tool-result' ? output.output : output.error,
+            errorMode: output.type === 'tool-error' ? 'text' : 'none',
+          });
 
-        const stepInstructions =
-          prepareStepResult?.instructions ??
-          prepareStepResult?.system ??
-          instructionsForNextStep;
+          toolContent.push({
+            type: 'tool-result' as const,
+            toolCallId: output.toolCallId,
+            toolName: output.toolName,
+            output: modelOutput,
+          });
+        }
 
-        const promptMessages = await convertToLanguageModelPrompt({
-          prompt: {
-            instructions: stepInstructions,
-            messages: prepareStepResult?.messages ?? stepInputMessages,
-          },
-          supportedUrls: await stepModel.supportedUrls,
-          download,
-          provider: stepModel.provider.split('.')[0],
+        // add execution denied tool results for all denied tool approvals:
+        for (const toolApproval of deniedToolApprovals) {
+          toolContent.push({
+            type: 'tool-result' as const,
+            toolCallId: toolApproval.toolCall.toolCallId,
+            toolName: toolApproval.toolCall.toolName,
+            output: {
+              type: 'execution-denied' as const,
+              reason: toolApproval.approvalResponse.reason,
+              // For provider-executed tools, include approvalId so provider can correlate
+              ...(toolApproval.toolCall.providerExecuted && {
+                providerOptions: {
+                  openai: {
+                    approvalId: toolApproval.approvalResponse.approvalId,
+                  },
+                },
+              }),
+            },
+          });
+        }
+
+        initialResponseMessages.push({
+          role: 'tool',
+          content: toolContent,
         });
+      }
 
-        runtimeContext = prepareStepResult?.runtimeContext ?? runtimeContext;
-        toolsContext = prepareStepResult?.toolsContext ?? toolsContext;
+      const callSettings = prepareLanguageModelCallOptions(settings);
 
-        const stepActiveTools = filterActiveTools({
-          tools,
-          activeTools: prepareStepResult?.activeTools ?? activeTools,
+      let currentModelResponse: LanguageModelV4GenerateResult & {
+        response: { id: string; timestamp: Date; modelId: string };
+      };
+      let clientToolCalls: Array<TypedToolCall<TOOLS>> = [];
+      let clientToolOutputs: Array<ToolOutput<TOOLS>> = [];
+      let toolApprovalResponses: Array<ToolApprovalResponseOutput<TOOLS>> = [];
+      let deniedToolApprovalResponses: Array<
+        ToolApprovalResponseOutput<TOOLS>
+      > = [];
+      const steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['steps'] =
+        [];
+      let instructionsForNextStep = initialPrompt.instructions;
+      let messagesForNextStep = [
+        ...initialMessages,
+        ...initialResponseMessages,
+      ];
+
+      // Track provider-executed tool calls that support deferred results
+      // (e.g., code_execution in programmatic tool calling scenarios).
+      // These tools may not return their results in the same turn as their call.
+      const pendingDeferredToolCalls = new Map<string, { toolName: string }>();
+
+      do {
+        // Set up step timeout if configured
+        const stepTimeoutId = setAbortTimeout({
+          abortController: stepAbortController,
+          label: 'Step',
+          timeoutMs: stepTimeoutMs,
         });
-
-        const stepTools = await prepareTools({
-          tools: stepActiveTools,
-          // active tools context is a subset of the tools context, so we can cast to the unknown type
-          toolsContext: toolsContext as unknown as InferToolSetContext<
-            ActiveToolSubset<TOOLS, ActiveTools<NoInfer<TOOLS>>>
-          >,
-          experimental_sandbox: stepSandbox,
-        });
-
-        const stepToolChoice = prepareToolChoice({
-          toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-        });
-
-        const stepMessages = prepareStepResult?.messages ?? stepInputMessages;
-
-        const stepProviderOptions = mergeObjects(
-          providerOptions,
-          prepareStepResult?.providerOptions,
-        );
         const stepNumber = steps.length;
 
-        await notify({
-          event: {
-            callId,
-            provider: stepModel.provider,
-            modelId: stepModel.modelId,
-            stepNumber,
-            instructions: stepInstructions,
-            messages: stepMessages,
-            tools,
-            toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-            activeTools: prepareStepResult?.activeTools ?? activeTools,
-            steps: [...steps],
-            providerOptions: stepProviderOptions,
-            output,
-            runtimeContext,
-            promptMessages,
-            stepTools,
-            stepToolChoice,
-            toolsContext,
-          },
-          callbacks: [onStepStart, telemetryDispatcher.onStepStart],
-        });
+        try {
+          await runInTracingChannelSpan({
+            type: 'step',
+            event: { callId, stepNumber },
+            execute: async () => {
+              const accumulatedResponseMessages = [
+                ...initialResponseMessages,
+                ...steps.flatMap(step => step.response.messages),
+              ];
+              const stepInputMessages = messagesForNextStep;
 
-        await notify({
-          event: {
-            callId,
-            provider: stepModel.provider,
-            modelId: stepModel.modelId,
-            instructions: stepInstructions,
-            messages: stepMessages,
-            tools: stepTools,
-            ...callSettings,
-          },
-          callbacks: [
-            onLanguageModelCallStart,
-            telemetryDispatcher.onLanguageModelCallStart as
-              | undefined
-              | OnLanguageModelCallStartCallback,
-          ],
-        });
+              const prepareStepResult = await prepareStep?.({
+                model,
+                steps,
+                stepNumber: steps.length,
+                instructions: instructionsForNextStep,
+                initialInstructions: initialPrompt.instructions,
+                messages: stepInputMessages,
+                initialMessages,
+                responseMessages: accumulatedResponseMessages,
+                runtimeContext,
+                toolsContext,
+                experimental_sandbox: sandbox,
+              });
 
-        const stepStartTimestampMs = now();
+              const stepSandbox =
+                prepareStepResult?.experimental_sandbox ?? sandbox;
 
-        const executeLanguageModelCallInTelemetryContext =
-          telemetryDispatcher.executeLanguageModelCall ??
-          (async <T>({ execute }: { execute: () => PromiseLike<T> }) =>
-            await execute());
+              const stepModel = resolveLanguageModel(
+                prepareStepResult?.model ?? model,
+              );
 
-        currentModelResponse = await retry(async () => {
-          const result = await executeLanguageModelCallInTelemetryContext({
-            callId,
-            execute: async () =>
-              await stepModel.doGenerate({
-                ...callSettings,
-                tools: stepTools,
-                toolChoice: stepToolChoice,
-                responseFormat: await output?.responseFormat,
-                prompt: promptMessages,
-                providerOptions: stepProviderOptions,
-                abortSignal: mergedAbortSignal,
-                headers: headersWithUserAgent,
-              }),
-          });
+              const stepInstructions =
+                prepareStepResult?.instructions ??
+                prepareStepResult?.system ??
+                instructionsForNextStep;
 
-          const responseData = {
-            id: result.response?.id ?? generateId(),
-            timestamp: result.response?.timestamp ?? new Date(),
-            modelId: result.response?.modelId ?? stepModel.modelId,
-            headers: result.response?.headers,
-            body: result.response?.body,
-          };
+              const promptMessages = await convertToLanguageModelPrompt({
+                prompt: {
+                  instructions: stepInstructions,
+                  messages: prepareStepResult?.messages ?? stepInputMessages,
+                },
+                supportedUrls: await stepModel.supportedUrls,
+                download,
+                provider: stepModel.provider.split('.')[0],
+              });
 
-          return { ...result, response: responseData };
-        });
-        const responseTimeMs = now() - stepStartTimestampMs;
-        const stepUsage = asLanguageModelUsage(currentModelResponse.usage);
+              runtimeContext =
+                prepareStepResult?.runtimeContext ?? runtimeContext;
+              toolsContext = prepareStepResult?.toolsContext ?? toolsContext;
 
-        // parse tool calls:
-        const stepToolCalls: TypedToolCall<TOOLS>[] = await Promise.all(
-          currentModelResponse.content
-            .filter(
-              (part): part is LanguageModelV4ToolCall =>
-                part.type === 'tool-call',
-            )
-            .map(toolCall =>
-              parseToolCall({
-                toolCall,
+              const stepActiveTools = filterActiveTools({
                 tools,
-                repairToolCall,
-                refineToolInput,
+                activeTools: prepareStepResult?.activeTools ?? activeTools,
+              });
+              const stepToolOrder = prepareStepResult?.toolOrder ?? toolOrder;
+
+              const stepTools = await prepareTools({
+                tools: stepActiveTools,
+                toolOrder: stepToolOrder as ToolOrder<
+                  ActiveToolSubset<TOOLS, ActiveTools<NoInfer<TOOLS>>>
+                >,
+                // active tools context is a subset of the tools context, so we can cast to the unknown type
+                toolsContext: toolsContext as unknown as InferToolSetContext<
+                  ActiveToolSubset<TOOLS, ActiveTools<NoInfer<TOOLS>>>
+                >,
+                experimental_sandbox: stepSandbox,
+              });
+
+              const stepToolChoice = prepareToolChoice({
+                toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+              });
+
+              const stepMessages =
+                prepareStepResult?.messages ?? stepInputMessages;
+
+              const stepProviderOptions = mergeObjects(
+                providerOptions,
+                prepareStepResult?.providerOptions,
+              );
+
+              await notify({
+                event: {
+                  callId,
+                  provider: stepModel.provider,
+                  modelId: stepModel.modelId,
+                  stepNumber,
+                  instructions: stepInstructions,
+                  messages: stepMessages,
+                  tools,
+                  toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+                  activeTools: prepareStepResult?.activeTools ?? activeTools,
+                  toolOrder: stepToolOrder,
+                  steps: [...steps],
+                  providerOptions: stepProviderOptions,
+                  output,
+                  runtimeContext,
+                  promptMessages,
+                  stepTools,
+                  stepToolChoice,
+                  toolsContext,
+                },
+                callbacks: [
+                  resolvedOnStepStart,
+                  telemetryDispatcher.onStepStart,
+                ],
+              });
+
+              const languageModelCallContext = {
+                provider: stepModel.provider,
+                modelId: stepModel.modelId,
                 instructions: stepInstructions,
                 messages: stepMessages,
-              }),
-            ),
-        );
-        const toolApprovalRequests: Record<
-          string,
-          ToolApprovalRequestOutput<TOOLS>
-        > = {};
-        const stepToolApprovalResponses: Record<
-          string,
-          ToolApprovalResponseOutput<TOOLS>
-        > = {};
-        const blockedToolCallIds = new Set<string>();
-
-        const modelCallContent = asContent({
-          content: currentModelResponse.content,
-          toolCalls: stepToolCalls,
-          toolOutputs: [],
-          toolApprovalRequests: [],
-          toolApprovalResponses: [],
-          tools,
-        });
-
-        await notify({
-          event: {
-            callId,
-            provider: stepModel.provider,
-            modelId: stepModel.modelId,
-            finishReason: currentModelResponse.finishReason.unified,
-            usage: stepUsage,
-            content: modelCallContent,
-            responseId: currentModelResponse.response.id,
-            performance: {
-              responseTimeMs,
-              effectiveOutputTokensPerSecond: calculateTokensPerSecond({
-                tokens: stepUsage.outputTokens,
-                durationMs: responseTimeMs,
-              }),
-              outputTokensPerSecond: undefined,
-              inputTokensPerSecond: undefined,
-              effectiveTotalTokensPerSecond: calculateTokensPerSecond({
-                tokens: sumTokenCounts(
-                  stepUsage.inputTokens,
-                  stepUsage.outputTokens,
-                ),
-                durationMs: responseTimeMs,
-              }),
-              timeToFirstOutputMs: undefined,
-            },
-          },
-          callbacks: [
-            onLanguageModelCallEnd,
-            telemetryDispatcher.onLanguageModelCallEnd as
-              | undefined
-              | OnLanguageModelCallEndCallback<TOOLS>,
-          ],
-        });
-
-        // notify the tools that the tool calls are available:
-        for (const toolCall of stepToolCalls) {
-          if (toolCall.invalid) {
-            continue; // ignore invalid tool calls
-          }
-
-          const tool = tools?.[toolCall.toolName];
-
-          if (tool == null) {
-            // ignore tool calls for tools that are not available,
-            // e.g. provider-executed dynamic tools
-            continue;
-          }
-
-          if (tool?.onInputAvailable != null) {
-            await tool.onInputAvailable({
-              input: toolCall.input,
-              toolCallId: toolCall.toolCallId,
-              messages: stepMessages,
-              abortSignal: mergedAbortSignal,
-              context: runtimeContext,
-            });
-          }
-
-          const toolApprovalStatus = await resolveToolApproval({
-            tools,
-            toolApproval,
-            toolCall,
-            messages: stepMessages,
-            toolsContext,
-            runtimeContext,
-          });
-
-          switch (toolApprovalStatus.type) {
-            case 'user-approval': {
-              toolApprovalRequests[toolCall.toolCallId] = {
-                type: 'tool-approval-request',
-                approvalId: generateId(),
-                toolCall,
+                tools: stepTools,
+                ...callSettings,
               };
-              blockedToolCallIds.add(toolCall.toolCallId);
-              break;
-            }
-
-            case 'approved': {
-              const approvalId = generateId();
-
-              toolApprovalRequests[toolCall.toolCallId] = {
-                type: 'tool-approval-request',
-                approvalId,
-                toolCall,
-                isAutomatic: true,
+              const languageModelCallStartEvent = {
+                callId,
+                ...languageModelCallContext,
               };
-              stepToolApprovalResponses[toolCall.toolCallId] = {
-                type: 'tool-approval-response',
-                approvalId,
-                toolCall,
-                approved: true,
-                reason: toolApprovalStatus.reason,
-                providerExecuted: toolCall.providerExecuted,
-              };
-              break;
-            }
 
-            case 'denied': {
-              const approvalId = generateId();
+              const stepStartTimestampMs = now();
 
-              toolApprovalRequests[toolCall.toolCallId] = {
-                type: 'tool-approval-request',
-                approvalId,
-                toolCall,
-                isAutomatic: true,
-              };
-              stepToolApprovalResponses[toolCall.toolCallId] = {
-                type: 'tool-approval-response',
-                approvalId,
-                toolCall,
-                approved: false,
-                reason: toolApprovalStatus.reason,
-                providerExecuted: toolCall.providerExecuted,
-              };
-              blockedToolCallIds.add(toolCall.toolCallId);
-              break;
-            }
-          }
-        }
-
-        // insert error tool outputs for invalid tool calls:
-        // TODO AI SDK 6: invalid inputs should not require output parts
-        const invalidToolCalls = stepToolCalls.filter(
-          toolCall => toolCall.invalid && toolCall.dynamic,
-        );
-
-        clientToolOutputs = [];
-
-        for (const toolCall of invalidToolCalls) {
-          clientToolOutputs.push({
-            type: 'tool-error',
-            toolCallId: toolCall.toolCallId,
-            toolName: toolCall.toolName,
-            input: toolCall.input,
-            error: getErrorMessage(toolCall.error!),
-            dynamic: true,
-          });
-        }
-
-        // execute client tool calls:
-        clientToolCalls = stepToolCalls.filter(
-          toolCall => !toolCall.providerExecuted,
-        );
-        toolApprovalResponses = Object.values(stepToolApprovalResponses);
-        deniedToolApprovalResponses = toolApprovalResponses.filter(
-          toolApprovalResponse => toolApprovalResponse.approved === false,
-        );
-        const toolExecutionMs: Record<string, number> = {};
-
-        if (tools != null) {
-          const toolExecutionResults = await executeTools({
-            toolCalls: clientToolCalls.filter(
-              toolCall =>
-                !toolCall.invalid &&
-                !blockedToolCallIds.has(toolCall.toolCallId),
-            ),
-            tools,
-            callId,
-            messages: stepMessages,
-            abortSignal: mergedAbortSignal,
-            timeout,
-            experimental_sandbox: stepSandbox,
-            toolsContext,
-            onToolExecutionStart: event =>
-              notify({
-                event,
+              await notify({
+                event: languageModelCallStartEvent,
                 callbacks: [
-                  resolvedOnToolExecutionStart,
-                  telemetryDispatcher.onToolExecutionStart,
+                  resolvedOnLanguageModelCallStart,
+                  telemetryDispatcher.onLanguageModelCallStart as
+                    | undefined
+                    | OnLanguageModelCallStartCallback,
                 ],
-              }),
-            onToolExecutionEnd: event =>
-              notify({
-                event,
-                callbacks: [
-                  resolvedOnToolExecutionEnd,
-                  telemetryDispatcher.onToolExecutionEnd,
-                ],
-              }),
-            executeToolInTelemetryContext: telemetryDispatcher.executeTool,
-          });
-
-          for (const result of toolExecutionResults) {
-            toolExecutionMs[result.output.toolCallId] = result.toolExecutionMs;
-            clientToolOutputs.push(result.output);
-          }
-        }
-
-        const stepTimeMs = now() - stepStartTimestampMs;
-        const stepPerformance: StepResultPerformance = {
-          effectiveOutputTokensPerSecond: calculateTokensPerSecond({
-            tokens: stepUsage.outputTokens,
-            durationMs: responseTimeMs,
-          }),
-          outputTokensPerSecond: undefined,
-          inputTokensPerSecond: undefined,
-          effectiveTotalTokensPerSecond: calculateTokensPerSecond({
-            tokens: sumTokenCounts(
-              stepUsage.inputTokens,
-              stepUsage.outputTokens,
-            ),
-            durationMs: responseTimeMs,
-          }),
-          stepTimeMs,
-          responseTimeMs,
-          toolExecutionMs,
-          timeToFirstOutputMs: undefined,
-        };
-
-        // Track provider-executed tool calls that support deferred results.
-        // In programmatic tool calling, a server tool (e.g., code_execution) may
-        // trigger a client tool, and the server tool's result is deferred until
-        // the client tool's result is sent back.
-        for (const toolCall of stepToolCalls) {
-          if (!toolCall.providerExecuted) continue;
-          const tool = tools?.[toolCall.toolName];
-          if (tool?.type === 'provider' && tool.supportsDeferredResults) {
-            // Check if this tool call already has a result in the current response
-            const hasResultInResponse = currentModelResponse.content.some(
-              part =>
-                part.type === 'tool-result' &&
-                part.toolCallId === toolCall.toolCallId,
-            );
-            if (!hasResultInResponse) {
-              pendingDeferredToolCalls.set(toolCall.toolCallId, {
-                toolName: toolCall.toolName,
               });
-            }
-          }
-        }
 
-        // Mark deferred tool calls as resolved when we receive their results
-        for (const part of currentModelResponse.content) {
-          if (part.type === 'tool-result') {
-            pendingDeferredToolCalls.delete(part.toolCallId);
-          }
-        }
+              const executeLanguageModelCallInTelemetryContext =
+                telemetryDispatcher.executeLanguageModelCall ??
+                (async <T>({ execute }: { execute: () => PromiseLike<T> }) =>
+                  await execute());
 
-        // content:
-        const stepContent = asContent({
-          content: currentModelResponse.content,
-          toolCalls: stepToolCalls,
-          toolOutputs: clientToolOutputs,
-          toolApprovalRequests: Object.values(toolApprovalRequests),
-          toolApprovalResponses,
-          tools,
-        });
+              currentModelResponse = await retry(async () => {
+                const result = await executeLanguageModelCallInTelemetryContext(
+                  {
+                    ...languageModelCallStartEvent,
+                    execute: async () =>
+                      await stepModel.doGenerate({
+                        ...callSettings,
+                        tools: stepTools,
+                        toolChoice: stepToolChoice,
+                        responseFormat: await output?.responseFormat,
+                        prompt: promptMessages,
+                        providerOptions: stepProviderOptions,
+                        abortSignal: mergedAbortSignal,
+                        headers: headersWithUserAgent,
+                      }),
+                  },
+                );
 
-        const stepResponseMessages = await toResponseMessages({
-          content: stepContent,
-          tools,
-        });
+                const responseData = {
+                  id: result.response?.id ?? generateId(),
+                  timestamp: result.response?.timestamp ?? new Date(),
+                  modelId: result.response?.modelId ?? stepModel.modelId,
+                  headers: result.response?.headers,
+                  body: result.response?.body,
+                };
 
-        // Add step information (after response messages are updated):
-        // Conditionally include request.body and response.body based on include settings.
-        // Large payloads (e.g., base64-encoded images) can cause memory issues.
-        const stepRequest: LanguageModelRequestMetadata = {
-          ...currentModelResponse.request,
-          body: include.requestBody
-            ? currentModelResponse.request?.body
-            : undefined,
-          messages: include.requestMessages
-            ? cloneModelMessages(stepMessages)
-            : undefined,
-        };
+                return { ...result, response: responseData };
+              });
+              const responseTimeMs = now() - stepStartTimestampMs;
+              const stepUsage = asLanguageModelUsage(
+                currentModelResponse.usage,
+              );
 
-        const stepResponse = {
-          ...currentModelResponse.response,
-          // deep clone msgs to avoid mutating step results in multi-step:
-          messages: cloneModelMessages(stepResponseMessages),
-          // Conditionally include response body:
-          body: include.responseBody
-            ? currentModelResponse.response?.body
-            : undefined,
-        };
+              // parse tool calls:
+              const stepToolCalls: TypedToolCall<TOOLS>[] = await Promise.all(
+                currentModelResponse.content
+                  .filter(
+                    (part): part is LanguageModelV4ToolCall =>
+                      part.type === 'tool-call',
+                  )
+                  .map(toolCall =>
+                    parseToolCall({
+                      toolCall,
+                      tools,
+                      repairToolCall,
+                      refineToolInput,
+                      instructions: stepInstructions,
+                      messages: stepMessages,
+                    }),
+                  ),
+              );
+              const toolApprovalRequests: Record<
+                string,
+                ToolApprovalRequestOutput<TOOLS>
+              > = {};
+              const stepToolApprovalResponses: Record<
+                string,
+                ToolApprovalResponseOutput<TOOLS>
+              > = {};
+              const blockedToolCallIds = new Set<string>();
 
-        const currentStepResult: StepResult<TOOLS, RUNTIME_CONTEXT> =
-          new DefaultStepResult({
-            callId,
-            stepNumber,
-            provider: stepModel.provider,
-            modelId: stepModel.modelId,
-            runtimeContext,
-            content: stepContent,
-            finishReason: currentModelResponse.finishReason.unified,
-            rawFinishReason: currentModelResponse.finishReason.raw,
-            usage: stepUsage,
-            performance: stepPerformance,
-            warnings: currentModelResponse.warnings,
-            providerMetadata: currentModelResponse.providerMetadata,
-            request: stepRequest,
-            response: stepResponse,
-            toolsContext,
+              const modelCallContent = asContent({
+                content: currentModelResponse.content,
+                toolCalls: stepToolCalls,
+                toolOutputs: [],
+                toolApprovalRequests: [],
+                toolApprovalResponses: [],
+                tools,
+              });
+
+              await notify({
+                event: {
+                  callId,
+                  provider: stepModel.provider,
+                  modelId: stepModel.modelId,
+                  finishReason: currentModelResponse.finishReason.unified,
+                  usage: stepUsage,
+                  content: modelCallContent,
+                  responseId: currentModelResponse.response.id,
+                  performance: {
+                    responseTimeMs,
+                    effectiveOutputTokensPerSecond: calculateTokensPerSecond({
+                      tokens: stepUsage.outputTokens,
+                      durationMs: responseTimeMs,
+                    }),
+                    outputTokensPerSecond: undefined,
+                    inputTokensPerSecond: undefined,
+                    effectiveTotalTokensPerSecond: calculateTokensPerSecond({
+                      tokens: sumTokenCounts(
+                        stepUsage.inputTokens,
+                        stepUsage.outputTokens,
+                      ),
+                      durationMs: responseTimeMs,
+                    }),
+                    timeToFirstOutputMs: undefined,
+                  },
+                },
+                callbacks: [
+                  resolvedOnLanguageModelCallEnd,
+                  telemetryDispatcher.onLanguageModelCallEnd as
+                    | undefined
+                    | OnLanguageModelCallEndCallback<TOOLS>,
+                ],
+              });
+
+              // notify the tools that the tool calls are available:
+              for (const toolCall of stepToolCalls) {
+                if (toolCall.invalid) {
+                  continue; // ignore invalid tool calls
+                }
+
+                const tool = tools?.[toolCall.toolName];
+
+                if (tool == null) {
+                  // ignore tool calls for tools that are not available,
+                  // e.g. provider-executed dynamic tools
+                  continue;
+                }
+
+                if (tool?.onInputAvailable != null) {
+                  await tool.onInputAvailable({
+                    input: toolCall.input,
+                    toolCallId: toolCall.toolCallId,
+                    messages: stepMessages,
+                    abortSignal: mergedAbortSignal,
+                    context: runtimeContext,
+                  });
+                }
+
+                const toolApprovalStatus = await resolveToolApproval({
+                  tools,
+                  toolApproval,
+                  toolCall,
+                  messages: stepMessages,
+                  toolsContext,
+                  runtimeContext,
+                });
+
+                // Tools that don't require approval ('not-applicable') must not
+                // consume an approval id, so that id generation stays stable for
+                // callers that rely on deterministic id sequences.
+                if (toolApprovalStatus.type === 'not-applicable') {
+                  continue;
+                }
+
+                const approvalId = generateId();
+                const signature = await maybeSignApproval({
+                  secret: experimental_toolApprovalSecret,
+                  approvalId,
+                  toolCallId: toolCall.toolCallId,
+                  toolName: toolCall.toolName,
+                  input: toolCall.input,
+                });
+
+                switch (toolApprovalStatus.type) {
+                  case 'user-approval': {
+                    toolApprovalRequests[toolCall.toolCallId] = {
+                      type: 'tool-approval-request',
+                      approvalId,
+                      toolCall,
+                      ...(signature != null ? { signature } : {}),
+                    };
+                    blockedToolCallIds.add(toolCall.toolCallId);
+                    break;
+                  }
+
+                  case 'approved': {
+                    toolApprovalRequests[toolCall.toolCallId] = {
+                      type: 'tool-approval-request',
+                      approvalId,
+                      toolCall,
+                      isAutomatic: true,
+                      ...(signature != null ? { signature } : {}),
+                    };
+                    stepToolApprovalResponses[toolCall.toolCallId] = {
+                      type: 'tool-approval-response',
+                      approvalId,
+                      toolCall,
+                      approved: true,
+                      reason: toolApprovalStatus.reason,
+                      providerExecuted: toolCall.providerExecuted,
+                    };
+                    break;
+                  }
+
+                  case 'denied': {
+                    toolApprovalRequests[toolCall.toolCallId] = {
+                      type: 'tool-approval-request',
+                      approvalId,
+                      toolCall,
+                      isAutomatic: true,
+                      ...(signature != null ? { signature } : {}),
+                    };
+                    stepToolApprovalResponses[toolCall.toolCallId] = {
+                      type: 'tool-approval-response',
+                      approvalId,
+                      toolCall,
+                      approved: false,
+                      reason: toolApprovalStatus.reason,
+                      providerExecuted: toolCall.providerExecuted,
+                    };
+                    blockedToolCallIds.add(toolCall.toolCallId);
+                    break;
+                  }
+                }
+              }
+
+              // insert error tool outputs for invalid tool calls:
+              // TODO AI SDK 6: invalid inputs should not require output parts
+              const invalidToolCalls = stepToolCalls.filter(
+                toolCall => toolCall.invalid && toolCall.dynamic,
+              );
+
+              clientToolOutputs = [];
+
+              for (const toolCall of invalidToolCalls) {
+                clientToolOutputs.push({
+                  type: 'tool-error',
+                  toolCallId: toolCall.toolCallId,
+                  toolName: toolCall.toolName,
+                  input: toolCall.input,
+                  error: getErrorMessage(toolCall.error!),
+                  dynamic: true,
+                });
+              }
+
+              // execute client tool calls:
+              clientToolCalls = stepToolCalls.filter(
+                toolCall => !toolCall.providerExecuted,
+              );
+              toolApprovalResponses = Object.values(stepToolApprovalResponses);
+              deniedToolApprovalResponses = toolApprovalResponses.filter(
+                toolApprovalResponse => toolApprovalResponse.approved === false,
+              );
+              const toolExecutionMs: Record<string, number> = {};
+
+              if (tools != null) {
+                const toolExecutionResults = await executeTools({
+                  toolCalls: clientToolCalls.filter(
+                    toolCall =>
+                      !toolCall.invalid &&
+                      !blockedToolCallIds.has(toolCall.toolCallId),
+                  ),
+                  tools,
+                  callId,
+                  messages: stepMessages,
+                  abortSignal: mergedAbortSignal,
+                  timeout,
+                  experimental_sandbox: stepSandbox,
+                  toolsContext,
+                  onToolExecutionStart: event =>
+                    notify({
+                      event,
+                      callbacks: [
+                        resolvedOnToolExecutionStart,
+                        telemetryDispatcher.onToolExecutionStart,
+                      ],
+                    }),
+                  onToolExecutionEnd: event =>
+                    notify({
+                      event,
+                      callbacks: [
+                        resolvedOnToolExecutionEnd,
+                        telemetryDispatcher.onToolExecutionEnd,
+                      ],
+                    }),
+                  executeToolInTelemetryContext:
+                    telemetryDispatcher.executeTool,
+                  runInTracingChannelSpan,
+                });
+
+                for (const result of toolExecutionResults) {
+                  toolExecutionMs[result.output.toolCallId] =
+                    result.toolExecutionMs;
+                  clientToolOutputs.push(result.output);
+                }
+              }
+
+              const stepTimeMs = now() - stepStartTimestampMs;
+              const stepPerformance: StepResultPerformance = {
+                effectiveOutputTokensPerSecond: calculateTokensPerSecond({
+                  tokens: stepUsage.outputTokens,
+                  durationMs: responseTimeMs,
+                }),
+                outputTokensPerSecond: undefined,
+                inputTokensPerSecond: undefined,
+                effectiveTotalTokensPerSecond: calculateTokensPerSecond({
+                  tokens: sumTokenCounts(
+                    stepUsage.inputTokens,
+                    stepUsage.outputTokens,
+                  ),
+                  durationMs: responseTimeMs,
+                }),
+                stepTimeMs,
+                responseTimeMs,
+                toolExecutionMs,
+                timeToFirstOutputMs: undefined,
+              };
+
+              // Track provider-executed tool calls that support deferred results.
+              // In programmatic tool calling, a server tool (e.g., code_execution) may
+              // trigger a client tool, and the server tool's result is deferred until
+              // the client tool's result is sent back.
+              for (const toolCall of stepToolCalls) {
+                if (!toolCall.providerExecuted) continue;
+                const tool = tools?.[toolCall.toolName];
+                if (tool?.type === 'provider' && tool.supportsDeferredResults) {
+                  // Check if this tool call already has a result in the current response
+                  const hasResultInResponse = currentModelResponse.content.some(
+                    part =>
+                      part.type === 'tool-result' &&
+                      part.toolCallId === toolCall.toolCallId,
+                  );
+                  if (!hasResultInResponse) {
+                    pendingDeferredToolCalls.set(toolCall.toolCallId, {
+                      toolName: toolCall.toolName,
+                    });
+                  }
+                }
+              }
+
+              // Mark deferred tool calls as resolved when we receive their results
+              for (const part of currentModelResponse.content) {
+                if (part.type === 'tool-result') {
+                  pendingDeferredToolCalls.delete(part.toolCallId);
+                }
+              }
+
+              // content:
+              const stepContent = asContent({
+                content: currentModelResponse.content,
+                toolCalls: stepToolCalls,
+                toolOutputs: clientToolOutputs,
+                toolApprovalRequests: Object.values(toolApprovalRequests),
+                toolApprovalResponses,
+                tools,
+              });
+
+              const stepResponseMessages = await toResponseMessages({
+                content: stepContent,
+                tools,
+              });
+
+              // Add step information (after response messages are updated):
+              // Conditionally include request.body and response.body based on include settings.
+              // Large payloads (e.g., base64-encoded images) can cause memory issues.
+              const stepRequest: LanguageModelRequestMetadata = {
+                ...currentModelResponse.request,
+                body: include.requestBody
+                  ? currentModelResponse.request?.body
+                  : undefined,
+                messages: include.requestMessages
+                  ? cloneModelMessages(stepMessages)
+                  : undefined,
+              };
+
+              const stepResponse = {
+                ...currentModelResponse.response,
+                // deep clone msgs to avoid mutating step results in multi-step:
+                messages: cloneModelMessages(stepResponseMessages),
+                // Conditionally include response body:
+                body: include.responseBody
+                  ? currentModelResponse.response?.body
+                  : undefined,
+              };
+
+              const currentStepResult: StepResult<TOOLS, RUNTIME_CONTEXT> =
+                new DefaultStepResult({
+                  callId,
+                  stepNumber,
+                  provider: stepModel.provider,
+                  modelId: stepModel.modelId,
+                  runtimeContext,
+                  content: stepContent,
+                  finishReason: currentModelResponse.finishReason.unified,
+                  rawFinishReason: currentModelResponse.finishReason.raw,
+                  usage: stepUsage,
+                  performance: stepPerformance,
+                  warnings: currentModelResponse.warnings,
+                  providerMetadata: currentModelResponse.providerMetadata,
+                  request: stepRequest,
+                  response: stepResponse,
+                  toolsContext,
+                });
+
+              logWarnings({
+                warnings: currentModelResponse.warnings ?? [],
+                provider: stepModel.provider,
+                model: stepModel.modelId,
+              });
+
+              steps.push(currentStepResult);
+              instructionsForNextStep = stepInstructions;
+              messagesForNextStep = [...stepMessages, ...stepResponseMessages];
+
+              await notify({
+                event: currentStepResult,
+                callbacks: [resolvedOnStepEnd, telemetryDispatcher.onStepEnd],
+              });
+
+              return currentStepResult;
+            },
           });
-
-        logWarnings({
-          warnings: currentModelResponse.warnings ?? [],
-          provider: stepModel.provider,
-          model: stepModel.modelId,
-        });
-
-        steps.push(currentStepResult);
-        instructionsForNextStep = stepInstructions;
-        messagesForNextStep = [...stepMessages, ...stepResponseMessages];
-
-        await notify({
-          event: currentStepResult,
-          callbacks: [onStepFinish, telemetryDispatcher.onStepFinish],
-        });
-      } finally {
-        if (stepTimeoutId != null) {
-          clearTimeout(stepTimeoutId);
+        } finally {
+          if (stepTimeoutId != null) {
+            clearTimeout(stepTimeoutId);
+          }
         }
-      }
-    } while (
-      // Continue if:
-      // 1. There are client tool calls that have all been executed or denied, OR
-      // 2. There are pending deferred results from provider-executed tools
-      ((clientToolCalls.length > 0 &&
-        clientToolOutputs.length + deniedToolApprovalResponses.length ===
-          clientToolCalls.length) ||
-        pendingDeferredToolCalls.size > 0) &&
-      // continue until a stop condition is met:
-      !(await isStopConditionMet({ stopConditions, steps }))
-    );
-
-    const lastStep = steps[steps.length - 1];
-
-    const totalUsage = steps.reduce(
-      (totalUsage, step) => {
-        return addLanguageModelUsage(totalUsage, step.usage);
-      },
-      {
-        inputTokens: undefined,
-        inputTokenDetails: {
-          noCacheTokens: undefined,
-          cacheReadTokens: undefined,
-          cacheWriteTokens: undefined,
-        },
-        outputTokens: undefined,
-        outputTokenDetails: {
-          textTokens: undefined,
-          reasoningTokens: undefined,
-        },
-        totalTokens: undefined,
-      } as LanguageModelUsage,
-    );
-
-    const files = steps.flatMap(step => step.files);
-    const sources = steps.flatMap(step => step.sources);
-    const toolCalls = steps.flatMap(step => step.toolCalls);
-    const staticToolCalls = steps.flatMap(step => step.staticToolCalls);
-    const dynamicToolCalls = steps.flatMap(step => step.dynamicToolCalls);
-    const toolResults = steps.flatMap(step => step.toolResults);
-    const staticToolResults = steps.flatMap(step => step.staticToolResults);
-    const dynamicToolResults = steps.flatMap(step => step.dynamicToolResults);
-    const warnings = steps.flatMap(step => step.warnings ?? []);
-
-    const onEndEvent = {
-      callId,
-      stepNumber: lastStep.stepNumber,
-      model: lastStep.model,
-      runtimeContext: lastStep.runtimeContext,
-      finishReason: lastStep.finishReason,
-      rawFinishReason: lastStep.rawFinishReason,
-      usage: totalUsage,
-      totalUsage,
-      content: steps.flatMap(step => step.content),
-      text: lastStep.text,
-      reasoning: lastStep.reasoning,
-      reasoningText: lastStep.reasoningText,
-      files,
-      sources,
-      toolCalls,
-      staticToolCalls,
-      dynamicToolCalls,
-      toolResults,
-      staticToolResults,
-      dynamicToolResults,
-      responseMessages: [
-        ...initialResponseMessages,
-        ...steps.flatMap(step => step.response.messages),
-      ],
-      warnings,
-      request: lastStep.request,
-      response: lastStep.response,
-      providerMetadata: lastStep.providerMetadata,
-      steps,
-      finalStep: lastStep,
-      toolsContext,
-    };
-
-    await notify({
-      event: onEndEvent,
-      callbacks: [onEnd, telemetryDispatcher.onEnd],
-    });
-
-    // parse output only if the last step was finished with "stop":
-    let resolvedOutput;
-    if (lastStep.finishReason === 'stop') {
-      const outputSpecification = output ?? text();
-      resolvedOutput = await outputSpecification.parseCompleteOutput(
-        { text: lastStep.text },
-        {
-          response: lastStep.response,
-          usage: lastStep.usage,
-          finishReason: lastStep.finishReason,
-        },
+      } while (
+        // Continue if:
+        // 1. There are client tool calls that have all been executed or denied, OR
+        // 2. There are pending deferred results from provider-executed tools
+        ((clientToolCalls.length > 0 &&
+          clientToolOutputs.length + deniedToolApprovalResponses.length ===
+            clientToolCalls.length) ||
+          pendingDeferredToolCalls.size > 0) &&
+        // continue until a stop condition is met:
+        !(await isStopConditionMet({ stopConditions, steps }))
       );
-    }
 
-    return new DefaultGenerateTextResult({
-      initialResponseMessages,
-      steps,
-      totalUsage,
-      output: resolvedOutput,
-    });
-  } catch (error) {
-    await telemetryDispatcher.onError?.({ callId, error });
-    throw wrapGatewayError(error);
-  }
+      const lastStep = steps[steps.length - 1];
+
+      const totalUsage = steps.reduce(
+        (totalUsage, step) => {
+          return addLanguageModelUsage(totalUsage, step.usage);
+        },
+        {
+          inputTokens: undefined,
+          inputTokenDetails: {
+            noCacheTokens: undefined,
+            cacheReadTokens: undefined,
+            cacheWriteTokens: undefined,
+          },
+          outputTokens: undefined,
+          outputTokenDetails: {
+            textTokens: undefined,
+            reasoningTokens: undefined,
+          },
+          totalTokens: undefined,
+        } as LanguageModelUsage,
+      );
+
+      const files = steps.flatMap(step => step.files);
+      const sources = steps.flatMap(step => step.sources);
+      const toolCalls = steps.flatMap(step => step.toolCalls);
+      const staticToolCalls = steps.flatMap(step => step.staticToolCalls);
+      const dynamicToolCalls = steps.flatMap(step => step.dynamicToolCalls);
+      const toolResults = steps.flatMap(step => step.toolResults);
+      const staticToolResults = steps.flatMap(step => step.staticToolResults);
+      const dynamicToolResults = steps.flatMap(step => step.dynamicToolResults);
+      const warnings = steps.flatMap(step => step.warnings ?? []);
+
+      const onEndEvent = {
+        callId,
+        stepNumber: lastStep.stepNumber,
+        model: lastStep.model,
+        runtimeContext: lastStep.runtimeContext,
+        finishReason: lastStep.finishReason,
+        rawFinishReason: lastStep.rawFinishReason,
+        usage: totalUsage,
+        totalUsage,
+        content: steps.flatMap(step => step.content),
+        text: lastStep.text,
+        reasoning: lastStep.reasoning,
+        reasoningText: lastStep.reasoningText,
+        files,
+        sources,
+        toolCalls,
+        staticToolCalls,
+        dynamicToolCalls,
+        toolResults,
+        staticToolResults,
+        dynamicToolResults,
+        responseMessages: [
+          ...initialResponseMessages,
+          ...steps.flatMap(step => step.response.messages),
+        ],
+        warnings,
+        request: lastStep.request,
+        response: lastStep.response,
+        providerMetadata: lastStep.providerMetadata,
+        steps,
+        finalStep: lastStep,
+        toolsContext,
+      };
+
+      await notify({
+        event: onEndEvent,
+        callbacks: [onEnd, telemetryDispatcher.onEnd],
+      });
+
+      // parse output only if the last step was finished with "stop":
+      let resolvedOutput;
+      if (lastStep.finishReason === 'stop') {
+        const outputSpecification = output ?? text();
+        resolvedOutput = await outputSpecification.parseCompleteOutput(
+          { text: lastStep.text },
+          {
+            response: lastStep.response,
+            usage: lastStep.usage,
+            finishReason: lastStep.finishReason,
+          },
+        );
+      }
+
+      return new DefaultGenerateTextResult({
+        initialResponseMessages,
+        steps,
+        totalUsage,
+        output: resolvedOutput,
+      });
+    } catch (error) {
+      await telemetryDispatcher.onError?.({ callId, error });
+      throw wrapGatewayError(error);
+    }
+  };
+
+  return await runInTracingChannelSpan({
+    type: 'generateText',
+    event: generateTextStartEvent,
+    execute: executeGenerateText,
+  });
 }
 
 async function executeTools<TOOLS extends ToolSet>({
@@ -1289,6 +1465,7 @@ async function executeTools<TOOLS extends ToolSet>({
   onToolExecutionStart,
   onToolExecutionEnd,
   executeToolInTelemetryContext,
+  runInTracingChannelSpan,
 }: {
   toolCalls: Array<TypedToolCall<TOOLS>>;
   tools: TOOLS;
@@ -1301,6 +1478,9 @@ async function executeTools<TOOLS extends ToolSet>({
   onToolExecutionStart?: OnToolExecutionStartCallback<TOOLS>;
   onToolExecutionEnd?: OnToolExecutionEndCallback<TOOLS>;
   executeToolInTelemetryContext?: Telemetry['executeTool'];
+  runInTracingChannelSpan?: NonNullable<
+    TelemetryDispatcher['runInTracingChannelSpan']
+  >;
 }): Promise<
   Array<{
     output: ToolOutput<TOOLS>;
@@ -1322,6 +1502,7 @@ async function executeTools<TOOLS extends ToolSet>({
           onToolExecutionStart,
           onToolExecutionEnd,
           executeToolInTelemetryContext,
+          runInTracingChannelSpan,
         }),
     ),
   );

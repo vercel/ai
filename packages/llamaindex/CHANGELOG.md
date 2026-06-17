@@ -1,5 +1,134 @@
 # @ai-sdk/llamaindex
 
+## 3.0.0-beta.179
+
+### Patch Changes
+
+- ai@7.0.0-beta.179
+
+## 3.0.0-beta.178
+
+### Patch Changes
+
+- Updated dependencies [b097c52]
+  - ai@7.0.0-beta.178
+
+## 3.0.0-beta.177
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - ai@7.0.0-beta.177
+
+## 3.0.0-canary.176
+
+### Patch Changes
+
+- ai@7.0.0-canary.176
+
+## 3.0.0-canary.175
+
+### Patch Changes
+
+- Updated dependencies [6ec57f5]
+  - ai@7.0.0-canary.175
+
+## 3.0.0-canary.174
+
+### Patch Changes
+
+- ai@7.0.0-canary.174
+
+## 3.0.0-canary.173
+
+### Patch Changes
+
+- ai@7.0.0-canary.173
+
+## 3.0.0-canary.172
+
+### Patch Changes
+
+- Updated dependencies [25a64f8]
+- Updated dependencies [375fdd7]
+- Updated dependencies [f18b08f]
+- Updated dependencies [b4507d5]
+  - ai@7.0.0-canary.172
+
+## 3.0.0-canary.171
+
+### Patch Changes
+
+- Updated dependencies [89ad56f]
+- Updated dependencies [f9a496f]
+- Updated dependencies [3295831]
+  - ai@7.0.0-canary.171
+
+## 3.0.0-canary.170
+
+### Patch Changes
+
+- Updated dependencies [bae5e2b]
+- Updated dependencies [69d7128]
+  - ai@7.0.0-canary.170
+
+## 3.0.0-canary.169
+
+### Patch Changes
+
+- Updated dependencies [a5018ab]
+- Updated dependencies [21d3d60]
+- Updated dependencies [426dbbb]
+- Updated dependencies [7fd3360]
+  - ai@7.0.0-canary.169
+
+## 3.0.0-canary.168
+
+### Patch Changes
+
+- Updated dependencies [1e4b350]
+  - ai@7.0.0-canary.168
+
+## 3.0.0-canary.167
+
+### Patch Changes
+
+- Updated dependencies [4757690]
+- Updated dependencies [eeefc3f]
+- Updated dependencies [b79b6a8]
+  - ai@7.0.0-canary.167
+
+## 3.0.0-canary.166
+
+### Patch Changes
+
+- Updated dependencies [19736ee]
+- Updated dependencies [d66ae02]
+- Updated dependencies [e4182bd]
+  - ai@7.0.0-canary.166
+
+## 3.0.0-canary.165
+
+### Patch Changes
+
+- Updated dependencies [ce769dd]
+  - ai@7.0.0-canary.165
+
+## 3.0.0-canary.164
+
+### Patch Changes
+
+- ai@7.0.0-canary.164
+
+## 3.0.0-canary.163
+
+### Patch Changes
+
+- Updated dependencies [ee798eb]
+- Updated dependencies [c907622]
+  - ai@7.0.0-canary.163
+
 ## 3.0.0-canary.162
 
 ### Patch Changes

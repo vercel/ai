@@ -1,17 +1,16 @@
 # Backport pull requests to the next-older release branch by adding a
-# "backport" label. Labeling an already-merged PR triggers the workflow through
-# the pull_request labeled event. Labeling before merge is picked up by the push
-# event after the merge commit lands on `main` or `release-v*`.
+# "backport" label. Two pull_request events cover both orderings race-free:
+#   - labeled:  picks up a "backport" label added to an already-merged PR.
+#   - closed:   fires when a PR is merged; if it carries the "backport" label
+#               (i.e. the label was added before merge), it is backported.
+# Both paths resolve the PR number directly from the event payload, so there is
+# no commit -> PR reverse lookup that could race GitHub's post-merge indexing.
 
 name: Backport
 
 on:
   pull_request:
-    types: [labeled]
-  push:
-    branches:
-      - main
-      - release-v*
+    types: [labeled, closed]
   workflow_dispatch:
     inputs:
       pull_request_number:
@@ -19,18 +18,19 @@ on:
         required: true
         type: number
 
-concurrency: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.event.inputs.pull_request_number || github.sha }}
+concurrency: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.inputs.pull_request_number }}
 
 permissions:
-  contents: write
-  issues: write
-  pull-requests: write
+  contents: read
 
 jobs:
   resolve-pr:
     name: Resolve backport PR
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
     if: github.repository_owner == 'vercel'
     outputs:
       should-backport: ${{ steps.resolve.outputs.should-backport }}
@@ -94,8 +94,7 @@ jobs:
             echo "REPO=\${REPO:-}" >&2
             echo "PR_NUMBER=\${PR_NUMBER:-}" >&2
             echo "PR_EVENT_NUMBER=\${PR_EVENT_NUMBER:-}" >&2
-            echo "PUSH_REF=\${PUSH_REF:-}" >&2
-            echo "PUSH_SHA=\${PUSH_SHA:-}" >&2
+            echo "PR_ACTION=\${PR_ACTION:-}" >&2
             echo "::endgroup::" >&2
             exit "\$status"
           fi
@@ -110,13 +109,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           EVENT_NAME: ${{ github.event_name }}
+          PR_ACTION: ${{ github.event.action }}
           PR_EVENT_NUMBER: ${{ github.event.pull_request.number }}
           DISPATCH_PR_NUMBER: ${{ github.event.inputs.pull_request_number }}
           ISSUE_LABEL: ${{ github.event.label.name }}
           LABELER_LOGIN: ${{ github.event.sender.login }}
           REPO: ${{ github.repository }}
-          PUSH_REF: ${{ github.ref_name }}
-          PUSH_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
 
@@ -139,7 +137,13 @@ jobs:
           PR_NUMBER=""
 
           if [ "$EVENT_NAME" = "pull_request" ]; then
-            [ "$ISSUE_LABEL" = "backport" ] || skip "Ignoring non-backport label: $ISSUE_LABEL"
+            # `labeled`: only react to the "backport" label being added.
+            # `closed`: react to every closed PR here and let the downstream
+            # "is merged" and "has backport label" checks decide. This catches
+            # the case where the label was added before the PR was merged.
+            if [ "$PR_ACTION" = "labeled" ] && [ "$ISSUE_LABEL" != "backport" ]; then
+              skip "Ignoring non-backport label: $ISSUE_LABEL"
+            fi
             [ -n "$PR_EVENT_NUMBER" ] || {
               echo "::error::pull_request event did not include pull_request.number"
               exit 1
@@ -151,24 +155,6 @@ jobs:
               exit 1
             }
             PR_NUMBER="$DISPATCH_PR_NUMBER"
-          elif [ "$EVENT_NAME" = "push" ]; then
-            if [ "$PUSH_SHA" = "0000000000000000000000000000000000000000" ]; then
-              skip "Ignoring branch deletion push for ${PUSH_REF}"
-            fi
-
-            for SHA in "$PUSH_SHA"; do
-              PULLS=$(gh api \
-                -H "Accept: application/vnd.github+json" \
-                "repos/${REPO}/commits/${SHA}/pulls")
-              PR_NUMBER=$(echo "$PULLS" | jq -r --arg base "$PUSH_REF" \
-                '[.[] | select(.base.ref == $base)] | .[0].number // empty')
-
-              if [ -n "$PR_NUMBER" ]; then
-                break
-              fi
-            done
-
-            [ -n "$PR_NUMBER" ] || skip "No pull request found for pushed commit ${PUSH_SHA}"
           else
             skip "Unsupported event: $EVENT_NAME"
           fi
@@ -176,6 +162,14 @@ jobs:
           PR=$(gh api "repos/${REPO}/pulls/${PR_NUMBER}")
           MERGED=$(echo "$PR" | jq -r '.merged')
           [ "$MERGED" = "true" ] || skip "PR #${PR_NUMBER} is not merged"
+
+          # Gate on the backport label before anything else — in particular
+          # before the fork-detection comment below. The `closed` trigger fires
+          # for every merged PR, so without this an unlabeled fork PR would be
+          # spammed with a "use workflow_dispatch" comment it never asked for.
+          HAS_BACKPORT_LABEL=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/labels" \
+            --jq 'any(.[]; .name == "backport")')
+          [ "$HAS_BACKPORT_LABEL" = "true" ] || skip "PR #${PR_NUMBER} does not have the backport label"
 
           HEAD_REPO=$(echo "$PR" | jq -r '.head.repo.full_name // empty')
           if [ "$EVENT_NAME" = "pull_request" ] && [ "$HEAD_REPO" != "$REPO" ]; then
@@ -201,14 +195,6 @@ jobs:
             main|release-v*) ;;
             *) skip "PR #${PR_NUMBER} targets unsupported base branch: ${BASE_REF}" ;;
           esac
-
-          if [ "$EVENT_NAME" = "push" ] && [ "$BASE_REF" != "$PUSH_REF" ]; then
-            skip "PR #${PR_NUMBER} base ${BASE_REF} does not match pushed branch ${PUSH_REF}"
-          fi
-
-          HAS_BACKPORT_LABEL=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/labels" \
-            --jq 'any(.[]; .name == "backport")')
-          [ "$HAS_BACKPORT_LABEL" = "true" ] || skip "PR #${PR_NUMBER} does not have the backport label"
 
           set_output "should-backport" "true"
           set_output "pr-number" "$PR_NUMBER"
@@ -314,14 +300,18 @@ jobs:
     if: |
       github.repository_owner == 'vercel' &&
       needs.resolve-pr.outputs.should-backport == 'true'
-    # Serialize across all events (pull_request labeled, push) targeting the
-    # same PR+release branch. The workflow-level concurrency key differs by
-    # event_name, so two events for the same merge would otherwise race on
-    # creating the backport branch and PR. Serializing here lets the second
-    # run hit the "Check for existing backport PR" step and exit cleanly.
+    # Serialize backport runs for the same PR + release branch. A single PR can
+    # trigger more than one run over its lifetime (e.g. a `closed` run at merge
+    # and a later `labeled` run), so serializing here lets a second run hit the
+    # "Check for existing backport PR" step and exit cleanly instead of racing
+    # on creating the backport branch and PR.
     concurrency:
       group: backport-${{ needs.resolve-pr.outputs.pr-number }}-${{ needs.find-branch.outputs.release-branch }}
       cancel-in-progress: false
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
 
     steps:
       - name: Configure Git

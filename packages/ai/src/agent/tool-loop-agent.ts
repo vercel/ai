@@ -87,10 +87,13 @@ export class ToolLoopAgent<
       | 'prepareCall'
       | 'instructions'
       | 'allowSystemInMessages'
+      | 'onStart'
       | 'experimental_onStart'
+      | 'onStepStart'
       | 'experimental_onStepStart'
       | 'onToolExecutionStart'
       | 'onToolExecutionEnd'
+      | 'onStepEnd'
       | 'onStepFinish'
       | 'onEnd'
       | 'onFinish'
@@ -110,10 +113,13 @@ export class ToolLoopAgent<
     }
 
     const {
-      experimental_onStart: _settingsOnStart,
-      experimental_onStepStart: _settingsOnStepStart,
+      onStart: _settingsStableOnStart,
+      experimental_onStart: _settingsExperimentalOnStart,
+      onStepStart: _settingsStableOnStepStart,
+      experimental_onStepStart: _settingsExperimentalOnStepStart,
       onToolExecutionStart: _settingsOnToolExecutionStart,
       onToolExecutionEnd: _settingsOnToolExecutionEnd,
+      onStepEnd: _settingsOnStepEnd,
       onStepFinish: _settingsOnStepFinish,
       onFinish: _settingsOnFinish,
       onEnd: _settingsOnEnd,
@@ -177,10 +183,13 @@ export class ToolLoopAgent<
     abortSignal,
     timeout,
     experimental_sandbox: sandbox,
+    onStart,
     experimental_onStart,
+    onStepStart,
     experimental_onStepStart,
     onToolExecutionStart,
     onToolExecutionEnd,
+    onStepEnd,
     onStepFinish,
     onFinish,
     onEnd = onFinish,
@@ -197,15 +206,15 @@ export class ToolLoopAgent<
       abortSignal,
       timeout,
       experimental_sandbox: sandbox,
-      experimental_onStart: mergeCallbacks(
-        this.settings.experimental_onStart,
-        experimental_onStart as
+      onStart: mergeCallbacks(
+        this.settings.onStart ?? this.settings.experimental_onStart,
+        (onStart ?? experimental_onStart) as
           | GenerateTextOnStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>
           | undefined,
       ),
-      experimental_onStepStart: mergeCallbacks(
-        this.settings.experimental_onStepStart,
-        experimental_onStepStart as
+      onStepStart: mergeCallbacks(
+        this.settings.onStepStart ?? this.settings.experimental_onStepStart,
+        (onStepStart ?? experimental_onStepStart) as
           | GenerateTextOnStepStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>
           | undefined,
       ),
@@ -217,7 +226,10 @@ export class ToolLoopAgent<
         this.settings.onToolExecutionEnd,
         onToolExecutionEnd,
       ),
-      onStepFinish: mergeCallbacks(this.settings.onStepFinish, onStepFinish),
+      onStepEnd: mergeCallbacks(
+        this.settings.onStepEnd ?? this.settings.onStepFinish,
+        onStepEnd ?? onStepFinish,
+      ),
       onEnd: mergeCallbacks(this.settings.onEnd, onEnd),
     };
 
@@ -235,10 +247,13 @@ export class ToolLoopAgent<
     timeout,
     experimental_sandbox: sandbox,
     experimental_transform,
+    onStart,
     experimental_onStart,
+    onStepStart,
     experimental_onStepStart,
     onToolExecutionStart,
     onToolExecutionEnd,
+    onStepEnd,
     onStepFinish,
     onFinish,
     onEnd = onFinish,
@@ -256,15 +271,15 @@ export class ToolLoopAgent<
       timeout,
       experimental_sandbox: sandbox,
       experimental_transform,
-      experimental_onStart: mergeCallbacks(
-        this.settings.experimental_onStart,
-        experimental_onStart as
+      onStart: mergeCallbacks(
+        this.settings.onStart ?? this.settings.experimental_onStart,
+        (onStart ?? experimental_onStart) as
           | GenerateTextOnStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>
           | undefined,
       ),
-      experimental_onStepStart: mergeCallbacks(
-        this.settings.experimental_onStepStart,
-        experimental_onStepStart as
+      onStepStart: mergeCallbacks(
+        this.settings.onStepStart ?? this.settings.experimental_onStepStart,
+        (onStepStart ?? experimental_onStepStart) as
           | GenerateTextOnStepStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>
           | undefined,
       ),
@@ -276,7 +291,10 @@ export class ToolLoopAgent<
         this.settings.onToolExecutionEnd,
         onToolExecutionEnd,
       ),
-      onStepFinish: mergeCallbacks(this.settings.onStepFinish, onStepFinish),
+      onStepEnd: mergeCallbacks(
+        this.settings.onStepEnd ?? this.settings.onStepFinish,
+        onStepEnd ?? onStepFinish,
+      ),
       onEnd: mergeCallbacks(this.settings.onEnd, onEnd),
     };
 

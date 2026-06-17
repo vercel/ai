@@ -28,11 +28,7 @@ const rootDirectory = '/vercel/sandbox';
 // Without OIDC, @vercel/sandbox reports a missing `x-vercel-oidc-token`
 // header when creating or retrieving sandboxes.
 export class VercelSandboxSession implements SandboxSession {
-  constructor(
-    public readonly sandbox: Awaited<
-      ReturnType<typeof VercelSandboxSDK.create>
-    >,
-  ) {}
+  constructor(public readonly sandbox: VercelSandboxSDK) {}
 
   private resolvePath(path: string): string {
     return isAbsolute(path) ? path : join(rootDirectory, path);
@@ -41,15 +37,18 @@ export class VercelSandboxSession implements SandboxSession {
   async run({
     command,
     workingDirectory,
+    env,
     abortSignal,
   }: {
     command: string;
     workingDirectory?: string;
+    env?: Record<string, string>;
     abortSignal?: AbortSignal;
   }) {
     const proc = await this.spawn({
       command,
       workingDirectory,
+      env,
       abortSignal,
     });
 
@@ -65,10 +64,12 @@ export class VercelSandboxSession implements SandboxSession {
   async spawn({
     command,
     workingDirectory,
+    env,
     abortSignal,
   }: {
     command: string;
     workingDirectory?: string;
+    env?: Record<string, string>;
     abortSignal?: AbortSignal;
   }): Promise<Experimental_SandboxProcess> {
     abortSignal?.throwIfAborted();
@@ -77,6 +78,7 @@ export class VercelSandboxSession implements SandboxSession {
       cmd: 'bash',
       args: ['-c', command],
       cwd: workingDirectory ?? rootDirectory,
+      env,
       detached: true,
     });
 
@@ -188,7 +190,7 @@ export class VercelSandboxSession implements SandboxSession {
   }
 
   get description() {
-    return `Vercel Sandbox: ${this.sandbox.sandboxId}\nRoot directory: ${rootDirectory}`;
+    return `Vercel Sandbox: ${this.sandbox.name}\nRoot directory: ${rootDirectory}`;
   }
 }
 

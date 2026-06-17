@@ -65,6 +65,7 @@ import type { TypedToolCall } from './tool-call';
 import type { ToolCallRepairFunction } from './tool-call-repair-function';
 import type { TypedToolError } from './tool-error';
 import type { ToolInputRefinement } from './tool-input-refinement';
+import type { ToolOrder } from './tool-order';
 import type { TypedToolResult } from './tool-result';
 
 const originalGenerateId = createIdGenerator({
@@ -194,6 +195,7 @@ export async function streamLanguageModelCall<
 >({
   model,
   tools,
+  toolOrder,
   output,
   toolChoice,
   prompt,
@@ -225,6 +227,7 @@ export async function streamLanguageModelCall<
 }: {
   model: LanguageModel;
   tools?: TOOLS;
+  toolOrder?: ToolOrder<TOOLS>;
   output?: OUTPUT;
   toolChoice?: ToolChoice<TOOLS>;
   download?: DownloadFunction;
@@ -303,6 +306,7 @@ export async function streamLanguageModelCall<
 
   const stepTools = await prepareTools({
     tools,
+    toolOrder,
     toolsContext,
     experimental_sandbox: sandbox,
   });
@@ -316,16 +320,21 @@ export async function streamLanguageModelCall<
     callbacks: onStart,
   });
 
+  const languageModelCallContext = {
+    provider: resolvedModel.provider,
+    modelId: resolvedModel.modelId,
+    instructions: standardizedPrompt.instructions,
+    messages: standardizedPrompt.messages,
+    tools: stepTools,
+    ...callSettings,
+  };
+  const languageModelCallStartEvent = {
+    callId: effectiveCallId,
+    ...languageModelCallContext,
+  };
+
   await notify({
-    event: {
-      callId: effectiveCallId,
-      provider: resolvedModel.provider,
-      modelId: resolvedModel.modelId,
-      instructions: standardizedPrompt.instructions,
-      messages: standardizedPrompt.messages,
-      tools: stepTools,
-      ...callSettings,
-    },
+    event: languageModelCallStartEvent,
     callbacks: onLanguageModelCallStart,
   });
 
@@ -336,7 +345,7 @@ export async function streamLanguageModelCall<
     response,
     request,
   } = await executeLanguageModelCallInTelemetryContext({
-    callId: effectiveCallId,
+    ...languageModelCallStartEvent,
     execute: async () =>
       await resolvedModel.doStream({
         ...callSettings,

@@ -609,6 +609,13 @@ To see `streamText` in action, check out [these examples](#examples).
         'Limits the tools that are available for the model to call without changing the tool call and result types in the result. All tools are active by default. Tool names are restricted to the string keys of the tool set.',
     },
     {
+      name: 'toolOrder',
+      type: 'ToolOrder<TOOLS>',
+      isOptional: true,
+      description:
+        'Controls the order in which tools are sent to the provider. The list can be partial. Tools not listed in `toolOrder` are sent after the listed tools, sorted alphabetically. Tool names are restricted to the string keys of the tool set.',
+    },
+    {
       name: 'toolApproval',
       type: 'ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>',
       isOptional: true,
@@ -732,6 +739,13 @@ To see `streamText` in action, check out [these examples](#examples).
               isOptional: true,
               description:
                 'If provided, only these tools are enabled/available for this step.',
+            },
+            {
+              name: 'toolOrder',
+              type: 'ToolOrder<TOOLS>',
+              isOptional: true,
+              description:
+                'If provided, overrides the order in which tools are sent to the provider for this step. Tools not listed are appended alphabetically.',
             },
             {
               name: 'instructions',
@@ -1262,13 +1276,13 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'onStepFinish',
-      type: '(result: onStepFinishResult) => Promise<void> | void',
+      name: 'onStepEnd',
+      type: '(result: StepResult<TOOLS>) => Promise<void> | void',
       isOptional: true,
-      description: 'Callback that is called when a step is finished.',
+      description: 'Callback that is called when a step ends.',
       properties: [
         {
-          type: 'onStepFinishResult',
+          type: 'StepResult',
           parameters: [
             {
               name: 'stepType',
@@ -1593,6 +1607,13 @@ To see `streamText` in action, check out [these examples](#examples).
           ],
         },
       ],
+    },
+    {
+      name: 'onStepFinish',
+      type: 'GenerateTextOnStepFinishCallback<TOOLS>',
+      isOptional: true,
+      description:
+        'Deprecated. Use `onStepEnd` instead. This alias is only used as a fallback when `onStepEnd` is not provided.',
     },
     {
       name: 'onEnd',
@@ -1973,11 +1994,11 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_onStart',
+      name: 'onStart',
       type: '(event: GenerateTextStartEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
-        'Callback that is called when the streamText operation begins, before any LLM calls are made. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).',
+        'Callback that is called when the streamText operation begins, before any LLM calls are made. Errors thrown in this callback are silently caught and do not break the generation flow.',
       properties: [
         {
           type: 'GenerateTextStartEvent',
@@ -2018,6 +2039,12 @@ To see `streamText` in action, check out [these examples](#examples).
               type: 'ActiveTools<TOOLS>',
               description:
                 'Limits which tools are available for the model to call.',
+            },
+            {
+              name: 'toolOrder',
+              type: 'ToolOrder<TOOLS>',
+              description:
+                'Controls the order in which tools are sent to the provider.',
             },
             {
               name: 'maxOutputTokens',
@@ -2114,11 +2141,11 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_onStepStart',
+      name: 'onStepStart',
       type: '(event: GenerateTextStepStartEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
-        'Callback that is called when a step (LLM call) begins, before the provider is called. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).',
+        'Callback that is called when a step (LLM call) begins, before the provider is called. Errors thrown in this callback are silently caught and do not break the generation flow.',
       properties: [
         {
           type: 'GenerateTextStepStartEvent',
@@ -2165,6 +2192,12 @@ To see `streamText` in action, check out [these examples](#examples).
               name: 'activeTools',
               type: 'ActiveTools<TOOLS>',
               description: 'Limits which tools are available for this step.',
+            },
+            {
+              name: 'toolOrder',
+              type: 'ToolOrder<TOOLS>',
+              description:
+                'Controls the order in which tools are sent to the provider for this step.',
             },
             {
               name: 'steps',
@@ -2227,11 +2260,11 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_onLanguageModelCallStart',
+      name: 'onLanguageModelCallStart',
       type: '(event: LanguageModelCallStartEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
-        'Callback that is called immediately before the provider model call begins. Unlike `experimental_onStepStart`, this callback is scoped to model work only and excludes any later client-side tool execution. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).',
+        'Callback that is called immediately before the provider model call begins. Unlike `onStepStart`, this callback is scoped to model work only and excludes any later client-side tool execution. Errors thrown in this callback are silently caught and do not break the generation flow.',
       properties: [
         {
           type: 'LanguageModelCallStartEvent',
@@ -2272,11 +2305,11 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_onLanguageModelCallEnd',
+      name: 'onLanguageModelCallEnd',
       type: '(event: LanguageModelCallEndEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
-        'Callback that is called after the model response has been normalized and parsed, but before any client-side tool execution begins. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).',
+        'Callback that is called after the model response has been normalized and parsed, but before any client-side tool execution begins. Errors thrown in this callback are silently caught and do not break the generation flow.',
       properties: [
         {
           type: 'LanguageModelCallEndEvent',
@@ -2381,7 +2414,7 @@ To see `streamText` in action, check out [these examples](#examples).
       type: '(event: ToolExecutionStartEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
-        "Callback that is called right before a tool's execute function runs. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).",
+        "Callback that is called right before a tool's execute function runs. Errors thrown in this callback are silently caught and do not break the generation flow.",
       properties: [
         {
           type: 'ToolExecutionStartEvent',
@@ -2419,7 +2452,7 @@ To see `streamText` in action, check out [these examples](#examples).
       type: '(event: ToolExecutionEndEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
-        "Callback that is called right after a tool's execute function completes (or errors). The `toolOutput` field is a discriminated union: when `toolOutput.type` is `'tool-result'`, the `output` field contains the tool result; when `toolOutput.type` is `'tool-error'`, the `error` field contains the error. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).",
+        "Callback that is called right after a tool's execute function completes (or errors). The `toolOutput` field is a discriminated union: when `toolOutput.type` is `'tool-result'`, the `output` field contains the tool result; when `toolOutput.type` is `'tool-error'`, the `error` field contains the error. Errors thrown in this callback are silently caught and do not break the generation flow.",
       properties: [
         {
           type: 'ToolExecutionEndEvent',

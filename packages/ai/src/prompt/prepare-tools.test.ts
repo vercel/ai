@@ -124,6 +124,69 @@ describe('prepareTools', () => {
     `);
   });
 
+  it('orders tools according to a partial toolOrder and appends omitted tools alphabetically', async () => {
+    const result = await prepareTools({
+      tools: {
+        zebra: tool({
+          description: 'Zebra tool',
+          inputSchema: z.object({}),
+        }),
+        alpha: tool({
+          description: 'Alpha tool',
+          inputSchema: z.object({}),
+        }),
+        providerTool: mockProviderDefinedTool,
+        middle: tool({
+          description: 'Middle tool',
+          inputSchema: z.object({}),
+        }),
+      },
+      toolOrder: ['middle'] as const,
+    });
+
+    expect(result?.map(tool => tool.name)).toEqual([
+      'middle',
+      'alpha',
+      'providerTool',
+      'zebra',
+    ]);
+  });
+
+  it('preserves toolOrder entries before alphabetically sorting the remaining tools', async () => {
+    const result = await prepareTools({
+      tools: {
+        zebra: tool({
+          description: 'Zebra tool',
+          inputSchema: z.object({}),
+        }),
+        alpha: tool({
+          description: 'Alpha tool',
+          inputSchema: z.object({}),
+        }),
+        middle: tool({
+          description: 'Middle tool',
+          inputSchema: z.object({}),
+        }),
+      },
+      toolOrder: ['zebra', 'middle'] as const,
+    });
+
+    expect(result?.map(tool => tool.name)).toEqual([
+      'zebra',
+      'middle',
+      'alpha',
+    ]);
+  });
+
+  it('does not duplicate tools when toolOrder contains duplicate names', async () => {
+    const result = await prepareTools({
+      tools: mockTools,
+      toolOrder: ['tool2', 'tool2'] as const,
+    });
+
+    expect(result?.map(tool => tool.name)).toEqual(['tool2', 'tool1']);
+  });
+
   it('passes through provider options', async () => {
     const result = await prepareTools({
       tools: {

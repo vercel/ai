@@ -11,6 +11,7 @@ import type { LanguageModel, ToolChoice } from '../types/language-model';
 import type { ActiveTools } from './active-tools';
 import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
+import type { ToolOrder } from './tool-order';
 
 /**
  * Function that you can use to provide different settings for a step.
@@ -116,6 +117,12 @@ export type PrepareStepResult<
        * If provided, only these tools are enabled/available for this step.
        */
       activeTools?: ActiveTools<NoInfer<TOOLS>>;
+
+      /**
+       * Optionally override the order in which tools are sent to the provider
+       * for this step.
+       */
+      toolOrder?: ToolOrder<NoInfer<TOOLS>>;
 
       /**
        * Optionally override the instructions sent to the model for this step.

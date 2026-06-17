@@ -1,5 +1,182 @@
 # @ai-sdk/react
 
+## 4.0.0-beta.183
+
+### Patch Changes
+
+- ai@7.0.0-beta.179
+
+## 4.0.0-beta.182
+
+### Patch Changes
+
+- Updated dependencies [b097c52]
+  - ai@7.0.0-beta.178
+
+## 4.0.0-beta.181
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/mcp@2.0.0-beta.66
+  - @ai-sdk/provider-utils@5.0.0-beta.49
+  - @ai-sdk/provider@4.0.0-beta.19
+  - ai@7.0.0-beta.177
+
+## 4.0.0-canary.180
+
+### Patch Changes
+
+- ai@7.0.0-canary.176
+
+## 4.0.0-canary.179
+
+### Patch Changes
+
+- Updated dependencies [6ec57f5]
+  - ai@7.0.0-canary.175
+
+## 4.0.0-canary.178
+
+### Patch Changes
+
+- ai@7.0.0-canary.174
+
+## 4.0.0-canary.177
+
+### Patch Changes
+
+- Updated dependencies [b29e087]
+  - @ai-sdk/mcp@2.0.0-canary.65
+
+## 4.0.0-canary.176
+
+### Patch Changes
+
+- Updated dependencies [024a6b4]
+  - @ai-sdk/mcp@2.0.0-canary.64
+  - ai@7.0.0-canary.173
+
+## 4.0.0-canary.175
+
+### Patch Changes
+
+- 555c5de: fix(react): deny MCP App tool calls by default when allowedTools is omitted
+
+  `experimental_MCPAppRenderer`'s bridge only enforced the `allowedTools` allowlist when it was non-null, so omitting `allowedTools` skipped the check and forwarded every `tools/call` from the (untrusted) MCP App iframe to the host's `callTool`. A malicious or compromised MCP server could therefore invoke any tool the host wired up.
+
+  Tool invocation from MCP App content is now deny-by-default: if `allowedTools` is not explicitly provided, all `tools/call` requests are rejected. To expose tools to an app, list them in `handlers.allowedTools`.
+
+- Updated dependencies [2a150f8]
+- Updated dependencies [b44b051]
+- Updated dependencies [aeda373]
+- Updated dependencies [25a64f8]
+- Updated dependencies [375fdd7]
+- Updated dependencies [f18b08f]
+- Updated dependencies [b4507d5]
+  - @ai-sdk/mcp@2.0.0-canary.63
+  - @ai-sdk/provider-utils@5.0.0-canary.48
+  - ai@7.0.0-canary.172
+
+## 4.0.0-canary.174
+
+### Patch Changes
+
+- Updated dependencies [e33ad0b]
+- Updated dependencies [3e0b82f]
+- Updated dependencies [89ad56f]
+- Updated dependencies [f9a496f]
+- Updated dependencies [3295831]
+  - @ai-sdk/mcp@2.0.0-canary.62
+  - ai@7.0.0-canary.171
+
+## 4.0.0-canary.173
+
+### Patch Changes
+
+- Updated dependencies [bae5e2b]
+- Updated dependencies [69d7128]
+  - ai@7.0.0-canary.170
+  - @ai-sdk/provider-utils@5.0.0-canary.47
+  - @ai-sdk/mcp@2.0.0-canary.61
+
+## 4.0.0-canary.172
+
+### Patch Changes
+
+- Updated dependencies [a5018ab]
+- Updated dependencies [21d3d60]
+- Updated dependencies [426dbbb]
+- Updated dependencies [f0c6770]
+- Updated dependencies [7fd3360]
+  - ai@7.0.0-canary.169
+  - @ai-sdk/mcp@2.0.0-canary.60
+
+## 4.0.0-canary.171
+
+### Patch Changes
+
+- Updated dependencies [1e4b350]
+  - ai@7.0.0-canary.168
+
+## 4.0.0-canary.170
+
+### Patch Changes
+
+- Updated dependencies [4757690]
+- Updated dependencies [eeefc3f]
+- Updated dependencies [b79b6a8]
+  - ai@7.0.0-canary.167
+
+## 4.0.0-canary.169
+
+### Patch Changes
+
+- Updated dependencies [19736ee]
+- Updated dependencies [d66ae02]
+- Updated dependencies [e4182bd]
+  - ai@7.0.0-canary.166
+
+## 4.0.0-canary.168
+
+### Patch Changes
+
+- ce769dd: feat(provider): add experimental Realtime API support for voice conversations
+
+  Adds first-class support for realtime (speech-to-speech) APIs:
+
+  - `Experimental_RealtimeModelV4` spec in `@ai-sdk/provider` with normalized event types and factory
+  - OpenAI, Google, and xAI realtime provider implementations
+  - `openai.experimental_realtime()` / `google.experimental_realtime()` / `xai.experimental_realtime()` work in both server and browser
+  - `.getToken()` static method on each provider for server-side ephemeral token creation
+  - `experimental_getRealtimeToolDefinitions` helper for provider session tool definitions
+  - `experimental_useRealtime` hook in `@ai-sdk/react` returning `UIMessage[]` (aligned with `useChat`), with `onToolCall` and `addToolOutput` for client-driven tool execution
+  - `inputAudioTranscription` session config for showing transcribed user audio messages when supported by the provider
+
+- Updated dependencies [ce769dd]
+  - @ai-sdk/provider@4.0.0-canary.18
+  - ai@7.0.0-canary.165
+  - @ai-sdk/mcp@2.0.0-canary.59
+  - @ai-sdk/provider-utils@5.0.0-canary.46
+
+## 4.0.0-canary.167
+
+### Patch Changes
+
+- ai@7.0.0-canary.164
+
+## 4.0.0-canary.166
+
+### Patch Changes
+
+- Updated dependencies [ee798eb]
+- Updated dependencies [daf6637]
+- Updated dependencies [c907622]
+  - @ai-sdk/provider-utils@5.0.0-canary.45
+  - ai@7.0.0-canary.163
+  - @ai-sdk/mcp@2.0.0-canary.58
+
 ## 4.0.0-canary.165
 
 ### Patch Changes

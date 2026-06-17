@@ -426,7 +426,7 @@ function convertImagePartToFilePart(
 /**
  * Downloads files from URLs in the user messages.
  */
-async function downloadAssets(
+export async function downloadAssets(
   messages: ModelMessage[],
   download: DownloadFunction,
   supportedUrls: Record<string, RegExp[]>,
@@ -592,7 +592,7 @@ function convertPartToLanguageModelPart(
   };
 }
 
-function mapToolResultOutput({
+export function mapToolResultOutput({
   output,
   // `provider` is only needed here to convert legacy "file-id" and "image-file-id" types to provider references, in case they are using string ID values.
   // TODO: remove in v8 when "file-id" and "image-file-id" types are removed

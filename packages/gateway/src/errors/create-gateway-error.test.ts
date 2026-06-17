@@ -6,6 +6,8 @@ import {
   GatewayRateLimitError,
   GatewayModelNotFoundError,
   GatewayInternalServerError,
+  GatewayFailedDependencyError,
+  GatewayForbiddenError,
   GatewayResponseError,
   type GatewayErrorResponse,
 } from './index';
@@ -45,6 +47,25 @@ describe('Valid error responses', () => {
     expect(error).toBeInstanceOf(GatewayInvalidRequestError);
     expect(error.message).toBe('Missing required parameter');
     expect(error.statusCode).toBe(400);
+  });
+
+  it('should create GatewayForbiddenError for forbidden type', async () => {
+    const response: GatewayErrorResponse = {
+      error: {
+        message: 'Request denied by a routing rule.',
+        type: 'forbidden',
+      },
+    };
+
+    const error = await createGatewayErrorFromResponse({
+      response,
+      statusCode: 403,
+    });
+
+    expect(error).toBeInstanceOf(GatewayForbiddenError);
+    expect(error.message).toBe('Request denied by a routing rule.');
+    expect(error.statusCode).toBe(403);
+    expect(error.type).toBe('forbidden');
   });
 
   it('should create GatewayRateLimitError for rate_limit_exceeded type', async () => {
@@ -121,6 +142,28 @@ describe('Valid error responses', () => {
     expect(error).toBeInstanceOf(GatewayInternalServerError);
     expect(error.message).toBe('Internal server error occurred');
     expect(error.statusCode).toBe(500);
+  });
+
+  it('should create GatewayFailedDependencyError for failed_dependency type', async () => {
+    const response: GatewayErrorResponse = {
+      error: {
+        message: 'A dependency required by the request was unavailable',
+        type: 'failed_dependency',
+      },
+    };
+
+    const error = await createGatewayErrorFromResponse({
+      response,
+      statusCode: 424,
+    });
+
+    expect(error).toBeInstanceOf(GatewayFailedDependencyError);
+    expect(error.type).toBe('failed_dependency');
+    expect(error.message).toBe(
+      'A dependency required by the request was unavailable',
+    );
+    expect(error.statusCode).toBe(424);
+    expect(error.isRetryable).toBe(false);
   });
 
   it('should create GatewayInternalServerError for unknown error type', async () => {
