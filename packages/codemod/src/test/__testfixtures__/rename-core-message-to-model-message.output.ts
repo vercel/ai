@@ -1,5 +1,6 @@
 // @ts-nocheck
-import { ModelMessage, streamText } from 'ai';
+import type { ModelMessage} from 'ai';
+import { streamText } from 'ai';
 
 // Type annotation in variable declaration
 const messages: ModelMessage[] = [];

@@ -1,5 +1,6 @@
 // @ts-nocheck
-import { Message, CreateMessage, generateText } from 'ai';
+import type { Message, CreateMessage} from 'ai';
+import { generateText } from 'ai';
 
 // Basic usage with type annotations
 export function handleMessage(message: Message): void {
