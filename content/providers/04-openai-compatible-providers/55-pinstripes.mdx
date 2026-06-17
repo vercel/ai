@@ -1,0 +1,114 @@
+---
+title: Pinstripes
+description: Use the Pinstripes OpenAI compatible API with the AI SDK.
+---
+
+# Pinstripes Provider
+
+[Pinstripes](https://pinstripes.io) is an OpenAI-compatible LLM inference API offering fast, affordable access to leading open-source models.
+
+## Setup
+
+The Pinstripes provider is available via the `@ai-sdk/openai-compatible` module as it is compatible with the OpenAI API. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/openai-compatible" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/openai-compatible" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/openai-compatible" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @ai-sdk/openai-compatible" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+To use Pinstripes, you can create a custom provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const pinstripes = createOpenAICompatible({
+  name: 'pinstripes',
+  baseURL: 'https://pinstripes.io/v1',
+  apiKey: process.env.PINSTRIPES_API_KEY,
+});
+```
+
+<Note>
+  You can obtain an API key by signing up at [Pinstripes](https://pinstripes.io). Make sure to set the `PINSTRIPES_API_KEY` environment variable with your API key.
+</Note>
+
+## Language Models
+
+You can interact with Pinstripes models using a provider instance. The first argument is the model ID. Available models include:
+
+| Model | ID | Price |
+|---|---|---|
+| DeepSeek V4 Flash | `ps/deepseek-v4-flash` | $0.10 / 1M tokens |
+| GLM-4.5-Air | `ps/glm-4.5-air` | $0.125 / 1M tokens |
+| Qwen3-35B | `ps/qwen3-35b` | $0.14 / 1M tokens |
+| MiniMax M2.7 | `ps/minimax-m2.7` | $0.255 / 1M tokens |
+
+```ts
+const model = pinstripes('ps/deepseek-v4-flash');
+```
+
+### Example - Generate Text
+
+You can use Pinstripes language models to generate text with the `generateText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const pinstripes = createOpenAICompatible({
+  name: 'pinstripes',
+  baseURL: 'https://pinstripes.io/v1',
+  apiKey: process.env.PINSTRIPES_API_KEY,
+});
+
+const { text, usage, finishReason } = await generateText({
+  model: pinstripes('ps/deepseek-v4-flash'),
+  prompt: 'Write a short poem about the ocean.',
+});
+
+console.log(text);
+console.log('Token usage:', usage);
+console.log('Finish reason:', finishReason);
+```
+
+### Example - Stream Text
+
+Pinstripes language models can also generate text in a streaming fashion with the `streamText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const pinstripes = createOpenAICompatible({
+  name: 'pinstripes',
+  baseURL: 'https://pinstripes.io/v1',
+  apiKey: process.env.PINSTRIPES_API_KEY,
+});
+
+const result = streamText({
+  model: pinstripes('ps/deepseek-v4-flash'),
+  prompt: 'Tell me about the history of jazz music.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+
+console.log();
+console.log('Token usage:', await result.usage);
+console.log('Finish reason:', await result.finishReason);
+```
+
+Pinstripes language models also support structured data generation with [`Output`](/docs/reference/ai-sdk-core/output).
