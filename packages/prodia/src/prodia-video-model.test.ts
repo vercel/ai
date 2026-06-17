@@ -117,6 +117,8 @@ describe('ProdiaVideoModel', () => {
         fps: undefined,
         seed: undefined,
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         providerOptions: {},
       });
 
@@ -140,6 +142,8 @@ describe('ProdiaVideoModel', () => {
         fps: undefined,
         seed: 42,
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         providerOptions: {},
       });
 
@@ -164,6 +168,8 @@ describe('ProdiaVideoModel', () => {
         fps: undefined,
         seed: undefined,
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         providerOptions: {
           prodia: {
             resolution: '720p',
@@ -192,6 +198,8 @@ describe('ProdiaVideoModel', () => {
         fps: undefined,
         seed: undefined,
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         providerOptions: {},
       });
 
@@ -213,6 +221,8 @@ describe('ProdiaVideoModel', () => {
         fps: undefined,
         seed: undefined,
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         providerOptions: {},
       });
 
@@ -233,6 +243,8 @@ describe('ProdiaVideoModel', () => {
         fps: undefined,
         seed: undefined,
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         providerOptions: {},
       });
 
@@ -258,6 +270,8 @@ describe('ProdiaVideoModel', () => {
         fps: undefined,
         seed: undefined,
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         providerOptions: {},
         headers: {
           'Custom-Request-Header': 'request-value',
@@ -283,6 +297,8 @@ describe('ProdiaVideoModel', () => {
         fps: undefined,
         seed: undefined,
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         providerOptions: {},
       });
 
@@ -307,6 +323,8 @@ describe('ProdiaVideoModel', () => {
         fps: undefined,
         seed: undefined,
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         providerOptions: {},
       });
 
@@ -338,6 +356,8 @@ describe('ProdiaVideoModel', () => {
         fps: undefined,
         seed: undefined,
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         providerOptions: {},
       });
 
@@ -370,6 +390,8 @@ describe('ProdiaVideoModel', () => {
           fps: undefined,
           seed: undefined,
           image: undefined,
+          frameImages: undefined,
+          inputReferences: undefined,
           providerOptions: {},
         }),
       ).rejects.toMatchObject({
@@ -399,6 +421,8 @@ describe('ProdiaVideoModel', () => {
           mediaType: 'image/png',
           data: new Uint8Array([1, 2, 3, 4]),
         },
+        frameImages: undefined,
+        inputReferences: undefined,
         providerOptions: {},
       });
 
@@ -425,6 +449,8 @@ describe('ProdiaVideoModel', () => {
           type: 'url',
           url: 'https://cdn.example.com/input.png',
         },
+        frameImages: undefined,
+        inputReferences: undefined,
         providerOptions: {},
       });
 
@@ -461,6 +487,8 @@ describe('ProdiaVideoModel', () => {
             type: 'url',
             url: 'http://169.254.169.254/latest/meta-data/',
           },
+          frameImages: undefined,
+          inputReferences: undefined,
           providerOptions: {},
         }),
       ).rejects.toThrow();

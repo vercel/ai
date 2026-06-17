@@ -1,5 +1,6 @@
 import type { SharedV4ProviderOptions } from '../../shared';
 import type { VideoModelV4File } from './video-model-v4-file';
+import type { VideoModelV4FrameImage } from './video-model-v4-frame-image';
 
 export type VideoModelV4CallOptions = {
   /**
@@ -49,10 +50,23 @@ export type VideoModelV4CallOptions = {
   seed: number | undefined;
 
   /**
-   * Input image for image-to-video generation.
-   * The image serves as the starting frame that the model will animate.
+   * Legacy input image for single-image image-to-video generation.
+   * Prefer `frameImages` with `frameType: "first_frame"` for first-last-frame
+   * generation on supported models.
    */
   image: VideoModelV4File | undefined;
+
+  /**
+   * Role-tagged image inputs for first-last-frame generation.
+   * Each entry declares whether it is the `first_frame` or the
+   * `last_frame` of the generated video.
+   */
+  frameImages: Array<VideoModelV4FrameImage> | undefined;
+
+  /**
+   * Reference image inputs for reference-to-video generation.
+   */
+  inputReferences: Array<VideoModelV4File> | undefined;
 
   /**
    * Additional provider-specific options that are passed through to the provider

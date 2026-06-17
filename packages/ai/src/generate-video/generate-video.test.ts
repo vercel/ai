@@ -113,6 +113,8 @@ describe('experimental_generateVideo', () => {
       n: 1,
       prompt,
       image: undefined,
+      frameImages: undefined,
+      inputReferences: undefined,
       aspectRatio: '16:9',
       resolution: '1920x1080',
       duration: 5,
@@ -977,6 +979,236 @@ describe('experimental_generateVideo', () => {
       if (capturedArgs.image?.type === 'file') {
         expect(capturedArgs.image.mediaType).toBe('image/jpeg');
       }
+    });
+  });
+
+  describe('frameImages', () => {
+    it('should normalize and pass frameImages through to the model', async () => {
+      let capturedArgs!: Parameters<Experimental_VideoModelV4['doGenerate']>[0];
+
+      await experimental_generateVideo({
+        model: new MockVideoModelV4({
+          doGenerate: async args => {
+            capturedArgs = args;
+            return createMockResponse({
+              videos: [
+                { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+              ],
+            });
+          },
+        }),
+        prompt: 'a clip',
+        frameImages: [
+          {
+            image: 'https://example.com/first.png',
+            frameType: 'first_frame',
+          },
+          {
+            image: 'https://example.com/last.png',
+            frameType: 'last_frame',
+          },
+        ],
+      });
+
+      expect(capturedArgs.frameImages).toStrictEqual([
+        {
+          image: { type: 'url', url: 'https://example.com/first.png' },
+          frameType: 'first_frame',
+        },
+        {
+          image: { type: 'url', url: 'https://example.com/last.png' },
+          frameType: 'last_frame',
+        },
+      ]);
+    });
+
+    it('should not copy a first_frame entry into the image field', async () => {
+      let capturedArgs!: Parameters<Experimental_VideoModelV4['doGenerate']>[0];
+
+      await experimental_generateVideo({
+        model: new MockVideoModelV4({
+          doGenerate: async args => {
+            capturedArgs = args;
+            return createMockResponse({
+              videos: [
+                { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+              ],
+            });
+          },
+        }),
+        prompt: 'a clip',
+        frameImages: [
+          {
+            image: 'https://example.com/first.png',
+            frameType: 'first_frame',
+          },
+        ],
+      });
+
+      expect(capturedArgs.image).toBeUndefined();
+      expect(capturedArgs.frameImages).toStrictEqual([
+        {
+          image: { type: 'url', url: 'https://example.com/first.png' },
+          frameType: 'first_frame',
+        },
+      ]);
+    });
+
+    it('should pass image and frameImages independently when both are provided', async () => {
+      let capturedArgs!: Parameters<Experimental_VideoModelV4['doGenerate']>[0];
+
+      await experimental_generateVideo({
+        model: new MockVideoModelV4({
+          doGenerate: async args => {
+            capturedArgs = args;
+            return createMockResponse({
+              videos: [
+                { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+              ],
+            });
+          },
+        }),
+        prompt: {
+          text: 'a clip',
+          image: 'https://example.com/prompt-image.png',
+        },
+        frameImages: [
+          {
+            image: 'https://example.com/frame-first.png',
+            frameType: 'first_frame',
+          },
+        ],
+      });
+
+      expect(capturedArgs.image).toStrictEqual({
+        type: 'url',
+        url: 'https://example.com/prompt-image.png',
+      });
+      expect(capturedArgs.frameImages).toStrictEqual([
+        {
+          image: { type: 'url', url: 'https://example.com/frame-first.png' },
+          frameType: 'first_frame',
+        },
+      ]);
+    });
+
+    it('should pass only last_frame in frameImages without setting image', async () => {
+      let capturedArgs!: Parameters<Experimental_VideoModelV4['doGenerate']>[0];
+
+      await experimental_generateVideo({
+        model: new MockVideoModelV4({
+          doGenerate: async args => {
+            capturedArgs = args;
+            return createMockResponse({
+              videos: [
+                { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+              ],
+            });
+          },
+        }),
+        prompt: 'a clip',
+        frameImages: [
+          {
+            image: 'https://example.com/last.png',
+            frameType: 'last_frame',
+          },
+        ],
+      });
+
+      expect(capturedArgs.image).toBeUndefined();
+      expect(capturedArgs.frameImages).toStrictEqual([
+        {
+          image: { type: 'url', url: 'https://example.com/last.png' },
+          frameType: 'last_frame',
+        },
+      ]);
+    });
+
+    it('should keep the prompt image when frameImages only has a last_frame and prompt image is provided', async () => {
+      let capturedArgs!: Parameters<Experimental_VideoModelV4['doGenerate']>[0];
+
+      await experimental_generateVideo({
+        model: new MockVideoModelV4({
+          doGenerate: async args => {
+            capturedArgs = args;
+            return createMockResponse({
+              videos: [
+                { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+              ],
+            });
+          },
+        }),
+        prompt: {
+          text: 'a clip',
+          image: 'https://example.com/prompt-image.png',
+        },
+        frameImages: [
+          {
+            image: 'https://example.com/last.png',
+            frameType: 'last_frame',
+          },
+        ],
+      });
+
+      expect(capturedArgs.image).toStrictEqual({
+        type: 'url',
+        url: 'https://example.com/prompt-image.png',
+      });
+      expect(capturedArgs.frameImages).toStrictEqual([
+        {
+          image: { type: 'url', url: 'https://example.com/last.png' },
+          frameType: 'last_frame',
+        },
+      ]);
+    });
+  });
+
+  describe('inputReferences', () => {
+    it('should normalize and pass inputReferences through to the model', async () => {
+      let capturedArgs!: Parameters<Experimental_VideoModelV4['doGenerate']>[0];
+
+      await experimental_generateVideo({
+        model: new MockVideoModelV4({
+          doGenerate: async args => {
+            capturedArgs = args;
+            return createMockResponse({
+              videos: [
+                { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+              ],
+            });
+          },
+        }),
+        prompt: 'a clip',
+        inputReferences: [
+          'https://example.com/ref-1.png',
+          'https://example.com/ref-2.png',
+        ],
+      });
+
+      expect(capturedArgs.inputReferences).toStrictEqual([
+        { type: 'url', url: 'https://example.com/ref-1.png' },
+        { type: 'url', url: 'https://example.com/ref-2.png' },
+      ]);
+    });
+
+    it('should pass inputReferences as undefined when not provided', async () => {
+      let capturedArgs!: Parameters<Experimental_VideoModelV4['doGenerate']>[0];
+
+      await experimental_generateVideo({
+        model: new MockVideoModelV4({
+          doGenerate: async args => {
+            capturedArgs = args;
+            return createMockResponse({
+              videos: [
+                { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+              ],
+            });
+          },
+        }),
+        prompt: 'a clip',
+      });
+
+      expect(capturedArgs.inputReferences).toBeUndefined();
     });
   });
 });

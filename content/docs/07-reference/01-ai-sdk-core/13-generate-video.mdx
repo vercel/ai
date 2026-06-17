@@ -111,6 +111,20 @@ console.log(videos);
       description: 'Seed for the video generation.',
     },
     {
+      name: 'frameImages',
+      type: 'Array<{ image: DataContent; frameType: "first_frame" | "last_frame" }>',
+      isOptional: true,
+      description:
+        'Role-tagged image inputs for first-last-frame generation.',
+    },
+    {
+      name: 'inputReferences',
+      type: 'Array<DataContent>',
+      isOptional: true,
+      description:
+        'Reference image inputs for reference-to-video generation.',
+    },
+    {
       name: 'providerOptions',
       type: 'ProviderOptions',
       isOptional: true,

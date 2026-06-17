@@ -47,6 +47,8 @@ export class GatewayVideoModel implements Experimental_VideoModelV4 {
     fps,
     seed,
     image,
+    frameImages,
+    inputReferences,
     providerOptions,
     headers,
     abortSignal,
@@ -83,6 +85,17 @@ export class GatewayVideoModel implements Experimental_VideoModelV4 {
           ...(seed && { seed }),
           ...(providerOptions && { providerOptions }),
           ...(image && { image: maybeEncodeVideoFile(image) }),
+          ...(frameImages && {
+            frameImages: frameImages.map(frame => ({
+              ...frame,
+              image: maybeEncodeVideoFile(frame.image),
+            })),
+          }),
+          ...(inputReferences && {
+            inputReferences: inputReferences.map(reference =>
+              maybeEncodeVideoFile(reference),
+            ),
+          }),
         },
         successfulResponseHandler: async ({
           response,

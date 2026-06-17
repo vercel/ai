@@ -93,6 +93,8 @@ describe('asVideoModelV4', () => {
         fps: undefined,
         seed: undefined,
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         providerOptions: {},
       });
 
