@@ -1,5 +1,5 @@
 import {
-  googleVertex,
+  vertex,
   type GoogleVertexTranscriptionModelOptions,
 } from '@ai-sdk/google-vertex';
 import { experimental_transcribe as transcribe } from 'ai';
@@ -8,7 +8,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await transcribe({
-    model: googleVertex.transcription('telephony'),
+    model: vertex.transcription('telephony'),
     audio: await readFile('data/galileo.mp3'),
     providerOptions: {
       googleVertex: {

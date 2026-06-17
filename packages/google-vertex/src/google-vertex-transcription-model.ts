@@ -1,4 +1,4 @@
-import type { SharedV4Warning, TranscriptionModelV4 } from '@ai-sdk/provider';
+import type { SharedV3Warning, TranscriptionModelV3 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertUint8ArrayToBase64,
@@ -6,9 +6,6 @@ import {
   parseProviderOptions,
   postJsonToApi,
   resolve,
-  serializeModelOptions,
-  WORKFLOW_DESERIALIZE,
-  WORKFLOW_SERIALIZE,
   type FetchFunction,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
@@ -59,22 +56,8 @@ function convertBcp47ToIso6391(
   }
 }
 
-export class GoogleVertexTranscriptionModel implements TranscriptionModelV4 {
-  readonly specificationVersion = 'v4';
-
-  static [WORKFLOW_SERIALIZE](model: GoogleVertexTranscriptionModel) {
-    return serializeModelOptions({
-      modelId: model.modelId,
-      config: model.config,
-    });
-  }
-
-  static [WORKFLOW_DESERIALIZE](options: {
-    modelId: GoogleVertexTranscriptionModelId;
-    config: GoogleVertexTranscriptionModelConfig;
-  }) {
-    return new GoogleVertexTranscriptionModel(options.modelId, options.config);
-  }
+export class GoogleVertexTranscriptionModel implements TranscriptionModelV3 {
+  readonly specificationVersion = 'v3';
 
   get provider(): string {
     return this.config.provider;
@@ -86,10 +69,10 @@ export class GoogleVertexTranscriptionModel implements TranscriptionModelV4 {
   ) {}
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
+    options: Parameters<TranscriptionModelV3['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<TranscriptionModelV3['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const warnings: SharedV4Warning[] = [];
+    const warnings: SharedV3Warning[] = [];
 
     // Provider options may be passed under `googleVertex`, `vertex`, or `google`
     // (matching the Vertex language + embedding models).

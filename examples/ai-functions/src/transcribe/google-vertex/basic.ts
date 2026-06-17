@@ -1,4 +1,4 @@
-import { googleVertex } from '@ai-sdk/google-vertex';
+import { vertex } from '@ai-sdk/google-vertex';
 import { experimental_transcribe as transcribe } from 'ai';
 import { readFile } from 'fs/promises';
 import { run } from '../../lib/run';
@@ -7,7 +7,7 @@ run(async () => {
   const result = await transcribe({
     // Chirp uses Cloud Speech-to-Text regions: set GOOGLE_VERTEX_LOCATION to a
     // Speech region (e.g. `us-central1`) or pass `providerOptions.googleVertex.region`.
-    model: googleVertex.transcription('chirp_2'),
+    model: vertex.transcription('chirp_2'),
     audio: await readFile('data/galileo.mp3'),
   });
 

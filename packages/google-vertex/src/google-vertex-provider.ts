@@ -4,6 +4,7 @@ import type {
   ImageModelV3,
   LanguageModelV3,
   ProviderV3,
+  TranscriptionModelV3,
 } from '@ai-sdk/provider';
 import {
   generateId,
@@ -24,6 +25,8 @@ import { GoogleVertexImageModel } from './google-vertex-image-model';
 import type { GoogleVertexImageModelId } from './google-vertex-image-settings';
 import type { GoogleVertexModelId } from './google-vertex-options';
 import { googleVertexTools } from './google-vertex-tools';
+import { GoogleVertexTranscriptionModel } from './google-vertex-transcription-model';
+import type { GoogleVertexTranscriptionModelId } from './google-vertex-transcription-model-options';
 import { GoogleVertexVideoModel } from './google-vertex-video-model';
 import type { GoogleVertexVideoModelId } from './google-vertex-video-settings';
 
@@ -83,6 +86,20 @@ export interface GoogleVertexProvider extends ProviderV3 {
    * Creates a model for video generation.
    */
   videoModel(modelId: GoogleVertexVideoModelId): Experimental_VideoModelV3;
+
+  /**
+   * Creates a model for transcription (speech-to-text).
+   */
+  transcription(
+    modelId: GoogleVertexTranscriptionModelId,
+  ): TranscriptionModelV3;
+
+  /**
+   * Creates a model for transcription (speech-to-text).
+   */
+  transcriptionModel(
+    modelId: GoogleVertexTranscriptionModelId,
+  ): TranscriptionModelV3;
 }
 
 export interface GoogleVertexProviderSettings {
@@ -227,6 +244,27 @@ export function createVertex(
       generateId: options.generateId ?? generateId,
     });
 
+  // Cloud Speech-to-Text reuses the Vertex auth headers from createConfig, but
+  // targets the Speech-to-Text API.
+  const createTranscriptionModel = (
+    modelId: GoogleVertexTranscriptionModelId,
+  ) => {
+    if (apiKey) {
+      throw new Error(
+        'Google Vertex transcription models do not support Express Mode API keys. Use standard Google Cloud credentials instead.',
+      );
+    }
+
+    const config = createConfig('transcription');
+    return new GoogleVertexTranscriptionModel(modelId, {
+      provider: config.provider,
+      headers: config.headers,
+      fetch: config.fetch,
+      project: loadVertexProject(),
+      location: loadVertexLocation(),
+    });
+  };
+
   const provider = function (modelId: GoogleVertexModelId) {
     if (new.target) {
       throw new Error(
@@ -245,6 +283,8 @@ export function createVertex(
   provider.imageModel = createImageModel;
   provider.video = createVideoModel;
   provider.videoModel = createVideoModel;
+  provider.transcription = createTranscriptionModel;
+  provider.transcriptionModel = createTranscriptionModel;
   provider.tools = googleVertexTools;
 
   return provider;

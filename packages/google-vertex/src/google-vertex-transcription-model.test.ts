@@ -1,13 +1,13 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, it, expect, vi } from 'vitest';
-import { createGoogleVertex } from './google-vertex-provider-base';
+import { createVertex } from './google-vertex-provider';
 import { GoogleVertexTranscriptionModel } from './google-vertex-transcription-model';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
 }));
 
-const provider = createGoogleVertex({
+const provider = createVertex({
   project: 'test-project',
   location: 'us-central1',
 });
@@ -207,7 +207,7 @@ describe('doGenerate', () => {
   it('should pass headers and user agent', async () => {
     prepareJsonResponse();
 
-    const providerWithHeaders = createGoogleVertex({
+    const providerWithHeaders = createVertex({
       project: 'test-project',
       location: 'us-central1',
       headers: { 'Custom-Provider-Header': 'provider-header-value' },
