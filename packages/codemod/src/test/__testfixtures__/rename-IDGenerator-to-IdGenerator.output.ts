@@ -1,5 +1,5 @@
 // @ts-nocheck
-import type { IdGenerator } from 'ai';
+import { IdGenerator } from 'ai';
 import { type IdGenerator as GeneratorType, someFunction, otherFunction } from 'ai';
 
 // Variable declarations with type annotations
@@ -55,5 +55,5 @@ const config: {
 };
 
 // Should NOT be transformed - different package
-import type { IDGenerator as OtherGenerator } from 'other-package';
+import { IDGenerator as OtherGenerator } from 'other-package';
 const otherGen: OtherGenerator = null;

@@ -18,7 +18,6 @@ import x from 'other-package';
 import { someFunction } from 'zod/v4';
 
 // Mixed import with z and other zod types
-import type { ZodSchema } from 'zod/v3';
-import { z as zodValidator } from 'zod/v3';
+import { z as zodValidator, ZodSchema } from 'zod/v3';
 
 const mixedSchema: ZodSchema = zodValidator.string();

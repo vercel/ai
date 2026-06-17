@@ -1,5 +1,5 @@
 // @ts-nocheck
-import type { ExperimentalTool } from 'not-ai';
+import { ExperimentalTool } from 'not-ai';
 
 interface Config {
   tool: ExperimentalTool;

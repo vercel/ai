@@ -1,9 +1,8 @@
 // @ts-nocheck
-import type {
-  UIMessageStreamWriter} from 'ai';
 import {
   createUIMessageStreamResponse,
-  createUIMessageStream
+  createUIMessageStream,
+  UIMessageStreamWriter,
 } from 'ai';
 
 async function handler() {

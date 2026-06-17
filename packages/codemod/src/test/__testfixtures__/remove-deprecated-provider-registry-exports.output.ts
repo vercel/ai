@@ -1,6 +1,5 @@
 // @ts-nocheck
-import type { Provider} from 'ai';
-import { experimental_createProviderRegistry } from 'ai';
+import { Provider, experimental_createProviderRegistry } from 'ai';
 
 function createProvider(): Provider {
   return {

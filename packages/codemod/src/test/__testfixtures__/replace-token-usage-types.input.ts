@@ -1,5 +1,5 @@
 // @ts-nocheck
-import type { TokenUsage, CompletionTokenUsage, EmbeddingTokenUsage } from 'ai';
+import { TokenUsage, CompletionTokenUsage, EmbeddingTokenUsage } from 'ai';
 
 function recordUsage(usage: TokenUsage) {
   console.log(usage);

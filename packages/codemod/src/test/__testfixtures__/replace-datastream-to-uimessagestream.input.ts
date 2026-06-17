@@ -1,9 +1,8 @@
 // @ts-nocheck
-import type {
-  DataStreamWriter} from 'ai';
 import {
   createDataStreamResponse,
-  createDataStream
+  createDataStream,
+  DataStreamWriter,
 } from 'ai';
 
 async function handler() {

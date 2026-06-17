@@ -1,5 +1,5 @@
 // @ts-nocheck
-import type { ToolExecutionOptions } from 'ai';
+import { ToolExecutionOptions } from 'ai';
 
 // Type annotation in function parameter
 function executeWithOptions(options: ToolExecutionOptions) {

@@ -1,7 +1,6 @@
 // @ts-nocheck
-import type { LanguageModelResponseMetadata } from 'ai';
-import { generateObject } from 'ai';
-import type { LanguageModelResponseMetadataWithHeaders as MetadataWithHeaders } from 'other-pkg';
+import { generateObject, LanguageModelResponseMetadata } from 'ai';
+import { LanguageModelResponseMetadataWithHeaders as MetadataWithHeaders } from 'other-pkg';
 
 // Direct type usage
 interface Config {

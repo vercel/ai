@@ -1,6 +1,5 @@
 // @ts-nocheck
-import type { Message } from 'ai/react';
-import { useAssistant } from 'ai/react';
+import { useAssistant, Message } from 'ai/react';
 
 export default function Page() {
   const { status, messages, input, submitMessage, handleInputChange } =

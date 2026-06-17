@@ -1,6 +1,5 @@
 // @ts-nocheck
-import type { CoreMessage} from 'ai';
-import { streamText } from 'ai';
+import { CoreMessage, streamText } from 'ai';
 
 // Type annotation in variable declaration
 const messages: CoreMessage[] = [];

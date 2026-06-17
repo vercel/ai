@@ -1,6 +1,5 @@
 // @ts-nocheck
-import type { UIMessage, CreateUIMessage} from 'ai';
-import { generateText } from 'ai';
+import { UIMessage, CreateUIMessage, generateText } from 'ai';
 
 // Basic usage with type annotations
 export function handleMessage(message: UIMessage): void {
