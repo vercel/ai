@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.180
+
+### Patch Changes
+
+- 81a284b: fix(ai): handle partial unicode escapes in fixJson
+
 ## 7.0.0-beta.179
 
 ### Patch Changes
