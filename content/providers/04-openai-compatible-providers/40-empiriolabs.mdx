@@ -1,0 +1,97 @@
+---
+title: EmpirioLabs
+description: Use the EmpirioLabs AI OpenAI compatible API with the AI SDK.
+---
+
+# EmpirioLabs Provider
+
+[EmpirioLabs AI](https://empiriolabs.ai) is a multi-model API platform that hosts open, proprietary, and custom models (Qwen, DeepSeek, GLM, Kimi, MiniMax, Gemma, and more) behind one OpenAI-compatible API with pay-as-you-go pricing.
+
+## Setup
+
+The EmpirioLabs provider is available via the `@ai-sdk/openai-compatible` module as it is compatible with the OpenAI API.
+You can install it with
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/openai-compatible" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/openai-compatible" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/openai-compatible" dark />
+  </Tab>
+</Tabs>
+
+To use EmpirioLabs, create an API key in the [EmpirioLabs dashboard](https://platform.empiriolabs.ai/dashboard/api-keys) and export it:
+
+```bash
+export EMPIRIOLABS_API_KEY=<your-api-key>
+```
+
+## Provider Instance
+
+Create a provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const empiriolabs = createOpenAICompatible({
+  name: 'empiriolabs',
+  baseURL: 'https://api.empiriolabs.ai/v1',
+  apiKey: process.env.EMPIRIOLABS_API_KEY,
+});
+```
+
+## Language Models
+
+You can create models using a provider instance. The first argument is the model id, for example `qwen3-7-plus`. The full model catalog with per-model pricing and context windows is at [empiriolabs.ai/models](https://empiriolabs.ai/models).
+
+```ts
+const model = empiriolabs('qwen3-7-plus');
+```
+
+### Example
+
+You can use EmpirioLabs language models to generate text with the `generateText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const empiriolabs = createOpenAICompatible({
+  name: 'empiriolabs',
+  baseURL: 'https://api.empiriolabs.ai/v1',
+  apiKey: process.env.EMPIRIOLABS_API_KEY,
+});
+
+const { text } = await generateText({
+  model: empiriolabs('qwen3-7-plus'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+EmpirioLabs language models can also be used with `streamText` and other AI SDK functions, and reasoning-capable models accept the `reasoning_effort` provider option (`none`, `low`, `medium`, `high`, `max`).
+
+## Image Models
+
+EmpirioLabs hosts image-generation models on the OpenAI Images endpoint. Create one with `.imageModel()` and generate with `generateImage`.
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateImage } from 'ai';
+
+const empiriolabs = createOpenAICompatible({
+  name: 'empiriolabs',
+  baseURL: 'https://api.empiriolabs.ai/v1',
+  apiKey: process.env.EMPIRIOLABS_API_KEY,
+});
+
+const { images } = await generateImage({
+  model: empiriolabs.imageModel('flux-2-klein-4b'),
+  prompt: 'A futuristic cityscape at sunset',
+});
+```
+
+Other available image model ids include `qwen-image-2-0` and `seedream-5-0-lite`. The full catalog is at [empiriolabs.ai/models](https://empiriolabs.ai/models).
