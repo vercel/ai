@@ -11,12 +11,12 @@ run(async () => {
       generateVideo({
         model: klingai.video('kling-v2.6-t2v'),
         prompt:
-          'A street musician playing saxophone on a rainy evening, with city ambience.',
+          'A street musician plays saxophone on a rainy city corner. Background: rain on pavement, distant traffic, saxophone melody.',
         duration: 5,
         generateAudio: true,
         providerOptions: {
           klingai: {
-            mode: 'std',
+            mode: 'pro',
             pollTimeoutMs: 600000,
           } satisfies KlingAIVideoModelOptions,
         },

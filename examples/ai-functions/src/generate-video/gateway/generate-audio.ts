@@ -8,11 +8,11 @@ run(async () => {
     'Generating video with audio via AI Gateway...',
     () =>
       generateVideo({
-        model: gateway.videoModel('google/veo-3.1-generate-001'),
+        model: gateway.videoModel('vertex/veo-3.1-fast-generate-001'),
         prompt: 'A resplendent quetzal flying through the rainforest.',
         aspectRatio: '16:9',
         duration: 4,
-        generateAudio: true,
+        generateAudio: false,
       }),
   );
 
