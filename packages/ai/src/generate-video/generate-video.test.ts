@@ -1022,7 +1022,7 @@ describe('experimental_generateVideo', () => {
       ]);
     });
 
-    it('should not copy a first_frame entry into the image field', async () => {
+    it('should copy a first_frame entry into the image field when no image is provided', async () => {
       let capturedArgs!: Parameters<Experimental_VideoModelV4['doGenerate']>[0];
 
       await experimental_generateVideo({
@@ -1045,7 +1045,10 @@ describe('experimental_generateVideo', () => {
         ],
       });
 
-      expect(capturedArgs.image).toBeUndefined();
+      expect(capturedArgs.image).toStrictEqual({
+        type: 'url',
+        url: 'https://example.com/first.png',
+      });
       expect(capturedArgs.frameImages).toStrictEqual([
         {
           image: { type: 'url', url: 'https://example.com/first.png' },
@@ -1208,6 +1211,42 @@ describe('experimental_generateVideo', () => {
         prompt: 'a clip',
       });
 
+      expect(capturedArgs.inputReferences).toBeUndefined();
+    });
+
+    it('should ignore inputReferences when frameImages is provided', async () => {
+      let capturedArgs!: Parameters<Experimental_VideoModelV4['doGenerate']>[0];
+
+      await experimental_generateVideo({
+        model: new MockVideoModelV4({
+          doGenerate: async args => {
+            capturedArgs = args;
+            return createMockResponse({
+              videos: [
+                { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+              ],
+            });
+          },
+        }),
+        prompt: 'a clip',
+        frameImages: [
+          {
+            image: 'https://example.com/first.png',
+            frameType: 'first_frame',
+          },
+        ],
+        inputReferences: [
+          'https://example.com/ref-1.png',
+          'https://example.com/ref-2.png',
+        ],
+      });
+
+      expect(capturedArgs.frameImages).toStrictEqual([
+        {
+          image: { type: 'url', url: 'https://example.com/first.png' },
+          frameType: 'first_frame',
+        },
+      ]);
       expect(capturedArgs.inputReferences).toBeUndefined();
     });
   });

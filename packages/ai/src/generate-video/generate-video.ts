@@ -207,6 +207,16 @@ export async function experimental_generateVideo({
     return normalizedImage != null ? [normalizedImage] : [];
   });
 
+  const effectiveInputReferences =
+    normalizedFrameImages != null && normalizedFrameImages.length > 0
+      ? undefined
+      : normalizedInputReferences;
+
+  const resolvedImage =
+    image ??
+    normalizedFrameImages?.find(frame => frame.frameType === 'first_frame')
+      ?.image;
+
   const maxVideosPerCallWithDefault =
     maxVideosPerCall ?? (await invokeModelMaxVideosPerCall(model)) ?? 1;
 
@@ -229,9 +239,9 @@ export async function experimental_generateVideo({
             duration,
             fps,
             seed,
-            image,
+            image: resolvedImage,
             frameImages: normalizedFrameImages,
-            inputReferences: normalizedInputReferences,
+            inputReferences: effectiveInputReferences,
             providerOptions: providerOptions ?? {},
             headers: headersWithUserAgent,
             abortSignal,

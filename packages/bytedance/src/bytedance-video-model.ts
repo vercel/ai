@@ -139,6 +139,10 @@ function resolveReferenceImages(
   options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
   byteDanceOptions: ByteDanceVideoProviderOptions | undefined,
 ): string[] {
+  if (options.frameImages != null && options.frameImages.length > 0) {
+    return [];
+  }
+
   const inputReferences = options.inputReferences;
 
   if (inputReferences != null && inputReferences.length > 0) {

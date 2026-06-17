@@ -39,6 +39,10 @@ function fileToImageString(file: Experimental_VideoModelV4File): string {
 function getReferenceImages(
   options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
 ): Array<Experimental_VideoModelV4File> | undefined {
+  if (options.frameImages != null && options.frameImages.length > 0) {
+    return undefined;
+  }
+
   return options.inputReferences != null && options.inputReferences.length > 0
     ? options.inputReferences
     : undefined;
