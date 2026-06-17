@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.73
+
+### Patch Changes
+
+- 1274c07: fix(provider/openai): send client-executed tool calls as full function_call items in the Responses API so they pair with their function_call_output by call_id
+
 ## 3.0.72
 
 ### Patch Changes
