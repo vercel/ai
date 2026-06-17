@@ -1,5 +1,66 @@
 # @ai-sdk/gateway
 
+## 3.0.133
+
+### Patch Changes
+
+- 5bfde36: Backport: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [779f5cd]
+  - @ai-sdk/provider-utils@4.0.30
+
+## 3.0.132
+
+### Patch Changes
+
+- e962dda: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.131
+
+### Patch Changes
+
+- 6160ced: fix(gateway): surface provider warnings in embedding and reranking responses
+- c9b8abd: fix(provider/gateway): map `forbidden` error responses to GatewayForbiddenError instead of GatewayInternalServerError
+
+## 3.0.130
+
+### Patch Changes
+
+- c5d4716: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.129
+
+### Patch Changes
+
+- Updated dependencies [bfa5864]
+- Updated dependencies [f42aa79]
+  - @ai-sdk/provider-utils@4.0.29
+
+## 3.0.128
+
+### Patch Changes
+
+- Updated dependencies [942f2f8]
+  - @ai-sdk/provider-utils@4.0.28
+
+## 3.0.127
+
+### Patch Changes
+
+- 3851e29: Backport: chore(provider/gateway): update gateway model settings files
+- 2a91a17: feat(provider/anthropic): add support for `claude-fable-5` and the `fallbacks` API parameter
+
+## 3.0.126
+
+### Patch Changes
+
+- ff16d3b: feat(gateway): add GatewayFailedDependencyError (424)
+
+## 3.0.125
+
+### Patch Changes
+
+- fef3b24: Backport: chore(provider/gateway): update gateway model settings files
+
 ## 3.0.124
 
 ### Patch Changes

@@ -10,6 +10,7 @@ import {
   createJsonResponseHandler,
   delay,
   getFromApi,
+  isSameOrigin,
   lazySchema,
   parseProviderOptions,
   postJsonToApi,
@@ -153,11 +154,12 @@ export class FalVideoModel implements Experimental_VideoModelV3 {
       }
     }
 
+    const submitUrl = this.config.url({
+      path: `https://queue.fal.run/fal-ai/${this.normalizedModelId}`,
+      modelId: this.modelId,
+    });
     const { value: queueResponse } = await postJsonToApi({
-      url: this.config.url({
-        path: `https://queue.fal.run/fal-ai/${this.normalizedModelId}`,
-        modelId: this.modelId,
-      }),
+      url: submitUrl,
       headers: combineHeaders(this.config.headers(), options.headers),
       body,
       failedResponseHandler: falFailedResponseHandler,
@@ -183,13 +185,18 @@ export class FalVideoModel implements Experimental_VideoModelV3 {
 
     while (true) {
       try {
+        const statusUrl = this.config.url({
+          path: responseUrl,
+          modelId: this.modelId,
+        });
         const { value: statusResponse, responseHeaders: statusHeaders } =
           await getFromApi({
-            url: this.config.url({
-              path: responseUrl,
-              modelId: this.modelId,
-            }),
-            headers: combineHeaders(this.config.headers(), options.headers),
+            url: statusUrl,
+            // The status URL comes from the queue response; only send
+            // credentials when it stays on the provider's own origin.
+            headers: isSameOrigin(statusUrl, submitUrl)
+              ? combineHeaders(this.config.headers(), options.headers)
+              : undefined,
             failedResponseHandler: async ({
               response,
               url,

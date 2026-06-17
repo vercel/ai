@@ -3,6 +3,7 @@ import type {
   LanguageModelV3StreamPart,
 } from '@ai-sdk/provider';
 import type { LanguageModelMiddleware } from '../types/language-model-middleware';
+import { createIdMap } from '../util/create-id-map';
 import { getPotentialStartIndex } from '../util/get-potential-start-index';
 
 /**
@@ -92,7 +93,7 @@ export function extractReasoningMiddleware({
           idCounter: number;
           textId: string;
         }
-      > = {};
+      > = createIdMap();
 
       let delayedTextStart: LanguageModelV3StreamPart | undefined;
 

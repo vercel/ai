@@ -1,5 +1,36 @@
 # @ai-sdk/alibaba
 
+## 1.0.29
+
+### Patch Changes
+
+- Updated dependencies [779f5cd]
+  - @ai-sdk/provider-utils@4.0.30
+  - @ai-sdk/openai-compatible@2.0.51
+
+## 1.0.28
+
+### Patch Changes
+
+- Updated dependencies [bfa5864]
+- Updated dependencies [f42aa79]
+  - @ai-sdk/provider-utils@4.0.29
+  - @ai-sdk/openai-compatible@2.0.50
+
+## 1.0.27
+
+### Patch Changes
+
+- Updated dependencies [942f2f8]
+  - @ai-sdk/provider-utils@4.0.28
+  - @ai-sdk/openai-compatible@2.0.49
+
+## 1.0.26
+
+### Patch Changes
+
+- bc29fbe: feat(aliababa): add embedding model support
+
 ## 1.0.25
 
 ### Patch Changes

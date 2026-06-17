@@ -14,14 +14,18 @@ import {
   type ToolResultPart,
   type AssistantContent,
   type UserContent,
+  type ProviderMetadata,
+  type JSONValue,
 } from 'ai';
 
 import {
   type LangGraphEventState,
+  type LangGraphMessageSeen,
   type ReasoningContentBlock,
   type ThinkingContentBlock,
   type GPT5ReasoningOutput,
   type ImageGenerationOutput,
+  type NormalizedCitation,
 } from './types';
 
 /**
@@ -393,6 +397,7 @@ export function processModelChunk(
     /** Track the ID used for text-start to ensure text-end uses the same ID */
     textMessageId?: string | null;
     emittedImages?: Set<string>;
+    emittedSourceIds?: Set<string>;
   },
   controller: ReadableStreamDefaultController<UIMessageChunk>,
 ): void {
@@ -401,6 +406,10 @@ export function processModelChunk(
    */
   if (!state.emittedImages) {
     state.emittedImages = new Set<string>();
+  }
+
+  if (!state.emittedSourceIds) {
+    state.emittedSourceIds = new Set<string>();
   }
 
   /**
@@ -505,6 +514,16 @@ export function processModelChunk(
       delta: text,
       id: state.textMessageId ?? state.messageId,
     });
+  }
+
+  const citations = extractCitationsFromContentBlocks(chunk);
+  if (citations.length > 0) {
+    emitSourceChunks(
+      citations,
+      state.messageId,
+      state.emittedSourceIds,
+      controller,
+    );
   }
 }
 
@@ -920,6 +939,152 @@ export function extractReasoningFromValuesMessage(
   return undefined;
 }
 
+export function isCitationContentBlock(
+  obj: unknown,
+): obj is ContentBlock.Citation {
+  return (
+    obj != null &&
+    typeof obj === 'object' &&
+    'type' in obj &&
+    (obj as { type: unknown }).type === 'citation'
+  );
+}
+
+/**
+ * LangChain Core standardizes citations as `{ type: 'citation', ... }` entries in
+ * the `annotations` array of a text content block. The text extractors elsewhere
+ * in this file only read the `text` field, so without this the citations would be
+ * dropped instead of surfaced as AI SDK source parts.
+ *
+ * Handles both class instances and serialized LangChain message objects.
+ */
+export function extractCitationsFromContentBlocks(
+  msg: unknown,
+): NormalizedCitation[] {
+  if (msg == null || typeof msg !== 'object') return [];
+
+  const msgObj = msg as Record<string, unknown>;
+  const kwargs =
+    msgObj.kwargs && typeof msgObj.kwargs === 'object'
+      ? (msgObj.kwargs as Record<string, unknown>)
+      : msgObj;
+
+  // `contentBlocks` is the normalized view derived from `content`; reading both
+  // would double-count annotations, so prefer it and only fall back to `content`.
+  const contentBlocks = (kwargs as { contentBlocks?: unknown }).contentBlocks;
+  const content = (kwargs as { content?: unknown }).content;
+  const blockSources: unknown[] = Array.isArray(contentBlocks)
+    ? contentBlocks
+    : Array.isArray(content)
+      ? content
+      : [];
+
+  const citations: NormalizedCitation[] = [];
+
+  for (const block of blockSources) {
+    if (block == null || typeof block !== 'object') continue;
+
+    const annotations = (block as { annotations?: unknown }).annotations;
+    if (!Array.isArray(annotations)) continue;
+
+    for (const annotation of annotations) {
+      if (!isCitationContentBlock(annotation)) continue;
+
+      citations.push({
+        url: annotation.url,
+        title: annotation.title,
+        source: annotation.source,
+        citedText: annotation.citedText,
+        startIndex: annotation.startIndex,
+        endIndex: annotation.endIndex,
+      });
+    }
+  }
+
+  return citations;
+}
+
+function buildSourceProviderMetadata(
+  citation: NormalizedCitation,
+): ProviderMetadata | undefined {
+  const langchain: Record<string, JSONValue> = {};
+
+  if (typeof citation.citedText === 'string') {
+    langchain.citedText = citation.citedText;
+  }
+  if (typeof citation.startIndex === 'number') {
+    langchain.startIndex = citation.startIndex;
+  }
+  if (typeof citation.endIndex === 'number') {
+    langchain.endIndex = citation.endIndex;
+  }
+  if (typeof citation.source === 'string') {
+    langchain.source = citation.source;
+  }
+
+  if (Object.keys(langchain).length === 0) {
+    return undefined;
+  }
+
+  return { langchain };
+}
+
+/**
+ * Emits AI SDK source chunks (`source-url` / `source-document`) for the given
+ * citations.
+ *
+ * Citations with a `url` become `source-url` parts keyed by that url; the rest
+ * become `source-document` parts. Citation metadata that the source parts cannot
+ * represent natively (`citedText`, `startIndex`, `endIndex`, `source`) is preserved
+ * under `providerMetadata.langchain`.
+ *
+ * `emittedSourceIds` dedupes across the LangGraph messages and values events, which
+ * can each surface the same citation. URL-less citations are keyed by their content
+ * rather than position, so a differing citation subset/order between those two events
+ * does not cause an id collision.
+ */
+export function emitSourceChunks(
+  citations: NormalizedCitation[],
+  messageId: string,
+  emittedSourceIds: Set<string>,
+  controller: ReadableStreamDefaultController<UIMessageChunk>,
+): void {
+  for (const citation of citations) {
+    if (citation.url) {
+      if (emittedSourceIds.has(citation.url)) continue;
+      emittedSourceIds.add(citation.url);
+
+      const providerMetadata = buildSourceProviderMetadata(citation);
+      controller.enqueue({
+        type: 'source-url',
+        sourceId: citation.url,
+        url: citation.url,
+        ...(citation.title ? { title: citation.title } : {}),
+        ...(providerMetadata ? { providerMetadata } : {}),
+      });
+      continue;
+    }
+
+    // A citation with no url and no human-readable label carries no information a
+    // UI could render, so skip it rather than emit a placeholder source.
+    const title = citation.title ?? citation.source;
+    if (!title) continue;
+
+    const sourceId = `${messageId}:${title}:${citation.citedText ?? ''}:${citation.startIndex ?? ''}:${citation.endIndex ?? ''}`;
+    if (emittedSourceIds.has(sourceId)) continue;
+    emittedSourceIds.add(sourceId);
+
+    const providerMetadata = buildSourceProviderMetadata(citation);
+    controller.enqueue({
+      type: 'source-document',
+      sourceId,
+      mediaType: 'text/plain',
+      title,
+      ...(providerMetadata ? { providerMetadata } : {}),
+    });
+  }
+}
+
 /**
  * Checks if an object is an image generation output
  *
@@ -952,6 +1117,38 @@ export function extractImageOutputs(
   if (!Array.isArray(toolOutputs)) return [];
 
   return toolOutputs.filter(isImageGenerationOutput);
+}
+
+/**
+ * Returns per-message bookkeeping, creating it on first use.
+ * Map keys keep remote-controlled message IDs like "__proto__" from touching Object.prototype.
+ */
+function getOrCreateMessageSeen(
+  messageSeen: LangGraphEventState['messageSeen'],
+  msgId: string,
+): LangGraphMessageSeen {
+  let seen = messageSeen.get(msgId);
+  if (!seen) {
+    seen = {};
+    messageSeen.set(msgId, seen);
+  }
+  return seen;
+}
+
+/**
+ * Returns the per-index tool call metadata for a message, creating it on first use.
+ * Later streamed chunks use this to recover tool call IDs/names from earlier chunks.
+ */
+function getOrCreateToolCallInfoByIndex(
+  toolCallInfoByIndex: LangGraphEventState['toolCallInfoByIndex'],
+  msgId: string,
+): Map<number, { id: string; name: string }> {
+  let toolCallInfo = toolCallInfoByIndex.get(msgId);
+  if (!toolCallInfo) {
+    toolCallInfo = new Map();
+    toolCallInfoByIndex.set(msgId, toolCallInfo);
+  }
+  return toolCallInfo;
 }
 
 /**
@@ -1036,16 +1233,16 @@ export function processLangGraphEvent(
           : null;
       if (langgraphStep !== null && langgraphStep !== state.currentStep) {
         if (state.currentStep !== null) {
-          for (const [id, seen] of Object.entries(messageSeen)) {
+          for (const [id, seen] of messageSeen) {
             if (seen.text) {
               controller.enqueue({ type: 'text-end', id });
             }
             if (seen.reasoning) {
               controller.enqueue({ type: 'reasoning-end', id });
             }
-            delete messageSeen[id];
-            delete messageConcat[id];
-            delete messageReasoningIds[id];
+            messageSeen.delete(id);
+            messageConcat.delete(id);
+            messageReasoningIds.delete(id);
           }
           controller.enqueue({ type: 'finish-step' });
         }
@@ -1058,17 +1255,19 @@ export function processLangGraphEvent(
        * Note: Only works for actual class instances, not serialized messages
        */
       if (AIMessageChunk.isInstance(msg)) {
-        if (messageConcat[msgId]) {
-          messageConcat[msgId] = messageConcat[msgId].concat(
-            msg,
-          ) as AIMessageChunk;
+        const existingMessage = messageConcat.get(msgId);
+        if (existingMessage) {
+          messageConcat.set(
+            msgId,
+            existingMessage.concat(msg) as AIMessageChunk,
+          );
         } else {
-          messageConcat[msgId] = msg;
+          messageConcat.set(msgId, msg);
         }
       }
 
       if (isAIMessageChunk(msg)) {
-        const concatChunk = messageConcat[msgId];
+        const concatChunk = messageConcat.get(msgId);
 
         /**
          * Handle image generation outputs from additional_kwargs.tool_outputs
@@ -1127,22 +1326,25 @@ export function processLangGraphEvent(
              * If this chunk has an id, store it for future lookups by index
              */
             if (toolCallChunk.id) {
-              toolCallInfoByIndex[msgId] ??= {};
-              toolCallInfoByIndex[msgId][idx] = {
-                id: toolCallChunk.id,
-                name:
-                  toolCallChunk.name ||
-                  concatChunk?.tool_call_chunks?.[idx]?.name ||
-                  'unknown',
-              };
+              getOrCreateToolCallInfoByIndex(toolCallInfoByIndex, msgId).set(
+                idx,
+                {
+                  id: toolCallChunk.id,
+                  name:
+                    toolCallChunk.name ||
+                    concatChunk?.tool_call_chunks?.[idx]?.name ||
+                    'unknown',
+                },
+              );
             }
 
             /**
              * Get the tool call ID from the chunk, stored info, or accumulated chunks
              */
+            const storedToolCallInfo = toolCallInfoByIndex.get(msgId)?.get(idx);
             const toolCallId =
               toolCallChunk.id ||
-              toolCallInfoByIndex[msgId]?.[idx]?.id ||
+              storedToolCallInfo?.id ||
               concatChunk?.tool_call_chunks?.[idx]?.id;
 
             /**
@@ -1154,7 +1356,7 @@ export function processLangGraphEvent(
 
             const toolName =
               toolCallChunk.name ||
-              toolCallInfoByIndex[msgId]?.[idx]?.name ||
+              storedToolCallInfo?.name ||
               concatChunk?.tool_call_chunks?.[idx]?.name ||
               'unknown';
 
@@ -1163,18 +1365,21 @@ export function processLangGraphEvent(
              * (even if args is empty - the first chunk often has empty args)
              * Set dynamic: true to enable HITL approval requests
              */
-            if (!messageSeen[msgId]?.tool?.[toolCallId]) {
-              controller.enqueue({
-                type: 'tool-input-start',
-                toolCallId: toolCallId,
-                toolName: toolName,
-                dynamic: true,
-              });
+            const seen = messageSeen.get(msgId);
+            if (!seen?.tool?.has(toolCallId)) {
+              const updatedSeen = getOrCreateMessageSeen(messageSeen, msgId);
+              updatedSeen.tool ??= new Set();
+              updatedSeen.tool.add(toolCallId);
 
-              messageSeen[msgId] ??= {};
-              messageSeen[msgId].tool ??= {};
-              messageSeen[msgId].tool![toolCallId] = true;
-              emittedToolCalls.add(toolCallId);
+              if (!emittedToolCalls.has(toolCallId)) {
+                emittedToolCalls.add(toolCallId);
+                controller.enqueue({
+                  type: 'tool-input-start',
+                  toolCallId: toolCallId,
+                  toolName: toolName,
+                  dynamic: true,
+                });
+              }
             }
 
             /**
@@ -1205,8 +1410,8 @@ export function processLangGraphEvent(
         // Capture reasoning ID when we first see it (even if no content yet)
         const chunkReasoningId = extractReasoningId(msg);
         if (chunkReasoningId) {
-          if (!messageReasoningIds[msgId]) {
-            messageReasoningIds[msgId] = chunkReasoningId;
+          if (!messageReasoningIds.has(msgId)) {
+            messageReasoningIds.set(msgId, chunkReasoningId);
           }
           // Immediately mark as emitted to prevent values from duplicating
           // This must happen as soon as we see the ID, before content arrives
@@ -1217,12 +1422,12 @@ export function processLangGraphEvent(
         if (reasoning) {
           // Use stored reasoning ID, or current chunk's ID, or fall back to message ID
           const reasoningId =
-            messageReasoningIds[msgId] ?? chunkReasoningId ?? msgId;
+            messageReasoningIds.get(msgId) ?? chunkReasoningId ?? msgId;
 
-          if (!messageSeen[msgId]?.reasoning) {
+          const seen = messageSeen.get(msgId);
+          if (!seen?.reasoning) {
             controller.enqueue({ type: 'reasoning-start', id: msgId });
-            messageSeen[msgId] ??= {};
-            messageSeen[msgId].reasoning = true;
+            getOrCreateMessageSeen(messageSeen, msgId).reasoning = true;
           }
 
           // Streaming chunks have delta text, emit directly without slicing
@@ -1240,10 +1445,10 @@ export function processLangGraphEvent(
          */
         const text = getMessageText(msg);
         if (text) {
-          if (!messageSeen[msgId]?.text) {
+          const seen = messageSeen.get(msgId);
+          if (!seen?.text) {
             controller.enqueue({ type: 'text-start', id: msgId });
-            messageSeen[msgId] ??= {};
-            messageSeen[msgId].text = true;
+            getOrCreateMessageSeen(messageSeen, msgId).text = true;
           }
 
           controller.enqueue({
@@ -1251,6 +1456,16 @@ export function processLangGraphEvent(
             delta: text,
             id: msgId,
           });
+        }
+
+        const citations = extractCitationsFromContentBlocks(msg);
+        if (citations.length > 0) {
+          emitSourceChunks(
+            citations,
+            msgId,
+            state.emittedSourceIds,
+            controller,
+          );
         }
       } else if (isToolMessageType(msg)) {
         // Handle both direct properties and serialized messages (kwargs)
@@ -1294,16 +1509,16 @@ export function processLangGraphEvent(
       /**
        * Finalize all pending message chunks
        */
-      for (const [id, seen] of Object.entries(messageSeen)) {
+      for (const [id, seen] of messageSeen) {
         if (seen.text) controller.enqueue({ type: 'text-end', id });
         if (seen.tool) {
-          for (const [toolCallId, toolCallSeen] of Object.entries(seen.tool)) {
-            const concatMsg = messageConcat[id];
+          for (const toolCallId of seen.tool) {
+            const concatMsg = messageConcat.get(id);
             const toolCall = concatMsg?.tool_calls?.find(
               call => call.id === toolCallId,
             );
 
-            if (toolCallSeen && toolCall) {
+            if (toolCall) {
               emittedToolCalls.add(toolCallId);
               // Store mapping for HITL interrupt lookup
               const toolCallKey = `${toolCall.name}:${JSON.stringify(toolCall.args)}`;
@@ -1323,9 +1538,9 @@ export function processLangGraphEvent(
           controller.enqueue({ type: 'reasoning-end', id });
         }
 
-        delete messageSeen[id];
-        delete messageConcat[id];
-        delete messageReasoningIds[id];
+        messageSeen.delete(id);
+        messageConcat.delete(id);
+        messageReasoningIds.delete(id);
       }
 
       /**
@@ -1498,7 +1713,7 @@ export function processLangGraphEvent(
              *    AND tool_calls. We skip those to avoid duplicate reasoning entries.)
              */
             const reasoningId = extractReasoningId(msg);
-            const wasStreamedThisRequest = !!messageSeen[msgId];
+            const wasStreamedThisRequest = messageSeen.has(msgId);
             const hasToolCalls = toolCalls && toolCalls.length > 0;
 
             /**
@@ -1530,6 +1745,16 @@ export function processLangGraphEvent(
                 controller.enqueue({ type: 'reasoning-end', id: msgId });
                 emittedReasoningIds.add(reasoningId);
               }
+            }
+
+            const valuesCitations = extractCitationsFromContentBlocks(msg);
+            if (valuesCitations.length > 0) {
+              emitSourceChunks(
+                valuesCitations,
+                msgId,
+                state.emittedSourceIds,
+                controller,
+              );
             }
           }
         }

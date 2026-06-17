@@ -1,5 +1,55 @@
 # @ai-sdk/azure
 
+## 3.0.75
+
+### Patch Changes
+
+- Updated dependencies [779f5cd]
+  - @ai-sdk/provider-utils@4.0.30
+  - @ai-sdk/deepseek@2.0.39
+  - @ai-sdk/openai@3.0.72
+
+## 3.0.74
+
+### Patch Changes
+
+- Updated dependencies [bfa5864]
+- Updated dependencies [f42aa79]
+  - @ai-sdk/provider-utils@4.0.29
+  - @ai-sdk/deepseek@2.0.38
+  - @ai-sdk/openai@3.0.71
+
+## 3.0.73
+
+### Patch Changes
+
+- Updated dependencies [942f2f8]
+  - @ai-sdk/provider-utils@4.0.28
+  - @ai-sdk/deepseek@2.0.37
+  - @ai-sdk/openai@3.0.70
+
+## 3.0.72
+
+### Patch Changes
+
+- 79f0ae6: feat(azure): add deepseek model support to azure
+- Updated dependencies [79f0ae6]
+  - @ai-sdk/deepseek@2.0.36
+
+## 3.0.71
+
+### Patch Changes
+
+- Updated dependencies [9a55f6d]
+  - @ai-sdk/openai@3.0.69
+
+## 3.0.70
+
+### Patch Changes
+
+- Updated dependencies [c65c952]
+  - @ai-sdk/openai@3.0.68
+
 ## 3.0.69
 
 ### Patch Changes

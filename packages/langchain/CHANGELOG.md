@@ -1,5 +1,81 @@
 # @ai-sdk/langchain
 
+## 2.0.214
+
+### Patch Changes
+
+- Updated dependencies [779f5cd]
+  - ai@6.0.207
+
+## 2.0.213
+
+### Patch Changes
+
+- ai@6.0.206
+
+## 2.0.212
+
+### Patch Changes
+
+- ai@6.0.205
+
+## 2.0.211
+
+### Patch Changes
+
+- b51014f: fix(langchain): prevent polluting global object.prototype
+  - ai@6.0.204
+
+## 2.0.210
+
+### Patch Changes
+
+- Updated dependencies [f42aa79]
+- Updated dependencies [5291f7e]
+- Updated dependencies [b4b575a]
+  - ai@6.0.203
+
+## 2.0.209
+
+### Patch Changes
+
+- Updated dependencies [942f2f8]
+  - ai@6.0.202
+
+## 2.0.208
+
+### Patch Changes
+
+- Updated dependencies [0c8c0ed]
+  - ai@6.0.201
+
+## 2.0.207
+
+### Patch Changes
+
+- Updated dependencies [14098e7]
+- Updated dependencies [2cabe9c]
+  - ai@6.0.200
+
+## 2.0.206
+
+### Patch Changes
+
+- Updated dependencies [49d9364]
+  - ai@6.0.199
+
+## 2.0.205
+
+### Patch Changes
+
+- ai@6.0.198
+
+## 2.0.204
+
+### Patch Changes
+
+- ai@6.0.197
+
 ## 2.0.203
 
 ### Patch Changes

@@ -312,8 +312,12 @@ class DefaultMCPClient implements MCPClient {
 
       this.serverCapabilities = result.capabilities;
       this._serverInfo = result.serverInfo;
+      if (this.transport.setProtocolVersion) {
+        this.transport.setProtocolVersion(result.protocolVersion);
+      } else {
+        this.transport.protocolVersion = result.protocolVersion;
+      }
       this._serverInstructions = result.instructions;
-      this.transport.protocolVersion = result.protocolVersion;
 
       // Complete initialization handshake:
       await this.notification({
@@ -606,7 +610,10 @@ class DefaultMCPClient implements MCPClient {
       _meta,
     } of definitions.tools) {
       const resolvedTitle = title ?? annotations?.title;
-      if (schemas !== 'automatic' && !(name in schemas)) {
+      if (
+        schemas !== 'automatic' &&
+        !Object.prototype.hasOwnProperty.call(schemas, name)
+      ) {
         continue;
       }
 
