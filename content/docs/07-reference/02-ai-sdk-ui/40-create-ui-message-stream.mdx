@@ -108,8 +108,7 @@ const stream = createUIMessageStream({
     {
       name: 'onEnd',
       type: '(options: { messages: UIMessage[]; isContinuation: boolean; isAborted: boolean; responseMessage: UIMessage; finishReason?: FinishReason }) => PromiseLike<void> | void',
-      description:
-        'A callback function that is called when the stream ends.',
+      description: 'A callback function that is called when the stream ends.',
       properties: [
         {
           type: 'EndOptions',
