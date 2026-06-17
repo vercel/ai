@@ -61,9 +61,9 @@ function pickGateway(
     env.AI_GATEWAY_API_KEY = apiKey;
     env.XAI_API_KEY = apiKey;
   }
-  if (baseUrl) {
-    env.AI_GATEWAY_BASE_URL = baseUrl;
-    env.XAI_BASE_URL = baseUrl;
-  }
+  // Always forward the gateway base URL (mirrors claude-code-auth); the gateway
+  // helper always returns a non-empty default.
+  env.AI_GATEWAY_BASE_URL = baseUrl;
+  env.XAI_BASE_URL = baseUrl;
   return env;
 }
