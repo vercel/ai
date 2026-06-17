@@ -96,7 +96,9 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
 
   const shouldRecreateChat =
     ('chat' in options && options.chat !== chatRef.current) ||
-    ('id' in options && chatRef.current.id !== options.id);
+    ('id' in options &&
+      options.id != null &&
+      chatRef.current.id !== options.id);
 
   if (shouldRecreateChat) {
     chatRef.current =
