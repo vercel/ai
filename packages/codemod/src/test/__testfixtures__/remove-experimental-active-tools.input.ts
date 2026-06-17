@@ -3,8 +3,18 @@ import { generateText } from 'ai';
 declare const model: any;
 declare const weather: any;
 
-await generateText({
+const options = {
   model,
   tools: { weather },
-  experimental_activeTools: ['weather'],
-});
+  prompt: 'Hello',
+  experimental_activeTools: ['weather'] as const,
+  prepareStep: async ({ stepNumber }: any): Promise<any> => {
+    if (stepNumber === 0) {
+      return {
+        experimental_activeTools: ['weather'] as const,
+      };
+    }
+  },
+};
+
+await generateText(options);
