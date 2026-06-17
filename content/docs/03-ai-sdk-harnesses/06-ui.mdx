@@ -175,7 +175,7 @@ export async function POST(request: Request) {
   return createUIMessageStreamResponse({
     stream: toUIMessageStream({
       stream: result.stream,
-      onFinish: async () => {
+      onEnd: async () => {
         await detachAndPersist({ chatId, session });
       },
     }),
