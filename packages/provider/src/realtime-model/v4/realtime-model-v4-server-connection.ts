@@ -4,7 +4,8 @@
  * Most providers expose a single conversational ("conversation") voice
  * endpoint; some additionally expose dedicated transcription / translation
  * endpoints that live at a different URL. `intent` selects which one a
- * server-side connection should target.
+ * server-side connection should target. Providers should fail fast when an
+ * intent is not supported by their endpoint and codec.
  */
 export type RealtimeModelV4SessionIntent =
   | 'conversation'

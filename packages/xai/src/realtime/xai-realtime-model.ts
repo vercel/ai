@@ -6,6 +6,7 @@ import type {
   Experimental_RealtimeModelV4ServerConnection as RealtimeModelV4ServerConnection,
   Experimental_RealtimeModelV4ServerEvent as RealtimeModelV4ServerEvent,
   Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
+  Experimental_RealtimeModelV4SessionIntent as RealtimeModelV4SessionIntent,
 } from '@ai-sdk/provider';
 import {
   type FetchFunction,
@@ -89,10 +90,16 @@ export class XaiRealtimeModel implements RealtimeModelV4 {
     };
   }
 
-  getServerConnection(): RealtimeModelV4ServerConnection {
-    // xAI exposes only the conversational voice endpoint, so `intent` is
-    // ignored. The model is selected via the `model` query parameter; without
-    // it the server silently falls back to its default voice model.
+  getServerConnection(options?: {
+    intent?: RealtimeModelV4SessionIntent;
+  }): RealtimeModelV4ServerConnection {
+    // xAI exposes only the conversational voice endpoint; fail fast instead of
+    // silently downgrading unsupported intents.
+    if (options?.intent != null && options.intent !== 'conversation') {
+      throw new Error(
+        `xAI realtime does not support the '${options.intent}' session intent.`,
+      );
+    }
     const url = new URL(this.config.baseURL);
     const protocol = url.protocol === 'http:' ? 'ws:' : 'wss:';
     const base = `${protocol}//${url.host}${url.pathname.replace(/\/$/, '')}`;

@@ -66,7 +66,9 @@ export class GoogleRealtimeEventMapper {
   private hasText = false;
   private hasTranscript = false;
   private turnClosed = false;
+  private closedTurnHasUsage = false;
   private inputAudioRate = 16000;
+  private pendingUsage: RealtimeModelV4Usage | undefined;
 
   private get responseId(): string {
     return `google-resp-${this.turnCounter}`;
@@ -90,6 +92,7 @@ export class GoogleRealtimeEventMapper {
     this.hasAudio = false;
     this.hasText = false;
     this.hasTranscript = false;
+    this.closedTurnHasUsage = false;
     this.turnClosed = false;
   }
 
@@ -154,7 +157,39 @@ export class GoogleRealtimeEventMapper {
       };
     }
 
+    if (data.usageMetadata != null) {
+      return this.parseUsageMetadata(raw, data.usageMetadata);
+    }
+
     return { type: 'custom', rawType: String(Object.keys(data)[0]), raw };
+  }
+
+  private parseUsageMetadata(
+    raw: unknown,
+    usageMetadata: GoogleRealtimeUsageMetadata,
+  ): RealtimeModelV4ServerEvent {
+    const usage = mapGoogleUsage(usageMetadata);
+    if (usage == null) {
+      return { type: 'custom', rawType: 'usageMetadata', raw };
+    }
+
+    if (this.turnClosed) {
+      if (this.closedTurnHasUsage) {
+        return { type: 'custom', rawType: 'usageMetadata', raw };
+      }
+
+      this.closedTurnHasUsage = true;
+      return {
+        type: 'response-done',
+        responseId: this.responseId,
+        status: 'completed',
+        usage,
+        raw,
+      };
+    }
+
+    this.pendingUsage = usage;
+    return { type: 'custom', rawType: 'usageMetadata', raw };
   }
 
   private parseServerContent(
@@ -163,6 +198,7 @@ export class GoogleRealtimeEventMapper {
     usageMetadata?: GoogleRealtimeUsageMetadata,
   ): RealtimeModelV4ServerEvent | RealtimeModelV4ServerEvent[] {
     const events: RealtimeModelV4ServerEvent[] = [];
+    const usage = mapGoogleUsage(usageMetadata);
 
     if (serverContent.interrupted) {
       events.push({
@@ -243,21 +279,21 @@ export class GoogleRealtimeEventMapper {
           raw,
         });
       }
-      // Usage is attached to `response-done`, which is emitted on `turnComplete`.
-      // This assumes Gemini delivers the turn's final `usageMetadata` on the
-      // same message as `turnComplete`; a usage-only trailing frame (no
-      // `turnComplete`) would not be captured here.
-      const usage = mapGoogleUsage(usageMetadata);
+      const completedUsage = usage ?? this.pendingUsage;
+      this.pendingUsage = undefined;
+      this.closedTurnHasUsage = completedUsage != null;
       events.push({
         type: 'response-done',
         responseId: this.responseId,
         status: 'completed',
-        ...(usage != null ? { usage } : {}),
+        ...(completedUsage != null ? { usage: completedUsage } : {}),
         raw,
       });
       // Mark the turn closed but defer advancing the counter until the next
       // response actually begins (see `beginTurnIfClosed`).
       this.turnClosed = true;
+    } else if (usage != null) {
+      this.pendingUsage = usage;
     }
 
     if (events.length === 0) {

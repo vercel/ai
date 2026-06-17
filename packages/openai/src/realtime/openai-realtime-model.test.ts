@@ -76,12 +76,10 @@ describe('OpenAIRealtimeModel', () => {
       );
     });
 
-    it('builds the translation URL with the model query param', () => {
-      expect(
-        model.getServerConnection({ intent: 'translation' }).url,
-      ).toMatchInlineSnapshot(
-        `"wss://api.openai.com/v1/realtime/translations?model=gpt-realtime"`,
-      );
+    it('rejects translation until the normalized codec supports it', () => {
+      expect(() =>
+        model.getServerConnection({ intent: 'translation' }),
+      ).toThrow(/translation sessions are not supported/);
     });
 
     it('uses ws:// for an http base URL (local/proxy)', () => {

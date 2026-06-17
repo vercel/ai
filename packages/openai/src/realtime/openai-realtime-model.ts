@@ -117,26 +117,25 @@ export class OpenAIRealtimeModel implements RealtimeModelV4 {
     return parseOpenAIRealtimeServerEvent(raw);
   }
 
-  serializeClientEvent(event: RealtimeModelV4ClientEvent): unknown {
-    return serializeOpenAIRealtimeClientEvent(event, this.modelId);
+  serializeClientEvent(
+    event: RealtimeModelV4ClientEvent,
+    options?: { intent?: RealtimeModelV4SessionIntent },
+  ): unknown {
+    return serializeOpenAIRealtimeClientEvent(event, this.modelId, options);
   }
 
   buildSessionConfig(
     config: RealtimeModelV4SessionConfig,
+    options?: { intent?: RealtimeModelV4SessionIntent },
   ): Record<string, unknown> {
-    return buildOpenAISessionConfig(config, this.modelId);
+    return buildOpenAISessionConfig(config, this.modelId, options);
   }
 }
 
 /**
  * Builds the upstream realtime WebSocket URL for a server-initiated connection.
- *
- * The OpenAI realtime endpoint varies by intent:
- *  - conversation:  `/realtime?model=<id>`
- *  - transcription: `/realtime?intent=transcription` (no model; the
- *      transcription model is set in the client's `session.update` — a `?model=`
- *      here would open a voice session instead)
- *  - translation:   `/realtime/translations?model=<id>`
+ * Transcription keeps the model in `session.update`; a `?model=` here would
+ * open a voice session instead.
  */
 function buildServerUrl(
   baseURL: string,
@@ -151,7 +150,9 @@ function buildServerUrl(
     case 'transcription':
       return `${base}/realtime?intent=transcription`;
     case 'translation':
-      return `${base}/realtime/translations?model=${encodeURIComponent(modelId)}`;
+      throw new Error(
+        'OpenAI realtime translation sessions are not supported by the normalized RealtimeModelV4 codec yet.',
+      );
     default:
       return `${base}/realtime?model=${encodeURIComponent(modelId)}`;
   }

@@ -6,6 +6,7 @@ import type {
   Experimental_RealtimeModelV4ServerConnection as RealtimeModelV4ServerConnection,
   Experimental_RealtimeModelV4ServerEvent as RealtimeModelV4ServerEvent,
   Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
+  Experimental_RealtimeModelV4SessionIntent as RealtimeModelV4SessionIntent,
 } from '@ai-sdk/provider';
 import {
   type FetchFunction,
@@ -158,11 +159,16 @@ export class GoogleRealtimeModel implements RealtimeModelV4 {
     };
   }
 
-  getServerConnection(): RealtimeModelV4ServerConnection {
-    // A trusted server connects to the unconstrained Bidi endpoint with the
-    // long-lived API key in headers (`x-goog-api-key`) and sends the session
-    // `setup` over the socket. `intent` is ignored — Gemini Live exposes only
-    // the conversational endpoint.
+  getServerConnection(options?: {
+    intent?: RealtimeModelV4SessionIntent;
+  }): RealtimeModelV4ServerConnection {
+    // Gemini Live exposes only the conversational endpoint; fail fast instead
+    // of silently downgrading unsupported intents.
+    if (options?.intent != null && options.intent !== 'conversation') {
+      throw new Error(
+        `Google realtime does not support the '${options.intent}' session intent.`,
+      );
+    }
     return {
       url: getServerWebSocketURL(this.config.baseURL),
       headers: removeUndefinedEntries(this.config.headers()),

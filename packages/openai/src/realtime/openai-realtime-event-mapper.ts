@@ -2,8 +2,13 @@ import type {
   Experimental_RealtimeModelV4ClientEvent as RealtimeModelV4ClientEvent,
   Experimental_RealtimeModelV4ServerEvent as RealtimeModelV4ServerEvent,
   Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
+  Experimental_RealtimeModelV4SessionIntent as RealtimeModelV4SessionIntent,
   Experimental_RealtimeModelV4Usage as RealtimeModelV4Usage,
 } from '@ai-sdk/provider';
+
+type OpenAIRealtimeSessionOptions = {
+  intent?: RealtimeModelV4SessionIntent;
+};
 
 type OpenAIRealtimeTokenDetails = {
   audio_tokens?: number;
@@ -325,12 +330,15 @@ function compactUsage(
 export function serializeOpenAIRealtimeClientEvent(
   event: RealtimeModelV4ClientEvent,
   modelId: string,
+  options?: OpenAIRealtimeSessionOptions,
 ): unknown {
+  assertSupportedOpenAIIntent(options?.intent);
+
   switch (event.type) {
     case 'session-update':
       return {
         type: 'session.update',
-        session: buildOpenAISessionConfig(event.config, modelId),
+        session: buildOpenAISessionConfig(event.config, modelId, options),
       };
 
     case 'input-audio-append':
@@ -418,23 +426,28 @@ export function serializeOpenAIRealtimeClientEvent(
 export function buildOpenAISessionConfig(
   config: RealtimeModelV4SessionConfig,
   modelId: string,
+  options?: OpenAIRealtimeSessionOptions,
 ): Record<string, unknown> {
+  const intent = options?.intent ?? 'conversation';
+  assertSupportedOpenAIIntent(intent);
+
   const session: Record<string, unknown> = {
-    type: 'realtime',
-    model: modelId,
+    type: intent === 'transcription' ? 'transcription' : 'realtime',
+    ...(intent === 'conversation' ? { model: modelId } : {}),
   };
 
-  if (config.instructions != null) {
+  if (intent === 'conversation' && config.instructions != null) {
     session.instructions = config.instructions;
   }
 
-  if (config.outputModalities != null) {
+  if (intent === 'conversation' && config.outputModalities != null) {
     session.output_modalities = config.outputModalities;
   }
 
   const audio: Record<string, unknown> = {};
 
   if (
+    intent === 'transcription' ||
     config.inputAudioFormat != null ||
     config.inputAudioTranscription != null ||
     config.turnDetection != null
@@ -473,7 +486,17 @@ export function buildOpenAISessionConfig(
       }
     }
 
-    if (config.inputAudioTranscription != null) {
+    if (intent === 'transcription') {
+      input.transcription = {
+        model: modelId,
+        ...(config.inputAudioTranscription?.language != null
+          ? { language: config.inputAudioTranscription.language }
+          : {}),
+        ...(config.inputAudioTranscription?.prompt != null
+          ? { prompt: config.inputAudioTranscription.prompt }
+          : {}),
+      };
+    } else if (config.inputAudioTranscription != null) {
       input.transcription = {
         model: config.inputAudioTranscription.model ?? 'gpt-realtime-whisper',
         ...(config.inputAudioTranscription.language != null
@@ -488,7 +511,10 @@ export function buildOpenAISessionConfig(
     audio.input = input;
   }
 
-  if (config.outputAudioFormat != null || config.voice != null) {
+  if (
+    intent === 'conversation' &&
+    (config.outputAudioFormat != null || config.voice != null)
+  ) {
     const output: Record<string, unknown> = {};
 
     if (config.outputAudioFormat != null) {
@@ -511,7 +537,11 @@ export function buildOpenAISessionConfig(
     session.audio = audio;
   }
 
-  if (config.tools != null && config.tools.length > 0) {
+  if (
+    intent === 'conversation' &&
+    config.tools != null &&
+    config.tools.length > 0
+  ) {
     session.tools = config.tools.map(tool => ({
       type: tool.type,
       name: tool.name,
@@ -526,4 +556,14 @@ export function buildOpenAISessionConfig(
   }
 
   return session;
+}
+
+function assertSupportedOpenAIIntent(
+  intent: RealtimeModelV4SessionIntent | undefined,
+): void {
+  if (intent === 'translation') {
+    throw new Error(
+      'OpenAI realtime translation sessions are not supported by the normalized RealtimeModelV4 codec yet.',
+    );
+  }
 }

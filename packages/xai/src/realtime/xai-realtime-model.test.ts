@@ -52,6 +52,12 @@ describe('XaiRealtimeModel', () => {
         `"ws://localhost:8787/v1/realtime?model=grok-voice-latest"`,
       );
     });
+
+    it('rejects unsupported endpoint intents', () => {
+      expect(() =>
+        createModel().getServerConnection({ intent: 'translation' }),
+      ).toThrow("does not support the 'translation' session intent");
+    });
   });
 
   describe('serializeClientEvent', () => {

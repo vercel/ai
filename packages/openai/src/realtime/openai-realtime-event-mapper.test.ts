@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildOpenAISessionConfig,
   parseOpenAIRealtimeServerEvent,
+  serializeOpenAIRealtimeClientEvent,
 } from './openai-realtime-event-mapper';
 
 describe('parseOpenAIRealtimeServerEvent usage', () => {
@@ -88,6 +89,35 @@ describe('parseOpenAIRealtimeServerEvent usage', () => {
 });
 
 describe('buildOpenAISessionConfig', () => {
+  it('builds a dedicated transcription session with the selected model id', () => {
+    const result = buildOpenAISessionConfig(
+      {
+        inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+        inputAudioTranscription: {
+          model: 'ignored-override',
+          language: 'en',
+          prompt: 'Medical vocabulary.',
+        },
+      },
+      'gpt-realtime-whisper',
+      { intent: 'transcription' },
+    );
+
+    expect(result).toEqual({
+      type: 'transcription',
+      audio: {
+        input: {
+          format: { type: 'audio/pcm', rate: 24000 },
+          transcription: {
+            model: 'gpt-realtime-whisper',
+            language: 'en',
+            prompt: 'Medical vocabulary.',
+          },
+        },
+      },
+    });
+  });
+
   it('enables input audio transcription with a default model', () => {
     const result = buildOpenAISessionConfig(
       { inputAudioTranscription: {} },
@@ -121,6 +151,36 @@ describe('buildOpenAISessionConfig', () => {
           model: 'gpt-4o-mini-transcribe',
           language: 'en',
           prompt: 'Transcribe short voice chat messages.',
+        },
+      },
+    });
+  });
+
+  it('does not build translation sessions until the normalized codec supports them', () => {
+    expect(() =>
+      buildOpenAISessionConfig({}, 'gpt-realtime-translate', {
+        intent: 'translation',
+      }),
+    ).toThrow(/translation sessions are not supported/);
+  });
+});
+
+describe('serializeOpenAIRealtimeClientEvent', () => {
+  it('passes the session intent through to session-update serialization', () => {
+    const result = serializeOpenAIRealtimeClientEvent(
+      { type: 'session-update', config: {} },
+      'gpt-realtime-whisper',
+      { intent: 'transcription' },
+    );
+
+    expect(result).toEqual({
+      type: 'session.update',
+      session: {
+        type: 'transcription',
+        audio: {
+          input: {
+            transcription: { model: 'gpt-realtime-whisper' },
+          },
         },
       },
     });
