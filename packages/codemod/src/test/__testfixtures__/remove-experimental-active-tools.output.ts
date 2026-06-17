@@ -8,7 +8,7 @@ const options = {
   tools: { weather },
   prompt: 'Hello',
   activeTools: ['weather'] as const,
-  prepareStep: async ({ stepNumber }: any) => {
+  prepareStep: async ({ stepNumber }: any): Promise<any> => {
     if (stepNumber === 0) {
       return {
         activeTools: ['weather'] as const,

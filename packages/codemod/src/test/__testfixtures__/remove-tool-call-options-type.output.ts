@@ -1,3 +1,4 @@
-import { ToolExecutionOptions } from 'ai';
+// @ts-ignore v6 API fixture for removed export.
+import type { ToolExecutionOptions } from 'ai';
 
-let options: ToolExecutionOptions;
+export const options = {} as ToolExecutionOptions<unknown>;

@@ -6,7 +6,9 @@ export default createTransformer((fileInfo, api, options, context) => {
   root.find(j.ObjectExpression).forEach(path => {
     path.node.properties.forEach(property => {
       if (
-        (property.type === 'Property' || property.type === 'ObjectProperty') &&
+        (property.type === 'Property' ||
+          property.type === 'ObjectProperty' ||
+          property.type === 'ObjectMethod') &&
         property.key.type === 'Identifier' &&
         property.key.name === 'experimental_onToolCallFinish'
       ) {

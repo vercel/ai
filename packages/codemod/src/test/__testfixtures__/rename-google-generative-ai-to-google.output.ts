@@ -1,3 +1,4 @@
+// @ts-ignore provider package is not a codemod dependency.
 import { createGoogle, type GoogleProvider } from '@ai-sdk/google';
 
-const provider: GoogleProvider = createGoogle();
+export const provider: GoogleProvider = createGoogle();

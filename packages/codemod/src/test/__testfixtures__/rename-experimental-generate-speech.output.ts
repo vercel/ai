@@ -1,8 +1,12 @@
-import { generateSpeech, type SpeechResult } from 'ai';
+import {
+  generateSpeech,
+  type SpeechResult,
+} from 'ai';
 
 declare const speechModel: any;
 
-const result: SpeechResult = await generateSpeech({
-  model: speechModel,
-  text: 'Hello',
-});
+export const result: SpeechResult =
+  await generateSpeech({
+    model: speechModel,
+    text: 'Hello',
+  });

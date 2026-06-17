@@ -1,6 +1,4 @@
-import {
-  createGoogleGenerativeAI,
-  type GoogleGenerativeAIProvider,
-} from '@ai-sdk/google';
+// @ts-ignore provider package is not a codemod dependency.
+import { createGoogleGenerativeAI, type GoogleGenerativeAIProvider } from '@ai-sdk/google';
 
-const provider: GoogleGenerativeAIProvider = createGoogleGenerativeAI();
+export const provider: GoogleGenerativeAIProvider = createGoogleGenerativeAI();

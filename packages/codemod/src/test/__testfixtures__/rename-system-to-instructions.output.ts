@@ -2,9 +2,13 @@ import { generateText } from 'ai';
 
 declare const model: any;
 
-await generateText({
+const options = {
   model,
   instructions: 'hello',
   prompt: 'Hello',
-  onStart: ({ instructions: system }) => system,
-});
+  onStart: ({ instructions: system }: any) => {
+    console.log(system);
+  },
+};
+
+await generateText(options);

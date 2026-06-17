@@ -4,12 +4,14 @@ declare const model: any;
 declare const Output: any;
 declare const schema: any;
 
-const result = await generateText({
+const options = {
   model,
   output: Output.object({
     schema,
   }),
   prompt: 'Generate a recipe.',
-});
+};
 
-console.log(result.output);
+const result = await generateText(options);
+
+console.log((result as any).output);

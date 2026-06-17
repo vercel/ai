@@ -8,13 +8,11 @@ await generateText({
   messages: [
     {
       role: 'user',
-      content: [
-        {
-          type: 'file',
-          data: bytes,
-          mediaType: 'image',
-        },
-      ],
+      content: [{
+        type: 'file',
+        data: bytes,
+        mediaType: 'image'
+      }],
     },
   ],
 });

@@ -5,7 +5,8 @@ declare const model: any;
 streamText({
   model,
   prompt: 'Hello',
+
   include: {
-    rawChunks: true,
-  },
+    rawChunks: true
+  }
 });

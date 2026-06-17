@@ -1,9 +1,12 @@
 import type { Telemetry } from 'ai';
 
-const telemetry: Telemetry = {
-  onEmbedFinish(event) {
+const telemetryConfig = {
+  onStart() {},
+  onEmbedFinish(event: unknown) {
     console.log(event);
   },
 };
 
-const eventType = 'onEmbedFinish';
+export const telemetry: Telemetry = telemetryConfig;
+
+export const eventType = 'onEmbedFinish';

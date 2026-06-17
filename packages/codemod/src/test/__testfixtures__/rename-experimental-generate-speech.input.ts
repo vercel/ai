@@ -5,7 +5,7 @@ import {
 
 declare const speechModel: any;
 
-const result: Experimental_SpeechResult =
+export const result: Experimental_SpeechResult =
   await experimental_generateSpeech({
     model: speechModel,
     text: 'Hello',

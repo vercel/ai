@@ -1,9 +1,12 @@
 import type { Telemetry } from 'ai';
 
-const telemetry: Telemetry = {
-  onRerankEnd(event) {
+const telemetryConfig = {
+  onStart() {},
+  onRerankEnd(event: unknown) {
     console.log(event);
   },
 };
 
-const eventType = 'onRerankEnd';
+export const telemetry: Telemetry = telemetryConfig;
+
+export const eventType = 'onRerankEnd';
