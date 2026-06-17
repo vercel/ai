@@ -241,8 +241,7 @@ export class ByteDanceVideoModel implements Experimental_VideoModelV4 {
       });
     }
 
-    // Add reference images if provided (inputReferences preferred, falling back
-    // to the legacy providerOptions.bytedance.referenceImages).
+    // Add reference images if provided
     for (const imageUrl of referenceImageUrls) {
       content.push({
         type: 'image_url',

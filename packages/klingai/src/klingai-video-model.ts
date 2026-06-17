@@ -480,7 +480,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV4 {
     }
 
     // End frame image: prefer top-level frameImages (last_frame), fall back to
-    // the legacy providerOptions.klingai.imageTail.
+    // providerOptions.klingai.imageTail.
     const imageTail = resolveImageTail(options, klingaiOptions);
     if (imageTail != null) {
       body.image_tail = imageTail;
