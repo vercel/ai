@@ -290,7 +290,6 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
         errorSchema: openResponsesErrorSchema,
         errorToMessage: error => error.error.message,
       }),
-      // TODO consider validation
       successfulResponseHandler: createEventSourceResponseHandler(z.any()),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
@@ -344,10 +343,10 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
       unified: 'other',
       raw: undefined,
     };
-    const toolCallsByItemId: Record<
+    const toolCallsByItemId = new Map<
       string,
       { toolName?: string; toolCallId?: string; arguments?: string }
-    > = {};
+    >();
 
     return {
       stream: response.pipeThrough(
@@ -379,41 +378,43 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
               chunk.type === 'response.output_item.added' &&
               chunk.item.type === 'function_call'
             ) {
-              toolCallsByItemId[chunk.item.id] = {
+              toolCallsByItemId.set(chunk.item.id, {
                 toolName: chunk.item.name,
                 toolCallId: chunk.item.call_id,
                 arguments: chunk.item.arguments,
-              };
+              });
             } else if (
-              (chunk as { type: string }).type ===
-              'response.function_call_arguments.delta'
+              chunk.type === 'response.function_call_arguments.delta'
             ) {
-              const functionCallChunk = chunk as {
-                item_id: string;
-                delta: string;
-              };
-              const toolCall =
-                toolCallsByItemId[functionCallChunk.item_id] ??
-                (toolCallsByItemId[functionCallChunk.item_id] = {});
+              const functionCallChunk = chunk;
+              const toolCall = toolCallsByItemId.get(functionCallChunk.item_id);
+
+              if (toolCall == null) {
+                toolCallsByItemId.set(functionCallChunk.item_id, {
+                  arguments: functionCallChunk.delta,
+                });
+                return;
+              }
+
               toolCall.arguments =
                 (toolCall.arguments ?? '') + functionCallChunk.delta;
-            } else if (
-              (chunk as { type: string }).type ===
-              'response.function_call_arguments.done'
-            ) {
-              const functionCallChunk = chunk as {
-                item_id: string;
-                arguments: string;
-              };
-              const toolCall =
-                toolCallsByItemId[functionCallChunk.item_id] ??
-                (toolCallsByItemId[functionCallChunk.item_id] = {});
+            } else if (chunk.type === 'response.function_call_arguments.done') {
+              const functionCallChunk = chunk;
+              const toolCall = toolCallsByItemId.get(functionCallChunk.item_id);
+
+              if (toolCall == null) {
+                toolCallsByItemId.set(functionCallChunk.item_id, {
+                  arguments: functionCallChunk.arguments,
+                });
+                return;
+              }
+
               toolCall.arguments = functionCallChunk.arguments;
             } else if (
               chunk.type === 'response.output_item.done' &&
               chunk.item.type === 'function_call'
             ) {
-              const toolCall = toolCallsByItemId[chunk.item.id];
+              const toolCall = toolCallsByItemId.get(chunk.item.id);
               const toolName = toolCall?.toolName ?? chunk.item.name;
               const toolCallId = toolCall?.toolCallId ?? chunk.item.call_id;
               const input = toolCall?.arguments ?? chunk.item.arguments ?? '';
@@ -426,7 +427,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
               });
               hasToolCalls = true;
 
-              delete toolCallsByItemId[chunk.item.id];
+              toolCallsByItemId.delete(chunk.item.id);
             }
 
             // Reasoning events (note: response.reasoning_text.delta is an LM Studio extension, not in official spec)

@@ -16,6 +16,10 @@ import {
 } from './oauth';
 import { LATEST_PROTOCOL_VERSION } from './types';
 
+function isMessageEvent(event: string | undefined): boolean {
+  return event === undefined || event === 'message';
+}
+
 export class SseMCPTransport implements MCPTransport {
   private endpoint?: URL;
   private abortController?: AbortController;
@@ -53,6 +57,10 @@ export class SseMCPTransport implements MCPTransport {
     this.authProvider = authProvider;
     this.redirectMode = redirect;
     this.fetchFn = fetchFn ?? globalThis.fetch;
+  }
+
+  setProtocolVersion(version: string): void {
+    this.protocolVersion = version;
   }
 
   private async commonHeaders(
@@ -157,17 +165,26 @@ export class SseMCPTransport implements MCPTransport {
                 const { event, data } = value;
 
                 if (event === 'endpoint') {
-                  this.endpoint = new URL(data, this.url);
+                  if (this.endpoint) {
+                    continue;
+                  }
 
-                  if (this.endpoint.origin !== this.url.origin) {
+                  const endpoint = new URL(data, this.url);
+
+                  if (endpoint.origin !== this.url.origin) {
+                    this.connected = false;
+                    this.endpoint = undefined;
+                    this.sseConnection?.close();
+                    this.abortController?.abort();
                     throw new MCPClientError({
-                      message: `MCP SSE Transport Error: Endpoint origin does not match connection origin: ${this.endpoint.origin}`,
+                      message: `MCP SSE Transport Error: Endpoint origin does not match connection origin: ${endpoint.origin}`,
                     });
                   }
 
+                  this.endpoint = endpoint;
                   this.connected = true;
                   resolve();
-                } else if (event === 'message') {
+                } else if (isMessageEvent(event)) {
                   try {
                     const message = await parseJSONRPCMessage(data);
                     this.onmessage?.(message);
@@ -213,6 +230,7 @@ export class SseMCPTransport implements MCPTransport {
 
   async close(): Promise<void> {
     this.connected = false;
+    this.endpoint = undefined;
     this.sseConnection?.close();
     this.abortController?.abort();
     this.onclose?.();

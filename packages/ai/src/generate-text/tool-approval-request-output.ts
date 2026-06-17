@@ -18,4 +18,9 @@ export type ToolApprovalRequestOutput<TOOLS extends ToolSet> = {
    * Tool call that the approval request is for.
    */
   toolCall: TypedToolCall<TOOLS>;
+
+  /**
+   * HMAC-SHA256 signature binding this approval request to its tool call.
+   */
+  signature?: string;
 };

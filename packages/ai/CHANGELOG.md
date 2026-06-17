@@ -1,5 +1,112 @@
 # ai
 
+## 6.0.207
+
+### Patch Changes
+
+- 779f5cd: fix(provider-utils): cancel response body on download rejection to prevent socket leak
+
+  When a download was rejected early — because the `Content-Length` header exceeded the size limit, the response status was not ok, or a redirect resolved to a blocked URL — the fetch response body was left unconsumed and uncancelled. With WHATWG Fetch/undici this leaves the underlying TCP socket open instead of returning it to the connection pool, allowing an attacker-controlled origin to exhaust file descriptors and cause a denial of service. The body is now cancelled on all early-rejection paths in `readResponseWithSizeLimit`, `download`, and `downloadBlob`, and `fetchWithValidatedRedirects` cancels each redirect hop's body before following or rejecting the next hop.
+
+- Updated dependencies [5bfde36]
+- Updated dependencies [779f5cd]
+  - @ai-sdk/gateway@3.0.133
+  - @ai-sdk/provider-utils@4.0.30
+
+## 6.0.206
+
+### Patch Changes
+
+- Updated dependencies [e962dda]
+  - @ai-sdk/gateway@3.0.132
+
+## 6.0.205
+
+### Patch Changes
+
+- Updated dependencies [6160ced]
+- Updated dependencies [c9b8abd]
+  - @ai-sdk/gateway@3.0.131
+
+## 6.0.204
+
+### Patch Changes
+
+- Updated dependencies [c5d4716]
+  - @ai-sdk/gateway@3.0.130
+
+## 6.0.203
+
+### Patch Changes
+
+- f42aa79: fix: harden download URL SSRF guard against hostname and redirect bypasses
+
+  `validateDownloadUrl` and the file download helpers (`downloadBlob`, `download`) could be bypassed in several ways when handling untrusted URLs:
+
+  - A fully-qualified hostname with a trailing dot (e.g. `localhost.`, `myhost.local.`) skipped the localhost/`.local` blocklist.
+  - IPv6 addresses that embed an IPv4 address in their last 32 bits — IPv4-compatible (`::127.0.0.1`), IPv4-translated (`::ffff:0:127.0.0.1`), and NAT64 (`64:ff9b::127.0.0.1`, including the `64:ff9b:1::/48` local-use prefix) — were not decoded and checked against the private IPv4 ranges.
+  - Redirects were validated only _after_ `fetch` had already followed them, so the request to a redirect target (e.g. an internal/metadata address) had already been issued before the check ran.
+  - Several reserved/internal address ranges were not blocked: CGNAT (`100.64.0.0/10`, used by some cloud providers for internal traffic), benchmarking (`198.18.0.0/15`), IETF protocol assignments (`192.0.0.0/24`), the reserved `240.0.0.0/4` block (including the `255.255.255.255` broadcast address), and IPv6 site-local (`fec0::/10`) and multicast (`ff00::/8`).
+
+  The validator now strips trailing dots before the hostname checks and fully expands IPv6 addresses to detect embedded private IPv4 targets. The download helpers now follow redirects manually (`redirect: 'manual'`), re-validating each hop before requesting it, so an unsafe redirect target is never fetched. When a redirect cannot be inspected because the runtime returns an opaque response, the helpers fail closed (reject the redirect) on the server; only in a real browser — where SSRF is not reachable (fetch is constrained by CORS and cannot reach a server's internal network or cloud-metadata endpoints) — is the redirect followed natively so legitimate redirected downloads keep working.
+
+- 5291f7e: Harden stream text processing and middleware against prototype pollution from stream part IDs.
+- b4b575a: fix: redact server error details from UI message streams by default
+
+  `streamText(...).toUIMessageStream()` and `createUIMessageStream` defaulted their `onError` callback to `getErrorMessage`, which serializes the raw error (`error.toString()` / `JSON.stringify(error)`) into the client-facing `{ type: 'error', errorText }` chunk — and also into `tool-output-error` parts. The documented default was `() => 'An error occurred.'`, so applications relying on the documented behavior were unknowingly streaming server exception details (internal hostnames, paths, provider request data, validation inputs) to end users.
+
+  The default `onError` now returns the documented generic `'An error occurred.'`. Raw error details are only emitted when the developer explicitly supplies an `onError` handler. This also redacts `tool-output-error` and invalid-tool-input error text by default; pass an `onError` to surface richer messages.
+
+- Updated dependencies [bfa5864]
+- Updated dependencies [f42aa79]
+  - @ai-sdk/provider-utils@4.0.29
+  - @ai-sdk/gateway@3.0.129
+
+## 6.0.202
+
+### Patch Changes
+
+- 942f2f8: fix(security): re-validate tool approvals from client message history before execution
+
+  The approval-replay path in `generateText`/`streamText` reconstructed approved tool calls from the client-supplied messages array and executed them without re-validating input against the tool's schema or re-checking that the tool actually requires approval. A client could forge an assistant message with a pre-approved tool-call part and have the server execute a tool with attacker-chosen arguments.
+
+  The replay path now verifies the HMAC signature (when `experimental_toolApprovalSecret` is configured), re-validates tool-call input against the tool's input schema, and re-resolves whether the tool requires approval before execution.
+
+- Updated dependencies [942f2f8]
+  - @ai-sdk/provider-utils@4.0.28
+  - @ai-sdk/gateway@3.0.128
+
+## 6.0.201
+
+### Patch Changes
+
+- 0c8c0ed: fix(ai): return schema-transformed elements in array output mode
+
+  Previously final array output validation checked each element against the schema but returned the raw model output. Array output now returns the validated values so Zod transforms, coercions, defaults, and pipes are applied consistently with object output.
+
+## 6.0.200
+
+### Patch Changes
+
+- 14098e7: fix(ai): reject `streamText` result promises with `NoOutputGeneratedError` when the model stream ends without producing any output. Previously such streams resolved with an empty step. Incomplete streams with partial output still resolve with the partial result.
+- 2cabe9c: Harden UI message stream processing against prototype pollution from chunk IDs.
+
+## 6.0.199
+
+### Patch Changes
+
+- 49d9364: fix(ai): add approval guard for denied tool outputs
+- Updated dependencies [3851e29]
+- Updated dependencies [2a91a17]
+  - @ai-sdk/gateway@3.0.127
+
+## 6.0.198
+
+### Patch Changes
+
+- Updated dependencies [ff16d3b]
+  - @ai-sdk/gateway@3.0.126
+
 ## 6.0.197
 
 ### Patch Changes

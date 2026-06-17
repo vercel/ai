@@ -1,5 +1,45 @@
 # @ai-sdk/google-vertex
 
+## 4.0.146
+
+### Patch Changes
+
+- Updated dependencies [779f5cd]
+  - @ai-sdk/provider-utils@4.0.30
+  - @ai-sdk/anthropic@3.0.85
+  - @ai-sdk/google@3.0.83
+  - @ai-sdk/openai-compatible@2.0.51
+
+## 4.0.145
+
+### Patch Changes
+
+- Updated dependencies [3258f22]
+- Updated dependencies [bfa5864]
+- Updated dependencies [f42aa79]
+  - @ai-sdk/google@3.0.82
+  - @ai-sdk/provider-utils@4.0.29
+  - @ai-sdk/anthropic@3.0.84
+  - @ai-sdk/openai-compatible@2.0.50
+
+## 4.0.144
+
+### Patch Changes
+
+- Updated dependencies [942f2f8]
+  - @ai-sdk/provider-utils@4.0.28
+  - @ai-sdk/anthropic@3.0.83
+  - @ai-sdk/google@3.0.81
+  - @ai-sdk/openai-compatible@2.0.49
+
+## 4.0.143
+
+### Patch Changes
+
+- 2a91a17: feat(provider/anthropic): add support for `claude-fable-5` and the `fallbacks` API parameter
+- Updated dependencies [2a91a17]
+  - @ai-sdk/anthropic@3.0.82
+
 ## 4.0.142
 
 ### Patch Changes

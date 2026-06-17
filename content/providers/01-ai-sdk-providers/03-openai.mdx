@@ -1056,6 +1056,52 @@ In hosted mode, the model internally searches the deferred tools, loads the rele
 proceeds to call them — all within a single response. The `tool_search_call` and
 `tool_search_output` items appear in the response with `execution: 'server'` and `call_id: null`.
 
+##### Namespaces
+
+Use `providerOptions.openai.namespace` to group related function tools for OpenAI.
+The SDK keeps each tool executable as a normal AI SDK tool, but serializes grouped
+tools as OpenAI `namespace` entries in the request:
+
+```ts
+const crmNamespace = {
+  name: 'crm',
+  description: 'CRM tools for customer lookup and order management.',
+};
+
+const result = await generateText({
+  model: openai.responses('gpt-5.4'),
+  prompt: 'List open orders for customer cust_123.',
+  tools: {
+    toolSearch: openai.tools.toolSearch(),
+
+    get_customer_profile: tool({
+      description: 'Fetch a customer profile by customer ID.',
+      inputSchema: z.object({ customer_id: z.string() }),
+      execute: async ({ customer_id }) => ({ customer_id }),
+      providerOptions: {
+        openai: { namespace: crmNamespace },
+      },
+    }),
+
+    list_open_orders: tool({
+      description: 'List open orders for a customer ID.',
+      inputSchema: z.object({ customer_id: z.string() }),
+      execute: async ({ customer_id }) => ({ customer_id, orders: [] }),
+      providerOptions: {
+        openai: {
+          namespace: crmNamespace,
+          deferLoading: true,
+        },
+      },
+    }),
+  },
+});
+```
+
+Tools in the same namespace must use the same namespace `name` and `description`.
+For best results with tool search, keep namespace descriptions concise and put
+detailed usage guidance on the individual function tools.
+
 ##### Client-Executed Tool Search
 
 Use client-executed tool search when tool discovery depends on runtime state — for example,

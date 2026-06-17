@@ -1,5 +1,58 @@
 # @ai-sdk/mcp
 
+## 1.0.52
+
+### Patch Changes
+
+- Updated dependencies [779f5cd]
+  - @ai-sdk/provider-utils@4.0.30
+
+## 1.0.51
+
+### Patch Changes
+
+- aa39fc8: fix (mcp): handle SSE messages without explicit event fields
+
+## 1.0.50
+
+### Patch Changes
+
+- ac40275: fix(mcp): validate oauth metadata issuer during discovery
+
+## 1.0.49
+
+### Patch Changes
+
+- 3e8d9ba: fix(mcp): lock first sse endpoint received via event
+- 4fa7354: fix(mcp): prevent prototype-named tools from bypassing the `schemas` allowlist
+
+  When using `client.tools({ schemas })` to expose only an explicitly allowed
+  subset of an MCP server's tools, the allowlist check used the `in` operator,
+  which also matches inherited `Object.prototype` properties. A server-advertised
+  tool named `constructor`, `toString`, `__proto__`, etc. would pass the check
+  even though the developer never defined it in `schemas`, and was then exposed to
+  the model and executable. The check now uses `Object.hasOwn`, so only
+  explicitly defined tools are returned.
+
+- Updated dependencies [bfa5864]
+- Updated dependencies [f42aa79]
+  - @ai-sdk/provider-utils@4.0.29
+
+## 1.0.48
+
+### Patch Changes
+
+- 26d93a4: fix(mcp): add optional hook to validate authorization servers
+- 3c9ad04: fix(mcp): support official sdk protocol version negotiation
+- Updated dependencies [942f2f8]
+  - @ai-sdk/provider-utils@4.0.28
+
+## 1.0.47
+
+### Patch Changes
+
+- bf1d6bd: fix(mcp): prevent mcp oauth credential exfiltration during rediscovery
+
 ## 1.0.46
 
 ### Patch Changes

@@ -1,5 +1,50 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.118
+
+### Patch Changes
+
+- Updated dependencies [779f5cd]
+  - @ai-sdk/provider-utils@4.0.30
+  - @ai-sdk/anthropic@3.0.85
+  - @ai-sdk/openai@3.0.72
+
+## 4.0.117
+
+### Patch Changes
+
+- Updated dependencies [bfa5864]
+- Updated dependencies [f42aa79]
+  - @ai-sdk/provider-utils@4.0.29
+  - @ai-sdk/anthropic@3.0.84
+  - @ai-sdk/openai@3.0.71
+
+## 4.0.116
+
+### Patch Changes
+
+- f0b5c16: fix(provider/amazon-bedrock): detect Cohere embedding models behind cross-region inference profile ids
+- Updated dependencies [942f2f8]
+  - @ai-sdk/provider-utils@4.0.28
+  - @ai-sdk/anthropic@3.0.83
+  - @ai-sdk/openai@3.0.70
+
+## 4.0.115
+
+### Patch Changes
+
+- c97ede5: fix(provider/amazon-bedrock): extract Cohere embedding token usage from response header
+
+## 4.0.114
+
+### Patch Changes
+
+- 2a91a17: feat(provider/anthropic): add support for `claude-fable-5` and the `fallbacks` API parameter
+- Updated dependencies [9a55f6d]
+- Updated dependencies [2a91a17]
+  - @ai-sdk/openai@3.0.69
+  - @ai-sdk/anthropic@3.0.82
+
 ## 4.0.113
 
 ### Patch Changes

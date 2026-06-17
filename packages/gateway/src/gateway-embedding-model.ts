@@ -77,7 +77,7 @@ export class GatewayEmbeddingModel implements EmbeddingModelV3 {
         providerMetadata:
           responseBody.providerMetadata as unknown as SharedV3ProviderMetadata,
         response: { headers: responseHeaders, body: rawValue },
-        warnings: [],
+        warnings: responseBody.warnings ?? [],
       };
     } catch (error) {
       throw await asGatewayError(error, await parseAuthMethod(resolvedHeaders));
@@ -96,11 +96,29 @@ export class GatewayEmbeddingModel implements EmbeddingModelV3 {
   }
 }
 
+const gatewayEmbeddingWarningSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('unsupported'),
+    feature: z.string(),
+    details: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('compatibility'),
+    feature: z.string(),
+    details: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('other'),
+    message: z.string(),
+  }),
+]);
+
 const gatewayEmbeddingResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
       embeddings: z.array(z.array(z.number())),
       usage: z.object({ tokens: z.number() }).nullish(),
+      warnings: z.array(gatewayEmbeddingWarningSchema).optional(),
       providerMetadata: z
         .record(z.string(), z.record(z.string(), z.unknown()))
         .optional(),

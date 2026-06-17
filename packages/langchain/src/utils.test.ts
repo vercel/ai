@@ -28,7 +28,7 @@ import {
   extractCitationsFromContentBlocks,
   emitSourceChunks,
 } from './utils';
-import type { NormalizedCitation } from './types';
+import type { LangGraphEventState, NormalizedCitation } from './types';
 
 /**
  * Creates a mock ReadableStreamDefaultController for testing
@@ -44,6 +44,21 @@ function createMockController(
     error: () => {},
     desiredSize: 1,
   } as ReadableStreamDefaultController<UIMessageChunk>;
+}
+
+const objectPrototypeProperties = ['text', 'reasoning', 'tool', '0'] as const;
+
+function clearObjectPrototypeProperties() {
+  for (const property of objectPrototypeProperties) {
+    delete (Object.prototype as Record<string, unknown>)[property];
+  }
+}
+
+function expectObjectPrototypeNotPolluted() {
+  const object = {} as Record<string, unknown>;
+  for (const property of objectPrototypeProperties) {
+    expect(object[property]).toBeUndefined();
+  }
 }
 
 describe('convertToolResultPart', () => {
@@ -935,20 +950,14 @@ describe('extractImageOutputs', () => {
 });
 
 describe('processLangGraphEvent', () => {
-  const createMockState = () => ({
-    messageSeen: {} as Record<
-      string,
-      { text?: boolean; reasoning?: boolean; tool?: Record<string, boolean> }
-    >,
-    messageConcat: {} as Record<string, AIMessageChunk>,
+  const createMockState = (): LangGraphEventState => ({
+    messageSeen: new Map(),
+    messageConcat: new Map(),
     emittedToolCalls: new Set<string>(),
     emittedImages: new Set<string>(),
     emittedReasoningIds: new Set<string>(),
-    messageReasoningIds: {} as Record<string, string>,
-    toolCallInfoByIndex: {} as Record<
-      string,
-      Record<number, { id: string; name: string }>
-    >,
+    messageReasoningIds: new Map(),
+    toolCallInfoByIndex: new Map(),
     currentStep: null as number | null,
     emittedToolCallsByKey: new Map<string, string>(),
     emittedSourceIds: new Set<string>(),
@@ -1223,6 +1232,101 @@ describe('processLangGraphEvent', () => {
     });
   });
 
+  it('should not pollute Object.prototype from remote text message ids', () => {
+    clearObjectPrototypeProperties();
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    try {
+      const plainMsg = { type: 'ai', content: 'Hello', id: '__proto__' };
+      processLangGraphEvent(['messages', [plainMsg]], state, controller);
+
+      expect(chunks).toContainEqual({ type: 'text-start', id: '__proto__' });
+      expect(chunks).toContainEqual({
+        type: 'text-delta',
+        delta: 'Hello',
+        id: '__proto__',
+      });
+      expect(state.messageSeen.get('__proto__')).toEqual({ text: true });
+      expectObjectPrototypeNotPolluted();
+    } finally {
+      clearObjectPrototypeProperties();
+    }
+  });
+
+  it('should not pollute Object.prototype from remote reasoning message ids', () => {
+    clearObjectPrototypeProperties();
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    try {
+      const plainMsg = {
+        type: 'ai',
+        content: '',
+        contentBlocks: [{ type: 'reasoning', reasoning: 'Thinking...' }],
+        id: '__proto__',
+      };
+      processLangGraphEvent(['messages', [plainMsg]], state, controller);
+
+      expect(chunks).toContainEqual({
+        type: 'reasoning-start',
+        id: '__proto__',
+      });
+      expect(chunks).toContainEqual({
+        type: 'reasoning-delta',
+        delta: 'Thinking...',
+        id: '__proto__',
+      });
+      expect(state.messageSeen.get('__proto__')).toEqual({ reasoning: true });
+      expectObjectPrototypeNotPolluted();
+    } finally {
+      clearObjectPrototypeProperties();
+    }
+  });
+
+  it('should not pollute Object.prototype from remote tool call message ids', () => {
+    clearObjectPrototypeProperties();
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    try {
+      const plainMsg = {
+        type: 'ai',
+        content: '',
+        id: '__proto__',
+        tool_call_chunks: [
+          { id: 'call-1', name: 'test_tool', args: '{"value":', index: 0 },
+        ],
+      };
+      processLangGraphEvent(['messages', [plainMsg]], state, controller);
+
+      expect(chunks).toContainEqual({
+        type: 'tool-input-start',
+        toolCallId: 'call-1',
+        toolName: 'test_tool',
+        dynamic: true,
+      });
+      expect(chunks).toContainEqual({
+        type: 'tool-input-delta',
+        toolCallId: 'call-1',
+        inputTextDelta: '{"value":',
+      });
+      expect(state.messageSeen.get('__proto__')?.tool?.has('call-1')).toBe(
+        true,
+      );
+      expect(state.toolCallInfoByIndex.get('__proto__')?.get(0)).toEqual({
+        id: 'call-1',
+        name: 'test_tool',
+      });
+      expectObjectPrototypeNotPolluted();
+    } finally {
+      clearObjectPrototypeProperties();
+    }
+  });
+
   it('should handle plain tool message objects from RemoteGraph', () => {
     const state = createMockState();
     const chunks: unknown[] = [];
@@ -1245,14 +1349,14 @@ describe('processLangGraphEvent', () => {
 
   it('should handle values event and finalize pending messages', () => {
     const state = createMockState();
-    state.messageSeen['msg-1'] = { text: true };
+    state.messageSeen.set('msg-1', { text: true });
     const chunks: unknown[] = [];
     const controller = createMockController(chunks);
 
     processLangGraphEvent(['values', {}], state, controller);
 
     expect(chunks).toContainEqual({ type: 'text-end', id: 'msg-1' });
-    expect(state.messageSeen['msg-1']).toBeUndefined();
+    expect(state.messageSeen.has('msg-1')).toBe(false);
   });
 
   it('should handle tool calls in values event', () => {
@@ -1401,7 +1505,7 @@ describe('processLangGraphEvent', () => {
     const state = createMockState();
     // Mark reasoning ID as already emitted (simulates streaming having already emitted this reasoning)
     state.emittedReasoningIds.add('rs_123');
-    state.messageSeen['msg-1'] = { reasoning: true };
+    state.messageSeen.set('msg-1', { reasoning: true });
     const chunks: unknown[] = [];
     const controller = createMockController(chunks);
 
@@ -2360,20 +2464,14 @@ describe('processModelChunk - sources', () => {
 });
 
 describe('processLangGraphEvent - sources', () => {
-  const createMockState = () => ({
-    messageSeen: {} as Record<
-      string,
-      { text?: boolean; reasoning?: boolean; tool?: Record<string, boolean> }
-    >,
-    messageConcat: {} as Record<string, AIMessageChunk>,
+  const createMockState = (): LangGraphEventState => ({
+    messageSeen: new Map(),
+    messageConcat: new Map(),
     emittedToolCalls: new Set<string>(),
     emittedImages: new Set<string>(),
     emittedReasoningIds: new Set<string>(),
-    messageReasoningIds: {} as Record<string, string>,
-    toolCallInfoByIndex: {} as Record<
-      string,
-      Record<number, { id: string; name: string }>
-    >,
+    messageReasoningIds: new Map(),
+    toolCallInfoByIndex: new Map(),
     currentStep: null as number | null,
     emittedToolCallsByKey: new Map<string, string>(),
     emittedSourceIds: new Set<string>(),

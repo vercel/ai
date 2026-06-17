@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/devtools",
-  "version": "0.0.18",
+  "version": "0.0.20",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -38,7 +38,7 @@
   "dependencies": {
     "@ai-sdk/provider": "workspace:*",
     "@hono/node-server": "^1.13.7",
-    "hono": "^4.6.14"
+    "hono": "^4.12.25"
   },
   "devDependencies": {
     "@radix-ui/react-collapsible": "^1.1.12",

@@ -69,6 +69,8 @@ import { extractTextContent } from './extract-text-content';
 import type { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile } from './generated-file';
 import { isApprovalNeeded } from './is-approval-needed';
+import { maybeSignApproval } from './tool-approval-signature';
+import { validateApprovedToolApprovals } from './validate-tool-approvals';
 import { text, type Output } from './output';
 import type { InferCompleteOutput } from './output-utils';
 import { parseToolCall } from './parse-tool-call';
@@ -270,6 +272,7 @@ export async function generateText<
   experimental_repairToolCall: repairToolCall,
   experimental_download: download,
   experimental_context,
+  experimental_toolApprovalSecret,
   experimental_include: include,
   _internal: { generateId = originalGenerateId } = {},
   experimental_onStart: onStart,
@@ -412,6 +415,15 @@ export async function generateText<
     experimental_context?: unknown;
 
     /**
+     * Secret for HMAC-signing tool approval requests. When set, the server
+     * signs each approval request at issuance and verifies the signature when
+     * the approval is replayed, preventing client-forged approvals.
+     *
+     * Experimental (can break in patch releases).
+     */
+    experimental_toolApprovalSecret?: string | Uint8Array;
+
+    /**
      * Settings for controlling what data is included in step results.
      * Disabling inclusion can help reduce memory usage when processing
      * large payloads like images.
@@ -548,12 +560,32 @@ export async function generateText<
         const initialMessages = initialPrompt.messages;
         const responseMessages: Array<ResponseMessage> = [];
 
-        const { approvedToolApprovals, deniedToolApprovals } =
-          collectToolApprovals<TOOLS>({ messages: initialMessages });
+        const {
+          approvedToolApprovals,
+          deniedToolApprovals: collectedDeniedToolApprovals,
+        } = collectToolApprovals<TOOLS>({ messages: initialMessages });
 
-        const localApprovedToolApprovals = approvedToolApprovals.filter(
-          toolApproval => !toolApproval.toolCall.providerExecuted,
-        );
+        // Re-validate approvals reconstructed from the client-supplied message
+        // history before executing them: verify the HMAC signature (when a
+        // secret is configured), re-validate the input against the tool's
+        // schema, and re-resolve whether the tool requires approval.
+        const {
+          approvedToolApprovals: localApprovedToolApprovals,
+          deniedToolApprovals: revalidationDeniedToolApprovals,
+        } = await validateApprovedToolApprovals<TOOLS>({
+          approvedToolApprovals: approvedToolApprovals.filter(
+            toolApproval => !toolApproval.toolCall.providerExecuted,
+          ),
+          tools,
+          messages: initialMessages,
+          experimental_context,
+          toolApprovalSecret: experimental_toolApprovalSecret,
+        });
+
+        const deniedToolApprovals = [
+          ...collectedDeniedToolApprovals,
+          ...revalidationDeniedToolApprovals,
+        ];
 
         if (
           deniedToolApprovals.length > 0 ||
@@ -926,10 +958,20 @@ export async function generateText<
                   experimental_context,
                 })
               ) {
+                const approvalId = generateId();
+                const signature = await maybeSignApproval({
+                  secret: experimental_toolApprovalSecret,
+                  approvalId,
+                  toolCallId: toolCall.toolCallId,
+                  toolName: toolCall.toolName,
+                  input: toolCall.input,
+                });
+
                 toolApprovalRequests[toolCall.toolCallId] = {
                   type: 'tool-approval-request',
-                  approvalId: generateId(),
+                  approvalId,
                   toolCall,
+                  ...(signature != null ? { signature } : {}),
                 };
               }
             }
