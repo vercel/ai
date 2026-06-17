@@ -1,6 +1,7 @@
 import {
   AISDKError,
   type Experimental_VideoModelV4,
+  type Experimental_VideoModelV4File,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
@@ -91,6 +92,60 @@ function detectMode(modelId: string): 't2v' | 'i2v' | 'r2v' {
   return 't2v';
 }
 
+function fileToImageString(file: Experimental_VideoModelV4File): string {
+  if (file.type === 'url') {
+    return file.url;
+  }
+  return typeof file.data === 'string'
+    ? file.data
+    : convertUint8ArrayToBase64(file.data);
+}
+
+function getFirstFrameImage(
+  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
+): Experimental_VideoModelV4File | undefined {
+  return options.frameImages?.find(frame => frame.frameType === 'first_frame')
+    ?.image;
+}
+
+function resolveStartImage(
+  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
+): Experimental_VideoModelV4File | undefined {
+  return getFirstFrameImage(options) ?? options.image;
+}
+
+function resolveReferenceUrls(
+  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
+  alibabaOptions: AlibabaVideoModelOptions | undefined,
+  warnings: SharedV4Warning[],
+): string[] | undefined {
+  if (options.frameImages != null && options.frameImages.length > 0) {
+    return undefined;
+  }
+
+  if (options.inputReferences != null && options.inputReferences.length > 0) {
+    const urls: string[] = [];
+
+    for (const reference of options.inputReferences) {
+      if (reference.type === 'url') {
+        urls.push(reference.url);
+      } else {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'inputReferences',
+          details:
+            'Alibaba reference-to-video requires URL references. ' +
+            'Non-URL reference was skipped.',
+        });
+      }
+    }
+
+    return urls.length > 0 ? urls : undefined;
+  }
+
+  return alibabaOptions?.referenceUrls ?? undefined;
+}
+
 export class AlibabaVideoModel implements Experimental_VideoModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1;
@@ -132,22 +187,49 @@ export class AlibabaVideoModel implements Experimental_VideoModelV4 {
       input.audio_url = alibabaOptions.audioUrl;
     }
 
+    const startImage = resolveStartImage(options);
+    const referenceUrls = resolveReferenceUrls(
+      options,
+      alibabaOptions,
+      warnings,
+    );
+
     // Handle image input for I2V mode
-    if (mode === 'i2v' && options.image != null) {
-      if (options.image.type === 'url') {
-        input.img_url = options.image.url;
-      } else {
-        const base64Data =
-          typeof options.image.data === 'string'
-            ? options.image.data
-            : convertUint8ArrayToBase64(options.image.data);
-        input.img_url = base64Data;
-      }
+    if (mode === 'i2v' && startImage != null) {
+      input.img_url = fileToImageString(startImage);
     }
 
     // Handle reference URLs for R2V mode
-    if (mode === 'r2v' && alibabaOptions?.referenceUrls != null) {
-      input.reference_urls = alibabaOptions.referenceUrls;
+    if (mode === 'r2v' && referenceUrls != null && referenceUrls.length > 0) {
+      input.reference_urls = referenceUrls;
+    }
+
+    const lastFrame = options.frameImages?.find(
+      frame => frame.frameType === 'last_frame',
+    )?.image;
+
+    if (lastFrame != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'frameImages',
+        details:
+          'This model does not support last_frame. ' +
+          'The last frame image was ignored.',
+      });
+    }
+
+    if (
+      options.inputReferences != null &&
+      options.inputReferences.length > 0 &&
+      mode !== 'r2v'
+    ) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'inputReferences',
+        details:
+          'Alibaba only supports inputReferences (reference-to-video) on ' +
+          'reference-to-video models. The reference images were ignored.',
+      });
     }
 
     // Build parameters object

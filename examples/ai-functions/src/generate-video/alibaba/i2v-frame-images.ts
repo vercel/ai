@@ -6,20 +6,22 @@ import { withSpinner } from '../../lib/spinner';
 
 run(async () => {
   const { video } = await withSpinner(
-    'Generating reference-to-video with wan2.6-r2v...',
+    'Generating image-to-video with wan2.6-i2v...',
     () =>
       generateVideo({
-        model: alibaba.video('wan2.6-r2v'),
-        prompt: 'character1 and character2 have a conversation in a cozy cafe',
-        resolution: '1920x1080',
-        duration: 4,
-        inputReferences: [
-          'https://raw.githubusercontent.com/vercel/ai/refs/heads/main/examples/ai-functions/data/comic-cat.png',
-          'https://raw.githubusercontent.com/vercel/ai/refs/heads/main/examples/ai-functions/data/comic-dog.png',
+        model: alibaba.video('wan2.6-i2v'),
+        prompt:
+          'The character slowly turns its head and blinks in a playful cartoon style',
+        frameImages: [
+          {
+            image:
+              'https://raw.githubusercontent.com/vercel/ai/refs/heads/main/examples/ai-functions/data/comic-cat.png',
+            frameType: 'first_frame',
+          },
         ],
+        duration: 5,
         providerOptions: {
           alibaba: {
-            shotType: 'single',
             pollTimeoutMs: 600000, // 10 minutes
           } satisfies AlibabaVideoModelOptions,
         },
