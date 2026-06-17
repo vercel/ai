@@ -1,5 +1,11 @@
 # @ai-sdk/codemod
 
+## 4.0.0-beta.7
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+
 ## 4.0.0-canary.6
 
 ### Patch Changes

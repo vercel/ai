@@ -1,5 +1,62 @@
 # @ai-sdk/otel
 
+## 1.0.0-beta.125
+
+### Patch Changes
+
+- ai@7.0.0-beta.179
+
+## 1.0.0-beta.124
+
+### Patch Changes
+
+- Updated dependencies [b097c52]
+  - ai@7.0.0-beta.178
+
+## 1.0.0-beta.123
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/provider@4.0.0-beta.19
+  - ai@7.0.0-beta.177
+
+## 1.0.0-canary.122
+
+### Patch Changes
+
+- ai@7.0.0-canary.176
+
+## 1.0.0-canary.121
+
+### Patch Changes
+
+- Updated dependencies [6ec57f5]
+  - ai@7.0.0-canary.175
+
+## 1.0.0-canary.120
+
+### Patch Changes
+
+- ai@7.0.0-canary.174
+
+## 1.0.0-canary.119
+
+### Patch Changes
+
+- ai@7.0.0-canary.173
+
+## 1.0.0-canary.118
+
+### Patch Changes
+
+- Updated dependencies [25a64f8]
+- Updated dependencies [375fdd7]
+- Updated dependencies [f18b08f]
+- Updated dependencies [b4507d5]
+  - ai@7.0.0-canary.172
+
 ## 1.0.0-canary.117
 
 ### Patch Changes

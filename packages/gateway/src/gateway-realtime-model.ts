@@ -1,6 +1,7 @@
 import type {
   Experimental_RealtimeModelV4 as RealtimeModelV4,
   Experimental_RealtimeModelV4ClientEvent as RealtimeModelV4ClientEvent,
+  Experimental_RealtimeModelV4ClientSecretOptions as RealtimeModelV4ClientSecretOptions,
   Experimental_RealtimeModelV4ClientSecretResult as RealtimeModelV4ClientSecretResult,
   Experimental_RealtimeModelV4ServerEvent as RealtimeModelV4ServerEvent,
   Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
@@ -12,13 +13,15 @@ export type GatewayRealtimeModelConfig = {
   baseURL: string;
   teamIdOrSlug?: string;
   /**
-   * Resolves the Gateway auth token used to authenticate the WebSocket upgrade
-   * (API key or Vercel OIDC token).
+   * Mints a short-lived client secret (`vcst_`) for this model via the
+   * Gateway's `/v1/realtime/client-secrets` endpoint. Implemented by the
+   * provider because minting requires the long-lived Gateway credential
+   * (API key / OIDC) and must run server-side.
    */
-  getAuthToken: () => PromiseLike<{
-    token: string;
-    authMethod: 'api-key' | 'oidc';
-  }>;
+  createClientSecret: (params: {
+    modelId: string;
+    expiresAfterSeconds?: number;
+  }) => PromiseLike<{ token: string; expiresAt?: number }>;
 };
 
 /**
@@ -44,20 +47,28 @@ export class GatewayRealtimeModel implements RealtimeModelV4 {
   }
 
   /**
-   * Unlike providers with a dedicated ephemeral-secret endpoint (e.g. OpenAI),
-   * the Gateway v0 realtime path does not mint a new client secret. The returned
-   * token is the Gateway credential resolved by the provider (`apiKey`,
-   * `AI_GATEWAY_API_KEY`, or Vercel OIDC token) and the WebSocket upgrade is
-   * authenticated directly with that credential. The
-   * `RealtimeModelV4ClientSecretOptions` are therefore intentionally unused:
-   * `sessionConfig` is applied later via the normalized `session-update` event,
-   * and `expiresAfterSeconds` has no Gateway-side equivalent.
+   * Mints a single-use, short-lived client secret (`vcst_`) the browser uses to
+   * open the realtime WebSocket without ever holding the long-lived Gateway
+   * credential. The customer's server calls this (via
+   * `gateway.experimental_realtime.getToken`) and hands the returned token to
+   * the browser, which connects with it through the `ai-gateway-auth.<token>`
+   * subprotocol. `expiresAfterSeconds` is forwarded to the mint endpoint;
+   * `sessionConfig` is intentionally unused here — it is applied later via the
+   * normalized `session-update` event.
    */
-  async doCreateClientSecret(): Promise<RealtimeModelV4ClientSecretResult> {
-    const { token } = await this.config.getAuthToken();
+  async doCreateClientSecret(
+    options?: RealtimeModelV4ClientSecretOptions,
+  ): Promise<RealtimeModelV4ClientSecretResult> {
+    const secret = await this.config.createClientSecret({
+      modelId: this.modelId,
+      ...(options?.expiresAfterSeconds != null && {
+        expiresAfterSeconds: options.expiresAfterSeconds,
+      }),
+    });
     return {
-      token,
+      token: secret.token,
       url: toGatewayRealtimeUrl(this.config.baseURL, this.modelId),
+      ...(secret.expiresAt != null && { expiresAt: secret.expiresAt }),
     };
   }
 

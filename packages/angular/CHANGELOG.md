@@ -1,5 +1,64 @@
 # @ai-sdk/angular
 
+## 3.0.0-beta.179
+
+### Patch Changes
+
+- ai@7.0.0-beta.179
+
+## 3.0.0-beta.178
+
+### Patch Changes
+
+- Updated dependencies [b097c52]
+  - ai@7.0.0-beta.178
+
+## 3.0.0-beta.177
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/provider-utils@5.0.0-beta.49
+  - ai@7.0.0-beta.177
+
+## 3.0.0-canary.176
+
+### Patch Changes
+
+- ai@7.0.0-canary.176
+
+## 3.0.0-canary.175
+
+### Patch Changes
+
+- Updated dependencies [6ec57f5]
+  - ai@7.0.0-canary.175
+
+## 3.0.0-canary.174
+
+### Patch Changes
+
+- ai@7.0.0-canary.174
+
+## 3.0.0-canary.173
+
+### Patch Changes
+
+- ai@7.0.0-canary.173
+
+## 3.0.0-canary.172
+
+### Patch Changes
+
+- Updated dependencies [aeda373]
+- Updated dependencies [25a64f8]
+- Updated dependencies [375fdd7]
+- Updated dependencies [f18b08f]
+- Updated dependencies [b4507d5]
+  - @ai-sdk/provider-utils@5.0.0-canary.48
+  - ai@7.0.0-canary.172
+
 ## 3.0.0-canary.171
 
 ### Patch Changes

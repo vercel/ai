@@ -1,5 +1,84 @@
 # @ai-sdk/react
 
+## 4.0.0-beta.183
+
+### Patch Changes
+
+- ai@7.0.0-beta.179
+
+## 4.0.0-beta.182
+
+### Patch Changes
+
+- Updated dependencies [b097c52]
+  - ai@7.0.0-beta.178
+
+## 4.0.0-beta.181
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/mcp@2.0.0-beta.66
+  - @ai-sdk/provider-utils@5.0.0-beta.49
+  - @ai-sdk/provider@4.0.0-beta.19
+  - ai@7.0.0-beta.177
+
+## 4.0.0-canary.180
+
+### Patch Changes
+
+- ai@7.0.0-canary.176
+
+## 4.0.0-canary.179
+
+### Patch Changes
+
+- Updated dependencies [6ec57f5]
+  - ai@7.0.0-canary.175
+
+## 4.0.0-canary.178
+
+### Patch Changes
+
+- ai@7.0.0-canary.174
+
+## 4.0.0-canary.177
+
+### Patch Changes
+
+- Updated dependencies [b29e087]
+  - @ai-sdk/mcp@2.0.0-canary.65
+
+## 4.0.0-canary.176
+
+### Patch Changes
+
+- Updated dependencies [024a6b4]
+  - @ai-sdk/mcp@2.0.0-canary.64
+  - ai@7.0.0-canary.173
+
+## 4.0.0-canary.175
+
+### Patch Changes
+
+- 555c5de: fix(react): deny MCP App tool calls by default when allowedTools is omitted
+
+  `experimental_MCPAppRenderer`'s bridge only enforced the `allowedTools` allowlist when it was non-null, so omitting `allowedTools` skipped the check and forwarded every `tools/call` from the (untrusted) MCP App iframe to the host's `callTool`. A malicious or compromised MCP server could therefore invoke any tool the host wired up.
+
+  Tool invocation from MCP App content is now deny-by-default: if `allowedTools` is not explicitly provided, all `tools/call` requests are rejected. To expose tools to an app, list them in `handlers.allowedTools`.
+
+- Updated dependencies [2a150f8]
+- Updated dependencies [b44b051]
+- Updated dependencies [aeda373]
+- Updated dependencies [25a64f8]
+- Updated dependencies [375fdd7]
+- Updated dependencies [f18b08f]
+- Updated dependencies [b4507d5]
+  - @ai-sdk/mcp@2.0.0-canary.63
+  - @ai-sdk/provider-utils@5.0.0-canary.48
+  - ai@7.0.0-canary.172
+
 ## 4.0.0-canary.174
 
 ### Patch Changes

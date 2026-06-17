@@ -1,5 +1,65 @@
 # @ai-sdk/policy
 
+## 1.0.0-beta.16
+
+### Patch Changes
+
+- ai@7.0.0-beta.179
+
+## 1.0.0-beta.15
+
+### Patch Changes
+
+- Updated dependencies [b097c52]
+  - ai@7.0.0-beta.178
+
+## 1.0.0-beta.14
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/provider-utils@5.0.0-beta.49
+  - @ai-sdk/provider@4.0.0-beta.19
+  - ai@7.0.0-beta.177
+
+## 1.0.0-canary.13
+
+### Patch Changes
+
+- ai@7.0.0-canary.176
+
+## 1.0.0-canary.12
+
+### Patch Changes
+
+- Updated dependencies [6ec57f5]
+  - ai@7.0.0-canary.175
+
+## 1.0.0-canary.11
+
+### Patch Changes
+
+- ai@7.0.0-canary.174
+
+## 1.0.0-canary.10
+
+### Patch Changes
+
+- ai@7.0.0-canary.173
+
+## 1.0.0-canary.9
+
+### Patch Changes
+
+- Updated dependencies [aeda373]
+- Updated dependencies [25a64f8]
+- Updated dependencies [375fdd7]
+- Updated dependencies [f18b08f]
+- Updated dependencies [b4507d5]
+  - @ai-sdk/provider-utils@5.0.0-canary.48
+  - ai@7.0.0-canary.172
+
 ## 1.0.0-canary.8
 
 ### Patch Changes
