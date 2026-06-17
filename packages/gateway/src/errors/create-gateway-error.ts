@@ -116,6 +116,7 @@ export async function createGatewayErrorFromResponse({
         statusCode,
         cause,
         generationId,
+        ruleId: validatedResponse.error.ruleId ?? undefined,
       });
     default:
       return new GatewayInternalServerError({
@@ -135,6 +136,7 @@ const gatewayErrorResponseSchema = lazySchema(() =>
         type: z.string().nullish(),
         param: z.unknown().nullish(),
         code: z.union([z.string(), z.number()]).nullish(),
+        ruleId: z.string().nullish(),
       }),
       generationId: z.string().nullish(),
     }),
