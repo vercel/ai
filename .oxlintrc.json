@@ -7,7 +7,7 @@
   ],
   "overrides": [
     {
-      "files": ["**/__testfixtures__/**"],
+      "files": ["packages/codemod/src/test/__testfixtures__/**"],
       "rules": {
         "no-redeclare": "off"
       }
@@ -256,6 +256,7 @@
     "**/__fixtures__/**",
     "**/__snapshots__/**",
     "**/__testfixtures__/**",
+    "!packages/codemod/src/test/__testfixtures__/**",
     "**/tsconfig*.json",
     "**/turbo.json",
     "tools/tsconfig/**",

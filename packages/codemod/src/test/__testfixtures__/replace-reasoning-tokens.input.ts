@@ -1,7 +1,12 @@
-declare const result: {
-  usage: {
-    reasoningTokens: number | undefined;
-  };
-};
+import { generateText } from 'ai';
 
-console.log(result.usage.reasoningTokens);
+declare const model: any;
+
+const result = await generateText({
+  model,
+  prompt: 'Invent a new holiday and describe its traditions.',
+});
+
+console.log((result.usage as any).reasoningTokens);
+
+export {};

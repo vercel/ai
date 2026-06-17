@@ -15,6 +15,7 @@
     "**/__fixtures__/**",
     "**/__snapshots__/**",
     "**/__testfixtures__/**",
+    "!packages/codemod/src/test/__testfixtures__/**",
     "**/tsconfig*.json",
     "**/turbo.json",
     "tools/tsconfig/**",
