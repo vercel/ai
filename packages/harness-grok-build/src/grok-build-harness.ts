@@ -1,9 +1,14 @@
+import { readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 import {
   commonTool,
+  type HarnessV1,
+  type HarnessV1Bootstrap,
   type HarnessV1BuiltinTool,
   type HarnessV1BuiltinToolName,
 } from '@ai-sdk/harness';
 import { z } from 'zod';
+import { type GrokBuildAuthOptions } from './grok-build-auth';
 
 /*
  * Native tool name → common harness name mapping.
@@ -114,3 +119,76 @@ export const GROK_BUILD_BUILTIN_TOOLS = {
     }),
   }),
 } as const satisfies Record<string, HarnessV1BuiltinTool<any, any>>;
+
+const BOOTSTRAP_DIR = '/tmp/harness/grok-build';
+
+export type GrokBuildHarnessSettings = {
+  readonly model?: string;
+  readonly planMode?: boolean;
+  readonly auth?: GrokBuildAuthOptions;
+  readonly port?: number;
+};
+
+async function readBridgeAsset(name: string): Promise<string> {
+  const candidates = [
+    new URL(`./bridge/${name}`, import.meta.url),
+    new URL(`../bridge/${name}`, import.meta.url),
+  ];
+  let lastErr: unknown;
+  for (const url of candidates) {
+    try {
+      return await readFile(fileURLToPath(url), 'utf8');
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      if (code !== 'ENOENT') throw err;
+      lastErr = err;
+    }
+  }
+  throw lastErr ?? new Error(`bridge asset not found: ${name}`);
+}
+
+export function createGrokBuild(
+  // Renamed to `settings` once doStart consumes it (turn-driver task).
+  _settings: GrokBuildHarnessSettings = {},
+): HarnessV1<typeof GROK_BUILD_BUILTIN_TOOLS> {
+  // Per-instance cache: bridge assets are static, but keeping this in the
+  // factory closure (rather than module scope) avoids leaking state across
+  // separate createGrokBuild() instances.
+  let cachedBootstrap: HarnessV1Bootstrap | null = null;
+  return {
+    specificationVersion: 'harness-v1',
+    harnessId: 'grok-build',
+    builtinTools: GROK_BUILD_BUILTIN_TOOLS,
+    supportsBuiltinToolApprovals: false,
+    getBootstrap: async () => {
+      if (cachedBootstrap != null) return cachedBootstrap;
+      const [pkg, lock, bridge] = await Promise.all([
+        readBridgeAsset('package.json'),
+        readBridgeAsset('pnpm-lock.yaml'),
+        readBridgeAsset('index.mjs'),
+      ]);
+      cachedBootstrap = {
+        harnessId: 'grok-build',
+        bootstrapDir: BOOTSTRAP_DIR,
+        files: [
+          { path: `${BOOTSTRAP_DIR}/package.json`, content: pkg },
+          { path: `${BOOTSTRAP_DIR}/pnpm-lock.yaml`, content: lock },
+          { path: `${BOOTSTRAP_DIR}/bridge.mjs`, content: bridge },
+        ],
+        commands: [
+          { command: `mkdir -p ${BOOTSTRAP_DIR}` },
+          {
+            command: `pnpm --dir ${BOOTSTRAP_DIR} install --frozen-lockfile --store-dir ${BOOTSTRAP_DIR}/.pnpm-store`,
+          },
+          {
+            command: `cd ${BOOTSTRAP_DIR} && ./node_modules/.bin/grok --version`,
+          },
+        ],
+      };
+      return cachedBootstrap;
+    },
+    doStart: async () => {
+      throw new Error('not implemented yet');
+    },
+  };
+}
