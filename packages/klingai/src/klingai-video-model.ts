@@ -61,11 +61,6 @@ function resolveStartImage(
   return getFirstFrameImage(options) ?? options.image;
 }
 
-/**
- * Resolves the end-frame image for first-last-frame generation. The top-level
- * `frameImages` (`last_frame`) takes precedence over the legacy
- * `providerOptions.klingai.imageTail`.
- */
 function resolveImageTail(
   options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
   klingaiOptions: KlingAIVideoModelOptions | undefined,

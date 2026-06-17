@@ -50,9 +50,8 @@ export type VideoModelV3CallOptions = {
   seed: number | undefined;
 
   /**
-   * Legacy input image for single-image image-to-video generation.
-   * Prefer `frameImages` with `frameType: "first_frame"` for first-last-frame
-   * generation on supported models.
+   * Input image for image-to-video generation.
+   * The image serves as the starting frame that the model will animate.
    */
   image: VideoModelV3File | undefined;
 
