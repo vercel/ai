@@ -1,5 +1,11 @@
 # @ai-sdk/langchain
 
+## 2.0.215
+
+### Patch Changes
+
+- dff49ee: Surface LangChain citation annotations as spec-compliant `source-url` / `source-document` UI message parts. Previously, citations attached to text content blocks (e.g. from web search or RAG) were dropped entirely instead of being emitted as AI SDK source parts. Citation metadata (`citedText`, `startIndex`, `endIndex`, `source`) is preserved under `providerMetadata.langchain`.
+
 ## 2.0.214
 
 ### Patch Changes
