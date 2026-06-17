@@ -102,7 +102,6 @@ const bundle = [
   'v7/rename-experimental-transcribe',
   'v7/rename-experimental-generate-speech',
   'v7/rename-call-settings-type',
-  'v7/rename-prepare-call-settings',
   'v7/rename-step-count-is',
   'v7/rename-system-to-instructions',
   'v7/rename-experimental-on-start-to-on-start',
