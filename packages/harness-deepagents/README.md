@@ -1,17 +1,21 @@
 # @ai-sdk/harness-deepagents
 
-A [HarnessV1](../harness) adapter that runs [DeepAgents](https://github.com/deep-agents/deepagents)
-(a LangGraph-based agent) as a coding-agent runtime inside an AI SDK sandbox.
+A [HarnessV1](../harness) adapter that runs [DeepAgents](https://github.com/langchain-ai/deepagentsjs)
+(LangChain's LangGraph-based agent harness) as a coding-agent runtime inside an
+AI SDK sandbox.
 
-DeepAgents is Python-based, so this is a **bridge-backed** harness: the runtime
-runs inside the sandbox via a Python bridge (`python3 bridge.py`) that speaks the
-harness-v1 wire protocol, while the host adapter drives turns over a WebSocket.
+This is a **bridge-backed** harness: the DeepAgents runtime runs inside the
+sandbox via a Node bridge (`node bridge.mjs`) built on the shared
+`@ai-sdk/harness/bridge` runtime, while the host adapter drives turns over a
+WebSocket.
 
-> **Status: scaffolding.** The package structure, host adapter shape, built-in
-> tool definitions, and auth resolution are in place. The session lifecycle
-> (`doStart`) and the Python bridge are not implemented yet — see the plan for
-> the phased rollout (happy-path single/multi-turn first; detach/resume/approvals
-> follow up).
+> **Status: happy-path implemented, pending live validation.** The host adapter
+> (`doStart` + session: `doPromptTurn`/`doStop`/`doDestroy`) and the Node bridge
+> (driving the `deepagents` npm package via `createDeepAgent` + `streamEvents`)
+> are in place for single- and multi-turn-within-session use. Turn
+> continuation, suspend/detach, cross-process resume, and built-in tool
+> approvals throw `HarnessCapabilityUnsupportedError` and are follow-ups. The
+> bridge has not yet been exercised against a live sandbox.
 
 ## Setup
 
@@ -19,8 +23,9 @@ harness-v1 wire protocol, while the host adapter drives turns over a WebSocket.
 pnpm add @ai-sdk/harness-deepagents @ai-sdk/harness
 ```
 
-Requires a sandbox image with `python3.13` available; the harness installs the
-Python dependencies (`requirements.txt`) into its bootstrap directory at startup.
+The harness installs the
+bridge's Node dependencies (the `deepagents` package and LangChain) into its
+bootstrap directory via `pnpm` at startup.
 
 ## Usage
 

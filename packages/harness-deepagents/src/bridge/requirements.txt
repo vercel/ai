@@ -1,7 +1,0 @@
-# Installed in-sandbox at bootstrap (python3.13). Pinned to match the
-# known-good versions from the agent-harness-sdk DeepAgents adapter.
-deepagents==0.6.1
-websockets==16.0
-jsonschema==4.26.0
-langchain-anthropic==1.4.3
-langchain-openai==1.2.1

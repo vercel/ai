@@ -1,10 +1,5 @@
 import { defineConfig } from 'tsup';
 
-// Only the host-side adapter is compiled by tsup. The agent runtime is a
-// Python bridge (`src/bridge/*.py`) that runs inside the sandbox; its files are
-// shipped verbatim via the `copy-bridge-assets` script and its dependencies are
-// installed in-sandbox from `requirements.txt` at bootstrap time — they are
-// never bundled here.
 export default defineConfig([
   {
     entry: { index: 'src/index.ts' },
@@ -12,5 +7,20 @@ export default defineConfig([
     target: 'es2022',
     dts: true,
     sourcemap: true,
+  },
+  {
+    entry: { 'bridge/index': 'src/bridge/index.ts' },
+    format: ['esm'],
+    target: 'es2022',
+    outExtension: () => ({ js: '.mjs' }),
+    dts: false,
+    sourcemap: true,
+    platform: 'node',
+    // The shared bridge runtime (`@ai-sdk/harness/bridge`) must be INLINED —
+    // the sandbox only installs the bridge's own deps (src/bridge/package.json),
+    // so a bare import would not resolve there. The runtime SDKs the bridge
+    // imports are installed in-sandbox and stay external.
+    noExternal: ['@ai-sdk/harness'],
+    external: ['deepagents', '@langchain/core', 'ws', 'zod'],
   },
 ]);

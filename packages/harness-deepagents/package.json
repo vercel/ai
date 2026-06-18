@@ -21,7 +21,7 @@
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json && pnpm copy-bridge-assets",
     "build:watch": "pnpm clean && tsup --watch",
     "clean": "del-cli dist *.tsbuildinfo",
-    "copy-bridge-assets": "node -e \"import('node:fs/promises').then(async fs => { await fs.mkdir('dist/bridge', { recursive: true }); for (const f of ['bridge.py', 'bridge_runtime.py', 'requirements.txt']) { await fs.copyFile('src/bridge/' + f, 'dist/bridge/' + f); } })\"",
+    "copy-bridge-assets": "node -e \"import('node:fs/promises').then(async fs => { await fs.copyFile('src/bridge/package.json', 'dist/bridge/package.json'); await fs.copyFile('src/bridge/pnpm-lock.yaml', 'dist/bridge/pnpm-lock.yaml'); })\"",
     "type-check": "tsc --build",
     "test": "pnpm test:node",
     "test:watch": "vitest --config vitest.node.config.js",
@@ -42,9 +42,11 @@
     "zod": "3.25.76"
   },
   "devDependencies": {
+    "@langchain/core": "^1.1.44",
     "@types/node": "22.19.19",
     "@types/ws": "^8.5.13",
     "@vercel/ai-tsconfig": "workspace:*",
+    "deepagents": "1.10.2",
     "tsup": "^8.5.1",
     "typescript": "5.8.3"
   },

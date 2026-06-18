@@ -2,12 +2,29 @@ import {
   HarnessCapabilityUnsupportedError,
   type HarnessV1StartOptions,
 } from '@ai-sdk/harness';
-import { describe, expect, it } from 'vitest';
+import type * as NodeFsPromises from 'node:fs/promises';
+import { describe, expect, it, vi } from 'vitest';
 import {
   createDeepAgents,
   DEEPAGENTS_BUILTIN_TOOLS,
   DEEPAGENTS_DEFAULT_CONTEXT_WINDOW,
 } from './deepagents-harness';
+
+vi.mock('node:fs/promises', async importOriginal => {
+  const actual = await importOriginal<typeof NodeFsPromises>();
+  return {
+    ...actual,
+    readFile: vi.fn(async (input: unknown, ...rest: unknown[]) => {
+      const path = typeof input === 'string' ? input : String(input);
+      if (path.endsWith('/bridge/index.mjs')) return '// mock bridge\n';
+      if (path.endsWith('/bridge/package.json')) return '{"name":"mock"}';
+      if (path.endsWith('/bridge/pnpm-lock.yaml'))
+        return 'lockfileVersion: "9.0"\n';
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (actual.readFile as any)(input, ...rest);
+    }),
+  };
+});
 
 describe('createDeepAgents', () => {
   it('reports the harness-v1 metadata', () => {
@@ -34,21 +51,21 @@ describe('createDeepAgents', () => {
     expect(DEEPAGENTS_DEFAULT_CONTEXT_WINDOW).toBe(200_000);
   });
 
-  it('ships the python bridge files and a pip install command in its bootstrap', async () => {
+  it('ships the node bridge files and a pnpm install command in its bootstrap', async () => {
     const harness = createDeepAgents();
     const bootstrap = await harness.getBootstrap!();
     expect(bootstrap.harnessId).toBe('deepagents');
     const paths = bootstrap.files.map(f => f.path);
     expect(paths).toEqual(
       expect.arrayContaining([
-        expect.stringContaining('bridge.py'),
-        expect.stringContaining('bridge_runtime.py'),
-        expect.stringContaining('requirements.txt'),
+        expect.stringContaining('bridge.mjs'),
+        expect.stringContaining('package.json'),
+        expect.stringContaining('pnpm-lock.yaml'),
       ]),
     );
     const commands = bootstrap.commands.map(c => c.command).join('\n');
-    expect(commands).toContain('pip install');
-    expect(commands).toContain('requirements.txt');
+    expect(commands).toContain('pnpm');
+    expect(commands).toContain('install');
   });
 
   it('caches the bootstrap across calls', async () => {

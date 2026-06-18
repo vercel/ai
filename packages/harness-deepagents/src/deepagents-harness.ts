@@ -38,7 +38,7 @@ type DeepAgentsChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 
 /*
  * Bootstrap lives in /tmp because it's pure derived state — the harness can
- * reinstall the Python deps and bridge files on any fresh sandbox from the
+ * reinstall the bridge's Node deps and files on any fresh sandbox from the
  * recipe. Persistence comes from the sandbox provider's snapshot, not the path.
  */
 const BOOTSTRAP_DIR = '/tmp/harness/deepagents';
@@ -112,26 +112,23 @@ export function createDeepAgents(
     supportsBuiltinToolApprovals: false,
     getBootstrap: async () => {
       if (cachedBootstrap != null) return cachedBootstrap;
-      const [bridge, bridgeRuntime, requirements] = await Promise.all([
-        readBridgeAsset('bridge.py'),
-        readBridgeAsset('bridge_runtime.py'),
-        readBridgeAsset('requirements.txt'),
+      const [bridge, pkg, lock] = await Promise.all([
+        readBridgeAsset('index.mjs'),
+        readBridgeAsset('package.json'),
+        readBridgeAsset('pnpm-lock.yaml'),
       ]);
       cachedBootstrap = {
         harnessId: 'deepagents',
         bootstrapDir: BOOTSTRAP_DIR,
         files: [
-          { path: `${BOOTSTRAP_DIR}/bridge.py`, content: bridge },
-          {
-            path: `${BOOTSTRAP_DIR}/bridge_runtime.py`,
-            content: bridgeRuntime,
-          },
-          { path: `${BOOTSTRAP_DIR}/requirements.txt`, content: requirements },
+          { path: `${BOOTSTRAP_DIR}/bridge.mjs`, content: bridge },
+          { path: `${BOOTSTRAP_DIR}/package.json`, content: pkg },
+          { path: `${BOOTSTRAP_DIR}/pnpm-lock.yaml`, content: lock },
         ],
         commands: [
           { command: `mkdir -p ${BOOTSTRAP_DIR}` },
           {
-            command: `python3 -m pip install --no-cache-dir -r ${BOOTSTRAP_DIR}/requirements.txt`,
+            command: `pnpm --dir ${BOOTSTRAP_DIR} install --frozen-lockfile --store-dir ${BOOTSTRAP_DIR}/.pnpm-store`,
           },
         ],
       };
@@ -213,7 +210,7 @@ export function createDeepAgents(
       });
 
       const proc = await session.spawn({
-        command: `python3 ${BOOTSTRAP_DIR}/bridge.py --workdir ${workDir} --bridge-state-dir ${bridgeStateDir} --bootstrap-dir ${BOOTSTRAP_DIR}`,
+        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${workDir} --bridge-state-dir ${bridgeStateDir} --bootstrap-dir ${BOOTSTRAP_DIR}`,
         env,
         abortSignal: startOpts.abortSignal,
       });
