@@ -3796,7 +3796,7 @@ describe('AnthropicLanguageModel', () => {
         it('should include advanced-tool-use beta header', async () => {
           expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
             {
-              "anthropic-beta": "structured-outputs-2025-11-13",
+              "anthropic-beta": "advanced-tool-use-2025-11-20,structured-outputs-2025-11-13",
               "anthropic-version": "2023-06-01",
               "content-type": "application/json",
               "x-api-key": "test-api-key",
@@ -3902,7 +3902,7 @@ describe('AnthropicLanguageModel', () => {
         it('should include advanced-tool-use beta header', async () => {
           expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
             {
-              "anthropic-beta": "structured-outputs-2025-11-13",
+              "anthropic-beta": "advanced-tool-use-2025-11-20,structured-outputs-2025-11-13",
               "anthropic-version": "2023-06-01",
               "content-type": "application/json",
               "x-api-key": "test-api-key",

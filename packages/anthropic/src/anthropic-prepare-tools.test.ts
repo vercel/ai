@@ -858,7 +858,9 @@ describe('prepareTools', () => {
 
       expect(result).toMatchInlineSnapshot(`
         {
-          "betas": Set {},
+          "betas": Set {
+            "advanced-tool-use-2025-11-20",
+          },
           "toolChoice": undefined,
           "toolWarnings": [],
           "tools": [
@@ -918,7 +920,9 @@ describe('prepareTools', () => {
 
       expect(result).toMatchInlineSnapshot(`
         {
-          "betas": Set {},
+          "betas": Set {
+            "advanced-tool-use-2025-11-20",
+          },
           "toolChoice": undefined,
           "toolWarnings": [],
           "tools": [
@@ -1032,6 +1036,7 @@ describe('prepareTools', () => {
         {
           "betas": Set {
             "structured-outputs-2025-11-13",
+            "advanced-tool-use-2025-11-20",
           },
           "toolChoice": undefined,
           "toolWarnings": [],
@@ -1073,6 +1078,7 @@ describe('prepareTools', () => {
         {
           "betas": Set {
             "structured-outputs-2025-11-13",
+            "advanced-tool-use-2025-11-20",
           },
           "toolChoice": undefined,
           "toolWarnings": [],
