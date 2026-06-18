@@ -1,5 +1,12 @@
 # ai
 
+## 6.0.208
+
+### Patch Changes
+
+- 8261640: fix(ai): handle partial unicode escapes in fixJson
+- f994df3: Serialize `undefined` tool output to `null` in UI message chunks
+
 ## 6.0.207
 
 ### Patch Changes
