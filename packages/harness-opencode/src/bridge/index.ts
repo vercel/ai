@@ -213,13 +213,12 @@ function buildProviderConfig(
     model.providerID ?? start.provider ?? procEnv.OPENAI_NAME ?? 'anthropic';
   const modelID = model.modelID;
 
-  if (procEnv.AI_GATEWAY_API_KEY) {
+  if (procEnv.AI_GATEWAY_API_KEY && procEnv.AI_GATEWAY_BASE_URL) {
     return {
       [providerID]: {
         options: {
           apiKey: procEnv.AI_GATEWAY_API_KEY,
-          baseURL:
-            procEnv.AI_GATEWAY_BASE_URL ?? 'https://ai-gateway.vercel.sh/v1',
+          baseURL: toOpenCodeGatewayBaseUrl(procEnv.AI_GATEWAY_BASE_URL),
         },
         ...(modelID
           ? {
@@ -318,6 +317,11 @@ function parseOpenAIQueryParams(): Record<string, unknown> {
   return {};
 }
 
+function toOpenCodeGatewayBaseUrl(baseUrl: string): string {
+  const trimmed = baseUrl.replace(/\/+$/, '');
+  return trimmed.endsWith('/v1') ? trimmed : `${trimmed}/v1`;
+}
+
 async function legacySessionGet({
   client,
   sessionId,
@@ -351,6 +355,23 @@ async function legacySessionPrompt({
     sessionID: sessionId,
     ...(start.instructions ? { system: start.instructions } : {}),
     parts: [{ type: 'text', text: start.prompt }],
+  });
+}
+
+async function legacySessionSummarize({
+  client,
+  sessionId,
+  model,
+}: {
+  client: OpenCodeClient;
+  sessionId: string;
+  model: OpenCodeModelRef;
+}): Promise<{ error?: unknown; data?: unknown }> {
+  return (client as any).session.summarize({
+    sessionID: sessionId,
+    auto: false,
+    providerID: model.providerID,
+    modelID: model.modelID,
   });
 }
 
@@ -543,7 +564,20 @@ async function runCompaction({
   emit: Emit;
 }): Promise<void> {
   const eventsAbort = new AbortController();
+  const compactionSettled = createDeferred<void>();
   let sawCompaction = false;
+  let sawBusy = false;
+  let terminalError: string | undefined;
+  const model = await resolveCompactionModel({
+    client,
+    sessionId,
+    start,
+  });
+  if (!model) {
+    throw new Error(
+      'OpenCode compaction requires a previous turn or an explicit model.',
+    );
+  }
   const eventLoop = consumeEvents({
     client,
     sessionId,
@@ -554,17 +588,48 @@ async function runCompaction({
       emit(msg);
     },
     signal: eventsAbort.signal,
+    onEvent: event => {
+      if (
+        event.type === 'session.next.compaction.ended' ||
+        event.type === 'session.compacted'
+      ) {
+        compactionSettled.resolve();
+        return true;
+      }
+      const status = legacyStatusType(event);
+      if (status === 'busy') {
+        sawBusy = true;
+      } else if (status === 'retry') {
+        sawBusy = true;
+        terminalError = legacyStatusMessage(event) ?? 'Session retry';
+        compactionSettled.resolve();
+        return true;
+      } else if (sawBusy && status === 'idle') {
+        compactionSettled.resolve();
+        return true;
+      }
+      if (event.type === 'session.error') {
+        terminalError = formatError(event.properties?.error ?? event);
+        compactionSettled.resolve();
+        return true;
+      }
+    },
   });
-  const compacted = await client.v2.session.compact({ sessionID: sessionId });
+  const compacted = await legacySessionSummarize({
+    client,
+    sessionId,
+    model,
+  });
   if (compacted.error) {
     eventsAbort.abort();
     throw new Error(
       `OpenCode compaction failed: ${formatError(compacted.error)}`,
     );
   }
-  await client.v2.session.wait({ sessionID: sessionId }).catch(() => {});
+  await Promise.race([compactionSettled.promise, sleep(250)]);
   eventsAbort.abort();
   await eventLoop.catch(() => {});
+  if (terminalError) throw new Error(terminalError);
   if (!sawCompaction) {
     emit({
       type: 'compaction',
@@ -1275,6 +1340,10 @@ async function emitContextFallback({
 
 type AssistantSnapshot = {
   contentParts?: unknown[];
+  metadata?: unknown;
+  model?: unknown;
+  modelID?: unknown;
+  providerID?: unknown;
   tokens?: unknown;
   finish?: unknown;
   cost?: unknown;
@@ -1490,6 +1559,10 @@ function createDeferred<T>(): {
   return { promise, resolve };
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 function splitModel(
   model: string | undefined,
   provider: string | undefined,
@@ -1500,6 +1573,75 @@ function splitModel(
     return { providerID, modelID: rest.join('/') };
   }
   return { providerID: provider, modelID: model };
+}
+
+type OpenCodeModelRef = { providerID: string; modelID: string };
+
+async function resolveCompactionModel({
+  client,
+  sessionId,
+  start,
+}: {
+  client: OpenCodeClient;
+  sessionId: string;
+  start: StartMessage;
+}): Promise<OpenCodeModelRef | undefined> {
+  const assistant = await latestAssistantSnapshot({ client, sessionId }).catch(
+    () => undefined,
+  );
+  const assistantModel = modelRefFromAssistantSnapshot(assistant);
+  if (assistantModel) return assistantModel;
+
+  const session = await legacySessionGet({ client, sessionId }).catch(
+    () => undefined,
+  );
+  const sessionModel = modelRefFromSessionInfo(session?.data);
+  if (sessionModel) return sessionModel;
+
+  return modelRefFromStart(start);
+}
+
+function modelRefFromAssistantSnapshot(
+  assistant: AssistantSnapshot | undefined,
+): OpenCodeModelRef | undefined {
+  if (!assistant) return undefined;
+  const model = modelRefFromValue(assistant.model);
+  if (model) return model;
+
+  const direct = modelRefFromValue(assistant);
+  if (direct) return direct;
+
+  if (isRecord(assistant.metadata)) {
+    return modelRefFromValue(assistant.metadata.assistant);
+  }
+  return undefined;
+}
+
+function modelRefFromSessionInfo(data: unknown): OpenCodeModelRef | undefined {
+  if (!isRecord(data)) return undefined;
+  return modelRefFromValue(data.model) ?? modelRefFromValue(data);
+}
+
+function modelRefFromStart(start: StartMessage): OpenCodeModelRef | undefined {
+  const model = splitModel(start.model, start.provider);
+  if (!model.modelID) return undefined;
+  return {
+    providerID:
+      model.providerID ?? start.provider ?? procEnv.OPENAI_NAME ?? 'anthropic',
+    modelID: model.modelID,
+  };
+}
+
+function modelRefFromValue(value: unknown): OpenCodeModelRef | undefined {
+  if (!isRecord(value)) return undefined;
+  const providerID = stringValue(value.providerID);
+  const modelID = stringValue(value.modelID ?? value.id);
+  if (!providerID || !modelID) return undefined;
+  return { providerID, modelID };
+}
+
+function stringValue(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
 
 function stripWorkDir(file: string): string {
