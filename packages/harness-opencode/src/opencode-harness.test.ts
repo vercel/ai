@@ -49,7 +49,7 @@ const harnessUtilsMocks = vi.hoisted(() => {
     channels,
     markBridgeStarting: vi.fn(),
     SandboxChannel: MockSandboxChannel,
-    waitForBridgeReady: vi.fn(async () => {
+    waitForBridgeReady: vi.fn(async (): Promise<{ port: number }> => {
       throw new Error('stop after spawn');
     }),
   };
