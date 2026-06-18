@@ -627,7 +627,9 @@ whether approval is required (see [Tool Approval](#tool-approval) above).
 
 ### `uiMessages` / `collectUIMessages` is gone
 
-`DurableAgent.stream()` returned accumulated `uiMessages` when `collectUIMessages: true` was set. `WorkflowAgent.stream()` returns `ModelMessage[]` on `result.messages` instead — persist those and convert them at the edge with `convertToModelMessages` / `convertToUIMessages` as needed.
+`DurableAgent.stream()` returned accumulated `uiMessages` when `collectUIMessages: true` was set. `WorkflowAgent.stream()` returns `ModelMessage[]` on `result.messages` instead.
+
+For persistence, store `UIMessage[]` as your source of truth and call [`convertToModelMessages`](/docs/reference/ai-sdk-ui/convert-to-model-messages) before passing them to the agent — this is the pattern described in [Chatbot Message Persistence](/docs/ai-sdk-ui/chatbot-message-persistence). There is no built-in `ModelMessage` → `UIMessage` conversion, so avoid persisting `result.messages` as your only copy if you need to render the conversation in the UI later.
 
 ```diff
   const result = await agent.stream({
