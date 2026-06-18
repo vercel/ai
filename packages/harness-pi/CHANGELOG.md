@@ -1,5 +1,11 @@
 # @ai-sdk/harness-pi
 
+## 1.0.0-beta.17
+
+### Patch Changes
+
+- 0027d69: fix(harness-pi): fix client-side tool approval regression
+
 ## 1.0.0-beta.16
 
 ### Patch Changes
