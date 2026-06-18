@@ -32,7 +32,10 @@ run(async () => {
   // https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-caching.html
   // the only delta is some of the lead-in to passing the message bytes, and
   // perhaps the size of the image.
-  console.log('Cache token usage:', result.providerMetadata?.bedrock?.usage);
+  console.log(
+    'Cache token usage:',
+    result.finalStep.providerMetadata?.bedrock?.usage,
+  );
   console.log('Finish reason:', result.finishReason);
   console.log('Response headers:', result.response.headers);
 });

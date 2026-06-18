@@ -40,17 +40,12 @@ export interface GenerateObjectResult<OBJECT> {
   /**
    * Additional request information.
    */
-  readonly request: LanguageModelRequestMetadata;
+  readonly request: Omit<LanguageModelRequestMetadata, 'messages'>;
 
   /**
    * Additional response information.
    */
-  readonly response: LanguageModelResponseMetadata & {
-    /**
-     * Response body (available only for providers that use HTTP requests).
-     */
-    body?: unknown;
-  };
+  readonly response: Omit<LanguageModelResponseMetadata, 'messages'>;
 
   /**
    * Additional provider-specific metadata. They are passed through

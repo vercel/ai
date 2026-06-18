@@ -1,4 +1,5 @@
 import { APICallError } from '@ai-sdk/provider';
+import { GatewayError } from '@ai-sdk/gateway';
 import { delay, getErrorMessage, isAbortError } from '@ai-sdk/provider-utils';
 import { RetryError } from './retry-error';
 
@@ -10,10 +11,14 @@ function getRetryDelayInMs({
   error,
   exponentialBackoffDelay,
 }: {
-  error: APICallError;
+  error: APICallError | GatewayError;
   exponentialBackoffDelay: number;
 }): number {
-  const headers = error.responseHeaders;
+  const headers = APICallError.isInstance(error)
+    ? error.responseHeaders
+    : APICallError.isInstance(error.cause)
+      ? (error.cause as APICallError).responseHeaders
+      : undefined;
 
   if (!headers) return exponentialBackoffDelay;
 
@@ -70,7 +75,7 @@ export const retryWithExponentialBackoffRespectingRetryHeaders =
     abortSignal?: AbortSignal;
   } = {}): RetryFunction =>
   async <OUTPUT>(f: () => PromiseLike<OUTPUT>) =>
-    await _retryWithExponentialBackoff(f, {
+    _retryWithExponentialBackoff(f, {
       maxRetries,
       delayInMs: initialDelayInMs,
       backoffFactor,
@@ -117,19 +122,19 @@ async function _retryWithExponentialBackoff<OUTPUT>(
 
     if (
       error instanceof Error &&
-      APICallError.isInstance(error) &&
-      error.isRetryable === true &&
+      ((APICallError.isInstance(error) && error.isRetryable === true) ||
+        (GatewayError.isInstance(error) && error.isRetryable === true)) &&
       tryNumber <= maxRetries
     ) {
       await delay(
         getRetryDelayInMs({
-          error,
+          error: error as APICallError | GatewayError,
           exponentialBackoffDelay: delayInMs,
         }),
         { abortSignal },
       );
 
-      return await _retryWithExponentialBackoff(
+      return _retryWithExponentialBackoff(
         f,
         {
           maxRetries,

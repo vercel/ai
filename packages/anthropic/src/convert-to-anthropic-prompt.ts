@@ -26,6 +26,7 @@ import {
 } from './anthropic-api';
 import { anthropicFilePartProviderOptions } from './anthropic-language-model-options';
 import { CacheControlValidator } from './get-cache-control';
+import { advisor_20260301OutputSchema } from './tool/advisor_20260301';
 import { codeExecution_20250522OutputSchema } from './tool/code-execution_20250522';
 import { codeExecution_20250825OutputSchema } from './tool/code-execution_20250825';
 import { codeExecution_20260120OutputSchema } from './tool/code-execution_20260120';
@@ -38,6 +39,29 @@ function convertBytesDataToString(data: Uint8Array | string): string {
     return new TextDecoder().decode(convertBase64ToUint8Array(data));
   }
   return new TextDecoder().decode(data);
+}
+
+/**
+ * Extract error information from a provider tool error result value.
+ * Handles both stringified JSON and plain object forms.
+ */
+function extractErrorValue(value: unknown): { errorCode?: string } {
+  try {
+    if (typeof value === 'string') {
+      return JSON.parse(value);
+    } else if (typeof value === 'object' && value !== null) {
+      return value as { errorCode?: string };
+    }
+  } catch {
+    const extractedErrorCode = (value as Record<string, unknown>)?.errorCode;
+    return {
+      errorCode:
+        typeof extractedErrorCode === 'string'
+          ? extractedErrorCode
+          : 'unavailable',
+    };
+  }
+  return {};
 }
 
 export async function convertToAnthropicPrompt({
@@ -75,6 +99,18 @@ export async function convertToAnthropicPrompt({
     return anthropicOptions?.citations?.enabled ?? false;
   }
 
+  async function shouldUseContainerUpload(
+    providerMetadata: SharedV4ProviderMetadata | undefined,
+  ): Promise<boolean> {
+    const anthropicOptions = await parseProviderOptions({
+      provider: 'anthropic',
+      providerOptions: providerMetadata,
+      schema: anthropicFilePartProviderOptions,
+    });
+
+    return anthropicOptions?.containerUpload ?? false;
+  }
+
   async function getDocumentMetadata(
     providerMetadata: SharedV4ProviderMetadata | undefined,
   ): Promise<{ title?: string; context?: string }> {
@@ -97,21 +133,21 @@ export async function convertToAnthropicPrompt({
 
     switch (type) {
       case 'system': {
-        if (system != null) {
-          throw new UnsupportedFunctionalityError({
-            functionality:
-              'Multiple system messages that are separated by user/assistant messages',
-          });
-        }
-
-        system = block.messages.map(({ content, providerOptions }) => ({
-          type: 'text',
+        const content = block.messages.map(({ content, providerOptions }) => ({
+          type: 'text' as const,
           text: content,
           cache_control: validator.getCacheControl(providerOptions, {
             type: 'system message',
             canCache: true,
           }),
         }));
+
+        if (system == null) {
+          system = content;
+        } else {
+          messages.push({ role: 'system', content });
+          betas.add('mid-conversation-system-2026-04-07');
+        }
 
         break;
       }
@@ -163,7 +199,16 @@ export async function convertToAnthropicPrompt({
                         });
                         betas.add('files-api-2025-04-14');
 
-                        if (getTopLevelMediaType(part.mediaType) === 'image') {
+                        if (
+                          await shouldUseContainerUpload(part.providerOptions)
+                        ) {
+                          anthropicContent.push({
+                            type: 'container_upload',
+                            file_id: fileId,
+                          });
+                        } else if (
+                          getTopLevelMediaType(part.mediaType) === 'image'
+                        ) {
                           anthropicContent.push({
                             type: 'image',
                             source: { type: 'file', file_id: fileId },
@@ -320,14 +365,28 @@ export async function convertToAnthropicPrompt({
                   continue;
                 }
 
+                const output = part.output;
+                const outputProviderOptions =
+                  'providerOptions' in output
+                    ? output.providerOptions
+                    : output.type === 'content'
+                      ? output.value.find(
+                          contentPart => contentPart.providerOptions != null,
+                        )?.providerOptions
+                      : undefined;
+
                 // cache control: first add cache control from part.
-                // for the last part of a message,
-                // check also if the message has cache control.
+                // then from tool result output, and for the last part of a
+                // message, check also if the message has cache control.
                 const isLastPart = i === content.length - 1;
 
                 const cacheControl =
                   validator.getCacheControl(part.providerOptions, {
                     type: 'tool result part',
+                    canCache: true,
+                  }) ??
+                  validator.getCacheControl(outputProviderOptions, {
+                    type: 'tool result output',
                     canCache: true,
                   }) ??
                   (isLastPart
@@ -337,7 +396,6 @@ export async function convertToAnthropicPrompt({
                       })
                     : undefined);
 
-                const output = part.output;
                 let contentValue: AnthropicToolResultContent['content'];
                 switch (output.type) {
                   case 'content':
@@ -698,6 +756,15 @@ export async function convertToAnthropicPrompt({
                         input: part.input,
                         cache_control: cacheControl,
                       });
+                    } else if (providerToolName === 'advisor') {
+                      // The advisor server_tool_use.input is always {}.
+                      anthropicContent.push({
+                        type: 'server_tool_use',
+                        id: part.toolCallId,
+                        name: 'advisor',
+                        input: {},
+                        cache_control: cacheControl,
+                      });
                     } else {
                       warnings.push({
                         type: 'other',
@@ -929,35 +996,14 @@ export async function convertToAnthropicPrompt({
                   const output = part.output;
 
                   if (output.type === 'error-json') {
-                    let errorValue: { errorCode?: string } = {};
-                    try {
-                      if (typeof output.value === 'string') {
-                        errorValue = JSON.parse(output.value);
-                      } else if (
-                        typeof output.value === 'object' &&
-                        output.value !== null
-                      ) {
-                        errorValue = output.value as typeof errorValue;
-                      }
-                    } catch {
-                      // If parsing fails, treat the value as-is
-                      const extractedErrorCode = (
-                        output.value as Record<string, unknown>
-                      )?.errorCode;
-                      errorValue = {
-                        errorCode:
-                          typeof extractedErrorCode === 'string'
-                            ? extractedErrorCode
-                            : 'unavailable',
-                      };
-                    }
-
                     anthropicContent.push({
                       type: 'web_fetch_tool_result',
                       tool_use_id: part.toolCallId,
                       content: {
                         type: 'web_fetch_tool_result_error',
-                        error_code: errorValue.errorCode ?? 'unavailable',
+                        error_code:
+                          extractErrorValue(output.value).errorCode ??
+                          'unavailable',
                       },
                       cache_control: cacheControl,
                     });
@@ -1011,6 +1057,22 @@ export async function convertToAnthropicPrompt({
 
                 if (providerToolName === 'web_search') {
                   const output = part.output;
+
+                  if (output.type === 'error-json') {
+                    anthropicContent.push({
+                      type: 'web_search_tool_result',
+                      tool_use_id: part.toolCallId,
+                      content: {
+                        type: 'web_search_tool_result_error',
+                        error_code:
+                          extractErrorValue(output.value).errorCode ??
+                          'unavailable',
+                      },
+                      cache_control: cacheControl,
+                    });
+
+                    break;
+                  }
 
                   if (output.type !== 'json') {
                     warnings.push({
@@ -1080,6 +1142,58 @@ export async function convertToAnthropicPrompt({
                     },
                     cache_control: cacheControl,
                   });
+
+                  break;
+                }
+
+                if (providerToolName === 'advisor') {
+                  const output = part.output;
+
+                  if (output.type !== 'json' && output.type !== 'error-json') {
+                    warnings.push({
+                      type: 'other',
+                      message: `provider executed tool result output type ${output.type} for tool ${part.toolName} is not supported`,
+                    });
+
+                    break;
+                  }
+
+                  const advisorOutput = await validateTypes({
+                    value: output.value,
+                    schema: advisor_20260301OutputSchema,
+                  });
+
+                  if (advisorOutput.type === 'advisor_result') {
+                    anthropicContent.push({
+                      type: 'advisor_tool_result',
+                      tool_use_id: part.toolCallId,
+                      content: {
+                        type: 'advisor_result',
+                        text: advisorOutput.text,
+                      },
+                      cache_control: cacheControl,
+                    });
+                  } else if (advisorOutput.type === 'advisor_redacted_result') {
+                    anthropicContent.push({
+                      type: 'advisor_tool_result',
+                      tool_use_id: part.toolCallId,
+                      content: {
+                        type: 'advisor_redacted_result',
+                        encrypted_content: advisorOutput.encryptedContent,
+                      },
+                      cache_control: cacheControl,
+                    });
+                  } else {
+                    anthropicContent.push({
+                      type: 'advisor_tool_result',
+                      tool_use_id: part.toolCallId,
+                      content: {
+                        type: 'advisor_tool_result_error',
+                        error_code: advisorOutput.errorCode,
+                      },
+                      cache_control: cacheControl,
+                    });
+                  }
 
                   break;
                 }

@@ -20,7 +20,7 @@ describe('registerTelemetry', () => {
 
   it('adds multiple integrations in registration order', () => {
     const integration1: Telemetry = { onStart: vi.fn() };
-    const integration2: Telemetry = { onFinish: vi.fn() };
+    const integration2: Telemetry = { onEnd: vi.fn() };
 
     registerTelemetry(integration1);
     registerTelemetry(integration2);
@@ -33,7 +33,7 @@ describe('registerTelemetry', () => {
 
   it('adds multiple integrations passed in a single call', () => {
     const integration1: Telemetry = { onStart: vi.fn() };
-    const integration2: Telemetry = { onFinish: vi.fn() };
+    const integration2: Telemetry = { onEnd: vi.fn() };
     const integration3: Telemetry = { onError: vi.fn() };
 
     registerTelemetry(integration1, integration2, integration3);

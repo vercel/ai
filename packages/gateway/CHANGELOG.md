@@ -1,5 +1,319 @@
 # @ai-sdk/gateway
 
+## 4.0.0-beta.110
+
+### Patch Changes
+
+- 987d9e4: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.109
+
+### Patch Changes
+
+- 15eb253: feat(gateway): mint short-lived client secrets for experimental realtime
+
+  `gateway.experimental_realtime.getToken()` now mints a single-use, short-lived
+  client secret (`vcst_`) via the Gateway's `POST /v1/realtime/client-secrets`
+  endpoint instead of returning the long-lived Gateway credential. The customer's
+  server calls `getToken()` and hands the returned token to the browser, which
+  opens the realtime WebSocket with it through the existing
+  `ai-gateway-auth.<token>` subprotocol — the API key / OIDC token never reaches
+  the client. `expiresAfterSeconds` is forwarded to the mint endpoint and the
+  returned `expiresAt` is surfaced on the result.
+
+  The server-environment guard moves from realtime model construction to minting:
+  the browser can now build the realtime event codec it needs to drive the
+  transport, while minting (which requires the Gateway credential) stays
+  server-side.
+
+## 4.0.0-beta.108
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/provider-utils@5.0.0-beta.49
+  - @ai-sdk/provider@4.0.0-beta.19
+
+## 4.0.0-canary.107
+
+### Patch Changes
+
+- d5b8263: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-canary.106
+
+### Patch Changes
+
+- ca2cf45: fix(provider/gateway): map `forbidden` error responses to GatewayForbiddenError instead of GatewayInternalServerError
+
+## 4.0.0-canary.105
+
+### Patch Changes
+
+- efec111: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-canary.104
+
+### Patch Changes
+
+- 8c17bf8: fix(gateway): surface provider warnings in embedding and reranking responses
+- 558777f: fix(gateway): accept deprecated warnings in image, speech, transcription, and video responses
+- Updated dependencies [aeda373]
+- Updated dependencies [375fdd7]
+- Updated dependencies [b4507d5]
+  - @ai-sdk/provider-utils@5.0.0-canary.48
+
+## 4.0.0-canary.103
+
+### Patch Changes
+
+- Updated dependencies [bae5e2b]
+  - @ai-sdk/provider-utils@5.0.0-canary.47
+
+## 4.0.0-canary.102
+
+### Patch Changes
+
+- a3bb04a: feat(gateway): add experimental realtime model support
+
+  Adds `gateway.experimental_realtime()` for bidirectional audio/text realtime
+  sessions routed through the AI Gateway. Like every other Gateway modality, the
+  client speaks the normalized AI SDK realtime protocol and the Gateway
+  translates to/from the upstream provider server-side, so `GatewayRealtimeModel`
+  is a thin identity codec. Gateway realtime is server-side only for v0 and throws
+  if used in a browser because it returns the resolved Gateway auth token rather
+  than a minted ephemeral client secret. Because the browser `WebSocket` API
+  cannot set request headers, the Gateway auth token is carried via the
+  `Sec-WebSocket-Protocol` subprotocol (the same workaround used for OpenAI) and
+  the model id rides the `?ai-model-id=` query — the WS transport of the
+  `ai-model-id` header used by the HTTP routes. The model id is passed through
+  verbatim; the Gateway owns resolution. Provider options (including BYOK) flow
+  through the normalized `session.update`, exactly as they ride the request body
+  on the non-realtime routes.
+
+  The versioned subprotocol auth contract is centralized so the client and the
+  Gateway server share one definition: `getGatewayRealtimeProtocols` (client
+  encode) and `getGatewayRealtimeAuthToken` (server decode), plus the
+  `GATEWAY_REALTIME_SUBPROTOCOL` / `GATEWAY_AUTH_SUBPROTOCOL_PREFIX` constants.
+
+  `GatewayProviderOptions` documents the stable client-facing option fields while
+  remaining open to service-owned options. Runtime validation lives in the Gateway
+  service so the server can evolve without requiring an SDK release for every new
+  option.
+
+## 4.0.0-canary.101
+
+### Patch Changes
+
+- 6b4d325: feat(provider/anthropic): add support for `claude-fable-5` and the `fallbacks` API parameter
+
+## 4.0.0-canary.100
+
+### Patch Changes
+
+- 24bb123: fix(gateway): base64-encode inline Uint8Array data on reasoning-file and tool-result file parts
+- c44fcc8: feat(gateway): add GatewayFailedDependencyError (424)
+- 97e480a: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-canary.99
+
+### Patch Changes
+
+- Updated dependencies [ce769dd]
+  - @ai-sdk/provider@4.0.0-canary.18
+  - @ai-sdk/provider-utils@5.0.0-canary.46
+
+## 4.0.0-canary.98
+
+### Patch Changes
+
+- 9876183: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-canary.97
+
+### Patch Changes
+
+- Updated dependencies [ee798eb]
+- Updated dependencies [daf6637]
+  - @ai-sdk/provider-utils@5.0.0-canary.45
+
+## 4.0.0-canary.96
+
+### Patch Changes
+
+- 83877a1: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-canary.95
+
+### Patch Changes
+
+- a3261db: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-canary.94
+
+### Patch Changes
+
+- 712873e: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-canary.93
+
+### Patch Changes
+
+- e02f041: feat(provider/anthropic): add support for `claude-opus-4-8`
+
+## 4.0.0-canary.92
+
+### Patch Changes
+
+- Updated dependencies [6c93e36]
+- Updated dependencies [f617ac2]
+  - @ai-sdk/provider-utils@5.0.0-canary.44
+
+## 4.0.0-canary.91
+
+### Patch Changes
+
+- d4d4a5e: Add `serviceTier: 'flex' | 'priority'` to `GatewayProviderOptions`.
+
+## 4.0.0-canary.90
+
+### Patch Changes
+
+- 8b811d8: feat(provider/gateway): add optional Vercel team scoping for Gateway authentication. The existing `apiKey` option can be used with AI Gateway API keys, Vercel personal access tokens, and Vercel app access tokens.
+
+## 4.0.0-canary.89
+
+### Patch Changes
+
+- bba5250: chore(provider/gateway): update gateway model settings files
+- 94c6edc: Add `qwen3.7-max` model ID to Alibaba and AI Gateway.
+
+## 4.0.0-canary.88
+
+### Patch Changes
+
+- accaca0: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-canary.87
+
+### Patch Changes
+
+- bf837fe: feat(provider/gateway): add speech and transcription model support
+
+## 4.0.0-canary.86
+
+### Patch Changes
+
+- 546cefe: feat(provider/google): add `gemini-3.5-flash`
+
+## 4.0.0-canary.85
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - @ai-sdk/provider-utils@5.0.0-canary.43
+  - @ai-sdk/provider@4.0.0-canary.17
+
+## 4.0.0-canary.84
+
+### Patch Changes
+
+- 032c4a5: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [a6617c5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+
+## 4.0.0-canary.83
+
+### Patch Changes
+
+- 1d6fb7f: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-canary.82
+
+### Patch Changes
+
+- Updated dependencies [28dfa06]
+- Updated dependencies [e93fa91]
+  - @ai-sdk/provider-utils@5.0.0-canary.41
+
+## 4.0.0-canary.81
+
+### Patch Changes
+
+- 67c4011: fix(gateway): encode inline v4 file part bytes as { type: 'data' } instead of a data: URL
+
+## 4.0.0-canary.80
+
+### Patch Changes
+
+- Updated dependencies [a7de9c9]
+  - @ai-sdk/provider-utils@5.0.0-canary.40
+
+## 4.0.0-canary.79
+
+### Patch Changes
+
+- Updated dependencies [105f95b]
+  - @ai-sdk/provider-utils@5.0.0-canary.39
+
+## 4.0.0-canary.78
+
+### Patch Changes
+
+- 38ca8dc: fix(gateway): enable retry support for gateway errors
+- 8b7af75: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-canary.77
+
+### Patch Changes
+
+- Updated dependencies [ca446f8]
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+
+## 4.0.0-canary.76
+
+### Patch Changes
+
+- 5f380c0: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-canary.75
+
+### Patch Changes
+
+- Updated dependencies [d848405]
+  - @ai-sdk/provider-utils@5.0.0-canary.37
+
+## 4.0.0-canary.74
+
+### Patch Changes
+
+- Updated dependencies [ca39020]
+  - @ai-sdk/provider-utils@5.0.0-canary.36
+
+## 4.0.0-canary.73
+
+### Patch Changes
+
+- Updated dependencies [f634bac]
+  - @ai-sdk/provider-utils@5.0.0-canary.35
+
+## 4.0.0-canary.72
+
+### Patch Changes
+
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+  - @ai-sdk/provider-utils@5.0.0-canary.34
+
+## 4.0.0-canary.71
+
+### Patch Changes
+
+- Updated dependencies [2427d88]
+  - @ai-sdk/provider-utils@5.0.0-canary.33
+
 ## 4.0.0-canary.70
 
 ### Patch Changes

@@ -29,5 +29,5 @@ run(async () => {
   console.log(result.sources);
   console.log();
   console.log('PROVIDER METADATA');
-  console.log(result.providerMetadata?.google);
+  console.log(result.finalStep.providerMetadata?.google);
 });

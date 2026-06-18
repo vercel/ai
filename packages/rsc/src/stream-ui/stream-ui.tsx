@@ -101,6 +101,7 @@ export async function streamUI<
   model,
   tools,
   toolChoice,
+  instructions,
   system,
   prompt,
   messages,
@@ -270,6 +271,7 @@ export async function streamUI<
   const { retry } = prepareRetries({ maxRetries, abortSignal });
 
   const validatedPrompt = await standardizePrompt({
+    instructions,
     system,
     prompt,
     messages,

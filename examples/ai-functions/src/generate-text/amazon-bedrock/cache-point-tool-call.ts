@@ -170,5 +170,5 @@ run(async () => {
 
   console.log(result.text);
   console.log(JSON.stringify(result.toolCalls, null, 2));
-  console.log(JSON.stringify(result.providerMetadata, null, 2));
+  console.log(JSON.stringify(result.finalStep.providerMetadata, null, 2));
 });

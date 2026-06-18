@@ -30,6 +30,6 @@ run(async () => {
   console.log('Token usage:', await result.usage);
   console.log(
     'Cache token usage:',
-    (await result.providerMetadata)?.bedrock?.usage,
+    (await result.finalStep).providerMetadata?.bedrock?.usage,
   );
 });

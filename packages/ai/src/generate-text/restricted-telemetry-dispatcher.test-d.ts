@@ -38,7 +38,7 @@ describe('createRestrictedTelemetryDispatcher types', () => {
     RuntimeContext,
     Output
   >({
-    sensitiveRuntimeContext: { userId: true },
+    includeRuntimeContext: { userId: true },
   });
 
   it('exposes text telemetry callbacks with the original runtimeContext type', () => {
@@ -50,10 +50,13 @@ describe('createRestrictedTelemetryDispatcher types', () => {
       | Callback<GenerateTextStepStartEvent<ToolSet, RuntimeContext, Output>>
       | undefined
     >();
+    expectTypeOf(telemetryDispatcher.onStepEnd).toMatchTypeOf<
+      Callback<GenerateTextStepEndEvent<ToolSet, RuntimeContext>> | undefined
+    >();
     expectTypeOf(telemetryDispatcher.onStepFinish).toMatchTypeOf<
       Callback<GenerateTextStepEndEvent<ToolSet, RuntimeContext>> | undefined
     >();
-    expectTypeOf(telemetryDispatcher.onFinish).toMatchTypeOf<
+    expectTypeOf(telemetryDispatcher.onEnd).toMatchTypeOf<
       Callback<GenerateTextEndEvent<ToolSet, RuntimeContext>> | undefined
     >();
   });
@@ -64,7 +67,7 @@ describe('createRestrictedTelemetryDispatcher types', () => {
       RuntimeContext,
       Output
     >({
-      sensitiveRuntimeContext: { userId: true },
+      includeRuntimeContext: { userId: true },
     });
 
     expectTypeOf(telemetryDispatcher.onToolExecutionStart).toMatchTypeOf<

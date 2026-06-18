@@ -190,13 +190,13 @@ describe('convertToOpenResponsesInput', () => {
       `);
     });
 
-    it('should warn when non-image file parts are provided', async () => {
+    it('should convert PDF file parts with base64 data to input_file', async () => {
       const result = await convertToOpenResponsesInput({
         prompt: [
           {
             role: 'user',
             content: [
-              { type: 'text', text: 'Here is an image id.' },
+              { type: 'text', text: 'What does this PDF say?' },
               {
                 type: 'file',
                 data: { type: 'data' as const, data: 'UERGREFUQQ==' },
@@ -212,8 +212,13 @@ describe('convertToOpenResponsesInput', () => {
           {
             "content": [
               {
-                "text": "Here is an image id.",
+                "text": "What does this PDF say?",
                 "type": "input_text",
+              },
+              {
+                "file_data": "data:application/pdf;base64,UERGREFUQQ==",
+                "filename": "data",
+                "type": "input_file",
               },
             ],
             "role": "user",
@@ -221,12 +226,77 @@ describe('convertToOpenResponsesInput', () => {
           },
         ]
       `);
-      expect(result.warnings).toEqual([
-        {
-          message: 'unsupported file content type: application/pdf',
-          type: 'other',
-        },
-      ]);
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('should convert PDF file parts with URL data to input_file', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: {
+                  type: 'url' as const,
+                  url: new URL('https://example.com/document.pdf'),
+                },
+                mediaType: 'application/pdf',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "file_url": "https://example.com/document.pdf",
+                "type": "input_file",
+              },
+            ],
+            "role": "user",
+            "type": "message",
+          },
+        ]
+      `);
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('should use provided filename for non-image file parts', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: { type: 'data' as const, data: 'UERGREFUQQ==' },
+                mediaType: 'application/pdf',
+                filename: 'report.pdf',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "file_data": "data:application/pdf;base64,UERGREFUQQ==",
+                "filename": "report.pdf",
+                "type": "input_file",
+              },
+            ],
+            "role": "user",
+            "type": "message",
+          },
+        ]
+      `);
     });
   });
 

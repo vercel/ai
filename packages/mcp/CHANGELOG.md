@@ -1,5 +1,221 @@
 # @ai-sdk/mcp
 
+## 2.0.0-beta.66
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/provider-utils@5.0.0-beta.49
+  - @ai-sdk/provider@4.0.0-beta.19
+
+## 2.0.0-canary.65
+
+### Patch Changes
+
+- b29e087: fix (mcp): handle SSE messages without explicit event fields
+
+## 2.0.0-canary.64
+
+### Patch Changes
+
+- 024a6b4: fix(mcp): validate oauth metadata issuer during discovery
+
+## 2.0.0-canary.63
+
+### Patch Changes
+
+- 2a150f8: fix(mcp): lock first sse endpoint received via event
+- b44b051: fix(mcp): prevent prototype-named tools from bypassing the `schemas` allowlist
+
+  When using `client.tools({ schemas })` to expose only an explicitly allowed
+  subset of an MCP server's tools, the allowlist check used the `in` operator,
+  which also matches inherited `Object.prototype` properties. A server-advertised
+  tool named `constructor`, `toString`, `__proto__`, etc. would pass the check
+  even though the developer never defined it in `schemas`, and was then exposed to
+  the model and executable. The check now uses `Object.hasOwn`, so only
+  explicitly defined tools are returned.
+
+- Updated dependencies [aeda373]
+- Updated dependencies [375fdd7]
+- Updated dependencies [b4507d5]
+  - @ai-sdk/provider-utils@5.0.0-canary.48
+
+## 2.0.0-canary.62
+
+### Patch Changes
+
+- e33ad0b: fix(mcp): add optional hook to validate authorization servers
+- 3e0b82f: fix(mcp): support official sdk protocol version negotiation
+
+## 2.0.0-canary.61
+
+### Patch Changes
+
+- Updated dependencies [bae5e2b]
+  - @ai-sdk/provider-utils@5.0.0-canary.47
+
+## 2.0.0-canary.60
+
+### Patch Changes
+
+- f0c6770: fix(mcp): prevent mcp oauth credential exfiltration during rediscovery
+
+## 2.0.0-canary.59
+
+### Patch Changes
+
+- Updated dependencies [ce769dd]
+  - @ai-sdk/provider@4.0.0-canary.18
+  - @ai-sdk/provider-utils@5.0.0-canary.46
+
+## 2.0.0-canary.58
+
+### Patch Changes
+
+- Updated dependencies [ee798eb]
+- Updated dependencies [daf6637]
+  - @ai-sdk/provider-utils@5.0.0-canary.45
+
+## 2.0.0-canary.57
+
+### Patch Changes
+
+- 78e0023: fix(mcp): await addClientAuthentication in token exchange and refresh
+
+## 2.0.0-canary.56
+
+### Patch Changes
+
+- dcefad3: fix(mcp): respond to ping requests with an empty result per JSON-RPC spec (closes #6282)
+
+## 2.0.0-canary.55
+
+### Patch Changes
+
+- f7bc0b4: feat(mcp): expose `statusCode`, `url`, and `responseBody` on `MCPClientError` for HTTP transport failures
+
+  `MCPClientError` now carries structured HTTP context when it originates from the
+  streamable HTTP transport. This lets downstream consumers (e.g. agent frameworks
+  that need to decide whether to fall back from streamable HTTP to legacy SSE
+  transport per the MCP spec) branch on the actual response status without parsing
+  the error message string.
+
+  Fields are optional — they remain `undefined` for stdio transport errors and for
+  non-response failures (network errors, aborts).
+
+## 2.0.0-canary.54
+
+### Patch Changes
+
+- Updated dependencies [6c93e36]
+- Updated dependencies [f617ac2]
+  - @ai-sdk/provider-utils@5.0.0-canary.44
+
+## 2.0.0-canary.53
+
+### Patch Changes
+
+- 6c17a9f: fix(mcp): deduplicate auth refresh on http transport
+
+## 2.0.0-canary.52
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - @ai-sdk/provider-utils@5.0.0-canary.43
+  - @ai-sdk/provider@4.0.0-canary.17
+
+## 2.0.0-canary.51
+
+### Patch Changes
+
+- b567a6c: dependency updates
+- Updated dependencies [a6617c5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+
+## 2.0.0-canary.50
+
+### Patch Changes
+
+- Updated dependencies [28dfa06]
+- Updated dependencies [e93fa91]
+  - @ai-sdk/provider-utils@5.0.0-canary.41
+
+## 2.0.0-canary.49
+
+### Patch Changes
+
+- Updated dependencies [a7de9c9]
+  - @ai-sdk/provider-utils@5.0.0-canary.40
+
+## 2.0.0-canary.48
+
+### Patch Changes
+
+- Updated dependencies [105f95b]
+  - @ai-sdk/provider-utils@5.0.0-canary.39
+
+## 2.0.0-canary.47
+
+### Patch Changes
+
+- 2655da8: fix(mcp): use negotiated protocol version in transport request headers
+- Updated dependencies [ca446f8]
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+
+## 2.0.0-canary.46
+
+### Patch Changes
+
+- Updated dependencies [d848405]
+  - @ai-sdk/provider-utils@5.0.0-canary.37
+
+## 2.0.0-canary.45
+
+### Patch Changes
+
+- Updated dependencies [ca39020]
+  - @ai-sdk/provider-utils@5.0.0-canary.36
+
+## 2.0.0-canary.44
+
+### Patch Changes
+
+- 611f621: feat(mcp): feat(mcp): add support for MCP Apps
+
+## 2.0.0-canary.43
+
+### Patch Changes
+
+- f634bac: feat(mcp): add new McpProviderMetadata type
+- Updated dependencies [f634bac]
+  - @ai-sdk/provider-utils@5.0.0-canary.35
+
+## 2.0.0-canary.42
+
+### Patch Changes
+
+- 69254e0: feat(ai): add toolMetadata for tool specific metdata
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+  - @ai-sdk/provider-utils@5.0.0-canary.34
+
+## 2.0.0-canary.41
+
+### Patch Changes
+
+- b79094c: Add `resource_link` content type to `CallToolResultSchema` and `PromptMessageSchema` per MCP spec. Fixes hard rejection when MCP servers return `resource_link` content parts with zod ≥ 4.4.x.
+- 1451759: feat(mcp): deprecate name and use clientName for MCPClient
+
+## 2.0.0-canary.40
+
+### Patch Changes
+
+- Updated dependencies [2427d88]
+  - @ai-sdk/provider-utils@5.0.0-canary.33
+
 ## 2.0.0-canary.39
 
 ### Patch Changes

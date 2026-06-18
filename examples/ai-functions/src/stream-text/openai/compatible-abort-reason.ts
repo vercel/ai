@@ -31,7 +31,7 @@ run(async () => {
       abortController.abort('user cancelled');
     }, manualCancelTimeout);
 
-    for await (const chunk of result.fullStream) {
+    for await (const chunk of result.stream) {
       if (chunk.type === 'abort') {
         const reason = chunk.reason;
         console.log('Abort reason:', reason);

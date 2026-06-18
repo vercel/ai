@@ -79,7 +79,7 @@ The `voice` argument can be set to a voice ID from the [ElevenLabs Voice Library
 You can find voice IDs by selecting a voice in the library and copying its ID.
 
 ```ts highlight="6"
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 import { elevenLabs } from '@ai-sdk/elevenlabs';
 
 const result = await generateSpeech({
@@ -92,7 +92,7 @@ const result = await generateSpeech({
 You can also pass additional provider-specific options using the `providerOptions` argument:
 
 ```ts highlight="7-9"
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 import {
   elevenLabs,
   type ElevenLabsSpeechModelOptions,
@@ -118,7 +118,6 @@ const result = await generateSpeech({
 
 - **voiceSettings** _object or null_  
   Optional. Voice settings that override stored settings for the given voice. These are applied only to the current request.
-
   - **stability** _double or null_  
     Optional. Determines how stable the voice is and the randomness between each generation. Lower values introduce broader emotional range; higher values result in a more monotonous voice.
   - **useSpeakerBoost** _boolean or null_  
@@ -131,7 +130,6 @@ const result = await generateSpeech({
 - **pronunciationDictionaryLocators** _array of objects or null_  
   Optional. A list of pronunciation dictionary locators to apply to the text, in order. Up to 3 locators per request.  
   Each locator object:
-
   - **pronunciationDictionaryId** _string_ (required)  
     The ID of the pronunciation dictionary.
   - **versionId** _string or null_ (optional)  
@@ -155,7 +153,6 @@ const result = await generateSpeech({
 - **applyTextNormalization** _enum_  
   Optional. Controls text normalization.  
   Allowed values: `'auto'` (default), `'on'`, `'off'`.
-
   - `'auto'`: System decides whether to apply normalization (e.g., spelling out numbers).
   - `'on'`: Always apply normalization.
   - `'off'`: Never apply normalization.  
@@ -194,7 +191,7 @@ const model = elevenLabs.transcription('scribe_v1');
 You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the input language in ISO-639-1 (e.g. `en`) format can sometimes improve transcription performance if known beforehand.
 
 ```ts highlight="6"
-import { experimental_transcribe as transcribe } from 'ai';
+import { transcribe } from 'ai';
 import {
   elevenLabs,
   type ElevenLabsTranscriptionModelOptions,

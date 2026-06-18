@@ -263,17 +263,41 @@ export function streamObject<
        * Callback that is called when the streamObject operation begins,
        * before the LLM call is made.
        */
+      onStart?: Callback<GenerateObjectStartEvent>;
+
+      /**
+       * Callback that is called when the streamObject operation begins,
+       * before the LLM call is made.
+       *
+       * @deprecated Use `onStart` instead.
+       */
       experimental_onStart?: Callback<GenerateObjectStartEvent>;
 
       /**
        * Callback that is called when the model call (step) begins,
        * before the provider is called.
        */
+      onStepStart?: Callback<GenerateObjectStepStartEvent>;
+
+      /**
+       * Callback that is called when the model call (step) begins,
+       * before the provider is called.
+       *
+       * @deprecated Use `onStepStart` instead.
+       */
       experimental_onStepStart?: Callback<GenerateObjectStepStartEvent>;
 
       /**
        * Callback that is called when the model streaming step completes,
        * with the raw accumulated text before final schema validation.
+       */
+      onStepEnd?: Callback<GenerateObjectStepEndEvent>;
+
+      /**
+       * Callback that is called when the model streaming step completes,
+       * with the raw accumulated text before final schema validation.
+       *
+       * @deprecated Use `onStepEnd` instead.
        */
       onStepFinish?: Callback<GenerateObjectStepEndEvent>;
 
@@ -314,6 +338,7 @@ export function streamObject<
   const {
     model,
     output = 'object',
+    instructions,
     system,
     prompt,
     messages,
@@ -326,8 +351,11 @@ export function streamObject<
     telemetry = experimental_telemetry,
     experimental_download: download,
     providerOptions,
-    experimental_onStart: onStart,
-    experimental_onStepStart: onStepStart,
+    onStart,
+    experimental_onStart,
+    onStepStart,
+    experimental_onStepStart,
+    onStepEnd,
     onStepFinish,
     onError = ({ error }: { error: unknown }) => {
       console.error(error);
@@ -372,6 +400,7 @@ export function streamObject<
     maxRetries,
     abortSignal,
     outputStrategy,
+    instructions,
     system,
     prompt,
     messages,
@@ -380,9 +409,9 @@ export function streamObject<
     schemaDescription,
     providerOptions,
     repairText,
-    onStart,
-    onStepStart,
-    onStepFinish,
+    onStart: onStart ?? experimental_onStart,
+    onStepStart: onStepStart ?? experimental_onStepStart,
+    onStepFinish: onStepEnd ?? onStepFinish,
     onError,
     onFinish,
     download,
@@ -403,10 +432,12 @@ class DefaultStreamObjectResult<
     ProviderMetadata | undefined
   >();
   private readonly _warnings = new DelayedPromise<CallWarning[] | undefined>();
-  private readonly _request =
-    new DelayedPromise<LanguageModelRequestMetadata>();
-  private readonly _response =
-    new DelayedPromise<LanguageModelResponseMetadata>();
+  private readonly _request = new DelayedPromise<
+    Omit<LanguageModelRequestMetadata, 'messages'>
+  >();
+  private readonly _response = new DelayedPromise<
+    Omit<LanguageModelResponseMetadata, 'messages'>
+  >();
   private readonly _finishReason = new DelayedPromise<FinishReason>();
 
   private readonly baseStream: ReadableStream<ObjectStreamPart<PARTIAL>>;
@@ -425,6 +456,7 @@ class DefaultStreamObjectResult<
     maxRetries: maxRetriesArg,
     abortSignal,
     outputStrategy,
+    instructions,
     system,
     prompt,
     messages,
@@ -450,6 +482,7 @@ class DefaultStreamObjectResult<
     maxRetries: number | undefined;
     abortSignal: AbortSignal | undefined;
     outputStrategy: OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM>;
+    instructions: Prompt['instructions'];
     system: Prompt['system'];
     prompt: Prompt['prompt'];
     messages: Prompt['messages'];
@@ -512,7 +545,7 @@ class DefaultStreamObjectResult<
           operationId: 'ai.streamObject' as const,
           provider: model.provider,
           modelId: model.modelId,
-          system,
+          system: instructions ?? system,
           prompt,
           messages,
           maxOutputTokens: callSettings.maxOutputTokens,
@@ -538,6 +571,7 @@ class DefaultStreamObjectResult<
       });
 
       const standardizedPrompt = await standardizePrompt({
+        instructions,
         system,
         prompt,
         messages,
@@ -791,7 +825,7 @@ class DefaultStreamObjectResult<
                   },
                   callbacks: [
                     onStepFinish,
-                    telemetryDispatcher.onObjectStepFinish,
+                    telemetryDispatcher.onObjectStepEnd,
                   ],
                 });
 
@@ -811,7 +845,7 @@ class DefaultStreamObjectResult<
                     },
                     providerMetadata,
                   },
-                  callbacks: [onFinish, telemetryDispatcher.onFinish],
+                  callbacks: [onFinish, telemetryDispatcher.onEnd],
                 });
               } catch (error) {
                 controller.enqueue({ type: 'error', error });
@@ -932,14 +966,14 @@ class DefaultStreamObjectResult<
   pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit) {
     pipeTextStreamToResponse({
       response,
-      textStream: this.textStream,
+      stream: this.textStream,
       ...init,
     });
   }
 
   toTextStreamResponse(init?: ResponseInit): Response {
     return createTextStreamResponse({
-      textStream: this.textStream,
+      stream: this.textStream,
       ...init,
     });
   }

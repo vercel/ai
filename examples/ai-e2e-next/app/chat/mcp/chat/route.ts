@@ -1,6 +1,12 @@
 import { openai } from '@ai-sdk/openai';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
-import { convertToModelMessages, isStepCount, streamText } from 'ai';
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  isStepCount,
+  streamText,
+  toUIMessageStream,
+} from 'ai';
 import { createMCPClient } from '@ai-sdk/mcp';
 
 export async function POST(req: Request) {
@@ -11,7 +17,7 @@ export async function POST(req: Request) {
   const [client, { messages }] = await Promise.all([
     createMCPClient({
       transport,
-      name: 'local-calculator-mcp',
+      clientName: 'local-calculator-mcp',
     }),
     req.json(),
   ]);
@@ -26,7 +32,8 @@ export async function POST(req: Request) {
       onStepFinish: async ({ toolResults }) => {
         console.log(`STEP RESULTS: ${JSON.stringify(toolResults, null, 2)}`);
       },
-      system: 'You are a helpful chatbot capable of basic arithmetic problems',
+      instructions:
+        'You are a helpful chatbot capable of basic arithmetic problems',
       messages: await convertToModelMessages(messages),
       onFinish: async () => {
         await client.close();
@@ -37,7 +44,9 @@ export async function POST(req: Request) {
       // },
     });
 
-    return result.toUIMessageStreamResponse();
+    return createUIMessageStreamResponse({
+      stream: toUIMessageStream({ stream: result.stream }),
+    });
   } catch (error) {
     console.error(error);
     return Response.json({ error: 'Unexpected error' }, { status: 500 });

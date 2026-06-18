@@ -1,8 +1,10 @@
+import type { JSONObject } from '@ai-sdk/provider';
 import { z } from 'zod/v4';
 import {
   providerMetadataSchema,
   type ProviderMetadata,
 } from '../types/provider-metadata';
+import { jsonValueSchema } from '../types/json-value';
 import type { FinishReason } from '../types/language-model';
 import type {
   InferUIMessageData,
@@ -12,6 +14,11 @@ import type {
 } from '../ui/ui-messages';
 import type { ValueOf } from '../util/value-of';
 import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
+
+const toolMetadataSchema: z.ZodType<JSONObject> = z.record(
+  z.string(),
+  jsonValueSchema.optional(),
+);
 
 export const uiMessageChunkSchema = lazySchema(() =>
   zodSchema(
@@ -42,6 +49,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
         toolName: z.string(),
         providerExecuted: z.boolean().optional(),
         providerMetadata: providerMetadataSchema.optional(),
+        toolMetadata: toolMetadataSchema.optional(),
         dynamic: z.boolean().optional(),
         title: z.string().optional(),
       }),
@@ -57,6 +65,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
         input: z.unknown(),
         providerExecuted: z.boolean().optional(),
         providerMetadata: providerMetadataSchema.optional(),
+        toolMetadata: toolMetadataSchema.optional(),
         dynamic: z.boolean().optional(),
         title: z.string().optional(),
       }),
@@ -67,6 +76,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
         input: z.unknown(),
         providerExecuted: z.boolean().optional(),
         providerMetadata: providerMetadataSchema.optional(),
+        toolMetadata: toolMetadataSchema.optional(),
         dynamic: z.boolean().optional(),
         errorText: z.string(),
         title: z.string().optional(),
@@ -76,6 +86,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
         approvalId: z.string(),
         toolCallId: z.string(),
         isAutomatic: z.boolean().optional(),
+        signature: z.string().optional(),
       }),
       z.strictObject({
         type: z.literal('tool-approval-response'),
@@ -91,6 +102,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
         output: z.unknown(),
         providerExecuted: z.boolean().optional(),
         providerMetadata: providerMetadataSchema.optional(),
+        toolMetadata: toolMetadataSchema.optional(),
         dynamic: z.boolean().optional(),
         preliminary: z.boolean().optional(),
       }),
@@ -100,6 +112,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
         errorText: z.string(),
         providerExecuted: z.boolean().optional(),
         providerMetadata: providerMetadataSchema.optional(),
+        toolMetadata: toolMetadataSchema.optional(),
         dynamic: z.boolean().optional(),
       }),
       z.strictObject({
@@ -262,6 +275,7 @@ export type UIMessageChunk<
       input: unknown;
       providerExecuted?: boolean;
       providerMetadata?: ProviderMetadata;
+      toolMetadata?: JSONObject;
       dynamic?: boolean;
       title?: string;
     }
@@ -272,6 +286,7 @@ export type UIMessageChunk<
       input: unknown;
       providerExecuted?: boolean;
       providerMetadata?: ProviderMetadata;
+      toolMetadata?: JSONObject;
       dynamic?: boolean;
       errorText: string;
       title?: string;
@@ -281,6 +296,7 @@ export type UIMessageChunk<
       approvalId: string;
       toolCallId: string;
       isAutomatic?: boolean;
+      signature?: string;
     }
   | {
       type: 'tool-approval-response';
@@ -296,6 +312,7 @@ export type UIMessageChunk<
       output: unknown;
       providerExecuted?: boolean;
       providerMetadata?: ProviderMetadata;
+      toolMetadata?: JSONObject;
       dynamic?: boolean;
       preliminary?: boolean;
     }
@@ -305,6 +322,7 @@ export type UIMessageChunk<
       errorText: string;
       providerExecuted?: boolean;
       providerMetadata?: ProviderMetadata;
+      toolMetadata?: JSONObject;
       dynamic?: boolean;
     }
   | {
@@ -317,6 +335,7 @@ export type UIMessageChunk<
       toolName: string;
       providerExecuted?: boolean;
       providerMetadata?: ProviderMetadata;
+      toolMetadata?: JSONObject;
       dynamic?: boolean;
       title?: string;
     }

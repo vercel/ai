@@ -24,7 +24,7 @@ run(async () => {
     prompt: 'Use the tool to get weather for San Francisco',
   });
 
-  for await (const delta of result.fullStream) {
+  for await (const delta of result.stream) {
     switch (delta.type) {
       case 'text-delta': {
         process.stdout.write(delta.text);

@@ -2,11 +2,28 @@ import type { JSONObject } from '@ai-sdk/provider';
 
 /**
  * Represents a single iteration in the usage breakdown.
- * When compaction occurs, the API returns an iterations array showing
- * usage for each sampling iteration (compaction + message).
+ *
+ * The API returns an iterations array showing usage for each sampling
+ * iteration. Iterations can be:
+ * - `compaction`: a context compaction step (billed at executor rates).
+ * - `message`: an executor sampling iteration (billed at executor rates).
+ * - `advisor_message`: an advisor sub-inference (billed at the advisor
+ *   model's rates). Advisor token usage is NOT rolled into the top-level
+ *   usage totals because it bills at a different rate; inspect this array
+ *   directly for advisor billing.
+ * - `fallback_message`: a server-side fallback attempt that served the turn.
+ *   Inspect this array for exact per-model attribution on a turn that fell
+ *   back.
  */
-export interface AnthropicUsageIteration {
-  type: 'compaction' | 'message';
+export type AnthropicUsageIteration = {
+  type: 'compaction' | 'message' | 'advisor_message' | 'fallback_message';
+
+  /**
+   * The model that produced this iteration. Populated for the per-model
+   * attribution cases (the fallback chain and advisor sub-inferences) and
+   * absent otherwise.
+   */
+  model?: string;
 
   /**
    * Number of input tokens consumed in this iteration.
@@ -17,11 +34,57 @@ export interface AnthropicUsageIteration {
    * Number of output tokens generated in this iteration.
    */
   outputTokens: number;
-}
+
+  /**
+   * Number of cache-creation input tokens consumed in this iteration.
+   */
+  cacheCreationInputTokens?: number;
+
+  /**
+   * Number of cache-read input tokens consumed in this iteration.
+   */
+  cacheReadInputTokens?: number;
+};
 
 export interface AnthropicMessageMetadata {
   usage: JSONObject;
   stopSequence: string | null;
+
+  /**
+   * Details about why the request stopped. Present only when the API returns
+   * a `refusal` stop reason together with a `stop_details` object (a
+   * classifier block or a model refusal).
+   *
+   * Branch on the finish reason (`content-filter`), not on this object: the
+   * API may return a refusal with no details at all, so this field can be
+   * absent even on a refusal and should not be relied upon being present.
+   */
+  stopDetails?: {
+    /**
+     * The kind of stop detail. `'refusal'` for classifier blocks and model
+     * refusals.
+     */
+    type: string;
+
+    /**
+     * The classifier category that triggered the block, e.g. `'cyber'` or
+     * `'bio'`. Absent for model refusals and other cases.
+     */
+    category?: string;
+
+    /**
+     * Human-readable explanation of why the request was blocked. May be
+     * absent even on a refusal.
+     */
+    explanation?: string;
+
+    /**
+     * The canonical id of a model to retry directly. Populated only when the
+     * request included fallbacks and the fallback attempt could not be made
+     * (e.g. the fallback model was rate limited or overloaded).
+     */
+    recommendedModel?: string;
+  };
 
   /**
    * Usage breakdown by iteration when compaction is triggered.

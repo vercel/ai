@@ -94,7 +94,7 @@ run(async () => {
             Docker is the foundation for containerization:
 
             1. **Dockerfile** - Defines how to build your application image:
-              - Base image selection (e.g., node:18-alpine)
+              - Base image selection (e.g., node:22-alpine)
               - Working directory setup
               - Dependency installation
               - Source code copying
@@ -254,7 +254,7 @@ run(async () => {
 
   console.log('=== Streaming Response ===\n');
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'text-start': {
         const isCompaction =

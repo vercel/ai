@@ -165,6 +165,10 @@ The following provider options are available:
 
   Whether to store the generation. Defaults to `true`.
 
+- **passThroughUnsupportedFiles** _boolean_
+
+  Whether to pass through non-image file types as generic input files. Defaults to `false`, which restricts inline file inputs to images and PDFs. Enable this when the target OpenAI Responses model supports additional file media types.
+
 - **maxToolCalls** _integer_
   The maximum number of total calls to built-in tools that can be processed in a response.
   This maximum number applies across all built-in tool calls, not per individual tool.
@@ -238,7 +242,6 @@ The following provider options are available:
 
 - **truncation** _string_
   The truncation strategy to use for the model response.
-
   - Auto: If the input to this Response exceeds the model's context window size, the model will truncate the response to fit the context window by dropping items from the beginning of the conversation.
   - disabled (default): If the input size will exceed the context window size for a model, the request will fail with a 400 error.
 
@@ -314,7 +317,7 @@ const result = streamText({
   },
 });
 
-for await (const part of result.fullStream) {
+for await (const part of result.stream) {
   if (part.type === 'reasoning') {
     console.log(`Reasoning: ${part.textDelta}`);
   } else if (part.type === 'text-delta') {
@@ -434,6 +437,38 @@ The `textVerbosity` parameter scales output length without changing the underlyi
 - `'low'`: Produces terse, minimal responses
 - `'medium'`: Balanced detail (default)
 - `'high'`: Verbose responses with comprehensive detail
+
+#### Namespaced Function Calls
+
+OpenAI supports grouping related function tools into
+[namespaces](https://developers.openai.com/api/docs/guides/function-calling#defining-namespaces).
+When the Responses API returns a `function_call` with a `namespace`, the OpenAI provider
+exposes this value on the generated `tool-call` part as
+`providerMetadata.openai.namespace`.
+
+```ts
+for (const part of result.content) {
+  if (part.type === 'tool-call') {
+    console.log(part.providerMetadata?.openai?.namespace);
+  }
+}
+```
+
+When using `streamText`, the namespace is available on the `tool-input-end` event and on
+the final `tool-call` event:
+
+```ts
+for await (const part of result.stream) {
+  if (part.type === 'tool-input-end' || part.type === 'tool-call') {
+    console.log(part.providerMetadata?.openai?.namespace);
+  }
+}
+```
+
+If you persist or reconstruct messages for later turns, preserve the OpenAI provider
+metadata on tool-call parts. The SDK uses `providerMetadata.openai.namespace` or
+`providerOptions.openai.namespace` to round-trip the namespace back to OpenAI on
+subsequent requests.
 
 #### Web Search Tool
 
@@ -606,7 +641,7 @@ const result = streamText({
   },
 });
 
-for await (const part of result.fullStream) {
+for await (const part of result.stream) {
   if (part.type == 'tool-result' && !part.dynamic) {
     const base64Image = part.output.result;
   }
@@ -701,7 +736,6 @@ The MCP tool can be configured with:
 - **allowedTools** _string[] | object_ (optional)
 
   Controls which tools from the MCP server are available. Can be:
-
   - An array of tool names: `['tool1', 'tool2']`
   - An object with filters:
     ```ts
@@ -722,7 +756,6 @@ The MCP tool can be configured with:
 - **requireApproval** _'always' | 'never' | object_ (optional)
 
   Controls which MCP tool calls require user approval before execution. Can be:
-
   - `'always'`: All MCP tool calls require approval
   - `'never'`: No MCP tool calls require approval (default)
   - An object with filters:
@@ -1025,6 +1058,52 @@ In hosted mode, the model internally searches the deferred tools, loads the rele
 proceeds to call them — all within a single response. The `tool_search_call` and
 `tool_search_output` items appear in the response with `execution: 'server'` and `call_id: null`.
 
+##### Namespaces
+
+Use `providerOptions.openai.namespace` to group related function tools for OpenAI.
+The SDK keeps each tool executable as a normal AI SDK tool, but serializes grouped
+tools as OpenAI `namespace` entries in the request:
+
+```ts
+const crmNamespace = {
+  name: 'crm',
+  description: 'CRM tools for customer lookup and order management.',
+};
+
+const result = await generateText({
+  model: openai.responses('gpt-5.4'),
+  prompt: 'List open orders for customer cust_123.',
+  tools: {
+    toolSearch: openai.tools.toolSearch(),
+
+    get_customer_profile: tool({
+      description: 'Fetch a customer profile by customer ID.',
+      inputSchema: z.object({ customer_id: z.string() }),
+      execute: async ({ customer_id }) => ({ customer_id }),
+      providerOptions: {
+        openai: { namespace: crmNamespace },
+      },
+    }),
+
+    list_open_orders: tool({
+      description: 'List open orders for a customer ID.',
+      inputSchema: z.object({ customer_id: z.string() }),
+      execute: async ({ customer_id }) => ({ customer_id, orders: [] }),
+      providerOptions: {
+        openai: {
+          namespace: crmNamespace,
+          deferLoading: true,
+        },
+      },
+    }),
+  },
+});
+```
+
+Tools in the same namespace must use the same namespace `name` and `description`.
+For best results with tool search, keep namespace descriptions concise and put
+detailed usage guidance on the individual function tools.
+
 ##### Client-Executed Tool Search
 
 Use client-executed tool search when tool discovery depends on runtime state — for example,
@@ -1160,7 +1239,7 @@ const result = streamText({
   prompt: 'Write a SQL query to get all users older than 25.',
 });
 
-for await (const chunk of result.fullStream) {
+for await (const chunk of result.stream) {
   if (chunk.type === 'tool-call') {
     console.log(`Tool: ${chunk.toolName}`);
     console.log(`Input: ${chunk.input}`);
@@ -1324,7 +1403,6 @@ This metadata includes the following fields:
   If no annotations are present, this property itself may be omitted (`undefined`).
 
   Each element in `annotations` is a discriminated union with a required `type` field. Supported types include, for example:
-
   - `url_citation`
   - `file_citation`
   - `container_file_citation`
@@ -1576,7 +1654,7 @@ const result = streamText({
   },
 });
 
-for await (const part of result.fullStream) {
+for await (const part of result.stream) {
   switch (part.type) {
     case 'text-start': {
       const isCompaction = part.providerMetadata?.openai?.type === 'compaction';
@@ -1777,7 +1855,6 @@ Reasoning models currently only generate text, have several limitations, and are
 They support additional settings and response metadata:
 
 - You can use `providerOptions` to set
-
   - the `reasoningEffort` option (or alternatively the `reasoningEffort` model setting), which determines the amount of reasoning the model performs.
 
 - You can use response `providerMetadata` to access the number of reasoning tokens that the model generated.
@@ -1809,7 +1886,6 @@ console.log('Usage:', {
 </Note>
 
 - You can control how system messages are handled by providerOptions `systemMessageMode`:
-
   - `developer`: treat the prompt as a developer message (default for reasoning models).
   - `system`: keep the system message as a system-level instruction.
   - `remove`: remove the system message from the messages.
@@ -2338,6 +2414,31 @@ The following optional provider options are available for OpenAI completion mode
   provider model ID as a string if needed.
 </Note>
 
+## Realtime Models
+
+<Note type="warning">Realtime is an experimental feature.</Note>
+
+You can create models that call the [OpenAI Realtime API](https://platform.openai.com/docs/guides/realtime)
+using the `.experimental_realtime()` factory method.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+
+const model = openai.experimental_realtime('gpt-realtime');
+```
+
+Realtime sessions run in the browser and require a short-lived token created on
+your server with `openai.experimental_realtime.getToken()`:
+
+```ts
+const token = await openai.experimental_realtime.getToken({
+  model: 'gpt-realtime',
+});
+```
+
+See [Realtime](/docs/ai-sdk-core/realtime) for the complete setup and tool
+calling pattern.
+
 ## Embedding Models
 
 You can create models that call the [OpenAI embeddings API](https://platform.openai.com/docs/api-reference/embeddings)
@@ -2501,10 +2602,7 @@ const { images } = await generateImage({
 You can pass optional `providerOptions` to the image model. These are prone to change by OpenAI and are model dependent. For example, the `gpt-image-1` model supports the `quality` option:
 
 ```ts
-import {
-  openai,
-  type OpenAIImageModelGenerationOptions,
-} from '@ai-sdk/openai';
+import { openai, type OpenAIImageModelGenerationOptions } from '@ai-sdk/openai';
 import { generateImage } from 'ai';
 
 const { image, providerMetadata } = await generateImage({
@@ -2525,7 +2623,6 @@ is available:
 - **images** _Array&lt;object&gt;_
 
   Array of image-specific metadata. Each image object may contain:
-
   - `revisedPrompt` _string_ - The revised prompt that was actually used to generate the image (OpenAI may modify your prompt for safety or clarity)
   - `created` _number_ - The Unix timestamp (in seconds) of when the image was created
   - `size` _string_ - The size of the generated image. One of `1024x1024`, `1024x1536`, or `1536x1024`
@@ -2549,7 +2646,7 @@ const model = openai.transcription('whisper-1');
 You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the input language in ISO-639-1 (e.g. `en`) format will improve accuracy and latency.
 
 ```ts highlight="6"
-import { experimental_transcribe as transcribe } from 'ai';
+import { transcribe } from 'ai';
 import { openai, type OpenAITranscriptionModelOptions } from '@ai-sdk/openai';
 
 const result = await transcribe({
@@ -2564,7 +2661,7 @@ const result = await transcribe({
 To get word-level timestamps, specify the granularity:
 
 ```ts highlight="8-9"
-import { experimental_transcribe as transcribe } from 'ai';
+import { transcribe } from 'ai';
 import { openai, type OpenAITranscriptionModelOptions } from '@ai-sdk/openai';
 
 const result = await transcribe({
@@ -2628,7 +2725,7 @@ const model = openai.speech('tts-1');
 The `voice` argument can be set to one of OpenAI's available voices: `alloy`, `ash`, `coral`, `echo`, `fable`, `onyx`, `nova`, `sage`, or `shimmer`.
 
 ```ts highlight="6"
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const result = await generateSpeech({
@@ -2641,7 +2738,7 @@ const result = await generateSpeech({
 You can also pass additional provider-specific options using the `providerOptions` argument:
 
 ```ts highlight="7-9"
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 import { openai, type OpenAISpeechModelOptions } from '@ai-sdk/openai';
 
 const result = await generateSpeech({

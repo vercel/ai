@@ -163,7 +163,7 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
                 effortMap: {
                   minimal: 'low',
                   low: 'low',
-                  medium: 'low',
+                  medium: 'medium',
                   high: 'high',
                   xhigh: 'high',
                 },

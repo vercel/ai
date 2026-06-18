@@ -19,7 +19,10 @@ uploaded media files.
 
 ```ts
 import { uploadSkill, generateText } from 'ai';
-import { anthropic, type AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import {
+  anthropic,
+  type AnthropicLanguageModelOptions,
+} from '@ai-sdk/anthropic';
 import { readFileSync } from 'fs';
 
 const { providerReference } = await uploadSkill({
@@ -85,15 +88,15 @@ const { providerReference } = await uploadSkill({
 
 `uploadSkill` returns an `UploadSkillResult` with the following fields:
 
-| Field               | Type                | Description                                                     |
-| ------------------- | ------------------- | --------------------------------------------------------------- |
-| `providerReference` | `ProviderReference` | Maps provider names to provider-specific skill IDs              |
-| `displayTitle`      | `string?`           | Human-readable title (if supported and provided)                |
-| `name`              | `string?`           | Name inferred by the provider from the skill files              |
-| `description`       | `string?`           | Description inferred by the provider from the skill files       |
-| `latestVersion`     | `string?`           | Latest version identifier assigned by the provider              |
-| `providerMetadata`  | `object?`           | Additional provider-specific metadata (e.g. timestamps)         |
-| `warnings`          | `Warning[]`         | Warnings for unsupported options (e.g. `displayTitle` on OpenAI)|
+| Field               | Type                | Description                                                      |
+| ------------------- | ------------------- | ---------------------------------------------------------------- |
+| `providerReference` | `ProviderReference` | Maps provider names to provider-specific skill IDs               |
+| `displayTitle`      | `string?`           | Human-readable title (if supported and provided)                 |
+| `name`              | `string?`           | Name inferred by the provider from the skill files               |
+| `description`       | `string?`           | Description inferred by the provider from the skill files        |
+| `latestVersion`     | `string?`           | Latest version identifier assigned by the provider               |
+| `providerMetadata`  | `object?`           | Additional provider-specific metadata (e.g. timestamps)          |
+| `warnings`          | `Warning[]`         | Warnings for unsupported options (e.g. `displayTitle` on OpenAI) |
 
 ## Provider References
 
@@ -188,7 +191,7 @@ await generateText({
 
 The following providers support `skills()` and skill uploads:
 
-| Provider  | Factory Method      |
-| --------- | ------------------- |
+| Provider  | Factory Method       |
+| --------- | -------------------- |
 | Anthropic | `anthropic.skills()` |
-| OpenAI    | `openai.skills()`   |
+| OpenAI    | `openai.skills()`    |

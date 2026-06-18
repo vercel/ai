@@ -1,5 +1,16 @@
 export type { GatewayModelId } from './gateway-language-model-settings';
+export {
+  GATEWAY_AUTH_SUBPROTOCOL_PREFIX,
+  GATEWAY_REALTIME_SUBPROTOCOL,
+  GATEWAY_TEAM_SUBPROTOCOL_PREFIX,
+  getGatewayRealtimeAuthToken,
+  getGatewayRealtimeProtocols,
+  getGatewayRealtimeTeamIdOrSlug,
+} from './gateway-realtime-auth';
+export type { GatewayRealtimeModelId } from './gateway-realtime-model-settings';
 export type { GatewayRerankingModelId } from './gateway-reranking-model-settings';
+export type { GatewaySpeechModelId } from './gateway-speech-model-settings';
+export type { GatewayTranscriptionModelId } from './gateway-transcription-model-settings';
 export type { GatewayVideoModelId } from './gateway-video-model-settings';
 export type {
   GatewayLanguageModelEntry,
@@ -34,6 +45,8 @@ export type {
 export {
   GatewayError,
   GatewayAuthenticationError,
+  GatewayFailedDependencyError,
+  GatewayForbiddenError,
   GatewayInvalidRequestError,
   GatewayRateLimitError,
   GatewayModelNotFoundError,

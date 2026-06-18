@@ -45,6 +45,38 @@ describe('ToolsContextParameter', () => {
     expectTypeOf<Expected>().toMatchTypeOf<ToolsContextParameter<Tools>>();
   });
 
+  it('makes toolsContext required when a tool has optional-only context properties', () => {
+    type Tools = {
+      weather: Tool<{ city: string }, any, { userId?: string }>;
+    };
+    type Expected = {
+      tools?: Tools;
+      toolsContext: {
+        weather: {
+          userId?: string;
+        };
+      };
+    };
+
+    expectTypeOf<ToolsContextParameter<Tools>>().toMatchTypeOf<Expected>();
+    expectTypeOf<Expected>().toMatchTypeOf<ToolsContextParameter<Tools>>();
+  });
+
+  it('makes toolsContext optional when the context object is optional', () => {
+    type Tools = {
+      weather: Tool<{ city: string }, any, { userId: string } | undefined>;
+    };
+    type Expected = {
+      tools?: Tools;
+      toolsContext?: {
+        weather?: { userId: string } | undefined;
+      };
+    };
+
+    expectTypeOf<ToolsContextParameter<Tools>>().toMatchTypeOf<Expected>();
+    expectTypeOf<Expected>().toMatchTypeOf<ToolsContextParameter<Tools>>();
+  });
+
   it('includes only contextual tools in the inferred toolsContext map', () => {
     type Tools = {
       weather: Tool<{ location: string }>;
@@ -148,6 +180,19 @@ describe('ToolsContextParameter', () => {
     }>();
   });
 
+  it('uses toolsContext?: never when a tool has an empty context object', () => {
+    type Tools = {
+      weather: Tool<{ city: string }, any, {}>;
+    };
+    type Expected = {
+      tools?: Tools;
+      toolsContext?: never;
+    };
+
+    expectTypeOf<ToolsContextParameter<Tools>>().toMatchTypeOf<Expected>();
+    expectTypeOf<Expected>().toMatchTypeOf<ToolsContextParameter<Tools>>();
+  });
+
   describe('negative cases', () => {
     it('errors when toolsContext is provided for an empty toolset', () => {
       type Tools = {};
@@ -193,6 +238,42 @@ describe('ToolsContextParameter', () => {
       };
 
       expectTypeOf(missingRequiredField).toEqualTypeOf<
+        ToolsContextParameter<Tools>
+      >();
+    });
+
+    it('errors when optional-only nested tool context fields have the wrong type', () => {
+      type Tools = {
+        weather: Tool<{ city: string }, any, { userId?: string }>;
+      };
+
+      const invalidOptionalField: ToolsContextParameter<Tools> = {
+        toolsContext: {
+          weather: {
+            // @ts-expect-error - optional nested tool context fields must match their declared type
+            userId: 123,
+          },
+        },
+      };
+
+      expectTypeOf(invalidOptionalField).toEqualTypeOf<
+        ToolsContextParameter<Tools>
+      >();
+    });
+
+    it('errors when optional context object fields are missing after the entry is provided', () => {
+      type Tools = {
+        weather: Tool<{ city: string }, any, { userId: string } | undefined>;
+      };
+
+      const missingOptionalObjectField: ToolsContextParameter<Tools> = {
+        toolsContext: {
+          // @ts-expect-error - provided optional context objects must satisfy their object type
+          weather: {},
+        },
+      };
+
+      expectTypeOf(missingOptionalObjectField).toEqualTypeOf<
         ToolsContextParameter<Tools>
       >();
     });

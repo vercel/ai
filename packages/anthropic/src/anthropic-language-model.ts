@@ -37,13 +37,17 @@ import {
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { anthropicFailedResponseHandler } from './anthropic-error';
-import type { AnthropicMessageMetadata } from './anthropic-message-metadata';
+import type {
+  AnthropicMessageMetadata,
+  AnthropicUsageIteration,
+} from './anthropic-message-metadata';
 import {
   anthropicChunkSchema,
   anthropicResponseSchema,
   type AnthropicContainer,
   type AnthropicReasoningMetadata,
   type AnthropicResponseContextManagement,
+  type AnthropicStopDetails,
   type AnthropicTool,
   type Citation,
 } from './anthropic-api';
@@ -377,6 +381,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         'anthropic.web_fetch_20260209': 'web_fetch',
         'anthropic.tool_search_regex_20251119': 'tool_search_tool_regex',
         'anthropic.tool_search_bm25_20251119': 'tool_search_tool_bm25',
+        'anthropic.advisor_20260301': 'advisor',
       },
     });
 
@@ -480,6 +485,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       ...(anthropicOptions?.inferenceGeo && {
         inference_geo: anthropicOptions.inferenceGeo,
       }),
+      ...(anthropicOptions?.fallbacks &&
+        anthropicOptions.fallbacks.length > 0 && {
+          fallbacks: anthropicOptions.fallbacks,
+        }),
       ...(anthropicOptions?.cacheControl && {
         cache_control: anthropicOptions.cacheControl,
       }),
@@ -704,16 +713,16 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       }
     }
 
-    if (anthropicOptions?.effort) {
-      betas.add('effort-2025-11-24');
-    }
-
     if (anthropicOptions?.taskBudget) {
       betas.add('task-budgets-2026-03-13');
     }
 
     if (anthropicOptions?.speed === 'fast') {
       betas.add('fast-mode-2026-02-01');
+    }
+
+    if (anthropicOptions?.fallbacks && anthropicOptions.fallbacks.length > 0) {
+      betas.add('server-side-fallback-2026-06-01');
     }
 
     const defaultEagerInputStreaming =
@@ -1012,12 +1021,23 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             part.name === 'text_editor_code_execution' ||
             part.name === 'bash_code_execution'
           ) {
+            // map tool names for the code execution 20250825 tool:
+            // both map to 'code_execution'.
+            const providerToolName = 'code_execution';
             content.push({
               type: 'tool-call',
               toolCallId: part.id,
               toolName: toolNameMapping.toCustomToolName('code_execution'),
               input: JSON.stringify({ type: part.name, ...part.input }),
               providerExecuted: true,
+              // Specific 'web_fetch' or 'web_search' tools may need code execution, which the Anthropic API
+              // implicitly allows. In this scenario, we need to allow 'code_execution' tool calls even if the
+              // tool was not explicitly provided. We therefore bypass the general validation by marking the
+              // tool as dynamic.
+              ...(markCodeExecutionDynamic &&
+              providerToolName === 'code_execution'
+                ? { dynamic: true }
+                : {}),
             });
           } else if (
             part.name === 'web_search' ||
@@ -1040,8 +1060,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               toolName: toolNameMapping.toCustomToolName(part.name),
               input: JSON.stringify(inputToSerialize),
               providerExecuted: true,
-              // We want this 'code_execution' tool call to be allowed even if the tool is not explicitly provided.
-              // Since the validation generally bypasses dynamic tools, we mark this specific tool as dynamic.
+              // Specific 'web_fetch' or 'web_search' tools may need code execution, which the Anthropic API
+              // implicitly allows. In this scenario, we need to allow 'code_execution' tool calls even if the
+              // tool was not explicitly provided. We therefore bypass the general validation by marking the
+              // tool as dynamic.
               ...(markCodeExecutionDynamic && part.name === 'code_execution'
                 ? { dynamic: true }
                 : {}),
@@ -1055,6 +1077,14 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               type: 'tool-call',
               toolCallId: part.id,
               toolName: toolNameMapping.toCustomToolName(part.name),
+              input: JSON.stringify(part.input),
+              providerExecuted: true,
+            });
+          } else if (part.name === 'advisor') {
+            content.push({
+              type: 'tool-call',
+              toolCallId: part.id,
+              toolName: toolNameMapping.toCustomToolName('advisor'),
               input: JSON.stringify(part.input),
               providerExecuted: true,
             });
@@ -1276,6 +1306,51 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           }
           break;
         }
+
+        // advisor results for advisor_20260301:
+        case 'advisor_tool_result': {
+          const advisorToolName = toolNameMapping.toCustomToolName('advisor');
+          if (part.content.type === 'advisor_result') {
+            content.push({
+              type: 'tool-result',
+              toolCallId: part.tool_use_id,
+              toolName: advisorToolName,
+              result: {
+                type: 'advisor_result',
+                text: part.content.text,
+              },
+            });
+          } else if (part.content.type === 'advisor_redacted_result') {
+            content.push({
+              type: 'tool-result',
+              toolCallId: part.tool_use_id,
+              toolName: advisorToolName,
+              result: {
+                type: 'advisor_redacted_result',
+                encryptedContent: part.content.encrypted_content,
+              },
+            });
+          } else {
+            content.push({
+              type: 'tool-result',
+              toolCallId: part.tool_use_id,
+              toolName: advisorToolName,
+              isError: true,
+              result: {
+                type: 'advisor_tool_result_error',
+                errorCode: part.content.error_code,
+              },
+            });
+          }
+          break;
+        }
+
+        // Server-side fallback marker: the AI SDK has no content primitive for
+        // a model hop, so drop it. The hop is still observable via
+        // usage.iterations.
+        case 'fallback': {
+          break;
+        }
       }
     }
 
@@ -1298,16 +1373,34 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       },
       warnings,
       providerMetadata: (() => {
+        const stopDetails = mapAnthropicStopDetails(response.stop_details);
+
         const anthropicMetadata = {
           usage: response.usage as JSONObject,
           stopSequence: response.stop_sequence ?? null,
+          ...(stopDetails != null ? { stopDetails } : {}),
 
           iterations: response.usage.iterations
-            ? response.usage.iterations.map(iter => ({
-                type: iter.type,
-                inputTokens: iter.input_tokens,
-                outputTokens: iter.output_tokens,
-              }))
+            ? response.usage.iterations.map(
+                iter =>
+                  ({
+                    type: iter.type,
+                    ...(iter.model != null ? { model: iter.model } : {}),
+                    inputTokens: iter.input_tokens,
+                    outputTokens: iter.output_tokens,
+                    ...(iter.cache_creation_input_tokens
+                      ? {
+                          cacheCreationInputTokens:
+                            iter.cache_creation_input_tokens,
+                        }
+                      : {}),
+                    ...(iter.cache_read_input_tokens
+                      ? {
+                          cacheReadInputTokens: iter.cache_read_input_tokens,
+                        }
+                      : {}),
+                  }) satisfies AnthropicUsageIteration,
+              )
             : null,
           container: response.container
             ? {
@@ -1420,6 +1513,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       | null = null;
     let rawUsage: JSONObject | undefined = undefined;
     let stopSequence: string | null = null;
+    let stopDetails: AnthropicMessageMetadata['stopDetails'] = undefined;
     let container: AnthropicMessageMetadata['container'] | null = null;
     let isJsonResponseFromTool = false;
 
@@ -1435,6 +1529,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       | 'text_editor_code_execution_tool_result'
       | 'bash_code_execution_tool_result'
       | 'tool_search_tool_result'
+      | 'advisor_tool_result'
       | 'mcp_tool_use'
       | 'mcp_tool_result'
       | 'compaction'
@@ -1471,6 +1566,14 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             case 'content_block_start': {
               const part = value.content_block;
               const contentBlockType = part.type;
+
+              // Server-side fallback marker: the AI SDK has no content
+              // primitive for a model hop, so drop it. The hop is still
+              // observable via usage.iterations.
+              if (contentBlockType === 'fallback') {
+                return;
+              }
+
               blockType = contentBlockType;
 
               switch (contentBlockType) {
@@ -1616,12 +1719,16 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       toolName: customToolName,
                       input: finalInput,
                       providerExecuted: true,
+                      // Specific 'web_fetch' or 'web_search' tools may need code execution, which the Anthropic API
+                      // implicitly allows. In this scenario, we need to allow 'code_execution' tool calls even if the
+                      // tool was not explicitly provided. We therefore bypass the general validation by marking the
+                      // tool as dynamic.
                       ...(markCodeExecutionDynamic &&
                       providerToolName === 'code_execution'
                         ? { dynamic: true }
                         : {}),
                       firstDelta: true,
-                      providerToolName: part.name,
+                      providerToolName,
                     };
 
                     controller.enqueue({
@@ -1629,6 +1736,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       id: part.id,
                       toolName: customToolName,
                       providerExecuted: true,
+                      // Specific 'web_fetch' or 'web_search' tools may need code execution, which the Anthropic API
+                      // implicitly allows. In this scenario, we need to allow 'code_execution' tool calls even if the
+                      // tool was not explicitly provided. We therefore bypass the general validation by marking the
+                      // tool as dynamic.
                       ...(markCodeExecutionDynamic &&
                       providerToolName === 'code_execution'
                         ? { dynamic: true }
@@ -1648,6 +1759,26 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       toolCallId: part.id,
                       toolName: customToolName,
                       input: '',
+                      providerExecuted: true,
+                      firstDelta: true,
+                      providerToolName: part.name,
+                    };
+
+                    controller.enqueue({
+                      type: 'tool-input-start',
+                      id: part.id,
+                      toolName: customToolName,
+                      providerExecuted: true,
+                    });
+                  } else if (part.name === 'advisor') {
+                    const customToolName =
+                      toolNameMapping.toCustomToolName('advisor');
+
+                    contentBlocks[value.index] = {
+                      type: 'tool-call',
+                      toolCallId: part.id,
+                      toolName: customToolName,
+                      input: '{}',
                       providerExecuted: true,
                       firstDelta: true,
                       providerToolName: part.name,
@@ -1864,6 +1995,46 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                   return;
                 }
 
+                // advisor results for advisor_20260301:
+                // arrives fully formed in a single content_block_start (no deltas).
+                case 'advisor_tool_result': {
+                  const advisorToolName =
+                    toolNameMapping.toCustomToolName('advisor');
+                  if (part.content.type === 'advisor_result') {
+                    controller.enqueue({
+                      type: 'tool-result',
+                      toolCallId: part.tool_use_id,
+                      toolName: advisorToolName,
+                      result: {
+                        type: 'advisor_result',
+                        text: part.content.text,
+                      },
+                    });
+                  } else if (part.content.type === 'advisor_redacted_result') {
+                    controller.enqueue({
+                      type: 'tool-result',
+                      toolCallId: part.tool_use_id,
+                      toolName: advisorToolName,
+                      result: {
+                        type: 'advisor_redacted_result',
+                        encryptedContent: part.content.encrypted_content,
+                      },
+                    });
+                  } else {
+                    controller.enqueue({
+                      type: 'tool-result',
+                      toolCallId: part.tool_use_id,
+                      toolName: advisorToolName,
+                      isError: true,
+                      result: {
+                        type: 'advisor_tool_result_error',
+                        errorCode: part.content.error_code,
+                      },
+                    });
+                  }
+                  return;
+                }
+
                 case 'mcp_tool_use': {
                   mcpToolCalls[part.id] = {
                     type: 'tool-call',
@@ -1969,6 +2140,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                         toolName: contentBlock.toolName,
                         input: finalInput,
                         providerExecuted: contentBlock.providerExecuted,
+                        // Specific 'web_fetch' or 'web_search' tools may need code execution, which the Anthropic API
+                        // implicitly allows. In this scenario, we need to allow 'code_execution' tool calls even if the
+                        // tool was not explicitly provided. We therefore bypass the general validation by marking the
+                        // tool as dynamic.
                         ...(markCodeExecutionDynamic &&
                         contentBlock.providerToolName === 'code_execution'
                           ? { dynamic: true }
@@ -2082,12 +2257,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                     // the type to the delta and change the tool name.
                     if (
                       contentBlock.firstDelta &&
-                      (contentBlock.providerToolName ===
-                        'bash_code_execution' ||
-                        contentBlock.providerToolName ===
-                          'text_editor_code_execution')
+                      contentBlock.providerToolName === 'code_execution'
                     ) {
-                      delta = `{"type": "${contentBlock.providerToolName}",${delta.substring(1)}`;
+                      delta = `{"type": "programmatic-tool-call",${delta.substring(1)}`;
                     }
 
                     controller.enqueue({
@@ -2249,6 +2421,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               };
 
               stopSequence = value.delta.stop_sequence ?? null;
+              stopDetails = mapAnthropicStopDetails(value.delta.stop_details);
               container =
                 value.delta.container != null
                   ? {
@@ -2281,12 +2454,29 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               const anthropicMetadata = {
                 usage: (rawUsage as JSONObject) ?? null,
                 stopSequence,
+                ...(stopDetails != null ? { stopDetails } : {}),
                 iterations: usage.iterations
-                  ? usage.iterations.map(iter => ({
-                      type: iter.type,
-                      inputTokens: iter.input_tokens,
-                      outputTokens: iter.output_tokens,
-                    }))
+                  ? usage.iterations.map(
+                      iter =>
+                        ({
+                          type: iter.type,
+                          ...(iter.model != null ? { model: iter.model } : {}),
+                          inputTokens: iter.input_tokens,
+                          outputTokens: iter.output_tokens,
+                          ...(iter.cache_creation_input_tokens
+                            ? {
+                                cacheCreationInputTokens:
+                                  iter.cache_creation_input_tokens,
+                              }
+                            : {}),
+                          ...(iter.cache_read_input_tokens
+                            ? {
+                                cacheReadInputTokens:
+                                  iter.cache_read_input_tokens,
+                              }
+                            : {}),
+                        }) satisfies AnthropicUsageIteration,
+                    )
                   : null,
                 container,
                 contextManagement,
@@ -2383,7 +2573,11 @@ export function getModelCapabilities(modelId: string): {
   supportsXhighEffort: boolean;
   isKnownModel: boolean;
 } {
-  if (modelId.includes('claude-opus-4-7')) {
+  if (
+    modelId.includes('claude-opus-4-8') ||
+    modelId.includes('claude-opus-4-7') ||
+    modelId.includes('claude-fable-5')
+  ) {
     return {
       maxOutputTokens: 128000,
       supportsStructuredOutput: true,
@@ -2571,4 +2765,23 @@ function mapAnthropicResponseContextManagement(
           .filter(edit => edit !== undefined),
       }
     : null;
+}
+
+function mapAnthropicStopDetails(
+  stopDetails: AnthropicStopDetails | null | undefined,
+): AnthropicMessageMetadata['stopDetails'] | undefined {
+  if (stopDetails == null) {
+    return undefined;
+  }
+
+  return {
+    type: stopDetails.type,
+    ...(stopDetails.category != null ? { category: stopDetails.category } : {}),
+    ...(stopDetails.explanation != null
+      ? { explanation: stopDetails.explanation }
+      : {}),
+    ...(stopDetails.recommended_model != null
+      ? { recommendedModel: stopDetails.recommended_model }
+      : {}),
+  };
 }

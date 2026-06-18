@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 run(async () => {
   const result = streamText({
     model: huggingFace('meta-llama/Llama-3.1-8B-Instruct'),
-    system:
+    instructions:
       'You are a knowledgeable chef who loves to share cooking tips and recipes.',
     prompt: 'How do I make the perfect scrambled eggs?',
   });

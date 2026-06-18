@@ -2,6 +2,7 @@ import {
   UnsupportedFunctionalityError,
   type LanguageModelV4Prompt,
   type LanguageModelV4ToolResultOutput,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   convertToBase64,
@@ -16,6 +17,15 @@ import type {
   GoogleFunctionResponsePart,
   GooglePrompt,
 } from './google-prompt';
+
+/**
+ * Sentinel value Google documents for replaying functionCall parts whose
+ * original thoughtSignature is not available to the client.
+ *
+ * See https://ai.google.dev/gemini-api/docs/thought-signatures.
+ */
+export const SKIP_THOUGHT_SIGNATURE_VALIDATOR =
+  'skip_thought_signature_validator';
 
 const dataUrlRegex = /^data:([^;,]+);base64,(.+)$/s;
 
@@ -64,6 +74,7 @@ function appendToolResultParts(
     LanguageModelV4ToolResultOutput,
     { type: 'content' }
   >['value'],
+  toolCallId?: string,
 ): void {
   const functionResponseParts: GoogleFunctionResponsePart[] = [];
   const responseTextParts: string[] = [];
@@ -106,6 +117,7 @@ function appendToolResultParts(
 
   parts.push({
     functionResponse: {
+      ...(toolCallId != null ? { id: toolCallId } : {}),
       name: toolName,
       response: {
         name: toolName,
@@ -133,12 +145,14 @@ function appendLegacyToolResultParts(
     LanguageModelV4ToolResultOutput,
     { type: 'content' }
   >['value'],
+  toolCallId?: string,
 ): void {
   for (const contentPart of outputValue) {
     switch (contentPart.type) {
       case 'text':
         parts.push({
           functionResponse: {
+            ...(toolCallId != null ? { id: toolCallId } : {}),
             name: toolName,
             response: {
               name: toolName,
@@ -179,6 +193,8 @@ export function convertToGoogleMessages(
   prompt: LanguageModelV4Prompt,
   options?: {
     isGemmaModel?: boolean;
+    isGemini3Model?: boolean;
+    onWarning?: (warning: SharedV4Warning) => void;
     /**
      * Names to look up under `providerOptions` when reading per-part metadata
      * (e.g. thought signatures). Tried in order; first match wins. For the
@@ -193,10 +209,20 @@ export function convertToGoogleMessages(
   const contents: Array<GoogleContent> = [];
   let systemMessagesAllowed = true;
   const isGemmaModel = options?.isGemmaModel ?? false;
+  const isGemini3Model = options?.isGemini3Model ?? false;
+  const onWarning = options?.onWarning;
   const providerOptionsNames = options?.providerOptionsNames ?? ['google'];
   const isVertexLike = !providerOptionsNames.includes('google');
   const supportsFunctionResponseParts =
     options?.supportsFunctionResponseParts ?? true;
+
+  let sentinelInjected = false;
+  const missingSignatureToolNames: string[] = [];
+  const injectSkipSignature = (toolName: string) => {
+    missingSignatureToolNames.push(toolName);
+    sentinelInjected = true;
+    return SKIP_THOUGHT_SIGNATURE_VALIDATOR;
+  };
 
   const readProviderOpts = (part: {
     providerOptions?: Record<string, unknown> | undefined;
@@ -430,6 +456,11 @@ export function convertToGoogleMessages(
                     providerOpts?.serverToolType != null
                       ? String(providerOpts.serverToolType)
                       : undefined;
+                  const effectiveThoughtSignature =
+                    thoughtSignature ??
+                    (isGemini3Model
+                      ? injectSkipSignature(part.toolName)
+                      : undefined);
 
                   if (serverToolCallId && serverToolType) {
                     return {
@@ -441,16 +472,19 @@ export function convertToGoogleMessages(
                             : part.input,
                         id: serverToolCallId,
                       },
-                      thoughtSignature,
+                      thoughtSignature: effectiveThoughtSignature,
                     };
                   }
 
                   return {
                     functionCall: {
+                      ...(part.toolCallId != null
+                        ? { id: part.toolCallId }
+                        : {}),
                       name: part.toolName,
                       args: part.input,
                     },
-                    thoughtSignature,
+                    thoughtSignature: effectiveThoughtSignature,
                   };
                 }
 
@@ -533,13 +567,24 @@ export function convertToGoogleMessages(
 
           if (output.type === 'content') {
             if (supportsFunctionResponseParts) {
-              appendToolResultParts(parts, part.toolName, output.value);
+              appendToolResultParts(
+                parts,
+                part.toolName,
+                output.value,
+                part.toolCallId,
+              );
             } else {
-              appendLegacyToolResultParts(parts, part.toolName, output.value);
+              appendLegacyToolResultParts(
+                parts,
+                part.toolName,
+                output.value,
+                part.toolCallId,
+              );
             }
           } else {
             parts.push({
               functionResponse: {
+                ...(part.toolCallId != null ? { id: part.toolCallId } : {}),
                 name: part.toolName,
                 response: {
                   name: part.toolName,
@@ -573,6 +618,23 @@ export function convertToGoogleMessages(
       .join('\n\n');
 
     contents[0].parts.unshift({ text: systemText + '\n\n' });
+  }
+
+  if (sentinelInjected && onWarning != null) {
+    const uniqueToolNames = Array.from(new Set(missingSignatureToolNames));
+    onWarning({
+      type: 'other',
+      message:
+        `Replayed ${missingSignatureToolNames.length} \`functionCall\` part(s) ` +
+        `for a Gemini 3 model without a \`thoughtSignature\` ` +
+        `(tools: ${uniqueToolNames.map(name => `\`${name}\``).join(', ')}). ` +
+        `Injected the documented \`skip_thought_signature_validator\` sentinel ` +
+        `to keep the request from failing with HTTP 400. ` +
+        `The likely cause is application code that drops ` +
+        '`providerOptions.google.thoughtSignature` when persisting or ' +
+        'serializing assistant tool-call messages. ' +
+        'See https://ai.google.dev/gemini-api/docs/thought-signatures.',
+    });
   }
 
   return {

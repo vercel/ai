@@ -3,6 +3,7 @@
 import { useChat } from '@ai-sdk/react';
 import { WorkflowChatTransport } from '@ai-sdk/workflow';
 import { lastAssistantMessageIsCompleteWithApprovalResponses } from 'ai';
+import Link from 'next/link';
 import { useRef, useEffect, useMemo } from 'react';
 
 export default function Chat() {
@@ -33,6 +34,12 @@ export default function Chat() {
         <p className="text-sm text-gray-500">
           A workflow AI agent with weather, calculator, and file tools
         </p>
+        <Link
+          href="/telemetry"
+          className="mt-2 inline-block text-sm text-blue-600 hover:underline"
+        >
+          Open telemetry e2e harness
+        </Link>
       </header>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">

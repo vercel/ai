@@ -29,7 +29,17 @@ export type {
   /** @deprecated Use `GoogleVideoModelId` instead. */
   GoogleVideoModelId as GoogleGenerativeAIVideoModelId,
 } from './google-video-settings';
+export type {
+  GoogleSpeechModelOptions,
+  GoogleSpeechModelId,
+} from './google-speech-model-options';
 export type { GoogleFilesUploadOptions } from './google-files';
+export type {
+  GoogleLanguageModelInteractionsOptions,
+  GoogleInteractionsModelId,
+} from './interactions/google-interactions-language-model-options';
+export type { GoogleInteractionsProviderMetadata } from './interactions/google-interactions-provider-metadata';
+export type { GoogleInteractionsAgentName } from './interactions/google-interactions-agent';
 export {
   createGoogle,
   google,
@@ -44,5 +54,7 @@ export type {
   /** @deprecated Use `GoogleProviderSettings` instead. */
   GoogleProviderSettings as GoogleGenerativeAIProviderSettings,
 } from './google-provider';
+export { GoogleRealtimeModel as Experimental_GoogleRealtimeModel } from './realtime/google-realtime-model';
+export type { GoogleRealtimeModelConfig as Experimental_GoogleRealtimeModelConfig } from './realtime/google-realtime-model';
 
 export { VERSION } from './version';

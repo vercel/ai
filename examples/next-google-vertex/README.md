@@ -23,12 +23,10 @@ To run the example locally you need to:
 3. Choose one of the following authentication methods:
 
    **Option A: API Key (Express Mode - Recommended for getting started)**
-
    - Get an API key from the [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
    - Set `GOOGLE_VERTEX_API_KEY` in your environment
 
    **Option B: Service Account (OAuth)**
-
    - Create a [service account and download credentials](https://cloud.google.com/docs/authentication/getting-started)
    - Set `GOOGLE_CLIENT_EMAIL`, `GOOGLE_PRIVATE_KEY`, and optionally `GOOGLE_PRIVATE_KEY_ID`
    - Set `GOOGLE_VERTEX_PROJECT` and `GOOGLE_VERTEX_LOCATION`

@@ -267,7 +267,8 @@ For more customization options over your agent's web-access functionality, visit
 #### You.com
 
 <Note>
-  Get your API key from the [You.com API Keys page](https://you.com/platform/api-keys).
+  Get your API key from the [You.com API Keys
+  page](https://you.com/platform/api-keys).
 </Note>
 
 First, install the You.com AI SDK plugin:
@@ -281,7 +282,11 @@ Then, you can import and pass the tools into `generateText`, `streamText`, or yo
 ```ts
 import { generateText, isStepCount } from 'ai';
 __PROVIDER_IMPORT__;
-import { youSearch, youResearch, youContents } from '@youdotcom-oss/ai-sdk-plugin';
+import {
+  youSearch,
+  youResearch,
+  youContents,
+} from '@youdotcom-oss/ai-sdk-plugin';
 
 const { text } = await generateText({
   model: __MODEL__,

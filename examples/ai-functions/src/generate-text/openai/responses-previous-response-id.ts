@@ -12,7 +12,7 @@ run(async () => {
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
-  const providerMetadata = result1.providerMetadata as
+  const providerMetadata = result1.finalStep.providerMetadata as
     | OpenaiResponsesProviderMetadata
     | undefined;
   if (!providerMetadata) return;

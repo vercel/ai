@@ -15,11 +15,25 @@ import {
 } from '@ai-sdk/anthropic/internal';
 import type { GoogleVertexAnthropicModelId } from './google-vertex-anthropic-options';
 
+type GoogleVertexAnthropicTools = Pick<
+  typeof anthropicTools,
+  | 'bash_20241022'
+  | 'bash_20250124'
+  | 'textEditor_20241022'
+  | 'textEditor_20250124'
+  | 'textEditor_20250429'
+  | 'textEditor_20250728'
+  | 'computer_20241022'
+  | 'webSearch_20250305'
+  | 'toolSearchRegex_20251119'
+  | 'toolSearchBm25_20251119'
+>;
+
 /**
  * Tools supported by Google Vertex Anthropic.
  * This is a subset of the full Anthropic tools - only these are recognized by the Vertex API.
  */
-export const googleVertexAnthropicTools = {
+export const googleVertexAnthropicTools: GoogleVertexAnthropicTools = {
   /**
    * The bash tool enables Claude to execute shell commands in a persistent bash session,
    * allowing system operations, script execution, and command-line automation.
@@ -173,9 +187,19 @@ export function createGoogleVertexAnthropic(
       environmentVariableName: 'GOOGLE_VERTEX_PROJECT',
     });
 
+    const getHost = () => {
+      if (location === 'global') {
+        return 'aiplatform.googleapis.com';
+      } else if (location === 'eu' || location === 'us') {
+        return `aiplatform.${location}.rep.googleapis.com`;
+      } else {
+        return `${location}-aiplatform.googleapis.com`;
+      }
+    };
+
     return (
       withoutTrailingSlash(options.baseURL) ??
-      `https://${location === 'global' ? '' : location + '-'}aiplatform.googleapis.com/v1/projects/${project}/locations/${location}/publishers/anthropic/models`
+      `https://${getHost()}/v1/projects/${project}/locations/${location}/publishers/anthropic/models`
     );
   };
 

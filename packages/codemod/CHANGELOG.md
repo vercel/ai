@@ -1,5 +1,23 @@
 # @ai-sdk/codemod
 
+## 4.0.0-beta.8
+
+### Patch Changes
+
+- 9f12cd2: feat(codemods): add codemods for v6 to v7 migration
+
+## 4.0.0-beta.7
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+
+## 4.0.0-canary.6
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+
 ## 4.0.0-canary.5
 
 ### Patch Changes

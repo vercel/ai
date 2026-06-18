@@ -83,7 +83,7 @@ export async function submitUserMessage(input: string) {
 
   const ui = await streamUI({
     model: openai('gpt-4o'),
-    system: 'you are a flight booking assistant',
+    instructions: 'you are a flight booking assistant',
     prompt: input,
     text: async ({ content }) => <div>{content}</div>,
     tools: {

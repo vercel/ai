@@ -10,6 +10,13 @@ export const SUPPORTED_PROTOCOL_VERSIONS = [
   '2024-11-05',
 ];
 
+export type McpProviderMetadata = {
+  clientName?: string;
+  title?: string;
+  toolName?: string;
+  app?: JSONObject;
+};
+
 /** MCP tool metadata - keys should follow MCP _meta key format specification */
 const ToolMetaSchema = z.optional(z.record(z.string(), z.unknown()));
 export type ToolMeta = z.infer<typeof ToolMetaSchema>;
@@ -234,10 +241,24 @@ const EmbeddedResourceSchema = z
     resource: z.union([TextResourceContentsSchema, BlobResourceContentsSchema]),
   })
   .loose();
+const ResourceLinkContentSchema = z
+  .object({
+    type: z.literal('resource_link'),
+    uri: z.string(),
+    name: z.string(),
+    description: z.optional(z.string()),
+    mimeType: z.optional(z.string()),
+  })
+  .loose();
 
 export const CallToolResultSchema = ResultSchema.extend({
   content: z.array(
-    z.union([TextContentSchema, ImageContentSchema, EmbeddedResourceSchema]),
+    z.union([
+      TextContentSchema,
+      ImageContentSchema,
+      EmbeddedResourceSchema,
+      ResourceLinkContentSchema,
+    ]),
   ),
   /**
    * @see https://modelcontextprotocol.io/specification/2025-06-18/server/tools#structured-content
@@ -306,6 +327,7 @@ const PromptMessageSchema = z
       TextContentSchema,
       ImageContentSchema,
       EmbeddedResourceSchema,
+      ResourceLinkContentSchema,
     ]),
   })
   .loose();

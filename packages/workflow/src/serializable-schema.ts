@@ -43,7 +43,7 @@ export function serializeToolSet(
   return Object.fromEntries(
     Object.entries(tools).map(([name, t]) => {
       const def: SerializableToolDef = {
-        description: t.description,
+        description: t.description as string, // TODO support tools with function descriptions
         inputSchema: asSchema(t.inputSchema).jsonSchema as JSONSchema7,
       };
 

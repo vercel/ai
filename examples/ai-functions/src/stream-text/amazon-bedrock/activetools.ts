@@ -29,7 +29,7 @@ run(async () => {
     prompt: 'What is the weather in Toronto, Calgary, and Vancouver?',
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'start-step':
         console.log('Step started');

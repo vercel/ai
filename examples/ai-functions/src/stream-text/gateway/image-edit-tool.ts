@@ -20,7 +20,7 @@ run(async () => {
 
   let baseImageData: Uint8Array | null = null;
 
-  for await (const part of baseResult.fullStream) {
+  for await (const part of baseResult.stream) {
     if (part.type == 'tool-result' && !part.dynamic) {
       baseImageData = convertBase64ToUint8Array(part.output.result);
       await presentImages([
@@ -64,7 +64,7 @@ run(async () => {
     },
   });
 
-  for await (const part of editResult.fullStream) {
+  for await (const part of editResult.stream) {
     if (part.type == 'tool-result' && !part.dynamic) {
       await presentImages([
         {

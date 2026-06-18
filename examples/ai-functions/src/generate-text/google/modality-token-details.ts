@@ -20,9 +20,8 @@ run(async () => {
     ],
   });
 
-  const usageMetadata = result.providerMetadata?.google?.usageMetadata as
-    | Record<string, unknown>
-    | undefined;
+  const usageMetadata = result.finalStep.providerMetadata?.google
+    ?.usageMetadata as Record<string, unknown> | undefined;
 
   console.log(result.text);
   console.log();

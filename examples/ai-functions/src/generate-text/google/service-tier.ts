@@ -8,11 +8,14 @@ run(async () => {
     prompt: 'What color is the sky in one word?',
     providerOptions: {
       google: {
-        serviceTier: 'flex',
+        serviceTier: 'priority',
       } satisfies GoogleLanguageModelOptions,
     },
   });
 
   console.log(result.text);
-  console.log('serviceTier:', result.providerMetadata?.google?.serviceTier);
+  console.log(
+    'serviceTier:',
+    result.finalStep.providerMetadata?.google?.serviceTier,
+  );
 });

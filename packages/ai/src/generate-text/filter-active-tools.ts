@@ -1,7 +1,7 @@
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import type { ActiveTools } from './active-tools';
 
-type ActiveToolSubset<
+export type ActiveToolSubset<
   TOOLS extends ToolSet | undefined,
   ACTIVE_TOOL_NAMES extends ActiveTools<NonNullable<TOOLS>>,
 > = TOOLS extends undefined

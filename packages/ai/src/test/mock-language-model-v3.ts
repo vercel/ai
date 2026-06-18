@@ -49,7 +49,7 @@ export class MockLanguageModelV3 implements LanguageModelV3 {
       if (typeof doGenerate === 'function') {
         return await doGenerate(options);
       } else if (Array.isArray(doGenerate)) {
-        return doGenerate[this.doGenerateCalls.length];
+        return doGenerate[this.doGenerateCalls.length - 1];
       } else {
         return doGenerate;
       }
@@ -60,7 +60,7 @@ export class MockLanguageModelV3 implements LanguageModelV3 {
       if (typeof doStream === 'function') {
         return await doStream(options);
       } else if (Array.isArray(doStream)) {
-        return doStream[this.doStreamCalls.length];
+        return doStream[this.doStreamCalls.length - 1];
       } else {
         return doStream;
       }

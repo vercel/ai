@@ -801,7 +801,7 @@ const chunkBaseSchema = z.looseObject({
     z.object({
       delta: z
         .object({
-          role: z.enum(['assistant']).nullish(),
+          role: z.enum(['assistant', '']).nullish(),
           content: z.string().nullish(),
           // Most openai-compatible models set `reasoning_content`, but some
           // providers serving `gpt-oss` set `reasoning`. See #7866

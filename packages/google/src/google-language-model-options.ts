@@ -30,12 +30,15 @@ export type GoogleModelId =
   | 'gemini-3.1-flash-image-preview'
   | 'gemini-3.1-flash-lite-preview'
   | 'gemini-3.1-flash-tts-preview'
+  | 'gemini-3.5-flash'
   // latest version
   // https://ai.google.dev/gemini-api/docs/models#latest
   | 'gemini-pro-latest'
   | 'gemini-flash-latest'
   | 'gemini-flash-lite-latest'
   | 'deep-research-pro-preview-12-2025'
+  | 'deep-research-max-preview-04-2026'
+  | 'deep-research-preview-04-2026'
   | 'nano-banana-pro-preview'
   | 'aqa'
   // Experimental models
@@ -206,9 +209,31 @@ export const googleLanguageModelOptions = lazySchema(() =>
       streamFunctionCallArguments: z.boolean().optional(),
 
       /**
-       * Optional. The service tier to use for the request.
+       * Optional. The service tier to use for the request. Sent as the
+       * `serviceTier` body field. Gemini API only.
        */
       serviceTier: z.enum(['standard', 'flex', 'priority']).optional(),
+
+      /**
+       * Optional. Vertex AI only. Sent as the
+       * `X-Vertex-AI-LLM-Shared-Request-Type` request header to select a
+       * shared (PayGo) tier. With Provisioned Throughput allocated and
+       * `requestType` unset, the request falls back to this tier only if
+       * PT capacity is exhausted.
+       *
+       * https://docs.cloud.google.com/vertex-ai/generative-ai/docs/priority-paygo
+       * https://docs.cloud.google.com/vertex-ai/generative-ai/docs/flex-paygo
+       */
+      sharedRequestType: z.enum(['priority', 'flex', 'standard']).optional(),
+
+      /**
+       * Optional. Vertex AI only. Sent as the `X-Vertex-AI-LLM-Request-Type`
+       * request header. Set to `'shared'` together with `sharedRequestType`
+       * to bypass Provisioned Throughput entirely.
+       *
+       * https://docs.cloud.google.com/vertex-ai/generative-ai/docs/priority-paygo
+       */
+      requestType: z.enum(['shared']).optional(),
     }),
   ),
 );
@@ -216,10 +241,3 @@ export const googleLanguageModelOptions = lazySchema(() =>
 export type GoogleLanguageModelOptions = InferSchema<
   typeof googleLanguageModelOptions
 >;
-
-// Vertex API requires another service tier format.
-export const VertexServiceTierMap = {
-  standard: 'SERVICE_TIER_STANDARD',
-  flex: 'SERVICE_TIER_FLEX',
-  priority: 'SERVICE_TIER_PRIORITY',
-} as const;

@@ -17,8 +17,9 @@ export {
   type InferSchema,
   type InferToolInput,
   type InferToolOutput,
+  type Experimental_SandboxSession,
+  type Experimental_SandboxProcess,
   type Schema,
-  type SensitiveContext,
   type Tool,
   type ToolApprovalRequest,
   type ToolApprovalResponse,
@@ -39,6 +40,7 @@ export * from './generate-video';
 export * from './logger';
 export * from './middleware';
 export * from './prompt';
+export * from './realtime';
 export * from './registry';
 export * from './rerank';
 export * from './telemetry';

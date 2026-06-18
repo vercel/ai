@@ -1,14 +1,10 @@
 import { z } from 'zod/v4';
 
 export type XaiResponsesModelId =
-  | 'grok-4-1-fast-reasoning'
-  | 'grok-4-1-fast-non-reasoning'
-  | 'grok-4'
-  | 'grok-4-fast-non-reasoning'
-  | 'grok-4-fast-reasoning'
-  | 'grok-4.20-0309-non-reasoning'
-  | 'grok-4.20-0309-reasoning'
-  | 'grok-4.20-multi-agent-0309'
+  | 'grok-4.20-non-reasoning'
+  | 'grok-4.20-reasoning'
+  | 'grok-4.3'
+  | 'grok-latest'
   | (string & {});
 
 /**
@@ -17,9 +13,13 @@ export type XaiResponsesModelId =
 export const xaiLanguageModelResponsesOptions = z.object({
   /**
    * Constrains how hard a reasoning model thinks before responding.
-   * Possible values are `low` (uses fewer reasoning tokens), `medium` and `high` (uses more reasoning tokens).
+   * Possible values are `none` (disables reasoning entirely; supported by
+   * `grok-4.3` and newer reasoning models), `low` (uses fewer reasoning
+   * tokens), `medium`, and `high` (uses more reasoning tokens).
+   *
+   * @see https://docs.x.ai/docs/guides/reasoning
    */
-  reasoningEffort: z.enum(['low', 'medium', 'high']).optional(),
+  reasoningEffort: z.enum(['none', 'low', 'medium', 'high']).optional(),
   reasoningSummary: z.enum(['auto', 'concise', 'detailed']).optional(),
   logprobs: z.boolean().optional(),
   topLogprobs: z.number().int().min(0).max(8).optional(),

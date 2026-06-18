@@ -15,7 +15,7 @@ run(async () => {
   console.log('Finish reason:', result.finishReason);
   console.log(
     'Stop sequence:',
-    result.providerMetadata?.anthropic?.stopSequence,
+    result.finalStep.providerMetadata?.anthropic?.stopSequence,
   );
   console.log('Usage:', result.usage);
 });

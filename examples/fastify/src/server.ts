@@ -3,6 +3,7 @@ import {
   createUIMessageStream,
   createUIMessageStreamResponse,
   streamText,
+  toUIMessageStream,
 } from 'ai';
 import 'dotenv/config';
 import Fastify from 'fastify';
@@ -15,7 +16,11 @@ fastify.post('/', async function (_, reply) {
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
-  return reply.send(result.toUIMessageStreamResponse());
+  return reply.send(
+    createUIMessageStreamResponse({
+      stream: toUIMessageStream({ stream: result.stream }),
+    }),
+  );
 });
 
 fastify.post('/stream-data', async function (_, reply) {
@@ -38,7 +43,8 @@ fastify.post('/stream-data', async function (_, reply) {
       });
 
       writer.merge(
-        result.toUIMessageStream({
+        toUIMessageStream({
+          stream: result.stream,
           sendStart: false,
           onError: error => {
             // Error messages are masked by default for security reasons.

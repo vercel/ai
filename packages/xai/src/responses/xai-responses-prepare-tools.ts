@@ -4,6 +4,7 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import { validateTypes } from '@ai-sdk/provider-utils';
+import { removeAdditionalPropertiesFalse } from '../remove-additional-properties';
 import { fileSearchArgsSchema } from '../tool/file-search';
 import { mcpServerArgsSchema } from '../tool/mcp-server';
 import { webSearchArgsSchema } from '../tool/web-search';
@@ -53,6 +54,7 @@ export async function prepareResponsesTools({
             type: 'web_search',
             allowed_domains: args.allowedDomains,
             excluded_domains: args.excludedDomains,
+            enable_image_search: args.enableImageSearch,
             enable_image_understanding: args.enableImageUnderstanding,
           });
           break;
@@ -142,7 +144,7 @@ export async function prepareResponsesTools({
         type: 'function',
         name: tool.name,
         description: tool.description,
-        parameters: tool.inputSchema,
+        parameters: removeAdditionalPropertiesFalse(tool.inputSchema),
         ...(tool.strict != null ? { strict: tool.strict } : {}),
       });
     }
