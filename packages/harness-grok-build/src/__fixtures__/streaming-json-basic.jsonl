@@ -1,0 +1,140 @@
+{"type":"thought","data":"The"}
+{"type":"thought","data":" user"}
+{"type":"thought","data":" wants"}
+{"type":"thought","data":" me"}
+{"type":"thought","data":" to"}
+{"type":"thought","data":":\n"}
+{"type":"thought","data":"1"}
+{"type":"thought","data":"."}
+{"type":"thought","data":" Create"}
+{"type":"thought","data":" a"}
+{"type":"thought","data":" file"}
+{"type":"thought","data":" hello"}
+{"type":"thought","data":".txt"}
+{"type":"thought","data":" containing"}
+{"type":"thought","data":" the"}
+{"type":"thought","data":" text"}
+{"type":"thought","data":" \""}
+{"type":"thought","data":"hi"}
+{"type":"thought","data":"\""}
+{"type":"thought","data":"The"}
+{"type":"thought","data":" write"}
+{"type":"thought","data":" succeeded"}
+{"type":"thought","data":" but"}
+{"type":"thought","data":" the"}
+{"type":"thought","data":" read"}
+{"type":"thought","data":" failed"}
+{"type":"thought","data":"."}
+{"type":"thought","data":" The"}
+{"type":"thought","data":" file"}
+{"type":"thought","data":" path"}
+{"type":"thought","data":" might"}
+{"type":"thought","data":" be"}
+{"type":"thought","data":" different"}
+{"type":"thought","data":"."}
+{"type":"thought","data":" The"}
+{"type":"thought","data":" user"}
+{"type":"thought","data":"_info"}
+{"type":"thought","data":" says"}
+{"type":"thought","data":" \""}
+{"type":"thought","data":"Prefer"}
+{"type":"thought","data":" using"}
+{"type":"thought","data":" relative"}
+{"type":"thought","data":" paths"}
+{"type":"thought","data":" over"}
+{"type":"thought","data":" absolute"}
+{"type":"thought","data":" paths"}
+{"type":"thought","data":" as"}
+{"type":"thought","data":" tool"}
+{"type":"thought","data":" call"}
+{"type":"thought","data":" args"}
+{"type":"thought","data":" when"}
+{"type":"thought","data":" possible"}
+{"type":"thought","data":".\"\n"}
+{"type":"thought","data":"The"}
+{"type":"thought","data":" file"}
+{"type":"thought","data":" hello"}
+{"type":"thought","data":".txt"}
+{"type":"thought","data":" exists"}
+{"type":"thought","data":" in"}
+{"type":"thought","data":" the"}
+{"type":"thought","data":" directory"}
+{"type":"thought","data":" listing"}
+{"type":"thought","data":"."}
+{"type":"thought","data":" The"}
+{"type":"thought","data":" previous"}
+{"type":"thought","data":" read"}
+{"type":"thought","data":"_file"}
+{"type":"thought","data":" with"}
+{"type":"thought","data":" absolute"}
+{"type":"thought","data":" path"}
+{"type":"thought","data":" failed"}
+{"type":"thought","data":" for"}
+{"type":"thought","data":" some"}
+{"type":"thought","data":" reason"}
+{"type":"thought","data":"."}
+{"type":"thought","data":" I"}
+{"type":"thought","data":" should"}
+{"type":"thought","data":" try"}
+{"type":"thought","data":" reading"}
+{"type":"thought","data":" it"}
+{"type":"thought","data":" again"}
+{"type":"thought","data":","}
+{"type":"thought","data":" preferably"}
+{"type":"thought","data":" with"}
+{"type":"thought","data":" relative"}
+{"type":"thought","data":" path"}
+{"type":"thought","data":" \""}
+{"type":"thought","data":"hello"}
+{"type":"thought","data":".txt"}
+{"type":"thought","data":"\".\n"}
+{"type":"thought","data":"Now"}
+{"type":"thought","data":" it"}
+{"type":"thought","data":" worked"}
+{"type":"thought","data":"."}
+{"type":"thought","data":" The"}
+{"type":"thought","data":" file"}
+{"type":"thought","data":" hello"}
+{"type":"thought","data":".txt"}
+{"type":"thought","data":" was"}
+{"type":"thought","data":" created"}
+{"type":"thought","data":" with"}
+{"type":"thought","data":" content"}
+{"type":"thought","data":" \""}
+{"type":"thought","data":"hi"}
+{"type":"thought","data":"\""}
+{"type":"thought","data":" and"}
+{"type":"thought","data":" read"}
+{"type":"thought","data":" back"}
+{"type":"thought","data":" successfully"}
+{"type":"thought","data":".\n"}
+{"type":"text","data":"Done"}
+{"type":"text","data":"."}
+{"type":"text","data":" Created"}
+{"type":"text","data":" ["}
+{"type":"text","data":"hello"}
+{"type":"text","data":".txt"}
+{"type":"text","data":"](/"}
+{"type":"text","data":"Users"}
+{"type":"text","data":"/m"}
+{"type":"text","data":"lek"}
+{"type":"text","data":"hi"}
+{"type":"text","data":"/g"}
+{"type":"text","data":"rok"}
+{"type":"text","data":"-c"}
+{"type":"text","data":"apture"}
+{"type":"text","data":"/hello"}
+{"type":"text","data":".txt"}
+{"type":"text","data":")"}
+{"type":"text","data":" with"}
+{"type":"text","data":" content"}
+{"type":"text","data":" `"}
+{"type":"text","data":"hi"}
+{"type":"text","data":"`,"}
+{"type":"text","data":" and"}
+{"type":"text","data":" read"}
+{"type":"text","data":" it"}
+{"type":"text","data":" back"}
+{"type":"text","data":" successfully"}
+{"type":"text","data":"."}
+{"type":"end","stopReason":"EndTurn","sessionId":"019edb94-5baf-7d21-a522-0bd8a0eeb623","requestId":"88c192b4-e774-4a3c-8e76-4eb9f816cdee"}
