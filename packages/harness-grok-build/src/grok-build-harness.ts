@@ -307,7 +307,7 @@ export function createGrokBuild(
           new Error('grok-build bridge exited before becoming ready.'),
       });
       void drainRest(proc.stdout);
-      void forwardBridgeStderr(proc.stderr);
+      void forwardBridgeStderr(proc.stderr, startOpts.observability?.debug);
 
       const wsUrl =
         (await sandboxSession.getPortUrl({
@@ -374,9 +374,15 @@ function openWebSocket(url: string): Promise<WebSocket> {
   });
 }
 
+// Live-forward bridge stderr to the terminal only under debug. grok logs
+// recoverable errors (e.g. a spurious `grok-build` model probe that 404s) to
+// stderr mid-turn; printing those by default paints over TUI consumers. Fatal
+// exits still surface their stderr tail via the bridge's close handler.
 async function forwardBridgeStderr(
   stream: ReadableStream<Uint8Array>,
+  debug: HarnessV1DebugConfig | undefined,
 ): Promise<void> {
+  if (debug?.enabled !== true) return;
   try {
     const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
     while (true) {
