@@ -166,7 +166,7 @@ Remove the `| 'model-id'` line from union types and entries from const arrays in
 
 - Remove rows from capability tables in `.mdx` files.
 - Replace inline code examples and descriptions referencing the removed model with the successor.
-- Update community provider docs in `content/providers/03-community-providers/`.
+- Update community provider docs in `content/providers/05-community-providers/`.
 
 ### Step 5: Update Examples
 

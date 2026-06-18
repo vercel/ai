@@ -1,5 +1,46 @@
 # @ai-sdk/harness
 
+## 1.0.0-beta.20
+
+### Patch Changes
+
+- e5d4a24: chore(harness): update ws package
+- Updated dependencies [cc6ab90]
+  - ai@7.0.0-beta.182
+
+## 1.0.0-beta.19
+
+### Patch Changes
+
+- Updated dependencies [6a2caf9]
+  - ai@7.0.0-beta.181
+
+## 1.0.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [81a284b]
+  - ai@7.0.0-beta.180
+
+## 1.0.0-beta.17
+
+### Patch Changes
+
+- 534dac6: fix(harness): fix incomplete OIDC token support for AI Gateway auth in harness adapters
+
+## 1.0.0-beta.16
+
+### Patch Changes
+
+- ai@7.0.0-beta.179
+
+## 1.0.0-beta.15
+
+### Patch Changes
+
+- Updated dependencies [b097c52]
+  - ai@7.0.0-beta.178
+
 ## 1.0.0-beta.14
 
 ### Patch Changes

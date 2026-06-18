@@ -5,11 +5,12 @@
  * particularly for FatalError conversion to tool result errors,
  * and verifying that messages are properly passed to tool execute functions.
  */
-import type {
-  LanguageModelV4,
-  LanguageModelV4Prompt,
-  LanguageModelV4ToolCall,
-  LanguageModelV4ToolResultPart,
+import {
+  InvalidPromptError,
+  type LanguageModelV4,
+  type LanguageModelV4Prompt,
+  type LanguageModelV4ToolCall,
+  type LanguageModelV4ToolResultPart,
 } from '@ai-sdk/provider';
 import type { StepResult, ToolSet } from 'ai';
 import { describe, expect, it, vi } from 'vitest';
@@ -2841,6 +2842,73 @@ describe('WorkflowAgent', () => {
     });
   });
 
+  describe('allowSystemInMessages', () => {
+    const messagesWithSystem = [
+      { role: 'system', content: 'You are a helpful assistant.' },
+      { role: 'user', content: 'What is the weather?' },
+    ] as any;
+
+    function mockIteratorOnce() {
+      return import('./stream-text-iterator.js').then(
+        ({ streamTextIterator }) => {
+          const mockIterator = {
+            next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+          };
+          vi.mocked(streamTextIterator).mockReturnValue(
+            mockIterator as unknown as MockIterator,
+          );
+          return streamTextIterator;
+        },
+      );
+    }
+
+    it('should reject system messages in messages by default', async () => {
+      const agent = new WorkflowAgent({ model: createMockModel(), tools: {} });
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+      await mockIteratorOnce();
+
+      await expect(
+        agent.stream({ messages: messagesWithSystem, writable: mockWritable }),
+      ).rejects.toThrow(InvalidPromptError);
+    });
+
+    it('should reject system messages in prompt by default', async () => {
+      const agent = new WorkflowAgent({ model: createMockModel(), tools: {} });
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+      await mockIteratorOnce();
+
+      await expect(
+        agent.stream({ prompt: messagesWithSystem, writable: mockWritable }),
+      ).rejects.toThrow(InvalidPromptError);
+    });
+
+    it('should allow system messages when allowSystemInMessages is true', async () => {
+      const agent = new WorkflowAgent({
+        model: createMockModel(),
+        tools: {},
+        allowSystemInMessages: true,
+      });
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+      const streamTextIterator = await mockIteratorOnce();
+
+      await agent.stream({
+        messages: messagesWithSystem,
+        writable: mockWritable,
+      });
+
+      expect(streamTextIterator).toHaveBeenCalled();
+    });
+  });
+
   describe('tool call repair', () => {
     it('should pass repairToolCall through to streamTextIterator', async () => {
       const repairFn: ToolCallRepairFunction<ToolSet> = vi.fn();
@@ -3694,6 +3762,244 @@ describe('WorkflowAgent', () => {
 
       // Should proceed normally without any approval processing
       expect(mockIterator.next).toHaveBeenCalled();
+    });
+
+    // Regression for #14292: provider-executed tool approvals (e.g. MCP via
+    // the Responses API) must be forwarded to the provider on resume rather
+    // than silently dropped. The provider owns execution, so the approval
+    // response has to survive the approval-resume cleanup and reach the model.
+    function collectApprovalResponses(
+      prompt: ReadonlyArray<{ role: string; content: unknown }>,
+    ): Array<{ approvalId: string; approved: boolean }> {
+      const responses: Array<{ approvalId: string; approved: boolean }> = [];
+      for (const message of prompt) {
+        if (message.role !== 'tool' || !Array.isArray(message.content)) {
+          continue;
+        }
+        for (const part of message.content as any[]) {
+          if (part.type === 'tool-approval-response') {
+            responses.push({
+              approvalId: part.approvalId,
+              approved: part.approved,
+            });
+          }
+        }
+      }
+      return responses;
+    }
+
+    it('should forward an approved provider-executed approval to the provider', async () => {
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const mockIterator = {
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      // The provider-executed tool is not part of the agent's local tool set.
+      const agent = new WorkflowAgent({ model: createMockModel(), tools: {} });
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+
+      await agent.stream({
+        messages: [
+          { role: 'user', content: 'Search the docs.' },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'mcp_search',
+                input: { query: 'docs' },
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-approval-request',
+                approvalId: 'approval-call-1',
+                toolCallId: 'call-1',
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'approval-call-1',
+                approved: true,
+              },
+            ],
+          },
+        ] as any,
+        writable: mockWritable,
+      });
+
+      // The agent continues, and the provider receives the approval response.
+      const call = vi.mocked(streamTextIterator).mock.calls.at(-1)!;
+      const prompt = (call[0] as { prompt: any[] }).prompt;
+      expect(collectApprovalResponses(prompt)).toContainEqual({
+        approvalId: 'approval-call-1',
+        approved: true,
+      });
+    });
+
+    it('should forward a denied provider-executed approval to the provider', async () => {
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const mockIterator = {
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      const agent = new WorkflowAgent({ model: createMockModel(), tools: {} });
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+
+      await agent.stream({
+        messages: [
+          { role: 'user', content: 'Search the docs.' },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'mcp_search',
+                input: { query: 'docs' },
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-approval-request',
+                approvalId: 'approval-call-1',
+                toolCallId: 'call-1',
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'approval-call-1',
+                approved: false,
+              },
+            ],
+          },
+        ] as any,
+        writable: mockWritable,
+      });
+
+      const call = vi.mocked(streamTextIterator).mock.calls.at(-1)!;
+      const prompt = (call[0] as { prompt: any[] }).prompt;
+      expect(collectApprovalResponses(prompt)).toContainEqual({
+        approvalId: 'approval-call-1',
+        approved: false,
+      });
+    });
+
+    it('should execute local approvals while forwarding provider-executed ones', async () => {
+      const toolResult = { city: 'London', temperature: 72 };
+      const executeFn = vi.fn().mockResolvedValue(toolResult);
+      const tools: ToolSet = {
+        getWeather: {
+          description: 'Get weather',
+          inputSchema: z.object({ city: z.string() }),
+          execute: executeFn,
+          needsApproval: true as const,
+        },
+      };
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const mockIterator = {
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      const agent = new WorkflowAgent({ model: createMockModel(), tools });
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+
+      await agent.stream({
+        messages: [
+          { role: 'user', content: 'Weather in London and search the docs.' },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'local-1',
+                toolName: 'getWeather',
+                input: { city: 'London' },
+              },
+              {
+                type: 'tool-approval-request',
+                approvalId: 'approval-local-1',
+                toolCallId: 'local-1',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'provider-1',
+                toolName: 'mcp_search',
+                input: { query: 'docs' },
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-approval-request',
+                approvalId: 'approval-provider-1',
+                toolCallId: 'provider-1',
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'approval-local-1',
+                approved: true,
+              },
+              {
+                type: 'tool-approval-response',
+                approvalId: 'approval-provider-1',
+                approved: true,
+              },
+            ],
+          },
+        ] as any,
+        writable: mockWritable,
+      });
+
+      // Local approval executes locally.
+      expect(executeFn).toHaveBeenCalledTimes(1);
+      expect(executeFn).toHaveBeenCalledWith(
+        { city: 'London' },
+        expect.objectContaining({ toolCallId: 'local-1' }),
+      );
+
+      // Only the provider-executed approval response is forwarded; the local
+      // one is stripped and replaced by a tool result.
+      const call = vi.mocked(streamTextIterator).mock.calls.at(-1)!;
+      const prompt = (call[0] as { prompt: any[] }).prompt;
+      const forwarded = collectApprovalResponses(prompt);
+      expect(forwarded).toContainEqual({
+        approvalId: 'approval-provider-1',
+        approved: true,
+      });
+      expect(forwarded).not.toContainEqual({
+        approvalId: 'approval-local-1',
+        approved: true,
+      });
     });
   });
 });

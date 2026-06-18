@@ -252,4 +252,44 @@ describe('toUIMessageStream', () => {
       ],
     });
   });
+
+  it('calls onEnd when stream finishes', async () => {
+    const parts: TextStreamPart<{}>[] = [
+      { type: 'start' },
+      { type: 'text-start', id: 't1' },
+      { type: 'text-delta', id: 't1', text: 'Hello' },
+      { type: 'text-end', id: 't1' },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        rawFinishReason: 'stop',
+        totalUsage: testUsage,
+      },
+    ];
+    const onEnd = vi.fn();
+    const onFinish = vi.fn();
+
+    await convertReadableStreamToArray(
+      toUIMessageStream({
+        stream: convertArrayToReadableStream(parts),
+        tools: undefined,
+        generateMessageId: () => 'msg-123',
+        onEnd,
+        onFinish,
+      }),
+    );
+
+    expect(onEnd).toHaveBeenCalledTimes(1);
+    expect(onEnd.mock.calls[0][0]).toMatchObject({
+      isAborted: false,
+      isContinuation: false,
+      finishReason: 'stop',
+      responseMessage: {
+        id: 'msg-123',
+        role: 'assistant',
+        parts: [{ type: 'text', text: 'Hello' }],
+      },
+    });
+    expect(onFinish).not.toHaveBeenCalled();
+  });
 });
