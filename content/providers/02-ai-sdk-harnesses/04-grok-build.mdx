@@ -1,0 +1,170 @@
+---
+title: Grok Build
+description: Learn how to use the Grok Build harness adapter.
+---
+
+# Grok Build Harness
+
+The Grok Build harness adapter connects `HarnessAgent` to the `grok` CLI. The
+adapter runs a bridge inside the sandbox and streams the CLI's
+`--output-format streaming-json` events back to the host over a sandbox-exposed
+WebSocket.
+
+<Note>
+  Harness packages are **experimental**. Expect breaking changes between
+  releases as this early API gets further refined.
+</Note>
+
+## Setup
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet
+      text="pnpm add @ai-sdk/harness@beta @ai-sdk/harness-grok-build@beta @ai-sdk/sandbox-vercel@beta"
+      dark
+    />
+  </Tab>
+  <Tab>
+    <Snippet
+      text="npm install @ai-sdk/harness@beta @ai-sdk/harness-grok-build@beta @ai-sdk/sandbox-vercel@beta"
+      dark
+    />
+  </Tab>
+  <Tab>
+    <Snippet
+      text="yarn add @ai-sdk/harness@beta @ai-sdk/harness-grok-build@beta @ai-sdk/sandbox-vercel@beta"
+      dark
+    />
+  </Tab>
+  <Tab>
+    <Snippet
+      text="bun add @ai-sdk/harness@beta @ai-sdk/harness-grok-build@beta @ai-sdk/sandbox-vercel@beta"
+      dark
+    />
+  </Tab>
+</Tabs>
+
+The adapter installs the `grok` CLI inside the sandbox when the first session
+starts. This requires network egress for the bootstrap install.
+
+## Import
+
+```ts
+import { grokBuild, createGrokBuild } from '@ai-sdk/harness-grok-build';
+```
+
+`grokBuild` is equivalent to `createGrokBuild()` with its default configuration.
+
+## Basic Usage
+
+```ts
+import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { grokBuild } from '@ai-sdk/harness-grok-build';
+import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+
+const agent = new HarnessAgent({
+  harness: grokBuild,
+  sandbox: createVercelSandbox({
+    runtime: 'node24',
+    ports: [4000],
+  }),
+});
+
+const session = await agent.createSession();
+
+let exitCode = 0;
+try {
+  const result = await agent.stream({
+    session,
+    prompt: 'In one sentence, what is the capital of France?',
+  });
+
+  for await (const part of result.stream) {
+    if (part.type === 'text-delta') {
+      process.stdout.write(part.text);
+    }
+  }
+} catch (err) {
+  exitCode = 1;
+  console.error(err);
+} finally {
+  await session.destroy();
+  process.exit(exitCode);
+}
+```
+
+To use this agent, ensure environment variables include `VERCEL_OIDC_TOKEN` for
+Vercel Sandbox, and one of the variables listed under [authentication](#authentication)
+for Grok.
+
+## Adapter Settings
+
+Use `createGrokBuild()` to configure the runtime:
+
+```ts
+const harness = createGrokBuild({
+  model: 'grok-code-fast-1',
+  planMode: true,
+});
+```
+
+Settings:
+
+- `auth`: xAI or AI Gateway authentication settings.
+- `model`: Grok model id. If omitted, the adapter uses its pinned default.
+- `planMode`: run the CLI in plan mode.
+- `port`: bridge port override.
+- `startupTimeoutMs`: maximum time to wait for the bridge to start.
+
+## Authentication
+
+By default, authentication is resolved from the host environment and forwarded
+to the sandbox bridge. The adapter checks for AI Gateway and xAI credentials.
+
+Supported environment variables:
+
+- `XAI_API_KEY` (direct)
+- `AI_GATEWAY_API_KEY` (AI Gateway)
+- `VERCEL_OIDC_TOKEN` (AI Gateway)
+
+The CLI maps these internally to `GROK_MODELS_BASE_URL` / `GROK_CODE_XAI_API_KEY`.
+
+You can also pass explicit auth settings:
+
+```ts
+const harness = createGrokBuild({
+  auth: {
+    xai: {
+      apiKey: process.env.XAI_API_KEY,
+    },
+  },
+});
+```
+
+## Sandbox
+
+Grok Build requires a network sandbox with at least one exposed TCP port,
+e.g. `@ai-sdk/sandbox-vercel`:
+
+```ts
+const sandbox = createVercelSandbox({
+  runtime: 'node24',
+  ports: [4000],
+});
+```
+
+## Known limitations
+
+The grok CLI's `--output-format streaming-json` surface is narrow:
+
+- Streams reasoning and text only — no tool-call, tool-result, or file-change
+  events, and no token usage.
+- Allow-all permission mode only. The CLI runs with `--always-approve` and
+  executes tools itself; use `permissionMode: 'allow-all'`.
+- No compaction.
+
+## Related
+
+- [HarnessAgent](/docs/ai-sdk-harnesses/harness-agent)
+- [Harness tools](/docs/ai-sdk-harnesses/tools)
+- [Harness adapters](/docs/ai-sdk-harnesses/harness-adapters)
