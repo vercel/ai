@@ -690,9 +690,10 @@ type TranslationState = {
   toolCallsEmitted: Set<string>;
   toolResultsEmitted: Set<string>;
   shellCommands: Map<string, string>;
+  messageRoles: Map<string, string>;
   turnUsage: Record<string, unknown> | undefined;
-  legacyTextStarted: boolean;
-  legacyReasoningStarted: boolean;
+  legacyTextPartIds: Set<string>;
+  legacyReasoningPartIds: Set<string>;
 };
 
 function createTranslationState(): TranslationState {
@@ -704,9 +705,10 @@ function createTranslationState(): TranslationState {
     toolCallsEmitted: new Set(),
     toolResultsEmitted: new Set(),
     shellCommands: new Map(),
+    messageRoles: new Map(),
     turnUsage: undefined,
-    legacyTextStarted: false,
-    legacyReasoningStarted: false,
+    legacyTextPartIds: new Set(),
+    legacyReasoningPartIds: new Set(),
   };
 }
 
@@ -730,31 +732,48 @@ async function translateAndEmit({
   const type = event.type;
   const props = event.properties ?? {};
 
+  if (type === 'message.updated') {
+    const info = props.info;
+    if (isRecord(info)) {
+      const id = stringValue(info.id);
+      const role = stringValue(info.role);
+      if (id && role) state.messageRoles.set(id, role);
+    }
+    return;
+  }
+
   if (type === 'message.part.delta') {
     const field = String(props.field ?? '');
     const delta = String(props.delta ?? '');
     if (!delta) return;
+    const messageID = stringValue(props.messageID);
+    if (messageID && state.messageRoles.get(messageID) === 'user') return;
     if (field === 'text') {
-      const id = 'legacy-text';
-      if (!state.legacyTextStarted) {
-        state.legacyTextStarted = true;
-        emit({ type: 'text-start', id });
-      }
+      const id = legacyPartId({ value: props, fallback: 'legacy-text' });
+      startLegacyPart({ ids: state.legacyTextPartIds, id, emit, type: 'text' });
+      state.textDeltas.set(id, `${state.textDeltas.get(id) ?? ''}${delta}`);
       emit({ type: 'text-delta', id, delta });
       return;
     }
     if (field === 'reasoning') {
-      const id = 'legacy-reasoning';
-      if (!state.legacyReasoningStarted) {
-        state.legacyReasoningStarted = true;
-        emit({ type: 'reasoning-start', id });
-      }
+      const id = legacyPartId({ value: props, fallback: 'legacy-reasoning' });
+      startLegacyPart({
+        ids: state.legacyReasoningPartIds,
+        id,
+        emit,
+        type: 'reasoning',
+      });
+      state.reasoningDeltas.set(
+        id,
+        `${state.reasoningDeltas.get(id) ?? ''}${delta}`,
+      );
       emit({ type: 'reasoning-delta', id, delta });
     }
     return;
   }
 
   if (type === 'message.part.updated') {
+    if (emitLegacyTextPartUpdate({ part: props.part, state, emit })) return;
     emitLegacyToolPart({ part: props.part, state, emit });
     return;
   }
@@ -907,6 +926,7 @@ async function translateAndEmit({
     return;
   }
   if (type === 'session.next.step.ended') {
+    closeLegacyOpenParts({ state, emit });
     state.turnUsage = mapUsage(props.tokens);
     emit({
       type: 'finish-step',
@@ -967,6 +987,107 @@ async function translateAndEmit({
       event,
     });
   }
+}
+
+function legacyPartId({
+  value,
+  fallback,
+}: {
+  value: Record<string, unknown>;
+  fallback: string;
+}): string {
+  return stringValue(value.partID) ?? stringValue(value.id) ?? fallback;
+}
+
+function startLegacyPart({
+  ids,
+  id,
+  emit,
+  type,
+}: {
+  ids: Set<string>;
+  id: string;
+  emit: Emit;
+  type: 'text' | 'reasoning';
+}): void {
+  if (ids.has(id)) return;
+  ids.add(id);
+  emit({ type: `${type}-start`, id });
+}
+
+function emitLegacyTextPartUpdate({
+  part,
+  state,
+  emit,
+}: {
+  part: unknown;
+  state: TranslationState;
+  emit: Emit;
+}): boolean {
+  if (!isRecord(part)) return false;
+  if (part.type !== 'text' && part.type !== 'reasoning') return false;
+  const id = stringValue(part.id);
+  if (!id) return true;
+
+  const messageID = stringValue(part.messageID);
+  if (messageID && state.messageRoles.get(messageID) === 'user') return true;
+
+  const isReasoning = part.type === 'reasoning';
+  const ids = isReasoning
+    ? state.legacyReasoningPartIds
+    : state.legacyTextPartIds;
+  const deltaMap = isReasoning ? state.reasoningDeltas : state.textDeltas;
+  const deltaType = isReasoning ? 'reasoning-delta' : 'text-delta';
+  const text = typeof part.text === 'string' ? part.text : undefined;
+
+  startLegacyPart({
+    ids,
+    id,
+    emit,
+    type: isReasoning ? 'reasoning' : 'text',
+  });
+
+  if (text !== undefined) {
+    emitMissingFinalDelta({
+      id,
+      fullText: text,
+      emittedText: deltaMap.get(id) ?? '',
+      emit,
+      type: deltaType,
+    });
+    deltaMap.set(id, text);
+  }
+
+  if (legacyPartEnded(part)) {
+    ids.delete(id);
+    deltaMap.delete(id);
+    emit({ type: isReasoning ? 'reasoning-end' : 'text-end', id });
+  }
+
+  return true;
+}
+
+function legacyPartEnded(part: Record<string, unknown>): boolean {
+  return isRecord(part.time) && part.time.end != null;
+}
+
+function closeLegacyOpenParts({
+  state,
+  emit,
+}: {
+  state: TranslationState;
+  emit: Emit;
+}): void {
+  for (const id of state.legacyReasoningPartIds) {
+    emit({ type: 'reasoning-end', id });
+    state.reasoningDeltas.delete(id);
+  }
+  state.legacyReasoningPartIds.clear();
+  for (const id of state.legacyTextPartIds) {
+    emit({ type: 'text-end', id });
+    state.textDeltas.delete(id);
+  }
+  state.legacyTextPartIds.clear();
 }
 
 function emitLegacyToolPart({
