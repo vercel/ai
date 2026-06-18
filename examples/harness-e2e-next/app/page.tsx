@@ -42,6 +42,11 @@ const HARNESSES = [
       'weather-approval',
     ],
   },
+  {
+    slug: 'grok-build',
+    label: 'Grok Build',
+    variants: ['basic', 'basic-with-stop', 'ai-sdk-coding'],
+  },
 ] as const;
 
 const VARIANT_LABELS: Record<string, string> = Object.fromEntries(
