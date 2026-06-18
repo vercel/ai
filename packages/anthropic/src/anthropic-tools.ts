@@ -42,7 +42,7 @@ export const anthropicTools = {
    * Supported executor models: Claude Haiku 4.5, Sonnet 4.6, Opus 4.6,
    * Opus 4.7. The advisor must be at least as capable as the executor.
    *
-   * @param model - The advisor model ID (required), e.g. `"claude-opus-4-7"`.
+   * @param model - The advisor model ID (required), e.g. `"claude-opus-4-8"`.
    * @param maxUses - Maximum advisor calls per request (per-request cap).
    * @param caching - Enables prompt caching for the advisor's transcript
    * across calls within a conversation. Worthwhile from ~3 advisor calls

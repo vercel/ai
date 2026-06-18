@@ -64,7 +64,7 @@ Set up your `package.json` with:
 - `"sideEffects": false`
 - Dependencies on `@ai-sdk/provider` and `@ai-sdk/provider-utils` (use `workspace:*`)
 - Dev dependencies: `@ai-sdk/test-server`, `@types/node`, `@vercel/ai-tsconfig`, `tsup`, `typescript`, `zod`
-- `"engines": { "node": ">=18" }`
+- `"engines": { "node": ">=22" }`
 - Peer dependency on `zod` (both v3 and v4): `"zod": "^3.25.76 || ^4.1.8"`
 
 Example exports configuration:

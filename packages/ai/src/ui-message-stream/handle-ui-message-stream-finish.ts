@@ -7,11 +7,13 @@ import type { UIMessage } from '../ui/ui-messages';
 import type { ErrorHandler } from '../util/error-handler';
 import type { InferUIMessageChunk, UIMessageChunk } from './ui-message-chunks';
 import type { UIMessageStreamOnFinishCallback } from './ui-message-stream-on-finish-callback';
+import type { UIMessageStreamOnStepEndCallback } from './ui-message-stream-on-step-end-callback';
 import type { UIMessageStreamOnStepFinishCallback } from './ui-message-stream-on-step-finish-callback';
 
 export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
   messageId,
   originalMessages = [],
+  onStepEnd,
   onStepFinish,
   onFinish,
   onError,
@@ -33,7 +35,14 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
   onError: ErrorHandler;
 
   /**
-   * Callback that is called when each step finishes during multi-step agent runs.
+   * Callback that is called when each step ends during multi-step agent runs.
+   */
+  onStepEnd?: UIMessageStreamOnStepEndCallback<UI_MESSAGE>;
+
+  /**
+   * Callback that is called when each step ends during multi-step agent runs.
+   *
+   * @deprecated Use `onStepEnd` instead.
    */
   onStepFinish?: UIMessageStreamOnStepFinishCallback<UI_MESSAGE>;
 
@@ -77,7 +86,9 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
   );
 
   // Only process the stream if we need to track state for callbacks
-  if (onFinish == null && onStepFinish == null) {
+  const resolvedOnStepEnd = onStepEnd ?? onStepFinish;
+
+  if (onFinish == null && resolvedOnStepEnd == null) {
     return idInjectedStream;
   }
 
@@ -119,14 +130,14 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
   };
 
   const callOnStepFinish = async () => {
-    if (!onStepFinish) {
+    if (!resolvedOnStepEnd) {
       return;
     }
 
     const isContinuation = state.message.id === lastMessage?.id;
 
     try {
-      await onStepFinish({
+      await resolvedOnStepEnd({
         isContinuation,
         responseMessage: structuredClone(state.message) as UI_MESSAGE,
         messages: [

@@ -3,9 +3,12 @@ import {
   TestResponseController,
 } from '@ai-sdk/test-server/with-vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createMCPClient } from './mcp-client';
 import { HttpMCPTransport } from './mcp-http-transport';
 import { LATEST_PROTOCOL_VERSION } from './types';
 import { MCPClientError } from '../error/mcp-client-error';
+import type { OAuthClientProvider } from './oauth';
+import type { OAuthTokens } from './oauth-types';
 
 describe('HttpMCPTransport', () => {
   const server = createTestServer({
@@ -102,6 +105,58 @@ describe('HttpMCPTransport', () => {
       id: 2,
       result: { ok: true },
     });
+  });
+
+  it('should initialize MCP client from SSE response without explicit event field', async () => {
+    const controller = new TestResponseController();
+
+    server.urls['http://localhost:4000/stream'].response = ({ callNumber }) => {
+      switch (callNumber) {
+        case 0:
+          return { type: 'error', status: 405 };
+        case 1:
+          return {
+            type: 'controlled-stream',
+            controller,
+            headers: { 'content-type': 'text/event-stream' },
+          };
+        case 2:
+          return { type: 'empty', status: 202 };
+        default:
+          return { type: 'empty', status: 200 };
+      }
+    };
+
+    const clientPromise = createMCPClient({
+      transport: {
+        type: 'http',
+        url: 'http://localhost:4000/stream',
+      },
+    });
+
+    await vi.waitFor(() => {
+      expect(server.calls[1]?.requestMethod).toBe('POST');
+    });
+
+    controller.write(
+      `data: ${JSON.stringify({
+        jsonrpc: '2.0',
+        id: 0,
+        result: {
+          protocolVersion: LATEST_PROTOCOL_VERSION,
+          capabilities: {},
+          serverInfo: { name: 'test-server', version: '1.0.0' },
+        },
+      })}\n\n`,
+    );
+
+    const client = await clientPromise;
+    expect(client.serverInfo).toEqual({
+      name: 'test-server',
+      version: '1.0.0',
+    });
+
+    await client.close();
   });
 
   it('should (re)open inbound SSE after 202 Accepted', async () => {
@@ -220,6 +275,99 @@ describe('HttpMCPTransport', () => {
     const error = await errorPromise;
     expect(error).toBeInstanceOf(MCPClientError);
     expect((error as Error).message).toContain('POSTing to endpoint');
+    expect((error as MCPClientError).statusCode).toBe(500);
+    expect((error as MCPClientError).url).toBe('http://localhost:4000/mcp');
+    expect((error as MCPClientError).responseBody).toBe(
+      'Internal Server Error',
+    );
+  });
+
+  it('should expose HTTP status, URL, and response body on 404 from POST', async () => {
+    transport = new HttpMCPTransport({ url: 'http://localhost:4000/mcp' });
+
+    server.urls['http://localhost:4000/mcp'].response = {
+      type: 'error',
+      status: 404,
+      body: 'Not Found',
+    };
+
+    await transport.start();
+
+    let captured: unknown;
+    transport.onerror = e => {
+      captured = e;
+    };
+
+    await expect(
+      transport.send({
+        jsonrpc: '2.0' as const,
+        method: 'initialize',
+        id: 1,
+        params: {},
+      }),
+    ).rejects.toThrow('POSTing to endpoint');
+
+    expect(captured).toBeInstanceOf(MCPClientError);
+    const error = captured as MCPClientError;
+    expect(error.statusCode).toBe(404);
+    expect(error.url).toBe('http://localhost:4000/mcp');
+    expect(error.responseBody).toBe('Not Found');
+    expect(error.message).toContain('does not support HTTP transport');
+  });
+
+  it('should expose HTTP status and URL on GET SSE failure', async () => {
+    transport = new HttpMCPTransport({ url: 'http://localhost:4000/mcp' });
+
+    server.urls['http://localhost:4000/mcp'].response = {
+      type: 'error',
+      status: 503,
+      body: 'Service Unavailable',
+    };
+
+    let captured: unknown;
+    transport.onerror = e => {
+      captured = e;
+    };
+
+    await transport.start();
+
+    while (
+      !(server.calls.length > 0 && server.calls[0].requestMethod === 'GET')
+    ) {
+      await vi.advanceTimersByTimeAsync(0);
+    }
+
+    // Wait for the GET error handler to run
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(captured).toBeInstanceOf(MCPClientError);
+    const error = captured as MCPClientError;
+    expect(error.statusCode).toBe(503);
+    expect(error.url).toBe('http://localhost:4000/mcp');
+    expect(error.message).toContain('GET SSE failed');
+  });
+
+  it('should handle inbound SSE messages without explicit event field', async () => {
+    const controller = new TestResponseController();
+    server.urls['http://localhost:4000/mcp'].response = {
+      type: 'controlled-stream',
+      controller,
+      headers: { 'content-type': 'text/event-stream' },
+    };
+
+    const message = { jsonrpc: '2.0' as const, id: 1, result: { ok: true } };
+    const messagePromise = new Promise(resolve => {
+      transport.onmessage = msg => resolve(msg);
+    });
+
+    await transport.start();
+    await vi.waitFor(() => {
+      expect(server.calls[0]?.requestMethod).toBe('GET');
+    });
+
+    controller.write(`data: ${JSON.stringify(message)}\n\n`);
+
+    expect(await messagePromise).toEqual(message);
   });
 
   it('should handle invalid JSON-RPC messages from inbound SSE', async () => {
@@ -328,6 +476,140 @@ describe('HttpMCPTransport', () => {
       ...customHeaders,
     });
     expect(server.calls[1].requestUserAgent).toContain('ai-sdk/');
+  });
+
+  it('should deduplicate OAuth refresh when inbound SSE and initialize both get 401', async () => {
+    const trace: string[] = [];
+    let storedTokens: OAuthTokens = {
+      access_token: 'expired-access-token',
+      token_type: 'Bearer',
+      refresh_token: 'rotating-refresh-token',
+      authorization_server: 'http://localhost:4000/',
+      token_endpoint: 'http://localhost:4000/token',
+    };
+    let releaseRefresh: () => void;
+    const refreshGate = new Promise<void>(resolve => {
+      releaseRefresh = resolve;
+    });
+    const refreshRequests: URLSearchParams[] = [];
+
+    const authProvider: OAuthClientProvider = {
+      tokens: vi.fn(async () => storedTokens),
+      saveTokens: vi.fn(async tokens => {
+        storedTokens = tokens;
+      }),
+      redirectToAuthorization: vi.fn(),
+      saveCodeVerifier: vi.fn(),
+      codeVerifier: vi.fn(async () => 'verifier'),
+      redirectUrl: 'http://localhost:4000/callback',
+      clientMetadata: {
+        redirect_uris: ['http://localhost:4000/callback'],
+      },
+      clientInformation: vi.fn(async () => ({ client_id: 'test-client' })),
+    };
+
+    const fetchFn = vi.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = new URL(String(input));
+        const method = init?.method ?? 'GET';
+        const headers = new Headers(init?.headers);
+        trace.push(`${method} ${url.pathname}`);
+
+        if (url.href === 'http://localhost:4000/mcp') {
+          if (headers.get('authorization') === 'Bearer expired-access-token') {
+            trace.push(`${method} ${url.pathname} 401`);
+            return new Response(null, {
+              status: 401,
+              headers: {
+                'www-authenticate':
+                  'Bearer resource_metadata="http://localhost:4000/.well-known/oauth-protected-resource"',
+              },
+            });
+          }
+
+          if (method === 'GET') {
+            return new Response(null, { status: 405 });
+          }
+
+          if (
+            typeof init?.body === 'string' &&
+            init.body.includes('notifications/initialized')
+          ) {
+            return new Response(null, { status: 202 });
+          }
+
+          return Response.json({
+            jsonrpc: '2.0',
+            id: 0,
+            result: {
+              protocolVersion: LATEST_PROTOCOL_VERSION,
+              capabilities: {},
+              serverInfo: { name: 'test-server', version: '1.0.0' },
+            },
+          });
+        }
+
+        if (
+          url.href ===
+          'http://localhost:4000/.well-known/oauth-protected-resource'
+        ) {
+          return Response.json({
+            resource: 'http://localhost:4000',
+            authorization_servers: ['http://localhost:4000'],
+          });
+        }
+
+        if (
+          url.href ===
+          'http://localhost:4000/.well-known/oauth-authorization-server'
+        ) {
+          return Response.json({
+            issuer: 'http://localhost:4000',
+            authorization_endpoint: 'http://localhost:4000/authorize',
+            token_endpoint: 'http://localhost:4000/token',
+            response_types_supported: ['code'],
+            code_challenge_methods_supported: ['S256'],
+            grant_types_supported: ['refresh_token'],
+            token_endpoint_auth_methods_supported: ['none'],
+          });
+        }
+
+        if (url.href === 'http://localhost:4000/token') {
+          refreshRequests.push(init?.body as URLSearchParams);
+          await refreshGate;
+
+          return Response.json({
+            access_token: `refreshed-access-token-${refreshRequests.length}`,
+            token_type: 'Bearer',
+            refresh_token: `rotating-refresh-token-${refreshRequests.length}`,
+          });
+        }
+
+        return new Response(null, { status: 404 });
+      },
+    );
+
+    const clientPromise = createMCPClient({
+      transport: {
+        type: 'http',
+        url: 'http://localhost:4000/mcp',
+        authProvider,
+        fetch: fetchFn,
+      },
+    });
+
+    await vi.waitFor(() => {
+      expect(trace).toContain('GET /mcp 401');
+      expect(trace).toContain('POST /mcp 401');
+    });
+
+    expect(refreshRequests).toHaveLength(1);
+
+    releaseRefresh!();
+    const client = await clientPromise;
+    await client.close();
+
+    expect(refreshRequests).toHaveLength(1);
   });
 
   describe('redirect option', () => {

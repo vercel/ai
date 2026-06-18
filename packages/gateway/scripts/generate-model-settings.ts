@@ -45,6 +45,14 @@ const MODALITY_CONFIG: Record<
     outputFile: 'gateway-reranking-model-settings.ts',
     typeName: 'GatewayRerankingModelId',
   },
+  speech: {
+    outputFile: 'gateway-speech-model-settings.ts',
+    typeName: 'GatewaySpeechModelId',
+  },
+  transcription: {
+    outputFile: 'gateway-transcription-model-settings.ts',
+    typeName: 'GatewayTranscriptionModelId',
+  },
 };
 
 async function fetchModels(): Promise<ModelsResponse> {

@@ -23,7 +23,7 @@ async function main() {
     },
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'reasoning-delta':
         process.stdout.write(`\x1b[34m${part.text}\x1b[0m`);

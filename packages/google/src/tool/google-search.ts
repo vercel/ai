@@ -9,7 +9,7 @@ import { z } from 'zod/v4';
 // https://ai.google.dev/api/generate-content#GroundingSupport
 // https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/grounding-with-google-search
 
-const googleSearchToolArgsBaseSchema = z
+export const googleSearchToolArgsBaseSchema = z
   .object({
     searchTypes: z
       .object({

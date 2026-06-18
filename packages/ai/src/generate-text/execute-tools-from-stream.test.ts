@@ -1,7 +1,7 @@
 import {
   delay,
   tool,
-  type Experimental_Sandbox as Sandbox,
+  type Experimental_SandboxSession as SandboxSession,
 } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
@@ -9,6 +9,7 @@ import {
   mockId,
 } from '@ai-sdk/provider-utils/test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { mockSandboxSessionFileStubs } from '../test/mock-sandbox';
 import { z } from 'zod/v4';
 import { TypeValidationError } from '../error';
 import { asLanguageModelUsage } from '../types/usage';
@@ -50,7 +51,7 @@ const finishChunk = {
     outputTokensPerSecond: undefined,
     inputTokensPerSecond: undefined,
     effectiveTotalTokensPerSecond: 0,
-    timeToFirstOutputTokenMs: undefined,
+    timeToFirstOutputMs: undefined,
   },
 };
 
@@ -115,7 +116,7 @@ describe('executeToolsFromStream', () => {
               "inputTokensPerSecond": undefined,
               "outputTokensPerSecond": undefined,
               "responseTimeMs": 0,
-              "timeToFirstOutputTokenMs": undefined,
+              "timeToFirstOutputMs": undefined,
             },
             "rawFinishReason": "stop",
             "type": "model-call-end",
@@ -204,7 +205,7 @@ describe('executeToolsFromStream', () => {
               "inputTokensPerSecond": undefined,
               "outputTokensPerSecond": undefined,
               "responseTimeMs": 0,
-              "timeToFirstOutputTokenMs": undefined,
+              "timeToFirstOutputMs": undefined,
             },
             "rawFinishReason": "stop",
             "type": "model-call-end",
@@ -246,13 +247,14 @@ describe('executeToolsFromStream', () => {
   it('should pass sandbox to tool execution', async () => {
     const sandbox = {
       description: 'test sandbox',
-      runCommand: vi.fn(async () => ({
+      run: vi.fn(async () => ({
         exitCode: 0,
         stdout: 'ok',
         stderr: '',
       })),
-    } satisfies Sandbox;
-    let receivedSandbox: Sandbox | undefined;
+      ...mockSandboxSessionFileStubs,
+    } satisfies SandboxSession;
+    let receivedSandbox: SandboxSession | undefined;
 
     const tools = {
       sandboxTool: tool({
@@ -431,7 +433,7 @@ describe('executeToolsFromStream', () => {
               "inputTokensPerSecond": undefined,
               "outputTokensPerSecond": undefined,
               "responseTimeMs": 0,
-              "timeToFirstOutputTokenMs": undefined,
+              "timeToFirstOutputMs": undefined,
             },
             "rawFinishReason": "stop",
             "type": "model-call-end",
@@ -561,7 +563,7 @@ describe('executeToolsFromStream', () => {
               "inputTokensPerSecond": undefined,
               "outputTokensPerSecond": undefined,
               "responseTimeMs": 0,
-              "timeToFirstOutputTokenMs": undefined,
+              "timeToFirstOutputMs": undefined,
             },
             "rawFinishReason": "stop",
             "type": "model-call-end",
@@ -1226,7 +1228,7 @@ describe('executeToolsFromStream', () => {
               "inputTokensPerSecond": undefined,
               "outputTokensPerSecond": undefined,
               "responseTimeMs": 0,
-              "timeToFirstOutputTokenMs": undefined,
+              "timeToFirstOutputMs": undefined,
             },
             "rawFinishReason": "stop",
             "type": "model-call-end",
@@ -1322,7 +1324,7 @@ describe('executeToolsFromStream', () => {
               "inputTokensPerSecond": undefined,
               "outputTokensPerSecond": undefined,
               "responseTimeMs": 0,
-              "timeToFirstOutputTokenMs": undefined,
+              "timeToFirstOutputMs": undefined,
             },
             "rawFinishReason": "stop",
             "type": "model-call-end",

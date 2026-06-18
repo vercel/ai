@@ -1,5 +1,11 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { convertToModelMessages, isStepCount, streamText } from 'ai';
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  isStepCount,
+  streamText,
+  toUIMessageStream,
+} from 'ai';
 import { z } from 'zod';
 
 export default defineLazyEventHandler(async () => {
@@ -53,6 +59,8 @@ export default defineLazyEventHandler(async () => {
       },
     });
 
-    return result.toUIMessageStreamResponse();
+    return createUIMessageStreamResponse({
+      stream: toUIMessageStream({ stream: result.stream }),
+    });
   });
 });

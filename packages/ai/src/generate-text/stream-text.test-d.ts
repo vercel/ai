@@ -12,9 +12,67 @@ import type { Instructions } from '../prompt';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import type { AsyncIterableStream } from '../util';
 import type { DeepPartial } from '../util/deep-partial';
+import type { GenerateTextEndEvent } from './generate-text-events';
 import type { ResponseMessage } from './response-message';
+import type { StepResult } from './step-result';
 
 describe('streamText types', () => {
+  describe('onEnd', () => {
+    it('should expose end event properties', () => {
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        onEnd: event => {
+          expectTypeOf(event).toMatchTypeOf<GenerateTextEndEvent>();
+          expectTypeOf(event.totalUsage).toEqualTypeOf<
+            GenerateTextEndEvent['usage']
+          >();
+          expectTypeOf(event.reasoning).toEqualTypeOf<
+            StepResult<any>['reasoning']
+          >();
+          expectTypeOf(event.reasoningText).toEqualTypeOf<string | undefined>();
+          expectTypeOf(event.request).toEqualTypeOf<
+            StepResult<any>['request']
+          >();
+          expectTypeOf(event.response).toEqualTypeOf<
+            StepResult<any>['response']
+          >();
+          expectTypeOf(event.providerMetadata).toEqualTypeOf<
+            StepResult<any>['providerMetadata']
+          >();
+        },
+      });
+    });
+  });
+
+  describe('onFinish compatibility', () => {
+    it('should expose deprecated AI SDK 6 properties', () => {
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        onFinish: event => {
+          expectTypeOf(event).toMatchTypeOf<GenerateTextEndEvent>();
+          expectTypeOf(event.totalUsage).toEqualTypeOf<
+            GenerateTextEndEvent['usage']
+          >();
+          expectTypeOf(event.reasoning).toEqualTypeOf<
+            StepResult<any>['reasoning']
+          >();
+          expectTypeOf(event.reasoningText).toEqualTypeOf<string | undefined>();
+          expectTypeOf(event.request).toEqualTypeOf<
+            StepResult<any>['request']
+          >();
+          expectTypeOf(event.response).toEqualTypeOf<
+            StepResult<any>['response']
+          >();
+          expectTypeOf(event.providerMetadata).toEqualTypeOf<
+            StepResult<any>['providerMetadata']
+          >();
+        },
+      });
+    });
+  });
+
   describe('output', () => {
     it('should infer text output type (default)', async () => {
       const result = streamText({
@@ -153,6 +211,21 @@ describe('streamText types', () => {
 
       expectTypeOf<typeof result.partialOutputStream>().toEqualTypeOf<
         AsyncIterableStream<JSONValue>
+      >();
+    });
+  });
+
+  describe('stream', () => {
+    it('should infer stream part type', () => {
+      const result = streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello, world!',
+      });
+
+      const stream: AsyncIterableStream<unknown> = result.stream;
+
+      expectTypeOf<typeof stream>().toEqualTypeOf<
+        AsyncIterableStream<unknown>
       >();
     });
   });
@@ -392,19 +465,19 @@ describe('streamText types', () => {
         telemetry: {
           includeRuntimeContext: { userId: true },
         },
-        experimental_onStart: ({ runtimeContext }) => {
+        onStart: ({ runtimeContext }) => {
           expectTypeOf(runtimeContext).toEqualTypeOf<{
             userId: string;
             requestId: string;
           }>();
         },
-        experimental_onStepStart: ({ runtimeContext }) => {
+        onStepStart: ({ runtimeContext }) => {
           expectTypeOf(runtimeContext).toEqualTypeOf<{
             userId: string;
             requestId: string;
           }>();
         },
-        onStepFinish: ({ runtimeContext }) => {
+        onStepEnd: ({ runtimeContext }) => {
           expectTypeOf(runtimeContext).toEqualTypeOf<{
             userId: string;
             requestId: string;
@@ -517,10 +590,26 @@ describe('streamText types', () => {
           prepareStep: () => ({
             experimental_sandbox: {
               description: 'test sandbox',
-              runCommand: async () => ({
+              run: async () => ({
                 exitCode: 0,
                 stdout: 'ok',
                 stderr: '',
+              }),
+              readFile: async () => null,
+              readBinaryFile: async () => null,
+              readTextFile: async () => null,
+              writeFile: async () => {},
+              writeBinaryFile: async () => {},
+              writeTextFile: async () => {},
+              spawn: async () => ({
+                stdout: new ReadableStream<Uint8Array>({
+                  start: c => c.close(),
+                }),
+                stderr: new ReadableStream<Uint8Array>({
+                  start: c => c.close(),
+                }),
+                wait: async () => ({ exitCode: 0 }),
+                kill: async () => {},
               }),
             },
           }),

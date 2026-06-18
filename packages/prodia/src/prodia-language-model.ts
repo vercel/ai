@@ -221,7 +221,7 @@ export class ProdiaLanguageModel implements LanguageModelV4 {
       'job.json',
     );
     if (imageBytes) {
-      const ext =
+      const fileExtension =
         imageMediaType === 'image/png'
           ? '.png'
           : imageMediaType === 'image/jpeg'
@@ -232,7 +232,7 @@ export class ProdiaLanguageModel implements LanguageModelV4 {
       formData.append(
         'input',
         new Blob([imageBytes], { type: imageMediaType }),
-        'input' + ext,
+        'input' + fileExtension,
       );
     }
 

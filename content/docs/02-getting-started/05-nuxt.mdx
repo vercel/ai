@@ -15,7 +15,7 @@ If you are unfamiliar with the concepts of [Prompt Engineering](/docs/advanced/p
 
 To follow this quickstart, you'll need:
 
-- Node.js 18+ and pnpm installed on your local development machine.
+- Node.js 22+ and pnpm installed on your local development machine.
 - A [ Vercel AI Gateway ](https://vercel.com/ai-gateway) API key.
 
 If you haven't obtained your Vercel AI Gateway API key, you can do so by [signing up](https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai&title=Go+to+AI+Gateway) on the Vercel website.
@@ -101,6 +101,8 @@ import {
   UIMessage,
   convertToModelMessages,
   createGateway,
+  createUIMessageStreamResponse,
+  toUIMessageStream,
 } from 'ai';
 
 export default defineLazyEventHandler(async () => {
@@ -118,7 +120,9 @@ export default defineLazyEventHandler(async () => {
       messages: await convertToModelMessages(messages),
     });
 
-    return result.toUIMessageStreamResponse();
+    return createUIMessageStreamResponse({
+      stream: toUIMessageStream({ stream: result.stream }),
+    });
   });
 });
 ```
@@ -128,7 +132,7 @@ Let's take a look at what is happening in this code:
 1. Create a gateway provider instance with the `createGateway` function from the `ai` package.
 2. Define an Event Handler and extract `messages` from the body of the request. The `messages` variable contains a history of the conversation between you and the chatbot and provides the chatbot with the necessary context to make the next generation. The `messages` are of UIMessage type, which are designed for use in application UI - they contain the entire message history and associated metadata like timestamps.
 3. Call [`streamText`](/docs/reference/ai-sdk-core/stream-text), which is imported from the `ai` package. This function accepts a configuration object that contains a `model` provider (defined in step 1) and `messages` (defined in step 2). You can pass additional [settings](/docs/ai-sdk-core/settings) to further customize the model's behavior. The `messages` key expects a `ModelMessage[]` array. This type is different from `UIMessage` in that it does not include metadata, such as timestamps or sender information. To convert between these types, we use the `convertToModelMessages` function, which strips the UI-specific metadata and transforms the `UIMessage[]` array into the `ModelMessage[]` format that the model expects.
-4. The `streamText` function returns a [`StreamTextResult`](/docs/reference/ai-sdk-core/stream-text#result). This result object contains the [ `toUIMessageStreamResponse` ](/docs/reference/ai-sdk-core/stream-text#to-ui-message-stream-response) function which converts the result to a streamed response object.
+4. The `streamText` function returns a [`StreamTextResult`](/docs/reference/ai-sdk-core/stream-text#result). Pass its `stream` to `toUIMessageStream` and return it with `createUIMessageStreamResponse` to create a streamed response object.
 5. Return the result to the client to stream the response.
 
 ## Choosing a Provider
@@ -190,22 +194,22 @@ Update your root page (`pages/index.vue`) with the following code to show a list
 
 ```typescript filename="pages/index.vue"
 <script setup lang="ts">
-import { Chat } from "@ai-sdk/vue";
+import { useChat } from "@ai-sdk/vue";
 import { ref } from "vue";
 
 const input = ref("");
-const chat = new Chat({});
+const { messages, sendMessage } = useChat();
 
 const handleSubmit = (e: Event) => {
     e.preventDefault();
-    chat.sendMessage({ text: input.value });
+    sendMessage({ text: input.value });
     input.value = "";
 };
 </script>
 
 <template>
     <div>
-        <div v-for="(m, index) in chat.messages" :key="m.id ? m.id : index">
+        <div v-for="(m, index) in messages" :key="m.id ? m.id : index">
             {{ m.role === "user" ? "User: " : "AI: " }}
             <div
                 v-for="(part, index) in m.parts"
@@ -258,13 +262,15 @@ Let's enhance your chatbot by adding a simple weather tool.
 
 Modify your `server/api/chat.ts` file to include the new weather tool:
 
-```typescript filename="server/api/chat.ts" highlight="1,16-32"
+```typescript filename="server/api/chat.ts" highlight="1,18-34"
 import {
   createGateway,
   streamText,
   UIMessage,
   convertToModelMessages,
   tool,
+  createUIMessageStreamResponse,
+  toUIMessageStream,
 } from 'ai';
 import { z } from 'zod';
 
@@ -300,7 +306,9 @@ export default defineLazyEventHandler(async () => {
       },
     });
 
-    return result.toUIMessageStreamResponse();
+    return createUIMessageStreamResponse({
+      stream: toUIMessageStream({ stream: result.stream }),
+    });
   });
 });
 ```
@@ -331,22 +339,22 @@ To display the tool invocation in your UI, update your `pages/index.vue` file:
 
 ```typescript filename="pages/index.vue" highlight="16-18"
 <script setup lang="ts">
-import { Chat } from "@ai-sdk/vue";
+import { useChat } from "@ai-sdk/vue";
 import { ref } from "vue";
 
 const input = ref("");
-const chat = new Chat({});
+const { messages, sendMessage } = useChat();
 
 const handleSubmit = (e: Event) => {
     e.preventDefault();
-    chat.sendMessage({ text: input.value });
+    sendMessage({ text: input.value });
     input.value = "";
 };
 </script>
 
 <template>
     <div>
-        <div v-for="(m, index) in chat.messages" :key="m.id ? m.id : index">
+        <div v-for="(m, index) in messages" :key="m.id ? m.id : index">
             {{ m.role === "user" ? "User: " : "AI: " }}
             <div
                 v-for="(part, index) in m.parts"
@@ -378,7 +386,7 @@ To solve this, you can enable multi-step tool calls using `stopWhen`. By default
 
 Modify your `server/api/chat.ts` file to include the `stopWhen` condition:
 
-```typescript filename="server/api/chat.ts" highlight="22"
+```typescript filename="server/api/chat.ts" highlight="26"
 import {
   createGateway,
   streamText,
@@ -386,6 +394,8 @@ import {
   convertToModelMessages,
   tool,
   isStepCount,
+  createUIMessageStreamResponse,
+  toUIMessageStream,
 } from 'ai';
 import { z } from 'zod';
 
@@ -422,7 +432,9 @@ export default defineLazyEventHandler(async () => {
       },
     });
 
-    return result.toUIMessageStreamResponse();
+    return createUIMessageStreamResponse({
+      stream: toUIMessageStream({ stream: result.stream }),
+    });
   });
 });
 ```
@@ -435,7 +447,7 @@ By setting `stopWhen: isStepCount(5)`, you're allowing the model to use up to 5 
 
 Update your `server/api/chat.ts` file to add a new tool to convert the temperature from Fahrenheit to Celsius:
 
-```typescript filename="server/api/chat.ts" highlight="32-45"
+```typescript filename="server/api/chat.ts" highlight="34-47"
 import {
   createGateway,
   streamText,
@@ -443,6 +455,8 @@ import {
   convertToModelMessages,
   tool,
   isStepCount,
+  createUIMessageStreamResponse,
+  toUIMessageStream,
 } from 'ai';
 import { z } from 'zod';
 
@@ -493,7 +507,9 @@ export default defineLazyEventHandler(async () => {
       },
     });
 
-    return result.toUIMessageStreamResponse();
+    return createUIMessageStreamResponse({
+      stream: toUIMessageStream({ stream: result.stream }),
+    });
   });
 });
 ```
@@ -504,22 +520,22 @@ Update your UI to handle the new temperature conversion tool by modifying the to
 
 ```typescript filename="pages/index.vue" highlight="24"
 <script setup lang="ts">
-import { Chat } from "@ai-sdk/vue";
+import { useChat } from "@ai-sdk/vue";
 import { ref } from "vue";
 
 const input = ref("");
-const chat = new Chat({});
+const { messages, sendMessage } = useChat();
 
 const handleSubmit = (e: Event) => {
     e.preventDefault();
-    chat.sendMessage({ text: input.value });
+    sendMessage({ text: input.value });
     input.value = "";
 };
 </script>
 
 <template>
     <div>
-        <div v-for="(m, index) in chat.messages" :key="m.id ? m.id : index">
+        <div v-for="(m, index) in messages" :key="m.id ? m.id : index">
             {{ m.role === "user" ? "User: " : "AI: " }}
             <div
                 v-for="(part, index) in m.parts"

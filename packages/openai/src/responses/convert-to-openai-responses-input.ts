@@ -61,6 +61,7 @@ export async function convertToOpenAIResponsesInput({
   passThroughUnsupportedFiles = false,
   store,
   hasConversation = false,
+  hasPreviousResponseId = false,
   hasLocalShellTool = false,
   hasShellTool = false,
   hasApplyPatchTool = false,
@@ -75,6 +76,7 @@ export async function convertToOpenAIResponsesInput({
   passThroughUnsupportedFiles?: boolean;
   store: boolean;
   hasConversation?: boolean; // when true, skip assistant messages that already have item IDs
+  hasPreviousResponseId?: boolean; // when true, skip reasoning and function-call items that already exist in the previous response chain
   hasLocalShellTool?: boolean;
   hasShellTool?: boolean;
   hasApplyPatchTool?: boolean;
@@ -220,9 +222,10 @@ export async function convertToOpenAIResponsesInput({
         for (const part of content) {
           switch (part.type) {
             case 'text': {
-              const providerOpts = part.providerOptions?.[providerOptionsName];
-              const id = providerOpts?.itemId as string | undefined;
-              const phase = providerOpts?.phase as
+              const providerOptions =
+                part.providerOptions?.[providerOptionsName];
+              const id = providerOptions?.itemId as string | undefined;
+              const phase = providerOptions?.phase as
                 | 'commentary'
                 | 'final_answer'
                 | null
@@ -257,6 +260,18 @@ export async function convertToOpenAIResponsesInput({
                     };
                   }
                 ).providerMetadata?.[providerOptionsName]?.itemId) as
+                | string
+                | undefined;
+
+              const namespace = (part.providerOptions?.[providerOptionsName]
+                ?.namespace ??
+                (
+                  part as {
+                    providerMetadata?: {
+                      [providerOptionsName]?: { namespace?: string };
+                    };
+                  }
+                ).providerMetadata?.[providerOptionsName]?.namespace) as
                 | string
                 | undefined;
 
@@ -306,7 +321,29 @@ export async function convertToOpenAIResponsesInput({
                 break;
               }
 
-              if (store && id != null) {
+              // When chaining with a previous response id, items already part
+              // of that response chain must not be resent.
+              if (hasPreviousResponseId && store && id != null) {
+                break;
+              }
+
+              // Provider-defined tool calls (local_shell, shell, apply_patch,
+              // and custom tools) are stored by the API and can be sent as an
+              // `item_reference` to reduce payload size. Plain client-executed
+              // function calls must NOT be: the matching `function_call_output`
+              // can only reference the call by `call_id` (`call_...`), which
+              // the API cannot reconcile with an item id (`fc_...`) or an
+              // `item_reference`. Sending either breaks call/output pairing and
+              // makes follow-up requests fail with "No tool call found for
+              // function call output with call_id", most visibly with parallel
+              // tool calls across multiple steps.
+              const isProviderDefinedToolCall =
+                (hasLocalShellTool && resolvedToolName === 'local_shell') ||
+                (hasShellTool && resolvedToolName === 'shell') ||
+                (hasApplyPatchTool && resolvedToolName === 'apply_patch') ||
+                (customProviderToolNames?.has(resolvedToolName) ?? false);
+
+              if (store && id != null && isProviderDefinedToolCall) {
                 input.push({ type: 'item_reference', id });
                 break;
               }
@@ -388,7 +425,7 @@ export async function convertToOpenAIResponsesInput({
                 call_id: part.toolCallId,
                 name: resolvedToolName,
                 arguments: serializeToolCallArguments(part.input),
-                id,
+                ...(namespace != null && { namespace }),
               });
               break;
             }
@@ -505,7 +542,10 @@ export async function convertToOpenAIResponsesInput({
 
               const reasoningId = providerOptions?.itemId;
 
-              if (hasConversation && reasoningId != null) {
+              if (
+                (hasConversation || hasPreviousResponseId) &&
+                reasoningId != null
+              ) {
                 break;
               }
 
@@ -599,9 +639,9 @@ export async function convertToOpenAIResponsesInput({
 
             case 'custom': {
               if (part.kind === 'openai.compaction') {
-                const providerOpts =
+                const providerOptions =
                   part.providerOptions?.[providerOptionsName];
-                const id = providerOpts?.itemId as string | undefined;
+                const id = providerOptions?.itemId as string | undefined;
 
                 if (hasConversation && id != null) {
                   break;
@@ -612,7 +652,7 @@ export async function convertToOpenAIResponsesInput({
                   break;
                 }
 
-                const encryptedContent = providerOpts?.encryptedContent as
+                const encryptedContent = providerOptions?.encryptedContent as
                   | string
                   | undefined;
 

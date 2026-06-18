@@ -1247,7 +1247,6 @@ describe('convertToOpenAIResponsesInput', () => {
           {
             "arguments": "{}",
             "call_id": "call_123",
-            "id": undefined,
             "name": "search",
             "type": "function_call",
           },
@@ -1255,7 +1254,7 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
 
-    it('should convert messages with tool call parts that have ids', async () => {
+    it('should convert text parts with ids to item_reference but not client-executed tool calls', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
         prompt: [
@@ -1297,8 +1296,10 @@ describe('convertToOpenAIResponsesInput', () => {
             "type": "item_reference",
           },
           {
-            "id": "id_456",
-            "type": "item_reference",
+            "arguments": "{"query":"weather in San Francisco"}",
+            "call_id": "call_123",
+            "name": "search",
+            "type": "function_call",
           },
         ]
       `);
@@ -1343,6 +1344,236 @@ describe('convertToOpenAIResponsesInput', () => {
           call_id: 'call_456',
           name: 'calculator',
           arguments: JSON.stringify({ expression: '2 + 2' }),
+        },
+      ]);
+    });
+
+    // A client-executed function_call_output can only reference its call by
+    // call_id (call_...). The model-assigned item id (fc_...) cannot be used
+    // to pair them, so the function_call must be sent in full without the item
+    // id and without an item_reference. Otherwise the API rejects follow-up
+    // requests with "No tool call found for function call output with call_id",
+    // most visibly with parallel tool calls across multiple steps.
+    it('should send client-executed tool calls as function_call items without item id (store: false)', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_a',
+                toolName: 'search',
+                input: { query: 'first' },
+                providerOptions: { openai: { itemId: 'fc_a' } },
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call_b',
+                toolName: 'search',
+                input: { query: 'second' },
+                providerOptions: { openai: { itemId: 'fc_b' } },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_a',
+                toolName: 'search',
+                output: { type: 'json', value: { results: [] } },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call_b',
+                toolName: 'search',
+                output: { type: 'json', value: { results: ['x'] } },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call',
+          call_id: 'call_a',
+          name: 'search',
+          arguments: JSON.stringify({ query: 'first' }),
+        },
+        {
+          type: 'function_call',
+          call_id: 'call_b',
+          name: 'search',
+          arguments: JSON.stringify({ query: 'second' }),
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'call_a',
+          output: JSON.stringify({ results: [] }),
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'call_b',
+          output: JSON.stringify({ results: ['x'] }),
+        },
+      ]);
+    });
+
+    it('should not use item_reference for client-executed tool calls (store: true)', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_a',
+                toolName: 'search',
+                input: { query: 'first' },
+                providerOptions: { openai: { itemId: 'fc_a' } },
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call_b',
+                toolName: 'search',
+                input: { query: 'second' },
+                providerOptions: { openai: { itemId: 'fc_b' } },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_a',
+                toolName: 'search',
+                output: { type: 'json', value: { results: [] } },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call_b',
+                toolName: 'search',
+                output: { type: 'json', value: { results: ['x'] } },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call',
+          call_id: 'call_a',
+          name: 'search',
+          arguments: JSON.stringify({ query: 'first' }),
+        },
+        {
+          type: 'function_call',
+          call_id: 'call_b',
+          name: 'search',
+          arguments: JSON.stringify({ query: 'second' }),
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'call_a',
+          output: JSON.stringify({ results: [] }),
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'call_b',
+          output: JSON.stringify({ results: ['x'] }),
+        },
+      ]);
+    });
+
+    it('should round-trip namespace on tool call parts dispatched by tool_search', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_123',
+                toolName: 'get_weather',
+                input: { location: 'Tokyo' },
+                // Cast: `providerMetadata` isn't on `LanguageModelV4ToolCallPart`,
+                // but the read side writes it onto runtime tool-call parts.
+                ...({
+                  providerMetadata: {
+                    openai: {
+                      itemId: 'fc_abc',
+                      namespace: 'weather_tools',
+                    },
+                  },
+                } as object),
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call',
+          call_id: 'call_123',
+          name: 'get_weather',
+          arguments: JSON.stringify({ location: 'Tokyo' }),
+          namespace: 'weather_tools',
+        },
+      ]);
+    });
+
+    it('should round-trip namespace from providerOptions on tool call parts', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_123',
+                toolName: 'get_weather',
+                input: { location: 'Tokyo' },
+                providerOptions: {
+                  openai: {
+                    itemId: 'fc_abc',
+                    namespace: 'weather_tools',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call',
+          call_id: 'call_123',
+          name: 'get_weather',
+          arguments: JSON.stringify({ location: 'Tokyo' }),
+          namespace: 'weather_tools',
         },
       ]);
     });
@@ -3992,7 +4223,6 @@ describe('convertToOpenAIResponsesInput', () => {
             {
               "arguments": "{"a":1,"b":2}",
               "call_id": "call-1",
-              "id": undefined,
               "name": "calculator",
               "type": "function_call",
             },
@@ -4533,6 +4763,119 @@ describe('convertToOpenAIResponsesInput', () => {
       });
 
       // Reasoning with itemId should be skipped
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Hello",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('hasPreviousResponseId', () => {
+    it('should keep text item references and skip function call item references when hasPreviousResponseId is true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Hi there!',
+                providerOptions: { openai: { itemId: 'msg_existing_123' } },
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call_123',
+                toolName: 'getWeather',
+                input: { location: 'San Francisco' },
+                providerOptions: {
+                  openai: { itemId: 'fc_existing_456' },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'getWeather',
+                output: { type: 'json', value: { temp: 72 } },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasPreviousResponseId: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Hello",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "id": "msg_existing_123",
+            "type": "item_reference",
+          },
+          {
+            "call_id": "call_123",
+            "output": "{"temp":72}",
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should skip reasoning parts with item IDs when hasPreviousResponseId is true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'Let me think...',
+                providerOptions: {
+                  openai: { itemId: 'rs_existing_789' },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasPreviousResponseId: true,
+      });
+
       expect(result.input).toMatchInlineSnapshot(`
         [
           {
@@ -5114,7 +5457,6 @@ describe('convertToOpenAIResponsesInput', () => {
           {
             "arguments": ""SELECT 1"",
             "call_id": "call_custom_001",
-            "id": undefined,
             "name": "write_sql",
             "type": "function_call",
           },

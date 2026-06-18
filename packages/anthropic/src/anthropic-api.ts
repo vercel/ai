@@ -11,12 +11,20 @@ export type AnthropicPrompt = {
   messages: AnthropicMessage[];
 };
 
-export type AnthropicMessage = AnthropicUserMessage | AnthropicAssistantMessage;
+export type AnthropicMessage =
+  | AnthropicUserMessage
+  | AnthropicAssistantMessage
+  | AnthropicSystemMessage;
 
 export type AnthropicCacheControl = {
   type: 'ephemeral';
   ttl?: '5m' | '1h';
 };
+
+export interface AnthropicSystemMessage {
+  role: 'system';
+  content: Array<AnthropicTextContent>;
+}
 
 export interface AnthropicUserMessage {
   role: 'user';
@@ -24,6 +32,7 @@ export interface AnthropicUserMessage {
     | AnthropicTextContent
     | AnthropicImageContent
     | AnthropicDocumentContent
+    | AnthropicContainerUploadContent
     | AnthropicToolResultContent
   >;
 }
@@ -111,6 +120,12 @@ export interface AnthropicDocumentContent {
   context?: string;
   citations?: { enabled: boolean };
   cache_control: AnthropicCacheControl | undefined;
+}
+
+export interface AnthropicContainerUploadContent {
+  type: 'container_upload';
+  file_id: string;
+  cache_control?: never;
 }
 
 /**
@@ -209,13 +224,18 @@ export interface AnthropicToolResultContent {
 export interface AnthropicWebSearchToolResultContent {
   type: 'web_search_tool_result';
   tool_use_id: string;
-  content: Array<{
-    url: string;
-    title: string | null;
-    page_age: string | null;
-    encrypted_content: string;
-    type: string;
-  }>;
+  content:
+    | Array<{
+        url: string;
+        title: string | null;
+        page_age: string | null;
+        encrypted_content: string;
+        type: string;
+      }>
+    | {
+        type: 'web_search_tool_result_error';
+        error_code: string;
+      };
   cache_control: AnthropicCacheControl | undefined;
 }
 
@@ -592,6 +612,15 @@ export type AnthropicResponseContextManagement = {
   applied_edits: AnthropicResponseContextManagementEdit[];
 };
 
+const anthropicStopDetailsSchema = z.object({
+  type: z.string(),
+  category: z.string().nullish(),
+  explanation: z.string().nullish(),
+  recommended_model: z.string().nullish(),
+});
+
+export type AnthropicStopDetails = z.infer<typeof anthropicStopDetailsSchema>;
+
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 export const anthropicResponseSchema = lazySchema(() =>
@@ -892,10 +921,17 @@ export const anthropicResponseSchema = lazySchema(() =>
               }),
             ]),
           }),
+          // Server-side fallback marker. Parsed so the response validates, but
+          // dropped from the content output (the AI SDK has no model-hop
+          // primitive). The hop remains observable via usage.iterations.
+          z.object({
+            type: z.literal('fallback'),
+          }),
         ]),
       ),
       stop_reason: z.string().nullish(),
       stop_sequence: z.string().nullish(),
+      stop_details: anthropicStopDetailsSchema.nullish(),
       usage: z.looseObject({
         input_tokens: z.number(),
         output_tokens: z.number(),
@@ -903,23 +939,19 @@ export const anthropicResponseSchema = lazySchema(() =>
         cache_read_input_tokens: z.number().nullish(),
         iterations: z
           .array(
-            z.union([
-              z.object({
-                type: z.union([z.literal('compaction'), z.literal('message')]),
-                input_tokens: z.number(),
-                output_tokens: z.number(),
-                cache_creation_input_tokens: z.number().nullish(),
-                cache_read_input_tokens: z.number().nullish(),
-              }),
-              z.object({
-                type: z.literal('advisor_message'),
-                model: z.string(),
-                input_tokens: z.number(),
-                output_tokens: z.number(),
-                cache_creation_input_tokens: z.number().nullish(),
-                cache_read_input_tokens: z.number().nullish(),
-              }),
-            ]),
+            z.object({
+              type: z.union([
+                z.literal('compaction'),
+                z.literal('message'),
+                z.literal('advisor_message'),
+                z.literal('fallback_message'),
+              ]),
+              model: z.string().nullish(),
+              input_tokens: z.number(),
+              output_tokens: z.number(),
+              cache_creation_input_tokens: z.number().nullish(),
+              cache_read_input_tokens: z.number().nullish(),
+            }),
           )
           .nullish(),
       }),
@@ -1281,6 +1313,11 @@ export const anthropicChunkSchema = lazySchema(() =>
               }),
             ]),
           }),
+          // Server-side fallback marker; dropped from content output (see the
+          // response schema). The hop remains observable via usage.iterations.
+          z.object({
+            type: z.literal('fallback'),
+          }),
         ]),
       }),
       z.object({
@@ -1353,6 +1390,7 @@ export const anthropicChunkSchema = lazySchema(() =>
         delta: z.object({
           stop_reason: z.string().nullish(),
           stop_sequence: z.string().nullish(),
+          stop_details: anthropicStopDetailsSchema.nullish(),
           container: z
             .object({
               expires_at: z.string(),
@@ -1379,26 +1417,19 @@ export const anthropicChunkSchema = lazySchema(() =>
           cache_read_input_tokens: z.number().nullish(),
           iterations: z
             .array(
-              z.union([
-                z.object({
-                  type: z.union([
-                    z.literal('compaction'),
-                    z.literal('message'),
-                  ]),
-                  input_tokens: z.number(),
-                  output_tokens: z.number(),
-                  cache_creation_input_tokens: z.number().nullish(),
-                  cache_read_input_tokens: z.number().nullish(),
-                }),
-                z.object({
-                  type: z.literal('advisor_message'),
-                  model: z.string(),
-                  input_tokens: z.number(),
-                  output_tokens: z.number(),
-                  cache_creation_input_tokens: z.number().nullish(),
-                  cache_read_input_tokens: z.number().nullish(),
-                }),
-              ]),
+              z.object({
+                type: z.union([
+                  z.literal('compaction'),
+                  z.literal('message'),
+                  z.literal('advisor_message'),
+                  z.literal('fallback_message'),
+                ]),
+                model: z.string().nullish(),
+                input_tokens: z.number(),
+                output_tokens: z.number(),
+                cache_creation_input_tokens: z.number().nullish(),
+                cache_read_input_tokens: z.number().nullish(),
+              }),
             )
             .nullish(),
         }),

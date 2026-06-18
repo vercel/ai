@@ -24,7 +24,7 @@ run(async () => {
       'Search for live footage photos of the 2026 Super Bowl halftime show artist. I want an image with a close-up of them during the show, but in space.',
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'text-delta': {
         process.stdout.write(part.text);

@@ -5,10 +5,6 @@ description: Using OpenTelemetry with AI SDK Core
 
 # Telemetry
 
-<Note type="warning">
-  AI SDK Telemetry is experimental and may change in the future.
-</Note>
-
 The AI SDK uses [OpenTelemetry](https://opentelemetry.io/) to collect telemetry data.
 OpenTelemetry is an open-source observability framework designed to provide
 standardized instrumentation for collecting telemetry data.
@@ -33,7 +29,25 @@ import { OpenTelemetry } from '@ai-sdk/otel';
 registerTelemetry(new OpenTelemetry());
 ```
 
-For Next.js applications, place this in your `instrumentation.ts` file alongside your OpenTelemetry provider setup. See the [Next.js OpenTelemetry guide](https://nextjs.org/docs/app/building-your-application/optimizing/open-telemetry) for more details on setting up the provider.
+#### Next.js
+
+For Next.js applications, create an `instrumentation.ts` file in your project root and register the AI SDK telemetry integration alongside your OpenTelemetry provider setup:
+
+```ts filename="instrumentation.ts"
+import { registerOTel } from '@vercel/otel';
+import { registerTelemetry } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
+
+export function register() {
+  registerOTel({
+    serviceName: 'my-ai-app',
+  });
+
+  registerTelemetry(new OpenTelemetry());
+}
+```
+
+See the [Next.js OpenTelemetry guide](https://nextjs.org/docs/app/building-your-application/optimizing/open-telemetry) for more details on setting up OpenTelemetry in Next.js.
 
 For Node.js applications (without Next.js), register the integration at the top level of your entry file.
 
@@ -125,7 +139,7 @@ In this example, telemetry integrations receive `runtimeContext` as `{ requestId
 Tool-specific context can also contain values that are useful during execution but should not be sent to telemetry providers, such as API keys or access tokens.
 Use `telemetry.includeToolsContext` to include selected top-level properties from a tool's `context` in telemetry:
 
-```ts highlight="18-24"
+```ts highlight="16-20,23-28"
 const weatherTool = tool({
   inputSchema: z.object({
     location: z.string(),
@@ -239,32 +253,35 @@ telemetry: {
 
 Errors inside integrations are caught and do not break the generation flow.
 
-### Diagnostic channel
+### Tracing channel
 
-In Node.js, AI SDK telemetry lifecycle events are also published to the
-`ai.telemetry` [diagnostics channel](https://nodejs.org/api/diagnostics_channel.html).
+In Node.js, AI SDK telemetry lifecycle and execution events are also traced on
+the `ai:telemetry` [tracing channel](https://nodejs.org/api/diagnostics_channel.html#diagnostics_channeltracingchannelnameorchannels).
 This lets observability providers subscribe to AI SDK telemetry events without
-requiring users to register a separate telemetry integration.
+requiring users to register a separate telemetry integration, and bind async
+context across provider calls and tool executions.
 
 ```ts
-import { channel } from 'node:diagnostics_channel';
+import { tracingChannel } from 'node:diagnostics_channel';
 import {
-  AI_SDK_TELEMETRY_DIAGNOSTIC_CHANNEL,
-  type TelemetryDiagnosticChannelMessage,
+  AI_SDK_TELEMETRY_TRACING_CHANNEL,
+  type TelemetryTracingChannelMessage,
 } from 'ai';
 
-channel(AI_SDK_TELEMETRY_DIAGNOSTIC_CHANNEL).subscribe(message => {
-  const telemetryMessage = message as TelemetryDiagnosticChannelMessage;
+tracingChannel(AI_SDK_TELEMETRY_TRACING_CHANNEL).subscribe({
+  start(message) {
+    const telemetryMessage = message as TelemetryTracingChannelMessage;
 
-  if (telemetryMessage.type === 'onStart') {
-    // Inspect telemetryMessage.event and forward it to your provider.
-  }
+    if (telemetryMessage.type === 'onStart') {
+      // Inspect telemetryMessage.event and forward it to your provider.
+    }
+  },
 });
 ```
 
-Diagnostic-channel events follow the same per-call telemetry settings as other
+Tracing-channel events follow the same per-call telemetry settings as other
 telemetry integrations. Setting `telemetry: { isEnabled: false }` disables both
-registered integrations and diagnostic-channel publication for that call.
+registered integrations and tracing-channel events for that call.
 
 ### Building a custom integration
 
@@ -278,7 +295,7 @@ class MyIntegration implements Telemetry {
     console.log('Generation started:', event.modelId);
   }
 
-  async onStepFinish(event) {
+  async onStepEnd(event) {
     console.log(
       `Step ${event.stepNumber} done:`,
       event.usage.totalTokens,
@@ -300,7 +317,11 @@ class MyIntegration implements Telemetry {
   }
 
   async onEnd(event) {
-    console.log('Done. Total tokens:', event.totalUsage.totalTokens);
+    console.log('Done. Total tokens:', event.usage.totalTokens);
+  }
+
+  async onAbort(event) {
+    console.log('Stream aborted after', event.steps.length, 'finished steps');
   }
 }
 
@@ -348,7 +369,7 @@ export function myIntegration(): Telemetry {
       description: "Called when a tool's execute function completes or errors.",
     },
     {
-      name: 'onStepFinish',
+      name: 'onStepEnd',
       type: '(event: GenerateTextStepEndEvent) => void | PromiseLike<void>',
       description: 'Called when a step (LLM call) completes.',
     },
@@ -368,10 +389,16 @@ export function myIntegration(): Telemetry {
       description:
         'Called when the entire generation completes (all steps finished).',
     },
+    {
+      name: 'onAbort',
+      type: '(event: GenerateTextAbortEvent) => void | PromiseLike<void>',
+      description:
+        'Called when a streaming text generation operation is aborted before it completes.',
+    },
   ]}
 />
 
-The event types for each method are the same as the corresponding [event callbacks](/docs/ai-sdk-core/event-listeners). See the event callbacks documentation for the full property reference of each event.
+The event types for each method are the same as the corresponding [lifecycle callbacks](/docs/ai-sdk-core/lifecycle-callbacks). See the lifecycle callbacks documentation for the full property reference of each event.
 
 ## Collected Data
 

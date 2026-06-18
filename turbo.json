@@ -76,7 +76,11 @@
       "dependsOn": ["^build", "build"]
     },
     "test": {
-      "dependsOn": ["^build", "build"]
+      "dependsOn": ["^build", "build"],
+      "env": ["SKIP_RSC_E2E"]
+    },
+    "test:e2e:ci": {
+      "env": ["SKIP_RSC_E2E"]
     },
     "test:update": {
       "dependsOn": ["^build", "build"]

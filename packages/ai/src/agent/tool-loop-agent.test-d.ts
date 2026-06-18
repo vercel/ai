@@ -3,7 +3,7 @@ import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
 import {
   Output,
-  type GenerateTextOnFinishCallback,
+  type GenerateTextOnEndCallback,
   type ToolApprovalConfiguration,
   type ToolInputRefinement,
 } from '../generate-text';
@@ -16,7 +16,7 @@ import { ToolLoopAgent } from './tool-loop-agent';
 describe('ToolLoopAgent', () => {
   describe('onFinish callback type compatibility', () => {
     it('should allow StreamTextOnFinishCallback where ToolLoopAgentOnFinishCallback is expected', () => {
-      const streamTextCallback: GenerateTextOnFinishCallback<
+      const streamTextCallback: GenerateTextOnEndCallback<
         {},
         {}
       > = async event => {
@@ -25,18 +25,18 @@ describe('ToolLoopAgent', () => {
       };
 
       expectTypeOf(streamTextCallback).toMatchTypeOf<
-        GenerateTextOnFinishCallback<{}>
+        GenerateTextOnEndCallback<{}>
       >();
     });
 
-    it('should allow ToolLoopAgentOnFinishCallback where GenerateTextOnFinishCallback is expected', () => {
-      const agentCallback: GenerateTextOnFinishCallback<{}> = async event => {
+    it('should allow ToolLoopAgentOnFinishCallback where GenerateTextOnEndCallback is expected', () => {
+      const agentCallback: GenerateTextOnEndCallback<{}> = async event => {
         const runtimeContext: unknown = event.runtimeContext;
         runtimeContext;
       };
 
       expectTypeOf(agentCallback).toMatchTypeOf<
-        GenerateTextOnFinishCallback<{}, {}>
+        GenerateTextOnEndCallback<{}, {}>
       >();
     });
   });
@@ -139,6 +139,28 @@ describe('ToolLoopAgent', () => {
         },
       });
     });
+
+    it('should support stable start callbacks', async () => {
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4(),
+        onStart: event => {
+          expectTypeOf(event.runtimeContext).toEqualTypeOf<Context>();
+        },
+        onStepStart: event => {
+          expectTypeOf(event.runtimeContext).toEqualTypeOf<Context>();
+        },
+      });
+
+      await agent.generate({
+        prompt: 'Hello, world!',
+        onStart: event => {
+          expectTypeOf(event.runtimeContext).toEqualTypeOf<Context>();
+        },
+        onStepStart: event => {
+          expectTypeOf(event.runtimeContext).toEqualTypeOf<Context>();
+        },
+      });
+    });
   });
 
   describe('stream', () => {
@@ -191,6 +213,22 @@ describe('ToolLoopAgent', () => {
       expectTypeOf<typeof partialOutputStream>().toEqualTypeOf<
         AsyncIterableStream<DeepPartial<{ value: string }>>
       >();
+    });
+
+    it('should support stable start callbacks', async () => {
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4(),
+      });
+
+      await agent.stream({
+        prompt: 'Hello, world!',
+        onStart: event => {
+          expectTypeOf(event.runtimeContext).toEqualTypeOf<Context>();
+        },
+        onStepStart: event => {
+          expectTypeOf(event.runtimeContext).toEqualTypeOf<Context>();
+        },
+      });
     });
   });
 

@@ -1,4 +1,7 @@
-import { google } from '@ai-sdk/google';
+import {
+  google,
+  type GoogleLanguageModelInteractionsOptions,
+} from '@ai-sdk/google';
 import { generateText, type ModelMessage } from 'ai';
 import { run } from '../../lib/run';
 
@@ -26,7 +29,10 @@ run(async () => {
     messages,
     reasoning: 'medium',
     providerOptions: {
-      google: { store: false, thinkingSummaries: 'auto' },
+      google: {
+        store: false,
+        thinkingSummaries: 'auto',
+      } satisfies GoogleLanguageModelInteractionsOptions,
     },
   });
 
@@ -49,7 +55,10 @@ run(async () => {
     messages,
     reasoning: 'medium',
     providerOptions: {
-      google: { store: false, thinkingSummaries: 'auto' },
+      google: {
+        store: false,
+        thinkingSummaries: 'auto',
+      } satisfies GoogleLanguageModelInteractionsOptions,
     },
   });
 

@@ -5,6 +5,7 @@ import {
   createUIMessageStream,
   convertToModelMessages,
   isStepCount,
+  toUIMessageStream,
 } from 'ai';
 import { createMCPClient, ElicitationRequestSchema } from '@ai-sdk/mcp';
 import type { MCPElicitationUIMessage } from './types';
@@ -97,7 +98,9 @@ async function processMessages(
       },
     });
 
-    writer.merge(result.toUIMessageStream({ originalMessages: messages }));
+    writer.merge(
+      toUIMessageStream({ stream: result.stream, originalMessages: messages }),
+    );
   } catch (error) {
     console.error('Error processing messages:', error);
     await mcpClient.close();

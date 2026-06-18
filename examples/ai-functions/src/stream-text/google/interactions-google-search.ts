@@ -13,7 +13,7 @@ run(async () => {
       'Include the date for each item you mention.',
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     if (part.type === 'text-delta') {
       process.stdout.write(part.text);
     }

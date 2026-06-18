@@ -1,6 +1,6 @@
 {
   "name": "konsistent-provider",
-  "version": "0.0.1",
+  "version": "0.0.2-canary.0",
   "private": true,
   "description": "Reusable konsistent conventions for the AI SDK monorepo. Authored in TypeScript via @konsistent/convention, shipped as a JSON artifact via the \"./konsistent\" exports condition.",
   "type": "module",
@@ -30,13 +30,13 @@
     "zod": "^4"
   },
   "devDependencies": {
-    "@types/node": "20.17.24",
+    "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
     "typescript": "5.8.3",
     "zod": "^4.1.8"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {

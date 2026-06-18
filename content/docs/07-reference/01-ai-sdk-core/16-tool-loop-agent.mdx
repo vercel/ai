@@ -63,6 +63,13 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
         'Instructions for the agent, usually used for system prompt/context.',
     },
     {
+      name: 'allowSystemInMessages',
+      type: 'boolean',
+      isOptional: true,
+      description:
+        'Whether `role: "system"` messages are allowed in the `prompt` or `messages` fields. When unset, system messages are rejected because they can create a prompt injection attack risk. Ideally, use the `instructions` option instead. Set to `true` to allow system messages, or `false` to explicitly reject them.',
+    },
+    {
       name: 'tools',
       type: 'Record<string, Tool>',
       isOptional: true,
@@ -89,6 +96,13 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       isOptional: true,
       description:
         'Limits the tools that are available for the model to call without changing the tool call and result types in the result. All tools are active by default. Tool names are restricted to the string keys of the tool set.',
+    },
+    {
+      name: 'toolOrder',
+      type: 'ToolOrder<TOOLS>',
+      isOptional: true,
+      description:
+        'Controls the order in which tools are sent to the provider. The list can be partial. Tools not listed in `toolOrder` are sent after the listed tools, sorted alphabetically. Tool names are restricted to the string keys of the tool set.',
     },
     {
       name: 'toolApproval',
@@ -133,11 +147,11 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
         'Optional mapping of tool names to functions that refine parsed tool inputs. Each function receives the typed input for its tool and must return the same input type shape. The refined input is used for tool execution, output parts, lifecycle callbacks, and telemetry in both `generate()` and `stream()`.',
     },
     {
-      name: 'experimental_onStart',
+      name: 'onStart',
       type: 'GenerateTextOnStartCallback',
       isOptional: true,
       description:
-        'Callback that is called when the agent operation begins, before any LLM calls are made. Useful for logging, analytics, or initializing state. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first). Experimental (can break in patch releases).',
+        'Callback that is called when the agent operation begins, before any LLM calls are made. Useful for logging, analytics, or initializing state. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first).',
       properties: [
         {
           type: 'GenerateTextStartEvent',
@@ -178,6 +192,12 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
               type: 'ActiveTools<TOOLS>',
               description:
                 'Limits which tools are available for the model to call.',
+            },
+            {
+              name: 'toolOrder',
+              type: 'ToolOrder<TOOLS>',
+              description:
+                'Controls the order in which tools are sent to the provider.',
             },
             {
               name: 'maxOutputTokens',
@@ -273,11 +293,11 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_onStepStart',
+      name: 'onStepStart',
       type: 'GenerateTextOnStepStartCallback',
       isOptional: true,
       description:
-        'Callback that is called when a step (LLM call) begins, before the provider is called. Each step represents a single LLM invocation. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first). Experimental (can break in patch releases).',
+        'Callback that is called when a step (LLM call) begins, before the provider is called. Each step represents a single LLM invocation. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first).',
       properties: [
         {
           type: 'GenerateTextStepStartEvent',
@@ -319,6 +339,12 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
               name: 'activeTools',
               type: 'ActiveTools<TOOLS>',
               description: 'Limits which tools are available for this step.',
+            },
+            {
+              name: 'toolOrder',
+              type: 'ToolOrder<TOOLS>',
+              description:
+                'Controls the order in which tools are sent to the provider for this step.',
             },
             {
               name: 'steps',
@@ -385,7 +411,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       type: 'OnToolExecutionStartCallback',
       isOptional: true,
       description:
-        "Callback that is called right before a tool's execute function runs. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first). Experimental (can break in patch releases).",
+        "Callback that is called right before a tool's execute function runs. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first).",
       properties: [
         {
           type: 'ToolExecutionStartEvent',
@@ -423,7 +449,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       type: 'OnToolExecutionEndCallback',
       isOptional: true,
       description:
-        "Callback that is called right after a tool's execute function completes (or errors). The `toolOutput` field is a discriminated union: when `toolOutput.type` is `'tool-result'`, the `output` field contains the tool result; when `toolOutput.type` is `'tool-error'`, the `error` field contains the error. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first). Experimental (can break in patch releases).",
+        "Callback that is called right after a tool's execute function completes (or errors). The `toolOutput` field is a discriminated union: when `toolOutput.type` is `'tool-result'`, the `output` field contains the tool result; when `toolOutput.type` is `'tool-error'`, the `error` field contains the error. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first).",
       properties: [
         {
           type: 'ToolExecutionEndEvent',
@@ -469,18 +495,31 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'onStepFinish',
-      type: 'GenerateTextOnStepFinishCallback',
+      name: 'onStepEnd',
+      type: 'GenerateTextOnStepEndCallback',
       isOptional: true,
       description:
         'Callback invoked after each agent step (LLM/tool call) completes. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first).',
     },
     {
-      name: 'onFinish',
-      type: 'GenerateTextOnFinishCallback',
+      name: 'onStepFinish',
+      type: 'GenerateTextOnStepFinishCallback',
+      isOptional: true,
+      description:
+        'Deprecated. Use `onStepEnd` instead. This alias is only used as a fallback when `onStepEnd` is not provided.',
+    },
+    {
+      name: 'onEnd',
+      type: 'GenerateTextOnEndCallback',
       isOptional: true,
       description:
         'Callback that is called when all agent steps are finished and the response is complete. Receives step results, total usage, shared `runtimeContext`, and `toolsContext`. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first).',
+    },
+    {
+      name: 'onFinish',
+      type: 'GenerateTextOnEndCallback',
+      isOptional: true,
+      description: 'Deprecated alias for `onEnd`.',
     },
     {
       name: 'runtimeContext',
@@ -680,7 +719,7 @@ const result = await agent.generate({
     },
     {
       name: 'experimental_sandbox',
-      type: 'Experimental_Sandbox',
+      type: 'Experimental_SandboxSession',
       isOptional: true,
       description:
         'Experimental sandbox environment that is passed through to `prepareStep`, tool description functions, and tool execution. Tools can access it from their description function options and execution options.',
@@ -693,46 +732,59 @@ const result = await agent.generate({
         'Custom call options when the agent is configured with a callOptionsSchema.',
     },
     {
-      name: 'experimental_onStart',
+      name: 'onStart',
       type: 'GenerateTextOnStartCallback',
       isOptional: true,
       description:
-        'Callback that is called when the agent operation begins, before any LLM calls are made. If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).',
+        'Callback that is called when the agent operation begins, before any LLM calls are made. If also specified in the constructor, both callbacks are called (constructor first).',
     },
     {
-      name: 'experimental_onStepStart',
+      name: 'onStepStart',
       type: 'GenerateTextOnStepStartCallback',
       isOptional: true,
       description:
-        'Callback that is called when a step (LLM call) begins, before the provider is called. If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).',
+        'Callback that is called when a step (LLM call) begins, before the provider is called. If also specified in the constructor, both callbacks are called (constructor first).',
     },
     {
       name: 'onToolExecutionStart',
       type: 'OnToolExecutionStartCallback',
       isOptional: true,
       description:
-        "Callback that is called right before a tool's execute function runs. If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).",
+        "Callback that is called right before a tool's execute function runs. If also specified in the constructor, both callbacks are called (constructor first).",
     },
     {
       name: 'onToolExecutionEnd',
       type: 'OnToolExecutionEndCallback',
       isOptional: true,
       description:
-        "Callback that is called right after a tool's execute function completes (or errors). If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).",
+        "Callback that is called right after a tool's execute function completes (or errors). If also specified in the constructor, both callbacks are called (constructor first).",
+    },
+    {
+      name: 'onStepEnd',
+      type: 'GenerateTextOnStepEndCallback',
+      isOptional: true,
+      description:
+        'Callback invoked after each agent step (LLM/tool call) completes. If also specified in the constructor, both callbacks are called (constructor first, then this one).',
     },
     {
       name: 'onStepFinish',
       type: 'GenerateTextOnStepFinishCallback',
       isOptional: true,
       description:
-        'Callback invoked after each agent step (LLM/tool call) completes. If also specified in the constructor, both callbacks are called (constructor first, then this one).',
+        'Deprecated. Use `onStepEnd` instead. This alias is only used as a fallback when `onStepEnd` is not provided.',
     },
     {
-      name: 'onFinish',
-      type: 'GenerateTextOnFinishCallback',
+      name: 'onEnd',
+      type: 'GenerateTextOnEndCallback',
       isOptional: true,
       description:
         'Callback that is called when all agent steps are finished and the response is complete. If also specified in the constructor, both callbacks are called (constructor first, then this one).',
+    },
+    {
+      name: 'onFinish',
+      type: 'GenerateTextOnEndCallback',
+      isOptional: true,
+      description: 'Deprecated alias for `onEnd`.',
     },
   ]}
 />
@@ -783,7 +835,7 @@ for await (const chunk of stream.textStream) {
     },
     {
       name: 'experimental_sandbox',
-      type: 'Experimental_Sandbox',
+      type: 'Experimental_SandboxSession',
       isOptional: true,
       description:
         'Experimental sandbox environment that is passed through to `prepareStep`, tool description functions, and tool execution. Tools can access it from their description function options and execution options.',
@@ -803,46 +855,59 @@ for await (const chunk of stream.textStream) {
         'Optional stream transformation(s). They are applied in the order provided and must maintain the stream structure. See `streamText` docs for details.',
     },
     {
-      name: 'experimental_onStart',
+      name: 'onStart',
       type: 'GenerateTextOnStartCallback',
       isOptional: true,
       description:
-        'Callback that is called when the agent operation begins, before any LLM calls are made. If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).',
+        'Callback that is called when the agent operation begins, before any LLM calls are made. If also specified in the constructor, both callbacks are called (constructor first).',
     },
     {
-      name: 'experimental_onStepStart',
+      name: 'onStepStart',
       type: 'GenerateTextOnStepStartCallback',
       isOptional: true,
       description:
-        'Callback that is called when a step (LLM call) begins, before the provider is called. If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).',
+        'Callback that is called when a step (LLM call) begins, before the provider is called. If also specified in the constructor, both callbacks are called (constructor first).',
     },
     {
       name: 'onToolExecutionStart',
       type: 'OnToolExecutionStartCallback',
       isOptional: true,
       description:
-        "Callback that is called right before a tool's execute function runs. If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).",
+        "Callback that is called right before a tool's execute function runs. If also specified in the constructor, both callbacks are called (constructor first).",
     },
     {
       name: 'onToolExecutionEnd',
       type: 'OnToolExecutionEndCallback',
       isOptional: true,
       description:
-        "Callback that is called right after a tool's execute function completes (or errors). If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).",
+        "Callback that is called right after a tool's execute function completes (or errors). If also specified in the constructor, both callbacks are called (constructor first).",
+    },
+    {
+      name: 'onStepEnd',
+      type: 'GenerateTextOnStepEndCallback',
+      isOptional: true,
+      description:
+        'Callback invoked after each agent step (LLM/tool call) completes. If also specified in the constructor, both callbacks are called (constructor first, then this one).',
     },
     {
       name: 'onStepFinish',
       type: 'GenerateTextOnStepFinishCallback',
       isOptional: true,
       description:
-        'Callback invoked after each agent step (LLM/tool call) completes. If also specified in the constructor, both callbacks are called (constructor first, then this one).',
+        'Deprecated. Use `onStepEnd` instead. This alias is only used as a fallback when `onStepEnd` is not provided.',
     },
     {
-      name: 'onFinish',
-      type: 'GenerateTextOnFinishCallback',
+      name: 'onEnd',
+      type: 'GenerateTextOnEndCallback',
       isOptional: true,
       description:
         'Callback that is called when all agent steps are finished and the response is complete. If also specified in the constructor, both callbacks are called (constructor first, then this one).',
+    },
+    {
+      name: 'onFinish',
+      type: 'GenerateTextOnEndCallback',
+      isOptional: true,
+      description: 'Deprecated alias for `onEnd`.',
     },
   ]}
 />

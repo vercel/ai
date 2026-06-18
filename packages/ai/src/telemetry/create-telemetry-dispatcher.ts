@@ -6,25 +6,31 @@ import type {
   Telemetry,
   TelemetryDispatcher,
 } from './telemetry';
-import { type TelemetryDiagnosticEventType } from './diagnostic-channel';
-import { publishTelemetryDiagnosticChannelMessage } from './diagnostic-channel-publisher';
+import {
+  openTelemetryChannelSpanContext,
+  runWithTracingChannelSpan,
+} from './tracing-channel-publisher';
 import { getGlobalTelemetryIntegrations } from './telemetry-registry';
 import type { TelemetryOptions } from './telemetry-options';
 
 /**
  * The subset of `TelemetryDispatcher` keys whose values are Callback callbacks.
- * This excludes non-Callback properties such as `executeTool`.
+ * This excludes dispatcher-only helpers and non-Callback properties such as
+ * `executeLanguageModelCall` and `executeTool`.
  */
-type TelemetryCallbackKey = keyof {
-  [K in keyof TelemetryDispatcher as TelemetryDispatcher[K] extends
-    | Callback<any>
-    | undefined
-    ? K
-    : never]: true;
-};
+type TelemetryCallbackKey = Exclude<
+  keyof {
+    [K in keyof TelemetryDispatcher as TelemetryDispatcher[K] extends
+      | Callback<any>
+      | undefined
+      ? K
+      : never]: true;
+  },
+  'runInTracingChannelSpan' | 'startTracingChannelContext'
+>;
 
 /**
- * Resolves the public event type accepted by a telemetry callback key.
+ * Resolves the public  event type accepted by a telemetry callback key.
  */
 type TelemetryEvent<K extends TelemetryCallbackKey> =
   TelemetryDispatcher[K] extends Callback<infer EVENT> | undefined
@@ -85,36 +91,56 @@ export function createTelemetryDispatcher({
   const mergeTelemetryCallback = <KEY extends TelemetryCallbackKey>(
     key: KEY,
   ): Callback<TelemetryEvent<KEY>> => {
-    // event data is now automatically published to the diagnostic channel
-    const publishDiagnosticChannelMessage = ((event: TelemetryEvent<KEY>) =>
-      publishTelemetryDiagnosticChannelMessage({
-        type: key as TelemetryDiagnosticEventType,
-        event: augmentEvent(event, telemetryMetadata),
-      })) as Callback<TelemetryEvent<KEY>>;
-
-    return mergeCallbacks(
-      publishDiagnosticChannelMessage,
-      ...(
-        integrations
-          .map(integration => integration[key]?.bind(integration))
-          .filter(Boolean) as Array<
-          Callback<InferTelemetryEvent<TelemetryEvent<KEY>>>
-        >
-      ).map(
-        callback =>
-          ((event: TelemetryEvent<KEY>) =>
-            callback(augmentEvent(event, telemetryMetadata))) as Callback<
-            TelemetryEvent<KEY>
-          >,
-      ),
+    const integrationCallbacks = (
+      integrations
+        .map(integration => integration[key]?.bind(integration))
+        .filter(Boolean) as Array<
+        Callback<InferTelemetryEvent<TelemetryEvent<KEY>>>
+      >
+    ).map(
+      callback =>
+        ((event: TelemetryEvent<KEY>) =>
+          callback(augmentEvent(event, telemetryMetadata))) as Callback<
+          TelemetryEvent<KEY>
+        >,
     );
+
+    const mergedIntegrationCallback = mergeCallbacks(...integrationCallbacks);
+
+    return async (event: TelemetryEvent<KEY>) => {
+      await mergedIntegrationCallback(event);
+    };
   };
 
-  const executeWrappers = integrations
+  const executeLanguageModelCallWrappers = integrations
+    .map(integration => integration.executeLanguageModelCall?.bind(integration))
+    .filter(Boolean) as Array<
+    NonNullable<Telemetry['executeLanguageModelCall']>
+  >;
+
+  const executeToolWrappers = integrations
     .map(integration => integration.executeTool?.bind(integration))
     .filter(Boolean) as Array<NonNullable<Telemetry['executeTool']>>;
 
   return {
+    runInTracingChannelSpan: async ({ type, event, execute }) =>
+      await runWithTracingChannelSpan(
+        {
+          type,
+          event: augmentEvent(event, telemetryMetadata),
+        },
+        execute,
+      ),
+
+    startTracingChannelContext: ({ type, event, completion }) =>
+      openTelemetryChannelSpanContext({
+        message: {
+          type,
+          event: augmentEvent(event, telemetryMetadata),
+        },
+        completion,
+      }),
+
     onStart: mergeTelemetryCallback('onStart'),
     onStepStart: mergeTelemetryCallback('onStepStart'),
     onLanguageModelCallStart: mergeTelemetryCallback(
@@ -123,15 +149,43 @@ export function createTelemetryDispatcher({
     onLanguageModelCallEnd: mergeTelemetryCallback('onLanguageModelCallEnd'),
     onToolExecutionStart: mergeTelemetryCallback('onToolExecutionStart'),
     onToolExecutionEnd: mergeTelemetryCallback('onToolExecutionEnd'),
-    onStepFinish: mergeTelemetryCallback('onStepFinish'),
+    // Fan out step-end events to both the new `onStepEnd` callback and the
+    // deprecated `onStepFinish` callback so integrations that still implement
+    // only `onStepFinish` keep receiving step-end events during the deprecation
+    // window.
+    onStepEnd: mergeCallbacks(
+      mergeTelemetryCallback('onStepEnd'),
+      mergeTelemetryCallback('onStepFinish'),
+    ),
     onObjectStepStart: mergeTelemetryCallback('onObjectStepStart'),
-    onObjectStepFinish: mergeTelemetryCallback('onObjectStepFinish'),
+    onObjectStepEnd: mergeTelemetryCallback('onObjectStepEnd'),
     onEmbedStart: mergeTelemetryCallback('onEmbedStart'),
     onEmbedEnd: mergeTelemetryCallback('onEmbedEnd'),
     onRerankStart: mergeTelemetryCallback('onRerankStart'),
     onRerankEnd: mergeTelemetryCallback('onRerankEnd'),
     onEnd: mergeTelemetryCallback('onEnd'),
+    onAbort: mergeTelemetryCallback('onAbort'),
     onError: mergeTelemetryCallback('onError'),
+
+    /**
+     * Runs provider calls inside integration-specific context so
+     * auto-instrumented provider requests can be associated with model work.
+     */
+    executeLanguageModelCall: async ({ execute, ...event }) => {
+      const augmentedEvent = augmentEvent(event, telemetryMetadata);
+
+      let wrappedExecute = execute;
+      for (const executeWrapper of executeLanguageModelCallWrappers) {
+        const innerExecute = wrappedExecute;
+        wrappedExecute = () =>
+          executeWrapper({ ...augmentedEvent, execute: innerExecute });
+      }
+
+      return await runWithTracingChannelSpan(
+        { type: 'languageModelCall', event: augmentedEvent },
+        wrappedExecute,
+      );
+    },
 
     /**
      * Composes all `executeTool` wrappers around the original tool execution.
@@ -139,17 +193,17 @@ export function createTelemetryDispatcher({
      * the chain, so integrations can establish nested telemetry context before
      * delegating to the underlying tool.
      */
-    executeTool:
-      executeWrappers.length > 0
-        ? async args => {
-            let execute = args.execute;
-            for (const executeWrapper of executeWrappers) {
-              const innerExecute = execute;
-              execute = () =>
-                executeWrapper({ ...args, execute: innerExecute });
-            }
-            return await execute();
-          }
-        : undefined,
+    executeTool: async ({ execute, ...event }) => {
+      const augmentedEvent = augmentEvent(event, telemetryMetadata);
+
+      let wrappedExecute = execute;
+      for (const executeWrapper of executeToolWrappers) {
+        const innerExecute = wrappedExecute;
+        wrappedExecute = () =>
+          executeWrapper({ ...augmentedEvent, execute: innerExecute });
+      }
+
+      return await wrappedExecute();
+    },
   };
 }

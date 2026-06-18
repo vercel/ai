@@ -8,12 +8,74 @@ import {
 } from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
-import { generateText, Output } from '../generate-text';
+import { ToolLoopAgent } from '../agent';
+import {
+  generateText,
+  Output,
+  streamText,
+  type ToolOrder,
+} from '../generate-text';
 import type { Instructions, Prompt } from '../prompt';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
+import type { LanguageModelRequestMetadata } from '../types';
+import type { LanguageModelUsage } from '../types/usage';
+import type { GenerateTextEndEvent } from './generate-text-events';
 import type { ResponseMessage } from './response-message';
+import type { StepResult } from './step-result';
 
 describe('generateText types', () => {
+  describe('onEnd', () => {
+    it('should expose end event properties', async () => {
+      await generateText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        onEnd: event => {
+          expectTypeOf(event).toMatchTypeOf<GenerateTextEndEvent>();
+          expectTypeOf(event.totalUsage).toEqualTypeOf<LanguageModelUsage>();
+          expectTypeOf(event.reasoning).toEqualTypeOf<
+            StepResult<any>['reasoning']
+          >();
+          expectTypeOf(event.reasoningText).toEqualTypeOf<string | undefined>();
+          expectTypeOf(
+            event.request,
+          ).toEqualTypeOf<LanguageModelRequestMetadata>();
+          expectTypeOf(event.response).toEqualTypeOf<
+            GenerateTextEndEvent['finalStep']['response']
+          >();
+          expectTypeOf(event.providerMetadata).toEqualTypeOf<
+            GenerateTextEndEvent['finalStep']['providerMetadata']
+          >();
+        },
+      });
+    });
+  });
+
+  describe('onFinish compatibility', () => {
+    it('should expose deprecated AI SDK 6 properties', async () => {
+      await generateText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        onFinish: event => {
+          expectTypeOf(event).toMatchTypeOf<GenerateTextEndEvent>();
+          expectTypeOf(event.totalUsage).toEqualTypeOf<LanguageModelUsage>();
+          expectTypeOf(event.reasoning).toEqualTypeOf<
+            StepResult<any>['reasoning']
+          >();
+          expectTypeOf(event.reasoningText).toEqualTypeOf<string | undefined>();
+          expectTypeOf(
+            event.request,
+          ).toEqualTypeOf<LanguageModelRequestMetadata>();
+          expectTypeOf(event.response).toEqualTypeOf<
+            GenerateTextEndEvent['finalStep']['response']
+          >();
+          expectTypeOf(event.providerMetadata).toEqualTypeOf<
+            GenerateTextEndEvent['finalStep']['providerMetadata']
+          >();
+        },
+      });
+    });
+  });
+
   describe('instructions', () => {
     it('should use the Instructions type for prompt instructions', () => {
       expectTypeOf<Prompt['instructions']>().toEqualTypeOf<
@@ -138,6 +200,47 @@ describe('generateText types', () => {
 
   const toolWithFullyOptionalContext = {} as ToolWithFullyOptionalContext;
   const toolWithOptionalContextObject = {} as ToolWithOptionalContextObject;
+
+  describe('toolOrder', () => {
+    it('should accept valid tool names for generateText, streamText, and ToolLoopAgent', () => {
+      const toolOrder: ToolOrder<typeof mixedTools> = ['calculator', 'weather'];
+
+      expectTypeOf(toolOrder).toMatchTypeOf<ToolOrder<typeof mixedTools>>();
+
+      generateText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        tools: mixedTools,
+        toolsContext: { weather: { weatherApiKey: 'key' } },
+        toolOrder,
+      });
+
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        tools: mixedTools,
+        toolsContext: { weather: { weatherApiKey: 'key' } },
+        toolOrder: ['weather'] as const,
+      });
+
+      new ToolLoopAgent({
+        model: new MockLanguageModelV4(),
+        tools: mixedTools,
+        toolsContext: { weather: { weatherApiKey: 'key' } },
+        toolOrder: ['calculator'] as const,
+      });
+    });
+
+    it('should reject unknown tool names', () => {
+      generateText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        tools: toolWithoutContext,
+        // @ts-expect-error toolOrder only accepts keys of the tool set
+        toolOrder: ['unknown'] as const,
+      });
+    });
+  });
 
   describe('experimental_refineToolInput', () => {
     it('should infer input and return types for each tool', async () => {
@@ -272,19 +375,19 @@ describe('generateText types', () => {
         telemetry: {
           includeRuntimeContext: { userId: true },
         },
-        experimental_onStart: ({ runtimeContext }) => {
+        onStart: ({ runtimeContext }) => {
           expectTypeOf(runtimeContext).toEqualTypeOf<{
             userId: string;
             requestId: string;
           }>();
         },
-        experimental_onStepStart: ({ runtimeContext }) => {
+        onStepStart: ({ runtimeContext }) => {
           expectTypeOf(runtimeContext).toEqualTypeOf<{
             userId: string;
             requestId: string;
           }>();
         },
-        onStepFinish: ({ runtimeContext }) => {
+        onStepEnd: ({ runtimeContext }) => {
           expectTypeOf(runtimeContext).toEqualTypeOf<{
             userId: string;
             requestId: string;
@@ -397,10 +500,26 @@ describe('generateText types', () => {
           prepareStep: () => ({
             experimental_sandbox: {
               description: 'test sandbox',
-              runCommand: async () => ({
+              run: async () => ({
                 exitCode: 0,
                 stdout: 'ok',
                 stderr: '',
+              }),
+              readFile: async () => null,
+              readBinaryFile: async () => null,
+              readTextFile: async () => null,
+              writeFile: async () => {},
+              writeBinaryFile: async () => {},
+              writeTextFile: async () => {},
+              spawn: async () => ({
+                stdout: new ReadableStream<Uint8Array>({
+                  start: c => c.close(),
+                }),
+                stderr: new ReadableStream<Uint8Array>({
+                  start: c => c.close(),
+                }),
+                wait: async () => ({ exitCode: 0 }),
+                kill: async () => {},
               }),
             },
           }),

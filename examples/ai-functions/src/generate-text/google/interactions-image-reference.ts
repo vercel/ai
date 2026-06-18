@@ -13,7 +13,7 @@ run(async () => {
   console.log('Uploaded file reference:', providerReference);
 
   const result = await generateText({
-    model: google.interactions('gemini-2.5-flash'),
+    model: google.interactions('gemini-3.5-flash'),
     messages: [
       {
         role: 'user',

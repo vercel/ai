@@ -5,6 +5,7 @@ import {
   streamText,
   createUIMessageStream,
   createUIMessageStreamResponse,
+  toUIMessageStream,
 } from 'ai';
 import {
   createMCPClient,
@@ -247,7 +248,10 @@ export async function POST(req: Request) {
           });
 
           writer.merge(
-            result.toUIMessageStream({ originalMessages: messages }),
+            toUIMessageStream({
+              stream: result.stream,
+              originalMessages: messages,
+            }),
           );
         } finally {
           await mcpClient.close();

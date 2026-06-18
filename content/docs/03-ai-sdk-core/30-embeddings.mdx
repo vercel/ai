@@ -103,7 +103,7 @@ const { embedding } = await embed({
 });
 ```
 
-Google's `gemini-embedding-2-preview` model also supports multimodal embedding content through `providerOptions.google.content`. Each entry corresponds to the value at the same index and can contain `{ text: string }`, `{ inlineData: { mimeType: string; data: string } }`, or `{ fileData: { fileUri: string; mimeType: string } }` parts. `fileUri` can reference remote content such as HTTP URLs or Google Cloud Storage URIs (`gs://...`).
+Google's `gemini-embedding-2` model (also available as `gemini-embedding-2-preview`) supports multimodal embedding content through `providerOptions.google.content`. Each entry corresponds to the value at the same index and can contain `{ text: string }`, `{ inlineData: { mimeType: string; data: string } }`, or `{ fileData: { fileUri: string; mimeType: string } }` parts. `fileUri` can reference remote content such as HTTP URLs or Google Cloud Storage URIs (`gs://...`).
 
 ### Parallel Requests
 
@@ -225,6 +225,7 @@ Several providers offer embedding models:
 | [OpenAI](/providers/ai-sdk-providers/openai#embedding-models)                 | `text-embedding-3-small`        | 1536                 | <Cross size={18} /> |
 | [OpenAI](/providers/ai-sdk-providers/openai#embedding-models)                 | `text-embedding-ada-002`        | 1536                 | <Cross size={18} /> |
 | [Google](/providers/ai-sdk-providers/google#embedding-models)                 | `gemini-embedding-001`          | 3072                 | <Cross size={18} /> |
+| [Google](/providers/ai-sdk-providers/google#embedding-models)                 | `gemini-embedding-2`            | 3072                 | <Check size={18} /> |
 | [Google](/providers/ai-sdk-providers/google#embedding-models)                 | `gemini-embedding-2-preview`    | 3072                 | <Check size={18} /> |
 | [Mistral](/providers/ai-sdk-providers/mistral#embedding-models)               | `mistral-embed`                 | 1024                 | <Cross size={18} /> |
 | [Cohere](/providers/ai-sdk-providers/cohere#embedding-models)                 | `embed-english-v3.0`            | 1024                 | <Cross size={18} /> |

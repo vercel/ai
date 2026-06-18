@@ -152,7 +152,7 @@ const result = streamText({
     }),
   },
   stopWhen: isStepCount(5),
-  onStepFinish: async ({ toolResults }) => {
+  onStepEnd: async ({ toolResults }) => {
     if (toolResults.length) {
       console.log(JSON.stringify(toolResults, null, 2));
     }
@@ -160,7 +160,7 @@ const result = streamText({
 });
 ```
 
-The `onStepFinish` callback fires after each LLM step and prints any tool results to your terminal — useful for quick debugging without opening the DevTools UI.
+The `onStepEnd` callback fires after each LLM step and prints any tool results to your terminal — useful for quick debugging without opening the DevTools UI.
 
 <Note>
   DevTools stores all AI interactions in a local `.devtools/generations.json`

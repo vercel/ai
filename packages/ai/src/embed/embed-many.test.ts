@@ -589,7 +589,7 @@ describe('logWarnings', () => {
   });
 });
 
-describe('options.experimental_onStart', () => {
+describe('options.onStart', () => {
   it('should send correct event information', async () => {
     let startEvent!: EmbedStartEvent;
 
@@ -605,7 +605,7 @@ describe('options.experimental_onStart', () => {
       _internal: {
         generateCallId: () => 'test-call-id',
       },
-      experimental_onStart: async event => {
+      onStart: async event => {
         startEvent = event;
       },
     });
@@ -628,7 +628,7 @@ describe('options.experimental_onStart', () => {
         recordOutputs: true,
         functionId: 'embed-many-fn',
       },
-      experimental_onStart: async event => {
+      onStart: async event => {
         startEvent = event;
       },
     });
@@ -654,7 +654,7 @@ describe('options.experimental_onStart', () => {
         recordOutputs: true,
         functionId: 'embed-many-fn-deprecated',
       },
-      experimental_onStart: async event => {
+      onStart: async event => {
         startEvent = event;
       },
     });
@@ -674,7 +674,7 @@ describe('options.experimental_onStart', () => {
         doEmbed: mockEmbed(testValues, dummyEmbeddings),
       }),
       values: testValues,
-      experimental_onStart: async event => {
+      onStart: async event => {
         startEvent = event;
       },
     });
@@ -696,7 +696,7 @@ describe('options.experimental_onStart', () => {
         },
       }),
       values: testValues,
-      experimental_onStart: async () => {
+      onStart: async () => {
         callOrder.push('onStart');
       },
     });
@@ -711,7 +711,7 @@ describe('options.experimental_onStart', () => {
         doEmbed: mockEmbed(testValues, dummyEmbeddings),
       }),
       values: testValues,
-      experimental_onStart: async () => {
+      onStart: async () => {
         throw new Error('callback error');
       },
     });
@@ -730,7 +730,7 @@ describe('options.experimental_onStart', () => {
       values: testValues,
       headers: { 'x-custom': 'header-value' },
       providerOptions: { myProvider: { key: 'value' } },
-      experimental_onStart: async event => {
+      onStart: async event => {
         startEvent = event;
       },
     });
@@ -745,7 +745,7 @@ describe('options.experimental_onStart', () => {
   });
 });
 
-describe('options.experimental_onEnd', () => {
+describe('options.onEnd', () => {
   it('should send correct event information (single call path)', async () => {
     let endEvent!: EmbedEndEvent;
 
@@ -761,7 +761,7 @@ describe('options.experimental_onEnd', () => {
       _internal: {
         generateCallId: () => 'test-call-id',
       },
-      experimental_onEnd: async event => {
+      onEnd: async event => {
         endEvent = event;
       },
     });
@@ -801,7 +801,7 @@ describe('options.experimental_onEnd', () => {
       _internal: {
         generateCallId: () => 'test-call-id',
       },
-      experimental_onEnd: async event => {
+      onEnd: async event => {
         endEvent = event;
       },
     });
@@ -823,7 +823,7 @@ describe('options.experimental_onEnd', () => {
         doEmbed: mockEmbed(testValues, dummyEmbeddings, { tokens: 15 }),
       }),
       values: testValues,
-      experimental_onEnd: async event => {
+      onEnd: async event => {
         endEvent = event;
       },
     });
@@ -842,7 +842,7 @@ describe('options.experimental_onEnd', () => {
         doEmbed: mockEmbed(testValues, dummyEmbeddings),
       }),
       values: testValues,
-      experimental_onEnd: async event => {
+      onEnd: async event => {
         endEvent = event;
       },
     });
@@ -864,7 +864,7 @@ describe('options.experimental_onEnd', () => {
         }),
       }),
       values: testValues,
-      experimental_onEnd: async event => {
+      onEnd: async event => {
         endEvent = event;
       },
     });
@@ -889,7 +889,7 @@ describe('options.experimental_onEnd', () => {
         },
       }),
       values: testValues,
-      experimental_onEnd: async () => {
+      onEnd: async () => {
         callOrder.push('onEnd');
       },
     });
@@ -904,7 +904,7 @@ describe('options.experimental_onEnd', () => {
         doEmbed: mockEmbed(testValues, dummyEmbeddings),
       }),
       values: testValues,
-      experimental_onEnd: async () => {
+      onEnd: async () => {
         throw new Error('callback error');
       },
     });
@@ -913,7 +913,7 @@ describe('options.experimental_onEnd', () => {
   });
 });
 
-describe('options.experimental_onStart and experimental_onEnd together', () => {
+describe('options.onStart and onEnd together', () => {
   it('should have consistent callId across both events', async () => {
     let startEvent!: EmbedStartEvent;
     let endEvent!: EmbedEndEvent;
@@ -927,10 +927,10 @@ describe('options.experimental_onStart and experimental_onEnd together', () => {
       _internal: {
         generateCallId: () => 'consistent-call-id',
       },
-      experimental_onStart: async event => {
+      onStart: async event => {
         startEvent = event;
       },
-      experimental_onEnd: async event => {
+      onEnd: async event => {
         endEvent = event;
       },
     });
@@ -952,10 +952,10 @@ describe('options.experimental_onStart and experimental_onEnd together', () => {
         },
       }),
       values: testValues,
-      experimental_onStart: async () => {
+      onStart: async () => {
         callOrder.push('onStart');
       },
-      experimental_onEnd: async () => {
+      onEnd: async () => {
         callOrder.push('onEnd');
       },
     });
@@ -972,10 +972,10 @@ describe('options.experimental_onStart and experimental_onEnd together', () => {
         doEmbed: mockEmbed(testValues, dummyEmbeddings),
       }),
       values: testValues,
-      experimental_onStart: async () => {
+      onStart: async () => {
         throw new Error('start error');
       },
-      experimental_onEnd: async () => {
+      onEnd: async () => {
         endCalled = true;
       },
     });

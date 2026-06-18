@@ -1,5 +1,59 @@
 # @ai-sdk/devtools
 
+## 1.0.0-beta.32
+
+### Patch Changes
+
+- b05f5ee: fix: bump hono to ^4.12.25 to resolve CVE-2026-54290 (CORS Middleware reflects any Origin with credentials when origin defaults to the wildcard)
+
+## 1.0.0-beta.31
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/provider@4.0.0-beta.19
+
+## 1.0.0-canary.30
+
+### Patch Changes
+
+- 32ce45c: fix(devtools): secure devtools viewer api access
+- 275674e: fix(devtools): validate viewer database paths
+
+## 1.0.0-canary.29
+
+### Patch Changes
+
+- 4757690: feat(ai): rename onObjectStepFinish to onObjectStepEnd
+
+## 1.0.0-canary.28
+
+### Patch Changes
+
+- 19736ee: feat(ai): rename onStepFinish to onStepEnd
+
+## 1.0.0-canary.27
+
+### Patch Changes
+
+- Updated dependencies [ce769dd]
+  - @ai-sdk/provider@4.0.0-canary.18
+
+## 1.0.0-canary.26
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - @ai-sdk/provider@4.0.0-canary.17
+
+## 1.0.0-canary.25
+
+### Patch Changes
+
+- b567a6c: dependency updates
+
 ## 1.0.0-canary.24
 
 ### Patch Changes

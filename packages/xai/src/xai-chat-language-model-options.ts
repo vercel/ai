@@ -76,6 +76,15 @@ export const xaiLanguageModelChatOptions = z.object({
    */
   parallel_function_calling: z.boolean().optional(),
 
+  /**
+   * @deprecated xAI has deprecated Live Search (`search_parameters`) in favor
+   * of the Agent Tools API. Requests using this option now return a "Live
+   * search is deprecated" error. Use the `web_search` / `x_search` tools
+   * instead (e.g. `xai.tools.webSearch()`, `xai.tools.xSearch()`) with
+   * `xai.responses(modelId)`.
+   *
+   * @see https://docs.x.ai/docs/guides/tools/overview
+   */
   searchParameters: z
     .object({
       /**

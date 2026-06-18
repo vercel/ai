@@ -204,6 +204,35 @@ export const conventions = defineConventions([
     },
   },
   {
+    name: 'provider-language-model-file-must-import-workflow-serialization',
+    description:
+      "Every provider's language model file must import the workflow serialization helpers.",
+    for: {
+      files: [
+        '${providerId}-language-model.ts',
+        '*/${providerId}-language-model.ts',
+        '${providerId}-*-language-model.ts',
+        '*/${providerId}-*-language-model.ts',
+      ],
+    },
+    must: {
+      import: [
+        {
+          name: 'serializeModelOptions',
+          from: '@ai-sdk/provider-utils',
+        },
+        {
+          name: 'WORKFLOW_SERIALIZE',
+          from: '@ai-sdk/provider-utils',
+        },
+        {
+          name: 'WORKFLOW_DESERIALIZE',
+          from: '@ai-sdk/provider-utils',
+        },
+      ],
+    },
+  },
+  {
     name: 'provider-model-options-file-must-export-model-options-type',
     description:
       "Every provider's model options file must export a model options type.",

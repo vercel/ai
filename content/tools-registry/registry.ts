@@ -551,4 +551,37 @@ console.log(text);`,
     websiteUrl: 'https://you.com',
     npmUrl: 'https://www.npmjs.com/package/@youdotcom-oss/ai-sdk-plugin',
   },
+  {
+    slug: 'nitrosend',
+    name: 'Nitrosend',
+    description:
+      'Nitrosend tools for Vercel AI SDK agents — send email and SMS, manage contacts and segments, build flows, run campaigns. Backed by the Nitrosend remote MCP server.',
+    packageName: '@nitrosend/ai-sdk',
+    tags: ['email', 'sms', 'marketing', 'mcp', 'automation', 'crm'],
+    apiKeyEnvName: 'NITROSEND_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @nitrosend/ai-sdk ai @ai-sdk/mcp zod @ai-sdk/openai',
+      npm: 'npm install @nitrosend/ai-sdk ai @ai-sdk/mcp zod @ai-sdk/openai',
+      yarn: 'yarn add @nitrosend/ai-sdk ai @ai-sdk/mcp zod @ai-sdk/openai',
+      bun: 'bun add @nitrosend/ai-sdk ai @ai-sdk/mcp zod @ai-sdk/openai',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { withNitrosendTools } from '@nitrosend/ai-sdk';
+
+const result = await withNitrosendTools({}, async ({ tools }) => {
+  return generateText({
+    model: openai('gpt-4o'),
+    tools,
+    stopWhen: isStepCount(5),
+    prompt: 'Send a welcome email to founder@acme.com from our team.',
+  });
+});
+
+console.log(result.text);`,
+    docsUrl: 'https://docs.nitrosend.com/integrations/vercel-ai-sdk',
+    apiKeyUrl: 'https://app.nitrosend.com/settings/api-keys',
+    websiteUrl: 'https://nitrosend.com',
+    npmUrl: 'https://www.npmjs.com/package/@nitrosend/ai-sdk',
+  },
 ];

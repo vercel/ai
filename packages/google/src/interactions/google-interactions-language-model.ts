@@ -35,7 +35,10 @@ import {
 } from './google-interactions-language-model-options';
 import type {
   GoogleInteractionsAgentConfig,
+  GoogleInteractionsEnvironmentSource,
   GoogleInteractionsGenerationConfig,
+  GoogleInteractionsNetworkAllowlistEntry,
+  GoogleInteractionsNetworkConfig,
   GoogleInteractionsRequestBody,
   GoogleInteractionsResponseFormatEntry,
   GoogleInteractionsTool,
@@ -62,7 +65,8 @@ export type GoogleInteractionsConfig = {
 
 export type GoogleInteractionsModelInput =
   | GoogleInteractionsModelId
-  | { agent: string };
+  | { agent: string }
+  | { managedAgent: string };
 
 export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
@@ -105,6 +109,9 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     if (typeof modelOrAgent === 'string') {
       this.modelId = modelOrAgent;
       this.agent = undefined;
+    } else if ('managedAgent' in modelOrAgent) {
+      this.modelId = modelOrAgent.managedAgent;
+      this.agent = modelOrAgent.managedAgent;
     } else {
       this.modelId = modelOrAgent.agent;
       this.agent = modelOrAgent.agent;
@@ -135,7 +142,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
   private async getArgs(options: LanguageModelV4CallOptions) {
     const warnings: Array<SharedV4Warning> = [];
 
-    const opts = await parseProviderOptions({
+    const googleOptions = await parseProviderOptions({
       provider: 'google',
       providerOptions: options.providerOptions,
       schema: googleInteractionsLanguageModelOptions,
@@ -200,8 +207,8 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
       }
     }
 
-    if (opts?.responseFormat != null) {
-      for (const entry of opts.responseFormat) {
+    if (googleOptions?.responseFormat != null) {
+      for (const entry of googleOptions.responseFormat) {
         if (entry.type === 'text') {
           responseFormatEntries.push(
             pruneUndefined({
@@ -236,15 +243,16 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
       warnings: convWarnings,
     } = convertToGoogleInteractionsInput({
       prompt: options.prompt,
-      previousInteractionId: opts?.previousInteractionId ?? undefined,
-      store: opts?.store ?? undefined,
-      mediaResolution: opts?.mediaResolution ?? undefined,
+      previousInteractionId: googleOptions?.previousInteractionId ?? undefined,
+      store: googleOptions?.store ?? undefined,
+      mediaResolution: googleOptions?.mediaResolution ?? undefined,
     });
 
     warnings.push(...convWarnings);
 
     let systemInstruction = convertedSystemInstruction;
-    const optionSystemInstruction = opts?.systemInstruction ?? undefined;
+    const optionSystemInstruction =
+      googleOptions?.systemInstruction ?? undefined;
     if (systemInstruction != null && optionSystemInstruction != null) {
       warnings.push({
         type: 'other',
@@ -277,11 +285,12 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
       }
       if (options.maxOutputTokens != null)
         droppedFields.push('maxOutputTokens');
-      if (opts?.thinkingLevel != null) droppedFields.push('thinkingLevel');
-      if (opts?.thinkingSummaries != null) {
+      if (googleOptions?.thinkingLevel != null)
+        droppedFields.push('thinkingLevel');
+      if (googleOptions?.thinkingSummaries != null) {
         droppedFields.push('thinkingSummaries');
       }
-      if (opts?.imageConfig != null) droppedFields.push('imageConfig');
+      if (googleOptions?.imageConfig != null) droppedFields.push('imageConfig');
       if (droppedFields.length > 0) {
         warnings.push({
           type: 'other',
@@ -299,8 +308,8 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
             ? options.stopSequences
             : undefined,
         max_output_tokens: options.maxOutputTokens ?? undefined,
-        thinking_level: opts?.thinkingLevel ?? undefined,
-        thinking_summaries: opts?.thinkingSummaries ?? undefined,
+        thinking_level: googleOptions?.thinkingLevel ?? undefined,
+        thinking_summaries: googleOptions?.thinkingSummaries ?? undefined,
         tool_choice: toolChoiceForBody,
       });
 
@@ -310,7 +319,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
        * always emitted when `imageConfig` is set so callers migrate to the
        * `responseFormat` shape.
        */
-      if (opts?.imageConfig != null) {
+      if (googleOptions?.imageConfig != null) {
         const alreadyHasImageEntry = responseFormatEntries.some(
           entry => entry.type === 'image',
         );
@@ -324,11 +333,11 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
           responseFormatEntries.push({
             type: 'image',
             mime_type: 'image/png',
-            ...(opts.imageConfig.aspectRatio != null
-              ? { aspect_ratio: opts.imageConfig.aspectRatio }
+            ...(googleOptions.imageConfig.aspectRatio != null
+              ? { aspect_ratio: googleOptions.imageConfig.aspectRatio }
               : {}),
-            ...(opts.imageConfig.imageSize != null
-              ? { image_size: opts.imageConfig.imageSize }
+            ...(googleOptions.imageConfig.imageSize != null
+              ? { image_size: googleOptions.imageConfig.imageSize }
               : {}),
           });
         }
@@ -336,32 +345,75 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     }
 
     let agentConfig: GoogleInteractionsAgentConfig | undefined;
-    if (isAgent && opts?.agentConfig != null) {
-      const ac = opts.agentConfig;
-      if (ac.type === 'deep-research') {
+    if (isAgent && googleOptions?.agentConfig != null) {
+      const agentConfigOptions = googleOptions.agentConfig;
+      if (agentConfigOptions.type === 'deep-research') {
         agentConfig = pruneUndefined({
           type: 'deep-research',
-          thinking_summaries: ac.thinkingSummaries ?? undefined,
-          visualization: ac.visualization ?? undefined,
-          collaborative_planning: ac.collaborativePlanning ?? undefined,
+          thinking_summaries: agentConfigOptions.thinkingSummaries ?? undefined,
+          visualization: agentConfigOptions.visualization ?? undefined,
+          collaborative_planning:
+            agentConfigOptions.collaborativePlanning ?? undefined,
         }) as GoogleInteractionsAgentConfig;
-      } else if (ac.type === 'dynamic') {
+      } else if (agentConfigOptions.type === 'dynamic') {
         agentConfig = { type: 'dynamic' };
       }
     }
 
+    let environment: GoogleInteractionsRequestBody['environment'];
+    if (googleOptions?.environment != null) {
+      if (!isAgent) {
+        warnings.push({
+          type: 'other',
+          message:
+            'google.interactions: environment is only supported when an agent is set; environment will be omitted from the request body.',
+        });
+      } else if (typeof googleOptions.environment === 'string') {
+        environment = googleOptions.environment;
+      } else {
+        const environmentOptions = googleOptions.environment;
+        const sources: Array<GoogleInteractionsEnvironmentSource> | undefined =
+          environmentOptions.sources?.map(source => {
+            if (source.type === 'inline') {
+              return {
+                type: 'inline' as const,
+                content: source.content,
+                target: source.target,
+              };
+            }
+            return pruneUndefined({
+              type: source.type,
+              source: source.source,
+              target: source.target ?? undefined,
+            }) as GoogleInteractionsEnvironmentSource;
+          });
+        let network: GoogleInteractionsNetworkConfig | undefined;
+        if (environmentOptions.network === 'disabled') {
+          network = 'disabled';
+        } else if (environmentOptions.network != null) {
+          network = {
+            allowlist: environmentOptions.network.allowlist.map(entry =>
+              pruneUndefined({
+                domain: entry.domain,
+                transform: entry.transform ?? undefined,
+              }),
+            ) as Array<GoogleInteractionsNetworkAllowlistEntry>,
+          };
+        }
+        environment = pruneUndefined({
+          type: 'remote' as const,
+          sources: sources != null && sources.length > 0 ? sources : undefined,
+          network,
+        });
+      }
+    }
+
     /*
-     * Agent calls require `background: true` on the wire — otherwise the API
-     * rejects them with `background=true is required for agent interactions.`
-     * The server returns a non-terminal status (`in_progress`/`requires_action`)
-     * and the final outputs are streamed via `GET /interactions/{id}?stream=true`
-     * (or polled via `GET /interactions/{id}`). This is handled internally in
-     * `doGenerate` / `doStream` so the user-facing surface stays identical to
-     * model-id calls.
-     *
-     * Model-id calls retain their original synchronous behavior — no
-     * `background` field is sent. (No documented model accepts `background:
-     * true` today; revisit when one does.)
+     * `background` is opt-in via `providerOptions.google.background`. Some
+     * agents require it because their server-side workflow cannot complete
+     * within a single request; others reject it. When `background: true`, the
+     * POST returns a non-terminal status and the SDK polls
+     * `GET /interactions/{id}` until the work completes.
      */
     const args: GoogleInteractionsRequestBody = pruneUndefined({
       ...(isAgent ? { agent: this.agent } : { model: this.modelId }),
@@ -371,27 +423,30 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
       response_format:
         responseFormatEntries.length > 0 ? responseFormatEntries : undefined,
       response_modalities:
-        opts?.responseModalities != null
-          ? (opts.responseModalities as Array<
+        googleOptions?.responseModalities != null
+          ? (googleOptions.responseModalities as Array<
               'text' | 'image' | 'audio' | 'video' | 'document'
             >)
           : undefined,
-      previous_interaction_id: opts?.previousInteractionId ?? undefined,
-      service_tier: opts?.serviceTier ?? undefined,
-      store: opts?.store ?? undefined,
+      previous_interaction_id:
+        googleOptions?.previousInteractionId ?? undefined,
+      service_tier: googleOptions?.serviceTier ?? undefined,
+      store: googleOptions?.store ?? undefined,
       generation_config:
         generationConfig != null && Object.keys(generationConfig).length > 0
           ? generationConfig
           : undefined,
       agent_config: agentConfig,
-      ...(isAgent ? { background: true } : {}),
+      environment,
+      background: googleOptions?.background ?? undefined,
     });
 
     return {
       args,
       warnings,
       isAgent,
-      pollingTimeoutMs: opts?.pollingTimeoutMs ?? undefined,
+      isBackground: googleOptions?.background === true,
+      pollingTimeoutMs: googleOptions?.pollingTimeoutMs ?? undefined,
     };
   }
 
@@ -404,7 +459,6 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     const url = `${this.config.baseURL}/interactions`;
 
     const mergedHeaders = combineHeaders(
-      INTERACTIONS_API_REVISION_HEADER,
       this.config.headers ? await resolve(this.config.headers) : undefined,
       options.headers,
     );
@@ -428,8 +482,8 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     } = postResult;
 
     /*
-     * Agent calls run with `background: true`; the POST returns immediately
-     * with a non-terminal status (`in_progress` / `requires_action`). Poll
+     * Agent calls may return a non-terminal status (`in_progress` /
+     * `requires_action`) when invoked with `background: true`. Poll
      * `GET /interactions/{id}` until terminal so the user-facing surface
      * matches a synchronous call.
      */
@@ -527,25 +581,24 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
   async doStream(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4StreamResult> {
-    const { args, warnings, isAgent, pollingTimeoutMs } =
+    const { args, warnings, isBackground, pollingTimeoutMs } =
       await this.getArgs(options);
 
     const url = `${this.config.baseURL}/interactions`;
 
     const mergedHeaders = combineHeaders(
-      INTERACTIONS_API_REVISION_HEADER,
       this.config.headers ? await resolve(this.config.headers) : undefined,
       options.headers,
     );
 
     /*
-     * Agent calls require `background: true`, which is incompatible with
-     * `stream: true` on POST. Drive these via POST background -> GET stream
-     * (with terminal-status short-circuit). The user-facing stream surface
-     * stays identical -- text-start / text-delta / text-end / finish parts
-     * are emitted in the same order as a true SSE response.
+     * `background: true` is incompatible with `stream: true` on POST. Drive
+     * background calls via POST background -> GET stream (with terminal-status
+     * short-circuit). The user-facing stream surface stays identical --
+     * text-start / text-delta / text-end / finish parts are emitted in the
+     * same order as a true SSE response.
      */
-    if (isAgent) {
+    if (isBackground) {
       return this.doStreamBackground({
         args,
         warnings,
@@ -701,15 +754,6 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     };
   }
 }
-
-/*
- * Pins the Interactions API revision the SDK targets. Sent on every request
- * the model issues so model-id calls, agent calls, polling, SSE reconnects,
- * and cancellation all hit the same schema.
- */
-const INTERACTIONS_API_REVISION_HEADER: Record<string, string> = {
-  'Api-Revision': '2026-05-20',
-};
 
 function pruneUndefined<T extends Record<string, unknown>>(obj: T): T {
   const result: Record<string, unknown> = {};

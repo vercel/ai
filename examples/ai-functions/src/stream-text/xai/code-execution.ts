@@ -14,7 +14,7 @@ run(async () => {
     },
   });
 
-  for await (const chunk of response.fullStream) {
+  for await (const chunk of response.stream) {
     console.dir(chunk, { depth: null });
   }
 });

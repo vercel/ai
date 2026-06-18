@@ -1,7 +1,4 @@
-import {
-  OpenAICompatibleChatLanguageModel,
-  type ProviderErrorStructure,
-} from '@ai-sdk/openai-compatible';
+import type { ProviderErrorStructure } from '@ai-sdk/openai-compatible';
 import {
   NoSuchModelError,
   type LanguageModelV4,
@@ -13,6 +10,7 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
+import { CerebrasChatLanguageModel } from './cerebras-chat-language-model';
 import type { CerebrasChatModelId } from './cerebras-chat-options';
 import { z } from 'zod/v4';
 import { VERSION } from './version';
@@ -31,6 +29,39 @@ const cerebrasErrorStructure: ProviderErrorStructure<CerebrasErrorData> = {
   errorSchema: cerebrasErrorSchema,
   errorToMessage: data => data.message,
 };
+
+/**
+ * Cerebras expects assistant reasoning history in the `reasoning` field, while
+ * the shared OpenAI-compatible converter serializes it as `reasoning_content`.
+ */
+function transformCerebrasRequestBody(
+  args: Record<string, any>,
+): Record<string, any> {
+  return {
+    ...args,
+    messages: Array.isArray(args.messages)
+      ? args.messages.map(message => {
+          if (
+            message == null ||
+            typeof message !== 'object' ||
+            message.role !== 'assistant' ||
+            !('reasoning_content' in message)
+          ) {
+            return message;
+          }
+
+          const { reasoning_content, ...rest } = message;
+
+          return {
+            ...rest,
+            ...(!('reasoning' in rest) && reasoning_content !== undefined
+              ? { reasoning: reasoning_content }
+              : {}),
+          };
+        })
+      : args.messages,
+  };
+}
 
 export interface CerebrasProviderSettings {
   /**
@@ -94,13 +125,14 @@ export function createCerebras(
     );
 
   const createLanguageModel = (modelId: CerebrasChatModelId) => {
-    return new OpenAICompatibleChatLanguageModel(modelId, {
+    return new CerebrasChatLanguageModel(modelId, {
       provider: `cerebras.chat`,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
       errorStructure: cerebrasErrorStructure,
       supportsStructuredOutputs: true,
+      transformRequestBody: transformCerebrasRequestBody,
     });
   };
 
