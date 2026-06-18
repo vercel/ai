@@ -38,6 +38,38 @@ export function resolveGrokBuildEnv(
   return pickXai({}, processEnv);
 }
 
+/**
+ * Map the generic resolved auth blob (from {@link resolveGrokBuildEnv}) onto the
+ * concrete environment variables the `grok` CLI actually reads. The CLI does
+ * NOT read `XAI_API_KEY` / `AI_GATEWAY_*` directly, so this translation is
+ * required before spawning.
+ *
+ * Decision: gateway-vs-direct is keyed off the presence of `AI_GATEWAY_API_KEY`
+ * in the resolved blob (the gateway branch of `resolveGrokBuildEnv` always sets
+ * it). The two shapes:
+ *   - Direct xAI: `XAI_API_KEY=<key>` (and pass model id `grok-build-0.1`).
+ *   - Gateway:    `GROK_MODELS_BASE_URL=<baseUrl>` +
+ *                 `GROK_CODE_XAI_API_KEY=<key>` (and pass model id
+ *                 `xai/grok-build-0.1`).
+ */
+export function toGrokCliEnv(
+  resolved: Record<string, string>,
+): Record<string, string> {
+  const isGateway = resolved.AI_GATEWAY_API_KEY != null;
+  if (isGateway) {
+    const env: Record<string, string> = {};
+    const key = resolved.AI_GATEWAY_API_KEY;
+    const baseUrl = resolved.AI_GATEWAY_BASE_URL ?? resolved.XAI_BASE_URL;
+    if (key) env.GROK_CODE_XAI_API_KEY = key;
+    if (baseUrl) env.GROK_MODELS_BASE_URL = baseUrl;
+    return env;
+  }
+  const env: Record<string, string> = {};
+  if (resolved.XAI_API_KEY) env.XAI_API_KEY = resolved.XAI_API_KEY;
+  if (resolved.XAI_BASE_URL) env.XAI_BASE_URL = resolved.XAI_BASE_URL;
+  return env;
+}
+
 function pickXai(
   explicit: NonNullable<GrokBuildAuthOptions['xai']>,
   processEnv: Record<string, string | undefined>,
