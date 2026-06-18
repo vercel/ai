@@ -11,7 +11,7 @@ Use `content/docs/08-migration-guides/23-migration-guide-7-0.mdx` from the AI SD
 
 1. Ensure the user has a clean backup or committed baseline before editing.
 2. Inspect `package.json` and lockfiles to identify installed `ai`, `@ai-sdk/*`, provider, UI, MCP, and telemetry packages.
-3. Upgrade AI SDK packages to matching v7 versions, and add `@ai-sdk/otel` only if the project uses OpenTelemetry spans.
+3. Upgrade AI SDK packages to latest versions, and add `@ai-sdk/otel` only if the project uses OpenTelemetry spans.
 4. Update runtime and module assumptions: Node.js must be `>=22`, and AI SDK packages are ESM-only. Replace `require()` imports with ESM imports and add `"type": "module"` or use `.mjs` where needed.
 5. Search for the v6 patterns below, migrate only the code that exists, then run typecheck and targeted tests.
 
