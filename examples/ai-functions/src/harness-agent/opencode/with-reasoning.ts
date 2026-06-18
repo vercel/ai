@@ -25,9 +25,6 @@ run(async () => {
     });
 
     await printFullStream({ result });
-
-    const reasoning = await result.reasoningText;
-    console.log('reasoning text length:', reasoning?.length ?? 0);
   } catch (err) {
     exitCode = 1;
     console.error('[example] failed:', err);
