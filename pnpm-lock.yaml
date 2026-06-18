@@ -307,6 +307,9 @@ importers:
       '@ai-sdk/harness-codex':
         specifier: workspace:*
         version: link:../../packages/harness-codex
+      '@ai-sdk/harness-grok-build':
+        specifier: workspace:*
+        version: link:../../packages/harness-grok-build
       '@ai-sdk/harness-pi':
         specifier: workspace:*
         version: link:../../packages/harness-pi
