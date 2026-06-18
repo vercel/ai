@@ -1226,8 +1226,15 @@ function toPermissionToolName(action: string): string {
 function isExternalPath(resource: string): boolean {
   if (!path.isAbsolute(resource)) return false;
   const normalized = path.resolve(resource);
-  const root = path.resolve(workdir);
-  return normalized !== root && !normalized.startsWith(`${root}/`);
+  return (
+    !isPathInsideOrEqual(normalized, workdir) &&
+    (!skillsDir || !isPathInsideOrEqual(normalized, skillsDir))
+  );
+}
+
+function isPathInsideOrEqual(file: string, root: string): boolean {
+  const normalizedRoot = path.resolve(root);
+  return file === normalizedRoot || file.startsWith(`${normalizedRoot}/`);
 }
 
 function toWireToolName(nativeName: string): string {
