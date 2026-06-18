@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.182
+
+### Patch Changes
+
+- cc6ab90: feat(ai): rename ui message stream onFinish to onEnd
+
 ## 7.0.0-beta.181
 
 ### Patch Changes
