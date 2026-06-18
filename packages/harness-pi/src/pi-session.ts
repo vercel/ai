@@ -868,6 +868,29 @@ export async function createPiSession(
       if (stopped) {
         throw new Error('Pi session has been stopped.');
       }
+      if (
+        activeTurn != null &&
+        (pendingToolResults.size > 0 || pendingToolApprovals.size > 0)
+      ) {
+        parkedPiSessions.set(input.sessionId, sessionImpl);
+        if (sessionFileName) {
+          try {
+            await persistSessionFile();
+          } catch {
+            /*
+             * While waiting on host input, the live parked session is the
+             * authoritative same-process continuation path. The sandbox copy
+             * remains a best-effort fallback for a later cold resume.
+             */
+          }
+        }
+        return {
+          type: 'continue-turn',
+          harnessId: HARNESS_ID,
+          specificationVersion: 'harness-v1',
+          data: sessionFileName ? { sessionFileName } : {},
+        };
+      }
       /*
        * Pi's model runs in this host process, which is about to be suspended at
        * the slice boundary — the in-flight turn cannot survive it. Abort it (the
