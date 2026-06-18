@@ -12,6 +12,7 @@
     "@ai-sdk/harness": "workspace:*",
     "@ai-sdk/harness-claude-code": "workspace:*",
     "@ai-sdk/harness-codex": "workspace:*",
+    "@ai-sdk/harness-opencode": "workspace:*",
     "@ai-sdk/harness-pi": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
     "@ai-sdk/react": "workspace:*",
