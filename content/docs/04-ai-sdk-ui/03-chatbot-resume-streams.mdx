@@ -137,7 +137,7 @@ export async function POST(req: Request) {
       stream: result.stream,
       originalMessages: messages,
       generateMessageId: generateId,
-      onFinish: ({ messages }) => {
+      onEnd: ({ messages }) => {
         // Clear the active stream when finished
         saveChat({ id, messages, activeStreamId: null });
       },

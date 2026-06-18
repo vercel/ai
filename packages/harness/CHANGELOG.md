@@ -1,5 +1,13 @@
 # @ai-sdk/harness
 
+## 1.0.0-beta.20
+
+### Patch Changes
+
+- e5d4a24: chore(harness): update ws package
+- Updated dependencies [cc6ab90]
+  - ai@7.0.0-beta.182
+
 ## 1.0.0-beta.19
 
 ### Patch Changes

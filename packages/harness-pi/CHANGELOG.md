@@ -1,5 +1,13 @@
 # @ai-sdk/harness-pi
 
+## 1.0.0-beta.16
+
+### Patch Changes
+
+- b2ef8cf: chore(harness-pi): update Pi SDK
+- Updated dependencies [e5d4a24]
+  - @ai-sdk/harness@1.0.0-beta.20
+
 ## 1.0.0-beta.15
 
 ### Patch Changes
