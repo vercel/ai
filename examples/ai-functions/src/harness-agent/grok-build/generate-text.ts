@@ -1,16 +1,21 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { grokBuild } from '@ai-sdk/harness-grok-build';
-import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
+import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { run } from '../../lib/run';
 
-// Local end-to-end smoke test. Uses the just-bash sandbox so it runs on the
-// host (no remote sandbox). Requires XAI_API_KEY (or AI Gateway env) in
-// examples/ai-functions/.env. The bootstrap installs the `grok` CLI under
-// /tmp/harness/grok-build and the bridge drives it in streaming-json mode.
+// End-to-end smoke test against the Vercel Sandbox (required: grok-build is
+// bridge-backed and needs a port, which the local just-bash sandbox cannot
+// expose). Requires Vercel Sandbox credentials (OIDC token / `vercel` auth)
+// and XAI_API_KEY (or AI Gateway env) in examples/ai-functions/.env.
 run(async () => {
+  const sandbox = createVercelSandbox({
+    runtime: 'node24',
+    ports: [4000],
+    timeout: 10 * 60 * 1000,
+  });
   const agent = new HarnessAgent({
     harness: grokBuild,
-    sandbox: createJustBashSandbox(),
+    sandbox,
   });
 
   let exitCode = 0;
