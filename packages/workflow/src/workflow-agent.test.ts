@@ -5,11 +5,12 @@
  * particularly for FatalError conversion to tool result errors,
  * and verifying that messages are properly passed to tool execute functions.
  */
-import type {
-  LanguageModelV4,
-  LanguageModelV4Prompt,
-  LanguageModelV4ToolCall,
-  LanguageModelV4ToolResultPart,
+import {
+  InvalidPromptError,
+  type LanguageModelV4,
+  type LanguageModelV4Prompt,
+  type LanguageModelV4ToolCall,
+  type LanguageModelV4ToolResultPart,
 } from '@ai-sdk/provider';
 import type { StepResult, ToolSet } from 'ai';
 import { describe, expect, it, vi } from 'vitest';
@@ -2834,6 +2835,73 @@ describe('WorkflowAgent', () => {
 
       await agent.stream({
         prompt: [{ role: 'user', content: 'What is the weather?' }],
+        writable: mockWritable,
+      });
+
+      expect(streamTextIterator).toHaveBeenCalled();
+    });
+  });
+
+  describe('allowSystemInMessages', () => {
+    const messagesWithSystem = [
+      { role: 'system', content: 'You are a helpful assistant.' },
+      { role: 'user', content: 'What is the weather?' },
+    ] as any;
+
+    function mockIteratorOnce() {
+      return import('./stream-text-iterator.js').then(
+        ({ streamTextIterator }) => {
+          const mockIterator = {
+            next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+          };
+          vi.mocked(streamTextIterator).mockReturnValue(
+            mockIterator as unknown as MockIterator,
+          );
+          return streamTextIterator;
+        },
+      );
+    }
+
+    it('should reject system messages in messages by default', async () => {
+      const agent = new WorkflowAgent({ model: createMockModel(), tools: {} });
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+      await mockIteratorOnce();
+
+      await expect(
+        agent.stream({ messages: messagesWithSystem, writable: mockWritable }),
+      ).rejects.toThrow(InvalidPromptError);
+    });
+
+    it('should reject system messages in prompt by default', async () => {
+      const agent = new WorkflowAgent({ model: createMockModel(), tools: {} });
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+      await mockIteratorOnce();
+
+      await expect(
+        agent.stream({ prompt: messagesWithSystem, writable: mockWritable }),
+      ).rejects.toThrow(InvalidPromptError);
+    });
+
+    it('should allow system messages when allowSystemInMessages is true', async () => {
+      const agent = new WorkflowAgent({
+        model: createMockModel(),
+        tools: {},
+        allowSystemInMessages: true,
+      });
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+      const streamTextIterator = await mockIteratorOnce();
+
+      await agent.stream({
+        messages: messagesWithSystem,
         writable: mockWritable,
       });
 
