@@ -194,7 +194,7 @@ describe('grok-build doStart', () => {
 
     expect(spawnCalls).toHaveLength(1);
     expect(spawnCalls[0].command).toContain(
-      'node /tmp/harness/grok-build/bridge.mjs --workdir /vercel/sandbox/grok-s1',
+      "node '/tmp/harness/grok-build/bridge.mjs' --workdir '/vercel/sandbox/grok-s1'",
     );
     // Mapped direct-xai env var is forwarded to the bridge process.
     expect(spawnCalls[0].env.XAI_API_KEY).toBe('sk-direct');

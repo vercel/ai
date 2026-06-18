@@ -38,20 +38,8 @@ export function resolveGrokBuildEnv(
   return pickXai({}, processEnv);
 }
 
-/**
- * Map the generic resolved auth blob (from {@link resolveGrokBuildEnv}) onto the
- * concrete environment variables the `grok` CLI actually reads. The CLI does
- * NOT read `XAI_API_KEY` / `AI_GATEWAY_*` directly, so this translation is
- * required before spawning.
- *
- * Decision: gateway-vs-direct is keyed off the presence of `AI_GATEWAY_API_KEY`
- * in the resolved blob (the gateway branch of `resolveGrokBuildEnv` always sets
- * it). The two shapes:
- *   - Direct xAI: `XAI_API_KEY=<key>` (and pass model id `grok-build-0.1`).
- *   - Gateway:    `GROK_MODELS_BASE_URL=<baseUrl>` +
- *                 `GROK_CODE_XAI_API_KEY=<key>` (and pass model id
- *                 `xai/grok-build-0.1`).
- */
+// Translate the resolved auth blob into the env vars the grok CLI reads.
+// Direct: XAI_API_KEY. Gateway (keyed off AI_GATEWAY_API_KEY): GROK_MODELS_BASE_URL + GROK_CODE_XAI_API_KEY.
 export function toGrokCliEnv(
   resolved: Record<string, string>,
 ): Record<string, string> {
@@ -93,8 +81,7 @@ function pickGateway(
     env.AI_GATEWAY_API_KEY = apiKey;
     env.XAI_API_KEY = apiKey;
   }
-  // Always forward the gateway base URL (mirrors claude-code-auth); the gateway
-  // helper always returns a non-empty default.
+  // Always forward the gateway base URL (mirrors claude-code-auth).
   env.AI_GATEWAY_BASE_URL = baseUrl;
   env.XAI_BASE_URL = baseUrl;
   return env;

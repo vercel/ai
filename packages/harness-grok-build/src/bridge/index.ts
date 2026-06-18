@@ -1,14 +1,6 @@
-// Long-running process that runs alongside the `grok` CLI in the sandbox.
-// The generic transport — WebSocket server, token auth, single-flight
-// reconnect, the in-memory event log + `seq`, resume replay, and the
-// lifecycle/meta files — lives in the shared `@ai-sdk/harness/bridge` runtime.
-// This file supplies only the Grok-specific turn driver.
-//
-// Grok is CLI-driven: a fresh `grok -p <prompt> --output-format streaming-json`
-// child is spawned per turn. Because the CLI runs with `--always-approve`, all
-// tools execute *inside* grok in the sandbox — there is NO host tool dispatch in
-// this mode (no relay, no MCP shim). `turn.requestToolResult` /
-// `requestToolApproval` are therefore never used here.
+// Grok-specific turn driver for the shared @ai-sdk/harness/bridge runtime.
+// Spawns a `grok -p ... --output-format streaming-json --always-approve` child
+// per turn; tools run inside grok, so there's no host tool dispatch here.
 
 import {
   runBridge,
@@ -16,11 +8,11 @@ import {
   type BridgeTurn,
 } from '@ai-sdk/harness/bridge';
 import { spawn } from 'node:child_process';
-import { existsSync } from 'node:fs';
 import { argv, env as procEnv, stdout } from 'node:process';
 import { createInterface } from 'node:readline';
 import type { StartMessage } from '../grok-build-bridge-protocol';
 import { createStreamMapState, mapStreamLine } from '../grok-build-stream-map';
+import { prependGrokBuildBinToPath } from './grok-build-path';
 
 const DEFAULT_GROK_MODEL = 'grok-build-0.1';
 
@@ -34,6 +26,11 @@ if (!args.bridgeStateDir) {
 const workdir: string = args.workdir;
 const bridgeStateDir: string = args.bridgeStateDir;
 const bootstrapDir: string = args.bootstrapDir ?? workdir;
+
+// Make the bootstrap-installed `grok` binary resolve ahead of any system copy
+// by prepending its node_modules/.bin to PATH. Spawning the bare `grok` name
+// (rather than an absolute path) then picks it up. Mirrors the OpenCode bridge.
+prependGrokBuildBinToPath({ bootstrapDir, env: procEnv });
 
 // The latest grok CLI session id, learned from the terminal `end` event's
 // `sessionId`. Returned to the host on detach so a future process could resume
@@ -50,7 +47,6 @@ await runBridge<StartMessage>({
 async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   const emit = (event: BridgeEvent) => turn.emit(event);
 
-  const grokBin = resolveGrokBinary(bootstrapDir);
   const cliArgs = [
     '-p',
     start.prompt,
@@ -67,7 +63,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   // Resume the prior CLI thread in this workdir instead of starting fresh.
   if (start.continue) cliArgs.push('-c');
 
-  const child = spawn(grokBin, cliArgs, {
+  const child = spawn('grok', cliArgs, {
     cwd: workdir,
     env: procEnv,
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -156,16 +152,6 @@ function captureSessionId(line: string): void {
   } catch {
     // Non-JSON / partial line — ignore. The stream-map handles malformed input.
   }
-}
-
-/**
- * Resolve the `grok` binary path. The bootstrap installs `@xai-official/grok`
- * into the bootstrap dir's node_modules, exposing `./node_modules/.bin/grok`.
- * Fall back to bare `grok` (PATH) when that shim is absent.
- */
-function resolveGrokBinary(dir: string): string {
-  const local = `${dir}/node_modules/.bin/grok`;
-  return existsSync(local) ? local : 'grok';
 }
 
 function parseArgs(rawArgs: string[]): {

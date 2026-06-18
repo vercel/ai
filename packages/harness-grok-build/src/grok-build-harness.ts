@@ -37,14 +37,7 @@ import {
 
 type GrokBuildChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 
-/*
- * Native tool name → common harness name mapping.
- *
- * TODO: Reconcile these native keys against captured Grok Build CLI fixture
- * output once real CLI traces are available. The names below are borrowed from
- * the Claude Code harness as a placeholder and may differ from what Grok Build
- * actually emits.
- */
+// Native tool name → common name. Placeholder names; reconcile with real CLI output.
 export const NATIVE_TO_COMMON: Readonly<
   Record<string, HarnessV1BuiltinToolName>
 > = {
@@ -57,23 +50,13 @@ export const NATIVE_TO_COMMON: Readonly<
   WebSearch: 'webSearch',
 };
 
-/**
- * Map a native Grok Build tool name to its cross-harness common name.
- * Returns the native name unchanged if no mapping is found.
- */
 export function toCommonName(
   nativeName: string,
 ): HarnessV1BuiltinToolName | string {
   return NATIVE_TO_COMMON[nativeName] ?? nativeName;
 }
 
-/*
- * Every native tool the Grok Build CLI can invoke, declared as a ToolSet
- * keyed by the common name where a mapping exists.
- *
- * TODO: Reconcile native tool names and input schemas against captured Grok
- * Build CLI fixture output once real CLI traces are available.
- */
+// Builtin tools, keyed by common name. Placeholder names/schemas; reconcile with real CLI output.
 export const GROK_BUILD_BUILTIN_TOOLS = {
   read: commonTool('read', {
     nativeName: 'Read',
@@ -149,11 +132,7 @@ export const GROK_BUILD_BUILTIN_TOOLS = {
 
 const BOOTSTRAP_DIR = '/tmp/harness/grok-build';
 
-/*
- * The grok model id the adapter pins when the consumer configures none. The
- * direct (xAI) and gateway routes use different ids: direct uses the bare
- * `grok-build-0.1`, while the gateway requires the `xai/` prefix.
- */
+// Direct (xAI) uses the bare id; the gateway requires the `xai/` prefix.
 const DEFAULT_GROK_MODEL_DIRECT = 'grok-build-0.1';
 const DEFAULT_GROK_MODEL_GATEWAY = 'xai/grok-build-0.1';
 
@@ -166,11 +145,7 @@ export type GrokBuildHarnessSettings = {
   readonly startupTimeoutMs?: number;
 };
 
-/**
- * Adapter-specific lifecycle `data` payload. `sessionId` is the grok CLI
- * session id (from the terminal `end` event) usable for `-r/--resume`; `bridge`
- * carries live coordinates for a cross-process attach.
- */
+// `sessionId` (from the `end` event) feeds `-r/--resume`; `bridge` carries attach coords.
 const lifecycleStateSchema = z.object({
   sessionId: z.string().optional(),
   bridge: z
@@ -204,9 +179,7 @@ async function readBridgeAsset(name: string): Promise<string> {
 export function createGrokBuild(
   settings: GrokBuildHarnessSettings = {},
 ): HarnessV1<typeof GROK_BUILD_BUILTIN_TOOLS> {
-  // Per-instance cache: bridge assets are static, but keeping this in the
-  // factory closure (rather than module scope) avoids leaking state across
-  // separate createGrokBuild() instances.
+  // Per-instance cache (in the closure, not module scope, to avoid cross-instance leakage).
   let cachedBootstrap: HarnessV1Bootstrap | null = null;
   return {
     specificationVersion: 'harness-v1',
@@ -275,8 +248,7 @@ export function createGrokBuild(
       const bridgeStateDir = `${sessionDataDir}/bridge`;
       const timeoutMs = settings.startupTimeoutMs ?? 120_000;
 
-      // Normalize each forwarded bridge diagnostics frame into the general
-      // `HarnessV1Diagnostic` and report it.
+      // Normalize forwarded bridge diagnostics frames and report them.
       const report = startOpts.observability?.report;
       const onDiagnostic = report
         ? (frame: Parameters<typeof harnessV1DiagnosticFromBridgeFrame>[0]) =>
@@ -288,9 +260,7 @@ export function createGrokBuild(
             )
         : undefined;
 
-      // Resolve auth, then translate the generic blob into the concrete env
-      // vars the grok CLI reads, and pick the matching model id (gateway needs
-      // the `xai/` prefix).
+      // Resolve auth → concrete grok CLI env vars, and pick the matching model id.
       const resolvedAuth = resolveGrokBuildEnv(settings.auth);
       const grokEnv = toGrokCliEnv(resolvedAuth);
       const isGateway = resolvedAuth.AI_GATEWAY_API_KEY != null;
@@ -307,7 +277,7 @@ export function createGrokBuild(
       };
 
       await session.run({
-        command: `mkdir -p ${workDir} ${bridgeStateDir}`,
+        command: `mkdir -p ${shellQuote(workDir)} ${shellQuote(bridgeStateDir)}`,
         abortSignal: startOpts.abortSignal,
       });
 
@@ -319,7 +289,7 @@ export function createGrokBuild(
       });
 
       const proc = await session.spawn({
-        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${workDir} --bridge-state-dir ${bridgeStateDir} --bootstrap-dir ${BOOTSTRAP_DIR}`,
+        command: `node ${shellQuote(`${BOOTSTRAP_DIR}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --bootstrap-dir ${shellQuote(BOOTSTRAP_DIR)}`,
         env,
         abortSignal: startOpts.abortSignal,
       });
@@ -367,6 +337,11 @@ export function createGrokBuild(
       });
     },
   };
+}
+
+// Single-quote a value for safe use in a POSIX shell command
+function shellQuote(value: string): string {
+  return `'${value.replace(/'/g, `'\\''`)}'`;
 }
 
 function resolveBridgePort(
@@ -461,19 +436,10 @@ function createSession({
   let stopped = false;
   let stopPromise: Promise<void> | undefined;
 
-  /*
-   * Latest grok CLI session id, cached from the bridge's `bridge-detach`
-   * payload-bearing announcements is not available pre-detach; seed from
-   * lifecycle state so `doDetach`/`doStop` can include an id even before this
-   * process has finished a turn.
-   */
+  // Latest grok CLI session id; seeded from lifecycle state so detach/stop have an id pre-turn.
   let latestGrokSessionId = resumeGrokSessionId;
 
-  /*
-   * Wire the channel into one turn's worth of events and return the control
-   * surface. Shared by `doPromptTurn` and `doContinueTurn` (which differ only
-   * in the `start` message they send afterwards).
-   */
+  // Wire the channel into one turn and return the control surface (shared by prompt/continue).
   const wireTurn = (turnOpts: {
     emit: (event: HarnessV1StreamPart) => void;
     abortSignal?: AbortSignal;
@@ -572,11 +538,7 @@ function createSession({
     return { done };
   };
 
-  /*
-   * Tools execute inside grok via `--always-approve`, so the host never
-   * dispatches tools in this mode: `submitToolResult` / `submitToolApproval`
-   * are unsupported no-ops that match the `HarnessV1PromptControl` interface.
-   */
+  // grok self-executes tools (`--always-approve`); these are unsupported no-ops.
   const unsupportedToolControl = {
     submitToolResult: async () => {
       throw new HarnessCapabilityUnsupportedError({
@@ -615,9 +577,7 @@ function createSession({
         emit: continueOpts.emit,
         abortSignal: continueOpts.abortSignal,
       });
-      // `doContinueTurn` carries no prompt; the grok CLI requires `-p`, so send
-      // a continuation nudge alongside `-c` (which resumes the prior thread in
-      // the workdir). Mirrors the codex adapter.
+      // No prompt on continue, but grok `-p` requires one — send a nudge with `-c`.
       channel.send({
         type: 'start',
         prompt: 'Continue.',
@@ -745,11 +705,7 @@ function createSession({
   };
 }
 
-/*
- * Reduce a `HarnessV1Prompt` to the plain user text the bridge passes to the
- * grok CLI via `-p`. File and image parts are not yet supported — throw rather
- * than silently drop them.
- */
+// Reduce a prompt to plain text for grok `-p`. File/image parts are unsupported — throw.
 function extractUserText(
   prompt: Parameters<HarnessV1Session['doPromptTurn']>[0]['prompt'],
 ): string {
