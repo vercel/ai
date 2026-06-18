@@ -147,6 +147,32 @@ const OPENCODE_BUILTIN_TOOLS = {
       })
       .passthrough(),
   }),
+  skill: tool({
+    description: 'Load an OpenCode skill by name',
+    inputSchema: z
+      .object({
+        name: z.string().optional(),
+      })
+      .passthrough(),
+  }),
+  todowrite: tool({
+    description: 'Replace the OpenCode session todo list',
+    inputSchema: z
+      .object({
+        todos: z
+          .array(
+            z
+              .object({
+                content: z.string().optional(),
+                status: z.string().optional(),
+                priority: z.string().optional(),
+              })
+              .passthrough(),
+          )
+          .optional(),
+      })
+      .passthrough(),
+  }),
   agent: tool({
     description: 'Run an OpenCode subagent',
     inputSchema: z

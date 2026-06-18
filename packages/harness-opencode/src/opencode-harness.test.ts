@@ -58,6 +58,8 @@ describe('createOpenCode adapter', () => {
       'grep',
       'ls',
       'webfetch',
+      'skill',
+      'todowrite',
       'agent',
     ]);
     expect(getBuiltinToolMetadata(harness.builtinTools.read).nativeName).toBe(

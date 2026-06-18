@@ -66,6 +66,8 @@ const TOOL_KIND: Readonly<Record<string, 'readonly' | 'edit' | 'bash'>> = {
   edit: 'edit',
   bash: 'bash',
   agent: 'bash',
+  skill: 'edit',
+  todowrite: 'edit',
 };
 
 const args = parseArgs(argv.slice(2));

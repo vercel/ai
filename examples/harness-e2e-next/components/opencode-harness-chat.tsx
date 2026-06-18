@@ -81,8 +81,23 @@ export default function OpenCodeHarnessChat({
                 return (
                   <HarnessToolView
                     key={index}
-                    toolName="agent"
+                    toolName="Agent"
                     toolArg={part.input?.agent ?? part.input?.description}
+                    state={part.state}
+                    output={
+                      part.state === 'output-available'
+                        ? part.output
+                        : undefined
+                    }
+                  />
+                );
+              }
+              case 'tool-skill': {
+                return (
+                  <HarnessToolView
+                    key={index}
+                    toolName="Skill"
+                    toolArg={part.input?.name}
                     state={part.state}
                     output={
                       part.state === 'output-available'
@@ -96,23 +111,6 @@ export default function OpenCodeHarnessChat({
               case 'tool-write':
               case 'tool-edit': {
                 return <HarnessFileToolView key={index} invocation={part} />;
-              }
-              case 'tool-glob':
-              case 'tool-grep':
-              case 'tool-ls':
-              case 'tool-webfetch': {
-                return (
-                  <HarnessToolView
-                    key={index}
-                    toolName={part.type.slice('tool-'.length)}
-                    state={part.state}
-                    output={
-                      part.state === 'output-available'
-                        ? part.output
-                        : undefined
-                    }
-                  />
-                );
               }
               case 'dynamic-tool': {
                 if (part.toolName === 'fileChange') {
