@@ -1,5 +1,13 @@
 # @ai-sdk/harness-codex
 
+## 1.0.0-beta.16
+
+### Patch Changes
+
+- e5d4a24: chore(harness): update ws package
+- Updated dependencies [e5d4a24]
+  - @ai-sdk/harness@1.0.0-beta.20
+
 ## 1.0.0-beta.15
 
 ### Patch Changes
