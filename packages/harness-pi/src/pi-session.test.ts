@@ -137,10 +137,23 @@ describe('createPiSession', () => {
     await control.done;
 
     expect(prompt).toHaveBeenCalledTimes(1);
-    expect(resolvedToolResult).toEqual({
-      content: [{ type: 'text', text: '{"weather":"sunny"}' }],
-      details: undefined,
-    });
+    expect(resolvedToolResult).toMatchInlineSnapshot(
+      {
+        content: [{ type: 'text', text: '{"weather":"sunny"}' }],
+        details: undefined,
+      },
+      `
+      {
+        "content": [
+          {
+            "text": "{"weather":"sunny"}",
+            "type": "text",
+          },
+        ],
+        "details": undefined,
+      }
+    `,
+    );
   });
 });
 
