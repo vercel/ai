@@ -12,6 +12,7 @@ export type OutboundMessage = z.infer<typeof outboundMessageSchema>;
 export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   operation: z.enum(['prompt', 'compact']).optional(),
   provider: z.string().optional(),
+  variant: z.string().optional(),
   instructions: z.string().optional(),
   resumeSessionId: z.string().optional(),
 });

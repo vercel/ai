@@ -9,6 +9,7 @@ describe('OpenCode bridge protocol', () => {
         operation: 'prompt',
         prompt: 'hi',
         tools: [],
+        variant: 'high',
       }),
     ).toMatchInlineSnapshot(`
       {
@@ -16,6 +17,7 @@ describe('OpenCode bridge protocol', () => {
         "prompt": "hi",
         "tools": [],
         "type": "start",
+        "variant": "high",
       }
     `);
 

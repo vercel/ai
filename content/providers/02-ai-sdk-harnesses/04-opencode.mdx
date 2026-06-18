@@ -105,6 +105,7 @@ Use `createOpenCode()` to configure the runtime:
 ```ts
 const harness = createOpenCode({
   model: 'anthropic/claude-sonnet-4-6',
+  reasoningVariant: 'high',
 });
 ```
 
@@ -115,6 +116,8 @@ Settings:
 - `model`: OpenCode model id. Provider-prefixed values such as
   `anthropic/claude-sonnet-4-6` are passed through to OpenCode.
 - `provider`: provider id to use with an unprefixed `model`.
+- `reasoningVariant`: OpenCode reasoning/thinking variant for supported models,
+  such as `low`, `medium`, or `high`.
 - `port`: bridge port override.
 - `startupTimeoutMs`: maximum time to wait for the bridge to start.
 
@@ -176,6 +179,8 @@ The adapter exposes these common OpenCode built-ins through `agent.tools`:
 - `grep`
 - `ls`
 - `webfetch`
+- `skill`
+- `todowrite`
 - `agent`
 
 Additional OpenCode built-ins may also appear in `agent.tools` when they do

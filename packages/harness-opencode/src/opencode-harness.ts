@@ -55,6 +55,12 @@ export type OpenCodeHarnessSettings = {
   readonly auth?: OpenCodeAuthOptions;
   readonly model?: string;
   readonly provider?: string;
+  /**
+   * OpenCode reasoning/thinking variant for reasoning-capable models, e.g.
+   * `'low'`, `'medium'`, `'high'`, or another model-supported OpenCode
+   * variant.
+   */
+  readonly reasoningVariant?: string;
   readonly port?: number;
   readonly startupTimeoutMs?: number;
 };
@@ -303,6 +309,7 @@ export function createOpenCode(
             proc: undefined,
             model,
             provider: settings.provider,
+            reasoningVariant: settings.reasoningVariant,
             openCodeSessionId: resumeSessionId,
             isResume: true,
             seedResumeSessionOnFirstPrompt: false,
@@ -428,6 +435,7 @@ export function createOpenCode(
         proc,
         model,
         provider: settings.provider,
+        reasoningVariant: settings.reasoningVariant,
         openCodeSessionId: resumeSessionId,
         isResume: respawnStrategy !== undefined,
         seedResumeSessionOnFirstPrompt: respawnStrategy !== undefined,
@@ -625,6 +633,7 @@ function createSession({
   proc,
   model,
   provider,
+  reasoningVariant,
   openCodeSessionId,
   isResume,
   seedResumeSessionOnFirstPrompt,
@@ -640,6 +649,7 @@ function createSession({
   proc: Experimental_SandboxProcess | undefined;
   model: string | undefined;
   provider: string | undefined;
+  reasoningVariant: string | undefined;
   openCodeSessionId: string | undefined;
   isResume: boolean;
   seedResumeSessionOnFirstPrompt: boolean;
@@ -798,6 +808,7 @@ function createSession({
   const startBase = () => ({
     model,
     provider,
+    ...(reasoningVariant ? { variant: reasoningVariant } : {}),
     ...(permissionMode ? { permissionMode } : {}),
     ...(pendingResumeSessionId
       ? { resumeSessionId: pendingResumeSessionId }

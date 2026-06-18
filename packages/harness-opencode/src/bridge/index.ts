@@ -356,6 +356,7 @@ async function legacySessionPrompt({
   return (client as any).session.prompt({
     sessionID: sessionId,
     ...(start.instructions ? { system: start.instructions } : {}),
+    ...(start.variant ? { variant: start.variant } : {}),
     parts: [{ type: 'text', text: start.prompt }],
   });
 }

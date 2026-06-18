@@ -7,14 +7,61 @@ import type * as NodeFsPromises from 'node:fs/promises';
 import { describe, expect, it, vi } from 'vitest';
 import { createOpenCode } from './opencode-harness';
 
+const harnessUtilsMocks = vi.hoisted(() => {
+  const channels: Array<{ sent: unknown[]; closed: boolean }> = [];
+
+  class MockSandboxChannel {
+    sent: unknown[] = [];
+    closed = false;
+
+    constructor() {
+      channels.push(this);
+    }
+
+    async open() {}
+
+    send(message: unknown) {
+      this.sent.push(message);
+    }
+
+    on() {
+      return () => {};
+    }
+
+    onClose() {}
+
+    beginClose() {}
+
+    isClosed() {
+      return this.closed;
+    }
+
+    async suspend() {
+      return 0;
+    }
+
+    close() {
+      this.closed = true;
+    }
+  }
+
+  return {
+    channels,
+    markBridgeStarting: vi.fn(),
+    SandboxChannel: MockSandboxChannel,
+    waitForBridgeReady: vi.fn(async () => {
+      throw new Error('stop after spawn');
+    }),
+  };
+});
+
 vi.mock('@ai-sdk/harness/utils', async importOriginal => {
   const actual = await importOriginal<typeof HarnessUtils>();
   return {
     ...actual,
-    markBridgeStarting: vi.fn(),
-    waitForBridgeReady: vi.fn(async () => {
-      throw new Error('stop after spawn');
-    }),
+    markBridgeStarting: harnessUtilsMocks.markBridgeStarting,
+    SandboxChannel: harnessUtilsMocks.SandboxChannel,
+    waitForBridgeReady: harnessUtilsMocks.waitForBridgeReady,
   };
 });
 
@@ -192,6 +239,68 @@ describe('createOpenCode adapter', () => {
     expect(spawns.at(-1)?.command).toContain(
       "--skills-dir '/home/vercel-sandbox/.agents/skills'",
     );
+  });
+
+  it('passes reasoningVariant to OpenCode as the prompt variant', async () => {
+    harnessUtilsMocks.channels.length = 0;
+    harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
+    const emptyStream = () =>
+      new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.close();
+        },
+      });
+    const sandbox = {
+      async run({ command }: { command: string }) {
+        if (command === 'printf "%s" "$HOME"') {
+          return {
+            exitCode: 0,
+            stdout: '/home/vercel-sandbox',
+            stderr: '',
+          };
+        }
+        return { exitCode: 0, stdout: '', stderr: '' };
+      },
+      async spawn() {
+        return {
+          stdout: emptyStream(),
+          stderr: emptyStream(),
+          async wait() {},
+          async kill() {},
+        };
+      },
+    };
+    const sandboxSession = {
+      id: 'test-sandbox',
+      defaultWorkingDirectory: '/workspace',
+      restricted: () => sandbox,
+      ports: [4000] as ReadonlyArray<number>,
+      async getPortUrl() {
+        return 'ws://sandbox.example';
+      },
+      async stop() {},
+    } as unknown as HarnessV1NetworkSandboxSession;
+
+    const session = await createOpenCode({
+      reasoningVariant: 'high',
+    }).doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/workspace/project',
+    });
+    await session.doPromptTurn({
+      prompt: 'think',
+      emit: () => {},
+    });
+
+    expect(harnessUtilsMocks.channels.at(-1)?.sent.at(-1)).toMatchObject({
+      type: 'start',
+      operation: 'prompt',
+      prompt: 'think',
+      variant: 'high',
+    });
+
+    await session.doDestroy();
   });
 
   describe('getBootstrap', () => {
