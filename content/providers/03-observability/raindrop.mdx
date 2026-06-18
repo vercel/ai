@@ -1,0 +1,170 @@
+---
+title: Raindrop
+description: Monitor AI SDK calls and agent traces with Raindrop
+---
+
+# Raindrop Observability
+
+[Raindrop](https://www.raindrop.ai/) provides observability for AI applications. Its AI SDK integration records events and traces for `generateText`, `streamText`, `generateObject`, `streamObject`, model calls, tool calls, errors, latency, and token usage.
+
+Raindrop supports the AI SDK v7 telemetry interface directly, so you can use `registerTelemetry` and the `telemetry` option without adding OpenTelemetry setup.
+
+## Setup
+
+Install the Raindrop AI SDK integration:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @raindrop-ai/ai-sdk" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @raindrop-ai/ai-sdk" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @raindrop-ai/ai-sdk" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @raindrop-ai/ai-sdk" dark />
+  </Tab>
+</Tabs>
+
+Set your Raindrop write key:
+
+```bash filename=".env.local"
+RAINDROP_WRITE_KEY="..."
+```
+
+Then register Raindrop once at application startup:
+
+```ts filename="instrumentation.ts"
+import { registerTelemetry } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
+import { raindrop } from '@raindrop-ai/ai-sdk';
+
+registerTelemetry(new OpenTelemetry(), raindrop());
+```
+
+## Usage
+
+Once registered, AI SDK calls emit telemetry automatically. Use AI SDK v7's `telemetry` option for function-level settings and `runtimeContext` for request-specific context that should flow through the generation lifecycle:
+
+```ts highlight="8-17"
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const { text } = await generateText({
+  model: openai('gpt-5-mini'),
+  prompt: 'Write a short welcome message for a new user.',
+  runtimeContext: {
+    userId: 'user_123',
+    requestId: 'req_abc',
+  },
+  telemetry: {
+    functionId: 'welcome-message',
+    includeRuntimeContext: {
+      userId: true,
+      requestId: true,
+    },
+  },
+});
+```
+
+By default, runtime context values are not sent to telemetry integrations. Use `includeRuntimeContext` to opt in only the fields you want Raindrop to receive.
+
+## Request-specific Raindrop context
+
+If Raindrop event fields such as `userId`, `convoId`, or `eventName` change per request, pass a Raindrop integration through `telemetry.integrations` for that call:
+
+```ts highlight="12-22"
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { raindrop } from '@raindrop-ai/ai-sdk';
+
+const userId = 'user_123';
+const convoId = 'chat_456';
+
+const raindropTelemetry = raindrop({
+  context: { userId, convoId, eventName: 'support-chat' },
+});
+
+const { text } = await generateText({
+  model: openai('gpt-5-mini'),
+  prompt: 'Summarize the latest support ticket.',
+  telemetry: {
+    functionId: 'support-summary',
+    integrations: [raindropTelemetry],
+  },
+});
+
+await raindropTelemetry.flush();
+```
+
+<Note>
+  Per-call `telemetry.integrations` replace globally registered integrations for
+  that call. If you also use another telemetry integration, include it in the
+  same `integrations` array.
+</Note>
+
+## Streaming
+
+Streaming calls work the same way. For AI SDK UI routes, return the v7 stream helpers and flush Raindrop when the stream finishes:
+
+```ts filename="app/api/chat/route.ts" highlight="15-27"
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+  type UIMessage,
+} from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { raindrop } from '@raindrop-ai/ai-sdk';
+
+export async function POST(req: Request) {
+  const { id, messages, userId } = (await req.json()) as {
+    id: string;
+    messages: UIMessage[];
+    userId: string;
+  };
+
+  const raindropTelemetry = raindrop({
+    context: { userId, convoId: id, eventName: 'chat' },
+  });
+
+  const result = streamText({
+    model: openai('gpt-5-mini'),
+    messages: await convertToModelMessages(messages),
+    telemetry: {
+      functionId: 'chat-route',
+      integrations: [raindropTelemetry],
+    },
+    onEnd: async () => {
+      await raindropTelemetry.flush();
+    },
+  });
+
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
+}
+```
+
+## Privacy controls
+
+Inputs and outputs are recorded by default. Disable them for calls that contain sensitive data:
+
+```ts
+const result = await generateText({
+  model: openai('gpt-5-mini'),
+  prompt: 'Summarize this private document.',
+  telemetry: {
+    recordInputs: false,
+    recordOutputs: false,
+  },
+});
+```
+
+## Resources
+
+- [Raindrop AI SDK integration](https://www.raindrop.ai/docs/integrations/vercel-ai-sdk/)
+- [AI SDK telemetry documentation](/docs/ai-sdk-core/telemetry)
