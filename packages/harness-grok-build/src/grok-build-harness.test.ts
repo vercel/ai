@@ -291,6 +291,62 @@ describe('grok-build doStart', () => {
     expect(session.isResume).toBe(true);
   });
 
+  it('continues the grok thread on the first prompt after resume, then stops', async () => {
+    const harness = createGrokBuild({ auth: { xai: { apiKey: 'sk' } } });
+    const spawnCalls: Array<{
+      command: string;
+      env: Record<string, string>;
+    }> = [];
+    const runs: string[] = [];
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeSandbox({ spawnCalls, runs }),
+      sessionWorkDir: '/vercel/sandbox/grok-s1',
+      permissionMode: 'allow-all',
+      resumeFrom: {
+        type: 'resume-session',
+        harnessId: 'grok-build',
+        specificationVersion: 'harness-v1',
+        data: { sessionId: 'grok-sess-123' },
+      },
+    });
+
+    await session.doPromptTurn({ prompt: 'first', emit: () => {} });
+    await session.doPromptTurn({ prompt: 'second', emit: () => {} });
+    const starts = sentMessages.filter(m => m.type === 'start');
+    expect(starts[0]).toMatchObject({ prompt: 'first', continue: true });
+    expect(starts[1]?.continue).toBeUndefined();
+  });
+
+  it('applies instructions once, on the first fresh-session prompt', async () => {
+    const harness = createGrokBuild({ auth: { xai: { apiKey: 'sk' } } });
+    const spawnCalls: Array<{
+      command: string;
+      env: Record<string, string>;
+    }> = [];
+    const runs: string[] = [];
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeSandbox({ spawnCalls, runs }),
+      sessionWorkDir: '/vercel/sandbox/grok-s1',
+      permissionMode: 'allow-all',
+    });
+
+    await session.doPromptTurn({
+      prompt: 'hello',
+      instructions: 'BE TERSE',
+      emit: () => {},
+    });
+    await session.doPromptTurn({
+      prompt: 'again',
+      instructions: 'BE TERSE',
+      emit: () => {},
+    });
+    const starts = sentMessages.filter(m => m.type === 'start');
+    expect(starts[0]?.prompt).toBe('BE TERSE\n\nhello');
+    expect(starts[1]?.prompt).toBe('again');
+  });
+
   it('rejects manual compaction', async () => {
     const harness = createGrokBuild({ auth: { xai: { apiKey: 'sk' } } });
     const spawnCalls: Array<{

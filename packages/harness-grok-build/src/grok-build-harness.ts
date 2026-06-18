@@ -445,6 +445,11 @@ function createSession({
   // Latest grok CLI session id; seeded from lifecycle state so detach/stop have an id pre-turn.
   let latestGrokSessionId = resumeGrokSessionId;
 
+  // On a resumed session, the first prompt must continue the prior grok thread.
+  let continueOnNextPrompt = isResume;
+  // Session-level instructions are applied once, on the first fresh-session prompt.
+  let instructionsApplied = false;
+
   // Wire the channel into one turn and return the control surface (shared by prompt/continue).
   const wireTurn = (turnOpts: {
     emit: (event: HarnessV1StreamPart) => void;
@@ -571,10 +576,19 @@ function createSession({
         emit: promptOpts.emit,
         abortSignal: promptOpts.abortSignal,
       });
+      let prompt = extractUserText(promptOpts.prompt);
+      // Apply session instructions once, on the first prompt of a fresh session.
+      if (promptOpts.instructions && !instructionsApplied && !isResume) {
+        prompt = `${promptOpts.instructions}\n\n${prompt}`;
+      }
+      instructionsApplied = true;
+      const shouldContinue = continueOnNextPrompt;
+      continueOnNextPrompt = false;
       channel.send({
         type: 'start',
-        prompt: extractUserText(promptOpts.prompt),
+        prompt,
         ...(model ? { model } : {}),
+        ...(shouldContinue ? { continue: true } : {}),
       });
       return { ...unsupportedToolControl, done };
     },
