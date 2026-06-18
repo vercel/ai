@@ -5,7 +5,7 @@ import {
 import type { UIMessage } from '../ui/ui-messages';
 import { handleUIMessageStreamFinish } from './handle-ui-message-stream-finish';
 import type { InferUIMessageChunk } from './ui-message-chunks';
-import type { UIMessageStreamOnFinishCallback } from './ui-message-stream-on-finish-callback';
+import type { UIMessageStreamOnEndCallback } from './ui-message-stream-on-end-callback';
 import type { UIMessageStreamOnStepEndCallback } from './ui-message-stream-on-step-end-callback';
 import type { UIMessageStreamOnStepFinishCallback } from './ui-message-stream-on-step-finish-callback';
 import type { UIMessageStreamWriter } from './ui-message-stream-writer';
@@ -19,7 +19,8 @@ import type { UIMessageStreamWriter } from './ui-message-stream-writer';
  *   and a message ID is provided for the response message.
  * @param options.onStepEnd - A callback that is called when each step ends. Useful for persisting intermediate messages.
  * @param options.onStepFinish - Deprecated alias for `onStepEnd`.
- * @param options.onFinish - A callback that is called when the stream finishes.
+ * @param options.onEnd - A callback that is called when the stream ends.
+ * @param options.onFinish - Deprecated alias for `onEnd`.
  * @param options.generateId - A function that generates a unique ID. Defaults to the built-in ID generator.
  *
  * @returns A `ReadableStream` of UI message chunks.
@@ -30,6 +31,7 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
   originalMessages,
   onStepEnd,
   onStepFinish,
+  onEnd,
   onFinish,
   generateId = generateIdFunc,
 }: {
@@ -56,7 +58,12 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
    */
   onStepFinish?: UIMessageStreamOnStepFinishCallback<UI_MESSAGE>;
 
-  onFinish?: UIMessageStreamOnFinishCallback<UI_MESSAGE>;
+  onEnd?: UIMessageStreamOnEndCallback<UI_MESSAGE>;
+
+  /**
+   * @deprecated Use `onEnd` instead.
+   */
+  onFinish?: UIMessageStreamOnEndCallback<UI_MESSAGE>;
 
   generateId?: IdGenerator;
 }): ReadableStream<InferUIMessageChunk<UI_MESSAGE>> {
@@ -148,7 +155,7 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
     messageId: generateId(),
     originalMessages,
     onStepEnd: onStepEnd ?? onStepFinish,
-    onFinish,
+    onEnd: onEnd ?? onFinish,
     onError,
   });
 }
