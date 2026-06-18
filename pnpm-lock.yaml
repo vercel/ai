@@ -2615,7 +2615,7 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
       ws:
-        specifier: ^8.20.1
+        specifier: ^8.21.0
         version: 8.21.0
       zod:
         specifier: 3.25.76
