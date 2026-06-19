@@ -154,7 +154,7 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
       webhook_url: bflOptions?.webhookUrl,
     };
 
-    return { body, warnings };
+    return { body, warnings, bflOptions };
   }
 
   async doGenerate({
@@ -170,7 +170,7 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
   }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
     Awaited<ReturnType<ImageModelV3['doGenerate']>>
   > {
-    const { body, warnings } = await this.getArgs({
+    const { body, warnings, bflOptions } = await this.getArgs({
       prompt,
       files,
       mask,
@@ -182,12 +182,6 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
       headers,
       abortSignal,
     } as Parameters<ImageModelV3['doGenerate']>[0]);
-
-    const bflOptions = await parseProviderOptions({
-      provider: 'blackForestLabs',
-      providerOptions,
-      schema: blackForestLabsImageModelOptionsSchema,
-    });
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const combinedHeaders = combineHeaders(
