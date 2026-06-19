@@ -312,19 +312,57 @@ jobs:
         if: steps.rsc-e2e.outputs.run == 'true'
         run: tar -xzf package-build-artifacts.tgz
 
-      - name: Install Playwright Browsers
+      - name: Resolve Playwright version
         if: steps.rsc-e2e.outputs.run == 'true'
+        id: playwright-version
+        working-directory: packages/rsc
         run: |
+          VERSION="$(pnpm exec playwright --version | awk '{print $2}')"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        if: steps.rsc-e2e.outputs.run == 'true'
+        id: playwright-cache
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.version }}
+
+      - name: Install Playwright system dependencies
+        if: steps.rsc-e2e.outputs.run == 'true'
+        working-directory: packages/rsc
+        run: |
+          # `playwright install --with-deps` shells out to apt-get. When the
+          # Ubuntu mirror is slow the command can exceed the timeout; `timeout`
+          # only kills the direct child, leaving an orphaned apt-get holding the
+          # dpkg lock so every retry fails instantly with exit code 100. Run each
+          # attempt in its own process group, kill the whole group on timeout,
+          # and wait for the dpkg lock to free before retrying.
           ATTEMPTS=3
-          PER_ATTEMPT_TIMEOUT=10m
+          PER_ATTEMPT_TIMEOUT=15m
+
+          wait_for_apt_lock() {
+            for _ in $(seq 1 60); do
+              if ! sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; then
+                return 0
+              fi
+              echo "Waiting for dpkg lock to be released..."
+              sleep 5
+            done
+          }
+
           for attempt in $(seq 1 "$ATTEMPTS"); do
             STATUS=0
-            timeout "$PER_ATTEMPT_TIMEOUT" pnpm exec playwright install --with-deps || STATUS=$?
+            # `setsid` puts the command in a new process group; `timeout
+            # --kill-after` escalates to SIGKILL so the whole group (including
+            # apt-get) is torn down on timeout.
+            setsid timeout --signal=TERM --kill-after=30s "$PER_ATTEMPT_TIMEOUT" \
+              pnpm exec playwright install-deps chromium || STATUS=$?
             if [ "$STATUS" -eq 0 ]; then
               break
             fi
             if [ "$attempt" -eq "$ATTEMPTS" ]; then
-              echo "::error::playwright install failed after $ATTEMPTS attempts (last exit code: $STATUS)"
+              echo "::error::playwright install-deps failed after $ATTEMPTS attempts (last exit code: $STATUS)"
               exit 1
             fi
             if [ "$STATUS" -eq 124 ]; then
@@ -332,6 +370,28 @@ jobs:
             else
               echo "Attempt $attempt failed with exit code $STATUS, retrying..."
             fi
+            wait_for_apt_lock
+          done
+
+      - name: Install Playwright browsers
+        if: steps.rsc-e2e.outputs.run == 'true'
+        working-directory: packages/rsc
+        run: |
+          # Browser binaries are restored from cache when available; this only
+          # downloads them on a cache miss and is fast compared to the apt step.
+          ATTEMPTS=3
+          PER_ATTEMPT_TIMEOUT=10m
+          for attempt in $(seq 1 "$ATTEMPTS"); do
+            STATUS=0
+            timeout "$PER_ATTEMPT_TIMEOUT" pnpm exec playwright install chromium || STATUS=$?
+            if [ "$STATUS" -eq 0 ]; then
+              break
+            fi
+            if [ "$attempt" -eq "$ATTEMPTS" ]; then
+              echo "::error::playwright install failed after $ATTEMPTS attempts (last exit code: $STATUS)"
+              exit 1
+            fi
+            echo "Attempt $attempt failed with exit code $STATUS, retrying..."
           done
 
       - name: Run RSC e2e tests
