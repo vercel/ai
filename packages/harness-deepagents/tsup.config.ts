@@ -21,6 +21,12 @@ export default defineConfig([
     // so a bare import would not resolve there. The runtime SDKs the bridge
     // imports are installed in-sandbox and stay external.
     noExternal: ['@ai-sdk/harness'],
-    external: ['deepagents', '@langchain/core', 'ws', 'zod'],
+    external: [
+      'deepagents',
+      '@langchain/core',
+      '@langchain/langgraph',
+      'ws',
+      'zod',
+    ],
   },
 ]);

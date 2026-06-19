@@ -23,6 +23,7 @@ import {
   type BridgeTurn,
 } from '@ai-sdk/harness/bridge';
 import { tool } from '@langchain/core/tools';
+import { MemorySaver } from '@langchain/langgraph';
 import { createDeepAgent, LocalShellBackend } from 'deepagents';
 import { z } from 'zod/v4';
 import type { StartMessage } from '../deepagents-bridge-protocol';
@@ -158,7 +159,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       tools: buildHostTools(start.tools),
       backend: new LocalShellBackend({ rootDir: workdir }),
       systemPrompt: buildSystemPrompt(start, skillsBlock) || undefined,
-      checkpointer: true,
+      // A real checkpointer instance (not `true`, which LangGraph rejects for
+      // root graphs) gives multi-turn memory within this bridge process.
+      checkpointer: new MemorySaver(),
     });
   }
 
@@ -243,6 +246,28 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         inputTokens = Math.max(inputTokens, usage.input_tokens ?? 0);
         outputTokens = Math.max(outputTokens, usage.output_tokens ?? 0);
       }
+    } else if (kind === 'on_chat_model_end') {
+      // LangChain.js reports final token usage on the model-end event (not on
+      // the streamed chunks). Each model call is one step boundary.
+      const output = data.output as
+        | {
+            usage_metadata?: { input_tokens?: number; output_tokens?: number };
+          }
+        | undefined;
+      const usage = output?.usage_metadata;
+      if (usage) {
+        inputTokens += usage.input_tokens ?? 0;
+        outputTokens += usage.output_tokens ?? 0;
+      }
+      endTextBlock();
+      turn.emit({
+        type: 'finish-step',
+        finishReason: { unified: 'stop' },
+        usage: {
+          inputTokens: { total: usage?.input_tokens ?? 0 },
+          outputTokens: { total: usage?.output_tokens ?? 0 },
+        },
+      });
     } else if (kind === 'on_tool_start') {
       const toolName = (event.name as string) ?? 'unknown';
       const runId = (event.run_id as string) ?? '';
@@ -276,16 +301,6 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         });
       }
       if (runId) activeToolRunIds.delete(runId);
-    } else if (kind === 'on_chain_end' && event.name === 'agent') {
-      endTextBlock();
-      emit({
-        type: 'finish-step',
-        finishReason: { unified: 'stop' },
-        usage: {
-          inputTokens: { total: inputTokens },
-          outputTokens: { total: outputTokens },
-        },
-      });
     }
   }
 
