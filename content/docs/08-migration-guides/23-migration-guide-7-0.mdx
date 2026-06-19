@@ -1821,6 +1821,14 @@ const { messages, sendMessage } = useChat(() => ({
 
 The `Chat` class continues to work as a deprecated export, so you can migrate incrementally.
 
+## OpenAI Provider
+
+### Responses Reasoning Summary Defaults to Detailed
+
+For the OpenAI Responses provider, setting `reasoning` or `providerOptions.openai.reasoningEffort` to a value other than `'none'` now defaults `providerOptions.openai.reasoningSummary` to `'detailed'`.
+
+If you want to keep reasoning summaries disabled, set `providerOptions.openai.reasoningSummary` to `null`.
+
 ## Anthropic Provider
 
 ### `providerMetadata.anthropic.cacheCreationInputTokens` Removed
