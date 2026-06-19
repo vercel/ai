@@ -258,7 +258,10 @@ export class SpritesApiClient {
       `/fs/read?path=${encodeURIComponent(path)}`,
     );
     const response = await this.request(url, { method: 'GET', abortSignal });
-    if (response.status === 404) return null;
+    if (response.status === 404) {
+      await response.body?.cancel();
+      return null;
+    }
     if (!response.ok) {
       const body = await response.text().catch(() => '');
       throw new Error(
