@@ -602,6 +602,9 @@ importers:
       '@ai-sdk/harness-codex':
         specifier: workspace:*
         version: link:../../packages/harness-codex
+      '@ai-sdk/harness-deepagents':
+        specifier: workspace:*
+        version: link:../../packages/harness-deepagents
       '@ai-sdk/harness-pi':
         specifier: workspace:*
         version: link:../../packages/harness-pi

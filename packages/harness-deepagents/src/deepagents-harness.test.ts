@@ -84,17 +84,8 @@ describe('createDeepAgents', () => {
     ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
   });
 
-  it('rejects resuming a session', async () => {
+  it('exposes a lifecycle state schema for resume payloads', () => {
     const harness = createDeepAgents();
-    await expect(
-      harness.doStart({
-        resumeFrom: {
-          type: 'resume-session',
-          harnessId: 'deepagents',
-          specificationVersion: 'harness-v1',
-          data: {},
-        },
-      } as unknown as HarnessV1StartOptions),
-    ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
+    expect(harness.lifecycleStateSchema).toBeDefined();
   });
 });

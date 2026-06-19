@@ -8,6 +8,7 @@ import {
   type HarnessV1,
   type HarnessV1Bootstrap,
   type HarnessV1BuiltinTool,
+  type HarnessV1ContinueTurnState,
   type HarnessV1NetworkSandboxSession,
   type HarnessV1Prompt,
   type HarnessV1PromptControl,
@@ -40,6 +41,18 @@ type DeepAgentsChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 const BOOTSTRAP_DIR = '/tmp/harness/deepagents';
 
 const DEEPAGENTS_DEFAULT_CONTEXT_WINDOW = 200_000;
+
+// Live bridge coordinates returned by doDetach/doSuspendTurn so a later process can reattach.
+const bridgeCoordsSchema = z.object({
+  port: z.number(),
+  token: z.string(),
+  lastSeenEventId: z.number(),
+  sandboxId: z.string().optional(),
+});
+const deepAgentsResumeStateSchema = z.object({
+  bridge: bridgeCoordsSchema.optional(),
+});
+type DeepAgentsBridgeCoords = z.infer<typeof bridgeCoordsSchema>;
 
 export type DeepAgentsHarnessSettings = {
   readonly auth?: DeepAgentsAuthOptions;
@@ -91,6 +104,7 @@ export function createDeepAgents(
     // DeepAgents supports approvals upstream, but the happy-path first cut ships
     // with `permissionMode: 'allow-all'` only; approvals land in a follow-up.
     supportsBuiltinToolApprovals: false,
+    lifecycleStateSchema: deepAgentsResumeStateSchema,
     getBootstrap: async () => {
       if (cachedBootstrap != null) return cachedBootstrap;
       const [bridge, pkg, lock] = await Promise.all([
@@ -127,20 +141,17 @@ export function createDeepAgents(
         });
       }
 
-      // Happy-path first cut: cross-process resume / turn continuation is a
-      // follow-up. DeepAgents' conversation state is in-memory (LangGraph
-      // MemorySaver) and does not survive a bridge restart, so resuming a prior
-      // session is not yet sound.
-      if (startOpts.resumeFrom != null || startOpts.continueFrom != null) {
-        throw new HarnessCapabilityUnsupportedError({
-          message:
-            "Harness 'deepagents' does not support resuming a session yet; start a fresh session.",
-          harnessId: 'deepagents',
-        });
-      }
-
       const sandboxSession = startOpts.sandboxSession;
       const session = sandboxSession.restricted();
+      const sandboxId = sandboxSession.id;
+
+      const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
+      const isResume = lifecycleState != null;
+      const isContinue = startOpts.continueFrom != null;
+      const coords =
+        isResume && typeof lifecycleState?.data === 'object'
+          ? (lifecycleState.data as { bridge?: DeepAgentsBridgeCoords }).bridge
+          : undefined;
 
       const workDir = startOpts.sessionWorkDir;
       const sessionDataDir = `${sandboxSession.defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
@@ -157,6 +168,39 @@ export function createDeepAgents(
               }),
             )
         : undefined;
+
+      // Attach: reopen a socket to the still-running bridge. A between-turn
+      // resume attaches plainly; a suspended in-flight turn (continueFrom)
+      // replays past the cursor. If the bridge is gone the open throws and we
+      // fall through to a fresh spawn.
+      if (coords) {
+        try {
+          const attachUrl =
+            (await sandboxSession.getPortUrl({
+              port: coords.port,
+              protocol: 'ws',
+            })) + `?agent_bridge_token=${encodeURIComponent(coords.token)}`;
+          const attachChannel: DeepAgentsChannel = new SandboxChannel({
+            connect: () => openWebSocket(attachUrl),
+            outboundSchema: outboundMessageSchema,
+            initialLastSeenEventId: coords.lastSeenEventId,
+            onDiagnostic,
+          });
+          await attachChannel.open(isContinue ? { resume: true } : undefined);
+          return createSession({
+            sessionId: startOpts.sessionId,
+            channel: attachChannel,
+            proc: undefined,
+            model: settings.model,
+            bridgePort: coords.port,
+            bridgeToken: coords.token,
+            sandboxId,
+            isResume: true,
+          });
+        } catch {
+          // Bridge no longer reachable — recover by respawning below.
+        }
+      }
 
       const port = resolveBridgePort(sandboxSession, settings.port);
       const token = randomBytes(32).toString('hex');
@@ -179,7 +223,7 @@ export function createDeepAgents(
       };
 
       await session.run({
-        command: `mkdir -p ${workDir} ${bridgeStateDir}`,
+        command: `mkdir -p ${shellQuote(workDir)} ${shellQuote(bridgeStateDir)}`,
         abortSignal: startOpts.abortSignal,
       });
 
@@ -191,7 +235,7 @@ export function createDeepAgents(
       });
 
       const proc = await session.spawn({
-        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${workDir} --bridge-state-dir ${bridgeStateDir} --bootstrap-dir ${BOOTSTRAP_DIR}`,
+        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --bootstrap-dir ${shellQuote(BOOTSTRAP_DIR)}`,
         env,
         abortSignal: startOpts.abortSignal,
       });
@@ -228,6 +272,10 @@ export function createDeepAgents(
         channel,
         proc,
         model: settings.model,
+        bridgePort: boundPort,
+        bridgeToken: token,
+        sandboxId,
+        isResume,
       });
     },
   };
@@ -286,6 +334,10 @@ async function writeSkills({
   });
 }
 
+function shellQuote(value: string): string {
+  return `'${value.replace(/'/g, `'\\''`)}'`;
+}
+
 function openWebSocket(url: string): Promise<WebSocket> {
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(url);
@@ -328,14 +380,24 @@ function createSession({
   channel,
   proc,
   model,
+  bridgePort,
+  bridgeToken,
+  sandboxId,
+  isResume,
 }: {
   sessionId: string;
   channel: DeepAgentsChannel;
-  proc: Experimental_SandboxProcess;
+  // Undefined on attach — the live bridge was spawned by another process.
+  proc: Experimental_SandboxProcess | undefined;
   model: string | undefined;
+  bridgePort: number;
+  bridgeToken: string;
+  sandboxId: string;
+  isResume: boolean;
 }): HarnessV1Session {
   let stopped = false;
-  let instructionsApplied = false;
+  // A resumed session already applied its instructions in the original first message.
+  let instructionsApplied = isResume;
 
   const wireTurn = (turnOpts: {
     emit: (event: HarnessV1StreamPart) => void;
@@ -451,7 +513,7 @@ function createSession({
 
   return {
     sessionId,
-    isResume: false,
+    isResume,
     modelId: model,
     doPromptTurn: async promptOpts => {
       const control = wireTurn({
@@ -477,9 +539,66 @@ function createSession({
 
       return control;
     },
-    doContinueTurn: async () => unsupported('turn continuation'),
-    doSuspendTurn: async () => unsupported('suspending a turn'),
-    doDetach: async () => unsupported('detaching a session'),
+    doContinueTurn: async continueOpts => {
+      // Attach/replay: doStart reopened the channel with `{ resume: true }`, so
+      // the bridge replays everything past the cursor (incl. a `finish` if the
+      // turn ended during the gap). No `start` is sent — issuing one would clear
+      // the replay log and begin a new turn.
+      return wireTurn({
+        emit: continueOpts.emit,
+        abortSignal: continueOpts.abortSignal,
+      });
+    },
+    doSuspendTurn: async () => {
+      if (stopped) {
+        throw new Error(
+          `deepagents session ${sessionId} is stopped; cannot suspend.`,
+        );
+      }
+      stopped = true;
+      // Freeze the active turn at the cursor, leaving the bridge running so the
+      // next slice replays the tail.
+      const lastSeenEventId = await channel.suspend();
+      const payload: HarnessV1ContinueTurnState = {
+        type: 'continue-turn',
+        harnessId: 'deepagents',
+        specificationVersion: 'harness-v1',
+        data: {
+          bridge: {
+            port: bridgePort,
+            token: bridgeToken,
+            lastSeenEventId,
+            sandboxId,
+          },
+        },
+      };
+      return payload;
+    },
+    doDetach: async () => {
+      if (stopped) {
+        throw new Error(
+          `deepagents session ${sessionId} is already stopped; cannot detach.`,
+        );
+      }
+      stopped = true;
+      // Park between turns: close the host socket but leave the bridge running
+      // so a future process reattaches via these coordinates.
+      const lastSeenEventId = await channel.suspend();
+      const payload: HarnessV1ResumeSessionState = {
+        type: 'resume-session',
+        harnessId: 'deepagents',
+        specificationVersion: 'harness-v1',
+        data: {
+          bridge: {
+            port: bridgePort,
+            token: bridgeToken,
+            lastSeenEventId,
+            sandboxId,
+          },
+        },
+      };
+      return payload;
+    },
     doCompact: async () => unsupported('manual compaction'),
     doStop: async () => {
       if (stopped) {
@@ -489,9 +608,9 @@ function createSession({
       }
       stopped = true;
       await teardown(channel, proc);
-      // DeepAgents holds conversation state in memory only, so there is no
-      // durable runtime state to export. The sandbox snapshot taken during the
-      // subsequent `sandboxSession.stop()` preserves the filesystem.
+      // Conversation state is in-memory; tearing the bridge down loses it. The
+      // sandbox snapshot preserves the filesystem, so the next session resumes
+      // the workspace but not the prior conversation.
       const payload: HarnessV1ResumeSessionState = {
         type: 'resume-session',
         harnessId: 'deepagents',
@@ -510,7 +629,7 @@ function createSession({
 
 async function teardown(
   channel: DeepAgentsChannel,
-  proc: Experimental_SandboxProcess,
+  proc: Experimental_SandboxProcess | undefined,
 ): Promise<void> {
   channel.beginClose();
   try {
@@ -520,17 +639,19 @@ async function teardown(
   } catch {}
   let stopTimer: ReturnType<typeof setTimeout> | undefined;
   try {
-    await Promise.race([
-      proc.wait(),
-      new Promise<void>(resolve => {
-        stopTimer = setTimeout(resolve, 5000);
-        stopTimer.unref?.();
-      }),
-    ]);
+    if (proc) {
+      await Promise.race([
+        proc.wait(),
+        new Promise<void>(resolve => {
+          stopTimer = setTimeout(resolve, 5000);
+          stopTimer.unref?.();
+        }),
+      ]);
+    }
   } finally {
     if (stopTimer) clearTimeout(stopTimer);
     try {
-      await proc.kill();
+      await proc?.kill();
     } catch {}
     channel.close();
   }

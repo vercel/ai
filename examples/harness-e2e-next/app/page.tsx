@@ -32,6 +32,11 @@ const HARNESSES = [
     ],
   },
   {
+    slug: 'deepagents',
+    label: 'DeepAgents',
+    variants: ['basic'],
+  },
+  {
     slug: 'pi',
     label: 'Pi',
     variants: [
