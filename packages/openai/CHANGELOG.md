@@ -1,5 +1,20 @@
 # @ai-sdk/openai
 
+## 4.0.0-beta.75
+
+### Patch Changes
+
+- 1772a63: Default OpenAI Responses reasoning summaries to detailed when reasoning effort is enabled.
+
+## 4.0.0-beta.74
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/provider-utils@5.0.0-beta.49
+  - @ai-sdk/provider@4.0.0-beta.19
+
 ## 4.0.0-canary.73
 
 ### Patch Changes

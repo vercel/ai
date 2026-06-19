@@ -1,5 +1,68 @@
 # @ai-sdk/rsc
 
+## 3.0.0-beta.183
+
+### Patch Changes
+
+- Updated dependencies [cc6ab90]
+  - ai@7.0.0-beta.182
+
+## 3.0.0-beta.182
+
+### Patch Changes
+
+- Updated dependencies [6a2caf9]
+  - ai@7.0.0-beta.181
+
+## 3.0.0-beta.181
+
+### Patch Changes
+
+- Updated dependencies [81a284b]
+  - ai@7.0.0-beta.180
+
+## 3.0.0-beta.180
+
+### Patch Changes
+
+- ai@7.0.0-beta.179
+
+## 3.0.0-beta.179
+
+### Patch Changes
+
+- Updated dependencies [b097c52]
+  - ai@7.0.0-beta.178
+
+## 3.0.0-beta.178
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/provider-utils@5.0.0-beta.49
+  - @ai-sdk/provider@4.0.0-beta.19
+  - ai@7.0.0-beta.177
+
+## 3.0.0-canary.177
+
+### Patch Changes
+
+- ai@7.0.0-canary.176
+
+## 3.0.0-canary.176
+
+### Patch Changes
+
+- Updated dependencies [6ec57f5]
+  - ai@7.0.0-canary.175
+
+## 3.0.0-canary.175
+
+### Patch Changes
+
+- ai@7.0.0-canary.174
+
 ## 3.0.0-canary.174
 
 ### Patch Changes

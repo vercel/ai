@@ -1,5 +1,80 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.0-beta.16
+
+### Patch Changes
+
+- e5d4a24: chore(harness): update ws package
+- 6b81cfe: chore(harness-claude-code): update Claude Code SDK
+- Updated dependencies [e5d4a24]
+  - @ai-sdk/harness@1.0.0-beta.20
+
+## 1.0.0-beta.15
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.0-beta.19
+
+## 1.0.0-beta.14
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.0-beta.18
+
+## 1.0.0-beta.13
+
+### Patch Changes
+
+- 534dac6: fix(harness): fix incomplete OIDC token support for AI Gateway auth in harness adapters
+- Updated dependencies [534dac6]
+  - @ai-sdk/harness@1.0.0-beta.17
+
+## 1.0.0-beta.12
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.0-beta.16
+
+## 1.0.0-beta.11
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.0-beta.15
+
+## 1.0.0-beta.10
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/harness@1.0.0-beta.14
+  - @ai-sdk/provider-utils@5.0.0-beta.49
+
+## 1.0.0-canary.9
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.0-canary.13
+
+## 1.0.0-canary.8
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.0-canary.12
+
+## 1.0.0-canary.7
+
+### Patch Changes
+
+- Updated dependencies [be83911]
+  - @ai-sdk/harness@1.0.0-canary.11
+
+## 1.0.0-canary.6
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.0-canary.10
+
 ## 1.0.0-canary.5
 
 ### Patch Changes

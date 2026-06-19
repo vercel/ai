@@ -1,5 +1,24 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-beta.109
+
+### Patch Changes
+
+- Updated dependencies [bdb9ea1]
+  - @ai-sdk/google@4.0.0-beta.83
+
+## 5.0.0-beta.108
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/anthropic@4.0.0-beta.67
+  - @ai-sdk/google@4.0.0-beta.82
+  - @ai-sdk/openai-compatible@3.0.0-beta.57
+  - @ai-sdk/provider-utils@5.0.0-beta.49
+  - @ai-sdk/provider@4.0.0-beta.19
+
 ## 5.0.0-canary.107
 
 ### Patch Changes

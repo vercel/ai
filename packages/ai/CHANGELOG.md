@@ -1,5 +1,68 @@
 # ai
 
+## 7.0.0-beta.182
+
+### Patch Changes
+
+- cc6ab90: feat(ai): rename ui message stream onFinish to onEnd
+
+## 7.0.0-beta.181
+
+### Patch Changes
+
+- 6a2caf9: Serialize `undefined` tool output to `null` in UI message chunks
+
+## 7.0.0-beta.180
+
+### Patch Changes
+
+- 81a284b: fix(ai): handle partial unicode escapes in fixJson
+
+## 7.0.0-beta.179
+
+### Patch Changes
+
+- Updated dependencies [987d9e4]
+  - @ai-sdk/gateway@4.0.0-beta.110
+
+## 7.0.0-beta.178
+
+### Patch Changes
+
+- b097c52: feat(ai): use tracing channels to track parent-child context
+- Updated dependencies [15eb253]
+  - @ai-sdk/gateway@4.0.0-beta.109
+
+## 7.0.0-beta.177
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/gateway@4.0.0-beta.108
+  - @ai-sdk/provider-utils@5.0.0-beta.49
+  - @ai-sdk/provider@4.0.0-beta.19
+
+## 7.0.0-canary.176
+
+### Patch Changes
+
+- Updated dependencies [d5b8263]
+  - @ai-sdk/gateway@4.0.0-canary.107
+
+## 7.0.0-canary.175
+
+### Patch Changes
+
+- 6ec57f5: feat(ai): make the experimental lifecycle callbacks stable
+
+## 7.0.0-canary.174
+
+### Patch Changes
+
+- Updated dependencies [ca2cf45]
+  - @ai-sdk/gateway@4.0.0-canary.106
+
 ## 7.0.0-canary.173
 
 ### Patch Changes
