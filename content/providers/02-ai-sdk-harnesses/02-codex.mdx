@@ -93,8 +93,8 @@ try {
 ```
 
 To use this agent, ensure environment variables include `VERCEL_OIDC_TOKEN` for
-Vercel Sandbox, and `OPENAI_API_KEY` or `CODEX_API_KEY` or
-`AI_GATEWAY_API_KEY` for Codex.
+Vercel Sandbox, and one of the variables listed under [authentication](#authentication)
+for Codex.
 
 ## Adapter Settings
 
@@ -124,6 +124,7 @@ to the sandbox bridge. The adapter checks for AI Gateway and OpenAI credentials.
 
 Supported environment variables:
 
+- `VERCEL_OIDC_TOKEN`
 - `AI_GATEWAY_API_KEY`
 - `AI_GATEWAY_BASE_URL`
 - `OPENAI_API_KEY`

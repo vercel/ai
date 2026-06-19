@@ -39,6 +39,20 @@ describe('resolveClaudeCodeEnv', () => {
     expect(env.ANTHROPIC_BASE_URL).toBe('https://ai-gateway.vercel.sh');
   });
 
+  it('uses env gateway auth when gateway option only sets base URL', () => {
+    const env = resolveClaudeCodeEnv(
+      { gateway: { baseUrl: 'https://gw.example' } },
+      { VERCEL_OIDC_TOKEN: 'oidc-env' },
+      { readApiKeyHelper: noHelper },
+    );
+    expect(env).toEqual({
+      AI_GATEWAY_API_KEY: 'oidc-env',
+      ANTHROPIC_API_KEY: 'oidc-env',
+      AI_GATEWAY_BASE_URL: 'https://gw.example',
+      ANTHROPIC_BASE_URL: 'https://gw.example',
+    });
+  });
+
   it('auto-detects gateway when AI_GATEWAY_API_KEY is set', () => {
     const env = resolveClaudeCodeEnv(
       undefined,
@@ -47,6 +61,18 @@ describe('resolveClaudeCodeEnv', () => {
     );
     expect(env.AI_GATEWAY_API_KEY).toBe('gw-auto');
     expect(env.ANTHROPIC_API_KEY).toBe('gw-auto');
+  });
+
+  it('auto-detects gateway when VERCEL_OIDC_TOKEN is set', () => {
+    const env = resolveClaudeCodeEnv(
+      undefined,
+      { VERCEL_OIDC_TOKEN: 'oidc-auto' },
+      { readApiKeyHelper: noHelper },
+    );
+    expect(env.AI_GATEWAY_API_KEY).toBe('oidc-auto');
+    expect(env.ANTHROPIC_API_KEY).toBe('oidc-auto');
+    expect(env.AI_GATEWAY_BASE_URL).toBe('https://ai-gateway.vercel.sh');
+    expect(env.ANTHROPIC_BASE_URL).toBe('https://ai-gateway.vercel.sh');
   });
 
   it('auto-detects direct anthropic when only ANTHROPIC_API_KEY is set', () => {

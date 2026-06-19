@@ -38,11 +38,44 @@ describe('resolveCodexEnv', () => {
     });
   });
 
+  it('appends /v1 to gateway base URLs for Codex', () => {
+    const env = resolveCodexEnv(
+      { gateway: { baseUrl: 'https://gw.example' } },
+      { VERCEL_OIDC_TOKEN: 'oidc-env' },
+    );
+    expect(env).toEqual({
+      AI_GATEWAY_API_KEY: 'oidc-env',
+      CODEX_API_KEY: 'oidc-env',
+      AI_GATEWAY_BASE_URL: 'https://gw.example/v1',
+    });
+  });
+
+  it('uses env gateway auth when gateway option only sets base URL', () => {
+    const env = resolveCodexEnv(
+      { gateway: { baseUrl: 'https://gw.example/v1' } },
+      { VERCEL_OIDC_TOKEN: 'oidc-env' },
+    );
+    expect(env).toEqual({
+      AI_GATEWAY_API_KEY: 'oidc-env',
+      CODEX_API_KEY: 'oidc-env',
+      AI_GATEWAY_BASE_URL: 'https://gw.example/v1',
+    });
+  });
+
   it('auto-detects gateway when AI_GATEWAY_API_KEY is set', () => {
     const env = resolveCodexEnv(undefined, { AI_GATEWAY_API_KEY: 'gw-auto' });
     expect(env).toEqual({
       AI_GATEWAY_API_KEY: 'gw-auto',
       CODEX_API_KEY: 'gw-auto',
+      AI_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh/v1',
+    });
+  });
+
+  it('auto-detects gateway when VERCEL_OIDC_TOKEN is set', () => {
+    const env = resolveCodexEnv(undefined, { VERCEL_OIDC_TOKEN: 'oidc-auto' });
+    expect(env).toEqual({
+      AI_GATEWAY_API_KEY: 'oidc-auto',
+      CODEX_API_KEY: 'oidc-auto',
       AI_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh/v1',
     });
   });
