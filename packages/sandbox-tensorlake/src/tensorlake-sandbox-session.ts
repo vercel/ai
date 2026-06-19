@@ -33,7 +33,17 @@ const PROCESS_POLL_INTERVAL_MS = 250;
  * lifetime of the underlying sandbox.
  */
 export class TensorlakeSandboxSession implements Experimental_SandboxSession {
-  constructor(protected readonly sandbox: Sandbox) {}
+  /**
+   * @param defaultWorkingDir Absolute path that `run`/`spawn` resolve commands
+   *   against when no per-call `workingDirectory` is given. Honors the
+   *   `HarnessV1NetworkSandboxSession.defaultWorkingDirectory` contract so a
+   *   configured working directory takes effect for bare commands instead of
+   *   only being advertised. Omitted → fall back to the sandbox/image default.
+   */
+  constructor(
+    protected readonly sandbox: Sandbox,
+    private readonly defaultWorkingDir?: string,
+  ) {}
 
   get description(): string {
     return [
@@ -55,11 +65,10 @@ export class TensorlakeSandboxSession implements Experimental_SandboxSession {
   }): Promise<{ exitCode: number; stdout: string; stderr: string }> {
     abortSignal?.throwIfAborted();
 
+    const workingDir = workingDirectory ?? this.defaultWorkingDir;
     const result = await this.sandbox.run('bash', {
       args: ['-c', command],
-      ...(workingDirectory !== undefined
-        ? { workingDir: workingDirectory }
-        : {}),
+      ...(workingDir !== undefined ? { workingDir } : {}),
       ...(env !== undefined ? { env } : {}),
     });
 
@@ -85,13 +94,12 @@ export class TensorlakeSandboxSession implements Experimental_SandboxSession {
   }): Promise<Experimental_SandboxProcess> {
     abortSignal?.throwIfAborted();
 
+    const workingDir = workingDirectory ?? this.defaultWorkingDir;
     const process = await this.sandbox.startProcess('bash', {
       args: ['-c', command],
       stdoutMode: OutputMode.CAPTURE,
       stderrMode: OutputMode.CAPTURE,
-      ...(workingDirectory !== undefined
-        ? { workingDir: workingDirectory }
-        : {}),
+      ...(workingDir !== undefined ? { workingDir } : {}),
       ...(env !== undefined ? { env } : {}),
     });
 

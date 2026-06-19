@@ -64,7 +64,12 @@ export class TensorlakeNetworkSandboxSession
      */
     resumable?: boolean;
   }) {
-    super(input.sandbox);
+    const workingDirectory =
+      input.workingDirectory ?? TENSORLAKE_DEFAULT_WORKING_DIRECTORY;
+    // Pass the resolved dir to the base session so bare `run`/`spawn` commands
+    // actually resolve against the advertised `defaultWorkingDirectory` rather
+    // than the image default — keeping the advertised value honest.
+    super(input.sandbox, workingDirectory);
     this.ownsLifecycle = input.ownsLifecycle;
     this.resumable = input.resumable ?? input.sandbox.name != null;
     this.id = input.sandbox.sandboxId;
@@ -74,8 +79,7 @@ export class TensorlakeNetworkSandboxSession
       port => port !== TENSORLAKE_DEFAULT_BRIDGE_PORT,
     );
     this.advertisedPorts = [TENSORLAKE_DEFAULT_BRIDGE_PORT, ...extra];
-    this.defaultWorkingDirectory =
-      input.workingDirectory ?? TENSORLAKE_DEFAULT_WORKING_DIRECTORY;
+    this.defaultWorkingDirectory = workingDirectory;
   }
 
   get ports(): ReadonlyArray<number> {
@@ -83,7 +87,12 @@ export class TensorlakeNetworkSandboxSession
   }
 
   restricted(): SandboxSession {
-    return new TensorlakeSandboxSession(this.sandbox);
+    // Carry the working directory through so tool-side commands resolve against
+    // the same `defaultWorkingDirectory` the network session advertises.
+    return new TensorlakeSandboxSession(
+      this.sandbox,
+      this.defaultWorkingDirectory,
+    );
   }
 
   getPortUrl = async (options: {
@@ -133,7 +142,15 @@ export class TensorlakeNetworkSandboxSession
       // `localPort: 0` binds an ephemeral local port, avoiding collisions when
       // several sandboxes are tunneled from the same host.
       tunnel = this.sandbox.createTunnel(port, { localPort: 0 });
-      this.tunnels.set(port, tunnel);
+      // Evict on failure so a transient error doesn't permanently poison the
+      // cache: without this, the rejected promise stays cached and every later
+      // `getPortUrl` for this port (e.g. a bridge reconnect) replays the same
+      // rejection instead of retrying.
+      const pending = tunnel;
+      pending.catch(() => {
+        if (this.tunnels.get(port) === pending) this.tunnels.delete(port);
+      });
+      this.tunnels.set(port, pending);
     }
     return tunnel;
   }

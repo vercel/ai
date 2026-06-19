@@ -91,6 +91,15 @@ describe('createTensorlakeSandbox', () => {
       }).createSession({ sessionId: 's1' });
 
       expect(session.defaultWorkingDirectory).toBe('/workspace');
+
+      // The override must take effect for bare commands, not just be advertised:
+      // a `run` with no per-call workingDirectory resolves against it.
+      sandbox.run.mockClear();
+      await session.restricted().run({ command: 'echo hi' });
+      expect(sandbox.run).toHaveBeenCalledWith('bash', {
+        args: ['-c', 'echo hi'],
+        workingDir: '/workspace',
+      });
     });
 
     it('runs onFirstCreate after creation when no snapshot recipe', async () => {
@@ -212,6 +221,68 @@ describe('createTensorlakeSandbox', () => {
       );
       expect(a.id).toBe('sbx_fork');
       expect(b.id).toBe('sbx_fork');
+    });
+
+    it('does not reuse a snapshot across providers that share an identity but differ in settings', async () => {
+      const templateA = fakeSandbox({
+        checkpoint: vi.fn(async () => ({ snapshotId: 'snap_a' })),
+      });
+      const forkA = fakeSandbox({ sandboxId: 'sbx_fork_a' });
+      const templateB = fakeSandbox({
+        checkpoint: vi.fn(async () => ({ snapshotId: 'snap_b' })),
+      });
+      const forkB = fakeSandbox({ sandboxId: 'sbx_fork_b' });
+      const createSpy = vi
+        .spyOn(Sandbox, 'create')
+        .mockResolvedValueOnce(templateA as unknown as Sandbox)
+        .mockResolvedValueOnce(forkA as unknown as Sandbox)
+        .mockResolvedValueOnce(templateB as unknown as Sandbox)
+        .mockResolvedValueOnce(forkB as unknown as Sandbox);
+      const onFirstCreate = vi.fn(async () => {});
+
+      // Same harness identity (the bootstrap recipe is identical), but different
+      // `setup` => different provisioned environments. The shared identity must
+      // NOT let the second provider silently inherit the first's snapshot; each
+      // builds and forks its own.
+      const a = await createTensorlakeSandbox({
+        cpus: 1,
+        setup: ['install a'],
+      }).createSession({
+        sessionId: 'sa',
+        identity: 'shared-settings',
+        onFirstCreate,
+      });
+      const b = await createTensorlakeSandbox({
+        cpus: 1,
+        setup: ['install b'],
+      }).createSession({
+        sessionId: 'sb',
+        identity: 'shared-settings',
+        onFirstCreate,
+      });
+
+      // Both templates are actually built — no cache hit across the differing
+      // settings.
+      expect(templateA.checkpoint).toHaveBeenCalledTimes(1);
+      expect(templateB.checkpoint).toHaveBeenCalledTimes(1);
+      // The templates get distinct names despite the shared identity, and both
+      // remain under the identity-scoped prefix.
+      const nameA = (createSpy.mock.calls[0][0] as Record<string, unknown>)
+        .name as string;
+      const nameB = (createSpy.mock.calls[2][0] as Record<string, unknown>)
+        .name as string;
+      expect(nameA.startsWith('ai-sdk-harness-shared-settings-')).toBe(true);
+      expect(nameB.startsWith('ai-sdk-harness-shared-settings-')).toBe(true);
+      expect(nameA).not.toBe(nameB);
+      // Each session forks from its own provider's snapshot.
+      expect(
+        (createSpy.mock.calls[1][0] as Record<string, unknown>).snapshotId,
+      ).toBe('snap_a');
+      expect(
+        (createSpy.mock.calls[3][0] as Record<string, unknown>).snapshotId,
+      ).toBe('snap_b');
+      expect(a.id).toBe('sbx_fork_a');
+      expect(b.id).toBe('sbx_fork_b');
     });
   });
 
@@ -381,11 +452,14 @@ describe('createTensorlakeSandbox', () => {
       const restricted = session.restricted();
 
       // The restricted surface is the file/exec session, not the network one:
-      // it can run commands but exposes none of the infra methods.
+      // it can run commands but exposes none of the infra methods. It also
+      // inherits the network session's default working directory, so bare
+      // commands resolve against the advertised `defaultWorkingDirectory`.
       const result = await restricted.run({ command: 'echo hi' });
       expect(result.exitCode).toBe(0);
       expect(sandbox.run).toHaveBeenCalledWith('bash', {
         args: ['-c', 'echo hi'],
+        workingDir: '/home/tl-user',
       });
       expect('getPortUrl' in restricted).toBe(false);
       expect('ports' in restricted).toBe(false);
@@ -452,6 +526,73 @@ describe('createTensorlakeSandbox', () => {
       // 1 failed template + 1 rebuilt template + 1 fork.
       expect(createSpy).toHaveBeenCalledTimes(3);
       expect(session.id).toBe('sbx_fork');
+    });
+
+    it('terminates the template when bootstrap fails so it does not leak or reserve its name', async () => {
+      const template = fakeSandbox({ name: 'ai-sdk-harness-leak' });
+      vi.spyOn(Sandbox, 'create').mockResolvedValue(
+        template as unknown as Sandbox,
+      );
+
+      await expect(
+        createTensorlakeSandbox({ cpus: 1 }).createSession({
+          sessionId: 's1',
+          identity: 'leak',
+          onFirstCreate: vi.fn(async () => {
+            throw new Error('bootstrap boom');
+          }),
+        }),
+      ).rejects.toThrow(/bootstrap boom/);
+
+      // The failed bootstrap never checkpoints, so the named template must be
+      // torn down rather than left running with its name reserved.
+      expect(template.checkpoint).not.toHaveBeenCalled();
+      expect(template.terminate).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('cleanup on failed initialization', () => {
+    it('terminates the sandbox when a setup command fails', async () => {
+      const sandbox = fakeSandbox({
+        name: 'ai-sdk-harness-session-s1',
+        run: vi.fn(async () => ({
+          exitCode: 127,
+          stdout: '',
+          stderr: 'pnpm: not found',
+        })),
+      });
+      vi.spyOn(Sandbox, 'create').mockResolvedValue(
+        sandbox as unknown as Sandbox,
+      );
+
+      await expect(
+        createTensorlakeSandbox({
+          cpus: 1,
+          setup: ['pnpm --version'],
+        }).createSession({ sessionId: 's1' }),
+      ).rejects.toThrow(/setup command failed/);
+
+      // No session is returned, so the harness can't stop() it; the provider
+      // must terminate to avoid leaking the sandbox and reserving its name.
+      expect(sandbox.terminate).toHaveBeenCalledTimes(1);
+    });
+
+    it('terminates the sandbox when onFirstCreate fails', async () => {
+      const sandbox = fakeSandbox({ name: 'ai-sdk-harness-session-s1' });
+      vi.spyOn(Sandbox, 'create').mockResolvedValue(
+        sandbox as unknown as Sandbox,
+      );
+
+      await expect(
+        createTensorlakeSandbox({ cpus: 1 }).createSession({
+          sessionId: 's1',
+          onFirstCreate: vi.fn(async () => {
+            throw new Error('onFirstCreate boom');
+          }),
+        }),
+      ).rejects.toThrow(/onFirstCreate boom/);
+
+      expect(sandbox.terminate).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -535,6 +676,34 @@ describe('createTensorlakeSandbox', () => {
       await session.destroy?.();
       expect(tunnel.close).toHaveBeenCalled();
     });
+
+    it('retries after a transient tunnel failure (does not cache the rejection)', async () => {
+      const sandbox = fakeSandbox({ name: null });
+      // First attempt rejects (transient), second succeeds.
+      sandbox.createTunnel = vi
+        .fn()
+        .mockRejectedValueOnce(new Error('tunnel boom'))
+        .mockResolvedValueOnce({
+          remotePort: 41923,
+          localHost: '127.0.0.1',
+          localPort: 91923,
+          close: vi.fn(async () => {}),
+        });
+      vi.spyOn(Sandbox, 'create').mockResolvedValue(
+        sandbox as unknown as Sandbox,
+      );
+      const session = await createTensorlakeSandbox({
+        cpus: 1,
+      }).createSession();
+
+      await expect(session.getPortUrl({ port: 41923 })).rejects.toThrow(
+        /tunnel boom/,
+      );
+      // A second call must retry rather than replay the cached rejection.
+      const url = await session.getPortUrl({ port: 41923, protocol: 'ws' });
+      expect(url).toBe('ws://127.0.0.1:91923');
+      expect(sandbox.createTunnel).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe('resumeSession', () => {
@@ -593,6 +762,55 @@ describe('createTensorlakeSandbox', () => {
       // preserve its state rather than destroy it.
       expect(reconnected.suspend).toHaveBeenCalled();
       expect(reconnected.terminate).not.toHaveBeenCalled();
+    });
+
+    it('skips resume when the matched sandbox is already running', async () => {
+      vi.spyOn(Sandbox, 'list').mockResolvedValue([
+        {
+          sandboxId: 'sbx_old',
+          name: 'ai-sdk-harness-session-s1',
+          status: SandboxStatus.RUNNING,
+          exposedPorts: [3000],
+        },
+      ] as unknown as Awaited<ReturnType<typeof Sandbox.list>>);
+      const reconnected = fakeSandbox({ sandboxId: 'sbx_old' });
+      vi.spyOn(Sandbox, 'connect').mockResolvedValue(
+        reconnected as unknown as Sandbox,
+      );
+
+      await createTensorlakeSandbox({ cpus: 1 }).resumeSession!({
+        sessionId: 's1',
+      });
+
+      // A live sandbox needs no resume; calling it would only surface a benign
+      // "already running" error we would have to swallow.
+      expect(reconnected.resume).not.toHaveBeenCalled();
+    });
+
+    it('surfaces a genuine resume failure instead of returning a broken session', async () => {
+      vi.spyOn(Sandbox, 'list').mockResolvedValue([
+        {
+          sandboxId: 'sbx_old',
+          name: 'ai-sdk-harness-session-s1',
+          status: SandboxStatus.SUSPENDED,
+          exposedPorts: [3000],
+        },
+      ] as unknown as Awaited<ReturnType<typeof Sandbox.list>>);
+      const reconnected = fakeSandbox({
+        sandboxId: 'sbx_old',
+        resume: vi.fn(async () => {
+          throw new Error('snapshot expired');
+        }),
+      });
+      vi.spyOn(Sandbox, 'connect').mockResolvedValue(
+        reconnected as unknown as Sandbox,
+      );
+
+      await expect(
+        createTensorlakeSandbox({ cpus: 1 }).resumeSession!({
+          sessionId: 's1',
+        }),
+      ).rejects.toThrow(/snapshot expired/);
     });
 
     it('throws when no resumable sandbox is found', async () => {

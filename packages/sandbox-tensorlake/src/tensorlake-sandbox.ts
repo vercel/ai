@@ -131,6 +131,56 @@ function sessionSandboxName(sessionId: string): string {
 }
 
 /**
+ * Deterministic JSON-ish serialization with sorted keys so the same logical
+ * settings always produce the same string regardless of construction order.
+ * Keys whose value is `undefined` are dropped (an absent option and an
+ * explicit `undefined` mean the same thing here) to avoid spurious mismatches.
+ */
+function stableStringify(value: unknown): string {
+  if (value === null || typeof value !== 'object') {
+    return JSON.stringify(value) ?? 'null';
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map(stableStringify).join(',')}]`;
+  }
+  const record = value as Record<string, unknown>;
+  const entries = Object.keys(record)
+    .sort()
+    .filter(key => record[key] !== undefined)
+    .map(key => `${JSON.stringify(key)}:${stableStringify(record[key])}`);
+  return `{${entries.join(',')}}`;
+}
+
+/**
+ * A short, stable discriminator for the settings that determine a snapshot
+ * template's contents and the project it lives in.
+ *
+ * The snapshot cache is keyed by the harness `identity`, but `identity` is the
+ * bootstrap recipe's fingerprint and is blind to provider settings. Two
+ * providers in the same process can therefore share an identity while differing
+ * in `setup`, `image`, credentials, or `namespace` — producing genuinely
+ * different (or differently-scoped) snapshots. Folding these into the template
+ * name keeps each provider's snapshot isolated instead of letting whichever
+ * built first win the shared identity key (which would otherwise hand one
+ * provider a snapshot provisioned for — or owned by the project of — another).
+ */
+function templateSettingsKey(
+  params: TensorlakeSandboxCreateParams,
+  setup: ReadonlyArray<string> | undefined,
+): string {
+  const serialized = stableStringify({ params, setup: setup ?? null });
+  // FNV-1a (32-bit). Not cryptographic — just a stable cache discriminator that
+  // emits valid name characters ([0-9a-f]). Hashing also avoids embedding the
+  // serialized credentials (e.g. `apiKey`) into a sandbox name.
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < serialized.length; i++) {
+    hash ^= serialized.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, '0');
+}
+
+/**
  * Extract the `tensorlake` client options (credentials, endpoint, namespace,
  * retry/timeout tuning) from the provider settings so non-create operations
  * like `Sandbox.list`/`Sandbox.connect` target the same project/namespace and
@@ -249,11 +299,20 @@ export class TensorlakeSandboxProvider implements HarnessV1SandboxProvider {
         ...baseParams,
         ...(sessionName != null ? { name: sessionName } : {}),
       });
-      await runRootSetup(sandbox, setup, options?.abortSignal);
-      if (onFirstCreate != null) {
-        await onFirstCreate(new TensorlakeSandboxSession(sandbox), {
-          abortSignal: options?.abortSignal,
-        });
+      // If post-create initialization fails we never return a session, so the
+      // harness cleanup path can't stop() it. Terminate here to avoid leaking a
+      // running sandbox (and, when named from a sessionId, reserving the name
+      // against retries) before propagating the original error.
+      try {
+        await runRootSetup(sandbox, setup, options?.abortSignal);
+        if (onFirstCreate != null) {
+          await onFirstCreate(new TensorlakeSandboxSession(sandbox), {
+            abortSignal: options?.abortSignal,
+          });
+        }
+      } catch (error) {
+        await sandbox.terminate().catch(() => {});
+        throw error;
       }
       return new TensorlakeNetworkSandboxSession({
         sandbox,
@@ -265,8 +324,18 @@ export class TensorlakeSandboxProvider implements HarnessV1SandboxProvider {
     }
 
     // Snapshot recipe: build (or reuse) a snapshot for this identity, then fork
-    // an ephemeral session sandbox from it.
-    const templateName = explicitName ?? `${TEMPLATE_NAME_PREFIX}-${identity}`;
+    // an ephemeral session sandbox from it. The template name doubles as the
+    // process-global cache key, so it must also distinguish providers that share
+    // an `identity` but differ in settings/credentials (see
+    // `templateSettingsKey`); without that suffix one provider could reuse
+    // another's snapshot. An explicit `name` is the caller taking ownership of
+    // the name, so it is used verbatim.
+    const templateName =
+      explicitName ??
+      `${TEMPLATE_NAME_PREFIX}-${identity}-${templateSettingsKey(
+        baseParams,
+        setup,
+      )}`;
     const cache = getSnapshotCache();
 
     // Cache the in-flight build promise (not just the resolved id) so that
@@ -281,18 +350,25 @@ export class TensorlakeSandboxProvider implements HarnessV1SandboxProvider {
           ...baseParams,
           name: templateName,
         });
-        await runRootSetup(template, setup, options?.abortSignal);
-        await onFirstCreate(new TensorlakeSandboxSession(template), {
-          abortSignal: options?.abortSignal,
-        });
-        const snapshot = await template.checkpoint();
-        if (snapshot?.snapshotId == null) {
-          throw new Error(
-            `Failed to checkpoint template "${templateName}": no snapshot id returned.`,
-          );
+        // The named template leaks (and keeps its name reserved) if bootstrap
+        // or checkpoint throws, so terminate it on any failure before rethrowing.
+        try {
+          await runRootSetup(template, setup, options?.abortSignal);
+          await onFirstCreate(new TensorlakeSandboxSession(template), {
+            abortSignal: options?.abortSignal,
+          });
+          const snapshot = await template.checkpoint();
+          if (snapshot?.snapshotId == null) {
+            throw new Error(
+              `Failed to checkpoint template "${templateName}": no snapshot id returned.`,
+            );
+          }
+          await template.terminate().catch(() => {});
+          return snapshot.snapshotId;
+        } catch (error) {
+          await template.terminate().catch(() => {});
+          throw error;
         }
-        await template.terminate().catch(() => {});
-        return snapshot.snapshotId;
       })();
       cache.set(templateName, pending);
       // Evict on failure so a later session can retry rather than inheriting a
@@ -367,7 +443,19 @@ export class TensorlakeSandboxProvider implements HarnessV1SandboxProvider {
       sandboxId: match.sandboxId,
       ...clientOptions,
     });
-    await sandbox.resume().catch(() => {});
+    // `connect()` does not auto-resume. Only a suspended sandbox needs an
+    // explicit resume; one that is already running (e.g. its bridge is still
+    // live) is usable as-is, so we skip resume rather than call it and swallow
+    // the resulting "already running" error. Gating on status this way lets a
+    // genuine resume failure (expired snapshot, no capacity) propagate here
+    // instead of yielding a session that fails opaquely on the first
+    // bridge/command call.
+    if (
+      match.status === SandboxStatus.SUSPENDED ||
+      match.status === SandboxStatus.SUSPENDING
+    ) {
+      await sandbox.resume();
+    }
     return new TensorlakeNetworkSandboxSession({
       sandbox,
       ownsLifecycle: true,
