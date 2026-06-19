@@ -87,6 +87,8 @@ console.log(
 
 When working with reasoning models, you may want to see _how_ the model arrived at its answer. The `reasoningSummary` option surfaces the model's thought process.
 
+When `reasoningEffort` is set to a value other than `'none'`, the OpenAI Responses provider defaults `reasoningSummary` to `'detailed'`. Set `reasoningSummary: null` to omit reasoning summaries.
+
 #### Streaming
 
 ```ts
@@ -139,7 +141,7 @@ console.log('Reasoning:', result.finalStep.reasoning);
 
 | Value        | Behavior                       |
 | ------------ | ------------------------------ |
-| `'auto'`     | Condensed summary of reasoning |
+| `'auto'`     | Richest available summary      |
 | `'detailed'` | Comprehensive reasoning output |
 
 ### Text Verbosity
