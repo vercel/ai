@@ -28,10 +28,8 @@ export type ResponseStatisticsMode =
 
 /**
  * An agent that is compatible with the terminal UI.
- *
- * It has no call options and no structured output.
  */
-export type AgentTUIAgent = Agent<undefined, any, any, never>;
+export type AgentTUIAgent = Agent<any, any, any, any>;
 
 /**
  * Options for starting an agent in the default terminal UI.
