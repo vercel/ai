@@ -1,5 +1,5 @@
 import { AgentTUIRunner } from './agent-tui-runner';
-import type { Agent } from 'ai';
+import type { Agent, Experimental_SandboxSession } from 'ai';
 
 /**
  * Controls how terminal UI sections for stream parts are displayed.
@@ -73,6 +73,11 @@ export type RunAgentTUIOptions = {
    * percentage of this context window.
    */
   contextSize?: number;
+
+  /**
+   * Sandbox session that is passed through to agent tool execution.
+   */
+  sandbox?: Experimental_SandboxSession;
 };
 
 /**
