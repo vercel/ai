@@ -6,7 +6,13 @@ import {
   type TerminalPartDisplayMode,
 } from '@ai-sdk/tui';
 import { MockLanguageModelV4 } from 'ai/test';
-import { Output, ToolLoopAgent, tool, type Agent } from 'ai';
+import {
+  Output,
+  ToolLoopAgent,
+  tool,
+  type Agent,
+  type Experimental_SandboxSession,
+} from 'ai';
 import { assertType, describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
 
@@ -25,6 +31,7 @@ describe('runAgentTUI types', () => {
       'outputTokenCount' | 'outputTokensPerSecond'
     >();
     expectTypeOf<RunAgentTUIOptions>().toHaveProperty('agent');
+    expectTypeOf<RunAgentTUIOptions>().toHaveProperty('sandbox');
     expectTypeOf<RunAgentTUIOptions>().toHaveProperty('responseStatistics');
   });
 
@@ -74,6 +81,17 @@ describe('runAgentTUI types', () => {
 
     expectTypeOf(
       runAgentTUI({ title: 'Context Agent', agent, contextSize: 200_000 }),
+    ).toEqualTypeOf<Promise<void>>();
+  });
+
+  it('accepts a sandbox option', () => {
+    const agent = new ToolLoopAgent({
+      model,
+    });
+    const sandbox = null as unknown as Experimental_SandboxSession;
+
+    expectTypeOf(
+      runAgentTUI({ title: 'Sandbox Agent', agent, sandbox }),
     ).toEqualTypeOf<Promise<void>>();
   });
 
