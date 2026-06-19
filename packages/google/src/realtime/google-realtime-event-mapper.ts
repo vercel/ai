@@ -380,22 +380,25 @@ export function buildGoogleSessionConfig(
     setup.outputAudioTranscription = {};
   }
 
-  if (config?.providerOptions != null) {
-    const { google, ...providerOptions } = config.providerOptions;
-    Object.assign(setup, providerOptions);
+  if (config?.providerOptions == null) {
+    return setup;
+  }
 
-    if (isRecord(google)) {
-      const googleOptions = google as GoogleRealtimeModelOptions;
+  const { google, ...providerOptions } = config.providerOptions;
+  Object.assign(setup, providerOptions);
 
-      if (googleOptions.translationConfig != null) {
-        const targetGenerationConfig = isRecord(setup.generationConfig)
-          ? setup.generationConfig
-          : generationConfig;
-        targetGenerationConfig.translationConfig =
-          googleOptions.translationConfig;
-        setup.generationConfig = targetGenerationConfig;
-      }
-    }
+  const googleOptions = isRecord(google)
+    ? (google as GoogleRealtimeModelOptions)
+    : undefined;
+
+  if (googleOptions?.translationConfig != null) {
+    const target = isRecord(setup.generationConfig)
+      ? setup.generationConfig
+      : generationConfig;
+    setup.generationConfig = {
+      ...target,
+      translationConfig: googleOptions.translationConfig,
+    };
   }
 
   return setup;

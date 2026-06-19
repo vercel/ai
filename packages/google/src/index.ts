@@ -57,8 +57,8 @@ export type {
 export { GoogleRealtimeModel as Experimental_GoogleRealtimeModel } from './realtime/google-realtime-model';
 export type { GoogleRealtimeModelConfig as Experimental_GoogleRealtimeModelConfig } from './realtime/google-realtime-model';
 export type {
-  GoogleRealtimeModelId,
-  GoogleRealtimeModelOptions,
+  GoogleRealtimeModelId as Experimental_GoogleRealtimeModelId,
+  GoogleRealtimeModelOptions as Experimental_GoogleRealtimeModelOptions,
 } from './realtime/google-realtime-model-options';
 
 export { VERSION } from './version';

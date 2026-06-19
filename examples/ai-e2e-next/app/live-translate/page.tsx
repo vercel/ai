@@ -1,7 +1,10 @@
 'use client';
 
 import { experimental_useRealtime } from '@ai-sdk/react';
-import { google, type GoogleRealtimeModelOptions } from '@ai-sdk/google';
+import {
+  google,
+  type Experimental_GoogleRealtimeModelOptions as GoogleRealtimeModelOptions,
+} from '@ai-sdk/google';
 import { Activity, Languages, Mic, Pause, Power } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
