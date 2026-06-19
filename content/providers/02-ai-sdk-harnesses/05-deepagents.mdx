@@ -111,7 +111,7 @@ const harness = createDeepAgents({
 
 Settings:
 
-- `auth`: Anthropic or AI Gateway authentication settings.
+- `auth`: Anthropic, OpenAI, or AI Gateway authentication settings.
 - `model`: model id passed to the DeepAgents (LangChain) runtime. The bridge
   converts it to LangChain's `provider:model` form internally.
 - `port`: bridge port override.
@@ -119,9 +119,10 @@ Settings:
 
 ## Authentication
 
-By default, authentication is resolved from the host environment and forwarded
-to the sandbox bridge. The adapter checks for AI Gateway credentials first, then
-ambient Anthropic credentials.
+The provider is resolved from the model id (`anthropic/…` or `openai/…`,
+defaulting to Anthropic). Authentication is resolved from the host environment
+and forwarded to the sandbox bridge: explicit provider auth first, then AI
+Gateway credentials, then ambient provider credentials.
 
 Supported environment variables:
 
@@ -131,14 +132,19 @@ Supported environment variables:
 - `ANTHROPIC_API_KEY`
 - `ANTHROPIC_AUTH_TOKEN`
 - `ANTHROPIC_BASE_URL`
+- `OPENAI_API_KEY`
+- `OPENAI_BASE_URL`
+- `OPENAI_ORGANIZATION`
+- `OPENAI_PROJECT`
 
-You can also pass explicit auth settings:
+You can also pass explicit auth settings (`anthropic`, `openai`, or `gateway`):
 
 ```ts
 const harness = createDeepAgents({
+  model: 'openai/gpt-5',
   auth: {
-    anthropic: {
-      apiKey: process.env.ANTHROPIC_API_KEY,
+    openai: {
+      apiKey: process.env.OPENAI_API_KEY,
     },
   },
 });

@@ -43,14 +43,16 @@ Configure the model and auth via `createDeepAgents({ model, auth })`.
 
 ## Auth
 
-Auth is optional. With none configured the adapter falls back to the ambient
-Vercel AI Gateway credentials (`AI_GATEWAY_API_KEY`, then `VERCEL_OIDC_TOKEN`),
-then ambient `ANTHROPIC_*`. Pin explicitly with:
+Auth is optional and provider-aware: the provider is resolved from the model id
+(`anthropic/…` or `openai/…`, defaulting to Anthropic). With none configured the
+adapter falls back to ambient AI Gateway credentials (`AI_GATEWAY_API_KEY`, then
+`VERCEL_OIDC_TOKEN`), then ambient provider creds (`ANTHROPIC_*` / `OPENAI_*`).
+Pin explicitly with `auth.anthropic`, `auth.openai`, or `auth.gateway`:
 
 ```ts
 createDeepAgents({
-  model: 'claude-sonnet-4',
-  auth: { anthropic: { apiKey: process.env.ANTHROPIC_TEAM_KEY } },
+  model: 'openai/gpt-5',
+  auth: { openai: { apiKey: process.env.OPENAI_API_KEY } },
 });
 ```
 
