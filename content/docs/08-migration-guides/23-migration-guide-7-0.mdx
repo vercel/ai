@@ -19,6 +19,77 @@ An example upgrade command would be:
 pnpm install ai@beta @ai-sdk/react@beta @ai-sdk/openai@beta @ai-sdk/otel@beta
 ```
 
+## Codemods
+
+The AI SDK provides Codemod transformations to help upgrade your codebase when a
+feature is deprecated, removed, or otherwise changed.
+
+Codemods are transformations that run on your codebase automatically. They
+allow you to easily apply many changes without having to manually go through
+every file.
+
+You can run all v7 codemods (v6 -> v7 migration) by running the following
+command from the root of your project:
+
+```sh
+npx @ai-sdk/codemod v7
+```
+
+Individual codemods can be run by specifying the name of the codemod:
+
+```sh
+npx @ai-sdk/codemod <codemod-name> <path>
+```
+
+For example, to run a specific v7 codemod:
+
+```sh
+npx @ai-sdk/codemod v7/rename-system-to-instructions src/
+```
+
+<Note>
+  Codemods are intended as a tool to help you with the upgrade process. They may
+  not cover all of the changes you need to make. You may need to make additional
+  changes manually.
+</Note>
+
+## Codemod Table
+
+| Codemod Name                                                        | Description                                                                                         |
+| ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `remove-experimental-custom-provider`                               | Replaces `experimental_customProvider` with `customProvider`                                        |
+| `remove-experimental-generate-image`                                | Replaces `experimental_generateImage` and `Experimental_GenerateImageResult` with stable names      |
+| `replace-experimental-output-with-output`                           | Replaces `experimental_output` options and result access with `output`                              |
+| `remove-experimental-prepare-step`                                  | Replaces `experimental_prepareStep` with `prepareStep`                                              |
+| `replace-cached-input-tokens`                                       | Replaces `usage.cachedInputTokens` with `usage.inputTokenDetails.cacheReadTokens`                   |
+| `replace-reasoning-tokens`                                          | Replaces `usage.reasoningTokens` with `usage.outputTokenDetails.reasoningTokens`                    |
+| `remove-experimental-active-tools`                                  | Replaces `experimental_activeTools` with `activeTools`                                              |
+| `remove-tool-call-options-type`                                     | Replaces the removed `ToolCallOptions` type with `ToolExecutionOptions`                             |
+| `remove-is-tool-or-dynamic-tool-uipart`                             | Replaces `isToolOrDynamicToolUIPart` with `isToolUIPart`                                            |
+| `remove-media-content-part-type`                                    | Replaces tool result content parts with `type: 'media'` with `type: 'file-data'`                    |
+| `replace-anthropic-cache-creation-input-tokens`                     | Replaces Anthropic `cacheCreationInputTokens` metadata access with standard usage fields            |
+| `rename-experimental-transcribe`                                    | Renames `experimental_transcribe` and `Experimental_TranscriptionResult` to stable names            |
+| `rename-experimental-generate-speech`                               | Renames `experimental_generateSpeech` and `Experimental_SpeechResult` to stable names               |
+| `rename-call-settings-type`                                         | Replaces `CallSettings` with `LanguageModelCallOptions & Omit<RequestOptions, 'timeout'>`           |
+| `rename-step-count-is`                                              | Renames `stepCountIs` to `isStepCount`                                                              |
+| `rename-system-to-instructions`                                     | Renames `system` prompt options, lifecycle fields, and repair-tool-call fields to `instructions`    |
+| `rename-experimental-on-start-to-on-start`                          | Renames `experimental_onStart` to `onStart`                                                         |
+| `rename-experimental-on-step-start-to-on-step-start`                | Renames `experimental_onStepStart` to `onStepStart`                                                 |
+| `rename-on-finish-to-on-end`                                        | Renames `onFinish` callbacks to `onEnd`                                                             |
+| `rename-on-step-finish-to-on-step-end`                              | Renames `onStepFinish` callbacks to `onStepEnd`                                                     |
+| `rename-experimental-on-finish-to-on-end`                           | Renames `experimental_onFinish` callbacks to `onEnd`                                                |
+| `rename-experimental-telemetry-to-telemetry`                        | Renames `experimental_telemetry` options to `telemetry`                                             |
+| `rename-on-rerank-finish-to-on-rerank-end`                          | Renames telemetry `onRerankFinish` callbacks to `onRerankEnd`                                       |
+| `rename-on-embed-finish-to-on-embed-end`                            | Renames telemetry `onEmbedFinish` callbacks to `onEmbedEnd`                                         |
+| `rename-full-stream-to-stream`                                      | Renames `streamText` result `fullStream` access to `stream`                                         |
+| `move-include-raw-chunks-to-include`                                | Moves `includeRawChunks` into `include.rawChunks`                                                   |
+| `rename-experimental-include-to-include`                            | Renames `experimental_include` to `include`                                                         |
+| `rename-experimental-on-tool-call-start-to-on-tool-execution-start` | Renames `experimental_onToolCallStart` to `onToolExecutionStart`                                    |
+| `rename-experimental-on-tool-call-finish-to-on-tool-execution-end`  | Renames `experimental_onToolCallFinish` to `onToolExecutionEnd`                                     |
+| `rename-experimental-context-to-context`                            | Renames tool callback `experimental_context` access to `context`                                    |
+| `rename-google-generative-ai-to-google`                             | Renames Google provider types, classes, and functions that include `GoogleGenerativeAI` to `Google` |
+| `replace-image-message-part-with-file`                              | Replaces image message parts with file parts using `mediaType: 'image'`                             |
+
 ## All Packages
 
 ### Minimum Node.js Version
@@ -209,9 +280,8 @@ console.log(result.output);
 `CallSettings` has been split into `LanguageModelCallOptions` (model-facing options) and `RequestOptions` (transport options). Replace usages in custom wrappers or helpers:
 
 - `CallSettings` → `LanguageModelCallOptions & Omit<RequestOptions, 'timeout'>` (note: `CallSettings` never included `timeout`)
-- `prepareCallSettings` → `prepareLanguageModelCallOptions`
 
-Both deprecated names remain available in AI SDK 7.
+The deprecated `CallSettings` type remains available in AI SDK 7.
 
 #### Stop Condition Helper Rename: `stepCountIs` -> `isStepCount`
 
