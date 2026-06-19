@@ -12,8 +12,8 @@ import {
 import { tool } from '@langchain/core/tools';
 import { MemorySaver } from '@langchain/langgraph';
 import { createDeepAgent, LocalShellBackend } from 'deepagents';
-import { z } from 'zod/v4';
 import type { StartMessage } from '../deepagents-bridge-protocol';
+import { jsonSchemaToZodObject } from './json-schema-to-zod';
 
 // Native LangGraph tool name -> harness-v1 common name.
 const NATIVE_TO_COMMON: Readonly<Record<string, string>> = {
@@ -60,35 +60,6 @@ if (!workdir || !bridgeStateDir) {
 let agent: ReturnType<typeof createDeepAgent> | undefined;
 let currentTurn: BridgeTurn | undefined;
 
-const jsonTypeToZod: Record<string, () => z.ZodTypeAny> = {
-  string: () => z.string(),
-  integer: () => z.number(),
-  number: () => z.number(),
-  boolean: () => z.boolean(),
-  object: () => z.record(z.string(), z.unknown()),
-  array: () => z.array(z.unknown()),
-};
-
-function schemaFromJson(input: unknown) {
-  const obj =
-    input && typeof input === 'object'
-      ? (input as {
-          properties?: Record<string, { type?: string }>;
-          required?: string[];
-        })
-      : {};
-  const properties = obj.properties ?? {};
-  const required = new Set(obj.required ?? []);
-  const shape: Record<string, z.ZodTypeAny> = {};
-  for (const [name, def] of Object.entries(properties)) {
-    const base = (
-      jsonTypeToZod[def?.type ?? 'string'] ?? jsonTypeToZod.string
-    )();
-    shape[name] = required.has(name) ? base : base.optional();
-  }
-  return z.object(shape);
-}
-
 // Host tools become LangChain tools that emit a `tool-call` and block on the host's `tool-result`.
 function buildHostTools(toolSchemas: StartMessage['tools']) {
   return (toolSchemas ?? []).map(schema =>
@@ -110,7 +81,7 @@ function buildHostTools(toolSchemas: StartMessage['tools']) {
       {
         name: schema.name,
         description: schema.description ?? '',
-        schema: schemaFromJson(schema.inputSchema),
+        schema: jsonSchemaToZodObject(schema.inputSchema),
       },
     ),
   );
