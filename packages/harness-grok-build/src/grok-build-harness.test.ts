@@ -7,11 +7,14 @@ import type * as NodeFsPromises from 'node:fs/promises';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const sentMessages: Array<Record<string, unknown>> = [];
+const openCalls: Array<{ resume?: boolean } | undefined> = [];
 
 vi.mock('@ai-sdk/harness/utils', async importOriginal => {
   const actual = await importOriginal<typeof HarnessUtils>();
   class FakeSandboxChannel {
-    async open(): Promise<void> {}
+    async open(opts?: { resume?: boolean }): Promise<void> {
+      openCalls.push(opts);
+    }
     on(): () => void {
       return () => {};
     }
@@ -140,6 +143,7 @@ describe('grok-build bootstrap', () => {
 describe('grok-build doStart', () => {
   beforeEach(() => {
     sentMessages.length = 0;
+    openCalls.length = 0;
   });
   afterEach(() => {
     vi.restoreAllMocks();
@@ -289,6 +293,77 @@ describe('grok-build doStart', () => {
       },
     });
     expect(session.isResume).toBe(true);
+  });
+
+  it('attaches (no spawn) when resumeFrom carries live bridge coords', async () => {
+    const harness = createGrokBuild({ auth: { xai: { apiKey: 'sk' } } });
+    const spawnCalls: Array<{
+      command: string;
+      env: Record<string, string>;
+    }> = [];
+    const runs: string[] = [];
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeSandbox({ spawnCalls, runs }),
+      sessionWorkDir: '/vercel/sandbox/grok-s1',
+      permissionMode: 'allow-all',
+      resumeFrom: {
+        type: 'resume-session',
+        harnessId: 'grok-build',
+        specificationVersion: 'harness-v1',
+        data: {
+          sessionId: 'grok-sess-123',
+          bridge: {
+            port: 4319,
+            token: 'tok-abc',
+            lastSeenEventId: 7,
+          },
+        },
+      },
+    });
+    expect(spawnCalls).toHaveLength(0);
+    expect(openCalls).toEqual([{ resume: true }]);
+    expect(session.isResume).toBe(true);
+  });
+
+  it('spawns (fresh path) when resumeFrom has a session id but no bridge coords', async () => {
+    const harness = createGrokBuild({ auth: { xai: { apiKey: 'sk' } } });
+    const spawnCalls: Array<{
+      command: string;
+      env: Record<string, string>;
+    }> = [];
+    const runs: string[] = [];
+    await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeSandbox({ spawnCalls, runs }),
+      sessionWorkDir: '/vercel/sandbox/grok-s1',
+      permissionMode: 'allow-all',
+      resumeFrom: {
+        type: 'resume-session',
+        harnessId: 'grok-build',
+        specificationVersion: 'harness-v1',
+        data: { sessionId: 'grok-sess-123' },
+      },
+    });
+    expect(spawnCalls).toHaveLength(1);
+    expect(openCalls).toEqual([undefined]);
+  });
+
+  it('spawns the bridge on a fresh start with no resumeFrom', async () => {
+    const harness = createGrokBuild({ auth: { xai: { apiKey: 'sk' } } });
+    const spawnCalls: Array<{
+      command: string;
+      env: Record<string, string>;
+    }> = [];
+    const runs: string[] = [];
+    await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeSandbox({ spawnCalls, runs }),
+      sessionWorkDir: '/vercel/sandbox/grok-s1',
+      permissionMode: 'allow-all',
+    });
+    expect(spawnCalls).toHaveLength(1);
+    expect(openCalls).toEqual([undefined]);
   });
 
   it('continues the grok thread on the first prompt after resume, then stops', async () => {

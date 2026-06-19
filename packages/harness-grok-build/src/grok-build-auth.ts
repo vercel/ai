@@ -39,7 +39,6 @@ export function resolveGrokBuildEnv(
 }
 
 // Translate the resolved auth blob into the env vars the grok CLI reads.
-// Direct: XAI_API_KEY. Gateway (keyed off AI_GATEWAY_API_KEY): GROK_MODELS_BASE_URL + GROK_CODE_XAI_API_KEY.
 export function toGrokCliEnv(
   resolved: Record<string, string>,
 ): Record<string, string> {

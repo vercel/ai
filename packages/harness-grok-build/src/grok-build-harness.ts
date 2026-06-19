@@ -158,6 +158,11 @@ const lifecycleStateSchema = z.object({
     .optional(),
 });
 
+// Live bridge coordinates for cross-process attach (present on detach/suspend payloads).
+type GrokBridgeCoords = NonNullable<
+  z.infer<typeof lifecycleStateSchema>['bridge']
+>;
+
 async function readBridgeAsset(name: string): Promise<string> {
   const candidates = [
     new URL(`./bridge/${name}`, import.meta.url),
@@ -235,6 +240,7 @@ export function createGrokBuild(
         isResume && typeof lifecycleState?.data === 'object'
           ? (lifecycleState.data as {
               sessionId?: unknown;
+              bridge?: GrokBridgeCoords;
             })
           : undefined;
       const resumeSessionId =
@@ -242,6 +248,7 @@ export function createGrokBuild(
         resumeData.sessionId.length > 0
           ? resumeData.sessionId
           : undefined;
+      const coords = resumeData?.bridge;
 
       const workDir = startOpts.sessionWorkDir;
       const sessionDataDir = `${sandboxSession.defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
@@ -260,14 +267,44 @@ export function createGrokBuild(
             )
         : undefined;
 
-      // Resolve auth → concrete grok CLI env vars, and pick the matching model id.
+      // Resolve auth → grok CLI env vars + the matching model id (direct vs gateway).
       const resolvedAuth = resolveGrokBuildEnv(settings.auth);
-      const grokEnv = toGrokCliEnv(resolvedAuth);
-      const isGateway = resolvedAuth.AI_GATEWAY_API_KEY != null;
       const model =
         settings.model ??
-        (isGateway ? DEFAULT_GROK_MODEL_GATEWAY : DEFAULT_GROK_MODEL_DIRECT);
+        (resolvedAuth.AI_GATEWAY_API_KEY != null
+          ? DEFAULT_GROK_MODEL_GATEWAY
+          : DEFAULT_GROK_MODEL_DIRECT);
 
+      // Attach: reopen a socket to the still-running bridge instead of respawning.
+      if (coords) {
+        const attachUrl =
+          (await sandboxSession.getPortUrl({
+            port: coords.port,
+            protocol: 'ws',
+          })) + `?agent_bridge_token=${encodeURIComponent(coords.token)}`;
+        const attachChannel: GrokBuildChannel = new SandboxChannel({
+          connect: () => openWebSocket(attachUrl),
+          outboundSchema: outboundMessageSchema,
+          initialLastSeenEventId: coords.lastSeenEventId,
+          onDiagnostic,
+        });
+        await attachChannel.open({ resume: true });
+        return createSession({
+          sessionId: startOpts.sessionId,
+          channel: attachChannel,
+          proc: undefined, // live bridge owned by another process
+          model,
+          isResume: true,
+          bridgePort: coords.port,
+          bridgeToken: coords.token,
+          sandboxId,
+          debug: startOpts.observability?.debug,
+          permissionMode: startOpts.permissionMode,
+          resumeGrokSessionId: resumeSessionId,
+        });
+      }
+
+      const grokEnv = toGrokCliEnv(resolvedAuth);
       const port = resolveBridgePort(sandboxSession, settings.port);
       const token = randomBytes(32).toString('hex');
       const env = {
@@ -294,6 +331,34 @@ export function createGrokBuild(
         abortSignal: startOpts.abortSignal,
       });
 
+      // Collect bridge stderr from spawn so a startup failure is diagnosable.
+      const startupStderr: string[] = [];
+      const stderrDone = forwardBridgeStderr(
+        proc.stderr,
+        startOpts.observability?.debug,
+        startupStderr,
+      );
+      const withTail = async (
+        message: string,
+        ctx: { stdoutTail: string[] },
+      ): Promise<Error> => {
+        // Bounded waits so the timeout path (stream still open) never hangs.
+        await raceTimeout(stderrDone, 1000);
+        const result = (await raceTimeout(proc.wait(), 250)) as
+          | { exitCode?: number }
+          | undefined;
+        const exit =
+          result?.exitCode != null ? ` Exit code: ${result.exitCode}.` : '';
+        const parts = [`${message}${exit}`];
+        if (startupStderr.length > 0) {
+          parts.push(`stderr:\n${startupStderr.join('\n')}`);
+        }
+        if (ctx.stdoutTail.length > 0) {
+          parts.push(`stdout:\n${ctx.stdoutTail.join('\n')}`);
+        }
+        return new Error(parts.join('\n\n'));
+      };
+
       const { port: boundPort } = await waitForBridgeReady({
         proc,
         sandbox: session,
@@ -301,13 +366,12 @@ export function createGrokBuild(
         bridgeType: 'grok-build',
         timeoutMs,
         abortSignal: startOpts.abortSignal,
-        createTimeoutError: () =>
-          new Error('grok-build bridge did not become ready in time.'),
-        createExitError: () =>
-          new Error('grok-build bridge exited before becoming ready.'),
+        createTimeoutError: ctx =>
+          withTail('grok-build bridge did not become ready in time.', ctx),
+        createExitError: ctx =>
+          withTail('grok-build bridge exited before becoming ready.', ctx),
       });
       void drainRest(proc.stdout);
-      void forwardBridgeStderr(proc.stderr, startOpts.observability?.debug);
 
       const wsUrl =
         (await sandboxSession.getPortUrl({
@@ -374,15 +438,20 @@ function openWebSocket(url: string): Promise<WebSocket> {
   });
 }
 
-// Live-forward bridge stderr to the terminal only under debug. grok logs
-// recoverable errors (e.g. a spurious `grok-build` model probe that 404s) to
-// stderr mid-turn; printing those by default paints over TUI consumers. Fatal
-// exits still surface their stderr tail via the bridge's close handler.
+// Resolve a promise but give up after `ms`, swallowing rejections.
+function raceTimeout<T>(p: PromiseLike<T>, ms: number): Promise<T | undefined> {
+  return Promise.race([
+    Promise.resolve(p).catch(() => undefined),
+    new Promise<undefined>(resolve => setTimeout(resolve, ms)),
+  ]);
+}
+
+// Collect a stderr tail for startup diagnostics; echo to terminal only under debug.
 async function forwardBridgeStderr(
   stream: ReadableStream<Uint8Array>,
   debug: HarnessV1DebugConfig | undefined,
+  collectTail?: string[],
 ): Promise<void> {
-  if (debug?.enabled !== true) return;
   try {
     const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
     while (true) {
@@ -391,8 +460,14 @@ async function forwardBridgeStderr(
       if (value) {
         const trimmed = value.endsWith('\n') ? value.slice(0, -1) : value;
         if (trimmed.length > 0) {
-          // eslint-disable-next-line no-console
-          console.log(`[bridge stderr] ${trimmed}`);
+          if (collectTail) {
+            collectTail.push(trimmed);
+            if (collectTail.length > 20) collectTail.shift();
+          }
+          if (debug?.enabled === true) {
+            // eslint-disable-next-line no-console
+            console.log(`[bridge stderr] ${trimmed}`);
+          }
         }
       }
     }
