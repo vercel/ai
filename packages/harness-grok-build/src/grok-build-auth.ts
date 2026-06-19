@@ -49,13 +49,19 @@ export function toGrokCliEnv(
     const key = resolved.AI_GATEWAY_API_KEY;
     const baseUrl = resolved.AI_GATEWAY_BASE_URL ?? resolved.XAI_BASE_URL;
     if (key) env.GROK_CODE_XAI_API_KEY = key;
-    if (baseUrl) env.GROK_MODELS_BASE_URL = baseUrl;
+    // grok's GROK_MODELS_BASE_URL must point at the gateway's `/v1` endpoint.
+    if (baseUrl) env.GROK_MODELS_BASE_URL = toGatewayV1BaseUrl(baseUrl);
     return env;
   }
   const env: Record<string, string> = {};
   if (resolved.XAI_API_KEY) env.XAI_API_KEY = resolved.XAI_API_KEY;
   if (resolved.XAI_BASE_URL) env.XAI_BASE_URL = resolved.XAI_BASE_URL;
   return env;
+}
+
+function toGatewayV1BaseUrl(baseUrl: string): string {
+  const trimmed = baseUrl.replace(/\/+$/, '');
+  return trimmed.endsWith('/v1') ? trimmed : `${trimmed}/v1`;
 }
 
 function pickXai(

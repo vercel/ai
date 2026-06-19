@@ -13,7 +13,6 @@ export const grokBuildHarnessAgent = new HarnessAgent({
     runtime: 'node24',
     ports: [4000],
   }),
-  debug: { enabled: true },
   telemetry: {
     integrations: [
       createTraceTreeReporter(),

@@ -64,4 +64,12 @@ describe('toGrokCliEnv', () => {
     // The direct xAI var must not leak when routing through the gateway.
     expect(cliEnv.XAI_API_KEY).toBeUndefined();
   });
+
+  it('appends /v1 to the gateway base url when missing', () => {
+    const resolved = resolveGrokBuildEnv(undefined, {
+      AI_GATEWAY_API_KEY: 'gw-key',
+    });
+    const cliEnv = toGrokCliEnv(resolved);
+    expect(cliEnv.GROK_MODELS_BASE_URL).toBe('https://ai-gateway.vercel.sh/v1');
+  });
 });
