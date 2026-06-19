@@ -158,9 +158,14 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   const codexConfig: Record<string, unknown> = {};
   if (Object.keys(mcpServers).length > 0) codexConfig.mcp_servers = mcpServers;
 
-  const apiBaseUrl = procEnv.AI_GATEWAY_API_KEY
-    ? procEnv.AI_GATEWAY_BASE_URL || 'https://ai-gateway.vercel.sh/v1'
-    : procEnv.OPENAI_BASE_URL;
+  const gatewayBaseUrl = procEnv.AI_GATEWAY_BASE_URL;
+  const hasGatewayAuth = Boolean(procEnv.AI_GATEWAY_API_KEY || gatewayBaseUrl);
+  if (hasGatewayAuth && !gatewayBaseUrl) {
+    throw new Error(
+      'AI Gateway auth was selected but AI_GATEWAY_BASE_URL is missing from the Codex bridge environment.',
+    );
+  }
+  const apiBaseUrl = hasGatewayAuth ? gatewayBaseUrl : procEnv.OPENAI_BASE_URL;
   if (apiBaseUrl) {
     codexConfig.preferred_auth_method = 'apikey';
     codexConfig.model_provider = 'agent_bridge_openai';

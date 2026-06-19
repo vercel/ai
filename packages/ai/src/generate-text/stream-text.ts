@@ -41,6 +41,7 @@ import {
 } from '../prompt/request-options';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
+import type { TelemetryDispatcher } from '../telemetry/telemetry';
 import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import { createTextStreamResponse } from '../text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../text-stream/pipe-text-stream-to-response';
@@ -306,6 +307,14 @@ export type StreamTextOnAbortCallback<
  *
  * @param onChunk - Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.
  * @param onError - Callback that is called when an error occurs during streaming. You can use it to log errors.
+ * @param onStart - Callback invoked when generation begins, before any LLM calls.
+ * @param experimental_onStart - Deprecated alias for `onStart`.
+ * @param onStepStart - Callback invoked when each step begins, before the provider is called.
+ * @param experimental_onStepStart - Deprecated alias for `onStepStart`.
+ * @param onLanguageModelCallStart - Callback invoked immediately before each provider model call begins.
+ * @param experimental_onLanguageModelCallStart - Deprecated alias for `onLanguageModelCallStart`.
+ * @param onLanguageModelCallEnd - Callback invoked after each provider model call response is normalized and parsed.
+ * @param experimental_onLanguageModelCallEnd - Deprecated alias for `onLanguageModelCallEnd`.
  * @param onToolExecutionStart - Callback invoked before each tool execution begins.
  * @param experimental_onToolCallStart - Deprecated alias for `onToolExecutionStart`.
  * @param onToolExecutionEnd - Callback invoked after each tool execution completes.
@@ -360,10 +369,14 @@ export function streamText<
   onAbort,
   onStepEnd,
   onStepFinish,
-  experimental_onStart: onStart,
-  experimental_onStepStart: onStepStart,
-  experimental_onLanguageModelCallStart: onLanguageModelCallStart,
-  experimental_onLanguageModelCallEnd: onLanguageModelCallEnd,
+  onStart,
+  experimental_onStart,
+  onStepStart,
+  experimental_onStepStart,
+  onLanguageModelCallStart,
+  experimental_onLanguageModelCallStart,
+  onLanguageModelCallEnd,
+  experimental_onLanguageModelCallEnd,
   onToolExecutionStart,
   onToolExecutionEnd,
   experimental_onToolCallStart,
@@ -575,6 +588,18 @@ export function streamText<
      * Callback that is called when the streamText operation begins,
      * before any LLM calls are made.
      */
+    onStart?: GenerateTextOnStartCallback<
+      NoInfer<TOOLS>,
+      NoInfer<RUNTIME_CONTEXT>,
+      NoInfer<OUTPUT>
+    >;
+
+    /**
+     * Callback that is called when the streamText operation begins,
+     * before any LLM calls are made.
+     *
+     * @deprecated Use `onStart` instead.
+     */
     experimental_onStart?: GenerateTextOnStartCallback<
       NoInfer<TOOLS>,
       NoInfer<RUNTIME_CONTEXT>,
@@ -585,6 +610,18 @@ export function streamText<
      * Callback that is called when a step (LLM call) begins,
      * before the provider is called.
      */
+    onStepStart?: GenerateTextOnStepStartCallback<
+      NoInfer<TOOLS>,
+      NoInfer<RUNTIME_CONTEXT>,
+      NoInfer<OUTPUT>
+    >;
+
+    /**
+     * Callback that is called when a step (LLM call) begins,
+     * before the provider is called.
+     *
+     * @deprecated Use `onStepStart` instead.
+     */
     experimental_onStepStart?: GenerateTextOnStepStartCallback<
       NoInfer<TOOLS>,
       NoInfer<RUNTIME_CONTEXT>,
@@ -594,11 +631,26 @@ export function streamText<
     /**
      * Callback that is called immediately before the provider model call begins.
      */
+    onLanguageModelCallStart?: OnLanguageModelCallStartCallback;
+
+    /**
+     * Callback that is called immediately before the provider model call begins.
+     *
+     * @deprecated Use `onLanguageModelCallStart` instead.
+     */
     experimental_onLanguageModelCallStart?: OnLanguageModelCallStartCallback;
 
     /**
      * Callback that is called after the model response has been normalized and parsed,
      * but before any client-side tool execution begins.
+     */
+    onLanguageModelCallEnd?: OnLanguageModelCallEndCallback<NoInfer<TOOLS>>;
+
+    /**
+     * Callback that is called after the model response has been normalized and parsed,
+     * but before any client-side tool execution begins.
+     *
+     * @deprecated Use `onLanguageModelCallEnd` instead.
      */
     experimental_onLanguageModelCallEnd?: OnLanguageModelCallEndCallback<
       NoInfer<TOOLS>
@@ -660,6 +712,12 @@ export function streamText<
     stepTimeoutMs != null ? new AbortController() : undefined;
   const chunkAbortController =
     chunkTimeoutMs != null ? new AbortController() : undefined;
+  const resolvedOnStart = onStart ?? experimental_onStart;
+  const resolvedOnStepStart = onStepStart ?? experimental_onStepStart;
+  const resolvedOnLanguageModelCallStart =
+    onLanguageModelCallStart ?? experimental_onLanguageModelCallStart;
+  const resolvedOnLanguageModelCallEnd =
+    onLanguageModelCallEnd ?? experimental_onLanguageModelCallEnd;
   const resolvedOnToolExecutionStart =
     onToolExecutionStart ?? experimental_onToolCallStart;
   const resolvedOnToolExecutionEnd =
@@ -708,10 +766,10 @@ export function streamText<
     onEnd,
     onAbort,
     onStepFinish: resolvedOnStepEnd,
-    onStart,
-    onStepStart,
-    onLanguageModelCallStart,
-    onLanguageModelCallEnd,
+    onStart: resolvedOnStart,
+    onStepStart: resolvedOnStepStart,
+    onLanguageModelCallStart: resolvedOnLanguageModelCallStart,
+    onLanguageModelCallEnd: resolvedOnLanguageModelCallEnd,
     onToolExecutionStart: resolvedOnToolExecutionStart,
     onToolExecutionEnd: resolvedOnToolExecutionEnd,
     now,
@@ -1482,35 +1540,47 @@ class DefaultStreamTextResult<
         allowSystemInMessages,
       } as Prompt);
 
+      const startEvent = {
+        callId,
+        operationId: 'ai.streamText',
+        provider: model.provider,
+        modelId: model.modelId,
+        instructions: initialPrompt.instructions,
+        messages: initialPrompt.messages,
+        tools,
+        toolChoice,
+        activeTools,
+        toolOrder,
+        maxOutputTokens: callSettings.maxOutputTokens,
+        temperature: callSettings.temperature,
+        topP: callSettings.topP,
+        topK: callSettings.topK,
+        presencePenalty: callSettings.presencePenalty,
+        frequencyPenalty: callSettings.frequencyPenalty,
+        stopSequences: callSettings.stopSequences,
+        seed: callSettings.seed,
+        reasoning: callSettings.reasoning,
+        maxRetries,
+        timeout,
+        headers,
+        providerOptions,
+        output,
+        runtimeContext,
+        toolsContext,
+      };
+
+      const streamTextTracingChannelContext =
+        telemetryDispatcher.startTracingChannelContext?.({
+          type: 'streamText',
+          event: startEvent,
+          completion: self._totalUsage.promise.then(() => undefined),
+        });
+      // Re-enter the streamText tracing context after stream setup returns.
+      const runInStreamTextTracingChannelContext = <T>(execute: () => T): T =>
+        streamTextTracingChannelContext?.run(execute) ?? execute();
+
       await notify({
-        event: {
-          callId,
-          operationId: 'ai.streamText',
-          provider: model.provider,
-          modelId: model.modelId,
-          instructions: initialPrompt.instructions,
-          messages: initialPrompt.messages,
-          tools,
-          toolChoice,
-          activeTools,
-          toolOrder,
-          maxOutputTokens: callSettings.maxOutputTokens,
-          temperature: callSettings.temperature,
-          topP: callSettings.topP,
-          topK: callSettings.topK,
-          presencePenalty: callSettings.presencePenalty,
-          frequencyPenalty: callSettings.frequencyPenalty,
-          stopSequences: callSettings.stopSequences,
-          seed: callSettings.seed,
-          reasoning: callSettings.reasoning,
-          maxRetries,
-          timeout,
-          headers,
-          providerOptions,
-          output,
-          runtimeContext,
-          toolsContext,
-        },
+        event: startEvent,
         callbacks: [onStart, telemetryDispatcher.onStart],
       });
 
@@ -1595,6 +1665,8 @@ class DefaultStreamTextResult<
                   telemetryDispatcher.onToolExecutionEnd,
                 ),
                 executeToolInTelemetryContext: telemetryDispatcher.executeTool,
+                runInTracingChannelSpan:
+                  telemetryDispatcher.runInTracingChannelSpan,
                 onPreliminaryToolResult: result => {
                   toolExecutionStepStreamController?.enqueue(result);
                 },
@@ -1707,6 +1779,16 @@ class DefaultStreamTextResult<
         try {
           stepFinish = new DelayedPromise<void>();
 
+          const stepTracingChannelContext =
+            telemetryDispatcher.startTracingChannelContext?.({
+              type: 'step',
+              event: { callId, stepNumber: currentStep },
+              completion: stepFinish.promise,
+            });
+          // Re-enter the current step before creating child spans.
+          const runInStepTracingChannelContext = <T>(execute: () => T): T =>
+            stepTracingChannelContext?.run(execute) ?? execute();
+
           const responseMessagesFromPreviousSteps = recordedSteps.flatMap(
             step => step.response.messages,
           );
@@ -1786,70 +1868,73 @@ class DefaultStreamTextResult<
             stream: languageModelStream,
             request,
             response,
-          } = await retry(async () =>
-            streamLanguageModelCall({
-              model: prepareStepResult?.model ?? model,
-              tools: stepActiveTools,
-              toolOrder: stepToolOrder,
-              toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-              instructions: stepInstructions,
-              messages: stepMessages,
-              allowSystemInMessages,
-              repairToolCall,
-              refineToolInput,
-              abortSignal,
-              headers,
-              includeRawChunks: include.rawChunks,
-              providerOptions: stepProviderOptions,
-              download,
-              output,
-              callId,
-              executeLanguageModelCallInTelemetryContext:
-                telemetryDispatcher.executeLanguageModelCall,
-              toolsContext,
-              experimental_sandbox: stepSandbox,
-              onLanguageModelCallStart: filterNullable(
-                onLanguageModelCallStart,
-                telemetryDispatcher.onLanguageModelCallStart as
-                  | undefined
-                  | OnLanguageModelCallStartCallback,
-              ),
-              onLanguageModelCallEnd: filterNullable(
-                onLanguageModelCallEnd,
-                telemetryDispatcher.onLanguageModelCallEnd as
-                  | undefined
-                  | OnLanguageModelCallEndCallback<TOOLS>,
-              ),
-              onStart: async ({ promptMessages }) => {
-                await notify({
-                  event: {
-                    callId,
-                    provider: stepModel.provider,
-                    modelId: stepModel.modelId,
-                    stepNumber: recordedSteps.length,
-                    instructions: stepInstructions,
-                    messages: stepMessages,
-                    tools,
-                    toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-                    activeTools: prepareStepResult?.activeTools ?? activeTools,
-                    toolOrder: stepToolOrder,
-                    steps: [...recordedSteps],
-                    providerOptions: stepProviderOptions,
-                    runtimeContext,
-                    toolsContext,
-                    output,
-                    promptMessages,
-                    stepTools,
-                    stepToolChoice,
-                  },
-                  callbacks: [onStepStart, telemetryDispatcher.onStepStart],
-                });
-              },
-              _internal: {
-                now,
-              },
-              ...callSettings,
-            }),
+          } = await runInStepTracingChannelContext(() =>
+            retry(async () =>
+              streamLanguageModelCall({
+                model: prepareStepResult?.model ?? model,
+                tools: stepActiveTools,
+                toolOrder: stepToolOrder,
+                toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+                instructions: stepInstructions,
+                messages: stepMessages,
+                allowSystemInMessages,
+                repairToolCall,
+                refineToolInput,
+                abortSignal,
+                headers,
+                includeRawChunks: include.rawChunks,
+                providerOptions: stepProviderOptions,
+                download,
+                output,
+                callId,
+                executeLanguageModelCallInTelemetryContext:
+                  telemetryDispatcher.executeLanguageModelCall,
+                toolsContext,
+                experimental_sandbox: stepSandbox,
+                onLanguageModelCallStart: filterNullable(
+                  onLanguageModelCallStart,
+                  telemetryDispatcher.onLanguageModelCallStart as
+                    | undefined
+                    | OnLanguageModelCallStartCallback,
+                ),
+                onLanguageModelCallEnd: filterNullable(
+                  onLanguageModelCallEnd,
+                  telemetryDispatcher.onLanguageModelCallEnd as
+                    | undefined
+                    | OnLanguageModelCallEndCallback<TOOLS>,
+                ),
+                onStart: async ({ promptMessages }) => {
+                  await notify({
+                    event: {
+                      callId,
+                      provider: stepModel.provider,
+                      modelId: stepModel.modelId,
+                      stepNumber: recordedSteps.length,
+                      instructions: stepInstructions,
+                      messages: stepMessages,
+                      tools,
+                      toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+                      activeTools:
+                        prepareStepResult?.activeTools ?? activeTools,
+                      toolOrder: stepToolOrder,
+                      steps: [...recordedSteps],
+                      providerOptions: stepProviderOptions,
+                      runtimeContext,
+                      toolsContext,
+                      output,
+                      promptMessages,
+                      stepTools,
+                      stepToolChoice,
+                    },
+                    callbacks: [onStepStart, telemetryDispatcher.onStepStart],
+                  });
+                },
+                _internal: {
+                  now,
+                },
+                ...callSettings,
+              }),
+            ),
           );
 
           const streamAfterToolCallbackInvocation =
@@ -1860,6 +1945,21 @@ class DefaultStreamTextResult<
               abortSignal,
               runtimeContext,
             });
+
+          // Create child spans under the current step context.
+          const runInTracingChannelSpanInStep =
+            telemetryDispatcher.runInTracingChannelSpan == null
+              ? undefined
+              : <T>(
+                  options: Parameters<
+                    NonNullable<TelemetryDispatcher['runInTracingChannelSpan']>
+                  >[0] & {
+                    execute: () => PromiseLike<T>;
+                  },
+                ) =>
+                  runInStepTracingChannelContext(() =>
+                    telemetryDispatcher.runInTracingChannelSpan!(options),
+                  );
 
           const streamWithToolResults = executeToolsFromStream({
             stream: streamAfterToolCallbackInvocation,
@@ -1887,6 +1987,7 @@ class DefaultStreamTextResult<
             ),
 
             executeToolInTelemetryContext: telemetryDispatcher.executeTool,
+            runInTracingChannelSpan: runInTracingChannelSpanInStep,
           });
 
           // Conditionally include request.body based on include settings.
@@ -2187,10 +2288,12 @@ class DefaultStreamTextResult<
                     }))
                   ) {
                     try {
-                      await streamStep({
-                        currentStep: currentStep + 1,
-                        usage: combinedUsage,
-                      });
+                      await runInStreamTextTracingChannelContext(() =>
+                        streamStep({
+                          currentStep: currentStep + 1,
+                          usage: combinedUsage,
+                        }),
+                      );
                     } catch (error) {
                       controller.enqueue({
                         type: 'error',
@@ -2222,11 +2325,13 @@ class DefaultStreamTextResult<
         }
       }
 
-      // add the initial stream to the stitchable stream
-      await streamStep({
-        currentStep: 0,
-        usage: createNullLanguageModelUsage(),
-      });
+      await runInStreamTextTracingChannelContext(() =>
+        // add the initial stream to the stitchable stream
+        streamStep({
+          currentStep: 0,
+          usage: createNullLanguageModelUsage(),
+        }),
+      );
     })().catch(async error => {
       await telemetryDispatcher.onError?.({ callId, error });
       self._initialResponseMessages.reject(error);
@@ -2484,6 +2589,7 @@ class DefaultStreamTextResult<
   toUIMessageStream<UI_MESSAGE extends UIMessage>({
     originalMessages,
     generateMessageId,
+    onEnd,
     onFinish,
     messageMetadata,
     sendReasoning,
@@ -2500,7 +2606,7 @@ class DefaultStreamTextResult<
         tools: this.tools,
         originalMessages,
         generateMessageId,
-        onFinish,
+        onEnd: onEnd ?? onFinish,
         messageMetadata,
         sendReasoning,
         sendSources,
@@ -2516,6 +2622,7 @@ class DefaultStreamTextResult<
     {
       originalMessages,
       generateMessageId,
+      onEnd,
       onFinish,
       messageMetadata,
       sendReasoning,
@@ -2531,7 +2638,7 @@ class DefaultStreamTextResult<
       stream: this.toUIMessageStream({
         originalMessages,
         generateMessageId,
-        onFinish,
+        onEnd: onEnd ?? onFinish,
         messageMetadata,
         sendReasoning,
         sendSources,
@@ -2554,6 +2661,7 @@ class DefaultStreamTextResult<
   toUIMessageStreamResponse<UI_MESSAGE extends UIMessage>({
     originalMessages,
     generateMessageId,
+    onEnd,
     onFinish,
     messageMetadata,
     sendReasoning,
@@ -2568,7 +2676,7 @@ class DefaultStreamTextResult<
       stream: this.toUIMessageStream({
         originalMessages,
         generateMessageId,
-        onFinish,
+        onEnd: onEnd ?? onFinish,
         messageMetadata,
         sendReasoning,
         sendSources,

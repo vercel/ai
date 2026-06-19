@@ -1,5 +1,103 @@
 # @ai-sdk/sandbox-vercel
 
+## 1.0.0-beta.20
+
+### Patch Changes
+
+- Updated dependencies [e5d4a24]
+  - @ai-sdk/harness@1.0.0-beta.20
+
+## 1.0.0-beta.19
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.0-beta.19
+
+## 1.0.0-beta.18
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.0-beta.18
+
+## 1.0.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [534dac6]
+  - @ai-sdk/harness@1.0.0-beta.17
+
+## 1.0.0-beta.16
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.0-beta.16
+
+## 1.0.0-beta.15
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.0-beta.15
+
+## 1.0.0-beta.14
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/harness@1.0.0-beta.14
+  - @ai-sdk/provider-utils@5.0.0-beta.49
+
+## 1.0.0-canary.13
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.0-canary.13
+
+## 1.0.0-canary.12
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.0-canary.12
+
+## 1.0.0-canary.11
+
+### Patch Changes
+
+- Updated dependencies [be83911]
+  - @ai-sdk/harness@1.0.0-canary.11
+
+## 1.0.0-canary.10
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.0-canary.10
+
+## 1.0.0-canary.9
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.0-canary.9
+
+## 1.0.0-canary.8
+
+### Patch Changes
+
+- Updated dependencies [aae0138]
+  - @ai-sdk/harness@1.0.0-canary.8
+
+## 1.0.0-canary.7
+
+### Patch Changes
+
+- e551763: fix(harness): avoid using peer dependencies for underlying harness and sandbox SDKs
+- Updated dependencies [3d87086]
+- Updated dependencies [aeda373]
+- Updated dependencies [1ea15a3]
+- Updated dependencies [375fdd7]
+- Updated dependencies [b4507d5]
+  - @ai-sdk/harness@1.0.0-canary.7
+  - @ai-sdk/provider-utils@5.0.0-canary.48
+
 ## 1.0.0-canary.6
 
 ### Patch Changes

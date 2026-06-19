@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
+import { getAiGatewayAuthFromEnv } from '@ai-sdk/harness/utils';
 
 export type ClaudeCodeAuthOptions = {
   readonly anthropic?: {
@@ -22,8 +23,8 @@ export type ClaudeCodeAuthOptions = {
  *   1. Explicit `auth.anthropic` — pin to direct Anthropic auth.
  *   2. Explicit `auth.gateway` — pin to gateway-routed auth.
  *   3. Auto-detect from the host process env: gateway first
- *      (`AI_GATEWAY_API_KEY`), then direct (`ANTHROPIC_API_KEY` /
- *      `ANTHROPIC_AUTH_TOKEN`).
+ *      (`AI_GATEWAY_API_KEY` / `VERCEL_OIDC_TOKEN`), then direct
+ *      (`ANTHROPIC_API_KEY` / `ANTHROPIC_AUTH_TOKEN`).
  */
 export type ResolveClaudeCodeEnvOptions = {
   /**
@@ -45,12 +46,21 @@ export function resolveClaudeCodeEnv(
   if (auth?.anthropic) {
     return pickAnthropic({ explicit: auth.anthropic, processEnv, readApiKey });
   }
+
+  const gatewayAuthFromEnv = getAiGatewayAuthFromEnv({ env: processEnv });
   if (auth?.gateway) {
-    return pickGateway(auth.gateway, processEnv);
+    return pickGateway({
+      explicit: auth.gateway,
+      gatewayAuthFromEnv,
+    });
   }
-  if (processEnv.AI_GATEWAY_API_KEY) {
-    return pickGateway({}, processEnv);
+  if (gatewayAuthFromEnv.apiKey) {
+    return pickGateway({
+      explicit: {},
+      gatewayAuthFromEnv,
+    });
   }
+
   return pickAnthropic({ processEnv, readApiKey });
 }
 
@@ -111,15 +121,15 @@ function readApiKeyHelper(): string | undefined {
   }
 }
 
-function pickGateway(
-  explicit: NonNullable<ClaudeCodeAuthOptions['gateway']>,
-  processEnv: Record<string, string | undefined>,
-): Record<string, string> {
-  const apiKey = explicit.apiKey ?? processEnv.AI_GATEWAY_API_KEY;
-  const baseUrl =
-    explicit.baseUrl ??
-    processEnv.AI_GATEWAY_BASE_URL ??
-    'https://ai-gateway.vercel.sh';
+function pickGateway({
+  explicit,
+  gatewayAuthFromEnv,
+}: {
+  explicit: NonNullable<ClaudeCodeAuthOptions['gateway']>;
+  gatewayAuthFromEnv: ReturnType<typeof getAiGatewayAuthFromEnv>;
+}): Record<string, string> {
+  const apiKey = explicit.apiKey ?? gatewayAuthFromEnv.apiKey;
+  const baseUrl = explicit.baseUrl ?? gatewayAuthFromEnv.baseUrl;
   const env: Record<string, string> = {};
   if (apiKey) {
     env.AI_GATEWAY_API_KEY = apiKey;

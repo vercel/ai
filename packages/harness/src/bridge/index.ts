@@ -675,12 +675,14 @@ export async function runBridge<TStart extends { type: 'start' }>(
     emit({ type: 'error', error: serialiseError(err) });
   });
 
-  await new Promise<void>(resolve => {
+  await new Promise<void>((resolve, reject) => {
     if (wss.address() != null) {
       resolve();
       return;
     }
-    wss.on('listening', () => resolve());
+
+    wss.once('listening', resolve);
+    wss.once('error', reject);
   });
 
   return {

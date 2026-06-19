@@ -1153,7 +1153,7 @@ describe('generateText', () => {
         experimental_refineToolInput: {
           tool1: input => ({ value: input.value.trim() }),
         },
-        experimental_onLanguageModelCallEnd: event => {
+        onLanguageModelCallEnd: event => {
           modelCallEndEvents.push(event);
         },
         onToolExecutionStart: event => {
@@ -1647,7 +1647,7 @@ describe('generateText', () => {
     });
   });
 
-  describe('options.experimental_onStart', () => {
+  describe('options.onStart', () => {
     it('should send correct information with text prompt', async () => {
       let startEvent!: Parameters<
         GenerateTextOnStartCallback<any, any, any>
@@ -1668,7 +1668,7 @@ describe('generateText', () => {
           generateId: () => 'test-call-id',
           generateCallId: () => 'test-telemetry-call-id',
         },
-        experimental_onStart: async event => {
+        onStart: async event => {
           startEvent = event;
         },
       });
@@ -1690,7 +1690,7 @@ describe('generateText', () => {
         }),
         prompt: 'test-input',
         runtimeContext: { userId: 'test-user', sessionId: '123' },
-        experimental_onStart: async event => {
+        onStart: async event => {
           startEvent = event;
         },
       });
@@ -1718,7 +1718,7 @@ describe('generateText', () => {
           isEnabled: true,
           functionId: 'deprecated-fn',
         },
-        experimental_onStart: async event => {
+        onStart: async event => {
           startEvent = event;
         },
       });
@@ -1743,7 +1743,7 @@ describe('generateText', () => {
         messages: [{ role: 'user', content: 'test-message' }],
         maxOutputTokens: 100,
         temperature: 0.5,
-        experimental_onStart: async event => {
+        onStart: async event => {
           startEvent = event;
         },
       });
@@ -1806,7 +1806,7 @@ describe('generateText', () => {
           },
         }),
         prompt: 'test-input',
-        experimental_onStart: async () => {
+        onStart: async () => {
           callOrder.push('onStart');
         },
       });
@@ -1823,7 +1823,7 @@ describe('generateText', () => {
           }),
         }),
         prompt: 'test-input',
-        experimental_onStart: async () => {
+        onStart: async () => {
           throw new Error('callback error');
         },
       });
@@ -1832,7 +1832,7 @@ describe('generateText', () => {
     });
   });
 
-  describe('options.experimental_onStepStart', () => {
+  describe('options.onStepStart', () => {
     it('should be called with correct data for a single step', async () => {
       let stepStartEvent!: Parameters<
         GenerateTextOnStepStartCallback<any, any>
@@ -1846,7 +1846,7 @@ describe('generateText', () => {
           }),
         }),
         prompt: 'test-input',
-        experimental_onStepStart: async event => {
+        onStepStart: async event => {
           stepStartEvent = event;
         },
       });
@@ -1905,7 +1905,7 @@ describe('generateText', () => {
         },
         prompt: 'test-input',
         stopWhen: isStepCount(3),
-        experimental_onStepStart: async event => {
+        onStepStart: async event => {
           stepStartEvents.push(event);
         },
       });
@@ -1931,7 +1931,7 @@ describe('generateText', () => {
           },
         }),
         prompt: 'test-input',
-        experimental_onStepStart: async () => {
+        onStepStart: async () => {
           callOrder.push('onStepStart');
         },
       });
@@ -1948,7 +1948,7 @@ describe('generateText', () => {
           }),
         }),
         prompt: 'test-input',
-        experimental_onStepStart: async () => {
+        onStepStart: async () => {
           throw new Error('callback error');
         },
       });
@@ -2004,7 +2004,7 @@ describe('generateText', () => {
           }
           return undefined;
         },
-        experimental_onStepStart: async event => {
+        onStepStart: async event => {
           stepStartEvents.push(event);
         },
       });
@@ -2028,7 +2028,7 @@ describe('generateText', () => {
           }),
         }),
         prompt: 'test-input',
-        experimental_onStepStart: async event => {
+        onStepStart: async event => {
           stepStartEvent = event;
         },
       });
@@ -2093,7 +2093,7 @@ describe('generateText', () => {
         },
         prompt: 'test-input',
         stopWhen: isStepCount(4),
-        experimental_onStepStart: async event => {
+        onStepStart: async event => {
           stepStartEvents.push(event);
         },
       });
@@ -2164,7 +2164,7 @@ describe('generateText', () => {
         },
         prompt: 'test-input',
         stopWhen: isStepCount(3),
-        experimental_onStepStart: async event => {
+        onStepStart: async event => {
           stepStartEvents.push(event);
         },
       });
@@ -2189,7 +2189,7 @@ describe('generateText', () => {
         }),
         prompt: 'test-input',
         runtimeContext: { userId: 'test-user', requestId: 'req-123' },
-        experimental_onStepStart: async event => {
+        onStepStart: async event => {
           stepStartEvent = event;
         },
       });
@@ -2250,7 +2250,7 @@ describe('generateText', () => {
             },
           };
         },
-        experimental_onStepStart: async event => {
+        onStepStart: async event => {
           stepStartEvents.push(event);
         },
       });
@@ -2455,7 +2455,7 @@ describe('generateText', () => {
 
           return undefined;
         },
-        experimental_onStepStart: async event => {
+        onStepStart: async event => {
           stepStartEvents.push(event);
         },
       });
@@ -2640,7 +2640,7 @@ describe('generateText', () => {
         },
         prompt: 'test-input',
         stopWhen: isStepCount(3),
-        experimental_onStepStart: async event => {
+        onStepStart: async event => {
           startStepNumbers.push(event.stepNumber);
         },
         onStepFinish: async event => {
@@ -2652,7 +2652,7 @@ describe('generateText', () => {
     });
   });
 
-  describe('options.experimental_onLanguageModelCallStart and experimental_onLanguageModelCallEnd', () => {
+  describe('options.onLanguageModelCallStart and onLanguageModelCallEnd', () => {
     it('should fire the model-call callbacks before tool execution and step finish', async () => {
       const callOrder: string[] = [];
       let modelCallStartEvent!: LanguageModelCallStartEvent;
@@ -2690,14 +2690,14 @@ describe('generateText', () => {
         stopSequences: ['stop'],
         seed: 123,
         reasoning: 'high',
-        experimental_onStepStart: async () => {
+        onStepStart: async () => {
           callOrder.push('onStepStart');
         },
-        experimental_onLanguageModelCallStart: async event => {
+        onLanguageModelCallStart: async event => {
           callOrder.push('onLanguageModelCallStart');
           modelCallStartEvent = event;
         },
-        experimental_onLanguageModelCallEnd: async () => {
+        onLanguageModelCallEnd: async () => {
           callOrder.push('onLanguageModelCallEnd');
         },
         onToolExecutionStart: async () => {
@@ -2800,7 +2800,7 @@ describe('generateText', () => {
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        experimental_onLanguageModelCallEnd: async event => {
+        onLanguageModelCallEnd: async event => {
           modelCallEndEvents.push(event);
         },
         ...defaultSettings(),
@@ -9051,10 +9051,10 @@ describe('generateText', () => {
             requestId: true,
           },
         },
-        experimental_onStart: ({ runtimeContext }) => {
+        onStart: ({ runtimeContext }) => {
           callbackContexts.push(runtimeContext);
         },
-        experimental_onStepStart: ({ runtimeContext }) => {
+        onStepStart: ({ runtimeContext }) => {
           callbackContexts.push(runtimeContext);
         },
         onStepFinish: ({ runtimeContext }) => {
@@ -12393,7 +12393,7 @@ describe('generateText', () => {
           }),
         }),
         prompt: 'test-input',
-        experimental_onStart: async () => {
+        onStart: async () => {
           events.push('user-onStart');
         },
         onStepFinish: async () => {
