@@ -24,11 +24,7 @@ export const deepAgentsHarnessAgent = new HarnessAgent({
   },
 });
 
-/*
- * Derived from `agent.tools` directly rather than `InferAgentUIMessage<typeof
- * agent>` — see the note in the OpenCode/Codex basic agents for why the
- * structural inference is side-stepped via the `tools` field.
- */
+// Derived from `agent.tools` (not InferAgentUIMessage) — see Codex/OpenCode basic agents.
 export type DeepAgentsHarnessAgentMessage = UIMessage<
   unknown,
   never,

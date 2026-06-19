@@ -14,20 +14,7 @@ export type DeepAgentsAuthOptions = {
 
 const DEFAULT_ANTHROPIC_BASE_URL = 'https://api.anthropic.com';
 
-/**
- * Resolve the environment-variable blob the DeepAgents (LangChain) bridge needs.
- * Precedence:
- *
- *   1. Explicit `auth.anthropic` — pin to direct Anthropic auth.
- *   2. Explicit `auth.gateway` — pin to Vercel AI Gateway (routed via the
- *      Anthropic-compatible surface; LangChain reads `ANTHROPIC_*`).
- *   3. Auto-detect from the host process env: gateway first
- *      (`AI_GATEWAY_API_KEY` / `VERCEL_OIDC_TOKEN`), then ambient `ANTHROPIC_*`.
- *
- * DeepAgents resolves models through LangChain, which reads `ANTHROPIC_API_KEY`
- * / `ANTHROPIC_BASE_URL`. When routing through the gateway we point those at the
- * gateway base URL and reuse the gateway key.
- */
+// Resolve bridge env vars: explicit anthropic/gateway, else ambient gateway then anthropic.
 export function resolveDeepAgentsEnv(
   auth: DeepAgentsAuthOptions | undefined,
   processEnv: Record<string, string | undefined> = process.env,

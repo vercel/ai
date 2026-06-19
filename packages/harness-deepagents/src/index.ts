@@ -1,10 +1,6 @@
 import { createDeepAgents } from './deepagents-harness';
 
-/**
- * Default `deepagents` harness instance with no overrides — suitable for the
- * common case where the runtime's defaults are fine. Equivalent to
- * `createDeepAgents()`.
- */
+/** Default `deepagents` harness instance; equivalent to `createDeepAgents()`. */
 export const deepAgents = createDeepAgents();
 
 export { createDeepAgents } from './deepagents-harness';

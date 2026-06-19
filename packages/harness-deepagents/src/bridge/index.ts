@@ -1,18 +1,5 @@
-// Long-running process that runs alongside the DeepAgents (LangGraph JS)
-// runtime inside the sandbox. The generic transport — WebSocket server, token
-// auth, single-flight reconnect, the in-memory event log + `seq`, resume
-// replay, and the lifecycle/meta files — lives in the shared
-// `@ai-sdk/harness/bridge` runtime. This file supplies only the
-// DeepAgents-specific turn driver: it builds an agent with `createDeepAgent()`
-// and translates its `streamEvents` output into harness-v1 stream parts.
-//
-// CONSTRAINT — the third-party imports below are NEVER bundled into the
-// compiled `bridge/index.mjs`. They are declared `external` in tsup.config.ts
-// and resolved at runtime from the node_modules this bridge installs *inside
-// the sandbox* from `src/bridge/package.json` (and its pinned
-// `pnpm-lock.yaml`). When adding/changing a third-party import here you MUST
-// keep all three in sync: the import below, the `external` array in
-// tsup.config.ts, and the dependency in `src/bridge/package.json`.
+// In-sandbox turn driver: builds a `createDeepAgent()` agent and maps its `streamEvents` to harness-v1 parts; transport is `@ai-sdk/harness/bridge`.
+// Third-party imports below stay external (tsup) and resolve from src/bridge/package.json in-sandbox — keep import, externals, and deps in sync.
 
 import { randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
@@ -55,8 +42,7 @@ function parseArgs(rawArgs: string[]): Record<string, string> {
   return out;
 }
 
-// LangChain resolves model strings as `provider:model`; the host sends
-// `provider/model`.
+// LangChain wants `provider:model`; the host sends `provider/model`.
 function parseModelName(raw: string): string {
   return raw.includes('/') ? raw.replace('/', ':') : raw;
 }
@@ -70,9 +56,7 @@ if (!workdir || !bridgeStateDir) {
   process.exit(1);
 }
 
-// One agent per bridge process, reused across turns so the LangGraph
-// checkpointer accumulates conversation state. Host tools close over a getter
-// for the live turn rather than a fixed one.
+// One agent per bridge process, reused across turns; host tools read the live turn via `currentTurn`.
 let agent: ReturnType<typeof createDeepAgent> | undefined;
 let currentTurn: BridgeTurn | undefined;
 
@@ -105,9 +89,7 @@ function schemaFromJson(input: unknown) {
   return z.object(shape);
 }
 
-// Host-defined tools become LangChain tools that round-trip through the host:
-// emit a `tool-call` (providerExecuted=false), then block on the host's
-// `tool-result` before returning to LangGraph.
+// Host tools become LangChain tools that emit a `tool-call` and block on the host's `tool-result`.
 function buildHostTools(toolSchemas: StartMessage['tools']) {
   return (toolSchemas ?? []).map(schema =>
     tool(
@@ -155,12 +137,12 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   if (!agent) {
     const skillsBlock = await readSkillsBlock();
     agent = createDeepAgent({
-      model: parseModelName(start.model ?? 'claude-sonnet-4'),
+      // Defer to DeepAgents' own default when the host configured no model.
+      ...(start.model ? { model: parseModelName(start.model) } : {}),
       tools: buildHostTools(start.tools),
       backend: new LocalShellBackend({ rootDir: workdir }),
       systemPrompt: buildSystemPrompt(start, skillsBlock) || undefined,
-      // A real checkpointer instance (not `true`, which LangGraph rejects for
-      // root graphs) gives multi-turn memory within this bridge process.
+      // Real instance (LangGraph rejects `true` for root graphs); gives multi-turn memory.
       checkpointer: new MemorySaver(),
     });
   }
@@ -247,8 +229,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         outputTokens = Math.max(outputTokens, usage.output_tokens ?? 0);
       }
     } else if (kind === 'on_chat_model_end') {
-      // LangChain.js reports final token usage on the model-end event (not on
-      // the streamed chunks). Each model call is one step boundary.
+      // Final usage lands on model-end, not the chunks; each model call is one step.
       const output = data.output as
         | {
             usage_metadata?: { input_tokens?: number; output_tokens?: number };
@@ -272,8 +253,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       const toolName = (event.name as string) ?? 'unknown';
       const runId = (event.run_id as string) ?? '';
       if (runId) activeToolRunIds.add(runId);
-      // Host tools emit their own tool-call inside the tool fn; only the
-      // runtime's built-in tools are surfaced here (providerExecuted).
+      // Host tools emit their own tool-call; only surface builtin (providerExecuted) tools here.
       if (!hostToolNames.has(toolName)) {
         endTextBlock();
         emit({

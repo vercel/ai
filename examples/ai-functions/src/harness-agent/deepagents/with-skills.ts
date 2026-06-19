@@ -4,13 +4,7 @@ import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 
-/*
- * Skills are domain-specific reference material the agent loads on demand
- * when it decides — based on the skill's name and description — that the
- * current task is relevant. The DeepAgents harness writes the skills to a
- * combined `.skills.md` in the working directory and prepends them to the
- * system prompt.
- */
+// Skills are loaded on demand by name/description; the harness writes them to `.skills.md`.
 run(async () => {
   const sandbox = createVercelSandbox({
     runtime: 'node24',

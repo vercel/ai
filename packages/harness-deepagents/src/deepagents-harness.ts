@@ -36,41 +36,22 @@ import {
 
 type DeepAgentsChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 
-/*
- * Bootstrap lives in /tmp because it's pure derived state — the harness can
- * reinstall the bridge's Node deps and files on any fresh sandbox from the
- * recipe. Persistence comes from the sandbox provider's snapshot, not the path.
- */
+// Pure derived state in /tmp; reinstalled per sandbox, persistence is the provider snapshot.
 const BOOTSTRAP_DIR = '/tmp/harness/deepagents';
 
 const DEEPAGENTS_DEFAULT_CONTEXT_WINDOW = 200_000;
 
 export type DeepAgentsHarnessSettings = {
   readonly auth?: DeepAgentsAuthOptions;
-  /**
-   * Model id the underlying DeepAgents (LangChain) runtime should use, e.g.
-   * `claude-sonnet-4`. The bridge converts this to LangChain colon format
-   * internally (`anthropic:claude-sonnet-4`).
-   */
+  /** Model id for the DeepAgents runtime, e.g. `claude-sonnet-4` (converted to `provider:model`). */
   readonly model?: string;
-  /**
-   * Override the port the bridge binds inside the sandbox. By default the
-   * adapter uses the first port the sandbox declares via `sandbox.ports`.
-   */
+  /** Bridge port override; defaults to the sandbox's first declared port. */
   readonly port?: number;
   /** Maximum milliseconds to wait for the bridge to advertise its port. Defaults to 120000. */
   readonly startupTimeoutMs?: number;
 };
 
-/*
- * Every native tool the DeepAgents (LangGraph) runtime exposes as a
- * model-callable tool, keyed by the cross-harness common name the bridge emits
- * as `toolName` on the wire. The native LangGraph names are recorded via
- * `nativeName`. DeepAgents' `search` maps to the common `grep` capability —
- * `/ai` has no `searchFiles` common name — and the bridge maps each tool's
- * native argument names (`path`/`query`) onto the standard common fields
- * (`file_path`/`pattern`).
- */
+// Native LangGraph tools keyed by cross-harness common name; `search`→`grep` (no `searchFiles` common name).
 const DEEPAGENTS_BUILTIN_TOOLS = {
   read: commonTool('read', {
     nativeName: 'read_file',
@@ -555,11 +536,7 @@ async function teardown(
   }
 }
 
-/*
- * Reduce a `HarnessV1Prompt` to the plain user text the bridge forwards to the
- * DeepAgents runtime. File and image parts are not yet supported — throw rather
- * than silently drop them.
- */
+// Reduce the prompt to plain user text; non-text parts are unsupported.
 function extractUserText(prompt: HarnessV1Prompt): string {
   if (typeof prompt === 'string') return prompt;
   const { content } = prompt;
