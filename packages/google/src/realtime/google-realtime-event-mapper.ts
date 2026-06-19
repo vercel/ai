@@ -273,6 +273,12 @@ export class GoogleRealtimeEventMapper {
         };
 
       case 'input-audio-commit':
+        return {
+          realtimeInput: {
+            audioStreamEnd: true,
+          },
+        };
+
       case 'input-audio-clear':
       case 'response-create':
       case 'response-cancel':

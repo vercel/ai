@@ -495,10 +495,14 @@ describe('GoogleRealtimeEventMapper', () => {
       });
     });
 
-    it('returns null for input-audio-commit', () => {
+    it('serializes input-audio-commit as audioStreamEnd', () => {
       expect(
         mapper.serializeClientEvent({ type: 'input-audio-commit' }, 'model'),
-      ).toBeNull();
+      ).toEqual({
+        realtimeInput: {
+          audioStreamEnd: true,
+        },
+      });
     });
 
     it('returns null for input-audio-clear', () => {

@@ -6,7 +6,7 @@ import {
   type Experimental_GoogleRealtimeModelOptions as GoogleRealtimeModelOptions,
 } from '@ai-sdk/google';
 import { Activity, Languages, Mic, Pause, Power } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 const languageOptions = [
   { code: 'en', label: 'English' },
@@ -72,10 +72,16 @@ export default function LiveTranslatePage() {
   const [echoTargetLanguage, setEchoTargetLanguage] = useState(true);
   const [showEvents, setShowEvents] = useState(false);
   const [captureStarting, setCaptureStarting] = useState(false);
+  const [showConnectedPrompt, setShowConnectedPrompt] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const holdActiveRef = useRef(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const eventsEndRef = useRef<HTMLDivElement>(null);
+  const autoStartAttemptedRef = useRef(false);
+  const captureActiveRef = useRef(false);
+  const captureRequestIdRef = useRef(0);
+  const captureRequestPendingRef = useRef(false);
+  const captureStreamRef = useRef<MediaStream | null>(null);
+  const statusRef = useRef('disconnected');
+  const eventsContainerRef = useRef<HTMLDivElement>(null);
+  const shouldFollowEventsRef = useRef(true);
 
   const model = useMemo(
     () => google.experimental_realtime('gemini-3.5-live-translate-preview'),
@@ -109,6 +115,7 @@ export default function LiveTranslatePage() {
     isPlaying,
     connect,
     disconnect,
+    commitAudio,
     startAudioCapture,
     stopAudioCapture,
     stopPlayback,
@@ -130,41 +137,63 @@ export default function LiveTranslatePage() {
     },
   });
 
-  useEffect(() => {
-    if (messages.length > 0) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [messages]);
+  const realtimeActionsRef = useRef({
+    commitAudio,
+    startAudioCapture,
+    stopAudioCapture,
+  });
+  realtimeActionsRef.current = {
+    commitAudio,
+    startAudioCapture,
+    stopAudioCapture,
+  };
+
+  const visibleEvents = events.filter(event => event.type !== 'audio-delta');
+  const latestVisibleEvent = visibleEvents.at(-1);
 
   useEffect(() => {
-    if (showEvents && events.length > 0) {
-      eventsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (showEvents && shouldFollowEventsRef.current) {
+      const container = eventsContainerRef.current;
+      if (container != null) {
+        container.scrollTop = container.scrollHeight;
+      }
     }
-  }, [events, showEvents]);
+  }, [latestVisibleEvent, showEvents]);
 
   useEffect(() => {
+    statusRef.current = status;
     if (status !== 'error') {
       setError(null);
     }
   }, [status]);
 
-  const connectOrDisconnect = async () => {
-    if (status === 'connected') {
-      holdActiveRef.current = false;
-      if (isCapturing) stopAudioCapture();
-      if (isPlaying) stopPlayback();
-      disconnect();
+  const stopListening = useCallback((commit = true) => {
+    captureRequestIdRef.current += 1;
+    captureRequestPendingRef.current = false;
+    setCaptureStarting(false);
+
+    if (!captureActiveRef.current) return;
+
+    captureActiveRef.current = false;
+    captureStreamRef.current = null;
+    realtimeActionsRef.current.stopAudioCapture();
+
+    if (commit && statusRef.current === 'connected') {
+      realtimeActionsRef.current.commitAudio();
+    }
+  }, []);
+
+  const startListening = useCallback(async () => {
+    if (
+      statusRef.current !== 'connected' ||
+      captureActiveRef.current ||
+      captureRequestPendingRef.current
+    ) {
       return;
     }
 
-    setError(null);
-    await connect();
-  };
-
-  const startHoldingToTalk = async () => {
-    if (status !== 'connected' || isCapturing || captureStarting) return;
-
-    holdActiveRef.current = true;
+    const requestId = ++captureRequestIdRef.current;
+    captureRequestPendingRef.current = true;
     setCaptureStarting(true);
     setError(null);
 
@@ -177,30 +206,88 @@ export default function LiveTranslatePage() {
         },
       });
 
-      if (holdActiveRef.current && status === 'connected') {
-        startAudioCapture(stream);
-      } else {
+      if (
+        requestId !== captureRequestIdRef.current ||
+        statusRef.current !== 'connected'
+      ) {
         stream.getTracks().forEach(track => track.stop());
+        return;
       }
+
+      captureStreamRef.current = stream;
+      captureActiveRef.current = true;
+      realtimeActionsRef.current.startAudioCapture(stream);
     } catch (nextError) {
+      if (requestId !== captureRequestIdRef.current) return;
+
+      captureActiveRef.current = false;
+      captureStreamRef.current?.getTracks().forEach(track => track.stop());
+      captureStreamRef.current = null;
       setError(
         nextError instanceof Error
           ? nextError.message
           : 'Microphone access failed',
       );
     } finally {
-      setCaptureStarting(false);
+      if (requestId === captureRequestIdRef.current) {
+        captureRequestPendingRef.current = false;
+        setCaptureStarting(false);
+      }
     }
+  }, []);
+
+  useEffect(() => {
+    if (status !== 'connected') {
+      stopListening(false);
+    }
+  }, [status, stopListening]);
+
+  useEffect(() => {
+    return () => {
+      statusRef.current = 'disconnected';
+      captureRequestIdRef.current += 1;
+      captureStreamRef.current?.getTracks().forEach(track => track.stop());
+      captureStreamRef.current = null;
+      captureActiveRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (status !== 'connected') {
+      autoStartAttemptedRef.current = false;
+      setShowConnectedPrompt(false);
+      return;
+    }
+
+    setShowConnectedPrompt(true);
+    const timeout = window.setTimeout(
+      () => setShowConnectedPrompt(false),
+      5000,
+    );
+
+    return () => window.clearTimeout(timeout);
+  }, [status]);
+
+  useEffect(() => {
+    if (status !== 'connected' || autoStartAttemptedRef.current) return;
+
+    autoStartAttemptedRef.current = true;
+    void startListening();
+  }, [startListening, status]);
+
+  const connectOrDisconnect = async () => {
+    if (status === 'connected') {
+      stopListening();
+      statusRef.current = 'disconnected';
+      if (isPlaying) stopPlayback();
+      disconnect();
+      return;
+    }
+
+    setError(null);
+    await connect();
   };
 
-  const stopHoldingToTalk = () => {
-    holdActiveRef.current = false;
-    if (isCapturing) {
-      stopAudioCapture();
-    }
-  };
-
-  const visibleEvents = events.filter(event => event.type !== 'audio-delta');
   const controlsLocked = status === 'connected' || status === 'connecting';
   const latestInput = getLatestText(messages, 'user');
   const latestTranslation = getLatestText(messages, 'assistant');
@@ -225,6 +312,31 @@ export default function LiveTranslatePage() {
 
   return (
     <main className="flex min-h-screen items-start justify-center bg-[#fafafa] px-5 py-20 text-zinc-950">
+      {showConnectedPrompt && (
+        <div
+          role="status"
+          className="fixed top-5 right-5 z-50 flex max-w-sm items-start gap-3 rounded-lg border border-emerald-200 bg-white px-4 py-3 shadow-lg"
+        >
+          <span className="mt-1 h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-emerald-500" />
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-zinc-900">
+              You&apos;re connected
+            </div>
+            <div className="mt-0.5 text-xs leading-5 text-zinc-500">
+              Start speaking. Translation will appear as you talk.
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowConnectedPrompt(false)}
+            aria-label="Dismiss connected message"
+            className="ml-1 text-lg leading-none text-zinc-400 hover:text-zinc-700"
+          >
+            &times;
+          </button>
+        </div>
+      )}
+
       <section className="w-full max-w-[470px] rounded-xl border border-zinc-200 bg-white p-7 shadow-[0_18px_60px_rgba(0,0,0,0.10)]">
         <header className="mb-6">
           <div className="mb-3 flex items-center gap-2">
@@ -292,45 +404,63 @@ export default function LiveTranslatePage() {
 
           <div>
             <p className="mb-4 text-[13px] leading-5 text-zinc-500">
-              Push to translate: hold the button, speak, release - audio input
-              and output transcripts are enabled.
+              Speak naturally once connected. Audio input and translated output
+              transcripts are enabled.
             </p>
 
-            <button
-              type="button"
-              onPointerDown={startHoldingToTalk}
-              onPointerUp={stopHoldingToTalk}
-              onPointerCancel={stopHoldingToTalk}
-              onPointerLeave={stopHoldingToTalk}
-              onKeyDown={event => {
-                if (event.key === ' ' || event.key === 'Enter') {
-                  void startHoldingToTalk();
-                }
-              }}
-              onKeyUp={event => {
-                if (event.key === ' ' || event.key === 'Enter') {
-                  stopHoldingToTalk();
-                }
-              }}
-              disabled={status !== 'connected' || captureStarting}
-              className={`inline-flex h-11 w-full items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:bg-zinc-200 disabled:text-zinc-400 ${
+            <div
+              className={`rounded-lg border p-4 transition ${
                 isCapturing
-                  ? 'bg-rose-700 text-white hover:bg-rose-800'
-                  : 'bg-zinc-950 text-white hover:bg-zinc-800'
+                  ? 'border-emerald-200 bg-emerald-50'
+                  : 'border-zinc-200 bg-zinc-50'
               }`}
             >
-              <Mic size={16} aria-hidden />
-              {isCapturing
-                ? 'Release to stop'
-                : captureStarting
-                  ? 'Opening microphone...'
-                  : 'Hold to translate'}
-            </button>
+              <div className="flex items-center gap-3">
+                <span
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+                    isCapturing
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-zinc-200 text-zinc-500'
+                  }`}
+                >
+                  <Mic size={17} aria-hidden />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-semibold text-zinc-900">
+                    {isCapturing
+                      ? 'Listening...'
+                      : captureStarting
+                        ? 'Opening microphone...'
+                        : 'Listening paused'}
+                  </div>
+                  <div className="mt-0.5 text-xs text-zinc-500">
+                    {isCapturing
+                      ? 'Speak normally and translation will appear below.'
+                      : 'Start listening when you are ready to speak.'}
+                  </div>
+                </div>
+                {isCapturing && (
+                  <span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-emerald-500" />
+                )}
+              </div>
 
-            <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-xs text-zinc-400">
-              <div className="h-px bg-zinc-200" />
-              <span>or</span>
-              <div className="h-px bg-zinc-200" />
+              <button
+                type="button"
+                onClick={isCapturing ? () => stopListening() : startListening}
+                disabled={status !== 'connected' || captureStarting}
+                className={`mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-md px-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:bg-zinc-200 disabled:text-zinc-400 ${
+                  isCapturing
+                    ? 'border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50'
+                    : 'bg-zinc-950 text-white hover:bg-zinc-800'
+                }`}
+              >
+                {isCapturing ? (
+                  <Pause size={15} aria-hidden />
+                ) : (
+                  <Mic size={15} aria-hidden />
+                )}
+                {isCapturing ? 'Stop listening' : 'Start listening'}
+              </button>
             </div>
 
             <div className="mt-4 grid grid-cols-2 gap-3">
@@ -345,7 +475,10 @@ export default function LiveTranslatePage() {
               </button>
               <button
                 type="button"
-                onClick={() => setShowEvents(value => !value)}
+                onClick={() => {
+                  shouldFollowEventsRef.current = true;
+                  setShowEvents(value => !value);
+                }}
                 className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-zinc-300 bg-white px-3 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50"
               >
                 <Activity size={15} aria-hidden />
@@ -366,7 +499,6 @@ export default function LiveTranslatePage() {
 
           <div className="rounded-md bg-zinc-100 px-4 py-3 font-mono text-[13px] leading-6 text-zinc-700">
             {outputText}
-            <div ref={messagesEndRef} />
           </div>
 
           <dl className="grid grid-cols-3 gap-2 text-center text-xs text-zinc-500">
@@ -385,7 +517,18 @@ export default function LiveTranslatePage() {
           </dl>
 
           {showEvents && (
-            <div className="max-h-64 overflow-y-auto rounded-md border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-600">
+            <div
+              ref={eventsContainerRef}
+              onScroll={event => {
+                const container = event.currentTarget;
+                shouldFollowEventsRef.current =
+                  container.scrollHeight -
+                    container.scrollTop -
+                    container.clientHeight <
+                  24;
+              }}
+              className="max-h-64 overflow-y-auto rounded-md border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-600"
+            >
               <div className="mb-2 font-semibold text-zinc-800">
                 Events ({visibleEvents.length})
               </div>
@@ -408,7 +551,6 @@ export default function LiveTranslatePage() {
                   </details>
                 ))
               )}
-              <div ref={eventsEndRef} />
             </div>
           )}
         </div>
