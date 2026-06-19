@@ -48,10 +48,14 @@ export interface SpriteExecOptions {
 }
 
 /**
- * Minimal structural view of the WHATWG `WebSocket` available as a global in
- * Node.js >= 22 (undici). We type only the surface we use and the undici
- * `headers` constructor option so the package needs no `ws` dependency and no
- * DOM lib.
+ * Minimal structural view of the global `WebSocket` we rely on. We use the
+ * undici `headers` constructor option (Node.js >= 22) to send the
+ * `Authorization` header, which the WHATWG `WebSocket` spec does not define —
+ * so this package targets the Node runtime, not spec-compliant `WebSocket`
+ * environments (browsers, edge/workerd, Deno), where the option is ignored and
+ * auth would silently fail. `engines.node` and {@link getWebSocketCtor} guard
+ * for the global's presence; typing only the surface we use keeps it
+ * dependency-free.
  */
 interface NodeWebSocket {
   binaryType: string;
@@ -135,6 +139,18 @@ export class SpritesApiClient {
     return response;
   }
 
+  /**
+   * Issue a request that returns no useful body, releasing the response stream
+   * so undici keep-alive connections are not held checked-out.
+   */
+  private async requestVoid(
+    url: string,
+    init: RequestInit & { abortSignal?: AbortSignal },
+  ): Promise<void> {
+    const response = await this.requestOk(url, init);
+    await response.body?.cancel();
+  }
+
   async getSprite(
     name: string,
     abortSignal?: AbortSignal,
@@ -174,7 +190,9 @@ export class SpritesApiClient {
       };
     }
     const body = await response.text().catch(() => '');
-    if (response.status === 409 || /already exists/i.test(body)) {
+    // 409 is the authoritative "name already taken" signal. Do not infer reuse
+    // from an arbitrary error body, which could swallow a real 4xx/5xx failure.
+    if (response.status === 409) {
       return {
         sprite: await this.getSprite(options.name, options.abortSignal),
         created: false,
@@ -201,6 +219,7 @@ export class SpritesApiClient {
         }`,
       );
     }
+    await response.body?.cancel();
   }
 
   async setUrlAuth(
@@ -208,7 +227,7 @@ export class SpritesApiClient {
     auth: SpriteUrlAuth,
     abortSignal?: AbortSignal,
   ): Promise<void> {
-    await this.requestOk(this.spritePath(name), {
+    await this.requestVoid(this.spritePath(name), {
       method: 'PUT',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ url_settings: { auth } }),
@@ -221,7 +240,7 @@ export class SpritesApiClient {
     rules: ReadonlyArray<SpriteNetworkRule>,
     abortSignal?: AbortSignal,
   ): Promise<void> {
-    await this.requestOk(this.spritePath(name, '/policy/network'), {
+    await this.requestVoid(this.spritePath(name, '/policy/network'), {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ rules }),
@@ -261,7 +280,7 @@ export class SpritesApiClient {
       name,
       `/fs/write?path=${encodeURIComponent(path)}`,
     );
-    await this.requestOk(url, {
+    await this.requestVoid(url, {
       method: 'PUT',
       headers: { 'content-type': 'application/octet-stream' },
       // Copy into a fresh ArrayBuffer-backed view so the body is a plain
@@ -312,13 +331,22 @@ export class SpritesApiClient {
 
     let sessionId: string | undefined;
     let exitCode: number | undefined;
-    let opened = false;
+    let exitObserved = false;
     let settled = false;
-    let connectionError: Error | undefined;
+    let socketError: Error | undefined;
+    // Promises for in-flight control-message parses. `wait()`/`kill()` drain
+    // these before reading `exitCode`/`sessionId` so a clean exit delivered only
+    // as a JSON `{type:'exit'}` frame is never lost to the close→resolve race.
+    const pendingParses: Array<Promise<void>> = [];
+    let onAbort: (() => void) | undefined;
     let resolveClosed!: () => void;
     const closed = new Promise<void>(resolve => {
       resolveClosed = resolve;
     });
+
+    // The full `url` carries `cmd`/`dir`/`env` (potentially secrets) in its
+    // query string; never embed it in a user-facing error.
+    const safeUrl = `${wsBase}/v1/sprites/${encodeURIComponent(name)}/exec`;
 
     const ws = new WebSocketCtor(url, { headers: this.authHeaders() });
     ws.binaryType = 'arraybuffer';
@@ -326,32 +354,36 @@ export class SpritesApiClient {
     const finish = (): void => {
       if (settled) return;
       settled = true;
+      if (onAbort != null && options.abortSignal != null) {
+        options.abortSignal.removeEventListener('abort', onAbort);
+      }
       stdoutController?.close();
       stderrController?.close();
       resolveClosed();
     };
 
-    ws.onopen = () => {
-      opened = true;
-    };
-
     ws.onmessage = event => {
       const data = event.data;
       if (typeof data === 'string') {
-        void safeParseJSON({ text: data }).then(result => {
-          if (!result.success) return;
-          const message = result.value as {
-            type?: string;
-            [k: string]: unknown;
-          };
-          if (message.type === 'session_info') {
-            const id = message['session_id'];
-            if (typeof id === 'string') sessionId = id;
-          } else if (message.type === 'exit') {
-            const code = message['exit_code'];
-            if (typeof code === 'number') exitCode = code;
-          }
-        });
+        pendingParses.push(
+          safeParseJSON({ text: data }).then(result => {
+            if (!result.success) return;
+            const message = result.value as {
+              type?: string;
+              [k: string]: unknown;
+            };
+            if (message.type === 'session_info') {
+              const id = message['session_id'];
+              if (typeof id === 'string') sessionId = id;
+            } else if (message.type === 'exit') {
+              const code = message['exit_code'];
+              if (typeof code === 'number') {
+                exitCode = code;
+                exitObserved = true;
+              }
+            }
+          }),
+        );
         return;
       }
       if (data instanceof ArrayBuffer && data.byteLength > 0) {
@@ -365,22 +397,21 @@ export class SpritesApiClient {
             stderrController?.enqueue(payload);
             break;
           case WS_FRAME_EXIT:
-            if (exitCode == null && payload.byteLength > 0) {
-              exitCode = payload[0];
-            }
+            exitObserved = true;
+            if (payload.byteLength > 0) exitCode = payload[0];
             break;
         }
       }
     };
 
     ws.onerror = event => {
-      if (!opened) {
-        connectionError = new Error(
-          `Sprites exec WebSocket failed to connect to ${url}: ${
-            event.message ?? event.error?.message ?? 'unknown error'
-          }`,
-        );
-      }
+      // Record on any error (pre- or post-open) so a mid-stream drop is not
+      // mistaken for a clean finish. Query string omitted (see safeUrl).
+      socketError ??= new Error(
+        `Sprites exec WebSocket error for ${safeUrl}: ${
+          event.message ?? event.error?.message ?? 'unknown error'
+        }`,
+      );
     };
 
     ws.onclose = () => {
@@ -388,11 +419,15 @@ export class SpritesApiClient {
     };
 
     const killSession = async (): Promise<void> => {
+      // Ensure session_info has been parsed so we know the session id.
+      await Promise.allSettled(pendingParses);
       if (sessionId != null) {
         await this.request(
           this.spritePath(name, `/exec/${encodeURIComponent(sessionId)}/kill`),
           { method: 'POST' },
-        ).catch(() => {});
+        )
+          .then(res => res.body?.cancel())
+          .catch(() => {});
       }
       try {
         ws.close();
@@ -402,13 +437,13 @@ export class SpritesApiClient {
     };
 
     if (options.abortSignal != null) {
-      const onAbort = (): void => {
+      onAbort = (): void => {
         void killSession();
       };
       if (options.abortSignal.aborted) {
         onAbort();
       } else {
-        options.abortSignal.addEventListener('abort', onAbort, { once: true });
+        options.abortSignal.addEventListener('abort', onAbort);
       }
     }
 
@@ -417,14 +452,26 @@ export class SpritesApiClient {
       stderr,
       async wait(): Promise<{ exitCode: number }> {
         await closed;
+        await Promise.allSettled(pendingParses);
+        // A genuine exit (JSON `{type:'exit'}` or the `0x03` frame) wins, even
+        // if an abort raced in at the same instant the process completed.
+        if (exitObserved) {
+          return { exitCode: exitCode ?? 0 };
+        }
         if (options.abortSignal?.aborted) {
           throw (
             options.abortSignal.reason ??
             new DOMException('Aborted', 'AbortError')
           );
         }
-        if (connectionError != null) throw connectionError;
-        return { exitCode: exitCode ?? 0 };
+        // Closed without ever reporting an exit: a dropped/abnormal connection.
+        // Surface it rather than masquerading as a successful `exitCode: 0`.
+        throw (
+          socketError ??
+          new Error(
+            `Sprites exec connection closed before the process reported an exit code (${safeUrl}).`,
+          )
+        );
       },
       async kill(): Promise<void> {
         await killSession();

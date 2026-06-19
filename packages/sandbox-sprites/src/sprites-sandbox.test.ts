@@ -23,6 +23,8 @@ interface FetchScenario {
   createStatus?: number;
   /** auth reported by created/fetched sprite (default 'sprite'). */
   auth?: 'public' | 'sprite';
+  /** Whether a bootstrap marker file already exists (fs/read → 200 vs 404). */
+  markerExists?: boolean;
 }
 
 function installFetch(scenario: FetchScenario = {}): ReturnType<typeof vi.fn> {
@@ -60,6 +62,16 @@ function installFetch(scenario: FetchScenario = {}): ReturnType<typeof vi.fn> {
     // POST /v1/sprites/{name}/policy/network
     if (method === 'POST' && u.pathname.endsWith('/policy/network')) {
       return new Response(null, { status: 204 });
+    }
+    // GET /v1/sprites/{name}/fs/read  (bootstrap marker probe)
+    if (method === 'GET' && u.pathname.endsWith('/fs/read')) {
+      return scenario.markerExists
+        ? new Response('done', { status: 200 })
+        : new Response('{"error":"no such file"}', { status: 404 });
+    }
+    // PUT /v1/sprites/{name}/fs/write  (marker write)
+    if (method === 'PUT' && u.pathname.endsWith('/fs/write')) {
+      return new Response('', { status: 200 });
     }
     return new Response('not found', { status: 404 });
   });
@@ -165,6 +177,61 @@ describe('create-new createSession', () => {
     await session.destroy?.();
     expect(calls.some(c => c.method === 'DELETE')).toBe(true);
   });
+
+  it('rejects when create fails with a non-409 error', async () => {
+    installFetch({ createStatus: 500 });
+    const provider = createSpritesSandbox({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+    });
+    await expect(provider.createSession({ sessionId: 's1' })).rejects.toThrow(
+      /failed: 500/,
+    );
+  });
+});
+
+describe('prewarm / identity', () => {
+  it('derives a reusable template name from identity and runs onFirstCreate once, writing a marker', async () => {
+    installFetch();
+    const provider = createSpritesSandbox({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+    });
+    const onFirstCreate = vi.fn(async () => {});
+    const session = await provider.createSession({
+      identity: 'recipe-hash-1',
+      onFirstCreate,
+    });
+    expect(session.id).toBe('ai-sdk-harness-tmpl-recipe-hash-1');
+    expect(onFirstCreate).toHaveBeenCalledTimes(1);
+    // marker persisted via fs/write to a path keyed by identity
+    const markerWrite = calls.find(
+      c => c.method === 'PUT' && c.url.includes('/fs/write'),
+    );
+    expect(markerWrite?.url).toContain('bootstrap-recipe-hash-1.done');
+  });
+
+  it('skips onFirstCreate when the identity marker already exists (409 reuse)', async () => {
+    installFetch({ createStatus: 409, markerExists: true });
+    const provider = createSpritesSandbox({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+    });
+    const onFirstCreate = vi.fn(async () => {});
+    await provider.createSession({ identity: 'h', onFirstCreate });
+    expect(onFirstCreate).not.toHaveBeenCalled();
+  });
+
+  it('re-runs onFirstCreate when the Sprite exists but the marker is absent', async () => {
+    installFetch({ createStatus: 409, markerExists: false });
+    const provider = createSpritesSandbox({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+    });
+    const onFirstCreate = vi.fn(async () => {});
+    await provider.createSession({ identity: 'h', onFirstCreate });
+    expect(onFirstCreate).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('getPortUrl', () => {
@@ -181,6 +248,9 @@ describe('getPortUrl', () => {
     );
     expect(await session.getPortUrl({ port: 8080, protocol: 'ws' })).toBe(
       'wss://ai-sdk-harness-session-p-x.sprites.app/',
+    );
+    expect(await session.getPortUrl({ port: 8080, protocol: 'http' })).toBe(
+      'https://ai-sdk-harness-session-p-x.sprites.app/',
     );
   });
 

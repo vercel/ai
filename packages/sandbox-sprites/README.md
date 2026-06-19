@@ -129,8 +129,32 @@ match on domains), so `allowedCIDRs` / `deniedCIDRs` are rejected.
 | ------------------ | -------------------------------------------------------------------------------------- |
 | `apiKey`           | Sprites API token. Defaults to `SPRITES_API_KEY` / `SPRITES_TOKEN`.                    |
 | `baseUrl`          | Control-plane base URL. Defaults to `SPRITES_API_URL` or `https://api.sprites.dev`.    |
-| `workingDirectory` | Default working directory for the session. Defaults to `/home/sprite`.                 |
+| `workingDirectory` | Base dir for resolving relative file paths **and** the default `cwd` for `run`/`spawn` when no per-call `workingDirectory` is given. Defaults to `/home/sprite`. |
 | `spriteName`       | Wrap an existing Sprite by name instead of creating one.                               |
 | `name`             | Explicit name for a created Sprite (else auto-derived from the session id).            |
 | `urlAuth`          | `'public'` (default for created Sprites) or `'sprite'`.                                |
 | `waitForCapacity`  | Block on fleet capacity instead of failing fast when creating a Sprite.               |
+
+## Known limitations & security
+
+- **`run()` may merge stderr into stdout for instant commands.** Sprites' exec
+  agent uses a "fast path" that replays a command's buffered output as a single
+  stdout stream when the command exits before the client attaches. For such
+  near-instant commands, `run().stderr` can be empty with its content folded
+  into `stdout` (order and exit code are preserved). Commands that run long
+  enough to stream get correctly separated stdout/stderr. Don't branch solely on
+  `stderr` being empty to detect success — check `exitCode`.
+- **Environment variables travel in the exec request URL.** The Sprites exec
+  protocol passes `env` as query parameters, which proxies, load balancers, and
+  APM tools routinely log. Avoid putting secrets in `env`; prefer writing them to
+  a file in the sandbox. (The provider strips the query string from any
+  connection-error message so secrets don't leak there.)
+- **Created Sprites default to a public URL.** `urlAuth: 'public'` is required so
+  bridge harnesses can reach the in-Sprite bridge with a stock WebSocket, but it
+  means the Sprite's URL — and any service on port 8080 — is reachable by anyone
+  with the URL (the bridge token is the auth boundary). Set `urlAuth: 'sprite'`
+  if you don't need the bridge and want org-token-gated access.
+- **Node-only runtime.** Authenticating the exec WebSocket relies on undici's
+  `headers` constructor option (Node.js ≥ 22). Spec-compliant `WebSocket`
+  environments (browsers, edge/workerd, Deno) ignore it; this package targets
+  Node.

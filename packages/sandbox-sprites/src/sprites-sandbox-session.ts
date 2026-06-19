@@ -51,7 +51,7 @@ export class SpritesSandboxSession implements Experimental_SandboxSession {
 
     const proc = this.client.exec(this.spriteName, {
       argv: ['bash', '-c', command],
-      ...(workingDirectory !== undefined ? { cwd: workingDirectory } : {}),
+      cwd: workingDirectory ?? this.workingDirectory,
       ...(env !== undefined ? { env } : {}),
       ...(abortSignal !== undefined ? { abortSignal } : {}),
     });
@@ -79,7 +79,7 @@ export class SpritesSandboxSession implements Experimental_SandboxSession {
 
     return this.client.exec(this.spriteName, {
       argv: ['bash', '-c', command],
-      ...(workingDirectory !== undefined ? { cwd: workingDirectory } : {}),
+      cwd: workingDirectory ?? this.workingDirectory,
       ...(env !== undefined ? { env } : {}),
       ...(abortSignal !== undefined ? { abortSignal } : {}),
     });

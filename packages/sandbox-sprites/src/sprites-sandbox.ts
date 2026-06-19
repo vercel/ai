@@ -21,7 +21,11 @@ const SPRITES_PROVIDER_ID = 'sprites-sandbox';
 const DEFAULT_WORKING_DIRECTORY = '/home/sprite';
 
 const SESSION_NAME_PREFIX = 'ai-sdk-harness-session';
+const TEMPLATE_NAME_PREFIX = 'ai-sdk-harness-tmpl';
 const PREWARM_NAME_PREFIX = 'ai-sdk-harness';
+
+/** Written into a Sprite once `onFirstCreate` succeeds, keyed by identity. */
+const BOOTSTRAP_MARKER = new TextEncoder().encode('done');
 
 /** Connection and shared settings for {@link createSpritesSandbox}. */
 export interface SpritesConnectionSettings {
@@ -143,11 +147,18 @@ export class SpritesSandboxProvider implements HarnessV1SandboxProvider {
     }
 
     const settings = this.settings;
+    const identity = options?.identity;
+    // Name resolution: a sessionId yields a resumable per-session Sprite; an
+    // identity (e.g. prewarm) yields a reusable template Sprite so repeat calls
+    // hit the same resource instead of leaking a fresh random one each time;
+    // otherwise fall back to a random name.
     const name =
       settings.name ??
       (options?.sessionId != null
         ? `${SESSION_NAME_PREFIX}-${sanitizeName(options.sessionId)}`
-        : `${PREWARM_NAME_PREFIX}-${randomSuffix()}`);
+        : identity != null
+          ? `${TEMPLATE_NAME_PREFIX}-${sanitizeName(identity)}`
+          : `${PREWARM_NAME_PREFIX}-${randomSuffix()}`);
 
     const { sprite, created } = await this.client.getOrCreateSprite({
       name,
@@ -169,16 +180,42 @@ export class SpritesSandboxProvider implements HarnessV1SandboxProvider {
       ownsLifecycle: true,
     });
 
-    // Run one-time setup only on a fresh create, matching the
-    // "called exactly once per identity" contract.
-    if (created && options?.onFirstCreate != null) {
-      await options.onFirstCreate(session.restricted(), {
-        ...(options?.abortSignal ? { abortSignal: options.abortSignal } : {}),
-      });
+    // Run one-time setup once per identity. Gate on a persisted completion
+    // marker (not the create-vs-409 result) so a setup that fails *after* the
+    // Sprite is created re-runs next time instead of leaving it permanently
+    // un-bootstrapped.
+    if (options?.onFirstCreate != null) {
+      const marker = identity != null ? this.markerPath(identity) : undefined;
+      const alreadyDone =
+        marker != null
+          ? !created &&
+            (await this.client.readFile(
+              sprite.name,
+              marker,
+              options?.abortSignal,
+            )) != null
+          : !created;
+      if (!alreadyDone) {
+        await options.onFirstCreate(session.restricted(), {
+          ...(options?.abortSignal ? { abortSignal: options.abortSignal } : {}),
+        });
+        if (marker != null) {
+          await this.client.writeFile(
+            sprite.name,
+            marker,
+            BOOTSTRAP_MARKER,
+            options?.abortSignal,
+          );
+        }
+      }
     }
 
     return session;
   };
+
+  private markerPath(identity: string): string {
+    return `${this.workingDirectory}/.ai-sdk-harness/bootstrap-${sanitizeName(identity)}.done`;
+  }
 
   resumeSession = async (options: {
     sessionId: string;

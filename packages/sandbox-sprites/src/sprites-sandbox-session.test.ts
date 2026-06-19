@@ -27,41 +27,60 @@ function frame(type: number, payload: string | number[]): ArrayBuffer {
 
 type FakeMessage = string | ArrayBuffer;
 
-/** Per-test script of messages the fake exec WebSocket emits, in order. */
+// Per-test scenario for the fake exec WebSocket.
 let execMessages: FakeMessage[] = [];
+let execEmitError: string | null = null; // fire onerror after messages
+let execErrorBeforeOpen = false; // connect failure: error + close, no messages
+let execStayOpen = false; // do not auto-close (caller must kill())
 let lastWsUrl = '';
 let lastWsHeaders: Record<string, string> | undefined;
-let killCalls: string[] = [];
 
 class FakeWebSocket {
+  static emitted: Promise<void> = Promise.resolve();
   binaryType = 'blob';
   onopen: ((ev: unknown) => void) | null = null;
   onmessage: ((ev: { data: unknown }) => void) | null = null;
-  onerror: ((ev: unknown) => void) | null = null;
+  onerror:
+    | ((ev: { message?: string; error?: { message?: string } }) => void)
+    | null = null;
   onclose: ((ev: { code: number; reason: string }) => void) | null = null;
 
   constructor(url: string, opts?: { headers?: Record<string, string> }) {
     lastWsUrl = url;
     lastWsHeaders = opts?.headers;
-    // Defer so the client can assign event handlers first.
+    let done!: () => void;
+    FakeWebSocket.emitted = new Promise<void>(r => {
+      done = r;
+    });
+    // Defer so the client can assign handlers first.
     setTimeout(() => {
-      this.onopen?.({});
-      for (const message of execMessages) {
-        this.onmessage?.({ data: message });
+      if (execErrorBeforeOpen) {
+        this.onerror?.({ message: 'connect refused' });
+        this.onclose?.({ code: 1006, reason: '' });
+        done();
+        return;
       }
-      this.onclose?.({ code: 1000, reason: '' });
+      this.onopen?.({});
+      for (const message of execMessages) this.onmessage?.({ data: message });
+      if (execEmitError != null) this.onerror?.({ message: execEmitError });
+      if (!execStayOpen) this.onclose?.({ code: 1000, reason: '' });
+      done();
     }, 0);
   }
 
   send(): void {}
-  close(): void {}
+  close(): void {
+    this.onclose?.({ code: 1000, reason: '' });
+  }
 }
 
 beforeEach(() => {
   execMessages = [];
+  execEmitError = null;
+  execErrorBeforeOpen = false;
+  execStayOpen = false;
   lastWsUrl = '';
   lastWsHeaders = undefined;
-  killCalls = [];
   vi.stubGlobal('WebSocket', FakeWebSocket as unknown);
 });
 
@@ -99,7 +118,64 @@ describe('SpritesSandboxSession.run', () => {
     expect(result.exitCode).toBe(3);
   });
 
-  it('passes argv as bash -c, plus cwd and env, in the WS query and auth header', async () => {
+  it('reads the exit code from a JSON-only exit frame (no binary 0x03)', async () => {
+    // Reproduces the microtask race: exit delivered only as JSON, then close.
+    execMessages = [
+      frame(1, 'out\n'),
+      JSON.stringify({ type: 'exit', exit_code: 5 }),
+    ];
+    const session = makeSession();
+    const result = await session.run({ command: 'do-it' });
+    expect(result.stdout).toBe('out\n');
+    expect(result.exitCode).toBe(5);
+  });
+
+  it('attributes a fast_path merged frame (instant command) to stdout', async () => {
+    // The Sprites fast_path replays an instant command's output as one 0x01
+    // frame, merging stderr into stdout. Pin that documented behavior.
+    execMessages = [frame(1, 'ERR\nOUT\n'), frame(3, [0])];
+    const session = makeSession();
+    const result = await session.run({ command: 'echo OUT; echo ERR >&2' });
+    expect(result.stdout).toBe('ERR\nOUT\n');
+    expect(result.stderr).toBe('');
+    expect(result.exitCode).toBe(0);
+  });
+
+  it('throws on an abnormal close with no exit frame (no false exit 0)', async () => {
+    execMessages = [frame(1, 'partial')];
+    execEmitError = null; // clean-looking close, but no exit was ever reported
+    const session = makeSession();
+    await expect(session.run({ command: 'crash' })).rejects.toThrow(
+      /closed before the process reported an exit/i,
+    );
+  });
+
+  it('throws when the WebSocket errors before opening', async () => {
+    execErrorBeforeOpen = true;
+    const session = makeSession();
+    await expect(session.run({ command: 'x' })).rejects.toThrow(
+      /WebSocket error/i,
+    );
+  });
+
+  it('does not leak the env query string into connection errors', async () => {
+    execErrorBeforeOpen = true;
+    const session = makeSession();
+    const err = await session
+      .run({ command: 'x', env: { SECRET: 'topsecret' } })
+      .catch((e: Error) => e);
+    expect(String(err)).not.toContain('topsecret');
+    expect(String(err)).not.toContain('SECRET=');
+  });
+
+  it('defaults the working directory to the session base when none is given', async () => {
+    execMessages = [frame(3, [0])];
+    const session = makeSession();
+    await session.run({ command: 'pwd' });
+    expect(new URL(lastWsUrl).searchParams.get('dir')).toBe('/home/sprite');
+  });
+
+  it('passes argv as bash -c, plus cwd and env, and the auth header', async () => {
     execMessages = [frame(3, [0])];
     const session = makeSession();
     await session.run({
@@ -141,6 +217,29 @@ describe('SpritesSandboxSession.spawn', () => {
     expect(out).toBe('one\ntwo\n');
     expect(exitCode).toBe(0);
   });
+
+  it('kill() calls the kill endpoint with the parsed session id', async () => {
+    const fetchMock = vi.fn(
+      async (_url: string, _init?: RequestInit) =>
+        new Response(null, { status: 200 }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    execMessages = [
+      JSON.stringify({ type: 'session_info', session_id: '906' }),
+    ];
+    execStayOpen = true; // process is "running" until killed
+
+    const session = makeSession();
+    const proc = await session.spawn({ command: 'sleep 100' });
+    await FakeWebSocket.emitted; // session_info delivered + parsed
+    await proc.kill();
+
+    const killCall = fetchMock.mock.calls.find(([u]) =>
+      u.endsWith('/exec/906/kill'),
+    );
+    expect(killCall).toBeDefined();
+    expect(killCall?.[1]?.method).toBe('POST');
+  });
 });
 
 describe('SpritesSandboxSession filesystem', () => {
@@ -165,6 +264,28 @@ describe('SpritesSandboxSession filesystem', () => {
     expect((requestInit.headers as Record<string, string>).authorization).toBe(
       'Bearer tok',
     );
+  });
+
+  it('writeFile drains a multi-chunk stream into the request body', async () => {
+    let received: ArrayBuffer | undefined;
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      received = init?.body as ArrayBuffer;
+      return new Response('', { status: 200 });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const session = makeSession();
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('ab'));
+        controller.enqueue(new TextEncoder().encode('cd'));
+        controller.close();
+      },
+    });
+    await session.writeFile({ path: '/x.bin', content: stream });
+    expect(received).toBeDefined();
+    expect(new TextDecoder().decode(received)).toBe('abcd');
+    expect((fetchMock.mock.calls[0][1] as RequestInit).method).toBe('PUT');
   });
 
   it('readTextFile decodes content and applies a line range', async () => {
@@ -194,6 +315,18 @@ describe('SpritesSandboxSession filesystem', () => {
 
     const session = makeSession();
     expect(await session.readTextFile({ path: '/nope.txt' })).toBeNull();
+  });
+
+  it('readBinaryFile returns the raw bytes', async () => {
+    const fetchMock = vi.fn(
+      async () => new Response('streamed', { status: 200 }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const session = makeSession();
+    const bytes = await session.readBinaryFile({ path: '/abs.txt' });
+    expect(bytes).not.toBeNull();
+    expect(new TextDecoder().decode(bytes as Uint8Array)).toBe('streamed');
   });
 
   it('readFile returns a stream of the bytes', async () => {
