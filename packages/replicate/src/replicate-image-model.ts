@@ -1,14 +1,21 @@
-import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import {
+  AISDKError,
+  type ImageModelV4,
+  type SharedV4Warning,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertImageModelFileToDataUri,
   createBinaryResponseHandler,
-  createJsonResponseHandler,
+  createBinaryResponseHandler,
+  createJsonResponseHandler as createJsonResponseHandlerRaw,
   getFromApi,
-  parseProviderOptions,
+  delay,
+  getFromApi,
   postJsonToApi,
   resolve,
-  serializeModelOptions,
+  isSameOrigin,
+  resolve,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
   type Resolvable,
@@ -153,7 +160,7 @@ export class ReplicateImageModel implements ImageModelV4 {
         : { prefer: 'wait' };
 
     const {
-      value: { output },
+      value: prediction,
       responseHeaders,
     } = await postJsonToApi({
       url:
@@ -191,8 +198,79 @@ export class ReplicateImageModel implements ImageModelV4 {
       fetch: this.config.fetch,
     });
 
+    // Poll until prediction succeeds (handles sync-wait timeout)
+    let finalPrediction = prediction;
+    if (
+      finalPrediction.status === 'starting' ||
+      finalPrediction.status === 'processing'
+    ) {
+      const pollIntervalMs = replicateOptions?.pollIntervalMs ?? 2000;
+      const pollTimeoutMs = replicateOptions?.pollTimeoutMs ?? 300000;
+      const startTime = Date.now();
+
+      while (
+        finalPrediction.status === 'starting' ||
+        finalPrediction.status === 'processing'
+      ) {
+        if (Date.now() - startTime > pollTimeoutMs) {
+          throw new AISDKError({
+            name: 'REPLICATE_IMAGE_GENERATION_TIMEOUT',
+            message: `Image generation timed out after ${pollTimeoutMs}ms`,
+          });
+        }
+
+        await delay(pollIntervalMs);
+
+        if (abortSignal?.aborted) {
+          throw new AISDKError({
+            name: 'REPLICATE_IMAGE_GENERATION_ABORTED',
+            message: 'Image generation aborted',
+          });
+        }
+
+        const pollUrl = finalPrediction.urls?.get;
+        if (!pollUrl) {
+          throw new AISDKError({
+            name: 'REPLICATE_IMAGE_GENERATION_ERROR',
+            message: 'No poll URL in prediction response',
+          });
+        }
+
+        const { value: statusPrediction } = await getFromApi({
+          url: pollUrl,
+          headers: isSameOrigin(pollUrl, this.config.baseURL)
+            ? await resolve(this.config.headers)
+            : undefined,
+          successfulResponseHandler: createJsonResponseHandler(
+            replicateImageResponseSchema,
+          ),
+          failedResponseHandler: replicateFailedResponseHandler,
+          abortSignal: abortSignal as any,
+          fetch: this.config.fetch,
+        });
+
+        finalPrediction = statusPrediction;
+      }
+    }
+
+    if (finalPrediction.status === 'failed') {
+      throw new AISDKError({
+        name: 'REPLICATE_IMAGE_GENERATION_FAILED',
+        message: `Image generation failed: ${finalPrediction.error ?? 'Unknown error'}`,
+      });
+    }
+
+    if (!finalPrediction.output) {
+      throw new AISDKError({
+        name: 'REPLICATE_IMAGE_GENERATION_ERROR',
+        message: 'No output in final prediction',
+      });
+    }
+
     // download the images:
-    const outputArray = Array.isArray(output) ? output : [output];
+    const outputArray = Array.isArray(finalPrediction.output)
+      ? finalPrediction.output
+      : [finalPrediction.output];
     const images = await Promise.all(
       outputArray.map(async url => {
         const { value: image } = await getFromApi({
@@ -219,5 +297,7 @@ export class ReplicateImageModel implements ImageModelV4 {
 }
 
 const replicateImageResponseSchema = z.object({
-  output: z.union([z.array(z.string()), z.string(), z.null()]),
+  output: z.union([z.array(z.string()), z.string(), z.null()]).optional(),
+  status: z.string().optional(),
+  urls: z.object({ get: z.string().url().optional() }).optional(),
 });
