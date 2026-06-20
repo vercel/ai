@@ -36,6 +36,8 @@ export class ElevenLabsRealtimeModel implements RealtimeModelV4 {
   async doCreateClientSecret(
     _options: RealtimeModelV4ClientSecretOptions,
   ): Promise<RealtimeModelV4ClientSecretResult> {
+    // ElevenLabs fixes the signed URL lifetime and applies session settings
+    // after the WebSocket connects, so client-secret options do not apply.
     const fetchFn = this.config.fetch ?? fetch;
     const url = new URL(
       `${this.config.baseURL}/v1/convai/conversation/get-signed-url`,
@@ -58,13 +60,8 @@ export class ElevenLabsRealtimeModel implements RealtimeModelV4 {
       );
     }
 
-    const data = (await response.json()) as {
-      signed_url?: string;
-      signedUrl?: string;
-      expires_at?: number;
-      expiresAt?: number;
-    };
-    const signedUrl = data.signed_url ?? data.signedUrl;
+    const data = (await response.json()) as { signed_url?: string };
+    const signedUrl = data.signed_url;
 
     if (!signedUrl) {
       throw new Error(
@@ -78,9 +75,6 @@ export class ElevenLabsRealtimeModel implements RealtimeModelV4 {
       // the signed URL as the opaque secret and ignore it in getWebSocketConfig.
       token: signedUrl,
       url: signedUrl,
-      ...(data.expires_at != null || data.expiresAt != null
-        ? { expiresAt: data.expires_at ?? data.expiresAt }
-        : {}),
     };
   }
 
