@@ -53,6 +53,21 @@ describe('ElevenLabsRealtimeModel', () => {
         'ElevenLabs realtime signed URL request failed: 401 unauthorized',
       );
     });
+
+    it('throws when the response does not include a signed URL', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({}),
+      });
+
+      await expect(
+        createModel(mockFetch as unknown as typeof fetch).doCreateClientSecret(
+          {},
+        ),
+      ).rejects.toThrow(
+        'ElevenLabs realtime signed URL request returned no signed_url.',
+      );
+    });
   });
 
   it('uses the signed URL directly for WebSocket connections', () => {
