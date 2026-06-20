@@ -9,8 +9,8 @@ run(async () => {
   });
 
   for await (const part of result.stream) {
-    if (part.type === 'text') {
-      process.stdout.write(part.text);
+    if (part.type === 'text-delta') {
+      process.stdout.write(part.textDelta);
     }
   }
 });
