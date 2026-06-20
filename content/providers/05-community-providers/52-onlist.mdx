@@ -1,0 +1,166 @@
+---
+title: Onlist
+description: Onlist Provider for the AI SDK
+---
+
+# Onlist
+
+[Onlist](https://onlist.io) is an open AI API marketplace that aggregates 40+ upstream AI providers behind a unified OpenAI-compatible API. The Onlist provider for the AI SDK is built on `@ai-sdk/openai-compatible` and gives you access to models from OpenAI, Anthropic, Google, DeepSeek, and more through a single API key.
+
+- **40+ Providers**: Access models from major AI providers with one API key
+- **Competitive Pricing**: Compare prices across providers and route to the cheapest option
+- **Provider Routing**: Control which upstream providers handle your requests
+- **OpenAI Compatible**: Drop-in replacement for any OpenAI-compatible client
+- **Open Source**: Fully open-source under AGPL-3.0
+
+Learn more in the [Onlist Documentation](https://onlist.io/docs).
+
+## Setup
+
+The Onlist provider is available in the `@onlist/ai-sdk-provider` module. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @onlist/ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @onlist/ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @onlist/ai-sdk-provider" dark />
+  </Tab>
+</Tabs>
+
+## API Key
+
+Set your API key as an environment variable:
+
+```bash
+export ONLIST_API_KEY=your_api_key_here
+```
+
+You can get an API key from [onlist.io](https://onlist.io).
+
+## Provider Instance
+
+You can import the default provider instance `onlist` from `@onlist/ai-sdk-provider`:
+
+```typescript
+import { onlist } from '@onlist/ai-sdk-provider';
+```
+
+Or create a custom instance using `createOnlist`:
+
+```typescript
+import { createOnlist } from '@onlist/ai-sdk-provider';
+
+const onlist = createOnlist({
+  apiKey: process.env.ONLIST_API_KEY,
+  appName: 'My App',
+});
+```
+
+## Language Models
+
+You can create Onlist models using a provider instance. The first argument is the model ID in `author/model` format:
+
+```typescript
+const model = onlist('anthropic/claude-sonnet-4');
+```
+
+### Example: Generate Text
+
+```typescript
+import { onlist } from '@onlist/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: onlist('anthropic/claude-sonnet-4'),
+  prompt: 'Explain quantum computing in one paragraph.',
+});
+```
+
+### Example: Stream Text
+
+```typescript
+import { onlist } from '@onlist/ai-sdk-provider';
+import { streamText } from 'ai';
+
+const { textStream } = streamText({
+  model: onlist('anthropic/claude-sonnet-4'),
+  prompt: 'Write a short poem about the moon.',
+});
+
+for await (const chunk of textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+### Example: Tool Calling
+
+```typescript
+import { onlist } from '@onlist/ai-sdk-provider';
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+const { text } = await generateText({
+  model: onlist('openai/gpt-4o'),
+  tools: {
+    weather: tool({
+      description: 'Get the weather in a location',
+      parameters: z.object({
+        location: z.string(),
+      }),
+      execute: async ({ location }) => `Sunny, 22C in ${location}`,
+    }),
+  },
+  prompt: 'What is the weather in Tokyo?',
+});
+```
+
+## Provider Routing
+
+Onlist supports provider routing to control how requests are distributed across upstream providers:
+
+```typescript
+import { onlist } from '@onlist/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: onlist('openai/gpt-4o'),
+  prompt: 'Hello',
+  providerOptions: {
+    onlist: {
+      provider: {
+        sort: 'price',
+        allow_fallbacks: false,
+        max_price: { prompt: 0.01, completion: 0.03 },
+      },
+    },
+  },
+});
+```
+
+## Embedding Models
+
+You can create embedding models using the `.textEmbeddingModel()` method:
+
+```typescript
+import { onlist } from '@onlist/ai-sdk-provider';
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: onlist.textEmbeddingModel('openai/text-embedding-3-small'),
+  value: 'The quick brown fox jumps over the lazy dog.',
+});
+```
+
+## Configuration
+
+| Option | Type | Description |
+| --- | --- | --- |
+| `apiKey` | `string` | API key. Defaults to `ONLIST_API_KEY` env var. |
+| `baseURL` | `string` | API base URL. Defaults to `https://onlist.io/v1`. |
+| `appName` | `string` | Your app name, shown on the Onlist dashboard. |
+| `appUrl` | `string` | Your app URL, used for attribution. |
+| `headers` | `Record<string, string>` | Additional custom headers. |
