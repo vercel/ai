@@ -4,9 +4,10 @@ import { experimental_useRealtime } from '@ai-sdk/react';
 import { openai } from '@ai-sdk/openai';
 import { google } from '@ai-sdk/google';
 import { xai } from '@ai-sdk/xai';
+import { elevenLabs } from '@ai-sdk/elevenlabs';
 import { useState, useRef, useEffect, useMemo } from 'react';
 
-type Provider = 'openai' | 'google' | 'xai';
+type Provider = 'openai' | 'google' | 'xai' | 'elevenlabs';
 
 type VoiceOption = { id: string; label: string };
 
@@ -23,6 +24,7 @@ const PROVIDER_CONFIG: Record<
     createModel: (
       modelId: string,
     ) => ReturnType<typeof openai.experimental_realtime>;
+    usesAgentConfiguration?: boolean;
     sessionConfigOverrides?: Record<string, unknown>;
   }
 > = {
@@ -58,6 +60,17 @@ const PROVIDER_CONFIG: Record<
     defaultModel: 'grok-voice-latest',
     staticVoices: toVoiceOptions(['ara', 'eve', 'leo', 'rex', 'sal']),
     createModel: modelId => xai.experimental_realtime(modelId),
+  },
+  elevenlabs: {
+    label: 'ElevenLabs',
+    defaultModel: 'configured-agent',
+    staticVoices: [],
+    createModel: modelId => elevenLabs.experimental_realtime(modelId),
+    usesAgentConfiguration: true,
+    sessionConfigOverrides: {
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      outputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+    },
   },
 };
 
@@ -132,7 +145,7 @@ export default function RealtimePage() {
             style={selectStyle}
           >
             {currentVoices.length === 0 ? (
-              <option>No voices available</option>
+              <option>Agent default</option>
             ) : (
               currentVoices.map(v => (
                 <option key={v.id} value={v.id}>
@@ -185,12 +198,16 @@ function RealtimeChat({
 
   const sessionConfig = useMemo(
     () => ({
-      instructions:
-        'You are a helpful assistant. Be concise. ' +
-        'You have access to tools for weather and dice rolling.',
-      inputAudioTranscription: {},
-      voice,
-      turnDetection: { type: 'server-vad' as const },
+      ...(config.usesAgentConfiguration
+        ? {}
+        : {
+            instructions:
+              'You are a helpful assistant. Be concise. ' +
+              'You have access to tools for weather and dice rolling.',
+            inputAudioTranscription: {},
+            ...(voice ? { voice } : {}),
+            turnDetection: { type: 'server-vad' as const },
+          }),
       ...config.sessionConfigOverrides,
     }),
     [voice, config],
