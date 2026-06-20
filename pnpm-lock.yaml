@@ -87,6 +87,9 @@ importers:
       '@ai-sdk/deepseek':
         specifier: workspace:*
         version: link:../../packages/deepseek
+      '@ai-sdk/elevenlabs':
+        specifier: workspace:*
+        version: link:../../packages/elevenlabs
       '@ai-sdk/fireworks':
         specifier: workspace:*
         version: link:../../packages/fireworks

@@ -1,6 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { google } from '@ai-sdk/google';
 import { xai } from '@ai-sdk/xai';
+import { elevenLabs } from '@ai-sdk/elevenlabs';
 import {
   experimental_getRealtimeToolDefinitions as getRealtimeToolDefinitions,
   gateway,
@@ -59,6 +60,10 @@ const providers: Record<
     factory: xai.experimental_realtime,
     model: 'grok-voice-latest',
   },
+  elevenlabs: {
+    factory: elevenLabs.experimental_realtime,
+    model: process.env.ELEVENLABS_AGENT_ID ?? '',
+  },
   gateway: {
     factory: gateway.experimental_realtime,
     model: 'openai/gpt-realtime-2',
@@ -87,6 +92,13 @@ export async function POST(
         : await getRealtimeToolDefinitions({ tools });
 
     const { factory, model } = providerConfig;
+    if (!model) {
+      return Response.json(
+        { error: `Missing model configuration for provider: ${provider}` },
+        { status: 400 },
+      );
+    }
+
     const tokenResult = await factory.getToken({
       model,
       sessionConfig:
