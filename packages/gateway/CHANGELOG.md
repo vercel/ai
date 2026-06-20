@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 4.0.0-beta.111
+
+### Patch Changes
+
+- 8e990ff: feat (provider/gateway): add Exa search tool support
+
 ## 4.0.0-beta.110
 
 ### Patch Changes
