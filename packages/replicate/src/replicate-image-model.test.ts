@@ -41,7 +41,7 @@ describe('doGenerate', () => {
         output,
         data_removed: false,
         error: null,
-        status: 'processing',
+        status: 'succeeded',
         created_at: '2025-01-08T13:24:38.692Z',
         urls: {
           cancel:
@@ -300,7 +300,7 @@ describe('doGenerate', () => {
         output: ['https://replicate.delivery/xezq/abc/out-0.webp'],
         data_removed: false,
         error: null,
-        status: 'processing',
+        status: 'succeeded',
         created_at: '2025-01-08T13:24:38.692Z',
         urls: {
           cancel:
@@ -327,7 +327,7 @@ describe('doGenerate', () => {
       timestamp: testDate,
       modelId: 'black-forest-labs/flux-schnell',
       headers: {
-        'content-length': '646',
+        'content-length': '645',
         'content-type': 'application/json',
         'custom-response-header': 'response-header-value',
       },
@@ -748,5 +748,150 @@ describe('doGenerate', () => {
         'https://api.replicate.com/v1/models/black-forest-labs/flux-2-pro/predictions',
       );
     });
+  });
+
+  it('should not include pollIntervalMs or pollTimeoutMs in request body', async () => {
+    prepareResponse();
+
+    await model.doGenerate({
+      prompt,
+      files: undefined,
+      mask: undefined,
+      n: 1,
+      size: undefined,
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {
+        replicate: {
+          pollIntervalMs: 1000,
+          pollTimeoutMs: 60000,
+          guidance_scale: 7.5,
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.input.pollIntervalMs).toBeUndefined();
+    expect(requestBody.input.pollTimeoutMs).toBeUndefined();
+    expect(requestBody.input.guidance_scale).toBe(7.5);
+  });
+});
+
+describe('Polling (sync-wait timeout)', () => {
+  const predictionId = 'poll-test-id';
+  const pollUrl = `https://api.replicate.com/v1/predictions/${predictionId}`;
+  const imageUrl = 'https://replicate.delivery/xezq/abc/out-0.webp';
+
+  function createPollingModel({
+    pollsUntilDone = 1,
+    finalStatus = 'succeeded',
+    error,
+  }: {
+    pollsUntilDone?: number;
+    finalStatus?: string;
+    error?: string;
+  } = {}) {
+    let pollCount = 0;
+
+    return new ReplicateImageModel('black-forest-labs/flux-schnell', {
+      provider: 'replicate.image',
+      baseURL: 'https://api.replicate.com/v1',
+      fetch: async (url, init) => {
+        const urlString = url.toString();
+
+        // Initial POST
+        if (init?.method !== 'GET') {
+          return new Response(
+            JSON.stringify({
+              id: predictionId,
+              status: 'starting',
+              output: null,
+              error: null,
+              urls: { get: pollUrl },
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+          );
+        }
+
+        // Image download
+        if (urlString === imageUrl) {
+          return new Response(Buffer.from('test-binary-content'), {
+            status: 200,
+            headers: { 'Content-Type': 'image/webp' },
+          });
+        }
+
+        // Polling GET
+        pollCount++;
+        const done = pollCount >= pollsUntilDone;
+        return new Response(
+          JSON.stringify({
+            id: predictionId,
+            status: done ? finalStatus : 'processing',
+            output: done && finalStatus === 'succeeded' ? [imageUrl] : null,
+            error: done ? (error ?? null) : null,
+            urls: { get: pollUrl },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      },
+    });
+  }
+
+  it('should poll and return image when generation completes after sync-wait', async () => {
+    const pollingModel = createPollingModel({ pollsUntilDone: 2 });
+
+    const result = await pollingModel.doGenerate({
+      prompt,
+      files: undefined,
+      mask: undefined,
+      n: 1,
+      size: undefined,
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: { replicate: { pollIntervalMs: 1 } },
+    });
+
+    expect(result.images).toHaveLength(1);
+    expect(result.images[0]).toStrictEqual(
+      new Uint8Array(Buffer.from('test-binary-content')),
+    );
+  });
+
+  it('should throw when generation fails during polling', async () => {
+    const pollingModel = createPollingModel({
+      finalStatus: 'failed',
+      error: 'Out of memory',
+    });
+
+    await expect(
+      pollingModel.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: { replicate: { pollIntervalMs: 1 } },
+      }),
+    ).rejects.toThrow('Image generation failed: Out of memory');
+  });
+
+  it('should throw when generation is canceled during polling', async () => {
+    const pollingModel = createPollingModel({ finalStatus: 'canceled' });
+
+    await expect(
+      pollingModel.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: { replicate: { pollIntervalMs: 1 } },
+      }),
+    ).rejects.toThrow('Image generation was canceled');
   });
 });

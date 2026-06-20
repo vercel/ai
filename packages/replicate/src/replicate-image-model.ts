@@ -1,10 +1,16 @@
-import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import {
+  AISDKError,
+  type ImageModelV4,
+  type SharedV4Warning,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertImageModelFileToDataUri,
   createBinaryResponseHandler,
   createJsonResponseHandler,
+  delay,
   getFromApi,
+  isSameOrigin,
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -141,8 +147,13 @@ export class ReplicateImageModel implements ImageModelV4 {
       }
     }
 
-    // Extract maxWaitTimeInSeconds from provider options and prepare the rest for the request body
-    const { maxWaitTimeInSeconds, ...inputOptions } = replicateOptions ?? {};
+    // Extract SDK-only options and leave the rest for the model input body
+    const {
+      maxWaitTimeInSeconds,
+      pollIntervalMs,
+      pollTimeoutMs,
+      ...inputOptions
+    } = replicateOptions ?? {};
 
     // Build the prefer header based on maxWaitTimeInSeconds:
     // - undefined/null: use default sync wait (prefer: wait)
@@ -152,10 +163,7 @@ export class ReplicateImageModel implements ImageModelV4 {
         ? { prefer: `wait=${maxWaitTimeInSeconds}` }
         : { prefer: 'wait' };
 
-    const {
-      value: { output },
-      responseHeaders,
-    } = await postJsonToApi({
+    const { value: prediction, responseHeaders } = await postJsonToApi({
       url:
         // different endpoints for versioned vs unversioned models:
         version != null
@@ -184,12 +192,82 @@ export class ReplicateImageModel implements ImageModelV4 {
       },
 
       successfulResponseHandler: createJsonResponseHandler(
-        replicateImageResponseSchema,
+        replicateImagePredictionSchema,
       ),
       failedResponseHandler: replicateFailedResponseHandler,
       abortSignal,
       fetch: this.config.fetch,
     });
+
+    // Poll if sync-wait timed out before the prediction completed
+    let finalPrediction = prediction;
+    if (
+      prediction.status === 'starting' ||
+      prediction.status === 'processing'
+    ) {
+      const resolvedPollIntervalMs = pollIntervalMs ?? 2000;
+      const resolvedPollTimeoutMs = pollTimeoutMs ?? 300000;
+      const startTime = Date.now();
+
+      while (
+        finalPrediction.status === 'starting' ||
+        finalPrediction.status === 'processing'
+      ) {
+        if (Date.now() - startTime > resolvedPollTimeoutMs) {
+          throw new AISDKError({
+            name: 'REPLICATE_IMAGE_GENERATION_TIMEOUT',
+            message: `Image generation timed out after ${resolvedPollTimeoutMs}ms`,
+          });
+        }
+
+        await delay(resolvedPollIntervalMs);
+
+        if (abortSignal?.aborted) {
+          throw new AISDKError({
+            name: 'REPLICATE_IMAGE_GENERATION_ABORTED',
+            message: 'Image generation request was aborted',
+          });
+        }
+
+        const pollUrl = finalPrediction.urls.get;
+        const { value: statusPrediction } = await getFromApi({
+          url: pollUrl,
+          headers: isSameOrigin(pollUrl, this.config.baseURL)
+            ? await resolve(this.config.headers)
+            : undefined,
+          successfulResponseHandler: createJsonResponseHandler(
+            replicateImagePredictionSchema,
+          ),
+          failedResponseHandler: replicateFailedResponseHandler,
+          abortSignal,
+          fetch: this.config.fetch,
+        });
+
+        finalPrediction = statusPrediction;
+      }
+    }
+
+    if (finalPrediction.status === 'failed') {
+      throw new AISDKError({
+        name: 'REPLICATE_IMAGE_GENERATION_FAILED',
+        message: `Image generation failed: ${finalPrediction.error ?? 'Unknown error'}`,
+      });
+    }
+
+    if (finalPrediction.status === 'canceled') {
+      throw new AISDKError({
+        name: 'REPLICATE_IMAGE_GENERATION_CANCELED',
+        message: 'Image generation was canceled',
+      });
+    }
+
+    const output = finalPrediction.output;
+    if (!output) {
+      throw new AISDKError({
+        name: 'REPLICATE_IMAGE_GENERATION_ERROR',
+        message: 'No output in response',
+      });
+    }
 
     // download the images:
     const outputArray = Array.isArray(output) ? output : [output];
@@ -218,6 +296,12 @@ export class ReplicateImageModel implements ImageModelV4 {
   }
 }
 
-const replicateImageResponseSchema = z.object({
-  output: z.union([z.array(z.string()), z.string()]),
+const replicateImagePredictionSchema = z.object({
+  id: z.string(),
+  status: z.enum(['starting', 'processing', 'succeeded', 'failed', 'canceled']),
+  output: z.union([z.array(z.string()), z.string()]).nullish(),
+  error: z.string().nullish(),
+  urls: z.object({
+    get: z.string(),
+  }),
 });
