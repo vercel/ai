@@ -7,6 +7,22 @@ export {
   getGatewayRealtimeProtocols,
   getGatewayRealtimeTeamIdOrSlug,
 } from './gateway-realtime-auth';
+export {
+  DEFAULT_SPEECH_ENGINE_CAPABILITIES,
+  GATEWAY_SPEECH_ENGINE_SUBPROTOCOL,
+  encodeSpeechEngineEvent,
+  parseSpeechEngineClientEvent,
+  parseSpeechEngineServerEvent,
+  type SpeechEngineCapabilities,
+  type SpeechEngineClientEvent,
+  type SpeechEngineDescriptor,
+  type SpeechEngineServerEvent,
+} from './gateway-speech-engine';
+export {
+  GatewaySpeechEngineSession,
+  type SpeechEngineTranscriptContext,
+  type SpeechEngineWebSocketLike,
+} from './gateway-speech-engine-session';
 export type { GatewayRealtimeModelId } from './gateway-realtime-model-settings';
 export type { GatewayRerankingModelId } from './gateway-reranking-model-settings';
 export type { GatewaySpeechModelId } from './gateway-speech-model-settings';
@@ -36,7 +52,10 @@ export {
 export type {
   GatewayProvider,
   GatewayProviderSettings,
+  GatewayRealtimeFactory,
+  GatewayRealtimeGetTokenOptions,
 } from './gateway-provider';
+export type { GatewayRealtimeControlConfig } from './gateway-realtime-model';
 export type {
   GatewayProviderOptions,
   /** @deprecated Use `GatewayProviderOptions` instead. */
