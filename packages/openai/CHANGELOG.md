@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 4.0.0-beta.75
+
+### Patch Changes
+
+- 1772a63: Default OpenAI Responses reasoning summaries to detailed when reasoning effort is enabled.
+
 ## 4.0.0-beta.74
 
 ### Patch Changes

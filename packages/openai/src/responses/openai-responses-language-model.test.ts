@@ -1048,6 +1048,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           ],
           reasoning: {
             effort: 'xhigh',
+            summary: 'detailed',
           },
         });
 
@@ -1123,6 +1124,9 @@ describe('OpenAIResponsesLanguageModel', () => {
               ],
               reasoning: {
                 effort: reasoningValue,
+                ...(reasoningValue !== 'none' && {
+                  summary: 'detailed',
+                }),
               },
             });
 
@@ -1153,6 +1157,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             ],
             reasoning: {
               effort: 'high',
+              summary: 'detailed',
             },
           });
 
@@ -1177,6 +1182,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             ],
             reasoning: {
               effort: 'medium',
+              summary: 'detailed',
             },
           });
 
