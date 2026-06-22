@@ -70,6 +70,7 @@ Required package basics:
 
 - `"name": "@ai-sdk/harness-<name>"`
 - `"type": "module"`
+- `"version": "0.0.0"` (starting point for new packages)
 - `"license": "Apache-2.0"`
 - `"sideEffects": false`
 - dependency on `@ai-sdk/harness` via `workspace:*`
