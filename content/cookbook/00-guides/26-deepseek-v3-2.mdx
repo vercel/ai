@@ -1,52 +1,52 @@
 ---
-title: Get started with DeepSeek V3.2
-description: Get started with DeepSeek V3.2 using the AI SDK.
+title: Get started with DeepSeek V4
+description: Get started with DeepSeek V4 using the AI SDK.
 tags: ['getting-started', 'agents']
 ---
 
-# Get started with DeepSeek V3.2
+# Get started with DeepSeek V4
 
-With the [release of DeepSeek V3.2](https://api-docs.deepseek.com/news/news251201), there has never been a better time to start building AI applications that require advanced reasoning and agentic capabilities.
+With the [release of DeepSeek V4](https://api-docs.deepseek.com/news/news260424), DeepSeek's API now exposes `deepseek-v4-flash` and `deepseek-v4-pro` as the current model IDs for applications that need reasoning, long context, and agentic capabilities.
 
-The [AI SDK](/) is a powerful TypeScript toolkit for building AI applications with large language models (LLMs) like DeepSeek V3.2 alongside popular frameworks like React, Next.js, Vue, Svelte, Node.js, and more.
+The [AI SDK](/) is a powerful TypeScript toolkit for building AI applications with large language models (LLMs) like DeepSeek V4 alongside popular frameworks like React, Next.js, Vue, Svelte, Node.js, and more.
 
-## DeepSeek V3.2
+## DeepSeek V4
 
-DeepSeek V3.2 is a frontier model that harmonizes high computational efficiency with superior reasoning and agent performance. It introduces several key technical breakthroughs that enable it to perform comparably to GPT-5 while remaining open-source.
+DeepSeek V4 introduces two current API models with 1M context windows, high output limits, and support for both thinking and non-thinking modes.
 
 The series includes two primary variants:
 
-- **DeepSeek V3.2**: The official successor to V3.2-Exp. A balanced model optimized for both reasoning and inference efficiency, delivering GPT-5 level performance.
-- **DeepSeek V3.2-Speciale**: A high-compute variant with maxed-out reasoning capabilities that rivals Gemini-3.0-Pro. Achieves gold-medal performance in IMO 2025, CMO 2025, ICPC World Finals 2025, and IOI 2025. As of release, it does not support tool-use.
+- **DeepSeek V4 Flash**: A fast, efficient, cost-effective model for most production workloads.
+- **DeepSeek V4 Pro**: A larger model for stronger reasoning, coding, STEM, and agentic workloads.
 
-### Benchmarks
+### Capabilities
 
-DeepSeek V3.2 models excel in both reasoning and agentic tasks, delivering competitive performance across key benchmarks:
+DeepSeek V4 models support:
 
-**Reasoning Capabilities**
+- 1M context windows
+- Thinking and non-thinking modes
+- Tool calls
+- JSON output
+- Chat prefix completion
+- FIM completion in non-thinking mode
 
-- **AIME 2025 (Pass@1)**: 96.0% (Speciale)
-- **HMMT 2025 (Pass@1)**: 99.2% (Speciale)
-- **HLE (Pass@1)**: 30.6%
-- **Codeforces (Rating)**: 2701 (Speciale)
-
-**Agentic Capabilities**
-
-- **SWE Verified (Resolved)**: 73.1%
-- **Terminal Bench 2.0 (Acc)**: 46.4%
-- **τ2 Bench (Pass@1)**: 80.3%
-- **Tool Decathlon (Pass@1)**: 35.2%
-
-[Source](https://huggingface.co/deepseek-ai/DeepSeek-V3.2/resolve/main/assets/paper.pdf)
+[Source](https://api-docs.deepseek.com/quick_start/pricing)
 
 ### Model Options
 
-When using DeepSeek V3.2 with the AI SDK, you have two model options:
+When using DeepSeek V4 with the AI SDK, prefer the current V4 model IDs:
 
-| Model Alias         | Model Version                     | Description                                    |
-| ------------------- | --------------------------------- | ---------------------------------------------- |
-| `deepseek-chat`     | DeepSeek-V3.2 (Non-thinking Mode) | Standard chat model                            |
-| `deepseek-reasoner` | DeepSeek-V3.2 (Thinking Mode)     | Enhanced reasoning for complex problem-solving |
+| Model ID            | Description                                     |
+| ------------------- | ----------------------------------------------- |
+| `deepseek-v4-flash` | Fast, efficient model for general use           |
+| `deepseek-v4-pro`   | Stronger model for complex reasoning and agents |
+
+<Note>
+  DeepSeek's `deepseek-chat` and `deepseek-reasoner` compatibility aliases are
+  scheduled for deprecation on 2026-07-24 at 15:59 UTC. During the transition,
+  they route to the non-thinking and thinking modes of `deepseek-v4-flash`,
+  respectively.
+</Note>
 
 ## Getting Started with the AI SDK
 
@@ -54,14 +54,14 @@ The AI SDK is the TypeScript toolkit designed to help developers build AI-powere
 
 The AI SDK abstracts away the differences between model providers, eliminates boilerplate code for building agents, and allows you to go beyond text output to generate rich, interactive components.
 
-At the center of the AI SDK is [AI SDK Core](/docs/ai-sdk-core/overview), which provides a unified API to call any LLM. The code snippet below is all you need to call DeepSeek V3.2 with the AI SDK:
+At the center of the AI SDK is [AI SDK Core](/docs/ai-sdk-core/overview), which provides a unified API to call any LLM. The code snippet below is all you need to call DeepSeek V4 with the AI SDK:
 
 ```ts
 import { deepSeek } from '@ai-sdk/deepseek';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: deepSeek('deepseek-chat'),
+  model: deepSeek('deepseek-v4-flash'),
   prompt: 'Explain the concept of sparse attention in transformers.',
 });
 ```
@@ -74,7 +74,7 @@ AI SDK UI provides robust abstractions that simplify the complex tasks of managi
 
 With three main hooks — [`useChat`](/docs/reference/ai-sdk-ui/use-chat), [`useCompletion`](/docs/reference/ai-sdk-ui/use-completion), and [`useObject`](/docs/reference/ai-sdk-ui/use-object) — you can incorporate real-time chat capabilities, text completions, streamed JSON, and interactive assistant features into your app.
 
-Let's explore building an agent with [Next.js](https://nextjs.org), the AI SDK, and DeepSeek V3.2:
+Let's explore building an agent with [Next.js](https://nextjs.org), the AI SDK, and DeepSeek V4:
 
 In a new Next.js application, first install the AI SDK and the DeepSeek provider:
 
@@ -83,7 +83,10 @@ In a new Next.js application, first install the AI SDK and the DeepSeek provider
 Then, create a route handler for the chat endpoint:
 
 ```tsx filename="app/api/chat/route.ts"
-import { deepSeek } from '@ai-sdk/deepseek';
+import {
+  deepSeek,
+  type DeepSeekLanguageModelChatOptions,
+} from '@ai-sdk/deepseek';
 import {
   convertToModelMessages,
   createUIMessageStreamResponse,
@@ -96,8 +99,14 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: deepSeek('deepseek-reasoner'),
+    model: deepSeek('deepseek-v4-pro'),
     messages: await convertToModelMessages(messages),
+    providerOptions: {
+      deepseek: {
+        thinking: { type: 'enabled' },
+        reasoningEffort: 'high',
+      } satisfies DeepSeekLanguageModelChatOptions,
+    },
   });
 
   return createUIMessageStreamResponse({
@@ -156,14 +165,17 @@ The useChat hook on your root page (`app/page.tsx`) will make a request to your 
 
 ## Enhance Your Agent with Tools
 
-One of the key strengths of DeepSeek V3.2 is its agentic capabilities. You can extend your agent's functionality by adding tools that allow the model to perform specific actions or retrieve information.
+One of the key strengths of DeepSeek V4 is its agentic capabilities. You can extend your agent's functionality by adding tools that allow the model to perform specific actions or retrieve information.
 
 ### Update Your Route Handler
 
 Let's add a weather tool to your agent. Update your route handler at `app/api/chat/route.ts`:
 
 ```tsx filename="app/api/chat/route.ts"
-import { deepSeek } from '@ai-sdk/deepseek';
+import {
+  deepSeek,
+  type DeepSeekLanguageModelChatOptions,
+} from '@ai-sdk/deepseek';
 import {
   convertToModelMessages,
   createUIMessageStreamResponse,
@@ -179,8 +191,14 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: deepSeek('deepseek-reasoner'),
+    model: deepSeek('deepseek-v4-pro'),
     messages: await convertToModelMessages(messages),
+    providerOptions: {
+      deepseek: {
+        thinking: { type: 'enabled' },
+        reasoningEffort: 'high',
+      } satisfies DeepSeekLanguageModelChatOptions,
+    },
     tools: {
       weather: tool({
         description: 'Get the weather in a location',
