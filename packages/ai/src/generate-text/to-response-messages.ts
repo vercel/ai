@@ -70,14 +70,6 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
           providerOptions: part.providerMetadata,
         });
         break;
-      case 'reasoning-file':
-        content.push({
-          type: 'reasoning-file',
-          data: part.file.base64,
-          mediaType: part.file.mediaType,
-          providerOptions: part.providerMetadata,
-        });
-        break;
       case 'tool-call':
         content.push({
           type: 'tool-call',
