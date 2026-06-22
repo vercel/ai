@@ -1023,11 +1023,11 @@ The following gateway provider options are available:
 
   The unique identifier for the entity against which quota is tracked. Used for quota management and enforcement purposes.
 
-- **requireModelTags** _Array&lt;'implicit-caching'&gt;_
+- **has** _Array&lt;'implicit-caching'&gt;_
 
-  Restricts routing to provider models that carry all of the specified capability tags. Currently supports `'implicit-caching'`, which limits routing to models that perform automatic (implicit) prompt caching. Applies to both BYOK and system credentials, since the capability is a property of the model rather than the credential. If no provider model for the requested model satisfies the tags, the request fails. Unsupported tag values are rejected.
+  Restricts routing to provider models that have all of the specified capabilities. Currently supports `'implicit-caching'`, which limits routing to models that perform automatic (implicit) prompt caching. Applies to both BYOK and system credentials, since the capability is a property of the model rather than the credential. If no provider model for the requested model satisfies the capabilities, the request fails. Unsupported values are rejected.
 
-  Example: `requireModelTags: ['implicit-caching']` will only route to models that support implicit caching.
+  Example: `has: ['implicit-caching']` will only route to models that support implicit caching.
 
 - **providerTimeouts** _object_
 
@@ -1182,9 +1182,9 @@ const { text } = await generateText({
 });
 ```
 
-#### Require Model Tags Example
+#### Filtering by Model Capability
 
-Set `requireModelTags` to restrict routing to provider models that carry the specified capability tags. This applies to both BYOK and system credentials, since the capability is a property of the model rather than the credential. Currently `'implicit-caching'` is supported, which limits routing to models that perform automatic prompt caching. If no provider model for the requested model satisfies the tags, the request fails.
+Set `has` to restrict routing to provider models that have the specified capabilities. This applies to both BYOK and system credentials, since the capability is a property of the model rather than the credential. Currently `'implicit-caching'` is supported, which limits routing to models that perform automatic prompt caching. If no provider model for the requested model satisfies the capabilities, the request fails.
 
 ```ts
 import type { GatewayProviderOptions } from '@ai-sdk/gateway';
@@ -1195,7 +1195,7 @@ const { text } = await generateText({
   prompt: 'Summarize this report...',
   providerOptions: {
     gateway: {
-      requireModelTags: ['implicit-caching'],
+      has: ['implicit-caching'],
     } satisfies GatewayProviderOptions,
   },
 });

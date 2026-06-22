@@ -15,6 +15,12 @@ export type GatewayProviderOptions = {
   /** Filter to providers that do not train on prompt data. */
   disallowPromptTraining?: boolean;
 
+  /**
+   * Restrict routing to models that have all of the given capabilities.
+   * Currently supports `'implicit-caching'`.
+   */
+  has?: Array<'implicit-caching'>;
+
   /** Filter to providers that are HIPAA compliant with Vercel AI Gateway. */
   hipaaCompliant?: boolean;
 
@@ -34,12 +40,6 @@ export type GatewayProviderOptions = {
 
   /** Entity identifier against which quota is tracked. */
   quotaEntityId?: string;
-
-  /**
-   * Restrict routing to models that carry all of the given capability tags.
-   * Currently supports `'implicit-caching'`.
-   */
-  requireModelTags?: Array<'implicit-caching'>;
 
   /** Unified service tier intent. */
   serviceTier?: 'flex' | 'priority';
