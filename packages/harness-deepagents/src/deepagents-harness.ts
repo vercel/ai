@@ -227,6 +227,7 @@ export function createDeepAgents(
             bridgeToken: coords.token,
             sandboxId,
             isResume: true,
+            attached: true,
           });
         } catch {
           // Bridge no longer reachable — recover by respawning below.
@@ -311,6 +312,8 @@ export function createDeepAgents(
         bridgeToken: token,
         sandboxId,
         isResume,
+        // Freshly spawned bridge — it must receive the instructions on the first prompt.
+        attached: false,
         skillsPath,
       });
     },
@@ -454,6 +457,7 @@ function createSession({
   bridgeToken,
   sandboxId,
   isResume,
+  attached,
   skillsPath,
 }: {
   sessionId: string;
@@ -465,11 +469,14 @@ function createSession({
   bridgeToken: string;
   sandboxId: string;
   isResume: boolean;
+  // True only when attaching to a live bridge that already built the agent with
+  // its instructions. A fresh spawn (incl. a respawn on attach failure or a
+  // stop-resume) starts a new bridge that must receive the instructions again.
+  attached: boolean;
   skillsPath?: string;
 }): HarnessV1Session {
   let stopped = false;
-  // A resumed session already applied its instructions in the original first message.
-  let instructionsApplied = isResume;
+  let instructionsApplied = attached;
 
   const wireTurn = (turnOpts: {
     emit: (event: HarnessV1StreamPart) => void;
