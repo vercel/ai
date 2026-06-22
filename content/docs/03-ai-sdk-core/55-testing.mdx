@@ -179,6 +179,90 @@ const result = streamText({
 });
 ```
 
+### ToolLoopAgent
+
+You can test a [`ToolLoopAgent`](/docs/agents/loop-control) the same way you test
+`generateText` — pass a `MockLanguageModelV4` as the agent's `model`. The mock
+returns whatever content you script, so you can drive the agent through a
+deterministic loop in unit tests.
+
+```ts
+import { ToolLoopAgent } from 'ai';
+import { MockLanguageModelV4 } from 'ai/test';
+
+const agent = new ToolLoopAgent({
+  model: new MockLanguageModelV4({
+    doGenerate: async () => ({
+      content: [{ type: 'text', text: 'Hello, world!' }],
+      finishReason: { unified: 'stop', raw: 'stop' },
+      usage: {
+        inputTokens: {
+          total: 3,
+          noCache: 3,
+          cacheRead: undefined,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: 10,
+          text: 10,
+          reasoning: undefined,
+        },
+      },
+      warnings: [],
+    }),
+  }),
+});
+
+const result = await agent.generate({ prompt: 'Hello, test!' });
+```
+
+### ToolLoopAgent with streaming
+
+To test the streaming surface, swap `doGenerate` for `doStream` and use
+`simulateReadableStream` to script the chunk sequence — the same pattern
+`streamText` uses above.
+
+```ts
+import { ToolLoopAgent, simulateReadableStream } from 'ai';
+import { MockLanguageModelV4 } from 'ai/test';
+
+const agent = new ToolLoopAgent({
+  model: new MockLanguageModelV4({
+    doStream: async () => ({
+      stream: simulateReadableStream({
+        chunks: [
+          { type: 'text-start', id: 'text-1' },
+          { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+          { type: 'text-delta', id: 'text-1', delta: ', ' },
+          { type: 'text-delta', id: 'text-1', delta: 'world!' },
+          { type: 'text-end', id: 'text-1' },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: {
+              inputTokens: {
+                total: 3,
+                noCache: 3,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 10,
+                text: 10,
+                reasoning: undefined,
+              },
+            },
+          },
+        ],
+      }),
+    }),
+  }),
+});
+
+const result = await agent.stream({ prompt: 'Hello, test!' });
+await result.consumeStream();
+```
+
 ### Simulate UI Message Stream Responses
 
 You can also simulate [UI Message Stream](/docs/ai-sdk-ui/stream-protocol#ui-message-stream) responses for testing,
