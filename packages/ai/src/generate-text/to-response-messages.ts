@@ -20,6 +20,39 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
 }): Promise<Array<AssistantModelMessage | ToolModelMessage>> {
   const responseMessages: Array<AssistantModelMessage | ToolModelMessage> = [];
 
+  // Track provider-executed tool calls and their results to identify orphans
+  // (provider-executed tool calls without matching results, which can happen
+  // with Vertex Anthropic when web_search_tool_result is missing from the stream)
+  const providerToolCallIds = new Set<string>();
+  const providerToolResultIds = new Set<string>();
+  const toolApprovalRequestIds = new Set<string>();
+
+  for (const part of inputContent) {
+    if (part.type === 'tool-call' && part.providerExecuted) {
+      providerToolCallIds.add(part.toolCallId);
+    }
+    if (
+      (part.type === 'tool-result' || part.type === 'tool-error') &&
+      part.providerExecuted
+    ) {
+      providerToolResultIds.add(part.toolCallId);
+    }
+    if (part.type === 'tool-approval-request') {
+      toolApprovalRequestIds.add(part.toolCall.toolCallId);
+    }
+  }
+
+  // Identify orphaned provider-executed tool calls (no matching result or approval request)
+  const orphanedToolCallIds = new Set<string>();
+  for (const toolCallId of providerToolCallIds) {
+    if (
+      !providerToolResultIds.has(toolCallId) &&
+      !toolApprovalRequestIds.has(toolCallId)
+    ) {
+      orphanedToolCallIds.add(toolCallId);
+    }
+  }
+
   const content: AssistantContent = [];
   for (const part of inputContent) {
     // Skip sources - they are response-only content that no provider expects back
@@ -37,6 +70,12 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
 
     // Skip empty text
     if (part.type === 'text' && part.text.length === 0) {
+      continue;
+    }
+
+    // Skip orphaned provider-executed tool calls (no matching result/error)
+    // This can happen with Vertex Anthropic when web_search_tool_result is missing
+    if (part.type === 'tool-call' && orphanedToolCallIds.has(part.toolCallId)) {
       continue;
     }
 
