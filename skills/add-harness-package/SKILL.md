@@ -60,7 +60,7 @@ src/
     └── pnpm-lock.yaml
 ```
 
-Add a `CHANGELOG.md` containing just the package heading (`# @ai-sdk/harness-<name>`). `konsistent` requires every package to have one, and the changeset release process fills in the rest — without it, `pnpm konsistent` fails.
+Add a `CHANGELOG.md` containing just the package heading (`# @ai-sdk/harness-<name>`). Every package is required to have one.
 
 ### 2. Configure package.json
 
