@@ -13,6 +13,14 @@ import {
 
 const generateId = () => crypto.randomUUID();
 
+const serializeRawPayload = (value: unknown) => {
+  if (value == null) {
+    return null;
+  }
+
+  return typeof value === 'string' ? value : JSON.stringify(value);
+};
+
 // Track active streaming steps for cleanup on process exit
 const activeSteps = new Map<
   string,
@@ -46,10 +54,10 @@ const registerSignalHandlers = () => {
             data.request &&
             typeof data.request === 'object' &&
             'body' in data.request
-              ? JSON.stringify((data.request as { body: unknown }).body)
+              ? serializeRawPayload((data.request as { body: unknown }).body)
               : null,
-          raw_response: JSON.stringify(data.fullStreamChunks),
-          raw_chunks: JSON.stringify(data.rawChunks),
+          raw_response: serializeRawPayload(data.fullStreamChunks),
+          raw_chunks: serializeRawPayload(data.rawChunks),
         });
       },
     );
@@ -174,12 +182,8 @@ export const devToolsMiddleware = (): LanguageModelV4Middleware => {
           }),
           usage: result.usage ? JSON.stringify(result.usage) : null,
           error: null,
-          raw_request: result.request?.body
-            ? JSON.stringify(result.request.body)
-            : null,
-          raw_response: result.response?.body
-            ? JSON.stringify(result.response.body)
-            : null,
+          raw_request: serializeRawPayload(result.request?.body),
+          raw_response: serializeRawPayload(result.response?.body),
         });
 
         return result;
@@ -340,9 +344,9 @@ export const devToolsMiddleware = (): LanguageModelV4Middleware => {
                 ? JSON.stringify(collectedOutput.usage)
                 : null,
               error: null,
-              raw_request: request?.body ? JSON.stringify(request.body) : null,
-              raw_response: JSON.stringify(fullStreamChunks),
-              raw_chunks: JSON.stringify(rawChunks),
+              raw_request: serializeRawPayload(request?.body),
+              raw_response: serializeRawPayload(fullStreamChunks),
+              raw_chunks: serializeRawPayload(rawChunks),
             });
           },
 
@@ -359,9 +363,9 @@ export const devToolsMiddleware = (): LanguageModelV4Middleware => {
                 ? JSON.stringify(collectedOutput.usage)
                 : null,
               error: 'Request aborted',
-              raw_request: request?.body ? JSON.stringify(request.body) : null,
-              raw_response: JSON.stringify(fullStreamChunks),
-              raw_chunks: JSON.stringify(rawChunks),
+              raw_request: serializeRawPayload(request?.body),
+              raw_response: serializeRawPayload(fullStreamChunks),
+              raw_chunks: serializeRawPayload(rawChunks),
             });
           },
         });
