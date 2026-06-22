@@ -1,5 +1,30 @@
 # ai
 
+## 7.0.0-beta.183
+
+### Patch Changes
+
+- Updated dependencies [8e990ff]
+  - @ai-sdk/gateway@4.0.0-beta.111
+
+## 7.0.0-beta.182
+
+### Patch Changes
+
+- cc6ab90: feat(ai): rename ui message stream onFinish to onEnd
+
+## 7.0.0-beta.181
+
+### Patch Changes
+
+- 6a2caf9: Serialize `undefined` tool output to `null` in UI message chunks
+
+## 7.0.0-beta.180
+
+### Patch Changes
+
+- 81a284b: fix(ai): handle partial unicode escapes in fixJson
+
 ## 7.0.0-beta.179
 
 ### Patch Changes

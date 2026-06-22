@@ -1,5 +1,39 @@
 # @ai-sdk/tui
 
+## 1.0.0-beta.19
+
+### Patch Changes
+
+- ai@7.0.0-beta.183
+
+## 1.0.0-beta.18
+
+### Patch Changes
+
+- e150ad7: Allow `runAgentTUI` to accept any AI SDK `Agent` generic combination.
+- b06e092: Add a `sandbox` option to `runAgentTUI` and forward it to every agent stream call for tool execution.
+
+## 1.0.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [cc6ab90]
+  - ai@7.0.0-beta.182
+
+## 1.0.0-beta.16
+
+### Patch Changes
+
+- Updated dependencies [6a2caf9]
+  - ai@7.0.0-beta.181
+
+## 1.0.0-beta.15
+
+### Patch Changes
+
+- Updated dependencies [81a284b]
+  - ai@7.0.0-beta.180
+
 ## 1.0.0-beta.14
 
 ### Patch Changes

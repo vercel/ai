@@ -114,6 +114,33 @@ describe('handleUIMessageStreamFinish', () => {
       expect(callArgs.messages[1]).toEqual(callArgs.responseMessage);
     });
 
+    it('should prefer onEnd over deprecated onFinish', async () => {
+      const onEndCallback = vi.fn();
+      const onFinishCallback = vi.fn();
+      const inputChunks: UIMessageChunk[] = [
+        { type: 'start', messageId: 'msg-456' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+        { type: 'text-end', id: 'text-1' },
+        { type: 'finish' },
+      ];
+
+      const stream = createUIMessageStream(inputChunks);
+
+      const resultStream = handleUIMessageStreamFinish<UIMessage>({
+        stream,
+        messageId: 'msg-456',
+        onError: mockErrorHandler,
+        onEnd: onEndCallback,
+        onFinish: onFinishCallback,
+      });
+
+      await convertReadableStreamToArray(resultStream);
+
+      expect(onEndCallback).toHaveBeenCalledTimes(1);
+      expect(onFinishCallback).not.toHaveBeenCalled();
+    });
+
     it('should handle empty original messages array', async () => {
       const onFinishCallback = vi.fn();
       const inputChunks: UIMessageChunk[] = [
