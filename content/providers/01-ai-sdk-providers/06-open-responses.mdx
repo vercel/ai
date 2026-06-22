@@ -72,6 +72,74 @@ The Open Responses provider instance is a function that you can invoke to create
 const model = openResponses('mistralai/ministral-3-14b-reasoning');
 ```
 
+Use this provider when you have an Open Responses-compatible endpoint and want to call it through the standard AI SDK Core APIs instead of calling the endpoint directly. The provider adapts the endpoint to the AI SDK language model interface, so the same model can be used with `generateText`, `streamText`, structured output, tools, middleware, and telemetry.
+
+### Generate Text
+
+```ts
+import { createOpenResponses } from '@ai-sdk/open-responses';
+import { generateText } from 'ai';
+
+const openResponses = createOpenResponses({
+  name: 'local',
+  url: 'http://localhost:1234/v1/responses',
+});
+
+const { text } = await generateText({
+  model: openResponses('mistralai/ministral-3-14b-reasoning'),
+  prompt: 'Explain why streaming is useful in AI applications.',
+});
+```
+
+### Stream Text
+
+```ts
+import { createOpenResponses } from '@ai-sdk/open-responses';
+import { streamText } from 'ai';
+
+const openResponses = createOpenResponses({
+  name: 'local',
+  url: 'http://localhost:1234/v1/responses',
+});
+
+const result = streamText({
+  model: openResponses('mistralai/ministral-3-14b-reasoning'),
+  prompt: 'Write a short product launch checklist.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+### Provider Options
+
+The `name` you pass to `createOpenResponses` is also used as the provider options key. For example, with `name: 'local'`, pass endpoint-specific options under `providerOptions.local`:
+
+```ts
+const { text } = await generateText({
+  model: openResponses('mistralai/ministral-3-14b-reasoning'),
+  prompt: 'Explain request tracing in one paragraph.',
+  providerOptions: {
+    local: {
+      // Options here are forwarded to the Open Responses-compatible endpoint.
+    },
+  },
+});
+```
+
+### OpenAI Responses-compatible endpoints
+
+If you are using an endpoint that implements the OpenAI Responses API shape, point the provider at that endpoint's `/v1/responses` URL. You can also pass an `apiKey` when the endpoint requires bearer-token authentication:
+
+```ts
+const openResponses = createOpenResponses({
+  name: 'openai-compatible',
+  url: 'https://api.example.com/v1/responses',
+  apiKey: "placeholder",
+});
+```
+
 You can use Open Responses models with the `generateText` and `streamText` functions,
 and they support structured data generation with [`Output`](/docs/reference/ai-sdk-core/output)
 (see [AI SDK Core](/docs/ai-sdk-core)).
@@ -97,3 +165,4 @@ const { text } = await generateText({
 
 - Stop sequences, `topK`, and `seed` are not supported and are ignored with warnings.
 - Image inputs are supported for user messages with `file` parts using image media types.
+- PDF/file inputs are supported when the backing Open Responses-compatible endpoint supports them. See the AI SDK file input examples for provider-specific request details.
