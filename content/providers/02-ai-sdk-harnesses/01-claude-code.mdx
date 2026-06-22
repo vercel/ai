@@ -20,25 +20,25 @@ WebSocket.
 <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
     <Snippet
-      text="pnpm add @ai-sdk/harness@canary @ai-sdk/harness-claude-code@canary @ai-sdk/sandbox-vercel@canary"
+      text="pnpm add @ai-sdk/harness@beta @ai-sdk/harness-claude-code@beta @ai-sdk/sandbox-vercel@beta"
       dark
     />
   </Tab>
   <Tab>
     <Snippet
-      text="npm install @ai-sdk/harness@canary @ai-sdk/harness-claude-code@canary @ai-sdk/sandbox-vercel@canary"
+      text="npm install @ai-sdk/harness@beta @ai-sdk/harness-claude-code@beta @ai-sdk/sandbox-vercel@beta"
       dark
     />
   </Tab>
   <Tab>
     <Snippet
-      text="yarn add @ai-sdk/harness@canary @ai-sdk/harness-claude-code@canary @ai-sdk/sandbox-vercel@canary"
+      text="yarn add @ai-sdk/harness@beta @ai-sdk/harness-claude-code@beta @ai-sdk/sandbox-vercel@beta"
       dark
     />
   </Tab>
   <Tab>
     <Snippet
-      text="bun add @ai-sdk/harness@canary @ai-sdk/harness-claude-code@canary @ai-sdk/sandbox-vercel@canary"
+      text="bun add @ai-sdk/harness@beta @ai-sdk/harness-claude-code@beta @ai-sdk/sandbox-vercel@beta"
       dark
     />
   </Tab>
@@ -94,8 +94,8 @@ try {
 ```
 
 To use this agent, ensure environment variables include `VERCEL_OIDC_TOKEN` for
-Vercel Sandbox, and `ANTHROPIC_API_KEY` or `ANTHROPIC_AUTH_TOKEN` or
-`AI_GATEWAY_API_KEY` for Claude Code.
+Vercel Sandbox, and one of the variables listed under [authentication](#authentication)
+for Claude Code.
 
 ## Adapter Settings
 
@@ -125,6 +125,7 @@ to the sandbox bridge. The adapter checks for AI Gateway and Anthropic credentia
 
 Supported environment variables:
 
+- `VERCEL_OIDC_TOKEN`
 - `AI_GATEWAY_API_KEY`
 - `AI_GATEWAY_BASE_URL`
 - `ANTHROPIC_API_KEY`

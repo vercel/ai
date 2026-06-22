@@ -183,6 +183,19 @@ function RealtimeChat({
     [config],
   );
 
+  const sessionConfig = useMemo(
+    () => ({
+      instructions:
+        'You are a helpful assistant. Be concise. ' +
+        'You have access to tools for weather and dice rolling.',
+      inputAudioTranscription: {},
+      voice,
+      turnDetection: { type: 'server-vad' as const },
+      ...config.sessionConfigOverrides,
+    }),
+    [voice, config],
+  );
+
   const {
     status,
     messages,
@@ -200,15 +213,7 @@ function RealtimeChat({
     api: {
       token: `/api/realtime/setup?provider=${provider}`,
     },
-    sessionConfig: {
-      instructions:
-        'You are a helpful assistant. Be concise. ' +
-        'You have access to tools for weather and dice rolling.',
-      inputAudioTranscription: {},
-      voice,
-      turnDetection: { type: 'server-vad' },
-      ...config.sessionConfigOverrides,
-    },
+    sessionConfig,
     onEvent: event => {
       if (event.type !== 'audio-delta') {
         console.log(`[realtime:${provider}] ${event.type}`, event);

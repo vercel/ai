@@ -77,10 +77,24 @@ export type AgentCallParameters<
     /**
      * Callback that is called when the agent operation begins, before any LLM calls.
      */
+    onStart?: GenerateTextOnStartCallback<TOOLS, RUNTIME_CONTEXT>;
+
+    /**
+     * Callback that is called when the agent operation begins, before any LLM calls.
+     *
+     * @deprecated Use `onStart` instead.
+     */
     experimental_onStart?: GenerateTextOnStartCallback<TOOLS, RUNTIME_CONTEXT>;
 
     /**
      * Callback that is called when a step (LLM call) begins, before the provider is called.
+     */
+    onStepStart?: GenerateTextOnStepStartCallback<TOOLS, RUNTIME_CONTEXT>;
+
+    /**
+     * Callback that is called when a step (LLM call) begins, before the provider is called.
+     *
+     * @deprecated Use `onStepStart` instead.
      */
     experimental_onStepStart?: GenerateTextOnStepStartCallback<
       TOOLS,

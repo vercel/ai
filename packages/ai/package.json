@@ -1,6 +1,6 @@
 {
   "name": "ai",
-  "version": "7.0.0-canary.173",
+  "version": "7.0.0-beta.183",
   "type": "module",
   "description": "AI SDK by Vercel - build apps like ChatGPT, Claude, Gemini, and more with a single interface for any model using the Vercel AI Gateway or go direct to OpenAI, Anthropic, Google, or any other model provider.",
   "license": "Apache-2.0",
@@ -66,7 +66,7 @@
     "@types/json-schema": "7.0.15",
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
-    "esbuild": "^0.24.2",
+    "esbuild": "^0.28.1",
     "tsup": "^7.2.0",
     "tsx": "^4.22.0",
     "typescript": "5.8.3",

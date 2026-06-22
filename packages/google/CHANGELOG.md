@@ -1,5 +1,26 @@
 # @ai-sdk/google
 
+## 4.0.0-beta.84
+
+### Patch Changes
+
+- 947cdab: Add Google realtime Live Translation provider options for `gemini-3.5-live-translate-preview`.
+
+## 4.0.0-beta.83
+
+### Patch Changes
+
+- bdb9ea1: chore(google): remove now obsolete Interactions API `Api-Revision` header
+
+## 4.0.0-beta.82
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/provider-utils@5.0.0-beta.49
+  - @ai-sdk/provider@4.0.0-beta.19
+
 ## 4.0.0-canary.81
 
 ### Patch Changes

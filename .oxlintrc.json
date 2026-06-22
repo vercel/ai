@@ -7,7 +7,7 @@
   ],
   "overrides": [
     {
-      "files": ["**/__testfixtures__/**"],
+      "files": ["packages/codemod/src/test/__testfixtures__/**"],
       "rules": {
         "no-redeclare": "off"
       }

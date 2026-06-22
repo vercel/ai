@@ -1811,7 +1811,7 @@ describe('streamText', () => {
         experimental_refineToolInput: {
           tool1: input => ({ value: input.value.trim() }),
         },
-        experimental_onLanguageModelCallEnd: event => {
+        onLanguageModelCallEnd: event => {
           modelCallEndEvents.push(event);
         },
         onToolExecutionStart: event => {
@@ -7317,7 +7317,7 @@ describe('streamText', () => {
     });
   });
 
-  describe('options.experimental_onStart', () => {
+  describe('options.onStart', () => {
     it('should send correct information with text prompt', async () => {
       let startEvent!: Parameters<GenerateTextOnStartCallback>[0];
 
@@ -7327,7 +7327,7 @@ describe('streamText', () => {
         telemetry: {
           functionId: 'test-function',
         },
-        experimental_onStart: async event => {
+        onStart: async event => {
           startEvent = event;
         },
         onError: () => {},
@@ -7352,7 +7352,7 @@ describe('streamText', () => {
           isEnabled: true,
           functionId: 'deprecated-fn',
         },
-        experimental_onStart: async event => {
+        onStart: async event => {
           startEvent = event;
         },
         onError: () => {},
@@ -7371,7 +7371,7 @@ describe('streamText', () => {
         model: createTestModel(),
         prompt: 'test-input',
         runtimeContext: { userId: 'test-user', sessionId: '123' },
-        experimental_onStart: async event => {
+        onStart: async event => {
           startEvent = event;
         },
         onError: () => {},
@@ -7400,10 +7400,10 @@ describe('streamText', () => {
             requestId: true,
           },
         },
-        experimental_onStart: async ({ runtimeContext }) => {
+        onStart: async ({ runtimeContext }) => {
           callbackContexts.push(runtimeContext);
         },
-        experimental_onStepStart: async ({ runtimeContext }) => {
+        onStepStart: async ({ runtimeContext }) => {
           callbackContexts.push(runtimeContext);
         },
         onStepFinish: async ({ runtimeContext }) => {
@@ -7579,7 +7579,7 @@ describe('streamText', () => {
         messages: [{ role: 'user', content: 'test-message' }],
         maxOutputTokens: 100,
         temperature: 0.5,
-        experimental_onStart: async event => {
+        onStart: async event => {
           startEvent = event;
         },
         onError: () => {},
@@ -7631,7 +7631,7 @@ describe('streamText', () => {
           },
         }),
         prompt: 'test-input',
-        experimental_onStart: async () => {
+        onStart: async () => {
           callOrder.push('onStart');
         },
         onError: () => {},
@@ -7646,7 +7646,7 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel(),
         prompt: 'test-input',
-        experimental_onStart: async () => {
+        onStart: async () => {
           throw new Error('callback error');
         },
         onError: () => {},
@@ -7667,7 +7667,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         tools: { myTool: testTool },
         toolChoice: 'auto',
-        experimental_onStart: async event => {
+        onStart: async event => {
           startEvent = event;
         },
         onError: () => {},
@@ -7686,7 +7686,7 @@ describe('streamText', () => {
         model: createTestModel(),
         prompt: 'test-input',
         providerOptions: { openai: { logprobs: true } },
-        experimental_onStart: async event => {
+        onStart: async event => {
           startEvent = event;
         },
         onError: () => {},
@@ -7707,7 +7707,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         timeout: { totalMs: 5000, stepMs: 1000 },
         stopWhen: isStepCount(3),
-        experimental_onStart: async event => {
+        onStart: async event => {
           startEvent = event;
         },
         onError: () => {},
@@ -7719,7 +7719,7 @@ describe('streamText', () => {
     });
   });
 
-  describe('options.experimental_onStepStart', () => {
+  describe('options.onStepStart', () => {
     it('should be called with correct data for a single step', async () => {
       let stepStartEvent!: Parameters<
         GenerateTextOnStepStartCallback<any, any>
@@ -7728,7 +7728,7 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel(),
         prompt: 'test-input',
-        experimental_onStepStart: async event => {
+        onStepStart: async event => {
           stepStartEvent = event;
         },
         onError: () => {},
@@ -7823,7 +7823,7 @@ describe('streamText', () => {
         },
         prompt: 'test-input',
         stopWhen: isStepCount(3),
-        experimental_onStepStart: async event => {
+        onStepStart: async event => {
           stepStartEvents.push(event);
         },
         onError: () => {},
@@ -7870,7 +7870,7 @@ describe('streamText', () => {
           },
         }),
         prompt: 'test-input',
-        experimental_onStepStart: async () => {
+        onStepStart: async () => {
           callOrder.push('onStepStart');
         },
         onError: () => {},
@@ -7885,7 +7885,7 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel(),
         prompt: 'test-input',
-        experimental_onStepStart: async () => {
+        onStepStart: async () => {
           throw new Error('callback error');
         },
         onError: () => {},
@@ -7968,7 +7968,7 @@ describe('streamText', () => {
           }
           return undefined;
         },
-        experimental_onStepStart: async event => {
+        onStepStart: async event => {
           stepStartEvents.push(event);
         },
         onError: () => {},
@@ -7992,7 +7992,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         providerOptions: { openai: { logprobs: true } },
         runtimeContext: { userId: 'test-user' },
-        experimental_onStepStart: async event => {
+        onStepStart: async event => {
           stepStartEvent = event;
         },
         onError: () => {},
@@ -8019,7 +8019,7 @@ describe('streamText', () => {
         telemetry: {
           functionId: 'test-function',
         },
-        experimental_onStepStart: async event => {
+        onStepStart: async event => {
           stepStartEvent = event;
         },
         onError: () => {},
@@ -8275,7 +8275,7 @@ describe('streamText', () => {
 
           return undefined;
         },
-        experimental_onStepStart: async event => {
+        onStepStart: async event => {
           stepStartEvents.push(event);
         },
         onError: () => {},
@@ -8297,7 +8297,7 @@ describe('streamText', () => {
     });
   });
 
-  describe('options.experimental_onLanguageModelCallStart and experimental_onLanguageModelCallEnd', () => {
+  describe('options.onLanguageModelCallStart and onLanguageModelCallEnd', () => {
     it('should fire the model-call callbacks before tool execution and step finish', async () => {
       const callOrder: string[] = [];
       const modelCallEndEvents: LanguageModelCallEndEvent<any>[] = [];
@@ -8336,13 +8336,13 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_onStepStart: async () => {
+        onStepStart: async () => {
           callOrder.push('onStepStart');
         },
-        experimental_onLanguageModelCallStart: async () => {
+        onLanguageModelCallStart: async () => {
           callOrder.push('onLanguageModelCallStart');
         },
-        experimental_onLanguageModelCallEnd: async event => {
+        onLanguageModelCallEnd: async event => {
           callOrder.push('onLanguageModelCallEnd');
           modelCallEndEvents.push(event);
         },
@@ -29114,7 +29114,7 @@ describe('streamText', () => {
         model: createTestModel(),
         prompt: 'test-input',
         onError: () => {},
-        experimental_onStart: async () => {
+        onStart: async () => {
           events.push('user-onStart');
         },
         onStepFinish: async () => {
