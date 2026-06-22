@@ -543,21 +543,25 @@ describe('detectMediaType signature matching', () => {
   });
 
   describe('MP4', () => {
-    it('should detect MP4 from bytes', () => {
-      const mp4Bytes = new Uint8Array([0x66, 0x74, 0x79, 0x70]);
+    it('should detect MP4 from bytes (M4A brand)', () => {
+      // Real ISO BMFF header (issue #14721): 4-byte box length (0x1c), ftyp, "M4A ".
+      const m4aBytes = new Uint8Array([
+        0x00, 0x00, 0x00, 0x1c, 0x66, 0x74, 0x79, 0x70, 0x4d, 0x34, 0x41, 0x20,
+      ]);
       expect(
         detectMediaType({
-          data: mp4Bytes,
+          data: m4aBytes,
           topLevelType: 'audio',
         }),
       ).toBe('audio/mp4');
     });
 
-    it('should detect MP4 from base64', () => {
-      const mp4Base64 = 'ZnR5cA'; // Base64 string starting with MP4 signature
+    it('should detect MP4 from base64 (M4A brand)', () => {
+      // Base64 of 00 00 00 1c 66 74 79 70 4d 34 41 20 (M4A header).
+      const m4aBase64 = 'AAAAHGZ0eXBNNEEg';
       expect(
         detectMediaType({
-          data: mp4Base64,
+          data: m4aBase64,
           topLevelType: 'audio',
         }),
       ).toBe('audio/mp4');
