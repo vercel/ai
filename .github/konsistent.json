@@ -112,7 +112,6 @@
         {
           "use": "aisdk/provider-video-model-file-must-export-model-class",
           "excludeFiles": [
-            "packages/bytedance/src/bytedance-video-model.ts",
             "packages/gateway/src/gateway-video-model.ts"
           ]
         },
