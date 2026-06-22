@@ -301,6 +301,38 @@ const someTool = tool({
   codebase.
 </Note>
 
+### Tool `name` Property Removal
+
+The `name` property has been removed from `tool()`. In AI SDK 6, the tool name
+comes from the key in the `tools` object.
+
+```tsx filename="AI SDK 5"
+import { tool } from 'ai';
+import { z } from 'zod';
+
+const weatherTool = tool({
+  name: 'weather',
+  description: 'Get the weather',
+  inputSchema: z.object({
+    city: z.string(),
+  }),
+});
+```
+
+```tsx filename="AI SDK 6"
+import { tool } from 'ai';
+import { z } from 'zod';
+
+const tools = {
+  weather: tool({
+    description: 'Get the weather',
+    inputSchema: z.object({
+      city: z.string(),
+    }),
+  }),
+};
+```
+
 ### `cachedInputTokens` and `reasoningTokens` in `LanguageModelUsage` Deprecation
 
 `cachedInputTokens` and `reasoningTokens` in `LanguageModelUsage` have been deprecated.
