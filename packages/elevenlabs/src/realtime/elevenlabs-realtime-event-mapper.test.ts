@@ -296,10 +296,10 @@ describe('ElevenLabsRealtimeEventMapper', () => {
       ).toBeNull();
     });
 
-    it('serializes tool outputs', async () => {
+    it('serializes tool outputs as strings', () => {
       const mapper = new ElevenLabsRealtimeEventMapper();
 
-      await expect(
+      expect(
         mapper.serializeClientEvent({
           type: 'conversation-item-create',
           item: {
@@ -309,10 +309,10 @@ describe('ElevenLabsRealtimeEventMapper', () => {
             output: '{"active":true}',
           },
         }),
-      ).resolves.toEqual({
+      ).toEqual({
         type: 'client_tool_result',
         tool_call_id: 'tool_123',
-        result: { active: true },
+        result: '{"active":true}',
         is_error: false,
       });
     });

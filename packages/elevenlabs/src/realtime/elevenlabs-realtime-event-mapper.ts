@@ -5,7 +5,6 @@ import type {
   Experimental_RealtimeModelV4ServerEvent as RealtimeModelV4ServerEvent,
   Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
 } from '@ai-sdk/provider';
-import { safeParseJSON } from '@ai-sdk/provider-utils';
 import type { ElevenLabsRealtimeModelOptions } from './elevenlabs-realtime-model-options';
 
 type ElevenLabsRealtimeWireEvent = {
@@ -297,14 +296,13 @@ export class ElevenLabsRealtimeEventMapper {
   }
 }
 
-async function serializeFunctionCallOutput(
+function serializeFunctionCallOutput(
   item: RealtimeModelV4FunctionCallOutput,
-): Promise<unknown> {
-  const parseResult = await safeParseJSON({ text: item.output });
+): unknown {
   return {
     type: 'client_tool_result',
     tool_call_id: item.callId,
-    result: parseResult.success ? parseResult.value : item.output,
+    result: item.output,
     is_error: false,
   };
 }
