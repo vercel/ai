@@ -755,17 +755,19 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
       this.setStatus({ status: 'error', error: err as Error });
     } finally {
-      try {
-        this.onFinish?.({
-          message: this.activeResponse!.state.message,
-          messages: this.state.messages,
-          isAbort,
-          isDisconnect,
-          isError,
-          finishReason: this.activeResponse?.state.finishReason,
-        });
-      } catch (err) {
-        console.error(err);
+      if (this.activeResponse) {
+        try {
+          this.onFinish?.({
+            message: this.activeResponse.state.message,
+            messages: this.state.messages,
+            isAbort,
+            isDisconnect,
+            isError,
+            finishReason: this.activeResponse.state.finishReason,
+          });
+        } catch (err) {
+          console.error(err);
+        }
       }
 
       this.activeResponse = undefined;
