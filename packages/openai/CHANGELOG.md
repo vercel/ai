@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 4.0.0-beta.76
+
+### Patch Changes
+
+- 2c4767d: feat(openai): add orchestration token usage details to Responses API usage
+
 ## 4.0.0-beta.75
 
 ### Patch Changes
