@@ -121,7 +121,7 @@ If the runtime needs in-sandbox setup, expose `getBootstrap()`.
 
 Add only the concerns the runtime needs:
 
-- auth resolution — for AI Gateway support, use the central `getAiGatewayAuthFromEnv()` helper rather than reading env directly, and accept `VERCEL_OIDC_TOKEN` as a gateway credential (not just `AI_GATEWAY_API_KEY`). When the runtime resolves provider per model, resolve the provider from the model id and set that provider's env; if routing through the gateway, note that base-URL conventions differ per provider (e.g. an Anthropic client appends `/v1/messages` to a root base, an OpenAI client appends to a `/v1` base);
+- auth resolution — for AI Gateway support, use the central `getAiGatewayAuthFromEnv()` helper rather than reading env directly. This ensures both `VERCEL_OIDC_TOKEN` and `AI_GATEWAY_API_KEY` are accepted as Gateway credential. When the runtime resolves provider per model, resolve the provider from the model id and set that provider's env; if routing through the gateway, note that base-URL conventions differ per provider (e.g. an Anthropic client appends `/v1/messages` to a root base, an OpenAI client appends to a `/v1` base);
 - custom-tool schema translation — if you convert host tools' JSON Schema into the runtime's tool format, convert _recursively_ (nested objects, array `items`, enums, descriptions); a flat top-level-only conversion silently drops the model's structured guidance. Passing the JSON Schema through directly, if the runtime accepts it, avoids the problem;
 - skill or discovery-file materialization;
 - native protocol to harness stream/control translation;
