@@ -133,6 +133,12 @@ export async function prepareTools({
       ? functionTools.filter(t => t.name === toolChoice.toolName)
       : functionTools;
 
+  // Bedrock's Messages API rejects `strict` on tools for these models.
+  // https://docs.aws.amazon.com/bedrock/latest/userguide/count-tokens.html
+  const supportsStrictOnTools =
+    !modelId.includes('claude-opus-4-7') &&
+    !modelId.includes('claude-opus-4-8');
+
   for (const tool of filteredFunctionTools) {
     bedrockTools.push({
       toolSpec: {
@@ -140,7 +146,9 @@ export async function prepareTools({
         ...(tool.description?.trim() !== ''
           ? { description: tool.description }
           : {}),
-        ...(tool.strict != null ? { strict: tool.strict } : {}),
+        ...(tool.strict != null && supportsStrictOnTools
+          ? { strict: tool.strict }
+          : {}),
         inputSchema: {
           json: tool.inputSchema as JSONObject,
         },
