@@ -3813,8 +3813,8 @@ importers:
   tools/konsistent-provider:
     dependencies:
       '@konsistent/convention':
-        specifier: 0.0.1-alpha.2
-        version: 0.0.1-alpha.2(zod@4.4.3)
+        specifier: 0.0.1-alpha.5
+        version: 0.0.1-alpha.5(zod@4.4.3)
     devDependencies:
       '@types/node':
         specifier: 22.19.19
@@ -7479,12 +7479,6 @@ packages:
     resolution: {integrity: sha512-sYcHglGKTxGF+hQ6x67xDfkE9o+NhVlRHBqq6gLywaMc6CojK/5vFZByphdonKinYlMLkEkacm+HEse9HzwgTA==}
     engines: {node: '>= 12'}
     deprecated: Please upgrade to v15 or higher. All reported bugs in this version are fixed in newer releases, dependencies have been updated, and security has been improved.
-
-  '@konsistent/convention@0.0.1-alpha.2':
-    resolution: {integrity: sha512-KqpIvSoF7MvvuYVlgqfhItjRoZAbXW2yvcZl+cVJh09wYzwp/nj4WNqV6uUUc+3GVp3VtdQKlUYKMuP14n6wEQ==}
-    hasBin: true
-    peerDependencies:
-      zod: ^4
 
   '@konsistent/convention@0.0.1-alpha.5':
     resolution: {integrity: sha512-5F6dmvZLvJKkcLvkjkdcMmTyLycZv+PyuLeDLglPCHSfOBe2qx0W8v/Ey55e4c+xeg9uaRkbT5FJVjahREIVQQ==}
@@ -25560,12 +25554,6 @@ snapshots:
       path-to-regexp: 6.3.0
     transitivePeerDependencies:
       - supports-color
-
-  '@konsistent/convention@0.0.1-alpha.2(zod@4.4.3)':
-    dependencies:
-      citty: 0.2.2
-      jiti: 2.7.0
-      zod: 4.4.3
 
   '@konsistent/convention@0.0.1-alpha.5(zod@4.4.3)':
     dependencies:
