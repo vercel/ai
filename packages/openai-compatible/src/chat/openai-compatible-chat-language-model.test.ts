@@ -131,11 +131,13 @@ describe('doGenerate', () => {
       completion_tokens?: number;
       prompt_tokens_details?: {
         cached_tokens?: number;
+        [key: string]: number | undefined;
       };
       completion_tokens_details?: {
         reasoning_tokens?: number;
         accepted_prediction_tokens?: number;
         rejected_prediction_tokens?: number;
+        [key: string]: number | undefined;
       };
     };
     finish_reason?: string;
@@ -224,6 +226,7 @@ describe('doGenerate', () => {
           "completion_tokens": 2,
           "completion_tokens_details": {
             "accepted_prediction_tokens": 0,
+            "audio_tokens": 0,
             "reasoning_tokens": 320,
             "rejected_prediction_tokens": 0,
           },
@@ -231,7 +234,10 @@ describe('doGenerate', () => {
           "num_sources_used": 0,
           "prompt_tokens": 12,
           "prompt_tokens_details": {
+            "audio_tokens": 0,
             "cached_tokens": 2,
+            "image_tokens": 0,
+            "text_tokens": 12,
           },
           "total_tokens": 334,
         },
@@ -1711,6 +1717,44 @@ describe('doGenerate', () => {
         }
       `);
     });
+
+    it('should preserve extra nested usage details from provider-specific responses', async () => {
+      prepareJsonResponse({
+        usage: {
+          prompt_tokens: 20,
+          completion_tokens: 30,
+          total_tokens: 50,
+          prompt_tokens_details: {
+            cached_tokens: 5,
+            cache_creation_input_tokens: 2,
+          },
+          completion_tokens_details: {
+            reasoning_tokens: 10,
+            audio_tokens: 3,
+          },
+        },
+      });
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.usage.raw).toMatchInlineSnapshot(`
+        {
+          "completion_tokens": 30,
+          "completion_tokens_details": {
+            "audio_tokens": 3,
+            "reasoning_tokens": 10,
+          },
+          "prompt_tokens": 20,
+          "prompt_tokens_details": {
+            "cache_creation_input_tokens": 2,
+            "cached_tokens": 5,
+          },
+          "total_tokens": 50,
+        }
+      `);
+    });
   });
 });
 
@@ -1849,6 +1893,69 @@ describe('doStream', () => {
     expect(body.stream_options).toMatchInlineSnapshot(`
       {
         "include_usage": true,
+      }
+    `);
+  });
+
+  it('should preserve extra nested usage details from provider-specific stream chunks', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1702657020,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"role":"assistant","content":"Hello"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1702657020,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{},"finish_reason":"stop"}],` +
+          `"usage":{"prompt_tokens":20,"completion_tokens":30,"total_tokens":50,` +
+          `"prompt_tokens_details":{"cached_tokens":5,"cache_creation_input_tokens":2},` +
+          `"completion_tokens_details":{"reasoning_tokens":10,"audio_tokens":3}}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(finishEvent).toMatchInlineSnapshot(`
+      {
+        "finishReason": {
+          "raw": "stop",
+          "unified": "stop",
+        },
+        "providerMetadata": {
+          "test-provider": {},
+        },
+        "type": "finish",
+        "usage": {
+          "inputTokens": {
+            "cacheRead": 5,
+            "cacheWrite": undefined,
+            "noCache": 15,
+            "total": 20,
+          },
+          "outputTokens": {
+            "reasoning": 10,
+            "text": 20,
+            "total": 30,
+          },
+          "raw": {
+            "completion_tokens": 30,
+            "completion_tokens_details": {
+              "audio_tokens": 3,
+              "reasoning_tokens": 10,
+            },
+            "prompt_tokens": 20,
+            "prompt_tokens_details": {
+              "cache_creation_input_tokens": 2,
+              "cached_tokens": 5,
+            },
+            "total_tokens": 50,
+          },
+        },
       }
     `);
   });
