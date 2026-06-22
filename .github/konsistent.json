@@ -179,9 +179,7 @@
               "${harnessId.toCamelCase()}BridgeCoordsSchema",
               "${harnessId.toCamelCase()}ResumeStateSchema"
             ],
-            "declareTypes": [
-              "${harnessId.toPascalCase()}BridgeCoords"
-            ]
+            "declareTypes": ["${harnessId.toPascalCase()}BridgeCoords"]
           }
         },
         {
