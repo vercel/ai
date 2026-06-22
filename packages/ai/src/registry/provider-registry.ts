@@ -20,6 +20,7 @@ import { asVideoModelV4 } from '../model/as-video-model-v4';
 import type { ImageModelMiddleware, LanguageModelMiddleware } from '../types';
 import type { ExtractLiteralUnion } from '../util/extract-literal-union';
 import { NoSuchProviderError } from './no-such-provider-error';
+import { resolveLatestVersion } from './latest-versions';
 
 type ProviderWithOptionalVideoModel = {
   videoModel?: (
@@ -261,8 +262,12 @@ class DefaultProviderRegistry<
     id: `${KEY & string}${SEPARATOR}${string}`,
   ): LanguageModelV4 {
     const [providerId, modelId] = this.splitId(id, 'languageModel');
+    
+    // 🔥 NEW: Resolve --latest suffix to actual model version
+    const resolvedModelId = resolveLatestVersion(providerId, modelId);
+    
     let model = this.getProvider(providerId, 'languageModel').languageModel?.(
-      modelId,
+      resolvedModelId,
     );
 
     if (model == null) {
