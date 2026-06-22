@@ -84,7 +84,7 @@ Bridge dependency rules (bridge-backed harnesses):
 
 - The bridge's runtime deps live in `src/bridge/package.json` (installed in-sandbox at bootstrap), not the main package.json. After changing them, regenerate `src/bridge/pnpm-lock.yaml` with `pnpm install --lockfile-only --ignore-workspace` in that folder.
 - For every third-party import in `src/bridge/`, keep three things in sync: the import, the `external` array in `tsup.config.ts`, and the dep in `src/bridge/package.json`. A missing entry shows up only at sandbox runtime as a module-resolution error.
-- Include packages the runtime *lazily* imports — e.g. provider SDKs (`@langchain/anthropic`, `@langchain/openai`) resolved from the model id at runtime — even though nothing imports them directly. These fail only when a model of that provider is actually used.
+- Include packages the runtime _lazily_ imports — e.g. provider SDKs (`@langchain/anthropic`, `@langchain/openai`) resolved from the model id at runtime — even though nothing imports them directly. These fail only when a model of that provider is actually used.
 - Match shared dependency versions (transport, schema, tooling, runtime SDKs) to what the other harness packages currently use — copy from a sibling package rather than choosing your own pins. Stale pins drift from security patches and can desync from the shared bridge runtime; check the current versions at creation time.
 
 ### 3. Create TypeScript, Build, and Test Configs
@@ -122,7 +122,7 @@ If the runtime needs in-sandbox setup, expose `getBootstrap()`.
 Add only the concerns the runtime needs:
 
 - auth resolution — for AI Gateway support, use the central `getAiGatewayAuthFromEnv()` helper rather than reading env directly, and accept `VERCEL_OIDC_TOKEN` as a gateway credential (not just `AI_GATEWAY_API_KEY`). When the runtime resolves provider per model, resolve the provider from the model id and set that provider's env; if routing through the gateway, note that base-URL conventions differ per provider (e.g. an Anthropic client appends `/v1/messages` to a root base, an OpenAI client appends to a `/v1` base);
-- custom-tool schema translation — if you convert host tools' JSON Schema into the runtime's tool format, convert *recursively* (nested objects, array `items`, enums, descriptions); a flat top-level-only conversion silently drops the model's structured guidance. Passing the JSON Schema through directly, if the runtime accepts it, avoids the problem;
+- custom-tool schema translation — if you convert host tools' JSON Schema into the runtime's tool format, convert _recursively_ (nested objects, array `items`, enums, descriptions); a flat top-level-only conversion silently drops the model's structured guidance. Passing the JSON Schema through directly, if the runtime accepts it, avoids the problem;
 - skill or discovery-file materialization;
 - native protocol to harness stream/control translation;
 - lifecycle state schema;
@@ -146,7 +146,7 @@ Add focused Node tests for:
 
 Use mocked sandbox sessions and bridge/runtime boundaries where possible. Do not require live provider credentials in unit tests.
 
-`getBootstrap()` reads the *compiled* bridge assets (e.g. `dist/bridge/index.mjs`), which don't exist when tests run against `src`, so a test that calls it will hit `ENOENT`. Mock `node:fs/promises` `readFile` for the bridge asset paths (see the Codex/OpenCode harness tests for the pattern).
+`getBootstrap()` reads the _compiled_ bridge assets (e.g. `dist/bridge/index.mjs`), which don't exist when tests run against `src`, so a test that calls it will hit `ENOENT`. Mock `node:fs/promises` `readFile` for the bridge asset paths (see the Codex/OpenCode harness tests for the pattern).
 
 ### 7. Add README
 
