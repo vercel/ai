@@ -967,6 +967,44 @@ function asPiToolResult(text: string): AgentToolResult<unknown> {
   };
 }
 
+// Base64-encoded payload cap for inline images, kept below common provider
+// limits (e.g. Anthropic's 5MB). Larger images are reported as text instead.
+const INLINE_IMAGE_MAX_BASE64_BYTES = 4.5 * 1024 * 1024;
+
+// Detect common image formats from their magic bytes so the read tool can hand
+// them to the model as image content instead of decoding binary as UTF-8 text.
+function detectImageMimeType(buf: Buffer): string | undefined {
+  if (
+    buf.length >= 8 &&
+    buf[0] === 0x89 &&
+    buf[1] === 0x50 &&
+    buf[2] === 0x4e &&
+    buf[3] === 0x47
+  ) {
+    return 'image/png';
+  }
+  if (buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) {
+    return 'image/jpeg';
+  }
+  if (buf.length >= 6 && buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46) {
+    return 'image/gif';
+  }
+  if (
+    buf.length >= 12 &&
+    buf[0] === 0x52 &&
+    buf[1] === 0x49 &&
+    buf[2] === 0x46 &&
+    buf[3] === 0x46 &&
+    buf[8] === 0x57 &&
+    buf[9] === 0x45 &&
+    buf[10] === 0x42 &&
+    buf[11] === 0x50
+  ) {
+    return 'image/webp';
+  }
+  return undefined;
+}
+
 async function maybeDenyPiBuiltinTool(input: {
   toolCallId: string;
   nativeName: (typeof PI_NATIVE_BUILTIN_NAMES)[number];
@@ -1020,6 +1058,22 @@ function buildBuiltinToolDefinition(input: {
           });
           if (denied) return denied;
           const buf = await input.remoteOps.readBuffer(params.file_path);
+          const imageMimeType = detectImageMimeType(buf);
+          if (imageMimeType) {
+            const data = buf.toString('base64');
+            if (data.length > INLINE_IMAGE_MAX_BASE64_BYTES) {
+              return asPiToolResult(
+                `Read image file [${imageMimeType}]\n[Image omitted: exceeds the inline image size limit.]`,
+              );
+            }
+            return {
+              content: [
+                { type: 'text', text: `Read image file [${imageMimeType}]` },
+                { type: 'image', data, mimeType: imageMimeType },
+              ],
+              details: undefined,
+            };
+          }
           return asPiToolResult(buf.toString('utf8'));
         },
       });
