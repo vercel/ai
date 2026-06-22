@@ -70,6 +70,12 @@ const scenarios: Array<{
     description: 'Unrecoverable model failure and onError telemetry.',
   },
   {
+    id: 'sandbox',
+    title: 'Sandbox',
+    prompt: 'Run the sandbox command.',
+    description: 'Stream-level sandbox override passed to tool execution.',
+  },
+  {
     id: 'reconnect',
     title: 'Reconnect',
     prompt: 'Run the reconnect scenario.',

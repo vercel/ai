@@ -35,6 +35,14 @@ const expectations: Record<TelemetryScenario, string[]> = {
     'onFinish',
   ],
   'model-error': ['onStart', 'onLanguageModelCallStart', 'onError'],
+  sandbox: [
+    'onStart',
+    'onStepStart',
+    'onToolExecutionStart',
+    'onToolExecutionEnd',
+    'onFinish',
+    'workflow:sandboxRun',
+  ],
   reconnect: [
     'onStart',
     'onStepStart',

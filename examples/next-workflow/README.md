@@ -9,7 +9,7 @@ This example demonstrates using the AI SDK's `WorkflowAgent` with the Workflow D
 - **`toModelOutput`**: The `getWeather` tool sends the model a compact one-line summary while the UI keeps the full structured result
 - **Streaming**: Real-time streaming responses via `getWritable()` and `createUIMessageStreamResponse`
 - **Resumable**: Workflow runs survive restarts and can be reconnected
-- **Telemetry E2E Harness**: Visit `/telemetry` to run deterministic WorkflowAgent telemetry scenarios for lifecycle events, tool execution, context filtering, approvals, errors, and reconnects
+- **Telemetry E2E Harness**: Visit `/telemetry` to run deterministic WorkflowAgent telemetry scenarios for lifecycle events, tool execution, context filtering, sandbox execution, approvals, errors, and reconnects
 
 ## Testing `toModelOutput`
 
@@ -39,4 +39,4 @@ The `calculate` tool has no `toModelOutput`, so its model-facing output stays th
 
 ## Telemetry
 
-Open http://localhost:3000/telemetry to run deterministic WorkflowAgent telemetry scenarios. The harness records stable AI SDK telemetry integration events for lifecycle callbacks, model calls, chunks, tool execution, context filtering, approval resume, error handling, and reconnect behavior.
+Open http://localhost:3000/telemetry to run deterministic WorkflowAgent telemetry scenarios. The harness records stable AI SDK telemetry integration events for lifecycle callbacks, model calls, chunks, tool execution, context filtering, sandbox execution, approval resume, error handling, and reconnect behavior.
