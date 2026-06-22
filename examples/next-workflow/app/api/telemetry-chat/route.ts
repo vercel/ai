@@ -45,7 +45,11 @@ export async function POST(req: Request) {
     scenario === 'sandbox'
       ? await start(sandboxChat, [
           body.messages,
-          { ...requestContext, scenario },
+          {
+            requestId,
+            tenantId: requestContext.tenantId,
+            scenario,
+          },
         ])
       : await start(telemetryChat, [body.messages, requestContext]);
 
