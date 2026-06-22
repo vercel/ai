@@ -1,0 +1,117 @@
+---
+title: OrcaRouter
+description: OrcaRouter Provider for the AI SDK
+---
+
+# OrcaRouter
+
+[OrcaRouter](https://www.orcarouter.ai/) is an OpenAI-compatible meta-router that provides access to 150+ models from providers like OpenAI, Anthropic, Google, xAI, DeepSeek, Qwen, Kimi, MiniMax, and Z-AI through a single API key. Its `orcarouter/auto` virtual model adaptively routes each request to an upstream based on a configurable strategy (`cheapest`, `balanced`, `quality`, `adaptive`, `gated_adaptive`).
+
+The `orcarouter-ai-sdk-provider` package builds on [`@ai-sdk/openai-compatible`](/providers/openai-compatible-providers) and reshapes outgoing requests so per-vendor reasoning protocols and upstream parameter quirks are handled automatically.
+
+Learn more in the [OrcaRouter documentation](https://docs.orcarouter.ai).
+
+## Setup
+
+The OrcaRouter provider is available in the `orcarouter-ai-sdk-provider` module. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add orcarouter-ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install orcarouter-ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add orcarouter-ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add orcarouter-ai-sdk-provider" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+To create an OrcaRouter provider instance, use the `createOrcaRouter` function:
+
+```typescript
+import { createOrcaRouter } from 'orcarouter-ai-sdk-provider';
+
+const orcarouter = createOrcaRouter({
+  apiKey: process.env.ORCAROUTER_API_KEY,
+});
+```
+
+You can obtain your OrcaRouter API key from the [OrcaRouter console](https://www.orcarouter.ai/console/keys).
+
+## Language Models
+
+Create a model by calling the provider with a model id:
+
+```typescript
+const model = orcarouter('orcarouter/auto'); // adaptive routing (recommended default)
+const opus = orcarouter('anthropic/claude-opus-4.7');
+const gpt5 = orcarouter('openai/gpt-5');
+```
+
+You can find the full catalog and live pricing on the [OrcaRouter models page](https://www.orcarouter.ai/models).
+
+## Examples
+
+### Generate Text
+
+```typescript
+import { createOrcaRouter } from 'orcarouter-ai-sdk-provider';
+import { generateText } from 'ai';
+
+const orcarouter = createOrcaRouter({
+  apiKey: process.env.ORCAROUTER_API_KEY,
+});
+
+const { text } = await generateText({
+  model: orcarouter('orcarouter/auto'),
+  prompt: 'Explain adaptive routing in one sentence.',
+});
+
+console.log(text);
+```
+
+### Stream Text
+
+```typescript
+import { createOrcaRouter } from 'orcarouter-ai-sdk-provider';
+import { streamText } from 'ai';
+
+const orcarouter = createOrcaRouter({
+  apiKey: process.env.ORCAROUTER_API_KEY,
+});
+
+const { textStream } = streamText({
+  model: orcarouter('anthropic/claude-opus-4.7'),
+  prompt: 'Write a haiku about routing.',
+});
+
+for await (const chunk of textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+## Reasoning
+
+Pass a reasoning effort through `providerOptions` and the provider forwards it in each upstream's native shape — a `thinking` block for Anthropic Claude models, a flat `reasoning_effort` for OpenAI / Gemini / Grok / Qwen / Kimi, and nothing for DeepSeek r1 (which reasons automatically):
+
+```typescript
+const { text } = await generateText({
+  model: orcarouter('anthropic/claude-opus-4.7'),
+  prompt: 'What is 17 * 23?',
+  providerOptions: {
+    orcarouter: { reasoningEffort: 'high' },
+  },
+});
+```
+
+## Additional Resources
+
+- [OrcaRouter documentation](https://docs.orcarouter.ai)
+- [orcarouter-ai-sdk-provider on npm](https://www.npmjs.com/package/orcarouter-ai-sdk-provider)
+- [Source on GitHub](https://github.com/Continuum-AI-Corp/orcarouter-ai-sdk)
