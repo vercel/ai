@@ -1,0 +1,143 @@
+---
+title: LM Studio
+description: Learn how to use the LM Studio provider for local LLMs.
+---
+
+# LM Studio Provider
+
+[ai-sdk-lmstudio](https://github.com/suchobits/ai-sdk-lmstudio) is a community provider that enables you to use locally-running LLMs via [LM Studio](https://lmstudio.ai) with the AI SDK.
+
+**Key features:**
+
+- Text generation (streaming and non-streaming)
+- Tool calling / function calling
+- Structured output (JSON mode and JSON schema)
+- Text embeddings
+- Reasoning/chain-of-thought support for thinking models (Qwen3, etc.)
+- Streaming token usage tracking
+
+## Setup
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+
+```bash
+pnpm add ai-sdk-lmstudio
+```
+
+  </Tab>
+  <Tab>
+
+```bash
+npm install ai-sdk-lmstudio
+```
+
+  </Tab>
+  <Tab>
+
+```bash
+yarn add ai-sdk-lmstudio
+```
+
+  </Tab>
+</Tabs>
+
+### Prerequisites
+
+1. Download and install [LM Studio](https://lmstudio.ai)
+2. Load a model
+3. Start the local server (default: `http://localhost:1234`)
+
+## Provider Instance
+
+You can import the default `lmstudio` provider instance:
+
+```ts
+import { lmstudio } from 'ai-sdk-lmstudio';
+```
+
+Or create a custom instance with a different base URL:
+
+```ts
+import { createLmstudio } from 'ai-sdk-lmstudio';
+
+const lmstudio = createLmstudio({
+  baseURL: 'http://192.168.1.100:1234/v1',
+});
+```
+
+## Language Models
+
+Create a language model by passing the model ID loaded in LM Studio:
+
+```ts
+const model = lmstudio('qwen2.5-coder-7b');
+```
+
+### Example: Generate Text
+
+```ts
+import { generateText } from 'ai';
+import { lmstudio } from 'ai-sdk-lmstudio';
+
+const { text } = await generateText({
+  model: lmstudio('qwen2.5-coder-7b'),
+  prompt: 'Explain TypeScript generics.',
+});
+```
+
+### Example: Stream Text
+
+```ts
+import { streamText } from 'ai';
+import { lmstudio } from 'ai-sdk-lmstudio';
+
+const result = streamText({
+  model: lmstudio('qwen2.5-coder-7b'),
+  prompt: 'Write a haiku about local LLMs.',
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+### Example: Tool Calling
+
+```ts
+import { generateText, tool } from 'ai';
+import { lmstudio } from 'ai-sdk-lmstudio';
+import { z } from 'zod';
+
+const { toolCalls } = await generateText({
+  model: lmstudio('qwen2.5-coder-7b'),
+  tools: {
+    weather: tool({
+      description: 'Get weather for a city',
+      parameters: z.object({ city: z.string() }),
+      execute: async ({ city }) => ({ temp: 20, city }),
+    }),
+  },
+  prompt: 'What is the weather in Tokyo?',
+});
+```
+
+## Embedding Models
+
+Create an embedding model for text embeddings:
+
+```ts
+import { embed } from 'ai';
+import { lmstudio } from 'ai-sdk-lmstudio';
+
+const { embedding } = await embed({
+  model: lmstudio.textEmbeddingModel('text-embedding-nomic-embed-text-v1.5'),
+  value: 'Hello world',
+});
+```
+
+## Additional Resources
+
+- [GitHub Repository](https://github.com/suchobits/ai-sdk-lmstudio)
+- [LM Studio Documentation](https://lmstudio.ai/docs)
+- [LM Studio API Reference](https://lmstudio.ai/docs/developer)
