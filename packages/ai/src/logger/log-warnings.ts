@@ -86,6 +86,22 @@ function formatWarning({
 export const FIRST_WARNING_INFO_MESSAGE =
   'AI SDK Warning System: To turn off warning logging, set the AI_SDK_LOG_WARNINGS global to false.';
 
+/**
+ * Converts a deprecated setting name to a stable `AISDK_DEP_*` code for
+ * `process.emitWarning`, so callers can filter with `--no-deprecation` or
+ * `--throw-deprecation` on a per-code basis.
+ */
+export function toDeprecationCode(setting: string): string {
+  return (
+    'AISDK_DEP_' +
+    setting
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, '_')
+      .replace(/^_+/, '')
+      .replace(/_+$/, '')
+  );
+}
+
 let hasLoggedBefore = false;
 
 /**
@@ -137,9 +153,15 @@ export const logWarnings: LogWarningsFunction = options => {
       typeof process !== 'undefined' &&
       typeof process.emitWarning === 'function'
     ) {
-      process.emitWarning(message, {
-        type: warning.type === 'deprecated' ? 'DeprecationWarning' : 'Warning',
-      });
+      process.emitWarning(
+        message,
+        warning.type === 'deprecated'
+          ? {
+              type: 'DeprecationWarning',
+              code: toDeprecationCode(warning.setting),
+            }
+          : { type: 'Warning' },
+      );
     } else {
       console.warn(message);
     }
