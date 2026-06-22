@@ -263,6 +263,75 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
       });
 
+      it('should only include orchestration usage fields that are present', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_67c97c0203188190a025beb4a75242bc',
+            object: 'response',
+            created_at: 1741257730,
+            status: 'completed',
+            error: null,
+            incomplete_details: null,
+            input: [],
+            instructions: null,
+            max_output_tokens: null,
+            model: 'gpt-4o-2024-07-18',
+            output: [
+              {
+                id: 'msg_67c97c02656c81908e080dfdf4a03cd1',
+                type: 'message',
+                status: 'completed',
+                role: 'assistant',
+                content: [
+                  { type: 'output_text', text: 'answer text', annotations: [] },
+                ],
+              },
+            ],
+            parallel_tool_calls: true,
+            previous_response_id: null,
+            reasoning: { effort: null, summary: null },
+            store: true,
+            temperature: 1,
+            text: { format: { type: 'text' } },
+            tool_choice: 'auto',
+            tools: [],
+            top_p: 1,
+            truncation: 'disabled',
+            usage: {
+              input_tokens: 120,
+              input_tokens_details: {
+                cached_tokens: 0,
+                orchestration_input_tokens: 40,
+              },
+              output_tokens: 80,
+              output_tokens_details: {
+                reasoning_tokens: 0,
+              },
+              total_tokens: 200,
+            },
+            user: null,
+            metadata: {},
+          },
+        };
+
+        const result = await createModel('gpt-4o').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.providerMetadata?.openai.usage).toStrictEqual({
+          orchestrationInputTokens: 40,
+        });
+      });
+
+      it('should not add usage to provider metadata when no orchestration usage is present', async () => {
+        const result = await createModel('gpt-4o').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.providerMetadata?.openai).not.toHaveProperty('usage');
+      });
+
       it('should extract response id metadata ', async () => {
         const result = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
@@ -3121,6 +3190,58 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         ]
       `);
+    });
+
+    it('should surface orchestration usage in provider metadata', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:{"type":"response.created","response":{"id":"resp_67c9a81b6a048190a9ee441c5755a4e8","object":"response","created_at":1741269019,"status":"in_progress","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"gpt-4o-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0.3,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+          `data:{"type":"response.output_item.added","output_index":0,"item":{"id":"msg_67c9a81dea8c8190b79651a2b3adf91e","type":"message","status":"in_progress","role":"assistant","content":[]}}\n\n`,
+          `data:{"type":"response.output_text.delta","item_id":"msg_67c9a81dea8c8190b79651a2b3adf91e","output_index":0,"content_index":0,"delta":"Hello!"}\n\n`,
+          `data:{"type":"response.output_item.done","output_index":0,"item":{"id":"msg_67c9a8787f4c8190b49c858d4c1cf20c","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Hello!","annotations":[]}]}}\n\n`,
+          `data:{"type":"response.completed","response":{"id":"resp_67c9a878139c8190aa2e3105411b408b","object":"response","created_at":1741269112,"status":"completed","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"gpt-4o-2024-07-18","output":[{"id":"msg_67c9a8787f4c8190b49c858d4c1cf20c","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Hello!","annotations":[]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0.3,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":{"input_tokens":120,"input_tokens_details":{"cached_tokens":0,"orchestration_input_tokens":40,"orchestration_input_cached_tokens":10},"output_tokens":80,"output_tokens_details":{"reasoning_tokens":0,"orchestration_output_tokens":25},"total_tokens":265},"user":null,"metadata":{}}}\n\n`,
+        ],
+      };
+
+      const { stream } = await createModel('gpt-4o').doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const finishPart = parts.find(part => part.type === 'finish');
+
+      // Sakana-style orchestration usage is surfaced via provider metadata so
+      // downstream consumers (e.g. the AI Gateway) can bill it.
+      expect(finishPart?.providerMetadata?.openai.usage).toStrictEqual({
+        orchestrationInputTokens: 40,
+        orchestrationInputCachedTokens: 10,
+        orchestrationOutputTokens: 25,
+      });
+    });
+
+    it('should not add usage to provider metadata when no orchestration usage is present', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:{"type":"response.created","response":{"id":"resp_67c9a81b6a048190a9ee441c5755a4e8","object":"response","created_at":1741269019,"status":"in_progress","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"gpt-4o-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0.3,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+          `data:{"type":"response.output_item.added","output_index":0,"item":{"id":"msg_67c9a81dea8c8190b79651a2b3adf91e","type":"message","status":"in_progress","role":"assistant","content":[]}}\n\n`,
+          `data:{"type":"response.output_text.delta","item_id":"msg_67c9a81dea8c8190b79651a2b3adf91e","output_index":0,"content_index":0,"delta":"Hello!"}\n\n`,
+          `data:{"type":"response.output_item.done","output_index":0,"item":{"id":"msg_67c9a8787f4c8190b49c858d4c1cf20c","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Hello!","annotations":[]}]}}\n\n`,
+          `data:{"type":"response.completed","response":{"id":"resp_67c9a878139c8190aa2e3105411b408b","object":"response","created_at":1741269112,"status":"completed","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"gpt-4o-2024-07-18","output":[{"id":"msg_67c9a8787f4c8190b49c858d4c1cf20c","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Hello!","annotations":[]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0.3,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":{"input_tokens":120,"input_tokens_details":{"cached_tokens":0},"output_tokens":80,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":200},"user":null,"metadata":{}}}\n\n`,
+        ],
+      };
+
+      const { stream } = await createModel('gpt-4o').doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const finishPart = parts.find(part => part.type === 'finish');
+
+      expect(finishPart?.providerMetadata?.openai).not.toHaveProperty('usage');
     });
 
     it('should send finish reason for incomplete response', async () => {
