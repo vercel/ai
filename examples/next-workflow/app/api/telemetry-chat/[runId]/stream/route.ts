@@ -5,7 +5,7 @@ import {
   appendTelemetryEvent,
   getTelemetryRunIdForWorkflowRun,
 } from '@/lib/telemetry-store';
-import { toUIMessageStream } from '@/workflow/telemetry-agent';
+import { toUIMessageStream } from '@/workflow/to-ui-message-stream';
 
 export async function GET(
   request: NextRequest,

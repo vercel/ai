@@ -1,5 +1,4 @@
 import {
-  createModelCallToUIChunkTransform,
   WorkflowAgent,
   type ModelCallStreamPart,
   type TelemetryOptions,
@@ -13,7 +12,6 @@ import {
 import {
   convertToModelMessages,
   tool,
-  type Experimental_SandboxSession as SandboxSession,
   type Telemetry,
   type UIMessage,
 } from 'ai';
@@ -149,48 +147,6 @@ async function failTool() {
   throw new Error('Intentional telemetry e2e tool failure');
 }
 
-function createTelemetrySandbox({
-  telemetryRunId,
-  label,
-}: {
-  telemetryRunId: string;
-  label: string;
-}): SandboxSession {
-  const notImplemented = async () => {
-    throw new Error('Only sandbox.run is implemented in this e2e sandbox.');
-  };
-
-  return {
-    description: `Telemetry e2e sandbox (${label})`,
-    readFile: notImplemented,
-    readBinaryFile: notImplemented,
-    readTextFile: notImplemented,
-    writeFile: notImplemented,
-    writeBinaryFile: notImplemented,
-    writeTextFile: notImplemented,
-    spawn: notImplemented,
-    run: async ({ command, workingDirectory, env }) => {
-      await recordTelemetryEvent({
-        telemetryRunId,
-        source: 'workflow',
-        name: 'sandboxRun',
-        summary: {
-          label,
-          command,
-          workingDirectory,
-          envKeys: Object.keys(env ?? {}).sort(),
-        },
-      });
-
-      return {
-        exitCode: 0,
-        stdout: `sandbox:${label}:${command}`,
-        stderr: '',
-      };
-    },
-  };
-}
-
 const tools = {
   getWeather: tool({
     description: 'Get deterministic weather for a city.',
@@ -223,27 +179,6 @@ const tools = {
     inputSchema: z.object({}),
     execute: failTool,
   }),
-  runSandboxCommand: tool({
-    description: 'Run a deterministic command in the configured sandbox.',
-    inputSchema: z.object({ command: z.string() }),
-    execute: async ({ command }, { experimental_sandbox }) => {
-      if (experimental_sandbox == null) {
-        throw new Error('Sandbox is not available');
-      }
-
-      const result = await experimental_sandbox.run({
-        command,
-        workingDirectory: '/workspace',
-        env: { SCENARIO: 'sandbox' },
-      });
-
-      return {
-        command,
-        sandboxDescription: experimental_sandbox.description,
-        ...result,
-      };
-    },
-  }),
 };
 
 function getResponses(scenario: TelemetryScenario): MockResponseDescriptor[] {
@@ -265,15 +200,6 @@ function getResponses(scenario: TelemetryScenario): MockResponseDescriptor[] {
     case 'model-error':
       return [
         { type: 'error', message: 'Intentional telemetry e2e model error' },
-      ];
-    case 'sandbox':
-      return [
-        {
-          type: 'tool-call',
-          toolName: 'runSandboxCommand',
-          input: JSON.stringify({ command: 'echo sandbox-e2e' }),
-        },
-        { type: 'text', text: 'Sandbox command completed.' },
       ];
     default:
       return [
@@ -354,15 +280,6 @@ export async function telemetryChat(
     summary: { scenario: request.scenario },
   });
 
-  const constructorSandbox = createTelemetrySandbox({
-    telemetryRunId: request.telemetryRunId,
-    label: 'constructor',
-  });
-  const streamSandbox = createTelemetrySandbox({
-    telemetryRunId: request.telemetryRunId,
-    label: 'stream',
-  });
-
   const agent = new WorkflowAgent({
     model: mockSequenceModel(getResponses(request.scenario)),
     instructions:
@@ -390,7 +307,6 @@ export async function telemetryChat(
       functionId: 'workflow-agent-telemetry-constructor',
       telemetryRunId: request.telemetryRunId,
     }),
-    experimental_sandbox: constructorSandbox,
     experimental_onStart: recordCallback({
       telemetryRunId: request.telemetryRunId,
       source: 'agent-callback',
@@ -430,8 +346,6 @@ export async function telemetryChat(
       source: 'agent-callback',
       name: 'onError',
     }) satisfies WorkflowAgentOnErrorCallback,
-    experimental_sandbox:
-      request.scenario === 'sandbox' ? streamSandbox : undefined,
   });
 
   await recordTelemetryEvent({
@@ -446,10 +360,4 @@ export async function telemetryChat(
   });
 
   return { messages: result.messages };
-}
-
-export function toUIMessageStream(
-  readable: ReadableStream<ModelCallStreamPart>,
-) {
-  return readable.pipeThrough(createModelCallToUIChunkTransform());
 }
