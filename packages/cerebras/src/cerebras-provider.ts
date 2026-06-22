@@ -12,6 +12,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { CerebrasChatLanguageModel } from './cerebras-chat-language-model';
 import type { CerebrasChatModelId } from './cerebras-chat-options';
+import { cerebrasMetadataExtractor } from './cerebras-metadata-extractor';
 import { z } from 'zod/v4';
 import { VERSION } from './version';
 
@@ -33,12 +34,21 @@ const cerebrasErrorStructure: ProviderErrorStructure<CerebrasErrorData> = {
 /**
  * Cerebras expects assistant reasoning history in the `reasoning` field, while
  * the shared OpenAI-compatible converter serializes it as `reasoning_content`.
+ *
+ * Provider options are passed through verbatim (camelCase) by the
+ * OpenAI-compatible base class, so we also map `serviceTier` -> `service_tier`
+ * and strip `queueThreshold` (sent as the `queue_threshold` header instead).
  */
 function transformCerebrasRequestBody(
   args: Record<string, any>,
 ): Record<string, any> {
+  const { serviceTier, ...rest } = args;
+  // `queueThreshold` is sent as the `queue_threshold` header, not in the body.
+  delete rest.queueThreshold;
+
   return {
-    ...args,
+    ...rest,
+    ...(serviceTier !== undefined ? { service_tier: serviceTier } : {}),
     messages: Array.isArray(args.messages)
       ? args.messages.map(message => {
           if (
@@ -133,6 +143,7 @@ export function createCerebras(
       errorStructure: cerebrasErrorStructure,
       supportsStructuredOutputs: true,
       transformRequestBody: transformCerebrasRequestBody,
+      metadataExtractor: cerebrasMetadataExtractor,
     });
   };
 

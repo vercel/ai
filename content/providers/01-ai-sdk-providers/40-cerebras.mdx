@@ -144,6 +144,18 @@ The following optional provider options are available for Cerebras language mode
 
   Whether to use strict JSON schema validation. When `true`, the model uses constrained decoding to guarantee schema compliance. Defaults to `true`.
 
+- **serviceTier** _'auto' | 'default' | 'flex' | 'priority'_
+
+  Controls the processing priority of the request. Use `'priority'` for time-critical requests (dedicated endpoints only), `'default'` for standard workloads (the API default), `'auto'` to automatically use the highest available tier, or `'flex'` for low-priority overflow requests.
+
+  When the API returns the effective tier (e.g. when using `'auto'`), it is surfaced on `result.providerMetadata.cerebras.serviceTier`.
+
+  This feature is in private preview. See the [Cerebras service tiers docs](https://inference-docs.cerebras.ai/capabilities/service-tiers) for details.
+
+- **queueThreshold** _number_
+
+  Maximum acceptable queue time, in milliseconds, for `'flex'`/`'auto'` requests. If the expected queue time exceeds this threshold, the request is rejected rather than waiting in the queue. Sent as the `queue_threshold` header. Valid range: `50`–`20000`.
+
 ## Model Capabilities
 
 | Model                            | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      | Reasoning           |
