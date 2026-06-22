@@ -133,6 +133,7 @@ export type ChatStatus = 'submitted' | 'streaming' | 'ready' | 'error';
 type ActiveResponse<UI_MESSAGE extends UIMessage> = {
   state: StreamingUIMessageState<UI_MESSAGE>;
   abortController: AbortController;
+  finished: Promise<void>;
 };
 
 export interface ChatState<UI_MESSAGE extends UIMessage> {
@@ -586,8 +587,11 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   stop = async () => {
     if (this.status !== 'streaming' && this.status !== 'submitted') return;
 
-    if (this.activeResponse?.abortController) {
-      this.activeResponse.abortController.abort();
+    const activeResponse = this.activeResponse;
+
+    if (activeResponse?.abortController) {
+      activeResponse.abortController.abort();
+      await activeResponse.finished;
     }
   };
 
@@ -650,6 +654,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     let isAbort = false;
     let isDisconnect = false;
     let isError = false;
+    let resolveActiveResponseFinished: (() => void) | undefined;
 
     try {
       const activeResponse = {
@@ -658,6 +663,9 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           messageId: this.generateId(),
         }),
         abortController: new AbortController(),
+        finished: new Promise<void>(resolve => {
+          resolveActiveResponseFinished = resolve;
+        }),
       } as ActiveResponse<UI_MESSAGE>;
 
       activeResponse.abortController.signal.addEventListener('abort', () => {
@@ -769,6 +777,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       }
 
       this.activeResponse = undefined;
+      resolveActiveResponseFinished?.();
     }
 
     // automatically send the message if the sendAutomaticallyWhen function returns true
