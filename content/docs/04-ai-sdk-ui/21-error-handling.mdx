@@ -49,6 +49,32 @@ globalThis.AI_SDK_LOG_WARNINGS = ({ warnings, provider, model }) => {
 };
 ```
 
+### Unsupported Feature Warnings
+
+When you use a feature that a model does not support (for example, setting `reasoningEffort` on a non-reasoning model), the AI SDK **strips the unsupported option and logs a warning** rather than throwing an error. This design allows seamless model switching (e.g. fallback mechanisms or A/B testing) without runtime failures.
+
+However, this means unsupported settings can be silently ignored. If you are testing a new or private model and want to make sure specific options like `reasoningEffort` are actually being sent, you can promote specific warnings to errors:
+
+```ts
+globalThis.AI_SDK_LOG_WARNINGS = ({ warnings }) => {
+  for (const warning of warnings) {
+    if (
+      warning.type === 'unsupported' &&
+      warning.feature === 'reasoningEffort'
+    ) {
+      throw new Error(warning.details);
+    }
+  }
+};
+```
+
+<Note>
+  Throwing inside `AI_SDK_LOG_WARNINGS` will cause the `generateText` /
+  `streamText` call to reject with an error. Use this approach during
+  development or testing to catch configuration issues early. Remove it in
+  production if you rely on dynamic model switching.
+</Note>
+
 ## Error Handling
 
 ### Error Helper Object
