@@ -60,6 +60,21 @@
   }
 }
 
+@keyframes realtime-waveform {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+.realtime-waveform-bar[data-active="true"] {
+  animation: realtime-waveform 900ms ease-in-out infinite;
+  transform-origin: center;
+}
+
 @layer base {
   * {
     @apply border-border;
