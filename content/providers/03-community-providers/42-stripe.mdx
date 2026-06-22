@@ -1,0 +1,240 @@
+---
+title: Stripe AI SDK
+description: Learn how to use the Stripe AI SDK provider and metering utilities with the AI SDK.
+---
+
+# Stripe AI SDK
+
+The [Stripe AI SDK](https://docs.stripe.com/billing/token-billing) provides comprehensive tools for integrating AI models with Stripe's billing infrastructure. This unified package includes both a custom Vercel AI SDK provider and metering utilities for tracking token usage across any AI SDK provider.
+
+<Note>
+  The Stripe AI SDK is currently only available to organizations participating
+  in the **Billing for LLM Tokens Private Preview**. If you do not have access
+  and would like to request it, please visit [Request Access to Billing for LLM
+  Tokens Private Preview](https://docs.stripe.com/billing/token-billing).
+</Note>
+
+## Overview
+
+The Stripe AI SDK contains two main components:
+
+### Provider (`@stripe/ai-sdk/provider`)
+
+A custom Vercel AI SDK provider that routes requests through Stripe's LLM proxy at `llm.stripe.com`, enabling automatic usage tracking and billing integration.
+
+**Key Features:**
+
+- **Unified API**: Access OpenAI, Google Gemini, and Anthropic Claude through a single interface
+- **Automatic tracking**: Token usage is automatically reported to Stripe
+- **Built-in billing**: Seamlessly integrate AI costs into your Stripe billing workflow
+- **Customer attribution**: Automatically attribute usage to specific customers
+
+### Meter (`@stripe/ai-sdk/meter`)
+
+A wrapper utility that adds billing tracking to any Vercel AI SDK language model, allowing you to use your preferred provider while still tracking usage in Stripe.
+
+**Key Features:**
+
+- **Universal Compatibility**: Works with any AI SDK v2 provider
+- **Non-Intrusive**: Preserves all original model functionality
+- **Fire-and-Forget**: Billing events are sent asynchronously
+- **Automatic Metering**: Token consumption is automatically tracked
+- **Customer Attribution**: Attribute usage to specific customers
+
+## Which should I use?
+
+### Use the **Provider** when:
+
+- You want a unified interface to multiple AI providers
+- You prefer routing through Stripe's LLM proxy
+- You want automatic usage tracking without any wrapper code
+- You're building a new application
+
+### Use the **Meter** when:
+
+- You need to use specific provider features or configurations
+- You want to keep your existing provider setup
+- You need direct access to the native provider APIs
+- You're integrating into an existing codebase
+
+## Setup
+
+The Stripe AI SDK is available in the `@stripe/ai-sdk` module. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @stripe/ai-sdk" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @stripe/ai-sdk" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @stripe/ai-sdk" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add @stripe/ai-sdk" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+To create a Stripe provider instance, use the `createStripe` function:
+
+```typescript
+import { createStripe } from '@stripe/ai-sdk/provider';
+
+const stripeLLM = createStripe({
+  apiKey: process.env.STRIPE_API_KEY,
+  customerId: 'cus_xxxxx',
+});
+```
+
+You can obtain your Stripe API key from the [Stripe Dashboard](https://dashboard.stripe.com/apikeys).
+
+## Language Models
+
+The Stripe provider supports models from multiple AI providers through a unified interface. Use the model ID in the format `provider/model-name`:
+
+```typescript
+// OpenAI models
+const openaiModel = stripeLLM('openai/gpt-5');
+
+// Google Gemini models
+const geminiModel = stripeLLM('google/gemini-2.5-pro');
+
+// Anthropic Claude models
+const claudeModel = stripeLLM('anthropic/claude-sonnet-4');
+```
+
+## Examples
+
+### Provider: `generateText`
+
+```javascript
+import { createStripe } from '@stripe/ai-sdk/provider';
+import { generateText } from 'ai';
+
+const stripeLLM = createStripe({
+  apiKey: process.env.STRIPE_API_KEY,
+  customerId: 'cus_xxxxx',
+});
+
+const { text } = await generateText({
+  model: stripeLLM('openai/gpt-5'),
+  prompt: 'What are the three primary colors?',
+});
+
+console.log(text);
+```
+
+### Provider: `streamText`
+
+```javascript
+import { createStripe } from '@stripe/ai-sdk/provider';
+import { streamText } from 'ai';
+
+const stripeLLM = createStripe({
+  apiKey: process.env.STRIPE_API_KEY,
+  customerId: 'cus_xxxxx',
+});
+
+const result = await streamText({
+  model: stripeLLM('anthropic/claude-sonnet-4'),
+  prompt: 'Write a short story about AI.',
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+### Meter: `generateText`
+
+```javascript
+import { meteredModel } from '@stripe/ai-sdk/meter';
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const model = meteredModel(
+  openai('gpt-4o-mini'),
+  process.env.STRIPE_API_KEY,
+  'cus_xxxxx',
+);
+
+const { text } = await generateText({
+  model,
+  prompt: 'What are the three primary colors?',
+});
+
+console.log(text);
+```
+
+### Meter: `streamText`
+
+```javascript
+import { meteredModel } from '@stripe/ai-sdk/meter';
+import { anthropic } from '@ai-sdk/anthropic';
+import { streamText } from 'ai';
+
+const model = meteredModel(
+  anthropic('claude-3-5-sonnet-20241022'),
+  process.env.STRIPE_API_KEY,
+  'cus_xxxxx',
+);
+
+const result = await streamText({
+  model,
+  prompt: 'Write a short story about AI.',
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+## Supported Models
+
+### Provider Models
+
+The provider supports models from:
+
+- **OpenAI**: GPT-5, GPT-4.1, o3, o1, and more
+- **Google**: Gemini 2.5 Pro, Gemini 2.5 Flash, and more
+- **Anthropic**: Claude Opus 4, Claude Sonnet 4, Claude Haiku, and more
+
+### Meter Compatibility
+
+The meter works with any AI SDK v2 provider, including:
+
+- OpenAI (`@ai-sdk/openai`)
+- Anthropic (`@ai-sdk/anthropic`)
+- Google Gemini (`@ai-sdk/google`)
+- Azure OpenAI (`@ai-sdk/azure`)
+- Amazon Bedrock (`@ai-sdk/amazon-bedrock`)
+- And any custom v2 provider
+
+## Token Usage Tracking
+
+Both components automatically report token usage to Stripe meter events:
+
+```javascript
+{
+  event_name: 'token-billing-tokens',
+  payload: {
+    stripe_customer_id: 'cus_xxxxx',
+    value: '100',
+    model: 'openai/gpt-4o-mini',
+    token_type: 'input'
+  }
+}
+```
+
+This enables seamless billing integration, allowing you to charge customers based on their actual token consumption.
+
+## Additional Resources
+
+- [Stripe Billing for LLM Tokens Documentation](https://docs.stripe.com/billing/token-billing)
+- [Stripe Dashboard](https://dashboard.stripe.com/)
+
+
