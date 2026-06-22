@@ -415,8 +415,6 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
         });
 
-        // Sakana-style orchestration usage rides through on `usage.raw` so
-        // downstream consumers (e.g. the AI Gateway) can bill it.
         expect(result.usage.raw).toMatchObject({
           input_tokens_details: {
             orchestration_input_tokens: 40,
