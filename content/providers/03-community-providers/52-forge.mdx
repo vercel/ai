@@ -1,0 +1,122 @@
+---
+title: Forge
+description: Learn how to use the Forge provider.
+---
+
+# Forge Provider
+
+[VoxellInc/forge-ai-provider](https://github.com/VoxellInc/forge-ai-provider) is a community provider that uses [Forge](https://voxell.ai/forge) — Voxell's hosted text-embedding API — to provide Embedding support for the AI SDK.
+
+## Setup
+
+The Forge provider is available in the `@voxell/forge-ai-provider` module. You can install it with
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @voxell/forge-ai-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @voxell/forge-ai-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @voxell/forge-ai-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @voxell/forge-ai-provider" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can import the default provider instance `forge` from `@voxell/forge-ai-provider`:
+
+```ts
+import { forge } from '@voxell/forge-ai-provider';
+```
+
+If you need a customized setup, you can import `createForge` from `@voxell/forge-ai-provider` and create a provider instance with your settings:
+
+```ts
+import { createForge } from '@voxell/forge-ai-provider';
+
+const forge = createForge({
+  // custom settings
+});
+```
+
+You can use the following optional settings to customize the Forge provider instance:
+
+- **apiKey** _string_
+
+  API key sent using the `Authorization` header. Defaults to the `FORGE_API_KEY` environment variable. Create one at [dash.voxell.ai](https://dash.voxell.ai).
+
+- **baseURL** _string_
+
+  The base URL of the Forge API. Defaults to `https://api.voxell.ai`.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation. Defaults to the global `fetch`.
+
+## Text Embedding Models
+
+You can create models that call the Forge embeddings API using the `.textEmbeddingModel()` factory method.
+
+```ts
+import { forge } from '@voxell/forge-ai-provider';
+
+const embeddingModel = forge.textEmbeddingModel('turbo');
+```
+
+Available models (pick your point on the quality/cost curve):
+
+| Model | Dimensions | Notes |
+| ----- | ---------- | ----- |
+| `turbo` | 1024 | fast, low cost (default) — already outranks OpenAI `text-embedding-3-large` on MTEB (English) |
+| `pro` | 2560 | higher-accuracy mid tier |
+| `ultra` | 4096 | Qwen3-Embedding-8B — top-tier on MTEB (English) |
+
+You can use Forge embedding models to generate embeddings with the `embed` function:
+
+```ts
+import { forge } from '@voxell/forge-ai-provider';
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: forge.textEmbeddingModel('turbo'),
+  value: 'sunny day at the beach',
+});
+```
+
+And with the `embedMany` function for batches:
+
+```ts
+import { forge } from '@voxell/forge-ai-provider';
+import { embedMany } from 'ai';
+
+const { embeddings } = await embedMany({
+  model: forge.textEmbeddingModel('pro'),
+  values: ['first document', 'second document'],
+});
+```
+
+### Provider Options
+
+Pass `providerOptions.forge` to control per-call behavior:
+
+```ts
+await embed({
+  model: forge.textEmbeddingModel('turbo'),
+  value: 'a search query',
+  providerOptions: {
+    forge: {
+      dimensions: 256, // Matryoshka: shorter, re-normalized vectors
+      inputType: 'query', // 'query' applies a retrieval prefix; 'document' (default) is raw
+    },
+  },
+});
+```
