@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.109
+
+### Patch Changes
+
+- f8e6a5c: feat(openai): add orchestration token usage details to Responses API usage
+
 ## 2.0.108
 
 ### Patch Changes
