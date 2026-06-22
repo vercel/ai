@@ -2698,4 +2698,122 @@ describe('use-chat', () => {
       });
     });
   });
+
+  describe('remount onto streaming chat (#15625)', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2024-01-01T00:00:00Z'));
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    function StreamingView({ chat }: { chat: Chat<UIMessage> }) {
+      const renderCountRef = useRef(0);
+      renderCountRef.current += 1;
+
+      const { messages, sendMessage, status } = useChat({
+        chat,
+        experimental_throttle: 150,
+      });
+
+      const aiText = messages
+        .filter(m => m.role === 'assistant')
+        .flatMap(m => m.parts)
+        .map(part => (part.type === 'text' ? part.text : ''))
+        .join('');
+
+      return (
+        <div>
+          <div data-testid="status">{status.toString()}</div>
+          <div data-testid="ai-text">{aiText}</div>
+          <div data-testid="render-count">{renderCountRef.current}</div>
+          <button
+            data-testid="do-send"
+            onClick={() => {
+              sendMessage({ parts: [{ text: 'hi', type: 'text' }] });
+            }}
+          />
+        </div>
+      );
+    }
+
+    it('should trigger re-renders when remounting onto an already-streaming Chat object', async () => {
+      const controller = new TestResponseController();
+      server.urls['/api/chat'].response = {
+        type: 'controlled-stream',
+        controller,
+      };
+
+      // The Chat instance lives OUTSIDE the component so it survives the
+      // unmount/remount cycle (e.g. persisted in external state like Zustand).
+      const chat = new Chat<UIMessage>({
+        transport: new DefaultChatTransport({ api: '/api/chat' }),
+        generateId: mockId(),
+      });
+
+      // ---- first mount: start the stream ----
+      const first = render(<StreamingView chat={chat} />);
+
+      fireEvent.click(screen.getByTestId('do-send'));
+
+      controller.write(formatChunk({ type: 'text-start', id: '0' }));
+      controller.write(
+        formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+      );
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(200);
+      });
+
+      expect(screen.getByTestId('status')).toHaveTextContent('streaming');
+      expect(screen.getByTestId('ai-text')).toHaveTextContent('Hello');
+
+      // ---- unmount while the stream is still in progress ----
+      first.unmount();
+
+      // Chunks arrive while NO component is mounted: they land on the Chat
+      // object only.
+      controller.write(
+        formatChunk({ type: 'text-delta', id: '0', delta: ', ' }),
+      );
+      controller.write(
+        formatChunk({ type: 'text-delta', id: '0', delta: 'world' }),
+      );
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(200);
+      });
+
+      // The stream is still live on the Chat object.
+      expect(chat.status).toBe('streaming');
+
+      // ---- remount a fresh component onto the SAME, still-streaming chat ----
+      render(<StreamingView chat={chat} />);
+
+      const countAfterRemount = Number(
+        screen.getByTestId('render-count').textContent,
+      );
+
+      // Chunks arriving AFTER remount must trigger re-renders, without relying
+      // on the undocumented `chat['~registerMessagesCallback']` workaround or an
+      // unrelated re-render trigger (e.g. a window resize).
+      controller.write(
+        formatChunk({ type: 'text-delta', id: '0', delta: '!' }),
+      );
+      controller.write(formatChunk({ type: 'text-end', id: '0' }));
+      await act(async () => {
+        await controller.close();
+        await vi.advanceTimersByTimeAsync(200);
+      });
+
+      // Final streamed content is complete and correct.
+      expect(screen.getByTestId('ai-text')).toHaveTextContent('Hello, world!');
+      expect(screen.getByTestId('status')).toHaveTextContent('ready');
+
+      // The remounted component committed additional renders for the
+      // post-remount chunks.
+      const finalCount = Number(screen.getByTestId('render-count').textContent);
+      expect(finalCount).toBeGreaterThan(countAfterRemount);
+    });
+  });
 });
