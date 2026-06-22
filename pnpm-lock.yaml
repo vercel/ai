@@ -370,6 +370,9 @@ importers:
       '@ai-sdk/sandbox-just-bash':
         specifier: workspace:*
         version: link:../../packages/sandbox-just-bash
+      '@ai-sdk/sandbox-tensorlake':
+        specifier: workspace:*
+        version: link:../../packages/sandbox-tensorlake
       '@ai-sdk/sandbox-vercel':
         specifier: workspace:*
         version: link:../../packages/sandbox-vercel
@@ -3429,6 +3432,37 @@ importers:
       typescript:
         specifier: 5.8.3
         version: 5.8.3
+
+  packages/sandbox-tensorlake:
+    dependencies:
+      '@ai-sdk/harness':
+        specifier: workspace:*
+        version: link:../harness
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../provider-utils
+      tensorlake:
+        specifier: ^0.5.47
+        version: 0.5.47
+    devDependencies:
+      '@types/node':
+        specifier: 22.19.19
+        version: 22.19.19
+      '@types/ws':
+        specifier: ^8.5.13
+        version: 8.18.1
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(jiti@2.7.0)(postcss@8.5.15)(tsx@4.22.0)(typescript@5.8.3)(yaml@2.9.0)
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+      ws:
+        specifier: ^8.20.1
+        version: 8.21.0
 
   packages/sandbox-vercel:
     dependencies:
@@ -19380,6 +19414,11 @@ packages:
   teex@1.0.1:
     resolution: {integrity: sha512-eYE6iEI62Ni1H8oIa7KlDU6uQBtqr4Eajni3wX7rpfXD8ysFx8z0+dri+KWEPWpBsxXfxu58x/0jvTVT1ekOSg==}
 
+  tensorlake@0.5.47:
+    resolution: {integrity: sha512-CgAfFiaTtgFoCpqJtxJBweQJ8FaNlIyntnzMiGnnoYGjRfhZ213RMFGPBqBwhSbRIR3wFmxp1i3XmleKNTL3CQ==}
+    engines: {node: '>=22.0.0'}
+    hasBin: true
+
   term-img@6.0.0:
     resolution: {integrity: sha512-R4c+XtUiN/9lMlw+wldmxjPO/xlG3sIE79tcnE3A8CtcYMTDiOgAKy/EhroI+rmjB3cVyCkYSzTPBBjPsC7YdQ==}
     engines: {node: '>=12'}
@@ -20825,18 +20864,6 @@ packages:
   write-file-atomic@5.0.1:
     resolution: {integrity: sha512-+QU2zd6OTD8XWIJCbffaiQeH9U73qIqafo1x6V1snCWYGJf6cVE0cDR4D8xRzcEnfI21IFrUPzPGtcPf8AC+Rw==}
     engines: {node: ^14.17.0 || ^16.13.0 || >=18.0.0}
-
-  ws@8.20.1:
-    resolution: {integrity: sha512-It4dO0K5v//JtTXuPkfEOaI3uUN87iYPnqo/ZzqCoG3g8uhA66QUMs/SrM0YK7/NAu+r4LMh/9dq2A7k+rHs+w==}
-    engines: {node: '>=10.0.0'}
-    peerDependencies:
-      bufferutil: ^4.0.1
-      utf-8-validate: '>=5.0.2'
-    peerDependenciesMeta:
-      bufferutil:
-        optional: true
-      utf-8-validate:
-        optional: true
 
   ws@8.21.0:
     resolution: {integrity: sha512-Vsp28b7DRcimFQvrqu2Wek3z1iYxDCWqHYB8Qsnk/S4RfaCQzPGPyBNuVjJV3cd6UiKtUtp6sNM77gWvzcCH+g==}
@@ -26445,7 +26472,7 @@ snapshots:
       vite-plugin-inspect: 0.8.9(@nuxt/kit@3.21.5(magicast@0.3.5))(rollup@4.62.0)(vite@7.3.5(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.48.0)(tsx@4.22.0)(yaml@2.9.0))
       vite-plugin-vue-inspector: 5.1.3(vite@7.3.5(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.48.0)(tsx@4.22.0)(yaml@2.9.0))
       which: 3.0.1
-      ws: 8.20.1
+      ws: 8.21.0
     transitivePeerDependencies:
       - bufferutil
       - rollup
@@ -35687,7 +35714,7 @@ snapshots:
       whatwg-encoding: 3.1.1
       whatwg-mimetype: 4.0.0
       whatwg-url: 14.2.0
-      ws: 8.20.1
+      ws: 8.21.0
       xml-name-validator: 5.0.0
     transitivePeerDependencies:
       - bufferutil
@@ -40503,6 +40530,14 @@ snapshots:
       - bare-abort-controller
       - react-native-b4a
 
+  tensorlake@0.5.47:
+    dependencies:
+      undici: 8.3.0
+      ws: 8.21.0
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+
   term-img@6.0.0:
     dependencies:
       ansi-escapes: 5.0.0
@@ -42477,8 +42512,6 @@ snapshots:
     dependencies:
       imurmurhash: 0.1.4
       signal-exit: 4.1.0
-
-  ws@8.20.1: {}
 
   ws@8.21.0: {}
 

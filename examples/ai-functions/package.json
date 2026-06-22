@@ -51,6 +51,7 @@
     "@ai-sdk/replicate": "workspace:*",
     "@ai-sdk/revai": "workspace:*",
     "@ai-sdk/sandbox-just-bash": "workspace:*",
+    "@ai-sdk/sandbox-tensorlake": "workspace:*",
     "@ai-sdk/sandbox-vercel": "workspace:*",
     "@ai-sdk/togetherai": "workspace:*",
     "@ai-sdk/tui": "workspace:*",

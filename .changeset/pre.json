@@ -98,7 +98,8 @@
     "@example/harness-e2e-tui": "0.0.0",
     "@ai-sdk/harness-claude-code": "0.0.0",
     "@ai-sdk/harness-codex": "0.0.0",
-    "@ai-sdk/harness-pi": "0.0.0"
+    "@ai-sdk/harness-pi": "0.0.0",
+    "@ai-sdk/sandbox-tensorlake": "0.0.0"
   },
   "changesets": [
     "acupf-uiktr-ypdkq",
