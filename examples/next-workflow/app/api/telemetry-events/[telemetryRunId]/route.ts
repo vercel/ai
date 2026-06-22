@@ -40,7 +40,7 @@ const expectations: Record<TelemetryScenario, string[]> = {
     'onStepStart',
     'onToolExecutionStart',
     'onToolExecutionEnd',
-    'onFinish',
+    'onEnd',
     'workflow:sandboxRun',
   ],
   reconnect: [
