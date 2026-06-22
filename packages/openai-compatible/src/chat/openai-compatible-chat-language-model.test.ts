@@ -1825,6 +1825,97 @@ describe('doStream', () => {
     ]);
   });
 
+  it('should buffer tool call deltas without index until function name is available', async () => {
+    const chunk = (value: unknown) => `data: ${JSON.stringify(value)}\n\n`;
+
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        chunk({
+          id: 'chatcmpl-test',
+          object: 'chat.completion.chunk',
+          created: 1702657020,
+          model: 'grok-3',
+          choices: [
+            {
+              delta: {
+                tool_calls: [
+                  {
+                    id: 'call_0',
+                    type: 'function',
+                    function: {
+                      name: null,
+                      arguments: '{"query":"Abu',
+                    },
+                  },
+                ],
+              },
+              finish_reason: null,
+            },
+          ],
+        }),
+        chunk({
+          id: 'chatcmpl-test',
+          object: 'chat.completion.chunk',
+          created: 1702657020,
+          model: 'grok-3',
+          choices: [
+            {
+              delta: {
+                tool_calls: [
+                  {
+                    id: 'call_0',
+                    type: 'function',
+                    function: {
+                      name: 'webSearch',
+                      arguments: ' Dhabi"}',
+                    },
+                  },
+                ],
+              },
+              finish_reason: 'tool_calls',
+            },
+          ],
+        }),
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    expect(events.find(event => event.type === 'error')).toBeUndefined();
+    expect(events.filter(event => event.type.startsWith('tool-')))
+      .toMatchInlineSnapshot(`
+        [
+          {
+            "id": "call_0",
+            "toolName": "webSearch",
+            "type": "tool-input-start",
+          },
+          {
+            "delta": "{"query":"Abu Dhabi"}",
+            "id": "call_0",
+            "type": "tool-input-delta",
+          },
+          {
+            "id": "call_0",
+            "type": "tool-input-end",
+          },
+          {
+            "input": "{"query":"Abu Dhabi"}",
+            "toolCallId": "call_0",
+            "toolName": "webSearch",
+            "type": "tool-call",
+          },
+        ]
+      `);
+  });
+
   it('should respect the includeUsage option', async () => {
     prepareStreamResponse({
       content: ['Hello', ', ', 'World!'],
