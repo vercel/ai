@@ -13,11 +13,9 @@ import type { MCPAppMetadata, MCPAppRendererProps } from './types';
  *   state: 'input-available',
  *   input: { topic: 'usage' },
  *   toolMetadata: {
- *     mcp: {
- *       app: {
- *         resourceUri: 'ui://example/dashboard',
- *         mimeType: 'text/html;profile=mcp-app',
- *       },
+ *     app: {
+ *       resourceUri: 'ui://example/dashboard',
+ *       mimeType: 'text/html;profile=mcp-app',
  *     },
  *   },
  * });
@@ -27,10 +25,7 @@ import type { MCPAppMetadata, MCPAppRendererProps } from './types';
 export function getMCPAppFromToolPart(
   part: MCPAppRendererProps['part'],
 ): MCPAppMetadata | undefined {
-  const mcpMetadata = part.toolMetadata?.mcp;
-  const rawAppMetadata = isJSONObject(mcpMetadata)
-    ? mcpMetadata.app
-    : undefined;
+  const rawAppMetadata = part.toolMetadata?.app;
   const appMetadata = isJSONObject(rawAppMetadata) ? rawAppMetadata : undefined;
 
   if (

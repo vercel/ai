@@ -129,7 +129,7 @@ const BOOTSTRAP_DIR = '/tmp/harness/codex';
  * future process uses them to reopen a socket to the still-running bridge
  * (`attach`) instead of re-spawning it. Absent on a `doStop()` payload.
  */
-const bridgeCoordsSchema = z.object({
+const codexBridgeCoordsSchema = z.object({
   port: z.number(),
   token: z.string(),
   lastSeenEventId: z.number(),
@@ -146,10 +146,10 @@ const bridgeCoordsSchema = z.object({
  */
 const codexResumeStateSchema = z.object({
   threadId: z.string().optional(),
-  bridge: bridgeCoordsSchema.optional(),
+  bridge: codexBridgeCoordsSchema.optional(),
 });
 
-type CodexBridgeCoords = z.infer<typeof bridgeCoordsSchema>;
+type CodexBridgeCoords = z.infer<typeof codexBridgeCoordsSchema>;
 
 export function createCodex(
   settings: CodexHarnessSettings = {},

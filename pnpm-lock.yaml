@@ -25,8 +25,8 @@ importers:
         specifier: ^9.1.7
         version: 9.1.7
       konsistent:
-        specifier: 0.0.1-alpha.20
-        version: 0.0.1-alpha.20
+        specifier: 0.0.1-alpha.23
+        version: 0.0.1-alpha.23
       konsistent-provider:
         specifier: workspace:*
         version: link:tools/konsistent-provider
@@ -3859,8 +3859,8 @@ importers:
   tools/konsistent-provider:
     dependencies:
       '@konsistent/convention':
-        specifier: 0.0.1-alpha.2
-        version: 0.0.1-alpha.2(zod@4.4.3)
+        specifier: 0.0.1-alpha.5
+        version: 0.0.1-alpha.5(zod@4.4.3)
     devDependencies:
       '@types/node':
         specifier: 22.19.19
@@ -7526,8 +7526,9 @@ packages:
     engines: {node: '>= 12'}
     deprecated: Please upgrade to v15 or higher. All reported bugs in this version are fixed in newer releases, dependencies have been updated, and security has been improved.
 
-  '@konsistent/convention@0.0.1-alpha.2':
-    resolution: {integrity: sha512-KqpIvSoF7MvvuYVlgqfhItjRoZAbXW2yvcZl+cVJh09wYzwp/nj4WNqV6uUUc+3GVp3VtdQKlUYKMuP14n6wEQ==}
+  '@konsistent/convention@0.0.1-alpha.5':
+    resolution: {integrity: sha512-5F6dmvZLvJKkcLvkjkdcMmTyLycZv+PyuLeDLglPCHSfOBe2qx0W8v/Ey55e4c+xeg9uaRkbT5FJVjahREIVQQ==}
+    engines: {node: '>=22.11.0'}
     hasBin: true
     peerDependencies:
       zod: ^4
@@ -15958,8 +15959,9 @@ packages:
   kolorist@1.8.0:
     resolution: {integrity: sha512-Y+60/zizpJ3HRH8DCss+q95yr6145JXZo46OTpFvDZWLfRCE4qChOyk1b26nMaNpfHHgxagk9dXT5OP0Tfe+dQ==}
 
-  konsistent@0.0.1-alpha.20:
-    resolution: {integrity: sha512-JsKjtfWSg9v0QjAQDcjYlfcZ08N7MIdMHdo2ynbjWK+UVSVxavPHAIdn/FOwvIiWDSlw2hkULeMpRFulwklxig==}
+  konsistent@0.0.1-alpha.23:
+    resolution: {integrity: sha512-/CvhCng+AX96BKcyAdfi57EeqJXX58PN089k5rRw6oHJiXs47lAIGlTRi62AOu5nsnOmpTX64vKjhi/snweCDA==}
+    engines: {node: '>=22.11.0'}
     hasBin: true
 
   kuler@2.0.0:
@@ -25602,7 +25604,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@konsistent/convention@0.0.1-alpha.2(zod@4.4.3)':
+  '@konsistent/convention@0.0.1-alpha.5(zod@4.4.3)':
     dependencies:
       citty: 0.2.2
       jiti: 2.7.0
@@ -35939,9 +35941,9 @@ snapshots:
 
   kolorist@1.8.0: {}
 
-  konsistent@0.0.1-alpha.20:
+  konsistent@0.0.1-alpha.23:
     dependencies:
-      '@konsistent/convention': 0.0.1-alpha.2(zod@4.4.3)
+      '@konsistent/convention': 0.0.1-alpha.5(zod@4.4.3)
       citty: 0.2.2
       picocolors: 1.1.1
       resolve.exports: 2.0.3
