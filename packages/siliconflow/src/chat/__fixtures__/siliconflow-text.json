@@ -1,0 +1,23 @@
+{
+  "id": "00f10ecd-60b3-4707-b5db-e4bcadf7aea1",
+  "object": "chat.completion",
+  "created": 1764656316,
+  "model": "Qwen/Qwen3-32B",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "Hello! How can I help you today?"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 10,
+    "completion_tokens": 8,
+    "total_tokens": 18,
+    "prompt_cache_hit_tokens": 0,
+    "prompt_cache_miss_tokens": 10
+  }
+}

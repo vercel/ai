@@ -1,0 +1,201 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SiliconFlowChatLanguageModel > doGenerate > text > should extract text content 1`] = `
+{
+  "content": [
+    {
+      "text": "Hello! How can I help you today?",
+      "type": "text",
+    },
+  ],
+  "finishReason": {
+    "raw": "stop",
+    "unified": "stop",
+  },
+  "providerMetadata": {
+    "siliconflow": {
+      "promptCacheHitTokens": 0,
+      "promptCacheMissTokens": 10,
+    },
+  },
+  "request": {
+    "body": {
+      "frequency_penalty": undefined,
+      "max_tokens": undefined,
+      "messages": [
+        {
+          "content": "Hello",
+          "role": "user",
+        },
+      ],
+      "model": "Qwen/Qwen3-32B",
+      "presence_penalty": undefined,
+      "response_format": undefined,
+      "stop": undefined,
+      "temperature": undefined,
+      "tool_choice": undefined,
+      "tools": undefined,
+      "top_p": undefined,
+    },
+  },
+  "response": {
+    "body": {
+      "choices": [
+        {
+          "finish_reason": "stop",
+          "index": 0,
+          "message": {
+            "content": "Hello! How can I help you today?",
+            "role": "assistant",
+          },
+        },
+      ],
+      "created": 1764656316,
+      "id": "00f10ecd-60b3-4707-b5db-e4bcadf7aea1",
+      "model": "Qwen/Qwen3-32B",
+      "object": "chat.completion",
+      "usage": {
+        "completion_tokens": 8,
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 10,
+        "prompt_tokens": 10,
+        "total_tokens": 18,
+      },
+    },
+    "headers": {
+      "content-length": "368",
+      "content-type": "application/json",
+    },
+    "id": "00f10ecd-60b3-4707-b5db-e4bcadf7aea1",
+    "modelId": "Qwen/Qwen3-32B",
+    "timestamp": 2025-12-02T06:18:36.000Z,
+  },
+  "usage": {
+    "inputTokens": {
+      "cacheRead": 0,
+      "cacheWrite": undefined,
+      "noCache": 10,
+      "total": 10,
+    },
+    "outputTokens": {
+      "reasoning": 0,
+      "text": 8,
+      "total": 8,
+    },
+    "raw": {
+      "completion_tokens": 8,
+      "prompt_cache_hit_tokens": 0,
+      "prompt_cache_miss_tokens": 10,
+      "prompt_tokens": 10,
+      "total_tokens": 18,
+    },
+  },
+  "warnings": [],
+}
+`;
+
+exports[`SiliconFlowChatLanguageModel > doStream > text > should stream text 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "f6117a0b-129d-46fa-b239-78f01c2c5df9",
+    "modelId": "Qwen/Qwen3-32B",
+    "timestamp": 2025-12-02T06:46:33.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "txt-0",
+    "type": "text-start",
+  },
+  {
+    "delta": "Hello",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "!",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " How",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " can",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " I",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " help",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " you",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " today",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "?",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "error": [AI_JSONParseError: JSON parsing failed: Text: .
+Error message: SyntaxError: Unexpected end of JSON input],
+    "type": "error",
+  },
+  {
+    "id": "txt-0",
+    "type": "text-end",
+  },
+  {
+    "finishReason": {
+      "raw": undefined,
+      "unified": "error",
+    },
+    "providerMetadata": {
+      "siliconflow": {
+        "promptCacheHitTokens": 0,
+        "promptCacheMissTokens": 10,
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 10,
+        "total": 10,
+      },
+      "outputTokens": {
+        "reasoning": 0,
+        "text": 8,
+        "total": 8,
+      },
+      "raw": {
+        "completion_tokens": 8,
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 10,
+        "prompt_tokens": 10,
+        "total_tokens": 18,
+      },
+    },
+  },
+]
+`;
