@@ -64,6 +64,16 @@ export class GatewayEmbeddingModel implements EmbeddingModelV4 {
     const resolvedHeaders = this.config.headers
       ? await resolve(this.config.headers)
       : undefined;
+
+    // Extract dimension from provider options for models that support
+    // output dimension reduction (e.g. Cohere's outputDimension, OpenAI's dimensions).
+    // This is included as a top-level field as a secondary path for the
+    // Gateway server to use, which is more reliable for Cohere models.
+    const dimensions =
+      providerOptions?.cohere?.outputDimension ??
+      providerOptions?.openai?.dimensions ??
+      undefined;
+
     try {
       const {
         responseHeaders,
@@ -79,6 +89,7 @@ export class GatewayEmbeddingModel implements EmbeddingModelV4 {
         ),
         body: {
           values,
+          ...(dimensions != null ? { dimensions } : {}),
           ...(providerOptions ? { providerOptions } : {}),
         },
         successfulResponseHandler: createJsonResponseHandler(

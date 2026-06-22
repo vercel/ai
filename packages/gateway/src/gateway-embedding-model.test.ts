@@ -156,6 +156,7 @@ describe('GatewayEmbeddingModel', () => {
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
         values: testValues,
+        dimensions: 64,
         providerOptions: { openai: { dimensions: 64 } },
       });
     });
@@ -168,6 +169,37 @@ describe('GatewayEmbeddingModel', () => {
       const body = await server.calls[0].requestBodyJson;
       expect(body).toStrictEqual({ values: testValues });
       expect('providerOptions' in body).toBe(false);
+    });
+
+    it('should extract dimensions from cohere providerOptions and include as top-level field', async () => {
+      prepareJsonResponse();
+
+      await createTestModel().doEmbed({
+        values: testValues,
+        providerOptions: {
+          cohere: { outputDimension: 512, inputType: 'search_document' },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        values: testValues,
+        dimensions: 512,
+        providerOptions: {
+          cohere: { outputDimension: 512, inputType: 'search_document' },
+        },
+      });
+    });
+
+    it('should not include dimensions field when no dimension providerOptions are set', async () => {
+      prepareJsonResponse();
+
+      await createTestModel().doEmbed({
+        values: testValues,
+        providerOptions: { cohere: { inputType: 'search_document' } },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.dimensions).toBeUndefined();
     });
 
     it('should convert gateway error responses', async () => {
