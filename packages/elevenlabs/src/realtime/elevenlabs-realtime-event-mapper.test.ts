@@ -195,19 +195,31 @@ describe('ElevenLabsRealtimeEventMapper', () => {
       ]);
     });
 
-    it('rolls over synthetic IDs after completion', () => {
+    it('closes the previous turn when the next agent response starts', () => {
       const mapper = new ElevenLabsRealtimeEventMapper();
       mapper.parseServerEvent({
         type: 'agent_response',
         agent_response_event: { agent_response: 'First' },
       });
-      mapper.parseServerEvent({ type: 'agent_response_complete' });
       const raw = {
         type: 'agent_response',
         agent_response_event: { agent_response: 'Second' },
       };
 
       expect(mapper.parseServerEvent(raw)).toEqual([
+        {
+          type: 'text-done',
+          responseId: 'elevenlabs-resp-0',
+          itemId: 'elevenlabs-item-0',
+          text: 'First',
+          raw,
+        },
+        {
+          type: 'response-done',
+          responseId: 'elevenlabs-resp-0',
+          status: 'completed',
+          raw,
+        },
         {
           type: 'response-created',
           responseId: 'elevenlabs-resp-1',
@@ -218,6 +230,40 @@ describe('ElevenLabsRealtimeEventMapper', () => {
           responseId: 'elevenlabs-resp-1',
           itemId: 'elevenlabs-item-1',
           delta: 'Second',
+          raw,
+        },
+      ]);
+    });
+
+    it('closes the active turn before the next user transcript', () => {
+      const mapper = new ElevenLabsRealtimeEventMapper();
+      mapper.parseServerEvent({
+        type: 'agent_response',
+        agent_response_event: { agent_response: 'First' },
+      });
+      const raw = {
+        type: 'user_transcript',
+        user_transcription_event: { user_transcript: 'Next question' },
+      };
+
+      expect(mapper.parseServerEvent(raw)).toEqual([
+        {
+          type: 'text-done',
+          responseId: 'elevenlabs-resp-0',
+          itemId: 'elevenlabs-item-0',
+          text: 'First',
+          raw,
+        },
+        {
+          type: 'response-done',
+          responseId: 'elevenlabs-resp-0',
+          status: 'completed',
+          raw,
+        },
+        {
+          type: 'input-transcription-completed',
+          itemId: 'elevenlabs-input-0',
+          transcript: 'Next question',
           raw,
         },
       ]);

@@ -50,7 +50,9 @@ type ElevenLabsRealtimeTurn = {
  * Stateful event mapper for ElevenAgents WebSockets.
  *
  * ElevenLabs does not expose response or item IDs on agent events, so the
- * mapper generates stable synthetic IDs for each agent turn.
+ * mapper generates stable synthetic IDs for each agent turn. The optional
+ * `agent_response_complete` event closes a turn immediately; default agents
+ * fall back to closing it when the next turn begins.
  */
 export class ElevenLabsRealtimeEventMapper {
   private turnCounter = 0;
@@ -71,17 +73,21 @@ export class ElevenLabsRealtimeEventMapper {
           raw,
         };
 
-      case 'user_transcript':
-        return {
+      case 'user_transcript': {
+        const events = this.closeTurn(raw, 'completed');
+        events.push({
           type: 'input-transcription-completed',
           itemId: `elevenlabs-input-${this.inputCounter++}`,
           transcript: event.user_transcription_event?.user_transcript ?? '',
           raw,
-        };
+        });
+        return events.length === 1 ? events[0] : events;
+      }
 
       case 'agent_response': {
+        const events = this.closeTurn(raw, 'completed');
         const turn = this.beginTurn();
-        const events = this.beginTurnEvents(turn, raw);
+        events.push(...this.beginTurnEvents(turn, raw));
         const delta = event.agent_response_event?.agent_response ?? '';
         turn.hasText = true;
         turn.text += delta;
