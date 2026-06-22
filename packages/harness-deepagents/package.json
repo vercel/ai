@@ -38,7 +38,7 @@
   "dependencies": {
     "@ai-sdk/harness": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
-    "ws": "^8.20.1",
+    "ws": "8.21.0",
     "zod": "3.25.76"
   },
   "devDependencies": {
