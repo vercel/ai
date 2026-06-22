@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
 import {
+  createEventSourceResponseHandler,
   createBinaryResponseHandler,
   createJsonResponseHandler,
   createStatusCodeErrorResponseHandler,
 } from './response-handler';
+import { convertReadableStreamToArray } from './test';
 
 describe('createJsonResponseHandler', () => {
   it('should return both parsed value and rawValue', async () => {
@@ -33,6 +35,39 @@ describe('createJsonResponseHandler', () => {
       age: 30,
     });
     expect(result.rawValue).toEqual(rawData);
+  });
+});
+
+describe('createEventSourceResponseHandler', () => {
+  it('should ignore empty data events', async () => {
+    const rawData = {
+      type: 'message',
+      value: 'ok',
+    };
+
+    const response = new Response(
+      `data:\n\ndata: ${JSON.stringify(rawData)}\n\ndata: [DONE]\n\n`,
+    );
+    const handler = createEventSourceResponseHandler(
+      z.object({
+        type: z.literal('message'),
+        value: z.string(),
+      }),
+    );
+
+    const result = await handler({
+      url: 'test-url',
+      requestBodyValues: {},
+      response,
+    });
+
+    await expect(convertReadableStreamToArray(result.value)).resolves.toEqual([
+      {
+        success: true,
+        value: rawData,
+        rawValue: rawData,
+      },
+    ]);
   });
 });
 
