@@ -1,5 +1,11 @@
 # @ai-sdk/harness-pi
 
+## 1.0.0-beta.19
+
+### Patch Changes
+
+- bc77265: chore(harness): enforce more structural conventions in harness adapters
+
 ## 1.0.0-beta.18
 
 ### Patch Changes

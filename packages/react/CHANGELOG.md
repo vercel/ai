@@ -1,5 +1,11 @@
 # @ai-sdk/react
 
+## 4.0.0-beta.188
+
+### Patch Changes
+
+- 03c9784: fix(react): fix toolMetadata mismatch
+
 ## 4.0.0-beta.187
 
 ### Patch Changes
