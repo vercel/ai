@@ -1,8 +1,6 @@
-// In-sandbox turn driver: builds a `createDeepAgent()` agent and maps its `streamEvents` to harness-v1 parts; transport is `@ai-sdk/harness/bridge`.
-// Third-party imports below stay external (tsup) and resolve from src/bridge/package.json in-sandbox — keep import, externals, and deps in sync.
+// In-sandbox turn driver on `@ai-sdk/harness/bridge`; third-party imports stay external (tsup) and install in-sandbox from src/bridge/package.json — keep import/externals/deps in sync.
 
 import { randomUUID } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
 import { argv } from 'node:process';
 import {
   runBridge,
@@ -15,12 +13,12 @@ import { createDeepAgent, LocalShellBackend } from 'deepagents';
 import type { StartMessage } from '../deepagents-bridge-protocol';
 import { jsonSchemaToZodObject } from './json-schema-to-zod';
 
-// Native LangGraph tool name -> harness-v1 common name.
+// Native DeepAgents tool name -> harness-v1 common name (renames only; grep/glob/ls/task/write_todos forward unchanged).
 const NATIVE_TO_COMMON: Readonly<Record<string, string>> = {
   read_file: 'read',
   write_file: 'write',
-  shell: 'bash',
-  search: 'grep',
+  edit_file: 'edit',
+  execute: 'bash',
 };
 
 function toCommonName(nativeName: string): string {
@@ -45,6 +43,21 @@ function parseArgs(rawArgs: string[]): Record<string, string> {
 // LangChain wants `provider:model`; the host sends `provider/model`.
 function parseModelName(raw: string): string {
   return raw.includes('/') ? raw.replace('/', ':') : raw;
+}
+
+// LangChain reports some built-in tool args wrapped as `{ input: "<json>" }`; unwrap to the inner JSON so AI SDK validates the real shape.
+function toToolCallInput(raw: unknown): string {
+  if (
+    raw &&
+    typeof raw === 'object' &&
+    !Array.isArray(raw) &&
+    Object.keys(raw).length === 1 &&
+    typeof (raw as { input?: unknown }).input === 'string'
+  ) {
+    const inner = (raw as { input: string }).input;
+    if (/^\s*[[{]/.test(inner)) return inner;
+  }
+  return JSON.stringify(raw ?? {});
 }
 
 const args = parseArgs(argv.slice(2));
@@ -87,32 +100,20 @@ function buildHostTools(toolSchemas: StartMessage['tools']) {
   );
 }
 
-async function readSkillsBlock(): Promise<string> {
-  try {
-    const content = await readFile(`${workdir}/.skills.md`, 'utf8');
-    return content.trim() ? `## Available Skills\n\n${content}` : '';
-  } catch {
-    return '';
-  }
-}
-
-function buildSystemPrompt(start: StartMessage, skillsBlock: string): string {
-  return [start.instructions ?? '', skillsBlock].filter(Boolean).join('\n\n');
-}
-
 async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   currentTurn = turn;
   const emit = (event: Record<string, unknown>) =>
     turn.emit(event as BridgeEvent);
 
   if (!agent) {
-    const skillsBlock = await readSkillsBlock();
     agent = createDeepAgent({
       // Defer to DeepAgents' own default when the host configured no model.
       ...(start.model ? { model: parseModelName(start.model) } : {}),
       tools: buildHostTools(start.tools),
       backend: new LocalShellBackend({ rootDir: workdir }),
-      systemPrompt: buildSystemPrompt(start, skillsBlock) || undefined,
+      systemPrompt: start.instructions || undefined,
+      // Native skills loaded from the host-materialized source dir (on-demand, with working file refs).
+      ...(start.skillsPath ? { skills: [start.skillsPath] } : {}),
       // Real instance (LangGraph rejects `true` for root graphs); gives multi-turn memory.
       checkpointer: new MemorySaver(),
     });
@@ -231,7 +232,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
           type: 'tool-call',
           toolCallId: runId,
           toolName: toCommonName(toolName),
-          input: JSON.stringify(data.input ?? {}),
+          input: toToolCallInput(data.input),
           providerExecuted: true,
           nativeName: toolName,
         });

@@ -34,17 +34,27 @@ describe('createDeepAgents', () => {
     expect(harness.supportsBuiltinToolApprovals).toBe(false);
   });
 
-  it('exposes the native LangGraph tool names via builtin tools', () => {
+  it('lists every model-callable DeepAgents built-in tool', () => {
     expect(Object.keys(DEEPAGENTS_BUILTIN_TOOLS).sort()).toEqual([
       'bash',
+      'edit',
+      'glob',
       'grep',
+      'ls',
       'read',
+      'task',
       'write',
+      'write_todos',
     ]);
+  });
+
+  it('maps common tools to their DeepAgents native names', () => {
     expect(DEEPAGENTS_BUILTIN_TOOLS.read.nativeName).toBe('read_file');
     expect(DEEPAGENTS_BUILTIN_TOOLS.write.nativeName).toBe('write_file');
-    expect(DEEPAGENTS_BUILTIN_TOOLS.bash.nativeName).toBe('shell');
-    expect(DEEPAGENTS_BUILTIN_TOOLS.grep.nativeName).toBe('search');
+    expect(DEEPAGENTS_BUILTIN_TOOLS.edit.nativeName).toBe('edit_file');
+    expect(DEEPAGENTS_BUILTIN_TOOLS.bash.nativeName).toBe('execute');
+    expect(DEEPAGENTS_BUILTIN_TOOLS.grep.nativeName).toBe('grep');
+    expect(DEEPAGENTS_BUILTIN_TOOLS.glob.nativeName).toBe('glob');
   });
 
   it('has a default context window', () => {

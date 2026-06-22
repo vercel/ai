@@ -164,8 +164,10 @@ const sandbox = createVercelSandbox({
 
 ## Skills
 
-Skills passed to the session are written to a combined `.skills.md` file in the
-working directory and prepended to the agent's prompt.
+Skills passed to the session are materialized as native DeepAgents skill folders
+(`<name>/SKILL.md` plus any attached files) under `.deepagents/skills/` in the
+sandbox, and loaded via DeepAgents' `skills` option — so the agent loads them on
+demand and skill file references resolve.
 
 ## Built-in Tools
 

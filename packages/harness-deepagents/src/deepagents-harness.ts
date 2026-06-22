@@ -22,7 +22,7 @@ import {
   SandboxChannel,
   waitForBridgeReady,
 } from '@ai-sdk/harness/utils';
-import type { Experimental_SandboxProcess } from '@ai-sdk/provider-utils';
+import { tool, type Experimental_SandboxProcess } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
 import { z } from 'zod';
 import {
@@ -39,6 +39,9 @@ type DeepAgentsChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 
 // Pure derived state in /tmp; reinstalled per sandbox, persistence is the provider snapshot.
 const BOOTSTRAP_DIR = '/tmp/harness/deepagents';
+
+// In-backend skills source path (resolved under the backend root = workDir). Dot-namespaced so it doesn't collide with a checked-out repo; matches deepagents' own `.deepagents/skills` project convention.
+const SKILLS_SOURCE_PATH = '/.deepagents/skills';
 
 const DEEPAGENTS_DEFAULT_CONTEXT_WINDOW = 200_000;
 
@@ -64,7 +67,7 @@ export type DeepAgentsHarnessSettings = {
   readonly startupTimeoutMs?: number;
 };
 
-// Native LangGraph tools keyed by cross-harness common name; `search`→`grep` (no `searchFiles` common name).
+// Every model-callable DeepAgents built-in, keyed by what the bridge emits (commonName ?? nativeName); all must be listed or AI SDK throws AI_NoSuchToolError.
 const DEEPAGENTS_BUILTIN_TOOLS = {
   read: commonTool('read', {
     nativeName: 'read_file',
@@ -75,20 +78,52 @@ const DEEPAGENTS_BUILTIN_TOOLS = {
   write: commonTool('write', {
     nativeName: 'write_file',
     toolUseKind: 'edit',
-    description: 'Write a file',
+    description: 'Create a file',
     inputSchema: z.object({ file_path: z.string(), content: z.string() }),
   }),
+  edit: commonTool('edit', {
+    nativeName: 'edit_file',
+    toolUseKind: 'edit',
+    description: 'Perform exact string replacements in a file',
+    inputSchema: z.object({
+      file_path: z.string(),
+      old_string: z.string(),
+      new_string: z.string(),
+    }),
+  }),
   bash: commonTool('bash', {
-    nativeName: 'shell',
+    nativeName: 'execute',
     toolUseKind: 'bash',
-    description: 'Execute a shell command',
+    description: 'Run a shell command',
     inputSchema: z.object({ command: z.string() }),
   }),
   grep: commonTool('grep', {
-    nativeName: 'search',
+    nativeName: 'grep',
     toolUseKind: 'readonly',
-    description: 'Search file contents with regex',
+    description: 'Search file contents',
     inputSchema: z.object({ pattern: z.string() }),
+  }),
+  glob: commonTool('glob', {
+    nativeName: 'glob',
+    toolUseKind: 'readonly',
+    description: 'Find files matching a glob pattern',
+    inputSchema: z.object({ pattern: z.string() }),
+  }),
+  // No common-name equivalent — keyed by native name.
+  ls: tool({
+    description: 'List files in a directory',
+    inputSchema: z.object({ path: z.string().optional() }),
+  }),
+  task: tool({
+    description: 'Spawn a subagent to handle a delegated task',
+    inputSchema: z.object({
+      description: z.string().optional(),
+      subagent_type: z.string().optional(),
+    }),
+  }),
+  write_todos: tool({
+    description: 'Manage a structured todo list',
+    inputSchema: z.object({ todos: z.array(z.unknown()).optional() }),
   }),
 } as const satisfies Record<string, HarnessV1BuiltinTool<any, any>>;
 
@@ -101,8 +136,7 @@ export function createDeepAgents(
     specificationVersion: 'harness-v1',
     harnessId: 'deepagents',
     builtinTools: DEEPAGENTS_BUILTIN_TOOLS,
-    // DeepAgents supports approvals upstream, but the happy-path first cut ships
-    // with `permissionMode: 'allow-all'` only; approvals land in a follow-up.
+    // Happy-path ships `permissionMode: 'allow-all'` only; approvals are a follow-up.
     supportsBuiltinToolApprovals: false,
     lifecycleStateSchema: deepAgentsResumeStateSchema,
     getBootstrap: async () => {
@@ -169,10 +203,7 @@ export function createDeepAgents(
             )
         : undefined;
 
-      // Attach: reopen a socket to the still-running bridge. A between-turn
-      // resume attaches plainly; a suspended in-flight turn (continueFrom)
-      // replays past the cursor. If the bridge is gone the open throws and we
-      // fall through to a fresh spawn.
+      // Attach to the still-running bridge (continueFrom replays past the cursor); on failure fall through to a fresh spawn.
       if (coords) {
         try {
           const attachUrl =
@@ -205,16 +236,20 @@ export function createDeepAgents(
       const port = resolveBridgePort(sandboxSession, settings.port);
       const token = randomBytes(32).toString('hex');
 
-      // DeepAgents reads skills from a single combined `.skills.md` file in the
-      // working directory.
-      if (startOpts.skills && startOpts.skills.length > 0) {
+      // Materialize skills as native deepagents skill folders the bridge passes to `createDeepAgent`.
+      const hasSkills = (startOpts.skills?.length ?? 0) > 0;
+      if (hasSkills) {
         await writeSkills({
           sandbox: session,
           workDir,
-          skills: startOpts.skills,
+          skills: startOpts.skills ?? [],
           abortSignal: startOpts.abortSignal,
         });
       }
+      // Absolute path: LocalShellBackend (non-virtual) treats a leading-slash path as a real fs path, so a workDir-relative skills dir must be fully qualified.
+      const skillsPath = hasSkills
+        ? `${workDir}${SKILLS_SOURCE_PATH}`
+        : undefined;
 
       const env = {
         ...resolveDeepAgentsEnv({ auth: settings.auth, model: settings.model }),
@@ -276,6 +311,7 @@ export function createDeepAgents(
         bridgeToken: token,
         sandboxId,
         isResume,
+        skillsPath,
       });
     },
   };
@@ -313,6 +349,7 @@ async function readBridgeAsset(name: string): Promise<string> {
   throw lastErr ?? new Error(`bridge asset not found: ${name}`);
 }
 
+// Materialize each skill as a native deepagents `<name>/SKILL.md` folder (+ attached files) under the skills source path, so skills load on demand and file references resolve.
 async function writeSkills({
   sandbox,
   workDir,
@@ -324,14 +361,47 @@ async function writeSkills({
   skills: ReadonlyArray<HarnessV1Skill>;
   abortSignal?: AbortSignal;
 }): Promise<void> {
-  const combined = skills
-    .map(skill => `## ${skill.name}\n${skill.description}\n\n${skill.content}`)
-    .join('\n\n---\n\n');
-  await sandbox.writeTextFile({
-    path: `${workDir}/.skills.md`,
-    content: combined,
-    abortSignal,
-  });
+  const root = `${workDir}${SKILLS_SOURCE_PATH}`;
+  for (const skill of skills) {
+    const name = safeSkillName(skill.name);
+    const skillDir = `${root}/${name}`;
+    // SKILL.md `name` must match the parent directory name (deepagents requirement).
+    const content = `---\nname: ${name}\ndescription: ${skill.description}\n---\n\n${skill.content}`;
+    await sandbox.writeTextFile({
+      path: `${skillDir}/SKILL.md`,
+      content,
+      abortSignal,
+    });
+    for (const file of skill.files ?? []) {
+      await sandbox.writeTextFile({
+        path: `${skillDir}/${safeSkillFilePath(name, file.path)}`,
+        content: file.content,
+        abortSignal,
+      });
+    }
+  }
+}
+
+function safeSkillName(name: string): string {
+  if (!/^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$/.test(name)) {
+    throw new Error(
+      `Invalid deepagents skill name '${name}': must be lowercase alphanumeric with hyphens, 1-64 chars.`,
+    );
+  }
+  return name;
+}
+
+function safeSkillFilePath(skillName: string, filePath: string): string {
+  const normalized = filePath.replace(/^\/+/, '');
+  if (
+    normalized === '' ||
+    normalized.startsWith('../') ||
+    normalized.includes('/../') ||
+    normalized.endsWith('/..')
+  ) {
+    throw new Error(`Invalid skill file path for '${skillName}': ${filePath}`);
+  }
+  return normalized;
 }
 
 function shellQuote(value: string): string {
@@ -384,6 +454,7 @@ function createSession({
   bridgeToken,
   sandboxId,
   isResume,
+  skillsPath,
 }: {
   sessionId: string;
   channel: DeepAgentsChannel;
@@ -394,6 +465,7 @@ function createSession({
   bridgeToken: string;
   sandboxId: string;
   isResume: boolean;
+  skillsPath?: string;
 }): HarnessV1Session {
   let stopped = false;
   // A resumed session already applied its instructions in the original first message.
@@ -535,15 +607,13 @@ function createSession({
           inputSchema: t.inputSchema,
         })),
         ...(model ? { model } : {}),
+        ...(skillsPath ? { skillsPath } : {}),
       });
 
       return control;
     },
     doContinueTurn: async continueOpts => {
-      // Attach/replay: doStart reopened the channel with `{ resume: true }`, so
-      // the bridge replays everything past the cursor (incl. a `finish` if the
-      // turn ended during the gap). No `start` is sent — issuing one would clear
-      // the replay log and begin a new turn.
+      // Attach/replay: doStart opened with `{ resume: true }` so the bridge replays past the cursor; no `start` is sent (that would clear the replay log).
       return wireTurn({
         emit: continueOpts.emit,
         abortSignal: continueOpts.abortSignal,
@@ -556,8 +626,7 @@ function createSession({
         );
       }
       stopped = true;
-      // Freeze the active turn at the cursor, leaving the bridge running so the
-      // next slice replays the tail.
+      // Freeze the active turn at the cursor, leaving the bridge running so the next slice replays the tail.
       const lastSeenEventId = await channel.suspend();
       const payload: HarnessV1ContinueTurnState = {
         type: 'continue-turn',
@@ -581,8 +650,7 @@ function createSession({
         );
       }
       stopped = true;
-      // Park between turns: close the host socket but leave the bridge running
-      // so a future process reattaches via these coordinates.
+      // Park between turns: close the host socket but leave the bridge running for a later reattach via these coords.
       const lastSeenEventId = await channel.suspend();
       const payload: HarnessV1ResumeSessionState = {
         type: 'resume-session',
@@ -608,9 +676,7 @@ function createSession({
       }
       stopped = true;
       await teardown(channel, proc);
-      // Conversation state is in-memory; tearing the bridge down loses it. The
-      // sandbox snapshot preserves the filesystem, so the next session resumes
-      // the workspace but not the prior conversation.
+      // In-memory conversation is lost on teardown; the sandbox snapshot preserves the workspace files, not the conversation.
       const payload: HarnessV1ResumeSessionState = {
         type: 'resume-session',
         harnessId: 'deepagents',
