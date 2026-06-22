@@ -1,6 +1,6 @@
 import { AuthStorage, ModelRegistry } from '@earendil-works/pi-coding-agent';
 import { describe, expect, it, vi } from 'vitest';
-import { resolvePiAuth } from './pi-auth';
+import { resolvePiEnv } from './pi-auth';
 
 function makeRegistries() {
   const authStorage = AuthStorage.inMemory();
@@ -10,14 +10,17 @@ function makeRegistries() {
   return { authStorage, modelRegistry, setRuntimeApiKey, registerProvider };
 }
 
-describe('resolvePiAuth', () => {
+describe('resolvePiEnv', () => {
   it('uses explicit gateway settings when configured', () => {
     const r = makeRegistries();
-    const env = resolvePiAuth(
-      { gateway: { apiKey: 'gw-key', baseUrl: 'https://gw.example' } },
-      {},
-      { authStorage: r.authStorage, modelRegistry: r.modelRegistry },
-    );
+    const env = resolvePiEnv({
+      options: { gateway: { apiKey: 'gw-key', baseUrl: 'https://gw.example' } },
+      env: {},
+      registries: {
+        authStorage: r.authStorage,
+        modelRegistry: r.modelRegistry,
+      },
+    });
     expect(env).toEqual({
       AI_GATEWAY_API_KEY: 'gw-key',
       AI_GATEWAY_BASE_URL: 'https://gw.example',
@@ -35,11 +38,14 @@ describe('resolvePiAuth', () => {
 
   it('uses env gateway auth when explicit gateway only sets base URL', () => {
     const r = makeRegistries();
-    const env = resolvePiAuth(
-      { gateway: { baseUrl: 'https://gw.example' } },
-      { VERCEL_OIDC_TOKEN: 'oidc-env' },
-      { authStorage: r.authStorage, modelRegistry: r.modelRegistry },
-    );
+    const env = resolvePiEnv({
+      options: { gateway: { baseUrl: 'https://gw.example' } },
+      env: { VERCEL_OIDC_TOKEN: 'oidc-env' },
+      registries: {
+        authStorage: r.authStorage,
+        modelRegistry: r.modelRegistry,
+      },
+    });
     expect(env).toEqual({
       AI_GATEWAY_API_KEY: 'oidc-env',
       AI_GATEWAY_BASE_URL: 'https://gw.example',
@@ -53,8 +59,8 @@ describe('resolvePiAuth', () => {
 
   it('uses customEnv when provided and registers all known providers', () => {
     const r = makeRegistries();
-    const env = resolvePiAuth(
-      {
+    const env = resolvePiEnv({
+      options: {
         customEnv: {
           AI_GATEWAY_API_KEY: 'gw',
           OPENAI_API_KEY: 'oai',
@@ -62,9 +68,12 @@ describe('resolvePiAuth', () => {
           ANTHROPIC_AUTH_TOKEN: 'tok',
         },
       },
-      {},
-      { authStorage: r.authStorage, modelRegistry: r.modelRegistry },
-    );
+      env: {},
+      registries: {
+        authStorage: r.authStorage,
+        modelRegistry: r.modelRegistry,
+      },
+    });
     expect(env.AI_GATEWAY_API_KEY).toBe('gw');
     const registeredProviders = r.registerProvider.mock.calls
       .map(call => call[0])
@@ -84,16 +93,19 @@ describe('resolvePiAuth', () => {
 
   it('registers arbitrary <PREFIX>_API_KEY + <PREFIX>_BASE_URL via customEnv', () => {
     const r = makeRegistries();
-    resolvePiAuth(
-      {
+    resolvePiEnv({
+      options: {
         customEnv: {
           MISTRAL_API_KEY: 'mk',
           MISTRAL_BASE_URL: 'https://api.mistral.example',
         },
       },
-      {},
-      { authStorage: r.authStorage, modelRegistry: r.modelRegistry },
-    );
+      env: {},
+      registries: {
+        authStorage: r.authStorage,
+        modelRegistry: r.modelRegistry,
+      },
+    });
     expect(r.setRuntimeApiKey).toHaveBeenCalledWith('mistral', 'mk');
     expect(r.registerProvider).toHaveBeenCalledWith('mistral', {
       apiKey: 'mk',
@@ -104,11 +116,17 @@ describe('resolvePiAuth', () => {
 
   it('falls back to ambient AI_GATEWAY_API_KEY when no options', () => {
     const r = makeRegistries();
-    const env = resolvePiAuth(
-      undefined,
-      { AI_GATEWAY_API_KEY: 'ambient', AI_GATEWAY_BASE_URL: 'https://amb' },
-      { authStorage: r.authStorage, modelRegistry: r.modelRegistry },
-    );
+    const env = resolvePiEnv({
+      options: undefined,
+      env: {
+        AI_GATEWAY_API_KEY: 'ambient',
+        AI_GATEWAY_BASE_URL: 'https://amb',
+      },
+      registries: {
+        authStorage: r.authStorage,
+        modelRegistry: r.modelRegistry,
+      },
+    });
     expect(env).toEqual({
       AI_GATEWAY_API_KEY: 'ambient',
       AI_GATEWAY_BASE_URL: 'https://amb',
@@ -117,24 +135,27 @@ describe('resolvePiAuth', () => {
 
   it('falls back to ambient VERCEL_OIDC_TOKEN when AI_GATEWAY_API_KEY is missing', () => {
     const r = makeRegistries();
-    const env = resolvePiAuth(
-      undefined,
-      { VERCEL_OIDC_TOKEN: 'oidc' },
-      { authStorage: r.authStorage, modelRegistry: r.modelRegistry },
-    );
+    const env = resolvePiEnv({
+      options: undefined,
+      env: { VERCEL_OIDC_TOKEN: 'oidc' },
+      registries: {
+        authStorage: r.authStorage,
+        modelRegistry: r.modelRegistry,
+      },
+    });
     expect(env.AI_GATEWAY_API_KEY).toBe('oidc');
   });
 
   it('returns {} when no auth is configured anywhere', () => {
     const r = makeRegistries();
-    const env = resolvePiAuth(
-      undefined,
-      {},
-      {
+    const env = resolvePiEnv({
+      options: undefined,
+      env: {},
+      registries: {
         authStorage: r.authStorage,
         modelRegistry: r.modelRegistry,
       },
-    );
+    });
     expect(env).toEqual({});
     expect(r.setRuntimeApiKey).not.toHaveBeenCalled();
     expect(r.registerProvider).not.toHaveBeenCalled();

@@ -117,6 +117,9 @@ Add only the concerns the runtime needs:
 - lifecycle state schema;
 - bridge protocol and diagnostics.
 
+Certain structural conventions for harness adapters are being enforced via the `konsistent` CLI.
+Run `pnpm konsistent` once you're done to check for those. Fix any violations flagged before proceeding.
+
 ### 6. Write Tests
 
 Add focused Node tests for:
@@ -171,6 +174,7 @@ Update `content/docs/03-ai-sdk-harnesses/05-harness-adapters.mdx` to list the ne
 Run from the workspace root:
 
 ```bash
+pnpm konsistent
 pnpm update-references
 pnpm --filter @ai-sdk/harness-<name> build
 pnpm --filter @ai-sdk/harness-<name> test
