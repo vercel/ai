@@ -1177,6 +1177,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         summaryParts: Record<string, 'active' | 'can-conclude' | 'concluded'>;
       }
     > = {};
+    const activeReasoningOutputIndices: Record<number, string> = {};
 
     let serviceTier: string | undefined;
     const hostedToolSearchCallIds: string[] = [];
@@ -1417,6 +1418,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   encryptedContent: value.item.encrypted_content,
                   summaryParts: { 0: 'active' },
                 };
+                activeReasoningOutputIndices[value.output_index] = value.item.id;
 
                 controller.enqueue({
                   type: 'reasoning-start',
@@ -1839,7 +1841,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   } satisfies InferSchema<typeof shellOutputSchema>,
                 });
               } else if (value.item.type === 'reasoning') {
-                const activeReasoningPart = activeReasoning[value.item.id];
+                const activeReasoningId =
+                  activeReasoning[value.item.id] != null
+                    ? value.item.id
+                    : activeReasoningOutputIndices[value.output_index];
+                const activeReasoningPart =
+                  activeReasoningId != null
+                    ? activeReasoning[activeReasoningId]
+                    : undefined;
+
+                if (activeReasoningPart == null) {
+                  return;
+                }
 
                 // get all active or can-conclude summary parts' ids
                 // to conclude ongoing reasoning parts:
@@ -1855,10 +1868,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 for (const summaryIndex of summaryPartIndices) {
                   controller.enqueue({
                     type: 'reasoning-end',
-                    id: `${value.item.id}:${summaryIndex}`,
+                    id: `${activeReasoningId}:${summaryIndex}`,
                     providerMetadata: {
                       [providerOptionsName]: {
-                        itemId: value.item.id,
+                        itemId: activeReasoningId,
                         reasoningEncryptedContent:
                           value.item.encrypted_content ?? null,
                       } satisfies ResponsesReasoningProviderMetadata,
@@ -1866,7 +1879,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   });
                 }
 
-                delete activeReasoning[value.item.id];
+                delete activeReasoning[activeReasoningId];
+                delete activeReasoningOutputIndices[value.output_index];
               } else if (value.item.type === 'compaction') {
                 controller.enqueue({
                   type: 'custom',
@@ -2011,7 +2025,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             } else if (value.type === 'response.reasoning_summary_part.added') {
               // the first reasoning start is pushed in isResponseOutputItemAddedReasoningChunk
               if (value.summary_index > 0) {
-                const activeReasoningPart = activeReasoning[value.item_id]!;
+                const activeReasoningPart = activeReasoning[value.item_id];
+                if (activeReasoningPart == null) {
+                  return;
+                }
 
                 activeReasoningPart.summaryParts[value.summary_index] =
                   'active';
@@ -2063,6 +2080,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 },
               });
             } else if (value.type === 'response.reasoning_summary_part.done') {
+              const activeReasoningPart = activeReasoning[value.item_id];
+              if (activeReasoningPart == null) {
+                return;
+              }
+
               // when OpenAI stores the message data, we can immediately conclude the reasoning part
               // since we do not need to send the encrypted content.
               if (store) {
@@ -2077,15 +2099,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 });
 
                 // mark the summary part as concluded
-                activeReasoning[value.item_id]!.summaryParts[
-                  value.summary_index
-                ] = 'concluded';
+                activeReasoningPart.summaryParts[value.summary_index] =
+                  'concluded';
               } else {
                 // mark the summary part as can-conclude only
                 // because we need to have a final summary part with the encrypted content
-                activeReasoning[value.item_id]!.summaryParts[
-                  value.summary_index
-                ] = 'can-conclude';
+                activeReasoningPart.summaryParts[value.summary_index] =
+                  'can-conclude';
               }
             } else if (isResponseFinishedChunk(value)) {
               finishReason = {
