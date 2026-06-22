@@ -160,7 +160,21 @@ export function pruneMessages({
   }
 
   if (emptyMessages === 'remove') {
-    messages = messages.filter(message => message.content.length > 0);
+    messages = messages.filter(message => {
+      if (message.content.length === 0) return false;
+      // Remove assistant messages whose content consists entirely of reasoning
+      // parts — these are "orphaned" when the tool-calls they preceded were
+      // pruned. Anthropic (and other providers) reject such messages because a
+      // valid assistant message must contain at least one non-reasoning block.
+      if (
+        message.role === 'assistant' &&
+        typeof message.content !== 'string' &&
+        message.content.every(part => part.type === 'reasoning')
+      ) {
+        return false;
+      }
+      return true;
+    });
   }
 
   return messages;

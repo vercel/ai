@@ -393,6 +393,46 @@ describe('pruneMessages', () => {
           toolCalls: 'all',
         });
 
+        // The first assistant message's tool-calls are removed, leaving it with
+        // only a reasoning part. That orphaned-reasoning message is removed by
+        // the emptyMessages:'remove' logic (the default).
+        expect(result).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "text": "Weather in Tokyo and Busan?",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "content": [
+                {
+                  "text": "I have got the weather in Tokyo and Busan.",
+                  "type": "reasoning",
+                },
+                {
+                  "text": "The weather in Tokyo is sunny. I could not get the weather in Busan.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+
+      it('should keep reasoning-only assistant message when emptyMessages is keep', () => {
+        const result = pruneMessages({
+          messages: messagesFixture1,
+          toolCalls: 'all',
+          emptyMessages: 'keep',
+        });
+
+        // With emptyMessages:'keep', orphaned reasoning-only messages are
+        // preserved unchanged (user opted in to keeping all messages).
         expect(result).toMatchInlineSnapshot(`
           [
             {
@@ -414,6 +454,10 @@ describe('pruneMessages', () => {
               "role": "assistant",
             },
             {
+              "content": [],
+              "role": "tool",
+            },
+            {
               "content": [
                 {
                   "text": "I have got the weather in Tokyo and Busan.",
@@ -421,6 +465,171 @@ describe('pruneMessages', () => {
                 },
                 {
                   "text": "The weather in Tokyo is sunny. I could not get the weather in Busan.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+    });
+
+    describe('specific tools — orphaned reasoning', () => {
+      it('should remove assistant message that contains only reasoning after its tool-call is pruned', () => {
+        // Reproduces the scenario from issue #13430:
+        // a thinking model emits reasoning+tool-call; pruneMessages removes the
+        // tool-call but previously left behind the orphaned reasoning block,
+        // causing Anthropic API 400 errors.
+        const messages: ModelMessage[] = [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Check for errors' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'Let me check for sandbox errors...',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-sandbox',
+                toolName: 'checkSandboxErrors',
+                input: '{}',
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-sandbox',
+                toolName: 'checkSandboxErrors',
+                output: { type: 'text', value: 'No errors found' },
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'No errors were found.' }],
+          },
+        ];
+
+        const result = pruneMessages({
+          messages,
+          toolCalls: [{ type: 'all', tools: ['checkSandboxErrors'] }],
+          emptyMessages: 'remove',
+        });
+
+        // The assistant message that had reasoning+tool-call is gone entirely —
+        // its reasoning part is orphaned and would cause an API error if kept.
+        expect(result).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "text": "Check for errors",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "content": [
+                {
+                  "text": "No errors were found.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+
+      it('should keep reasoning when assistant message also has non-reasoning content after pruning', () => {
+        // If the assistant message had reasoning + text + tool-call, and only
+        // the tool-call is pruned, the reasoning is NOT orphaned — it's still
+        // associated with the remaining text content.
+        const messages: ModelMessage[] = [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Check for errors' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'Let me check...',
+              },
+              {
+                type: 'text',
+                text: 'I will run the check now.',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-sandbox',
+                toolName: 'checkSandboxErrors',
+                input: '{}',
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-sandbox',
+                toolName: 'checkSandboxErrors',
+                output: { type: 'text', value: 'No errors found' },
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'No errors were found.' }],
+          },
+        ];
+
+        const result = pruneMessages({
+          messages,
+          toolCalls: [{ type: 'all', tools: ['checkSandboxErrors'] }],
+          emptyMessages: 'remove',
+        });
+
+        // reasoning is kept because the message still has a text part
+        expect(result).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "text": "Check for errors",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "content": [
+                {
+                  "text": "Let me check...",
+                  "type": "reasoning",
+                },
+                {
+                  "text": "I will run the check now.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+            {
+              "content": [
+                {
+                  "text": "No errors were found.",
                   "type": "text",
                 },
               ],
