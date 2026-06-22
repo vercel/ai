@@ -1,5 +1,13 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.120
+
+### Patch Changes
+
+- 817bbcf: Omit `strict` from tool specs for Claude Opus 4.7/4.8 on Bedrock, which reject the field on the Messages API
+- Updated dependencies [466544d]
+  - @ai-sdk/openai@3.0.74
+
 ## 4.0.119
 
 ### Patch Changes
