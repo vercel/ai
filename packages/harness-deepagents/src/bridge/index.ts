@@ -144,9 +144,19 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       textBlockId = undefined;
     }
   };
-  const emitText = (delta: string) =>
+  const endReasoningBlock = () => {
+    if (reasoningBlockId) {
+      emit({ type: 'reasoning-end', id: reasoningBlockId });
+      reasoningBlockId = undefined;
+    }
+  };
+  // Text and reasoning are mutually exclusive open blocks: starting one closes the other.
+  const emitText = (delta: string) => {
+    endReasoningBlock();
     emit({ type: 'text-delta', id: ensureTextBlock(), delta });
+  };
   const emitReasoning = (delta: string) => {
+    endTextBlock();
     if (!reasoningBlockId) {
       reasoningBlockId = `reasoning-${randomUUID()}`;
       emit({ type: 'reasoning-start', id: reasoningBlockId });
@@ -213,6 +223,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         outputTokens += usage.output_tokens ?? 0;
       }
       endTextBlock();
+      endReasoningBlock();
       turn.emit({
         type: 'finish-step',
         finishReason: { unified: 'stop' },
@@ -228,6 +239,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       // Host tools emit their own tool-call; only surface builtin (providerExecuted) tools here.
       if (!hostToolNames.has(toolName)) {
         endTextBlock();
+        endReasoningBlock();
         emit({
           type: 'tool-call',
           toolCallId: runId,
@@ -257,7 +269,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   }
 
   endTextBlock();
-  if (reasoningBlockId) emit({ type: 'reasoning-end', id: reasoningBlockId });
+  endReasoningBlock();
   emit({
     type: 'finish',
     finishReason: { unified: 'stop' },
