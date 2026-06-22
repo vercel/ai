@@ -47,6 +47,7 @@ import {
 } from './openai-responses-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
+import type { ResponsesUsageProviderMetadata } from './openai-responses-provider-metadata';
 
 export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
@@ -687,6 +688,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
 
     const usage = response.usage!; // defined when there is no error
 
+    const orchestrationUsage = getOrchestrationUsageMetadata(usage);
+    if (orchestrationUsage != null) {
+      providerMetadata[providerKey].usage = orchestrationUsage;
+    }
+
     return {
       content,
       finishReason: mapOpenAIResponseFinishReason({
@@ -790,6 +796,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     > = {};
 
     let serviceTier: string | undefined;
+    let orchestrationUsage: ResponsesUsageProviderMetadata | undefined;
 
     return {
       stream: response.pipeThrough(
@@ -1270,6 +1277,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               if (typeof value.response.service_tier === 'string') {
                 serviceTier = value.response.service_tier;
               }
+              orchestrationUsage = getOrchestrationUsageMetadata(
+                value.response.usage,
+              );
             } else if (isResponseAnnotationAddedChunk(value)) {
               ongoingAnnotations.push(value.annotation);
               if (value.annotation.type === 'url_citation') {
@@ -1321,6 +1331,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
 
             if (serviceTier !== undefined) {
               providerMetadata[providerKey].serviceTier = serviceTier;
+            }
+
+            if (orchestrationUsage != null) {
+              providerMetadata[providerKey].usage = orchestrationUsage;
             }
 
             controller.enqueue({
@@ -1435,4 +1449,47 @@ function mapWebSearchOutput(
         },
       };
   }
+}
+
+/**
+ * Extracts orchestration token usage details (e.g. Sakana-style orchestration)
+ * from the Responses API usage so they can be surfaced via provider metadata.
+ * Returns `undefined` when no orchestration usage is present.
+ */
+function getOrchestrationUsageMetadata(
+  usage:
+    | {
+        input_tokens_details?: {
+          orchestration_input_tokens?: number | null;
+          orchestration_input_cached_tokens?: number | null;
+        } | null;
+        output_tokens_details?: {
+          orchestration_output_tokens?: number | null;
+        } | null;
+      }
+    | null
+    | undefined,
+): ResponsesUsageProviderMetadata | undefined {
+  const orchestrationInputTokens =
+    usage?.input_tokens_details?.orchestration_input_tokens;
+  const orchestrationInputCachedTokens =
+    usage?.input_tokens_details?.orchestration_input_cached_tokens;
+  const orchestrationOutputTokens =
+    usage?.output_tokens_details?.orchestration_output_tokens;
+
+  if (
+    orchestrationInputTokens == null &&
+    orchestrationInputCachedTokens == null &&
+    orchestrationOutputTokens == null
+  ) {
+    return undefined;
+  }
+
+  return {
+    ...(orchestrationInputTokens != null && { orchestrationInputTokens }),
+    ...(orchestrationInputCachedTokens != null && {
+      orchestrationInputCachedTokens,
+    }),
+    ...(orchestrationOutputTokens != null && { orchestrationOutputTokens }),
+  };
 }
