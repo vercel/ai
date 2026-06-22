@@ -194,7 +194,7 @@ const OPENCODE_BUILTIN_TOOLS = {
 
 const BOOTSTRAP_DIR = '/tmp/harness/opencode';
 
-const bridgeCoordsSchema = z.object({
+const openCodeBridgeCoordsSchema = z.object({
   port: z.number(),
   token: z.string(),
   lastSeenEventId: z.number(),
@@ -203,10 +203,10 @@ const bridgeCoordsSchema = z.object({
 
 const openCodeResumeStateSchema = z.object({
   openCodeSessionId: z.string().optional(),
-  bridge: bridgeCoordsSchema.optional(),
+  bridge: openCodeBridgeCoordsSchema.optional(),
 });
 
-type OpenCodeBridgeCoords = z.infer<typeof bridgeCoordsSchema>;
+type OpenCodeBridgeCoords = z.infer<typeof openCodeBridgeCoordsSchema>;
 
 export function createOpenCode(
   settings: OpenCodeHarnessSettings = {},

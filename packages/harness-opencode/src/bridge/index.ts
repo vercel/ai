@@ -84,15 +84,12 @@ mkdirSync(process.env.HOME ?? '/tmp/opencode-home', { recursive: true });
 await runBridge<StartMessage>({
   bridgeType: 'opencode',
   bridgeStateDir,
-  onStart: runOperation,
+  onStart: runTurn,
   onDetach: () =>
     runtime.sessionId ? { openCodeSessionId: runtime.sessionId } : {},
 });
 
-async function runOperation(
-  start: StartMessage,
-  turn: BridgeTurn,
-): Promise<void> {
+async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   const emit: Emit = msg => turn.emit(msg as BridgeEvent);
   try {
     await ensureRuntime({ start, turn, emit });
