@@ -260,6 +260,8 @@ describe('prepareResponsesTools', () => {
                   "file-2",
                   "file-3",
                 ],
+                "memory_limit": undefined,
+                "network_policy": undefined,
                 "type": "auto",
               },
               "type": "code_interpreter",
@@ -294,6 +296,8 @@ describe('prepareResponsesTools', () => {
             {
               "container": {
                 "file_ids": [],
+                "memory_limit": undefined,
+                "network_policy": undefined,
                 "type": "auto",
               },
               "type": "code_interpreter",
@@ -328,6 +332,143 @@ describe('prepareResponsesTools', () => {
             {
               "container": {
                 "file_ids": undefined,
+                "memory_limit": undefined,
+                "network_policy": undefined,
+                "type": "auto",
+              },
+              "type": "code_interpreter",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should prepare code interpreter tool with memory limit', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.code_interpreter',
+            name: 'code_interpreter',
+            args: {
+              container: {
+                memoryLimit: '16g',
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "container": {
+                "file_ids": undefined,
+                "memory_limit": "16g",
+                "network_policy": undefined,
+                "type": "auto",
+              },
+              "type": "code_interpreter",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should prepare code interpreter tool with network policy disabled', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.code_interpreter',
+            name: 'code_interpreter',
+            args: {
+              container: {
+                networkPolicy: {
+                  type: 'disabled',
+                },
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "container": {
+                "file_ids": undefined,
+                "memory_limit": undefined,
+                "network_policy": {
+                  "type": "disabled",
+                },
+                "type": "auto",
+              },
+              "type": "code_interpreter",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should prepare code interpreter tool with network policy allowlist and domain secrets', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.code_interpreter',
+            name: 'code_interpreter',
+            args: {
+              container: {
+                networkPolicy: {
+                  type: 'allowlist',
+                  allowedDomains: ['example.com', 'api.test.org'],
+                  domainSecrets: [
+                    {
+                      domain: 'api.test.org',
+                      name: 'API_KEY',
+                      value: 'secret123',
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "container": {
+                "file_ids": undefined,
+                "memory_limit": undefined,
+                "network_policy": {
+                  "allowed_domains": [
+                    "example.com",
+                    "api.test.org",
+                  ],
+                  "domain_secrets": [
+                    {
+                      "domain": "api.test.org",
+                      "name": "API_KEY",
+                      "value": "secret123",
+                    },
+                  ],
+                  "type": "allowlist",
+                },
                 "type": "auto",
               },
               "type": "code_interpreter",
