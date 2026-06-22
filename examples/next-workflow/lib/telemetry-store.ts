@@ -4,7 +4,6 @@ export type TelemetryScenario =
   | 'approval'
   | 'tool-error'
   | 'model-error'
-  | 'sandbox'
   | 'reconnect';
 
 export type TelemetryEventSource =

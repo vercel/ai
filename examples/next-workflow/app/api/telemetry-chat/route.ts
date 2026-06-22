@@ -6,9 +6,7 @@ import {
   resetTelemetryRun,
   type TelemetryScenario,
 } from '@/lib/telemetry-store';
-import { sandboxChat } from '@/workflow/sandbox-agent';
-import { telemetryChat } from '@/workflow/telemetry-agent';
-import { toUIMessageStream } from '@/workflow/to-ui-message-stream';
+import { telemetryChat, toUIMessageStream } from '@/workflow/telemetry-agent';
 
 interface TelemetryChatRequest {
   messages: UIMessage[];
@@ -34,24 +32,15 @@ export async function POST(req: Request) {
     summary: { scenario, requestId },
   });
 
-  const requestContext = {
-    telemetryRunId,
-    requestId,
-    tenantId: 'tenant_telemetry_e2e',
-    scenario,
-  };
-
-  const run =
-    scenario === 'sandbox'
-      ? await start(sandboxChat, [
-          body.messages,
-          {
-            requestId,
-            tenantId: requestContext.tenantId,
-            scenario,
-          },
-        ])
-      : await start(telemetryChat, [body.messages, requestContext]);
+  const run = await start(telemetryChat, [
+    body.messages,
+    {
+      telemetryRunId,
+      requestId,
+      tenantId: 'tenant_telemetry_e2e',
+      scenario,
+    },
+  ]);
 
   rememberWorkflowRun({ workflowRunId: run.runId, telemetryRunId });
 

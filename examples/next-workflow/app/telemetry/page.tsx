@@ -18,7 +18,7 @@ type TelemetryStatus = {
     includesAllowedRuntimeContext: boolean;
     excludesRuntimeSecret: boolean;
     excludesToolSecret: boolean;
-  } | null;
+  };
 };
 
 type TelemetryToolPart = {
@@ -68,12 +68,6 @@ const scenarios: Array<{
     title: 'Model error',
     prompt: 'Trigger a model error.',
     description: 'Unrecoverable model failure and onError telemetry.',
-  },
-  {
-    id: 'sandbox',
-    title: 'Sandbox',
-    prompt: 'Run the sandbox command.',
-    description: 'Stream-level sandbox override passed to tool execution.',
   },
   {
     id: 'reconnect',
@@ -254,28 +248,20 @@ export default function TelemetryPage() {
               </p>
             </div>
             <div className="grid gap-2 p-3 sm:grid-cols-2 lg:grid-cols-3">
-              {status == null ? (
-                <div className="text-sm text-gray-500">No run yet.</div>
-              ) : status.expectations.length === 0 ? (
-                <div className="text-sm text-gray-500">
-                  No telemetry expectations for this scenario.
+              {status?.expectations.map(expectation => (
+                <div
+                  key={expectation.name}
+                  className={`rounded border px-3 py-2 text-sm ${
+                    expectation.met
+                      ? 'border-green-200 bg-green-50 text-green-800'
+                      : 'border-gray-200 bg-gray-50 text-gray-500'
+                  }`}
+                >
+                  {expectation.met ? 'PASS' : 'TODO'} {expectation.name}
                 </div>
-              ) : (
-                status.expectations.map(expectation => (
-                  <div
-                    key={expectation.name}
-                    className={`rounded border px-3 py-2 text-sm ${
-                      expectation.met
-                        ? 'border-green-200 bg-green-50 text-green-800'
-                        : 'border-gray-200 bg-gray-50 text-gray-500'
-                    }`}
-                  >
-                    {expectation.met ? 'PASS' : 'TODO'} {expectation.name}
-                  </div>
-                ))
-              )}
+              )) ?? <div className="text-sm text-gray-500">No run yet.</div>}
             </div>
-            {status?.contextFiltering != null && (
+            {status != null && (
               <div className="border-t p-3 text-sm">
                 <h3 className="font-medium">Context Filtering</h3>
                 <div className="mt-2 grid gap-2 sm:grid-cols-3">

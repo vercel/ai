@@ -1,4 +1,8 @@
-import { WorkflowAgent, type ModelCallStreamPart } from '@ai-sdk/workflow';
+import {
+  createModelCallToUIChunkTransform,
+  WorkflowAgent,
+  type ModelCallStreamPart,
+} from '@ai-sdk/workflow';
 import {
   convertToModelMessages,
   tool,
@@ -96,4 +100,10 @@ export async function sandboxChat(
   });
 
   return { messages: result.messages };
+}
+
+export function toUIMessageStream(
+  readable: ReadableStream<ModelCallStreamPart>,
+) {
+  return readable.pipeThrough(createModelCallToUIChunkTransform());
 }

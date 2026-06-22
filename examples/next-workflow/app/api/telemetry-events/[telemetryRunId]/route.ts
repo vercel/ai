@@ -35,7 +35,6 @@ const expectations: Record<TelemetryScenario, string[]> = {
     'onFinish',
   ],
   'model-error': ['onStart', 'onLanguageModelCallStart', 'onError'],
-  sandbox: [],
   reconnect: [
     'onStart',
     'onStepStart',
@@ -73,23 +72,18 @@ export async function GET(
         ),
       };
     }),
-    contextFiltering:
-      scenario === 'sandbox'
-        ? null
-        : {
-            includesAllowedRuntimeContext: serializedTelemetryEvents.includes(
-              'tenant_telemetry_e2e',
-            ),
-            excludesRuntimeSecret: !serializedTelemetryEvents.includes(
-              'runtime-secret-not-for-telemetry',
-            ),
-            excludesToolSecret:
-              !serializedTelemetryEvents.includes(
-                'weather-secret-not-for-telemetry',
-              ) &&
-              !serializedTelemetryEvents.includes(
-                'delete-secret-not-for-telemetry',
-              ),
-          },
+    contextFiltering: {
+      includesAllowedRuntimeContext: serializedTelemetryEvents.includes(
+        'tenant_telemetry_e2e',
+      ),
+      excludesRuntimeSecret: !serializedTelemetryEvents.includes(
+        'runtime-secret-not-for-telemetry',
+      ),
+      excludesToolSecret:
+        !serializedTelemetryEvents.includes(
+          'weather-secret-not-for-telemetry',
+        ) &&
+        !serializedTelemetryEvents.includes('delete-secret-not-for-telemetry'),
+    },
   });
 }

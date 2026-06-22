@@ -40,6 +40,12 @@ export default function Chat() {
         >
           Open telemetry e2e harness
         </Link>
+        <Link
+          href="/sandbox"
+          className="ml-4 mt-2 inline-block text-sm text-blue-600 hover:underline"
+        >
+          Open sandbox e2e harness
+        </Link>
       </header>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">

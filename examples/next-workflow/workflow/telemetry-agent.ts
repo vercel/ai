@@ -1,4 +1,5 @@
 import {
+  createModelCallToUIChunkTransform,
   WorkflowAgent,
   type ModelCallStreamPart,
   type TelemetryOptions,
@@ -360,4 +361,10 @@ export async function telemetryChat(
   });
 
   return { messages: result.messages };
+}
+
+export function toUIMessageStream(
+  readable: ReadableStream<ModelCallStreamPart>,
+) {
+  return readable.pipeThrough(createModelCallToUIChunkTransform());
 }
