@@ -155,6 +155,52 @@ describe('GatewayVideoModel', () => {
       });
     });
 
+    it('should forward ByteDance Seedance reference image options', async () => {
+      prepareJsonResponse();
+
+      const model = new GatewayVideoModel('bytedance/seedance-2.0', {
+        provider: 'gateway',
+        baseURL: 'https://api.test.com',
+        headers: () => ({
+          Authorization: 'Bearer test-token',
+          'ai-gateway-auth-method': 'api-key',
+        }),
+        fetch: globalThis.fetch,
+        o11yHeaders: {},
+      });
+      const prompt = 'Animate this scene using the reference character.';
+
+      await model.doGenerate({
+        prompt,
+        image: undefined,
+        n: 1,
+        aspectRatio: '16:9',
+        resolution: '720p',
+        duration: 5,
+        fps: undefined,
+        seed: undefined,
+        providerOptions: {
+          bytedance: {
+            referenceImages: ['https://example.com/character.png'],
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toEqual({
+        prompt,
+        n: 1,
+        aspectRatio: '16:9',
+        resolution: '720p',
+        duration: 5,
+        providerOptions: {
+          bytedance: {
+            referenceImages: ['https://example.com/character.png'],
+          },
+        },
+      });
+    });
+
     it('should omit optional parameters when not provided', async () => {
       prepareJsonResponse();
 
