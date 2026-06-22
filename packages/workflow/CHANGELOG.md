@@ -1,5 +1,25 @@
 # @ai-sdk/workflow
 
+## 1.0.0-beta.102
+
+### Patch Changes
+
+- ai@7.0.0-beta.183
+
+## 1.0.0-beta.101
+
+### Patch Changes
+
+- b402b95: `WorkflowAgent` now rejects system messages inside `prompt` or `messages` by default, matching the behavior of `generateText`/`streamText`. Set `allowSystemInMessages: true` to opt in to the previous behavior.
+
+## 1.0.0-beta.100
+
+### Patch Changes
+
+- 907e002: fix (workflow): forward provider-executed tool approvals to the provider on resume
+
+  `WorkflowAgent` stripped every `tool-approval-request` and `tool-approval-response` part from the messages when resuming after a tool approval, regardless of whether the tool was locally or provider-executed. For provider-executed tools (e.g. MCP via the OpenAI Responses API) this silently dropped the approval before `convertToLanguageModelPrompt` could forward it, so the provider never learned of the approval and the tool was never executed. Local approvals are still executed and stripped, while provider-executed approvals are now preserved and forwarded to the provider, matching the discriminator core's `streamText` already uses. This is the inverse of the bug fixed in #14289.
+
 ## 1.0.0-beta.99
 
 ### Patch Changes
