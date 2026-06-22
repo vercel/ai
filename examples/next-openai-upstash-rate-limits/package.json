@@ -8,7 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
-    "@ai-sdk/openai": "3.0.73",
+    "@ai-sdk/openai": "3.0.74",
     "@ai-sdk/react": "3.0.210",
     "@upstash/ratelimit": "^0.4.3",
     "@vercel/kv": "^0.2.2",
