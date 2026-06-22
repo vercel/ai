@@ -1,5 +1,11 @@
 # @ai-sdk/black-forest-labs
 
+## 1.0.38
+
+### Patch Changes
+
+- 4d2b805: fix(bfl): remove duplicate parseProviderOptions call in doGenerate
+
 ## 1.0.37
 
 ### Patch Changes
