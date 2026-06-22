@@ -1,8 +1,12 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createElevenLabs } from '../elevenlabs-provider';
 import { ElevenLabsRealtimeModel } from './elevenlabs-realtime-model';
 
 describe('ElevenLabsRealtimeModel', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   describe('doCreateClientSecret', () => {
     const createModel = (fetch: typeof globalThis.fetch) =>
       new ElevenLabsRealtimeModel('agent_123', {
@@ -114,5 +118,38 @@ describe('ElevenLabsRealtimeModel', () => {
       token: 'wss://api.elevenlabs.io/v1/convai/conversation?token=test',
       url: 'wss://api.elevenlabs.io/v1/convai/conversation?token=test',
     });
+  });
+
+  it('warns when tools are passed to the realtime token factory', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        signed_url: 'wss://api.elevenlabs.io/v1/convai/conversation?token=test',
+      }),
+    });
+    const provider = createElevenLabs({
+      apiKey: 'test-key',
+      fetch: mockFetch as unknown as typeof fetch,
+    });
+
+    await provider.experimental_realtime.getToken({
+      model: 'agent_123',
+      sessionConfig: {
+        tools: [
+          {
+            type: 'function',
+            name: 'getWeather',
+            parameters: { type: 'object' },
+          },
+        ],
+      },
+    });
+
+    expect(warnSpy).toHaveBeenCalledOnce();
+    expect(warnSpy).toHaveBeenCalledWith(
+      'AI SDK: `tools` passed to elevenLabs.experimental_realtime.getToken are ignored. ' +
+        'Register matching client tools on the ElevenLabs agent; the SDK will execute them when the agent emits client_tool_call.',
+    );
   });
 });

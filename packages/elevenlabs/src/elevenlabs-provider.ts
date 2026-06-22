@@ -113,6 +113,13 @@ export function createElevenLabs(
     (modelId: string) => createRealtimeModel(modelId),
     {
       getToken: async (tokenOptions: RealtimeFactoryV4GetTokenOptions) => {
+        if ((tokenOptions.sessionConfig?.tools?.length ?? 0) > 0) {
+          console.warn(
+            'AI SDK: `tools` passed to elevenLabs.experimental_realtime.getToken are ignored. ' +
+              'Register matching client tools on the ElevenLabs agent; the SDK will execute them when the agent emits client_tool_call.',
+          );
+        }
+
         const model = createRealtimeModel(tokenOptions.model);
         const secret = await model.doCreateClientSecret({
           sessionConfig: tokenOptions.sessionConfig,

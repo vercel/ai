@@ -267,6 +267,14 @@ const model = elevenLabs.experimental_realtime('agent_123');
 The realtime model uses ElevenAgents WebSockets and signed URLs for browser-safe authentication.
 It supports bidirectional audio/text, user transcripts, agent audio/text responses, and client tool calls.
 
+<Note>
+  ElevenLabs agents do not accept dynamic tool definitions over the realtime
+  WebSocket. Register client tools on the agent in ElevenLabs first, with names
+  and schemas matching your AI SDK tools. Passing `sessionConfig.tools` to
+  `elevenLabs.experimental_realtime.getToken()` is ignored; the SDK executes a
+  registered tool when the agent emits `client_tool_call`.
+</Note>
+
 You can pass ElevenAgents-specific session overrides using `providerOptions.elevenlabs`:
 
 ```ts
