@@ -9319,4 +9319,153 @@ describe('processUIMessageStream', () => {
       ]);
     });
   });
+
+  describe('createStreamingUIMessageState resume', () => {
+    it('should rebuild partialToolCalls for static tool parts in input-streaming state', () => {
+      const lastMessage: UIMessage = {
+        id: 'msg-resume',
+        role: 'assistant',
+        parts: [
+          {
+            type: 'tool-create_document',
+            toolCallId: 'tc-1',
+            state: 'input-streaming',
+            input: { title: 'partial' },
+          },
+        ],
+      };
+
+      const state = createStreamingUIMessageState({
+        lastMessage,
+        messageId: 'msg-resume',
+      });
+
+      expect(state.partialToolCalls['tc-1']).toEqual({
+        text: JSON.stringify({ title: 'partial' }),
+        toolName: 'create_document',
+        index: 0,
+        title: undefined,
+        dynamic: undefined,
+      });
+    });
+
+    it('should rebuild partialToolCalls from rawInput for static tool parts', () => {
+      const lastMessage: UIMessage = {
+        id: 'msg-resume',
+        role: 'assistant',
+        parts: [
+          {
+            type: 'tool-create_document',
+            toolCallId: 'tc-1',
+            state: 'input-streaming',
+            rawInput: '{"title":"partial"',
+          } as UIMessage['parts'][number],
+        ],
+      };
+
+      const state = createStreamingUIMessageState({
+        lastMessage,
+        messageId: 'msg-resume',
+      });
+
+      expect(state.partialToolCalls['tc-1']).toMatchObject({
+        text: '{"title":"partial"',
+        toolName: 'create_document',
+        index: 0,
+      });
+    });
+
+    it('should rebuild partialToolCalls for dynamic tool parts in input-streaming state', () => {
+      const lastMessage: UIMessage = {
+        id: 'msg-resume',
+        role: 'assistant',
+        parts: [
+          {
+            type: 'dynamic-tool',
+            toolName: 'my_tool',
+            toolCallId: 'tc-d',
+            state: 'input-streaming',
+            input: { x: 1 },
+          },
+        ],
+      };
+
+      const state = createStreamingUIMessageState({
+        lastMessage,
+        messageId: 'msg-resume',
+      });
+
+      expect(state.partialToolCalls['tc-d']).toMatchObject({
+        text: JSON.stringify({ x: 1 }),
+        toolName: 'my_tool',
+        index: 0,
+        dynamic: true,
+      });
+    });
+  });
+
+  describe('resume with existing input-streaming static tool part (issue #14027)', () => {
+    beforeEach(async () => {
+      const stream = createUIMessageStream([
+        { type: 'start' },
+        {
+          type: 'tool-input-delta',
+          toolCallId: 'call-1',
+          inputTextDelta: '"more"}',
+        },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'call-1',
+          toolName: 'create_document',
+          input: { title: 'test', content: 'more' },
+        },
+        {
+          type: 'tool-output-available',
+          toolCallId: 'call-1',
+          output: 'doc-created',
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: {
+          role: 'assistant',
+          id: 'msg-123',
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'tool-create_document',
+              toolCallId: 'call-1',
+              state: 'input-streaming',
+              input: { title: 'test', content: undefined },
+            } as UIMessage['parts'][number],
+          ],
+        },
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+    });
+
+    it('should not crash when resuming from a partial static tool call', async () => {
+      expect(state).toBeDefined();
+    });
+
+    it('should complete the tool call after resume', async () => {
+      const toolPart = state!.message.parts.find(
+        (p: any) => p.toolCallId === 'call-1',
+      ) as { state?: string; output?: string };
+      expect(toolPart?.state).toBe('output-available');
+      expect(toolPart?.output).toBe('doc-created');
+    });
+  });
 });
