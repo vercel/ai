@@ -46,6 +46,16 @@ const SKILLS_SOURCE_PATH = '/.deepagents/skills';
 
 const DEEPAGENTS_DEFAULT_CONTEXT_WINDOW = 200_000;
 
+export type DeepAgentsHarnessSettings = {
+  readonly auth?: DeepAgentsAuthOptions;
+  /** Model id for the DeepAgents runtime, e.g. `claude-sonnet-4` (converted to `provider:model`). */
+  readonly model?: string;
+  /** Bridge port override; defaults to the sandbox's first declared port. */
+  readonly port?: number;
+  /** Maximum milliseconds to wait for the bridge to advertise its port. Defaults to 120000. */
+  readonly startupTimeoutMs?: number;
+};
+
 // Live bridge coordinates returned by doDetach/doSuspendTurn so a later process can reattach.
 const deepAgentsBridgeCoordsSchema = z.object({
   port: z.number(),
@@ -57,16 +67,6 @@ const deepAgentsResumeStateSchema = z.object({
   bridge: deepAgentsBridgeCoordsSchema.optional(),
 });
 type DeepAgentsBridgeCoords = z.infer<typeof deepAgentsBridgeCoordsSchema>;
-
-export type DeepAgentsHarnessSettings = {
-  readonly auth?: DeepAgentsAuthOptions;
-  /** Model id for the DeepAgents runtime, e.g. `claude-sonnet-4` (converted to `provider:model`). */
-  readonly model?: string;
-  /** Bridge port override; defaults to the sandbox's first declared port. */
-  readonly port?: number;
-  /** Maximum milliseconds to wait for the bridge to advertise its port. Defaults to 120000. */
-  readonly startupTimeoutMs?: number;
-};
 
 // Every model-callable DeepAgents built-in, keyed by what the bridge emits (commonName ?? nativeName); all must be listed or AI SDK throws AI_NoSuchToolError.
 const DEEPAGENTS_BUILTIN_TOOLS = {
