@@ -133,6 +133,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   let reasoningBlockId: string | undefined;
   let inputTokens = 0;
   let outputTokens = 0;
+  // Per-call streamed-usage fallback (max over chunks), used only when model-end carries no usage.
+  let streamedStepInput = 0;
+  let streamedStepOutput = 0;
   const activeToolRunIds = new Set<string>();
   // Approval-gated tools are announced before execution; these tie the later run back to the approval id and dedup the call.
   const approvedToolQueue = new Map<string, string[]>();
@@ -235,8 +238,14 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         }
         const usage = chunk.usage_metadata;
         if (usage) {
-          inputTokens = Math.max(inputTokens, usage.input_tokens ?? 0);
-          outputTokens = Math.max(outputTokens, usage.output_tokens ?? 0);
+          streamedStepInput = Math.max(
+            streamedStepInput,
+            usage.input_tokens ?? 0,
+          );
+          streamedStepOutput = Math.max(
+            streamedStepOutput,
+            usage.output_tokens ?? 0,
+          );
         }
       } else if (kind === 'on_chat_model_end') {
         // Final usage lands on model-end, not the chunks; each model call is one step.
@@ -249,18 +258,21 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
             }
           | undefined;
         const usage = output?.usage_metadata;
-        if (usage) {
-          inputTokens += usage.input_tokens ?? 0;
-          outputTokens += usage.output_tokens ?? 0;
-        }
+        // One model call = one step; count its usage exactly once (model-end usage, else the streamed max).
+        const stepInput = usage?.input_tokens ?? streamedStepInput;
+        const stepOutput = usage?.output_tokens ?? streamedStepOutput;
+        inputTokens += stepInput;
+        outputTokens += stepOutput;
+        streamedStepInput = 0;
+        streamedStepOutput = 0;
         endTextBlock();
         endReasoningBlock();
         turn.emit({
           type: 'finish-step',
           finishReason: { unified: 'stop' },
           usage: {
-            inputTokens: { total: usage?.input_tokens ?? 0 },
-            outputTokens: { total: usage?.output_tokens ?? 0 },
+            inputTokens: { total: stepInput },
+            outputTokens: { total: stepOutput },
           },
         });
       } else if (kind === 'on_tool_start') {
