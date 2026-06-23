@@ -1,3 +1,4 @@
+import type { AttributeValue } from '@opentelemetry/api';
 import { selectTelemetryAttributes } from './select-telemetry-attributes';
 import { it, expect } from 'vitest';
 
@@ -110,5 +111,39 @@ it('should handle mixed attribute types correctly', async () => {
     simple: 'value',
     input: 'input value',
     output: 'output value',
+  });
+});
+
+it('drops malformed finish_reasons arrays that contain only undefined', async () => {
+  const result = await selectTelemetryAttributes({
+    telemetry: { isEnabled: true },
+    attributes: {
+      'gen_ai.response.finish_reasons': [
+        undefined,
+      ] as unknown as AttributeValue,
+      'gen_ai.response.id': 'msg_123',
+    },
+  });
+
+  expect(result).toEqual({ 'gen_ai.response.id': 'msg_123' });
+});
+
+it('sanitizes array attributes, dropping invalid entries and mixed arrays', async () => {
+  const result = await selectTelemetryAttributes({
+    telemetry: { isEnabled: true },
+    attributes: {
+      keep: ['stop', undefined, {}, 'length'] as unknown as AttributeValue,
+      valid: ['a', 'b'],
+      dropMixed: ['stop', 1] as unknown as AttributeValue,
+      fromInput: {
+        input: () => [undefined, 'value'] as unknown as AttributeValue,
+      },
+    },
+  });
+
+  expect(result).toEqual({
+    keep: ['stop', 'length'],
+    valid: ['a', 'b'],
+    fromInput: ['value'],
   });
 });
