@@ -130,21 +130,18 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
 
   // Ensure the Chat instance has the latest callbacks and a transport whose
   // closures over component state stay fresh.
-  const optionsWithCallbacks: typeof options =
-    'chat' in options
-      ? options
-      : {
-          ...options,
-          ...(stableTransportRef.current !== undefined
-            ? { transport: stableTransportRef.current }
-            : {}),
-          onToolCall: arg => callbacksRef.current.onToolCall?.(arg),
-          onData: arg => callbacksRef.current.onData?.(arg),
-          onFinish: arg => callbacksRef.current.onFinish?.(arg),
-          onError: arg => callbacksRef.current.onError?.(arg),
-          sendAutomaticallyWhen: arg =>
-            callbacksRef.current.sendAutomaticallyWhen?.(arg) ?? false,
-        };
+  const optionsWithCallbacks: typeof options = {
+    ...options,
+    ...(!('chat' in options) && stableTransportRef.current !== undefined
+      ? { transport: stableTransportRef.current }
+      : {}),
+    onToolCall: arg => callbacksRef.current.onToolCall?.(arg),
+    onData: arg => callbacksRef.current.onData?.(arg),
+    onFinish: arg => callbacksRef.current.onFinish?.(arg),
+    onError: arg => callbacksRef.current.onError?.(arg),
+    sendAutomaticallyWhen: arg =>
+      callbacksRef.current.sendAutomaticallyWhen?.(arg) ?? false,
+  };
 
   const chatRef = useRef<Chat<UI_MESSAGE>>(
     'chat' in options ? options.chat : new Chat(optionsWithCallbacks),
