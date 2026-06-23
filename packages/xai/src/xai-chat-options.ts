@@ -6,6 +6,7 @@ export type XaiChatModelId =
   | 'grok-4-1-fast-non-reasoning'
   | 'grok-4-fast-non-reasoning'
   | 'grok-4-fast-reasoning'
+  | 'grok-4.3'
   | 'grok-4.20-0309-non-reasoning'
   | 'grok-4.20-0309-reasoning'
   | 'grok-4.20-multi-agent-0309'
@@ -61,7 +62,7 @@ const searchSourceSchema = z.discriminatedUnion('type', [
 
 // xai-specific provider options
 export const xaiLanguageModelChatOptions = z.object({
-  reasoningEffort: z.enum(['low', 'high']).optional(),
+  reasoningEffort: z.enum(['none', 'low', 'medium', 'high']).optional(),
   logprobs: z.boolean().optional(),
   topLogprobs: z.number().int().min(0).max(8).optional(),
 
