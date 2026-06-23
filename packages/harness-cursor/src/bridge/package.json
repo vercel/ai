@@ -1,0 +1,11 @@
+{
+  "name": "harness-cursor-bridge",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@cursor/sdk": "1.0.19",
+    "ws": "8.21.0",
+    "zod": "3.25.76"
+  }
+}

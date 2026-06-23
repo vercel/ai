@@ -112,6 +112,9 @@
       "path": "../../packages/harness-opencode"
     },
     {
+      "path": "../../packages/harness-cursor"
+    },
+    {
       "path": "../../packages/harness-pi"
     },
     {
