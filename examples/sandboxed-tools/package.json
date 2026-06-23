@@ -1,0 +1,21 @@
+{
+  "name": "@example/sandboxed-tools",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "baseline": "tsx src/baseline.ts",
+    "sandboxed": "tsx src/sandboxed.ts",
+    "type-check": "tsc --build"
+  },
+  "dependencies": {
+    "@wasmagent/aisdk": "^1.0.0",
+    "@wasmagent/kernel-quickjs": "^1.0.0",
+    "ai": "workspace:*",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.19",
+    "tsx": "4.19.2",
+    "typescript": "5.8.3"
+  }
+}
