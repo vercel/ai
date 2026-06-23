@@ -59,10 +59,10 @@ createDeepAgents({
 ## Built-in tools
 
 | Common name | Native (LangGraph) tool |
-| --- | --- |
-| `read` | `read_file` |
-| `write` | `write_file` |
-| `bash` | `shell` |
-| `grep` | `search` |
+| ----------- | ----------------------- |
+| `read`      | `read_file`             |
+| `write`     | `write_file`            |
+| `bash`      | `shell`                 |
+| `grep`      | `search`                |
 
 See the [harness docs](https://ai-sdk.dev/docs) for broader concepts.

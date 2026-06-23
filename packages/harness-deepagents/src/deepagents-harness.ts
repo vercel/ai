@@ -47,16 +47,16 @@ const SKILLS_SOURCE_PATH = '/.deepagents/skills';
 const DEEPAGENTS_DEFAULT_CONTEXT_WINDOW = 200_000;
 
 // Live bridge coordinates returned by doDetach/doSuspendTurn so a later process can reattach.
-const bridgeCoordsSchema = z.object({
+const deepAgentsBridgeCoordsSchema = z.object({
   port: z.number(),
   token: z.string(),
   lastSeenEventId: z.number(),
   sandboxId: z.string().optional(),
 });
 const deepAgentsResumeStateSchema = z.object({
-  bridge: bridgeCoordsSchema.optional(),
+  bridge: deepAgentsBridgeCoordsSchema.optional(),
 });
-type DeepAgentsBridgeCoords = z.infer<typeof bridgeCoordsSchema>;
+type DeepAgentsBridgeCoords = z.infer<typeof deepAgentsBridgeCoordsSchema>;
 
 export type DeepAgentsHarnessSettings = {
   readonly auth?: DeepAgentsAuthOptions;
