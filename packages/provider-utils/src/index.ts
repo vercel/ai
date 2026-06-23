@@ -93,6 +93,11 @@ export * from './uint8-utils';
 export { validateDownloadUrl } from './validate-download-url';
 export * from './validate-types';
 export { VERSION } from './version';
+export {
+  getWebSocketConstructor,
+  type WebSocketConstructor,
+  type WebSocketLike,
+} from './websocket';
 export { withUserAgentSuffix } from './with-user-agent-suffix';
 export * from './without-trailing-slash';
 

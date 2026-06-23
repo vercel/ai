@@ -1,3 +1,7 @@
+import {
+  convertArrayToReadableStream,
+  convertReadableStreamToArray,
+} from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it, vi } from 'vitest';
 import { createXai } from './xai-provider';
@@ -15,6 +19,34 @@ const url = 'https://api.x.ai/v1/stt';
 const server = createTestServer({
   [url]: {},
 });
+
+class MockWebSocket {
+  static instances: MockWebSocket[] = [];
+
+  readyState = 0;
+  send = vi.fn();
+  close = vi.fn(() => {
+    this.readyState = 3;
+  });
+  onopen: ((event: unknown) => void) | null = null;
+  onmessage: ((event: { data: unknown }) => void) | null = null;
+  onerror: ((event: unknown) => void) | null = null;
+  onclose: ((event: unknown) => void) | null = null;
+
+  constructor(
+    public url: string | URL,
+    public protocols?: string | string[],
+    public options?: { headers?: Record<string, string | undefined> },
+  ) {
+    MockWebSocket.instances.push(this);
+  }
+
+  message(value: unknown) {
+    this.onmessage?.({ data: JSON.stringify(value) });
+  }
+}
+
+const flush = () => new Promise(resolve => setTimeout(resolve, 0));
 
 function prepareJsonResponse(headers?: Record<string, string>) {
   server.urls[url].response = {
@@ -257,5 +289,111 @@ describe('doGenerate', () => {
       segments: [],
       warnings: [],
     });
+  });
+});
+
+describe('doStream', () => {
+  it('should stream xAI STT over WebSocket', async () => {
+    MockWebSocket.instances = [];
+    const testDate = new Date(0);
+    const model = new XaiTranscriptionModel('', {
+      provider: 'xai.transcription',
+      baseURL: 'https://api.x.ai/v1',
+      headers: () => ({ Authorization: 'Bearer test-api-key' }),
+      webSocket: MockWebSocket,
+      _internal: { currentDate: () => testDate },
+    });
+
+    const result = await model.doStream({
+      audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      providerOptions: {
+        xai: {
+          language: 'en',
+          diarize: true,
+          keyterm: ['AI SDK', 'Grok'],
+          streaming: {
+            interimResults: true,
+            endpointing: 500,
+            smartTurn: 0.7,
+            smartTurnTimeout: 3000,
+          },
+        },
+      },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    expect(ws.url.toString()).toBe(
+      'wss://api.x.ai/v1/stt?sample_rate=16000&encoding=pcm&language=en&diarize=true&interim_results=true&endpointing=500&smart_turn=0.7&smart_turn_timeout=3000&keyterm=AI+SDK&keyterm=Grok',
+    );
+    expect(ws.options?.headers).toMatchObject({
+      Authorization: 'Bearer test-api-key',
+    });
+    expect(ws.send).not.toHaveBeenCalled();
+
+    ws.message({ type: 'transcript.created' });
+    await flush();
+
+    expect(ws.send).toHaveBeenNthCalledWith(1, new Uint8Array([1, 2, 3]));
+    expect(JSON.parse(ws.send.mock.calls[1][0])).toEqual({
+      type: 'audio.done',
+    });
+
+    ws.message({
+      type: 'transcript.partial',
+      text: 'Hel',
+      is_final: false,
+      speech_final: false,
+      start: 0,
+      duration: 0.5,
+    });
+    ws.message({
+      type: 'transcript.partial',
+      text: 'Hello',
+      is_final: true,
+      speech_final: true,
+      start: 0,
+      duration: 1,
+    });
+    ws.message({
+      type: 'transcript.done',
+      text: 'Hello',
+      duration: 1,
+    });
+
+    await expect(partsPromise).resolves.toEqual([
+      { type: 'stream-start', warnings: [] },
+      {
+        type: 'transcript-partial',
+        id: undefined,
+        text: 'Hel',
+        startSecond: 0,
+        durationInSeconds: 0.5,
+        channelIndex: undefined,
+      },
+      {
+        type: 'transcript-final',
+        id: undefined,
+        text: 'Hello',
+        startSecond: 0,
+        endSecond: 1,
+        channelIndex: undefined,
+      },
+      {
+        type: 'transcript-final',
+        id: undefined,
+        text: 'Hello',
+        channelIndex: undefined,
+      },
+      {
+        type: 'finish',
+        text: 'Hello',
+        segments: [],
+        language: 'en',
+        durationInSeconds: 1,
+      },
+    ]);
+    expect(result.response).toEqual({ timestamp: testDate, modelId: '' });
   });
 });

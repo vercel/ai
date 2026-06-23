@@ -2703,13 +2703,23 @@ The following provider options are available:
 - **include** _string[]_
   Additional information to include in the transcription response.
 
+- **streaming** _object_
+  Options for streaming transcription models such as `gpt-realtime-whisper`.
+  Use with `experimental_streamTranscribe`.
+  - **delay** _'minimal' | 'low' | 'medium' | 'high' | 'xhigh'_
+    Latency/accuracy tradeoff for realtime transcription.
+
+  - **include** _string[]_
+    Additional fields to include in realtime transcription events, such as `item.input_audio_transcription.logprobs`.
+
 ### Model Capabilities
 
-| Model                    | Transcription       | Duration            | Segments            | Language            |
-| ------------------------ | ------------------- | ------------------- | ------------------- | ------------------- |
-| `whisper-1`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4o-mini-transcribe` | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `gpt-4o-transcribe`      | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| Model                    | Transcription       | Streaming           | Duration            | Segments            | Language            |
+| ------------------------ | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `whisper-1`              | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4o-mini-transcribe` | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `gpt-4o-transcribe`      | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `gpt-realtime-whisper`   | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> |
 
 ## Speech Models
 
