@@ -36,6 +36,7 @@
     }
   },
   "dependencies": {
+    "@ai-sdk/provider-utils": "workspace:*",
     "ai": "workspace:*"
   },
   "devDependencies": {

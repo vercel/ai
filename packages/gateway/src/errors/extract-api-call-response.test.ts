@@ -145,6 +145,23 @@ describe('extractResponseFromAPICallError', () => {
       expect(result).toBe(malformedJson); // Should return raw string, not throw
     });
 
+    it('should return raw responseBody when JSON contains forbidden prototype keys', () => {
+      const maliciousJson = '{"__proto__": {"polluted": true}}';
+      const apiCallError = new APICallError({
+        message: 'Request failed',
+        statusCode: 500,
+        data: undefined,
+        responseHeaders: {},
+        responseBody: maliciousJson,
+        url: 'http://test.url',
+        requestBodyValues: {},
+      });
+
+      const result = extractApiCallResponse(apiCallError);
+
+      expect(result).toBe(maliciousJson);
+    });
+
     it('should parse complex nested JSON structures', () => {
       const complexData = {
         error: {

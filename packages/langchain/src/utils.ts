@@ -17,6 +17,7 @@ import type {
   ProviderMetadata,
   JSONValue,
 } from 'ai';
+import { secureJsonParse } from '@ai-sdk/provider-utils';
 
 import type {
   LangGraphEventState,
@@ -1114,7 +1115,9 @@ export function emitSourceChunks(
     const title = citation.title ?? citation.source;
     if (!title) continue;
 
-    const sourceId = `${messageId}:${title}:${citation.citedText ?? ''}:${citation.startIndex ?? ''}:${citation.endIndex ?? ''}`;
+    const sourceId = `${messageId}:${title}:${citation.citedText ?? ''}:${
+      citation.startIndex ?? ''
+    }:${citation.endIndex ?? ''}`;
     if (emittedSourceIds.has(sourceId)) continue;
     emittedSourceIds.add(sourceId);
 
@@ -1668,7 +1671,9 @@ export function processLangGraphEvent(
             if (toolCall) {
               emittedToolCalls.add(toolCallId);
               // Store mapping for HITL interrupt lookup
-              const toolCallKey = `${toolCall.name}:${JSON.stringify(toolCall.args)}`;
+              const toolCallKey = `${toolCall.name}:${JSON.stringify(
+                toolCall.args,
+              )}`;
               emittedToolCallsByKey.set(toolCallKey, toolCallId);
               if (!emittedToolInputs.has(toolCallId)) {
                 emittedToolInputs.add(toolCallId);
@@ -1797,7 +1802,7 @@ export function processLangGraphEvent(
                       let args: unknown;
                       try {
                         args = functionData?.arguments
-                          ? JSON.parse(functionData.arguments)
+                          ? secureJsonParse(functionData.arguments)
                           : {};
                       } catch {
                         args = {};
@@ -1828,7 +1833,9 @@ export function processLangGraphEvent(
                 ) {
                   emittedToolCalls.add(toolCall.id);
                   // Store mapping for HITL interrupt lookup
-                  const toolCallKey = `${toolCall.name}:${JSON.stringify(toolCall.args)}`;
+                  const toolCallKey = `${toolCall.name}:${JSON.stringify(
+                    toolCall.args,
+                  )}`;
                   emittedToolCallsByKey.set(toolCallKey, toolCall.id);
                   /**
                    * Emit tool-input-start first to ensure proper lifecycle.
@@ -1852,7 +1859,9 @@ export function processLangGraphEvent(
                 } else if (toolCall.id && emittedToolCalls.has(toolCall.id)) {
                   // Register key mapping for tool calls already emitted via messages mode
                   // so that __interrupt__ handling can match them by key
-                  const toolCallKey = `${toolCall.name}:${JSON.stringify(toolCall.args)}`;
+                  const toolCallKey = `${toolCall.name}:${JSON.stringify(
+                    toolCall.args,
+                  )}`;
                   emittedToolCallsByKey.set(toolCallKey, toolCall.id);
                 }
               }

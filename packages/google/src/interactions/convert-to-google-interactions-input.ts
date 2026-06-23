@@ -10,6 +10,7 @@ import {
   isFullMediaType,
   resolveFullMediaType,
   resolveProviderReference,
+  secureJsonParse,
 } from '@ai-sdk/provider-utils';
 import type {
   GoogleInteractionsContent,
@@ -376,7 +377,7 @@ function compactPromptForPreviousInteraction({
 
 function safeParseToolArgs(input: string): Record<string, unknown> {
   try {
-    const parsed = JSON.parse(input);
+    const parsed = secureJsonParse(input);
     if (
       parsed != null &&
       typeof parsed === 'object' &&
@@ -448,7 +449,9 @@ function convertToolResultPart({
         } else {
           warnings.push({
             type: 'other',
-            message: `google.interactions: tool-result content part type "${(item as { type: string }).type}" is not supported; part dropped.`,
+            message: `google.interactions: tool-result content part type "${
+              (item as { type: string }).type
+            }" is not supported; part dropped.`,
           });
         }
       }
@@ -546,7 +549,9 @@ function mergeAdjacentTextContent(
     ) {
       const merged: GoogleInteractionsTextContent = {
         type: 'text',
-        text: `${(last as GoogleInteractionsTextContent).text}\n\n${(block as GoogleInteractionsTextContent).text}`,
+        text: `${(last as GoogleInteractionsTextContent).text}\n\n${
+          (block as GoogleInteractionsTextContent).text
+        }`,
       };
       result[result.length - 1] = merged;
       continue;

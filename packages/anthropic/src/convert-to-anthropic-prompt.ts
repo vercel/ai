@@ -15,6 +15,7 @@ import {
   validateTypes,
   isNonNullable,
   type ToolNameMapping,
+  secureJsonParse,
 } from '@ai-sdk/provider-utils';
 import {
   anthropicReasoningMetadataSchema,
@@ -48,7 +49,7 @@ function convertBytesDataToString(data: Uint8Array | string): string {
 function extractErrorValue(value: unknown): { errorCode?: string } {
   try {
     if (typeof value === 'string') {
-      return JSON.parse(value);
+      return secureJsonParse(value) as { errorCode?: string };
     } else if (typeof value === 'object' && value !== null) {
       return value as { errorCode?: string };
     }
@@ -498,7 +499,9 @@ export async function convertToAnthropicPrompt({
                           default: {
                             warnings.push({
                               type: 'other',
-                              message: `unsupported tool content part type: ${(contentPart as { type: string }).type}`,
+                              message: `unsupported tool content part type: ${
+                                (contentPart as { type: string }).type
+                              }`,
                             });
 
                             return undefined;
@@ -844,7 +847,9 @@ export async function convertToAnthropicPrompt({
                     let errorInfo: { type?: string; errorCode?: string } = {};
                     try {
                       if (typeof output.value === 'string') {
-                        errorInfo = JSON.parse(output.value);
+                        errorInfo = secureJsonParse(
+                          output.value,
+                        ) as typeof errorInfo;
                       } else if (
                         typeof output.value === 'object' &&
                         output.value !== null
