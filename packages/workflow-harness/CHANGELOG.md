@@ -1,0 +1,11 @@
+# @ai-sdk/workflow-harness
+
+## 1.0.0-beta.0
+
+### Major Changes
+
+- 6e33eb6: feat(workflow-harness): introduce workflow utilities for durable harness agent execution
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.0-beta.22
