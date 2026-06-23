@@ -63,6 +63,7 @@ const defaultOptions = {
   duration: undefined,
   fps: undefined,
   seed: undefined,
+  generateAudio: undefined,
   providerOptions: klingaiProviderOptions,
 } as const;
 
@@ -83,6 +84,7 @@ const t2vDefaultOptions = {
   duration: undefined,
   fps: undefined,
   seed: undefined,
+  generateAudio: undefined,
   providerOptions: t2vProviderOptions,
 } as const;
 
@@ -106,6 +108,7 @@ const i2vDefaultOptions = {
   duration: undefined,
   fps: undefined,
   seed: undefined,
+  generateAudio: undefined,
   providerOptions: i2vProviderOptions,
 } as const;
 
@@ -648,6 +651,36 @@ describe('KlingAIVideoModel', () => {
 
       const body = await server.calls[0].requestBodyJson;
       expect(body).toMatchObject({ sound: 'on' });
+    });
+
+    it('should map the top-level generateAudio option to sound', async () => {
+      const model = createBasicModel({ modelId: 'kling-v2.6-t2v' });
+
+      await model.doGenerate({
+        ...t2vDefaultOptions,
+        generateAudio: true,
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({ sound: 'on' });
+    });
+
+    it('should let the top-level generateAudio override the legacy sound option', async () => {
+      const model = createBasicModel({ modelId: 'kling-v2.6-t2v' });
+
+      await model.doGenerate({
+        ...t2vDefaultOptions,
+        generateAudio: false,
+        providerOptions: {
+          klingai: {
+            ...t2vProviderOptions.klingai,
+            sound: 'on',
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({ sound: 'off' });
     });
 
     it('should send cfg_scale when provided', async () => {
