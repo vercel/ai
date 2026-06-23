@@ -373,7 +373,7 @@ const BOOTSTRAP_DIR = '/tmp/harness/claude-code';
  * future process uses them to reopen a socket to the still-running bridge
  * (`attach`) instead of re-spawning it. Absent on a `doStop()` payload.
  */
-const bridgeCoordsSchema = z.object({
+const claudeCodeBridgeCoordsSchema = z.object({
   port: z.number(),
   token: z.string(),
   lastSeenEventId: z.number(),
@@ -390,10 +390,10 @@ const bridgeCoordsSchema = z.object({
  * cross-process `attach`. `.passthrough()` keeps both shapes valid.
  */
 const claudeCodeResumeStateSchema = z
-  .object({ bridge: bridgeCoordsSchema.optional() })
+  .object({ bridge: claudeCodeBridgeCoordsSchema.optional() })
   .passthrough();
 
-type ClaudeCodeBridgeCoords = z.infer<typeof bridgeCoordsSchema>;
+type ClaudeCodeBridgeCoords = z.infer<typeof claudeCodeBridgeCoordsSchema>;
 
 export function createClaudeCode(
   settings: ClaudeCodeHarnessSettings = {},

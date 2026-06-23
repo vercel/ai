@@ -1,5 +1,51 @@
 # @ai-sdk/harness-pi
 
+## 1.0.0-beta.19
+
+### Patch Changes
+
+- bc77265: chore(harness): enforce more structural conventions in harness adapters
+
+## 1.0.0-beta.18
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.0-beta.21
+
+## 1.0.0-beta.17
+
+### Patch Changes
+
+- 0027d69: fix(harness-pi): fix client-side tool approval regression
+
+## 1.0.0-beta.16
+
+### Patch Changes
+
+- b2ef8cf: chore(harness-pi): update Pi SDK
+- Updated dependencies [e5d4a24]
+  - @ai-sdk/harness@1.0.0-beta.20
+
+## 1.0.0-beta.15
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.0-beta.19
+
+## 1.0.0-beta.14
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.0-beta.18
+
+## 1.0.0-beta.13
+
+### Patch Changes
+
+- 534dac6: fix(harness): fix incomplete OIDC token support for AI Gateway auth in harness adapters
+- Updated dependencies [534dac6]
+  - @ai-sdk/harness@1.0.0-beta.17
+
 ## 1.0.0-beta.12
 
 ### Patch Changes

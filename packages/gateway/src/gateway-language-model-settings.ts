@@ -165,6 +165,7 @@ export type GatewayModelId =
   | 'perplexity/sonar'
   | 'perplexity/sonar-pro'
   | 'perplexity/sonar-reasoning-pro'
+  | 'sakana/fugu-ultra'
   | 'stepfun/step-3.5-flash'
   | 'stepfun/step-3.7-flash'
   | 'xai/grok-4.1-fast-non-reasoning'

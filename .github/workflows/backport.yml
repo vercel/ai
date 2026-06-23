@@ -186,7 +186,10 @@ jobs:
               echo '```'
             } > comment.md
 
-            gh pr comment "$PR_NUMBER" --repo "$REPO" --body-file comment.md
+            # Best-effort: GITHUB_TOKEN is read-only for pull_request events from
+            # forks, so commenting may fail. Don't let that fail the job.
+            gh pr comment "$PR_NUMBER" --repo "$REPO" --body-file comment.md \
+              || echo "::warning::could not comment on fork PR #${PR_NUMBER} (token lacks write access)"
             skip "PR #${PR_NUMBER} is from a fork and must be backported with workflow_dispatch"
           fi
 

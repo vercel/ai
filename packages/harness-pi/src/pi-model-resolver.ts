@@ -1,4 +1,5 @@
 import type { ModelRegistry } from '@earendil-works/pi-coding-agent';
+import { getAiGatewayAuthFromEnv } from '@ai-sdk/harness/utils';
 
 type PiModel = ReturnType<ModelRegistry['getAll']>[number];
 
@@ -29,7 +30,7 @@ export function createPiModelResolver(
   };
 
   return (modelId: string | undefined): PiModel | undefined => {
-    const useGateway = Boolean(env.AI_GATEWAY_API_KEY || env.VERCEL_OIDC_TOKEN);
+    const useGateway = Boolean(getAiGatewayAuthFromEnv({ env }).apiKey);
     const effectiveId =
       modelId ?? (useGateway ? DEFAULT_PI_GATEWAY_MODEL_ID : undefined);
     if (!effectiveId) return undefined;
