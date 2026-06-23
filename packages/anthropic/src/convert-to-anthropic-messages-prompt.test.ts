@@ -1316,6 +1316,264 @@ describe('assistant messages', () => {
     expect(warnings).toMatchInlineSnapshot(`[]`);
   });
 
+  it('should move regular tool_use blocks after provider-executed web_search results', async () => {
+    const warnings: SharedV3Warning[] = [];
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'I will save a note and search the web.',
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'toolu_regular',
+              toolName: 'saveNote',
+              input: {
+                note: 'Searching for basketball news',
+              },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'srvtoolu_web_search',
+              toolName: 'web_search',
+              providerExecuted: true,
+              input: {
+                query: 'basketball news today',
+              },
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'srvtoolu_web_search',
+              toolName: 'web_search',
+              output: {
+                type: 'json',
+                value: [
+                  {
+                    url: 'https://www.nba.com/news',
+                    title: 'NBA News',
+                    pageAge: '1 hour ago',
+                    encryptedContent: 'encrypted-content',
+                    type: 'web_search_result',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'toolu_regular',
+              toolName: 'saveNote',
+              output: {
+                type: 'json',
+                value: {
+                  success: true,
+                },
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: false,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages).toEqual([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'text',
+            text: 'I will save a note and search the web.',
+            cache_control: undefined,
+          },
+          {
+            type: 'server_tool_use',
+            id: 'srvtoolu_web_search',
+            name: 'web_search',
+            input: {
+              query: 'basketball news today',
+            },
+            cache_control: undefined,
+          },
+          {
+            type: 'web_search_tool_result',
+            tool_use_id: 'srvtoolu_web_search',
+            content: [
+              {
+                url: 'https://www.nba.com/news',
+                title: 'NBA News',
+                page_age: '1 hour ago',
+                encrypted_content: 'encrypted-content',
+                type: 'web_search_result',
+              },
+            ],
+            cache_control: undefined,
+          },
+          {
+            type: 'tool_use',
+            id: 'toolu_regular',
+            name: 'saveNote',
+            input: {
+              note: 'Searching for basketball news',
+            },
+            cache_control: undefined,
+          },
+        ],
+      },
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'tool_result',
+            tool_use_id: 'toolu_regular',
+            content: JSON.stringify({ success: true }),
+            is_error: undefined,
+          },
+        ],
+      },
+    ]);
+    expect(warnings).toMatchInlineSnapshot(`[]`);
+  });
+
+  it('should not move regular tool_use blocks across thinking blocks', async () => {
+    const warnings: SharedV3Warning[] = [];
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning',
+              text: 'Think before the initial note.',
+              providerOptions: {
+                anthropic: {
+                  signature: 'test-signature-1',
+                },
+              },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'toolu_initial',
+              toolName: 'saveNote',
+              input: {
+                note: 'phase 1: initial plan',
+              },
+            },
+            {
+              type: 'reasoning',
+              text: 'Think before the revised note.',
+              providerOptions: {
+                anthropic: {
+                  signature: 'test-signature-2',
+                },
+              },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'toolu_revised',
+              toolName: 'saveNote',
+              input: {
+                note: 'phase 2: revised plan',
+              },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'toolu_initial',
+              toolName: 'saveNote',
+              output: {
+                type: 'json',
+                value: {
+                  success: true,
+                },
+              },
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'toolu_revised',
+              toolName: 'saveNote',
+              output: {
+                type: 'json',
+                value: {
+                  success: true,
+                },
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages).toEqual([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'thinking',
+            thinking: 'Think before the initial note.',
+            signature: 'test-signature-1',
+          },
+          {
+            type: 'tool_use',
+            id: 'toolu_initial',
+            name: 'saveNote',
+            input: {
+              note: 'phase 1: initial plan',
+            },
+            cache_control: undefined,
+          },
+          {
+            type: 'thinking',
+            thinking: 'Think before the revised note.',
+            signature: 'test-signature-2',
+          },
+          {
+            type: 'tool_use',
+            id: 'toolu_revised',
+            name: 'saveNote',
+            input: {
+              note: 'phase 2: revised plan',
+            },
+            cache_control: undefined,
+          },
+        ],
+      },
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'tool_result',
+            tool_use_id: 'toolu_initial',
+            content: JSON.stringify({ success: true }),
+            is_error: undefined,
+          },
+          {
+            type: 'tool_result',
+            tool_use_id: 'toolu_revised',
+            content: JSON.stringify({ success: true }),
+            is_error: undefined,
+          },
+        ],
+      },
+    ]);
+    expect(warnings).toMatchInlineSnapshot(`[]`);
+  });
+
   it('should convert anthropic web_search tool call with error result (error-json string)', async () => {
     const warnings: SharedV3Warning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
