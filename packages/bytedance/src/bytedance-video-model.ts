@@ -262,12 +262,15 @@ export class ByteDanceVideoModel implements Experimental_VideoModelV3 {
       }
     }
 
+    const generateAudio =
+      options.generateAudio ?? byteDanceOptions?.generateAudio;
+    if (generateAudio != null) {
+      body.generate_audio = generateAudio;
+    }
+
     if (byteDanceOptions != null) {
       if (byteDanceOptions.watermark != null) {
         body.watermark = byteDanceOptions.watermark;
-      }
-      if (byteDanceOptions.generateAudio != null) {
-        body.generate_audio = byteDanceOptions.generateAudio;
       }
       if (byteDanceOptions.cameraFixed != null) {
         body.camera_fixed = byteDanceOptions.cameraFixed;

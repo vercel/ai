@@ -140,6 +140,11 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
       parameters.seed = options.seed;
     }
 
+    const generateAudio = options.generateAudio ?? vertexOptions?.generateAudio;
+    if (generateAudio != null) {
+      parameters.generateAudio = generateAudio;
+    }
+
     if (vertexOptions != null) {
       const opts = vertexOptions;
 
@@ -151,9 +156,6 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
       }
       if (opts.negativePrompt !== undefined && opts.negativePrompt !== null) {
         parameters.negativePrompt = opts.negativePrompt;
-      }
-      if (opts.generateAudio !== undefined && opts.generateAudio !== null) {
-        parameters.generateAudio = opts.generateAudio;
       }
       if (
         opts.gcsOutputDirectory !== undefined &&
