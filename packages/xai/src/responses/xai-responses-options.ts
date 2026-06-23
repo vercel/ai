@@ -1,15 +1,11 @@
 import { z } from 'zod/v4';
 
 export type XaiResponsesModelId =
-  | 'grok-4-1-fast-reasoning'
-  | 'grok-4-1-fast-non-reasoning'
-  | 'grok-4'
-  | 'grok-4-fast-non-reasoning'
-  | 'grok-4-fast-reasoning'
   | 'grok-4.3'
-  | 'grok-4.20-0309-non-reasoning'
   | 'grok-4.20-0309-reasoning'
+  | 'grok-4.20-0309-non-reasoning'
   | 'grok-4.20-multi-agent-0309'
+  | 'grok-build-0.1'
   | (string & {});
 
 /**

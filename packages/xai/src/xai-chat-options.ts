@@ -2,22 +2,11 @@ import { z } from 'zod/v4';
 
 // https://docs.x.ai/docs/models
 export type XaiChatModelId =
-  | 'grok-4-1-fast-reasoning'
-  | 'grok-4-1-fast-non-reasoning'
-  | 'grok-4-fast-non-reasoning'
-  | 'grok-4-fast-reasoning'
   | 'grok-4.3'
-  | 'grok-4.20-0309-non-reasoning'
   | 'grok-4.20-0309-reasoning'
+  | 'grok-4.20-0309-non-reasoning'
   | 'grok-4.20-multi-agent-0309'
-  | 'grok-code-fast-1'
-  | 'grok-4'
-  | 'grok-4-0709'
-  | 'grok-4-latest'
-  | 'grok-3'
-  | 'grok-3-latest'
-  | 'grok-3-mini'
-  | 'grok-3-mini-latest'
+  | 'grok-build-0.1'
   | (string & {});
 
 // search source schemas
