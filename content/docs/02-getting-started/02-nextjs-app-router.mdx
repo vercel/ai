@@ -376,7 +376,7 @@ To solve this, you can enable multi-step tool calls using `stopWhen`. By default
 
 Modify your `app/api/chat/route.ts` file to include the `stopWhen` condition:
 
-```tsx filename="app/api/chat/route.ts" highlight="16"
+```tsx filename="app/api/chat/route.ts" highlight="17"
 import {
   streamText,
   UIMessage,
@@ -431,7 +431,7 @@ By setting `stopWhen: stepCountIs(5)`, you're allowing the model to use up to 5 
 
 Update your `app/api/chat/route.ts` file to add a new tool to convert the temperature from Fahrenheit to Celsius:
 
-```tsx filename="app/api/chat/route.ts" highlight="31-46"
+```tsx filename="app/api/chat/route.ts" highlight="32-45"
 import {
   streamText,
   UIMessage,

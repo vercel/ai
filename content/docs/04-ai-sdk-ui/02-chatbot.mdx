@@ -122,7 +122,7 @@ You can use `status` for e.g. the following purposes:
 - To show a "Stop" button to abort the current message.
 - To disable the submit button.
 
-```tsx filename='app/page.tsx' highlight="6,22-29,36"
+```tsx filename='app/page.tsx' highlight="8,26-33,47,50"
 'use client';
 
 import { useChat } from '@ai-sdk/react';
@@ -192,7 +192,7 @@ It can be used to display an error message, disable the submit button, or show a
   server.
 </Note>
 
-```tsx file="app/page.tsx" highlight="6,20-27,33"
+```tsx file="app/page.tsx" highlight="8,26-33,47"
 'use client';
 
 import { useChat } from '@ai-sdk/react';
@@ -452,7 +452,7 @@ The request-level options are merged with hook-level options, with request-level
 You can configure custom `body` fields on a per-request basis using the second parameter of the `sendMessage` function.
 This is useful if you want to pass in additional information to your backend that is not part of the message list.
 
-```tsx filename="app/page.tsx" highlight="20-25"
+```tsx filename="app/page.tsx" highlight="25-32"
 'use client';
 
 import { useChat } from '@ai-sdk/react';
