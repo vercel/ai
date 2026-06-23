@@ -455,6 +455,33 @@ describe('GoogleVideoModel', () => {
         feature: 'URL-based image input',
       });
     });
+
+    it('should warn and ignore a gs:// image (gcsUri is Vertex-only)', async () => {
+      let capturedBody: unknown;
+      const model = createMockModel({
+        onRequest: (url, body) => {
+          if (url.includes(':predictLongRunning')) {
+            capturedBody = body;
+          }
+        },
+      });
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        image: {
+          type: 'url',
+          url: 'gs://bucket/image.png',
+        },
+      });
+
+      const body = capturedBody as { instances: Array<{ image?: unknown }> };
+      expect(body.instances[0].image).toBeUndefined();
+      expect(result.warnings).toHaveLength(1);
+      expect(result.warnings[0]).toMatchObject({
+        type: 'unsupported',
+        feature: 'URL-based image input',
+      });
+    });
   });
 
   describe('frameImages', () => {
