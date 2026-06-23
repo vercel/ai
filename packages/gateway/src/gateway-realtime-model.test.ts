@@ -68,7 +68,7 @@ describe('GatewayRealtimeModel', () => {
       );
     });
 
-    it('forwards modelId + expiresAfterSeconds to the mint hook and surfaces expiresAt', async () => {
+    it('forwards client-secret bindings to the mint hook and surfaces expiresAt', async () => {
       const createClientSecret = vi.fn(async () => ({
         token: 'vcst_minted',
         expiresAt: 1_700_000_060,
@@ -81,14 +81,51 @@ describe('GatewayRealtimeModel', () => {
 
       const result = await model.doCreateClientSecret({
         expiresAfterSeconds: 120,
+        allowedOrigins: ['https://app.example.com'],
+        sessionConfig: {
+          providerOptions: {
+            gateway: {
+              quotaEntityId: 'quota_1',
+              tags: ['realtime'],
+              user: 'user_1',
+              order: ['openai'],
+            },
+          },
+        },
       });
 
       expect(createClientSecret).toHaveBeenCalledWith({
         modelId: 'openai/gpt-realtime-2',
         expiresAfterSeconds: 120,
+        allowedOrigins: ['https://app.example.com'],
+        gatewayOptions: {
+          quotaEntityId: 'quota_1',
+          tags: ['realtime'],
+          user: 'user_1',
+        },
       });
       expect(result.token).toBe('vcst_minted');
       expect(result.expiresAt).toBe(1_700_000_060);
+    });
+
+    it('rejects request-scoped BYOK credentials before minting', async () => {
+      const createClientSecret = vi.fn(async () => ({ token: 'unused' }));
+      const model = new GatewayRealtimeModel('openai/gpt-realtime-2', {
+        provider: 'gateway.realtime',
+        baseURL: 'https://ai-gateway.vercel.sh/v4/ai',
+        createClientSecret,
+      });
+
+      await expect(
+        model.doCreateClientSecret({
+          sessionConfig: {
+            providerOptions: {
+              gateway: { byok: { openai: [{ apiKey: 'sk-secret' }] } },
+            },
+          },
+        }),
+      ).rejects.toThrow(/Request-scoped BYOK credentials cannot be used/);
+      expect(createClientSecret).not.toHaveBeenCalled();
     });
 
     it('omits expiresAt when the mint hook does not return one', async () => {
@@ -146,9 +183,8 @@ describe('GatewayRealtimeModel', () => {
     });
 
     it('passes session-update provider options through unchanged', () => {
-      // "Support all the things": gateway provider options (tags/user/byok/...)
-      // ride session.update exactly as they ride the request body on the
-      // non-realtime routes. The identity codec must not strip them.
+      // The identity codec stays transport-neutral. Client-secret sessions
+      // apply their trusted options from the minted token on the Gateway.
       const event = {
         type: 'session-update',
         config: {
@@ -192,6 +228,16 @@ describe('gateway.experimental_realtime', () => {
       const result = await mintGateway.experimental_realtime.getToken({
         model: 'openai/gpt-realtime',
         expiresAfterSeconds: 120,
+        allowedOrigins: ['https://app.example.com'],
+        sessionConfig: {
+          providerOptions: {
+            gateway: {
+              quotaEntityId: 'quota_1',
+              tags: ['voice'],
+              user: 'user_1',
+            },
+          },
+        },
       });
 
       // Minted token (not the raw key), and the mint hit the v1 route on the
@@ -210,6 +256,14 @@ describe('gateway.experimental_realtime', () => {
       expect(JSON.parse(init.body as string)).toMatchObject({
         model: 'openai/gpt-realtime',
         expiresIn: 120,
+        allowedOrigins: ['https://app.example.com'],
+        providerOptions: {
+          gateway: {
+            quotaEntityId: 'quota_1',
+            tags: ['voice'],
+            user: 'user_1',
+          },
+        },
       });
       // Authenticated with the long-lived key.
       const sentHeaders = new Headers(init.headers);

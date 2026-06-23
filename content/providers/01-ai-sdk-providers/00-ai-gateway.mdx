@@ -251,35 +251,35 @@ const model = gateway.experimental_realtime('openai/gpt-realtime-2');
 
 The Gateway normalizes realtime the same way it normalizes every other modality: your client speaks the [normalized AI SDK realtime protocol](/docs/ai-sdk-core/realtime) and the Gateway translates to and from the upstream provider server-side. This means the same client code works regardless of which provider backs the model.
 
-Gateway realtime v0 is server-side only. Calling `gateway.experimental_realtime()` in a browser throws an error. `getToken()` returns the Gateway auth token resolved by the provider (`apiKey`, `AI_GATEWAY_API_KEY`, or Vercel OIDC token), so do not expose it to browser clients.
+Realtime sessions run in the browser with a single-use, short-lived Gateway
+client secret. Mint the secret on your server with a Gateway API key, then
+return only the `vcst_` token to the browser. The long-lived Gateway credential
+never leaves your server.
 
-```ts
+```ts filename='app/api/realtime/setup/route.ts'
 import { gateway } from '@ai-sdk/gateway';
 
-// Server-side only. Do not return this token to browser clients.
-const token = await gateway.experimental_realtime.getToken({
-  model: 'openai/gpt-realtime-2',
-});
+export async function POST() {
+  const token = await gateway.experimental_realtime.getToken({
+    model: 'openai/gpt-realtime-2',
+    expiresAfterSeconds: 60,
+    allowedOrigins: ['https://app.example.com'],
+  });
+
+  return Response.json(token);
+}
 ```
 
-<Note>
-  Gateway realtime v0 does not mint a provider-style short-lived client secret.
-  Gateway-minted ephemeral secrets are planned as future work; browser support
-  should wait for that flow.
-</Note>
-
-<Note>
-  The Gateway WebSocket route transports auth via the versioned
-  `Sec-WebSocket-Protocol` subprotocol and the model id via the `?ai-model-id=`
-  query - the WebSocket transport of the `Authorization` and `ai-model-id`
-  headers the HTTP routes use. Subprotocol values must fit the WebSocket token
-  grammar, and the complete `Sec-WebSocket-Protocol` header should stay compact
-  (under an 8 KiB safe header budget).
-</Note>
+`allowedOrigins` binds redemption to the listed browser origins. Client secrets
+are also bound to the exact model, expire after at most five minutes, and can be
+redeemed only once. Authenticate and rate-limit the setup endpoint using your
+application's normal controls.
 
 ### Provider Options
 
-Gateway [provider options](#gateway-provider-options) — `tags`, `user`, `byok`, compliance flags, and so on — are set under `providerOptions.gateway` in the **session configuration**, mirroring how they ride the request body on the non-realtime routes. Include them in the session configuration you send to the Gateway, and the Gateway applies them server-side:
+Set trusted attribution and quota options under `providerOptions.gateway` in
+the session configuration passed to `getToken()`. The Gateway seals these
+values into the client secret, so browser frames cannot override them:
 
 ```ts
 import type { GatewayProviderOptions } from '@ai-sdk/gateway';
@@ -287,22 +287,26 @@ import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 const gatewayOptions: GatewayProviderOptions = {
   tags: ['cooking-coach', 'v2'],
   user: 'user-123',
+  quotaEntityId: 'workspace-123',
 };
 
-const sessionConfig = {
-  instructions: 'You are a concise voice assistant.',
-  providerOptions: { gateway: gatewayOptions },
-};
+const token = await gateway.experimental_realtime.getToken({
+  model: 'openai/gpt-realtime-2',
+  sessionConfig: {
+    instructions: 'You are a concise voice assistant.',
+    providerOptions: { gateway: gatewayOptions },
+  },
+});
 ```
 
-The `GatewayProviderOptions` type is exported from `@ai-sdk/gateway` for stable client-facing fields. The type also accepts service-owned option keys so the Gateway service can add or change server-side options without requiring an SDK release for every schema change. Runtime validation is owned by the Gateway service.
+The client-secret flow currently pins `quotaEntityId`, `tags`, and `user`.
+Other routing options are not used for realtime model selection.
 
-<Note>
-  Provider options are sent in the first `session.update` frame (after the
-  socket opens), so connect-time options such as `byok` and quota selection
-  require a Gateway that resolves them from that frame. Routing knobs like
-  `order` / `only` do not apply to realtime, where the Gateway selects the
-  WebSocket-capable provider.
+<Note type="warning">
+  Request-scoped `byok` is not supported with browser client secrets. Do not put
+  provider credentials in client code or session configuration. Configure BYOK
+  credentials in AI Gateway team settings so the Gateway can select them
+  server-side without exposing one user's credentials to another.
 </Note>
 
 ## Available Models
