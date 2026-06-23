@@ -15,7 +15,7 @@ import {
   type UIMessage,
   type UIMessageChunk,
 } from 'ai';
-import React, { act, useRef, useState } from 'react';
+import React, { act, useEffect, useRef, useState } from 'react';
 import { Chat } from './chat.react';
 import { setupTestComponent } from './setup-test-component';
 import { useChat } from './use-chat';
@@ -2696,6 +2696,116 @@ describe('use-chat', () => {
           }),
         );
       });
+    });
+  });
+
+  describe('transport state stays fresh across renders (#7819, #7109)', () => {
+    setupTestComponent(() => {
+      const [subagent, setSubagent] = React.useState('todos-agent');
+
+      const { messages, sendMessage } = useChat({
+        generateId: mockId(),
+        transport: new DefaultChatTransport({
+          body: { subagent },
+        }),
+      });
+
+      return (
+        <div>
+          <div data-testid="subagent">{subagent}</div>
+          <div data-testid="message-count">{messages.length}</div>
+          <button
+            data-testid="set-agent"
+            onClick={() => setSubagent('research-agent')}
+          />
+          <button
+            data-testid="send"
+            onClick={() => {
+              sendMessage({ parts: [{ type: 'text', text: 'hi' }] });
+            }}
+          />
+        </div>
+      );
+    });
+
+    it('sends the latest body value after the parent re-renders', async () => {
+      server.urls['/api/chat'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          formatChunk({ type: 'text-start', id: '0' }),
+          formatChunk({ type: 'text-delta', id: '0', delta: 'ok' }),
+          formatChunk({ type: 'text-end', id: '0' }),
+        ],
+      };
+
+      await userEvent.click(screen.getByTestId('set-agent'));
+      await waitFor(() =>
+        expect(screen.getByTestId('subagent')).toHaveTextContent(
+          'research-agent',
+        ),
+      );
+
+      await userEvent.click(screen.getByTestId('send'));
+
+      await waitFor(() => {
+        expect(server.calls.length).toBeGreaterThan(0);
+      });
+
+      const sentBody = await server.calls[0].requestBodyJson;
+      expect(sentBody).toMatchObject({ subagent: 'research-agent' });
+    });
+  });
+
+  describe('transport body after async initialization (#7109)', () => {
+    setupTestComponent(() => {
+      const [data, setData] = useState<string | undefined>(undefined);
+
+      useEffect(() => {
+        setData('example');
+      }, []);
+
+      const { sendMessage } = useChat({
+        generateId: mockId(),
+        transport: new DefaultChatTransport({
+          body: { data },
+        }),
+      });
+
+      return (
+        <div>
+          <div data-testid="data">{data ?? 'pending'}</div>
+          <button
+            data-testid="send"
+            onClick={() => {
+              sendMessage({ parts: [{ type: 'text', text: 'hello' }] });
+            }}
+          />
+        </div>
+      );
+    });
+
+    it('sends body data that becomes available after the initial render', async () => {
+      server.urls['/api/chat'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          formatChunk({ type: 'text-start', id: '0' }),
+          formatChunk({ type: 'text-delta', id: '0', delta: 'ok' }),
+          formatChunk({ type: 'text-end', id: '0' }),
+        ],
+      };
+
+      await waitFor(() =>
+        expect(screen.getByTestId('data')).toHaveTextContent('example'),
+      );
+
+      await userEvent.click(screen.getByTestId('send'));
+
+      await waitFor(() => {
+        expect(server.calls.length).toBeGreaterThan(0);
+      });
+
+      const sentBody = await server.calls[0].requestBodyJson;
+      expect(sentBody).toMatchObject({ data: 'example' });
     });
   });
 });
