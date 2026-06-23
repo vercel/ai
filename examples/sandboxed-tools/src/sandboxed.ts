@@ -23,8 +23,8 @@
  * Run:  pnpm sandboxed
  */
 
-import { MockLanguageModelV2 } from 'ai/test';
-import { generateText, tool } from 'ai';
+import { MockLanguageModelV4 } from 'ai/test';
+import { generateText, isStepCount } from 'ai';
 import { codeModeTool } from '@wasmagent/aisdk';
 import { QuickJSKernel } from '@wasmagent/kernel-quickjs';
 import { ToolRegistry } from '@wasmagent/core';
@@ -65,39 +65,42 @@ const sandboxedExecute = codeModeTool({
 
 // Deterministic mock: the model emits one JS snippet that chains all three
 // calls via callTool(), then returns the formatted result in one step.
-const model = new MockLanguageModelV2({
-  defaultObjectGenerationMode: 'json',
+const model = new MockLanguageModelV4({
   doGenerate: async ({ prompt }) => {
-    const last = prompt[prompt.length - 1];
-    const hasToolResult = last.role === 'tool';
+    const hasToolResult = prompt.some(m => m.role === 'tool');
+
+    const mkUsage = (input: number, output: number) => ({
+      inputTokens: { total: input, noCache: input, cacheRead: undefined, cacheWrite: undefined },
+      outputTokens: { total: output, text: output, reasoning: undefined },
+    });
 
     if (!hasToolResult) {
       // Single tool call — the model composes all logic in one script
       const code = `
-        const { result: sum }      = await callTool('add',            { a: 3, b: 4 });
-        const { result: product }  = await callTool('multiply',       { a: sum, b: 2 });
-        const { formatted }        = await callTool('formatCurrency',  { amount: product });
+        const { result: sum }     = await callTool('add',           { a: 3, b: 4 });
+        const { result: product } = await callTool('multiply',      { a: sum, b: 2 });
+        const { formatted }       = await callTool('formatCurrency', { amount: product });
         return formatted;
       `;
       return {
-        rawCall: { rawPrompt: null, rawSettings: {} },
-        finishReason: 'tool-calls',
-        usage: { promptTokens: 95, completionTokens: 55 },
-        toolCalls: [{
-          toolCallType: 'function',
+        content: [{
+          type: 'tool-call' as const,
           toolCallId: 'c1',
           toolName: 'execute_code',
-          args: JSON.stringify({ code }),
+          input: JSON.stringify({ code }),
         }],
+        finishReason: { unified: 'tool-calls' as const, raw: undefined },
+        usage: mkUsage(95, 55),
+        warnings: [],
       };
     }
 
     // The kernel resolved the script; the model just reads the output.
     return {
-      rawCall: { rawPrompt: null, rawSettings: {} },
-      finishReason: 'stop',
-      usage: { promptTokens: 160, completionTokens: 8 },
-      text: '$14.00',
+      content: [{ type: 'text' as const, text: '$14.00' }],
+      finishReason: { unified: 'stop' as const, raw: 'stop' },
+      usage: mkUsage(160, 8),
+      warnings: [],
     };
   },
 });
@@ -108,7 +111,7 @@ async function main() {
   const result = await generateText({
     model,
     tools: { execute_code: sandboxedExecute },
-    maxSteps: 5,
+    stopWhen: isStepCount(5),
     prompt: 'Add 3 and 4, multiply the result by 2, then format it as currency.',
   });
 

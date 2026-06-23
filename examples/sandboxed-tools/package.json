@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@wasmagent/aisdk": "^1.0.0",
+    "@wasmagent/core": "^1.0.0",
     "@wasmagent/kernel-quickjs": "^1.0.0",
     "ai": "workspace:*",
     "zod": "3.25.76"

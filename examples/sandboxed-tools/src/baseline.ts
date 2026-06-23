@@ -7,69 +7,71 @@
  * Run:  pnpm baseline
  */
 
-import { MockLanguageModelV2 } from 'ai/test';
-import { generateText, tool } from 'ai';
+import { MockLanguageModelV4 } from 'ai/test';
+import { generateText, isStepCount, tool } from 'ai';
 import { z } from 'zod';
 
 const tools = {
   add: tool({
     description: 'Add two numbers',
-    parameters: z.object({ a: z.number(), b: z.number() }),
+    inputSchema: z.object({ a: z.number(), b: z.number() }),
     execute: async ({ a, b }) => ({ result: a + b }),
   }),
   multiply: tool({
     description: 'Multiply two numbers',
-    parameters: z.object({ a: z.number(), b: z.number() }),
+    inputSchema: z.object({ a: z.number(), b: z.number() }),
     execute: async ({ a, b }) => ({ result: a * b }),
   }),
   formatCurrency: tool({
     description: 'Format a number as USD currency string',
-    parameters: z.object({ amount: z.number() }),
-    execute: async ({ amount }) =>
-      ({ formatted: `$${amount.toFixed(2)}` }),
+    inputSchema: z.object({ amount: z.number() }),
+    execute: async ({ amount }) => ({ formatted: `$${amount.toFixed(2)}` }),
   }),
 };
 
 // Deterministic mock: (3 + 4) * 2 = 14 → "$14.00"
 // The model issues three separate tool calls, each re-entering the context.
-const model = new MockLanguageModelV2({
-  defaultObjectGenerationMode: 'json',
+const model = new MockLanguageModelV4({
   doGenerate: async ({ prompt }) => {
-    const last = prompt[prompt.length - 1];
+    const toolMessages = prompt.filter(m => m.role === 'tool');
+    const calledTools = toolMessages.flatMap(m =>
+      m.content.map((c: { toolName: string }) => c.toolName),
+    );
 
-    // Step 1 — no prior tool results yet: call add(3, 4)
-    const toolResults = last.role === 'tool' ? last.content : [];
-    const resultNames = toolResults.map((r: { toolName: string }) => r.toolName);
+    const mkUsage = (input: number, output: number) => ({
+      inputTokens: { total: input, noCache: input, cacheRead: undefined, cacheWrite: undefined },
+      outputTokens: { total: output, text: output, reasoning: undefined },
+    });
 
-    if (!resultNames.includes('add')) {
+    if (!calledTools.includes('add')) {
       return {
-        rawCall: { rawPrompt: null, rawSettings: {} },
-        finishReason: 'tool-calls',
-        usage: { promptTokens: 120, completionTokens: 18 },
-        toolCalls: [{ toolCallType: 'function', toolCallId: 'c1', toolName: 'add', args: '{"a":3,"b":4}' }],
+        content: [{ type: 'tool-call' as const, toolCallId: 'c1', toolName: 'add', input: '{"a":3,"b":4}' }],
+        finishReason: { unified: 'tool-calls' as const, raw: undefined },
+        usage: mkUsage(120, 18),
+        warnings: [],
       };
     }
-    if (!resultNames.includes('multiply')) {
+    if (!calledTools.includes('multiply')) {
       return {
-        rawCall: { rawPrompt: null, rawSettings: {} },
-        finishReason: 'tool-calls',
-        usage: { promptTokens: 155, completionTokens: 20 },
-        toolCalls: [{ toolCallType: 'function', toolCallId: 'c2', toolName: 'multiply', args: '{"a":7,"b":2}' }],
+        content: [{ type: 'tool-call' as const, toolCallId: 'c2', toolName: 'multiply', input: '{"a":7,"b":2}' }],
+        finishReason: { unified: 'tool-calls' as const, raw: undefined },
+        usage: mkUsage(155, 20),
+        warnings: [],
       };
     }
-    if (!resultNames.includes('formatCurrency')) {
+    if (!calledTools.includes('formatCurrency')) {
       return {
-        rawCall: { rawPrompt: null, rawSettings: {} },
-        finishReason: 'tool-calls',
-        usage: { promptTokens: 190, completionTokens: 22 },
-        toolCalls: [{ toolCallType: 'function', toolCallId: 'c3', toolName: 'formatCurrency', args: '{"amount":14}' }],
+        content: [{ type: 'tool-call' as const, toolCallId: 'c3', toolName: 'formatCurrency', input: '{"amount":14}' }],
+        finishReason: { unified: 'tool-calls' as const, raw: undefined },
+        usage: mkUsage(190, 22),
+        warnings: [],
       };
     }
     return {
-      rawCall: { rawPrompt: null, rawSettings: {} },
-      finishReason: 'stop',
-      usage: { promptTokens: 220, completionTokens: 10 },
-      text: '$14.00',
+      content: [{ type: 'text' as const, text: '$14.00' }],
+      finishReason: { unified: 'stop' as const, raw: 'stop' },
+      usage: mkUsage(220, 10),
+      warnings: [],
     };
   },
 });
@@ -80,7 +82,7 @@ async function main() {
   const result = await generateText({
     model,
     tools,
-    maxSteps: 10,
+    stopWhen: isStepCount(10),
     prompt: 'Add 3 and 4, multiply the result by 2, then format it as currency.',
   });
 
