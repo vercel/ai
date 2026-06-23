@@ -245,7 +245,7 @@ export function createDeepAgents(
         : undefined;
 
       const env = {
-        ...resolveDeepAgentsEnv({ auth: settings.auth, model: settings.model }),
+        ...resolveDeepAgentsEnv({ auth: settings.auth }),
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),
       };

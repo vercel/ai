@@ -7,6 +7,7 @@ import {
   type BridgeEvent,
   type BridgeTurn,
 } from '@ai-sdk/harness/bridge';
+import { ChatAnthropic } from '@langchain/anthropic';
 import { tool } from '@langchain/core/tools';
 import { Command, MemorySaver } from '@langchain/langgraph';
 import { createDeepAgent, LocalShellBackend } from 'deepagents';
@@ -41,9 +42,19 @@ function parseArgs(rawArgs: string[]): Record<string, string> {
   return out;
 }
 
-// LangChain wants `provider:model`; the host sends `provider/model`.
-function parseModelName(raw: string): string {
-  return raw.includes('/') ? raw.replace('/', ':') : raw;
+// Always drive the Anthropic client. Through the gateway, models keep their
+// `creator/model` slug (gateway translates); direct Anthropic wants the bare id.
+function buildModel(rawModel: string | undefined) {
+  if (!rawModel) return undefined;
+  const baseUrl = process.env.ANTHROPIC_BASE_URL;
+  const model = baseUrl ? rawModel : rawModel.replace(/^anthropic[/:]/, '');
+  return new ChatAnthropic({
+    model,
+    ...(process.env.ANTHROPIC_API_KEY
+      ? { apiKey: process.env.ANTHROPIC_API_KEY }
+      : {}),
+    ...(baseUrl ? { anthropicApiUrl: baseUrl } : {}),
+  });
 }
 
 // LangChain reports some built-in tool args wrapped as `{ input: "<json>" }`; unwrap to the inner JSON so AI SDK validates the real shape.
@@ -108,9 +119,10 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
 
   const interruptOn = buildInterruptOn(start.permissionMode);
   if (!agent) {
+    const model = buildModel(start.model);
     agent = createDeepAgent({
       // Defer to Deep Agents's own default when the host configured no model.
-      ...(start.model ? { model: parseModelName(start.model) } : {}),
+      ...(model ? { model } : {}),
       tools: buildHostTools(start.tools),
       backend: new LocalShellBackend({ rootDir: workdir }),
       systemPrompt: start.instructions || undefined,
@@ -136,7 +148,8 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   // Per-call streamed-usage fallback (max over chunks), used only when model-end carries no usage.
   let streamedStepInput = 0;
   let streamedStepOutput = 0;
-  const activeToolRunIds = new Set<string>();
+  // Top-level step usage is buffered at model-end and flushed as finish-step only after the step's tools run.
+  let pendingStep: { input: number; output: number } | undefined;
   // Approval-gated tools are announced before execution; these tie the later run back to the approval id and dedup the call.
   const approvedToolQueue = new Map<string, string[]>();
   const approvedRunIds = new Map<string, string>();
@@ -173,6 +186,19 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     }
     emit({ type: 'reasoning-delta', id: reasoningBlockId, delta });
   };
+  // Close the buffered top-level step; called when the next step starts and at turn end so finish-step lands after the step's tools.
+  const flushStep = () => {
+    if (!pendingStep) return;
+    emit({
+      type: 'finish-step',
+      finishReason: { unified: 'stop' },
+      usage: {
+        inputTokens: { total: pendingStep.input },
+        outputTokens: { total: pendingStep.output },
+      },
+    });
+    pendingStep = undefined;
+  };
 
   const config = {
     version: 'v2' as const,
@@ -205,10 +231,17 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     for await (const event of stream) {
       const kind = event.event;
       const data = (event.data ?? {}) as Record<string, unknown>;
+      // Subagent (e.g. `task`) events carry a `|`-delimited checkpoint namespace; keep their internals out of the top-level stream.
+      const ns =
+        (event as { metadata?: { langgraph_checkpoint_ns?: string } }).metadata
+          ?.langgraph_checkpoint_ns ?? '';
+      const nested = ns.includes('|');
 
-      if (kind === 'on_chat_model_stream') {
-        const parentIds = (event as { parent_ids?: string[] }).parent_ids ?? [];
-        if (parentIds.some(id => activeToolRunIds.has(id))) continue;
+      if (kind === 'on_chat_model_start') {
+        // A new top-level model call means the previous step's tools have run; close it now.
+        if (!nested) flushStep();
+      } else if (kind === 'on_chat_model_stream') {
+        if (nested) continue;
         const chunk = data.chunk as
           | {
               content?: unknown;
@@ -265,22 +298,18 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         outputTokens += stepOutput;
         streamedStepInput = 0;
         streamedStepOutput = 0;
-        endTextBlock();
-        endReasoningBlock();
-        turn.emit({
-          type: 'finish-step',
-          finishReason: { unified: 'stop' },
-          usage: {
-            inputTokens: { total: stepInput },
-            outputTokens: { total: stepOutput },
-          },
-        });
+        // Nested (subagent) calls still count toward total usage, but only top-level calls bound a visible step.
+        if (!nested) {
+          endTextBlock();
+          endReasoningBlock();
+          // Buffer the step; flushStep emits finish-step after this step's tools run (next start / turn end).
+          pendingStep = { input: stepInput, output: stepOutput };
+        }
       } else if (kind === 'on_tool_start') {
         const toolName = (event.name as string) ?? 'unknown';
         const runId = (event.run_id as string) ?? '';
-        if (runId) activeToolRunIds.add(runId);
-        // Host tools emit their own tool-call; only surface builtin (providerExecuted) tools here.
-        if (!hostToolNames.has(toolName)) {
+        // Host tools emit their own tool-call; surface only top-level builtin (providerExecuted) tools.
+        if (!nested && !hostToolNames.has(toolName)) {
           const queued = approvedToolQueue.get(toolName);
           if (queued && queued.length > 0) {
             // Already announced at approval time; tie this run to that id and don't re-emit the call.
@@ -302,7 +331,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       } else if (kind === 'on_tool_end') {
         const toolName = (event.name as string) ?? 'unknown';
         const runId = (event.run_id as string) ?? '';
-        if (!hostToolNames.has(toolName)) {
+        if (!nested && !hostToolNames.has(toolName)) {
           let output: unknown = data.output ?? '';
           if (output && typeof output === 'object' && 'content' in output) {
             output = (output as { content: unknown }).content;
@@ -315,7 +344,6 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
           });
           approvedRunIds.delete(runId);
         }
-        if (runId) activeToolRunIds.delete(runId);
       }
     }
 
@@ -369,6 +397,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
 
   endTextBlock();
   endReasoningBlock();
+  flushStep();
   emit({
     type: 'finish',
     finishReason: { unified: 'stop' },
