@@ -126,8 +126,8 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       tools: buildHostTools(start.tools),
       backend: new LocalShellBackend({ rootDir: workdir }),
       systemPrompt: start.instructions || undefined,
-      // Native skills loaded from the host-materialized source dir (on-demand, with working file refs).
-      ...(start.skillsPath ? { skills: [start.skillsPath] } : {}),
+      // Native skills loaded from the source dirs ($HOME-materialized + <workDir> for repo-provided skills).
+      ...(start.skillsPaths?.length ? { skills: start.skillsPaths } : {}),
       // Gate built-in tools behind HITL approval when the permission mode requires it.
       ...(interruptOn ? { interruptOn } : {}),
       // Real instance (LangGraph rejects `true` for root graphs); gives multi-turn memory.

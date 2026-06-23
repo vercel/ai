@@ -165,9 +165,11 @@ const sandbox = createVercelSandbox({
 ## Skills
 
 Skills passed to the session are materialized as native DeepAgents skill folders
-(`<name>/SKILL.md` plus any attached files) under `.deepagents/skills/` in the
-sandbox, and loaded via DeepAgents' `skills` option — so the agent loads them on
-demand and skill file references resolve.
+(`<name>/SKILL.md` plus any attached files) under `$HOME/.agents/skills/` in the
+sandbox (outside the work dir, so they can't clash with cloned code), and loaded
+via DeepAgents' `skills` option — so the agent loads them on demand and skill
+file references resolve. Skills already present under `<workDir>/.agents/skills/`
+(e.g. in a cloned repo) are also discovered.
 
 ## Built-in Tools
 

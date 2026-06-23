@@ -4,7 +4,7 @@ import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 
-// Skills are loaded on demand by name/description; the harness writes them to `.skills.md`.
+// Skills are loaded on demand by name/description; the harness writes them under `$HOME/.agents/skills`.
 run(async () => {
   const sandbox = createVercelSandbox({
     runtime: 'node24',

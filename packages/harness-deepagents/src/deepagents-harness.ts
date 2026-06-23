@@ -41,8 +41,8 @@ type DeepAgentsChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 // Pure derived state in /tmp; reinstalled per sandbox, persistence is the provider snapshot.
 const BOOTSTRAP_DIR = '/tmp/harness/deepagents';
 
-// In-backend skills source path (resolved under the backend root = workDir). Dot-namespaced so it doesn't collide with a checked-out repo; matches deepagents' own `.deepagents/skills` project convention.
-const SKILLS_SOURCE_PATH = '/.deepagents/skills';
+// Skills source subpath, written under $HOME (out of the work dir so it can't clash with code cloned into the work dir) and also discovered from <workDir> for repo-provided skills.
+const SKILLS_SOURCE_PATH = '/.agents/skills';
 
 const DEEPAGENTS_DEFAULT_CONTEXT_WINDOW = 200_000;
 
@@ -229,20 +229,24 @@ export function createDeepAgents(
       const port = resolveBridgePort(sandboxSession, settings.port);
       const token = randomBytes(32).toString('hex');
 
-      // Materialize skills as native deepagents skill folders the bridge passes to `createDeepAgent`.
-      const hasSkills = (startOpts.skills?.length ?? 0) > 0;
-      if (hasSkills) {
+      // Always discover repo-provided skills under <workDir>/.agents/skills (e.g. a cloned repo); a missing dir is tolerated by deepagents.
+      // Absolute paths: LocalShellBackend (non-virtual) treats a leading-slash path as a real fs path.
+      const skillsPaths = [`${workDir}${SKILLS_SOURCE_PATH}`];
+      // Host-provided skills go to $HOME (out of the work dir) and take priority (listed last → wins on name collision).
+      if ((startOpts.skills?.length ?? 0) > 0) {
+        const homeDir = await resolveSandboxHomeDir({
+          sandbox: session,
+          abortSignal: startOpts.abortSignal,
+        });
+        const homeSkillsRoot = `${homeDir}${SKILLS_SOURCE_PATH}`;
         await writeSkills({
           sandbox: session,
-          workDir,
+          root: homeSkillsRoot,
           skills: startOpts.skills ?? [],
           abortSignal: startOpts.abortSignal,
         });
+        skillsPaths.push(homeSkillsRoot);
       }
-      // Absolute path: LocalShellBackend (non-virtual) treats a leading-slash path as a real fs path, so a workDir-relative skills dir must be fully qualified.
-      const skillsPath = hasSkills
-        ? `${workDir}${SKILLS_SOURCE_PATH}`
-        : undefined;
 
       const env = {
         ...resolveDeepAgentsEnv({ auth: settings.auth }),
@@ -306,7 +310,7 @@ export function createDeepAgents(
         isResume,
         // Freshly spawned bridge — it must receive the instructions on the first prompt.
         attached: false,
-        skillsPath,
+        skillsPaths,
         permissionMode,
       });
     },
@@ -345,19 +349,39 @@ async function readBridgeAsset(name: string): Promise<string> {
   throw lastErr ?? new Error(`bridge asset not found: ${name}`);
 }
 
-// Materialize each skill as a native deepagents `<name>/SKILL.md` folder (+ attached files) under the skills source path, so skills load on demand and file references resolve.
+// Resolve the sandbox $HOME so skills can be written outside the work dir.
+async function resolveSandboxHomeDir({
+  sandbox,
+  abortSignal,
+}: {
+  sandbox: ReturnType<HarnessV1NetworkSandboxSession['restricted']>;
+  abortSignal?: AbortSignal;
+}): Promise<string> {
+  const result = await sandbox.run({
+    command: 'printf "%s" "$HOME"',
+    abortSignal,
+  });
+  const homeDir = result.stdout.trim();
+  if (result.exitCode !== 0 || !homeDir.startsWith('/')) {
+    throw new Error(
+      `Unable to resolve sandbox HOME directory: ${result.stderr || result.stdout}`,
+    );
+  }
+  return homeDir;
+}
+
+// Materialize each skill as a native deepagents `<name>/SKILL.md` folder (+ attached files) under the given root, so skills load on demand and file references resolve.
 async function writeSkills({
   sandbox,
-  workDir,
+  root,
   skills,
   abortSignal,
 }: {
   sandbox: ReturnType<HarnessV1NetworkSandboxSession['restricted']>;
-  workDir: string;
+  root: string;
   skills: ReadonlyArray<HarnessV1Skill>;
   abortSignal?: AbortSignal;
 }): Promise<void> {
-  const root = `${workDir}${SKILLS_SOURCE_PATH}`;
   for (const skill of skills) {
     const name = safeSkillName(skill.name);
     const skillDir = `${root}/${name}`;
@@ -451,7 +475,7 @@ function createSession({
   sandboxId,
   isResume,
   attached,
-  skillsPath,
+  skillsPaths,
   permissionMode,
 }: {
   sessionId: string;
@@ -467,7 +491,7 @@ function createSession({
   // its instructions. A fresh spawn (incl. a respawn on attach failure or a
   // stop-resume) starts a new bridge that must receive the instructions again.
   attached: boolean;
-  skillsPath?: string;
+  skillsPaths?: string[];
   permissionMode?: HarnessV1PermissionMode;
 }): HarnessV1Session {
   let stopped = false;
@@ -617,7 +641,7 @@ function createSession({
           inputSchema: t.inputSchema,
         })),
         ...(model ? { model } : {}),
-        ...(skillsPath ? { skillsPath } : {}),
+        ...(skillsPaths?.length ? { skillsPaths } : {}),
         ...(permissionMode ? { permissionMode } : {}),
       });
 
