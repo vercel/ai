@@ -43,6 +43,7 @@ const HARNESSES = [
       'ai-sdk-coding',
       'weather',
       'weather-approval',
+      'workflow',
     ],
   },
   {
