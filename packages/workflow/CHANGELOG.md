@@ -1,5 +1,17 @@
 # @ai-sdk/workflow
 
+## 1.0.0-beta.102
+
+### Patch Changes
+
+- ai@7.0.0-beta.183
+
+## 1.0.0-beta.101
+
+### Patch Changes
+
+- b402b95: `WorkflowAgent` now rejects system messages inside `prompt` or `messages` by default, matching the behavior of `generateText`/`streamText`. Set `allowSystemInMessages: true` to opt in to the previous behavior.
+
 ## 1.0.0-beta.100
 
 ### Patch Changes

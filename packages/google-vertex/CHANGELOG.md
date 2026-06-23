@@ -1,5 +1,18 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-beta.111
+
+### Patch Changes
+
+- 427a596: Route `gemini-embedding-2` / `gemini-embedding-2-preview` to the `:embedContent` endpoint, which is the only one those models support (`:predict` returns 400 FAILED_PRECONDITION)
+
+## 5.0.0-beta.110
+
+### Patch Changes
+
+- Updated dependencies [947cdab]
+  - @ai-sdk/google@4.0.0-beta.84
+
 ## 5.0.0-beta.109
 
 ### Patch Changes

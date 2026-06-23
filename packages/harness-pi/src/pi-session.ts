@@ -29,7 +29,7 @@ import type {
   HarnessV1ToolSpec,
 } from '@ai-sdk/harness';
 import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
-import { resolvePiAuth, type PiAuthOptions } from './pi-auth';
+import { resolvePiEnv, type PiAuthOptions } from './pi-auth';
 import { getPiTerminalError, parseNativeEvent } from './pi-events';
 import { createPiModelResolver } from './pi-model-resolver';
 import { createPiPathMapper } from './pi-paths';
@@ -311,9 +311,13 @@ export async function createPiSession(
   const settingsManager = SettingsManager.inMemory();
 
   // Run-scoped env (for the model resolver's gateway fallback heuristic).
-  const resolverEnv = resolvePiAuth(input.settings.auth, process.env, {
-    authStorage,
-    modelRegistry,
+  const resolverEnv = resolvePiEnv({
+    options: input.settings.auth,
+    env: process.env,
+    registries: {
+      authStorage,
+      modelRegistry,
+    },
   });
   const resolveModel = createPiModelResolver(modelRegistry, resolverEnv);
   // Resolve once: deterministic given the configured model. This is the Pi

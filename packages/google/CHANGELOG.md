@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 4.0.0-beta.84
+
+### Patch Changes
+
+- 947cdab: Add Google realtime Live Translation provider options for `gemini-3.5-live-translate-preview`.
+
 ## 4.0.0-beta.83
 
 ### Patch Changes

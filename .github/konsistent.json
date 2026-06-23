@@ -151,6 +151,7 @@
           "description": "Every harness file must export a harness creator function and a harness settings type.",
           "for": { "files": ["${harnessId}-harness.ts"] },
           "must": {
+            "haveFiles": ["${harnessId}-auth.ts"],
             "importTypes": [
               {
                 "name": "HarnessV1",
@@ -165,6 +166,121 @@
               }
             ],
             "exportTypes": ["${harnessId.toPascalCase()}HarnessSettings"]
+          }
+        },
+        {
+          "name": "harness-file-with-bridge-must-declare-bridge-contracts",
+          "description": "Every harness file for a bridge harness must declare its bridge contracts.",
+          "for": { "files": ["${harnessId}-harness.ts"] },
+          "if": { "hasFile": "bridge/index.ts" },
+          "must": {
+            "haveFiles": ["${harnessId}-bridge-protocol.ts"],
+            "declareConstants": [
+              "${harnessId.toCamelCase()}BridgeCoordsSchema",
+              "${harnessId.toCamelCase()}ResumeStateSchema"
+            ],
+            "declareTypes": ["${harnessId.toPascalCase()}BridgeCoords"]
+          }
+        },
+        {
+          "name": "harness-file-must-use-consistent-declaration-order",
+          "description": "Every harness file must use a consistent declaration order.",
+          "for": { "files": ["${harnessId}-harness.ts"] },
+          "must": {
+            "useDeclarationOrder": [
+              "${harnessId.toPascalCase()}HarnessSettings",
+              "${harnessId.toCamelCase()}BridgeCoordsSchema",
+              "${harnessId.toCamelCase()}ResumeStateSchema",
+              "${harnessId.toPascalCase()}BridgeCoords",
+              "create${harnessId.toPascalCase()}"
+            ]
+          }
+        },
+        {
+          "name": "harness-auth-file-must-export-relevant-symbols",
+          "description": "Every harness auth file must export the relevant symbols.",
+          "for": { "files": ["${harnessId}-auth.ts"] },
+          "must": {
+            "import": [
+              {
+                "name": "getAiGatewayAuthFromEnv",
+                "from": "@ai-sdk/harness/utils"
+              }
+            ],
+            "exportTypes": ["${harnessId.toPascalCase()}AuthOptions"],
+            "exportFunctions": [
+              {
+                "name": "resolve${harnessId.toPascalCase()}Env",
+                "returnValueOfType": "Record<string, string>"
+              }
+            ],
+            "useDeclarationOrder": [
+              "${harnessId.toPascalCase()}AuthOptions",
+              "resolve${harnessId.toPascalCase()}Env"
+            ]
+          }
+        },
+        {
+          "name": "harness-bridge-protocol-file-must-export-relevant-symbols",
+          "description": "Every harness bridge protocol file must export the relevant symbols.",
+          "for": { "files": ["${harnessId}-bridge-protocol.ts"] },
+          "must": {
+            "exportConstants": [
+              "outboundMessageSchema",
+              "startMessageSchema",
+              "inboundMessageSchema",
+              "bridgeReadySchema"
+            ],
+            "exportTypes": [
+              "OutboundMessage",
+              "StartMessage",
+              "InboundMessage",
+              "BridgeReady"
+            ],
+            "useDeclarationOrder": [
+              "outboundMessageSchema",
+              "OutboundMessage",
+              "startMessageSchema",
+              "StartMessage",
+              "inboundMessageSchema",
+              "InboundMessage",
+              "bridgeReadySchema",
+              "BridgeReady"
+            ]
+          }
+        },
+        {
+          "name": "harness-bridge-must-declare-and-use-relevant-symbols",
+          "description": "Every harness bridge index file must declare and use the relevant symbols.",
+          "for": { "files": ["bridge/index.ts"] },
+          "must": {
+            "import": [
+              {
+                "name": "runBridge",
+                "from": "@ai-sdk/harness/bridge"
+              }
+            ],
+            "importTypes": [
+              {
+                "name": "StartMessage",
+                "from": "../${harnessId}-bridge-protocol"
+              },
+              {
+                "name": "BridgeEvent",
+                "from": "@ai-sdk/harness/bridge"
+              },
+              {
+                "name": "BridgeTurn",
+                "from": "@ai-sdk/harness/bridge"
+              }
+            ],
+            "declareFunctions": [
+              {
+                "name": "runTurn",
+                "receiveParamOfType": "StartMessage",
+                "returnValueOfType": "Promise<void>"
+              }
+            ]
           }
         }
       ]
