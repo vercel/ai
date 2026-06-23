@@ -24,4 +24,6 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+const { withWorkflow } = require('workflow/next');
+
+module.exports = withWorkflow(nextConfig, {});
