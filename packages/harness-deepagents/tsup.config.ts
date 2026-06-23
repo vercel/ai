@@ -23,6 +23,7 @@ export default defineConfig([
     noExternal: ['@ai-sdk/harness'],
     external: [
       'deepagents',
+      '@langchain/anthropic',
       '@langchain/core',
       '@langchain/langgraph',
       'ws',

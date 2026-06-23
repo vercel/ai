@@ -17,9 +17,6 @@ importers:
       '@langchain/langgraph':
         specifier: ^1.3.0
         version: 1.4.2(@langchain/core@1.1.49(openai@6.43.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0))(zod@4.4.3)
-      '@langchain/openai':
-        specifier: ^1.0.0
-        version: 1.4.7(@langchain/core@1.1.49(openai@6.43.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0))(ws@8.21.0)
       deepagents:
         specifier: 1.10.2
         version: 1.10.2(langsmith@0.7.10(openai@6.43.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0))(openai@6.43.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0)
@@ -92,12 +89,6 @@ packages:
     peerDependenciesMeta:
       zod-to-json-schema:
         optional: true
-
-  '@langchain/openai@1.4.7':
-    resolution: {integrity: sha512-i1YLV4pWbGC6W8m0ZNpLObJuf1nyU4o8aWyX4AF9fHn7eM67HfIJWQ5n5XzcCpuSa41otrxA9jvH5XRKwI1qDA==}
-    engines: {node: '>=20'}
-    peerDependencies:
-      '@langchain/core': ^1.1.48
 
   '@langchain/protocol@0.0.16':
     resolution: {integrity: sha512-ws+J7MaHyhO5dG7f0vdyHQiUn9hoCnki0f3crJPa4MCTGzcRC39jYSCghyrGtBPYQnZbUQiGyRVpW3z3M8IpJg==}
@@ -360,15 +351,6 @@ snapshots:
       - svelte
       - vue
 
-  '@langchain/openai@1.4.7(@langchain/core@1.1.49(openai@6.43.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0))(ws@8.21.0)':
-    dependencies:
-      '@langchain/core': 1.1.49(openai@6.43.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0)
-      js-tiktoken: 1.0.21
-      openai: 6.43.0(ws@8.21.0)(zod@4.4.3)
-      zod: 4.4.3
-    transitivePeerDependencies:
-      - ws
-
   '@langchain/protocol@0.0.16': {}
 
   '@nodelib/fs.scandir@2.1.5':
@@ -502,6 +484,7 @@ snapshots:
     optionalDependencies:
       ws: 8.21.0
       zod: 4.4.3
+    optional: true
 
   p-finally@1.0.0: {}
 

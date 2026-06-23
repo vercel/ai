@@ -7,6 +7,7 @@ import {
   type BridgeEvent,
   type BridgeTurn,
 } from '@ai-sdk/harness/bridge';
+import { ChatAnthropic } from '@langchain/anthropic';
 import { tool } from '@langchain/core/tools';
 import { Command, MemorySaver } from '@langchain/langgraph';
 import { createDeepAgent, LocalShellBackend } from 'deepagents';
@@ -41,9 +42,19 @@ function parseArgs(rawArgs: string[]): Record<string, string> {
   return out;
 }
 
-// LangChain wants `provider:model`; the host sends `provider/model`.
-function parseModelName(raw: string): string {
-  return raw.includes('/') ? raw.replace('/', ':') : raw;
+// Always drive the Anthropic client. Through the gateway, models keep their
+// `creator/model` slug (gateway translates); direct Anthropic wants the bare id.
+function buildModel(rawModel: string | undefined) {
+  if (!rawModel) return undefined;
+  const baseUrl = process.env.ANTHROPIC_BASE_URL;
+  const model = baseUrl ? rawModel : rawModel.replace(/^anthropic[/:]/, '');
+  return new ChatAnthropic({
+    model,
+    ...(process.env.ANTHROPIC_API_KEY
+      ? { apiKey: process.env.ANTHROPIC_API_KEY }
+      : {}),
+    ...(baseUrl ? { anthropicApiUrl: baseUrl } : {}),
+  });
 }
 
 // LangChain reports some built-in tool args wrapped as `{ input: "<json>" }`; unwrap to the inner JSON so AI SDK validates the real shape.
@@ -108,9 +119,10 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
 
   const interruptOn = buildInterruptOn(start.permissionMode);
   if (!agent) {
+    const model = buildModel(start.model);
     agent = createDeepAgent({
       // Defer to DeepAgents' own default when the host configured no model.
-      ...(start.model ? { model: parseModelName(start.model) } : {}),
+      ...(model ? { model } : {}),
       tools: buildHostTools(start.tools),
       backend: new LocalShellBackend({ rootDir: workdir }),
       systemPrompt: start.instructions || undefined,

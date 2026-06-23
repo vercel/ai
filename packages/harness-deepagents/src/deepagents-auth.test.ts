@@ -1,30 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  resolveDeepAgentsEnv,
-  resolveDeepAgentsProvider,
-} from './deepagents-auth';
-
-describe('resolveDeepAgentsProvider', () => {
-  it('reads the provider from a slash/colon model string', () => {
-    expect(resolveDeepAgentsProvider({ model: 'openai/gpt-5' })).toBe('openai');
-    expect(resolveDeepAgentsProvider({ model: 'anthropic:claude-x' })).toBe(
-      'anthropic',
-    );
-  });
-
-  it('defaults to anthropic', () => {
-    expect(resolveDeepAgentsProvider({ model: 'claude-sonnet-4' })).toBe(
-      'anthropic',
-    );
-    expect(resolveDeepAgentsProvider({})).toBe('anthropic');
-  });
-
-  it('infers openai when only openai auth is configured', () => {
-    expect(
-      resolveDeepAgentsProvider({ auth: { openai: { apiKey: 'k' } } }),
-    ).toBe('openai');
-  });
-});
+import { resolveDeepAgentsEnv } from './deepagents-auth';
 
 describe('resolveDeepAgentsEnv', () => {
   it('pins explicit anthropic auth', () => {
@@ -40,18 +15,15 @@ describe('resolveDeepAgentsEnv', () => {
     });
   });
 
-  it('pins explicit openai auth for an openai model', () => {
+  it('passes through an anthropic auth token', () => {
     const env = resolveDeepAgentsEnv({
-      model: 'openai/gpt-5',
-      auth: { openai: { apiKey: 'sk-oai', organization: 'org_1' } },
+      auth: { anthropic: { authToken: 'tok' } },
       processEnv: {},
     });
-    expect(env.OPENAI_API_KEY).toBe('sk-oai');
-    expect(env.OPENAI_ORGANIZATION).toBe('org_1');
-    expect(env.ANTHROPIC_API_KEY).toBeUndefined();
+    expect(env).toEqual({ ANTHROPIC_AUTH_TOKEN: 'tok' });
   });
 
-  it('routes an anthropic model through the gateway (no /v1 suffix)', () => {
+  it('routes through the gateway anthropic endpoint (no /v1 suffix)', () => {
     const env = resolveDeepAgentsEnv({
       auth: { gateway: { apiKey: 'gw-key' } },
       processEnv: {},
@@ -59,21 +31,25 @@ describe('resolveDeepAgentsEnv', () => {
     expect(env.AI_GATEWAY_API_KEY).toBe('gw-key');
     expect(env.ANTHROPIC_API_KEY).toBe('gw-key');
     expect(env.ANTHROPIC_BASE_URL).toBe('https://ai-gateway.vercel.sh');
-    expect(env.OPENAI_BASE_URL).toBeUndefined();
   });
 
-  it('routes an openai model through the gateway (with /v1 suffix)', () => {
+  it('trims a trailing slash from a custom gateway base url', () => {
     const env = resolveDeepAgentsEnv({
-      model: 'openai/gpt-5',
-      auth: { gateway: { apiKey: 'gw-key' } },
+      auth: { gateway: { apiKey: 'gw-key', baseUrl: 'https://gw.test/' } },
       processEnv: {},
     });
-    expect(env.OPENAI_API_KEY).toBe('gw-key');
-    expect(env.OPENAI_BASE_URL).toBe('https://ai-gateway.vercel.sh/v1');
-    expect(env.ANTHROPIC_BASE_URL).toBeUndefined();
+    expect(env.ANTHROPIC_BASE_URL).toBe('https://gw.test');
   });
 
-  it('falls back to ambient gateway env before ambient provider creds', () => {
+  it('prefers explicit anthropic auth over ambient gateway creds', () => {
+    const env = resolveDeepAgentsEnv({
+      auth: { anthropic: { apiKey: 'sk-ant' } },
+      processEnv: { AI_GATEWAY_API_KEY: 'ambient-gw' },
+    });
+    expect(env).toEqual({ ANTHROPIC_API_KEY: 'sk-ant' });
+  });
+
+  it('falls back to ambient gateway env before ambient anthropic creds', () => {
     const env = resolveDeepAgentsEnv({
       processEnv: {
         AI_GATEWAY_API_KEY: 'ambient-gw',
@@ -82,6 +58,7 @@ describe('resolveDeepAgentsEnv', () => {
     });
     expect(env.AI_GATEWAY_API_KEY).toBe('ambient-gw');
     expect(env.ANTHROPIC_API_KEY).toBe('ambient-gw');
+    expect(env.ANTHROPIC_BASE_URL).toBe('https://ai-gateway.vercel.sh');
   });
 
   it('falls back to ambient OIDC token as the gateway key', () => {
@@ -96,13 +73,5 @@ describe('resolveDeepAgentsEnv', () => {
       processEnv: { ANTHROPIC_API_KEY: 'ambient-ant' },
     });
     expect(env).toEqual({ ANTHROPIC_API_KEY: 'ambient-ant' });
-  });
-
-  it('falls back to ambient openai creds for an openai model', () => {
-    const env = resolveDeepAgentsEnv({
-      model: 'openai/gpt-5',
-      processEnv: { OPENAI_API_KEY: 'ambient-oai' },
-    });
-    expect(env).toEqual({ OPENAI_API_KEY: 'ambient-oai' });
   });
 });
