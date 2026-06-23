@@ -90,22 +90,26 @@ const gatewayAvailableModelsResponseSchema = lazySchema(() =>
             description: z.string().nullish(),
             pricing: z
               .object({
-                input: z.string(),
-                output: z.string(),
+                input: z.string().nullish(),
+                output: z.string().nullish(),
                 input_cache_read: z.string().nullish(),
                 input_cache_write: z.string().nullish(),
               })
               .transform(
-                ({ input, output, input_cache_read, input_cache_write }) => ({
-                  input,
-                  output,
-                  ...(input_cache_read
-                    ? { cachedInputTokens: input_cache_read }
-                    : {}),
-                  ...(input_cache_write
-                    ? { cacheCreationInputTokens: input_cache_write }
-                    : {}),
-                }),
+                ({ input, output, input_cache_read, input_cache_write }) => {
+                  const pricing = {
+                    ...(input != null ? { input } : {}),
+                    ...(output != null ? { output } : {}),
+                    ...(input_cache_read != null
+                      ? { cachedInputTokens: input_cache_read }
+                      : {}),
+                    ...(input_cache_write != null
+                      ? { cacheCreationInputTokens: input_cache_write }
+                      : {}),
+                  };
+
+                  return Object.keys(pricing).length > 0 ? pricing : undefined;
+                },
               )
               .nullish(),
             specification: z.object({
