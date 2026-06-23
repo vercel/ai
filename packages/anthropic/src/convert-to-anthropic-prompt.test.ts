@@ -1895,6 +1895,137 @@ describe('assistant messages', () => {
     expect(warnings).toMatchInlineSnapshot(`[]`);
   });
 
+  it('should not move regular tool_use blocks across thinking blocks', async () => {
+    const warnings: SharedV4Warning[] = [];
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning',
+              text: 'Think before the initial note.',
+              providerOptions: {
+                anthropic: {
+                  signature: 'test-signature-1',
+                },
+              },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'toolu_initial',
+              toolName: 'saveNote',
+              input: {
+                note: 'phase 1: initial plan',
+              },
+            },
+            {
+              type: 'reasoning',
+              text: 'Think before the revised note.',
+              providerOptions: {
+                anthropic: {
+                  signature: 'test-signature-2',
+                },
+              },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'toolu_revised',
+              toolName: 'saveNote',
+              input: {
+                note: 'phase 2: revised plan',
+              },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'toolu_initial',
+              toolName: 'saveNote',
+              output: {
+                type: 'json',
+                value: {
+                  success: true,
+                },
+              },
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'toolu_revised',
+              toolName: 'saveNote',
+              output: {
+                type: 'json',
+                value: {
+                  success: true,
+                },
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages).toEqual([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'thinking',
+            thinking: 'Think before the initial note.',
+            signature: 'test-signature-1',
+          },
+          {
+            type: 'tool_use',
+            id: 'toolu_initial',
+            name: 'saveNote',
+            input: {
+              note: 'phase 1: initial plan',
+            },
+            cache_control: undefined,
+          },
+          {
+            type: 'thinking',
+            thinking: 'Think before the revised note.',
+            signature: 'test-signature-2',
+          },
+          {
+            type: 'tool_use',
+            id: 'toolu_revised',
+            name: 'saveNote',
+            input: {
+              note: 'phase 2: revised plan',
+            },
+            cache_control: undefined,
+          },
+        ],
+      },
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'tool_result',
+            tool_use_id: 'toolu_initial',
+            content: JSON.stringify({ success: true }),
+            is_error: undefined,
+          },
+          {
+            type: 'tool_result',
+            tool_use_id: 'toolu_revised',
+            content: JSON.stringify({ success: true }),
+            is_error: undefined,
+          },
+        ],
+      },
+    ]);
+    expect(warnings).toMatchInlineSnapshot(`[]`);
+  });
+
   it('should convert anthropic web_search tool call with error result (error-json string)', async () => {
     const warnings: SharedV4Warning[] = [];
     const result = await convertToAnthropicPrompt({

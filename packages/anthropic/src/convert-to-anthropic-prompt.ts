@@ -1302,8 +1302,27 @@ function groupIntoBlocks(
 function moveToolUseBlocksToEnd(
   content: AnthropicAssistantMessage['content'],
 ): AnthropicAssistantMessage['content'] {
-  return [
-    ...content.filter(part => part.type !== 'tool_use'),
-    ...content.filter(part => part.type === 'tool_use'),
-  ];
+  const result: AnthropicAssistantMessage['content'] = [];
+  let segment: AnthropicAssistantMessage['content'] = [];
+
+  function flushSegment() {
+    result.push(
+      ...segment.filter(part => part.type !== 'tool_use'),
+      ...segment.filter(part => part.type === 'tool_use'),
+    );
+    segment = [];
+  }
+
+  for (const part of content) {
+    if (part.type === 'thinking' || part.type === 'redacted_thinking') {
+      flushSegment();
+      result.push(part);
+    } else {
+      segment.push(part);
+    }
+  }
+
+  flushSegment();
+
+  return result;
 }
