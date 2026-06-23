@@ -1,4 +1,5 @@
 import type { Attributes, AttributeValue } from '@opentelemetry/api';
+import { sanitizeAttributeValue } from './sanitize-attribute-value';
 import type { TelemetrySettings } from './telemetry-settings';
 
 type ResolvableAttributeValue = () =>
@@ -45,7 +46,8 @@ export async function selectTelemetryAttributes({
       const result = await value.input();
 
       if (result != null) {
-        resultAttributes[key] = result;
+        const sanitized = sanitizeAttributeValue(result);
+        if (sanitized != null) resultAttributes[key] = sanitized;
       }
 
       continue;
@@ -65,13 +67,15 @@ export async function selectTelemetryAttributes({
       const result = await value.output();
 
       if (result != null) {
-        resultAttributes[key] = result;
+        const sanitized = sanitizeAttributeValue(result);
+        if (sanitized != null) resultAttributes[key] = sanitized;
       }
       continue;
     }
 
     // value is an attribute value already:
-    resultAttributes[key] = value as AttributeValue;
+    const sanitized = sanitizeAttributeValue(value as AttributeValue);
+    if (sanitized != null) resultAttributes[key] = sanitized;
   }
 
   return resultAttributes;
