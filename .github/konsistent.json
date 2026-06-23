@@ -356,7 +356,6 @@
     "togetherai": "TogetherAI"
   },
   "kebabToCamelMap": {
-    "deepagents": "deepAgents",
     "lmnt": "lmnt"
   }
 }
