@@ -19,7 +19,7 @@ export type PerplexityLanguageModelOptions = {
   /**
    * Filter search results by recency. If not specified, defaults to all time.
    */
-  search_recency_filter?: 'hour' | 'day' | 'week' | 'month';
+  search_recency_filter?: 'hour' | 'day' | 'week' | 'month' | 'year';
 
   /**
    * Additional Perplexity API parameters are passed through to the request.
