@@ -10,6 +10,7 @@ import {
   type HarnessV1BuiltinTool,
   type HarnessV1ContinueTurnState,
   type HarnessV1NetworkSandboxSession,
+  type HarnessV1PermissionMode,
   type HarnessV1Prompt,
   type HarnessV1PromptControl,
   type HarnessV1ResumeSessionState,
@@ -136,8 +137,8 @@ export function createDeepAgents(
     specificationVersion: 'harness-v1',
     harnessId: 'deepagents',
     builtinTools: DEEPAGENTS_BUILTIN_TOOLS,
-    // Happy-path ships `permissionMode: 'allow-all'` only; approvals are a follow-up.
-    supportsBuiltinToolApprovals: false,
+    // Built-in tool approvals are gated in-bridge via DeepAgents' interruptOn (HITL) middleware.
+    supportsBuiltinToolApprovals: true,
     lifecycleStateSchema: deepAgentsResumeStateSchema,
     getBootstrap: async () => {
       if (cachedBootstrap != null) return cachedBootstrap;
@@ -164,17 +165,7 @@ export function createDeepAgents(
       return cachedBootstrap;
     },
     doStart: async startOpts => {
-      if (
-        startOpts.permissionMode != null &&
-        startOpts.permissionMode !== 'allow-all'
-      ) {
-        throw new HarnessCapabilityUnsupportedError({
-          message:
-            "Harness 'deepagents' does not support built-in tool approval requests yet; use permissionMode: 'allow-all'.",
-          harnessId: 'deepagents',
-        });
-      }
-
+      const permissionMode = startOpts.permissionMode;
       const sandboxSession = startOpts.sandboxSession;
       const session = sandboxSession.restricted();
       const sandboxId = sandboxSession.id;
@@ -228,6 +219,7 @@ export function createDeepAgents(
             sandboxId,
             isResume: true,
             attached: true,
+            permissionMode,
           });
         } catch {
           // Bridge no longer reachable — recover by respawning below.
@@ -315,6 +307,7 @@ export function createDeepAgents(
         // Freshly spawned bridge — it must receive the instructions on the first prompt.
         attached: false,
         skillsPath,
+        permissionMode,
       });
     },
   };
@@ -459,6 +452,7 @@ function createSession({
   isResume,
   attached,
   skillsPath,
+  permissionMode,
 }: {
   sessionId: string;
   channel: DeepAgentsChannel;
@@ -474,6 +468,7 @@ function createSession({
   // stop-resume) starts a new bridge that must receive the instructions again.
   attached: boolean;
   skillsPath?: string;
+  permissionMode?: HarnessV1PermissionMode;
 }): HarnessV1Session {
   let stopped = false;
   let instructionsApplied = attached;
@@ -579,6 +574,14 @@ function createSession({
       submitUserMessage: async text => {
         channel.send({ type: 'user-message', text });
       },
+      submitToolApproval: async input => {
+        channel.send({
+          type: 'tool-approval-response',
+          approvalId: input.approvalId,
+          approved: input.approved,
+          ...(input.reason != null ? { reason: input.reason } : {}),
+        });
+      },
       done,
     };
   };
@@ -615,6 +618,7 @@ function createSession({
         })),
         ...(model ? { model } : {}),
         ...(skillsPath ? { skillsPath } : {}),
+        ...(permissionMode ? { permissionMode } : {}),
       });
 
       return control;

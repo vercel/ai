@@ -8,9 +8,10 @@ import {
   type BridgeTurn,
 } from '@ai-sdk/harness/bridge';
 import { tool } from '@langchain/core/tools';
-import { MemorySaver } from '@langchain/langgraph';
+import { Command, MemorySaver } from '@langchain/langgraph';
 import { createDeepAgent, LocalShellBackend } from 'deepagents';
 import type { StartMessage } from '../deepagents-bridge-protocol';
+import { buildInterruptOn, collectActionRequests } from './approvals';
 import { jsonSchemaToZodObject } from './json-schema-to-zod';
 
 // Native DeepAgents tool name -> harness-v1 common name (renames only; grep/glob/ls/task/write_todos forward unchanged).
@@ -105,6 +106,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   const emit = (event: Record<string, unknown>) =>
     turn.emit(event as BridgeEvent);
 
+  const interruptOn = buildInterruptOn(start.permissionMode);
   if (!agent) {
     agent = createDeepAgent({
       // Defer to DeepAgents' own default when the host configured no model.
@@ -114,6 +116,8 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       systemPrompt: start.instructions || undefined,
       // Native skills loaded from the host-materialized source dir (on-demand, with working file refs).
       ...(start.skillsPath ? { skills: [start.skillsPath] } : {}),
+      // Gate built-in tools behind HITL approval when the permission mode requires it.
+      ...(interruptOn ? { interruptOn } : {}),
       // Real instance (LangGraph rejects `true` for root graphs); gives multi-turn memory.
       checkpointer: new MemorySaver(),
     });
@@ -130,6 +134,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   let inputTokens = 0;
   let outputTokens = 0;
   const activeToolRunIds = new Set<string>();
+  // Approval-gated tools are announced before execution; these tie the later run back to the approval id and dedup the call.
+  const approvedToolQueue = new Map<string, string[]>();
+  const approvedRunIds = new Map<string, string>();
 
   const ensureTextBlock = (): string => {
     if (!textBlockId) {
@@ -164,108 +171,188 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     emit({ type: 'reasoning-delta', id: reasoningBlockId, delta });
   };
 
-  const stream = await agent.streamEvents(
-    { messages: [{ role: 'user', content: start.prompt }] },
-    {
-      version: 'v2',
-      configurable: { thread_id: 'bridge-session' },
-      recursionLimit: 50,
-      signal: turn.abortSignal,
-    },
-  );
+  const config = {
+    version: 'v2' as const,
+    configurable: { thread_id: 'bridge-session' },
+    recursionLimit: 50,
+    signal: turn.abortSignal,
+  };
 
-  for await (const event of stream) {
-    const kind = event.event;
-    const data = (event.data ?? {}) as Record<string, unknown>;
+  // After a stream segment ends, return the tool calls paused by HITL interrupts (empty when the turn is truly done).
+  const readPendingApprovals = async () => {
+    try {
+      const state = (await agent!.getState({
+        configurable: { thread_id: 'bridge-session' },
+      })) as { tasks?: Array<{ interrupts?: Array<{ value?: unknown }> }> };
+      return collectActionRequests(
+        (state.tasks ?? []).flatMap(t => t.interrupts ?? []),
+      );
+    } catch {
+      return [];
+    }
+  };
 
-    if (kind === 'on_chat_model_stream') {
-      const parentIds = (event as { parent_ids?: string[] }).parent_ids ?? [];
-      if (parentIds.some(id => activeToolRunIds.has(id))) continue;
-      const chunk = data.chunk as
-        | {
-            content?: unknown;
-            usage_metadata?: { input_tokens?: number; output_tokens?: number };
-          }
-        | undefined;
-      if (!chunk) continue;
-      const content = chunk.content;
-      if (typeof content === 'string' && content) {
-        emitText(content);
-      } else if (Array.isArray(content)) {
-        for (const block of content) {
-          if (block && typeof block === 'object') {
-            const b = block as {
-              type?: string;
-              text?: string;
-              thinking?: string;
-            };
-            if (b.type === 'text' && b.text) emitText(b.text);
-            else if (b.type === 'thinking' && b.thinking)
-              emitReasoning(b.thinking);
+  let resumeInput: unknown = {
+    messages: [{ role: 'user', content: start.prompt }],
+  };
+
+  while (true) {
+    const stream = await agent.streamEvents(resumeInput as never, config);
+
+    for await (const event of stream) {
+      const kind = event.event;
+      const data = (event.data ?? {}) as Record<string, unknown>;
+
+      if (kind === 'on_chat_model_stream') {
+        const parentIds = (event as { parent_ids?: string[] }).parent_ids ?? [];
+        if (parentIds.some(id => activeToolRunIds.has(id))) continue;
+        const chunk = data.chunk as
+          | {
+              content?: unknown;
+              usage_metadata?: {
+                input_tokens?: number;
+                output_tokens?: number;
+              };
+            }
+          | undefined;
+        if (!chunk) continue;
+        const content = chunk.content;
+        if (typeof content === 'string' && content) {
+          emitText(content);
+        } else if (Array.isArray(content)) {
+          for (const block of content) {
+            if (block && typeof block === 'object') {
+              const b = block as {
+                type?: string;
+                text?: string;
+                thinking?: string;
+              };
+              if (b.type === 'text' && b.text) emitText(b.text);
+              else if (b.type === 'thinking' && b.thinking)
+                emitReasoning(b.thinking);
+            }
           }
         }
-      }
-      const usage = chunk.usage_metadata;
-      if (usage) {
-        inputTokens = Math.max(inputTokens, usage.input_tokens ?? 0);
-        outputTokens = Math.max(outputTokens, usage.output_tokens ?? 0);
-      }
-    } else if (kind === 'on_chat_model_end') {
-      // Final usage lands on model-end, not the chunks; each model call is one step.
-      const output = data.output as
-        | {
-            usage_metadata?: { input_tokens?: number; output_tokens?: number };
-          }
-        | undefined;
-      const usage = output?.usage_metadata;
-      if (usage) {
-        inputTokens += usage.input_tokens ?? 0;
-        outputTokens += usage.output_tokens ?? 0;
-      }
-      endTextBlock();
-      endReasoningBlock();
-      turn.emit({
-        type: 'finish-step',
-        finishReason: { unified: 'stop' },
-        usage: {
-          inputTokens: { total: usage?.input_tokens ?? 0 },
-          outputTokens: { total: usage?.output_tokens ?? 0 },
-        },
-      });
-    } else if (kind === 'on_tool_start') {
-      const toolName = (event.name as string) ?? 'unknown';
-      const runId = (event.run_id as string) ?? '';
-      if (runId) activeToolRunIds.add(runId);
-      // Host tools emit their own tool-call; only surface builtin (providerExecuted) tools here.
-      if (!hostToolNames.has(toolName)) {
+        const usage = chunk.usage_metadata;
+        if (usage) {
+          inputTokens = Math.max(inputTokens, usage.input_tokens ?? 0);
+          outputTokens = Math.max(outputTokens, usage.output_tokens ?? 0);
+        }
+      } else if (kind === 'on_chat_model_end') {
+        // Final usage lands on model-end, not the chunks; each model call is one step.
+        const output = data.output as
+          | {
+              usage_metadata?: {
+                input_tokens?: number;
+                output_tokens?: number;
+              };
+            }
+          | undefined;
+        const usage = output?.usage_metadata;
+        if (usage) {
+          inputTokens += usage.input_tokens ?? 0;
+          outputTokens += usage.output_tokens ?? 0;
+        }
         endTextBlock();
         endReasoningBlock();
-        emit({
-          type: 'tool-call',
-          toolCallId: runId,
-          toolName: toCommonName(toolName),
-          input: toToolCallInput(data.input),
-          providerExecuted: true,
-          nativeName: toolName,
+        turn.emit({
+          type: 'finish-step',
+          finishReason: { unified: 'stop' },
+          usage: {
+            inputTokens: { total: usage?.input_tokens ?? 0 },
+            outputTokens: { total: usage?.output_tokens ?? 0 },
+          },
         });
-      }
-    } else if (kind === 'on_tool_end') {
-      const toolName = (event.name as string) ?? 'unknown';
-      const runId = (event.run_id as string) ?? '';
-      if (!hostToolNames.has(toolName)) {
-        let output: unknown = data.output ?? '';
-        if (output && typeof output === 'object' && 'content' in output) {
-          output = (output as { content: unknown }).content;
+      } else if (kind === 'on_tool_start') {
+        const toolName = (event.name as string) ?? 'unknown';
+        const runId = (event.run_id as string) ?? '';
+        if (runId) activeToolRunIds.add(runId);
+        // Host tools emit their own tool-call; only surface builtin (providerExecuted) tools here.
+        if (!hostToolNames.has(toolName)) {
+          const queued = approvedToolQueue.get(toolName);
+          if (queued && queued.length > 0) {
+            // Already announced at approval time; tie this run to that id and don't re-emit the call.
+            const approvalId = queued.shift()!;
+            if (runId) approvedRunIds.set(runId, approvalId);
+          } else {
+            endTextBlock();
+            endReasoningBlock();
+            emit({
+              type: 'tool-call',
+              toolCallId: runId,
+              toolName: toCommonName(toolName),
+              input: toToolCallInput(data.input),
+              providerExecuted: true,
+              nativeName: toolName,
+            });
+          }
         }
+      } else if (kind === 'on_tool_end') {
+        const toolName = (event.name as string) ?? 'unknown';
+        const runId = (event.run_id as string) ?? '';
+        if (!hostToolNames.has(toolName)) {
+          let output: unknown = data.output ?? '';
+          if (output && typeof output === 'object' && 'content' in output) {
+            output = (output as { content: unknown }).content;
+          }
+          emit({
+            type: 'tool-result',
+            toolCallId: approvedRunIds.get(runId) ?? runId,
+            toolName: toCommonName(toolName),
+            result: output ?? null,
+          });
+          approvedRunIds.delete(runId);
+        }
+        if (runId) activeToolRunIds.delete(runId);
+      }
+    }
+
+    const actionRequests = await readPendingApprovals();
+    if (actionRequests.length === 0) break;
+
+    // HITL paused the run: announce each gated call, collect host decisions, then resume.
+    const decisions: Array<
+      { type: 'approve' } | { type: 'reject'; message?: string }
+    > = [];
+    for (const action of actionRequests) {
+      const approvalId = `approval-${randomUUID()}`;
+      endTextBlock();
+      endReasoningBlock();
+      emit({
+        type: 'tool-call',
+        toolCallId: approvalId,
+        toolName: toCommonName(action.name),
+        input: JSON.stringify(action.args ?? {}),
+        providerExecuted: true,
+        nativeName: action.name,
+      });
+      emit({
+        type: 'tool-approval-request',
+        approvalId,
+        toolCallId: approvalId,
+      });
+      const decision = await turn.requestToolApproval(approvalId);
+      if (decision.approved) {
+        const queue = approvedToolQueue.get(action.name) ?? [];
+        queue.push(approvalId);
+        approvedToolQueue.set(action.name, queue);
+        decisions.push({ type: 'approve' });
+      } else {
+        // Rejected tools never execute, so surface the outcome as the result now.
         emit({
           type: 'tool-result',
-          toolCallId: runId,
-          toolName: toCommonName(toolName),
-          result: output ?? null,
+          toolCallId: approvalId,
+          toolName: toCommonName(action.name),
+          result: decision.reason ?? 'Rejected by user.',
+        });
+        decisions.push({
+          type: 'reject',
+          ...(decision.reason ? { message: decision.reason } : {}),
         });
       }
-      if (runId) activeToolRunIds.delete(runId);
     }
+
+    resumeInput = new Command({ resume: { decisions } });
   }
 
   endTextBlock();

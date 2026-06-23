@@ -1,7 +1,3 @@
-import {
-  HarnessCapabilityUnsupportedError,
-  type HarnessV1StartOptions,
-} from '@ai-sdk/harness';
 import type * as NodeFsPromises from 'node:fs/promises';
 import { describe, expect, it, vi } from 'vitest';
 import {
@@ -31,7 +27,7 @@ describe('createDeepAgents', () => {
     const harness = createDeepAgents();
     expect(harness.specificationVersion).toBe('harness-v1');
     expect(harness.harnessId).toBe('deepagents');
-    expect(harness.supportsBuiltinToolApprovals).toBe(false);
+    expect(harness.supportsBuiltinToolApprovals).toBe(true);
   });
 
   it('lists every model-callable DeepAgents built-in tool', () => {
@@ -83,15 +79,6 @@ describe('createDeepAgents', () => {
     const a = await harness.getBootstrap!();
     const b = await harness.getBootstrap!();
     expect(a).toBe(b);
-  });
-
-  it('rejects a non-allow-all permission mode', async () => {
-    const harness = createDeepAgents();
-    await expect(
-      harness.doStart({
-        permissionMode: 'allow-reads',
-      } as unknown as HarnessV1StartOptions),
-    ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
   });
 
   it('exposes a lifecycle state schema for resume payloads', () => {
