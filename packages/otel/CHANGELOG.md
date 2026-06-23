@@ -1,5 +1,15 @@
 # @ai-sdk/otel
 
+## 1.0.0-beta.130
+
+### Patch Changes
+
+- b94d22f: Sanitize OpenTelemetry span array attributes so they no longer emit invalid OTLP values (arrays containing `undefined`/`null`/objects, or arrays mixing primitive types). Such values previously failed telemetry ingestion with `deserializing message invalid value: map, expected map with a single key` and flooded function logs with errors.
+- d5cac7c: feat(otel): emit performance metrics via gen ai semantics
+- Updated dependencies [0416e3e]
+  - @ai-sdk/provider@4.0.0-beta.20
+  - ai@7.0.0-beta.184
+
 ## 1.0.0-beta.129
 
 ### Patch Changes
