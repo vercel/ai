@@ -51,7 +51,7 @@ This will cancel the stream from the client side to the server.
   both.
 </Note>
 
-```tsx file="app/page.tsx" highlight="9,18-20"
+```tsx file="app/page.tsx" highlight="6,11-14"
 'use client';
 
 import { useCompletion } from '@ai-sdk/react';
@@ -89,7 +89,7 @@ Unlike `onFinish`, which is called when a stream completes normally, `onAbort` i
   single callback.
 </Note>
 
-```tsx highlight="8-12"
+```tsx highlight="6-9"
 import { streamText } from 'ai';
 __PROVIDER_IMPORT__;
 
@@ -141,7 +141,7 @@ for await (const part of result.fullStream) {
 
 When using `toUIMessageStreamResponse`, you need to handle stream abortion slightly differently. The `onFinish` callback receives an `isAborted` parameter, and you should pass the `consumeStream` function to ensure proper abort handling:
 
-```tsx highlight="5,19,20-24,26"
+```tsx highlight="3,20-27,29"
 import { openai } from '@ai-sdk/openai';
 import {
   consumeStream,

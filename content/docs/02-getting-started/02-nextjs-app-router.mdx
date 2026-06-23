@@ -257,7 +257,7 @@ Let's enhance your chatbot by adding a simple weather tool.
 
 Modify your `app/api/chat/route.ts` file to include the new weather tool:
 
-```tsx filename="app/api/chat/route.ts" highlight="2,13-27"
+```tsx filename="app/api/chat/route.ts" highlight="2,11-25"
 import { streamText, UIMessage, convertToModelMessages, tool } from 'ai';
 __PROVIDER_IMPORT__;
 import { z } from 'zod';
@@ -428,7 +428,7 @@ By setting `stopWhen: stepCountIs(5)`, you're allowing the model to use up to 5 
 
 Update your `app/api/chat/route.ts` file to add a new tool to convert the temperature from Fahrenheit to Celsius:
 
-```tsx filename="app/api/chat/route.ts" highlight="34-47"
+```tsx filename="app/api/chat/route.ts" highlight="32-45"
 import {
   streamText,
   UIMessage,
@@ -485,7 +485,7 @@ export async function POST(req: Request) {
 
 update your `app/page.tsx` file to render the new temperature conversion tool:
 
-```tsx filename="app/page.tsx" highlight="21"
+```tsx filename="app/page.tsx" highlight="18-23"
 'use client';
 
 import { useChat } from '@ai-sdk/react';
