@@ -12,6 +12,7 @@
     "@ai-sdk/harness-codex": "workspace:*",
     "@ai-sdk/harness-deepagents": "workspace:*",
     "@ai-sdk/harness-opencode": "workspace:*",
+    "@ai-sdk/harness-cursor": "workspace:*",
     "@ai-sdk/harness-pi": "workspace:*",
     "@ai-sdk/sandbox-vercel": "workspace:*",
     "@ai-sdk/tui": "workspace:*",
