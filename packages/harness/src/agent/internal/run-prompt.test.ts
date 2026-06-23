@@ -166,6 +166,77 @@ describe('runPrompt workDir stripping', () => {
   });
 });
 
+describe('runPrompt usage', () => {
+  test('uses final total usage when it differs from received step usage', async () => {
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        {
+          type: 'finish-step',
+          finishReason: { unified: 'stop', raw: 'stop' },
+          usage: {
+            inputTokens: {
+              total: 2,
+              noCache: 2,
+              cacheRead: 0,
+              cacheWrite: 0,
+            },
+            outputTokens: {
+              total: 5,
+              text: 5,
+              reasoning: 0,
+            },
+          },
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'stop' },
+          totalUsage: {
+            inputTokens: {
+              total: 10,
+              noCache: 4,
+              cacheRead: 6,
+              cacheWrite: 0,
+            },
+            outputTokens: {
+              total: 40,
+              text: 30,
+              reasoning: 10,
+            },
+          },
+        },
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {},
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+    });
+
+    await done;
+    await result.consumeStream();
+
+    await expect(result.usage).resolves.toEqual({
+      inputTokens: 10,
+      inputTokenDetails: {
+        noCacheTokens: 4,
+        cacheReadTokens: 6,
+        cacheWriteTokens: 0,
+      },
+      outputTokens: 40,
+      outputTokenDetails: {
+        textTokens: 30,
+        reasoningTokens: 10,
+      },
+      totalTokens: 50,
+      raw: undefined,
+    });
+  });
+});
+
 type SubmittedResult = {
   toolCallId: string;
   output: unknown;
