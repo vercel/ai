@@ -23,6 +23,15 @@ import {
   unwrapOpenCodeEvent,
 } from './opencode-events';
 import { prependOpenCodeBinToPath } from './opencode-path';
+import {
+  addUsage,
+  defaultUsage,
+  extractSessionTokens,
+  mapUsage,
+  subtractSessionTokens,
+  type HarnessUsage,
+  type OpenCodeTokenUsage,
+} from './opencode-usage';
 
 type Emit = (msg: Record<string, unknown>) => void;
 
@@ -91,6 +100,7 @@ await runBridge<StartMessage>({
 
 async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   const emit: Emit = msg => turn.emit(msg as BridgeEvent);
+  let totalUsage: HarnessUsage | undefined;
   try {
     await ensureRuntime({ start, turn, emit });
     const client = runtime.client!;
@@ -99,7 +109,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     if (start.operation === 'compact') {
       await runCompaction({ client, sessionId, start, turn, emit });
     } else {
-      await runPrompt({ client, sessionId, start, turn, emit });
+      totalUsage = await runPrompt({ client, sessionId, start, turn, emit });
     }
   } catch (err) {
     emit({ type: 'error', error: serialiseError(err) });
@@ -107,7 +117,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     emit({
       type: 'finish',
       finishReason: { unified: 'stop', raw: 'stop' },
-      totalUsage: defaultUsage(),
+      totalUsage: totalUsage ?? defaultUsage(),
     });
   }
 }
@@ -471,13 +481,19 @@ async function runPrompt({
   start: StartMessage;
   turn: BridgeTurn;
   emit: Emit;
-}): Promise<void> {
+}): Promise<HarnessUsage | undefined> {
   const eventsAbort = new AbortController();
   const turnSettled = createDeferred<void>();
   let sawContent = false;
   let sawFinishStep = false;
   let sawBusy = false;
   let terminalError: string | undefined;
+  const initialSessionTokens = await readSessionTokens({
+    client,
+    sessionId,
+  }).catch(() => undefined);
+  let stepUsage: HarnessUsage | undefined;
+  let latestSessionTokens: OpenCodeTokenUsage | undefined;
   const eventLoop = consumeEvents({
     client,
     sessionId,
@@ -487,11 +503,21 @@ async function runPrompt({
       if (msg.type === 'text-delta' || msg.type === 'reasoning-delta') {
         sawContent = true;
       }
-      if (msg.type === 'finish-step') sawFinishStep = true;
+      if (msg.type === 'finish-step') {
+        sawFinishStep = true;
+        stepUsage = addUsage({
+          left: stepUsage,
+          right: msg.usage as HarnessUsage,
+        });
+      }
       emit(msg);
     },
     signal: eventsAbort.signal,
     onEvent: event => {
+      if (event.type === 'session.updated') {
+        latestSessionTokens =
+          extractSessionTokens(event.properties) ?? latestSessionTokens;
+      }
       if (isStepSettlementEvent(event)) {
         turnSettled.resolve();
         return true;
@@ -548,6 +574,18 @@ async function runPrompt({
       });
     }
   }
+  const finalSessionTokens =
+    (await readSessionTokens({ client, sessionId }).catch(() => undefined)) ??
+    latestSessionTokens;
+  if (initialSessionTokens && finalSessionTokens) {
+    return mapUsage(
+      subtractSessionTokens({
+        before: initialSessionTokens,
+        after: finalSessionTokens,
+      }),
+    );
+  }
+  return stepUsage;
 }
 
 async function runCompaction({
@@ -1390,40 +1428,6 @@ function isHostTool(toolName: string, rawToolName: unknown): boolean {
   return false;
 }
 
-function mapUsage(tokens: unknown): Record<string, unknown> {
-  const value =
-    tokens && typeof tokens === 'object'
-      ? (tokens as {
-          input?: number;
-          output?: number;
-          reasoning?: number;
-          cache?: { read?: number; write?: number };
-        })
-      : {};
-  const input = value.input ?? 0;
-  const cacheRead = value.cache?.read ?? 0;
-  return {
-    inputTokens: {
-      total: input,
-      noCache: Math.max(0, input - cacheRead),
-      cacheRead,
-      cacheWrite: value.cache?.write ?? 0,
-    },
-    outputTokens: {
-      total: (value.output ?? 0) + (value.reasoning ?? 0),
-      text: value.output ?? 0,
-      reasoning: value.reasoning ?? 0,
-    },
-  };
-}
-
-function defaultUsage(): Record<string, unknown> {
-  return {
-    inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
-    outputTokens: { total: 0, text: 0, reasoning: 0 },
-  };
-}
-
 async function emitContextFallback({
   client,
   sessionId,
@@ -1464,6 +1468,18 @@ async function emitContextFallback({
       : { harnessMetadata: { opencode: { fallback: true } } }),
   });
   return true;
+}
+
+async function readSessionTokens({
+  client,
+  sessionId,
+}: {
+  client: OpenCodeClient;
+  sessionId: string;
+}): Promise<OpenCodeTokenUsage | undefined> {
+  const session = await legacySessionGet({ client, sessionId });
+  if (session.error) return undefined;
+  return extractSessionTokens(session.data);
 }
 
 type AssistantSnapshot = {
