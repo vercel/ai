@@ -1,5 +1,13 @@
 # ai
 
+## 6.0.209
+
+### Patch Changes
+
+- d102dff: Sanitize OpenTelemetry array attributes so spans no longer emit invalid OTLP values (arrays containing `undefined`/`null`/objects, or arrays mixing primitive types). For example, `gen_ai.response.finish_reasons` could be emitted as `[undefined]` when a finish reason was missing. Such values previously failed telemetry ingestion with `deserializing message invalid value: map, expected map with a single key` and flooded function logs with errors.
+- Updated dependencies [709c0fa]
+  - @ai-sdk/gateway@3.0.134
+
 ## 6.0.208
 
 ### Patch Changes
