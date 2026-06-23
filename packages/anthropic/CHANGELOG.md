@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.86
+
+### Patch Changes
+
+- 6086c60: fix(anthropic): reorder assistant content b/w client and provider tool use
+
 ## 3.0.85
 
 ### Patch Changes
