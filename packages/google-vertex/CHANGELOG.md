@@ -1,5 +1,17 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-beta.112
+
+### Patch Changes
+
+- 0416e3e: feat (video): add first-class `generateAudio` call option
+- Updated dependencies [0416e3e]
+  - @ai-sdk/provider@4.0.0-beta.20
+  - @ai-sdk/anthropic@4.0.0-beta.68
+  - @ai-sdk/google@4.0.0-beta.85
+  - @ai-sdk/openai-compatible@3.0.0-beta.58
+  - @ai-sdk/provider-utils@5.0.0-beta.50
+
 ## 5.0.0-beta.111
 
 ### Patch Changes

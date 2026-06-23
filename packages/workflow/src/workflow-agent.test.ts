@@ -12,10 +12,16 @@ import {
   type LanguageModelV4ToolCall,
   type LanguageModelV4ToolResultPart,
 } from '@ai-sdk/provider';
-import type { StepResult, ToolSet } from 'ai';
+import {
+  tool,
+  type Experimental_SandboxSession as SandboxSession,
+  type StepResult,
+  type ToolSet,
+} from 'ai';
 import { describe, expect, it, vi } from 'vitest';
 import { FatalError } from 'workflow';
 import { z } from 'zod';
+import { createTestSandbox } from './test/test-sandbox.js';
 import type { ParsedToolCall } from './do-stream-step.js';
 import type { StreamTextIteratorYieldValue } from './stream-text-iterator.js';
 import type {
@@ -931,6 +937,87 @@ describe('WorkflowAgent', () => {
         },
       ]);
       expect(result.toolResults).toHaveLength(0);
+    });
+  });
+
+  describe('experimental_sandbox', () => {
+    async function runWithSandbox(options: {
+      constructorSandbox?: SandboxSession;
+      streamSandbox?: SandboxSession;
+    }) {
+      let receivedSandbox: SandboxSession | undefined;
+      const agent = new WorkflowAgent({
+        model: createMockModel(),
+        experimental_sandbox: options.constructorSandbox,
+        tools: {
+          testTool: tool({
+            description: 'A test tool',
+            inputSchema: z.object({}),
+            execute: async (_input, { experimental_sandbox }) => {
+              receivedSandbox = experimental_sandbox;
+              return 'ok';
+            },
+          }),
+        },
+      });
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const mockMessages: LanguageModelV4Prompt = [
+        { role: 'user', content: [{ type: 'text', text: 'test' }] },
+      ];
+      const mockIterator = {
+        next: vi
+          .fn()
+          .mockResolvedValueOnce({
+            done: false,
+            value: {
+              toolCalls: [
+                {
+                  toolCallId: 'test-call-id',
+                  toolName: 'testTool',
+                  input: '{}',
+                } as LanguageModelV4ToolCall,
+              ],
+              messages: mockMessages,
+            },
+          })
+          .mockResolvedValueOnce({ done: true, value: [] }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        writable: new WritableStream({ write: vi.fn(), close: vi.fn() }),
+        experimental_sandbox: options.streamSandbox,
+      });
+
+      return receivedSandbox;
+    }
+
+    it('should pass the stream-level sandbox to tool execution', async () => {
+      const sandbox = createTestSandbox();
+      expect(await runWithSandbox({ streamSandbox: sandbox })).toBe(sandbox);
+    });
+
+    it('should pass the constructor-level sandbox to tool execution', async () => {
+      const sandbox = createTestSandbox();
+      expect(await runWithSandbox({ constructorSandbox: sandbox })).toBe(
+        sandbox,
+      );
+    });
+
+    it('should let the stream-level sandbox override the constructor-level sandbox', async () => {
+      const constructorSandbox = createTestSandbox();
+      const streamSandbox = createTestSandbox();
+      expect(await runWithSandbox({ constructorSandbox, streamSandbox })).toBe(
+        streamSandbox,
+      );
+    });
+
+    it('should pass undefined when no sandbox is configured', async () => {
+      expect(await runWithSandbox({})).toBeUndefined();
     });
   });
 

@@ -1,5 +1,12 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.0-beta.19
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.0-beta.22
+- @ai-sdk/provider-utils@5.0.0-beta.50
+
 ## 1.0.0-beta.18
 
 ### Patch Changes

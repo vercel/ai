@@ -32,6 +32,7 @@ import {
   type Prompt,
   type TelemetryOptions as CoreTelemetryOptions,
   type Instructions,
+  type Experimental_SandboxSession as SandboxSession,
 } from 'ai';
 import {
   createRestrictedTelemetryDispatcher,
@@ -278,6 +279,11 @@ export interface PrepareStepInfo<
    * `prepareStep` to update it for the current and subsequent steps.
    */
   toolsContext: InferToolSetContext<TTools>;
+
+  /**
+   * The sandbox environment that the step is operating in.
+   */
+  experimental_sandbox?: SandboxSession;
 }
 
 /**
@@ -326,6 +332,11 @@ export interface PrepareStepResult<
    * Returning a value replaces the agent's tools context.
    */
   toolsContext?: InferToolSetContext<TTools>;
+
+  /**
+   * Override the sandbox environment for this step.
+   */
+  experimental_sandbox?: SandboxSession;
 }
 
 /**
@@ -493,6 +504,14 @@ export type WorkflowAgentOptions<
      * Per-stream `experimental_download` values passed to `stream()` override this default.
      */
     experimental_download?: DownloadFunction;
+
+    /**
+     * Default sandbox environment passed through to tool execution as
+     * `experimental_sandbox`.
+     *
+     * Per-stream `experimental_sandbox` values passed to `stream()` override this default.
+     */
+    experimental_sandbox?: SandboxSession;
 
     /**
      * Default callback function called before each step in the agent loop.
@@ -934,6 +953,12 @@ export type WorkflowAgentStreamOptions<
     experimental_download?: DownloadFunction;
 
     /**
+     * Sandbox environment passed through to tool execution as
+     * `experimental_sandbox`. Overrides the constructor-level value if provided.
+     */
+    experimental_sandbox?: SandboxSession;
+
+    /**
      * Callback function to be called after each step completes.
      */
     onStepEnd?: WorkflowAgentOnStepEndCallback<TTools, TRuntimeContext>;
@@ -1177,6 +1202,7 @@ export class WorkflowAgent<
   private output?: OutputSpecification<any, any>;
   private experimentalRepairToolCall?: ToolCallRepairFunction<TBaseTools>;
   private experimentalDownload?: DownloadFunction;
+  private experimentalSandbox?: SandboxSession;
   private prepareStep?: PrepareStepCallback<TBaseTools, TRuntimeContext>;
   private allowSystemInMessages: boolean;
   private constructorOnStepEnd?: WorkflowAgentOnStepEndCallback<
@@ -1214,6 +1240,7 @@ export class WorkflowAgent<
     this.output = options.output;
     this.experimentalRepairToolCall = options.experimental_repairToolCall;
     this.experimentalDownload = options.experimental_download;
+    this.experimentalSandbox = options.experimental_sandbox;
     this.prepareStep = options.prepareStep;
     this.constructorOnStepEnd = options.onStepEnd ?? options.onStepFinish;
     const { onFinish, onEnd = onFinish } = options;
@@ -1360,6 +1387,7 @@ export class WorkflowAgent<
         : { messages: effectiveMessages! }),
     } as Prompt);
     const download = options.experimental_download ?? this.experimentalDownload;
+    const sandbox = options.experimental_sandbox ?? this.experimentalSandbox;
 
     // Process tool approval responses before starting the agent loop.
     // This mirrors how stream-text.ts handles tool-approval-response parts:
@@ -1517,6 +1545,7 @@ export class WorkflowAgent<
                 toolCallId: approval.toolCallId,
                 messages: [],
                 context: resolvedContext,
+                experimental_sandbox: sandbox,
               });
             const toolResult =
               telemetryDispatcher.executeTool != null
@@ -1821,6 +1850,7 @@ export class WorkflowAgent<
       messages: LanguageModelV4Prompt,
       perToolContexts: Record<string, Context | undefined>,
       currentStepNumber: number = 0,
+      stepSandbox?: SandboxSession,
     ): Promise<WorkflowToolExecutionResult> => {
       const toolCallEvent: ToolCall = {
         type: 'tool-call',
@@ -1862,7 +1892,14 @@ export class WorkflowAgent<
       let result: WorkflowToolExecutionResult;
       try {
         const execute = () =>
-          executeTool(toolCall, tools, messages, resolvedContext, download);
+          executeTool(
+            toolCall,
+            tools,
+            messages,
+            resolvedContext,
+            download,
+            stepSandbox,
+          );
         result =
           telemetryDispatcher.executeTool != null
             ? await telemetryDispatcher.executeTool({
@@ -2034,6 +2071,7 @@ export class WorkflowAgent<
         | ToolCallRepairFunction<ToolSet>
         | undefined,
       responseFormat: await (options.output ?? this.output)?.responseFormat,
+      experimental_sandbox: sandbox,
     });
 
     // Track the final conversation messages from the iterator
@@ -2059,8 +2097,10 @@ export class WorkflowAgent<
           step,
           runtimeContext: yieldedRuntimeContext,
           toolsContext: yieldedToolsContext,
+          experimental_sandbox: stepSandbox,
           providerExecutedToolResults,
         } = result.value;
+        const toolExecutionSandbox = stepSandbox ?? sandbox;
         // Capture current step number before pushing (0-based)
         const currentStepNumber = steps.length;
         if (step) {
@@ -2141,6 +2181,7 @@ export class WorkflowAgent<
                     iterMessages,
                     toolsContext,
                     currentStepNumber,
+                    toolExecutionSandbox,
                   ),
               ),
             );
@@ -2280,6 +2321,7 @@ export class WorkflowAgent<
                   iterMessages,
                   toolsContext,
                   currentStepNumber,
+                  toolExecutionSandbox,
                 ),
             ),
           );
@@ -2757,6 +2799,7 @@ async function executeTool(
   messages: LanguageModelV4Prompt,
   context?: unknown,
   download?: DownloadFunction,
+  sandbox?: SandboxSession,
 ): Promise<WorkflowToolExecutionResult> {
   const tool = tools[toolCall.toolName];
   if (!tool) throw new Error(`Tool "${toolCall.toolName}" not found`);
@@ -2783,6 +2826,7 @@ async function executeTool(
       messages,
       // Pass per-tool context to the tool (resolved from `toolsContext`)
       context,
+      experimental_sandbox: sandbox,
     });
   } catch (error) {
     // Convert tool errors to error-text results sent back to the model,
