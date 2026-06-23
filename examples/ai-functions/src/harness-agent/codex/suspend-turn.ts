@@ -14,7 +14,7 @@ Requirements:
 - After writing the file, inspect it and make one improvement pass.
 `;
 
-const suspendAfterMs = 1000;
+const suspendAfterMs = 10000;
 
 function wait({ ms }: { ms: number }) {
   return new Promise<void>(resolve => setTimeout(resolve, ms));
@@ -50,7 +50,7 @@ run(async () => {
       sessionId: session.sessionId,
       continueFrom,
     });
-    const continued = await agent.continueTurn({ session });
+    const continued = await agent.continueStream({ session });
     await printFullStream({ result: continued });
 
     console.log('finishReason:', await continued.finishReason);

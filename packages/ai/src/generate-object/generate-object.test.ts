@@ -1124,7 +1124,7 @@ describe('generateObject', () => {
   });
 
   describe('callbacks', () => {
-    describe('experimental_onStart', () => {
+    describe('onStart', () => {
       it('should call onStart before the model call', async () => {
         const events: string[] = [];
 
@@ -1144,7 +1144,7 @@ describe('generateObject', () => {
           model,
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_onStart: () => {
+          onStart: () => {
             events.push('onStart');
           },
         });
@@ -1175,7 +1175,7 @@ describe('generateObject', () => {
           telemetry: {
             functionId: 'test-function',
           },
-          experimental_onStart: event => {
+          onStart: event => {
             startEvent = event;
           },
           _internal: {
@@ -1242,7 +1242,7 @@ describe('generateObject', () => {
             isEnabled: true,
             functionId: 'deprecated-fn',
           },
-          experimental_onStart: event => {
+          onStart: event => {
             startEvent = event;
           },
         });
@@ -1252,7 +1252,7 @@ describe('generateObject', () => {
       });
     });
 
-    describe('experimental_onStepStart', () => {
+    describe('onStepStart', () => {
       it('should call onStepStart before the model call', async () => {
         const events: string[] = [];
 
@@ -1272,7 +1272,7 @@ describe('generateObject', () => {
           model,
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_onStepStart: () => {
+          onStepStart: () => {
             events.push('onStepStart');
           },
         });
@@ -1296,7 +1296,7 @@ describe('generateObject', () => {
           model,
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_onStepStart: event => {
+          onStepStart: event => {
             stepStartEvent = event;
           },
         });
@@ -1504,10 +1504,10 @@ describe('generateObject', () => {
           model,
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_onStart: () => {
+          onStart: () => {
             events.push('onStart');
           },
-          experimental_onStepStart: () => {
+          onStepStart: () => {
             events.push('onStepStart');
           },
           onStepFinish: () => {
@@ -1541,10 +1541,10 @@ describe('generateObject', () => {
           model,
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_onStart: event => {
+          onStart: event => {
             callIds.push(event.callId);
           },
-          experimental_onStepStart: event => {
+          onStepStart: event => {
             callIds.push(event.callId);
           },
           onStepFinish: event => {
@@ -1573,10 +1573,10 @@ describe('generateObject', () => {
           model,
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_onStart: () => {
+          onStart: () => {
             throw new Error('onStart error');
           },
-          experimental_onStepStart: () => {
+          onStepStart: () => {
             throw new Error('onStepStart error');
           },
           onStepFinish: () => {

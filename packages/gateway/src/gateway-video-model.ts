@@ -46,6 +46,7 @@ export class GatewayVideoModel implements Experimental_VideoModelV4 {
     duration,
     fps,
     seed,
+    generateAudio,
     image,
     providerOptions,
     headers,
@@ -81,6 +82,7 @@ export class GatewayVideoModel implements Experimental_VideoModelV4 {
           ...(duration && { duration }),
           ...(fps && { fps }),
           ...(seed && { seed }),
+          ...(generateAudio !== undefined && { generateAudio }),
           ...(providerOptions && { providerOptions }),
           ...(image && { image: maybeEncodeVideoFile(image) }),
         },
@@ -238,6 +240,11 @@ const gatewayVideoWarningSchema = z.discriminatedUnion('type', [
     type: z.literal('compatibility'),
     feature: z.string(),
     details: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('deprecated'),
+    setting: z.string(),
+    message: z.string(),
   }),
   z.object({
     type: z.literal('other'),

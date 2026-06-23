@@ -11,42 +11,82 @@ the durable step return value.
 
 This package ships plain helpers + a serializable state machine; you own the
 thin `'use workflow'` / `'use step'` wrappers (the Workflow DevKit compiles
-those directives in your app):
+those directives in your app).
+
+Keep the Workflow DevKit entrypoints separate from the agent definition. The
+workflow module should import only workflow-safe code plus step modules. The
+step module should dynamically import the agent inside the `'use step'` body so
+the agent, sandbox provider, and other Node-heavy dependencies stay out of the
+compiled workflow bundle.
+
+`agent.ts`:
 
 ```ts
-import {
-  createHarnessWorkflowState,
-  runHarnessAgentSlice,
-  finalizeHarnessWorkflow,
-  type HarnessWorkflowState,
-} from '@ai-sdk/workflow-harness';
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { claudeCode } from '@ai-sdk/harness-claude-code';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
-const agent = new HarnessAgent({
+export const agent = new HarnessAgent({
   harness: claudeCode,
   sandbox: createVercelSandbox({ runtime: 'node24', ports: [4000] }),
 });
+```
 
-export async function codingWorkflow(input: {
-  prompt: string;
-  sessionId: string;
-}) {
-  'use workflow';
-  let state = createHarnessWorkflowState(input);
-  while (state.status === 'running' || state.status === 'timed_out') {
-    state = await slice(state);
-  }
-  return finalizeHarnessWorkflow(state);
-}
+`run-slice-step.ts`:
 
-async function slice(state: HarnessWorkflowState) {
+```ts
+import {
+  runHarnessAgentSlice,
+  type HarnessWorkflowState,
+} from '@ai-sdk/workflow-harness';
+
+export async function runSlice(
+  state: HarnessWorkflowState,
+): Promise<HarnessWorkflowState> {
   'use step';
+
+  const { agent } = await import('./agent');
   return runHarnessAgentSlice({ agent, state });
 }
 ```
 
-`runHarnessAgentSlice` defaults to a `750`s budget (Fluid Compute reconnects at
-~800s; 750 leaves a buffer). Lower it for demos so the freeze/resume is
-observable sooner.
+`workflow.ts`:
+
+```ts
+import {
+  createHarnessWorkflowState,
+  finalizeHarnessWorkflow,
+  type HarnessWorkflowInput,
+} from '@ai-sdk/workflow-harness';
+import { runSlice } from './run-slice-step';
+
+export async function codingWorkflow(input: {
+  prompt: HarnessWorkflowInput['prompt'];
+  sessionId: string;
+}) {
+  'use workflow';
+
+  let state = createHarnessWorkflowState(input);
+  while (state.status === 'running' || state.status === 'timed_out') {
+    state = await runSlice(state);
+  }
+  return finalizeHarnessWorkflow(state);
+}
+```
+
+`route.ts` (Next.js example):
+
+```ts
+import { start } from 'workflow/api';
+import { codingWorkflow } from './workflow';
+
+export async function POST(request: Request) {
+  const body = (await request.json()) as {
+    prompt: string;
+    sessionId: string;
+  };
+  const run = await start(codingWorkflow, [body]);
+
+  return new Response(run.readable);
+}
+```

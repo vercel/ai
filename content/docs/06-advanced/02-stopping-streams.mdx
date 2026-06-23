@@ -85,7 +85,7 @@ When streams are aborted, you may need to perform cleanup operations such as per
 Unlike `onFinish`, which is called when a stream completes normally, `onAbort` is specifically called when a stream is aborted via `AbortSignal`. This distinction allows you to handle normal completion and aborted streams differently.
 
 <Note>
-  For UI message streams (`toUIMessageStreamResponse`), the `onFinish` callback
+  For UI message streams (`toUIMessageStreamResponse`), the `onEnd` callback
   also receives an `isAborted` parameter that indicates whether the stream was
   aborted. This allows you to handle both completion and abort scenarios in a
   single callback.
@@ -141,7 +141,7 @@ for await (const part of result.stream) {
 
 ## UI Message Streams
 
-When using `toUIMessageStream`, you need to handle stream abortion slightly differently. The `onFinish` callback receives an `isAborted` parameter, and you should pass `consumeStream` to `createUIMessageStreamResponse` to ensure proper abort handling:
+When using `toUIMessageStream`, you need to handle stream abortion slightly differently. The `onEnd` callback receives an `isAborted` parameter, and you should pass `consumeStream` to `createUIMessageStreamResponse` to ensure proper abort handling:
 
 ```tsx highlight="3,21,24-30,34"
 import { openai } from '@ai-sdk/openai';
@@ -167,7 +167,7 @@ export async function POST(req: Request) {
   return createUIMessageStreamResponse({
     stream: toUIMessageStream({
       stream: result.stream,
-      onFinish: async ({ isAborted }) => {
+      onEnd: async ({ isAborted }) => {
         if (isAborted) {
           console.log('Stream was aborted');
           // Handle abort-specific cleanup

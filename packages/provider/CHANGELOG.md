@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 4.0.0-beta.19
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+
 ## 4.0.0-canary.18
 
 ### Patch Changes

@@ -59,7 +59,6 @@ const nextConfig = {
   },
 };
 
-// `withWorkflow` compiles the `'use workflow'` / `'use step'` directives.
 const { withWorkflow } = require('workflow/next');
 
 module.exports = withWorkflow(nextConfig, {});

@@ -6,7 +6,9 @@ import type {
 import type { HarnessAgentSession } from '@ai-sdk/harness/agent';
 import type {
   HarnessWorkflowModelMessage,
+  HarnessWorkflowSerializedChunk,
   HarnessWorkflowState,
+  HarnessWorkflowStreamContext,
   HarnessWorkflowUsageSummary,
 } from './harness-workflow-state';
 
@@ -30,7 +32,7 @@ export interface HarnessWorkflowChunk {
 }
 
 /**
- * The subset of a harness `stream()` / `continueTurn()` result the slice loop uses.
+ * The subset of a harness `stream()` / `continueStream()` result the slice loop uses.
  * `StreamTextResult` satisfies it structurally.
  */
 export interface HarnessWorkflowStreamResult {
@@ -67,7 +69,7 @@ export interface HarnessWorkflowAgent {
           messages: HarnessWorkflowModelMessage[];
         },
   ): Promise<HarnessWorkflowStreamResult>;
-  continueTurn(options: {
+  continueStream(options: {
     session: HarnessAgentSession;
   }): Promise<HarnessWorkflowStreamResult>;
 }
@@ -137,7 +139,7 @@ export async function runHarnessAgentSlice(
             messages: state.messages,
           })
         : state.continueFrom != null
-          ? await agent.continueTurn({ session })
+          ? await agent.continueStream({ session })
           : await agent.stream({
               session,
               prompt:
@@ -161,6 +163,8 @@ export async function runHarnessAgentSlice(
 
   const writable = options.writable ?? (await resolveWorkflowWritable());
   const writer = writable.getWriter();
+  const streamContext = createMutableStreamContext(state.streamContext);
+  const slicePartState = createSlicePartState();
 
   let suspendPromise: Promise<HarnessV1ContinueTurnState> | undefined;
   const timer = setTimeout(() => {
@@ -205,7 +209,12 @@ export async function runHarnessAgentSlice(
           }
           sawError = true;
         }
-        await writer.write(value);
+        await writeWorkflowChunk({
+          chunk: value,
+          writer,
+          streamContext,
+          slicePartState,
+        });
       }
     } finally {
       clearTimeout(timer);
@@ -234,11 +243,17 @@ export async function runHarnessAgentSlice(
     // so the next slice attaches and continues the same in-flight turn.
     if (suspendPromise != null) {
       const continueFrom = await suspendPromise;
+      await closeOpenSliceParts({
+        writer,
+        streamContext,
+        slicePartState,
+      });
       return {
         sessionId: state.sessionId,
         prompt: state.prompt,
         status: 'timed_out',
         continueFrom,
+        ...serializeStreamContextField(streamContext),
       };
     }
 
@@ -303,6 +318,206 @@ export async function runHarnessAgentSlice(
   } finally {
     if (!writerClosed) writer.releaseLock();
   }
+}
+
+type MutableStreamContext = {
+  activeTextParts: Record<string, HarnessWorkflowSerializedChunk>;
+  activeReasoningParts: Record<string, HarnessWorkflowSerializedChunk>;
+  pendingToolInputs: Record<string, HarnessWorkflowSerializedChunk>;
+};
+
+type SlicePartState = {
+  openedTextParts: Set<string>;
+  openedReasoningParts: Set<string>;
+  writtenToolInputs: Set<string>;
+};
+
+function createMutableStreamContext(
+  context: HarnessWorkflowStreamContext | undefined,
+): MutableStreamContext {
+  return {
+    activeTextParts: { ...(context?.activeTextParts ?? {}) },
+    activeReasoningParts: { ...(context?.activeReasoningParts ?? {}) },
+    pendingToolInputs: { ...(context?.pendingToolInputs ?? {}) },
+  };
+}
+
+function createSlicePartState(): SlicePartState {
+  return {
+    openedTextParts: new Set(),
+    openedReasoningParts: new Set(),
+    writtenToolInputs: new Set(),
+  };
+}
+
+async function writeWorkflowChunk(options: {
+  chunk: HarnessWorkflowChunk;
+  writer: WritableStreamDefaultWriter<HarnessWorkflowChunk>;
+  streamContext: MutableStreamContext;
+  slicePartState: SlicePartState;
+}): Promise<void> {
+  await writeRequiredPrelude(options);
+  await options.writer.write(options.chunk);
+  recordWorkflowChunk(options);
+}
+
+async function writeRequiredPrelude(options: {
+  chunk: HarnessWorkflowChunk;
+  writer: WritableStreamDefaultWriter<HarnessWorkflowChunk>;
+  streamContext: MutableStreamContext;
+  slicePartState: SlicePartState;
+}): Promise<void> {
+  const { chunk, writer, streamContext, slicePartState } = options;
+  const id = stringProperty({ chunk, key: 'id' });
+
+  if (
+    (chunk.type === 'text-delta' || chunk.type === 'text-end') &&
+    id != null &&
+    streamContext.activeTextParts[id] != null &&
+    !slicePartState.openedTextParts.has(id)
+  ) {
+    await writer.write(streamContext.activeTextParts[id]);
+    slicePartState.openedTextParts.add(id);
+  }
+
+  if (
+    (chunk.type === 'reasoning-delta' || chunk.type === 'reasoning-end') &&
+    id != null &&
+    streamContext.activeReasoningParts[id] != null &&
+    !slicePartState.openedReasoningParts.has(id)
+  ) {
+    await writer.write(streamContext.activeReasoningParts[id]);
+    slicePartState.openedReasoningParts.add(id);
+  }
+
+  const toolCallId = stringProperty({ chunk, key: 'toolCallId' });
+  if (
+    toolCallId != null &&
+    needsToolInputPrelude(chunk) &&
+    streamContext.pendingToolInputs[toolCallId] != null &&
+    !slicePartState.writtenToolInputs.has(toolCallId)
+  ) {
+    await writer.write(streamContext.pendingToolInputs[toolCallId]);
+    slicePartState.writtenToolInputs.add(toolCallId);
+  }
+}
+
+function recordWorkflowChunk(options: {
+  chunk: HarnessWorkflowChunk;
+  streamContext: MutableStreamContext;
+  slicePartState: SlicePartState;
+}): void {
+  const { chunk, streamContext, slicePartState } = options;
+  const id = stringProperty({ chunk, key: 'id' });
+  const toolCallId = stringProperty({ chunk, key: 'toolCallId' });
+
+  if (chunk.type === 'text-start' && id != null) {
+    streamContext.activeTextParts[id] = cloneChunk(chunk);
+    slicePartState.openedTextParts.add(id);
+    return;
+  }
+
+  if (chunk.type === 'text-end' && id != null) {
+    delete streamContext.activeTextParts[id];
+    slicePartState.openedTextParts.delete(id);
+    return;
+  }
+
+  if (chunk.type === 'reasoning-start' && id != null) {
+    streamContext.activeReasoningParts[id] = cloneChunk(chunk);
+    slicePartState.openedReasoningParts.add(id);
+    return;
+  }
+
+  if (chunk.type === 'reasoning-end' && id != null) {
+    delete streamContext.activeReasoningParts[id];
+    slicePartState.openedReasoningParts.delete(id);
+    return;
+  }
+
+  if (chunk.type === 'tool-input-available' && toolCallId != null) {
+    streamContext.pendingToolInputs[toolCallId] = cloneChunk(chunk);
+    slicePartState.writtenToolInputs.add(toolCallId);
+    return;
+  }
+
+  if (chunk.type === 'tool-input-error' && toolCallId != null) {
+    delete streamContext.pendingToolInputs[toolCallId];
+    slicePartState.writtenToolInputs.add(toolCallId);
+    return;
+  }
+
+  if (
+    (chunk.type === 'tool-output-error' ||
+      chunk.type === 'tool-output-denied' ||
+      (chunk.type === 'tool-output-available' &&
+        (chunk as { preliminary?: unknown }).preliminary !== true)) &&
+    toolCallId != null
+  ) {
+    delete streamContext.pendingToolInputs[toolCallId];
+  }
+}
+
+async function closeOpenSliceParts(options: {
+  writer: WritableStreamDefaultWriter<HarnessWorkflowChunk>;
+  streamContext: MutableStreamContext;
+  slicePartState: SlicePartState;
+}): Promise<void> {
+  const { writer, streamContext, slicePartState } = options;
+
+  for (const id of slicePartState.openedTextParts) {
+    if (streamContext.activeTextParts[id] != null) {
+      await writer.write({ type: 'text-end', id });
+    }
+  }
+  slicePartState.openedTextParts.clear();
+
+  for (const id of slicePartState.openedReasoningParts) {
+    if (streamContext.activeReasoningParts[id] != null) {
+      await writer.write({ type: 'reasoning-end', id });
+    }
+  }
+  slicePartState.openedReasoningParts.clear();
+}
+
+function serializeStreamContextField(context: MutableStreamContext): {
+  streamContext?: HarnessWorkflowStreamContext;
+} {
+  const streamContext: HarnessWorkflowStreamContext = {
+    ...(Object.keys(context.activeTextParts).length > 0
+      ? { activeTextParts: context.activeTextParts }
+      : {}),
+    ...(Object.keys(context.activeReasoningParts).length > 0
+      ? { activeReasoningParts: context.activeReasoningParts }
+      : {}),
+    ...(Object.keys(context.pendingToolInputs).length > 0
+      ? { pendingToolInputs: context.pendingToolInputs }
+      : {}),
+  };
+  return Object.keys(streamContext).length > 0 ? { streamContext } : {};
+}
+
+function needsToolInputPrelude(chunk: HarnessWorkflowChunk): boolean {
+  return (
+    chunk.type === 'tool-approval-request' ||
+    chunk.type === 'tool-output-available' ||
+    chunk.type === 'tool-output-error' ||
+    chunk.type === 'tool-output-denied'
+  );
+}
+
+function stringProperty(options: {
+  chunk: HarnessWorkflowChunk;
+  key: string;
+}): string | undefined {
+  const value = options.chunk[options.key];
+  return typeof value === 'string' ? value : undefined;
+}
+
+function cloneChunk(
+  chunk: HarnessWorkflowChunk,
+): HarnessWorkflowSerializedChunk {
+  return { ...chunk };
 }
 
 /**

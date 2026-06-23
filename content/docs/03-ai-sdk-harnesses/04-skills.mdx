@@ -27,7 +27,14 @@ const agent = new HarnessAgent({
       name: 'careful-refactors',
       description: 'Make small, low-risk code changes.',
       content:
-        'Prefer minimal diffs. Preserve public APIs. Run the narrowest relevant tests before broad checks.',
+        'Prefer minimal diffs. Preserve public APIs. Before editing, read references/checklist.md and follow it.',
+      files: [
+        {
+          path: 'references/checklist.md',
+          content:
+            '# Refactor checklist\n\n- Identify the smallest useful change.\n- Preserve public APIs.\n- Run the narrowest relevant test.',
+        },
+      ],
     },
   ],
 });
@@ -38,6 +45,11 @@ Each skill has:
 - `name`: stable identifier for the skill.
 - `description`: short model-facing summary.
 - `content`: full instruction content.
+- `files`: optional additional text files bundled with the skill.
+
+Additional files use skill-relative POSIX paths, for example
+`reference.md`, `references/codes.md`, or `templates/config.json`. Reference
+those paths from `content` when the agent should read them.
 
 ## When to Use Skills
 

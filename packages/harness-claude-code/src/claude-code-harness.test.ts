@@ -2,9 +2,34 @@ import {
   HarnessCapabilityUnsupportedError,
   type HarnessV1NetworkSandboxSession,
 } from '@ai-sdk/harness';
+import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import type * as NodeFsPromises from 'node:fs/promises';
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createClaudeCode } from './claude-code-harness';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const sentMessages: Array<Record<string, unknown>> = [];
+const openCalls: Array<{ resume?: boolean } | undefined> = [];
+
+vi.mock('@ai-sdk/harness/utils', async importOriginal => {
+  const actual = await importOriginal<typeof HarnessUtils>();
+  class FakeSandboxChannel {
+    async open(opts?: { resume?: boolean }): Promise<void> {
+      openCalls.push(opts);
+    }
+    on(): () => void {
+      return () => {};
+    }
+    onClose(): void {}
+    send(msg: Record<string, unknown>): void {
+      sentMessages.push(msg);
+    }
+    beginClose(): void {}
+    isClosed(): boolean {
+      return false;
+    }
+    close(): void {}
+  }
+  return { ...actual, SandboxChannel: FakeSandboxChannel };
+});
 
 vi.mock('node:fs/promises', async importOriginal => {
   const actual = await importOriginal<typeof NodeFsPromises>();
@@ -21,6 +46,9 @@ vi.mock('node:fs/promises', async importOriginal => {
     }),
   };
 });
+
+// eslint-disable-next-line import/first
+import { createClaudeCode } from './claude-code-harness';
 
 function textStream(text: string): ReadableStream<Uint8Array> {
   return new ReadableStream<Uint8Array>({
@@ -66,7 +94,65 @@ function fakeNetworkSandboxSessionForStartupFailure({
   } as unknown as HarnessV1NetworkSandboxSession;
 }
 
+function fakeNetworkSandboxSessionForStartupSuccess({
+  bridgePortUrl,
+  writes,
+  runs,
+}: {
+  bridgePortUrl: string;
+  writes: Array<{ path: string; content: string }>;
+  runs: string[];
+}): HarnessV1NetworkSandboxSession {
+  const session = {
+    run: async ({ command }: { command: string }) => {
+      runs.push(command);
+      if (command === 'printf "%s" "$HOME"') {
+        return { exitCode: 0, stdout: '/home/vercel-sandbox', stderr: '' };
+      }
+      return { exitCode: 0, stdout: '', stderr: '' };
+    },
+    readTextFile: async () => null,
+    writeTextFile: async ({
+      path,
+      content,
+    }: {
+      path: string;
+      content: string;
+    }) => {
+      writes.push({ path, content });
+    },
+    spawn: async () => ({
+      stdout: textStream('{"type":"bridge-ready","port":4319}\n'),
+      stderr: textStream(''),
+      kill: async () => {},
+      wait: async () => ({ exitCode: 0 }),
+    }),
+  };
+  return {
+    id: 'test-sandbox',
+    defaultWorkingDirectory: '/vercel/sandbox',
+    restricted: () => session,
+    ports: [4319],
+    async getPortUrl() {
+      return bridgePortUrl;
+    },
+    async stop() {},
+    ...session,
+  } as unknown as HarnessV1NetworkSandboxSession;
+}
+
+function lastStart(): Record<string, unknown> {
+  const start = [...sentMessages].reverse().find(m => m.type === 'start');
+  if (!start) throw new Error('no start message was sent');
+  return start;
+}
+
 describe('createClaudeCode adapter', () => {
+  beforeEach(() => {
+    sentMessages.length = 0;
+    openCalls.length = 0;
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -132,6 +218,123 @@ describe('createClaudeCode adapter', () => {
         sessionWorkDir: '/vercel/sandbox/claude-code-s1',
       }),
     ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
+  });
+
+  it('writes standard Claude skill files and enables their names on start', async () => {
+    const writes: Array<{ path: string; content: string }> = [];
+    const runs: string[] = [];
+    const harness = createClaudeCode();
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes,
+        runs,
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      skills: [
+        {
+          name: 'weather-forecast',
+          description: 'Use the weather forecast tool.',
+          content: 'Call `get_weather` before answering forecasts.',
+          files: [
+            {
+              path: 'reference.md',
+              content: '# Forecast reference',
+            },
+          ],
+        },
+        {
+          name: 'weather-codes',
+          description: 'Read weather code reference.',
+          content: 'Read `weather-codes.md` for code descriptions.',
+        },
+      ],
+    });
+    const control = await session.doPromptTurn({
+      prompt: 'which skills do you have available?',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({
+      skills: ['weather-forecast', 'weather-codes'],
+    });
+
+    const skillWrites = writes.filter(
+      write => !write.path.endsWith('/bridge-meta.json'),
+    );
+    const bridgeMetaWrite = writes.find(write =>
+      write.path.endsWith('/bridge-meta.json'),
+    );
+    expect(runs).toContain("mkdir -p '/home/vercel-sandbox'/.claude/skills");
+    expect(bridgeMetaWrite).toEqual({
+      path: '/vercel/sandbox/.agent-runs/s1/bridge/bridge-meta.json',
+      content: JSON.stringify({ type: 'claude-code', state: 'starting' }),
+    });
+    expect(skillWrites.map(write => write.path)).toEqual([
+      '/home/vercel-sandbox/.claude/skills/weather-forecast/SKILL.md',
+      '/home/vercel-sandbox/.claude/skills/weather-forecast/reference.md',
+      '/home/vercel-sandbox/.claude/skills/weather-codes/SKILL.md',
+    ]);
+    expect(skillWrites[0].content).toContain('name: weather-forecast');
+    expect(skillWrites[1].content).toBe('# Forecast reference');
+    await session.doDestroy();
+  });
+
+  it('rejects unsafe skill names before writing skill files', async () => {
+    const writes: Array<{ path: string; content: string }> = [];
+    const harness = createClaudeCode();
+
+    await expect(
+      harness.doStart({
+        sessionId: 's1',
+        sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+          bridgePortUrl: 'ws://127.0.0.1:1',
+          writes,
+          runs: [],
+        }),
+        sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+        skills: [
+          {
+            name: '../weather',
+            description: 'unsafe',
+            content: 'unsafe',
+          },
+        ],
+      }),
+    ).rejects.toThrow('Invalid Claude Code skill name');
+    expect(writes).toEqual([]);
+  });
+
+  it('rejects unsafe skill file paths before writing skill files', async () => {
+    const writes: Array<{ path: string; content: string }> = [];
+    const runs: string[] = [];
+    const harness = createClaudeCode();
+
+    await expect(
+      harness.doStart({
+        sessionId: 's1',
+        sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+          bridgePortUrl: 'ws://127.0.0.1:1',
+          writes,
+          runs,
+        }),
+        sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+        skills: [
+          {
+            name: 'weather',
+            description: 'unsafe',
+            content: 'unsafe',
+            files: [{ path: '../weather-codes.md', content: 'unsafe' }],
+          },
+        ],
+      }),
+    ).rejects.toThrow('Invalid Claude Code skill file path');
+    expect(writes).toEqual([]);
+    expect(runs).not.toContain(
+      "mkdir -p '/home/vercel-sandbox'/.claude/skills",
+    );
   });
 
   it('includes bridge startup stdout, stderr, and exit code when ready never arrives', async () => {

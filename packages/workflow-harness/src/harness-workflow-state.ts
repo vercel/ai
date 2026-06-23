@@ -39,6 +39,20 @@ export interface HarnessWorkflowFinalResult {
   readonly usage?: HarnessWorkflowUsageSummary;
 }
 
+export interface HarnessWorkflowSerializedChunk {
+  readonly type: string;
+  readonly [key: string]: unknown;
+}
+
+export interface HarnessWorkflowStreamContext {
+  readonly activeTextParts?: Record<string, HarnessWorkflowSerializedChunk>;
+  readonly activeReasoningParts?: Record<
+    string,
+    HarnessWorkflowSerializedChunk
+  >;
+  readonly pendingToolInputs?: Record<string, HarnessWorkflowSerializedChunk>;
+}
+
 /**
  * Serializable state machine threaded between workflow slices. A `'use step'`
  * returns the next value of this object, and the Workflow DevKit persists that
@@ -84,6 +98,7 @@ export interface HarnessWorkflowState {
    * `prompt` again.
    */
   readonly continueFrom?: HarnessV1ContinueTurnState;
+  readonly streamContext?: HarnessWorkflowStreamContext;
   readonly finalResult?: HarnessWorkflowFinalResult;
   readonly error?: string;
 }

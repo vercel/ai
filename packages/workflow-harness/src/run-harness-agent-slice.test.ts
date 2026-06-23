@@ -143,7 +143,7 @@ describe('runHarnessAgentSlice', () => {
     const agent: HarnessWorkflowAgent = {
       createSession: vi.fn(async () => session),
       stream: vi.fn(async () => result),
-      continueTurn: vi.fn(async () => {
+      continueStream: vi.fn(async () => {
         throw new Error('continue should not be called on the first turn');
       }),
     };
@@ -186,7 +186,7 @@ describe('runHarnessAgentSlice', () => {
     const agent: HarnessWorkflowAgent = {
       createSession: vi.fn(async () => session),
       stream: vi.fn(async () => result),
-      continueTurn: vi.fn(async () => result),
+      continueStream: vi.fn(async () => result),
     };
 
     const { writable } = collectingWritable();
@@ -217,7 +217,7 @@ describe('runHarnessAgentSlice', () => {
     const agent: HarnessWorkflowAgent = {
       createSession: vi.fn(async () => session),
       stream: vi.fn(async () => result),
-      continueTurn: vi.fn(async () => result),
+      continueStream: vi.fn(async () => result),
     };
 
     const { writable, isClosed } = collectingWritable();
@@ -247,7 +247,7 @@ describe('runHarnessAgentSlice', () => {
     const agent: HarnessWorkflowAgent = {
       createSession: vi.fn(async () => session),
       stream: vi.fn(async () => result),
-      continueTurn: vi.fn(async () => {
+      continueStream: vi.fn(async () => {
         throw new Error('continue should not be called for a new user turn');
       }),
     };
@@ -290,7 +290,7 @@ describe('runHarnessAgentSlice', () => {
     const agent: HarnessWorkflowAgent = {
       createSession: vi.fn(async () => session),
       stream: vi.fn(async () => result),
-      continueTurn: vi.fn(async () => result),
+      continueStream: vi.fn(async () => result),
     };
 
     const { writable, isClosed } = collectingWritable();
@@ -325,7 +325,7 @@ describe('runHarnessAgentSlice', () => {
       stream: vi.fn(async () => {
         throw new Error('stream should not be called on a continued slice');
       }),
-      continueTurn: vi.fn(async () => result),
+      continueStream: vi.fn(async () => result),
     };
 
     const { writable, chunks } = collectingWritable();
@@ -340,7 +340,7 @@ describe('runHarnessAgentSlice', () => {
       writable,
     });
 
-    expect(agent.continueTurn).toHaveBeenCalledTimes(1);
+    expect(agent.continueStream).toHaveBeenCalledTimes(1);
     expect(agent.createSession).toHaveBeenCalledWith({
       sessionId: 'ses_1',
       continueFrom: continueState('cursor'),
@@ -348,6 +348,176 @@ describe('runHarnessAgentSlice', () => {
     expect(next.status).toBe('finished');
     // The opening `start` is dropped on a continued slice; one terminal finish.
     expect(chunks.map(c => c.type)).toEqual(['text-delta', 'finish']);
+  });
+
+  test('continued slice reopens text and reasoning parts that were active at timeout', async () => {
+    const firstSession = fakeSession();
+    const { result: firstResult, closeForSuspend } = streamResult({
+      chunks: [
+        { type: 'start' },
+        { type: 'text-start', id: 't1' },
+        { type: 'text-delta', id: 't1', delta: 'first' },
+        { type: 'reasoning-start', id: 'r1' },
+        { type: 'reasoning-delta', id: 'r1', delta: 'think' },
+      ],
+      blockAfter: true,
+    });
+    const suspendingSession = firstSession as unknown as {
+      suspendTurn: () => Promise<HarnessV1ContinueTurnState>;
+    };
+    const originalSuspend = suspendingSession.suspendTurn.bind(firstSession);
+    suspendingSession.suspendTurn = async () => {
+      closeForSuspend();
+      return originalSuspend();
+    };
+
+    const firstAgent: HarnessWorkflowAgent = {
+      createSession: vi.fn(async () => firstSession),
+      stream: vi.fn(async () => firstResult),
+      continueStream: vi.fn(async () => {
+        throw new Error('continue should not be called on the first slice');
+      }),
+    };
+    const firstWritable = collectingWritable();
+
+    const timedOut = await runHarnessAgentSlice({
+      agent: firstAgent,
+      state: createHarnessWorkflowState({ prompt: 'hi', sessionId: 'ses_1' }),
+      sliceTimeoutSeconds: 0.05,
+      writable: firstWritable.writable,
+    });
+
+    expect(timedOut.status).toBe('timed_out');
+    expect(firstWritable.chunks.map(c => c.type)).toEqual([
+      'start',
+      'text-start',
+      'text-delta',
+      'reasoning-start',
+      'reasoning-delta',
+      'text-end',
+      'reasoning-end',
+    ]);
+
+    const secondSession = fakeSession();
+    const { result: secondResult } = streamResult({
+      chunks: [
+        { type: 'start' },
+        { type: 'text-delta', id: 't1', delta: ' second' },
+        { type: 'text-end', id: 't1' },
+        { type: 'reasoning-delta', id: 'r1', delta: ' more' },
+        { type: 'reasoning-end', id: 'r1' },
+      ],
+    });
+    const secondAgent: HarnessWorkflowAgent = {
+      createSession: vi.fn(async () => secondSession),
+      stream: vi.fn(async () => {
+        throw new Error('stream should not be called on a continued slice');
+      }),
+      continueStream: vi.fn(async () => secondResult),
+    };
+    const secondWritable = collectingWritable();
+
+    const finished = await runHarnessAgentSlice({
+      agent: secondAgent,
+      state: timedOut,
+      writable: secondWritable.writable,
+    });
+
+    expect(finished.status).toBe('finished');
+    expect(secondWritable.chunks.map(c => c.type)).toEqual([
+      'text-start',
+      'text-delta',
+      'text-end',
+      'reasoning-start',
+      'reasoning-delta',
+      'reasoning-end',
+      'finish',
+    ]);
+  });
+
+  test('continued slice replays pending tool input before tool output', async () => {
+    const firstSession = fakeSession();
+    const { result: firstResult, closeForSuspend } = streamResult({
+      chunks: [
+        { type: 'start' },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'call_1',
+          toolName: 'write',
+          input: { path: 'app/page.tsx' },
+          providerExecuted: true,
+        },
+      ],
+      blockAfter: true,
+    });
+    const suspendingSession = firstSession as unknown as {
+      suspendTurn: () => Promise<HarnessV1ContinueTurnState>;
+    };
+    const originalSuspend = suspendingSession.suspendTurn.bind(firstSession);
+    suspendingSession.suspendTurn = async () => {
+      closeForSuspend();
+      return originalSuspend();
+    };
+
+    const firstAgent: HarnessWorkflowAgent = {
+      createSession: vi.fn(async () => firstSession),
+      stream: vi.fn(async () => firstResult),
+      continueStream: vi.fn(async () => {
+        throw new Error('continue should not be called on the first slice');
+      }),
+    };
+
+    const timedOut = await runHarnessAgentSlice({
+      agent: firstAgent,
+      state: createHarnessWorkflowState({ prompt: 'hi', sessionId: 'ses_1' }),
+      sliceTimeoutSeconds: 0.05,
+      writable: collectingWritable().writable,
+    });
+
+    const secondSession = fakeSession();
+    const { result: secondResult } = streamResult({
+      chunks: [
+        { type: 'start' },
+        {
+          type: 'tool-output-available',
+          toolCallId: 'call_1',
+          output: 'done',
+          providerExecuted: true,
+        },
+      ],
+    });
+    const secondAgent: HarnessWorkflowAgent = {
+      createSession: vi.fn(async () => secondSession),
+      stream: vi.fn(async () => {
+        throw new Error('stream should not be called on a continued slice');
+      }),
+      continueStream: vi.fn(async () => secondResult),
+    };
+    const secondWritable = collectingWritable();
+
+    const finished = await runHarnessAgentSlice({
+      agent: secondAgent,
+      state: timedOut,
+      writable: secondWritable.writable,
+    });
+
+    expect(finished.status).toBe('finished');
+    expect(secondWritable.chunks).toEqual([
+      {
+        type: 'tool-input-available',
+        toolCallId: 'call_1',
+        toolName: 'write',
+        input: { path: 'app/page.tsx' },
+        providerExecuted: true,
+      },
+      {
+        type: 'tool-output-available',
+        toolCallId: 'call_1',
+        output: 'done',
+        providerExecuted: true,
+      },
+      { type: 'finish' },
+    ]);
   });
 
   test('approval response messages resume through stream messages', async () => {
@@ -368,7 +538,7 @@ describe('runHarnessAgentSlice', () => {
     const agent: HarnessWorkflowAgent = {
       createSession: vi.fn(async () => session),
       stream: vi.fn(async () => result),
-      continueTurn: vi.fn(async () => {
+      continueStream: vi.fn(async () => {
         throw new Error('continue should not be called for approval messages');
       }),
     };
@@ -385,7 +555,7 @@ describe('runHarnessAgentSlice', () => {
     });
 
     expect(agent.stream).toHaveBeenCalledWith({ session, messages });
-    expect(agent.continueTurn).not.toHaveBeenCalled();
+    expect(agent.continueStream).not.toHaveBeenCalled();
     expect(next.status).toBe('finished');
     expect('messages' in next).toBe(false);
   });

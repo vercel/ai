@@ -158,9 +158,14 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   const codexConfig: Record<string, unknown> = {};
   if (Object.keys(mcpServers).length > 0) codexConfig.mcp_servers = mcpServers;
 
-  const apiBaseUrl = procEnv.AI_GATEWAY_API_KEY
-    ? procEnv.AI_GATEWAY_BASE_URL || 'https://ai-gateway.vercel.sh/v1'
-    : procEnv.OPENAI_BASE_URL;
+  const gatewayBaseUrl = procEnv.AI_GATEWAY_BASE_URL;
+  const hasGatewayAuth = Boolean(procEnv.AI_GATEWAY_API_KEY || gatewayBaseUrl);
+  if (hasGatewayAuth && !gatewayBaseUrl) {
+    throw new Error(
+      'AI Gateway auth was selected but AI_GATEWAY_BASE_URL is missing from the Codex bridge environment.',
+    );
+  }
+  const apiBaseUrl = hasGatewayAuth ? gatewayBaseUrl : procEnv.OPENAI_BASE_URL;
   if (apiBaseUrl) {
     codexConfig.preferred_auth_method = 'apikey';
     codexConfig.model_provider = 'agent_bridge_openai';
@@ -210,7 +215,6 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   const userMessage = composeUserMessage({
     text: start.prompt,
     instructions: start.instructions,
-    skills: start.skills,
     // Temporary workaround for upstream codex MCP-tool bug — see ./cli-relay.ts
     toolUsageBlock:
       cliShimPath && start.tools && start.tools.length > 0
@@ -522,14 +526,10 @@ function defaultUsage(): Record<string, unknown> {
 function composeUserMessage({
   text,
   instructions,
-  skills,
   toolUsageBlock,
 }: {
   text: string;
   instructions: string | undefined;
-  skills:
-    | ReadonlyArray<{ name: string; description: string; content: string }>
-    | undefined;
   toolUsageBlock: string | undefined;
 }): string {
   const blocks: string[] = [];
@@ -547,13 +547,6 @@ function composeUserMessage({
         `${instructions}\n` +
         '</session-instructions>',
     );
-  }
-  if (skills && skills.length > 0) {
-    const lines: string[] = ['## Available skills'];
-    for (const skill of skills) {
-      lines.push('', `### ${skill.name}`, skill.description, '', skill.content);
-    }
-    blocks.push(lines.join('\n'));
   }
   if (toolUsageBlock) blocks.push(toolUsageBlock);
   blocks.push(instructions ? `<user-message>\n${text}\n</user-message>` : text);

@@ -73,6 +73,7 @@ export function runPrompt<
     | undefined;
   onPendingToolApproval?: (approval: HarnessV1PendingToolApproval) => void;
   onToolApprovalSettled?: (approvalId: string) => void;
+  onTurnFinished?: () => void;
 }): {
   result: HarnessStreamTextResult<TOOLS, RUNTIME_CONTEXT>;
   done: Promise<void>;
@@ -634,6 +635,7 @@ export function runPrompt<
           return;
         }
       }
+      input.onTurnFinished?.();
       await result.finish();
     } catch (err) {
       telemetry.error(err);

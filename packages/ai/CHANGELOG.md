@@ -1,5 +1,116 @@
 # ai
 
+## 7.0.0-beta.183
+
+### Patch Changes
+
+- Updated dependencies [8e990ff]
+  - @ai-sdk/gateway@4.0.0-beta.111
+
+## 7.0.0-beta.182
+
+### Patch Changes
+
+- cc6ab90: feat(ai): rename ui message stream onFinish to onEnd
+
+## 7.0.0-beta.181
+
+### Patch Changes
+
+- 6a2caf9: Serialize `undefined` tool output to `null` in UI message chunks
+
+## 7.0.0-beta.180
+
+### Patch Changes
+
+- 81a284b: fix(ai): handle partial unicode escapes in fixJson
+
+## 7.0.0-beta.179
+
+### Patch Changes
+
+- Updated dependencies [987d9e4]
+  - @ai-sdk/gateway@4.0.0-beta.110
+
+## 7.0.0-beta.178
+
+### Patch Changes
+
+- b097c52: feat(ai): use tracing channels to track parent-child context
+- Updated dependencies [15eb253]
+  - @ai-sdk/gateway@4.0.0-beta.109
+
+## 7.0.0-beta.177
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/gateway@4.0.0-beta.108
+  - @ai-sdk/provider-utils@5.0.0-beta.49
+  - @ai-sdk/provider@4.0.0-beta.19
+
+## 7.0.0-canary.176
+
+### Patch Changes
+
+- Updated dependencies [d5b8263]
+  - @ai-sdk/gateway@4.0.0-canary.107
+
+## 7.0.0-canary.175
+
+### Patch Changes
+
+- 6ec57f5: feat(ai): make the experimental lifecycle callbacks stable
+
+## 7.0.0-canary.174
+
+### Patch Changes
+
+- Updated dependencies [ca2cf45]
+  - @ai-sdk/gateway@4.0.0-canary.106
+
+## 7.0.0-canary.173
+
+### Patch Changes
+
+- Updated dependencies [efec111]
+  - @ai-sdk/gateway@4.0.0-canary.105
+
+## 7.0.0-canary.172
+
+### Patch Changes
+
+- 25a64f8: Remove deprecated experimental generateImage exports.
+- 375fdd7: fix: harden download URL SSRF guard against hostname and redirect bypasses
+
+  `validateDownloadUrl` and the file download helpers (`downloadBlob`, `download`) could be bypassed in several ways when handling untrusted URLs:
+
+  - A fully-qualified hostname with a trailing dot (e.g. `localhost.`, `myhost.local.`) skipped the localhost/`.local` blocklist.
+  - IPv6 addresses that embed an IPv4 address in their last 32 bits — IPv4-compatible (`::127.0.0.1`), IPv4-translated (`::ffff:0:127.0.0.1`), and NAT64 (`64:ff9b::127.0.0.1`, including the `64:ff9b:1::/48` local-use prefix) — were not decoded and checked against the private IPv4 ranges.
+  - Redirects were validated only _after_ `fetch` had already followed them, so the request to a redirect target (e.g. an internal/metadata address) had already been issued before the check ran.
+  - Several reserved/internal address ranges were not blocked: CGNAT (`100.64.0.0/10`, used by some cloud providers for internal traffic), benchmarking (`198.18.0.0/15`), IETF protocol assignments (`192.0.0.0/24`), the reserved `240.0.0.0/4` block (including the `255.255.255.255` broadcast address), and IPv6 site-local (`fec0::/10`) and multicast (`ff00::/8`).
+
+  The validator now strips trailing dots before the hostname checks and fully expands IPv6 addresses to detect embedded private IPv4 targets. The download helpers now follow redirects manually (`redirect: 'manual'`), re-validating each hop before requesting it, so an unsafe redirect target is never fetched. When a redirect cannot be inspected because the runtime returns an opaque response, the helpers fail closed (reject the redirect) on the server; only in a real browser — where SSRF is not reachable (fetch is constrained by CORS and cannot reach a server's internal network or cloud-metadata endpoints) — is the redirect followed natively so legitimate redirected downloads keep working.
+
+- f18b08f: fix: redact server error details from UI message streams by default
+
+  `toUIMessageStream`, `createUIMessageStream`, and `toUIMessageChunk` defaulted their `onError` callback to `getErrorMessage`, which serializes the raw error (`error.toString()` / `JSON.stringify(error)`) into the client-facing `{ type: 'error', errorText }` chunk — and also into `tool-output-error` parts. The documented default was `() => 'An error occurred.'`, so applications relying on the documented behavior were unknowingly streaming server exception details (internal hostnames, paths, provider request data, validation inputs) to end users.
+
+  The default `onError` now returns the documented generic `'An error occurred.'`. Raw error details are only emitted when the developer explicitly supplies an `onError` handler. This also redacts `tool-output-error` and invalid-tool-input error text by default; pass an `onError` to surface richer messages.
+
+- b4507d5: fix(provider-utils): cancel response body on download rejection to prevent socket leak
+
+  When a download was rejected early — because the `Content-Length` header exceeded the size limit, the response status was not ok, or a redirect resolved to a blocked URL — the fetch response body was left unconsumed and uncancelled. With WHATWG Fetch/undici this leaves the underlying TCP socket open instead of returning it to the connection pool, allowing an attacker-controlled origin to exhaust file descriptors and cause a denial of service. The body is now cancelled on all early-rejection paths in `readResponseWithSizeLimit`, `download`, and `downloadBlob`, and `fetchWithValidatedRedirects` cancels each redirect hop's body before following or rejecting the next hop.
+
+- Updated dependencies [8c17bf8]
+- Updated dependencies [aeda373]
+- Updated dependencies [558777f]
+- Updated dependencies [375fdd7]
+- Updated dependencies [b4507d5]
+  - @ai-sdk/gateway@4.0.0-canary.104
+  - @ai-sdk/provider-utils@5.0.0-canary.48
+
 ## 7.0.0-canary.171
 
 ### Patch Changes

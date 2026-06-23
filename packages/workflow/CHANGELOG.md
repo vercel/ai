@@ -1,5 +1,106 @@
 # @ai-sdk/workflow
 
+## 1.0.0-beta.102
+
+### Patch Changes
+
+- ai@7.0.0-beta.183
+
+## 1.0.0-beta.101
+
+### Patch Changes
+
+- b402b95: `WorkflowAgent` now rejects system messages inside `prompt` or `messages` by default, matching the behavior of `generateText`/`streamText`. Set `allowSystemInMessages: true` to opt in to the previous behavior.
+
+## 1.0.0-beta.100
+
+### Patch Changes
+
+- 907e002: fix (workflow): forward provider-executed tool approvals to the provider on resume
+
+  `WorkflowAgent` stripped every `tool-approval-request` and `tool-approval-response` part from the messages when resuming after a tool approval, regardless of whether the tool was locally or provider-executed. For provider-executed tools (e.g. MCP via the OpenAI Responses API) this silently dropped the approval before `convertToLanguageModelPrompt` could forward it, so the provider never learned of the approval and the tool was never executed. Local approvals are still executed and stripped, while provider-executed approvals are now preserved and forwarded to the provider, matching the discriminator core's `streamText` already uses. This is the inverse of the bug fixed in #14289.
+
+## 1.0.0-beta.99
+
+### Patch Changes
+
+- Updated dependencies [cc6ab90]
+  - ai@7.0.0-beta.182
+
+## 1.0.0-beta.98
+
+### Patch Changes
+
+- Updated dependencies [6a2caf9]
+  - ai@7.0.0-beta.181
+
+## 1.0.0-beta.97
+
+### Patch Changes
+
+- Updated dependencies [81a284b]
+  - ai@7.0.0-beta.180
+
+## 1.0.0-beta.96
+
+### Patch Changes
+
+- ai@7.0.0-beta.179
+
+## 1.0.0-beta.95
+
+### Patch Changes
+
+- Updated dependencies [b097c52]
+  - ai@7.0.0-beta.178
+
+## 1.0.0-beta.94
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/provider-utils@5.0.0-beta.49
+  - @ai-sdk/provider@4.0.0-beta.19
+  - ai@7.0.0-beta.177
+
+## 1.0.0-canary.93
+
+### Patch Changes
+
+- ai@7.0.0-canary.176
+
+## 1.0.0-canary.92
+
+### Patch Changes
+
+- Updated dependencies [6ec57f5]
+  - ai@7.0.0-canary.175
+
+## 1.0.0-canary.91
+
+### Patch Changes
+
+- ai@7.0.0-canary.174
+
+## 1.0.0-canary.90
+
+### Patch Changes
+
+- ai@7.0.0-canary.173
+
+## 1.0.0-canary.89
+
+### Patch Changes
+
+- Updated dependencies [aeda373]
+- Updated dependencies [25a64f8]
+- Updated dependencies [375fdd7]
+- Updated dependencies [f18b08f]
+- Updated dependencies [b4507d5]
+  - @ai-sdk/provider-utils@5.0.0-canary.48
+  - ai@7.0.0-canary.172
+
 ## 1.0.0-canary.88
 
 ### Patch Changes

@@ -1,5 +1,75 @@
 # @ai-sdk/gateway
 
+## 4.0.0-beta.111
+
+### Patch Changes
+
+- 8e990ff: feat (provider/gateway): add Exa search tool support
+
+## 4.0.0-beta.110
+
+### Patch Changes
+
+- 987d9e4: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.109
+
+### Patch Changes
+
+- 15eb253: feat(gateway): mint short-lived client secrets for experimental realtime
+
+  `gateway.experimental_realtime.getToken()` now mints a single-use, short-lived
+  client secret (`vcst_`) via the Gateway's `POST /v1/realtime/client-secrets`
+  endpoint instead of returning the long-lived Gateway credential. The customer's
+  server calls `getToken()` and hands the returned token to the browser, which
+  opens the realtime WebSocket with it through the existing
+  `ai-gateway-auth.<token>` subprotocol — the API key / OIDC token never reaches
+  the client. `expiresAfterSeconds` is forwarded to the mint endpoint and the
+  returned `expiresAt` is surfaced on the result.
+
+  The server-environment guard moves from realtime model construction to minting:
+  the browser can now build the realtime event codec it needs to drive the
+  transport, while minting (which requires the Gateway credential) stays
+  server-side.
+
+## 4.0.0-beta.108
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/provider-utils@5.0.0-beta.49
+  - @ai-sdk/provider@4.0.0-beta.19
+
+## 4.0.0-canary.107
+
+### Patch Changes
+
+- d5b8263: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-canary.106
+
+### Patch Changes
+
+- ca2cf45: fix(provider/gateway): map `forbidden` error responses to GatewayForbiddenError instead of GatewayInternalServerError
+
+## 4.0.0-canary.105
+
+### Patch Changes
+
+- efec111: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-canary.104
+
+### Patch Changes
+
+- 8c17bf8: fix(gateway): surface provider warnings in embedding and reranking responses
+- 558777f: fix(gateway): accept deprecated warnings in image, speech, transcription, and video responses
+- Updated dependencies [aeda373]
+- Updated dependencies [375fdd7]
+- Updated dependencies [b4507d5]
+  - @ai-sdk/provider-utils@5.0.0-canary.48
+
 ## 4.0.0-canary.103
 
 ### Patch Changes

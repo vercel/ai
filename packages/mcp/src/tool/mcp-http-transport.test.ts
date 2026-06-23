@@ -107,6 +107,58 @@ describe('HttpMCPTransport', () => {
     });
   });
 
+  it('should initialize MCP client from SSE response without explicit event field', async () => {
+    const controller = new TestResponseController();
+
+    server.urls['http://localhost:4000/stream'].response = ({ callNumber }) => {
+      switch (callNumber) {
+        case 0:
+          return { type: 'error', status: 405 };
+        case 1:
+          return {
+            type: 'controlled-stream',
+            controller,
+            headers: { 'content-type': 'text/event-stream' },
+          };
+        case 2:
+          return { type: 'empty', status: 202 };
+        default:
+          return { type: 'empty', status: 200 };
+      }
+    };
+
+    const clientPromise = createMCPClient({
+      transport: {
+        type: 'http',
+        url: 'http://localhost:4000/stream',
+      },
+    });
+
+    await vi.waitFor(() => {
+      expect(server.calls[1]?.requestMethod).toBe('POST');
+    });
+
+    controller.write(
+      `data: ${JSON.stringify({
+        jsonrpc: '2.0',
+        id: 0,
+        result: {
+          protocolVersion: LATEST_PROTOCOL_VERSION,
+          capabilities: {},
+          serverInfo: { name: 'test-server', version: '1.0.0' },
+        },
+      })}\n\n`,
+    );
+
+    const client = await clientPromise;
+    expect(client.serverInfo).toEqual({
+      name: 'test-server',
+      version: '1.0.0',
+    });
+
+    await client.close();
+  });
+
   it('should (re)open inbound SSE after 202 Accepted', async () => {
     const controller = new TestResponseController();
 
@@ -293,6 +345,29 @@ describe('HttpMCPTransport', () => {
     expect(error.statusCode).toBe(503);
     expect(error.url).toBe('http://localhost:4000/mcp');
     expect(error.message).toContain('GET SSE failed');
+  });
+
+  it('should handle inbound SSE messages without explicit event field', async () => {
+    const controller = new TestResponseController();
+    server.urls['http://localhost:4000/mcp'].response = {
+      type: 'controlled-stream',
+      controller,
+      headers: { 'content-type': 'text/event-stream' },
+    };
+
+    const message = { jsonrpc: '2.0' as const, id: 1, result: { ok: true } };
+    const messagePromise = new Promise(resolve => {
+      transport.onmessage = msg => resolve(msg);
+    });
+
+    await transport.start();
+    await vi.waitFor(() => {
+      expect(server.calls[0]?.requestMethod).toBe('GET');
+    });
+
+    controller.write(`data: ${JSON.stringify(message)}\n\n`);
+
+    expect(await messagePromise).toEqual(message);
   });
 
   it('should handle invalid JSON-RPC messages from inbound SSE', async () => {
