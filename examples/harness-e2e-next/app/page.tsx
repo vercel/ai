@@ -6,6 +6,7 @@ const VARIANTS = [
   { slug: 'ai-sdk-coding', label: 'AI SDK Coding' },
   { slug: 'weather', label: 'Weather' },
   { slug: 'weather-approval', label: 'Weather Approval' },
+  { slug: 'workflow', label: 'Workflow' },
 ] as const;
 
 const HARNESSES = [
@@ -18,6 +19,7 @@ const HARNESSES = [
       'ai-sdk-coding',
       'weather',
       'weather-approval',
+      'workflow',
     ],
   },
   {
@@ -29,6 +31,7 @@ const HARNESSES = [
       'ai-sdk-coding',
       'weather',
       'weather-approval',
+      'workflow',
     ],
   },
   {
@@ -51,6 +54,7 @@ const HARNESSES = [
       'ai-sdk-coding',
       'weather',
       'weather-approval',
+      'workflow',
     ],
   },
 ] as const;
