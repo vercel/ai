@@ -40,7 +40,7 @@ export type MyUIMessage = UIMessage<MessageMetadata>;
 
 Use the `messageMetadata` callback in `toUIMessageStreamResponse` to send metadata at different streaming stages:
 
-```ts filename="app/api/chat/route.ts" highlight="11-20"
+```ts filename="app/api/chat/route.ts" highlight="14-22,24-30"
 import { convertToModelMessages, streamText } from 'ai';
 __PROVIDER_IMPORT__;
 import type { MyUIMessage } from '@/types';
@@ -84,7 +84,7 @@ export async function POST(req: Request) {
 
 Access metadata through the `message.metadata` property:
 
-```tsx filename="app/page.tsx" highlight="8,18-23"
+```tsx filename="app/page.tsx" highlight="8,20-23,33-36"
 'use client';
 
 import { useChat } from '@ai-sdk/react';
