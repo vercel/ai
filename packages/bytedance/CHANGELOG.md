@@ -1,5 +1,14 @@
 # @ai-sdk/bytedance
 
+## 2.0.0-beta.53
+
+### Patch Changes
+
+- 0416e3e: feat (video): add first-class `generateAudio` call option
+- Updated dependencies [0416e3e]
+  - @ai-sdk/provider@4.0.0-beta.20
+  - @ai-sdk/provider-utils@5.0.0-beta.50
+
 ## 2.0.0-beta.52
 
 ### Patch Changes
