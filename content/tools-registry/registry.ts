@@ -598,7 +598,7 @@ console.log(result.text);`,
       yarn: 'yarn add @nimble-way/ai-sdk',
       bun: 'bun add @nimble-way/ai-sdk',
     },
-    codeExample: `import { generateText, stepCountIs } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
 import { nimbleSearch } from '@nimble-way/ai-sdk';
 
 const { text } = await generateText({
@@ -607,7 +607,7 @@ const { text } = await generateText({
   tools: {
     webSearch: nimbleSearch(),
   },
-  stopWhen: stepCountIs(3),
+  stopWhen: isStepCount(3),
 });
 
 console.log(text);`,
