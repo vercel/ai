@@ -16,6 +16,7 @@ const defaultOptions = {
   duration: undefined,
   fps: undefined,
   seed: undefined,
+  generateAudio: undefined,
   providerOptions: {
     replicate: {
       pollIntervalMs: 10, // Use short polling interval for tests
