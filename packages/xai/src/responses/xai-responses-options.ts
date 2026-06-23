@@ -14,9 +14,9 @@ export type XaiResponsesModelId =
 export const xaiLanguageModelResponsesOptions = z.object({
   /**
    * Constrains how hard a reasoning model thinks before responding.
-   * Possible values are `none` (disables reasoning, supported by `grok-4.3` and
-   * newer), `low` (uses fewer reasoning tokens), `medium` and `high` (uses more
-   * reasoning tokens).
+   * Possible values are `none` (disables reasoning), `low` (uses fewer reasoning
+   * tokens), `medium` and `high` (uses more reasoning tokens). Not all models
+   * support reasoning effort; see xAI's docs for the values each model accepts.
    */
   reasoningEffort: z.enum(['none', 'low', 'medium', 'high']).optional(),
   logprobs: z.boolean().optional(),
