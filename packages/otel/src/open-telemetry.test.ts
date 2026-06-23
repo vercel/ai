@@ -668,6 +668,19 @@ describe('OpenTelemetry', () => {
       `);
     });
 
+    it('omits malformed finish reason arrays on the chat span', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(
+        makeLanguageModelCallEndEvent({ finishReason: undefined }),
+      );
+
+      expect(
+        'gen_ai.response.finish_reasons' in tracer.spans[2].attributes,
+      ).toBe(false);
+    });
+
     it('formats output messages in SemConv format', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());

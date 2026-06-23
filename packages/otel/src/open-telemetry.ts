@@ -44,6 +44,7 @@ import {
   mapProviderName,
 } from './gen-ai-format-messages';
 import { recordErrorOnSpan } from './record-span';
+import { sanitizeAttributes } from './sanitize-attribute-value';
 import { selectAttributes } from './select-attributes';
 import {
   getDetailedUsageAttributes,
@@ -134,7 +135,7 @@ export class OpenTelemetry implements Telemetry {
     }
 
     return {
-      ...customAttributes,
+      ...sanitizeAttributes(customAttributes),
       ...attributes,
     };
   }
