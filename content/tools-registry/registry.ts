@@ -588,7 +588,7 @@ console.log(result.text);`,
     slug: 'nimble',
     name: 'Nimble',
     description:
-      'Nimble adds real-time web search to your LLMs through its Web Intelligence platform. The nimbleSearch tool runs live web searches and returns ranked results with titles, URLs, snippets, and full page content to ground agent answers in current, factual information. Extract, Map, and Crawl tools are planned follow-ups.',
+      'Nimble adds real-time web search to your LLMs through its Web Intelligence platform. The nimbleSearch tool runs live web searches and returns ranked results with titles, URLs, snippets, and full page content to ground agent answers in current, factual information.',
     packageName: '@nimble-way/ai-sdk',
     tags: ['search', 'web'],
     apiKeyEnvName: 'NIMBLE_API_KEY',
