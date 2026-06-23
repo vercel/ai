@@ -199,8 +199,9 @@ export class AlibabaVideoModel implements Experimental_VideoModelV4 {
     if (alibabaOptions?.watermark != null) {
       parameters.watermark = alibabaOptions.watermark;
     }
-    if (alibabaOptions?.audio != null) {
-      parameters.audio = alibabaOptions.audio;
+    const audio = options.generateAudio ?? alibabaOptions?.audio;
+    if (audio != null) {
+      parameters.audio = audio;
     }
 
     // Warn about unsupported standard options

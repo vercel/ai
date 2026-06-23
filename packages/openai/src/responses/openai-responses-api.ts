@@ -531,11 +531,18 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
           usage: z.object({
             input_tokens: z.number(),
             input_tokens_details: z
-              .object({ cached_tokens: z.number().nullish() })
+              .object({
+                cached_tokens: z.number().nullish(),
+                orchestration_input_tokens: z.number().nullish(),
+                orchestration_input_cached_tokens: z.number().nullish(),
+              })
               .nullish(),
             output_tokens: z.number(),
             output_tokens_details: z
-              .object({ reasoning_tokens: z.number().nullish() })
+              .object({
+                reasoning_tokens: z.number().nullish(),
+                orchestration_output_tokens: z.number().nullish(),
+              })
               .nullish(),
           }),
           service_tier: z.string().nullish(),
@@ -556,11 +563,18 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             .object({
               input_tokens: z.number(),
               input_tokens_details: z
-                .object({ cached_tokens: z.number().nullish() })
+                .object({
+                  cached_tokens: z.number().nullish(),
+                  orchestration_input_tokens: z.number().nullish(),
+                  orchestration_input_cached_tokens: z.number().nullish(),
+                })
                 .nullish(),
               output_tokens: z.number(),
               output_tokens_details: z
-                .object({ reasoning_tokens: z.number().nullish() })
+                .object({
+                  reasoning_tokens: z.number().nullish(),
+                  orchestration_output_tokens: z.number().nullish(),
+                })
                 .nullish(),
             })
             .nullish(),
@@ -1416,11 +1430,18 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
         .object({
           input_tokens: z.number(),
           input_tokens_details: z
-            .object({ cached_tokens: z.number().nullish() })
+            .object({
+              cached_tokens: z.number().nullish(),
+              orchestration_input_tokens: z.number().nullish(),
+              orchestration_input_cached_tokens: z.number().nullish(),
+            })
             .nullish(),
           output_tokens: z.number(),
           output_tokens_details: z
-            .object({ reasoning_tokens: z.number().nullish() })
+            .object({
+              reasoning_tokens: z.number().nullish(),
+              orchestration_output_tokens: z.number().nullish(),
+            })
             .nullish(),
         })
         .optional(),

@@ -1,5 +1,17 @@
 # @ai-sdk/harness-codex
 
+## 1.0.0-beta.18
+
+### Patch Changes
+
+- bc77265: chore(harness): enforce more structural conventions in harness adapters
+
+## 1.0.0-beta.17
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.0-beta.21
+
 ## 1.0.0-beta.16
 
 ### Patch Changes
