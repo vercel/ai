@@ -1,5 +1,12 @@
 # @ai-sdk/langchain
 
+## 3.0.0-beta.184
+
+### Patch Changes
+
+- Updated dependencies [0416e3e]
+  - ai@7.0.0-beta.184
+
 ## 3.0.0-beta.183
 
 ### Patch Changes

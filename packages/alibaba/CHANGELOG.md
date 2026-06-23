@@ -1,5 +1,15 @@
 # @ai-sdk/alibaba
 
+## 2.0.0-beta.61
+
+### Patch Changes
+
+- 0416e3e: feat (video): add first-class `generateAudio` call option
+- Updated dependencies [0416e3e]
+  - @ai-sdk/provider@4.0.0-beta.20
+  - @ai-sdk/openai-compatible@3.0.0-beta.58
+  - @ai-sdk/provider-utils@5.0.0-beta.50
+
 ## 2.0.0-beta.60
 
 ### Patch Changes
