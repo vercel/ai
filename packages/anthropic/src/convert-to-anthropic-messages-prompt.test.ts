@@ -1317,8 +1317,8 @@ describe('assistant messages', () => {
   });
 
   it('should move regular tool_use blocks after provider-executed web_search results', async () => {
-    const warnings: SharedV4Warning[] = [];
-    const result = await convertToAnthropicPrompt({
+    const warnings: SharedV3Warning[] = [];
+    const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
           role: 'assistant',
@@ -1444,8 +1444,8 @@ describe('assistant messages', () => {
   });
 
   it('should not move regular tool_use blocks across thinking blocks', async () => {
-    const warnings: SharedV4Warning[] = [];
-    const result = await convertToAnthropicPrompt({
+    const warnings: SharedV3Warning[] = [];
+    const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
           role: 'assistant',

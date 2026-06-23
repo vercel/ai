@@ -1,11 +1,7 @@
-<<<<<<< HEAD
 import {
   anthropic,
   type AnthropicLanguageModelOptions,
 } from '@ai-sdk/anthropic';
-import { ToolLoopAgent, type InferAgentUIMessage } from 'ai';
-=======
-import { anthropic } from '@ai-sdk/anthropic';
 import { ToolLoopAgent, tool, type InferAgentUIMessage } from 'ai';
 import { z } from 'zod';
 
@@ -27,7 +23,6 @@ const saveNote = tool({
     };
   },
 });
->>>>>>> 19c5ee243b (fix(anthropic): reorder assistant content b/w client and provider tool use (#16312))
 
 export const anthropicWebSearchAgent = new ToolLoopAgent({
   model: anthropic('claude-sonnet-4-5'),
