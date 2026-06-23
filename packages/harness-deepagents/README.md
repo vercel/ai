@@ -1,10 +1,10 @@
 # @ai-sdk/harness-deepagents
 
-A [HarnessV1](../harness) adapter that runs [DeepAgents](https://github.com/langchain-ai/deepagentsjs)
+A [HarnessV1](../harness) adapter that runs [Deep Agents](https://github.com/langchain-ai/deepagentsjs)
 (LangChain's LangGraph-based agent harness) as a coding-agent runtime inside an
 AI SDK sandbox.
 
-This is a **bridge-backed** harness: the DeepAgents runtime runs inside the
+This is a **bridge-backed** harness: the Deep Agents runtime runs inside the
 sandbox via a Node bridge (`node bridge.mjs`) built on the shared
 `@ai-sdk/harness/bridge` runtime, while the host adapter drives turns over a
 WebSocket.

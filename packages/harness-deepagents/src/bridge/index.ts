@@ -14,7 +14,7 @@ import type { StartMessage } from '../deepagents-bridge-protocol';
 import { buildInterruptOn, collectActionRequests } from './approvals';
 import { jsonSchemaToZodObject } from './json-schema-to-zod';
 
-// Native DeepAgents tool name -> harness-v1 common name (renames only; grep/glob/ls/task/write_todos forward unchanged).
+// Native Deep Agents tool name -> harness-v1 common name (renames only; grep/glob/ls/task/write_todos forward unchanged).
 const NATIVE_TO_COMMON: Readonly<Record<string, string>> = {
   read_file: 'read',
   write_file: 'write',
@@ -109,7 +109,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   const interruptOn = buildInterruptOn(start.permissionMode);
   if (!agent) {
     agent = createDeepAgent({
-      // Defer to DeepAgents' own default when the host configured no model.
+      // Defer to Deep Agents's own default when the host configured no model.
       ...(start.model ? { model: parseModelName(start.model) } : {}),
       tools: buildHostTools(start.tools),
       backend: new LocalShellBackend({ rootDir: workdir }),

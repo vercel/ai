@@ -6,7 +6,7 @@ import {
 } from '@ai-sdk/harness';
 import { z } from 'zod/v4';
 
-// DeepAgents bridge wire protocol; only the `start` payload is adapter-specific.
+// Deep Agents bridge wire protocol; only the `start` payload is adapter-specific.
 export const outboundMessageSchema = harnessV1BridgeOutboundMessageSchema;
 export type OutboundMessage = z.infer<typeof outboundMessageSchema>;
 
