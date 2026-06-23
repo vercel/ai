@@ -3,10 +3,39 @@ import type {
   Experimental_RealtimeModelV4ClientEvent as RealtimeModelV4ClientEvent,
   Experimental_RealtimeModelV4ClientSecretOptions as RealtimeModelV4ClientSecretOptions,
   Experimental_RealtimeModelV4ClientSecretResult as RealtimeModelV4ClientSecretResult,
+  Experimental_RealtimeFactoryV4GetTokenResult as RealtimeFactoryV4GetTokenResult,
   Experimental_RealtimeModelV4ServerEvent as RealtimeModelV4ServerEvent,
   Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
 } from '@ai-sdk/provider';
 import { getGatewayRealtimeProtocols } from './gateway-realtime-auth';
+import type { GatewayRealtimeModelId } from './gateway-realtime-model-settings';
+import type { GatewayProviderOptions } from './gateway-provider-options';
+
+export type GatewayRealtimePinnedProviderOptions = Pick<
+  GatewayProviderOptions,
+  'quotaEntityId' | 'tags' | 'user'
+>;
+
+export type GatewayRealtimeClientSecretOptions =
+  RealtimeModelV4ClientSecretOptions & {
+    /**
+     * Browser origins allowed to redeem the client secret. When set, a
+     * WebSocket upgrade without a matching Origin header is rejected.
+     */
+    allowedOrigins?: string[];
+  };
+
+export type GatewayRealtimeFactoryGetTokenOptions = {
+  model: GatewayRealtimeModelId;
+} & GatewayRealtimeClientSecretOptions;
+
+export interface GatewayRealtimeFactory {
+  (modelId: GatewayRealtimeModelId): RealtimeModelV4;
+
+  getToken(
+    options: GatewayRealtimeFactoryGetTokenOptions,
+  ): Promise<RealtimeFactoryV4GetTokenResult>;
+}
 
 export type GatewayRealtimeModelConfig = {
   provider: string;
@@ -21,6 +50,8 @@ export type GatewayRealtimeModelConfig = {
   createClientSecret: (params: {
     modelId: string;
     expiresAfterSeconds?: number;
+    allowedOrigins?: string[];
+    gatewayOptions?: GatewayRealtimePinnedProviderOptions;
   }) => PromiseLike<{ token: string; expiresAt?: number }>;
 };
 
@@ -52,18 +83,23 @@ export class GatewayRealtimeModel implements RealtimeModelV4 {
    * credential. The customer's server calls this (via
    * `gateway.experimental_realtime.getToken`) and hands the returned token to
    * the browser, which connects with it through the `ai-gateway-auth.<token>`
-   * subprotocol. `expiresAfterSeconds` is forwarded to the mint endpoint;
-   * `sessionConfig` is intentionally unused here — it is applied later via the
-   * normalized `session-update` event.
+   * subprotocol. `expiresAfterSeconds`, `allowedOrigins`, and the safe Gateway
+   * options from `sessionConfig` are sealed into the token by the mint
+   * endpoint. Credentials are deliberately excluded from this flow.
    */
   async doCreateClientSecret(
-    options?: RealtimeModelV4ClientSecretOptions,
+    options?: GatewayRealtimeClientSecretOptions,
   ): Promise<RealtimeModelV4ClientSecretResult> {
+    const gatewayOptions = getPinnedGatewayOptions(options?.sessionConfig);
     const secret = await this.config.createClientSecret({
       modelId: this.modelId,
       ...(options?.expiresAfterSeconds != null && {
         expiresAfterSeconds: options.expiresAfterSeconds,
       }),
+      ...(options?.allowedOrigins != null && {
+        allowedOrigins: options.allowedOrigins,
+      }),
+      ...(gatewayOptions != null && { gatewayOptions }),
     });
     return {
       token: secret.token,
@@ -100,6 +136,35 @@ export class GatewayRealtimeModel implements RealtimeModelV4 {
     // upstream provider's session payload server-side.
     return config;
   }
+}
+
+function getPinnedGatewayOptions(
+  sessionConfig: RealtimeModelV4SessionConfig | undefined,
+): GatewayRealtimePinnedProviderOptions | undefined {
+  const gatewayOptions = sessionConfig?.providerOptions?.gateway;
+  if (gatewayOptions == null) {
+    return undefined;
+  }
+  if (typeof gatewayOptions !== 'object' || Array.isArray(gatewayOptions)) {
+    throw new Error('providerOptions.gateway must be an object.');
+  }
+  const options = gatewayOptions as Record<string, unknown>;
+  if ('byok' in options && options.byok !== undefined) {
+    throw new Error(
+      'Request-scoped BYOK credentials cannot be used with Gateway realtime client secrets. Configure BYOK credentials in the AI Gateway instead of sending them through a browser session.',
+    );
+  }
+
+  const pinned: Record<string, unknown> = {};
+  for (const key of ['quotaEntityId', 'tags', 'user'] as const) {
+    if (key in options && options[key] !== undefined) {
+      pinned[key] = options[key];
+    }
+  }
+
+  return Object.keys(pinned).length > 0
+    ? (pinned as GatewayRealtimePinnedProviderOptions)
+    : undefined;
 }
 
 /**

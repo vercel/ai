@@ -36,7 +36,12 @@ import { GatewayVideoModel } from './gateway-video-model';
 import { GatewayRerankingModel } from './gateway-reranking-model';
 import { GatewaySpeechModel } from './gateway-speech-model';
 import { GatewayTranscriptionModel } from './gateway-transcription-model';
-import { GatewayRealtimeModel } from './gateway-realtime-model';
+import {
+  GatewayRealtimeModel,
+  type GatewayRealtimeFactory,
+  type GatewayRealtimeFactoryGetTokenOptions,
+  type GatewayRealtimePinnedProviderOptions,
+} from './gateway-realtime-model';
 import type { GatewayEmbeddingModelId } from './gateway-embedding-model-settings';
 import type { GatewayImageModelId } from './gateway-image-model-settings';
 import type { GatewayRerankingModelId } from './gateway-reranking-model-settings';
@@ -55,8 +60,6 @@ import type {
   SpeechModelV4,
   TranscriptionModelV4,
   Experimental_VideoModelV4,
-  Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
-  Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
   ProviderV4,
 } from '@ai-sdk/provider';
 import { VERSION } from './version';
@@ -171,7 +174,7 @@ export interface GatewayProvider extends ProviderV4 {
    * Creates an experimental realtime model for bidirectional audio/text
    * communication over WebSocket, normalized through the AI Gateway.
    */
-  experimental_realtime: RealtimeFactoryV4;
+  experimental_realtime: GatewayRealtimeFactory;
 
   /**
    * Gateway-specific tools executed server-side.
@@ -298,6 +301,8 @@ export function createGateway(
   const mintRealtimeClientSecret = async (params: {
     modelId: string;
     expiresAfterSeconds?: number;
+    allowedOrigins?: string[];
+    gatewayOptions?: GatewayRealtimePinnedProviderOptions;
   }): Promise<{ token: string; expiresAt?: number }> => {
     assertGatewayRealtimeServerEnvironment();
     const auth = await getRealtimeAuthToken();
@@ -311,6 +316,12 @@ export function createGateway(
           model: params.modelId,
           ...(params.expiresAfterSeconds != null && {
             expiresIn: params.expiresAfterSeconds,
+          }),
+          ...(params.allowedOrigins != null && {
+            allowedOrigins: params.allowedOrigins,
+          }),
+          ...(params.gatewayOptions != null && {
+            providerOptions: { gateway: params.gatewayOptions },
           }),
         },
         successfulResponseHandler: createJsonResponseHandler(
@@ -536,7 +547,7 @@ export function createGateway(
   provider.experimental_realtime = Object.assign(
     (modelId: GatewayRealtimeModelId) => createRealtimeModel(modelId),
     {
-      getToken: async (tokenOptions: RealtimeFactoryV4GetTokenOptions) => {
+      getToken: async (tokenOptions: GatewayRealtimeFactoryGetTokenOptions) => {
         const { model: modelId, ...secretOptions } = tokenOptions;
         const model = createRealtimeModel(modelId);
         const secret = await model.doCreateClientSecret(secretOptions);
@@ -547,7 +558,7 @@ export function createGateway(
         };
       },
     },
-  ) as RealtimeFactoryV4;
+  ) as GatewayRealtimeFactory;
 
   provider.chat = provider.languageModel;
   provider.embedding = provider.embeddingModel;
