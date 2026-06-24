@@ -1,5 +1,11 @@
 # @ai-sdk/harness
 
+## 1.0.0-beta.26
+
+### Patch Changes
+
+- a83a367: feat(harness): allow pre-snapshot `sandboxConfig.onBootstrap` callback in `HarnessAgent`
+
 ## 1.0.0-beta.25
 
 ### Patch Changes
