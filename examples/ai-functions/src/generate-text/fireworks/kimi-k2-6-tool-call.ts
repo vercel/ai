@@ -2,7 +2,7 @@ import {
   fireworks,
   type FireworksLanguageModelOptions,
 } from '@ai-sdk/fireworks';
-import { generateText, isStepCount } from 'ai';
+import { generateText, stepCountIs } from 'ai';
 import { run } from '../../lib/run';
 import { weatherTool } from '../../tools/weather-tool';
 
@@ -19,7 +19,7 @@ run(async () => {
       } satisfies FireworksLanguageModelOptions,
     },
     tools: { weather: weatherTool },
-    stopWhen: isStepCount(2),
+    stopWhen: stepCountIs(2),
     prompt: 'What is the weather in San Francisco?',
   });
 
