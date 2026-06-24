@@ -314,7 +314,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
     if (webSearchToolName) {
       addInclude('web_search_call.action.sources');
-      addInclude('web_search_call.results');
+      if (isReasoningModel) {
+        addInclude('web_search_call.results');
+      }
     }
 
     // when a code interpreter tool is present, automatically include the outputs:
