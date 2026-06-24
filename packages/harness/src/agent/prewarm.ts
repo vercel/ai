@@ -1,9 +1,13 @@
 import type { HarnessV1SandboxProvider } from '../v1';
 import type { HarnessAgentAdapter } from './harness-agent-types';
+import type { HarnessAgentSandboxConfig } from './harness-agent-settings';
+import { applyBootstrapRecipe } from './internal/bootstrap-recipe';
 import {
-  applyBootstrapRecipe,
-  hashBootstrap,
-} from './internal/bootstrap-recipe';
+  createSandboxBootstrapPlan,
+  validateSandboxBootstrapSettings,
+} from './internal/sandbox-bootstrap';
+
+type SandboxBootstrapSettings = Omit<HarnessAgentSandboxConfig, 'onSession'>;
 
 /**
  * Pre-build a harness's sandbox template without running an agent. Idempotent:
@@ -22,25 +26,39 @@ import {
 export async function prewarmHarness(options: {
   readonly harness: HarnessAgentAdapter;
   readonly sandboxProvider: HarnessV1SandboxProvider;
+  readonly sandboxConfig?: SandboxBootstrapSettings;
   readonly abortSignal?: AbortSignal;
 }): Promise<void> {
+  const sandboxConfig = options.sandboxConfig ?? {};
+  validateSandboxBootstrapSettings(sandboxConfig);
   const recipe = await options.harness.getBootstrap?.({
     abortSignal: options.abortSignal,
   });
-  if (recipe == null) return;
+  const bootstrapPlan = await createSandboxBootstrapPlan({
+    recipe,
+    settings: sandboxConfig,
+  });
+  if (bootstrapPlan.identity == null || bootstrapPlan.onFirstCreate == null) {
+    return;
+  }
 
-  const identity = await hashBootstrap(recipe);
   const sandboxSession = await options.sandboxProvider.createSession({
     abortSignal: options.abortSignal,
-    identity,
-    onFirstCreate: (session, opts) =>
-      applyBootstrapRecipe(session, recipe, identity, opts),
+    identity: bootstrapPlan.identity,
+    onFirstCreate: bootstrapPlan.onFirstCreate,
   });
 
   try {
-    await applyBootstrapRecipe(sandboxSession.restricted(), recipe, identity, {
-      abortSignal: options.abortSignal,
-    });
+    if (bootstrapPlan.recipe != null && bootstrapPlan.recipeIdentity != null) {
+      await applyBootstrapRecipe(
+        sandboxSession.restricted(),
+        bootstrapPlan.recipe,
+        bootstrapPlan.recipeIdentity,
+        {
+          abortSignal: options.abortSignal,
+        },
+      );
+    }
   } finally {
     await Promise.resolve(sandboxSession.stop()).catch(() => {});
   }
