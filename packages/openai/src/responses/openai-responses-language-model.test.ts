@@ -3282,6 +3282,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           {
             "include": [
               "web_search_call.action.sources",
+              "web_search_call.results",
             ],
             "input": [
               {

@@ -42,6 +42,7 @@ export type OpenAIResponsesInputItem =
   | OpenAIResponsesCompactionItem;
 
 export type OpenAIResponsesIncludeValue =
+  | 'web_search_call.results'
   | 'web_search_call.action.sources'
   | 'code_interpreter_call.outputs'
   | 'computer_call_output.output.image_url'
