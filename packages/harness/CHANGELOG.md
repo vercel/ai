@@ -1,5 +1,11 @@
 # @ai-sdk/harness
 
+## 1.0.0-beta.25
+
+### Patch Changes
+
+- ai@7.0.0-beta.186
+
 ## 1.0.0-beta.24
 
 ### Patch Changes
