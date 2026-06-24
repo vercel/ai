@@ -1,5 +1,27 @@
 # @ai-sdk/policy
 
+## 1.0.0-beta.23
+
+### Patch Changes
+
+- ai@7.0.0-beta.186
+
+## 1.0.0-beta.22
+
+### Patch Changes
+
+- Updated dependencies [75763b0]
+  - ai@7.0.0-beta.185
+
+## 1.0.0-beta.21
+
+### Patch Changes
+
+- Updated dependencies [0416e3e]
+  - @ai-sdk/provider@4.0.0-beta.20
+  - ai@7.0.0-beta.184
+  - @ai-sdk/provider-utils@5.0.0-beta.50
+
 ## 1.0.0-beta.20
 
 ### Patch Changes

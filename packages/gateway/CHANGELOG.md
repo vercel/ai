@@ -1,5 +1,21 @@
 # @ai-sdk/gateway
 
+## 4.0.0-beta.113
+
+### Patch Changes
+
+- eb024b6: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.112
+
+### Patch Changes
+
+- a403276: chore(provider/gateway): update gateway model settings files
+- 0416e3e: feat (video): add first-class `generateAudio` call option
+- Updated dependencies [0416e3e]
+  - @ai-sdk/provider@4.0.0-beta.20
+  - @ai-sdk/provider-utils@5.0.0-beta.50
+
 ## 4.0.0-beta.111
 
 ### Patch Changes

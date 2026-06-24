@@ -1,5 +1,29 @@
 # ai
 
+## 7.0.0-beta.186
+
+### Patch Changes
+
+- Updated dependencies [eb024b6]
+  - @ai-sdk/gateway@4.0.0-beta.113
+
+## 7.0.0-beta.185
+
+### Patch Changes
+
+- 75763b0: agents: tag outgoing requests with an ai-sdk-agent user-agent segment for usage attribution (tool-loop, workflow)
+
+## 7.0.0-beta.184
+
+### Patch Changes
+
+- 0416e3e: feat (video): add first-class `generateAudio` call option
+- Updated dependencies [a403276]
+- Updated dependencies [0416e3e]
+  - @ai-sdk/gateway@4.0.0-beta.112
+  - @ai-sdk/provider@4.0.0-beta.20
+  - @ai-sdk/provider-utils@5.0.0-beta.50
+
 ## 7.0.0-beta.183
 
 ### Patch Changes
