@@ -35,6 +35,18 @@ const HARNESSES = [
     ],
   },
   {
+    slug: 'opencode',
+    label: 'OpenCode',
+    variants: [
+      'basic',
+      'basic-with-stop',
+      'ai-sdk-coding',
+      'weather',
+      'weather-approval',
+      'workflow',
+    ],
+  },
+  {
     slug: 'pi',
     label: 'Pi',
     variants: [

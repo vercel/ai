@@ -351,6 +351,7 @@
     "moonshotai": "MoonshotAI",
     "openai": "OpenAI",
     "openai-compatible": "OpenAICompatible",
+    "opencode": "OpenCode",
     "quiverai": "QuiverAI",
     "togetherai": "TogetherAI"
   },
