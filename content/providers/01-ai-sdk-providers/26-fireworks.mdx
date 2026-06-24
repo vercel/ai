@@ -122,7 +122,7 @@ import {
 import { generateText } from 'ai';
 
 const { text, reasoningText } = await generateText({
-  model: fireworks('accounts/fireworks/models/kimi-k2p5'),
+  model: fireworks('accounts/fireworks/models/kimi-k2p6'),
   providerOptions: {
     fireworks: {
       thinking: { type: 'enabled', budgetTokens: 4096 },
@@ -144,7 +144,7 @@ The following optional provider options are available for Fireworks chat models:
 
 - **thinking** _object_
 
-  Configuration for thinking/reasoning models like Kimi K2.5.
+  Configuration for thinking/reasoning models like Kimi K2.6.
   - **type** _'enabled' | 'disabled'_
 
     Whether to enable thinking mode.
@@ -184,7 +184,7 @@ import { z } from 'zod';
 const sessionId = 'conversation-123';
 
 const result = await generateText({
-  model: fireworks('accounts/fireworks/models/kimi-k2p5'),
+  model: fireworks('accounts/fireworks/models/kimi-k2p6'),
   providerOptions: {
     fireworks: {
       promptCacheKey: sessionId,
@@ -218,7 +218,7 @@ import { z } from 'zod';
 import { weatherTool } from './weather-tool';
 
 const agent = new ToolLoopAgent({
-  model: fireworks('accounts/fireworks/models/kimi-k2p5'),
+  model: fireworks('accounts/fireworks/models/kimi-k2p6'),
   callOptionsSchema: z.object({
     sessionId: z.string(),
   }),
@@ -278,6 +278,7 @@ const model = fireworks.completionModel(
 | `accounts/fireworks/models/kimi-k2-instruct`               | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 | `accounts/fireworks/models/kimi-k2-thinking`               | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 | `accounts/fireworks/models/kimi-k2p5`                      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `accounts/fireworks/models/kimi-k2p6`                      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 | `accounts/fireworks/models/minimax-m2`                     | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 
 <Note>

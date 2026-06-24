@@ -2,15 +2,16 @@ import {
   fireworks,
   type FireworksLanguageModelOptions,
 } from '@ai-sdk/fireworks';
-import { generateText, isStepCount } from 'ai';
+import { isStepCount, streamText } from 'ai';
+import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 import { weatherTool } from '../../tools/weather-tool';
 
 run(async () => {
   const sessionId = 'weather-conversation-123';
 
-  const result = await generateText({
-    model: fireworks('accounts/fireworks/models/kimi-k2p5'),
+  const result = streamText({
+    model: fireworks('accounts/fireworks/models/kimi-k2p6'),
     providerOptions: {
       fireworks: {
         promptCacheKey: sessionId,
@@ -23,12 +24,6 @@ run(async () => {
     prompt: 'What is the weather in San Francisco?',
   });
 
-  console.log(result.text);
-  console.log();
-  console.log('Token usage:', result.usage);
-  console.log(
-    'Cached input tokens:',
-    result.usage.inputTokenDetails.cacheReadTokens,
-  );
-  console.log('Finish reason:', result.finishReason);
+  await printFullStream({ result });
+  console.log('Token usage:', await result.usage);
 });
