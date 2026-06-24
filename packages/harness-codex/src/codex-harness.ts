@@ -151,6 +151,15 @@ const codexResumeStateSchema = z.object({
 
 type CodexBridgeCoords = z.infer<typeof codexBridgeCoordsSchema>;
 
+/**
+ * Spread helper: include `outputSchema` on a `start` message only when the turn
+ * requested one. Shared by the prompt and continue (rerun) paths so the two
+ * cannot drift.
+ */
+function withOutputSchema(outputSchema: unknown): Record<string, unknown> {
+  return outputSchema != null ? { outputSchema } : {};
+}
+
 export function createCodex(
   settings: CodexHarnessSettings = {},
 ): HarnessV1<typeof CODEX_BUILTIN_TOOLS> {
@@ -836,6 +845,7 @@ function createSession({
         reasoningEffort,
         webSearch,
         ...(permissionMode ? { permissionMode } : {}),
+        ...withOutputSchema(promptOpts.outputSchema),
         ...(pendingResumeThreadId
           ? { resumeThreadId: pendingResumeThreadId }
           : {}),
@@ -886,6 +896,7 @@ function createSession({
           reasoningEffort,
           webSearch,
           ...(permissionMode ? { permissionMode } : {}),
+          ...withOutputSchema(continueOpts.outputSchema),
           ...(threadId ? { resumeThreadId: threadId } : {}),
           ...(debug ? { debug } : {}),
         });

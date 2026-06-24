@@ -90,6 +90,14 @@ export const harnessV1BridgeStartBaseSchema = z.object({
   model: z.string().optional(),
   debug: harnessV1DebugConfigSchema.optional(),
   permissionMode: harnessV1BridgePermissionModeSchema.optional(),
+  /**
+   * Bare JSON Schema the runtime should enforce on its final output for this
+   * turn. Present only when the caller passed an `output` specification. Each
+   * adapter maps it to its runtime's native enforcement knob (Codex
+   * `outputSchema`, Claude Code `outputFormat`). Carried as opaque JSON because
+   * the schema shape is the provider's, not the bridge's, concern.
+   */
+  outputSchema: z.unknown().optional(),
 });
 
 // --- Transport / control frames (outbound, not consumer events) ---

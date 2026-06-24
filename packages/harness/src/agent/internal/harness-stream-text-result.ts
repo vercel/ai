@@ -25,8 +25,10 @@ import {
   type ContentPart,
   type FinishReason,
   type GenerateTextResult,
+  type InferGenerateOutput,
   type InferUIMessageChunk,
   type LanguageModelUsage,
+  type Output,
   type ProviderMetadata,
   type StepResult,
   type StreamTextResult,
@@ -64,7 +66,8 @@ type StreamProp<
 export class HarnessStreamTextResult<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context,
-> implements StreamTextResult<TOOLS, RUNTIME_CONTEXT, never> {
+  OUTPUT extends Output.Output = never,
+> implements StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
   // Delayed promises backing every PromiseLike accessor. Each is typed
   // against the corresponding `StreamTextResult` property so the public
   // surface stays in lockstep with AI SDK's interface as it evolves.
@@ -127,6 +130,16 @@ export class HarnessStreamTextResult<
     ProviderMetadata | undefined
   >();
 
+  // ─── Structured-output surface ─────────────────────────────────────
+  // Populated only when the caller supplied an `output` specification. The
+  // complete object is parsed host-side from the final step's text at turn-end
+  // (mirroring core). The partial/element streams are derived lazily from this
+  // promise on each access, so reading them — or both partial aliases, or the
+  // same stream twice — never locks a shared instance, and a parse/validation
+  // failure surfaces as a stream error. The runtimes materialize the object
+  // only at turn-end, so those streams are terminal-only by design.
+  private readonly _output = new DelayedPromise<InferGenerateOutput<OUTPUT>>();
+
   // The driver pushes parts into this controller; consumers read via `stream`.
   private readonly fullStreamController: ReadableStreamDefaultController<
     TextStreamPart<TOOLS>
@@ -145,6 +158,7 @@ export class HarnessStreamTextResult<
   private readonly tools: TOOLS;
   private readonly runtimeContext: RUNTIME_CONTEXT;
   private readonly toolsContext: never;
+  private readonly outputSpec: OUTPUT | undefined;
   private readonly providerName: string;
   private readonly modelId: string;
 
@@ -162,10 +176,17 @@ export class HarnessStreamTextResult<
     toolsContext: never;
     harnessId: string;
     sessionId: string;
+    /**
+     * Output specification the caller passed for this turn, if any. When
+     * present, the result computes a validated `output` and the terminal
+     * partial/element streams; when absent, those surfaces throw.
+     */
+    output?: OUTPUT;
   }) {
     this.tools = options.tools;
     this.runtimeContext = options.runtimeContext;
     this.toolsContext = options.toolsContext;
+    this.outputSpec = options.output;
     this.providerName = `harness:${options.harnessId}`;
     this.modelId = options.sessionId;
 
@@ -417,6 +438,15 @@ export class HarnessStreamTextResult<
     this._response.resolve(finalStep.response);
     this._providerMetadata.resolve(this.finalProviderMetadata);
 
+    // Derive structured output concurrently with response-message
+    // construction, and do NOT block the stream's finish event / close on
+    // schema validation — core derives `output` lazily off the final step, so
+    // a large object's parse never delays `fullStream` consumers.
+    const outputSettled =
+      this.outputSpec != null
+        ? this.resolveOutput(finalStep)
+        : Promise.resolve();
+
     const responseMessages = await toResponseMessages<TOOLS>({
       content: aggregatedContent,
       tools: this.tools,
@@ -433,6 +463,37 @@ export class HarnessStreamTextResult<
     } as TextStreamPart<TOOLS>);
 
     this.fullStreamController.close();
+
+    // Keep the turn's `done` pending until `_output` has settled so the
+    // non-streaming `generate()` path observes it deterministically. Never
+    // throws: a parse/validation failure rejects `_output` instead.
+    await outputSettled;
+  }
+
+  /**
+   * Parse and validate the final step's text against the output specification
+   * and settle `_output`. Mirrors core: the runtime enforced the schema
+   * down-path; the host re-validates via the same `Output` specification. Never
+   * throws — a parse/validation failure rejects `_output` (and therefore the
+   * lazily-derived partial/element streams) with `NoObjectGeneratedError`.
+   */
+  private async resolveOutput(
+    finalStep: StepResult<TOOLS, RUNTIME_CONTEXT>,
+  ): Promise<void> {
+    if (this.outputSpec == null) return;
+    try {
+      const parsed = await this.outputSpec.parseCompleteOutput(
+        { text: finalStep.text },
+        {
+          response: finalStep.response,
+          usage: this.accumulatedUsage,
+          finishReason: this.finalFinishReason,
+        },
+      );
+      this._output.resolve(parsed as InferGenerateOutput<OUTPUT>);
+    } catch (error) {
+      this._output.reject(error);
+    }
   }
 
   /**
@@ -447,6 +508,8 @@ export class HarnessStreamTextResult<
       error,
     } as TextStreamPart<TOOLS>);
     this.fullStreamController.close();
+    // `_output` is rejected via the loop below; the lazily-derived
+    // partial/element streams observe that rejection and error on read.
     for (const dp of [
       this._content,
       this._text,
@@ -470,6 +533,7 @@ export class HarnessStreamTextResult<
       this._response,
       this._responseMessages,
       this._providerMetadata,
+      this._output,
     ]) {
       try {
         (dp as DelayedPromise<unknown>).reject(error);
@@ -551,18 +615,72 @@ export class HarnessStreamTextResult<
     return this._providerMetadata.promise;
   }
 
-  // Output-specification surfaces are not yet supported.
-  get experimental_partialOutputStream(): never {
-    throw notSupportedYet('partial output stream');
+  // Output-specification surfaces. Available only when the caller passed an
+  // `output` specification for the turn; otherwise they throw, matching the
+  // `never`-typed surface a text-only call exposes. Each access builds a fresh
+  // stream, so the two partial aliases (and repeated reads) are independent.
+  get experimental_partialOutputStream(): StreamTextResult<
+    TOOLS,
+    RUNTIME_CONTEXT,
+    OUTPUT
+  >['experimental_partialOutputStream'] {
+    return this.partialOutputStream;
   }
-  get partialOutputStream(): never {
-    throw notSupportedYet('partial output stream');
+  get partialOutputStream(): StreamTextResult<
+    TOOLS,
+    RUNTIME_CONTEXT,
+    OUTPUT
+  >['partialOutputStream'] {
+    if (this.outputSpec == null) throw noOutputSpecified();
+    // Terminal-only: emit the complete object once at turn-end, then close.
+    return this.terminalOutputStream(parsed => [parsed]) as StreamTextResult<
+      TOOLS,
+      RUNTIME_CONTEXT,
+      OUTPUT
+    >['partialOutputStream'];
   }
-  get elementStream(): never {
-    throw notSupportedYet('element stream');
+  get elementStream(): StreamTextResult<
+    TOOLS,
+    RUNTIME_CONTEXT,
+    OUTPUT
+  >['elementStream'] {
+    if (this.outputSpec == null) throw noOutputSpecified();
+    // Element streams are only valid for array outputs, mirroring core (object
+    // and choice specs return no element-stream transform).
+    if (this.outputSpec.createElementStreamTransform() == null) {
+      throw notAnElementStream();
+    }
+    return this.terminalOutputStream(parsed =>
+      Array.isArray(parsed) ? parsed : [],
+    ) as StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['elementStream'];
   }
-  get output(): never {
-    throw notSupportedYet('structured output');
+  get output(): StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['output'] {
+    if (this.outputSpec == null) throw noOutputSpecified();
+    return this._output.promise;
+  }
+
+  /*
+   * Build a fresh terminal stream from the (eventual) parsed output. Each call
+   * returns an independent stream that awaits `_output`, emits the mapped
+   * chunks once, and closes — or errors if parsing/validation failed.
+   */
+  private terminalOutputStream(
+    toChunks: (parsed: InferGenerateOutput<OUTPUT>) => unknown[],
+  ): AsyncIterableStream<unknown> {
+    const outputPromise = this._output.promise;
+    return createAsyncIterableStream(
+      new ReadableStream<unknown>({
+        async start(controller) {
+          try {
+            const parsed = await outputPromise;
+            for (const chunk of toChunks(parsed)) controller.enqueue(chunk);
+            controller.close();
+          } catch (error) {
+            controller.error(error);
+          }
+        },
+      }),
+    ) as AsyncIterableStream<unknown>;
   }
 
   async consumeStream(): Promise<void> {
@@ -717,10 +835,26 @@ function notSupportedYet(feature: string): Error {
   );
 }
 
+function noOutputSpecified(): Error {
+  return new Error(
+    'HarnessAgent: no `output` specification was provided for this turn; ' +
+      'structured-output surfaces are unavailable. Pass `output` to ' +
+      'generate()/stream() to enable them.',
+  );
+}
+
+function notAnElementStream(): Error {
+  return new Error(
+    'HarnessAgent: elementStream is only available for array output ' +
+      '(Output.array). Use output / partialOutputStream for object or choice ' +
+      'specifications.',
+  );
+}
+
 // Re-declare `AsyncIterableStream` locally to avoid pulling AI SDK's internal
-// async-iterable-stream helper. ReadableStreams already implement the
-// async-iterator contract in modern runtimes; we expose them under the same
-// nominal type AI SDK does.
+// async-iterable-stream helper into the type surface. ReadableStreams already
+// implement the async-iterator contract in modern runtimes; we expose them
+// under the same nominal type AI SDK does.
 type AsyncIterableStream<T> = ReadableStream<T> & AsyncIterable<T>;
 
 // `GenerateTextResult` is re-exported only so downstream code can keep this

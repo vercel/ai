@@ -395,6 +395,15 @@ const claudeCodeResumeStateSchema = z
 
 type ClaudeCodeBridgeCoords = z.infer<typeof claudeCodeBridgeCoordsSchema>;
 
+/**
+ * Spread helper: include `outputSchema` on a `start` message only when the turn
+ * requested one. Shared by the prompt and continue (rerun) paths so the two
+ * cannot drift.
+ */
+function withOutputSchema(outputSchema: unknown): Record<string, unknown> {
+  return outputSchema != null ? { outputSchema } : {};
+}
+
 export function createClaudeCode(
   settings: ClaudeCodeHarnessSettings = {},
 ): HarnessV1<typeof CLAUDE_CODE_BUILTIN_TOOLS> {
@@ -1307,6 +1316,7 @@ function createSession({
           ? { skills: skills.map(skill => skill.name) }
           : {}),
         ...(permissionMode ? { permissionMode } : {}),
+        ...withOutputSchema(promptOpts.outputSchema),
         ...(debug ? { debug } : {}),
         ...(pendingResumeFlag ? { continue: true } : {}),
       };
@@ -1358,6 +1368,7 @@ function createSession({
             ? { skills: skills.map(skill => skill.name) }
             : {}),
           ...(permissionMode ? { permissionMode } : {}),
+          ...withOutputSchema(continueOpts.outputSchema),
           ...(debug ? { debug } : {}),
           continue: true,
         });

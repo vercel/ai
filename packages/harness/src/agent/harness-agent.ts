@@ -4,6 +4,7 @@ import type {
   HarnessV1NetworkSandboxSession,
   HarnessV1SandboxProvider,
 } from '../v1';
+import type { JSONValue } from '@ai-sdk/provider';
 import {
   asSchema,
   generateId,
@@ -16,6 +17,7 @@ import type {
   AgentCallParameters,
   AgentStreamParameters,
   GenerateTextResult,
+  Output,
   ReasoningFileOutput,
   ReasoningOutput,
   StreamTextResult,
@@ -333,51 +335,73 @@ export class HarnessAgent<
     }
   }
 
-  async generate(
+  async generate<OUTPUT extends Output.Output = never>(
     options: AgentCallParameters<
       never,
       HarnessAllTools<THarness, TUserTools>,
       RUNTIME_CONTEXT
     > &
-      HarnessAgentCallExtensions,
+      HarnessAgentCallExtensions & {
+        /**
+         * Optional output specification for this turn (e.g.
+         * `Output.object({ schema })`). When present the runtime enforces the
+         * schema, the framework validates the result host-side, and
+         * `result.output` is typed as the schema's inferred type.
+         */
+        output?: OUTPUT;
+      },
   ): Promise<
     GenerateTextResult<
       HarnessAllTools<THarness, TUserTools>,
       RUNTIME_CONTEXT,
-      never
+      OUTPUT
     >
   > {
     const turnInput = this._resolveTurnInput(options);
     const runtimeContext = {} as RUNTIME_CONTEXT;
-    const { result, done } = this._startTurn({
+    const outputSchema = await this._resolveOutputSchema(options.output);
+    const { result, done } = this._startTurn<OUTPUT>({
       session: options.session,
       turnInput,
+      output: options.output,
+      outputSchema,
       runtimeContext,
       abortSignal: options.abortSignal,
     });
     await done;
-    return this._toGenerateResult(result);
+    return this._toGenerateResult<OUTPUT>(result, options.output);
   }
 
-  async stream(
+  async stream<OUTPUT extends Output.Output = never>(
     options: AgentStreamParameters<
       never,
       HarnessAllTools<THarness, TUserTools>,
       RUNTIME_CONTEXT
     > &
-      HarnessAgentCallExtensions,
+      HarnessAgentCallExtensions & {
+        /**
+         * Optional output specification for this turn. Same semantics as
+         * {@link generate}'s `output`; the streaming result exposes the
+         * structured-output surfaces (`output`, `partialOutputStream`,
+         * `elementStream`).
+         */
+        output?: OUTPUT;
+      },
   ): Promise<
     StreamTextResult<
       HarnessAllTools<THarness, TUserTools>,
       RUNTIME_CONTEXT,
-      never
+      OUTPUT
     >
   > {
     const turnInput = this._resolveTurnInput(options);
     const runtimeContext = {} as RUNTIME_CONTEXT;
-    const { result } = this._startTurn({
+    const outputSchema = await this._resolveOutputSchema(options.output);
+    const { result } = this._startTurn<OUTPUT>({
       session: options.session,
       turnInput,
+      output: options.output,
+      outputSchema,
       runtimeContext,
       abortSignal: options.abortSignal,
     });
@@ -389,30 +413,39 @@ export class HarnessAgent<
    * {@link generate}. Used after `createSession({ continueFrom })` to finish
    * consuming a turn that crossed a process boundary.
    */
-  async continueGenerate(options: {
+  async continueGenerate<OUTPUT extends Output.Output = never>(options: {
     session: HarnessAgentSession;
     toolApprovalContinuations?: readonly HarnessAgentToolApprovalContinuation[];
+    /**
+     * Re-pass the same output specification used to start the suspended turn.
+     * It is used host-side to validate the final result, and re-threaded to the
+     * runtime when the adapter re-drives the turn (rerun recovery).
+     */
+    output?: OUTPUT;
     abortSignal?: AbortSignal;
   }): Promise<
     GenerateTextResult<
       HarnessAllTools<THarness, TUserTools>,
       RUNTIME_CONTEXT,
-      never
+      OUTPUT
     >
   > {
     const runtimeContext = {} as RUNTIME_CONTEXT;
+    const outputSchema = await this._resolveOutputSchema(options.output);
 
-    const { result, done } = this._startTurn({
+    const { result, done } = this._startTurn<OUTPUT>({
       session: options.session,
       turnInput: {
         mode: 'continue',
         toolApprovalContinuations: options.toolApprovalContinuations ?? [],
       },
+      output: options.output,
+      outputSchema,
       runtimeContext,
       abortSignal: options.abortSignal,
     });
     await done;
-    return this._toGenerateResult(result);
+    return this._toGenerateResult<OUTPUT>(result, options.output);
   }
 
   /**
@@ -423,25 +456,33 @@ export class HarnessAgent<
    * `doContinueTurn`; what it can guarantee (lossless attach vs. lossy rerun)
    * follows from how the adapter resumed the session.
    */
-  async continueStream(options: {
+  async continueStream<OUTPUT extends Output.Output = never>(options: {
     session: HarnessAgentSession;
     toolApprovalContinuations?: readonly HarnessAgentToolApprovalContinuation[];
+    /**
+     * Re-pass the same output specification used to start the suspended turn.
+     * Same semantics as {@link continueGenerate}'s `output`.
+     */
+    output?: OUTPUT;
     abortSignal?: AbortSignal;
   }): Promise<
     StreamTextResult<
       HarnessAllTools<THarness, TUserTools>,
       RUNTIME_CONTEXT,
-      never
+      OUTPUT
     >
   > {
     const runtimeContext = {} as RUNTIME_CONTEXT;
+    const outputSchema = await this._resolveOutputSchema(options.output);
 
-    const { result } = this._startTurn({
+    const { result } = this._startTurn<OUTPUT>({
       session: options.session,
       turnInput: {
         mode: 'continue',
         toolApprovalContinuations: options.toolApprovalContinuations ?? [],
       },
+      output: options.output,
+      outputSchema,
       runtimeContext,
       abortSignal: options.abortSignal,
     });
@@ -450,7 +491,7 @@ export class HarnessAgent<
 
   // ─── Internals ──────────────────────────────────────────────────────
 
-  private _startTurn(input: {
+  private _startTurn<OUTPUT extends Output.Output = never>(input: {
     session: HarnessAgentSession;
     turnInput:
       | { mode: 'prompt'; prompt: HarnessAgentPrompt }
@@ -458,24 +499,29 @@ export class HarnessAgent<
           mode: 'continue';
           toolApprovalContinuations: readonly HarnessAgentToolApprovalContinuation[];
         };
+    output: OUTPUT | undefined;
+    outputSchema: JSONValue | undefined;
     runtimeContext: RUNTIME_CONTEXT;
     abortSignal: AbortSignal | undefined;
   }): {
     result: StreamTextResult<
       HarnessAllTools<THarness, TUserTools>,
       RUNTIME_CONTEXT,
-      never
+      OUTPUT
     >;
     done: Promise<void>;
   } {
     if (input.turnInput.mode === 'continue') {
       return input.session.continueTurn<
         HarnessAllTools<THarness, TUserTools>,
-        RUNTIME_CONTEXT
+        RUNTIME_CONTEXT,
+        OUTPUT
       >({
         instructions: this.settings.instructions,
         tools: this.tools,
         toolSpecs: this._toToolSpecs(),
+        output: input.output,
+        outputSchema: input.outputSchema,
         runtimeContext: input.runtimeContext,
         abortSignal: input.abortSignal,
         telemetry: this.settings.telemetry,
@@ -485,16 +531,37 @@ export class HarnessAgent<
 
     return input.session.promptTurn<
       HarnessAllTools<THarness, TUserTools>,
-      RUNTIME_CONTEXT
+      RUNTIME_CONTEXT,
+      OUTPUT
     >({
       prompt: input.turnInput.prompt,
       instructions: this.settings.instructions,
       tools: this.tools,
       toolSpecs: this._toToolSpecs(),
+      output: input.output,
+      outputSchema: input.outputSchema,
       runtimeContext: input.runtimeContext,
       abortSignal: input.abortSignal,
       telemetry: this.settings.telemetry,
     });
+  }
+
+  /*
+   * Resolve the bare JSON Schema to send down to the runtime from an `output`
+   * specification. Mirrors how core derives the wire schema: the spec's
+   * `responseFormat` already produces the wrapped schema for `array`/`choice`;
+   * only the bare `schema` travels (the runtimes accept neither `name` nor
+   * `description`).
+   */
+  private async _resolveOutputSchema(
+    output: Output.Output | undefined,
+  ): Promise<JSONValue | undefined> {
+    if (output == null) return undefined;
+    const responseFormat = await output.responseFormat;
+    if (responseFormat?.type === 'json') {
+      return responseFormat.schema as JSONValue | undefined;
+    }
+    return undefined;
   }
 
   private async _acquireSandbox(input: {
@@ -608,17 +675,18 @@ export class HarnessAgent<
     return specs;
   }
 
-  private async _toGenerateResult(
+  private async _toGenerateResult<OUTPUT extends Output.Output = never>(
     streamResult: StreamTextResult<
       HarnessAllTools<THarness, TUserTools>,
       RUNTIME_CONTEXT,
-      never
+      OUTPUT
     >,
+    output: OUTPUT | undefined,
   ): Promise<
     GenerateTextResult<
       HarnessAllTools<THarness, TUserTools>,
       RUNTIME_CONTEXT,
-      never
+      OUTPUT
     >
   > {
     // The stream is already drained by the time generate() calls this helper
@@ -630,10 +698,22 @@ export class HarnessAgent<
       streamResult.responseMessages,
     ]);
 
+    // When an output specification is present, read the validated object off
+    // the (already-settled) streaming result. A non-conformant final text
+    // rejects here with `NoObjectGeneratedError`, surfacing from `generate()`.
+    const outputValue = (
+      output != null ? await streamResult.output : undefined
+    ) as GenerateTextResult<
+      HarnessAllTools<THarness, TUserTools>,
+      RUNTIME_CONTEXT,
+      OUTPUT
+    >['output'];
+
     return new HarnessGenerateTextResult<
       HarnessAllTools<THarness, TUserTools>,
-      RUNTIME_CONTEXT
-    >({ steps, usage, responseMessages });
+      RUNTIME_CONTEXT,
+      OUTPUT
+    >({ steps, usage, responseMessages, output: outputValue });
   }
 }
 
@@ -648,28 +728,31 @@ export class HarnessAgent<
 class HarnessGenerateTextResult<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context,
-> implements GenerateTextResult<TOOLS, RUNTIME_CONTEXT, never> {
-  readonly steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, never>['steps'];
-  readonly usage: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, never>['usage'];
+  OUTPUT extends Output.Output = never,
+> implements GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
+  readonly steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['steps'];
+  readonly usage: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['usage'];
   readonly responseMessages: GenerateTextResult<
     TOOLS,
     RUNTIME_CONTEXT,
-    never
+    OUTPUT
   >['responseMessages'];
-  readonly output = undefined as never;
+  readonly output: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['output'];
 
   constructor(options: {
-    steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, never>['steps'];
-    usage: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, never>['usage'];
+    steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['steps'];
+    usage: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['usage'];
     responseMessages: GenerateTextResult<
       TOOLS,
       RUNTIME_CONTEXT,
-      never
+      OUTPUT
     >['responseMessages'];
+    output: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['output'];
   }) {
     this.steps = options.steps;
     this.usage = options.usage;
     this.responseMessages = options.responseMessages;
+    this.output = options.output;
   }
 
   get finalStep() {

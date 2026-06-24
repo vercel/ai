@@ -344,6 +344,17 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       ...(start.model ? { model: start.model } : {}),
       ...(start.maxTurns !== undefined ? { maxTurns: start.maxTurns } : {}),
       ...(skillsOption ? { skills: skillsOption } : {}),
+      // Native schema enforcement. The runtime returns the conformant object on
+      // the terminal `result` message's `structured_output` field, which the
+      // host normalizes into the final step's assistant text.
+      ...(start.outputSchema != null
+        ? {
+            outputFormat: {
+              type: 'json_schema' as const,
+              schema: start.outputSchema as Record<string, unknown>,
+            },
+          }
+        : {}),
       ...(toThinkingConfig(start.thinking)
         ? { thinking: toThinkingConfig(start.thinking) }
         : {}),
@@ -387,6 +398,29 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     number,
     { id: string; kind: 'text' | 'thinking' }
   >();
+
+  /*
+   * Structured-output turns: when a schema is enforced the authoritative result
+   * is the runtime's `structured_output`, not the streamed assistant prose. We
+   * suppress streamed text so the final step's text is the JSON alone (reasoning
+   * still flows — the host never folds it into step text), then emit the
+   * `structured_output` as a single text part at turn-end. If the runtime
+   * reports success with no `structured_output`, no JSON text is emitted, so the
+   * host's `parseCompleteOutput` fails with `NoObjectGeneratedError`.
+   */
+  const enforceOutput = start.outputSchema != null;
+  const streamEmit: Emit = enforceOutput
+    ? part => {
+        if (
+          part.type === 'text-start' ||
+          part.type === 'text-delta' ||
+          part.type === 'text-end'
+        ) {
+          return;
+        }
+        emit(part);
+      }
+    : emit;
 
   const emitTerminalError = (message: string | undefined): void => {
     const normalized = message?.trim();
@@ -473,7 +507,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       }
 
       if (type === 'stream_event') {
-        handleStreamEvent(msg.event, partialBlocks, emit);
+        handleStreamEvent(msg.event, partialBlocks, streamEmit);
         continue;
       }
 
@@ -556,6 +590,21 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
             emitTerminalError(observedTerminalError);
             continue;
           }
+          // Normalize the authoritative structured output (when a schema was
+          // enforced) into the final step's assistant text. When the runtime
+          // reports success without a `structured_output`, nothing is emitted
+          // and the empty/non-JSON final text drives the host's
+          // `NoObjectGeneratedError`.
+          if (enforceOutput && msg.structured_output !== undefined) {
+            const id = randomUUID();
+            emit({ type: 'text-start', id });
+            emit({
+              type: 'text-delta',
+              id,
+              delta: JSON.stringify(msg.structured_output),
+            });
+            emit({ type: 'text-end', id });
+          }
           const usage = msg.usage ?? msg.message?.usage;
           const harnessUsage = mapUsage(usage);
           if (harnessUsage) stepUsage = harnessUsage;
@@ -576,10 +625,14 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
           break;
         } else {
           emitTerminalError(
-            (Array.isArray(msg.errors) ? msg.errors.join('\n') : undefined) ||
-              observedTerminalError ||
-              msg.result ||
-              'Unknown error',
+            msg.subtype === 'error_max_structured_output_retries'
+              ? 'Claude Code reached the maximum number of structured-output retries without producing a schema-conformant result.'
+              : (Array.isArray(msg.errors)
+                  ? msg.errors.join('\n')
+                  : undefined) ||
+                  observedTerminalError ||
+                  msg.result ||
+                  'Unknown error',
           );
         }
         continue;
@@ -632,6 +685,10 @@ type ClaudeMessage = {
   errors?: ReadonlyArray<string>;
   usage?: Record<string, unknown>;
   total_cost_usd?: number;
+  // Present on a terminal `result` message when the query was started with
+  // `outputFormat: { type: 'json_schema' }`: the parsed, schema-conformant
+  // object the runtime produced.
+  structured_output?: unknown;
 };
 
 function handleStreamEvent(

@@ -15,18 +15,19 @@ import { mkdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { Type } from 'typebox';
-import type {
-  HarnessV1ContinueTurnOptions,
-  HarnessV1ContinueTurnState,
-  HarnessV1PromptControl,
-  HarnessV1PromptTurnOptions,
-  HarnessV1NetworkSandboxSession,
-  HarnessV1PermissionMode,
-  HarnessV1ResumeSessionState,
-  HarnessV1Session,
-  HarnessV1Skill,
-  HarnessV1StreamPart,
-  HarnessV1ToolSpec,
+import {
+  HarnessCapabilityUnsupportedError,
+  type HarnessV1ContinueTurnOptions,
+  type HarnessV1ContinueTurnState,
+  type HarnessV1PromptControl,
+  type HarnessV1PromptTurnOptions,
+  type HarnessV1NetworkSandboxSession,
+  type HarnessV1PermissionMode,
+  type HarnessV1ResumeSessionState,
+  type HarnessV1Session,
+  type HarnessV1Skill,
+  type HarnessV1StreamPart,
+  type HarnessV1ToolSpec,
 } from '@ai-sdk/harness';
 import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
 import { resolvePiEnv, type PiAuthOptions } from './pi-auth';
@@ -55,6 +56,24 @@ import { PiWorkspaceVfs } from './pi-workspace-vfs';
 import { syncHostWorkspaceFromSandbox } from './pi-workspace-mirror';
 
 const HARNESS_ID = 'pi';
+
+/*
+ * Pi's public SDK exposes no native output-schema enforcement, and this harness
+ * does not fall back to best-effort prompt-injected structured output. Reject an
+ * `outputSchema` request up front — before the turn drives the runtime — so the
+ * caller fails fast rather than receiving an unvalidated best-effort object.
+ *
+ * @internal exported for unit testing the capability rejection.
+ */
+export function rejectOutputSchema(outputSchema: unknown): void {
+  if (outputSchema != null) {
+    throw new HarnessCapabilityUnsupportedError({
+      message:
+        "Harness 'pi' does not support structured output (outputSchema); its runtime has no native schema enforcement.",
+      harnessId: HARNESS_ID,
+    });
+  }
+}
 
 /*
  * Pi runs in this Node process, not behind an attachable in-sandbox bridge.
@@ -774,6 +793,7 @@ export async function createPiSession(
     doPromptTurn: async (
       promptOpts: HarnessV1PromptTurnOptions,
     ): Promise<HarnessV1PromptControl> => {
+      rejectOutputSchema(promptOpts.outputSchema);
       let text = extractUserText(promptOpts.prompt);
       if (!instructionsApplied && promptOpts.instructions) {
         text = frameInstructions(promptOpts.instructions, text);
@@ -791,6 +811,7 @@ export async function createPiSession(
     doContinueTurn: async (
       continueOpts: HarnessV1ContinueTurnOptions,
     ): Promise<HarnessV1PromptControl> => {
+      rejectOutputSchema(continueOpts.outputSchema);
       if (activeTurn != null) {
         currentEmit = continueOpts.emit;
         return createPromptControl({

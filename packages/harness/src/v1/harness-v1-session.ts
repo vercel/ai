@@ -1,3 +1,4 @@
+import type { JSONValue } from '@ai-sdk/provider';
 import type { HarnessV1NetworkSandboxSession } from './harness-v1-network-sandbox-session';
 import type { HarnessV1Observability } from './harness-v1-observability';
 import type { HarnessV1PermissionMode } from './harness-v1-permission-mode';
@@ -112,6 +113,17 @@ export type HarnessV1PromptTurnOptions = {
   readonly instructions?: string;
 
   /**
+   * Bare JSON Schema the underlying runtime should enforce on its final
+   * output for this turn. Supplied by the framework when the caller passes an
+   * `output` specification to `HarnessAgent.generate`/`stream`; it is the
+   * `schema` of the specification's resolved `responseFormat` (the wrapped
+   * schema for `array`/`choice`), with `name`/`description` dropped because the
+   * runtimes do not accept them. Adapters whose runtime cannot enforce a schema
+   * throw `HarnessCapabilityUnsupportedError`.
+   */
+  readonly outputSchema?: JSONValue;
+
+  /**
    * Signal that aborts the in-flight turn. The adapter must cancel any
    * underlying work and resolve `done` (with an error if appropriate).
    */
@@ -140,6 +152,16 @@ export type HarnessV1ContinueTurnOptions = {
    * may ignore them; an adapter that re-drives the turn (rerun) needs them.
    */
   readonly tools?: ReadonlyArray<HarnessV1ToolSpec>;
+
+  /**
+   * Bare JSON Schema the runtime should enforce on the continued turn's
+   * output. Same value and shape as `doPromptTurn`'s `outputSchema`. Used only
+   * by adapters that re-drive the turn (rerun recovery), where the runtime is
+   * started from scratch and must be re-given the schema; adapters that attach
+   * to a still-live turn (replay) may ignore it. Host-side validation of the
+   * final result is driven by the `output` specification independently.
+   */
+  readonly outputSchema?: JSONValue;
 
   /**
    * Signal that aborts the continued turn. The adapter must cancel any
