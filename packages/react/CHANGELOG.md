@@ -1,5 +1,11 @@
 # @ai-sdk/react
 
+## 4.0.0-beta.192
+
+### Patch Changes
+
+- ai@7.0.0-beta.187
+
 ## 4.0.0-beta.191
 
 ### Patch Changes
