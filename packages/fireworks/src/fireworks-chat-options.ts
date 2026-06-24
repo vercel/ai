@@ -20,7 +20,6 @@ export type FireworksChatModelId =
   | 'accounts/fireworks/models/yi-large'
   | 'accounts/fireworks/models/kimi-k2-instruct'
   | 'accounts/fireworks/models/kimi-k2-thinking'
-  | 'accounts/fireworks/models/kimi-k2p5'
   | 'accounts/fireworks/models/kimi-k2p6'
   | 'accounts/fireworks/models/minimax-m2'
   | (string & {});
