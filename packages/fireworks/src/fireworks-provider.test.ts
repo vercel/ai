@@ -168,6 +168,52 @@ describe('FireworksProvider', () => {
       });
     });
 
+    it('should map promptCacheKey to prompt_cache_key', () => {
+      const provider = createFireworks();
+      provider.chatModel('test-model');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const config = constructorCall[1];
+      const transformRequestBody = config.transformRequestBody;
+
+      const result = transformRequestBody({
+        model: 'test-model',
+        messages: [],
+        promptCacheKey: 'session-123',
+      });
+
+      expect(result).toEqual({
+        model: 'test-model',
+        messages: [],
+        prompt_cache_key: 'session-123',
+      });
+      expect(result).not.toHaveProperty('promptCacheKey');
+    });
+
+    it('should prefer promptCacheKey over raw prompt_cache_key', () => {
+      const provider = createFireworks();
+      provider.chatModel('test-model');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const config = constructorCall[1];
+      const transformRequestBody = config.transformRequestBody;
+
+      const result = transformRequestBody({
+        model: 'test-model',
+        messages: [],
+        prompt_cache_key: 'raw-session',
+        promptCacheKey: 'typed-session',
+      });
+
+      expect(result).toEqual({
+        model: 'test-model',
+        messages: [],
+        prompt_cache_key: 'typed-session',
+      });
+    });
+
     it('should handle request without thinking options', () => {
       const provider = createFireworks();
       provider.chatModel('test-model');

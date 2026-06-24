@@ -141,11 +141,20 @@ export function createFireworks(
           | { type?: string; budgetTokens?: number }
           | undefined;
         const reasoningHistory = args.reasoningHistory as string | undefined;
+        const promptCacheKey = args.promptCacheKey as string | undefined;
 
-        const { thinking: _, reasoningHistory: __, ...rest } = args;
+        const {
+          thinking: _,
+          reasoningHistory: __,
+          promptCacheKey: ___,
+          ...rest
+        } = args;
 
         return {
           ...rest,
+          ...(promptCacheKey !== undefined && {
+            prompt_cache_key: promptCacheKey,
+          }),
           ...(thinking && {
             thinking: {
               type: thinking.type,
