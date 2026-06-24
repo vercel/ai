@@ -1,5 +1,6 @@
 import { expectTypeOf, describe, it } from 'vitest';
 import { z } from 'zod';
+import type { Experimental_SandboxSession as SandboxSession } from 'ai';
 import { WorkflowAgent } from './workflow-agent.js';
 
 const model = 'anthropic/claude-sonnet-4-6';
@@ -17,6 +18,18 @@ describe('WorkflowAgent types', () => {
       },
       onEnd: ({ runtimeContext }) => {
         expectTypeOf(runtimeContext).toMatchObjectType<{ userId: string }>();
+      },
+    });
+  });
+
+  it('exposes experimental_sandbox in prepareStep', () => {
+    new WorkflowAgent({
+      model,
+      prepareStep: ({ experimental_sandbox }) => {
+        expectTypeOf(experimental_sandbox).toEqualTypeOf<
+          SandboxSession | undefined
+        >();
+        return { experimental_sandbox };
       },
     });
   });

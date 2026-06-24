@@ -591,7 +591,9 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
                 {
                   "abortSignal": undefined,
                   "frequencyPenalty": undefined,
-                  "headers": undefined,
+                  "headers": {
+                    "user-agent": "ai-sdk-agent/workflow",
+                  },
                   "includeRawChunks": false,
                   "maxOutputTokens": 500,
                   "presencePenalty": undefined,
@@ -762,7 +764,9 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
                 {
                   "abortSignal": undefined,
                   "frequencyPenalty": undefined,
-                  "headers": undefined,
+                  "headers": {
+                    "user-agent": "ai-sdk-agent/workflow",
+                  },
                   "includeRawChunks": false,
                   "maxOutputTokens": undefined,
                   "presencePenalty": undefined,

@@ -152,6 +152,9 @@ export function runPrompt<
       ]),
     );
     const settledApprovalToolCallIds = new Set<string>();
+    let finalFinish:
+      | Extract<HarnessV1StreamPart, { type: 'finish' }>
+      | undefined;
 
     // Accumulate the model's output content per step so telemetry can record
     // `gen_ai.output.messages` and reporters can log what was actually said.
@@ -495,6 +498,7 @@ export function runPrompt<
         }
 
         if (value.type === 'finish') {
+          finalFinish = value;
           telemetry.end({
             finishReason: value.finishReason,
             usage: value.totalUsage,
@@ -636,7 +640,15 @@ export function runPrompt<
         }
       }
       input.onTurnFinished?.();
-      await result.finish();
+      await result.finish(
+        finalFinish
+          ? {
+              finishReason: finalFinish.finishReason,
+              totalUsage: finalFinish.totalUsage,
+              providerMetadata: finalFinish.harnessMetadata,
+            }
+          : undefined,
+      );
     } catch (err) {
       telemetry.error(err);
       result.fail(err);
