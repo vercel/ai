@@ -1,5 +1,11 @@
 # @ai-sdk/workflow
 
+## 1.0.0-beta.107
+
+### Patch Changes
+
+- ai@7.0.0-beta.187
+
 ## 1.0.0-beta.106
 
 ### Patch Changes
