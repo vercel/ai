@@ -13,6 +13,7 @@
     "@ai-sdk/harness-claude-code": "workspace:*",
     "@ai-sdk/harness-codex": "workspace:*",
     "@ai-sdk/harness-pi": "workspace:*",
+    "@ai-sdk/workflow-harness": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
     "@ai-sdk/react": "workspace:*",
     "@ai-sdk/sandbox-vercel": "workspace:*",
@@ -26,6 +27,7 @@
     "streamdown": "^1.6.11",
     "tailwind-merge": "^3.6.0",
     "tailwindcss-animate": "^1.0.7",
+    "workflow": "4.2.1",
     "zod": "3.25.76"
   },
   "devDependencies": {

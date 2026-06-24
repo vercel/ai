@@ -1,5 +1,28 @@
 # @ai-sdk/workflow
 
+## 1.0.0-beta.105
+
+### Patch Changes
+
+- 75763b0: agents: tag outgoing requests with an ai-sdk-agent user-agent segment for usage attribution (tool-loop, workflow)
+- Updated dependencies [75763b0]
+  - ai@7.0.0-beta.185
+
+## 1.0.0-beta.104
+
+### Patch Changes
+
+- 43543dc: Add `experimental_sandbox` support to `WorkflowAgent`. The sandbox is passed to tool execution, configurable on the constructor or per stream, and available to `prepareStep` for per-step overrides.
+
+## 1.0.0-beta.103
+
+### Patch Changes
+
+- Updated dependencies [0416e3e]
+  - @ai-sdk/provider@4.0.0-beta.20
+  - ai@7.0.0-beta.184
+  - @ai-sdk/provider-utils@5.0.0-beta.50
+
 ## 1.0.0-beta.102
 
 ### Patch Changes

@@ -53,7 +53,7 @@ This will cancel the stream from the client side to the server.
   both.
 </Note>
 
-```tsx file="app/page.tsx" highlight="9,18-20"
+```tsx file="app/page.tsx" highlight="6,11-14"
 'use client';
 
 import { useCompletion } from '@ai-sdk/react';
@@ -124,7 +124,7 @@ This is particularly useful for:
 
 You can also handle abort events directly in the stream using the `abort` stream part:
 
-```tsx highlight="8-12"
+```tsx highlight="6-9"
 for await (const part of result.stream) {
   switch (part.type) {
     case 'text-delta':
