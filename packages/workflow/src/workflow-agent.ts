@@ -8,6 +8,7 @@ import type {
 import {
   getErrorMessage,
   validateTypes,
+  withUserAgentSuffix,
   type Context,
   type HasRequiredKey,
   type InferToolSetContext,
@@ -1747,6 +1748,14 @@ export class WorkflowAgent<
         providerOptions: options.providerOptions,
       }),
     };
+
+    // tag the outgoing request so usage can be attributed to WorkflowAgent.
+    // chains with the `ai/<version>` and `ai-sdk/<provider>/<version>` suffixes
+    // added downstream by the model run and the provider.
+    mergedGenerationSettings.headers = withUserAgentSuffix(
+      mergedGenerationSettings.headers ?? {},
+      'ai-sdk-agent/workflow',
+    );
 
     // Merge constructor + stream callbacks (constructor first, then stream)
     const mergedOnStepEnd = mergeCallbacks(

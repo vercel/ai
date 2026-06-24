@@ -78,6 +78,39 @@ describe('WorkflowAgent', () => {
     });
   });
 
+  describe('user-agent', () => {
+    async function runStream(headers?: Record<string, string>) {
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      vi.mocked(streamTextIterator).mockReturnValue({
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      } as unknown as MockIterator);
+
+      const agent = new WorkflowAgent({ model: createMockModel() });
+      await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        writable: new WritableStream({ write: vi.fn(), close: vi.fn() }),
+        ...(headers ? { headers } : {}),
+      });
+
+      const call = vi.mocked(streamTextIterator).mock.calls.at(-1)?.[0];
+      return (call?.generationSettings?.headers ?? {}) as Record<
+        string,
+        string
+      >;
+    }
+
+    it('should tag the user-agent with the agent identifier', async () => {
+      const headers = await runStream();
+      expect(headers['user-agent']).toContain('ai-sdk-agent/workflow');
+    });
+
+    it('should preserve a caller-provided user-agent', async () => {
+      const headers = await runStream({ 'user-agent': 'my-app/1.0' });
+      expect(headers['user-agent']).toContain('my-app/1.0');
+      expect(headers['user-agent']).toContain('ai-sdk-agent/workflow');
+    });
+  });
+
   describe('tool execution error handling', () => {
     it('should convert FatalError to tool error result', async () => {
       const errorMessage = 'This is a fatal error';
