@@ -1,5 +1,13 @@
 # @ai-sdk/workflow
 
+## 1.0.0-beta.105
+
+### Patch Changes
+
+- 75763b0: agents: tag outgoing requests with an ai-sdk-agent user-agent segment for usage attribution (tool-loop, workflow)
+- Updated dependencies [75763b0]
+  - ai@7.0.0-beta.185
+
 ## 1.0.0-beta.104
 
 ### Patch Changes
