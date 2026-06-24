@@ -203,7 +203,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   const config = {
     version: 'v2' as const,
     configurable: { thread_id: 'bridge-session' },
-    recursionLimit: 50,
+    recursionLimit: start.recursionLimit ?? 100,
     signal: turn.abortSignal,
   };
 

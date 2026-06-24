@@ -15,6 +15,8 @@ export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   instructions: z.string().optional(),
   // In-backend skills source dirs ($HOME and <workDir>), passed to createDeepAgent({ skills }).
   skillsPaths: z.array(z.string()).optional(),
+  // Max LangGraph super-steps per turn (streamEvents recursionLimit).
+  recursionLimit: z.number().optional(),
 });
 
 export type StartMessage = z.infer<typeof startMessageSchema>;

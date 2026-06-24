@@ -54,6 +54,8 @@ export type DeepAgentsHarnessSettings = {
   readonly port?: number;
   /** Maximum milliseconds to wait for the bridge to advertise its port. Defaults to 120000. */
   readonly startupTimeoutMs?: number;
+  /** Max LangGraph super-steps per turn before it errors. Defaults to 100; raise for long multi-step tasks. */
+  readonly recursionLimit?: number;
 };
 
 // Live bridge coordinates returned by doDetach/doSuspendTurn so a later process can reattach.
@@ -220,6 +222,7 @@ export function createDeepAgents(
             isResume: true,
             attached: true,
             permissionMode,
+            recursionLimit: settings.recursionLimit,
           });
         } catch {
           // Bridge no longer reachable — recover by respawning below.
@@ -312,6 +315,7 @@ export function createDeepAgents(
         attached: false,
         skillsPaths,
         permissionMode,
+        recursionLimit: settings.recursionLimit,
       });
     },
   };
@@ -477,6 +481,7 @@ function createSession({
   attached,
   skillsPaths,
   permissionMode,
+  recursionLimit,
 }: {
   sessionId: string;
   channel: DeepAgentsChannel;
@@ -493,6 +498,7 @@ function createSession({
   attached: boolean;
   skillsPaths?: string[];
   permissionMode?: HarnessV1PermissionMode;
+  recursionLimit?: number;
 }): HarnessV1Session {
   let stopped = false;
   let instructionsApplied = attached;
@@ -643,6 +649,7 @@ function createSession({
         ...(model ? { model } : {}),
         ...(skillsPaths?.length ? { skillsPaths } : {}),
         ...(permissionMode ? { permissionMode } : {}),
+        ...(recursionLimit != null ? { recursionLimit } : {}),
       });
 
       return control;
