@@ -20,11 +20,17 @@ export type FireworksChatModelId =
   | 'accounts/fireworks/models/yi-large'
   | 'accounts/fireworks/models/kimi-k2-instruct'
   | 'accounts/fireworks/models/kimi-k2-thinking'
-  | 'accounts/fireworks/models/kimi-k2p5'
+  | 'accounts/fireworks/models/kimi-k2p6'
   | 'accounts/fireworks/models/minimax-m2'
   | (string & {});
 
 export const fireworksLanguageModelOptions = z.object({
+  /**
+   * A stable key for routing requests with shared prompt prefixes to the same
+   * prompt cache.
+   */
+  promptCacheKey: z.string().optional(),
+
   thinking: z
     .object({
       type: z.enum(['enabled', 'disabled']).optional(),
