@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 
-// DeepAgents' builtin tool set (read/write/edit/bash/grep/glob/ls/task/write_todos)
+// Deep Agents's builtin tool set (read/write/edit/bash/grep/glob/ls/task/write_todos)
 // merges with user tools; TypeScript narrows `toolName`/`input` per tool across both surfaces.
 run(async () => {
   const sandbox = createVercelSandbox({

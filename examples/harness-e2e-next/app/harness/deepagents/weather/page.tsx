@@ -2,7 +2,7 @@ import ChatIdProvider from '@/components/chat-id-provider';
 import WeatherDeepAgentsHarnessChat from '@/components/weather-deepagents-harness-chat';
 
 export const metadata = {
-  title: 'DeepAgents — Weather',
+  title: 'Deep Agents — Weather',
 };
 
 const STORAGE_KEY = 'harness-deepagents-weather-chat-id';

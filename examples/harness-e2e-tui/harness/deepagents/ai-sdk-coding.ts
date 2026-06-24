@@ -4,5 +4,5 @@ import { runTUI } from '../../lib/run-tui';
 await runTUI({
   agent: aiSdkCodingDeepAgentsHarnessAgent,
   entrypointUrl: import.meta.url,
-  title: 'DeepAgents — AI SDK Coding',
+  title: 'Deep Agents — AI SDK Coding',
 });

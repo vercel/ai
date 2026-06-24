@@ -4,5 +4,5 @@ import { runTUI } from '../../lib/run-tui';
 await runTUI({
   agent: weatherApprovalDeepAgentsHarnessAgent,
   entrypointUrl: import.meta.url,
-  title: 'DeepAgents — Weather Approval',
+  title: 'Deep Agents — Weather Approval',
 });

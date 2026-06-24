@@ -27,7 +27,7 @@ export default function DeepAgentsHarnessChat({
 
   return (
     <div className="flex flex-col pt-12 pb-24 mx-auto w-full max-w-5xl stretch">
-      <h1 className="mb-2 text-xl font-bold">DeepAgents — {exampleLabel}</h1>
+      <h1 className="mb-2 text-xl font-bold">Deep Agents — {exampleLabel}</h1>
       <p className="mb-4 text-xs text-gray-500">
         chat id: <code>{chatId}</code>
         <button type="button" className="ml-2 underline" onClick={resetChatId}>

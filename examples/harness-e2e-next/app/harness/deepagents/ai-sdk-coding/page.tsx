@@ -2,7 +2,7 @@ import ChatIdProvider from '@/components/chat-id-provider';
 import DeepAgentsHarnessChat from '@/components/deepagents-harness-chat';
 
 export const metadata = {
-  title: 'DeepAgents — AI SDK Coding',
+  title: 'Deep Agents — AI SDK Coding',
 };
 
 const STORAGE_KEY = 'harness-deepagents-ai-sdk-coding-chat-id';
