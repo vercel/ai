@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 4.0.0-beta.69
+
+### Patch Changes
+
+- 19c5ee2: fix(anthropic): reorder assistant content b/w client and provider tool use
+
 ## 4.0.0-beta.68
 
 ### Patch Changes

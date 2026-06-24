@@ -1,5 +1,11 @@
 # @ai-sdk/workflow
 
+## 1.0.0-beta.104
+
+### Patch Changes
+
+- 43543dc: Add `experimental_sandbox` support to `WorkflowAgent`. The sandbox is passed to tool execution, configurable on the constructor or per stream, and available to `prepareStep` for per-step overrides.
+
 ## 1.0.0-beta.103
 
 ### Patch Changes
