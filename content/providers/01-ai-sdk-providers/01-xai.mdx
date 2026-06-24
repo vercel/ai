@@ -121,9 +121,16 @@ await generateText({
 
 The following optional provider options are available for xAI chat models:
 
-- **reasoningEffort** _'low' | 'high'_
+- **reasoningEffort** _'none' | 'low' | 'medium' | 'high'_
 
-  Reasoning effort for reasoning models.
+  Reasoning effort for reasoning models. `'none'` disables reasoning entirely.
+
+<Note>
+  Not every Grok model accepts every reasoning effort, for example
+  `grok-build-0.1` does not support reasoning effort. See xAI's [reasoning
+  docs](https://docs.x.ai/docs/guides/reasoning) for the values each model
+  accepts.
+</Note>
 
 - **logprobs** _boolean_
 
@@ -454,9 +461,16 @@ const result = await generateText({
 
 The following provider options are available:
 
-- **reasoningEffort** _'low' | 'medium' | 'high'_
+- **reasoningEffort** _'none' | 'low' | 'medium' | 'high'_
 
-  Control the reasoning effort for the model. Higher effort may produce more thorough results at the cost of increased latency and token usage.
+  Control the reasoning effort for the model. Higher effort may produce more thorough results at the cost of increased latency and token usage. `'none'` disables reasoning entirely.
+
+<Note>
+  Not every Grok model accepts every reasoning effort, for example
+  `grok-build-0.1` does not support reasoning effort. See xAI's [reasoning
+  docs](https://docs.x.ai/docs/guides/reasoning) for the values each model
+  accepts.
+</Note>
 
 - **logprobs** _boolean_
 

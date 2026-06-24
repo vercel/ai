@@ -1230,6 +1230,30 @@ describe('XaiChatLanguageModel', () => {
       `);
     });
 
+    it('should pass reasoning_effort none parameter', async () => {
+      prepareJsonFixtureResponse('xai-text');
+
+      await reasoningModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          xai: { reasoningEffort: 'none' },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "grok-3-mini",
+          "reasoning_effort": "none",
+        }
+      `);
+    });
+
     it('should extract reasoning content', async () => {
       prepareJsonFixtureResponse('xai-text');
 

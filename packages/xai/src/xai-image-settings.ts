@@ -1,4 +1,4 @@
 export type XaiImageModelId =
   | 'grok-imagine-image'
-  | 'grok-imagine-image-pro'
+  | 'grok-imagine-image-quality'
   | (string & {});
