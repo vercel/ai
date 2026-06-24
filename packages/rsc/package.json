@@ -63,7 +63,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-server-dom-webpack": "18.3.0-canary-eb33bd747-20240312",
-    "tsup": "^7.2.0",
+    "tsup": "^8.3.5",
     "typescript": "5.8.3",
     "zod": "3.25.76"
   },
