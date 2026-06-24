@@ -77,6 +77,17 @@ const defaultSettings = () =>
     onError: () => {},
   }) as const;
 
+type ObjectPrototypeState = {
+  providerMetadata?: unknown;
+  text?: unknown;
+};
+
+function clearObjectPrototypeState() {
+  const objectPrototype = Object.prototype as ObjectPrototypeState;
+  delete objectPrototype.providerMetadata;
+  delete objectPrototype.text;
+}
+
 const testUsage: LanguageModelV4Usage = {
   inputTokens: {
     total: 3,
@@ -1800,7 +1811,7 @@ describe('streamText', () => {
         experimental_refineToolInput: {
           tool1: input => ({ value: input.value.trim() }),
         },
-        experimental_onLanguageModelCallEnd: event => {
+        onLanguageModelCallEnd: event => {
           modelCallEndEvents.push(event);
         },
         onToolExecutionStart: event => {
@@ -2374,6 +2385,86 @@ describe('streamText', () => {
       ]);
     });
 
+    it('should not read Object.prototype for missing text part ids', async () => {
+      clearObjectPrototypeState();
+      const protoKey: string = '__proto__';
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-delta', id: protoKey, delta: 'Hello' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        onError: () => {},
+      });
+
+      try {
+        expect(await convertAsyncIterableToArray(result.stream)).toContainEqual(
+          {
+            type: 'error',
+            error: `text part ${protoKey} not found`,
+          },
+        );
+
+        expect(Object.hasOwn(Object.prototype, 'providerMetadata')).toBe(false);
+        expect(Object.hasOwn(Object.prototype, 'text')).toBe(false);
+      } finally {
+        clearObjectPrototypeState();
+      }
+    });
+
+    it('should not read Object.prototype for missing reasoning part ids', async () => {
+      clearObjectPrototypeState();
+      const protoKey: string = '__proto__';
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'reasoning-delta', id: protoKey, delta: 'Thinking...' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        onError: () => {},
+      });
+
+      try {
+        expect(await convertAsyncIterableToArray(result.stream)).toContainEqual(
+          {
+            type: 'error',
+            error: `reasoning part ${protoKey} not found`,
+          },
+        );
+
+        expect(Object.hasOwn(Object.prototype, 'providerMetadata')).toBe(false);
+        expect(Object.hasOwn(Object.prototype, 'text')).toBe(false);
+      } finally {
+        clearObjectPrototypeState();
+      }
+    });
+
     it('should invoke onError callback when error is thrown', async () => {
       const onError = vi.fn();
 
@@ -2507,6 +2598,209 @@ describe('streamText', () => {
       await expect(result.text).rejects.toThrow(
         'No output generated. Check the stream for errors.',
       );
+    });
+
+    it('should reject when provider stream closes before finish chunk', async () => {
+      const onError = vi.fn();
+      const onStepFinish = vi.fn();
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'stream-start',
+              warnings: [],
+            },
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        onError,
+        onStepFinish,
+      });
+
+      await result.consumeStream();
+
+      await expect(result.text).rejects.toThrow(
+        'No output generated. The model stream ended without a finish chunk.',
+      );
+      await expect(result.steps).rejects.toThrow(
+        'No output generated. The model stream ended without a finish chunk.',
+      );
+      await expect(result.finishReason).rejects.toThrow(
+        'No output generated. The model stream ended without a finish chunk.',
+      );
+      await expect(result.totalUsage).rejects.toThrow(
+        'No output generated. The model stream ended without a finish chunk.',
+      );
+      expect(onError).toHaveBeenCalledWith({
+        error: expect.objectContaining({
+          message:
+            'No output generated. The model stream ended without a finish chunk.',
+        }),
+      });
+
+      expect(onStepFinish).not.toHaveBeenCalled();
+    });
+
+    it('should resolve with partial output when provider stream closes before finish chunk after producing output', async () => {
+      const onError = vi.fn();
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'stream-start',
+              warnings: [],
+            },
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-delta', id: '1', delta: ', world' },
+            // stream truncated: no text-end, no finish chunk
+          ]),
+        }),
+        prompt: 'test-input',
+        onError,
+      });
+
+      await result.consumeStream();
+
+      expect(await result.text).toStrictEqual('Hello, world');
+      expect(await result.finishReason).toStrictEqual('other');
+      expect(await result.steps).toHaveLength(1);
+      expect(onError).not.toHaveBeenCalled();
+    });
+
+    it('should reject result promises when provider stream errors after metadata', async () => {
+      const onConsumeError = vi.fn();
+
+      const result = streamText({
+        model: createTestModel({
+          stream: new ReadableStream<LanguageModelV4StreamPart>({
+            start(controller) {
+              controller.enqueue({ type: 'stream-start', warnings: [] });
+              controller.enqueue({
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              });
+              queueMicrotask(() => {
+                controller.error(new Error('simulated provider stream error'));
+              });
+            },
+          }),
+        }),
+        prompt: 'test-input',
+      });
+
+      await expect(
+        result.consumeStream({ onError: onConsumeError }),
+      ).resolves.not.toThrow();
+
+      await expect(result.text).rejects.toThrow(
+        'simulated provider stream error',
+      );
+      await expect(result.steps).rejects.toThrow(
+        'simulated provider stream error',
+      );
+      await expect(result.finishReason).rejects.toThrow(
+        'simulated provider stream error',
+      );
+      await expect(result.totalUsage).rejects.toThrow(
+        'simulated provider stream error',
+      );
+      expect(onConsumeError).toHaveBeenCalledWith(
+        new Error('simulated provider stream error'),
+      );
+    });
+
+    it('should reject when provider stream is incomplete on a continuation step', async () => {
+      const onError = vi.fn();
+      const onStepFinish = vi.fn();
+      let responseCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  stream: convertArrayToReadableStream([
+                    { type: 'stream-start', warnings: [] },
+                    {
+                      type: 'tool-call',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: '{}',
+                    },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'tool-calls', raw: undefined },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+              case 1:
+                // continuation step ends without a finish chunk:
+                return {
+                  stream: convertArrayToReadableStream([
+                    { type: 'stream-start', warnings: [] },
+                    {
+                      type: 'response-metadata',
+                      id: 'id-1',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(0),
+                    },
+                  ]),
+                };
+              default:
+                throw new Error(`Unexpected response count: ${responseCount}`);
+            }
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({}),
+            execute: async () => 'result1',
+          }),
+        },
+        prompt: 'test-input',
+        stopWhen: isStepCount(3),
+        onError,
+        onStepFinish,
+      });
+
+      await result.consumeStream();
+
+      await expect(result.steps).rejects.toThrow(
+        'No output generated. The model stream ended without a finish chunk.',
+      );
+      await expect(result.finishReason).rejects.toThrow(
+        'No output generated. The model stream ended without a finish chunk.',
+      );
+      await expect(result.totalUsage).rejects.toThrow(
+        'No output generated. The model stream ended without a finish chunk.',
+      );
+      expect(onError).toHaveBeenCalledWith({
+        error: expect.objectContaining({
+          message:
+            'No output generated. The model stream ended without a finish chunk.',
+        }),
+      });
+
+      expect(onStepFinish).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -3100,6 +3394,11 @@ describe('streamText', () => {
             { type: 'text-delta', id: '1', delta: ', ' },
             { type: 'text-delta', id: '1', delta: 'world!' },
             { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
           ]),
         }),
         prompt: 'test-input',
@@ -7018,7 +7317,7 @@ describe('streamText', () => {
     });
   });
 
-  describe('options.experimental_onStart', () => {
+  describe('options.onStart', () => {
     it('should send correct information with text prompt', async () => {
       let startEvent!: Parameters<GenerateTextOnStartCallback>[0];
 
@@ -7028,7 +7327,7 @@ describe('streamText', () => {
         telemetry: {
           functionId: 'test-function',
         },
-        experimental_onStart: async event => {
+        onStart: async event => {
           startEvent = event;
         },
         onError: () => {},
@@ -7053,7 +7352,7 @@ describe('streamText', () => {
           isEnabled: true,
           functionId: 'deprecated-fn',
         },
-        experimental_onStart: async event => {
+        onStart: async event => {
           startEvent = event;
         },
         onError: () => {},
@@ -7072,7 +7371,7 @@ describe('streamText', () => {
         model: createTestModel(),
         prompt: 'test-input',
         runtimeContext: { userId: 'test-user', sessionId: '123' },
-        experimental_onStart: async event => {
+        onStart: async event => {
           startEvent = event;
         },
         onError: () => {},
@@ -7101,10 +7400,10 @@ describe('streamText', () => {
             requestId: true,
           },
         },
-        experimental_onStart: async ({ runtimeContext }) => {
+        onStart: async ({ runtimeContext }) => {
           callbackContexts.push(runtimeContext);
         },
-        experimental_onStepStart: async ({ runtimeContext }) => {
+        onStepStart: async ({ runtimeContext }) => {
           callbackContexts.push(runtimeContext);
         },
         onStepFinish: async ({ runtimeContext }) => {
@@ -7280,7 +7579,7 @@ describe('streamText', () => {
         messages: [{ role: 'user', content: 'test-message' }],
         maxOutputTokens: 100,
         temperature: 0.5,
-        experimental_onStart: async event => {
+        onStart: async event => {
           startEvent = event;
         },
         onError: () => {},
@@ -7332,7 +7631,7 @@ describe('streamText', () => {
           },
         }),
         prompt: 'test-input',
-        experimental_onStart: async () => {
+        onStart: async () => {
           callOrder.push('onStart');
         },
         onError: () => {},
@@ -7347,7 +7646,7 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel(),
         prompt: 'test-input',
-        experimental_onStart: async () => {
+        onStart: async () => {
           throw new Error('callback error');
         },
         onError: () => {},
@@ -7368,7 +7667,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         tools: { myTool: testTool },
         toolChoice: 'auto',
-        experimental_onStart: async event => {
+        onStart: async event => {
           startEvent = event;
         },
         onError: () => {},
@@ -7387,7 +7686,7 @@ describe('streamText', () => {
         model: createTestModel(),
         prompt: 'test-input',
         providerOptions: { openai: { logprobs: true } },
-        experimental_onStart: async event => {
+        onStart: async event => {
           startEvent = event;
         },
         onError: () => {},
@@ -7408,7 +7707,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         timeout: { totalMs: 5000, stepMs: 1000 },
         stopWhen: isStepCount(3),
-        experimental_onStart: async event => {
+        onStart: async event => {
           startEvent = event;
         },
         onError: () => {},
@@ -7420,7 +7719,7 @@ describe('streamText', () => {
     });
   });
 
-  describe('options.experimental_onStepStart', () => {
+  describe('options.onStepStart', () => {
     it('should be called with correct data for a single step', async () => {
       let stepStartEvent!: Parameters<
         GenerateTextOnStepStartCallback<any, any>
@@ -7429,7 +7728,7 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel(),
         prompt: 'test-input',
-        experimental_onStepStart: async event => {
+        onStepStart: async event => {
           stepStartEvent = event;
         },
         onError: () => {},
@@ -7524,7 +7823,7 @@ describe('streamText', () => {
         },
         prompt: 'test-input',
         stopWhen: isStepCount(3),
-        experimental_onStepStart: async event => {
+        onStepStart: async event => {
           stepStartEvents.push(event);
         },
         onError: () => {},
@@ -7571,7 +7870,7 @@ describe('streamText', () => {
           },
         }),
         prompt: 'test-input',
-        experimental_onStepStart: async () => {
+        onStepStart: async () => {
           callOrder.push('onStepStart');
         },
         onError: () => {},
@@ -7586,7 +7885,7 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel(),
         prompt: 'test-input',
-        experimental_onStepStart: async () => {
+        onStepStart: async () => {
           throw new Error('callback error');
         },
         onError: () => {},
@@ -7669,7 +7968,7 @@ describe('streamText', () => {
           }
           return undefined;
         },
-        experimental_onStepStart: async event => {
+        onStepStart: async event => {
           stepStartEvents.push(event);
         },
         onError: () => {},
@@ -7693,7 +7992,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         providerOptions: { openai: { logprobs: true } },
         runtimeContext: { userId: 'test-user' },
-        experimental_onStepStart: async event => {
+        onStepStart: async event => {
           stepStartEvent = event;
         },
         onError: () => {},
@@ -7720,7 +8019,7 @@ describe('streamText', () => {
         telemetry: {
           functionId: 'test-function',
         },
-        experimental_onStepStart: async event => {
+        onStepStart: async event => {
           stepStartEvent = event;
         },
         onError: () => {},
@@ -7976,7 +8275,7 @@ describe('streamText', () => {
 
           return undefined;
         },
-        experimental_onStepStart: async event => {
+        onStepStart: async event => {
           stepStartEvents.push(event);
         },
         onError: () => {},
@@ -7998,7 +8297,7 @@ describe('streamText', () => {
     });
   });
 
-  describe('options.experimental_onLanguageModelCallStart and experimental_onLanguageModelCallEnd', () => {
+  describe('options.onLanguageModelCallStart and onLanguageModelCallEnd', () => {
     it('should fire the model-call callbacks before tool execution and step finish', async () => {
       const callOrder: string[] = [];
       const modelCallEndEvents: LanguageModelCallEndEvent<any>[] = [];
@@ -8037,13 +8336,13 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_onStepStart: async () => {
+        onStepStart: async () => {
           callOrder.push('onStepStart');
         },
-        experimental_onLanguageModelCallStart: async () => {
+        onLanguageModelCallStart: async () => {
           callOrder.push('onLanguageModelCallStart');
         },
-        experimental_onLanguageModelCallEnd: async event => {
+        onLanguageModelCallEnd: async event => {
           callOrder.push('onLanguageModelCallEnd');
           modelCallEndEvents.push(event);
         },
@@ -16608,6 +16907,72 @@ describe('streamText', () => {
       expect(receivedAbortSignals[0]).toBe(receivedAbortSignals[1]);
     });
 
+    it('should clear the step timeout on normal completion of a multi-step run', async () => {
+      const receivedAbortSignals: (AbortSignal | undefined)[] = [];
+      let stepCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async ({ abortSignal }) => {
+            receivedAbortSignals.push(abortSignal);
+            stepCount++;
+            if (stepCount === 1) {
+              return {
+                stream: convertArrayToReadableStream([
+                  {
+                    type: 'tool-call',
+                    toolCallType: 'function',
+                    toolCallId: 'call-1',
+                    toolName: 'tool1',
+                    input: `{ "value": "test" }`,
+                  },
+                  {
+                    type: 'finish',
+                    finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+                    usage: testUsage,
+                  },
+                ]),
+              };
+            }
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Final response' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'tool result',
+          },
+        },
+        prompt: 'test-input',
+        timeout: { stepMs: 50 }, // small step timeout
+        stopWhen: isStepCount(2),
+        onError: () => {},
+      });
+
+      // Both steps finish synchronously, well within stepMs.
+      await result.consumeStream();
+
+      // Advance well past stepMs: because each step's timeout is cleared on
+      // finish, the (shared) abort signal must NOT fire. If the timers leaked,
+      // a stale step timer would abort the signal here.
+      await vi.advanceTimersByTimeAsync(100);
+
+      expect(stepCount).toBe(2);
+      expect(receivedAbortSignals[0]?.aborted).toBe(false);
+      expect(receivedAbortSignals[1]?.aborted).toBe(false);
+    });
+
     it('should support both totalMs and stepMs together', async () => {
       let receivedAbortSignal: AbortSignal | undefined;
 
@@ -16637,6 +17002,61 @@ describe('streamText', () => {
       await result.consumeStream();
 
       expect(receivedAbortSignal).toBeDefined();
+    });
+
+    it('should abort when step timeout expires', async () => {
+      let receivedAbortSignal: AbortSignal | undefined;
+      const delayedPromise = new DelayedPromise<void>();
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async ({ abortSignal }) => {
+            receivedAbortSignal = abortSignal;
+            return {
+              stream: new ReadableStream({
+                async start(controller) {
+                  // Open the stream but stall before producing any content,
+                  // modelling a model that returns 200 OK and then idles.
+                  // The step timeout must abort this stalled step.
+                  await delayedPromise.promise;
+
+                  controller.enqueue({ type: 'text-start', id: '1' });
+                  controller.enqueue({
+                    type: 'text-delta',
+                    id: '1',
+                    delta: 'Hello',
+                  });
+                  controller.enqueue({ type: 'text-end', id: '1' });
+                  controller.enqueue({
+                    type: 'finish',
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                    usage: testUsage,
+                  });
+                  controller.close();
+                },
+              }),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        timeout: { stepMs: 50 }, // 50ms step timeout
+        onError: () => {},
+      });
+
+      // Start consuming the stream (won't complete until delayedPromise resolves)
+      const consumePromise = result.consumeStream();
+
+      // Advance time past the step timeout
+      await vi.advanceTimersByTimeAsync(100);
+
+      // Resolve the delayed promise to allow the stream to finish
+      delayedPromise.resolve(undefined);
+
+      await consumePromise;
+
+      // The abort signal should have been triggered due to step timeout
+      expect(receivedAbortSignal?.aborted).toBe(true);
+      expect((receivedAbortSignal?.reason as Error)?.name).toBe('TimeoutError');
     });
 
     it('should forward chunkMs as abort signal to model', async () => {
@@ -17473,7 +17893,7 @@ describe('streamText', () => {
               "type": "tool-input-available",
             },
             {
-              "errorText": "Error: test error",
+              "errorText": "An error occurred.",
               "toolCallId": "call-1",
               "type": "tool-output-error",
             },
@@ -22676,17 +23096,7 @@ describe('streamText', () => {
                 "type": "tool-input-delta",
               },
               {
-                "errorText": "AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
-            Error message: [
-              {
-                "expected": "string",
-                "code": "invalid_type",
-                "path": [
-                  "city"
-                ],
-                "message": "Invalid input: expected string, received undefined"
-              }
-            ]",
+                "errorText": "An error occurred.",
                 "input": {
                   "cities": "San Francisco",
                 },
@@ -22695,17 +23105,7 @@ describe('streamText', () => {
                 "type": "tool-input-error",
               },
               {
-                "errorText": "AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
-            Error message: [
-              {
-                "expected": "string",
-                "code": "invalid_type",
-                "path": [
-                  "city"
-                ],
-                "message": "Invalid input: expected string, received undefined"
-              }
-            ]",
+                "errorText": "An error occurred.",
                 "toolCallId": "call-1",
                 "type": "tool-output-error",
               },
@@ -28714,7 +29114,7 @@ describe('streamText', () => {
         model: createTestModel(),
         prompt: 'test-input',
         onError: () => {},
-        experimental_onStart: async () => {
+        onStart: async () => {
           events.push('user-onStart');
         },
         onStepFinish: async () => {

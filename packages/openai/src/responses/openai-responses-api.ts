@@ -478,6 +478,30 @@ export type OpenAIResponsesReasoning = {
   }>;
 };
 
+// Captured from the Responses API when OpenAI returned an early
+// insufficient_quota stream error after HTTP 200. This shape differs from the
+// currently documented ResponseErrorEvent below.
+const openaiResponsesNestedErrorChunkSchema = z.object({
+  type: z.literal('error'),
+  sequence_number: z.number(),
+  error: z.object({
+    type: z.string(),
+    code: z.string(),
+    message: z.string(),
+    param: z.string().nullish(),
+  }),
+});
+
+// Current OpenAI OpenAPI docs define ResponseErrorEvent with top-level
+// code/message/param fields.
+const openaiResponsesErrorChunkSchema = z.object({
+  type: z.literal('error'),
+  sequence_number: z.number(),
+  code: z.string().nullish(),
+  message: z.string(),
+  param: z.string().nullish(),
+});
+
 export const openaiResponsesChunkSchema = lazySchema(() =>
   zodSchema(
     z.union([
@@ -507,11 +531,18 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
           usage: z.object({
             input_tokens: z.number(),
             input_tokens_details: z
-              .object({ cached_tokens: z.number().nullish() })
+              .object({
+                cached_tokens: z.number().nullish(),
+                orchestration_input_tokens: z.number().nullish(),
+                orchestration_input_cached_tokens: z.number().nullish(),
+              })
               .nullish(),
             output_tokens: z.number(),
             output_tokens_details: z
-              .object({ reasoning_tokens: z.number().nullish() })
+              .object({
+                reasoning_tokens: z.number().nullish(),
+                orchestration_output_tokens: z.number().nullish(),
+              })
               .nullish(),
           }),
           service_tier: z.string().nullish(),
@@ -519,6 +550,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
       }),
       z.object({
         type: z.literal('response.failed'),
+        sequence_number: z.number(),
         response: z.object({
           error: z
             .object({
@@ -531,11 +563,18 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             .object({
               input_tokens: z.number(),
               input_tokens_details: z
-                .object({ cached_tokens: z.number().nullish() })
+                .object({
+                  cached_tokens: z.number().nullish(),
+                  orchestration_input_tokens: z.number().nullish(),
+                  orchestration_input_cached_tokens: z.number().nullish(),
+                })
                 .nullish(),
               output_tokens: z.number(),
               output_tokens_details: z
-                .object({ reasoning_tokens: z.number().nullish() })
+                .object({
+                  reasoning_tokens: z.number().nullish(),
+                  orchestration_output_tokens: z.number().nullish(),
+                })
                 .nullish(),
             })
             .nullish(),
@@ -1036,16 +1075,8 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
         output_index: z.number(),
         diff: z.string(),
       }),
-      z.object({
-        type: z.literal('error'),
-        sequence_number: z.number(),
-        error: z.object({
-          type: z.string(),
-          code: z.string(),
-          message: z.string(),
-          param: z.string().nullish(),
-        }),
-      }),
+      openaiResponsesNestedErrorChunkSchema,
+      openaiResponsesErrorChunkSchema,
       z
         .object({ type: z.string() })
         .loose()
@@ -1399,11 +1430,18 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
         .object({
           input_tokens: z.number(),
           input_tokens_details: z
-            .object({ cached_tokens: z.number().nullish() })
+            .object({
+              cached_tokens: z.number().nullish(),
+              orchestration_input_tokens: z.number().nullish(),
+              orchestration_input_cached_tokens: z.number().nullish(),
+            })
             .nullish(),
           output_tokens: z.number(),
           output_tokens_details: z
-            .object({ reasoning_tokens: z.number().nullish() })
+            .object({
+              reasoning_tokens: z.number().nullish(),
+              orchestration_output_tokens: z.number().nullish(),
+            })
             .nullish(),
         })
         .optional(),

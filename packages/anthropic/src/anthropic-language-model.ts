@@ -47,6 +47,7 @@ import {
   type AnthropicContainer,
   type AnthropicReasoningMetadata,
   type AnthropicResponseContextManagement,
+  type AnthropicStopDetails,
   type AnthropicTool,
   type Citation,
 } from './anthropic-api';
@@ -484,6 +485,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       ...(anthropicOptions?.inferenceGeo && {
         inference_geo: anthropicOptions.inferenceGeo,
       }),
+      ...(anthropicOptions?.fallbacks &&
+        anthropicOptions.fallbacks.length > 0 && {
+          fallbacks: anthropicOptions.fallbacks,
+        }),
       ...(anthropicOptions?.cacheControl && {
         cache_control: anthropicOptions.cacheControl,
       }),
@@ -714,6 +719,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
     if (anthropicOptions?.speed === 'fast') {
       betas.add('fast-mode-2026-02-01');
+    }
+
+    if (anthropicOptions?.fallbacks && anthropicOptions.fallbacks.length > 0) {
+      betas.add('server-side-fallback-2026-06-01');
     }
 
     const defaultEagerInputStreaming =
@@ -1335,6 +1344,13 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           }
           break;
         }
+
+        // Server-side fallback marker: the AI SDK has no content primitive for
+        // a model hop, so drop it. The hop is still observable via
+        // usage.iterations.
+        case 'fallback': {
+          break;
+        }
       }
     }
 
@@ -1357,46 +1373,33 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       },
       warnings,
       providerMetadata: (() => {
+        const stopDetails = mapAnthropicStopDetails(response.stop_details);
+
         const anthropicMetadata = {
           usage: response.usage as JSONObject,
           stopSequence: response.stop_sequence ?? null,
+          ...(stopDetails != null ? { stopDetails } : {}),
 
           iterations: response.usage.iterations
-            ? response.usage.iterations.map(iter =>
-                iter.type === 'advisor_message'
-                  ? ({
-                      type: iter.type,
-                      model: iter.model,
-                      inputTokens: iter.input_tokens,
-                      outputTokens: iter.output_tokens,
-                      ...(iter.cache_creation_input_tokens
-                        ? {
-                            cacheCreationInputTokens:
-                              iter.cache_creation_input_tokens,
-                          }
-                        : {}),
-                      ...(iter.cache_read_input_tokens
-                        ? {
-                            cacheReadInputTokens: iter.cache_read_input_tokens,
-                          }
-                        : {}),
-                    } satisfies AnthropicUsageIteration)
-                  : ({
-                      type: iter.type,
-                      inputTokens: iter.input_tokens,
-                      outputTokens: iter.output_tokens,
-                      ...(iter.cache_creation_input_tokens
-                        ? {
-                            cacheCreationInputTokens:
-                              iter.cache_creation_input_tokens,
-                          }
-                        : {}),
-                      ...(iter.cache_read_input_tokens
-                        ? {
-                            cacheReadInputTokens: iter.cache_read_input_tokens,
-                          }
-                        : {}),
-                    } satisfies AnthropicUsageIteration),
+            ? response.usage.iterations.map(
+                iter =>
+                  ({
+                    type: iter.type,
+                    ...(iter.model != null ? { model: iter.model } : {}),
+                    inputTokens: iter.input_tokens,
+                    outputTokens: iter.output_tokens,
+                    ...(iter.cache_creation_input_tokens
+                      ? {
+                          cacheCreationInputTokens:
+                            iter.cache_creation_input_tokens,
+                        }
+                      : {}),
+                    ...(iter.cache_read_input_tokens
+                      ? {
+                          cacheReadInputTokens: iter.cache_read_input_tokens,
+                        }
+                      : {}),
+                  }) satisfies AnthropicUsageIteration,
               )
             : null,
           container: response.container
@@ -1510,6 +1513,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       | null = null;
     let rawUsage: JSONObject | undefined = undefined;
     let stopSequence: string | null = null;
+    let stopDetails: AnthropicMessageMetadata['stopDetails'] = undefined;
     let container: AnthropicMessageMetadata['container'] | null = null;
     let isJsonResponseFromTool = false;
 
@@ -1562,6 +1566,14 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             case 'content_block_start': {
               const part = value.content_block;
               const contentBlockType = part.type;
+
+              // Server-side fallback marker: the AI SDK has no content
+              // primitive for a model hop, so drop it. The hop is still
+              // observable via usage.iterations.
+              if (contentBlockType === 'fallback') {
+                return;
+              }
+
               blockType = contentBlockType;
 
               switch (contentBlockType) {
@@ -2409,6 +2421,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               };
 
               stopSequence = value.delta.stop_sequence ?? null;
+              stopDetails = mapAnthropicStopDetails(value.delta.stop_details);
               container =
                 value.delta.container != null
                   ? {
@@ -2441,44 +2454,28 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               const anthropicMetadata = {
                 usage: (rawUsage as JSONObject) ?? null,
                 stopSequence,
+                ...(stopDetails != null ? { stopDetails } : {}),
                 iterations: usage.iterations
-                  ? usage.iterations.map(iter =>
-                      iter.type === 'advisor_message'
-                        ? ({
-                            type: iter.type,
-                            model: iter.model,
-                            inputTokens: iter.input_tokens,
-                            outputTokens: iter.output_tokens,
-                            ...(iter.cache_creation_input_tokens
-                              ? {
-                                  cacheCreationInputTokens:
-                                    iter.cache_creation_input_tokens,
-                                }
-                              : {}),
-                            ...(iter.cache_read_input_tokens
-                              ? {
-                                  cacheReadInputTokens:
-                                    iter.cache_read_input_tokens,
-                                }
-                              : {}),
-                          } satisfies AnthropicUsageIteration)
-                        : ({
-                            type: iter.type,
-                            inputTokens: iter.input_tokens,
-                            outputTokens: iter.output_tokens,
-                            ...(iter.cache_creation_input_tokens
-                              ? {
-                                  cacheCreationInputTokens:
-                                    iter.cache_creation_input_tokens,
-                                }
-                              : {}),
-                            ...(iter.cache_read_input_tokens
-                              ? {
-                                  cacheReadInputTokens:
-                                    iter.cache_read_input_tokens,
-                                }
-                              : {}),
-                          } satisfies AnthropicUsageIteration),
+                  ? usage.iterations.map(
+                      iter =>
+                        ({
+                          type: iter.type,
+                          ...(iter.model != null ? { model: iter.model } : {}),
+                          inputTokens: iter.input_tokens,
+                          outputTokens: iter.output_tokens,
+                          ...(iter.cache_creation_input_tokens
+                            ? {
+                                cacheCreationInputTokens:
+                                  iter.cache_creation_input_tokens,
+                              }
+                            : {}),
+                          ...(iter.cache_read_input_tokens
+                            ? {
+                                cacheReadInputTokens:
+                                  iter.cache_read_input_tokens,
+                              }
+                            : {}),
+                        }) satisfies AnthropicUsageIteration,
                     )
                   : null,
                 container,
@@ -2578,7 +2575,8 @@ export function getModelCapabilities(modelId: string): {
 } {
   if (
     modelId.includes('claude-opus-4-8') ||
-    modelId.includes('claude-opus-4-7')
+    modelId.includes('claude-opus-4-7') ||
+    modelId.includes('claude-fable-5')
   ) {
     return {
       maxOutputTokens: 128000,
@@ -2767,4 +2765,23 @@ function mapAnthropicResponseContextManagement(
           .filter(edit => edit !== undefined),
       }
     : null;
+}
+
+function mapAnthropicStopDetails(
+  stopDetails: AnthropicStopDetails | null | undefined,
+): AnthropicMessageMetadata['stopDetails'] | undefined {
+  if (stopDetails == null) {
+    return undefined;
+  }
+
+  return {
+    type: stopDetails.type,
+    ...(stopDetails.category != null ? { category: stopDetails.category } : {}),
+    ...(stopDetails.explanation != null
+      ? { explanation: stopDetails.explanation }
+      : {}),
+    ...(stopDetails.recommended_model != null
+      ? { recommendedModel: stopDetails.recommended_model }
+      : {}),
+  };
 }

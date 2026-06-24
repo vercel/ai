@@ -1,5 +1,156 @@
 # @ai-sdk/otel
 
+## 1.0.0-beta.132
+
+### Patch Changes
+
+- ai@7.0.0-beta.186
+
+## 1.0.0-beta.131
+
+### Patch Changes
+
+- Updated dependencies [75763b0]
+  - ai@7.0.0-beta.185
+
+## 1.0.0-beta.130
+
+### Patch Changes
+
+- b94d22f: Sanitize OpenTelemetry span array attributes so they no longer emit invalid OTLP values (arrays containing `undefined`/`null`/objects, or arrays mixing primitive types). Such values previously failed telemetry ingestion with `deserializing message invalid value: map, expected map with a single key` and flooded function logs with errors.
+- d5cac7c: feat(otel): emit performance metrics via gen ai semantics
+- Updated dependencies [0416e3e]
+  - @ai-sdk/provider@4.0.0-beta.20
+  - ai@7.0.0-beta.184
+
+## 1.0.0-beta.129
+
+### Patch Changes
+
+- ai@7.0.0-beta.183
+
+## 1.0.0-beta.128
+
+### Patch Changes
+
+- Updated dependencies [cc6ab90]
+  - ai@7.0.0-beta.182
+
+## 1.0.0-beta.127
+
+### Patch Changes
+
+- Updated dependencies [6a2caf9]
+  - ai@7.0.0-beta.181
+
+## 1.0.0-beta.126
+
+### Patch Changes
+
+- Updated dependencies [81a284b]
+  - ai@7.0.0-beta.180
+
+## 1.0.0-beta.125
+
+### Patch Changes
+
+- ai@7.0.0-beta.179
+
+## 1.0.0-beta.124
+
+### Patch Changes
+
+- Updated dependencies [b097c52]
+  - ai@7.0.0-beta.178
+
+## 1.0.0-beta.123
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/provider@4.0.0-beta.19
+  - ai@7.0.0-beta.177
+
+## 1.0.0-canary.122
+
+### Patch Changes
+
+- ai@7.0.0-canary.176
+
+## 1.0.0-canary.121
+
+### Patch Changes
+
+- Updated dependencies [6ec57f5]
+  - ai@7.0.0-canary.175
+
+## 1.0.0-canary.120
+
+### Patch Changes
+
+- ai@7.0.0-canary.174
+
+## 1.0.0-canary.119
+
+### Patch Changes
+
+- ai@7.0.0-canary.173
+
+## 1.0.0-canary.118
+
+### Patch Changes
+
+- Updated dependencies [25a64f8]
+- Updated dependencies [375fdd7]
+- Updated dependencies [f18b08f]
+- Updated dependencies [b4507d5]
+  - ai@7.0.0-canary.172
+
+## 1.0.0-canary.117
+
+### Patch Changes
+
+- Updated dependencies [89ad56f]
+- Updated dependencies [f9a496f]
+- Updated dependencies [3295831]
+  - ai@7.0.0-canary.171
+
+## 1.0.0-canary.116
+
+### Patch Changes
+
+- Updated dependencies [bae5e2b]
+- Updated dependencies [69d7128]
+  - ai@7.0.0-canary.170
+
+## 1.0.0-canary.115
+
+### Patch Changes
+
+- Updated dependencies [a5018ab]
+- Updated dependencies [21d3d60]
+- Updated dependencies [426dbbb]
+- Updated dependencies [7fd3360]
+  - ai@7.0.0-canary.169
+
+## 1.0.0-canary.114
+
+### Patch Changes
+
+- Updated dependencies [1e4b350]
+  - ai@7.0.0-canary.168
+
+## 1.0.0-canary.113
+
+### Patch Changes
+
+- 4757690: feat(ai): rename onObjectStepFinish to onObjectStepEnd
+- Updated dependencies [4757690]
+- Updated dependencies [eeefc3f]
+- Updated dependencies [b79b6a8]
+  - ai@7.0.0-canary.167
+
 ## 1.0.0-canary.112
 
 ### Patch Changes

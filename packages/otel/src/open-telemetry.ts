@@ -44,6 +44,7 @@ import {
   mapProviderName,
 } from './gen-ai-format-messages';
 import { recordErrorOnSpan } from './record-span';
+import { sanitizeAttributes } from './sanitize-attribute-value';
 import { selectAttributes } from './select-attributes';
 import {
   getDetailedUsageAttributes,
@@ -84,6 +85,24 @@ interface CallState {
   modelId: string;
   runtimeContext: Record<string, unknown> | undefined;
   baseSupplementalAttributes: Attributes;
+}
+
+function msToSeconds(durationMs: number | undefined): number | undefined {
+  return durationMs == null ? undefined : durationMs / 1000;
+}
+
+function getGenAIClientPerformanceAttributes(
+  performance: LanguageModelCallEndEvent<ToolSet>['performance'],
+): Attributes {
+  return {
+    'gen_ai.client.operation.duration': msToSeconds(performance.responseTimeMs),
+    'gen_ai.client.operation.time_to_first_chunk': msToSeconds(
+      performance.timeToFirstOutputMs,
+    ),
+    'gen_ai.client.operation.time_per_output_chunk': msToSeconds(
+      performance.timeBetweenOutputChunksMs?.avg,
+    ),
+  };
 }
 
 export class OpenTelemetry implements Telemetry {
@@ -134,7 +153,7 @@ export class OpenTelemetry implements Telemetry {
     }
 
     return {
-      ...customAttributes,
+      ...sanitizeAttributes(customAttributes),
       ...attributes,
     };
   }
@@ -478,7 +497,7 @@ export class OpenTelemetry implements Telemetry {
   }
 
   /** @deprecated */
-  onObjectStepFinish(event: GenerateObjectStepEndEvent): void {
+  onObjectStepEnd(event: GenerateObjectStepEndEvent): void {
     const state = this.getCallState(event.callId);
     if (!state?.inferenceSpan) return;
 
@@ -713,6 +732,7 @@ export class OpenTelemetry implements Telemetry {
 
     state.inferenceSpan.setAttributes(
       selectAttributes(telemetry, {
+        ...getGenAIClientPerformanceAttributes(event.performance),
         'gen_ai.response.finish_reasons': [event.finishReason],
         'gen_ai.response.id': event.responseId,
         'gen_ai.usage.input_tokens': event.usage.inputTokens,
@@ -805,6 +825,12 @@ export class OpenTelemetry implements Telemetry {
     const { telemetry } = state;
 
     const { toolOutput } = event;
+    span.setAttributes(
+      selectAttributes(telemetry, {
+        'gen_ai.execute_tool.duration': msToSeconds(event.toolExecutionMs),
+      }),
+    );
+
     if (toolOutput.type === 'tool-result') {
       try {
         span.setAttributes(

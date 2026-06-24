@@ -1,5 +1,17 @@
 # @ai-sdk/codemod
 
+## 4.0.0-beta.8
+
+### Patch Changes
+
+- 9f12cd2: feat(codemods): add codemods for v6 to v7 migration
+
+## 4.0.0-beta.7
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+
 ## 4.0.0-canary.6
 
 ### Patch Changes

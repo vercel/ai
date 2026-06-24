@@ -16,6 +16,7 @@ const defaultOptions = {
   duration: undefined,
   fps: undefined,
   seed: undefined,
+  generateAudio: undefined,
   providerOptions: {
     google: {
       pollIntervalMs: 10, // Use short polling interval for tests
@@ -313,6 +314,23 @@ describe('GoogleVideoModel', () => {
       expect(result.videos[0]).toStrictEqual({
         type: 'url',
         url: 'https://generativelanguage.googleapis.com/files/video-123.mp4?param=value&key=test-api-key',
+        mediaType: 'video/mp4',
+      });
+    });
+
+    it('should NOT append the API key when the download URL is on a foreign origin', async () => {
+      const model = createMockModel({
+        apiKey: 'test-api-key',
+        videos: [{ video: { uri: 'https://cdn.evil.example/video-123.mp4' } }],
+      });
+
+      const result = await model.doGenerate({ ...defaultOptions });
+
+      // The key must not travel to a host the provider response named: the URL
+      // is returned verbatim, without the `?key=` credential appended.
+      expect(result.videos[0]).toStrictEqual({
+        type: 'url',
+        url: 'https://cdn.evil.example/video-123.mp4',
         mediaType: 'video/mp4',
       });
     });

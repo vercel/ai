@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/vue",
-  "version": "4.0.0-canary.166",
+  "version": "4.0.0-beta.186",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -51,7 +51,7 @@
     "msw": "2.6.4",
     "tsup": "^7.2.0",
     "typescript": "5.8.3",
-    "vitest": "4.1.5",
+    "vitest": "4.1.6",
     "zod": "3.25.76"
   },
   "peerDependencies": {

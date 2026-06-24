@@ -51,8 +51,8 @@ const stream = createUIMessageStream({
   },
   onError: error => `Custom error: ${error.message}`,
   originalMessages: existingMessages,
-  onFinish: ({ messages, isContinuation, responseMessage }) => {
-    console.log('Stream finished with messages:', messages);
+  onEnd: ({ messages, isContinuation, responseMessage }) => {
+    console.log('Stream ended with messages:', messages);
   },
 });
 ```
@@ -106,13 +106,12 @@ const stream = createUIMessageStream({
         'The original messages. If provided, persistence mode is assumed and a message ID is provided for the response message.',
     },
     {
-      name: 'onFinish',
+      name: 'onEnd',
       type: '(options: { messages: UIMessage[]; isContinuation: boolean; isAborted: boolean; responseMessage: UIMessage; finishReason?: FinishReason }) => PromiseLike<void> | void',
-      description:
-        'A callback function that is called when the stream finishes.',
+      description: 'A callback function that is called when the stream ends.',
       properties: [
         {
-          type: 'FinishOptions',
+          type: 'EndOptions',
           parameters: [
             {
               name: 'messages',
@@ -145,6 +144,11 @@ const stream = createUIMessageStream({
           ],
         },
       ],
+    },
+    {
+      name: 'onFinish',
+      type: '(options: { messages: UIMessage[]; isContinuation: boolean; isAborted: boolean; responseMessage: UIMessage; finishReason?: FinishReason }) => PromiseLike<void> | void',
+      description: 'Deprecated alias for `onEnd`.',
     },
     {
       name: 'generateId',

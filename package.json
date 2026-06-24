@@ -21,6 +21,7 @@
     "clean-examples": "node .github/scripts/cleanup-examples-changesets.mjs && pnpm install --no-frozen-lockfile",
     "check": "ultracite check",
     "fix": "ultracite fix",
+    "validate:docs": "node tools/validate-properties-tables.mjs",
     "konsistent": "turbo run konsistent:validate konsistent:check --log-order=grouped --log-prefix=none",
     "konsistent:check": "konsistent --config-path .github/konsistent.json",
     "konsistent:validate": "konsistent validate --config-path .github/konsistent.json",
@@ -37,20 +38,20 @@
     "@playwright/test": "^1.60.0",
     "del-cli": "^5.1.0",
     "husky": "^9.1.7",
-    "konsistent": "0.0.1-alpha.20",
+    "konsistent": "0.0.1-alpha.23",
     "lint-staged": "^15.5.1",
-    "next": "15.0.7",
+    "next": "15.5.18",
     "oxfmt": "^0.41.0",
     "oxlint": "^1.56.0",
     "playwright": "^1.60.0",
     "publint": "0.2.12",
     "react": "19.0.0-rc-cc1ec60d0d-20240607",
     "react-dom": "19.0.0-rc-cc1ec60d0d-20240607",
-    "turbo": "2.4.4",
+    "turbo": "2.9.14",
     "typescript": "5.8.3",
     "ultracite": "7.3.2",
     "update-ts-references": "^3.6.0",
-    "vitest": "4.1.5"
+    "vitest": "4.1.6"
   },
   "engines": {
     "node": "^22.0.0 || ^24.0.0 || ^26.0.0"

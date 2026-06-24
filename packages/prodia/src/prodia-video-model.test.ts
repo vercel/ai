@@ -84,6 +84,13 @@ describe('ProdiaVideoModel', () => {
         },
       },
     },
+    'https://cdn.example.com/input.png': {
+      response: {
+        type: 'binary',
+        body: Buffer.from('input-image-bytes'),
+        headers: { 'content-type': 'image/png' },
+      },
+    },
   });
 
   describe('constructor', () => {
@@ -109,6 +116,7 @@ describe('ProdiaVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         image: undefined,
         providerOptions: {},
       });
@@ -132,6 +140,7 @@ describe('ProdiaVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: 42,
+        generateAudio: undefined,
         image: undefined,
         providerOptions: {},
       });
@@ -156,6 +165,7 @@ describe('ProdiaVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         image: undefined,
         providerOptions: {
           prodia: {
@@ -184,6 +194,7 @@ describe('ProdiaVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         image: undefined,
         providerOptions: {},
       });
@@ -205,6 +216,7 @@ describe('ProdiaVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         image: undefined,
         providerOptions: {},
       });
@@ -225,6 +237,7 @@ describe('ProdiaVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         image: undefined,
         providerOptions: {},
       });
@@ -250,6 +263,7 @@ describe('ProdiaVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         image: undefined,
         providerOptions: {},
         headers: {
@@ -275,6 +289,7 @@ describe('ProdiaVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         image: undefined,
         providerOptions: {},
       });
@@ -299,6 +314,7 @@ describe('ProdiaVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         image: undefined,
         providerOptions: {},
       });
@@ -330,6 +346,7 @@ describe('ProdiaVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         image: undefined,
         providerOptions: {},
       });
@@ -362,6 +379,7 @@ describe('ProdiaVideoModel', () => {
           duration: undefined,
           fps: undefined,
           seed: undefined,
+          generateAudio: undefined,
           image: undefined,
           providerOptions: {},
         }),
@@ -387,6 +405,7 @@ describe('ProdiaVideoModel', () => {
         duration: undefined,
         fps: undefined,
         seed: undefined,
+        generateAudio: undefined,
         image: {
           type: 'file',
           mediaType: 'image/png',
@@ -399,6 +418,74 @@ describe('ProdiaVideoModel', () => {
       expect(server.calls[0].requestHeaders['content-type']).toContain(
         'multipart/form-data',
       );
+    });
+
+    it('downloads a public image URL and sends it as multipart form-data', async () => {
+      const model = createBasicModel({
+        modelId: 'inference.wan2-2.lightning.img2vid.v0',
+      });
+
+      await model.doGenerate({
+        prompt,
+        n: 1,
+        aspectRatio: undefined,
+        resolution: undefined,
+        duration: undefined,
+        fps: undefined,
+        seed: undefined,
+        generateAudio: undefined,
+        image: {
+          type: 'url',
+          url: 'https://cdn.example.com/input.png',
+        },
+        providerOptions: {},
+      });
+
+      // The image is downloaded, then the job is POSTed as multipart form-data.
+      expect(
+        server.calls.some(
+          call => call.requestUrl === 'https://cdn.example.com/input.png',
+        ),
+      ).toBe(true);
+      const jobCall = server.calls.find(
+        call => call.requestUrl === 'https://api.example.com/v2/job?price=true',
+      );
+      expect(jobCall?.requestMethod).toBe('POST');
+      expect(jobCall?.requestHeaders['content-type']).toContain(
+        'multipart/form-data',
+      );
+    });
+
+    it('blocks an image URL pointing at a private address (SSRF guard)', async () => {
+      const model = createBasicModel({
+        modelId: 'inference.wan2-2.lightning.img2vid.v0',
+      });
+
+      await expect(
+        model.doGenerate({
+          prompt,
+          n: 1,
+          aspectRatio: undefined,
+          resolution: undefined,
+          duration: undefined,
+          fps: undefined,
+          seed: undefined,
+          generateAudio: undefined,
+          image: {
+            type: 'url',
+            url: 'http://169.254.169.254/latest/meta-data/',
+          },
+          providerOptions: {},
+        }),
+      ).rejects.toThrow();
+
+      // The internal URL must never be requested, and no job is submitted.
+      expect(
+        server.calls.some(call => call.requestUrl.includes('169.254.169.254')),
+      ).toBe(false);
+      expect(
+        server.calls.some(call => call.requestUrl.includes('/v2/job')),
+      ).toBe(false);
     });
   });
 });

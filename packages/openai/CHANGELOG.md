@@ -1,5 +1,62 @@
 # @ai-sdk/openai
 
+## 4.0.0-beta.77
+
+### Patch Changes
+
+- Updated dependencies [0416e3e]
+  - @ai-sdk/provider@4.0.0-beta.20
+  - @ai-sdk/provider-utils@5.0.0-beta.50
+
+## 4.0.0-beta.76
+
+### Patch Changes
+
+- 2c4767d: feat(openai): add orchestration token usage details to Responses API usage
+
+## 4.0.0-beta.75
+
+### Patch Changes
+
+- 1772a63: Default OpenAI Responses reasoning summaries to detailed when reasoning effort is enabled.
+
+## 4.0.0-beta.74
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/provider-utils@5.0.0-beta.49
+  - @ai-sdk/provider@4.0.0-beta.19
+
+## 4.0.0-canary.73
+
+### Patch Changes
+
+- Updated dependencies [aeda373]
+- Updated dependencies [375fdd7]
+- Updated dependencies [b4507d5]
+  - @ai-sdk/provider-utils@5.0.0-canary.48
+
+## 4.0.0-canary.72
+
+### Patch Changes
+
+- Updated dependencies [bae5e2b]
+  - @ai-sdk/provider-utils@5.0.0-canary.47
+
+## 4.0.0-canary.71
+
+### Patch Changes
+
+- ae7f932: fix(openai): throw retryable errors for OpenAI stream failures before output starts
+
+## 4.0.0-canary.70
+
+### Patch Changes
+
+- 6a5800e: feat(openai): add namespaces for tool definitions
+
 ## 4.0.0-canary.69
 
 ### Patch Changes

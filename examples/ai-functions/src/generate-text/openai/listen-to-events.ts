@@ -20,13 +20,13 @@ async function main() {
       }),
     },
     stopWhen: isStepCount(3),
-    experimental_onStart: event => {
+    onStart: event => {
       console.log('\n--- onStart ---');
       console.log('Provider:', event.provider);
       console.log('Model:', event.modelId);
       console.log('Temperature:', event.temperature);
     },
-    experimental_onStepStart: event => {
+    onStepStart: event => {
       console.log('\n--- onStepStart ---');
       console.log('Step:', event.steps.length);
       console.log('Message count:', event.messages.length);

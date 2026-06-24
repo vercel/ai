@@ -79,6 +79,18 @@
       "path": "packages/groq"
     },
     {
+      "path": "packages/harness-claude-code"
+    },
+    {
+      "path": "packages/harness-codex"
+    },
+    {
+      "path": "packages/harness-pi"
+    },
+    {
+      "path": "packages/harness"
+    },
+    {
       "path": "packages/huggingface"
     },
     {
@@ -151,6 +163,12 @@
       "path": "packages/rsc"
     },
     {
+      "path": "packages/sandbox-just-bash"
+    },
+    {
+      "path": "packages/sandbox-vercel"
+    },
+    {
       "path": "packages/svelte"
     },
     {
@@ -173,6 +191,9 @@
     },
     {
       "path": "packages/vue"
+    },
+    {
+      "path": "packages/workflow-harness"
     },
     {
       "path": "packages/workflow"

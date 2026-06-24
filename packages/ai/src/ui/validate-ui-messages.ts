@@ -132,6 +132,7 @@ const uiMessagesSchema = lazySchema(() =>
                     approved: z.never().optional(),
                     reason: z.never().optional(),
                     isAutomatic: z.boolean().optional(),
+                    signature: z.string().optional(),
                   }),
                 }),
                 z.object({
@@ -150,6 +151,7 @@ const uiMessagesSchema = lazySchema(() =>
                     approved: z.boolean(),
                     reason: z.string().optional(),
                     isAutomatic: z.boolean().optional(),
+                    signature: z.string().optional(),
                   }),
                 }),
                 z.object({
@@ -171,6 +173,7 @@ const uiMessagesSchema = lazySchema(() =>
                       approved: z.literal(true),
                       reason: z.string().optional(),
                       isAutomatic: z.boolean().optional(),
+                      signature: z.string().optional(),
                     })
                     .optional(),
                 }),
@@ -193,6 +196,7 @@ const uiMessagesSchema = lazySchema(() =>
                       approved: z.literal(true),
                       reason: z.string().optional(),
                       isAutomatic: z.boolean().optional(),
+                      signature: z.string().optional(),
                     })
                     .optional(),
                 }),
@@ -212,6 +216,7 @@ const uiMessagesSchema = lazySchema(() =>
                     approved: z.literal(false),
                     reason: z.string().optional(),
                     isAutomatic: z.boolean().optional(),
+                    signature: z.string().optional(),
                   }),
                 }),
                 z.object({
@@ -253,6 +258,7 @@ const uiMessagesSchema = lazySchema(() =>
                     approved: z.never().optional(),
                     reason: z.never().optional(),
                     isAutomatic: z.boolean().optional(),
+                    signature: z.string().optional(),
                   }),
                 }),
                 z.object({
@@ -270,6 +276,7 @@ const uiMessagesSchema = lazySchema(() =>
                     approved: z.boolean(),
                     reason: z.string().optional(),
                     isAutomatic: z.boolean().optional(),
+                    signature: z.string().optional(),
                   }),
                 }),
                 z.object({
@@ -290,6 +297,7 @@ const uiMessagesSchema = lazySchema(() =>
                       approved: z.literal(true),
                       reason: z.string().optional(),
                       isAutomatic: z.boolean().optional(),
+                      signature: z.string().optional(),
                     })
                     .optional(),
                 }),
@@ -311,6 +319,7 @@ const uiMessagesSchema = lazySchema(() =>
                       approved: z.literal(true),
                       reason: z.string().optional(),
                       isAutomatic: z.boolean().optional(),
+                      signature: z.string().optional(),
                     })
                     .optional(),
                 }),
@@ -329,6 +338,7 @@ const uiMessagesSchema = lazySchema(() =>
                     approved: z.literal(false),
                     reason: z.string().optional(),
                     isAutomatic: z.boolean().optional(),
+                    signature: z.string().optional(),
                   }),
                 }),
               ]),

@@ -1,5 +1,82 @@
 # @ai-sdk/azure
 
+## 4.0.0-beta.79
+
+### Patch Changes
+
+- Updated dependencies [0416e3e]
+  - @ai-sdk/provider@4.0.0-beta.20
+  - @ai-sdk/deepseek@3.0.0-beta.56
+  - @ai-sdk/openai@4.0.0-beta.77
+  - @ai-sdk/provider-utils@5.0.0-beta.50
+
+## 4.0.0-beta.78
+
+### Patch Changes
+
+- Updated dependencies [2c4767d]
+  - @ai-sdk/openai@4.0.0-beta.76
+
+## 4.0.0-beta.77
+
+### Patch Changes
+
+- Updated dependencies [1772a63]
+  - @ai-sdk/openai@4.0.0-beta.75
+
+## 4.0.0-beta.76
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/deepseek@3.0.0-beta.55
+  - @ai-sdk/openai@4.0.0-beta.74
+  - @ai-sdk/provider-utils@5.0.0-beta.49
+  - @ai-sdk/provider@4.0.0-beta.19
+
+## 4.0.0-canary.75
+
+### Patch Changes
+
+- Updated dependencies [aeda373]
+- Updated dependencies [375fdd7]
+- Updated dependencies [b4507d5]
+  - @ai-sdk/provider-utils@5.0.0-canary.48
+  - @ai-sdk/deepseek@3.0.0-canary.54
+  - @ai-sdk/openai@4.0.0-canary.73
+
+## 4.0.0-canary.74
+
+### Patch Changes
+
+- Updated dependencies [bae5e2b]
+  - @ai-sdk/provider-utils@5.0.0-canary.47
+  - @ai-sdk/deepseek@3.0.0-canary.53
+  - @ai-sdk/openai@4.0.0-canary.72
+
+## 4.0.0-canary.73
+
+### Patch Changes
+
+- b23b042: feat(azure): add deepseek model support to azure
+- Updated dependencies [b23b042]
+  - @ai-sdk/deepseek@3.0.0-canary.52
+
+## 4.0.0-canary.72
+
+### Patch Changes
+
+- Updated dependencies [ae7f932]
+  - @ai-sdk/openai@4.0.0-canary.71
+
+## 4.0.0-canary.71
+
+### Patch Changes
+
+- Updated dependencies [6a5800e]
+  - @ai-sdk/openai@4.0.0-canary.70
+
 ## 4.0.0-canary.70
 
 ### Patch Changes

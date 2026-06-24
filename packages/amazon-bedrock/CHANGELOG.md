@@ -1,5 +1,97 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.0-beta.89
+
+### Patch Changes
+
+- Updated dependencies [19c5ee2]
+  - @ai-sdk/anthropic@4.0.0-beta.69
+
+## 5.0.0-beta.88
+
+### Patch Changes
+
+- Updated dependencies [0416e3e]
+  - @ai-sdk/provider@4.0.0-beta.20
+  - @ai-sdk/anthropic@4.0.0-beta.68
+  - @ai-sdk/openai@4.0.0-beta.77
+  - @ai-sdk/provider-utils@5.0.0-beta.50
+
+## 5.0.0-beta.87
+
+### Patch Changes
+
+- bc8ed78: Omit `strict` from tool specs for Claude Opus 4.7/4.8 on Bedrock, which reject the field on the Messages API
+- Updated dependencies [2c4767d]
+  - @ai-sdk/openai@4.0.0-beta.76
+
+## 5.0.0-beta.86
+
+### Patch Changes
+
+- Updated dependencies [1772a63]
+  - @ai-sdk/openai@4.0.0-beta.75
+
+## 5.0.0-beta.85
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/anthropic@4.0.0-beta.67
+  - @ai-sdk/openai@4.0.0-beta.74
+  - @ai-sdk/provider-utils@5.0.0-beta.49
+  - @ai-sdk/provider@4.0.0-beta.19
+
+## 5.0.0-canary.84
+
+### Patch Changes
+
+- Updated dependencies [aeda373]
+- Updated dependencies [375fdd7]
+- Updated dependencies [b4507d5]
+  - @ai-sdk/provider-utils@5.0.0-canary.48
+  - @ai-sdk/anthropic@4.0.0-canary.66
+  - @ai-sdk/openai@4.0.0-canary.73
+
+## 5.0.0-canary.83
+
+### Patch Changes
+
+- Updated dependencies [bae5e2b]
+  - @ai-sdk/provider-utils@5.0.0-canary.47
+  - @ai-sdk/anthropic@4.0.0-canary.65
+  - @ai-sdk/openai@4.0.0-canary.72
+
+## 5.0.0-canary.82
+
+### Patch Changes
+
+- 9eda693: fix(provider/amazon-bedrock): detect Cohere embedding models behind cross-region inference profile ids
+
+## 5.0.0-canary.81
+
+### Patch Changes
+
+- 9fa4e9d: fix(provider/amazon-bedrock): extract Cohere embedding token usage from response header
+
+## 5.0.0-canary.80
+
+### Patch Changes
+
+- Updated dependencies [ae7f932]
+  - @ai-sdk/openai@4.0.0-canary.71
+
+## 5.0.0-canary.79
+
+### Patch Changes
+
+- 6b4d325: feat(provider/anthropic): add support for `claude-fable-5` and the `fallbacks` API parameter
+- Updated dependencies [6a5800e]
+- Updated dependencies [6b4d325]
+  - @ai-sdk/openai@4.0.0-canary.70
+  - @ai-sdk/anthropic@4.0.0-canary.64
+
 ## 5.0.0-canary.78
 
 ### Patch Changes
