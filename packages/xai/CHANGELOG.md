@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.97
+
+### Patch Changes
+
+- 9300b02: xai: support 'none' and 'medium' reasoning effort and curate model ids to xai's current lineup (add grok-4.3, grok-build-0.1, grok-imagine-image-quality)
+
 ## 3.0.96
 
 ### Patch Changes
