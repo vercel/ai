@@ -1,5 +1,15 @@
 # @ai-sdk/anthropic-aws
 
+## 1.0.0
+
+### Major Changes
+
+- e617cba: feat(anthropic-aws): add Claude Platform on AWS provider
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+
 ## 1.0.0-beta.10
 
 ### Patch Changes
