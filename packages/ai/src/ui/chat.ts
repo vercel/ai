@@ -493,7 +493,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           ? {
               ...part,
               state: 'approval-responded',
-              approval: { id, approved, reason },
+              approval: { ...part.approval, id, approved, reason },
             }
           : part;
 
