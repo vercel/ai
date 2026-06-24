@@ -1,5 +1,13 @@
 # @ai-sdk/fireworks
 
+## 3.0.0-beta.60
+
+### Patch Changes
+
+- 7cf47d8: Add the `promptCacheKey` provider option for Fireworks prompt cache affinity
+  and Kimi K2.6 model autocomplete, and remove the deprecated Kimi K2.5
+  serverless model from autocomplete.
+
 ## 3.0.0-beta.59
 
 ### Patch Changes
