@@ -25,6 +25,12 @@ export type FireworksChatModelId =
   | (string & {});
 
 export const fireworksLanguageModelOptions = z.object({
+  /**
+   * A stable key for routing requests with shared prompt prefixes to the same
+   * prompt cache.
+   */
+  promptCacheKey: z.string().optional(),
+
   thinking: z
     .object({
       type: z.enum(['enabled', 'disabled']).optional(),
