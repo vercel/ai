@@ -232,7 +232,7 @@ export interface MCPClient {
  * This client is meant to be used to communicate with a single server. To communicate and fetch tools across multiple servers, it's recommended to create a new client instance per server.
  *
  * Not supported:
- * - Accepting notifications
+ * - Handling notifications (server-initiated notifications are accepted but ignored)
  * - Automatic session persistence for Streamable HTTP transport
  * - Resumable SSE streams
  */
@@ -285,13 +285,12 @@ class DefaultMCPClient implements MCPClient {
       if ('method' in message) {
         if ('id' in message) {
           this.onRequestMessage(message);
-        } else {
-          this.onError(
-            new MCPClientError({
-              message: 'Unsupported message type',
-            }),
-          );
         }
+        // A message with a `method` but no `id` is a JSON-RPC notification
+        // (e.g. notifications/message, notifications/cancelled). The MCP spec
+        // requires clients to accept server-initiated notifications and to
+        // ignore any they do not handle, so we drop them silently instead of
+        // surfacing an error.
         return;
       }
 
