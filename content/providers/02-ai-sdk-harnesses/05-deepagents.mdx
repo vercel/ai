@@ -1,15 +1,15 @@
 ---
-title: DeepAgents
-description: Learn how to use the DeepAgents harness adapter.
+title: Deep Agents
+description: Learn how to use the Deep Agents harness adapter.
 ---
 
-# DeepAgents Harness
+# Deep Agents Harness
 
-The DeepAgents harness adapter connects `HarnessAgent` to
-[DeepAgents](https://github.com/deep-agents/deepagents), a LangGraph-based agent
+The Deep Agents harness adapter connects `HarnessAgent` to
+[Deep Agents](https://github.com/deep-agents/deepagents), a LangGraph-based agent
 runtime. The adapter runs a Node bridge inside the sandbox that drives the
-`deepagents` package (`createDeepAgent`) and streams its `streamEvents` output
-back to the host over a sandbox-exposed WebSocket.
+`deepagents` package and streams its `streamEvents` output back to the host over a
+sandbox-exposed WebSocket.
 
 <Note>
   Harness packages are **experimental**. Expect breaking changes between
@@ -112,7 +112,7 @@ const harness = createDeepAgents({
 Settings:
 
 - `auth`: Anthropic or AI Gateway authentication settings.
-- `model`: model id passed to the DeepAgents (LangChain) runtime. Through AI
+- `model`: model id passed to the Deep Agents (LangChain) runtime. Through AI
   Gateway, use the `creator/model` slug (e.g. `anthropic/claude-sonnet-4-6`,
   `google/gemini-2.5-flash`, `openai/gpt-4.1-mini`).
 - `port`: bridge port override.
@@ -120,7 +120,7 @@ Settings:
 
 ## Authentication
 
-DeepAgents always drives the Anthropic client. Non-Anthropic models reach it
+Deep Agents always drives the Anthropic client. Non-Anthropic models reach it
 through AI Gateway's Anthropic-compatible endpoint, which translates to any
 model (Gemini, OpenAI, etc.), tool calls included. Authentication is resolved
 from the host environment and forwarded to the sandbox bridge: explicit
@@ -152,7 +152,7 @@ const harness = createDeepAgents({
 
 ## Sandbox
 
-DeepAgents requires a network sandbox with at least one exposed port,
+Deep Agents requires a network sandbox with at least one exposed port,
 e.g. `@ai-sdk/sandbox-vercel`:
 
 ```ts
@@ -164,16 +164,16 @@ const sandbox = createVercelSandbox({
 
 ## Skills
 
-Skills passed to the session are materialized as native DeepAgents skill folders
+Skills passed to the session are materialized as native Deep Agents skill folders
 (`<name>/SKILL.md` plus any attached files) under `$HOME/.agents/skills/` in the
 sandbox (outside the work dir, so they can't clash with cloned code), and loaded
-via DeepAgents' `skills` option — so the agent loads them on demand and skill
+via Deep Agents' `skills` option — so the agent loads them on demand and skill
 file references resolve. Skills already present under `<workDir>/.agents/skills/`
 (e.g. in a cloned repo) are also discovered.
 
 ## Built-in Tools
 
-The adapter exposes these common DeepAgents built-ins through `agent.tools`:
+The adapter exposes these common Deep Agents built-ins through `agent.tools`:
 
 - `read` (native `read_file`)
 - `write` (native `write_file`)
@@ -185,7 +185,7 @@ The adapter exposes these common DeepAgents built-ins through `agent.tools`:
 - **Built-in tool approvals** are not supported yet. Use
   `permissionMode: 'allow-all'`. Host-executed AI SDK tool approvals still work.
 - **Cross-process resume, turn continuation, and suspend/detach** are not
-  supported yet — DeepAgents holds conversation state in memory (LangGraph
+  supported yet — Deep Agents holds conversation state in memory (LangGraph
   `MemorySaver`), which does not survive a bridge restart. These methods throw
   `HarnessCapabilityUnsupportedError`.
 - **Manual compaction** is not supported.
