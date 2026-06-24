@@ -41,6 +41,32 @@ type DeepAgentsChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 // Pure derived state in /tmp; reinstalled per sandbox, persistence is the provider snapshot.
 const BOOTSTRAP_DIR = '/tmp/harness/deepagents';
 
+// Pinned ripgrep release + per-arch tarball checksums (verified before install).
+const RIPGREP_VERSION = '14.1.1';
+const RIPGREP_SHA256_X64 =
+  '4cf9f2741e6c465ffdb7c26f38056a59e2a2544b51f7cc128ef28337eeae4d8e';
+const RIPGREP_SHA256_ARM =
+  'c827481c4ff4ea10c9dc7a4022c8de5db34a5737cb74484d62eb94a95841ab2f';
+
+// Idempotent, checksum-verified install of a static ripgrep binary into a PATH dir.
+// DeepAgents' grep shells out to `rg`; without it, its fallback reads the whole workdir (incl. node_modules) into memory and OOMs. Skipped if `rg` already exists.
+function installRipgrepCommand(): string {
+  const v = RIPGREP_VERSION;
+  return [
+    'command -v rg >/dev/null 2>&1 || {',
+    'case "$(uname -m)" in',
+    `aarch64) a=aarch64-unknown-linux-gnu; sha=${RIPGREP_SHA256_ARM} ;;`,
+    `*) a=x86_64-unknown-linux-musl; sha=${RIPGREP_SHA256_X64} ;;`,
+    'esac;',
+    `f=/tmp/ripgrep-${v}.tar.gz;`,
+    `curl -fsSL "https://github.com/BurntSushi/ripgrep/releases/download/${v}/ripgrep-${v}-$a.tar.gz" -o "$f"`,
+    '&& echo "$sha  $f" | sha256sum -c -',
+    '&& tar xzf "$f" -C /tmp',
+    `&& mv "/tmp/ripgrep-${v}-$a/rg" /usr/local/bin/rg && chmod +x /usr/local/bin/rg;`,
+    '}',
+  ].join(' ');
+}
+
 // Skills source subpath, written under $HOME (out of the work dir so it can't clash with code cloned into the work dir) and also discovered from <workDir> for repo-provided skills.
 const SKILLS_SOURCE_PATH = '/.agents/skills';
 
@@ -159,6 +185,7 @@ export function createDeepAgents(
         ],
         commands: [
           { command: `mkdir -p ${BOOTSTRAP_DIR}` },
+          { command: installRipgrepCommand() },
           {
             command: `pnpm --dir ${BOOTSTRAP_DIR} install --frozen-lockfile --store-dir ${BOOTSTRAP_DIR}/.pnpm-store`,
           },
