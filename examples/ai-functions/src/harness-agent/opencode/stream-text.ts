@@ -1,5 +1,5 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { createPi } from '@ai-sdk/harness-pi';
+import { openCode } from '@ai-sdk/harness-opencode';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
@@ -7,10 +7,11 @@ import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 run(async () => {
   const sandbox = createVercelSandbox({
     runtime: 'node24',
+    ports: [4000],
     timeout: 10 * 60 * 1000,
   });
   const agent = new HarnessAgent({
-    harness: createPi({ thinkingLevel: 'medium' }),
+    harness: openCode,
     sandbox,
   });
 
@@ -19,15 +20,13 @@ run(async () => {
   try {
     const result = await agent.stream({
       session,
-      prompt:
-        'Plan how to convert miles to kilometres, then give the answer for 26.2 miles. ' +
-        'Show your reasoning briefly.',
+      prompt: 'Recite the first sentence of "A Tale of Two Cities".',
     });
 
     await printFullStream({ result });
 
-    const reasoning = await result.reasoningText;
-    console.log('reasoning text length:', reasoning?.length ?? 0);
+    console.log('finishReason:', await result.finishReason);
+    console.log('usage:', await result.usage);
   } catch (err) {
     exitCode = 1;
     console.error('[example] failed:', err);

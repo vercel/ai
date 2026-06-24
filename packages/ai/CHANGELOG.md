@@ -1,5 +1,18 @@
 # ai
 
+## 7.0.0-beta.186
+
+### Patch Changes
+
+- Updated dependencies [eb024b6]
+  - @ai-sdk/gateway@4.0.0-beta.113
+
+## 7.0.0-beta.185
+
+### Patch Changes
+
+- 75763b0: agents: tag outgoing requests with an ai-sdk-agent user-agent segment for usage attribution (tool-loop, workflow)
+
 ## 7.0.0-beta.184
 
 ### Patch Changes

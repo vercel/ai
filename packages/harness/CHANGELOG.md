@@ -1,5 +1,24 @@
 # @ai-sdk/harness
 
+## 1.0.0-beta.25
+
+### Patch Changes
+
+- ai@7.0.0-beta.186
+
+## 1.0.0-beta.24
+
+### Patch Changes
+
+- Updated dependencies [75763b0]
+  - ai@7.0.0-beta.185
+
+## 1.0.0-beta.23
+
+### Patch Changes
+
+- 57e0a59: fix(harness): ensure finish chunk's total usage is actually coming from total usage
+
 ## 1.0.0-beta.22
 
 ### Patch Changes

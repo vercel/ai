@@ -1,6 +1,5 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { createClaudeCode } from '@ai-sdk/harness-claude-code';
-import { printFullStream } from '../../lib/print-full-stream';
+import { openCode } from '@ai-sdk/harness-opencode';
 import { run } from '../../lib/run';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
@@ -11,23 +10,20 @@ run(async () => {
     timeout: 10 * 60 * 1000,
   });
   const agent = new HarnessAgent({
-    harness: createClaudeCode({ thinking: 'adaptive' }),
+    harness: openCode,
     sandbox,
   });
 
   let exitCode = 0;
   const session = await agent.createSession();
   try {
-    const result = await agent.stream({
+    const result = await agent.generate({
       session,
-      prompt:
-        'Solve this step by step: if f(x) = x^3 - 6x^2 + 11x - 6, find all roots and prove they are correct.',
+      prompt: 'In one sentence, what is the capital of France?',
     });
-
-    await printFullStream({ result });
-
-    const reasoning = await result.reasoningText;
-    console.log('reasoning text length:', reasoning?.length ?? 0);
+    console.log('text:', result.text);
+    console.log('finishReason:', result.finishReason);
+    console.log('usage:', result.usage);
   } catch (err) {
     exitCode = 1;
     console.error('[example] failed:', err);
