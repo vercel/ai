@@ -342,6 +342,7 @@
   "kebabToPascalMap": {
     "assemblyai": "AssemblyAI",
     "bytedance": "ByteDance",
+    "deepagents": "DeepAgents",
     "deepinfra": "DeepInfra",
     "deepseek": "DeepSeek",
     "elevenlabs": "ElevenLabs",
