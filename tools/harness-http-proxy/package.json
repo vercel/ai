@@ -1,0 +1,59 @@
+{
+  "name": "harness-http-proxy",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Internal, unshipped test tool: in-sandbox HTTP/HTTPS MITM proxy substrate that lets the harness e2e suite record and replay real CLI traffic. Vendors the agent-harness-sdk Go proxy binary verbatim.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "source": "./src/index.ts",
+  "files": [
+    "dist/**/*",
+    "bin/**/*",
+    "src",
+    "!src/**/*.test.ts"
+  ],
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
+    "build:binaries": "cd go && sh scripts/build-binaries.sh && cd .. && node scripts/collect-binaries.mjs",
+    "clean": "del-cli dist *.tsbuildinfo",
+    "type-check": "tsc --noEmit",
+    "test": "vitest --config vitest.config.ts --run",
+    "test:watch": "vitest --config vitest.config.ts"
+  },
+  "dependencies": {
+    "@ai-sdk/harness": "workspace:*",
+    "@ai-sdk/sandbox-vercel": "workspace:*"
+  },
+  "peerDependencies": {
+    "@vercel/sandbox": "^2.0.1",
+    "ws": "^8.20.1"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.19",
+    "@types/ws": "^8.5.13",
+    "@vercel/ai-tsconfig": "workspace:*",
+    "@vercel/sandbox": "^2.0.1",
+    "tsup": "^8.5.1",
+    "typescript": "5.8.3",
+    "ws": "^8.20.1"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vercel/ai",
+    "directory": "tools/harness-http-proxy"
+  }
+}

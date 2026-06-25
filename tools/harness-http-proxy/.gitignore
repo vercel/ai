@@ -1,0 +1,5 @@
+dist
+*.tsbuildinfo
+go/public
+go/http-proxy-server
+ws-proxy

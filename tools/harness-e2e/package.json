@@ -1,0 +1,62 @@
+{
+  "name": "harness-e2e",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Internal, unshipped test tool: real-CLI E2E adapter regression suite. Records the harness adapters' real LLM HTTP traffic as fixtures once and replays it deterministically offline (riding on the harness-http-proxy substrate). Not published.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "source": "./src/index.ts",
+  "files": [
+    "dist/**/*",
+    "src",
+    "!src/**/*.test.ts"
+  ],
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
+    "clean": "del-cli dist *.tsbuildinfo",
+    "type-check": "tsc --noEmit",
+    "test": "vitest --config vitest.config.ts --run",
+    "test:watch": "vitest --config vitest.config.ts",
+    "test:integration": "vitest --config vitest.integration.config.ts --run"
+  },
+  "dependencies": {
+    "@ai-sdk/harness": "workspace:*",
+    "@ai-sdk/harness-claude-code": "workspace:*",
+    "@ai-sdk/harness-codex": "workspace:*",
+    "@ai-sdk/harness-pi": "workspace:*",
+    "@ai-sdk/sandbox-vercel": "workspace:*",
+    "harness-http-proxy": "workspace:*"
+  },
+  "peerDependencies": {
+    "@vercel/sandbox": "^2.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.19",
+    "@vercel/ai-tsconfig": "workspace:*",
+    "@vercel/sandbox": "^2.0.1",
+    "ai": "workspace:*",
+    "dotenv": "16.4.5",
+    "tsup": "^8.5.1",
+    "typescript": "5.8.3",
+    "zod": "3.25.76"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vercel/ai",
+    "directory": "tools/harness-e2e"
+  }
+}

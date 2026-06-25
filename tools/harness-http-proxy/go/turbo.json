@@ -1,0 +1,18 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["build:binaries"],
+      "outputs": ["public/**", "http-proxy-server"]
+    },
+    "build:binaries": {
+      "inputs": ["go.mod", "go.sum", "*.go", "**/*.go", "scripts"],
+      "outputs": ["public", "http-proxy-server"]
+    },
+    "test": {
+      "dependsOn": ["typecheck"],
+      "inputs": ["**/*.go", "http-proxy-server"],
+      "outputs": []
+    }
+  }
+}
