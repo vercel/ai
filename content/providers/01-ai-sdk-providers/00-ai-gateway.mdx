@@ -204,6 +204,40 @@ console.log(ranking);
 
 Reranking models are useful for improving search results in retrieval-augmented generation (RAG) pipelines by re-scoring candidate documents after an initial retrieval step.
 
+## Speech Models
+
+You can create speech models using the `speechModel` method on the provider instance:
+
+```ts
+import { experimental_generateSpeech as generateSpeech } from "ai";
+import { gateway } from "@ai-sdk/gateway";
+
+const { audio } = await generateSpeech({
+  model: gateway.speechModel("openai/tts-1"),
+  text: "Hello, world!",
+  voice: "alloy",
+});
+```
+
+Speech models are useful for generating audio from text using the same Gateway authentication, routing, and observability as other Gateway model types.
+
+## Transcription Models
+
+You can create transcription models using the `transcriptionModel` method on the provider instance:
+
+```ts
+import { experimental_transcribe as transcribe } from "ai";
+import { gateway } from "@ai-sdk/gateway";
+import { readFile } from "fs/promises";
+
+const { text } = await transcribe({
+  model: gateway.transcriptionModel("openai/gpt-4o-transcribe"),
+  audio: await readFile("audio.mp3"),
+});
+```
+
+Transcription models are useful for converting audio to text through the AI Gateway.
+
 ## Available Models
 
 The AI Gateway supports models from OpenAI, Anthropic, Google, Meta, xAI, Mistral, DeepSeek, Amazon Bedrock, Cohere, Perplexity, Alibaba, and other providers.

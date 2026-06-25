@@ -101,11 +101,6 @@ async function main() {
   const modelsByType: Record<string, string[]> = {};
 
   for (const model of response.data) {
-    if (!MODALITY_CONFIG[model.type]) {
-      console.log(`Skipping unsupported model type '${model.type}'`);
-      continue;
-    }
-
     if (!modelsByType[model.type]) {
       modelsByType[model.type] = [];
     }
