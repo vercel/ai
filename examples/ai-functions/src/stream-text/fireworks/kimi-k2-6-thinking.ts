@@ -8,7 +8,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: fireworks('accounts/fireworks/models/kimi-k2p5'),
+    model: fireworks('accounts/fireworks/models/kimi-k2p6'),
     providerOptions: {
       fireworks: {
         thinking: { type: 'enabled', budgetTokens: 4096 },

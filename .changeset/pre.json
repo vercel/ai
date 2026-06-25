@@ -99,7 +99,8 @@
     "@ai-sdk/harness-claude-code": "0.0.0",
     "@ai-sdk/harness-codex": "0.0.0",
     "@ai-sdk/harness-pi": "0.0.0",
-    "@ai-sdk/workflow-harness": "0.0.0"
+    "@ai-sdk/workflow-harness": "0.0.0",
+    "@ai-sdk/harness-opencode": "0.0.0"
   },
   "changesets": [
     "0000-otel-invalid-array-attributes",
@@ -250,6 +251,7 @@
     "four-keys-crash",
     "four-pants-repeat",
     "fresh-bridges-reject",
+    "fresh-fireworks-cache",
     "friendly-cars-scream",
     "friendly-hairs-crash",
     "friendly-lizards-punch",
@@ -337,8 +339,10 @@
     "ilckb-kktyk-prxzc",
     "itchy-cooks-sparkle",
     "itchy-frogs-sparkle",
+    "khaki-fireants-battle",
     "khaki-lamps-push",
     "koymu-lljbu-oziop",
+    "kypqz-bvoum-cfscj",
     "langchain-source-parts",
     "langgraph-tool-progress",
     "large-bottles-marry",
@@ -562,6 +566,7 @@
     "strange-penguins-drive",
     "strange-swans-invite",
     "stream-part-id-map-hardening",
+    "strong-toys-clap",
     "stupid-boxes-impress",
     "stupid-lamps-brush",
     "stupid-taxis-call",

@@ -27,12 +27,25 @@ const agent = new HarnessAgent({
     runtime: 'node24',
     ports: [4000],
   }),
-  onSandboxSession: async ({ session, sessionWorkDir, abortSignal }) => {
-    await session.writeTextFile({
-      path: `${sessionWorkDir}/README.md`,
-      content: 'Workspace notes for this session.',
-      abortSignal,
-    });
+  sandboxConfig: {
+    bootstrapHash: 'ripgrep-v1',
+    onBootstrap: async ({ session, abortSignal }) => {
+      const result = await session.run({
+        command:
+          'command -v rg >/dev/null || (apt-get update && apt-get install -y ripgrep)',
+        abortSignal,
+      });
+      if (result.exitCode !== 0) {
+        throw new Error(`Failed to install ripgrep: ${result.stderr}`);
+      }
+    },
+    onSession: async ({ session, sessionWorkDir, abortSignal }) => {
+      await session.writeTextFile({
+        path: `${sessionWorkDir}/README.md`,
+        content: 'Workspace notes for this session.',
+        abortSignal,
+      });
+    },
   },
   tools: {
     deploy: tool({
@@ -70,18 +83,17 @@ try {
 }
 ```
 
-`sandbox` is a required `HarnessV1SandboxProvider` — the agent calls `provider.createSession()` when a session starts. Use `onSandboxSession` to prepare the acquired sandbox before the harness adapter starts. The hook runs for fresh and resumed sessions, so keep it idempotent. Use `session.detach()` to park a bridge-backed session for later attach, `session.stop()` to save state and stop the sandbox, or `session.destroy()` to clean up without keeping resume state. Bridge-backed adapters (claude-code, codex) require a provider that exposes ports — `@ai-sdk/sandbox-vercel` is the supported choice today. `@ai-sdk/sandbox-just-bash` is suitable only for non-bridge flows.
+Use `session.detach()` to park a bridge-backed session for later attach, `session.stop()` to save state and stop the sandbox, or `session.destroy()` to clean up without keeping resume state. Bridge-backed adapters (claude-code, codex) require a sandbox provider that exposes ports — `@ai-sdk/sandbox-vercel` is the supported choice today. `@ai-sdk/sandbox-just-bash` is suitable only for non-bridge flows.
+
+`sandbox` is a required `HarnessV1SandboxProvider` — the agent calls `provider.createSession()` when a session starts. Use `sandboxConfig` for agent specific sandbox configuration that works independently from the sandbox provider that is used:
+
+- Use `sandboxConfig.onSession` to prepare the acquired sandbox before the harness adapter starts. The hook runs for fresh and resumed sessions, so keep it idempotent.
+- Use `sandboxConfig.onBootstrap` for expensive sandbox setup that should be baked into a reusable snapshot, such as installing tools or cloning a large repository. Provide `sandboxConfig.bootstrapHash` with it and change that value whenever the bootstrap output should invalidate the cached snapshot.
+- Use `sandboxConfig.workDir` to set a stable working directory for the agent, relative to the sandbox's default working directory; otherwise regular sessions use the existing `<harnessId>-<sessionId>` directory. In that case, the `onBootstrap` callback receives the sandbox's default working directory.
 
 ### Available harnesses
 
-- `@ai-sdk/harness-claude-code`
-- `@ai-sdk/harness-codex`
-- `@ai-sdk/harness-opencode` (WIP)
-- `@ai-sdk/harness-goose` (WIP)
-- `@ai-sdk/harness-mastra` (WIP)
-- `@ai-sdk/harness-deepagents` (WIP)
-- `@ai-sdk/harness-openai-agents` (WIP)
-- `@ai-sdk/harness-pi` (WIP)
+See the [harness adapters documentation](https://ai-sdk.dev/v7/docs/ai-sdk-harnesses/harness-adapters).
 
 ## Implementing a harness
 

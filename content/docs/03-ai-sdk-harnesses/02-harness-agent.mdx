@@ -7,7 +7,7 @@ description: Create and run AI SDK HarnessAgent sessions.
 
 `HarnessAgent` is an AI SDK `Agent` implementation backed by a harness adapter.
 It gives you `generate()` and `stream()` methods that return AI SDK-compatible
-results while an preconfigured harness powers these results.
+results while a preconfigured harness powers these results.
 
 ## Installation
 
@@ -213,8 +213,17 @@ the continued turn and return a `GenerateTextResult`.
 
 ## Prepare the Sandbox
 
-Use `onSandboxSession` to prepare files, install lightweight utilities, or write
-configuration before the harness starts:
+Use `sandboxConfig` to prepare the sandbox before the harness starts.
+
+`sandboxConfig.onBootstrap` runs during sandbox template creation, after the
+harness adapter's own bootstrap and before snapshot-capable providers publish a
+snapshot. Use it for expensive setup that should be reused by future sessions.
+When you provide `onBootstrap`, also provide `bootstrapHash`; change the hash
+whenever the bootstrap output should invalidate the reusable snapshot.
+
+`sandboxConfig.onSession` runs after each sandbox session is acquired and its
+working directory exists, including resumed sessions. Use it for per-session
+files or lightweight configuration.
 
 ```ts
 const agent = new HarnessAgent({
@@ -223,17 +232,34 @@ const agent = new HarnessAgent({
     runtime: 'node24',
     ports: [4000],
   }),
-  onSandboxSession: async ({ session, sessionWorkDir, abortSignal }) => {
-    await session.writeTextFile({
-      path: `${sessionWorkDir}/README.md`,
-      content: 'Session notes for the harness.',
-      abortSignal,
-    });
+  sandboxConfig: {
+    workDir: 'repo',
+    bootstrapHash: 'ripgrep-v1',
+    onBootstrap: async ({ session, abortSignal }) => {
+      const result = await session.run({
+        command:
+          'command -v rg >/dev/null || (apt-get update && apt-get install -y ripgrep)',
+        abortSignal,
+      });
+      if (result.exitCode !== 0) {
+        throw new Error(`Failed to install ripgrep: ${result.stderr}`);
+      }
+    },
+    onSession: async ({ session, sessionWorkDir, abortSignal }) => {
+      await session.writeTextFile({
+        path: `${sessionWorkDir}/README.md`,
+        content: 'Session notes for the harness.',
+        abortSignal,
+      });
+    },
   },
 });
 ```
 
-This hook runs for fresh and resumed sessions. Keep it idempotent.
+`workDir` is optional. When provided, it must be relative to the sandbox's
+default working directory and is used as the session working directory. When
+omitted, regular sessions use the default `<harnessId>-<sessionId>` directory,
+while `onBootstrap` receives the sandbox's default working directory.
 
 ## Settings
 
@@ -247,7 +273,7 @@ This hook runs for fresh and resumed sessions. Keep it idempotent.
 - `skills`: instruction bundles surfaced by the adapter.
 - `permissionMode`: built-in tool permission mode.
 - `toolApproval`: approval status map for host-executed tools.
-- `onSandboxSession`: sandbox preparation hook.
+- `sandboxConfig`: sandbox working-directory and lifecycle hook configuration.
 - `telemetry`, `debug`, and `onLog`: observability and diagnostics.
 
 Adapter-specific settings belong on the adapter factory, for example
