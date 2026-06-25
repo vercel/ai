@@ -228,6 +228,8 @@ describe('GatewayFetchMetadata', () => {
         'image',
         'language',
         'reranking',
+        'speech',
+        'transcription',
         'video',
       ];
       server.urls['https://api.example.com/*'].response = {

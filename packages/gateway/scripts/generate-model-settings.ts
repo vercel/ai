@@ -40,6 +40,14 @@ const MODALITY_CONFIG: Record<
     outputFile: 'gateway-reranking-model-settings.ts',
     typeName: 'GatewayRerankingModelId',
   },
+  speech: {
+    outputFile: 'gateway-speech-model-settings.ts',
+    typeName: 'GatewaySpeechModelId',
+  },
+  transcription: {
+    outputFile: 'gateway-transcription-model-settings.ts',
+    typeName: 'GatewayTranscriptionModelId',
+  },
 };
 
 async function fetchModels(): Promise<ModelsResponse> {
@@ -93,6 +101,11 @@ async function main() {
   const modelsByType: Record<string, string[]> = {};
 
   for (const model of response.data) {
+    if (!MODALITY_CONFIG[model.type]) {
+      console.log(`Skipping unsupported model type '${model.type}'`);
+      continue;
+    }
+
     if (!modelsByType[model.type]) {
       modelsByType[model.type] = [];
     }
