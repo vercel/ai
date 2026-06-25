@@ -100,6 +100,42 @@ export function pruneMessages({
       }
     }
 
+    // Build global maps from tool call id and approval id to tool name.
+    // These must be global (not per-message) because a `tool-approval-response`
+    // lives in a separate `tool` message from its `tool-approval-request`
+    // (assistant message), so the tool name of a response can only be resolved
+    // by looking across messages. Resolving names per-message left responses
+    // unresolved, which caused them to be kept while their request was pruned,
+    // producing orphaned approval responses.
+    const toolCallIdToToolName: Record<string, string> = {};
+    for (const message of messages) {
+      if (
+        (message.role === 'assistant' || message.role === 'tool') &&
+        typeof message.content !== 'string'
+      ) {
+        for (const part of message.content) {
+          if (part.type === 'tool-call' || part.type === 'tool-result') {
+            toolCallIdToToolName[part.toolCallId] = part.toolName;
+          }
+        }
+      }
+    }
+
+    const approvalIdToToolName: Record<string, string> = {};
+    for (const message of messages) {
+      if (
+        (message.role === 'assistant' || message.role === 'tool') &&
+        typeof message.content !== 'string'
+      ) {
+        for (const part of message.content) {
+          if (part.type === 'tool-approval-request') {
+            approvalIdToToolName[part.approvalId] =
+              toolCallIdToToolName[part.toolCallId];
+          }
+        }
+      }
+    }
+
     messages = messages.map((message, messageIndex) => {
       if (
         (message.role !== 'assistant' && message.role !== 'tool') ||
@@ -109,9 +145,6 @@ export function pruneMessages({
       ) {
         return message;
       }
-
-      const toolCallIdToToolName: Record<string, string> = {};
-      const approvalIdToToolName: Record<string, string> = {};
 
       return {
         ...message,
@@ -124,14 +157,6 @@ export function pruneMessages({
             part.type !== 'tool-approval-response'
           ) {
             return true;
-          }
-
-          // track tool calls and approvals:
-          if (part.type === 'tool-call') {
-            toolCallIdToToolName[part.toolCallId] = part.toolName;
-          } else if (part.type === 'tool-approval-request') {
-            approvalIdToToolName[part.approvalId] =
-              toolCallIdToToolName[part.toolCallId];
           }
 
           // keep parts that are associated with a tool call or approval that needs to be kept:
