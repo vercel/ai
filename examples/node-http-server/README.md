@@ -4,10 +4,10 @@ A minimal Node.js HTTP server demonstrating how to use the AI SDK to stream text
 
 ## Endpoints
 
-| Method | Path            | Description                                                                                 |
-| ------ | --------------- | ------------------------------------------------------------------------------------------- |
-| `POST` | `/`             | Streams a text response generated with `streamText`.                                        |
-| `POST` | `/stream-data`  | Streams a UI message stream that mixes custom data parts with `streamText` output.          |
+| Method | Path           | Description                                                                        |
+| ------ | -------------- | ---------------------------------------------------------------------------------- |
+| `POST` | `/`            | Streams a text response generated with `streamText`.                               |
+| `POST` | `/stream-data` | Streams a UI message stream that mixes custom data parts with `streamText` output. |
 
 ## Setup
 
