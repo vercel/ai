@@ -94,7 +94,14 @@ export async function parseToolCall<TOOLS extends ToolSet>({
   } catch (error) {
     // use parsed input when possible
     const parsedInput = await safeParseJSON({ text: toolCall.input });
-    const input = parsedInput.success ? parsedInput.value : toolCall.input;
+    // Wrap an unparseable input in an object so downstream serializers don't
+    // emit a raw string for `toolUse.input`. Providers like Amazon Bedrock
+    // reject the next request with "Provide a json object for the field" if a
+    // bare string flows through the assistant message into the next step. The
+    // raw text is preserved under `rawInvalidInput` for debugging.
+    const input = parsedInput.success
+      ? parsedInput.value
+      : { rawInvalidInput: toolCall.input };
     const tool = tools?.[toolCall.toolName];
 
     // TODO AI SDK 6: special invalid tool call parts
