@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 3.0.11
+
+### Patch Changes
+
+- 1b40ac7: Publish all packages under the `@ai-v6` dist tag.
+
 ## 3.0.10
 
 ### Patch Changes

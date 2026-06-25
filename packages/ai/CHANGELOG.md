@@ -1,5 +1,15 @@
 # ai
 
+## 6.0.210
+
+### Patch Changes
+
+- 1b40ac7: Publish all packages under the `@ai-v6` dist tag.
+- Updated dependencies [1b40ac7]
+  - @ai-sdk/gateway@3.0.135
+  - @ai-sdk/provider-utils@4.0.31
+  - @ai-sdk/provider@3.0.11
+
 ## 6.0.209
 
 ### Patch Changes

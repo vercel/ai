@@ -1,5 +1,15 @@
 # @ai-sdk/fireworks
 
+## 2.0.59
+
+### Patch Changes
+
+- 1b40ac7: Publish all packages under the `@ai-v6` dist tag.
+- Updated dependencies [1b40ac7]
+  - @ai-sdk/openai-compatible@2.0.52
+  - @ai-sdk/provider-utils@4.0.31
+  - @ai-sdk/provider@3.0.11
+
 ## 2.0.58
 
 ### Patch Changes

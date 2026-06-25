@@ -1,5 +1,17 @@
 # @ai-sdk/google-vertex
 
+## 4.0.150
+
+### Patch Changes
+
+- 1b40ac7: Publish all packages under the `@ai-v6` dist tag.
+- Updated dependencies [1b40ac7]
+  - @ai-sdk/anthropic@3.0.87
+  - @ai-sdk/google@3.0.84
+  - @ai-sdk/openai-compatible@2.0.52
+  - @ai-sdk/provider-utils@4.0.31
+  - @ai-sdk/provider@3.0.11
+
 ## 4.0.149
 
 ### Patch Changes

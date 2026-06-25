@@ -1,5 +1,14 @@
 # @ai-sdk/mcp
 
+## 1.0.53
+
+### Patch Changes
+
+- 1b40ac7: Publish all packages under the `@ai-v6` dist tag.
+- Updated dependencies [1b40ac7]
+  - @ai-sdk/provider-utils@4.0.31
+  - @ai-sdk/provider@3.0.11
+
 ## 1.0.52
 
 ### Patch Changes

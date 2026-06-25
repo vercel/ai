@@ -1,5 +1,15 @@
 # @ai-sdk/rsc
 
+## 2.0.210
+
+### Patch Changes
+
+- 1b40ac7: Publish all packages under the `@ai-v6` dist tag.
+- Updated dependencies [1b40ac7]
+  - ai@6.0.210
+  - @ai-sdk/provider-utils@4.0.31
+  - @ai-sdk/provider@3.0.11
+
 ## 2.0.209
 
 ### Patch Changes

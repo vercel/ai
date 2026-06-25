@@ -1,5 +1,14 @@
 # @ai-sdk/black-forest-labs
 
+## 1.0.39
+
+### Patch Changes
+
+- 1b40ac7: Publish all packages under the `@ai-v6` dist tag.
+- Updated dependencies [1b40ac7]
+  - @ai-sdk/provider-utils@4.0.31
+  - @ai-sdk/provider@3.0.11
+
 ## 1.0.38
 
 ### Patch Changes
