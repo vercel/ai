@@ -6,7 +6,7 @@ description: Learn how to use the Gonka Broker provider for the AI SDK.
 # Gonka Broker Provider
 
 [Gonka Broker](https://gonkabroker.com) provides OpenAI-compatible access to
-open-source models (Qwen, Kimi, MiniMax, and more) running on the decentralized
+open-source models (MiniMax, Kimi, and more) running on the decentralized
 [Gonka](https://gonka.ai) network — no crypto or wallet required.
 
 The [`@gonkabroker/ai-sdk-provider`](https://www.npmjs.com/package/@gonkabroker/ai-sdk-provider)
@@ -80,7 +80,7 @@ import { gonkabroker } from '@gonkabroker/ai-sdk-provider';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: gonkabroker('Qwen/Qwen3-235B-A22B-Instruct-2507-FP8'),
+  model: gonkabroker('MiniMaxAI/MiniMax-M2.7'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
