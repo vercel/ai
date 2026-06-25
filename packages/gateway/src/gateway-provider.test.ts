@@ -10,6 +10,8 @@ import { GatewayEmbeddingModel } from './gateway-embedding-model';
 import { GatewayImageModel } from './gateway-image-model';
 import { GatewayVideoModel } from './gateway-video-model';
 import { GatewayRerankingModel } from './gateway-reranking-model';
+import { GatewaySpeechModel } from './gateway-speech-model';
+import { GatewayTranscriptionModel } from './gateway-transcription-model';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import { resolve } from '@ai-sdk/provider-utils';
 import { GatewayLanguageModel } from './gateway-language-model';
@@ -154,6 +156,27 @@ function assertIsGatewayRerankingModelInternalConfig(
   ) {
     throw new Error('Invalid GatewayRerankingModel configuration');
   }
+}
+
+type GatewaySpeechModelInternalConfig = GatewayRerankingModelInternalConfig;
+
+function getGatewaySpeechModelInternalConfig(
+  model: GatewaySpeechModel,
+): GatewaySpeechModelInternalConfig {
+  const config = Reflect.get(model as object, 'config');
+  assertIsGatewayRerankingModelInternalConfig(config);
+  return config;
+}
+
+type GatewayTranscriptionModelInternalConfig =
+  GatewayRerankingModelInternalConfig;
+
+function getGatewayTranscriptionModelInternalConfig(
+  model: GatewayTranscriptionModel,
+): GatewayTranscriptionModelInternalConfig {
+  const config = Reflect.get(model as object, 'config');
+  assertIsGatewayRerankingModelInternalConfig(config);
+  return config;
 }
 
 function getGatewayRerankingModelInternalConfig(
@@ -382,6 +405,66 @@ describe('GatewayProvider', () => {
 
       if (!(model instanceof GatewayRerankingModel)) {
         fail('Expected GatewayRerankingModel to be created');
+      }
+    });
+
+    it('should create GatewaySpeechModel for speechModel', () => {
+      const provider = createGatewayProvider({
+        baseURL: 'https://api.example.com',
+        apiKey: 'test-api-key',
+      });
+
+      const model = provider.speechModel('openai/tts-1');
+
+      if (!(model instanceof GatewaySpeechModel)) {
+        fail('Expected GatewaySpeechModel to be created');
+      }
+
+      const config = getGatewaySpeechModelInternalConfig(model);
+      expect(config.provider).toBe('gateway');
+      expect(config.baseURL).toBe('https://api.example.com');
+    });
+
+    it('should create GatewaySpeechModel for speech alias', () => {
+      const provider = createGatewayProvider({
+        baseURL: 'https://api.example.com',
+        apiKey: 'test-api-key',
+      });
+
+      const model = provider.speech('openai/tts-1');
+
+      if (!(model instanceof GatewaySpeechModel)) {
+        fail('Expected GatewaySpeechModel to be created');
+      }
+    });
+
+    it('should create GatewayTranscriptionModel for transcriptionModel', () => {
+      const provider = createGatewayProvider({
+        baseURL: 'https://api.example.com',
+        apiKey: 'test-api-key',
+      });
+
+      const model = provider.transcriptionModel('openai/gpt-4o-transcribe');
+
+      if (!(model instanceof GatewayTranscriptionModel)) {
+        fail('Expected GatewayTranscriptionModel to be created');
+      }
+
+      const config = getGatewayTranscriptionModelInternalConfig(model);
+      expect(config.provider).toBe('gateway');
+      expect(config.baseURL).toBe('https://api.example.com');
+    });
+
+    it('should create GatewayTranscriptionModel for transcription alias', () => {
+      const provider = createGatewayProvider({
+        baseURL: 'https://api.example.com',
+        apiKey: 'test-api-key',
+      });
+
+      const model = provider.transcription('openai/gpt-4o-transcribe');
+
+      if (!(model instanceof GatewayTranscriptionModel)) {
+        fail('Expected GatewayTranscriptionModel to be created');
       }
     });
 
