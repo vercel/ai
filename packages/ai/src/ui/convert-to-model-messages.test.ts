@@ -1415,7 +1415,7 @@ describe('convertToModelMessages', () => {
       `);
     });
 
-    it('should normalize undefined tool output before converting local tool results', async () => {
+    it('should normalize undefined tool output before converting tool results', async () => {
       const toModelOutput = vi.fn(() => {
         return { type: 'json' as const, value: null };
       });
@@ -1432,42 +1432,11 @@ describe('convertToModelMessages', () => {
                 input: { value: 'value-1' },
                 output: undefined,
               },
-            ],
-          },
-        ],
-        {
-          tools: {
-            foo: {
-              inputSchema: z.object({ value: z.string() }),
-              toModelOutput,
-            },
-          },
-        },
-      );
-
-      expect(toModelOutput).toHaveBeenCalledTimes(1);
-      expect(toModelOutput).toHaveBeenCalledWith({
-        toolCallId: 'call-1',
-        input: { value: 'value-1' },
-        output: null,
-      });
-    });
-
-    it('should normalize undefined tool output before converting provider-executed tool results', async () => {
-      const toModelOutput = vi.fn(() => {
-        return { type: 'json' as const, value: null };
-      });
-
-      await convertToModelMessages(
-        [
-          {
-            role: 'assistant',
-            parts: [
               {
                 type: 'tool-foo',
                 state: 'output-available',
-                toolCallId: 'call-1',
-                input: { value: 'value-1' },
+                toolCallId: 'call-2',
+                input: { value: 'value-2' },
                 output: undefined,
                 providerExecuted: true,
               },
@@ -1484,10 +1453,15 @@ describe('convertToModelMessages', () => {
         },
       );
 
-      expect(toModelOutput).toHaveBeenCalledTimes(1);
+      expect(toModelOutput).toHaveBeenCalledTimes(2);
       expect(toModelOutput).toHaveBeenCalledWith({
         toolCallId: 'call-1',
         input: { value: 'value-1' },
+        output: null,
+      });
+      expect(toModelOutput).toHaveBeenCalledWith({
+        toolCallId: 'call-2',
+        input: { value: 'value-2' },
         output: null,
       });
     });
