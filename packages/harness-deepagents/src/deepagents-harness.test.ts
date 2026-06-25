@@ -1,3 +1,5 @@
+import type { HarnessV1NetworkSandboxSession } from '@ai-sdk/harness';
+import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import type * as NodeFsPromises from 'node:fs/promises';
 import { describe, expect, it, vi } from 'vitest';
 import {
@@ -5,6 +7,32 @@ import {
   DEEPAGENTS_BUILTIN_TOOLS,
   DEEPAGENTS_DEFAULT_CONTEXT_WINDOW,
 } from './deepagents-harness';
+
+// Captures the wireTurn `onClose` handler so tests can fire a close with a chosen reason.
+const closeHolder: { fire?: (code: number, reason: string) => void } = {};
+
+vi.mock('@ai-sdk/harness/utils', async importOriginal => {
+  const actual = await importOriginal<typeof HarnessUtils>();
+  class FakeSandboxChannel {
+    async open(): Promise<void> {}
+    on(): () => void {
+      return () => {};
+    }
+    onClose(handler: (code: number, reason: string) => void): void {
+      closeHolder.fire = handler;
+    }
+    send(): void {}
+    suspend(): Promise<number> {
+      return Promise.resolve(0);
+    }
+    beginClose(): void {}
+    isClosed(): boolean {
+      return false;
+    }
+    close(): void {}
+  }
+  return { ...actual, SandboxChannel: FakeSandboxChannel };
+});
 
 vi.mock('node:fs/promises', async importOriginal => {
   const actual = await importOriginal<typeof NodeFsPromises>();
@@ -21,6 +49,55 @@ vi.mock('node:fs/promises', async importOriginal => {
     }),
   };
 });
+
+function textStream(text: string): ReadableStream<Uint8Array> {
+  return new ReadableStream<Uint8Array>({
+    start(controller) {
+      if (text.length > 0) controller.enqueue(new TextEncoder().encode(text));
+      controller.close();
+    },
+  });
+}
+
+function fakeSandboxSession(): HarnessV1NetworkSandboxSession {
+  const session = {
+    run: async () => ({ exitCode: 0, stdout: '', stderr: '' }),
+    readTextFile: async () => null,
+    writeTextFile: async () => {},
+    spawn: async () => ({
+      stdout: textStream('{"type":"bridge-ready","port":4319}\n'),
+      stderr: textStream(''),
+      kill: async () => {},
+      wait: async () => ({ exitCode: 0 }),
+    }),
+  };
+  return {
+    id: 'test-sandbox',
+    defaultWorkingDirectory: '/vercel/sandbox',
+    restricted: () => session,
+    ports: [4319],
+    async getPortUrl() {
+      return 'ws://127.0.0.1:4319';
+    },
+    async stop() {},
+    ...session,
+  } as unknown as HarnessV1NetworkSandboxSession;
+}
+
+async function startTurn() {
+  closeHolder.fire = undefined;
+  const harness = createDeepAgents();
+  const session = await harness.doStart({
+    sessionId: 'test-session',
+    sessionWorkDir: '/vercel/sandbox/deepagents-test-session',
+    sandboxSession: fakeSandboxSession(),
+  } as unknown as Parameters<typeof harness.doStart>[0]);
+  const control = await session.doPromptTurn({
+    prompt: 'hi',
+    emit: () => {},
+  } as unknown as Parameters<typeof session.doPromptTurn>[0]);
+  return control;
+}
 
 describe('createDeepAgents', () => {
   it('reports the harness-v1 metadata', () => {
@@ -84,5 +161,19 @@ describe('createDeepAgents', () => {
   it('exposes a lifecycle state schema for resume payloads', () => {
     const harness = createDeepAgents();
     expect(harness.lifecycleStateSchema).toBeDefined();
+  });
+
+  it('resolves the turn when the channel closes with reason "suspended"', async () => {
+    const control = await startTurn();
+    closeHolder.fire?.(1000, 'suspended');
+    await expect(control.done).resolves.toBeUndefined();
+  });
+
+  it('rejects the turn when the channel closes for any other reason', async () => {
+    const control = await startTurn();
+    closeHolder.fire?.(1006, 'reconnect failed');
+    await expect(control.done).rejects.toThrow(
+      'deepagents bridge closed before the turn finished',
+    );
   });
 });
