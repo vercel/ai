@@ -6,7 +6,7 @@ A minimal Node.js HTTP server demonstrating how to use the AI SDK to stream text
 
 | Method | Path            | Description                                                                                 |
 | ------ | --------------- | ------------------------------------------------------------------------------------------- |
-| `POST` | `/`             | Streams a text response generated with `streamText` using `gpt-4o`.                         |
+| `POST` | `/`             | Streams a text response generated with `streamText`.                                        |
 | `POST` | `/stream-data`  | Streams a UI message stream that mixes custom data parts with `streamText` output.          |
 
 ## Setup
@@ -44,9 +44,3 @@ Stream custom data alongside generated text:
 ```sh
 curl -X POST http://localhost:8080/stream-data
 ```
-
-## Files
-
-- `src/server.ts` — HTTP server with both endpoints.
-- `.env.example` — Required environment variables.
-- `package.json` — `pnpm dev` runs the server with `tsx`.
