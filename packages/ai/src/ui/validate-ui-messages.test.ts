@@ -805,6 +805,35 @@ describe('validateUIMessages', () => {
       `);
     });
 
+    it('should default missing dynamic tool output to null', async () => {
+      const messages = await validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'dynamic-tool',
+                toolName: 'foo',
+                toolCallId: '1',
+                state: 'output-available',
+                input: { foo: 'bar' },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(messages[0].parts[0]).toEqual({
+        type: 'dynamic-tool',
+        toolName: 'foo',
+        toolCallId: '1',
+        state: 'output-available',
+        input: { foo: 'bar' },
+        output: null,
+      });
+    });
+
     it('should validate an assistant message with a dynamic tool part in output-error state', async () => {
       const messages = await validateUIMessages({
         messages: [
@@ -1149,6 +1178,39 @@ describe('validateUIMessages', () => {
           },
         ]
       `);
+    });
+
+    it('should default missing tool output to null before output validation', async () => {
+      const messages = await validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-foo',
+                toolCallId: '1',
+                state: 'output-available',
+                input: { foo: 'bar' },
+              },
+            ],
+          },
+        ],
+        tools: {
+          foo: {
+            inputSchema: z.object({ foo: z.string() }),
+            outputSchema: z.null(),
+          },
+        },
+      });
+
+      expect(messages[0].parts[0]).toEqual({
+        type: 'tool-foo',
+        toolCallId: '1',
+        state: 'output-available',
+        input: { foo: 'bar' },
+        output: null,
+      });
     });
 
     it('should preserve result provider metadata when state is output-available', async () => {
