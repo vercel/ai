@@ -6,7 +6,7 @@ description: Learn how to use the Deep Agents harness adapter.
 # Deep Agents Harness
 
 The Deep Agents harness adapter connects `HarnessAgent` to
-[Deep Agents](https://github.com/deep-agents/deepagents), a LangGraph-based agent
+[Deep Agents](https://github.com/langchain-ai/deepagentsjs), a LangGraph-based agent
 runtime. The adapter runs a Node bridge inside the sandbox that drives the
 `deepagents` package and streams its `streamEvents` output back to the host over a
 sandbox-exposed WebSocket.
@@ -173,21 +173,25 @@ file references resolve. Skills already present under `<workDir>/.agents/skills/
 
 ## Built-in Tools
 
-The adapter exposes these common Deep Agents built-ins through `agent.tools`:
+The adapter exposes these Deep Agents built-ins through `agent.tools`:
 
 - `read` (native `read_file`)
 - `write` (native `write_file`)
-- `bash` (native `shell`)
-- `grep` (native `search`)
+- `edit` (native `edit_file`)
+- `bash` (native `execute`)
+- `grep`
+- `glob`
+- `ls`
+- `task`
+- `write_todos`
 
 ## Known Limitations
 
-- **Built-in tool approvals** are not supported yet. Use
-  `permissionMode: 'allow-all'`. Host-executed AI SDK tool approvals still work.
-- **Cross-process resume, turn continuation, and suspend/detach** are not
-  supported yet — Deep Agents holds conversation state in memory (LangGraph
-  `MemorySaver`), which does not survive a bridge restart. These methods throw
-  `HarnessCapabilityUnsupportedError`.
+- **Resuming a stopped session's conversation** is not supported — after
+  `session.stop()`, Deep Agents' in-memory conversation state (LangGraph
+  `MemorySaver`) is gone; only the sandbox workspace persists via its snapshot.
+  Use `session.detach()` for cross-process handoff or `session.suspendTurn()` for
+  turn continuation while keeping the live bridge running.
 - **Manual compaction** is not supported.
 
 ## Related
