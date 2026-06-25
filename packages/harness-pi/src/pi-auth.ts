@@ -2,6 +2,7 @@ import type {
   AuthStorage,
   ModelRegistry,
 } from '@earendil-works/pi-coding-agent';
+import { getAiGatewayAuthFromEnv } from '@ai-sdk/harness/utils';
 
 type ProviderConfigInput = Parameters<ModelRegistry['registerProvider']>[1];
 
@@ -29,13 +30,6 @@ export type PiAuthOptions = {
   readonly customEnv?: Record<string, string>;
 };
 
-/**
- * Env subset returned by `resolvePiAuth` for use by the Pi model resolver
- * (it reads `AI_GATEWAY_API_KEY` / `VERCEL_OIDC_TOKEN` to decide whether
- * to fall back to the default gateway model).
- */
-export type PiResolverEnv = Record<string, string>;
-
 const DEFAULT_GATEWAY_BASE_URL = 'https://ai-gateway.vercel.sh';
 const DEFAULT_OPENAI_BASE_URL = 'https://api.openai.com/v1';
 const DEFAULT_ANTHROPIC_BASE_URL = 'https://api.anthropic.com';
@@ -57,21 +51,25 @@ function hasConfiguredValue(value: unknown): boolean {
   return Object.values(value).some(hasConfiguredValue);
 }
 
-export function resolvePiAuth(
-  options: PiAuthOptions | undefined,
-  env: NodeJS.ProcessEnv,
-  registries: { authStorage: AuthStorage; modelRegistry: ModelRegistry },
-): PiResolverEnv {
+export function resolvePiEnv({
+  options,
+  env,
+  registries,
+}: {
+  options: PiAuthOptions | undefined;
+  env: NodeJS.ProcessEnv;
+  registries: { authStorage: AuthStorage; modelRegistry: ModelRegistry };
+}): Record<string, string> {
   const customEnvConfigured = hasConfiguredValue(options?.customEnv);
-  const gatewayConfigured = hasConfiguredValue(options?.gateway);
-
   if (customEnvConfigured) {
     return applyCustomEnv(options!.customEnv ?? {}, registries);
   }
 
+  const gatewayConfigured = hasConfiguredValue(options?.gateway);
+  const gatewayAuthFromEnv = getAiGatewayAuthFromEnv({ env });
   if (gatewayConfigured) {
-    const apiKey = options!.gateway?.apiKey;
-    const baseUrl = options!.gateway?.baseUrl ?? DEFAULT_GATEWAY_BASE_URL;
+    const apiKey = options!.gateway?.apiKey ?? gatewayAuthFromEnv.apiKey;
+    const baseUrl = options!.gateway?.baseUrl ?? gatewayAuthFromEnv.baseUrl;
     if (apiKey) {
       register(registries, 'vercel-ai-gateway', apiKey, {
         apiKey,
@@ -84,15 +82,16 @@ export function resolvePiAuth(
   }
 
   // Ambient gateway fallback.
-  const ambientKey = env.AI_GATEWAY_API_KEY || env.VERCEL_OIDC_TOKEN;
-  if (ambientKey) {
-    const baseUrl = env.AI_GATEWAY_BASE_URL ?? DEFAULT_GATEWAY_BASE_URL;
-    register(registries, 'vercel-ai-gateway', ambientKey, {
-      apiKey: ambientKey,
-      baseUrl,
+  if (gatewayAuthFromEnv.apiKey) {
+    register(registries, 'vercel-ai-gateway', gatewayAuthFromEnv.apiKey, {
+      apiKey: gatewayAuthFromEnv.apiKey,
+      baseUrl: gatewayAuthFromEnv.baseUrl,
       authHeader: true,
     });
-    return { AI_GATEWAY_API_KEY: ambientKey, AI_GATEWAY_BASE_URL: baseUrl };
+    return {
+      AI_GATEWAY_API_KEY: gatewayAuthFromEnv.apiKey,
+      AI_GATEWAY_BASE_URL: gatewayAuthFromEnv.baseUrl,
+    };
   }
 
   return {};
@@ -101,8 +100,8 @@ export function resolvePiAuth(
 function applyCustomEnv(
   customEnv: Record<string, string>,
   registries: { authStorage: AuthStorage; modelRegistry: ModelRegistry },
-): PiResolverEnv {
-  const out: PiResolverEnv = {};
+): Record<string, string> {
+  const out: Record<string, string> = {};
 
   const gatewayKey = customEnv.AI_GATEWAY_API_KEY;
   if (gatewayKey) {

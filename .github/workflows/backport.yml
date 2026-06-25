@@ -21,15 +21,16 @@ on:
 concurrency: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.inputs.pull_request_number }}
 
 permissions:
-  contents: write
-  issues: write
-  pull-requests: write
+  contents: read
 
 jobs:
   resolve-pr:
     name: Resolve backport PR
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
     if: github.repository_owner == 'vercel'
     outputs:
       should-backport: ${{ steps.resolve.outputs.should-backport }}
@@ -185,7 +186,10 @@ jobs:
               echo '```'
             } > comment.md
 
-            gh pr comment "$PR_NUMBER" --repo "$REPO" --body-file comment.md
+            # Best-effort: GITHUB_TOKEN is read-only for pull_request events from
+            # forks, so commenting may fail. Don't let that fail the job.
+            gh pr comment "$PR_NUMBER" --repo "$REPO" --body-file comment.md \
+              || echo "::warning::could not comment on fork PR #${PR_NUMBER} (token lacks write access)"
             skip "PR #${PR_NUMBER} is from a fork and must be backported with workflow_dispatch"
           fi
 
@@ -307,6 +311,10 @@ jobs:
     concurrency:
       group: backport-${{ needs.resolve-pr.outputs.pr-number }}-${{ needs.find-branch.outputs.release-branch }}
       cancel-in-progress: false
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
 
     steps:
       - name: Configure Git

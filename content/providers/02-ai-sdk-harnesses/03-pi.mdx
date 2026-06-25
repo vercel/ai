@@ -20,25 +20,25 @@ inside the sandbox.
 <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
     <Snippet
-      text="pnpm add @ai-sdk/harness@canary @ai-sdk/harness-pi@canary @ai-sdk/sandbox-vercel@canary"
+      text="pnpm add @ai-sdk/harness @ai-sdk/harness-pi @ai-sdk/sandbox-vercel"
       dark
     />
   </Tab>
   <Tab>
     <Snippet
-      text="npm install @ai-sdk/harness@canary @ai-sdk/harness-pi@canary @ai-sdk/sandbox-vercel@canary"
+      text="npm install @ai-sdk/harness @ai-sdk/harness-pi @ai-sdk/sandbox-vercel"
       dark
     />
   </Tab>
   <Tab>
     <Snippet
-      text="yarn add @ai-sdk/harness@canary @ai-sdk/harness-pi@canary @ai-sdk/sandbox-vercel@canary"
+      text="yarn add @ai-sdk/harness @ai-sdk/harness-pi @ai-sdk/sandbox-vercel"
       dark
     />
   </Tab>
   <Tab>
     <Snippet
-      text="bun add @ai-sdk/harness@canary @ai-sdk/harness-pi@canary @ai-sdk/sandbox-vercel@canary"
+      text="bun add @ai-sdk/harness @ai-sdk/harness-pi @ai-sdk/sandbox-vercel"
       dark
     />
   </Tab>
@@ -90,7 +90,8 @@ try {
 ```
 
 To use this agent, ensure environment variables include `VERCEL_OIDC_TOKEN` for
-Vercel Sandbox, and `AI_GATEWAY_API_KEY` or a provider specific API key for Pi.
+Vercel Sandbox, and one of the variables listed under [authentication](#authentication)
+for Pi.
 
 ## Adapter Settings
 

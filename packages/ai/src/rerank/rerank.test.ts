@@ -1,5 +1,6 @@
 import type { RerankingModelV4CallOptions } from '@ai-sdk/provider';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as logWarningsModule from '../logger/log-warnings';
 import { MockRerankingModelV4 } from '../test/mock-reranking-model-v4';
 import { rerank } from './rerank';
 import type { RerankStartEvent, RerankEndEvent } from './rerank-events';
@@ -345,7 +346,7 @@ describe('rerank', () => {
     });
   });
 
-  describe('options.experimental_onStart', () => {
+  describe('options.onStart', () => {
     const mockModel = new MockRerankingModelV4({
       doRerank: async () => ({
         ranking: [
@@ -380,7 +381,7 @@ describe('rerank', () => {
         _internal: {
           generateCallId: () => 'test-call-id',
         },
-        experimental_onStart: async event => {
+        onStart: async event => {
           startEvent = event;
         },
       });
@@ -405,7 +406,7 @@ describe('rerank', () => {
           recordOutputs: true,
           functionId: 'rerank-fn',
         },
-        experimental_onStart: async event => {
+        onStart: async event => {
           startEvent = event;
         },
       });
@@ -433,7 +434,7 @@ describe('rerank', () => {
           recordOutputs: true,
           functionId: 'rerank-fn-deprecated',
         },
-        experimental_onStart: async event => {
+        onStart: async event => {
           startEvent = event;
         },
       });
@@ -455,7 +456,7 @@ describe('rerank', () => {
           'cloudy day in the mountains',
         ],
         query: 'rainy day',
-        experimental_onStart: async event => {
+        onStart: async event => {
           startEvent = event;
         },
       });
@@ -479,7 +480,7 @@ describe('rerank', () => {
         }),
         documents: ['test document'],
         query: 'test query',
-        experimental_onStart: async () => {
+        onStart: async () => {
           callOrder.push('onStart');
         },
       });
@@ -496,7 +497,7 @@ describe('rerank', () => {
           'cloudy day in the mountains',
         ],
         query: 'rainy day',
-        experimental_onStart: async () => {
+        onStart: async () => {
           throw new Error('callback error');
         },
       });
@@ -519,7 +520,7 @@ describe('rerank', () => {
         topN: 2,
         headers: { 'x-custom': 'header-value' },
         providerOptions: { myProvider: { key: 'value' } },
-        experimental_onStart: async event => {
+        onStart: async event => {
           startEvent = event;
         },
       });
@@ -538,7 +539,19 @@ describe('rerank', () => {
     });
   });
 
-  describe('options.experimental_onEnd', () => {
+  describe('options.onEnd', () => {
+    let logWarningsSpy: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      logWarningsSpy = vi
+        .spyOn(logWarningsModule, 'logWarnings')
+        .mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      logWarningsSpy.mockRestore();
+    });
+
     const mockModel = new MockRerankingModelV4({
       doRerank: async () => ({
         ranking: [
@@ -578,7 +591,7 @@ describe('rerank', () => {
         _internal: {
           generateCallId: () => 'test-call-id',
         },
-        experimental_onEnd: async event => {
+        onEnd: async event => {
           endEvent = event;
         },
       });
@@ -597,7 +610,7 @@ describe('rerank', () => {
           'cloudy day in the mountains',
         ],
         query: 'rainy day',
-        experimental_onEnd: async event => {
+        onEnd: async event => {
           endEvent = event;
         },
       });
@@ -638,7 +651,7 @@ describe('rerank', () => {
           'cloudy day in the mountains',
         ],
         query: 'rainy day',
-        experimental_onEnd: async event => {
+        onEnd: async event => {
           endEvent = event;
         },
       });
@@ -659,7 +672,7 @@ describe('rerank', () => {
           'cloudy day in the mountains',
         ],
         query: 'rainy day',
-        experimental_onEnd: async event => {
+        onEnd: async event => {
           endEvent = event;
         },
       });
@@ -683,7 +696,7 @@ describe('rerank', () => {
           'cloudy day in the mountains',
         ],
         query: 'rainy day',
-        experimental_onEnd: async event => {
+        onEnd: async event => {
           endEvent = event;
         },
       });
@@ -711,7 +724,7 @@ describe('rerank', () => {
         }),
         documents: ['test document'],
         query: 'test query',
-        experimental_onEnd: async () => {
+        onEnd: async () => {
           callOrder.push('onEnd');
         },
       });
@@ -728,7 +741,7 @@ describe('rerank', () => {
           'cloudy day in the mountains',
         ],
         query: 'rainy day',
-        experimental_onEnd: async () => {
+        onEnd: async () => {
           throw new Error('callback error');
         },
       });
@@ -738,7 +751,7 @@ describe('rerank', () => {
     });
   });
 
-  describe('options.experimental_onStart and experimental_onEnd together', () => {
+  describe('options.onStart and onEnd together', () => {
     const mockModel = new MockRerankingModelV4({
       doRerank: async () => ({
         ranking: [
@@ -768,10 +781,10 @@ describe('rerank', () => {
         _internal: {
           generateCallId: () => 'consistent-call-id',
         },
-        experimental_onStart: async event => {
+        onStart: async event => {
           startEvent = event;
         },
-        experimental_onEnd: async event => {
+        onEnd: async event => {
           endEvent = event;
         },
       });
@@ -795,10 +808,10 @@ describe('rerank', () => {
         }),
         documents: ['test document'],
         query: 'test query',
-        experimental_onStart: async () => {
+        onStart: async () => {
           callOrder.push('onStart');
         },
-        experimental_onEnd: async () => {
+        onEnd: async () => {
           callOrder.push('onEnd');
         },
       });
@@ -817,10 +830,10 @@ describe('rerank', () => {
           'cloudy day in the mountains',
         ],
         query: 'rainy day',
-        experimental_onStart: async () => {
+        onStart: async () => {
           throw new Error('onStart error');
         },
-        experimental_onEnd: async () => {
+        onEnd: async () => {
           endCalled = true;
         },
       });
@@ -840,10 +853,10 @@ describe('rerank', () => {
         _internal: {
           generateCallId: () => 'empty-call-id',
         },
-        experimental_onStart: async event => {
+        onStart: async event => {
           startEvent = event;
         },
-        experimental_onEnd: async event => {
+        onEnd: async event => {
           endEvent = event;
         },
       });

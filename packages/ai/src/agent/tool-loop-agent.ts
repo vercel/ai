@@ -1,5 +1,6 @@
 import {
   validateTypes,
+  withUserAgentSuffix,
   type Context,
   type Experimental_SandboxSession as SandboxSession,
   type ModelMessage,
@@ -87,7 +88,9 @@ export class ToolLoopAgent<
       | 'prepareCall'
       | 'instructions'
       | 'allowSystemInMessages'
+      | 'onStart'
       | 'experimental_onStart'
+      | 'onStepStart'
       | 'experimental_onStepStart'
       | 'onToolExecutionStart'
       | 'onToolExecutionEnd'
@@ -111,8 +114,10 @@ export class ToolLoopAgent<
     }
 
     const {
-      experimental_onStart: _settingsOnStart,
-      experimental_onStepStart: _settingsOnStepStart,
+      onStart: _settingsStableOnStart,
+      experimental_onStart: _settingsExperimentalOnStart,
+      onStepStart: _settingsStableOnStepStart,
+      experimental_onStepStart: _settingsExperimentalOnStepStart,
       onToolExecutionStart: _settingsOnToolExecutionStart,
       onToolExecutionEnd: _settingsOnToolExecutionEnd,
       onStepEnd: _settingsOnStepEnd,
@@ -173,13 +178,29 @@ export class ToolLoopAgent<
   }
 
   /**
+   * Tags outgoing requests so usage can be attributed to ToolLoopAgent. Chains
+   * with the `ai/<version>` and `ai-sdk/<provider>/<version>` suffixes added
+   * downstream by generateText/streamText and the provider.
+   */
+  private agentHeaders(preparedCall: {
+    headers?: unknown;
+  }): Record<string, string> {
+    return withUserAgentSuffix(
+      (preparedCall.headers as Record<string, string | undefined>) ?? {},
+      'ai-sdk-agent/tool-loop',
+    );
+  }
+
+  /**
    * Generates an output from the agent (non-streaming).
    */
   async generate({
     abortSignal,
     timeout,
     experimental_sandbox: sandbox,
+    onStart,
     experimental_onStart,
+    onStepStart,
     experimental_onStepStart,
     onToolExecutionStart,
     onToolExecutionEnd,
@@ -200,15 +221,15 @@ export class ToolLoopAgent<
       abortSignal,
       timeout,
       experimental_sandbox: sandbox,
-      experimental_onStart: mergeCallbacks(
-        this.settings.experimental_onStart,
-        experimental_onStart as
+      onStart: mergeCallbacks(
+        this.settings.onStart ?? this.settings.experimental_onStart,
+        (onStart ?? experimental_onStart) as
           | GenerateTextOnStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>
           | undefined,
       ),
-      experimental_onStepStart: mergeCallbacks(
-        this.settings.experimental_onStepStart,
-        experimental_onStepStart as
+      onStepStart: mergeCallbacks(
+        this.settings.onStepStart ?? this.settings.experimental_onStepStart,
+        (onStepStart ?? experimental_onStepStart) as
           | GenerateTextOnStepStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>
           | undefined,
       ),
@@ -230,6 +251,7 @@ export class ToolLoopAgent<
     return await generate({
       ...preparedCall,
       ...callbackArgs,
+      headers: this.agentHeaders(preparedCall),
     } as unknown as Parameters<typeof generate>[0]);
   }
 
@@ -241,7 +263,9 @@ export class ToolLoopAgent<
     timeout,
     experimental_sandbox: sandbox,
     experimental_transform,
+    onStart,
     experimental_onStart,
+    onStepStart,
     experimental_onStepStart,
     onToolExecutionStart,
     onToolExecutionEnd,
@@ -263,15 +287,15 @@ export class ToolLoopAgent<
       timeout,
       experimental_sandbox: sandbox,
       experimental_transform,
-      experimental_onStart: mergeCallbacks(
-        this.settings.experimental_onStart,
-        experimental_onStart as
+      onStart: mergeCallbacks(
+        this.settings.onStart ?? this.settings.experimental_onStart,
+        (onStart ?? experimental_onStart) as
           | GenerateTextOnStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>
           | undefined,
       ),
-      experimental_onStepStart: mergeCallbacks(
-        this.settings.experimental_onStepStart,
-        experimental_onStepStart as
+      onStepStart: mergeCallbacks(
+        this.settings.onStepStart ?? this.settings.experimental_onStepStart,
+        (onStepStart ?? experimental_onStepStart) as
           | GenerateTextOnStepStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>
           | undefined,
       ),
@@ -293,6 +317,7 @@ export class ToolLoopAgent<
     return await stream({
       ...preparedCall,
       ...callbackArgs,
+      headers: this.agentHeaders(preparedCall),
     } as unknown as Parameters<typeof stream>[0]);
   }
 }

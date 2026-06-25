@@ -143,6 +143,11 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
       `);
     });
 
+    it('does not send an Api-Revision header', async () => {
+      await model.doGenerate({ prompt: TEST_PROMPT });
+      expect(server.calls[0].requestHeaders).not.toHaveProperty('api-revision');
+    });
+
     it('exposes the request body via result.request.body', async () => {
       const { request } = await model.doGenerate({ prompt: TEST_PROMPT });
       expect(request?.body).toMatchInlineSnapshot(`
