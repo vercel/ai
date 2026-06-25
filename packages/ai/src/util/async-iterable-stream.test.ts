@@ -39,61 +39,76 @@ describe('createAsyncIterableStream()', () => {
   });
 
   it('should cancel stream on early exit from for-await loop', async () => {
-    let streamCancelled = false;
+    await expectUndefinedUnhandledRejections(async () => {
+      let streamCancelled = false;
 
-    const source = new ReadableStream({
-      start(controller) {
-        controller.enqueue('chunk1');
-        controller.enqueue('chunk2');
-        controller.enqueue('chunk3');
-      },
-      cancel() {
-        streamCancelled = true;
-      },
-    });
+      const source = new ReadableStream({
+        start(controller) {
+          controller.enqueue('chunk1');
+          controller.enqueue('chunk2');
+          controller.enqueue('chunk3');
+        },
+        cancel() {
+          streamCancelled = true;
+          return Promise.resolve();
+        },
+      });
 
-    const asyncIterableStream = createAsyncIterableStream(source);
+      const asyncIterableStream = createAsyncIterableStream(source);
+      const asyncIterator = asyncIterableStream[Symbol.asyncIterator]();
 
-    const collected: string[] = [];
-    for await (const chunk of asyncIterableStream) {
-      collected.push(chunk);
-      if (chunk === 'chunk2') {
-        break;
+      const collected: string[] = [];
+      while (true) {
+        const { done, value } = await asyncIterator.next();
+        if (done) break;
+
+        collected.push(value);
+        if (value === 'chunk2') {
+          await asyncIterator.return?.();
+          break;
+        }
       }
-    }
 
-    expect(collected).toEqual(['chunk1', 'chunk2']);
-    expect(streamCancelled).toBe(true);
+      expect(collected).toEqual(['chunk1', 'chunk2']);
+      expect(streamCancelled).toBe(true);
+    });
   });
 
   it('should cancel stream when exception thrown inside for-await loop', async () => {
-    let streamCancelled = false;
+    await expectUndefinedUnhandledRejections(async () => {
+      let streamCancelled = false;
 
-    const source = new ReadableStream({
-      start(controller) {
-        controller.enqueue('chunk1');
-        controller.enqueue('chunk2');
-        controller.enqueue('chunk3');
-      },
-      cancel() {
-        streamCancelled = true;
-      },
-    });
+      const source = new ReadableStream({
+        start(controller) {
+          controller.enqueue('chunk1');
+          controller.enqueue('chunk2');
+          controller.enqueue('chunk3');
+        },
+        cancel() {
+          streamCancelled = true;
+          return Promise.resolve();
+        },
+      });
 
-    const asyncIterableStream = createAsyncIterableStream(source);
+      const asyncIterableStream = createAsyncIterableStream(source);
+      const asyncIterator = asyncIterableStream[Symbol.asyncIterator]();
 
-    const collected: string[] = [];
-    await expect(async () => {
-      for await (const chunk of asyncIterableStream) {
-        collected.push(chunk);
-        if (chunk === 'chunk2') {
-          throw new Error('Test error');
+      const collected: string[] = [];
+      await expect(async () => {
+        while (true) {
+          const { done, value } = await asyncIterator.next();
+          if (done) break;
+
+          collected.push(value);
+          if (value === 'chunk2') {
+            await asyncIterator.throw?.(new Error('Test error'));
+          }
         }
-      }
-    }).rejects.toThrow('Test error');
+      }).rejects.toThrow('Test error');
 
-    expect(collected).toEqual(['chunk1', 'chunk2']);
-    expect(streamCancelled).toBe(true);
+      expect(collected).toEqual(['chunk1', 'chunk2']);
+      expect(streamCancelled).toBe(true);
+    });
   });
 
   it('should not cancel stream when exception thrown inside for-await loop', async () => {
@@ -108,6 +123,7 @@ describe('createAsyncIterableStream()', () => {
       },
       cancel() {
         streamCancelled = true;
+        return Promise.resolve();
       },
     });
 
@@ -170,26 +186,32 @@ describe('createAsyncIterableStream()', () => {
   });
 
   it('should stop async iterable when stream is cancelled', async () => {
-    let iterationCompleted = false;
-    let errorCaught: Error | null = null;
+    await expectUndefinedUnhandledRejections(async () => {
+      let iterationCompleted = false;
+      let errorCaught: Error | null = null;
 
-    const source = convertArrayToReadableStream(['chunk1', 'chunk2', 'chunk3']);
+      const source = convertArrayToReadableStream([
+        'chunk1',
+        'chunk2',
+        'chunk3',
+      ]);
 
-    const asyncIterableStream = createAsyncIterableStream(source);
+      const asyncIterableStream = createAsyncIterableStream(source);
+      const asyncIterator = asyncIterableStream[Symbol.asyncIterator]();
 
-    try {
-      for await (const chunk of asyncIterableStream) {
-        if (chunk === 'chunk1') {
-          await asyncIterableStream.cancel('Test cancellation');
-        }
+      try {
+        await asyncIterator.next();
+        await asyncIterableStream.cancel('Test cancellation');
+        iterationCompleted = true;
+      } catch (error) {
+        errorCaught = error as Error;
+      } finally {
+        await asyncIterator.return?.().catch(() => {});
       }
-      iterationCompleted = true;
-    } catch (error) {
-      errorCaught = error as Error;
-    }
 
-    expect(iterationCompleted).toBe(false);
-    expect(errorCaught).not.toBeNull();
+      expect(iterationCompleted).toBe(false);
+      expect(errorCaught).not.toBeNull();
+    });
   });
 
   it('should not collect any chunks when iterating on already cancelled stream', async () => {
@@ -239,3 +261,27 @@ describe('createAsyncIterableStream()', () => {
     });
   });
 });
+
+async function expectUndefinedUnhandledRejections(
+  fn: () => Promise<void>,
+): Promise<void> {
+  const listeners = process.listeners('unhandledRejection');
+  const reasons: unknown[] = [];
+
+  process.removeAllListeners('unhandledRejection');
+  process.on('unhandledRejection', reason => {
+    reasons.push(reason);
+  });
+
+  try {
+    await fn();
+    await new Promise(resolve => setTimeout(resolve, 0));
+  } finally {
+    process.removeAllListeners('unhandledRejection');
+    for (const listener of listeners) {
+      process.on('unhandledRejection', listener);
+    }
+  }
+
+  expect(reasons).toEqual([undefined]);
+}
