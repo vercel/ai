@@ -1686,6 +1686,99 @@ describe('Gemini 3 missing thoughtSignature mitigation', () => {
     expect(onWarning.mock.calls[0][0].message).toContain('`weather`');
   });
 
+  it('does NOT warn for unsigned parallel function calls when a sibling in the same message is signed (Gemini 3)', () => {
+    // Gemini 3 returns a single thoughtSignature for a parallel batch, carried on
+    // the first functionCall; the remaining parallel calls are legitimately
+    // unsigned. The converter must not flag those as dropped signatures.
+    const onWarning = vi.fn();
+    const result = convertToGoogleMessages(
+      [
+        { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_1',
+              toolName: 'weather',
+              input: { location: 'Paris' },
+              providerOptions: { google: { thoughtSignature: 'real_sig' } },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_2',
+              toolName: 'weather',
+              input: { location: 'Tokyo' },
+            },
+          ],
+        },
+      ],
+      { isGemini3Model: true, onWarning },
+    );
+
+    const assistant = result.contents.find(c => c.role === 'model');
+    // The signed call keeps its real signature.
+    expect(assistant?.parts[0]).toMatchObject({
+      functionCall: {
+        id: 'tc_1',
+        name: 'weather',
+        args: { location: 'Paris' },
+      },
+      thoughtSignature: 'real_sig',
+    });
+    // The unsigned parallel sibling still gets the sentinel (so the request does
+    // not fail with HTTP 400) ...
+    expect(assistant?.parts[1]).toMatchObject({
+      functionCall: {
+        id: 'tc_2',
+        name: 'weather',
+        args: { location: 'Tokyo' },
+      },
+      thoughtSignature: SKIP_THOUGHT_SIGNATURE_VALIDATOR,
+    });
+    // ... but no misleading "dropped signature" warning is emitted.
+    expect(onWarning).not.toHaveBeenCalled();
+  });
+
+  it('still warns when ALL tool-calls in the message are unsigned (genuine dropped signature, Gemini 3)', () => {
+    // No signed sibling -> this is the genuine "application dropped the signature"
+    // case, which must still inject the sentinel AND warn.
+    const onWarning = vi.fn();
+    const result = convertToGoogleMessages(
+      [
+        { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_1',
+              toolName: 'weather',
+              input: { location: 'Paris' },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_2',
+              toolName: 'weather',
+              input: { location: 'Tokyo' },
+            },
+          ],
+        },
+      ],
+      { isGemini3Model: true, onWarning },
+    );
+
+    const assistant = result.contents.find(c => c.role === 'model');
+    expect(assistant?.parts[0]).toMatchObject({
+      thoughtSignature: SKIP_THOUGHT_SIGNATURE_VALIDATOR,
+    });
+    expect(assistant?.parts[1]).toMatchObject({
+      thoughtSignature: SKIP_THOUGHT_SIGNATURE_VALIDATOR,
+    });
+    expect(onWarning).toHaveBeenCalledTimes(1);
+    expect(onWarning.mock.calls[0][0].message).toContain('`weather`');
+  });
+
   it('does NOT inject the sentinel for non-Gemini-3 models', () => {
     const onWarning = vi.fn();
     const result = convertToGoogleMessages(promptWithToolCallMissingSignature, {
