@@ -593,8 +593,13 @@ function createSession({
       }),
     );
 
-    const onClose = () => {
+    // A `'suspended'` close is a graceful slice-boundary freeze (suspend/detach keep the bridge alive for continuation); end the turn cleanly. Any other close is an unexpected bridge failure.
+    const onClose = (_code: number, reason: string) => {
       if (isSettled) return;
+      if (reason === 'suspended') {
+        settleSuccess();
+        return;
+      }
       settleError(
         new Error('deepagents bridge closed before the turn finished.'),
       );
