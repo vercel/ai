@@ -73,20 +73,6 @@ function generateTypeFile(modelIds: string[], typeName: string): string {
   return lines.join('\n') + '\n';
 }
 
-function getModalityConfig(type: string): {
-  outputFile: string;
-  typeName: string;
-} {
-  if (MODALITY_CONFIG[type]) {
-    return MODALITY_CONFIG[type];
-  }
-  const capitalized = type.charAt(0).toUpperCase() + type.slice(1);
-  return {
-    outputFile: `gateway-${type}-model-settings.ts`,
-    typeName: `Gateway${capitalized}ModelId`,
-  };
-}
-
 async function main() {
   const response = await fetchModels();
 
@@ -100,7 +86,14 @@ async function main() {
   }
 
   for (const [type, modelIds] of Object.entries(modelsByType)) {
-    const config = getModalityConfig(type);
+    const config = MODALITY_CONFIG[type];
+    if (!config) {
+      console.warn(
+        `Skipping unsupported model type '${type}' with ${modelIds.length} models`,
+      );
+      continue;
+    }
+
     const outputPath = path.join(OUTPUT_DIR, config.outputFile);
 
     if (!fs.existsSync(outputPath)) {
