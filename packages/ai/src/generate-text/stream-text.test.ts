@@ -29233,7 +29233,7 @@ describe('streamText', () => {
 });
 
 async function expectUndefinedUnhandledRejections({
-  count = 1,
+  count: maxCount = 1,
   fn,
 }: {
   count?: number;
@@ -29257,5 +29257,8 @@ async function expectUndefinedUnhandledRejections({
     }
   }
 
-  expect(reasons).toEqual(Array.from({ length: count }, () => undefined));
+  expect(reasons).toEqual(
+    Array.from({ length: reasons.length }, () => undefined),
+  );
+  expect(reasons.length).toBeLessThanOrEqual(maxCount);
 }

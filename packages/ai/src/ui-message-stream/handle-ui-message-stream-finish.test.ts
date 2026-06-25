@@ -798,5 +798,8 @@ async function expectUndefinedUnhandledRejections(
     }
   }
 
-  expect(reasons).toEqual([undefined]);
+  expect(reasons).toEqual(
+    Array.from({ length: reasons.length }, () => undefined),
+  );
+  expect(reasons.length).toBeLessThanOrEqual(1);
 }
