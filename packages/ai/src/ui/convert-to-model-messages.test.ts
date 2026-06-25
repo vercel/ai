@@ -1306,7 +1306,7 @@ describe('convertToModelMessages', () => {
 
   describe('error handling', () => {
     it('should throw an error for unhandled roles', async () => {
-      expect(async () => {
+      await expect(async () => {
         await convertToModelMessages([
           {
             role: 'unknown' as any,
