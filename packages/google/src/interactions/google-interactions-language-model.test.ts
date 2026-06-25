@@ -1366,7 +1366,7 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
       expect(body.agent_config).toEqual({ type: 'dynamic' });
     });
 
-    it('emits a warning and drops tools when an agent is set', async () => {
+    it('passes function tools through to the request body when an agent is set', async () => {
       const agentModel = provider.interactions({ agent: AGENT_NAME });
       const result = await agentModel.doGenerate({
         prompt: TEST_PROMPT,
@@ -1387,13 +1387,64 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
         string,
         unknown
       >;
-      expect(body.tools).toBeUndefined();
-      const warning = result.warnings.find(
+      expect(body.tools).toBeDefined();
+      expect(body.tools).toEqual([
+        {
+          type: 'function',
+          name: 'getWeather',
+          description: 'Get the current weather in a location',
+          parameters: {
+            type: 'object',
+            properties: { location: { type: 'string' } },
+            required: ['location'],
+          },
+        },
+      ]);
+      const toolsDropWarning = result.warnings.find(
         w =>
           w.type === 'other' &&
-          (w as { message?: string }).message?.includes('tools'),
+          (w as { message?: string }).message?.includes(
+            'tools are not supported',
+          ),
       );
-      expect(warning).toBeDefined();
+      expect(toolsDropWarning).toBeUndefined();
+    });
+
+    it('passes file_search provider tool through to the request body when an agent is set', async () => {
+      const agentModel = provider.interactions({ agent: AGENT_NAME });
+      await agentModel.doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'provider',
+            id: 'google.file_search',
+            name: 'file_search',
+            args: {
+              fileSearchStoreNames: ['fileSearchStores/my-store'],
+            },
+          },
+        ],
+      });
+      const body = (await server.calls[0].requestBodyJson) as Record<
+        string,
+        unknown
+      >;
+      expect(body.tools).toEqual([
+        {
+          type: 'file_search',
+          file_search_store_names: ['fileSearchStores/my-store'],
+        },
+      ]);
+    });
+
+    it('omits tools from the request body when an agent is set with no tools', async () => {
+      const agentModel = provider.interactions({ agent: AGENT_NAME });
+      await agentModel.doGenerate({ prompt: TEST_PROMPT });
+      const body = (await server.calls[0].requestBodyJson) as Record<
+        string,
+        unknown
+      >;
+      expect(body.tools).toBeUndefined();
     });
 
     it('emits a warning and drops generation-config fields (temperature, topP, thinkingLevel) when an agent is set', async () => {
