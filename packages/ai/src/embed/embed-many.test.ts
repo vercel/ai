@@ -402,18 +402,6 @@ describe('result.providerMetadata', () => {
 });
 
 describe('result.warnings', () => {
-  let logWarningsSpy: ReturnType<typeof vitest.spyOn>;
-
-  beforeEach(() => {
-    logWarningsSpy = vitest
-      .spyOn(logWarningsModule, 'logWarnings')
-      .mockImplementation(() => {});
-  });
-
-  afterEach(() => {
-    logWarningsSpy.mockRestore();
-  });
-
   it('should include warnings in the result (single call path)', async () => {
     const expectedWarnings: Warning[] = [
       {
@@ -523,9 +511,7 @@ describe('logWarnings', () => {
   let logWarningsSpy: ReturnType<typeof vitest.spyOn>;
 
   beforeEach(() => {
-    logWarningsSpy = vitest
-      .spyOn(logWarningsModule, 'logWarnings')
-      .mockImplementation(() => {});
+    logWarningsSpy = vitest.spyOn(logWarningsModule, 'logWarnings');
   });
 
   afterEach(() => {

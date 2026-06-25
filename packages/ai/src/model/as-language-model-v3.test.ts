@@ -13,9 +13,7 @@ describe('asLanguageModelV3', () => {
   let logWarningSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    logWarningSpy = vi
-      .spyOn(logWarningsModule, 'logWarnings')
-      .mockImplementation(() => {});
+    logWarningSpy = vi.spyOn(logWarningsModule, 'logWarnings');
   });
 
   afterEach(() => {

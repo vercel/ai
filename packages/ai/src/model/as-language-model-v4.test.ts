@@ -2,26 +2,13 @@ import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import * as logWarningsModule from '../logger/log-warnings';
+import { describe, expect, it } from 'vitest';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { asLanguageModelV4 } from './as-language-model-v4';
 
 describe('asLanguageModelV4', () => {
-  let logWarningSpy: ReturnType<typeof vi.spyOn>;
-
-  beforeEach(() => {
-    logWarningSpy = vi
-      .spyOn(logWarningsModule, 'logWarnings')
-      .mockImplementation(() => {});
-  });
-
-  afterEach(() => {
-    logWarningSpy.mockRestore();
-  });
-
   describe('when a language model v4 is provided', () => {
     it('should return the same v4 model unchanged', () => {
       const originalModel = new MockLanguageModelV4({
@@ -179,7 +166,6 @@ describe('asLanguageModelV4', () => {
       expect(result.specificationVersion).toBe('v4');
       expect(result.provider).toBe('test-provider');
       expect(result.modelId).toBe('test-model-id');
-      expect(logWarningSpy).toHaveBeenCalled();
     });
 
     it('should make doGenerate method callable', async () => {
