@@ -1,5 +1,22 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.0
+
+### Major Changes
+
+- 3d9a50c: feat(harness): implement harness adapters for Claude Code, Codex, Pi
+
+### Patch Changes
+
+- e5d4a24: chore(harness): update ws package
+- bc77265: chore(harness): enforce more structural conventions in harness adapters
+- aae0138: fix(harness): make listening for sandbox bridge readiness compatible with Bun
+- 6b81cfe: chore(harness-claude-code): update Claude Code SDK
+- 1ea15a3: fix(harness): fix various bugs with harness skills not being correctly processed by the harness adapters
+- b8396f0: trigger initial beta release
+- e551763: fix(harness): avoid using peer dependencies for underlying harness and sandbox SDKs
+- 534dac6: fix(harness): fix incomplete OIDC token support for AI Gateway auth in harness adapters
+
 ## 1.0.0-beta.24
 
 ### Patch Changes

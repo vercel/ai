@@ -1,5 +1,32 @@
 # @ai-sdk/langchain
 
+## 3.0.0
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- b567a6c: dependency updates
+- 62ae6c7: fix(langchain): recognize Python `AIMessageChunk` plain message objects from RemoteGraph streams
+
+  Python `langchain-core` serializes streaming message chunks with `type: "AIMessageChunk"`, while TypeScript `langchain-core` uses `type: "ai"`. The `toUIMessageStream` adapter previously only matched the TypeScript form, silently dropping text deltas and tool-call events when streaming from Python LangGraph servers via `RemoteGraph`.
+
+- c1afaed: fix(langchain): prevent polluting global object.prototype
+- 3711955: fix(langchain): reset streamEvents text between model invocations
+- 6e23bf2: fix(langchain): register key mapping for tool calls emitted via messages mode for HITL interrupt matching
+- c231e42: Surface LangChain citation annotations as spec-compliant `source-url` / `source-document` UI message parts. Previously, citations attached to text content blocks (e.g. from web search or RAG) were dropped entirely instead of being emitted as AI SDK source parts. Citation metadata (`citedText`, `startIndex`, `endIndex`, `source`) is preserved under `providerMetadata.langchain`.
+- f6fc2fb: Add support for translating LangGraph tools stream progress into preliminary tool outputs.
+- 9f0e36c: trigger release for all packages after provenance setup
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- 0c4c275: trigger initial canary release
+- 9bd6512: feat(provider): change file part data property to be tagged with a type and remove the image part type
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- b8396f0: trigger initial beta release
+- ff5eba1: feat: roll `image-*` tool output types into their equivalent `file-*` types
+
 ## 3.0.0-beta.187
 
 ### Patch Changes
