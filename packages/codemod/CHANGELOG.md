@@ -1,5 +1,11 @@
 # @ai-sdk/codemod
 
+## 3.0.7
+
+### Patch Changes
+
+- 1b40ac7: Publish all packages under the `@ai-v6` dist tag.
+
 ## 3.0.6
 
 ### Patch Changes

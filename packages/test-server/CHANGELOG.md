@@ -1,5 +1,11 @@
 # @ai-sdk/test-server
 
+## 1.0.6
+
+### Patch Changes
+
+- 1b40ac7: Publish all packages under the `@ai-v6` dist tag.
+
 ## 1.0.5
 
 ### Patch Changes

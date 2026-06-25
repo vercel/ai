@@ -1,5 +1,16 @@
 # @ai-sdk/azure
 
+## 3.0.78
+
+### Patch Changes
+
+- 1b40ac7: Publish all packages under the `@ai-v6` dist tag.
+- Updated dependencies [1b40ac7]
+  - @ai-sdk/deepseek@2.0.40
+  - @ai-sdk/openai@3.0.75
+  - @ai-sdk/provider-utils@4.0.31
+  - @ai-sdk/provider@3.0.11
+
 ## 3.0.77
 
 ### Patch Changes

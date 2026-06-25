@@ -1,5 +1,13 @@
 # @ai-sdk/llamaindex
 
+## 2.0.210
+
+### Patch Changes
+
+- 1b40ac7: Publish all packages under the `@ai-v6` dist tag.
+- Updated dependencies [1b40ac7]
+  - ai@6.0.210
+
 ## 2.0.209
 
 ### Patch Changes

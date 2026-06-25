@@ -1,5 +1,14 @@
 # @ai-sdk/mistral
 
+## 3.0.41
+
+### Patch Changes
+
+- 1b40ac7: Publish all packages under the `@ai-v6` dist tag.
+- Updated dependencies [1b40ac7]
+  - @ai-sdk/provider-utils@4.0.31
+  - @ai-sdk/provider@3.0.11
+
 ## 3.0.40
 
 ### Patch Changes
