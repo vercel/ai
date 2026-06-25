@@ -199,16 +199,20 @@ const parallelSearchInputSchema = lazySchema(() =>
           include_domains: z
             .array(z.string())
             .optional()
-            .describe('List of domains to include in search results.'),
+            .describe(
+              'Limit results to these domains. Use plain domain names only — e.g. example.com or sub.example.gov, or a bare extension like .edu. Do not include a scheme, path, or port (e.g. not https://example.com/page).',
+            ),
           exclude_domains: z
             .array(z.string())
             .optional()
-            .describe('List of domains to exclude from search results.'),
+            .describe(
+              'Exclude results from these domains. Use plain domain names only — e.g. example.com or sub.example.gov, or a bare extension like .edu. Do not include a scheme, path, or port (e.g. not https://example.com/page).',
+            ),
           after_date: z
             .string()
             .optional()
             .describe(
-              'Only include results published after this date (ISO 8601 format).',
+              'Only include results published after this date. Use an ISO 8601 calendar date formatted YYYY-MM-DD (e.g. 2025-01-01); do not include a time.',
             ),
         })
         .optional()
