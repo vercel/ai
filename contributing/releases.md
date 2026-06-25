@@ -33,6 +33,10 @@ Quick reference:
 - Exit beta mode: `pnpm changeset pre exit`
 - Backport fixes: add the `backport` label to the merged PR
 
+## New Major Releases
+
+- Update version in `skills/use-ai-sdk/SKILL.md`.
+
 ## Provenance
 
 All packages are published with [npm provenance](https://docs.npmjs.com/generating-provenance-statements). This is enabled via:

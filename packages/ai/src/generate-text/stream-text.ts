@@ -791,6 +791,12 @@ export type EnrichedStreamPart<TOOLS extends ToolSet, PARTIAL_OUTPUT> = {
   partialOutput: PARTIAL_OUTPUT | undefined;
 };
 
+async function markPromiseAsHandled<T>(promise: Promise<T>): Promise<void> {
+  try {
+    await promise;
+  } catch {}
+}
+
 function createOutputTransformStream<
   TOOLS extends ToolSet,
   OUTPUT extends Output,
@@ -1338,11 +1344,7 @@ class DefaultStreamTextResult<
                   message: 'No output generated. Check the stream for errors.',
                 }));
 
-            self._finishReason.reject(error);
-            self._rawFinishReason.reject(error);
-            self._totalUsage.reject(error);
-            self._steps.reject(error);
-            self._initialResponseMessages.reject(error);
+            self.rejectResultPromises(error);
 
             return; // no steps recorded (e.g. in error scenario)
           }
@@ -2335,6 +2337,7 @@ class DefaultStreamTextResult<
     })().catch(async error => {
       await telemetryDispatcher.onError?.({ callId, error });
       self._initialResponseMessages.reject(error);
+      markPromiseAsHandled(self._initialResponseMessages.promise);
 
       // add an error stream part and close the streams:
       self.addStream(
@@ -2511,12 +2514,26 @@ class DefaultStreamTextResult<
   }
 
   private rejectResultPromises(error: unknown) {
-    if (this._finishReason.isPending()) this._finishReason.reject(error);
-    if (this._rawFinishReason.isPending()) this._rawFinishReason.reject(error);
-    if (this._totalUsage.isPending()) this._totalUsage.reject(error);
-    if (this._steps.isPending()) this._steps.reject(error);
-    if (this._initialResponseMessages.isPending()) {
-      this._initialResponseMessages.reject(error);
+    this.rejectResultPromise({ delayedPromise: this._finishReason, error });
+    this.rejectResultPromise({ delayedPromise: this._rawFinishReason, error });
+    this.rejectResultPromise({ delayedPromise: this._totalUsage, error });
+    this.rejectResultPromise({ delayedPromise: this._steps, error });
+    this.rejectResultPromise({
+      delayedPromise: this._initialResponseMessages,
+      error,
+    });
+  }
+
+  private rejectResultPromise<T>({
+    delayedPromise,
+    error,
+  }: {
+    delayedPromise: DelayedPromise<T>;
+    error: unknown;
+  }) {
+    if (delayedPromise.isPending()) {
+      delayedPromise.reject(error);
+      markPromiseAsHandled(delayedPromise.promise);
     }
   }
 
