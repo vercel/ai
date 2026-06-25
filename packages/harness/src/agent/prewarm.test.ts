@@ -1,7 +1,7 @@
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 import { describe, expect, it, vi } from 'vitest';
 import type { HarnessV1, HarnessV1SandboxProvider } from '../v1';
-import { prewarmHarness } from './prewarm';
+import { prepareHarnessSandboxTemplate, prewarmHarness } from './prewarm';
 
 function makeHarness(): HarnessV1 {
   return {
@@ -35,7 +35,7 @@ function makeSession(): {
   return { session, run, stop };
 }
 
-describe('prewarmHarness', () => {
+describe('prepareHarnessSandboxTemplate', () => {
   it('runs caller bootstrap through provider onFirstCreate and stops the session', async () => {
     const { session, stop } = makeSession();
     const createSession = vi.fn(
@@ -48,7 +48,7 @@ describe('prewarmHarness', () => {
     );
     const onSandboxBootstrap = vi.fn(async () => {});
 
-    await prewarmHarness({
+    await prepareHarnessSandboxTemplate({
       harness: makeHarness(),
       sandboxProvider: {
         specificationVersion: 'harness-sandbox-v1',
@@ -73,5 +73,9 @@ describe('prewarmHarness', () => {
       abortSignal: undefined,
     });
     expect(stop).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps prewarmHarness as an alias for prepareHarnessSandboxTemplate', () => {
+    expect(prewarmHarness).toBe(prepareHarnessSandboxTemplate);
   });
 });
