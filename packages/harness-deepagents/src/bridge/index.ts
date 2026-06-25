@@ -10,10 +10,11 @@ import {
 import { ChatAnthropic } from '@langchain/anthropic';
 import { tool } from '@langchain/core/tools';
 import { Command, MemorySaver } from '@langchain/langgraph';
-import { createDeepAgent, LocalShellBackend } from 'deepagents';
+import { createDeepAgent } from 'deepagents';
 import type { StartMessage } from '../deepagents-bridge-protocol';
 import { buildInterruptOn, collectActionRequests } from './approvals';
 import { jsonSchemaToZodObject } from './json-schema-to-zod';
+import { createLocalShellBackend } from './local-shell-backend';
 
 // Native Deep Agents tool name -> harness-v1 common name (renames only; grep/glob/ls/task/write_todos forward unchanged).
 const NATIVE_TO_COMMON: Readonly<Record<string, string>> = {
@@ -124,7 +125,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       // Defer to Deep Agents's own default when the host configured no model.
       ...(model ? { model } : {}),
       tools: buildHostTools(start.tools),
-      backend: new LocalShellBackend({ rootDir: workdir }),
+      backend: createLocalShellBackend({ rootDir: workdir }),
       systemPrompt: start.instructions || undefined,
       // Native skills loaded from the source dirs ($HOME-materialized + <workDir> for repo-provided skills).
       ...(start.skillsPaths?.length ? { skills: start.skillsPaths } : {}),
