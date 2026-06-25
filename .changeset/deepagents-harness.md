@@ -2,4 +2,4 @@
 '@ai-sdk/harness-deepagents': major
 ---
 
-feat(harness-deepagents): implement harness adapter 
+feat(harness-deepagents): add Deep Agents harness adapter 
