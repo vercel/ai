@@ -91,6 +91,18 @@ Use `session.detach()` to park a bridge-backed session for later attach, `sessio
 - Use `sandboxConfig.onBootstrap` for expensive sandbox setup that should be baked into a reusable snapshot, such as installing tools or cloning a large repository. Provide `sandboxConfig.bootstrapHash` with it and change that value whenever the bootstrap output should invalidate the cached snapshot.
 - Use `sandboxConfig.workDir` to set a stable working directory for the agent, relative to the sandbox's default working directory; otherwise regular sessions use the existing `<harnessId>-<sessionId>` directory. In that case, the `onBootstrap` callback receives the sandbox's default working directory.
 
+Use `prepareHarnessSandboxTemplate()` to create or refresh the sandbox provider's
+own reusable template for one harness before serving traffic. This is the
+replacement for `prewarmHarness()`, which remains as a deprecated alias.
+
+Use `prepareSandboxForHarness()` when you own an existing sandbox and want to
+prepare it before creating your own snapshot. It applies the selected harness
+bootstrap recipes and `sandboxConfig.onBootstrap`, returns the computed
+preparation identity and per-harness recipe identities, and leaves snapshotting
+or stopping the sandbox to your code. Later, create a sandbox from that snapshot
+and pass the native sandbox object to `createVercelSandbox({ sandbox })` for the
+`HarnessAgent`.
+
 ### Available harnesses
 
 See the [harness adapters documentation](https://ai-sdk.dev/v7/docs/ai-sdk-harnesses/harness-adapters).
