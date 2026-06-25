@@ -21,6 +21,7 @@ import {
   type AmazonBedrockImageModelId,
 } from './amazon-bedrock-image-settings';
 import { AmazonBedrockErrorSchema } from './amazon-bedrock-error';
+import { formatBedrockModelId } from './format-bedrock-model-id';
 import { z } from 'zod/v4';
 
 type AmazonBedrockImageModelConfig = {
@@ -55,8 +56,9 @@ export class AmazonBedrockImageModel implements ImageModelV4 {
   }
 
   private getUrl(modelId: string): string {
-    const encodedModelId = encodeURIComponent(modelId);
-    return `${this.config.baseUrl()}/model/${encodedModelId}/invoke`;
+    return `${this.config.baseUrl()}/model/${formatBedrockModelId(
+      modelId,
+    )}/invoke`;
   }
 
   constructor(
