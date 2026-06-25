@@ -1,5 +1,6 @@
 import type { RerankingModelV4CallOptions } from '@ai-sdk/provider';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as logWarningsModule from '../logger/log-warnings';
 import { MockRerankingModelV4 } from '../test/mock-reranking-model-v4';
 import { rerank } from './rerank';
 import type { RerankStartEvent, RerankEndEvent } from './rerank-events';
@@ -539,6 +540,18 @@ describe('rerank', () => {
   });
 
   describe('options.onEnd', () => {
+    let logWarningsSpy: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      logWarningsSpy = vi
+        .spyOn(logWarningsModule, 'logWarnings')
+        .mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      logWarningsSpy.mockRestore();
+    });
+
     const mockModel = new MockRerankingModelV4({
       doRerank: async () => ({
         ranking: [
