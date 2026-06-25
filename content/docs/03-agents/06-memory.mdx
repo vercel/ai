@@ -252,7 +252,7 @@ const result = await agent.generate({
 
 `isLoopFinished()` lets the agent keep running until the tool loop naturally finishes, which is useful when memory tools need to read and write before the final response.
 
-Session memory supports two modes: **tool-driven** (the LLM decides when to read/write — good for prototypes) and **hook-driven** (the runtime persists every turn via `prepareCall` + `onFinish` hooks — recommended for production). The other memory tiers (semantic, procedural, episodic, scratchpad) are always LLM-controlled and selective by design.
+Session memory supports two modes: **tool-driven** (the LLM decides when to read/write — good for prototypes) and **hook-driven** (the runtime persists every turn via `prepareCall` + `onEnd` hooks — recommended for production). The other memory tiers (semantic, procedural, episodic, scratchpad) are always LLM-controlled and selective by design.
 
 MongoDB memory works with any AI SDK model and embedding provider, with no vendor lock-in beyond MongoDB Atlas.
 
