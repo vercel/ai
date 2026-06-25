@@ -23,24 +23,24 @@ const result = await generateText({
 });
 ```
 
-## `maxSteps` → `stopWhen: isStepCount(n)`
+## `maxSteps` → `stopWhen: stepCountIs(n)`
 
 ```typescript
 // ❌ Incorrect
 const result = await generateText({
   model: 'anthropic/claude-opus-4.5',
   tools: { weather },
-  maxSteps: 5, // deprecated: use `stopWhen: isStepCount(n)` instead
+  maxSteps: 5, // deprecated: use `stopWhen: stepCountIs(n)` instead
   prompt: 'What is the weather in NYC?',
 });
 
 // ✅ Correct
-import { generateText, isStepCount } from 'ai';
+import { generateText, stepCountIs } from 'ai';
 
 const result = await generateText({
   model: 'anthropic/claude-opus-4.5',
   tools: { weather },
-  stopWhen: isStepCount(5),
+  stopWhen: stepCountIs(5),
   prompt: 'What is the weather in NYC?',
 });
 ```
