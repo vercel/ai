@@ -1463,6 +1463,10 @@ const usageSchema = z.object({
   promptTokenCount: z.number().nullish(),
   candidatesTokenCount: z.number().nullish(),
   totalTokenCount: z.number().nullish(),
+  // Tokens used by tool-use prompts (e.g. grounded Google Search, URL
+  // context). Google bills this at the regular input rate; see
+  // https://ai.google.dev/api/generate-content#UsageMetadata.
+  toolUsePromptTokenCount: z.number().nullish(),
   // https://cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1/GenerateContentResponse#TrafficType
   trafficType: z.string().nullish(),
   serviceTier: z.string().nullish(),
