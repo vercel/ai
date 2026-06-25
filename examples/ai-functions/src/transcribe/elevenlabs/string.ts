@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await transcribe({
-    model: elevenLabs.transcription('scribe_v1'),
+    model: elevenLabs.transcription('scribe_v2'),
     audio: Buffer.from(await readFile('./data/galileo.mp3')).toString('base64'),
   });
 
