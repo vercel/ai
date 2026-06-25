@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 4.0.2
+
+### Patch Changes
+
+- 9dce0a7: Add realtime models to Gateway metadata and generated model settings support.
+
 ## 4.0.1
 
 ### Patch Changes
