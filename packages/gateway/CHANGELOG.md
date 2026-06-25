@@ -1,5 +1,12 @@
 # @ai-sdk/gateway
 
+## 3.0.136
+
+### Patch Changes
+
+- 6ce12b0: Add Gateway speech and transcription model support.
+- 4cb4414: Backport: chore(provider/gateway): update gateway model settings files
+
 ## 3.0.135
 
 ### Patch Changes
