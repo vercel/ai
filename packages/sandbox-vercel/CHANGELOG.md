@@ -1,5 +1,17 @@
 # @ai-sdk/sandbox-vercel
 
+## 1.0.0
+
+### Major Changes
+
+- 9d6dbe0: feat(harness): add sandbox specific expansion for harness abstraction, add `sandbox-just-bash` and `sandbox-vercel`
+
+### Patch Changes
+
+- 6c7a3e5: Start the `1.0.0` canary release line for the experimental harness and sandbox packages. They were unintentionally published as `0.0.0-canary.*` because they were scaffolded with a `0.0.0-canary.0` premajor version, which semver could not advance past on a major bump.
+- b8396f0: trigger initial beta release
+- e551763: fix(harness): avoid using peer dependencies for underlying harness and sandbox SDKs
+
 ## 1.0.0-beta.27
 
 ### Patch Changes

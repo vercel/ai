@@ -1,5 +1,27 @@
 # @ai-sdk/harness
 
+## 1.0.0
+
+### Major Changes
+
+- 9d6dbe0: feat(harness): add sandbox specific expansion for harness abstraction, add `sandbox-just-bash` and `sandbox-vercel`
+
+### Patch Changes
+
+- e5d4a24: chore(harness): update ws package
+- aae0138: fix(harness): make listening for sandbox bridge readiness compatible with Bun
+- be83911: fix(harness): reject bridge startup when the WebSocket port cannot be bound
+- 3d87086: fix(harness): guard against invalid resuming a session vs continuing a turn
+- d77bed4: chore(harness): separate harness spec types (v1) from consumer-facing types
+- 21d3d60: feat(harness): implement harness specification
+- 3d9a50c: feat(harness): implement harness adapters for Claude Code, Codex, Pi
+- 57e0a59: fix(harness): ensure finish chunk's total usage is actually coming from total usage
+- 6c7a3e5: Start the `1.0.0` canary release line for the experimental harness and sandbox packages. They were unintentionally published as `0.0.0-canary.*` because they were scaffolded with a `0.0.0-canary.0` premajor version, which semver could not advance past on a major bump.
+- 1ea15a3: fix(harness): fix various bugs with harness skills not being correctly processed by the harness adapters
+- a83a367: feat(harness): allow pre-snapshot `sandboxConfig.onBootstrap` callback in `HarnessAgent`
+- b8396f0: trigger initial beta release
+- 534dac6: fix(harness): fix incomplete OIDC token support for AI Gateway auth in harness adapters
+
 ## 1.0.0-beta.27
 
 ### Patch Changes

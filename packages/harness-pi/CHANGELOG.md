@@ -1,5 +1,22 @@
 # @ai-sdk/harness-pi
 
+## 1.0.0
+
+### Major Changes
+
+- 3d9a50c: feat(harness): implement harness adapters for Claude Code, Codex, Pi
+
+### Patch Changes
+
+- bc77265: chore(harness): enforce more structural conventions in harness adapters
+- 0027d69: fix(harness-pi): fix client-side tool approval regression
+- d77bed4: chore(harness): separate harness spec types (v1) from consumer-facing types
+- b2ef8cf: chore(harness-pi): update Pi SDK
+- 1ea15a3: fix(harness): fix various bugs with harness skills not being correctly processed by the harness adapters
+- b8396f0: trigger initial beta release
+- e551763: fix(harness): avoid using peer dependencies for underlying harness and sandbox SDKs
+- 534dac6: fix(harness): fix incomplete OIDC token support for AI Gateway auth in harness adapters
+
 ## 1.0.0-beta.25
 
 ### Patch Changes
