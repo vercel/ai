@@ -1,29 +1,52 @@
 # Node.js Http Server + AI SDK Example
 
-You can use the AI SDK in a simple Node.js HTTP server to generate and stream text and objects.
+A minimal Node.js HTTP server demonstrating how to use the AI SDK to stream text and custom UI message data over HTTP.
 
-## Usage
+## Endpoints
 
-1. Create .env file with the following content (and more settings, depending on the providers you want to use):
+| Method | Path            | Description                                                                                 |
+| ------ | --------------- | ------------------------------------------------------------------------------------------- |
+| `POST` | `/`             | Streams a text response generated with `streamText` using `gpt-4o`.                         |
+| `POST` | `/stream-data`  | Streams a UI message stream that mixes custom data parts with `streamText` output.          |
+
+## Setup
+
+1. From the root of the AI SDK repo, install dependencies:
+
+   ```sh
+   pnpm install
+   ```
+
+2. Create a `.env` file in `examples/node-http-server/` (copy from `.env.example`) and add your OpenAI API key:
+
+   ```sh
+   OPENAI_API_KEY="YOUR_OPENAI_API_KEY"
+   ```
+
+3. Start the server from this directory:
+
+   ```sh
+   pnpm dev
+   ```
+
+   The server listens on `http://localhost:8080`.
+
+## Try it
+
+Stream a text response:
 
 ```sh
-OPENAI_API_KEY="YOUR_OPENAI_API_KEY"
+curl -X POST http://localhost:8080/
 ```
 
-2. Run the following commands from the root directory of the AI SDK repo:
+Stream custom data alongside generated text:
 
 ```sh
-pnpm install
+curl -X POST http://localhost:8080/stream-data
 ```
 
-3. Run the following command:
+## Files
 
-```sh
-pnpm dev
-```
-
-4. Test the endpoint with Curl:
-
-```sh
-curl -X POST http://localhost:8080
-```
+- `src/server.ts` — HTTP server with both endpoints.
+- `.env.example` — Required environment variables.
+- `package.json` — `pnpm dev` runs the server with `tsx`.
