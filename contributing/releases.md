@@ -31,6 +31,12 @@ Quick reference:
 - Exit beta mode: `pnpm changeset pre exit`
 - Backport fixes: add the `backport` label to the merged PR
 
+## Snapshot Releases
+
+For test purposes (e.g. to validate whether a certain PR fixes a downstream bug), you can trigger snapshot releases based on the PR branch.
+
+Manually dispatch the [release workflow](https://github.com/vercel/ai/actions/workflows/release.yml), selecting the PR branch and enabling the checkbox to ensure it is a snapshot release.
+
 ## New Major Releases
 
 - Update version in `skills/use-ai-sdk/SKILL.md`.
@@ -71,9 +77,3 @@ Steps:
    - **Environment name:** _(leave empty)_
 
 After this is done, subsequent releases of the package go through the normal changesets flow on `main`.
-
-## Creating Snapshot Releases
-
-For test purposes (e.g. to validate whether a certain PR fixes a downstream bug), you can trigger snapshot releases based on the PR branch.
-
-Manually dispatch the [release workflow](https://github.com/vercel/ai/actions/workflows/release.yml), selecting the PR branch and enabling the checkbox to ensure it is a snapshot release.
