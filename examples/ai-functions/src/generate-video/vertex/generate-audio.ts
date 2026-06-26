@@ -1,6 +1,6 @@
 import {
-  googleVertex,
-  type GoogleVertexVideoModelOptions,
+  type GoogleVertexVideoProviderOptions,
+  vertex,
 } from '@ai-sdk/google-vertex';
 import { experimental_generateVideo as generateVideo } from 'ai';
 import { presentVideos } from '../../lib/present-video';
@@ -14,7 +14,7 @@ run(async () => {
     'Generating Veo video with audio...',
     () =>
       generateVideo({
-        model: googleVertex.video('veo-3.1-fast-generate-001'),
+        model: vertex.video('veo-3.1-fast-generate-001'),
         prompt:
           'Ocean waves crashing on a rocky shore at sunset, with seagulls calling overhead.',
         aspectRatio: '16:9',
@@ -24,7 +24,7 @@ run(async () => {
         providerOptions: {
           vertex: {
             pollTimeoutMs: 600000,
-          } satisfies GoogleVertexVideoModelOptions,
+          } satisfies GoogleVertexVideoProviderOptions,
         },
       }),
   );
