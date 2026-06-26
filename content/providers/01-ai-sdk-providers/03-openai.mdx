@@ -54,6 +54,10 @@ You can use the following optional settings to customize the OpenAI provider ins
 
   Use a different URL prefix for API calls, e.g. to use proxy servers.
   The default prefix is `https://api.openai.com/v1`.
+  The default OpenAI model factory (`openai('model-id')`) uses the Responses
+  API. If your custom base URL only supports the Chat Completions API, create
+  chat models with `openai.chat('model-id')` instead, or use the
+  [OpenAI-compatible provider](/providers/openai-compatible-providers).
 
 - **apiKey** _string_
 
@@ -1601,6 +1605,8 @@ for (const part of result.content) {
 You can create models that call the [OpenAI chat API](https://platform.openai.com/docs/api-reference/chat) using the `.chat()` factory method.
 The first argument is the model id, e.g. `gpt-4`.
 The OpenAI chat models support tool calls and some have multi-modal capabilities.
+Use this factory when a custom `baseURL` points at an OpenAI-compatible endpoint
+that implements Chat Completions but not the Responses API.
 
 ```ts
 const model = openai.chat('gpt-5');
