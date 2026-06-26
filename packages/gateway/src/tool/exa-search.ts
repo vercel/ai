@@ -1,5 +1,5 @@
 import {
-  createProviderExecutedToolFactory,
+  createProviderToolFactoryWithOutputSchema,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -337,7 +337,7 @@ const exaSearchOutputSchema = lazySchema(() =>
   ),
 );
 
-export const exaSearchToolFactory = createProviderExecutedToolFactory<
+export const exaSearchToolFactory = createProviderToolFactoryWithOutputSchema<
   ExaSearchInput,
   ExaSearchOutput,
   ExaSearchConfig
