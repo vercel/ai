@@ -107,7 +107,7 @@ export function pruneMessages({
     // by looking across messages. Resolving names per-message left responses
     // unresolved, which caused them to be kept while their request was pruned,
     // producing orphaned approval responses.
-    const toolCallIdToToolName: Record<string, string> = {};
+    const toolCallIdToToolName = new Map<string, string>();
     for (const message of messages) {
       if (
         (message.role === 'assistant' || message.role === 'tool') &&
@@ -115,13 +115,13 @@ export function pruneMessages({
       ) {
         for (const part of message.content) {
           if (part.type === 'tool-call' || part.type === 'tool-result') {
-            toolCallIdToToolName[part.toolCallId] = part.toolName;
+            toolCallIdToToolName.set(part.toolCallId, part.toolName);
           }
         }
       }
     }
 
-    const approvalIdToToolName: Record<string, string> = {};
+    const approvalIdToToolName = new Map<string, string>();
     for (const message of messages) {
       if (
         (message.role === 'assistant' || message.role === 'tool') &&
@@ -129,8 +129,10 @@ export function pruneMessages({
       ) {
         for (const part of message.content) {
           if (part.type === 'tool-approval-request') {
-            approvalIdToToolName[part.approvalId] =
-              toolCallIdToToolName[part.toolCallId];
+            const toolName = toolCallIdToToolName.get(part.toolCallId);
+            if (toolName != null) {
+              approvalIdToToolName.set(part.approvalId, toolName);
+            }
           }
         }
       }
@@ -171,13 +173,15 @@ export function pruneMessages({
           }
 
           // keep parts that are not associated with a tool that should be removed:
+          const partToolName =
+            part.type === 'tool-call' || part.type === 'tool-result'
+              ? part.toolName
+              : approvalIdToToolName.get(part.approvalId);
+
           return (
             toolCall.tools != null &&
-            !toolCall.tools.includes(
-              part.type === 'tool-call' || part.type === 'tool-result'
-                ? part.toolName
-                : approvalIdToToolName[part.approvalId],
-            )
+            partToolName != null &&
+            !toolCall.tools.includes(partToolName)
           );
         }),
       } as AssistantModelMessage | ToolModelMessage;
