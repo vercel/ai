@@ -701,6 +701,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                     : { type: 'timeout' as const },
               })),
             } satisfies InferSchema<typeof shellOutputSchema>,
+            ...(part.id != null && {
+              providerMetadata: {
+                [providerOptionsName]: {
+                  itemId: part.id,
+                },
+              },
+            }),
           });
           break;
         }
@@ -1837,6 +1844,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                       }),
                     ),
                   } satisfies InferSchema<typeof shellOutputSchema>,
+                  ...(value.item.id != null && {
+                    providerMetadata: {
+                      [providerOptionsName]: {
+                        itemId: value.item.id,
+                      },
+                    },
+                  }),
                 });
               } else if (value.item.type === 'reasoning') {
                 const activeReasoningPart = activeReasoning[value.item.id];

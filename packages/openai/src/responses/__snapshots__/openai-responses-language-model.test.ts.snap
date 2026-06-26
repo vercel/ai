@@ -9704,6 +9704,11 @@ exports[`OpenAIResponsesLanguageModel > doStream > shell tool with container (no
     "type": "tool-call",
   },
   {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "sho_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e51",
+      },
+    },
     "result": {
       "output": [
         {
@@ -9973,6 +9978,11 @@ exports[`OpenAIResponsesLanguageModel > doStream > shell tool with environment >
     "type": "tool-call",
   },
   {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "sho_049350089f7281c400698f7180b2408191b71d13d85b8fd6ed",
+      },
+    },
     "result": {
       "output": [
         {
@@ -10004,6 +10014,11 @@ SKILL.md
     "type": "tool-call",
   },
   {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "sho_049350089f7281c400698f7182652481919b62a516ce0fbf5a",
+      },
+    },
     "result": {
       "output": [
         {
