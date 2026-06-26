@@ -1,5 +1,3 @@
-# Releases
-
 # Releases - for maintainers only
 
 We use [changesets](https://github.com/changesets/action) for automated releases.
@@ -73,3 +71,9 @@ Steps:
    - **Environment name:** _(leave empty)_
 
 After this is done, subsequent releases of the package go through the normal changesets flow on `main`.
+
+## Creating Snapshot Releases
+
+For test purposes (e.g. to validate whether a certain PR fixes a downstream bug), you can trigger snapshot releases based on the PR branch.
+
+Manually dispatch the [release workflow](https://github.com/vercel/ai/actions/workflows/release.yml), selecting the PR branch and enabling the checkbox to ensure it is a snapshot release.
