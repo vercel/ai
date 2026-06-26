@@ -1284,6 +1284,27 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should send web_search_call.results include provider option', async () => {
+        const { warnings } = await createModel('o3-mini').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              include: ['web_search_call.results'],
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'o3-mini',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          include: ['web_search_call.results'],
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
       it('should send textVerbosity provider option', async () => {
         const { warnings } = await createModel('gpt-5').doGenerate({
           prompt: TEST_PROMPT,
