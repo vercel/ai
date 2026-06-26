@@ -4,7 +4,7 @@ import {
   type BridgeTurn,
 } from '@ai-sdk/harness/bridge';
 import { randomUUID } from 'node:crypto';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { argv, env as procEnv } from 'node:process';
 import type { StartMessage } from '../opencode-bridge-protocol';
@@ -40,6 +40,8 @@ type Emit = (msg: Record<string, unknown>) => void;
 
 type OpenCodeClient = ReturnType<typeof createOpencodeClient>;
 type OpenCodeServer = Awaited<ReturnType<typeof createOpencodeServer>>;
+
+const TOOL_SCHEMAS_FILE = '.ai-sdk-harness-tool-schemas.json';
 
 type RuntimeState = {
   server?: OpenCodeServer;
@@ -224,19 +226,24 @@ function buildOpenCodeConfig({
   const provider = buildProviderConfig(start);
   if (provider) config.provider = provider;
   if (relayPort && start.tools && start.tools.length > 0) {
+    const toolSchemasPath = path.join(workdir, TOOL_SCHEMAS_FILE);
+    writeFileSync(
+      toolSchemasPath,
+      JSON.stringify(
+        start.tools.map(t => ({
+          name: t.name,
+          description: t.description,
+          inputSchema: t.inputSchema,
+        })),
+      ),
+    );
     config.mcp = {
       'harness-tools': {
         type: 'local',
         enabled: true,
         command: ['node', `${bootstrapDir}/host-tool-mcp.mjs`],
         environment: {
-          TOOL_SCHEMAS: JSON.stringify(
-            start.tools.map(t => ({
-              name: t.name,
-              description: t.description,
-              inputSchema: t.inputSchema,
-            })),
-          ),
+          TOOL_SCHEMAS_PATH: toolSchemasPath,
           TOOL_RELAY_URL: `http://127.0.0.1:${relayPort}`,
         },
       },

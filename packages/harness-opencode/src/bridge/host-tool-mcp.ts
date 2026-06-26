@@ -6,6 +6,7 @@
  */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { readFileSync } from 'node:fs';
 import { z } from 'zod/v4';
 
 type ToolSchema = {
@@ -30,12 +31,12 @@ type JsonSchemaObject = {
 
 type ZodShape = Record<string, z.ZodTypeAny>;
 
-const schemas: ToolSchema[] = JSON.parse(process.env.TOOL_SCHEMAS || '[]');
+const schemas: ToolSchema[] = loadToolSchemas();
 const relayUrl = process.env.TOOL_RELAY_URL || '';
 
 if (!schemas.length || !relayUrl) {
   process.stderr.write(
-    '[host-tool-mcp] Missing TOOL_SCHEMAS or TOOL_RELAY_URL; exiting\n',
+    '[host-tool-mcp] Missing TOOL_SCHEMAS_PATH/TOOL_SCHEMAS or TOOL_RELAY_URL; exiting\n',
   );
   process.exit(0);
 }
@@ -81,6 +82,14 @@ for (const schema of schemas) {
       }
     },
   );
+}
+
+function loadToolSchemas(): ToolSchema[] {
+  const schemasPath = process.env.TOOL_SCHEMAS_PATH;
+  if (schemasPath) {
+    return JSON.parse(readFileSync(schemasPath, 'utf8')) as ToolSchema[];
+  }
+  return JSON.parse(process.env.TOOL_SCHEMAS || '[]') as ToolSchema[];
 }
 
 function toZodShape(schema: JsonSchemaObject | undefined): ZodShape {
