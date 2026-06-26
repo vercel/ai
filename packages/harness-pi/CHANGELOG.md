@@ -1,5 +1,88 @@
 # @ai-sdk/harness-pi
 
+## 1.0.4
+
+### Patch Changes
+
+- c493634: fix(harness): fix harness Zod usage to be v3/v4 compatible
+- Updated dependencies [c493634]
+  - @ai-sdk/harness@1.0.4
+
+## 1.0.3
+
+### Patch Changes
+
+- Updated dependencies [51d10a0]
+  - @ai-sdk/harness@1.0.3
+
+## 1.0.2
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.2
+
+## 1.0.1
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.1
+
+## 1.0.0
+
+### Major Changes
+
+- 3d9a50c: feat(harness): implement harness adapters for Claude Code, Codex, Pi
+
+### Patch Changes
+
+- bc77265: chore(harness): enforce more structural conventions in harness adapters
+- 0027d69: fix(harness-pi): fix client-side tool approval regression
+- d77bed4: chore(harness): separate harness spec types (v1) from consumer-facing types
+- b2ef8cf: chore(harness-pi): update Pi SDK
+- 1ea15a3: fix(harness): fix various bugs with harness skills not being correctly processed by the harness adapters
+- b8396f0: trigger initial beta release
+- e551763: fix(harness): avoid using peer dependencies for underlying harness and sandbox SDKs
+- 534dac6: fix(harness): fix incomplete OIDC token support for AI Gateway auth in harness adapters
+
+## 1.0.0-beta.25
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.0-beta.27
+
+## 1.0.0-beta.24
+
+### Patch Changes
+
+- Updated dependencies [a83a367]
+  - @ai-sdk/harness@1.0.0-beta.26
+
+## 1.0.0-beta.23
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.0-beta.25
+
+## 1.0.0-beta.22
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.0-beta.24
+
+## 1.0.0-beta.21
+
+### Patch Changes
+
+- Updated dependencies [57e0a59]
+  - @ai-sdk/harness@1.0.0-beta.23
+
+## 1.0.0-beta.20
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.0-beta.22
+- @ai-sdk/provider-utils@5.0.0-beta.50
+
 ## 1.0.0-beta.19
 
 ### Patch Changes

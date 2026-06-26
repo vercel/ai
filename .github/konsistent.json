@@ -342,6 +342,7 @@
   "kebabToPascalMap": {
     "assemblyai": "AssemblyAI",
     "bytedance": "ByteDance",
+    "deepagents": "DeepAgents",
     "deepinfra": "DeepInfra",
     "deepseek": "DeepSeek",
     "elevenlabs": "ElevenLabs",
@@ -351,6 +352,7 @@
     "moonshotai": "MoonshotAI",
     "openai": "OpenAI",
     "openai-compatible": "OpenAICompatible",
+    "opencode": "OpenCode",
     "quiverai": "QuiverAI",
     "togetherai": "TogetherAI"
   },

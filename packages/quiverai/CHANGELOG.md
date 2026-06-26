@@ -1,5 +1,23 @@
 # @ai-sdk/quiverai
 
+## 2.0.0
+
+### Major Changes
+
+- d56c97b: Add `@ai-sdk/quiverai` provider for QuiverAI SVG image generation and vectorization.
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+
+## 2.0.0-beta.7
+
+### Patch Changes
+
+- Updated dependencies [0416e3e]
+  - @ai-sdk/provider@4.0.0-beta.20
+  - @ai-sdk/provider-utils@5.0.0-beta.50
+
 ## 2.0.0-beta.6
 
 ### Patch Changes

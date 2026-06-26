@@ -1,5 +1,37 @@
 # @ai-sdk/azure
 
+## 4.0.0
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+- c29a26f: feat(provider): add support for provider references and uploading files as supported per provider
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- 9f4dca0: Add Microsoft Entra ID token provider authentication for Azure OpenAI.
+- 38fc777: Add AI Gateway hint to provider READMEs
+- 83f9d04: feat(openai): upgrade v3 specs to v4
+- b23b042: feat(azure): add deepseek model support to azure
+- e776fc7: feat(provider/azure):web search tool in the Azure OpenAI Responses API.
+- 9f0e36c: trigger release for all packages after provenance setup
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- 0c4c275: trigger initial canary release
+- 9bd6512: feat(provider): change file part data property to be tagged with a type and remove the image part type
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- b8396f0: trigger initial beta release
+
+## 4.0.0-beta.79
+
+### Patch Changes
+
+- Updated dependencies [0416e3e]
+  - @ai-sdk/provider@4.0.0-beta.20
+  - @ai-sdk/deepseek@3.0.0-beta.56
+  - @ai-sdk/openai@4.0.0-beta.77
+  - @ai-sdk/provider-utils@5.0.0-beta.50
+
 ## 4.0.0-beta.78
 
 ### Patch Changes

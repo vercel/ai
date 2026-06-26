@@ -1,5 +1,177 @@
 # @ai-sdk/openai
 
+## 4.0.0
+
+### Major Changes
+
+- 34bd95d: feat(ai): add support for uploading provider skills using the provider references abstraction
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+- c29a26f: feat(provider): add support for provider references and uploading files as supported per provider
+- 3887c70: feat(provider): add new top-level reasoning parameter to spec and support it in `generateText` and `streamText`
+- 61753c3: ### `@ai-sdk/openai`: remove redundant `name` argument from `openai.tools.customTool()`
+
+  `openai.tools.customTool()` no longer accepts a `name` field. the tool name is now derived from the sdk tool key (the object key in the `tools` object).
+
+  migration: remove the `name` property from `customTool()` calls. the object key is now used as the tool name sent to the openai api.
+
+  before:
+
+  ```ts
+  tools: {
+    write_sql: openai.tools.customTool({
+      name: 'write_sql',
+      description: '...',
+    }),
+  }
+  ```
+
+  after:
+
+  ```ts
+  tools: {
+    write_sql: openai.tools.customTool({
+      description: '...',
+    }),
+  }
+  ```
+
+  ### `@ai-sdk/provider-utils`: `createToolNameMapping()` no longer accepts the `resolveProviderToolName` parameter
+
+  before: tool name can be set dynamically
+
+  ```ts
+  const toolNameMapping = createToolNameMapping({
+    tools,
+    providerToolNames: {
+      "openai.code_interpreter": "code_interpreter",
+      "openai.file_search": "file_search",
+      "openai.image_generation": "image_generation",
+      "openai.local_shell": "local_shell",
+      "openai.shell": "shell",
+      "openai.web_search": "web_search",
+      "openai.web_search_preview": "web_search_preview",
+      "openai.mcp": "mcp",
+      "openai.apply_patch": "apply_patch",
+    },
+    resolveProviderToolName: (tool) =>
+      tool.id === "openai.custom"
+        ? (tool.args as { name?: string }).name
+        : undefined,
+  });
+  ```
+
+  after: tool name is static based on `tools` keys
+
+  ```
+  const toolNameMapping = createToolNameMapping({
+    tools,
+    providerToolNames: {
+      'openai.code_interpreter': 'code_interpreter',
+      'openai.file_search': 'file_search',
+      'openai.image_generation': 'image_generation',
+      'openai.local_shell': 'local_shell',
+      'openai.shell': 'shell',
+      'openai.web_search': 'web_search',
+      'openai.web_search_preview': 'web_search_preview',
+      'openai.mcp': 'mcp',
+      'openai.apply_patch': 'apply_patch',
+    }
+  });
+  ```
+
+- 8359612: Start v7 pre-release
+- 04e9009: chore: make provider implementations code patterns more consistent, including renaming certain exported symbols
+
+  For all externally exported symbols that were renamed, the old names continue to work via deprecated aliases.
+
+### Patch Changes
+
+- 29e6ac6: feat: add allowedTools provider option for OpenAI Responses
+- 38fc777: Add AI Gateway hint to provider READMEs
+- a71d345: fix(provider/openai): drop reasoning parts without encrypted content when store: false
+- 7afaece: feat(provider/openai): add GPT-5.4 model support
+- 365da1a: Add `gpt-5.4-mini`, `gpt-5.4-mini-2026-03-17`, `gpt-5.4-nano`, and `gpt-5.4-nano-2026-03-17` models.
+- 1772a63: Default OpenAI Responses reasoning summaries to detailed when reasoning effort is enabled.
+- 83f9d04: feat(openai): upgrade v3 specs to v4
+- 45b3d76: fix(security): prevent streaming tool calls from finalizing on parsable partial JSON
+
+  Streaming tool call arguments were finalized using `isParsableJson()` as a heuristic for completion. If partial accumulated JSON happened to be valid JSON before all chunks arrived, the tool call would be executed with incomplete arguments. Tool call finalization now only occurs in `flush()` after the stream is fully consumed.
+
+- bf837fe: feat(provider/gateway): add speech and transcription model support
+- d6c79e3: feat(openai): add GPT-5.5 chat model IDs
+- e776fc7: feat(provider/azure):web search tool in the Azure OpenAI Responses API.
+- 817a1a6: fix(openai): support file-url parts in tool output content
+- 1f509d4: fix(ai): force template check on 'kind' param
+- 0c4ac8a: fix(openai): default undefined tool-call input to empty object before serializing tool arguments
+- 9f0e36c: trigger release for all packages after provenance setup
+- 58a2ad7: fix: more precise default message for tool execution denial
+- 6a5800e: feat(openai): add namespaces for tool definitions
+- ae7f932: fix(openai): throw retryable errors for OpenAI stream failures before output starts
+- 2c4767d: feat(openai): add orchestration token usage details to Responses API usage
+- bada0f3: feat(openai): preserve `namespace` on function_call output items
+- cd3de8b: feat(openai): forward `web_search_call.action.queries` from Responses API
+- 94eba1b: fix(openai): round-trip `namespace` on function_call input items
+
+  When `tool_search` dispatches a deferred tool, the resulting `function_call` carries a `namespace` field identifying which deferred-tool group the model picked. `#14789` preserved this on the read side (`providerMetadata.openai.namespace`), but the write side still serialized `function_call` input items without `namespace`. Multi-step / multi-turn conversations then failed with `Missing namespace for function_call '<name>'. ... Round-trip the model's function_call item with its namespace field included.`
+
+  `convert-to-openai-responses-input.ts` now reads `namespace` from `providerOptions.openai.namespace` (or `providerMetadata.openai.namespace`) on `tool-call` parts and includes it on the serialized `function_call` item, mirroring how `itemId` is round-tripped.
+
+- 7bbc194: feat(provider/openai): forward imageDetail providerOptions on tool-result image content
+- 156cdf0: feat(openai): add new tool search tool
+- f7295cb: revert incorrect fix https://github.com/vercel/ai/pull/13172
+- 9ea40e0: chore(provider/openai): add type for image model options for type-safe processing
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- f807e45: Extract shared `StreamingToolCallTracker` class into `@ai-sdk/provider-utils` to deduplicate streaming tool call handling across OpenAI-compatible providers. Also adds missing `generateId()` fallback for `toolCallId` in Alibaba's `doGenerate` path and ensures all providers finalize unfinished tool calls during stream flush.
+- d9a1e9a: feat(openai): add server side compaction for openai
+- 0c4c275: trigger initial canary release
+- ac18f89: feat(provider/openai): add `gpt-5.3-chat-latest`
+- 6fd51c0: fix(provider): preserve error type prefix in getErrorMessage
+- cd9c311: fix(openai, openai-compatible): only send null content for assistant messages with tool calls
+- e6376c2: fix(openai): preserve raw finish reason for failed responses stream events
+
+  Handle `response.failed` chunks in Responses API streaming so `finishReason.raw` is preserved from `incomplete_details.reason` (e.g. `max_output_tokens`), and map failed-without-reason cases to unified `error` instead of `other`.
+
+- ce769dd: feat(provider): add experimental Realtime API support for voice conversations
+
+  Adds first-class support for realtime (speech-to-speech) APIs:
+
+  - `Experimental_RealtimeModelV4` spec in `@ai-sdk/provider` with normalized event types and factory
+  - OpenAI, Google, and xAI realtime provider implementations
+  - `openai.experimental_realtime()` / `google.experimental_realtime()` / `xai.experimental_realtime()` work in both server and browser
+  - `.getToken()` static method on each provider for server-side ephemeral token creation
+  - `experimental_getRealtimeToolDefinitions` helper for provider session tool definitions
+  - `experimental_useRealtime` hook in `@ai-sdk/react` returning `UIMessage[]` (aligned with `useChat`), with `onToolCall` and `addToolOutput` for client-driven tool execution
+  - `inputAudioTranscription` session config for showing transcribed user audio messages when supported by the provider
+
+- e311194: feat(ai): allow passing provider instance to `uploadFile` and `uploadSkill` as shorthand
+- 9bd6512: feat(provider): change file part data property to be tagged with a type and remove the image part type
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- 685cec7: feat(openai): add opt-in pass-through for unsupported file media types
+- 61bcdb5: fix(provider/openai): send client-executed tool calls as full function_call items in the Responses API so they pair with their function_call_output by call_id
+- 5463d0d: feat(provider): align tool result output content file part types with top-level message file part types
+- b8396f0: trigger initial beta release
+- bfb756d: patch - send content: null instead of empty string for tool-only assistant messages
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+- 17b5597: fix(openai): skip passing reasoning items when using previous response id
+- b3976a2: Add workflow serialization support to all provider models.
+
+  **`@ai-sdk/provider-utils`:** New `serializeModel()` helper that extracts only serializable properties from a model instance, filtering out functions and objects containing functions. Third-party provider authors can use this to add workflow support to their own models.
+
+  **All providers:** `headers` is now optional in provider config types. This is non-breaking — existing code that passes `headers` continues to work. Custom provider implementations that construct model configs manually can now omit `headers`, which is useful when models are deserialized from a workflow step boundary where auth is provided separately.
+
+  All provider model classes now include `WORKFLOW_SERIALIZE` and `WORKFLOW_DESERIALIZE` static methods, enabling them to cross workflow step boundaries without serialization errors.
+
+- ff5eba1: feat: roll `image-*` tool output types into their equivalent `file-*` types
+- f9acbc0: feat(provider/openai): add gpt-image-2 model support
+
+## 4.0.0-beta.77
+
+### Patch Changes
+
+- Updated dependencies [0416e3e]
+  - @ai-sdk/provider@4.0.0-beta.20
+  - @ai-sdk/provider-utils@5.0.0-beta.50
+
 ## 4.0.0-beta.76
 
 ### Patch Changes

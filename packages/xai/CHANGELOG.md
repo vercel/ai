@@ -1,5 +1,138 @@
 # @ai-sdk/xai
 
+## 4.0.0
+
+### Major Changes
+
+- f7d4f01: feat(provider): add support for `reasoning-file` type for files that are part of reasoning
+- 776b617: feat(provider): adding new 'custom' content type
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+- c29a26f: feat(provider): add support for provider references and uploading files as supported per provider
+- 8359612: Start v7 pre-release
+- 04e9009: chore: make provider implementations code patterns more consistent, including renaming certain exported symbols
+
+  For all externally exported symbols that were renamed, the old names continue to work via deprecated aliases.
+
+- f62681f: feat(provider/xai): make responses api the default
+
+### Patch Changes
+
+- 38fc777: Add AI Gateway hint to provider READMEs
+- 85735d8: fix(xai): stop emitting additionalProperties flag
+- 74d520f: feat: migrate providers to support new top-level `reasoning` parameter
+- 25f1837: feat(xai): add b64_json response format, usage cost tracking, and quality/user parameters for image models
+- a0b0a0c: expose costInUsdTicks in responses provider metadata
+- aa5a583: chore(provider/xai): remove obsolete Grok 2 models now that they are shut down in their API
+- e5bdc8d: fix (provider/xai): handle mid-stream error chunks
+- 4799fa5: chore(provider/xai): update provider to use v4 types
+- 813851f: fix (provider/xai): add response.incomplete and response.failed streaming event handling
+- 2dc2a52: fix reasoning-start dedupe on multi-summary-part responses to prevent xai 400 on continuation requests
+- 9f0e36c: trigger release for all packages after provenance setup
+- 58a2ad7: fix: more precise default message for tool execution denial
+- d20829e: feat(provider/xai): add moderation error, and costInUsdTicks to video model
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- 0f11f10: add reasoningSummary to responses API provider options
+- 23f9d72: deprecate searchParameters (xai live search) in favor of web_search/x_search agent tools
+- 0c4c275: trigger initial canary release
+- 1293885: surface full xai error detail in APICallError.message instead of falling back to http status text
+- 8d87577: fix(xai): support encrypted reasoning round-trip for ZDR
+- 9f20868: fix(provider/xai): correct finish reason for tool calls
+- 4f91b5d: chore(provider/xai): update Grok 4.20 model IDs to their non-beta versions
+- ce769dd: feat(provider): add experimental Realtime API support for voice conversations
+
+  Adds first-class support for realtime (speech-to-speech) APIs:
+
+  - `Experimental_RealtimeModelV4` spec in `@ai-sdk/provider` with normalized event types and factory
+  - OpenAI, Google, and xAI realtime provider implementations
+  - `openai.experimental_realtime()` / `google.experimental_realtime()` / `xai.experimental_realtime()` work in both server and browser
+  - `.getToken()` static method on each provider for server-side ephemeral token creation
+  - `experimental_getRealtimeToolDefinitions` helper for provider session tool definitions
+  - `experimental_useRealtime` hook in `@ai-sdk/react` returning `UIMessage[]` (aligned with `useChat`), with `onToolCall` and `addToolOutput` for client-driven tool execution
+  - `inputAudioTranscription` session config for showing transcribed user audio messages when supported by the provider
+
+- 12115e9: fix reasoning text extraction from content in responses doGenerate
+- 9bd6512: feat(provider): change file part data property to be tagged with a type and remove the image part type
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- b8396f0: trigger initial beta release
+- f51c95e: feat(provider/xai): add video extension and reference-to-video (R2V) support
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+- f5181ad: feat(provider/xai): support multiple input images for image editing
+- b3976a2: Add workflow serialization support to all provider models.
+
+  **`@ai-sdk/provider-utils`:** New `serializeModel()` helper that extracts only serializable properties from a model instance, filtering out functions and objects containing functions. Third-party provider authors can use this to add workflow support to their own models.
+
+  **All providers:** `headers` is now optional in provider config types. This is non-breaking — existing code that passes `headers` continues to work. Custom provider implementations that construct model configs manually can now omit `headers`, which is useful when models are deserialized from a workflow step boundary where auth is provided separately.
+
+  All provider model classes now include `WORKFLOW_SERIALIZE` and `WORKFLOW_DESERIALIZE` static methods, enabling them to cross workflow step boundaries without serialization errors.
+
+- 1dbecd7: feat(provider/xai): add `enableImageSearch` to the xAI Web Search tool
+
+  The xAI Responses API supports `enable_image_search` on Web Search tools. `xai.tools.webSearch()` now accepts `enableImageSearch` and sends it through to the API as `enable_image_search`.
+
+- 80e1702: feat(xai): support `'none'` and `'medium'` reasoning effort for `grok-4.3`,
+  and curate the model ID autocomplete list
+
+  `grok-4.3` accepts `reasoning_effort` of `"none" | "low" | "medium" | "high"`,
+  where `"none"` disables reasoning entirely (no thinking tokens) and `"medium"`
+  provides more thinking for less-latency-sensitive applications.
+
+  - Adds `'none'` to the allowed values for `providerOptions.xai.reasoningEffort`
+    on both the chat (`xai()`) and responses (`xai.responses()`) language models.
+  - Adds `'medium'` to the chat model's `reasoningEffort` enum (the responses
+    model already supported it).
+  - Top-level `reasoning: 'medium'` now maps to `reasoning_effort: 'medium'` for
+    the chat model (previously it was coerced to `'low'` because `'medium'` was
+    not a valid value).
+
+  In addition, the `XaiChatModelId` and `XaiResponsesModelId` autocomplete unions
+  have been trimmed to xAI's current model lineup
+  ([docs](https://docs.x.ai/docs/models)):
+
+  - `grok-4.20-non-reasoning`
+  - `grok-4.20-reasoning`
+  - `grok-4.3`
+  - `grok-latest`
+
+  Older entries (`grok-3*`, `grok-4`, `grok-4-0709`, `grok-4-latest`,
+  `grok-4-1-fast-*`, `grok-4-fast-*`, `grok-code-fast-1`, and
+  `grok-4.20-multi-agent-0309`) have been removed from the autocomplete list.
+  This is **not** a runtime change — the model ID type is still open
+  (`(string & {})`), so passing any model ID that the xAI API accepts continues
+  to work; only IDE autocomplete is affected.
+
+  ```ts
+  import { xai } from "@ai-sdk/xai";
+  import { generateText } from "ai";
+
+  await generateText({
+    model: xai("grok-4.3"),
+    prompt: "Hi",
+    providerOptions: {
+      xai: { reasoningEffort: "none" },
+    },
+  });
+  ```
+
+- 78b6433: feat(provider/xai): support non-image file parts (PDF, text, CSV) in the Responses API via `input_file` + `file_url`
+
+  The xAI Responses API accepts `{ type: 'input_file', file_url }` for non-image documents (see https://docs.x.ai/docs/guides/chat-with-files), but the AI SDK xAI Responses provider previously threw `UnsupportedFunctionalityError` for any file part whose `mediaType` did not start with `image/`.
+
+  When a file part is passed with `data: URL` and a non-image media type, the provider now emits `{ type: 'input_file', file_url }`. `application/pdf` and `text/*` are also added to `supportedUrls` so the SDK does not download them to bytes before reaching the converter.
+
+  Inline-byte (base64) inputs for non-image media types continue to throw, since xAI's Responses API requires either a public URL or a pre-uploaded `file_id` for non-image documents.
+
+- 7486744: Add xAI speech-to-text transcription support.
+- 7486744: feat(provider/xai): add text-to-speech support
+
+## 4.0.0-beta.76
+
+### Patch Changes
+
+- Updated dependencies [0416e3e]
+  - @ai-sdk/provider@4.0.0-beta.20
+  - @ai-sdk/openai-compatible@3.0.0-beta.58
+  - @ai-sdk/provider-utils@5.0.0-beta.50
+
 ## 4.0.0-beta.75
 
 ### Patch Changes

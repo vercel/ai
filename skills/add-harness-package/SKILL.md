@@ -17,6 +17,10 @@ Prefer host-driven when the runtime supports it.
 - **Third-party packages**: Any runtime can publish an external harness package.
 - **First-party `@ai-sdk/harness-<name>` packages**: Create an issue first to discuss whether the runtime belongs in this repo.
 
+## Reference Example
+
+See https://github.com/vercel/ai/pull/16255/changes for a complete example of adding a new harness.
+
 ## Harness Architecture
 
 The AI SDK uses a layered harness architecture following the adapter pattern:
@@ -60,7 +64,7 @@ src/
     └── pnpm-lock.yaml
 ```
 
-Do not create a `CHANGELOG.md` file manually.
+Add a `CHANGELOG.md` containing just the package heading (`# @ai-sdk/harness-<name>`). Every package is required to have one.
 
 ### 2. Configure package.json
 
@@ -70,6 +74,7 @@ Required package basics:
 
 - `"name": "@ai-sdk/harness-<name>"`
 - `"type": "module"`
+- `"version": "0.0.0"` (starting point for new packages)
 - `"license": "Apache-2.0"`
 - `"sideEffects": false`
 - dependency on `@ai-sdk/harness` via `workspace:*`
@@ -79,6 +84,13 @@ Required package basics:
 - `"engines": { "node": ">=22" }`
 
 For bridge packages, add any bridge asset copy step required for files under `src/bridge/`.
+
+Bridge dependency rules (bridge-backed harnesses):
+
+- The bridge's runtime deps live in `src/bridge/package.json` (installed in-sandbox at bootstrap), not the main package.json. After changing them, regenerate `src/bridge/pnpm-lock.yaml` with `pnpm --dir packages/harness-<name>/src/bridge install --lockfile-only --ignore-workspace` (runnable from the repo root).
+- For every third-party import in `src/bridge/`, keep three things in sync: the import, the `external` array in `tsup.config.ts`, and the dep in `src/bridge/package.json`. A missing entry shows up only at sandbox runtime as a module-resolution error.
+- Include packages the runtime _lazily_ imports — e.g. provider SDKs (`@anthropic-ai/sdk`, `openai`) resolved from the model id at runtime — even though nothing imports them directly. These fail only when a model of that provider is actually used.
+- Match shared dependency versions (transport, schema, tooling, runtime SDKs) to what the other harness packages currently use — copy from a sibling package rather than choosing your own pins. Stale pins drift from security patches and can desync from the shared bridge runtime; check the current versions at creation time.
 
 ### 3. Create TypeScript, Build, and Test Configs
 
@@ -103,7 +115,10 @@ Use the architecture doc for contract details. At implementation time, verify:
 - expose adapter-native built-in tools through `builtinTools`;
 - keep construction synchronous and side-effect free;
 - use `startOpts.sandboxSession` and `startOpts.sessionWorkDir`; never create a separate sandbox;
-- throw `HarnessCapabilityUnsupportedError` from the method that needs an unsupported runtime capability.
+- throw `HarnessCapabilityUnsupportedError` from the method that needs an unsupported runtime capability;
+- don't hardcode a default model unless the runtime technically requires one — some underlying SDKs have no default of their own. Otherwise pass the model only when the consumer configured one and leave the original SDK's default untouched; keep the session's `modelId` consistent with what's actually sent (don't report a model the bridge silently overrode);
+- handle the `tools` and `instructions` that `doPromptTurn`/`doContinueTurn` may receive: if the runtime can't take custom `tools`, throw `HarnessCapabilityUnsupportedError` so it's obvious rather than silently dropped; if it has no native `instructions` input, prepend them to the first user message (the Codex/Claude Code workaround);
+- quote interpolated paths (`workDir`, bridge-state dir, …) when building shell commands for `sandbox.run`/`sandbox.spawn` — they can contain spaces.
 
 If the runtime needs in-sandbox setup, expose `getBootstrap()`.
 
@@ -111,7 +126,8 @@ If the runtime needs in-sandbox setup, expose `getBootstrap()`.
 
 Add only the concerns the runtime needs:
 
-- auth resolution;
+- auth resolution — for AI Gateway support, use the central `getAiGatewayAuthFromEnv()` helper rather than reading env directly. This ensures both `VERCEL_OIDC_TOKEN` and `AI_GATEWAY_API_KEY` are accepted as Gateway credential. When the runtime resolves provider per model, resolve the provider from the model id and set that provider's env; if routing through the gateway, note that base-URL conventions differ per provider (e.g. an Anthropic client appends `/v1/messages` to a root base, an OpenAI client appends to a `/v1` base);
+- custom-tool schema translation — if you convert host tools' JSON Schema into the runtime's tool format, convert _recursively_ (nested objects, array `items`, enums, descriptions); a flat top-level-only conversion silently drops the model's structured guidance. Passing the JSON Schema through directly, if the runtime accepts it, avoids the problem;
 - skill or discovery-file materialization;
 - native protocol to harness stream/control translation;
 - lifecycle state schema;
@@ -134,6 +150,8 @@ Add focused Node tests for:
 - skill materialization, if supported.
 
 Use mocked sandbox sessions and bridge/runtime boundaries where possible. Do not require live provider credentials in unit tests.
+
+`getBootstrap()` reads the _compiled_ bridge assets (e.g. `dist/bridge/index.mjs`), which don't exist when tests run against `src`, so a test that calls it will hit `ENOENT`. Mock `node:fs/promises` `readFile` for the bridge asset paths (see the Codex/OpenCode harness tests for the pattern).
 
 ### 7. Add README
 
@@ -181,7 +199,9 @@ pnpm --filter @ai-sdk/harness-<name> test
 pnpm type-check:full
 ```
 
-Run relevant harness examples manually when the runtime can be exercised with available credentials.
+Add a changeset with `pnpm changeset`. For a brand-new harness package's first release, use `major` (not the usual `patch`), matching the other harness packages.
+
+Run relevant harness examples against a live sandbox **early** — don't rely on unit tests and `type-check` alone. Runtime API constraints (e.g. unexpected config-option rejections, the exact streaming event names the runtime emits, gateway base-URL format) surface only when the bridge actually drives the runtime, and they're far cheaper to find before the docs/examples are built on top.
 
 ## Checklist
 
@@ -198,9 +218,12 @@ Run relevant harness examples manually when the runtime can be exercised with av
 - [ ] Session resume and turn continuation tested
 - [ ] Unit tests written and passing
 - [ ] README.md written
+- [ ] `CHANGELOG.md` added (package heading; required by `konsistent`)
+- [ ] Changeset added (`major` for a first release)
 - [ ] Examples added
 - [ ] Documentation added in `content/providers/02-ai-sdk-harnesses/`
 - [ ] Harness adapter list updated, if public
+- [ ] Validated against a live sandbox (not just unit tests / type-check)
 - [ ] `pnpm update-references` run
 - [ ] Package build passing
 - [ ] Package tests passing

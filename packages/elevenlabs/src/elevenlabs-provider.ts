@@ -17,7 +17,7 @@ import { VERSION } from './version';
 
 export interface ElevenLabsProvider extends ProviderV4 {
   (
-    modelId: 'scribe_v1',
+    modelId: ElevenLabsTranscriptionModelId,
     settings?: {},
   ): {
     transcription: ElevenLabsTranscriptionModel;

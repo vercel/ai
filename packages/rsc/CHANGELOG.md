@@ -1,5 +1,65 @@
 # @ai-sdk/rsc
 
+## 3.0.2
+
+### Patch Changes
+
+- ai@7.0.2
+
+## 3.0.1
+
+### Patch Changes
+
+- ai@7.0.1
+
+## 3.0.0
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- 31ee822: refactoring(ai): extract filterActiveTools and expose it as experimental_filterActiveTools
+- 83f9d04: feat(openai): upgrade v3 specs to v4
+- 1db29c8: feat(ai): break `CallSettings` apart into `LanguageModelCallOptions` and `RequestOptions`
+- 9f0e36c: trigger release for all packages after provenance setup
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- 0c4c275: trigger initial canary release
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- 6abd098: split `prepareToolsAndToolChoice()` into `prepareTools()` and `prepareToolChoice()`
+- e79e644: chore(ai/core): remove `timeout` from `CallSettings` as it was effectively unused there
+- b8396f0: trigger initial beta release
+
+## 3.0.0-beta.188
+
+### Patch Changes
+
+- ai@7.0.0-beta.187
+
+## 3.0.0-beta.187
+
+### Patch Changes
+
+- ai@7.0.0-beta.186
+
+## 3.0.0-beta.186
+
+### Patch Changes
+
+- Updated dependencies [75763b0]
+  - ai@7.0.0-beta.185
+
+## 3.0.0-beta.185
+
+### Patch Changes
+
+- Updated dependencies [0416e3e]
+  - @ai-sdk/provider@4.0.0-beta.20
+  - ai@7.0.0-beta.184
+  - @ai-sdk/provider-utils@5.0.0-beta.50
+
 ## 3.0.0-beta.184
 
 ### Patch Changes

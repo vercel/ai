@@ -14,6 +14,7 @@ const defaultOptions = {
   duration: undefined,
   fps: undefined,
   seed: undefined,
+  generateAudio: undefined,
   providerOptions: {},
 } as const;
 
@@ -473,6 +474,51 @@ describe('ByteDanceVideoModel', () => {
           },
         ],
         generate_audio: true,
+      });
+    });
+
+    it('should map the top-level generateAudio option', async () => {
+      const model = createBasicModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        generateAudio: true,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'seedance-1-0-pro-250528',
+        content: [
+          {
+            type: 'text',
+            text: prompt,
+          },
+        ],
+        generate_audio: true,
+      });
+    });
+
+    it('should let the top-level generateAudio override the legacy provider option', async () => {
+      const model = createBasicModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        generateAudio: false,
+        providerOptions: {
+          bytedance: {
+            generateAudio: true,
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'seedance-1-0-pro-250528',
+        content: [
+          {
+            type: 'text',
+            text: prompt,
+          },
+        ],
+        generate_audio: false,
       });
     });
 

@@ -7,6 +7,7 @@ import type { Context } from '@ai-sdk/provider-utils';
 import {
   experimental_filterActiveTools as filterActiveTools,
   type Experimental_LanguageModelStreamPart as ModelCallStreamPart,
+  type Experimental_SandboxSession as SandboxSession,
   type LanguageModel,
   type ModelMessage,
   type StepResult,
@@ -52,6 +53,8 @@ export interface StreamTextIteratorYieldValue {
   toolsContext?: Record<string, Context | undefined>;
   /** Provider-executed tool results (keyed by tool call ID) */
   providerExecutedToolResults?: Map<string, ProviderExecutedToolResult>;
+  /** The sandbox selected for the current step. */
+  experimental_sandbox?: SandboxSession;
 }
 
 // This runs in the workflow context
@@ -74,6 +77,7 @@ export async function* streamTextIterator({
   includeRawChunks = false,
   repairToolCall,
   responseFormat,
+  experimental_sandbox: sandbox,
 }: {
   prompt: LanguageModelV4Prompt;
   tools: ToolSet;
@@ -94,6 +98,7 @@ export async function* streamTextIterator({
   includeRawChunks?: boolean;
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
   responseFormat?: LanguageModelV4CallOptions['responseFormat'];
+  experimental_sandbox?: SandboxSession;
 }): AsyncGenerator<
   StreamTextIteratorYieldValue,
   LanguageModelV4Prompt,
@@ -135,6 +140,8 @@ export async function* streamTextIterator({
       break;
     }
 
+    let stepSandbox = sandbox;
+
     // Call prepareStep callback before each step if provided
     if (prepareStep) {
       const prepareResult = await prepareStep({
@@ -144,7 +151,10 @@ export async function* streamTextIterator({
         messages: conversationPrompt,
         runtimeContext: currentRuntimeContext,
         toolsContext: currentToolsContext as never,
+        experimental_sandbox: sandbox,
       });
+
+      stepSandbox = prepareResult?.experimental_sandbox ?? sandbox;
 
       // Apply any overrides from prepareStep
       if (prepareResult?.model !== undefined) {
@@ -398,6 +408,7 @@ export async function* streamTextIterator({
           step,
           runtimeContext: currentRuntimeContext,
           toolsContext: currentToolsContext,
+          experimental_sandbox: stepSandbox,
           providerExecutedToolResults,
         };
 
@@ -473,6 +484,7 @@ export async function* streamTextIterator({
       step: lastStep,
       runtimeContext: currentRuntimeContext,
       toolsContext: currentToolsContext,
+      experimental_sandbox: sandbox,
     };
   }
 
