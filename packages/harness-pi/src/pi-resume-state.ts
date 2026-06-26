@@ -10,11 +10,9 @@ import { z } from 'zod/v4';
  * in the sandbox under `${sessionWorkDir}/.pi-sessions/<sessionFileName>` so
  * they survive cross-process resume via the sandbox snapshot.
  */
-export const piResumeStateSchema = z
-  .object({
-    sessionFileName: z.string().optional(),
-  })
-  .passthrough();
+export const piResumeStateSchema = z.looseObject({
+  sessionFileName: z.string().optional(),
+});
 
 export type PiResumeStateData = z.infer<typeof piResumeStateSchema>;
 
