@@ -716,5 +716,140 @@ describe('pruneMessages', () => {
         `);
       });
     });
+
+    describe('selective tool pruning with approvals (regression)', () => {
+      // Regression: a `tool-approval-response` lives in a separate `tool`
+      // message from its `tool-approval-request`. When pruning a specific tool
+      // by name, the response must be pruned together with its request and
+      // tool-call instead of being left orphaned.
+      it('should prune the approval response together with its request and tool-call', () => {
+        const messages: ModelMessage[] = [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Weather in Tokyo and Busan?' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'get-weather-tool-1',
+                input: '{"city": "Tokyo"}',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-2',
+                toolName: 'get-weather-tool-2',
+                input: '{"city": "Busan"}',
+              },
+              {
+                type: 'tool-approval-request',
+                toolCallId: 'call-2',
+                approvalId: 'approval-1',
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'approval-1',
+                approved: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'get-weather-tool-1',
+                output: { type: 'text', value: 'sunny' },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call-2',
+                toolName: 'get-weather-tool-2',
+                output: { type: 'text', value: 'rainy' },
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'done' }],
+          },
+        ];
+
+        const result = pruneMessages({
+          messages,
+          toolCalls: [{ type: 'all', tools: ['get-weather-tool-2'] }],
+        });
+
+        // The approval response for the pruned tool must not survive as an
+        // orphan; only get-weather-tool-1 parts remain.
+        expect(result).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "text": "Weather in Tokyo and Busan?",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "content": [
+                {
+                  "input": "{"city": "Tokyo"}",
+                  "toolCallId": "call-1",
+                  "toolName": "get-weather-tool-1",
+                  "type": "tool-call",
+                },
+              ],
+              "role": "assistant",
+            },
+            {
+              "content": [
+                {
+                  "output": {
+                    "type": "text",
+                    "value": "sunny",
+                  },
+                  "toolCallId": "call-1",
+                  "toolName": "get-weather-tool-1",
+                  "type": "tool-result",
+                },
+              ],
+              "role": "tool",
+            },
+            {
+              "content": [
+                {
+                  "text": "done",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+
+        // No orphaned approval responses remain in the pruned output.
+        const approvalIds = new Set<string>();
+        const responseIds = new Set<string>();
+        for (const message of result) {
+          if (typeof message.content === 'string') continue;
+          for (const part of message.content) {
+            if (part.type === 'tool-approval-request') {
+              approvalIds.add(part.approvalId);
+            } else if (part.type === 'tool-approval-response') {
+              responseIds.add(part.approvalId);
+            }
+          }
+        }
+        for (const id of responseIds) {
+          expect(approvalIds).toContain(id);
+        }
+      });
+    });
   });
 });
