@@ -1,5 +1,21 @@
 # @ai-sdk/gateway
 
+## 4.0.2
+
+### Patch Changes
+
+- 9dce0a7: Add realtime models to Gateway metadata and generated model settings support.
+
+## 4.0.1
+
+### Patch Changes
+
+- b2791b3: chore(provider/gateway): update gateway model settings files
+- 330f6e2: Clarify `parallel_search` `source_policy` field descriptions so the model emits
+  values the Parallel API accepts: `include_domains`/`exclude_domains` must be plain
+  hosts (no scheme/path/port), and `after_date` must be an ISO 8601 calendar date
+  formatted `YYYY-MM-DD`.
+
 ## 4.0.0
 
 ### Major Changes
