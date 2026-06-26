@@ -9,10 +9,14 @@ import { createIdMap } from '../util/create-id-map';
  * Default transform function that strips markdown code fences from text.
  */
 function defaultTransform(text: string): string {
-  return text
+  const stripped = text
     .replace(/^```(?:json)?\s*\n?/, '')
-    .replace(/\n?```\s*$/, '')
-    .trim();
+    .replace(/\n?```\s*$/, '');
+  // Only trim if a code fence was actually stripped
+  if (stripped !== text) {
+    return stripped.trim();
+  }
+  return stripped;
 }
 
 /**
