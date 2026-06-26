@@ -5638,6 +5638,34 @@ describe('OpenAIResponsesLanguageModel', () => {
   });
 
   describe('doStream', () => {
+    it('should return helpful error when Chat Completions stream is received', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:{"choices":[],"created":0,"id":"","model":"","object":"","prompt_filter_results":[{"prompt_index":0,"content_filter_results":{}}]}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await createModel('gpt-4o').doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+      const error = events.find(event => event.type === 'error')?.error;
+
+      expect(error).toMatchObject({
+        name: 'AI_APICallError',
+        message:
+          'Received a Chat Completions stream while using the OpenAI Responses API. ' +
+          "The default OpenAI provider model uses the Responses API. If your custom baseURL targets a Chat Completions-compatible endpoint, use openai.chat('model-id') or createOpenAI(...).chat('model-id') instead. " +
+          'You can also use @ai-sdk/openai-compatible for OpenAI-compatible providers.',
+        responseBody:
+          '{"choices":[],"created":0,"id":"","model":"","object":"","prompt_filter_results":[{"prompt_index":0,"content_filter_results":{}}]}',
+      });
+    });
+
     it('should stream text deltas', async () => {
       server.urls['https://api.openai.com/v1/responses'].response = {
         type: 'stream-chunks',
