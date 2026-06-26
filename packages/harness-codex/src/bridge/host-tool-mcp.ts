@@ -27,7 +27,7 @@
  */
 import * as mcpServerModule from '@modelcontextprotocol/sdk/server/mcp.js';
 import * as mcpStdioModule from '@modelcontextprotocol/sdk/server/stdio.js';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const { McpServer } = mcpServerModule as any;

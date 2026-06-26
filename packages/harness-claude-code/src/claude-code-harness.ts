@@ -32,7 +32,7 @@ import {
   type Experimental_SandboxProcess,
 } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import {
   resolveClaudeCodeEnv,
   type ClaudeCodeAuthOptions,
@@ -231,7 +231,7 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
       subject: z.string(),
       description: z.string(),
       activeForm: z.string().optional(),
-      metadata: z.record(z.unknown()).optional(),
+      metadata: z.record(z.string(), z.unknown()).optional(),
     }),
   }),
   TaskGet: tool({
@@ -254,7 +254,7 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
       addBlocks: z.array(z.string()).optional(),
       addBlockedBy: z.array(z.string()).optional(),
       owner: z.string().optional(),
-      metadata: z.record(z.unknown()).optional(),
+      metadata: z.record(z.string(), z.unknown()).optional(),
     }),
   }),
   TaskList: tool({
@@ -286,18 +286,16 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
   }),
   ExitPlanMode: tool({
     description: 'Exit plan mode with optional permission approvals',
-    inputSchema: z
-      .object({
-        allowedPrompts: z
-          .array(
-            z.object({
-              tool: z.literal('Bash'),
-              prompt: z.string(),
-            }),
-          )
-          .optional(),
-      })
-      .passthrough(),
+    inputSchema: z.looseObject({
+      allowedPrompts: z
+        .array(
+          z.object({
+            tool: z.literal('Bash'),
+            prompt: z.string(),
+          }),
+        )
+        .optional(),
+    }),
   }),
   EnterWorktree: tool({
     description: 'Create or enter an isolated git worktree',
@@ -333,9 +331,10 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
         )
         .min(1)
         .max(4),
-      answers: z.record(z.string()).optional(),
+      answers: z.record(z.string(), z.string()).optional(),
       annotations: z
         .record(
+          z.string(),
           z.object({
             preview: z.string().optional(),
             notes: z.string().optional(),
@@ -387,11 +386,11 @@ const claudeCodeBridgeCoordsSchema = z.object({
  * sandbox via `provider.resumeSession({ sessionId })`, and the Claude SDK's
  * `{ continue: true }` flag rehydrates the thread from the workdir. A
  * `doDetach()` payload additionally carries `bridge` coordinates for
- * cross-process `attach`. `.passthrough()` keeps both shapes valid.
+ * cross-process `attach`. A loose object keeps both shapes valid.
  */
-const claudeCodeResumeStateSchema = z
-  .object({ bridge: claudeCodeBridgeCoordsSchema.optional() })
-  .passthrough();
+const claudeCodeResumeStateSchema = z.looseObject({
+  bridge: claudeCodeBridgeCoordsSchema.optional(),
+});
 
 type ClaudeCodeBridgeCoords = z.infer<typeof claudeCodeBridgeCoordsSchema>;
 
