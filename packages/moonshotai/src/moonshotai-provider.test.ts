@@ -171,11 +171,9 @@ describe('MoonshotAIProvider', () => {
 
 describe('getMoonshotAILanguageModelCapabilities', () => {
   it.each([
-    ['kimi-k2.5', true],
-    ['kimi-k2.5-turbo', true],
-    ['kimi-k2.5-custom-suffix', true],
-    ['kimi-k2', true],
-    ['kimi-k2-thinking', true],
+    ['kimi-k2.5', false],
+    ['kimi-k2.6', true],
+    ['kimi-k2.7-code', true],
     ['moonshot-v1-8k', false],
     ['moonshot-v1-32k', false],
     ['moonshot-v1-128k', false],
