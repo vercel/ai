@@ -634,15 +634,11 @@ class DefaultMCPClient implements MCPClient {
   }: CompleteRequestParams & {
     options?: RequestOptions;
   }): Promise<CompleteResult> {
-    try {
-      return this.request({
-        request: { method: 'completion/complete', params },
-        resultSchema: CompleteResultSchema,
-        options,
-      });
-    } catch (error) {
-      throw error;
-    }
+    return this.request({
+      request: { method: 'completion/complete', params },
+      resultSchema: CompleteResultSchema,
+      options,
+    });
   }
 
   private async notification(notification: Notification): Promise<void> {
