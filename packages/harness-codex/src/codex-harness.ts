@@ -336,7 +336,7 @@ export function createCodex(
 
       if (respawnStrategy === undefined) {
         await session.run({
-          command: `mkdir -p ${workDir} ${bridgeStateDir}`,
+          command: `mkdir -p ${shellQuote(workDir)} ${shellQuote(bridgeStateDir)}`,
           abortSignal: startOpts.abortSignal,
         });
       }
@@ -349,7 +349,7 @@ export function createCodex(
       });
 
       const proc = await session.spawn({
-        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${workDir} --bridge-state-dir ${bridgeStateDir} --bootstrap-dir ${BOOTSTRAP_DIR}`,
+        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --bootstrap-dir ${shellQuote(BOOTSTRAP_DIR)}`,
         env,
         abortSignal: startOpts.abortSignal,
       });

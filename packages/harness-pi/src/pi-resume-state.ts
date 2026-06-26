@@ -2,6 +2,7 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import { shellQuote } from './pi-utils';
 
 /**
  * Schema for the adapter-specific portion of lifecycle state `data` produced
@@ -39,7 +40,7 @@ export async function persistSessionFileToSandbox(args: {
   );
   // Ensure the parent dir exists in the sandbox before writing.
   await args.sandbox.run({
-    command: `mkdir -p ${path.posix.dirname(remotePath)}`,
+    command: `mkdir -p ${shellQuote(path.posix.dirname(remotePath))}`,
     ...(args.abortSignal ? { abortSignal: args.abortSignal } : {}),
   });
   await args.sandbox.writeBinaryFile({

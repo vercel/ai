@@ -567,7 +567,7 @@ export function createClaudeCode(
        */
       if (respawnStrategy === undefined) {
         await session.run({
-          command: `mkdir -p ${workDir} ${bridgeStateDir}`,
+          command: `mkdir -p ${shellQuote(workDir)} ${shellQuote(bridgeStateDir)}`,
           abortSignal: startOpts.abortSignal,
         });
 
@@ -592,7 +592,7 @@ export function createClaudeCode(
       });
 
       const proc = await session.spawn({
-        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${workDir} --bridge-state-dir ${bridgeStateDir}`,
+        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)}`,
         env,
         abortSignal: startOpts.abortSignal,
       });
