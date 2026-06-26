@@ -1,13 +1,9 @@
-import { createGateway, streamText } from 'ai';
+import { gateway, streamText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
-  const gateway = createGateway({
-    baseURL: 'http://localhost:3000/v1/ai',
-  });
-
   const result = streamText({
-    model: gateway('openai/gpt-5-nano'),
+    model: 'openai/gpt-5-nano',
     prompt:
       'Use the exaSearch tool to find current information about renewable energy developments in 2025. You must search the web first before answering.',
     tools: {
