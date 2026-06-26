@@ -53,22 +53,20 @@ const HANDLED_PROVIDER_OPTIONS = new Set([
 
 export const byteDanceVideoProviderOptionsSchema = lazySchema(() =>
   zodSchema(
-    z
-      .object({
-        watermark: z.boolean().nullish(),
-        generateAudio: z.boolean().nullish(),
-        cameraFixed: z.boolean().nullish(),
-        returnLastFrame: z.boolean().nullish(),
-        serviceTier: z.enum(['default', 'flex']).nullish(),
-        draft: z.boolean().nullish(),
-        lastFrameImage: z.string().nullish(),
-        referenceImages: z.array(z.string()).nullish(),
-        referenceVideos: z.array(z.string()).nullish(),
-        referenceAudio: z.array(z.string()).nullish(),
-        pollIntervalMs: z.number().positive().nullish(),
-        pollTimeoutMs: z.number().positive().nullish(),
-      })
-      .passthrough(),
+    z.looseObject({
+      watermark: z.boolean().nullish(),
+      generateAudio: z.boolean().nullish(),
+      cameraFixed: z.boolean().nullish(),
+      returnLastFrame: z.boolean().nullish(),
+      serviceTier: z.enum(['default', 'flex']).nullish(),
+      draft: z.boolean().nullish(),
+      lastFrameImage: z.string().nullish(),
+      referenceImages: z.array(z.string()).nullish(),
+      referenceVideos: z.array(z.string()).nullish(),
+      referenceAudio: z.array(z.string()).nullish(),
+      pollIntervalMs: z.number().positive().nullish(),
+      pollTimeoutMs: z.number().positive().nullish(),
+    }),
   ),
 );
 

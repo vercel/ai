@@ -1,7 +1,8 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import { z } from 'zod/v4';
+import { shellQuote } from './pi-utils';
 
 /**
  * Schema for the adapter-specific portion of lifecycle state `data` produced
@@ -10,11 +11,9 @@ import { z } from 'zod';
  * in the sandbox under `${sessionWorkDir}/.pi-sessions/<sessionFileName>` so
  * they survive cross-process resume via the sandbox snapshot.
  */
-export const piResumeStateSchema = z
-  .object({
-    sessionFileName: z.string().optional(),
-  })
-  .passthrough();
+export const piResumeStateSchema = z.looseObject({
+  sessionFileName: z.string().optional(),
+});
 
 export type PiResumeStateData = z.infer<typeof piResumeStateSchema>;
 
@@ -41,7 +40,7 @@ export async function persistSessionFileToSandbox(args: {
   );
   // Ensure the parent dir exists in the sandbox before writing.
   await args.sandbox.run({
-    command: `mkdir -p ${path.posix.dirname(remotePath)}`,
+    command: `mkdir -p ${shellQuote(path.posix.dirname(remotePath))}`,
     ...(args.abortSignal ? { abortSignal: args.abortSignal } : {}),
   });
   await args.sandbox.writeBinaryFile({

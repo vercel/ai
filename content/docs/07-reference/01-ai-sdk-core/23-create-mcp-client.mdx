@@ -86,7 +86,7 @@ It currently does not support accepting notifications from an MCP server, and cu
                   parameters: [
                     {
                       name: 'type',
-                      type: "'sse' | 'http",
+                      type: "'sse' | 'http'",
                       description: 'Use Server-Sent Events for communication',
                     },
                     {
@@ -114,6 +114,48 @@ It currently does not support accepting notifications from an MCP server, and cu
                       isOptional: true,
                       description:
                         "Controls how HTTP redirects are handled for transport requests. Set to 'follow' to allow redirect responses. Defaults to 'error' to reject any redirect response, preventing servers from redirecting requests to unintended hosts.",
+                    },
+                    {
+                      name: 'initialSessionId',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'Initial MCP session id to send with resumed Streamable HTTP requests after initialization. Pair with initialInitializeResult when using createMCPClient. Only used by the HTTP transport.',
+                    },
+                    {
+                      name: 'initialProtocolVersion',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'Initial MCP protocol version to send before initialize negotiates one. Only used by the HTTP transport.',
+                    },
+                    {
+                      name: 'onSessionIdChange',
+                      type: '(sessionId: string | undefined) => void',
+                      isOptional: true,
+                      description:
+                        'Callback invoked when the Streamable HTTP server creates, changes, or clears the MCP session id. Only used by the HTTP transport.',
+                    },
+                    {
+                      name: 'onSessionExpired',
+                      type: '(sessionId: string) => void',
+                      isOptional: true,
+                      description:
+                        'Callback invoked when a Streamable HTTP request returns 404 for an existing MCP session id. The transport clears the session id before reporting the underlying HTTP error. Only used by the HTTP transport.',
+                    },
+                    {
+                      name: 'terminateSessionOnClose',
+                      type: 'boolean',
+                      isOptional: true,
+                      description:
+                        'Whether close() should send DELETE for the current MCP session id. Set to false when the application intends to reattach to the session later. Defaults to true. Only used by the HTTP transport.',
+                    },
+                    {
+                      name: 'fetch',
+                      type: 'FetchFunction',
+                      isOptional: true,
+                      description:
+                        'Optional custom fetch implementation to use for HTTP requests. Useful for runtimes that need a request-local fetch.',
                     },
                   ],
                 },
@@ -145,6 +187,13 @@ It currently does not support accepting notifications from an MCP server, and cu
               description: 'Handler for uncaught errors',
             },
             {
+              name: 'initialInitializeResult',
+              type: 'InitializeResult',
+              isOptional: true,
+              description:
+                'Initialize result from a previous MCP session. When provided, the client starts the transport and reuses this metadata without sending a new initialize request.',
+            },
+            {
               name: 'capabilities',
               type: 'ClientCapabilities',
               isOptional: true,
@@ -164,6 +213,12 @@ Returns a Promise that resolves to an `MCPClient` with the following properties 
 
 <PropertiesTable
   content={[
+    {
+      name: 'initializeResult',
+      type: 'InitializeResult',
+      description:
+        'The full initialize result used by this client, either from the server during initialization or from initialInitializeResult.',
+    },
     {
       name: 'serverInfo',
       type: 'Configuration',
