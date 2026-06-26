@@ -198,6 +198,31 @@ describe('persistSessionFileToSandbox', () => {
     );
   });
 
+  it('quotes the sandbox session directory in shell commands', async () => {
+    const sandbox = makeSandbox();
+    writeFileSync(path.join(hostSessionDir, 'session.jsonl'), 'session data');
+
+    await persistSessionFileToSandbox({
+      sandbox: sandbox.sandbox,
+      sessionWorkDir: '/vercel/sandbox/pi-s1; env > /tmp/leak #',
+      hostSessionDir,
+      sessionFileName: 'session.jsonl',
+    });
+
+    expect(sandbox.runCalls).toEqual([
+      {
+        command:
+          "mkdir -p '/vercel/sandbox/pi-s1; env > /tmp/leak #/.pi-sessions'",
+      },
+    ]);
+    expect(sandbox.writeCalls[0]?.path).toBe(
+      '/vercel/sandbox/pi-s1; env > /tmp/leak #/.pi-sessions/session.jsonl',
+    );
+    expect(Buffer.from(sandbox.writeCalls[0]!.content).toString('utf8')).toBe(
+      'session data',
+    );
+  });
+
   it('rejects unsafe filenames before writing to the sandbox', async () => {
     const sandbox = makeSandbox();
 
