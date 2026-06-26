@@ -38,6 +38,7 @@ import { writePiSkills } from './pi-skills';
 import {
   persistSessionFileToSandbox,
   pullSessionFileFromSandbox,
+  safePiSessionFileName,
 } from './pi-resume-state';
 import {
   createPiTranslatorState,
@@ -268,11 +269,14 @@ export async function createPiSession(
   // host mirror so SessionManager.open can read it.
   let resumeSessionFilePath: string | undefined;
   if (input.isResume && input.resumeSessionFileName) {
+    const resumeSessionFileName = safePiSessionFileName(
+      input.resumeSessionFileName,
+    );
     resumeSessionFilePath = await pullSessionFileFromSandbox({
       sandbox,
       sessionWorkDir: input.sessionWorkDir,
       hostSessionDir,
-      sessionFileName: input.resumeSessionFileName,
+      sessionFileName: resumeSessionFileName,
       ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
     });
   }
@@ -569,7 +573,7 @@ export async function createPiSession(
     // round-trip it without guessing the extension.
     const candidatePath = sessionManager.getSessionFile();
     if (candidatePath) {
-      sessionFileName = path.basename(candidatePath);
+      sessionFileName = safePiSessionFileName(path.basename(candidatePath));
     }
 
     translatorState = createPiTranslatorState({

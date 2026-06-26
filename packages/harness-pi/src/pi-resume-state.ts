@@ -4,6 +4,22 @@ import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { shellQuote } from './pi-utils';
 
+const PI_SESSION_FILE_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*\.jsonl?$/;
+
+export function safePiSessionFileName(sessionFileName: string): string {
+  if (!PI_SESSION_FILE_NAME_PATTERN.test(sessionFileName)) {
+    throw new Error(`Invalid Pi session file name: ${sessionFileName}`);
+  }
+  return sessionFileName;
+}
+
+const piSessionFileNameSchema = z
+  .string()
+  .refine(
+    sessionFileName => PI_SESSION_FILE_NAME_PATTERN.test(sessionFileName),
+    'Pi sessionFileName must be a safe .jsonl or .json basename.',
+  );
+
 /**
  * Schema for the adapter-specific portion of lifecycle state `data` produced
  * by Pi's resumable lifecycle methods. Carries the basename
@@ -12,12 +28,52 @@ import { shellQuote } from './pi-utils';
  * they survive cross-process resume via the sandbox snapshot.
  */
 export const piResumeStateSchema = z.looseObject({
-  sessionFileName: z.string().optional(),
+  sessionFileName: piSessionFileNameSchema.optional(),
 });
 
 export type PiResumeStateData = z.infer<typeof piResumeStateSchema>;
 
 const PI_SESSIONS_DIR = '.pi-sessions';
+
+function resolveContainedHostPath(input: {
+  readonly baseDir: string;
+  readonly sessionFileName: string;
+}): string {
+  const baseDir = path.resolve(input.baseDir);
+  const filePath = path.resolve(
+    baseDir,
+    safePiSessionFileName(input.sessionFileName),
+  );
+  const relativePath = path.relative(baseDir, filePath);
+  if (
+    relativePath === '' ||
+    relativePath.startsWith('..') ||
+    path.isAbsolute(relativePath)
+  ) {
+    throw new Error(`Invalid Pi session file name: ${input.sessionFileName}`);
+  }
+  return filePath;
+}
+
+function resolveContainedSandboxPath(input: {
+  readonly sessionWorkDir: string;
+  readonly sessionFileName: string;
+}): string {
+  const sessionDir = path.posix.resolve(input.sessionWorkDir, PI_SESSIONS_DIR);
+  const filePath = path.posix.resolve(
+    sessionDir,
+    safePiSessionFileName(input.sessionFileName),
+  );
+  const relativePath = path.posix.relative(sessionDir, filePath);
+  if (
+    relativePath === '' ||
+    relativePath.startsWith('..') ||
+    path.posix.isAbsolute(relativePath)
+  ) {
+    throw new Error(`Invalid Pi session file name: ${input.sessionFileName}`);
+  }
+  return filePath;
+}
 
 /**
  * Copy the Pi session file from the host's local mirror to a stable location
@@ -31,13 +87,15 @@ export async function persistSessionFileToSandbox(args: {
   readonly sessionFileName: string;
   readonly abortSignal?: AbortSignal;
 }): Promise<void> {
-  const hostPath = path.join(args.hostSessionDir, args.sessionFileName);
+  const hostPath = resolveContainedHostPath({
+    baseDir: args.hostSessionDir,
+    sessionFileName: args.sessionFileName,
+  });
   const content = await readFile(hostPath);
-  const remotePath = path.posix.join(
-    args.sessionWorkDir,
-    PI_SESSIONS_DIR,
-    args.sessionFileName,
-  );
+  const remotePath = resolveContainedSandboxPath({
+    sessionWorkDir: args.sessionWorkDir,
+    sessionFileName: args.sessionFileName,
+  });
   // Ensure the parent dir exists in the sandbox before writing.
   await args.sandbox.run({
     command: `mkdir -p ${shellQuote(path.posix.dirname(remotePath))}`,
@@ -63,18 +121,20 @@ export async function pullSessionFileFromSandbox(args: {
   readonly sessionFileName: string;
   readonly abortSignal?: AbortSignal;
 }): Promise<string | undefined> {
-  const remotePath = path.posix.join(
-    args.sessionWorkDir,
-    PI_SESSIONS_DIR,
-    args.sessionFileName,
-  );
+  const remotePath = resolveContainedSandboxPath({
+    sessionWorkDir: args.sessionWorkDir,
+    sessionFileName: args.sessionFileName,
+  });
   const bytes = await args.sandbox.readBinaryFile({
     path: remotePath,
     ...(args.abortSignal ? { abortSignal: args.abortSignal } : {}),
   });
   if (!bytes) return undefined;
   await mkdir(args.hostSessionDir, { recursive: true });
-  const hostPath = path.join(args.hostSessionDir, args.sessionFileName);
+  const hostPath = resolveContainedHostPath({
+    baseDir: args.hostSessionDir,
+    sessionFileName: args.sessionFileName,
+  });
   await writeFile(hostPath, bytes);
   return hostPath;
 }
