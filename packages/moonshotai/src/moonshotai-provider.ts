@@ -72,7 +72,8 @@ const defaultBaseURL = 'https://api.moonshot.ai/v1';
 export function getModelStructuredOutputSupport(
   modelId: MoonshotAIChatModelId,
 ): boolean {
-  if (modelId.startsWith('kimi-')) return true;
+  if (modelId === 'kimi-k2.5') return false;
+  if (modelId.startsWith('kimi-k')) return true;
   return false;
 }
 
