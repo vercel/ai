@@ -156,13 +156,14 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
 
       /**
        * The set of extra fields to include in the response (advanced, usually not needed).
-       * Example values: 'reasoning.encrypted_content', 'file_search_call.results', 'message.output_text.logprobs'.
+       * Example values: 'reasoning.encrypted_content', 'file_search_call.results', 'web_search_call.results', 'message.output_text.logprobs'.
        */
       include: z
         .array(
           z.enum([
             'reasoning.encrypted_content', // handled internally by default, only needed for unknown reasoning models
             'file_search_call.results',
+            'web_search_call.results',
             'message.output_text.logprobs',
           ]),
         )
