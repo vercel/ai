@@ -32,7 +32,7 @@ import {
   type Experimental_SandboxSession,
 } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import {
   resolveOpenCodeEnv,
   splitOpenCodeModel,
