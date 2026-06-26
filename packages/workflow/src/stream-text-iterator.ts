@@ -259,6 +259,12 @@ export async function* streamTextIterator({
           headers: prepareResult.headers,
         };
       }
+      if (prepareResult?.reasoning !== undefined) {
+        currentGenerationSettings = {
+          ...currentGenerationSettings,
+          reasoning: prepareResult.reasoning,
+        };
+      }
       if (prepareResult?.providerOptions !== undefined) {
         currentGenerationSettings = {
           ...currentGenerationSettings,
@@ -333,6 +339,7 @@ export async function* streamTextIterator({
         frequencyPenalty: currentGenerationSettings.frequencyPenalty,
         stopSequences: currentGenerationSettings.stopSequences,
         seed: currentGenerationSettings.seed,
+        reasoning: currentGenerationSettings.reasoning,
         providerOptions: currentGenerationSettings.providerOptions,
         headers: currentGenerationSettings.headers,
       } as never);

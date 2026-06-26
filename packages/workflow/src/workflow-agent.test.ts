@@ -1865,6 +1865,7 @@ describe('WorkflowAgent', () => {
         maxOutputTokens: 1000,
         topP: 0.9,
         seed: 42,
+        reasoning: 'low',
       });
 
       const mockWritable = new WritableStream({
@@ -1892,6 +1893,7 @@ describe('WorkflowAgent', () => {
             maxOutputTokens: 1000,
             topP: 0.9,
             seed: 42,
+            reasoning: 'low',
           }),
         }),
       );
@@ -1924,6 +1926,7 @@ describe('WorkflowAgent', () => {
         writable: mockWritable,
         temperature: 0.3, // Override
         maxOutputTokens: 500, // New setting
+        reasoning: 'none',
       });
 
       expect(streamTextIterator).toHaveBeenCalledWith(
@@ -1931,6 +1934,7 @@ describe('WorkflowAgent', () => {
           generationSettings: expect.objectContaining({
             temperature: 0.3,
             maxOutputTokens: 500,
+            reasoning: 'none',
           }),
         }),
       );
