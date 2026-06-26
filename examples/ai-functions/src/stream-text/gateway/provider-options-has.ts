@@ -4,10 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    // `openai/gpt-5.5` has the `implicit-caching` capability. Pointing at a
-    // model that lacks it (e.g. an explicit-caching-only model) fails the
-    // request.
-    model: 'openai/gpt-5.5',
+    model: 'deepseek/deepseek-v4-flash',
     prompt: 'Tell me the history of the tenrec in a few sentences.',
     providerOptions: {
       gateway: {
