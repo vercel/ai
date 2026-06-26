@@ -94,9 +94,13 @@ function convertFileToGoogleImage(
       ? file.data
       : convertUint8ArrayToBase64(file.data);
 
+  // The Gemini Developer API (generativelanguage.googleapis.com) requires
+  // inline image bytes wrapped as `inlineData`.
   return {
-    bytesBase64Encoded: base64Data,
-    mimeType: file.mediaType || 'image/png',
+    inlineData: {
+      mimeType: file.mediaType || 'image/png',
+      data: base64Data,
+    },
   };
 }
 
@@ -105,15 +109,16 @@ function convertProviderReferenceImage(
 ): Record<string, unknown> {
   if (refImg.bytesBase64Encoded) {
     return {
-      bytesBase64Encoded: refImg.bytesBase64Encoded,
-      mimeType: 'image/png',
+      inlineData: {
+        mimeType: 'image/png',
+        data: refImg.bytesBase64Encoded,
+      },
     };
   }
 
   if (refImg.gcsUri) {
     return {
       gcsUri: refImg.gcsUri,
-      mimeType: 'image/png',
     };
   }
 
