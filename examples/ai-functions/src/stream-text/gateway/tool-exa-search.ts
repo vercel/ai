@@ -15,7 +15,7 @@ async function main() {
     },
   });
 
-  for await (const part of result.stream) {
+  for await (const part of result.fullStream) {
     switch (part.type) {
       case 'reasoning-delta':
         process.stdout.write(`\x1b[34m${part.text}\x1b[0m`);
@@ -46,7 +46,7 @@ async function main() {
   console.log('Finish reason:', await result.finishReason);
   console.log(
     'Provider metadata:',
-    JSON.stringify((await result.finalStep).providerMetadata, null, 2),
+    JSON.stringify(await result.providerMetadata, null, 2),
   );
 }
 
