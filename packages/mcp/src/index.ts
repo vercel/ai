@@ -27,6 +27,7 @@ export type {
   Configuration,
   ElicitationRequest,
   ElicitResult,
+  InitializeResult,
   ListToolsResult,
   McpProviderMetadata,
   ClientCapabilities as MCPClientCapabilities,

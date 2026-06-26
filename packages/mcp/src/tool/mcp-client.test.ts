@@ -7,6 +7,7 @@ import { MockMCPTransport } from './mock-mcp-transport';
 import {
   ListToolsResult,
   ElicitationRequestSchema,
+  LATEST_PROTOCOL_VERSION,
   type CallToolResult,
   type ListResourceTemplatesResult,
   type ListResourcesResult,
@@ -14,6 +15,7 @@ import {
   type ListPromptsResult,
   type GetPromptResult,
   type Configuration,
+  type InitializeResult,
 } from './types';
 import type { JSONRPCMessage, JSONRPCRequest } from './json-rpc-message';
 import {
@@ -1111,6 +1113,62 @@ describe('MCPClient', () => {
       expect(tools).toBeDefined();
       await client.close();
     }
+  });
+
+  it('should resume from an initial initialize result without reinitializing', async () => {
+    const sentMessages: JSONRPCMessage[] = [];
+    const initialInitializeResult: InitializeResult = {
+      protocolVersion: LATEST_PROTOCOL_VERSION,
+      serverInfo: {
+        name: 'resumed-server',
+        version: '1.0.0',
+      },
+      capabilities: {
+        tools: {},
+      },
+      instructions: 'Cached server instructions',
+    };
+    const transport: MCPTransport = {
+      start: vi.fn(async () => {}),
+      close: vi.fn(async () => {}),
+      send: vi.fn(async message => {
+        sentMessages.push(message);
+        if (
+          'method' in message &&
+          'id' in message &&
+          message.method === 'tools/list'
+        ) {
+          transport.onmessage?.({
+            jsonrpc: '2.0',
+            id: message.id,
+            result: {
+              tools: [],
+            },
+          });
+        }
+      }),
+    };
+
+    client = await createMCPClient({
+      transport,
+      initialInitializeResult,
+    });
+
+    expect(transport.start).toHaveBeenCalledTimes(1);
+    expect(sentMessages).toEqual([]);
+    expect(transport.protocolVersion).toBe(LATEST_PROTOCOL_VERSION);
+    expect(client.serverInfo).toEqual({
+      name: 'resumed-server',
+      version: '1.0.0',
+    });
+    expect(client.initializeResult).toEqual(initialInitializeResult);
+    expect(client.instructions).toBe('Cached server instructions');
+
+    await expect(client.listTools()).resolves.toEqual({ tools: [] });
+    expect(sentMessages).toHaveLength(1);
+    expect(sentMessages[0]).toMatchObject({
+      method: 'tools/list',
+    });
   });
 
   it('should expose serverInfo from initialization', async () => {
