@@ -4,7 +4,7 @@ import {
   type HarnessV1BuiltinTool,
 } from '@ai-sdk/harness';
 import { tool } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import type { PiAuthOptions } from './pi-auth';
 import { piResumeStateSchema } from './pi-resume-state';
 import { createPiSession, type PiThinkingLevel } from './pi-session';

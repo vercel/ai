@@ -38,8 +38,10 @@
   "dependencies": {
     "@ai-sdk/harness": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
-    "ws": "^8.21.0",
-    "zod": "3.25.76"
+    "ws": "^8.21.0"
+  },
+  "peerDependencies": {
+    "zod": "^3.25.76 || ^4.1.8"
   },
   "devDependencies": {
     "@modelcontextprotocol/sdk": "1.29.0",
@@ -48,7 +50,8 @@
     "@types/ws": "^8.5.13",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8.5.1",
-    "typescript": "5.8.3"
+    "typescript": "5.8.3",
+    "zod": "3.25.76"
   },
   "engines": {
     "node": ">=22"

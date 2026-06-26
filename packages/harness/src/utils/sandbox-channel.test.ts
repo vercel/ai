@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { WebSocket } from 'ws';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { SandboxChannel } from './sandbox-channel';
 
 const outboundSchema = z.discriminatedUnion('type', [
