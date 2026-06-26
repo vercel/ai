@@ -203,7 +203,8 @@ export class MuApiImageModel implements ImageModelV4 {
     const requestId = submitResult.request_id;
     const pollUrl = `${this.config.baseURL}/predictions/${requestId}/result`;
 
-    while (true) {
+    const MAX_POLL_ATTEMPTS = 300; // 300 * 2s = 600s
+    for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt++) {
       await delay(2000);
 
       const { value: pollResult } = await getFromApi({
@@ -217,7 +218,7 @@ export class MuApiImageModel implements ImageModelV4 {
 
       if (pollResult.status === 'completed' && pollResult.outputs) {
         return {
-          images: pollResult.outputs.map(url => ({ type: 'url' as const, url })),
+          images: pollResult.outputs,
           warnings,
           response: {
             timestamp: currentDate,
@@ -231,5 +232,9 @@ export class MuApiImageModel implements ImageModelV4 {
         throw new Error(pollResult.error ?? 'Image generation failed');
       }
     }
+
+    throw new Error(
+      `MuAPI image generation timed out after ${MAX_POLL_ATTEMPTS * 2}s (request_id=${requestId})`,
+    );
   }
 }

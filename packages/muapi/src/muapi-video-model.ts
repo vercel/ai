@@ -231,7 +231,8 @@ export class MuApiVideoModel implements Experimental_VideoModelV4 {
     const requestId = submitResult.request_id;
     const pollUrl = `${this.config.baseURL}/predictions/${requestId}/result`;
 
-    while (true) {
+    const MAX_POLL_ATTEMPTS = 500; // 500 * 3s = 1500s
+    for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt++) {
       await delay(3000);
 
       const { value: pollResult } = await getFromApi({
@@ -259,5 +260,9 @@ export class MuApiVideoModel implements Experimental_VideoModelV4 {
         throw new Error(pollResult.error ?? 'Video generation failed');
       }
     }
+
+    throw new Error(
+      `MuAPI video generation timed out after ${MAX_POLL_ATTEMPTS * 3}s (request_id=${requestId})`,
+    );
   }
 }
