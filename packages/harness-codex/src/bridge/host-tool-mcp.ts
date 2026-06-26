@@ -4,7 +4,8 @@
 // over MCP-stdio and round-trips each call to the bridge's HTTP relay.
 //
 // Env vars (set by the bridge when starting a turn):
-//   TOOL_SCHEMAS    — JSON array of { name, description, inputSchema }
+//   TOOL_SCHEMAS_PATH — path to JSON array of { name, description, inputSchema }
+//   TOOL_SCHEMAS      — JSON array fallback for older bridge versions
 //   TOOL_RELAY_URL  — http://127.0.0.1:<port> of the bridge relay server
 //   TOOL_RELAY_TOKEN — bearer token required by the relay
 
@@ -27,6 +28,7 @@
  */
 import * as mcpServerModule from '@modelcontextprotocol/sdk/server/mcp.js';
 import * as mcpStdioModule from '@modelcontextprotocol/sdk/server/stdio.js';
+import { readFileSync } from 'node:fs';
 import { z } from 'zod/v4';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -54,13 +56,21 @@ type JsonSchemaObject = {
   nullable?: boolean;
 };
 
-const schemas: ToolSchema[] = JSON.parse(process.env.TOOL_SCHEMAS || '[]');
+function readToolSchemas(): ToolSchema[] {
+  const schemaPath = process.env.TOOL_SCHEMAS_PATH;
+  const schemasJson = schemaPath
+    ? readFileSync(schemaPath, 'utf8')
+    : process.env.TOOL_SCHEMAS || '[]';
+  return JSON.parse(schemasJson);
+}
+
+const schemas: ToolSchema[] = readToolSchemas();
 const relayUrl = process.env.TOOL_RELAY_URL || '';
 const relayToken = process.env.TOOL_RELAY_TOKEN || '';
 
 if (!schemas.length || !relayUrl) {
   process.stderr.write(
-    '[host-tool-mcp] Missing TOOL_SCHEMAS or TOOL_RELAY_URL; exiting\n',
+    '[host-tool-mcp] Missing TOOL_SCHEMAS_PATH/TOOL_SCHEMAS or TOOL_RELAY_URL; exiting\n',
   );
   process.exit(0);
 }

@@ -48,6 +48,8 @@ import { argv, env as procEnv, stdout } from 'node:process';
  */
 import * as codexSdkModule from '@openai/codex-sdk';
 
+const TOOL_SCHEMAS_FILENAME = '.ai-sdk-harness-tool-schemas.json';
+
 /*
  * Native Codex tool name → cross-harness common name. Tools outside this map
  * (e.g. MCP tools the model invokes by name) have no common equivalent; their
@@ -123,6 +125,18 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   let relay: { port: number; close(): void } | undefined;
   let cliShimPath: string | undefined;
   if (start.tools && start.tools.length > 0) {
+    const toolSchemasPath = `${workdir}/${TOOL_SCHEMAS_FILENAME}`;
+    await writeFile(
+      toolSchemasPath,
+      JSON.stringify(
+        start.tools.map(t => ({
+          name: t.name,
+          description: t.description,
+          inputSchema: t.inputSchema,
+        })),
+      ),
+      'utf8',
+    );
     const relayToken = randomUUID();
     relay = await startToolRelay({
       relayToken,
@@ -135,13 +149,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       command: 'node',
       args: [`${bootstrapDir}/host-tool-mcp.mjs`],
       env: {
-        TOOL_SCHEMAS: JSON.stringify(
-          start.tools.map(t => ({
-            name: t.name,
-            description: t.description,
-            inputSchema: t.inputSchema,
-          })),
-        ),
+        TOOL_SCHEMAS_PATH: toolSchemasPath,
         TOOL_RELAY_URL: `http://127.0.0.1:${relay.port}`,
         TOOL_RELAY_TOKEN: relayToken,
       },
