@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 3.0.12
+
+### Patch Changes
+
+- f19334d: feat (video): add first-class `generateAudio` call option
+
 ## 3.0.11
 
 ### Patch Changes

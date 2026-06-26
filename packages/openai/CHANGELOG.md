@@ -1,5 +1,14 @@
 # @ai-sdk/openai
 
+## 3.0.76
+
+### Patch Changes
+
+- 2ee1700: feat(openai): add support for web_search_call.results include option
+- Updated dependencies [f19334d]
+  - @ai-sdk/provider@3.0.12
+  - @ai-sdk/provider-utils@4.0.32
+
 ## 3.0.75
 
 ### Patch Changes

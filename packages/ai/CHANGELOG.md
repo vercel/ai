@@ -1,5 +1,16 @@
 # ai
 
+## 6.0.213
+
+### Patch Changes
+
+- f19334d: feat (video): add first-class `generateAudio` call option
+- Updated dependencies [fb601aa]
+- Updated dependencies [f19334d]
+  - @ai-sdk/gateway@3.0.138
+  - @ai-sdk/provider@3.0.12
+  - @ai-sdk/provider-utils@4.0.32
+
 ## 6.0.212
 
 ### Patch Changes
