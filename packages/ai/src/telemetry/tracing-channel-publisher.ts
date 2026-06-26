@@ -31,10 +31,13 @@ async function loadDiagnosticsChannel(): Promise<
   }
 
   if (diagnosticsChannelPromise == null) {
+    // Use string variable to prevent bundlers from statically analyzing the import
+    // which breaks React Native / Hermes builds
+    const moduleName: string = 'node:diagnostics_channel';
     diagnosticsChannelPromise = (
       import(
         /* webpackIgnore: true */
-        'node:diagnostics_channel'
+        moduleName
       ) as Promise<DiagnosticsChannel>
     ).catch(() => undefined);
   }
