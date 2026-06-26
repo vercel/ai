@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 /**
  * Pi `session.subscribe` emits a discriminated union of events. The exact
