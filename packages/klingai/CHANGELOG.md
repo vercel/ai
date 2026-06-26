@@ -1,5 +1,14 @@
 # @ai-sdk/klingai
 
+## 3.0.23
+
+### Patch Changes
+
+- f19334d: feat (video): add first-class `generateAudio` call option
+- Updated dependencies [f19334d]
+  - @ai-sdk/provider@3.0.12
+  - @ai-sdk/provider-utils@4.0.32
+
 ## 3.0.22
 
 ### Patch Changes

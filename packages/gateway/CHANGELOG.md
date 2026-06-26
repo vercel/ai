@@ -1,5 +1,15 @@
 # @ai-sdk/gateway
 
+## 3.0.138
+
+### Patch Changes
+
+- fb601aa: feat (provider/gateway): add Exa search tool support
+- f19334d: feat (video): add first-class `generateAudio` call option
+- Updated dependencies [f19334d]
+  - @ai-sdk/provider@3.0.12
+  - @ai-sdk/provider-utils@4.0.32
+
 ## 3.0.137
 
 ### Patch Changes
