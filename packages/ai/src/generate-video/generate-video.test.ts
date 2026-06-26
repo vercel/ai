@@ -1217,7 +1217,7 @@ describe('experimental_generateVideo', () => {
     it('should ignore inputReferences when frameImages is provided', async () => {
       let capturedArgs!: Parameters<Experimental_VideoModelV4['doGenerate']>[0];
 
-      await experimental_generateVideo({
+      const result = await experimental_generateVideo({
         model: new MockVideoModelV4({
           doGenerate: async args => {
             capturedArgs = args;
@@ -1248,6 +1248,12 @@ describe('experimental_generateVideo', () => {
         },
       ]);
       expect(capturedArgs.inputReferences).toBeUndefined();
+      expect(result.warnings).toContainEqual({
+        type: 'other',
+        message:
+          'inputReferences were ignored because frameImages were provided; ' +
+          'frameImages and inputReferences cannot be combined.',
+      });
     });
   });
 });

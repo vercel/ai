@@ -212,6 +212,22 @@ export async function experimental_generateVideo({
       ? undefined
       : normalizedInputReferences;
 
+  const warnings: Array<Warning> = [];
+
+  if (
+    normalizedFrameImages != null &&
+    normalizedFrameImages.length > 0 &&
+    normalizedInputReferences != null &&
+    normalizedInputReferences.length > 0
+  ) {
+    warnings.push({
+      type: 'other',
+      message:
+        'inputReferences were ignored because frameImages were provided; ' +
+        'frameImages and inputReferences cannot be combined.',
+    });
+  }
+
   const resolvedImage =
     image ??
     normalizedFrameImages?.find(frame => frame.frameType === 'first_frame')
@@ -252,7 +268,6 @@ export async function experimental_generateVideo({
 
   // collect result videos, warnings, and response metadata
   const videos: Array<GeneratedFile> = [];
-  const warnings: Array<Warning> = [];
   const responses: Array<VideoModelResponseMetadata> = [];
   const providerMetadata: SharedV4ProviderMetadata = {};
 
