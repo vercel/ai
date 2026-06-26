@@ -76,7 +76,7 @@ const result = streamText({
   model: 'openai/gpt-5.4',
   tools: await mcpClient.tools(),
   prompt: 'Use the available tools to answer the user question.',
-  onFinish: async () => {
+  onEnd: async () => {
     await mcpClient.close();
   },
 });
