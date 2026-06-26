@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 2.0.1
+
+### Patch Changes
+
+- 241a8c5: Add Streamable HTTP session hooks, cached initialize metadata, and detach-on-close support for reattaching to MCP sessions.
+
 ## 2.0.0
 
 ### Major Changes
