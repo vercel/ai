@@ -161,7 +161,7 @@
             "exportFunctions": [
               {
                 "name": "create${harnessId.toPascalCase()}",
-                "receiveParamOfType": "${harnessId.toPascalCase()}HarnessSettings",
+                "receiveParamsOfTypes": ["${harnessId.toPascalCase()}HarnessSettings"],
                 "returnValueOfType": "HarnessV1"
               }
             ],
@@ -277,7 +277,7 @@
             "declareFunctions": [
               {
                 "name": "runTurn",
-                "receiveParamOfType": "StartMessage",
+                "receiveParamsOfTypes": ["StartMessage", "BridgeTurn"],
                 "returnValueOfType": "Promise<void>"
               }
             ]
@@ -329,7 +329,7 @@
             "exportFunctions": [
               {
                 "name": "create${sandboxId.toPascalCase()}Sandbox",
-                "receiveParamOfType": "${sandboxId.toPascalCase()}SandboxSettings",
+                "receiveParamsOfTypes": ["${sandboxId.toPascalCase()}SandboxSettings"],
                 "returnValueOfType": "HarnessV1SandboxProvider"
               }
             ],
