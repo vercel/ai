@@ -49,6 +49,7 @@ export type GenerateVideoPrompt =
  * @param duration - Duration of the video in seconds.
  * @param fps - Frames per second for the video.
  * @param seed - Seed for the video generation.
+ * @param generateAudio - Whether the model should generate audio alongside the video.
  * @param providerOptions - Additional provider-specific options that are passed through to the provider
  * as body parameters.
  * @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
@@ -69,6 +70,7 @@ export async function experimental_generateVideo({
   duration,
   fps,
   seed,
+  generateAudio,
   providerOptions,
   maxRetries: maxRetriesArg,
   abortSignal,
@@ -119,6 +121,11 @@ export async function experimental_generateVideo({
    * Seed for the video generation.
    */
   seed?: number;
+
+  /**
+   * Whether the model should generate audio alongside the video.
+   */
+  generateAudio?: boolean;
 
   /**
    * Additional provider-specific options that are passed through to the provider
@@ -190,6 +197,7 @@ export async function experimental_generateVideo({
           duration,
           fps,
           seed,
+          generateAudio,
           image,
           providerOptions: providerOptions ?? {},
           headers: headersWithUserAgent,

@@ -31,6 +31,7 @@ const defaultOptions = {
   duration: undefined,
   fps: undefined,
   seed: undefined,
+  generateAudio: undefined,
   providerOptions: {
     xai: {
       pollIntervalMs: 10,
