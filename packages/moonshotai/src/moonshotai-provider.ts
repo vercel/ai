@@ -69,6 +69,13 @@ export interface MoonshotAIProvider extends ProviderV4 {
 
 const defaultBaseURL = 'https://api.moonshot.ai/v1';
 
+export function getModelStructuredOutputSupport(
+  modelId: MoonshotAIChatModelId,
+): boolean {
+  if (modelId.startsWith('kimi-')) return true;
+  return false;
+}
+
 export function createMoonshotAI(
   options: MoonshotAIProviderSettings = {},
 ): MoonshotAIProvider {
@@ -105,6 +112,7 @@ export function createMoonshotAI(
       ...getCommonModelConfig('chat'),
       includeUsage: true,
       errorStructure: moonshotaiErrorStructure,
+      supportsStructuredOutputs: getModelStructuredOutputSupport(modelId),
       transformRequestBody: (args: Record<string, any>) => {
         const thinking = args.thinking as
           | { type?: string; budgetTokens?: number }
