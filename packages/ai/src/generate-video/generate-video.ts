@@ -28,6 +28,7 @@ import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
 import type { GenerateVideoResult } from './generate-video-result';
 import { splitDataUrl } from '../prompt/split-data-url';
+import { convertDataContentToUint8Array } from '../prompt/data-content';
 
 export type GenerateVideoPrompt =
   | string
@@ -193,19 +194,16 @@ export async function experimental_generateVideo({
 
   const normalizedFrameImages:
     | Array<Experimental_VideoModelV4FrameImage>
-    | undefined = frameImages?.flatMap(frame => {
-    const normalizedImage = normalizeImageData(frame.image);
-    return normalizedImage != null
-      ? [{ image: normalizedImage, frameType: frame.frameType }]
-      : [];
-  });
+    | undefined = frameImages?.map(frame => ({
+    image: normalizeImageData(frame.image),
+    frameType: frame.frameType,
+  }));
 
   const normalizedInputReferences:
     | Array<Experimental_VideoModelV4File>
-    | undefined = inputReferences?.flatMap(reference => {
-    const normalizedImage = normalizeImageData(reference);
-    return normalizedImage != null ? [normalizedImage] : [];
-  });
+    | undefined = inputReferences?.map(reference =>
+    normalizeImageData(reference),
+  );
 
   const effectiveInputReferences =
     normalizedFrameImages != null && normalizedFrameImages.length > 0
@@ -416,7 +414,7 @@ function normalizePrompt(promptArg: GenerateVideoPrompt): {
  */
 function normalizeImageData(
   dataContent: DataContent,
-): Experimental_VideoModelV4File | undefined {
+): Experimental_VideoModelV4File {
   if (typeof dataContent === 'string') {
     if (
       dataContent.startsWith('http://') ||
@@ -446,17 +444,13 @@ function normalizeImageData(
     };
   }
 
-  if (dataContent instanceof Uint8Array) {
-    return {
-      type: 'file',
-      mediaType:
-        detectMediaType({ data: dataContent, topLevelType: 'image' }) ??
-        'image/png',
-      data: dataContent,
-    };
-  }
-
-  return undefined;
+  const bytes = convertDataContentToUint8Array(dataContent);
+  return {
+    type: 'file',
+    mediaType:
+      detectMediaType({ data: bytes, topLevelType: 'image' }) ?? 'image/png',
+    data: bytes,
+  };
 }
 
 async function invokeModelMaxVideosPerCall(model: Experimental_VideoModelV4) {
