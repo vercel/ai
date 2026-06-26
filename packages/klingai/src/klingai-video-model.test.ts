@@ -1457,7 +1457,7 @@ describe('KlingAIVideoModel', () => {
       expect(result.warnings).toContainEqual(
         expect.objectContaining({
           type: 'unsupported',
-          feature: 'image',
+          feature: 'frameImages',
         }),
       );
     });

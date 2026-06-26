@@ -71,7 +71,7 @@ function fileToXaiImageUrl(file: Experimental_VideoModelV4File): string {
     typeof file.data === 'string'
       ? file.data
       : convertUint8ArrayToBase64(file.data);
-  return `data:${file.mediaType};base64,${base64Data}`;
+  return `data:${file.mediaType ?? 'image/png'};base64,${base64Data}`;
 }
 
 // Resolves the reference images for R2V generation. First-class

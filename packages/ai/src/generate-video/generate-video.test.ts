@@ -1057,10 +1057,10 @@ describe('experimental_generateVideo', () => {
       ]);
     });
 
-    it('should pass image and frameImages independently when both are provided', async () => {
+    it('should prefer the first_frame over prompt.image and warn when both are provided', async () => {
       let capturedArgs!: Parameters<Experimental_VideoModelV4['doGenerate']>[0];
 
-      await experimental_generateVideo({
+      const result = await experimental_generateVideo({
         model: new MockVideoModelV4({
           doGenerate: async args => {
             capturedArgs = args;
@@ -1085,7 +1085,7 @@ describe('experimental_generateVideo', () => {
 
       expect(capturedArgs.image).toStrictEqual({
         type: 'url',
-        url: 'https://example.com/prompt-image.png',
+        url: 'https://example.com/frame-first.png',
       });
       expect(capturedArgs.frameImages).toStrictEqual([
         {
@@ -1093,6 +1093,12 @@ describe('experimental_generateVideo', () => {
           frameType: 'first_frame',
         },
       ]);
+      expect(result.warnings).toContainEqual({
+        type: 'other',
+        message:
+          'prompt.image was ignored because a first_frame frameImage was provided; ' +
+          'the first_frame frameImage takes precedence as the start image.',
+      });
     });
 
     it('should pass only last_frame in frameImages without setting image', async () => {

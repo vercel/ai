@@ -226,10 +226,20 @@ export async function experimental_generateVideo({
     });
   }
 
-  const resolvedImage =
-    image ??
-    normalizedFrameImages?.find(frame => frame.frameType === 'first_frame')
-      ?.image;
+  const firstFrameImage = normalizedFrameImages?.find(
+    frame => frame.frameType === 'first_frame',
+  )?.image;
+
+  if (image != null && firstFrameImage != null) {
+    warnings.push({
+      type: 'other',
+      message:
+        'prompt.image was ignored because a first_frame frameImage was provided; ' +
+        'the first_frame frameImage takes precedence as the start image.',
+    });
+  }
+
+  const resolvedImage = firstFrameImage ?? image;
 
   const maxVideosPerCallWithDefault =
     maxVideosPerCall ?? (await invokeModelMaxVideosPerCall(model)) ?? 1;
