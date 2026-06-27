@@ -28,6 +28,7 @@ import {
 import { getMCPAppToolMeta, MCP_APP_MIME_TYPE } from './mcp-apps';
 import {
   CallToolResultSchema,
+  CompleteResultSchema,
   ElicitationRequestSchema,
   ElicitResultSchema,
   InitializeResultSchema,
@@ -41,6 +42,8 @@ import {
   SUPPORTED_PROTOCOL_VERSIONS,
   type CallToolResult,
   type ClientCapabilities,
+  type CompleteRequestParams,
+  type CompleteResult,
   type Configuration,
   type Configuration as ClientConfiguration,
   type ElicitationRequest,
@@ -209,6 +212,12 @@ export interface MCPClient {
     arguments?: Record<string, unknown>;
     options?: RequestOptions;
   }): Promise<GetPromptResult>;
+
+  complete(
+    args: CompleteRequestParams & {
+      options?: RequestOptions;
+    },
+  ): Promise<CompleteResult>;
 
   onElicitationRequest(
     schema: typeof ElicitationRequestSchema,
@@ -388,6 +397,13 @@ class DefaultMCPClient implements MCPClient {
   private assertCapability(method: string): void {
     switch (method) {
       case 'initialize':
+        break;
+      case 'completion/complete':
+        if (!this.serverCapabilities.completions) {
+          throw new MCPClientError({
+            message: `Server does not support completions`,
+          });
+        }
         break;
       case 'tools/list':
       case 'tools/call':
@@ -612,6 +628,19 @@ class DefaultMCPClient implements MCPClient {
     }
   }
 
+  private async completeInternal({
+    options,
+    ...params
+  }: CompleteRequestParams & {
+    options?: RequestOptions;
+  }): Promise<CompleteResult> {
+    return this.request({
+      request: { method: 'completion/complete', params },
+      resultSchema: CompleteResultSchema,
+      options,
+    });
+  }
+
   private async notification(notification: Notification): Promise<void> {
     const jsonrpcNotification: JSONRPCNotification = {
       ...notification,
@@ -830,6 +859,14 @@ class DefaultMCPClient implements MCPClient {
     options?: RequestOptions;
   }): Promise<GetPromptResult> {
     return this.getPromptInternal({ name, args, options });
+  }
+
+  complete(
+    args: CompleteRequestParams & {
+      options?: RequestOptions;
+    },
+  ): Promise<CompleteResult> {
+    return this.completeInternal(args);
   }
 
   onElicitationRequest(
