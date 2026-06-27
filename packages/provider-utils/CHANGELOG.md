@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 4.0.33
+
+### Patch Changes
+
+- b30e43a: Limit JSON response body reads in response handlers to prevent unbounded memory use.
+
 ## 4.0.32
 
 ### Patch Changes
