@@ -14,6 +14,12 @@ export {
 } from './tool/mcp-client';
 export { ElicitationRequestSchema, ElicitResultSchema } from './tool/types';
 export type {
+<<<<<<< HEAD
+=======
+  CallToolResult,
+  CompleteRequestParams,
+  CompleteResult,
+>>>>>>> 68a739a3e8 (feat(mcp): allow MCP client to use server completions (#16420))
   Configuration,
   ElicitationRequest,
   ElicitResult,
