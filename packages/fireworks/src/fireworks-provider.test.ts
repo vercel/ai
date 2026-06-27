@@ -214,6 +214,52 @@ describe('FireworksProvider', () => {
       });
     });
 
+    it('should map serviceTier to service_tier', () => {
+      const provider = createFireworks();
+      provider.chatModel('test-model');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const config = constructorCall[1];
+      const transformRequestBody = config.transformRequestBody;
+
+      const result = transformRequestBody({
+        model: 'test-model',
+        messages: [],
+        serviceTier: 'priority',
+      });
+
+      expect(result).toEqual({
+        model: 'test-model',
+        messages: [],
+        service_tier: 'priority',
+      });
+      expect(result).not.toHaveProperty('serviceTier');
+    });
+
+    it('should prefer serviceTier over raw service_tier', () => {
+      const provider = createFireworks();
+      provider.chatModel('test-model');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const config = constructorCall[1];
+      const transformRequestBody = config.transformRequestBody;
+
+      const result = transformRequestBody({
+        model: 'test-model',
+        messages: [],
+        service_tier: 'standard',
+        serviceTier: 'priority',
+      });
+
+      expect(result).toEqual({
+        model: 'test-model',
+        messages: [],
+        service_tier: 'priority',
+      });
+    });
+
     it('should handle request without thinking options', () => {
       const provider = createFireworks();
       provider.chatModel('test-model');
