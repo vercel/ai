@@ -3,12 +3,8 @@ import type { ZodType } from 'zod/v4';
 import { extractResponseHeaders } from './extract-response-headers';
 import { type ParseResult, parseJSON, safeParseJSON } from './parse-json';
 import { parseJsonEventStream } from './parse-json-event-stream';
-<<<<<<< HEAD
-import type { FlexibleValidator } from './validator';
-=======
 import { readResponseWithSizeLimit } from './read-response-with-size-limit';
-import type { FlexibleSchema } from './schema';
->>>>>>> b30e43ac3f (Backport: fix(provider-utils): limit JSON response handler reads (#16449))
+import type { FlexibleValidator } from './validator';
 
 export type ResponseHandler<RETURN_TYPE> = (options: {
   url: string;
