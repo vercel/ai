@@ -50,14 +50,14 @@ and response primitives.
 All harness adapters are used with `HarnessAgent`:
 
 ```ts
-import { HarnessAgent } from "@ai-sdk/harness/agent";
-import { codex } from "@ai-sdk/harness-codex";
-import { createVercelSandbox } from "@ai-sdk/sandbox-vercel";
+import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { codex } from '@ai-sdk/harness-codex';
+import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
 const agent = new HarnessAgent({
   harness: codex,
   sandbox: createVercelSandbox({
-    runtime: "node24",
+    runtime: 'node24',
     ports: [4000],
   }),
 });
