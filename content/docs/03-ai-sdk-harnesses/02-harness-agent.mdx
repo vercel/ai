@@ -261,6 +261,81 @@ default working directory and is used as the session working directory. When
 omitted, regular sessions use the default `<harnessId>-<sessionId>` directory,
 while `onBootstrap` receives the sandbox's default working directory.
 
+## Prepare Reusable Sandboxes
+
+Use `prepareHarnessSandboxTemplate()` when you want the sandbox provider to
+create or refresh its reusable template for one harness ahead of time:
+
+```ts
+import { prepareHarnessSandboxTemplate } from '@ai-sdk/harness/agent';
+
+await prepareHarnessSandboxTemplate({
+  harness: claudeCode,
+  sandboxProvider: createVercelSandbox({
+    runtime: 'node24',
+    ports: [4000],
+  }),
+  sandboxConfig: {
+    bootstrapHash: 'ripgrep-v1',
+    onBootstrap: async ({ session, abortSignal }) => {
+      await session.run({
+        command:
+          'command -v rg >/dev/null || (apt-get update && apt-get install -y ripgrep)',
+        abortSignal,
+      });
+    },
+  },
+});
+```
+
+Use `prepareSandboxForHarness()` when you own the native sandbox lifecycle and
+want to snapshot the prepared sandbox yourself. It applies the selected harness
+bootstrap recipes and `sandboxConfig.onBootstrap`, then returns preparation
+metadata. It does not stop or snapshot the sandbox.
+
+```ts
+import { HarnessAgent, prepareSandboxForHarness } from '@ai-sdk/harness/agent';
+import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { Sandbox } from '@vercel/sandbox';
+
+const nativeSandbox = await Sandbox.create({
+  runtime: 'node24',
+  ports: [4000],
+});
+const sandboxProvider = createVercelSandbox({ sandbox: nativeSandbox });
+const session = await sandboxProvider.createSession();
+
+const preparation = await prepareSandboxForHarness({
+  session: session.restricted(),
+  harnesses: [claudeCode, codex],
+  sandboxConfig,
+});
+
+const { snapshot } = await nativeSandbox.stop();
+if (snapshot == null) {
+  throw new Error('Prepared sandbox did not create a snapshot.');
+}
+
+const sandboxFromSnapshot = await Sandbox.create({
+  source: {
+    type: 'snapshot',
+    snapshotId: snapshot.id,
+  },
+  ports: [4000],
+});
+
+const agent = new HarnessAgent({
+  harness: claudeCode,
+  sandbox: createVercelSandbox({
+    sandbox: sandboxFromSnapshot,
+    bridgePorts: [4000],
+  }),
+  sandboxConfig,
+});
+
+console.log(preparation.identity);
+```
+
 ## Settings
 
 `HarnessAgent` accepts these main settings:

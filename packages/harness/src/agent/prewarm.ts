@@ -10,20 +10,20 @@ import {
 type SandboxBootstrapSettings = Omit<HarnessAgentSandboxConfig, 'onSession'>;
 
 /**
- * Pre-build a harness's sandbox template without running an agent. Idempotent:
- * if the template already exists (snapshot present, or marker on a non-snapshot
+ * Prepare a harness's sandbox template without running an agent. Idempotent: if
+ * the template already exists (snapshot present, or marker on a non-snapshot
  * provider), this resolves quickly.
  *
  * Use from a CI/deploy script to amortize the first-session cost so production
  * sessions always resume from snapshot. For adapters without a bootstrap
  * recipe (no `getBootstrap`) this is a no-op.
  *
- * The temporary network sandbox session created during pre-warm is stopped
+ * The temporary network sandbox session created during preparation is stopped
  * before the function resolves; the snapshot/template state persists in the
  * provider's native storage (for Vercel: as the `currentSnapshotId` of the
  * named template sandbox).
  */
-export async function prewarmHarness(options: {
+export async function prepareHarnessSandboxTemplate(options: {
   readonly harness: HarnessAgentAdapter;
   readonly sandboxProvider: HarnessV1SandboxProvider;
   readonly sandboxConfig?: SandboxBootstrapSettings;
@@ -63,3 +63,6 @@ export async function prewarmHarness(options: {
     await Promise.resolve(sandboxSession.stop()).catch(() => {});
   }
 }
+
+/** @deprecated Use `prepareHarnessSandboxTemplate` instead. */
+export const prewarmHarness = prepareHarnessSandboxTemplate;

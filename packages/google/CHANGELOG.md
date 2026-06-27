@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 4.0.1
+
+### Patch Changes
+
+- ba6d510: chore: fix deprecated use of zod `.passthrough()`
+
 ## 4.0.0
 
 ### Major Changes

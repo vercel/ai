@@ -1,5 +1,39 @@
 # @ai-sdk/harness-codex
 
+## 1.0.5
+
+### Patch Changes
+
+- 43a8c68: fix(harness): use `shellQuote` where appropriate in harness adapters
+  - @ai-sdk/harness@1.0.5
+
+## 1.0.4
+
+### Patch Changes
+
+- c493634: fix(harness): fix harness Zod usage to be v3/v4 compatible
+- Updated dependencies [c493634]
+  - @ai-sdk/harness@1.0.4
+
+## 1.0.3
+
+### Patch Changes
+
+- Updated dependencies [51d10a0]
+  - @ai-sdk/harness@1.0.3
+
+## 1.0.2
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.2
+
+## 1.0.1
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.1
+
 ## 1.0.0
 
 ### Major Changes

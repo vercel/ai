@@ -26,7 +26,7 @@ async function main() {
       tools,
       instructions: 'You are a helpful chatbot',
       prompt: 'What tools are available for me to call?',
-      onFinish: async () => {
+      onEnd: async () => {
         await mcpClient.close();
       },
     });
