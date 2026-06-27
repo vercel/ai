@@ -54,6 +54,14 @@ const imageMediaTypeSignatures = [
       0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69, 0x63,
     ],
   },
+  {
+    mediaType: 'image/svg+xml' as const,
+    bytesPrefix: [0x3c, 0x73, 0x76, 0x67], // "<svg"
+  },
+  {
+    mediaType: 'image/svg+xml' as const,
+    bytesPrefix: [0x3c, 0x3f, 0x78, 0x6d, 0x6c], // "<?xml" (SVG with XML prolog)
+  },
 ] as const;
 
 const documentMediaTypeSignatures = [
