@@ -1,5 +1,13 @@
 # @ai-sdk/mcp
 
+## 2.0.3
+
+### Patch Changes
+
+- 68a739a: feat(mcp): allow MCP client to use server completions
+- Updated dependencies [6a436e3]
+  - @ai-sdk/provider-utils@5.0.1
+
 ## 2.0.2
 
 ### Patch Changes
