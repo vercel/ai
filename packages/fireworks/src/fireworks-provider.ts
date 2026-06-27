@@ -148,11 +148,7 @@ export function createFireworks(
           thinking: _,
           reasoningHistory: __,
           promptCacheKey: ___,
-<<<<<<< HEAD
-=======
           serviceTier: ____,
-          reasoning_effort,
->>>>>>> e646e19ae2 (Add Fireworks service tier provider option (#16453))
           ...rest
         } = args;
 

@@ -214,8 +214,6 @@ describe('FireworksProvider', () => {
       });
     });
 
-<<<<<<< HEAD
-=======
     it('should map serviceTier to service_tier', () => {
       const provider = createFireworks();
       provider.chatModel('test-model');
@@ -262,73 +260,6 @@ describe('FireworksProvider', () => {
       });
     });
 
-    it('should remap reasoning_effort xhigh to high', () => {
-      const provider = createFireworks();
-      provider.chatModel('test-model');
-
-      const constructorCall =
-        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
-      const config = constructorCall[1];
-      const transformRequestBody = config.transformRequestBody;
-
-      const result = transformRequestBody({
-        model: 'test-model',
-        messages: [],
-        reasoning_effort: 'xhigh',
-      });
-
-      expect(result).toEqual({
-        model: 'test-model',
-        messages: [],
-        reasoning_effort: 'high',
-      });
-    });
-
-    it('should remap reasoning_effort minimal to low', () => {
-      const provider = createFireworks();
-      provider.chatModel('test-model');
-
-      const constructorCall =
-        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
-      const config = constructorCall[1];
-      const transformRequestBody = config.transformRequestBody;
-
-      const result = transformRequestBody({
-        model: 'test-model',
-        messages: [],
-        reasoning_effort: 'minimal',
-      });
-
-      expect(result).toEqual({
-        model: 'test-model',
-        messages: [],
-        reasoning_effort: 'low',
-      });
-    });
-
-    it('should pass through supported reasoning_effort values unchanged', () => {
-      const provider = createFireworks();
-      provider.chatModel('test-model');
-
-      const constructorCall =
-        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
-      const config = constructorCall[1];
-      const transformRequestBody = config.transformRequestBody;
-
-      const result = transformRequestBody({
-        model: 'test-model',
-        messages: [],
-        reasoning_effort: 'medium',
-      });
-
-      expect(result).toEqual({
-        model: 'test-model',
-        messages: [],
-        reasoning_effort: 'medium',
-      });
-    });
-
->>>>>>> e646e19ae2 (Add Fireworks service tier provider option (#16453))
     it('should handle request without thinking options', () => {
       const provider = createFireworks();
       provider.chatModel('test-model');
