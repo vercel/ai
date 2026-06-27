@@ -3,7 +3,12 @@ import type { ZodType } from 'zod/v4';
 import { extractResponseHeaders } from './extract-response-headers';
 import { type ParseResult, parseJSON, safeParseJSON } from './parse-json';
 import { parseJsonEventStream } from './parse-json-event-stream';
+<<<<<<< HEAD
 import type { FlexibleValidator } from './validator';
+=======
+import { readResponseWithSizeLimit } from './read-response-with-size-limit';
+import type { FlexibleSchema } from './schema';
+>>>>>>> b30e43ac3f (Backport: fix(provider-utils): limit JSON response handler reads (#16449))
 
 export type ResponseHandler<RETURN_TYPE> = (options: {
   url: string;
@@ -14,6 +19,23 @@ export type ResponseHandler<RETURN_TYPE> = (options: {
   rawValue?: unknown;
   responseHeaders?: Record<string, string>;
 }>;
+
+const textDecoder = new TextDecoder();
+
+async function readResponseBodyAsText({
+  response,
+  url,
+}: {
+  response: Response;
+  url: string;
+}) {
+  return textDecoder.decode(
+    await readResponseWithSizeLimit({
+      response,
+      url,
+    }),
+  );
+}
 
 export const createJsonErrorResponseHandler =
   <T>({
@@ -26,7 +48,7 @@ export const createJsonErrorResponseHandler =
     isRetryable?: (response: Response, error?: T) => boolean;
   }): ResponseHandler<APICallError> =>
   async ({ response, url, requestBodyValues }) => {
-    const responseBody = await response.text();
+    const responseBody = await readResponseBodyAsText({ response, url });
     const responseHeaders = extractResponseHeaders(response);
 
     // Some providers return an empty response body for some errors:
@@ -139,7 +161,7 @@ export const createJsonStreamResponseHandler =
 export const createJsonResponseHandler =
   <T>(responseSchema: FlexibleValidator<T>): ResponseHandler<T> =>
   async ({ response, url, requestBodyValues }) => {
-    const responseBody = await response.text();
+    const responseBody = await readResponseBodyAsText({ response, url });
 
     const parsedResult = await safeParseJSON({
       text: responseBody,
@@ -206,7 +228,7 @@ export const createStatusCodeErrorResponseHandler =
   (): ResponseHandler<APICallError> =>
   async ({ response, url, requestBodyValues }) => {
     const responseHeaders = extractResponseHeaders(response);
-    const responseBody = await response.text();
+    const responseBody = await readResponseBodyAsText({ response, url });
 
     return {
       responseHeaders,

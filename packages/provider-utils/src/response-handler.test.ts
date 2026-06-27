@@ -1,9 +1,15 @@
 import { z } from 'zod/v4';
+import { DEFAULT_MAX_DOWNLOAD_SIZE } from './read-response-with-size-limit';
 import {
+<<<<<<< HEAD
   convertArrayToReadableStream,
   convertReadableStreamToArray,
 } from './test';
 import {
+=======
+  createJsonErrorResponseHandler,
+  createBinaryResponseHandler,
+>>>>>>> b30e43ac3f (Backport: fix(provider-utils): limit JSON response handler reads (#16449))
   createJsonResponseHandler,
   createJsonStreamResponseHandler,
   createBinaryResponseHandler,
@@ -56,6 +62,39 @@ describe('createJsonStreamResponseHandler', () => {
   });
 });
 
+function createOversizedResponse({
+  body = '{}',
+  status = 200,
+  statusText,
+}: {
+  body?: string;
+  status?: number;
+  statusText?: string;
+} = {}) {
+  let cancelled = false;
+
+  return {
+    response: new Response(
+      new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode(body));
+        },
+        cancel() {
+          cancelled = true;
+        },
+      }),
+      {
+        status,
+        statusText,
+        headers: {
+          'content-length': String(DEFAULT_MAX_DOWNLOAD_SIZE + 1),
+        },
+      },
+    ),
+    cancelled: () => cancelled,
+  };
+}
+
 describe('createJsonResponseHandler', () => {
   it('should return both parsed value and rawValue', async () => {
     const responseSchema = z.object({
@@ -83,6 +122,45 @@ describe('createJsonResponseHandler', () => {
       age: 30,
     });
     expect(result.rawValue).toEqual(rawData);
+  });
+
+  it('should reject oversized responses before reading the body', async () => {
+    const { response, cancelled } = createOversizedResponse();
+    const handler = createJsonResponseHandler(z.object({}));
+
+    await expect(
+      handler({
+        url: 'test-url',
+        requestBodyValues: {},
+        response,
+      }),
+    ).rejects.toThrow('exceeded maximum size');
+
+    expect(cancelled()).toBe(true);
+  });
+});
+
+describe('createJsonErrorResponseHandler', () => {
+  it('should reject oversized responses before reading the body', async () => {
+    const { response, cancelled } = createOversizedResponse({
+      body: JSON.stringify({ error: 'too large' }),
+      status: 500,
+      statusText: 'Internal Server Error',
+    });
+    const handler = createJsonErrorResponseHandler({
+      errorSchema: z.object({ error: z.string() }),
+      errorToMessage: error => error.error,
+    });
+
+    await expect(
+      handler({
+        url: 'test-url',
+        requestBodyValues: {},
+        response,
+      }),
+    ).rejects.toThrow('exceeded maximum size');
+
+    expect(cancelled()).toBe(true);
   });
 });
 
@@ -135,5 +213,24 @@ describe('createStatusCodeErrorResponseHandler', () => {
     expect(result.value.responseBody).toBe('Error message');
     expect(result.value.url).toBe('test-url');
     expect(result.value.requestBodyValues).toEqual({ some: 'data' });
+  });
+
+  it('should reject oversized responses before reading the body', async () => {
+    const { response, cancelled } = createOversizedResponse({
+      body: 'too large',
+      status: 500,
+      statusText: 'Internal Server Error',
+    });
+    const handler = createStatusCodeErrorResponseHandler();
+
+    await expect(
+      handler({
+        url: 'test-url',
+        requestBodyValues: { some: 'data' },
+        response,
+      }),
+    ).rejects.toThrow('exceeded maximum size');
+
+    expect(cancelled()).toBe(true);
   });
 });
