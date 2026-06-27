@@ -1,5 +1,5 @@
 ---
-"@ai-sdk/harness-cursor": major
+"@ai-sdk/harness-cursor": patch
 ---
 
 feat(harness): add Cursor harness adapter (`@ai-sdk/harness-cursor`)
