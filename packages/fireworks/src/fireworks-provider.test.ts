@@ -134,6 +134,167 @@ describe('FireworksProvider', () => {
       const config = OpenAICompatibleChatLanguageModelMock.mock.calls[0][1];
       expect(config.includeUsage).toBe(true);
     });
+<<<<<<< HEAD
+=======
+
+    it('should pass transformRequestBody that converts thinking options', () => {
+      const provider = createFireworks();
+      provider.chatModel('test-model');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const config = constructorCall[1];
+      const transformRequestBody = config.transformRequestBody;
+
+      const result = transformRequestBody({
+        model: 'test-model',
+        messages: [],
+        thinking: { type: 'enabled', budgetTokens: 2048 },
+        reasoningHistory: 'interleaved',
+      });
+
+      expect(result).toEqual({
+        model: 'test-model',
+        messages: [],
+        thinking: { type: 'enabled', budget_tokens: 2048 },
+        reasoning_history: 'interleaved',
+      });
+    });
+
+    it('should handle thinking without budgetTokens', () => {
+      const provider = createFireworks();
+      provider.chatModel('test-model');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const config = constructorCall[1];
+      const transformRequestBody = config.transformRequestBody;
+
+      const result = transformRequestBody({
+        model: 'test-model',
+        messages: [],
+        thinking: { type: 'enabled' },
+      });
+
+      expect(result).toEqual({
+        model: 'test-model',
+        messages: [],
+        thinking: { type: 'enabled' },
+      });
+    });
+
+    it('should map promptCacheKey to prompt_cache_key', () => {
+      const provider = createFireworks();
+      provider.chatModel('test-model');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const config = constructorCall[1];
+      const transformRequestBody = config.transformRequestBody;
+
+      const result = transformRequestBody({
+        model: 'test-model',
+        messages: [],
+        promptCacheKey: 'session-123',
+      });
+
+      expect(result).toEqual({
+        model: 'test-model',
+        messages: [],
+        prompt_cache_key: 'session-123',
+      });
+      expect(result).not.toHaveProperty('promptCacheKey');
+    });
+
+    it('should prefer promptCacheKey over raw prompt_cache_key', () => {
+      const provider = createFireworks();
+      provider.chatModel('test-model');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const config = constructorCall[1];
+      const transformRequestBody = config.transformRequestBody;
+
+      const result = transformRequestBody({
+        model: 'test-model',
+        messages: [],
+        prompt_cache_key: 'raw-session',
+        promptCacheKey: 'typed-session',
+      });
+
+      expect(result).toEqual({
+        model: 'test-model',
+        messages: [],
+        prompt_cache_key: 'typed-session',
+      });
+    });
+
+    it('should map serviceTier to service_tier', () => {
+      const provider = createFireworks();
+      provider.chatModel('test-model');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const config = constructorCall[1];
+      const transformRequestBody = config.transformRequestBody;
+
+      const result = transformRequestBody({
+        model: 'test-model',
+        messages: [],
+        serviceTier: 'priority',
+      });
+
+      expect(result).toEqual({
+        model: 'test-model',
+        messages: [],
+        service_tier: 'priority',
+      });
+      expect(result).not.toHaveProperty('serviceTier');
+    });
+
+    it('should prefer serviceTier over raw service_tier', () => {
+      const provider = createFireworks();
+      provider.chatModel('test-model');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const config = constructorCall[1];
+      const transformRequestBody = config.transformRequestBody;
+
+      const result = transformRequestBody({
+        model: 'test-model',
+        messages: [],
+        service_tier: 'standard',
+        serviceTier: 'priority',
+      });
+
+      expect(result).toEqual({
+        model: 'test-model',
+        messages: [],
+        service_tier: 'priority',
+      });
+    });
+
+    it('should handle request without thinking options', () => {
+      const provider = createFireworks();
+      provider.chatModel('test-model');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const config = constructorCall[1];
+      const transformRequestBody = config.transformRequestBody;
+
+      const result = transformRequestBody({
+        model: 'test-model',
+        messages: [],
+      });
+
+      expect(result).toEqual({
+        model: 'test-model',
+        messages: [],
+      });
+    });
+>>>>>>> df00b88c65 (Backport: Add Fireworks service tier provider option (#16454))
   });
 
   describe('completionModel', () => {

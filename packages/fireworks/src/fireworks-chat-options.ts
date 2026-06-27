@@ -18,3 +18,32 @@ export type FireworksChatModelId =
   | 'accounts/fireworks/models/yi-large'
   | 'accounts/fireworks/models/kimi-k2-instruct'
   | (string & {});
+<<<<<<< HEAD
+=======
+
+export const fireworksLanguageModelOptions = z.object({
+  /**
+   * A stable key for routing requests with shared prompt prefixes to the same
+   * prompt cache.
+   */
+  promptCacheKey: z.string().optional(),
+
+  /**
+   * Use Fireworks Priority serving path for higher reliability during peak traffic.
+   */
+  serviceTier: z.enum(['priority']).optional(),
+
+  thinking: z
+    .object({
+      type: z.enum(['enabled', 'disabled']).optional(),
+      budgetTokens: z.number().int().min(1024).optional(),
+    })
+    .optional(),
+
+  reasoningHistory: z.enum(['disabled', 'interleaved', 'preserved']).optional(),
+});
+
+export type FireworksLanguageModelOptions = z.infer<
+  typeof fireworksLanguageModelOptions
+>;
+>>>>>>> df00b88c65 (Backport: Add Fireworks service tier provider option (#16454))

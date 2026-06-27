@@ -133,6 +133,46 @@ export function createFireworks(
       ...getCommonModelConfig('chat'),
       includeUsage: true,
       errorStructure: fireworksErrorStructure,
+<<<<<<< HEAD
+=======
+      transformRequestBody: args => {
+        const thinking = args.thinking as
+          | { type?: string; budgetTokens?: number }
+          | undefined;
+        const reasoningHistory = args.reasoningHistory as string | undefined;
+        const promptCacheKey = args.promptCacheKey as string | undefined;
+        const serviceTier = args.serviceTier as string | undefined;
+
+        const {
+          thinking: _,
+          reasoningHistory: __,
+          promptCacheKey: ___,
+          serviceTier: ____,
+          ...rest
+        } = args;
+
+        return {
+          ...rest,
+          ...(promptCacheKey !== undefined && {
+            prompt_cache_key: promptCacheKey,
+          }),
+          ...(serviceTier !== undefined && {
+            service_tier: serviceTier,
+          }),
+          ...(thinking && {
+            thinking: {
+              type: thinking.type,
+              ...(thinking.budgetTokens !== undefined && {
+                budget_tokens: thinking.budgetTokens,
+              }),
+            },
+          }),
+          ...(reasoningHistory && {
+            reasoning_history: reasoningHistory,
+          }),
+        };
+      },
+>>>>>>> df00b88c65 (Backport: Add Fireworks service tier provider option (#16454))
     });
   };
 
