@@ -313,6 +313,52 @@ Resource templates are dynamic URI patterns that allow flexible queries. List al
 const templates = await mcpClient.listResourceTemplates();
 ```
 
+## Using MCP Completions
+
+MCP servers can provide autocompletion suggestions for prompt arguments and
+resource template variables when they advertise the `completions` capability.
+Use `complete` to ask the server for suggestions based on the current partial
+argument value:
+
+```typescript
+const completion = await mcpClient.complete({
+  ref: {
+    type: 'ref/resource',
+    uri: 'file:///{path}',
+  },
+  argument: {
+    name: 'path',
+    value: 'doc',
+  },
+});
+
+console.log(completion.completion.values);
+```
+
+For resource templates or prompts with multiple arguments, pass already resolved
+values through `context.arguments`:
+
+```typescript
+const completion = await mcpClient.complete({
+  ref: {
+    type: 'ref/resource',
+    uri: 'kubernetes://namespaced/{plural}/{namespace}',
+  },
+  argument: {
+    name: 'namespace',
+    value: 'auth',
+  },
+  context: {
+    arguments: {
+      plural: 'deployments',
+    },
+  },
+});
+```
+
+If the connected server does not advertise `capabilities.completions`, the
+client throws an `MCPClientError`.
+
 ## Using MCP Prompts
 
 <Note type="warning">

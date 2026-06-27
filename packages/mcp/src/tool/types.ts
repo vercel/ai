@@ -91,6 +91,7 @@ const ElicitationCapabilitySchema = z
 const ServerCapabilitiesSchema = z.looseObject({
   experimental: z.optional(z.object({}).loose()),
   logging: z.optional(z.object({}).loose()),
+  completions: z.optional(z.object({}).loose()),
   prompts: z.optional(
     z.looseObject({
       listChanged: z.optional(z.boolean()),
@@ -288,6 +289,52 @@ export const ReadResourceResultSchema = ResultSchema.extend({
   ),
 });
 export type ReadResourceResult = z.infer<typeof ReadResourceResultSchema>;
+
+// Completions
+const PromptReferenceSchema = z
+  .object({
+    type: z.literal('ref/prompt'),
+    name: z.string(),
+  })
+  .loose();
+
+const ResourceReferenceSchema = z
+  .object({
+    type: z.literal('ref/resource'),
+    uri: z.string(),
+  })
+  .loose();
+
+const CompletionArgumentSchema = z
+  .object({
+    name: z.string(),
+    value: z.string(),
+  })
+  .loose();
+
+export const CompleteRequestParamsSchema = BaseParamsSchema.extend({
+  ref: z.union([PromptReferenceSchema, ResourceReferenceSchema]),
+  argument: CompletionArgumentSchema,
+  context: z.optional(
+    z
+      .object({
+        arguments: z.record(z.string(), z.string()),
+      })
+      .loose(),
+  ),
+});
+export type CompleteRequestParams = z.infer<typeof CompleteRequestParamsSchema>;
+
+export const CompleteResultSchema = ResultSchema.extend({
+  completion: z
+    .object({
+      values: z.array(z.string()).max(100),
+      total: z.optional(z.number().int()),
+      hasMore: z.optional(z.boolean()),
+    })
+    .loose(),
+});
+export type CompleteResult = z.infer<typeof CompleteResultSchema>;
 
 // Prompts
 const PromptArgumentSchema = z
