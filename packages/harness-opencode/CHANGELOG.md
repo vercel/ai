@@ -1,5 +1,12 @@
 # @ai-sdk/harness-opencode
 
+## 1.0.5
+
+### Patch Changes
+
+- ba6d510: chore: fix deprecated use of zod `.passthrough()`
+  - @ai-sdk/harness@1.0.5
+
 ## 1.0.4
 
 ### Patch Changes

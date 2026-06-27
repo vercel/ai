@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 2.0.2
+
+### Patch Changes
+
+- ba6d510: chore: fix deprecated use of zod `.passthrough()`
+
 ## 2.0.1
 
 ### Patch Changes

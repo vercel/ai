@@ -1,5 +1,13 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.5
+
+### Patch Changes
+
+- 43a8c68: fix(harness): use `shellQuote` where appropriate in harness adapters
+- ba6d510: chore: fix deprecated use of zod `.passthrough()`
+  - @ai-sdk/harness@1.0.5
+
 ## 1.0.4
 
 ### Patch Changes

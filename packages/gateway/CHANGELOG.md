@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 4.0.3
+
+### Patch Changes
+
+- 728eaa0: feat(provider/gateway): add `has` provider option to restrict routing to models with given capabilities (e.g. `implicit-caching`)
+
 ## 4.0.2
 
 ### Patch Changes

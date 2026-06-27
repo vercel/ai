@@ -1,5 +1,13 @@
 # @ai-sdk/google-vertex
 
+## 5.0.1
+
+### Patch Changes
+
+- ba6d510: chore: fix deprecated use of zod `.passthrough()`
+- Updated dependencies [ba6d510]
+  - @ai-sdk/google@4.0.1
+
 ## 5.0.0
 
 ### Major Changes
