@@ -13,7 +13,7 @@
     "@ai-sdk/azure": "3.0.80",
     "@ai-sdk/cohere": "3.0.42",
     "@ai-sdk/deepseek": "2.0.42",
-    "@ai-sdk/fireworks": "2.0.61",
+    "@ai-sdk/fireworks": "2.0.62",
     "@ai-sdk/google": "3.0.86",
     "@ai-sdk/google-vertex": "4.0.152",
     "@ai-sdk/groq": "3.0.45",
