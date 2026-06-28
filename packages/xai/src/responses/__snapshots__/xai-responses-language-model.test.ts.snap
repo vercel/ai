@@ -10,6 +10,15 @@ exports[`XaiResponsesLanguageModel > doGenerate > code_interpreter tool > should
     "type": "tool-call",
   },
   {
+    "result": {
+      "action": null,
+      "status": "completed",
+    },
+    "toolCallId": "fc_5138abcf-4c4e-b0ab-7e0b-f4c81b98f455_us-east-1_0",
+    "toolName": "code_execution",
+    "type": "tool-result",
+  },
+  {
     "text": "55",
     "type": "text",
   },
@@ -24,6 +33,15 @@ exports[`XaiResponsesLanguageModel > doGenerate > web_search tool > should inclu
     "toolCallId": "fc_25de2f84-163c-6e9e-e42e-cd1dbd6f9ed0_0",
     "toolName": "web_search",
     "type": "tool-call",
+  },
+  {
+    "result": {
+      "action": null,
+      "status": "completed",
+    },
+    "toolCallId": "fc_25de2f84-163c-6e9e-e42e-cd1dbd6f9ed0_0",
+    "toolName": "web_search",
+    "type": "tool-result",
   },
   {
     "text": "xAI is an American artificial intelligence company founded by Elon Musk in July 2023. Its mission is to "understand the true nature of the universe" by advancing scientific discovery through AI. The company is based in the San Francisco Bay Area and focuses on building advanced AI systems, including the Grok chatbot (integrated with the X platform, formerly Twitter). Notable team members include former researchers from OpenAI, DeepMind, and other AI labs.
@@ -79,6 +97,15 @@ exports[`XaiResponsesLanguageModel > doGenerate > x_search tool > should include
     "toolCallId": "fc_84c1a8ea-1f29-4a33-1049-0ed3561b0f64_us-east-1_0",
     "toolName": "x_search",
     "type": "tool-call",
+  },
+  {
+    "result": {
+      "action": null,
+      "status": "completed",
+    },
+    "toolCallId": "fc_84c1a8ea-1f29-4a33-1049-0ed3561b0f64_us-east-1_0",
+    "toolName": "x_search",
+    "type": "tool-result",
   },
   {
     "text": "### What People Are Saying About AI on X (as of Late October 2025)
@@ -11500,6 +11527,15 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream w
     "type": "tool-call",
   },
   {
+    "result": {
+      "action": null,
+      "status": "completed",
+    },
+    "toolCallId": "fc_98a8d4aa-fc8b-fd93-e673-d5a8f1c9cee8_0",
+    "toolName": "web_search",
+    "type": "tool-result",
+  },
+  {
     "id": "text-msg_98a8d4aa-fc8b-fd93-e673-d5a8f1c9cee8",
     "type": "text-start",
   },
@@ -12950,6 +12986,15 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream x
     "type": "tool-call",
   },
   {
+    "result": {
+      "action": null,
+      "status": "completed",
+    },
+    "toolCallId": "ctc_b7b464ea-cc85-d44a-0f2f-1f7320e703c3_xs_call_24148162",
+    "toolName": "x_search",
+    "type": "tool-result",
+  },
+  {
     "id": "ws_b7b464ea-cc85-d44a-0f2f-1f7320e703c3_call_55360208",
     "toolName": "web_search",
     "type": "tool-input-start",
@@ -13034,6 +13079,58 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream x
     "type": "tool-call",
   },
   {
+    "result": {
+      "action": {
+        "query": "",
+        "sources": [],
+        "type": "search",
+      },
+      "status": "completed",
+    },
+    "toolCallId": "ws_b7b464ea-cc85-d44a-0f2f-1f7320e703c3_call_09546004",
+    "toolName": "web_search",
+    "type": "tool-result",
+  },
+  {
+    "result": {
+      "action": {
+        "query": "",
+        "sources": [],
+        "type": "search",
+      },
+      "status": "completed",
+    },
+    "toolCallId": "ws_b7b464ea-cc85-d44a-0f2f-1f7320e703c3_call_45339693",
+    "toolName": "web_search",
+    "type": "tool-result",
+  },
+  {
+    "result": {
+      "action": {
+        "query": "",
+        "sources": [],
+        "type": "search",
+      },
+      "status": "completed",
+    },
+    "toolCallId": "ws_b7b464ea-cc85-d44a-0f2f-1f7320e703c3_call_55360208",
+    "toolName": "web_search",
+    "type": "tool-result",
+  },
+  {
+    "result": {
+      "action": {
+        "query": "",
+        "sources": [],
+        "type": "search",
+      },
+      "status": "completed",
+    },
+    "toolCallId": "ws_b7b464ea-cc85-d44a-0f2f-1f7320e703c3_call_63718660",
+    "toolName": "web_search",
+    "type": "tool-result",
+  },
+  {
     "id": "ctc_b7b464ea-cc85-d44a-0f2f-1f7320e703c3_xs_call_14963218",
     "toolName": "view_x_video",
     "type": "tool-input-start",
@@ -13053,6 +13150,15 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream x
     "toolCallId": "ctc_b7b464ea-cc85-d44a-0f2f-1f7320e703c3_xs_call_14963218",
     "toolName": "view_x_video",
     "type": "tool-call",
+  },
+  {
+    "result": {
+      "action": null,
+      "status": "completed",
+    },
+    "toolCallId": "ctc_b7b464ea-cc85-d44a-0f2f-1f7320e703c3_xs_call_14963218",
+    "toolName": "view_x_video",
+    "type": "tool-result",
   },
   {
     "id": "text-msg_b7b464ea-cc85-d44a-0f2f-1f7320e703c3",
