@@ -1,5 +1,11 @@
 # @ai-sdk/fireworks
 
+## 2.0.62
+
+### Patch Changes
+
+- df00b88: Add `serviceTier` provider option for Fireworks chat models.
+
 ## 2.0.61
 
 ### Patch Changes
