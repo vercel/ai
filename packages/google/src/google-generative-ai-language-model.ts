@@ -332,6 +332,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           urlContextMetadata: candidate.urlContextMetadata ?? null,
           safetyRatings: candidate.safetyRatings ?? null,
           serviceTier: response.serviceTier ?? null,
+          usageMetadata: usageMetadata ?? null,
         },
       },
       request: { body },

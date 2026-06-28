@@ -625,6 +625,40 @@ describe('doGenerate', () => {
     expect(providerMetadata?.google.serviceTier).toBeNull();
   });
 
+  it('should expose usageMetadata (incl. promptTokensDetails) in provider metadata', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: { parts: [{ text: 'test response' }], role: 'model' },
+            finishReason: 'STOP',
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 2415,
+          candidatesTokenCount: 50,
+          totalTokenCount: 2465,
+          promptTokensDetails: [
+            { modality: 'TEXT', tokenCount: 15 },
+            { modality: 'AUDIO', tokenCount: 2400 },
+          ],
+        },
+      },
+    };
+
+    const { providerMetadata } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(providerMetadata?.google.usageMetadata).toMatchObject({
+      promptTokensDetails: [
+        { modality: 'TEXT', tokenCount: 15 },
+        { modality: 'AUDIO', tokenCount: 2400 },
+      ],
+    });
+  });
+
   it('should extract tool calls', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'json-value',
