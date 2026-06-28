@@ -44,6 +44,8 @@ The subagent does the heavy lifting while the main agent stays focused on orches
 
 For tasks like exploring a codebase, you can spawn multiple subagents to research different areas simultaneously. Each returns a summary, and the main agent synthesizes the findings—without paying the context cost of all that exploration.
 
+The fan-out happens inside the parent agent's tool: a single tool call accepts an array of inputs and runs the subagent once per item with `Promise.all`. See [`parallel-subagents.ts`](https://github.com/vercel/ai/blob/main/examples/ai-functions/src/agent/openai/parallel-subagents.ts) for a runnable example that pairs this pattern with `toModelOutput` to keep the parent's context compact.
+
 ### Specialized Orchestration
 
 A less common but valid pattern is using a main agent purely for orchestration, delegating to specialized subagents for different types of work. For example:
