@@ -3712,6 +3712,90 @@ describe('doStream', () => {
     `);
   });
 
+  it('should emit reasoning-end before tool calls when reasoning is followed by function call', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    text: 'Let me think about how to solve this problem.',
+                    thought: true,
+                  },
+                ],
+                role: 'model',
+              },
+              index: 0,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 14,
+            totalTokenCount: 84,
+            thoughtsTokenCount: 70,
+          },
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    functionCall: {
+                      name: 'test-tool',
+                      args: { value: 'test-value' },
+                    },
+                  },
+                ],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              index: 0,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 14,
+            candidatesTokenCount: 12,
+            totalTokenCount: 96,
+            thoughtsTokenCount: 70,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          inputSchema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const reasoningEndIndex = events.findIndex(
+      e => e.type === 'reasoning-end',
+    );
+    const toolInputStartIndex = events.findIndex(
+      e => e.type === 'tool-input-start',
+    );
+
+    expect(reasoningEndIndex).toBeGreaterThan(-1);
+    expect(toolInputStartIndex).toBeGreaterThan(-1);
+    expect(reasoningEndIndex).toBeLessThan(toolInputStartIndex);
+  });
+
   it('should stream thought signatures with reasoning and text parts', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'stream-chunks',

@@ -590,6 +590,14 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
               });
 
               if (toolCallDeltas != null) {
+                if (currentReasoningBlockId !== null) {
+                  controller.enqueue({
+                    type: 'reasoning-end',
+                    id: currentReasoningBlockId,
+                  });
+                  currentReasoningBlockId = null;
+                }
+
                 for (const toolCall of toolCallDeltas) {
                   controller.enqueue({
                     type: 'tool-input-start',
