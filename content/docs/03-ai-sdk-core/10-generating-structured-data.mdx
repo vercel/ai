@@ -27,6 +27,14 @@ and the AI model will generate data that conforms to that structure.
 Use `generateText` with `Output.object()` to generate structured data from a prompt.
 The schema is also used to validate the generated data, ensuring type safety and correctness.
 
+<Note>
+  The AI SDK validates the parsed result against your schema. Some providers can
+  also enforce the schema at the API level. For OpenAI, this is controlled by
+  the `strictJsonSchema` provider option. AI SDK 5 left this disabled by
+  default, while AI SDK 6 enables it by default. If you need AI SDK 5 OpenAI
+  calls to be strict, set `providerOptions.openai.strictJsonSchema: true`.
+</Note>
+
 ```ts
 import { generateText, Output } from 'ai';
 __PROVIDER_IMPORT__;
