@@ -34,7 +34,7 @@ import { argv, stdout } from 'node:process';
  */
 import * as claudeAgentSdk from '@anthropic-ai/claude-agent-sdk';
 import * as mcpServerModule from '@modelcontextprotocol/sdk/server/mcp.js';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { toClaudeSkillsOption } from './claude-skills-option';
 
 /*

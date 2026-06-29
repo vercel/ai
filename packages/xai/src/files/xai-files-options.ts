@@ -7,12 +7,10 @@ import { z } from 'zod/v4';
 
 export const xaiFilesOptionsSchema = lazySchema(() =>
   zodSchema(
-    z
-      .object({
-        teamId: z.string().optional(),
-        filePath: z.string().optional(),
-      })
-      .passthrough(),
+    z.looseObject({
+      teamId: z.string().optional(),
+      filePath: z.string().optional(),
+    }),
   ),
 );
 

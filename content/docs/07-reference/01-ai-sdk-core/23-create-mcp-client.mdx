@@ -10,6 +10,7 @@ Creates a lightweight Model Context Protocol (MCP) client that connects to an MC
 - **Tools**: Automatic conversion between MCP tools and AI SDK tools
 - **Resources**: Methods to list, read, and discover resource templates from MCP servers
 - **Prompts**: Methods to list available prompts and retrieve prompt messages
+- **Completions**: Methods to request autocompletion suggestions for prompt arguments and resource template variables
 - **Elicitation**: Support for handling server requests for additional input during tool execution
 
 It currently does not support accepting notifications from an MCP server, and custom configuration of the client.
@@ -86,7 +87,7 @@ It currently does not support accepting notifications from an MCP server, and cu
                   parameters: [
                     {
                       name: 'type',
-                      type: "'sse' | 'http",
+                      type: "'sse' | 'http'",
                       description: 'Use Server-Sent Events for communication',
                     },
                     {
@@ -114,6 +115,48 @@ It currently does not support accepting notifications from an MCP server, and cu
                       isOptional: true,
                       description:
                         "Controls how HTTP redirects are handled for transport requests. Set to 'follow' to allow redirect responses. Defaults to 'error' to reject any redirect response, preventing servers from redirecting requests to unintended hosts.",
+                    },
+                    {
+                      name: 'initialSessionId',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'Initial MCP session id to send with resumed Streamable HTTP requests after initialization. Pair with initialInitializeResult when using createMCPClient. Only used by the HTTP transport.',
+                    },
+                    {
+                      name: 'initialProtocolVersion',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'Initial MCP protocol version to send before initialize negotiates one. Only used by the HTTP transport.',
+                    },
+                    {
+                      name: 'onSessionIdChange',
+                      type: '(sessionId: string | undefined) => void',
+                      isOptional: true,
+                      description:
+                        'Callback invoked when the Streamable HTTP server creates, changes, or clears the MCP session id. Only used by the HTTP transport.',
+                    },
+                    {
+                      name: 'onSessionExpired',
+                      type: '(sessionId: string) => void',
+                      isOptional: true,
+                      description:
+                        'Callback invoked when a Streamable HTTP request returns 404 for an existing MCP session id. The transport clears the session id before reporting the underlying HTTP error. Only used by the HTTP transport.',
+                    },
+                    {
+                      name: 'terminateSessionOnClose',
+                      type: 'boolean',
+                      isOptional: true,
+                      description:
+                        'Whether close() should send DELETE for the current MCP session id. Set to false when the application intends to reattach to the session later. Defaults to true. Only used by the HTTP transport.',
+                    },
+                    {
+                      name: 'fetch',
+                      type: 'FetchFunction',
+                      isOptional: true,
+                      description:
+                        'Optional custom fetch implementation to use for HTTP requests. Useful for runtimes that need a request-local fetch.',
                     },
                   ],
                 },
@@ -145,6 +188,13 @@ It currently does not support accepting notifications from an MCP server, and cu
               description: 'Handler for uncaught errors',
             },
             {
+              name: 'initialInitializeResult',
+              type: 'InitializeResult',
+              isOptional: true,
+              description:
+                'Initialize result from a previous MCP session. When provided, the client starts the transport and reuses this metadata without sending a new initialize request.',
+            },
+            {
               name: 'capabilities',
               type: 'ClientCapabilities',
               isOptional: true,
@@ -164,6 +214,12 @@ Returns a Promise that resolves to an `MCPClient` with the following properties 
 
 <PropertiesTable
   content={[
+    {
+      name: 'initializeResult',
+      type: 'InitializeResult',
+      description:
+        'The full initialize result used by this client, either from the server during initialization or from initialInitializeResult.',
+    },
     {
       name: 'serverInfo',
       type: 'Configuration',
@@ -374,6 +430,47 @@ Returns a Promise that resolves to an `MCPClient` with the following properties 
         {
           type: 'options',
           parameters: [
+            {
+              name: 'options',
+              type: 'RequestOptions',
+              isOptional: true,
+              description:
+                'Optional request options including signal and timeout.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'complete',
+      type: `async (args: CompleteRequestParams & {
+        options?: RequestOptions;
+      }) => Promise<CompleteResult>`,
+      description:
+        'Requests autocompletion suggestions for a prompt argument or resource template variable. The server must advertise the completions capability.',
+      properties: [
+        {
+          type: 'args',
+          parameters: [
+            {
+              name: 'ref',
+              type: "{ type: 'ref/prompt'; name: string } | { type: 'ref/resource'; uri: string }",
+              description:
+                'Reference to the prompt or resource template being completed.',
+            },
+            {
+              name: 'argument',
+              type: '{ name: string; value: string }',
+              description:
+                'Argument name and current partial value to complete.',
+            },
+            {
+              name: 'context',
+              type: '{ arguments: Record<string, string> }',
+              isOptional: true,
+              description:
+                'Previously resolved argument values used to provide context for multi-argument prompts or resource templates.',
+            },
             {
               name: 'options',
               type: 'RequestOptions',

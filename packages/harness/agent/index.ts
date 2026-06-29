@@ -1,5 +1,6 @@
 export { HarnessAgent } from '../src/agent/harness-agent';
 export type {
+  HarnessAgentSandboxConfig,
   HarnessAgentSettings,
   HarnessAgentToolApprovalConfiguration,
 } from '../src/agent/harness-agent-settings';
@@ -29,7 +30,14 @@ export {
   collectHarnessAgentToolApprovalContinuations,
   type HarnessAgentToolApprovalContinuation,
 } from '../src/agent/harness-agent-tool-approval-continuation';
-export { prewarmHarness } from '../src/agent/prewarm';
+export {
+  prepareHarnessSandboxTemplate,
+  prewarmHarness,
+} from '../src/agent/prewarm';
+export {
+  prepareSandboxForHarness,
+  type PrepareSandboxForHarnessResult,
+} from '../src/agent/prepare-sandbox-for-harness';
 export type {
   HarnessDebugConfig,
   HarnessDebugLevel,

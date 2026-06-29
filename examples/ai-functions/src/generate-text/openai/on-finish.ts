@@ -6,7 +6,7 @@ run(async () => {
   await generateText({
     model: openai('gpt-4o'),
     prompt: 'Invent a new holiday and describe its traditions.',
-    onFinish(event) {
+    onEnd(event) {
       console.dir(event, { depth: Infinity });
     },
   });

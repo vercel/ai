@@ -128,6 +128,17 @@ function lastStart(): Record<string, unknown> {
   return start;
 }
 
+async function waitForStart({
+  count,
+}: {
+  count: number;
+}): Promise<Record<string, unknown>> {
+  await vi.waitFor(() => {
+    expect(sentMessages.filter(m => m.type === 'start')).toHaveLength(count);
+  });
+  return lastStart();
+}
+
 describe('codex adapter — instructions gating', () => {
   beforeEach(() => {
     sentMessages.length = 0;
@@ -135,6 +146,18 @@ describe('codex adapter — instructions gating', () => {
     runCommands.length = 0;
     spawnEnvs.length = 0;
     writes.length = 0;
+  });
+
+  it('defers the start frame until after prompt control is returned', async () => {
+    const session = await startSession();
+
+    await session.doPromptTurn({
+      prompt: 'first turn',
+      emit: () => {},
+    });
+
+    expect(sentMessages.some(message => message.type === 'start')).toBe(false);
+    await waitForStart({ count: 1 });
   });
 
   it('prepends instructions on the first user message only', async () => {
@@ -145,14 +168,16 @@ describe('codex adapter — instructions gating', () => {
       instructions: 'Use turbo build --concurrency=4.',
       emit: () => {},
     });
-    expect(lastStart().instructions).toBe('Use turbo build --concurrency=4.');
+    expect((await waitForStart({ count: 1 })).instructions).toBe(
+      'Use turbo build --concurrency=4.',
+    );
 
     await session.doPromptTurn({
       prompt: 'second turn',
       instructions: 'Use turbo build --concurrency=4.',
       emit: () => {},
     });
-    expect(lastStart().instructions).toBeUndefined();
+    expect((await waitForStart({ count: 2 })).instructions).toBeUndefined();
   });
 
   it('does not apply instructions when resuming a session', async () => {
@@ -170,7 +195,7 @@ describe('codex adapter — instructions gating', () => {
       instructions: 'Use turbo build --concurrency=4.',
       emit: () => {},
     });
-    expect(lastStart().instructions).toBeUndefined();
+    expect((await waitForStart({ count: 1 })).instructions).toBeUndefined();
   });
 });
 
@@ -206,11 +231,12 @@ describe('codex adapter — attach replay mode', () => {
       prompt: 'next user turn',
       emit: () => {},
     });
-    expect(lastStart()).toMatchObject({
+    const start = await waitForStart({ count: 1 });
+    expect(start).toMatchObject({
       type: 'start',
       prompt: 'next user turn',
     });
-    expect(lastStart().resumeThreadId).toBeUndefined();
+    expect(start.resumeThreadId).toBeUndefined();
   });
 
   it('attaches a suspended turn by requesting replay from the cursor', async () => {
@@ -313,10 +339,11 @@ describe('codex adapter — skills', () => {
     ]);
     expect(spawnEnvs.at(-1)?.HOME).toBe('/home/vercel-sandbox');
     expect(spawnEnvs.at(-1)?.CODEX_HOME).toBe('/home/vercel-sandbox/.codex');
-    expect(lastStart().skills).toBeUndefined();
-    expect(JSON.stringify(lastStart())).not.toContain('Demo skill.');
-    expect(JSON.stringify(lastStart())).not.toContain('Use reference.md.');
-    expect(JSON.stringify(lastStart())).not.toContain('# Reference');
+    const start = await waitForStart({ count: 1 });
+    expect(start.skills).toBeUndefined();
+    expect(JSON.stringify(start)).not.toContain('Demo skill.');
+    expect(JSON.stringify(start)).not.toContain('Use reference.md.');
+    expect(JSON.stringify(start)).not.toContain('# Reference');
   });
 
   it('rejects unsafe skill file paths before writing files', async () => {
