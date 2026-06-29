@@ -165,3 +165,25 @@ describe('MoonshotAIProvider', () => {
     });
   });
 });
+<<<<<<< HEAD
+=======
+
+describe('getMoonshotAILanguageModelCapabilities', () => {
+  it.each([
+    ['kimi-k2.5', true],
+    ['kimi-k2.6', true],
+    ['kimi-k2.7-code', true],
+    ['moonshot-v1-8k', false],
+    ['moonshot-v1-32k', false],
+    ['moonshot-v1-128k', false],
+    ['custom-model-id', false],
+  ])(
+    'supportsStructuredOutputs for %s is %s',
+    (modelId, expectedSupportsStructuredOutputs) => {
+      expect(getModelStructuredOutputSupport(modelId)).toBe(
+        expectedSupportsStructuredOutputs,
+      );
+    },
+  );
+});
+>>>>>>> 5cb600b074 (feat(moonshotai): support structured outputs for kimi k2.5 (#16472))
