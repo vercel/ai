@@ -117,6 +117,18 @@ describe('convertToLanguageModelPrompt', () => {
   });
 
   describe('user message', () => {
+    let mockProcessEmitWarning: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      mockProcessEmitWarning = vi
+        .spyOn(process, 'emitWarning')
+        .mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      mockProcessEmitWarning.mockRestore();
+    });
+
     describe('image parts', () => {
       it('should download images for user image parts with URLs when model does not support image URLs', async () => {
         const result = await convertToLanguageModelPrompt({
@@ -1339,6 +1351,18 @@ describe('convertToLanguageModelPrompt', () => {
 
 describe('convertToLanguageModelMessage', () => {
   describe('user message', () => {
+    let mockProcessEmitWarning: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      mockProcessEmitWarning = vi
+        .spyOn(process, 'emitWarning')
+        .mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      mockProcessEmitWarning.mockRestore();
+    });
+
     describe('text parts', () => {
       it('should filter out empty text parts', async () => {
         const result = convertToLanguageModelMessage({
@@ -2984,6 +3008,10 @@ describe('convertToLanguageModelMessage', () => {
     });
 
     it('should include multipart content', () => {
+      const mockProcessEmitWarning = vi
+        .spyOn(process, 'emitWarning')
+        .mockImplementation(() => {});
+
       const result = convertToLanguageModelMessage({
         message: {
           role: 'tool',
@@ -3035,6 +3063,8 @@ describe('convertToLanguageModelMessage', () => {
         },
         downloadedAssets: {},
       });
+
+      mockProcessEmitWarning.mockRestore();
 
       expect(result).toMatchInlineSnapshot(`
         {

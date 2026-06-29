@@ -5,6 +5,8 @@ description: 'Answer questions about the AI SDK and help build AI-powered featur
 
 ## Prerequisites
 
+This information is for AI SDK 7. Compare to version in `node_modules/ai/package.json`. If the versions don't match, warn the user.
+
 Before searching docs, check if `node_modules/ai/docs/` exists. If not, install **only** the `ai` package using the project's package manager (e.g., `pnpm add ai`).
 
 Do not install other packages at this stage. Provider packages (e.g., `@ai-sdk/openai`) and client packages (e.g., `@ai-sdk/react`) should be installed later when needed based on user requirements.

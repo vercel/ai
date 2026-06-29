@@ -6,6 +6,7 @@ const VARIANTS = [
   { slug: 'ai-sdk-coding', label: 'AI SDK Coding' },
   { slug: 'weather', label: 'Weather' },
   { slug: 'weather-approval', label: 'Weather Approval' },
+  { slug: 'workflow', label: 'Workflow' },
 ] as const;
 
 const HARNESSES = [
@@ -18,6 +19,7 @@ const HARNESSES = [
       'ai-sdk-coding',
       'weather',
       'weather-approval',
+      'workflow',
     ],
   },
   {
@@ -29,6 +31,31 @@ const HARNESSES = [
       'ai-sdk-coding',
       'weather',
       'weather-approval',
+      'workflow',
+    ],
+  },
+  {
+    slug: 'deepagents',
+    label: 'Deep Agents',
+    variants: [
+      'basic',
+      'basic-with-stop',
+      'ai-sdk-coding',
+      'weather',
+      'weather-approval',
+      'workflow',
+    ],
+  },
+  {
+    slug: 'opencode',
+    label: 'OpenCode',
+    variants: [
+      'basic',
+      'basic-with-stop',
+      'ai-sdk-coding',
+      'weather',
+      'weather-approval',
+      'workflow',
     ],
   },
   {
@@ -40,6 +67,7 @@ const HARNESSES = [
       'ai-sdk-coding',
       'weather',
       'weather-approval',
+      'workflow',
     ],
   },
 ] as const;

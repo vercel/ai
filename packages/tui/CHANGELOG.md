@@ -1,5 +1,161 @@
 # @ai-sdk/tui
 
+## 1.0.5
+
+### Patch Changes
+
+- Updated dependencies [a2750db]
+  - ai@7.0.5
+
+## 1.0.4
+
+### Patch Changes
+
+- ai@7.0.4
+
+## 1.0.3
+
+### Patch Changes
+
+- ai@7.0.3
+
+## 1.0.2
+
+### Patch Changes
+
+- ai@7.0.2
+
+## 1.0.1
+
+### Patch Changes
+
+- ai@7.0.1
+
+## 1.0.0
+
+### Patch Changes
+
+- e757741: feat: agent tui
+- b8396f0: trigger initial beta release
+- e150ad7: Allow `runAgentTUI` to accept any AI SDK `Agent` generic combination.
+- b06e092: Add a `sandbox` option to `runAgentTUI` and forward it to every agent stream call for tool execution.
+
+## 1.0.0-beta.23
+
+### Patch Changes
+
+- ai@7.0.0-beta.187
+
+## 1.0.0-beta.22
+
+### Patch Changes
+
+- ai@7.0.0-beta.186
+
+## 1.0.0-beta.21
+
+### Patch Changes
+
+- Updated dependencies [75763b0]
+  - ai@7.0.0-beta.185
+
+## 1.0.0-beta.20
+
+### Patch Changes
+
+- Updated dependencies [0416e3e]
+  - ai@7.0.0-beta.184
+
+## 1.0.0-beta.19
+
+### Patch Changes
+
+- ai@7.0.0-beta.183
+
+## 1.0.0-beta.18
+
+### Patch Changes
+
+- e150ad7: Allow `runAgentTUI` to accept any AI SDK `Agent` generic combination.
+- b06e092: Add a `sandbox` option to `runAgentTUI` and forward it to every agent stream call for tool execution.
+
+## 1.0.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [cc6ab90]
+  - ai@7.0.0-beta.182
+
+## 1.0.0-beta.16
+
+### Patch Changes
+
+- Updated dependencies [6a2caf9]
+  - ai@7.0.0-beta.181
+
+## 1.0.0-beta.15
+
+### Patch Changes
+
+- Updated dependencies [81a284b]
+  - ai@7.0.0-beta.180
+
+## 1.0.0-beta.14
+
+### Patch Changes
+
+- ai@7.0.0-beta.179
+
+## 1.0.0-beta.13
+
+### Patch Changes
+
+- Updated dependencies [b097c52]
+  - ai@7.0.0-beta.178
+
+## 1.0.0-beta.12
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - ai@7.0.0-beta.177
+
+## 1.0.0-canary.11
+
+### Patch Changes
+
+- ai@7.0.0-canary.176
+
+## 1.0.0-canary.10
+
+### Patch Changes
+
+- Updated dependencies [6ec57f5]
+  - ai@7.0.0-canary.175
+
+## 1.0.0-canary.9
+
+### Patch Changes
+
+- ai@7.0.0-canary.174
+
+## 1.0.0-canary.8
+
+### Patch Changes
+
+- ai@7.0.0-canary.173
+
+## 1.0.0-canary.7
+
+### Patch Changes
+
+- Updated dependencies [25a64f8]
+- Updated dependencies [375fdd7]
+- Updated dependencies [f18b08f]
+- Updated dependencies [b4507d5]
+  - ai@7.0.0-canary.172
+
 ## 1.0.0-canary.6
 
 ### Patch Changes

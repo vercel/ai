@@ -8,7 +8,7 @@ import type {
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import type { TimeoutConfiguration } from '../prompt/request-options';
-import type { Telemetry } from '../telemetry/telemetry';
+import type { Telemetry, TelemetryDispatcher } from '../telemetry/telemetry';
 import { executeToolCall } from './execute-tool-call';
 import { resolveToolApproval } from './resolve-tool-approval';
 import type { LanguageModelStreamPart } from './stream-language-model-call';
@@ -49,6 +49,7 @@ export function executeToolsFromStream<
   onToolExecutionStart,
   onToolExecutionEnd,
   executeToolInTelemetryContext,
+  runInTracingChannelSpan,
 }: {
   stream: ReadableStream<LanguageModelStreamPart<TOOLS>>;
   tools: TOOLS | undefined;
@@ -65,6 +66,9 @@ export function executeToolsFromStream<
   onToolExecutionStart?: Arrayable<OnToolExecutionStartCallback<TOOLS>>;
   onToolExecutionEnd?: Arrayable<OnToolExecutionEndCallback<TOOLS>>;
   executeToolInTelemetryContext?: Telemetry['executeTool'];
+  runInTracingChannelSpan?: NonNullable<
+    TelemetryDispatcher['runInTracingChannelSpan']
+  >;
 }): ReadableStream<ExecuteToolsStreamPart<TOOLS>> {
   const toolCallsToExecute: Array<TypedToolCall<TOOLS>> = [];
 
@@ -210,6 +214,7 @@ export function executeToolsFromStream<
                     onToolExecutionStart,
                     onToolExecutionEnd,
                     executeToolInTelemetryContext,
+                    runInTracingChannelSpan,
                     onPreliminaryToolResult: result => {
                       controller.enqueue(result);
                     },

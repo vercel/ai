@@ -1,5 +1,177 @@
 # @ai-sdk/google
 
+## 4.0.2
+
+### Patch Changes
+
+- Updated dependencies [6a436e3]
+  - @ai-sdk/provider-utils@5.0.1
+
+## 4.0.1
+
+### Patch Changes
+
+- ba6d510: chore: fix deprecated use of zod `.passthrough()`
+
+## 4.0.0
+
+### Major Changes
+
+- a3757d7: chore(provider/google): remove useless GenerativeAI affix from types and classes for consistency
+- f7d4f01: feat(provider): add support for `reasoning-file` type for files that are part of reasoning
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+- c29a26f: feat(provider): add support for provider references and uploading files as supported per provider
+- 3887c70: feat(provider): add new top-level reasoning parameter to spec and support it in `generateText` and `streamText`
+- 8359612: Start v7 pre-release
+- 04e9009: chore: make provider implementations code patterns more consistent, including renaming certain exported symbols
+
+  For all externally exported symbols that were renamed, the old names continue to work via deprecated aliases.
+
+### Patch Changes
+
+- 7f04802: feat(provider/google): add support for managed agents in the Interactions API
+- 38fc777: Add AI Gateway hint to provider READMEs
+- b71c0d7: feat(provider/google): support Google search grounding when using `generateImage` with Gemini
+- 6190649: chore(provider/google): remove obsolete Google image model
+- 55db546: fix(provider/google): fix Gemini service tier enum after upstream update
+- 9a0a618: fix(google): fix `serviceTier` to be correctly formatted for Vertex API
+- 00a0f36: feat(google, google-vertex): added `gemini-embedding-2`, `deep-research-max-preview-04-2026` and `deep-research-preview-04-2026`
+- 9715ec7: feat(provider/google): add support for service tier parameter
+- 41da50c: fix(provider/google): support `functionCall.id` when returned by Gemini API and provide matching `functionResponse.id`
+- add4326: fix(provider/google): correct JSDoc for multimodal embedding content option
+- a8d70b6: fix(google): auto-inject `skip_thought_signature_validator` for Gemini 3 tool-call replays without a signature
+- 947cdab: Add Google realtime Live Translation provider options for `gemini-3.5-live-translate-preview`.
+- 4e825f3: feat(google): update Interactions API implementation to cater for upstream breaking changes coming May 26
+- b563707: feat(provider/google): add Gemini text-to-speech (speech) model support
+- a05109d: feat(provider/google): preserve per-modality token details in usage data
+- cfca634: fix(google): emit Vertex no-args streaming tool calls and preserve thoughtSignature
+
+  Vertex emits a no-args function call as a single chunk shaped `{ functionCall: { name: 'X' } }` with no `args`, no `partialArgs`, and no `willContinue`. The streaming parser had no branch for this shape, so the call was dropped along with any `thoughtSignature` it carried. For Gemini 3 thinking models this caused the next multi-turn step to 400 with `missing thought_signature`. The unary (`doGenerate`) path had the same drop.
+
+  Both paths now emit the call as a complete tool call with `'{}'` input and propagate `thoughtSignature` provider metadata.
+
+  Fixes #14847.
+
+- c9c4661: fix(provider/google): preserve groundingMetadata and urlContextMetadata when they arrive in a stream chunk before the finishReason chunk
+- 045d2e8: fix(google): read `serviceTier` from `usageMetadata.serviceTier` in both generate and stream paths
+
+  The previous implementation read `serviceTier` from the `x-gemini-service-tier`
+  response header, which is only populated on non-streaming responses. Gemini
+  streaming includes the value in `usageMetadata.serviceTier` on every chunk, so
+  `providerMetadata.google.serviceTier` was always `null` for streams. Read from
+  `usageMetadata` for both paths instead.
+
+- 19b95f9: fix(google): use VALIDATED function calling mode when any tool has strict:true
+- 2ce3c65: feat(provider/google-vertex): add Gemini text-to-speech (speech) model support
+- 5878b40: fix(google): prevent prototype pollution when streaming tool args
+- 46d1149: chore(provider-utils,google): fix grammar errors in error and warning messages
+- 6a26901: feat(google): add `fileData` support to embedding model
+- 01fa606: feat(provider/google): support combining built-in tools with function calling on Gemini 3
+- 5036db8: feat(google-vertex): add support for streaming tool arguments input
+- 9f0e36c: trigger release for all packages after provenance setup
+- a2609df: fix(google): fix streaming tool call args
+- ab43029: feat(provider/google): support multimodal content parts in embedding provider options
+- 82288b0: feat(provider/google): add `gemini-embedding-2-preview` and fix multimodal embedding support with `embedMany`
+- b04e23e: feat(provider/google): add support for the Gemini Interactions API
+- 58a2ad7: fix: more precise default message for tool execution denial
+- e59176c: chore(google): update v3 specs to v4
+- ebbb0f2: fix(provider/google): fix lack of image consistency when using Interactions API in stateless mode
+- aeda373: fix: only send provider credentials to same-origin response-supplied URLs
+
+  Several provider clients followed a URL taken from the provider's API response (a polling/status URL or a final media URL such as `polling_url`, `urls.get`, `result_url`, `result.sample`, or `video.uri`) and reused the authenticated headers — or appended `?key=<API_KEY>` — on that request. Because the host of the response-supplied URL was never validated, the long-lived API key was sent to whatever host the response named (a CDN in the benign case, or an attacker-chosen host if the provider response was tampered with), allowing credential exfiltration.
+
+  A new `isSameOrigin` helper is added to `@ai-sdk/provider-utils`, and the affected fetches in `@ai-sdk/black-forest-labs`, `@ai-sdk/fireworks`, `@ai-sdk/replicate`, `@ai-sdk/gladia`, `@ai-sdk/fal`, and `@ai-sdk/google` now attach credentials only when the followed URL is same-origin with the provider's configured API origin. Requests to a foreign origin are made without the credential.
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- 0c4c275: trigger initial canary release
+- bdb9ea1: chore(google): remove now obsolete Interactions API `Api-Revision` header
+- db394ab: feat(provider/google): support cancelling long-running Interactions API agents via AbortSignal, and process their intermittent stream
+- ce769dd: feat(provider): add experimental Realtime API support for voice conversations
+
+  Adds first-class support for realtime (speech-to-speech) APIs:
+
+  - `Experimental_RealtimeModelV4` spec in `@ai-sdk/provider` with normalized event types and factory
+  - OpenAI, Google, and xAI realtime provider implementations
+  - `openai.experimental_realtime()` / `google.experimental_realtime()` / `xai.experimental_realtime()` work in both server and browser
+  - `.getToken()` static method on each provider for server-side ephemeral token creation
+  - `experimental_getRealtimeToolDefinitions` helper for provider session tool definitions
+  - `experimental_useRealtime` hook in `@ai-sdk/react` returning `UIMessage[]` (aligned with `useChat`), with `onToolCall` and `addToolOutput` for client-driven tool execution
+  - `inputAudioTranscription` session config for showing transcribed user audio messages when supported by the provider
+
+- 5b7e7c2: fix(google-vertex): don't send streamFunctionCallArguments for unary API calls and change default to false
+- 2edd14e: fix(provider/google): correctly mark reasoning files as such and fix related multi-turn errors
+- 9bd6512: feat(provider): change file part data property to be tagged with a type and remove the image part type
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- 546cefe: feat(provider/google): add `gemini-3.5-flash`
+- 5463d0d: feat(provider): align tool result output content file part types with top-level message file part types
+- 55f0938: chore(provider/google): update available models
+- b8396f0: trigger initial beta release
+- 84f36e0: fix(google): omit passing includeServerSideToolInvocations for Vertex tool_config
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+- 4dac142: feat(google): add new finishMessage field in providerMetadata
+- aeea161: feat(google): read `serviceTier` from `x-gemini-service-tier` response header in Gemini API and use PayGo for Vertex
+- 18c1970: feat(provider/google): Add multimodal tool-result support for Google function responses.
+
+  Tool results with `output.type = 'content'` now map media parts into
+  `functionResponse.parts` for Google models, including `image-data`,
+  `file-data`, and base64 `data:` URLs in URL-style content parts.
+  Remote HTTP(S) URLs in URL-style tool-result parts are not supported.
+
+- b3976a2: Add workflow serialization support to all provider models.
+
+  **`@ai-sdk/provider-utils`:** New `serializeModel()` helper that extracts only serializable properties from a model instance, filtering out functions and objects containing functions. Third-party provider authors can use this to add workflow support to their own models.
+
+  **All providers:** `headers` is now optional in provider config types. This is non-breaking — existing code that passes `headers` continues to work. Custom provider implementations that construct model configs manually can now omit `headers`, which is useful when models are deserialized from a workflow step boundary where auth is provided separately.
+
+  All provider model classes now include `WORKFLOW_SERIALIZE` and `WORKFLOW_DESERIALIZE` static methods, enabling them to cross workflow step boundaries without serialization errors.
+
+- ff5eba1: feat: roll `image-*` tool output types into their equivalent `file-*` types
+
+## 4.0.0-beta.85
+
+### Patch Changes
+
+- Updated dependencies [0416e3e]
+  - @ai-sdk/provider@4.0.0-beta.20
+  - @ai-sdk/provider-utils@5.0.0-beta.50
+
+## 4.0.0-beta.84
+
+### Patch Changes
+
+- 947cdab: Add Google realtime Live Translation provider options for `gemini-3.5-live-translate-preview`.
+
+## 4.0.0-beta.83
+
+### Patch Changes
+
+- bdb9ea1: chore(google): remove now obsolete Interactions API `Api-Revision` header
+
+## 4.0.0-beta.82
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/provider-utils@5.0.0-beta.49
+  - @ai-sdk/provider@4.0.0-beta.19
+
+## 4.0.0-canary.81
+
+### Patch Changes
+
+- 5878b40: fix(google): prevent prototype pollution when streaming tool args
+- aeda373: fix: only send provider credentials to same-origin response-supplied URLs
+
+  Several provider clients followed a URL taken from the provider's API response (a polling/status URL or a final media URL such as `polling_url`, `urls.get`, `result_url`, `result.sample`, or `video.uri`) and reused the authenticated headers — or appended `?key=<API_KEY>` — on that request. Because the host of the response-supplied URL was never validated, the long-lived API key was sent to whatever host the response named (a CDN in the benign case, or an attacker-chosen host if the provider response was tampered with), allowing credential exfiltration.
+
+  A new `isSameOrigin` helper is added to `@ai-sdk/provider-utils`, and the affected fetches in `@ai-sdk/black-forest-labs`, `@ai-sdk/fireworks`, `@ai-sdk/replicate`, `@ai-sdk/gladia`, `@ai-sdk/fal`, and `@ai-sdk/google` now attach credentials only when the followed URL is same-origin with the provider's configured API origin. Requests to a foreign origin are made without the credential.
+
+- Updated dependencies [aeda373]
+- Updated dependencies [375fdd7]
+- Updated dependencies [b4507d5]
+  - @ai-sdk/provider-utils@5.0.0-canary.48
+
 ## 4.0.0-canary.80
 
 ### Patch Changes

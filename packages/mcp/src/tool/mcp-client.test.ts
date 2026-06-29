@@ -7,13 +7,16 @@ import { MockMCPTransport } from './mock-mcp-transport';
 import {
   ListToolsResult,
   ElicitationRequestSchema,
+  LATEST_PROTOCOL_VERSION,
   type CallToolResult,
+  type CompleteResult,
   type ListResourceTemplatesResult,
   type ListResourcesResult,
   type ReadResourceResult,
   type ListPromptsResult,
   type GetPromptResult,
   type Configuration,
+  type InitializeResult,
 } from './types';
 import type { JSONRPCMessage, JSONRPCRequest } from './json-rpc-message';
 import {
@@ -743,6 +746,101 @@ describe('MCPClient', () => {
     `);
   });
 
+  it('should request completions from the server', async () => {
+    const mockTransport = new MockMCPTransport({
+      completionResult: {
+        completion: {
+          values: ['auth', 'auth-staging'],
+          total: 2,
+          hasMore: false,
+        },
+      },
+    });
+    const sendSpy = vi.spyOn(mockTransport, 'send');
+
+    client = await createMCPClient({
+      transport: mockTransport,
+    });
+
+    const completion = await client.complete({
+      ref: {
+        type: 'ref/resource',
+        uri: 'kubernetes://namespaced/{plural}/{namespace}',
+      },
+      argument: {
+        name: 'namespace',
+        value: 'auth',
+      },
+      context: {
+        arguments: {
+          plural: 'deployments',
+        },
+      },
+    });
+
+    expectTypeOf(completion).toEqualTypeOf<CompleteResult>();
+
+    expect(completion).toMatchInlineSnapshot(`
+      {
+        "completion": {
+          "hasMore": false,
+          "total": 2,
+          "values": [
+            "auth",
+            "auth-staging",
+          ],
+        },
+      }
+    `);
+    expect(sendSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: 'completion/complete',
+        params: {
+          ref: {
+            type: 'ref/resource',
+            uri: 'kubernetes://namespaced/{plural}/{namespace}',
+          },
+          argument: {
+            name: 'namespace',
+            value: 'auth',
+          },
+          context: {
+            arguments: {
+              plural: 'deployments',
+            },
+          },
+        },
+      }),
+    );
+  });
+
+  it('should throw if the server does not support completions', async () => {
+    const mockTransport = new MockMCPTransport();
+    const sendSpy = vi.spyOn(mockTransport, 'send');
+
+    client = await createMCPClient({
+      transport: mockTransport,
+    });
+
+    await expect(
+      client.complete({
+        ref: {
+          type: 'ref/prompt',
+          name: 'code_review',
+        },
+        argument: {
+          name: 'language',
+          value: 'py',
+        },
+      }),
+    ).rejects.toThrow(MCPClientError);
+    expect(sendSpy).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: 'completion/complete',
+      }),
+    );
+  });
+
   it('should list prompts from the server', async () => {
     client = await createMCPClient({
       transport: { type: 'sse', url: 'https://example.com/sse' },
@@ -1111,6 +1209,62 @@ describe('MCPClient', () => {
       expect(tools).toBeDefined();
       await client.close();
     }
+  });
+
+  it('should resume from an initial initialize result without reinitializing', async () => {
+    const sentMessages: JSONRPCMessage[] = [];
+    const initialInitializeResult: InitializeResult = {
+      protocolVersion: LATEST_PROTOCOL_VERSION,
+      serverInfo: {
+        name: 'resumed-server',
+        version: '1.0.0',
+      },
+      capabilities: {
+        tools: {},
+      },
+      instructions: 'Cached server instructions',
+    };
+    const transport: MCPTransport = {
+      start: vi.fn(async () => {}),
+      close: vi.fn(async () => {}),
+      send: vi.fn(async message => {
+        sentMessages.push(message);
+        if (
+          'method' in message &&
+          'id' in message &&
+          message.method === 'tools/list'
+        ) {
+          transport.onmessage?.({
+            jsonrpc: '2.0',
+            id: message.id,
+            result: {
+              tools: [],
+            },
+          });
+        }
+      }),
+    };
+
+    client = await createMCPClient({
+      transport,
+      initialInitializeResult,
+    });
+
+    expect(transport.start).toHaveBeenCalledTimes(1);
+    expect(sentMessages).toEqual([]);
+    expect(transport.protocolVersion).toBe(LATEST_PROTOCOL_VERSION);
+    expect(client.serverInfo).toEqual({
+      name: 'resumed-server',
+      version: '1.0.0',
+    });
+    expect(client.initializeResult).toEqual(initialInitializeResult);
+    expect(client.instructions).toBe('Cached server instructions');
+
+    await expect(client.listTools()).resolves.toEqual({ tools: [] });
+    expect(sentMessages).toHaveLength(1);
+    expect(sentMessages[0]).toMatchObject({
+      method: 'tools/list',
+    });
   });
 
   it('should expose serverInfo from initialization', async () => {

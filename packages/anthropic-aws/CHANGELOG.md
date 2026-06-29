@@ -1,5 +1,66 @@
 # @ai-sdk/anthropic-aws
 
+## 1.0.2
+
+### Patch Changes
+
+- Updated dependencies [dfffb27]
+  - @ai-sdk/anthropic@4.0.2
+
+## 1.0.1
+
+### Patch Changes
+
+- Updated dependencies [6a436e3]
+  - @ai-sdk/provider-utils@5.0.1
+  - @ai-sdk/anthropic@4.0.1
+
+## 1.0.0
+
+### Major Changes
+
+- e617cba: feat(anthropic-aws): add Claude Platform on AWS provider
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+
+## 1.0.0-beta.10
+
+### Patch Changes
+
+- Updated dependencies [19c5ee2]
+  - @ai-sdk/anthropic@4.0.0-beta.69
+
+## 1.0.0-beta.9
+
+### Patch Changes
+
+- Updated dependencies [0416e3e]
+  - @ai-sdk/provider@4.0.0-beta.20
+  - @ai-sdk/anthropic@4.0.0-beta.68
+  - @ai-sdk/provider-utils@5.0.0-beta.50
+
+## 1.0.0-beta.8
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/anthropic@4.0.0-beta.67
+  - @ai-sdk/provider-utils@5.0.0-beta.49
+  - @ai-sdk/provider@4.0.0-beta.19
+
+## 1.0.0-canary.7
+
+### Patch Changes
+
+- Updated dependencies [aeda373]
+- Updated dependencies [375fdd7]
+- Updated dependencies [b4507d5]
+  - @ai-sdk/provider-utils@5.0.0-canary.48
+  - @ai-sdk/anthropic@4.0.0-canary.66
+
 ## 1.0.0-canary.6
 
 ### Patch Changes

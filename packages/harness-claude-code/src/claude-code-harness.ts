@@ -20,21 +20,24 @@ import {
   type HarnessV1Skill,
   type HarnessV1StreamPart,
 } from '@ai-sdk/harness';
-import { classifyDiskLog, SandboxChannel } from '@ai-sdk/harness/utils';
 import {
-  safeParseJSON,
+  classifyDiskLog,
+  markBridgeStarting,
+  SandboxChannel,
+  waitForBridgeReady,
+} from '@ai-sdk/harness/utils';
+import {
   tool,
   type Experimental_SandboxSession,
   type Experimental_SandboxProcess,
 } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import {
   resolveClaudeCodeEnv,
   type ClaudeCodeAuthOptions,
 } from './claude-code-auth';
 import {
-  bridgeReadySchema,
   outboundMessageSchema,
   type InboundMessage,
   type OutboundMessage,
@@ -228,7 +231,7 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
       subject: z.string(),
       description: z.string(),
       activeForm: z.string().optional(),
-      metadata: z.record(z.unknown()).optional(),
+      metadata: z.record(z.string(), z.unknown()).optional(),
     }),
   }),
   TaskGet: tool({
@@ -251,7 +254,7 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
       addBlocks: z.array(z.string()).optional(),
       addBlockedBy: z.array(z.string()).optional(),
       owner: z.string().optional(),
-      metadata: z.record(z.unknown()).optional(),
+      metadata: z.record(z.string(), z.unknown()).optional(),
     }),
   }),
   TaskList: tool({
@@ -283,18 +286,16 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
   }),
   ExitPlanMode: tool({
     description: 'Exit plan mode with optional permission approvals',
-    inputSchema: z
-      .object({
-        allowedPrompts: z
-          .array(
-            z.object({
-              tool: z.literal('Bash'),
-              prompt: z.string(),
-            }),
-          )
-          .optional(),
-      })
-      .passthrough(),
+    inputSchema: z.looseObject({
+      allowedPrompts: z
+        .array(
+          z.object({
+            tool: z.literal('Bash'),
+            prompt: z.string(),
+          }),
+        )
+        .optional(),
+    }),
   }),
   EnterWorktree: tool({
     description: 'Create or enter an isolated git worktree',
@@ -330,9 +331,10 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
         )
         .min(1)
         .max(4),
-      answers: z.record(z.string()).optional(),
+      answers: z.record(z.string(), z.string()).optional(),
       annotations: z
         .record(
+          z.string(),
           z.object({
             preview: z.string().optional(),
             notes: z.string().optional(),
@@ -370,7 +372,7 @@ const BOOTSTRAP_DIR = '/tmp/harness/claude-code';
  * future process uses them to reopen a socket to the still-running bridge
  * (`attach`) instead of re-spawning it. Absent on a `doStop()` payload.
  */
-const bridgeCoordsSchema = z.object({
+const claudeCodeBridgeCoordsSchema = z.object({
   port: z.number(),
   token: z.string(),
   lastSeenEventId: z.number(),
@@ -384,13 +386,13 @@ const bridgeCoordsSchema = z.object({
  * sandbox via `provider.resumeSession({ sessionId })`, and the Claude SDK's
  * `{ continue: true }` flag rehydrates the thread from the workdir. A
  * `doDetach()` payload additionally carries `bridge` coordinates for
- * cross-process `attach`. `.passthrough()` keeps both shapes valid.
+ * cross-process `attach`. A loose object keeps both shapes valid.
  */
-const claudeCodeResumeStateSchema = z
-  .object({ bridge: bridgeCoordsSchema.optional() })
-  .passthrough();
+const claudeCodeResumeStateSchema = z.looseObject({
+  bridge: claudeCodeBridgeCoordsSchema.optional(),
+});
 
-type ClaudeCodeBridgeCoords = z.infer<typeof bridgeCoordsSchema>;
+type ClaudeCodeBridgeCoords = z.infer<typeof claudeCodeBridgeCoordsSchema>;
 
 export function createClaudeCode(
   settings: ClaudeCodeHarnessSettings = {},
@@ -565,7 +567,7 @@ export function createClaudeCode(
        */
       if (respawnStrategy === undefined) {
         await session.run({
-          command: `mkdir -p ${workDir} ${bridgeStateDir}`,
+          command: `mkdir -p ${shellQuote(workDir)} ${shellQuote(bridgeStateDir)}`,
           abortSignal: startOpts.abortSignal,
         });
 
@@ -582,8 +584,15 @@ export function createClaudeCode(
         }
       }
 
+      await markBridgeStarting({
+        sandbox: session,
+        bridgeStateDir,
+        bridgeType: 'claude-code',
+        abortSignal: startOpts.abortSignal,
+      });
+
       const proc = await session.spawn({
-        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${workDir} --bridge-state-dir ${bridgeStateDir}`,
+        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)}`,
         env,
         abortSignal: startOpts.abortSignal,
       });
@@ -602,10 +611,27 @@ export function createClaudeCode(
       void bridgeStartupStderrDone;
       const { port: boundPort } = await waitForBridgeReady({
         proc,
+        sandbox: session,
+        bridgeStateDir,
+        bridgeType: 'claude-code',
         timeoutMs,
         abortSignal: startOpts.abortSignal,
-        stderrTail: bridgeStartupStderr,
-        stderrDone: bridgeStartupStderrDone,
+        createTimeoutError: ({ proc, stdoutTail }) =>
+          createBridgeStartupError({
+            message: 'claude-code bridge did not become ready in time.',
+            proc,
+            stdoutTail,
+            stderrTail: bridgeStartupStderr,
+            stderrDone: bridgeStartupStderrDone,
+          }),
+        createExitError: ({ proc, stdoutTail }) =>
+          createBridgeStartupError({
+            message: 'claude-code bridge exited before becoming ready.',
+            proc,
+            stdoutTail,
+            stderrTail: bridgeStartupStderr,
+            stderrDone: bridgeStartupStderrDone,
+          }),
       });
       void drainRest(proc.stdout);
 
@@ -784,80 +810,6 @@ async function readBridgeAsset(name: string): Promise<string> {
     }
   }
   throw lastErr ?? new Error(`bridge asset not found: ${name}`);
-}
-
-async function waitForBridgeReady({
-  proc,
-  timeoutMs,
-  abortSignal,
-  stderrTail,
-  stderrDone,
-}: {
-  proc: Experimental_SandboxProcess;
-  timeoutMs: number;
-  abortSignal: AbortSignal | undefined;
-  stderrTail: string[];
-  stderrDone: Promise<void>;
-}): Promise<{ port: number }> {
-  const reader = proc.stdout.pipeThrough(new TextDecoderStream()).getReader();
-
-  const decoder = lineDecoder();
-  const stdoutTail: string[] = [];
-
-  const deadline = Date.now() + timeoutMs;
-  try {
-    while (true) {
-      if (abortSignal?.aborted) {
-        await proc.kill();
-        throw abortSignal.reason ?? new DOMException('Aborted', 'AbortError');
-      }
-      const remaining = deadline - Date.now();
-      if (remaining <= 0) {
-        await proc.kill();
-        throw await createBridgeStartupError({
-          message: 'claude-code bridge did not become ready in time.',
-          proc,
-          stdoutTail,
-          stderrTail,
-          stderrDone,
-        });
-      }
-      const { value, done } = (await Promise.race([
-        reader.read(),
-        new Promise(resolve =>
-          setTimeout(
-            () => resolve({ value: undefined, done: false }),
-            remaining,
-          ),
-        ),
-      ])) as ReadableStreamReadResult<string>;
-      if (done) {
-        for (const line of decoder.flush()) {
-          stdoutTail.push(line);
-          if (stdoutTail.length > 20) stdoutTail.shift();
-        }
-        throw await createBridgeStartupError({
-          message: 'claude-code bridge exited before becoming ready.',
-          proc,
-          stdoutTail,
-          stderrTail,
-          stderrDone,
-        });
-      }
-      if (value === undefined) continue;
-      for (const line of decoder.push(value)) {
-        stdoutTail.push(line);
-        if (stdoutTail.length > 20) stdoutTail.shift();
-        const parsed = await safeParseJSON({
-          text: line,
-          schema: bridgeReadySchema,
-        });
-        if (parsed.success) return { port: parsed.value.port };
-      }
-    }
-  } finally {
-    reader.releaseLock();
-  }
 }
 
 async function createBridgeStartupError({

@@ -1,5 +1,6 @@
 import type {
   HarnessV1,
+  HarnessV1Bootstrap,
   HarnessV1ContinueTurnOptions,
   HarnessV1ContinueTurnState,
   HarnessV1NetworkSandboxSession,
@@ -12,9 +13,10 @@ import type {
 } from '../v1';
 import { tool } from '@ai-sdk/provider-utils';
 import { describe, expect, test, vi } from 'vitest';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { HarnessAgent } from './harness-agent';
 import { HarnessAgentSession } from './harness-agent-session';
+import { hashHarnessBootstrap } from './internal/bootstrap-recipe';
 
 /**
  * Build a mock harness whose session emits a canned event script. Each
@@ -137,7 +139,7 @@ function mockHarness(options: {
 function makeSandboxSession(
   options: Partial<HarnessV1NetworkSandboxSession> = {},
 ): HarnessV1NetworkSandboxSession {
-  const run = vi.fn(async () => ({}) as never);
+  const run = vi.fn(async () => ({ exitCode: 0, stdout: '', stderr: '' }));
   const sandboxSession = {
     id: 'sandbox',
     defaultWorkingDirectory: '/work',
@@ -633,10 +635,10 @@ describe('HarnessAgent', () => {
     await session.destroy();
   });
 
-  test('onSandboxSession runs after the session work dir exists and before harness start', async () => {
+  test('sandboxConfig.onSession runs after the session work dir exists and before harness start', async () => {
     const { harness, doStart } = mockHarness({ script: () => [] });
-    const restrictedSession = { label: 'restricted' };
-    const run = vi.fn(async () => ({}) as never);
+    const run = vi.fn(async () => ({ exitCode: 0, stdout: '', stderr: '' }));
+    const restrictedSession = { label: 'restricted', run };
     const sandboxSession = makeSandboxSession({
       run,
       restricted: () => restrictedSession as never,
@@ -645,13 +647,14 @@ describe('HarnessAgent', () => {
     const agent = new HarnessAgent({
       harness,
       sandbox: makeSandboxProvider(sandboxSession),
-      onSandboxSession,
+      sandboxConfig: { onSession: onSandboxSession },
     });
 
     const session = await agent.createSession({ sessionId: 's1' });
 
     expect(run).toHaveBeenCalledWith({
-      command: 'mkdir -p /work/mock-s1',
+      command: 'mkdir -p "$WORK_DIR"',
+      env: { WORK_DIR: '/work/mock-s1' },
       abortSignal: undefined,
     });
     expect(onSandboxSession).toHaveBeenCalledWith({
@@ -669,7 +672,223 @@ describe('HarnessAgent', () => {
     await session.destroy();
   });
 
-  test('onSandboxSession runs for resumed sessions', async () => {
+  test('deprecated top-level onSandboxSession warns and still runs', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const { harness } = mockHarness({ script: () => [] });
+      const onSandboxSession = vi.fn(async () => {});
+      const agent = new HarnessAgent({
+        harness,
+        sandbox: makeSandboxProvider(),
+        onSandboxSession,
+      });
+
+      const session = await agent.createSession({ sessionId: 's1' });
+
+      expect(warn).toHaveBeenCalledWith(
+        'HarnessAgent: `onSandboxSession` is deprecated. Use `sandboxConfig.onSession` instead.',
+      );
+      expect(onSandboxSession).toHaveBeenCalledWith({
+        session: expect.any(Object),
+        sessionWorkDir: '/work/mock-s1',
+        abortSignal: undefined,
+      });
+
+      await session.destroy();
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  test('validates sandbox bootstrap settings', () => {
+    const { harness } = mockHarness({ script: () => [] });
+
+    expect(
+      () =>
+        new HarnessAgent({
+          harness,
+          sandbox: makeSandboxProvider(),
+          sandboxConfig: { onBootstrap: async () => {} },
+        }),
+    ).toThrow(/must be provided together/);
+
+    expect(
+      () =>
+        new HarnessAgent({
+          harness,
+          sandbox: makeSandboxProvider(),
+          sandboxConfig: { bootstrapHash: 'hash' },
+        }),
+    ).toThrow(/must be provided together/);
+
+    expect(
+      () =>
+        new HarnessAgent({
+          harness,
+          sandbox: makeSandboxProvider(),
+          sandboxConfig: { workDir: '../repo' },
+        }),
+    ).toThrow(/workDir/);
+  });
+
+  test('sandboxConfig.onBootstrap runs during onFirstCreate and workDir becomes the session work dir', async () => {
+    const { harness } = mockHarness({ script: () => [] });
+    const run = vi.fn(async (args: { command: string }) => {
+      if (args.command === 'pwd') {
+        return { exitCode: 0, stdout: '/work\n', stderr: '' };
+      }
+      return { exitCode: 0, stdout: '', stderr: '' };
+    });
+    const restrictedSession = {
+      label: 'restricted',
+      run,
+    };
+    const sandboxSession = makeSandboxSession({
+      run,
+      restricted: () => restrictedSession as never,
+    });
+    const createSession = vi.fn(
+      async (
+        opts: Parameters<HarnessV1SandboxProvider['createSession']>[0],
+      ) => {
+        await opts?.onFirstCreate?.(restrictedSession as never, {});
+        return sandboxSession;
+      },
+    );
+    const onSandboxBootstrap = vi.fn(async () => {});
+    const onSandboxSession = vi.fn(async () => {});
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: {
+        specificationVersion: 'harness-sandbox-v1',
+        providerId: 'mock-sandbox',
+        createSession,
+      },
+      sandboxConfig: {
+        workDir: 'ai-sdk',
+        bootstrapHash: 'repo-v1',
+        onBootstrap: onSandboxBootstrap,
+        onSession: onSandboxSession,
+      },
+    });
+
+    const session = await agent.createSession({ sessionId: 's1' });
+
+    expect(createSession.mock.calls[0]![0]).toEqual({
+      sessionId: 's1',
+      abortSignal: undefined,
+      identity: expect.stringMatching(/^[0-9a-f]{16}$/),
+      onFirstCreate: expect.any(Function),
+    });
+    expect(onSandboxBootstrap).toHaveBeenCalledWith({
+      session: restrictedSession,
+      workDir: '/work/ai-sdk',
+      abortSignal: undefined,
+    });
+    expect(onSandboxSession).toHaveBeenCalledWith({
+      session: restrictedSession,
+      sessionWorkDir: '/work/ai-sdk',
+      abortSignal: undefined,
+    });
+
+    await session.destroy();
+  });
+
+  test('sandboxConfig.onBootstrap is skipped for resumed sessions while onSession still runs', async () => {
+    const { harness } = mockHarness({ script: () => [] });
+    const onSandboxBootstrap = vi.fn(async () => {});
+    const onSandboxSession = vi.fn(async () => {});
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(),
+      sandboxConfig: {
+        workDir: 'ai-sdk',
+        bootstrapHash: 'repo-v1',
+        onBootstrap: onSandboxBootstrap,
+        onSession: onSandboxSession,
+      },
+    });
+
+    const session = await agent.createSession({
+      sessionId: 's1',
+      resumeFrom: {
+        type: 'resume-session',
+        harnessId: 'mock',
+        specificationVersion: 'harness-v1',
+        data: {},
+      },
+    });
+
+    expect(onSandboxBootstrap).not.toHaveBeenCalled();
+    expect(onSandboxSession).toHaveBeenCalledWith({
+      session: expect.any(Object),
+      sessionWorkDir: '/work/ai-sdk',
+      abortSignal: undefined,
+    });
+
+    await session.destroy();
+  });
+
+  test('built-in bootstrap uses recipe identity while snapshot identity includes workDir', async () => {
+    const base = mockHarness({ script: () => [] });
+    const recipe: HarnessV1Bootstrap = {
+      harnessId: 'mock',
+      bootstrapDir: '/tmp/mock-bootstrap',
+      files: [],
+      commands: [],
+    };
+    const harness: HarnessV1 = {
+      ...base.harness,
+      getBootstrap: vi.fn(async () => recipe),
+    };
+    const readTextFile = vi.fn(async () => null);
+    const writeTextFile = vi.fn(async () => {});
+    const run = vi.fn(async () => ({ exitCode: 0, stdout: '', stderr: '' }));
+    const restrictedSession = {
+      run,
+      readTextFile,
+      writeTextFile,
+    };
+    const sandboxSession = makeSandboxSession({
+      run,
+      restricted: () => restrictedSession as never,
+    });
+    const createSession = vi.fn(
+      async (
+        opts: Parameters<HarnessV1SandboxProvider['createSession']>[0],
+      ) => {
+        await opts?.onFirstCreate?.(restrictedSession as never, {});
+        return sandboxSession;
+      },
+    );
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: {
+        specificationVersion: 'harness-sandbox-v1',
+        providerId: 'mock-sandbox',
+        createSession,
+      },
+      sandboxConfig: { workDir: 'ai-sdk' },
+    });
+
+    const session = await agent.createSession({ sessionId: 's1' });
+
+    expect(createSession.mock.calls[0]![0]?.identity).toMatch(/^[0-9a-f]{16}$/);
+    expect(createSession.mock.calls[0]![0]?.identity).not.toBe(
+      await hashHarnessBootstrap(recipe),
+    );
+    const writeCalls = writeTextFile.mock.calls as unknown as Array<
+      [{ path: string }]
+    >;
+    const markerWrite = writeCalls.at(-1)?.[0];
+    expect(markerWrite?.path).toMatch(
+      /^\/tmp\/mock-bootstrap\/\.bootstrap-[0-9a-f]{16}\.ok$/,
+    );
+
+    await session.destroy();
+  });
+
+  test('sandboxConfig.onSession runs for resumed sessions', async () => {
     const { harness } = mockHarness({ script: () => [] });
     const sandboxSessionEvents: Array<{ sessionWorkDir: string }> = [];
     const onSandboxSession = vi.fn(async (opts: { sessionWorkDir: string }) => {
@@ -678,7 +897,7 @@ describe('HarnessAgent', () => {
     const agent = new HarnessAgent({
       harness,
       sandbox: makeSandboxProvider(),
-      onSandboxSession,
+      sandboxConfig: { onSession: onSandboxSession },
     });
 
     const session = await agent.createSession({

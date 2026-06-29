@@ -1,3 +1,5 @@
+import { getAiGatewayAuthFromEnv } from '@ai-sdk/harness/utils';
+
 export type CodexAuthOptions = {
   readonly openaiCompatible?: {
     readonly apiKey?: string;
@@ -24,7 +26,8 @@ export type CodexAuthOptions = {
  *   2. Explicit `auth.openai` — pin to direct OpenAI auth.
  *   3. Explicit `auth.gateway` — pin to Vercel AI Gateway.
  *   4. Auto-detect from the host process env: gateway first
- *      (`AI_GATEWAY_API_KEY`), then `CODEX_API_KEY` / `OPENAI_API_KEY`.
+ *      (`AI_GATEWAY_API_KEY` / `VERCEL_OIDC_TOKEN`), then `CODEX_API_KEY` /
+ *      `OPENAI_API_KEY`.
  */
 export function resolveCodexEnv(
   auth: CodexAuthOptions | undefined,
@@ -36,11 +39,20 @@ export function resolveCodexEnv(
   if (auth?.openai) {
     return pickOpenAI({ explicit: auth.openai, processEnv });
   }
+  const gatewayAuthFromEnv = getAiGatewayAuthFromEnv({
+    env: processEnv,
+  });
   if (auth?.gateway) {
-    return pickGateway(auth.gateway, processEnv);
+    return pickGateway({
+      explicit: auth.gateway,
+      gatewayAuthFromEnv,
+    });
   }
-  if (processEnv.AI_GATEWAY_API_KEY) {
-    return pickGateway({}, processEnv);
+  if (gatewayAuthFromEnv.apiKey) {
+    return pickGateway({
+      explicit: {},
+      gatewayAuthFromEnv,
+    });
   }
   return pickOpenAI({ processEnv });
 }
@@ -81,15 +93,17 @@ function pickOpenAI({
   return env;
 }
 
-function pickGateway(
-  explicit: NonNullable<CodexAuthOptions['gateway']>,
-  processEnv: Record<string, string | undefined>,
-): Record<string, string> {
-  const apiKey = explicit.apiKey ?? processEnv.AI_GATEWAY_API_KEY;
-  const baseUrl =
-    explicit.baseUrl ??
-    processEnv.AI_GATEWAY_BASE_URL ??
-    'https://ai-gateway.vercel.sh/v1';
+function pickGateway({
+  explicit,
+  gatewayAuthFromEnv,
+}: {
+  explicit: NonNullable<CodexAuthOptions['gateway']>;
+  gatewayAuthFromEnv: ReturnType<typeof getAiGatewayAuthFromEnv>;
+}): Record<string, string> {
+  const apiKey = explicit.apiKey ?? gatewayAuthFromEnv.apiKey;
+  const baseUrl = toCodexGatewayBaseUrl(
+    explicit.baseUrl ?? gatewayAuthFromEnv.baseUrl,
+  );
   const env: Record<string, string> = {};
   if (apiKey) {
     env.AI_GATEWAY_API_KEY = apiKey;
@@ -97,4 +111,9 @@ function pickGateway(
   }
   env.AI_GATEWAY_BASE_URL = baseUrl;
   return env;
+}
+
+function toCodexGatewayBaseUrl(baseUrl: string): string {
+  const trimmed = baseUrl.replace(/\/+$/, '');
+  return trimmed.endsWith('/v1') ? trimmed : `${trimmed}/v1`;
 }
