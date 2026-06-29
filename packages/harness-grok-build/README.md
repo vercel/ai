@@ -1,6 +1,6 @@
 # AI SDK - Grok Build Harness
 
-`HarnessV1` adapter backed by the `grok` CLI (`@xai-official/grok`). The adapter ships a bridge process that runs inside a sandbox and talks to the host over a WebSocket on a sandbox-proxied loopback port.
+`HarnessV1` adapter backed by the `grok` CLI (`@xai-official/grok`). The adapter drives `grok agent stdio` over the Agent Client Protocol (ACP/JSON-RPC) through a bridge process that runs inside a sandbox and talks to the host over a WebSocket on a sandbox-proxied loopback port.
 
 ## Setup
 
@@ -49,13 +49,21 @@ Authentication is resolved from the host environment and forwarded to the sandbo
 
 The CLI maps these internally to `GROK_MODELS_BASE_URL` / `GROK_CODE_XAI_API_KEY`.
 
-## Limitations
+## Capabilities
 
-The grok CLI's `--output-format streaming-json` surface is narrow:
+The ACP surface streams:
 
-- Streams reasoning and text only — no tool-call, tool-result, or file-change events, and no token usage.
-- Allow-all permission mode only (`supportsBuiltinToolApprovals: false`); the CLI runs with `--always-approve` and executes tools itself.
-- No compaction.
+- Text and reasoning, plus tool-call, tool-result, and file-change events.
+- Token usage on finish, with a structured finish reason.
+- Host-defined (custom) tools via `agent.tools` (executed on the host through an in-sandbox MCP server).
+- Built-in tool approvals via the ACP `session/request_permission` flow (`supportsBuiltinToolApprovals: true`); use `permissionMode: 'allow-reads'` or `'allow-edits'`.
+
+ACP approval is synchronous — Grok pauses the turn and waits for the reply on the
+same live connection, and per the ACP spec a turn cannot be paused and resumed.
+Approval works in single-stream setups (TUI, or a persistent SSE/WebSocket route)
+but not in a request/response HTTP route that splits the response across the
+approval (the AI SDK `toolApproval: 'user-approval'` pattern). For plain HTTP
+routes, use `permissionMode: 'allow-all'`.
 
 ## Related
 

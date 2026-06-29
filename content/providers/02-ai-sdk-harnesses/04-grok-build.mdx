@@ -6,9 +6,11 @@ description: Learn how to use the Grok Build harness adapter.
 # Grok Build Harness
 
 The Grok Build harness adapter connects `HarnessAgent` to the `grok` CLI. The
-adapter runs a bridge inside the sandbox and streams the CLI's
-`--output-format streaming-json` events back to the host over a sandbox-exposed
-WebSocket.
+adapter drives `grok agent stdio` over the Agent Client Protocol (ACP/JSON-RPC)
+through a bridge inside the sandbox and streams its events back to the host over
+a sandbox-exposed WebSocket. This surfaces text and reasoning, tool-call,
+tool-result, and file-change events, token usage on finish, a structured finish
+reason, host-defined (custom) tools, and built-in tool approvals.
 
 <Note>
   Harness packages are **experimental**. Expect breaking changes between
@@ -103,8 +105,8 @@ Use `createGrokBuild()` to configure the runtime:
 
 ```ts
 const harness = createGrokBuild({
-  model: 'grok-code-fast-1',
-  planMode: true,
+  model: 'grok-build-0.1',
+  reasoningEffort: 'high',
 });
 ```
 
@@ -112,6 +114,7 @@ Settings:
 
 - `auth`: xAI or AI Gateway authentication settings.
 - `model`: Grok model id. If omitted, the adapter uses its pinned default.
+- `reasoningEffort`: reasoning effort (`'low' | 'medium' | 'high'`), passed to the CLI's `--reasoning-effort`.
 - `planMode`: run the CLI in plan mode.
 - `port`: bridge port override.
 - `startupTimeoutMs`: maximum time to wait for the bridge to start.
@@ -153,15 +156,64 @@ const sandbox = createVercelSandbox({
 });
 ```
 
-## Known limitations
+## Tools
 
-The grok CLI's `--output-format streaming-json` surface is narrow:
+Host-defined (custom) tools passed to `agent.tools` are exposed to the CLI
+through an in-sandbox MCP server and executed on the host:
 
-- Streams reasoning and text only — no tool-call, tool-result, or file-change
-  events, and no token usage.
-- Allow-all permission mode only. The CLI runs with `--always-approve` and
-  executes tools itself; use `permissionMode: 'allow-all'`.
-- No compaction.
+```ts
+import { tool } from 'ai';
+import { z } from 'zod';
+
+const weather = tool({
+  description: 'Get the current temperature for a city.',
+  inputSchema: z.object({ city: z.string() }),
+  execute: async ({ city }) => ({ city, celsius: 12 }),
+});
+
+const agent = new HarnessAgent({
+  harness: grokBuild,
+  sandbox,
+  tools: { weather },
+});
+```
+
+The adapter also exposes these common Grok Build built-ins through `agent.tools`:
+
+- `read`
+- `write`
+- `edit`
+- `bash`
+- `glob`
+- `grep`
+- `webSearch`
+
+Tool-call, tool-result, and file-change events appear in the stream, and token
+usage is reported on finish alongside a structured finish reason.
+
+## Tool approvals
+
+Grok Build requests approval before running a tool via the ACP
+`session/request_permission` flow when `permissionMode` is `allow-reads` or
+`allow-edits` (use `allow-all` to auto-approve). The adapter surfaces each
+request to the host so it can be approved or rejected.
+
+ACP approval is **synchronous**: Grok pauses the turn and waits for the reply on
+the same live connection. Per the ACP specification, a prompt turn cannot be
+paused and resumed later — cancellation ends it. Approval therefore only works
+when the host answers inline over a connection that stays open for the whole
+turn.
+
+<Note>
+  This means per-tool approval works in single-stream setups (e.g. a TUI, or a
+  server route backed by a persistent SSE/WebSocket connection), but **not** in a
+  request/response HTTP route that ends one response at the approval and resumes
+  in a second request. The standard AI SDK `toolApproval: 'user-approval'`
+  split-request pattern cannot drive Grok Build approvals over plain HTTP,
+  because Grok's turn is mid-flight and ACP cannot resume it. For such routes,
+  run with `permissionMode: 'allow-all'` so the turn never blocks, or keep the
+  connection open for the turn's lifetime and answer approvals inline.
+</Note>
 
 ## Related
 
