@@ -1,0 +1,155 @@
+---
+title: Azure Anthropic
+description: Azure Anthropic Provider for the AI SDK
+---
+
+# Azure Anthropic
+
+The **Azure Anthropic** provider lets you use Claude models deployed on Azure AI Foundry with the Vercel AI SDK. It uses the same API as the official Anthropic provider but connects to your Azure Foundry endpoint.
+
+- **Azure Native**: Use your Azure AI Foundry deployment with your existing Azure credentials
+- **Same API**: Drop-in compatible with AI SDK patterns—`generateText`, `streamText`, tools
+- **All Claude Models**: Use any Claude model available on your Azure Foundry deployment
+- **Streaming & Tools**: Full support for streaming and tool/function calling
+- **Simple Setup**: Configure with base URL and API key from Azure Portal
+
+Learn more in [Azure AI Foundry documentation](https://azure.microsoft.com/en-us/products/ai-foundry/).
+
+## Setup
+
+The Azure Anthropic provider is available in the `@karimdaw/anthropic-azure-provider` package. You also need `@ai-sdk/provider` as a peer dependency. Install with:
+
+```bash
+# pnpm
+pnpm add @karimdaw/anthropic-azure-provider @ai-sdk/provider
+
+# npm
+npm install @karimdaw/anthropic-azure-provider @ai-sdk/provider
+
+# yarn
+yarn add @karimdaw/anthropic-azure-provider @ai-sdk/provider
+
+# bun
+bun add @karimdaw/anthropic-azure-provider @ai-sdk/provider
+```
+
+## Provider Instance
+
+Create a provider with your Azure Foundry base URL and API key:
+
+```typescript
+import { createAzureAnthropic } from "@karimdaw/anthropic-azure-provider";
+
+const provider = createAzureAnthropic({
+  baseURL: process.env.AZURE_ANTHROPIC_BASE_URL,
+  apiKey: process.env.AZURE_ANTHROPIC_API_KEY,
+});
+```
+
+Get your base URL and API key from the [Azure Portal](https://portal.azure.com/) for your AI Foundry resource. The base URL typically looks like `https://your-resource.services.ai.azure.com/anthropic`.
+
+Optional: pass custom headers with the `headers` option.
+
+## Language Models
+
+Use the provider as a function to get a model instance. Pass the model ID (your deployment name or a standard Claude model ID):
+
+```typescript
+// Standard model ID
+const model = provider("claude-sonnet-4-5-20251001");
+
+// With options (e.g. max tokens)
+const modelWithOptions = provider("claude-sonnet-4-5-20251001", {
+  maxOutputTokens: 8192,
+});
+```
+
+Common model IDs: `claude-sonnet-4-5-20251001`, `claude-opus-4-5-20251001`, `claude-haiku-4-5-20251001`, `claude-3-5-sonnet-20241022`. Custom deployment names are supported.
+
+## Examples
+
+### `generateText`
+
+```javascript
+import { createAzureAnthropic } from "@karimdaw/anthropic-azure-provider";
+import { generateText } from "ai";
+
+const provider = createAzureAnthropic({
+  baseURL: process.env.AZURE_ANTHROPIC_BASE_URL,
+  apiKey: process.env.AZURE_ANTHROPIC_API_KEY,
+});
+
+const { text } = await generateText({
+  model: provider("claude-sonnet-4-5-20251001"),
+  prompt: "What is Azure AI Foundry?",
+});
+
+console.log(text);
+```
+
+### `streamText`
+
+```javascript
+import { createAzureAnthropic } from "@karimdaw/anthropic-azure-provider";
+import { streamText } from "ai";
+
+const provider = createAzureAnthropic({
+  baseURL: process.env.AZURE_ANTHROPIC_BASE_URL,
+  apiKey: process.env.AZURE_ANTHROPIC_API_KEY,
+});
+
+const result = streamText({
+  model: provider("claude-sonnet-4-5-20251001"),
+  prompt: "Write a short story about AI.",
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+### Tool calling
+
+The provider supports tools (function calling). Use the same pattern as with other AI SDK providers:
+
+```javascript
+import { createAzureAnthropic } from "@karimdaw/anthropic-azure-provider";
+import { generateText, tool } from "ai";
+import { z } from "zod";
+
+const provider = createAzureAnthropic({
+  baseURL: process.env.AZURE_ANTHROPIC_BASE_URL,
+  apiKey: process.env.AZURE_ANTHROPIC_API_KEY,
+});
+
+const { text, toolCalls } = await generateText({
+  model: provider("claude-sonnet-4-5-20251001"),
+  prompt: "What is the weather in Tokyo?",
+  tools: {
+    getWeather: tool({
+      description: "Get weather for a location",
+      parameters: z.object({ location: z.string() }),
+      execute: async ({ location }) => ({
+        temperature: 22,
+        condition: "sunny",
+      }),
+    }),
+  },
+});
+```
+
+## Advanced Features
+
+1. **Custom max tokens**: Pass `maxOutputTokens` when creating the model: `provider('claude-sonnet-4-5-20251001', { maxOutputTokens: 8192 })`.
+
+2. **Error handling**: The provider throws `AzureAnthropicError` with a `code` of `"validation"` (e.g. missing baseURL/apiKey) or `"conversion"` (e.g. unsupported content). Check `error.code` and `error.message` in catch blocks.
+
+3. **Custom headers**: Pass a `headers` object to `createAzureAnthropic` to send extra headers on every request.
+
+4. **Environment variables**: Use `AZURE_ANTHROPIC_BASE_URL`, `AZURE_ANTHROPIC_API_KEY`, and optionally `AZURE_ANTHROPIC_MODEL_ID` for configuration.
+
+## Additional Resources
+
+- [Azure Anthropic Provider (npm)](https://www.npmjs.com/package/@karimdaw/anthropic-azure-provider)
+- [Provider repository](https://github.com/karim-daw/anthropic-azure-provider)
+- [AI SDK documentation](https://sdk.vercel.ai/docs)
