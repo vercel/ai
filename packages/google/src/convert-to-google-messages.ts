@@ -582,17 +582,37 @@ export function convertToGoogleMessages(
               );
             }
           } else {
+            // Gemini's `functionResponse` has no protocol-level error/status
+            // flag, so we encode failure structurally inside `response` via an
+            // `error` discriminator. Without this, denied / errored outputs
+            // collapse to the same shape as a successful return value and the
+            // model reads them as success.
+            const response =
+              output.type === 'execution-denied'
+                ? {
+                    name: part.toolName,
+                    error: 'execution-denied' as const,
+                    reason: output.reason ?? 'Tool execution denied by user.',
+                  }
+                : output.type === 'error-text'
+                  ? {
+                      name: part.toolName,
+                      error: 'tool-error' as const,
+                      errorText: output.value,
+                    }
+                  : output.type === 'error-json'
+                    ? {
+                        name: part.toolName,
+                        error: 'tool-error' as const,
+                        errorValue: output.value,
+                      }
+                    : { name: part.toolName, content: output.value };
+
             parts.push({
               functionResponse: {
                 ...(part.toolCallId != null ? { id: part.toolCallId } : {}),
                 name: part.toolName,
-                response: {
-                  name: part.toolName,
-                  content:
-                    output.type === 'execution-denied'
-                      ? (output.reason ?? 'Tool call execution denied.')
-                      : output.value,
-                },
+                response,
               },
             });
           }
