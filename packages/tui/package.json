@@ -43,7 +43,7 @@
     "@ai-sdk/provider": "workspace:*",
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
-    "tsup": "^8.5.1",
+    "tsup": "^8.3.5",
     "typescript": "5.8.3",
     "vitest": "^4.1.6",
     "zod": "3.25.76"
