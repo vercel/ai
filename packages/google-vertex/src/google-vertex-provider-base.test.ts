@@ -256,6 +256,68 @@ describe('google-vertex-provider-base', () => {
     );
   });
 
+  it('should translate a finetuned/ model id to an endpoints/ path with no publishers/google suffix', () => {
+    const provider = createGoogleVertex({
+      project: 'test-project',
+      location: 'test-location',
+    });
+    provider('finetuned/my-awesome-model');
+
+    expect(GoogleLanguageModel).toHaveBeenCalledWith(
+      'endpoints/my-awesome-model',
+      expect.objectContaining({
+        provider: 'google.vertex.chat',
+        baseURL:
+          'https://test-location-aiplatform.googleapis.com/v1beta1/projects/test-project/locations/test-location',
+        headers: expect.any(Function),
+        generateId: expect.any(Function),
+      }),
+    );
+  });
+
+  it('should leave base model ids and the publishers/google base URL unchanged', () => {
+    const provider = createGoogleVertex({
+      project: 'test-project',
+      location: 'test-location',
+    });
+    provider('gemini-2.5-pro');
+
+    expect(GoogleLanguageModel).toHaveBeenCalledWith(
+      'gemini-2.5-pro',
+      expect.objectContaining({
+        baseURL:
+          'https://test-location-aiplatform.googleapis.com/v1beta1/projects/test-project/locations/test-location/publishers/google',
+      }),
+    );
+  });
+
+  it('should respect a custom baseURL for finetuned/ ids while translating the path', () => {
+    const customBaseURL = 'https://custom-endpoint.example.com';
+    const provider = createGoogleVertex({
+      project: 'test-project',
+      location: 'test-location',
+      baseURL: customBaseURL,
+    });
+    provider('finetuned/my-awesome-model');
+
+    expect(GoogleLanguageModel).toHaveBeenCalledWith(
+      'endpoints/my-awesome-model',
+      expect.objectContaining({
+        baseURL: customBaseURL,
+      }),
+    );
+  });
+
+  it('should reject Express Mode for finetuned models', () => {
+    const provider = createGoogleVertex({
+      apiKey: 'test-api-key',
+    });
+
+    expect(() => provider('finetuned/my-awesome-model')).toThrow(
+      'Google Vertex fine-tuned models do not support Express Mode API keys. Use standard Google Cloud credentials instead.',
+    );
+  });
+
   it('should create an image model with default settings', () => {
     const provider = createGoogleVertex({
       project: 'test-project',
