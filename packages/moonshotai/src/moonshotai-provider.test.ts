@@ -1,7 +1,10 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
-import { createMoonshotAI } from './moonshotai-provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
 import { MoonshotAIChatLanguageModel } from './moonshotai-chat-language-model';
+import {
+  createMoonshotAI,
+  getModelStructuredOutputSupport,
+} from './moonshotai-provider';
 
 const MoonshotAIChatLanguageModelMock =
   MoonshotAIChatLanguageModel as unknown as Mock;
@@ -164,4 +167,23 @@ describe('MoonshotAIProvider', () => {
       expect(model).toBeInstanceOf(MoonshotAIChatLanguageModel);
     });
   });
+});
+
+describe('getMoonshotAILanguageModelCapabilities', () => {
+  it.each([
+    ['kimi-k2.5', false],
+    ['kimi-k2.6', true],
+    ['kimi-k2.7-code', true],
+    ['moonshot-v1-8k', false],
+    ['moonshot-v1-32k', false],
+    ['moonshot-v1-128k', false],
+    ['custom-model-id', false],
+  ])(
+    'supportsStructuredOutputs for %s is %s',
+    (modelId, expectedSupportsStructuredOutputs) => {
+      expect(getModelStructuredOutputSupport(modelId)).toBe(
+        expectedSupportsStructuredOutputs,
+      );
+    },
+  );
 });
