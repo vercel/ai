@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: togetherai.chatModel('mistralai/Mistral-7B-Instruct-v0.1'),
+    model: togetherai.chatModel('Qwen/Qwen3.5-9B'),
     output: Output.object({
       schema: z.object({
         characters: z.array(

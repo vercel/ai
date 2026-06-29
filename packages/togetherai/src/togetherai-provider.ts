@@ -118,7 +118,7 @@ export function createTogetherAI(
   options: TogetherAIProviderSettings = {},
 ): TogetherAIProvider {
   const baseURL = withoutTrailingSlash(
-    options.baseURL ?? 'https://api.together.xyz/v1/',
+    options.baseURL ?? 'https://api.together.ai/v1/',
   );
   const getHeaders = () =>
     withUserAgentSuffix(
@@ -169,13 +169,13 @@ export function createTogetherAI(
   const createImageModel = (modelId: TogetherAIImageModelId) =>
     new TogetherAIImageModel(modelId, {
       ...getCommonModelConfig('image'),
-      baseURL: baseURL ?? 'https://api.together.xyz/v1/',
+      baseURL: baseURL ?? 'https://api.together.ai/v1/',
     });
 
   const createRerankingModel = (modelId: TogetherAIRerankingModelId) =>
     new TogetherAIRerankingModel(modelId, {
       ...getCommonModelConfig('reranking'),
-      baseURL: baseURL ?? 'https://api.together.xyz/v1/',
+      baseURL: baseURL ?? 'https://api.together.ai/v1/',
     });
 
   const provider = (modelId: TogetherAIChatModelId) => createChatModel(modelId);
