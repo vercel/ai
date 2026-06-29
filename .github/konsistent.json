@@ -161,11 +161,21 @@
             "exportFunctions": [
               {
                 "name": "create${harnessId.toPascalCase()}",
-                "receiveParamOfType": "${harnessId.toPascalCase()}HarnessSettings",
+                "receiveParamsOfTypes": [
+                  "${harnessId.toPascalCase()}HarnessSettings"
+                ],
                 "returnValueOfType": "HarnessV1"
               }
             ],
             "exportTypes": ["${harnessId.toPascalCase()}HarnessSettings"]
+          }
+        },
+        {
+          "name": "harness-file-must-declare-builtin-tools",
+          "description": "Every harness file must declare its built-in tools.",
+          "for": { "files": ["${harnessId}-harness.ts"] },
+          "must": {
+            "declareConstants": ["${harnessId.toConstantCase()}_BUILTIN_TOOLS"]
           }
         },
         {
@@ -189,6 +199,7 @@
           "must": {
             "useDeclarationOrder": [
               "${harnessId.toPascalCase()}HarnessSettings",
+              "${harnessId.toConstantCase()}_BUILTIN_TOOLS",
               "${harnessId.toCamelCase()}BridgeCoordsSchema",
               "${harnessId.toCamelCase()}ResumeStateSchema",
               "${harnessId.toPascalCase()}BridgeCoords",
@@ -277,10 +288,18 @@
             "declareFunctions": [
               {
                 "name": "runTurn",
-                "receiveParamOfType": "StartMessage",
+                "receiveParamsOfTypes": ["StartMessage", "BridgeTurn"],
                 "returnValueOfType": "Promise<void>"
               }
             ]
+          }
+        },
+        {
+          "name": "harness-bridge-must-not-use-parent-imports",
+          "description": "Every harness bridge file must not use parent imports, only local and external imports.",
+          "for": { "files": ["bridge/*.ts"] },
+          "mustNot": {
+            "importFromParents": true
           }
         }
       ]
@@ -329,7 +348,9 @@
             "exportFunctions": [
               {
                 "name": "create${sandboxId.toPascalCase()}Sandbox",
-                "receiveParamOfType": "${sandboxId.toPascalCase()}SandboxSettings",
+                "receiveParamsOfTypes": [
+                  "${sandboxId.toPascalCase()}SandboxSettings"
+                ],
                 "returnValueOfType": "HarnessV1SandboxProvider"
               }
             ],

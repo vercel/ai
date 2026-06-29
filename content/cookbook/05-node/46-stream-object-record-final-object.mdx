@@ -8,9 +8,9 @@ tags: ['node', 'streaming', 'structured data']
 
 When you're streaming structured data, you may want to record the final object for logging or other purposes.
 
-## `onFinish` and `output`
+## `onEnd` and `output`
 
-Use `onFinish` for metadata like token usage and await `result.output` for the final structured object.
+Use `onEnd` for metadata like token usage and await `result.output` for the final structured object.
 
 ```ts file='index.ts' highlight={"15-29"}
 import { streamText, Output } from 'ai';
@@ -28,7 +28,7 @@ const result = streamText({
     }),
   }),
   prompt: 'Generate a lasagna recipe.',
-  onFinish({ usage }) {
+  onEnd({ usage }) {
     console.log('Token usage:', usage);
   },
 });
