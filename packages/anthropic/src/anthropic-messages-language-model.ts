@@ -1442,6 +1442,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           providerExecuted?: boolean;
           firstDelta: boolean;
           providerToolName?: string;
+          providerToolInputType?: string;
           caller?: {
             type:
               | 'code_execution_20250825'
@@ -1647,6 +1648,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       part.name === 'bash_code_execution'
                         ? 'code_execution'
                         : part.name;
+                    const providerToolInputType =
+                      part.name === 'text_editor_code_execution' ||
+                      part.name === 'bash_code_execution'
+                        ? part.name
+                        : part.name === 'code_execution'
+                          ? 'programmatic-tool-call'
+                          : undefined;
 
                     const customToolName =
                       toolNameMapping.toCustomToolName(providerToolName);
@@ -1675,8 +1683,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       providerToolName === 'code_execution'
                         ? { dynamic: true }
                         : {}),
-                      firstDelta: true,
+                      firstDelta: finalInput.length === 0,
                       providerToolName,
+                      providerToolInputType,
                     };
 
                     controller.enqueue({
@@ -2205,9 +2214,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     // the type to the delta and change the tool name.
                     if (
                       contentBlock.firstDelta &&
-                      contentBlock.providerToolName === 'code_execution'
+                      contentBlock.providerToolInputType != null
                     ) {
-                      delta = `{"type": "programmatic-tool-call",${delta.substring(1)}`;
+                      delta = `{"type": "${contentBlock.providerToolInputType}",${delta.substring(1)}`;
                     }
 
                     controller.enqueue({
