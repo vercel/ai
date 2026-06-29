@@ -13,7 +13,7 @@ import type {
 } from '../v1';
 import { tool } from '@ai-sdk/provider-utils';
 import { describe, expect, test, vi } from 'vitest';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { HarnessAgent } from './harness-agent';
 import { HarnessAgentSession } from './harness-agent-session';
 import { hashHarnessBootstrap } from './internal/bootstrap-recipe';

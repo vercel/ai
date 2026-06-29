@@ -129,14 +129,12 @@ export const xaiVideoModelOptions = z.union([
   autoDetectSchema,
 ]);
 
-const runtimeSchema = z
-  .object({
-    mode: modeSchema.optional(),
-    videoUrl: nonEmptyStringSchema.optional(),
-    referenceImageUrls: z.array(nonEmptyStringSchema).min(1).max(7).optional(),
-    ...baseFields,
-  })
-  .passthrough();
+const runtimeSchema = z.looseObject({
+  mode: modeSchema.optional(),
+  videoUrl: nonEmptyStringSchema.optional(),
+  referenceImageUrls: z.array(nonEmptyStringSchema).min(1).max(7).optional(),
+  ...baseFields,
+});
 
 export type XaiParsedVideoModelOptions = z.infer<typeof runtimeSchema>;
 

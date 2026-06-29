@@ -49,6 +49,53 @@ const mcpClient = await createMCPClient({
 });
 ```
 
+If the MCP server uses Streamable HTTP sessions, you can reattach to a saved
+session by restoring both the previous session id and initialize result:
+
+```typescript
+import { createMCPClient } from '@ai-sdk/mcp';
+
+const savedSession = await loadMcpSession();
+let currentSessionId = savedSession?.sessionId;
+
+const mcpClient = await createMCPClient({
+  transport: {
+    type: 'http',
+    url: 'https://your-server.com/mcp',
+    initialSessionId: savedSession?.sessionId,
+    initialProtocolVersion: savedSession?.initializeResult.protocolVersion,
+    terminateSessionOnClose: false,
+
+    onSessionIdChange: sessionId => {
+      currentSessionId = sessionId;
+    },
+
+    onSessionExpired: sessionId => {
+      if (currentSessionId === sessionId) {
+        currentSessionId = undefined;
+        void clearMcpSession();
+      }
+    },
+  },
+  initialInitializeResult: savedSession?.initializeResult,
+});
+
+if (currentSessionId) {
+  await saveMcpSession({
+    sessionId: currentSessionId,
+    initializeResult: mcpClient.initializeResult,
+  });
+}
+```
+
+When `initialInitializeResult` is provided, `createMCPClient` reuses the cached
+initialize metadata and does not send another `initialize` request. When
+`onSessionExpired` is called, the transport has already cleared the session id
+and the request still fails with the underlying HTTP error. Retry by creating a
+fresh client without `initialSessionId` or `initialInitializeResult`.
+Set `terminateSessionOnClose` to `false` when closing only the local client but
+keeping the MCP session available for a later reattach.
+
 Alternatively, you can use `StreamableHTTPClientTransport` from MCP's official TypeScript SDK:
 
 ```typescript
@@ -116,8 +163,8 @@ You can also bring your own transport by implementing the `MCPTransport` interfa
 <Note>
   The client returned by the `createMCPClient` function is a
   lightweight client intended for use in tool conversion. It currently does not
-  support all features of the full MCP client, such as: session
-  management, resumable streams, and receiving notifications.
+  support all features of the full MCP client, such as automatic session
+  persistence, resumable streams, and receiving notifications.
 
 Authorization via OAuth is supported when using the AI SDK MCP HTTP or SSE
 transports by providing an `authProvider`.
@@ -312,6 +359,52 @@ Resource templates are dynamic URI patterns that allow flexible queries. List al
 ```typescript
 const templates = await mcpClient.listResourceTemplates();
 ```
+
+## Using MCP Completions
+
+MCP servers can provide autocompletion suggestions for prompt arguments and
+resource template variables when they advertise the `completions` capability.
+Use `complete` to ask the server for suggestions based on the current partial
+argument value:
+
+```typescript
+const completion = await mcpClient.complete({
+  ref: {
+    type: 'ref/resource',
+    uri: 'file:///{path}',
+  },
+  argument: {
+    name: 'path',
+    value: 'doc',
+  },
+});
+
+console.log(completion.completion.values);
+```
+
+For resource templates or prompts with multiple arguments, pass already resolved
+values through `context.arguments`:
+
+```typescript
+const completion = await mcpClient.complete({
+  ref: {
+    type: 'ref/resource',
+    uri: 'kubernetes://namespaced/{plural}/{namespace}',
+  },
+  argument: {
+    name: 'namespace',
+    value: 'auth',
+  },
+  context: {
+    arguments: {
+      plural: 'deployments',
+    },
+  },
+});
+```
+
+If the connected server does not advertise `capabilities.completions`, the
+client throws an `MCPClientError`.
 
 ## Using MCP Prompts
 

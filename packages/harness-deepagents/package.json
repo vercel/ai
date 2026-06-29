@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/harness-deepagents",
-  "version": "1.0.1",
+  "version": "1.0.5",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -38,8 +38,10 @@
   "dependencies": {
     "@ai-sdk/harness": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
-    "ws": "8.21.0",
-    "zod": "3.25.76"
+    "ws": "8.21.0"
+  },
+  "peerDependencies": {
+    "zod": "^3.25.76 || ^4.1.8"
   },
   "devDependencies": {
     "@langchain/anthropic": "^1.0.0",
@@ -50,7 +52,8 @@
     "@vercel/ai-tsconfig": "workspace:*",
     "deepagents": "1.10.2",
     "tsup": "^8.5.1",
-    "typescript": "5.8.3"
+    "typescript": "5.8.3",
+    "zod": "3.25.76"
   },
   "engines": {
     "node": ">=22"

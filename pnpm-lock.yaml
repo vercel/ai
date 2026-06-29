@@ -2558,9 +2558,6 @@ importers:
       ws:
         specifier: ^8.21.0
         version: 8.21.0
-      zod:
-        specifier: 3.25.76
-        version: 3.25.76
     devDependencies:
       '@anthropic-ai/claude-agent-sdk':
         specifier: 0.3.177
@@ -2583,6 +2580,9 @@ importers:
       typescript:
         specifier: 5.8.3
         version: 5.8.3
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/harness-codex:
     dependencies:
@@ -2595,9 +2595,6 @@ importers:
       ws:
         specifier: ^8.21.0
         version: 8.21.0
-      zod:
-        specifier: 3.25.76
-        version: 3.25.76
     devDependencies:
       '@modelcontextprotocol/sdk':
         specifier: 1.29.0
@@ -2620,6 +2617,9 @@ importers:
       typescript:
         specifier: 5.8.3
         version: 5.8.3
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/harness-deepagents:
     dependencies:
@@ -2632,9 +2632,6 @@ importers:
       ws:
         specifier: 8.21.0
         version: 8.21.0
-      zod:
-        specifier: 3.25.76
-        version: 3.25.76
     devDependencies:
       '@langchain/anthropic':
         specifier: ^1.0.0
@@ -2663,6 +2660,9 @@ importers:
       typescript:
         specifier: 5.8.3
         version: 5.8.3
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/harness-opencode:
     dependencies:
@@ -2675,9 +2675,6 @@ importers:
       ws:
         specifier: 8.21.0
         version: 8.21.0
-      zod:
-        specifier: 3.25.76
-        version: 3.25.76
     devDependencies:
       '@modelcontextprotocol/sdk':
         specifier: 1.29.0
@@ -2700,6 +2697,9 @@ importers:
       typescript:
         specifier: 5.8.3
         version: 5.8.3
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/harness-pi:
     dependencies:
@@ -2715,9 +2715,6 @@ importers:
       typebox:
         specifier: ^1.1.38
         version: 1.2.2
-      zod:
-        specifier: 3.25.76
-        version: 3.25.76
     devDependencies:
       '@types/node':
         specifier: 22.19.19
@@ -2731,6 +2728,9 @@ importers:
       typescript:
         specifier: 5.8.3
         version: 5.8.3
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/huggingface:
     dependencies:

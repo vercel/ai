@@ -25,7 +25,7 @@ import {
 } from '@ai-sdk/harness/utils';
 import { tool, type Experimental_SandboxProcess } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import {
   resolveDeepAgentsEnv,
   type DeepAgentsAuthOptions,
