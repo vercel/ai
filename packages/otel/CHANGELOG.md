@@ -1,5 +1,112 @@
 # @ai-sdk/otel
 
+## 1.0.6
+
+### Patch Changes
+
+- Updated dependencies [989402d]
+  - ai@7.0.6
+
+## 1.0.5
+
+### Patch Changes
+
+- Updated dependencies [a2750db]
+  - ai@7.0.5
+
+## 1.0.4
+
+### Patch Changes
+
+- ai@7.0.4
+
+## 1.0.3
+
+### Patch Changes
+
+- ai@7.0.3
+
+## 1.0.2
+
+### Patch Changes
+
+- ai@7.0.2
+
+## 1.0.1
+
+### Patch Changes
+
+- ai@7.0.1
+
+## 1.0.0
+
+### Major Changes
+
+- 6542d93: feat(ai): change naming nomenclature for `*TelemetryIntegration` to `*Telemetry`
+- cf93359: feat(ai): remove/refactor event data sent via callbacks
+- 8284dfa: feat(otel): rename OpenTelemetry to LegacyOpenTelemetry
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+- 116c89f: feat(ai): remove telemetry data from the user-facing event data
+- b3c9f6a: feat(ai): create new opentelemetry package (@ai-sdk/otel)
+
+### Patch Changes
+
+- b94d22f: Sanitize OpenTelemetry span array attributes so they no longer emit invalid OTLP values (arrays containing `undefined`/`null`/objects, or arrays mixing primitive types). Such values previously failed telemetry ingestion with `deserializing message invalid value: map, expected map with a single key` and flooded function logs with errors.
+- 19736ee: feat(ai): rename onStepFinish to onStepEnd
+- 4757690: feat(ai): rename onObjectStepFinish to onObjectStepEnd
+- 382d53b: refactoring: rename context to runtimeContext
+- 7bf7d7f: feat(ai): enable:true for telemetry by default
+- c025d60: feat(otel): add option for custom span attributes
+- 1db29c8: feat(ai): break `CallSettings` apart into `LanguageModelCallOptions` and `RequestOptions`
+- eea8d98: refactoring: rename tool execution events
+- 5d0f18e: feat(ai): move opentelemetry to new package
+- 1582efa: chore(ai): remove the metadata field from the telemetry settings
+- 98627e5: feat(ai): remove onChunk event from telemetry
+- 9f0e36c: trigger release for all packages after provenance setup
+- 1e200eb: fix(otel): ensure nested context object creates separate attribute
+- 29d8cf4: feat(ai): rename the core-event types
+- 18651f6: feat(otel): add opt-in options for supplemental AI SDK attributes on OpenTelemetry spans
+- e4182bd: chore: rm export of OutputInterface
+- 1043274: feat(ai): add a ModelCall start/end event
+- 476e1ca: feat(ai): remove telemetry dependency on onChunk callback
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- 594029e: feat(ai): wrap the model call in telemetry context
+- eaf849f: Rename rerank telemetry finish callback to `onRerankEnd`.
+- 0c4c275: trigger initial canary release
+- fc15550: feat(otel): add the genAI semantic otel integration
+- 9bd6512: feat(provider): change file part data property to be tagged with a type and remove the image part type
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- 8565dcb: fix: rename onEmbedFinish to onEmbedEnd
+- 152c67c: feat(otel): add a step level span
+- e1bfb9c: feat(ai): remove unnecessary data from events
+- 334ae5d: Update step performance metrics with explicit effective, input, output, and total token throughput fields.
+- b8396f0: trigger initial beta release
+- d5cac7c: feat(otel): emit performance metrics via gen ai semantics
+- c3d4019: chore(ai): rename 'TelemetrySettings' to 'TelemetryOptions'
+- e92fc45: feat(ai): introduce onAbort hook to close telemetry spans
+- 083947b: feat(ai): separate toolsContext from context
+- 64de016: feat(otel): rename GenAIOpenTelemetry to OpenTelemetry
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+
+## 1.0.0-beta.133
+
+### Patch Changes
+
+- ai@7.0.0-beta.187
+
+## 1.0.0-beta.132
+
+### Patch Changes
+
+- ai@7.0.0-beta.186
+
+## 1.0.0-beta.131
+
+### Patch Changes
+
+- Updated dependencies [75763b0]
+  - ai@7.0.0-beta.185
+
 ## 1.0.0-beta.130
 
 ### Patch Changes
