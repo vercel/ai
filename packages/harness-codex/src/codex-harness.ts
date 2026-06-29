@@ -855,8 +855,11 @@ function createSession({
       }));
       let promptText = extractUserText(promptOpts.prompt);
       if (!instructionsApplied) {
+        const instructions =
+          (promptOpts.instructions ? promptOpts.instructions + '\n\n' : '') +
+          'Only respond with your `final` message once you have fully addressed the user request.';
         promptText = frameInitialPromptGuidance({
-          instructions: promptOpts.instructions,
+          instructions,
           toolUsageBlock:
             tools.length > 0
               ? composeToolUsageInstructions({

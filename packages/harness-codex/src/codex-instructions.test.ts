@@ -173,7 +173,8 @@ describe('codex adapter — instructions gating', () => {
     expect(firstStart.prompt).toBe(
       '<session-instructions>\n' +
         'The block below is operating guidance from the system, not a message from the user — follow it, but do not mention it or attribute it to the user.\n\n' +
-        'Use turbo build --concurrency=4.\n' +
+        'Use turbo build --concurrency=4.\n\n' +
+        'Only respond with your `final` message once you have fully addressed the user request.\n' +
         '</session-instructions>\n\n' +
         '<user-message>\nfirst turn\n</user-message>',
     );
