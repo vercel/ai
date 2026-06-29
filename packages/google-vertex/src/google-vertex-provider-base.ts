@@ -38,7 +38,7 @@ import type { GoogleVertexSpeechModelId } from './google-vertex-speech-model-opt
 const EXPRESS_MODE_BASE_URL =
   'https://aiplatform.googleapis.com/v1/publishers/google';
 
-// Tuned (fine-tuned) models are deployed to an endpoint and addressed by their
+// Tuned models are served from a deployed endpoint and addressed by their
 // `endpoints/{id}` resource, which replaces `publishers/google/models/{id}`.
 // https://cloud.google.com/vertex-ai/generative-ai/docs/deploy/overview
 const ENDPOINT_MODEL_PREFIX = 'endpoints/';
@@ -195,7 +195,7 @@ export function createGoogleVertex(
       description: 'Google Vertex location',
     });
 
-  // Endpoint (fine-tuned) models are addressed via
+  // Tuned models are addressed via their deployed endpoint
   // `.../locations/{region}/endpoints/{id}` instead of the base-model
   // `.../publishers/google/models/{id}` path, so they omit the
   // `/publishers/google` suffix from the base URL.
@@ -252,7 +252,7 @@ export function createGoogleVertex(
 
     if (endpoint && apiKey) {
       throw new Error(
-        'Google Vertex endpoint (fine-tuned) models do not support Express Mode API keys. Use standard Google Cloud credentials instead.',
+        'Google Vertex tuned models do not support Express Mode API keys. Use standard Google Cloud credentials instead.',
       );
     }
 

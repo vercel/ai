@@ -3,9 +3,9 @@ import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
-  // Fine-tuned (tuned) Gemini models are deployed to an endpoint. Pass the
-  // endpoint id with the `endpoints/` prefix; the provider routes the request
-  // to `.../locations/{location}/endpoints/{ENDPOINT_ID}` instead of the base
+  // Tuned models are served from a deployed endpoint. Pass the endpoint id with
+  // the `endpoints/` prefix; the provider routes the request to
+  // `.../locations/{location}/endpoints/{ENDPOINT_ID}` instead of the base
   // `.../publishers/google/models/{MODEL_ID}` path. Use the endpoint id (not the
   // tuned model id).
   //

@@ -256,7 +256,7 @@ describe('google-vertex-provider-base', () => {
     );
   });
 
-  it('should use an endpoints/ model id with no publishers/google suffix', () => {
+  it('should use a tuned model endpoints/ id with no publishers/google suffix', () => {
     const provider = createGoogleVertex({
       project: 'test-project',
       location: 'test-location',
@@ -291,7 +291,7 @@ describe('google-vertex-provider-base', () => {
     );
   });
 
-  it('should respect a custom baseURL for endpoints/ ids', () => {
+  it('should respect a custom baseURL for tuned model endpoints/ ids', () => {
     const customBaseURL = 'https://custom-endpoint.example.com';
     const provider = createGoogleVertex({
       project: 'test-project',
@@ -308,13 +308,13 @@ describe('google-vertex-provider-base', () => {
     );
   });
 
-  it('should reject Express Mode for endpoint (fine-tuned) models', () => {
+  it('should reject Express Mode for tuned models', () => {
     const provider = createGoogleVertex({
       apiKey: 'test-api-key',
     });
 
     expect(() => provider('endpoints/1234567890')).toThrow(
-      'Google Vertex endpoint (fine-tuned) models do not support Express Mode API keys. Use standard Google Cloud credentials instead.',
+      'Google Vertex tuned models do not support Express Mode API keys. Use standard Google Cloud credentials instead.',
     );
   });
 
