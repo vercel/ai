@@ -5,6 +5,7 @@
   "type": "module",
   "dependencies": {
     "@xai-official/grok": "0.2.51",
+    "@modelcontextprotocol/sdk": "1.29.0",
     "ws": "8.21.0",
     "zod": "3.25.76"
   }

@@ -8,14 +8,17 @@ export default defineConfig([
     sourcemap: true,
   },
   {
-    entry: { 'bridge/index': 'src/bridge/index.ts' },
+    entry: {
+      'bridge/index': 'src/bridge/index.ts',
+      'bridge/host-tool-mcp': 'src/bridge/host-tool-mcp.ts',
+    },
     format: ['esm'],
     target: 'es2022',
     outExtension: () => ({ js: '.mjs' }),
     dts: false,
     sourcemap: true,
     platform: 'node',
-    noExternal: ['@ai-sdk/harness'],
-    external: ['@xai-official/grok', 'ws', 'zod'],
+    noExternal: ['@ai-sdk/harness', '@ai-sdk/provider-utils'],
+    external: ['@xai-official/grok', '@modelcontextprotocol/sdk', 'ws', 'zod'],
   },
 ]);

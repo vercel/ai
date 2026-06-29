@@ -41,6 +41,7 @@ vi.mock('node:fs/promises', async importOriginal => {
     readFile: vi.fn(async (input: unknown, ...rest: unknown[]) => {
       const p = String(input);
       if (p.endsWith('/bridge/index.mjs')) return '// mock bridge\n';
+      if (p.endsWith('/bridge/host-tool-mcp.mjs')) return '// mock mcp\n';
       if (p.endsWith('/bridge/package.json')) return '{"name":"mock"}';
       if (p.endsWith('/bridge/pnpm-lock.yaml')) return 'lockfileVersion: 9\n';
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -118,7 +119,7 @@ describe('grok-build builtin tools', () => {
   });
 
   it('maps a native name to its common name', () => {
-    expect(toCommonName('Read')).toBe('read');
+    expect(toCommonName('read_file')).toBe('read');
   });
 
   it('passes through unknown native names unchanged', () => {
@@ -136,6 +137,7 @@ describe('grok-build bootstrap', () => {
     expect(paths).toContain('/tmp/harness/grok-build/package.json');
     expect(paths).toContain('/tmp/harness/grok-build/pnpm-lock.yaml');
     expect(paths).toContain('/tmp/harness/grok-build/bridge.mjs');
+    expect(paths).toContain('/tmp/harness/grok-build/host-tool-mcp.mjs');
     expect(bootstrap.commands.some(c => c.command.includes('pnpm'))).toBe(true);
   });
 });
@@ -147,18 +149,6 @@ describe('grok-build doStart', () => {
   });
   afterEach(() => {
     vi.restoreAllMocks();
-  });
-
-  it('rejects built-in permission modes other than allow-all', async () => {
-    const harness = createGrokBuild();
-    await expect(
-      harness.doStart({
-        sessionId: 's1',
-        sandboxSession: {} as HarnessV1NetworkSandboxSession,
-        sessionWorkDir: '/vercel/sandbox/grok-s1',
-        permissionMode: 'allow-edits',
-      }),
-    ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
   });
 
   it('throws when the network sandbox exposes no ports', async () => {
@@ -251,6 +241,29 @@ describe('grok-build doStart', () => {
       type: 'start',
       prompt: 'hello',
       model: 'grok-build-0.1',
+    });
+  });
+
+  it('carries reasoningEffort on the start message when configured', async () => {
+    const harness = createGrokBuild({
+      auth: { xai: { apiKey: 'sk' } },
+      reasoningEffort: 'high',
+    });
+    const spawnCalls: Array<{
+      command: string;
+      env: Record<string, string>;
+    }> = [];
+    const runs: string[] = [];
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeSandbox({ spawnCalls, runs }),
+      sessionWorkDir: '/vercel/sandbox/grok-s1',
+      permissionMode: 'allow-all',
+    });
+
+    await session.doPromptTurn({ prompt: 'hello', emit: () => {} });
+    expect(sentMessages.find(m => m.type === 'start')).toMatchObject({
+      reasoningEffort: 'high',
     });
   });
 

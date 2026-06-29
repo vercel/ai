@@ -42,6 +42,7 @@
     "zod": "3.25.76"
   },
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "1.29.0",
     "@xai-official/grok": "0.2.51",
     "@types/node": "22.19.19",
     "@types/ws": "^8.5.13",

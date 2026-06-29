@@ -37,17 +37,17 @@ import {
 
 type GrokBuildChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 
-// Native tool name → common name. Placeholder names; reconcile with real CLI output.
+// Real grok native (snake_case) tool name → HarnessV1 builtin common name.
 export const NATIVE_TO_COMMON: Readonly<
   Record<string, HarnessV1BuiltinToolName>
 > = {
-  Read: 'read',
-  Write: 'write',
-  Edit: 'edit',
-  Bash: 'bash',
-  Glob: 'glob',
-  Grep: 'grep',
-  WebSearch: 'webSearch',
+  read_file: 'read',
+  write: 'write',
+  search_replace: 'edit',
+  run_terminal_command: 'bash',
+  grep: 'grep',
+  list_dir: 'glob',
+  web_search: 'webSearch',
 };
 
 export function toCommonName(
@@ -56,10 +56,22 @@ export function toCommonName(
   return NATIVE_TO_COMMON[nativeName] ?? nativeName;
 }
 
-// Builtin tools, keyed by common name. Placeholder names/schemas; reconcile with real CLI output.
+// Common name for a grok native tool name, or null when it has no builtin equivalent.
+export function commonNameOrNull(
+  nativeName: string,
+): HarnessV1BuiltinToolName | null {
+  return NATIVE_TO_COMMON[nativeName] ?? null;
+}
+
+// Set of grok native names that map to a HarnessV1 builtin.
+export const GROK_BUILD_BUILTIN_NATIVE_NAMES: ReadonlySet<string> = new Set(
+  Object.keys(NATIVE_TO_COMMON),
+);
+
+// Builtin tools, keyed by common name. Schemas are placeholders pending CLI confirmation.
 export const GROK_BUILD_BUILTIN_TOOLS = {
   read: commonTool('read', {
-    nativeName: 'Read',
+    nativeName: 'read_file',
     toolUseKind: 'readonly',
     description: 'Read file contents (text, image, PDF, notebook)',
     inputSchema: z.object({
@@ -70,7 +82,7 @@ export const GROK_BUILD_BUILTIN_TOOLS = {
     }),
   }),
   write: commonTool('write', {
-    nativeName: 'Write',
+    nativeName: 'write',
     toolUseKind: 'edit',
     description: 'Overwrite or create a file at an absolute path',
     inputSchema: z.object({
@@ -79,7 +91,7 @@ export const GROK_BUILD_BUILTIN_TOOLS = {
     }),
   }),
   edit: commonTool('edit', {
-    nativeName: 'Edit',
+    nativeName: 'search_replace',
     toolUseKind: 'edit',
     description: 'Edit a file by exact string replacement',
     inputSchema: z.object({
@@ -90,7 +102,7 @@ export const GROK_BUILD_BUILTIN_TOOLS = {
     }),
   }),
   bash: commonTool('bash', {
-    nativeName: 'Bash',
+    nativeName: 'run_terminal_command',
     toolUseKind: 'bash',
     description: 'Execute a shell command',
     inputSchema: z.object({
@@ -101,7 +113,7 @@ export const GROK_BUILD_BUILTIN_TOOLS = {
     }),
   }),
   glob: commonTool('glob', {
-    nativeName: 'Glob',
+    nativeName: 'list_dir',
     toolUseKind: 'readonly',
     description: 'Fast file-pattern search using glob syntax',
     inputSchema: z.object({
@@ -110,7 +122,7 @@ export const GROK_BUILD_BUILTIN_TOOLS = {
     }),
   }),
   grep: commonTool('grep', {
-    nativeName: 'Grep',
+    nativeName: 'grep',
     toolUseKind: 'readonly',
     description: 'Regex search over file contents',
     inputSchema: z.object({
@@ -119,7 +131,7 @@ export const GROK_BUILD_BUILTIN_TOOLS = {
     }),
   }),
   webSearch: commonTool('webSearch', {
-    nativeName: 'WebSearch',
+    nativeName: 'web_search',
     toolUseKind: 'readonly',
     description: 'Issue web search queries',
     inputSchema: z.object({
@@ -139,6 +151,7 @@ const DEFAULT_GROK_MODEL_GATEWAY = 'xai/grok-build-0.1';
 export type GrokBuildHarnessSettings = {
   readonly model?: string;
   readonly planMode?: boolean;
+  readonly reasoningEffort?: 'low' | 'medium' | 'high';
   readonly auth?: GrokBuildAuthOptions;
   readonly port?: number;
   /** Maximum milliseconds to wait for the bridge to advertise its port. Defaults to 120000. */
@@ -190,14 +203,15 @@ export function createGrokBuild(
     specificationVersion: 'harness-v1',
     harnessId: 'grok-build',
     builtinTools: GROK_BUILD_BUILTIN_TOOLS,
-    supportsBuiltinToolApprovals: false,
+    supportsBuiltinToolApprovals: true,
     lifecycleStateSchema,
     getBootstrap: async () => {
       if (cachedBootstrap != null) return cachedBootstrap;
-      const [pkg, lock, bridge] = await Promise.all([
+      const [pkg, lock, bridge, hostToolMcp] = await Promise.all([
         readBridgeAsset('package.json'),
         readBridgeAsset('pnpm-lock.yaml'),
         readBridgeAsset('index.mjs'),
+        readBridgeAsset('host-tool-mcp.mjs'),
       ]);
       cachedBootstrap = {
         harnessId: 'grok-build',
@@ -206,6 +220,7 @@ export function createGrokBuild(
           { path: `${BOOTSTRAP_DIR}/package.json`, content: pkg },
           { path: `${BOOTSTRAP_DIR}/pnpm-lock.yaml`, content: lock },
           { path: `${BOOTSTRAP_DIR}/bridge.mjs`, content: bridge },
+          { path: `${BOOTSTRAP_DIR}/host-tool-mcp.mjs`, content: hostToolMcp },
         ],
         commands: [
           { command: `mkdir -p ${BOOTSTRAP_DIR}` },
@@ -220,17 +235,6 @@ export function createGrokBuild(
       return cachedBootstrap;
     },
     doStart: async startOpts => {
-      if (
-        startOpts.permissionMode != null &&
-        startOpts.permissionMode !== 'allow-all'
-      ) {
-        throw new HarnessCapabilityUnsupportedError({
-          message:
-            "Harness 'grok-build' does not support built-in tool approval requests; use permissionMode: 'allow-all'. The grok CLI runs with --always-approve and executes tools itself.",
-          harnessId: 'grok-build',
-        });
-      }
-
       const sandboxSession = startOpts.sandboxSession;
       const session = sandboxSession.restricted();
       const sandboxId = sandboxSession.id;
@@ -294,6 +298,7 @@ export function createGrokBuild(
           channel: attachChannel,
           proc: undefined, // live bridge owned by another process
           model,
+          reasoningEffort: settings.reasoningEffort,
           isResume: true,
           bridgePort: coords.port,
           bridgeToken: coords.token,
@@ -391,6 +396,7 @@ export function createGrokBuild(
         channel,
         proc,
         model,
+        reasoningEffort: settings.reasoningEffort,
         isResume,
         bridgePort: boundPort,
         bridgeToken: token,
@@ -491,6 +497,7 @@ function createSession({
   channel,
   proc,
   model,
+  reasoningEffort,
   isResume,
   bridgePort,
   bridgeToken,
@@ -504,6 +511,7 @@ function createSession({
   /** Undefined on `attach` — the live bridge was spawned by another process. */
   proc: Experimental_SandboxProcess | undefined;
   model: string | undefined;
+  reasoningEffort: 'low' | 'medium' | 'high' | undefined;
   isResume: boolean;
   bridgePort: number;
   bridgeToken: string;
@@ -513,7 +521,6 @@ function createSession({
   resumeGrokSessionId: string | undefined;
 }): HarnessV1Session {
   void debug;
-  void permissionMode;
   let stopped = false;
   let stopPromise: Promise<void> | undefined;
 
@@ -624,20 +631,30 @@ function createSession({
     return { done };
   };
 
-  // grok self-executes tools (`--always-approve`); these are unsupported no-ops.
-  const unsupportedToolControl = {
-    submitToolResult: async () => {
-      throw new HarnessCapabilityUnsupportedError({
-        harnessId: 'grok-build',
-        message:
-          'The grok-build harness executes tools inside the CLI (--always-approve); host tool results are not accepted.',
+  // Forward host tool results/approvals to the bridge over the ACP channel.
+  const toolControl = {
+    submitToolResult: async (input: {
+      toolCallId: string;
+      output: unknown;
+      isError?: boolean;
+    }) => {
+      channel.send({
+        type: 'tool-result',
+        toolCallId: input.toolCallId,
+        output: input.output,
+        isError: input.isError,
       });
     },
-    submitToolApproval: async () => {
-      throw new HarnessCapabilityUnsupportedError({
-        harnessId: 'grok-build',
-        message:
-          'The grok-build harness executes tools inside the CLI (--always-approve); host tool approvals are not accepted.',
+    submitToolApproval: async (input: {
+      approvalId: string;
+      approved: boolean;
+      reason?: string;
+    }) => {
+      channel.send({
+        type: 'tool-approval-response',
+        approvalId: input.approvalId,
+        approved: input.approved,
+        reason: input.reason,
       });
     },
   };
@@ -662,10 +679,17 @@ function createSession({
       channel.send({
         type: 'start',
         prompt,
+        tools: (promptOpts.tools ?? []).map(t => ({
+          name: t.name,
+          description: t.description,
+          inputSchema: t.inputSchema,
+        })),
         ...(model ? { model } : {}),
+        ...(reasoningEffort ? { reasoningEffort } : {}),
+        ...(permissionMode ? { permissionMode } : {}),
         ...(shouldContinue ? { continue: true } : {}),
       });
-      return { ...unsupportedToolControl, done };
+      return { ...toolControl, done };
     },
     doContinueTurn: async continueOpts => {
       const { done } = wireTurn({
@@ -676,10 +700,17 @@ function createSession({
       channel.send({
         type: 'start',
         prompt: 'Continue.',
+        tools: (continueOpts.tools ?? []).map(t => ({
+          name: t.name,
+          description: t.description,
+          inputSchema: t.inputSchema,
+        })),
         ...(model ? { model } : {}),
+        ...(reasoningEffort ? { reasoningEffort } : {}),
+        ...(permissionMode ? { permissionMode } : {}),
         continue: true,
       });
-      return { ...unsupportedToolControl, done };
+      return { ...toolControl, done };
     },
     doCompact: async () => {
       throw new HarnessCapabilityUnsupportedError({
