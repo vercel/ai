@@ -691,7 +691,10 @@ function createSession({
   const wireTurn = (turnOpts: {
     emit: (event: HarnessV1StreamPart) => void;
     abortSignal?: AbortSignal;
-  }): HarnessV1PromptControl => {
+  }): {
+    control: HarnessV1PromptControl;
+    sendStart: (send: () => void) => void;
+  } => {
     let pendingResolve: (() => void) | undefined;
     let pendingReject: ((err: unknown) => void) | undefined;
     const done = new Promise<void>((resolve, reject) => {
@@ -791,7 +794,7 @@ function createSession({
       }
     }
 
-    return {
+    const control: HarnessV1PromptControl = {
       submitToolResult: async input => {
         channel.send({
           type: 'tool-result',
@@ -813,6 +816,26 @@ function createSession({
       },
       done,
     };
+
+    return {
+      control,
+      sendStart: send => {
+        /*
+         * Codex can complete short turns without using tools. Deferring the
+         * start frame gives the harness runner one event-loop turn to finish
+         * wiring the prompt control and stream output before Codex can settle.
+         */
+        const timer = setTimeout(() => {
+          if (isSettled) return;
+          try {
+            send();
+          } catch (err) {
+            settleError(err);
+          }
+        }, 0);
+        timer.unref?.();
+      },
+    };
   };
 
   return {
@@ -820,7 +843,7 @@ function createSession({
     isResume,
     modelId: model,
     doPromptTurn: async promptOpts => {
-      const control = wireTurn({
+      const turn = wireTurn({
         emit: promptOpts.emit,
         abortSignal: promptOpts.abortSignal,
       });
@@ -860,12 +883,12 @@ function createSession({
         ...(debug ? { debug } : {}),
       };
       pendingResumeThreadId = undefined;
-      channel.send(startMessage);
+      turn.sendStart(() => channel.send(startMessage));
 
-      return control;
+      return turn.control;
     },
     doContinueTurn: async continueOpts => {
-      const control = wireTurn({
+      const turn = wireTurn({
         emit: continueOpts.emit,
         abortSignal: continueOpts.abortSignal,
       });
@@ -885,31 +908,33 @@ function createSession({
       if (rerunContinue) {
         const threadId = pendingResumeThreadId ?? latestThreadId;
         pendingResumeThreadId = undefined;
-        channel.send({
-          type: 'start' as const,
-          /*
-           * A continuation nudge rather than an empty prompt: `resumeThreadId`
-           * rehydrates the prior thread, and this is the new user turn that
-           * drives it forward. Keeping it non-empty avoids handing the runtime
-           * an empty user message (and mirrors the claude-code adapter, where an
-           * empty text block trips the Anthropic API's `cache_control` rule).
-           */
-          prompt: 'Continue.',
-          tools: (continueOpts.tools ?? []).map(t => ({
-            name: t.name,
-            description: t.description,
-            inputSchema: t.inputSchema,
-          })),
-          model,
-          reasoningEffort,
-          webSearch,
-          ...(permissionMode ? { permissionMode } : {}),
-          ...(threadId ? { resumeThreadId: threadId } : {}),
-          ...(debug ? { debug } : {}),
-        });
+        turn.sendStart(() =>
+          channel.send({
+            type: 'start' as const,
+            /*
+             * A continuation nudge rather than an empty prompt: `resumeThreadId`
+             * rehydrates the prior thread, and this is the new user turn that
+             * drives it forward. Keeping it non-empty avoids handing the runtime
+             * an empty user message (and mirrors the claude-code adapter, where an
+             * empty text block trips the Anthropic API's `cache_control` rule).
+             */
+            prompt: 'Continue.',
+            tools: (continueOpts.tools ?? []).map(t => ({
+              name: t.name,
+              description: t.description,
+              inputSchema: t.inputSchema,
+            })),
+            model,
+            reasoningEffort,
+            webSearch,
+            ...(permissionMode ? { permissionMode } : {}),
+            ...(threadId ? { resumeThreadId: threadId } : {}),
+            ...(debug ? { debug } : {}),
+          }),
+        );
       }
 
-      return control;
+      return turn.control;
     },
     doCompact: async () => {
       /*

@@ -72,7 +72,6 @@ const defaultBaseURL = 'https://api.moonshot.ai/v1';
 export function getModelStructuredOutputSupport(
   modelId: MoonshotAIChatModelId,
 ): boolean {
-  if (modelId === 'kimi-k2.5') return false;
   if (modelId.startsWith('kimi-k')) return true;
   return false;
 }
@@ -121,6 +120,22 @@ export function createMoonshotAI(
         const reasoningHistory = args.reasoningHistory as string | undefined;
 
         const { thinking: _, reasoningHistory: __, ...rest } = args;
+
+        const schema = rest.response_format?.json_schema?.schema;
+        if (schema != null) {
+          // kimi-k2.5 produces nonsensical output when the top-level `$schema`
+          // keyword injected by the AI SDK is present, even though it otherwise
+          // supports structured outputs. Strip it from the schema sent to
+          // Moonshot; the full original schema is still used for result validation.
+          const { $schema: _$schema, ...schemaWithoutDollarSchema } = schema;
+          rest.response_format = {
+            ...rest.response_format,
+            json_schema: {
+              ...rest.response_format.json_schema,
+              schema: schemaWithoutDollarSchema,
+            },
+          };
+        }
 
         return {
           ...rest,

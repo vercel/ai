@@ -1,5 +1,11 @@
 # @ai-sdk/moonshotai
 
+## 3.0.3
+
+### Patch Changes
+
+- 5cb600b: feat(moonshotai): support structured outputs for kimi-k2.5
+
 ## 3.0.2
 
 ### Patch Changes
