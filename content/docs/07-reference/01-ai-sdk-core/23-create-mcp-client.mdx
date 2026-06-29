@@ -188,6 +188,61 @@ It currently does not support accepting notifications from an MCP server, and cu
               description: 'Handler for uncaught errors',
             },
             {
+              name: 'retry',
+              type: 'MCPRetryConfig',
+              isOptional: true,
+              description:
+                'Optional retry policy for transient MCP tool call failures. Retries are opt-in and apply to tools/call requests.',
+              properties: [
+                {
+                  type: 'MCPRetryConfig',
+                  parameters: [
+                    {
+                      name: 'maxAttempts',
+                      type: 'number',
+                      isOptional: true,
+                      description:
+                        'Maximum total attempts, including the initial call. Defaults to 3.',
+                    },
+                    {
+                      name: 'initialDelayMs',
+                      type: 'number',
+                      isOptional: true,
+                      description:
+                        'Delay before the first retry. Defaults to 1000.',
+                    },
+                    {
+                      name: 'maxDelayMs',
+                      type: 'number',
+                      isOptional: true,
+                      description:
+                        'Maximum delay between attempts. Defaults to 10000.',
+                    },
+                    {
+                      name: 'backoff',
+                      type: "'constant' | 'linear' | 'exponential'",
+                      isOptional: true,
+                      description:
+                        "Backoff strategy for retry delays. Defaults to 'exponential'.",
+                    },
+                    {
+                      name: 'retryOn',
+                      type: `Array<number | string> | ((context: MCPRetryContext) => boolean | Promise<boolean>)`,
+                      isOptional: true,
+                      description:
+                        'Retry filter. Numbers match HTTP status codes such as 503. Strings match network-style error codes such as ECONNRESET. JSON-RPC application errors are not retried by the array form.',
+                    },
+                    {
+                      name: 'onRetry',
+                      type: '(event: MCPRetryEvent) => void | Promise<void>',
+                      isOptional: true,
+                      description: 'Callback invoked before each retry attempt.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
               name: 'initialInitializeResult',
               type: 'InitializeResult',
               isOptional: true,

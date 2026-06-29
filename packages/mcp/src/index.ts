@@ -11,6 +11,9 @@ export {
   createMCPClient,
   type MCPClientConfig,
   type MCPClient,
+  type MCPRetryConfig,
+  type MCPRetryContext,
+  type MCPRetryEvent,
 } from './tool/mcp-client';
 export {
   MCP_APP_MIME_TYPE,
