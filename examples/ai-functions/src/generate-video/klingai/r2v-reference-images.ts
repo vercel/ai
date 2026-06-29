@@ -1,30 +1,31 @@
-import { type AlibabaVideoModelOptions, alibaba } from '@ai-sdk/alibaba';
+import { klingai } from '@ai-sdk/klingai';
 import { experimental_generateVideo as generateVideo } from 'ai';
 import { presentVideos } from '../../lib/present-video';
 import { run } from '../../lib/run';
 import { withSpinner } from '../../lib/spinner';
 
 run(async () => {
-  const { video } = await withSpinner(
-    'Generating reference-to-video with wan2.6-r2v...',
+  const { videos } = await withSpinner(
+    'Generating KlingAI reference-to-video from multiple images...',
     () =>
       generateVideo({
-        model: alibaba.video('wan2.6-r2v'),
-        prompt: 'character1 and character2 have a conversation in a cozy cafe',
-        resolution: '1920x1080',
-        duration: 4,
+        model: klingai.video('kling-v1.6-i2v'),
+        prompt:
+          'The two characters meet and walk together through a sunny park',
         inputReferences: [
           'https://raw.githubusercontent.com/vercel/ai/refs/heads/main/examples/ai-functions/data/comic-cat.png',
           'https://raw.githubusercontent.com/vercel/ai/refs/heads/main/examples/ai-functions/data/comic-dog.png',
         ],
+        aspectRatio: '16:9',
+        duration: 5,
         providerOptions: {
-          alibaba: {
-            shotType: 'single',
+          klingai: {
+            mode: 'std',
             pollTimeoutMs: 600000, // 10 minutes
-          } satisfies AlibabaVideoModelOptions,
+          },
         },
       }),
   );
 
-  await presentVideos([video]);
+  await presentVideos(videos);
 });

@@ -11,6 +11,8 @@ const defaultOptions = {
   prompt,
   n: 1,
   image: undefined,
+  frameImages: undefined,
+  inputReferences: undefined,
   aspectRatio: undefined,
   resolution: undefined,
   duration: undefined,
@@ -481,6 +483,254 @@ describe('GoogleVertexVideoModel', () => {
         type: 'unsupported',
         feature: 'URL-based image input',
       });
+    });
+  });
+
+  describe('frameImages', () => {
+    it('should use frameImages first_frame as image', async () => {
+      let capturedBody: unknown;
+      const model = createMockModel({
+        onRequest: (url, body) => {
+          if (url.includes(':predictLongRunning')) {
+            capturedBody = body;
+          }
+        },
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        frameImages: [
+          {
+            frameType: 'first_frame',
+            image: {
+              type: 'file',
+              data: 'first-frame-data',
+              mediaType: 'image/png',
+            },
+          },
+        ],
+      });
+
+      expect(capturedBody).toMatchObject({
+        instances: [
+          {
+            image: {
+              bytesBase64Encoded: 'first-frame-data',
+              mimeType: 'image/png',
+            },
+          },
+        ],
+      });
+    });
+
+    it('should prefer frameImages first_frame over the legacy image option', async () => {
+      let capturedBody: unknown;
+      const model = createMockModel({
+        onRequest: (url, body) => {
+          if (url.includes(':predictLongRunning')) {
+            capturedBody = body;
+          }
+        },
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        image: {
+          type: 'file',
+          data: 'legacy-image-data',
+          mediaType: 'image/png',
+        },
+        frameImages: [
+          {
+            frameType: 'first_frame',
+            image: {
+              type: 'file',
+              data: 'first-frame-data',
+              mediaType: 'image/png',
+            },
+          },
+        ],
+      });
+
+      expect(capturedBody).toMatchObject({
+        instances: [
+          {
+            image: {
+              bytesBase64Encoded: 'first-frame-data',
+              mimeType: 'image/png',
+            },
+          },
+        ],
+      });
+    });
+
+    it('should send lastFrame from frameImages last_frame', async () => {
+      let capturedBody: unknown;
+      const model = createMockModel({
+        onRequest: (url, body) => {
+          if (url.includes(':predictLongRunning')) {
+            capturedBody = body;
+          }
+        },
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        frameImages: [
+          {
+            frameType: 'first_frame',
+            image: {
+              type: 'file',
+              data: 'first-frame-data',
+              mediaType: 'image/png',
+            },
+          },
+          {
+            frameType: 'last_frame',
+            image: {
+              type: 'file',
+              data: 'last-frame-data',
+              mediaType: 'image/jpeg',
+            },
+          },
+        ],
+      });
+
+      expect(capturedBody).toMatchObject({
+        instances: [
+          {
+            lastFrame: {
+              bytesBase64Encoded: 'last-frame-data',
+              mimeType: 'image/jpeg',
+            },
+          },
+        ],
+      });
+    });
+
+    it('should accept GCS URIs in frameImages', async () => {
+      let capturedBody: unknown;
+      const model = createMockModel({
+        onRequest: (url, body) => {
+          if (url.includes(':predictLongRunning')) {
+            capturedBody = body;
+          }
+        },
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        frameImages: [
+          {
+            frameType: 'first_frame',
+            image: {
+              type: 'url',
+              url: 'gs://bucket/first-frame.png',
+            },
+          },
+        ],
+      });
+
+      expect(capturedBody).toMatchObject({
+        instances: [
+          {
+            image: {
+              gcsUri: 'gs://bucket/first-frame.png',
+              mimeType: 'image/png',
+            },
+          },
+        ],
+      });
+    });
+  });
+
+  describe('inputReferences', () => {
+    it('should send referenceImages from inputReferences', async () => {
+      let capturedBody: unknown;
+      const model = createMockModel({
+        onRequest: (url, body) => {
+          if (url.includes(':predictLongRunning')) {
+            capturedBody = body;
+          }
+        },
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        inputReferences: [
+          {
+            type: 'file',
+            data: 'reference-1',
+            mediaType: 'image/png',
+          },
+          {
+            type: 'file',
+            data: 'reference-2',
+            mediaType: 'image/jpeg',
+          },
+        ],
+      });
+
+      const body = capturedBody as {
+        instances: Array<{ referenceImages: unknown }>;
+      };
+      expect(body.instances[0].referenceImages).toStrictEqual([
+        {
+          image: {
+            bytesBase64Encoded: 'reference-1',
+            mimeType: 'image/png',
+          },
+          referenceType: 'asset',
+        },
+        {
+          image: {
+            bytesBase64Encoded: 'reference-2',
+            mimeType: 'image/jpeg',
+          },
+          referenceType: 'asset',
+        },
+      ]);
+    });
+
+    it('should prefer inputReferences over providerOptions.vertex.referenceImages', async () => {
+      let capturedBody: unknown;
+      const model = createMockModel({
+        onRequest: (url, body) => {
+          if (url.includes(':predictLongRunning')) {
+            capturedBody = body;
+          }
+        },
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        inputReferences: [
+          {
+            type: 'file',
+            data: 'reference-from-input',
+            mediaType: 'image/png',
+          },
+        ],
+        providerOptions: {
+          vertex: {
+            pollIntervalMs: 10,
+            referenceImages: [{ bytesBase64Encoded: 'provider-reference' }],
+          },
+        },
+      });
+
+      const body = capturedBody as {
+        instances: Array<{ referenceImages: unknown }>;
+      };
+      expect(body.instances[0].referenceImages).toStrictEqual([
+        {
+          image: {
+            bytesBase64Encoded: 'reference-from-input',
+            mimeType: 'image/png',
+          },
+          referenceType: 'asset',
+        },
+      ]);
     });
   });
 

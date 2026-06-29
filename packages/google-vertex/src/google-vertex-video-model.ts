@@ -1,6 +1,7 @@
 import {
   AISDKError,
   type Experimental_VideoModelV3,
+  type Experimental_VideoModelV3File,
   type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
@@ -53,6 +54,78 @@ interface GoogleVertexVideoModelConfig {
   };
 }
 
+function getFirstFrameImage(
+  options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
+): Experimental_VideoModelV3File | undefined {
+  return options.frameImages?.find(frame => frame.frameType === 'first_frame')
+    ?.image;
+}
+
+function resolveStartImage(
+  options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
+): Experimental_VideoModelV3File | undefined {
+  return getFirstFrameImage(options) ?? options.image;
+}
+
+function getLastFrameImage(
+  options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
+): Experimental_VideoModelV3File | undefined {
+  return options.frameImages?.find(frame => frame.frameType === 'last_frame')
+    ?.image;
+}
+
+function getInputReferences(
+  options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
+): Array<Experimental_VideoModelV3File> | undefined {
+  if (options.frameImages != null && options.frameImages.length > 0) {
+    return undefined;
+  }
+
+  return options.inputReferences != null && options.inputReferences.length > 0
+    ? options.inputReferences
+    : undefined;
+}
+
+function convertFileToVertexImage(
+  file: Experimental_VideoModelV3File,
+  warnings: SharedV3Warning[],
+): Record<string, unknown> | undefined {
+  if (file.type === 'url') {
+    if (file.url.startsWith('gs://')) {
+      return {
+        gcsUri: file.url,
+        mimeType: 'image/png',
+      };
+    }
+
+    warnings.push({
+      type: 'unsupported',
+      feature: 'URL-based image input',
+      details:
+        'Vertex AI video models require base64-encoded images or GCS URIs. URL will be ignored.',
+    });
+    return undefined;
+  }
+
+  const base64Data =
+    typeof file.data === 'string'
+      ? file.data
+      : convertUint8ArrayToBase64(file.data);
+
+  return {
+    bytesBase64Encoded: base64Data,
+    mimeType: file.mediaType || 'image/png',
+  };
+}
+
+function convertInputReferenceImage(
+  file: Experimental_VideoModelV3File,
+  warnings: SharedV3Warning[],
+): Record<string, unknown> | undefined {
+  const image = convertFileToVertexImage(file, warnings);
+  return image != null ? { image, referenceType: 'asset' } : undefined;
+}
+
 export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
   readonly specificationVersion = 'v3';
 
@@ -89,28 +162,29 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
       instance.prompt = options.prompt;
     }
 
-    if (options.image != null) {
-      if (options.image.type === 'url') {
-        warnings.push({
-          type: 'unsupported',
-          feature: 'URL-based image input',
-          details:
-            'Vertex AI video models require base64-encoded images or GCS URIs. URL will be ignored.',
-        });
-      } else {
-        const base64Data =
-          typeof options.image.data === 'string'
-            ? options.image.data
-            : convertUint8ArrayToBase64(options.image.data);
-
-        instance.image = {
-          bytesBase64Encoded: base64Data,
-          mimeType: options.image.mediaType,
-        };
+    const startImage = resolveStartImage(options);
+    if (startImage != null) {
+      const image = convertFileToVertexImage(startImage, warnings);
+      if (image != null) {
+        instance.image = image;
       }
     }
 
-    if (vertexOptions?.referenceImages != null) {
+    const lastFrameImage = getLastFrameImage(options);
+    if (lastFrameImage != null) {
+      const lastFrame = convertFileToVertexImage(lastFrameImage, warnings);
+      if (lastFrame != null) {
+        instance.lastFrame = lastFrame;
+      }
+    }
+
+    const inputReferences = getInputReferences(options);
+    if (inputReferences != null) {
+      instance.referenceImages = inputReferences.flatMap(reference => {
+        const converted = convertInputReferenceImage(reference, warnings);
+        return converted != null ? [converted] : [];
+      });
+    } else if (vertexOptions?.referenceImages != null) {
       instance.referenceImages = vertexOptions.referenceImages;
     }
 

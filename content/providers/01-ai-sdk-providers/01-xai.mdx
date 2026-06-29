@@ -984,6 +984,37 @@ const { video } = await generateVideo({
 });
 ```
 
+You can also pass the starting frame via the top-level `frameImages` option using the `first_frame` role. This is provider-agnostic and accepts file data (e.g. a `Buffer`) or a `{ type: 'url', url }` object:
+
+```ts
+import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
+import { experimental_generateVideo as generateVideo } from 'ai';
+import fs from 'node:fs';
+
+const { video } = await generateVideo({
+  model: xai.video('grok-imagine-video'),
+  prompt: 'The cat slowly turns its head and blinks',
+  frameImages: [
+    {
+      image: fs.readFileSync('./start-frame.png'),
+      frameType: 'first_frame',
+    },
+  ],
+  duration: 5,
+  providerOptions: {
+    xai: {
+      pollTimeoutMs: 600000, // 10 minutes
+    } satisfies XaiVideoModelOptions,
+  },
+});
+```
+
+<Note>
+  xAI does not support first-last-frame interpolation. A `last_frame` entry in
+  `frameImages` is ignored with a warning — use the `extend-video` mode to
+  continue from a video's last frame instead.
+</Note>
+
 ### Video Editing
 
 Edit an existing video using a text prompt by providing a source video URL via provider options:
@@ -1133,9 +1164,38 @@ const { video } = await generateVideo({
 
 Use `<IMAGE_1>`, `<IMAGE_2>`, etc. in your prompt to reference specific images. Up to 7 reference images are supported per request.
 
+Alternatively, use the provider-agnostic top-level `inputReferences` option. Providing it automatically selects reference-to-video mode, and it accepts file data (e.g. a `Buffer`) or `{ type: 'url', url }` objects:
+
+```ts
+import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
+import { experimental_generateVideo as generateVideo } from 'ai';
+import fs from 'node:fs';
+
+const { video } = await generateVideo({
+  model: xai.video('grok-imagine-video'),
+  prompt:
+    'The comic cat and the comic dog are having a playful chase ' +
+    'through a sunlit park. Cinematic slow-motion, warm afternoon light.',
+  inputReferences: [
+    fs.readFileSync('./comic-cat.png'),
+    fs.readFileSync('./comic-dog.png'),
+  ],
+  duration: 8,
+  aspectRatio: '16:9',
+  providerOptions: {
+    xai: {
+      pollTimeoutMs: 600000,
+    } satisfies XaiVideoModelOptions,
+  },
+});
+```
+
 <Note>
   Reference-to-video supports `duration`, `aspectRatio`, and `resolution`. Use
-  `mode` to select the operation — each mode is mutually exclusive.
+  `mode` to select the operation — each mode is mutually exclusive. When both
+  are provided, `frameImages` takes precedence over `inputReferences`, and
+  `inputReferences` takes precedence over the legacy `referenceImageUrls`
+  provider option. Reference-to-video requires the `grok-imagine-video` model.
 </Note>
 
 ### Video Provider Options

@@ -1,6 +1,7 @@
 import {
   AISDKError,
   type Experimental_VideoModelV3,
+  type Experimental_VideoModelV3File,
   type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
@@ -37,21 +38,87 @@ const RESOLUTION_MAP: Record<string, string> = {
   '640x480': '480p',
 };
 
-function resolveVideoMode(
-  options: XaiParsedVideoModelOptions | undefined,
-): XaiParsedVideoModelOptions['mode'] | undefined {
-  if (options?.mode != null) {
-    return options.mode;
+type XaiVideoDoGenerateOptions = Parameters<
+  Experimental_VideoModelV3['doGenerate']
+>[0];
+
+function getFirstFrameImage(
+  options: XaiVideoDoGenerateOptions,
+): Experimental_VideoModelV3File | undefined {
+  return options.frameImages?.find(frame => frame.frameType === 'first_frame')
+    ?.image;
+}
+
+function getLastFrameImage(
+  options: XaiVideoDoGenerateOptions,
+): Experimental_VideoModelV3File | undefined {
+  return options.frameImages?.find(frame => frame.frameType === 'last_frame')
+    ?.image;
+}
+
+function resolveStartImage(
+  options: XaiVideoDoGenerateOptions,
+): Experimental_VideoModelV3File | undefined {
+  return getFirstFrameImage(options) ?? options.image;
+}
+
+function fileToXaiImageUrl(file: Experimental_VideoModelV3File): string {
+  if (file.type === 'url') {
+    return file.url;
   }
 
-  if (options?.videoUrl != null) {
-    return 'edit-video';
+  const base64Data =
+    typeof file.data === 'string'
+      ? file.data
+      : convertUint8ArrayToBase64(file.data);
+  return `data:${file.mediaType ?? 'image/png'};base64,${base64Data}`;
+}
+
+// Resolves the reference images for R2V generation. First-class
+// `inputReferences` win over the legacy `referenceImageUrls` provider option.
+function resolveReferenceImages(
+  options: XaiVideoDoGenerateOptions,
+  xaiOptions: XaiParsedVideoModelOptions | undefined,
+): Array<{ url: string }> | undefined {
+  if (options.inputReferences != null && options.inputReferences.length > 0) {
+    return options.inputReferences.map(reference => ({
+      url: fileToXaiImageUrl(reference),
+    }));
   }
 
   if (
-    options?.referenceImageUrls != null &&
-    options.referenceImageUrls.length > 0
+    xaiOptions?.referenceImageUrls != null &&
+    xaiOptions.referenceImageUrls.length > 0
   ) {
+    return xaiOptions.referenceImageUrls.map(url => ({ url }));
+  }
+
+  return undefined;
+}
+
+function resolveVideoMode(
+  options: XaiVideoDoGenerateOptions,
+  xaiOptions: XaiParsedVideoModelOptions | undefined,
+): XaiParsedVideoModelOptions['mode'] | undefined {
+  if (xaiOptions?.mode != null) {
+    return xaiOptions.mode;
+  }
+
+  if (xaiOptions?.videoUrl != null) {
+    return 'edit-video';
+  }
+
+  // frameImages (first/last frame) take precedence over reference images, so
+  // only auto-select reference-to-video when no frame images are provided.
+  const hasFrameImages =
+    options.frameImages != null && options.frameImages.length > 0;
+  const hasInputReferences =
+    options.inputReferences != null && options.inputReferences.length > 0;
+  const hasLegacyReferenceUrls =
+    xaiOptions?.referenceImageUrls != null &&
+    xaiOptions.referenceImageUrls.length > 0;
+
+  if (!hasFrameImages && (hasInputReferences || hasLegacyReferenceUrls)) {
     return 'reference-to-video';
   }
 
@@ -83,7 +150,7 @@ export class XaiVideoModel implements Experimental_VideoModelV3 {
       schema: xaiVideoModelOptionsSchema,
     })) as XaiParsedVideoModelOptions | undefined;
 
-    const effectiveMode = resolveVideoMode(xaiOptions);
+    const effectiveMode = resolveVideoMode(options, xaiOptions);
 
     const isEdit = effectiveMode === 'edit-video';
     const isExtension = effectiveMode === 'extend-video';
@@ -207,26 +274,47 @@ export class XaiVideoModel implements Experimental_VideoModelV3 {
       body.video = { url: xaiOptions!.videoUrl };
     }
 
-    // Convert SDK image input to the nested xAI request image object
-    if (options.image != null) {
-      if (options.image.type === 'url') {
-        body.image = { url: options.image.url };
-      } else {
-        const base64Data =
-          typeof options.image.data === 'string'
-            ? options.image.data
-            : convertUint8ArrayToBase64(options.image.data);
-        body.image = {
-          url: `data:${options.image.mediaType};base64,${base64Data}`,
-        };
-      }
+    // Convert the start image (first_frame or image-to-video input) to the
+    // nested xAI request image object.
+    const startImage = resolveStartImage(options);
+    if (startImage != null) {
+      body.image = { url: fileToXaiImageUrl(startImage) };
+    }
+
+    // xAI has no first-last-frame interpolation; warn and ignore last_frame.
+    if (getLastFrameImage(options) != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'frameImages',
+        details:
+          'xAI video models do not support last_frame. Use ' +
+          'providerOptions.xai.mode "extend-video" to continue from a ' +
+          "video's last frame. The last frame image was ignored.",
+      });
     }
 
     // Reference images for R2V (reference-to-video) generation
     if (hasReferenceImages) {
-      body.reference_images = xaiOptions!.referenceImageUrls!.map(url => ({
-        url,
-      }));
+      const referenceImages = resolveReferenceImages(options, xaiOptions);
+      if (referenceImages != null) {
+        body.reference_images = referenceImages;
+      }
+    }
+
+    // Warn when reference images were provided but cannot be used in the
+    // resolved mode (e.g. alongside frameImages, or in edit/extend modes).
+    if (
+      options.inputReferences != null &&
+      options.inputReferences.length > 0 &&
+      !hasReferenceImages
+    ) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'inputReferences',
+        details:
+          'xAI only supports inputReferences for reference-to-video ' +
+          'generation. The reference images were ignored.',
+      });
     }
 
     if (xaiOptions != null) {
