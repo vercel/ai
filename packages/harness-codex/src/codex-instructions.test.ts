@@ -183,7 +183,9 @@ describe('codex adapter — instructions gating', () => {
       tools,
       emit: () => {},
     });
-    expect(lastStart().prompt).toContain('## Host tools');
+    expect(lastStart().prompt).not.toContain('## Host tools');
+    expect(lastStart().prompt).toContain('<host-tool-instructions>');
+    expect(lastStart().prompt).toContain('</host-tool-instructions>');
     expect(lastStart().prompt).toContain(
       "node /wd/codex-s1/harness-tool.mjs <toolName> '<jsonInput>'",
     );

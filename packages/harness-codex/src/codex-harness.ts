@@ -1130,8 +1130,7 @@ function composeToolUsageInstructions({
   cliShimPath: string;
 }): string {
   const lines: string[] = [
-    '## Host tools',
-    '',
+    '<host-tool-instructions>',
     'You have access to the following host-provided tools. To use one, run the following command via your built-in `bash` tool:',
     '',
     `  node ${cliShimPath} <toolName> '<jsonInput>'`,
@@ -1141,13 +1140,14 @@ function composeToolUsageInstructions({
     '',
   ];
   for (const toolSpec of tools) {
-    lines.push(`### ${toolSpec.name}`);
-    if (toolSpec.description) lines.push(toolSpec.description);
     lines.push(
-      `Input schema: \`${JSON.stringify(toolSpec.inputSchema ?? {})}\``,
-      '',
+      `- **${toolSpec.name}**${toolSpec.description ? ': ' + toolSpec.description : ''}`,
+    );
+    lines.push(
+      `  - Input schema: \`${JSON.stringify(toolSpec.inputSchema ?? {})}\``,
     );
   }
+  lines.push('</host-tool-instructions>');
   return lines.join('\n');
 }
 
