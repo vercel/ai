@@ -1,7 +1,40 @@
+import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import type { ModelMessage } from '@ai-sdk/provider-utils';
 import { describe, expect, it } from 'vitest';
+import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
+import { consumeStream } from '../util/consume-stream';
 import { convertToModelMessages } from './convert-to-model-messages';
+import {
+  createStreamingUIMessageState,
+  processUIMessageStream,
+} from './process-ui-message-stream';
 import type { UIMessage } from './ui-messages';
+
+async function recordAssistantMessageFromChunks<
+  UI_MESSAGE extends UIMessage = UIMessage,
+>(chunks: UIMessageChunk[]): Promise<UI_MESSAGE> {
+  const state = createStreamingUIMessageState<UI_MESSAGE>({
+    messageId: 'msg-123',
+    lastMessage: undefined,
+  });
+
+  await consumeStream({
+    stream: processUIMessageStream<UI_MESSAGE>({
+      stream: convertArrayToReadableStream(chunks),
+      runUpdateMessageJob: async job => {
+        await job({
+          state,
+          write: () => {},
+        });
+      },
+      onError: error => {
+        throw error;
+      },
+    }),
+  });
+
+  return state.message;
+}
 
 describe('convertToModelMessages', () => {
   describe('system message', () => {
@@ -2657,6 +2690,78 @@ describe('convertToModelMessages', () => {
               "content": [
                 {
                   "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+
+      it('should not emit empty assistant message for persistent data written before model stream starts', async () => {
+        type WeatherUIMessage = UIMessage<
+          unknown,
+          {
+            weather: {
+              city: string;
+              status: 'loading' | 'success';
+              weather?: string;
+            };
+          }
+        >;
+
+        const recordedMessage =
+          await recordAssistantMessageFromChunks<WeatherUIMessage>([
+            { type: 'start', messageId: 'msg-123' },
+            {
+              type: 'data-weather',
+              id: 'weather-1',
+              data: { city: 'San Francisco', status: 'loading' },
+            },
+            { type: 'start-step' },
+            { type: 'text-start', id: 'text-1' },
+            { type: 'text-delta', id: 'text-1', delta: 'It is sunny.' },
+            { type: 'text-end', id: 'text-1' },
+            { type: 'finish-step' },
+            { type: 'finish' },
+          ]);
+
+        expect(recordedMessage).toMatchInlineSnapshot(`
+          {
+            "id": "msg-123",
+            "metadata": undefined,
+            "parts": [
+              {
+                "data": {
+                  "city": "San Francisco",
+                  "status": "loading",
+                },
+                "id": "weather-1",
+                "type": "data-weather",
+              },
+              {
+                "type": "step-start",
+              },
+              {
+                "providerMetadata": undefined,
+                "state": "done",
+                "text": "It is sunny.",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          }
+        `);
+
+        const result = await convertToModelMessages([recordedMessage]);
+
+        expect(result).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "text": "It is sunny.",
                   "type": "text",
                 },
               ],
