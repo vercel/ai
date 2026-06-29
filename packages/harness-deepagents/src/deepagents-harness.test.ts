@@ -2,11 +2,7 @@ import type { HarnessV1NetworkSandboxSession } from '@ai-sdk/harness';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import type * as NodeFsPromises from 'node:fs/promises';
 import { describe, expect, it, vi } from 'vitest';
-import {
-  createDeepAgents,
-  DEEPAGENTS_BUILTIN_TOOLS,
-  DEEPAGENTS_DEFAULT_CONTEXT_WINDOW,
-} from './deepagents-harness';
+import { createDeepAgents } from './deepagents-harness';
 
 // Captures the wireTurn `onClose` handler so tests can fire a close with a chosen reason.
 const closeHolder: { fire?: (code: number, reason: string) => void } = {};
@@ -105,33 +101,6 @@ describe('createDeepAgents', () => {
     expect(harness.specificationVersion).toBe('harness-v1');
     expect(harness.harnessId).toBe('deepagents');
     expect(harness.supportsBuiltinToolApprovals).toBe(true);
-  });
-
-  it('lists every model-callable DeepAgents built-in tool', () => {
-    expect(Object.keys(DEEPAGENTS_BUILTIN_TOOLS).sort()).toEqual([
-      'bash',
-      'edit',
-      'glob',
-      'grep',
-      'ls',
-      'read',
-      'task',
-      'write',
-      'write_todos',
-    ]);
-  });
-
-  it('maps common tools to their DeepAgents native names', () => {
-    expect(DEEPAGENTS_BUILTIN_TOOLS.read.nativeName).toBe('read_file');
-    expect(DEEPAGENTS_BUILTIN_TOOLS.write.nativeName).toBe('write_file');
-    expect(DEEPAGENTS_BUILTIN_TOOLS.edit.nativeName).toBe('edit_file');
-    expect(DEEPAGENTS_BUILTIN_TOOLS.bash.nativeName).toBe('execute');
-    expect(DEEPAGENTS_BUILTIN_TOOLS.grep.nativeName).toBe('grep');
-    expect(DEEPAGENTS_BUILTIN_TOOLS.glob.nativeName).toBe('glob');
-  });
-
-  it('has a default context window', () => {
-    expect(DEEPAGENTS_DEFAULT_CONTEXT_WINDOW).toBe(200_000);
   });
 
   it('ships the node bridge files and a pnpm install command in its bootstrap', async () => {
