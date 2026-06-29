@@ -66,9 +66,18 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
       schema: assemblyaiTranscriptionModelOptionsSchema,
     });
 
-    const body: Omit<AssemblyAITranscriptionAPITypes, 'audio_url'> = {
-      speech_model: this.modelId as 'best' | 'nano',
-    };
+    const body: Omit<AssemblyAITranscriptionAPITypes, 'audio_url'> = {};
+
+    // The legacy `best` and `nano` models are selected via the deprecated
+    // singular `speech_model` parameter. All newer models (e.g. `universal-2`,
+    // `universal-3-pro`, `universal-3-5-pro`) are only accessible via the
+    // `speech_models` array and are rejected by `speech_model`.
+    // See https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model
+    if (this.modelId === 'best' || this.modelId === 'nano') {
+      body.speech_model = this.modelId as 'best' | 'nano';
+    } else {
+      body.speech_models = [this.modelId];
+    }
 
     // Add provider-specific options
     if (assemblyaiOptions) {
@@ -282,6 +291,7 @@ const assemblyaiTranscriptionResponseSchema = z.object({
   status: z.enum(['queued', 'processing', 'completed', 'error']),
   text: z.string().nullish(),
   language_code: z.string().nullish(),
+  speech_model_used: z.string().nullish(),
   words: z
     .array(
       z.object({

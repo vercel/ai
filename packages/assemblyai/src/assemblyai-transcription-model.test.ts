@@ -256,7 +256,7 @@ describe('doGenerate', () => {
     };
   }
 
-  it('should pass the model', async () => {
+  it('should pass the legacy model via the speech_model parameter', async () => {
     prepareJsonResponse();
 
     await model.doGenerate({
@@ -264,10 +264,28 @@ describe('doGenerate', () => {
       mediaType: 'audio/wav',
     });
 
-    expect(await server.calls[1].requestBodyJson).toMatchObject({
+    const requestBody = await server.calls[1].requestBodyJson;
+    expect(requestBody).toMatchObject({
       audio_url: 'https://storage.assemblyai.com/mock-upload-url',
       speech_model: 'best',
     });
+    expect(requestBody.speech_models).toBeUndefined();
+  });
+
+  it('should pass newer models via the speech_models parameter', async () => {
+    prepareJsonResponse();
+
+    await provider.transcription('universal-3-5-pro').doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    const requestBody = await server.calls[1].requestBodyJson;
+    expect(requestBody).toMatchObject({
+      audio_url: 'https://storage.assemblyai.com/mock-upload-url',
+      speech_models: ['universal-3-5-pro'],
+    });
+    expect(requestBody.speech_model).toBeUndefined();
   });
 
   it('should pass headers', async () => {

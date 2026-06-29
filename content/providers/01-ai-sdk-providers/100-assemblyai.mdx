@@ -69,11 +69,16 @@ You can use the following optional settings to customize the AssemblyAI provider
 You can create models that call the [AssemblyAI transcription API](https://www.assemblyai.com/docs/getting-started/transcribe-an-audio-file/typescript)
 using the `.transcription()` factory method.
 
-The first argument is the model id e.g. `best`.
+The first argument is the model id, e.g. `universal-3-5-pro`.
 
 ```ts
-const model = assemblyai.transcription('best');
+const model = assemblyai.transcription('universal-3-5-pro');
 ```
+
+The legacy `best` and `nano` models are sent using AssemblyAI's deprecated
+`speech_model` request parameter. All newer models (e.g. `universal-3-5-pro`) are sent using the
+[`speech_models`](https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model)
+request parameter, which the provider selects automatically based on the model id.
 
 You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the `contentSafety` option will enable content safety filtering.
 
@@ -276,7 +281,7 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model  | Transcription       | Duration            | Segments            | Language            |
-| ------ | ------------------- | ------------------- | ------------------- | ------------------- |
-| `best` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `nano` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model               | Transcription       | Duration            | Segments            | Language            |
+| ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `universal-3-5-pro` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+
