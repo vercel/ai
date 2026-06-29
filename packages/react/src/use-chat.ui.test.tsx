@@ -2398,6 +2398,82 @@ describe('id changes', () => {
   });
 });
 
+describe('undefined id', () => {
+  setupTestComponent(
+    () => {
+      const [renderCount, setRenderCount] = React.useState(0);
+      const {
+        messages,
+        setMessages,
+        id: idKey,
+      } = useChat({
+        id: undefined,
+        generateId: mockId(),
+      });
+
+      return (
+        <div>
+          <div data-testid="id">{idKey}</div>
+          <div data-testid="render-count">{renderCount}</div>
+          <div data-testid="messages">{JSON.stringify(messages, null, 2)}</div>
+          <button
+            data-testid="set-message"
+            onClick={() => {
+              setMessages([
+                {
+                  id: 'message-0',
+                  role: 'user',
+                  parts: [{ text: 'hi', type: 'text' }],
+                },
+              ]);
+            }}
+          />
+          <button
+            data-testid="rerender"
+            onClick={() => {
+              setRenderCount(count => count + 1);
+            }}
+          />
+        </div>
+      );
+    },
+    {
+      init: TestComponent => <TestComponent />,
+    },
+  );
+
+  it('should not recreate chat when id is explicitly undefined', async () => {
+    const initialId = screen.getByTestId('id').textContent;
+
+    await userEvent.click(screen.getByTestId('set-message'));
+
+    await waitFor(() => {
+      expect(
+        JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+      ).toStrictEqual([
+        {
+          id: 'message-0',
+          role: 'user',
+          parts: [{ text: 'hi', type: 'text' }],
+        },
+      ]);
+    });
+
+    await userEvent.click(screen.getByTestId('rerender'));
+
+    expect(screen.getByTestId('id').textContent).toBe(initialId);
+    expect(
+      JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+    ).toStrictEqual([
+      {
+        id: 'message-0',
+        role: 'user',
+        parts: [{ text: 'hi', type: 'text' }],
+      },
+    ]);
+  });
+});
+
 describe('chat instance changes', () => {
   setupTestComponent(
     () => {
