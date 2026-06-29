@@ -1,5 +1,13 @@
 # ai
 
+## 7.0.6
+
+### Patch Changes
+
+- 989402d: Add ToolLoopAgent types for deprecated tool call callback aliases.
+- Updated dependencies [7e3c99e]
+  - @ai-sdk/gateway@4.0.5
+
 ## 7.0.5
 
 ### Patch Changes

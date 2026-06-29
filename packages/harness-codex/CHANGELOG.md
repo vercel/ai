@@ -1,5 +1,12 @@
 # @ai-sdk/harness-codex
 
+## 1.0.8
+
+### Patch Changes
+
+- c0e991c: fix(harness-codex): fix Codex sometimes stopping after a single text response when using `workflow-harness`
+  - @ai-sdk/harness@1.0.8
+
 ## 1.0.7
 
 ### Patch Changes

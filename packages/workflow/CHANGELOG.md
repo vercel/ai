@@ -1,5 +1,14 @@
 # @ai-sdk/workflow
 
+## 1.0.6
+
+### Patch Changes
+
+- 4a9f4d5: `WorkflowChatTransport` now repairs UI message stream part framing, so duplicated or interleaved durable stream writes no longer crash the AI SDK consumer with `Received text-delta for missing text part`.
+- 4016539: Forward `reasoning` generation settings from `WorkflowAgent` to model calls.
+- Updated dependencies [989402d]
+  - ai@7.0.6
+
 ## 1.0.5
 
 ### Patch Changes
