@@ -8,9 +8,9 @@
  *
  * Until that's fixed upstream, this file implements a CLI-based relay:
  *
- *   1. A small Node script is written into the workdir at turn start
- *      (`buildCliShimScript`). It accepts `<toolName> <jsonInput>` as argv,
- *      POSTs to the same HTTP relay the MCP shim uses, and prints the
+ *   1. A small Node script is written into harness-owned session state at turn
+ *      start (`buildCliShimScript`). It accepts `<toolName> <jsonInput>` as
+ *      argv, POSTs to the same HTTP relay the MCP shim uses, and prints the
  *      result to stdout.
  *
  *   2. Tool descriptions and invocation instructions are injected into the

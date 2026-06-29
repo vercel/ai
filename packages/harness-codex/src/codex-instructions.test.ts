@@ -186,8 +186,9 @@ describe('codex adapter — instructions gating', () => {
     expect(lastStart().prompt).not.toContain('## Host tools');
     expect(lastStart().prompt).toContain('<host-tool-instructions>');
     expect(lastStart().prompt).toContain('</host-tool-instructions>');
+    expect(lastStart().prompt).not.toContain('/wd/codex-s1/harness-tool.mjs');
     expect(lastStart().prompt).toContain(
-      "node /wd/codex-s1/harness-tool.mjs <toolName> '<jsonInput>'",
+      "node /wd/.agent-runs/s1/codex/harness-tool.mjs <toolName> '<jsonInput>'",
     );
     expect(lastStart().prompt).toContain(
       'run a separate CLI invocation for each needed tool call in the current turn before answering',

@@ -116,12 +116,11 @@ const CODEX_BUILTIN_TOOLS = {
  * reinstall the CLI and bridge files on any fresh sandbox from the recipe.
  * Persistence comes from the sandbox provider's snapshot, not the path.
  *
- * The session work dir (`startOpts.sessionWorkDir`) and the bridge-state dir
- * derived from `sandboxSession.defaultWorkingDirectory` both live under the sandbox's
- * default working directory — the provider's persistent mount — so the
- * workdir's contents (the codex CLI shim and any files the agent edits) and
- * the bridge state files survive both detach -> attach and
- * stop -> snapshot -> resume cycles.
+ * The session work dir (`startOpts.sessionWorkDir`) lives under the sandbox's
+ * default working directory — the provider's persistent mount — so any files
+ * the agent edits survive both detach -> attach and stop -> snapshot -> resume
+ * cycles. Harness infra derived from `sandboxSession.defaultWorkingDirectory`
+ * lives under `.agent-runs`, outside the agent workdir.
  */
 const BOOTSTRAP_DIR = '/tmp/harness/codex';
 
@@ -226,6 +225,8 @@ export function createCodex(
       const workDir = startOpts.sessionWorkDir;
       const sessionDataDir = `${sandboxSession.defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
       const bridgeStateDir = `${sessionDataDir}/bridge`;
+      const cliShimDir = `${sessionDataDir}/codex`;
+      const cliShimPath = `${cliShimDir}/${CLI_SHIM_FILENAME}`;
       const timeoutMs = settings.startupTimeoutMs ?? 120_000;
 
       // Normalize each forwarded bridge diagnostics frame into the general
@@ -267,7 +268,7 @@ export function createCodex(
           return createSession({
             sessionId: startOpts.sessionId,
             channel: attachChannel,
-            sessionWorkDir: workDir,
+            cliShimPath,
             // The live bridge was spawned by another process; no process handle.
             proc: undefined,
             model: settings.model ?? DEFAULT_CODEX_MODEL,
@@ -351,7 +352,7 @@ export function createCodex(
       });
 
       const proc = await session.spawn({
-        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --bootstrap-dir ${shellQuote(BOOTSTRAP_DIR)}`,
+        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --bootstrap-dir ${shellQuote(BOOTSTRAP_DIR)} --cli-shim-dir ${shellQuote(cliShimDir)}`,
         env,
         abortSignal: startOpts.abortSignal,
       });
@@ -404,7 +405,7 @@ export function createCodex(
       return createSession({
         sessionId: startOpts.sessionId,
         channel,
-        sessionWorkDir: workDir,
+        cliShimPath,
         proc,
         model: settings.model ?? DEFAULT_CODEX_MODEL,
         reasoningEffort: settings.reasoningEffort,
@@ -618,7 +619,7 @@ function openWebSocket(url: string): Promise<WebSocket> {
 function createSession({
   sessionId,
   channel,
-  sessionWorkDir,
+  cliShimPath,
   proc,
   model,
   reasoningEffort,
@@ -635,7 +636,7 @@ function createSession({
 }: {
   sessionId: string;
   channel: CodexChannel;
-  sessionWorkDir: string;
+  cliShimPath: string;
   /** Undefined on `attach` — the live bridge was spawned by another process. */
   proc: Experimental_SandboxProcess | undefined;
   model: string | undefined;
@@ -837,7 +838,7 @@ function createSession({
             tools.length > 0
               ? composeToolUsageInstructions({
                   tools,
-                  cliShimPath: `${sessionWorkDir}/${CLI_SHIM_FILENAME}`,
+                  cliShimPath,
                 })
               : undefined,
           userText: promptText,

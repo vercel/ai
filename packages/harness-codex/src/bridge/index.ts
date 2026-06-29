@@ -18,7 +18,7 @@ import {
 import type { HarnessV1BuiltinToolName } from '@ai-sdk/harness';
 import type { StartMessage } from '../codex-bridge-protocol';
 import { randomUUID } from 'node:crypto';
-import { writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { createServer, type Server } from 'node:http';
 // Temporary workaround for upstream codex MCP-tool bug — see ./cli-relay.ts
 import {
@@ -62,14 +62,15 @@ function toCommonName(nativeName: string): HarnessV1BuiltinToolName | string {
 }
 
 const args = parseArgs(argv.slice(2));
-const workdir = args.workdir;
-const bridgeStateDir = args.bridgeStateDir;
-if (!workdir) {
-  emitFatal('Missing --workdir argument.');
-}
-if (!bridgeStateDir) {
-  emitFatal('Missing --bridge-state-dir argument.');
-}
+const workdir = requireArg({ value: args.workdir, name: '--workdir' });
+const bridgeStateDir = requireArg({
+  value: args.bridgeStateDir,
+  name: '--bridge-state-dir',
+});
+const cliShimDir = requireArg({
+  value: args.cliShimDir,
+  name: '--cli-shim-dir',
+});
 const bootstrapDir = args.bootstrapDir ?? workdir;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -145,7 +146,8 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       },
     };
     // Temporary workaround for upstream codex MCP-tool bug — see ./cli-relay.ts
-    cliShimPath = `${workdir}/${CLI_SHIM_FILENAME}`;
+    cliShimPath = `${cliShimDir}/${CLI_SHIM_FILENAME}`;
+    await mkdir(cliShimDir, { recursive: true });
     await writeFile(
       cliShimPath,
       buildCliShimScript({ relayPort: relay.port, relayToken }),
@@ -614,11 +616,13 @@ function parseArgs(args: string[]): {
   workdir?: string;
   bridgeStateDir?: string;
   bootstrapDir?: string;
+  cliShimDir?: string;
 } {
   const out: {
     workdir?: string;
     bridgeStateDir?: string;
     bootstrapDir?: string;
+    cliShimDir?: string;
   } = {};
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--workdir' && i + 1 < args.length) {
@@ -627,6 +631,8 @@ function parseArgs(args: string[]): {
       out.bridgeStateDir = args[++i];
     } else if (args[i] === '--bootstrap-dir' && i + 1 < args.length) {
       out.bootstrapDir = args[++i];
+    } else if (args[i] === '--cli-shim-dir' && i + 1 < args.length) {
+      out.cliShimDir = args[++i];
     }
   }
   return out;
@@ -642,4 +648,17 @@ function serialiseError(err: unknown): unknown {
 function emitFatal(message: string): never {
   stdout.write(JSON.stringify({ type: 'bridge-fatal', message }) + '\n');
   process.exit(1);
+}
+
+function requireArg({
+  value,
+  name,
+}: {
+  value: string | undefined;
+  name: string;
+}): string {
+  if (!value) {
+    emitFatal(`Missing ${name} argument.`);
+  }
+  return value;
 }
