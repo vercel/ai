@@ -1084,6 +1084,7 @@ describe('GatewayVideoModel', () => {
           duration: undefined,
           fps: undefined,
           seed: undefined,
+          generateAudio: undefined,
           providerOptions: {},
         });
 
@@ -1133,6 +1134,7 @@ describe('GatewayVideoModel', () => {
           duration: undefined,
           fps: undefined,
           seed: undefined,
+          generateAudio: undefined,
           providerOptions: {},
         });
 
@@ -1164,6 +1166,7 @@ describe('GatewayVideoModel', () => {
           duration: undefined,
           fps: undefined,
           seed: undefined,
+          generateAudio: undefined,
           providerOptions: {},
         });
 

@@ -11,7 +11,6 @@ import {
   createJsonResponseHandler,
   delay,
   getFromApi,
-  getTopLevelMediaType,
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -37,36 +36,16 @@ function fileToImageString(file: Experimental_VideoModelV4File): string {
     : convertUint8ArrayToBase64(file.data);
 }
 
-const isVideoFile = (file: Experimental_VideoModelV4File): boolean =>
-  file.mediaType != null && getTopLevelMediaType(file.mediaType) === 'video';
-
 function getReferenceImages(
   options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
-  warnings: SharedV4Warning[],
 ): Array<Experimental_VideoModelV4File> | undefined {
   if (options.frameImages != null && options.frameImages.length > 0) {
     return undefined;
   }
 
-  if (options.inputReferences == null || options.inputReferences.length === 0) {
-    return undefined;
-  }
-
-  const imageReferences = options.inputReferences.filter(reference => {
-    if (isVideoFile(reference)) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'inputReferences',
-        details:
-          'KlingAI does not support video reference inputs; the video ' +
-          'reference was ignored.',
-      });
-      return false;
-    }
-    return true;
-  });
-
-  return imageReferences.length > 0 ? imageReferences : undefined;
+  return options.inputReferences != null && options.inputReferences.length > 0
+    ? options.inputReferences
+    : undefined;
 }
 
 function getFirstFrameImage(
@@ -78,42 +57,19 @@ function getFirstFrameImage(
 
 function resolveStartImage(
   options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
-  warnings: SharedV4Warning[],
 ): Experimental_VideoModelV4File | undefined {
-  const startImage = getFirstFrameImage(options) ?? options.image;
-
-  if (startImage != null && isVideoFile(startImage)) {
-    warnings.push({
-      type: 'unsupported',
-      feature: 'frameImages',
-      details:
-        'KlingAI does not accept video as a frame image; it was ignored.',
-    });
-    return undefined;
-  }
-
-  return startImage;
+  return getFirstFrameImage(options) ?? options.image;
 }
 
 function resolveImageTail(
   options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
   klingaiOptions: KlingAIVideoModelOptions | undefined,
-  warnings: SharedV4Warning[],
 ): string | undefined {
   const lastFrame = options.frameImages?.find(
     frame => frame.frameType === 'last_frame',
   )?.image;
 
   if (lastFrame != null) {
-    if (isVideoFile(lastFrame)) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'frameImages',
-        details:
-          'KlingAI does not accept video as a frame image; it was ignored.',
-      });
-      return undefined;
-    }
     return fileToImageString(lastFrame);
   }
 
@@ -223,7 +179,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV4 {
       schema: klingaiVideoModelOptionsSchema,
     })) as KlingAIVideoModelOptions | undefined;
 
-    const referenceImages = getReferenceImages(options, warnings);
+    const referenceImages = getReferenceImages(options);
     const effectiveMode: KlingAIVideoMode =
       mode === 'i2v' && referenceImages != null ? 'mi2v' : mode;
 
@@ -495,7 +451,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV4 {
     }
 
     // Image is not supported for T2V
-    if (resolveStartImage(options, warnings) != null) {
+    if (resolveStartImage(options) != null) {
       warnings.push({
         type: 'unsupported',
         feature: 'image',
@@ -523,14 +479,14 @@ export class KlingAIVideoModel implements Experimental_VideoModelV4 {
       body.prompt = options.prompt;
     }
 
-    const startImage = resolveStartImage(options, warnings);
+    const startImage = resolveStartImage(options);
     if (startImage != null) {
       body.image = fileToImageString(startImage);
     }
 
     // End frame image: prefer top-level frameImages (last_frame), fall back to
     // providerOptions.klingai.imageTail.
-    const imageTail = resolveImageTail(options, klingaiOptions, warnings);
+    const imageTail = resolveImageTail(options, klingaiOptions);
     if (imageTail != null) {
       body.image_tail = imageTail;
     }
@@ -658,7 +614,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV4 {
       body.watermark_info = { enabled: klingaiOptions.watermarkEnabled };
     }
 
-    if (resolveStartImage(options, warnings) != null) {
+    if (resolveStartImage(options) != null) {
       warnings.push({
         type: 'unsupported',
         feature: 'frameImages',
@@ -668,7 +624,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV4 {
       });
     }
 
-    if (resolveImageTail(options, klingaiOptions, warnings) != null) {
+    if (resolveImageTail(options, klingaiOptions) != null) {
       warnings.push({
         type: 'unsupported',
         feature: 'frameImages',
@@ -712,7 +668,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV4 {
       body.prompt = options.prompt;
     }
 
-    const startImage = resolveStartImage(options, warnings);
+    const startImage = resolveStartImage(options);
     if (startImage != null) {
       body.image_url = fileToImageString(startImage);
     }
