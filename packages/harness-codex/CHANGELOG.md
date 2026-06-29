@@ -1,5 +1,20 @@
 # @ai-sdk/harness-codex
 
+## 1.0.6
+
+### Patch Changes
+
+- Updated dependencies [6a436e3]
+  - @ai-sdk/provider-utils@5.0.1
+  - @ai-sdk/harness@1.0.6
+
+## 1.0.5
+
+### Patch Changes
+
+- 43a8c68: fix(harness): use `shellQuote` where appropriate in harness adapters
+  - @ai-sdk/harness@1.0.5
+
 ## 1.0.4
 
 ### Patch Changes

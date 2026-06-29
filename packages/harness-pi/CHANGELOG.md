@@ -1,5 +1,22 @@
 # @ai-sdk/harness-pi
 
+## 1.0.6
+
+### Patch Changes
+
+- Updated dependencies [6a436e3]
+  - @ai-sdk/provider-utils@5.0.1
+  - @ai-sdk/harness@1.0.6
+
+## 1.0.5
+
+### Patch Changes
+
+- b6d0025: fix(harness-pi): fix potential path traversal issues in Pi harness adapter
+- 43a8c68: fix(harness): use `shellQuote` where appropriate in harness adapters
+- ba6d510: chore: fix deprecated use of zod `.passthrough()`
+  - @ai-sdk/harness@1.0.5
+
 ## 1.0.4
 
 ### Patch Changes
