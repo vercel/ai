@@ -12,7 +12,6 @@ export type OutboundMessage = z.infer<typeof outboundMessageSchema>;
 
 export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   model: z.string().optional(),
-  planMode: z.boolean().optional(),
   // Resume the prior CLI thread instead of a fresh session.
   continue: z.boolean().optional(),
 });

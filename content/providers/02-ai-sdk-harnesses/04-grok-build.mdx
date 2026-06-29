@@ -104,7 +104,6 @@ Use `createGrokBuild()` to configure the runtime:
 ```ts
 const harness = createGrokBuild({
   model: 'grok-code-fast-1',
-  planMode: true,
 });
 ```
 
@@ -112,7 +111,6 @@ Settings:
 
 - `auth`: xAI or AI Gateway authentication settings.
 - `model`: Grok model id. If omitted, the adapter uses its pinned default.
-- `planMode`: run the CLI in plan mode.
 - `port`: bridge port override.
 - `startupTimeoutMs`: maximum time to wait for the bridge to start.
 

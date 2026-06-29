@@ -15,11 +15,10 @@ describe('grok-build bridge protocol', () => {
       type: 'start',
       prompt: 'hi',
       model: 'grok-build-0.1',
-      planMode: true,
       continue: true,
     });
     expect(parsed.model).toBe('grok-build-0.1');
-    expect(parsed.planMode).toBe(true);
+    expect(parsed.continue).toBe(true);
   });
 
   it('discriminates start within the inbound union', () => {

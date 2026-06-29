@@ -138,7 +138,6 @@ const DEFAULT_GROK_MODEL_GATEWAY = 'xai/grok-build-0.1';
 
 export type GrokBuildHarnessSettings = {
   readonly model?: string;
-  readonly planMode?: boolean;
   readonly auth?: GrokBuildAuthOptions;
   readonly port?: number;
   /** Maximum milliseconds to wait for the bridge to advertise its port. Defaults to 120000. */
