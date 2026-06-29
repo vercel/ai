@@ -4,6 +4,12 @@
 
 ### Patch Changes
 
+- ai@6.0.216
+
+## 0.0.1
+
+### Patch Changes
+
 - Updated dependencies [f66ac32]
   - ai@6.0.215
 

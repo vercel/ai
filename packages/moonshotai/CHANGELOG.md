@@ -1,5 +1,12 @@
 # @ai-sdk/moonshotai
 
+## 2.0.30
+
+### Patch Changes
+
+- f605175: feat(moonshotai): support structured outputs for kimi-k2.5
+- d2e3358: feat(moonshotai): support structured outputs for kimi-2.6 and 2.7-code
+
 ## 2.0.29
 
 ### Patch Changes
