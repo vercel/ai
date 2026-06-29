@@ -716,5 +716,70 @@ describe('pruneMessages', () => {
         `);
       });
     });
+
+    describe('specific tool pruning', () => {
+      it('should also prune matching tool-approval-response parts', () => {
+        const result = pruneMessages({
+          messages: messagesFixture1,
+          toolCalls: [{ type: 'all', tools: ['get-weather-tool-2'] }],
+        });
+
+        expect(result).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "text": "Weather in Tokyo and Busan?",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "content": [
+                {
+                  "text": "I need to get the weather in Tokyo and Busan.",
+                  "type": "reasoning",
+                },
+                {
+                  "input": "{"city": "Tokyo"}",
+                  "toolCallId": "call-1",
+                  "toolName": "get-weather-tool-1",
+                  "type": "tool-call",
+                },
+              ],
+              "role": "assistant",
+            },
+            {
+              "content": [
+                {
+                  "output": {
+                    "type": "text",
+                    "value": "sunny",
+                  },
+                  "toolCallId": "call-1",
+                  "toolName": "get-weather-tool-1",
+                  "type": "tool-result",
+                },
+              ],
+              "role": "tool",
+            },
+            {
+              "content": [
+                {
+                  "text": "I have got the weather in Tokyo and Busan.",
+                  "type": "reasoning",
+                },
+                {
+                  "text": "The weather in Tokyo is sunny. I could not get the weather in Busan.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+    });
   });
 });

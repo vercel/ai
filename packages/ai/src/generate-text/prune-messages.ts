@@ -64,6 +64,30 @@ export function pruneMessages({
   }
 
   for (const toolCall of toolCalls) {
+    const toolCallIdToToolName = new Map<string, string>();
+    const approvalIdToToolName = new Map<string, string>();
+
+    for (const message of messages) {
+      if (
+        (message.role !== 'assistant' && message.role !== 'tool') ||
+        typeof message.content === 'string'
+      ) {
+        continue;
+      }
+
+      for (const part of message.content) {
+        if (part.type === 'tool-call') {
+          toolCallIdToToolName.set(part.toolCallId, part.toolName);
+        } else if (part.type === 'tool-approval-request') {
+          const toolName = toolCallIdToToolName.get(part.toolCallId);
+
+          if (toolName != null) {
+            approvalIdToToolName.set(part.approvalId, toolName);
+          }
+        }
+      }
+    }
+
     // determine how many trailing messages to keep:
     const keepLastMessagesCount =
       toolCall.type === 'all'
@@ -110,9 +134,6 @@ export function pruneMessages({
         return message;
       }
 
-      const toolCallIdToToolName: Record<string, string> = {};
-      const approvalIdToToolName: Record<string, string> = {};
-
       return {
         ...message,
         content: message.content.filter(part => {
@@ -124,14 +145,6 @@ export function pruneMessages({
             part.type !== 'tool-approval-response'
           ) {
             return true;
-          }
-
-          // track tool calls and approvals:
-          if (part.type === 'tool-call') {
-            toolCallIdToToolName[part.toolCallId] = part.toolName;
-          } else if (part.type === 'tool-approval-request') {
-            approvalIdToToolName[part.approvalId] =
-              toolCallIdToToolName[part.toolCallId];
           }
 
           // keep parts that are associated with a tool call or approval that needs to be kept:
@@ -151,7 +164,7 @@ export function pruneMessages({
             !toolCall.tools.includes(
               part.type === 'tool-call' || part.type === 'tool-result'
                 ? part.toolName
-                : approvalIdToToolName[part.approvalId],
+                : approvalIdToToolName.get(part.approvalId),
             )
           );
         }),
