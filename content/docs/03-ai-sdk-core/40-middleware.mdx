@@ -266,6 +266,51 @@ const model = wrapLanguageModel({
 
 Find more examples at this [link](https://github.com/minpeter/ai-sdk-tool-call-middleware/tree/main/examples/core/src).
 
+### BetterDB Agent Cache
+
+The [BetterDB Agent Cache](https://github.com/BetterDB-inc/monitor/tree/main/packages/agent-cache) provides a multi-tier exact-match cache for AI agent workloads backed by Valkey or Redis. The Vercel AI SDK adapter (`createAgentCacheMiddleware`) wraps the LLM tier as language model middleware via `wrapLanguageModel`, caching non-streaming `generate()` responses. Works on vanilla Valkey 7+, Redis 6.2+, and managed equivalents (ElastiCache, Memorystore, MemoryDB) with no module requirements.
+
+```ts
+import { wrapLanguageModel, generateText } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai';
+import Valkey from 'iovalkey';
+import { AgentCache } from '@betterdb/agent-cache';
+import { createAgentCacheMiddleware } from '@betterdb/agent-cache/ai';
+
+const client = new Valkey({ host: 'localhost', port: 6379 });
+
+const cache = new AgentCache({
+  client,
+  tierDefaults: { llm: { ttl: 3600 } },
+});
+
+const openai = createOpenAI({});
+
+const model = wrapLanguageModel({
+  model: openai.chat('gpt-4o-mini'),
+  middleware: createAgentCacheMiddleware({ cache }),
+});
+
+// First call - cache miss, model is invoked
+const result1 = await generateText({
+  model,
+  prompt: 'What is the capital of Bulgaria?',
+});
+
+// Second call - cache hit, response returned from Valkey
+const result2 = await generateText({
+  model,
+  prompt: 'What is the capital of Bulgaria?',
+});
+```
+
+<Note>
+  Streaming responses are not cached. The middleware only caches
+  non-streaming `generateText()` calls.
+</Note>
+
+Find the package on [npm](https://www.npmjs.com/package/@betterdb/agent-cache) and a full Vercel AI SDK example in the [repository](https://github.com/BetterDB-inc/monitor/tree/main/packages/agent-cache/examples/vercel-ai-sdk).
+
 ## Implementing Language Model Middleware
 
 <Note>
