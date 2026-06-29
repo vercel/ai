@@ -1,7 +1,10 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
-import { createMoonshotAI } from './moonshotai-provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
 import { MoonshotAIChatLanguageModel } from './moonshotai-chat-language-model';
+import {
+  createMoonshotAI,
+  getModelStructuredOutputSupport,
+} from './moonshotai-provider';
 
 const MoonshotAIChatLanguageModelMock =
   MoonshotAIChatLanguageModel as unknown as Mock;
@@ -165,8 +168,6 @@ describe('MoonshotAIProvider', () => {
     });
   });
 });
-<<<<<<< HEAD
-=======
 
 describe('getMoonshotAILanguageModelCapabilities', () => {
   it.each([
@@ -186,4 +187,3 @@ describe('getMoonshotAILanguageModelCapabilities', () => {
     },
   );
 });
->>>>>>> 5cb600b074 (feat(moonshotai): support structured outputs for kimi k2.5 (#16472))

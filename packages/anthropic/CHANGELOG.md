@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.90
+
+### Patch Changes
+
+- 28ff5a7: fix(anthropic): correctly map delta type when code execution tools are used
+
 ## 3.0.89
 
 ### Patch Changes
