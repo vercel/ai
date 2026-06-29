@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.78
+
+### Patch Changes
+
+- 64a701d: Return a helpful error when the Responses stream parser receives Chat Completions chunks.
+
 ## 3.0.77
 
 ### Patch Changes
