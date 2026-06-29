@@ -38,13 +38,13 @@ import type { GoogleVertexSpeechModelId } from './google-vertex-speech-model-opt
 const EXPRESS_MODE_BASE_URL =
   'https://aiplatform.googleapis.com/v1/publishers/google';
 
-// User-facing prefix for fine-tuned (tuned) models. Translated to the Vertex
-// `endpoints/{id}` URL segment, which replaces `publishers/google/models/{id}`.
+// Tuned (fine-tuned) models are deployed to an endpoint and addressed by their
+// `endpoints/{id}` resource, which replaces `publishers/google/models/{id}`.
 // https://cloud.google.com/vertex-ai/generative-ai/docs/deploy/overview
-const FINETUNED_MODEL_PREFIX = 'finetuned/';
+const ENDPOINT_MODEL_PREFIX = 'endpoints/';
 
-function isFinetunedModelId(modelId: string): boolean {
-  return modelId.startsWith(FINETUNED_MODEL_PREFIX);
+function isEndpointModelId(modelId: string): boolean {
+  return modelId.startsWith(ENDPOINT_MODEL_PREFIX);
 }
 
 // set `x-goog-api-key` header to API key for express mode
@@ -195,11 +195,11 @@ export function createGoogleVertex(
       description: 'Google Vertex location',
     });
 
-  // Fine-tuned models are deployed to an endpoint and addressed via
+  // Endpoint (fine-tuned) models are addressed via
   // `.../locations/{region}/endpoints/{id}` instead of the base-model
   // `.../publishers/google/models/{id}` path, so they omit the
   // `/publishers/google` suffix from the base URL.
-  const loadBaseURL = ({ finetuned = false }: { finetuned?: boolean } = {}) => {
+  const loadBaseURL = ({ endpoint = false }: { endpoint?: boolean } = {}) => {
     if (apiKey) {
       return withoutTrailingSlash(options.baseURL) ?? EXPRESS_MODE_BASE_URL;
     }
@@ -220,14 +220,14 @@ export function createGoogleVertex(
     return (
       withoutTrailingSlash(options.baseURL) ??
       `https://${getHost()}/v1beta1/projects/${project}/locations/${region}${
-        finetuned ? '' : '/publishers/google'
+        endpoint ? '' : '/publishers/google'
       }`
     );
   };
 
   const createConfig = (
     name: string,
-    { finetuned = false }: { finetuned?: boolean } = {},
+    { endpoint = false }: { endpoint?: boolean } = {},
   ): GoogleVertexConfig => {
     const getHeaders = async () => {
       const originalHeaders = await resolve(options.headers ?? {});
@@ -243,27 +243,21 @@ export function createGoogleVertex(
       fetch: apiKey
         ? createExpressModeFetch(apiKey, options.fetch)
         : options.fetch,
-      baseURL: loadBaseURL({ finetuned }),
+      baseURL: loadBaseURL({ endpoint }),
     };
   };
 
   const createChatModel = (modelId: GoogleVertexModelId) => {
-    const finetuned = isFinetunedModelId(modelId);
+    const endpoint = isEndpointModelId(modelId);
 
-    if (finetuned && apiKey) {
+    if (endpoint && apiKey) {
       throw new Error(
-        'Google Vertex fine-tuned models do not support Express Mode API keys. Use standard Google Cloud credentials instead.',
+        'Google Vertex endpoint (fine-tuned) models do not support Express Mode API keys. Use standard Google Cloud credentials instead.',
       );
     }
 
-    // Translate the user-facing `finetuned/{id}` prefix to the Vertex
-    // `endpoints/{id}` URL segment.
-    const resolvedModelId = finetuned
-      ? `endpoints/${modelId.slice(FINETUNED_MODEL_PREFIX.length)}`
-      : modelId;
-
-    return new GoogleLanguageModel(resolvedModelId, {
-      ...createConfig('chat', { finetuned }),
+    return new GoogleLanguageModel(modelId, {
+      ...createConfig('chat', { endpoint }),
       generateId: options.generateId ?? generateId,
       supportedUrls: () => ({
         '*': [

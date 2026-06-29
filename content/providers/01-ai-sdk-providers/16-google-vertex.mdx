@@ -395,8 +395,8 @@ Google Vertex language models can also be used in the `streamText` function
 
 [Fine-tuned (tuned) Gemini models](https://cloud.google.com/vertex-ai/generative-ai/docs/deploy/overview)
 are deployed to an endpoint and are addressed by their endpoint id rather than a
-published model name. Prefix the endpoint id with `finetuned/` and the provider
-will route the request to the deployed endpoint
+published model name. Pass the endpoint resource with the `endpoints/` prefix and
+the provider will route the request to the deployed endpoint
 (`.../locations/{location}/endpoints/{ENDPOINT_ID}`) instead of the base model
 path (`.../publishers/google/models/{MODEL_ID}`):
 
@@ -405,19 +405,22 @@ import { googleVertex } from '@ai-sdk/google-vertex';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: googleVertex('finetuned/YOUR_ENDPOINT_ID'),
+  model: googleVertex('endpoints/YOUR_ENDPOINT_ID'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
 
-The request and response format is identical to the base model the endpoint was
-tuned from, so all standard call settings and provider options continue to work.
+Use the deployed **endpoint** id, not the tuned model id (a tuned model has both a
+`models/...` resource and a separate `endpoints/...` resource; only the endpoint
+is callable for inference). The request and response format is identical to the
+base model the endpoint was tuned from, so all standard call settings and
+provider options continue to work.
 
 <Note>
   Fine-tuned models require standard Google Cloud credentials and the
   project/location of the deployed endpoint (via `GOOGLE_VERTEX_PROJECT` /
   `GOOGLE_VERTEX_LOCATION` or `createGoogleVertex`). [Express
-  Mode](#express-mode) API keys are not supported for fine-tuned models.
+  Mode](#express-mode) API keys are not supported for endpoint models.
 </Note>
 
 #### Code Execution

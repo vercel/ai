@@ -256,15 +256,15 @@ describe('google-vertex-provider-base', () => {
     );
   });
 
-  it('should translate a finetuned/ model id to an endpoints/ path with no publishers/google suffix', () => {
+  it('should use an endpoints/ model id with no publishers/google suffix', () => {
     const provider = createGoogleVertex({
       project: 'test-project',
       location: 'test-location',
     });
-    provider('finetuned/my-awesome-model');
+    provider('endpoints/1234567890');
 
     expect(GoogleLanguageModel).toHaveBeenCalledWith(
-      'endpoints/my-awesome-model',
+      'endpoints/1234567890',
       expect.objectContaining({
         provider: 'google.vertex.chat',
         baseURL:
@@ -291,30 +291,30 @@ describe('google-vertex-provider-base', () => {
     );
   });
 
-  it('should respect a custom baseURL for finetuned/ ids while translating the path', () => {
+  it('should respect a custom baseURL for endpoints/ ids', () => {
     const customBaseURL = 'https://custom-endpoint.example.com';
     const provider = createGoogleVertex({
       project: 'test-project',
       location: 'test-location',
       baseURL: customBaseURL,
     });
-    provider('finetuned/my-awesome-model');
+    provider('endpoints/1234567890');
 
     expect(GoogleLanguageModel).toHaveBeenCalledWith(
-      'endpoints/my-awesome-model',
+      'endpoints/1234567890',
       expect.objectContaining({
         baseURL: customBaseURL,
       }),
     );
   });
 
-  it('should reject Express Mode for finetuned models', () => {
+  it('should reject Express Mode for endpoint (fine-tuned) models', () => {
     const provider = createGoogleVertex({
       apiKey: 'test-api-key',
     });
 
-    expect(() => provider('finetuned/my-awesome-model')).toThrow(
-      'Google Vertex fine-tuned models do not support Express Mode API keys. Use standard Google Cloud credentials instead.',
+    expect(() => provider('endpoints/1234567890')).toThrow(
+      'Google Vertex endpoint (fine-tuned) models do not support Express Mode API keys. Use standard Google Cloud credentials instead.',
     );
   });
 
