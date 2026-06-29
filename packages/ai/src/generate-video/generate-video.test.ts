@@ -98,6 +98,7 @@ describe('experimental_generateVideo', () => {
       duration: 5,
       fps: 30,
       seed: 12345,
+      generateAudio: true,
       providerOptions: {
         'mock-provider': {
           loop: true,
@@ -120,6 +121,7 @@ describe('experimental_generateVideo', () => {
       duration: 5,
       fps: 30,
       seed: 12345,
+      generateAudio: true,
       providerOptions: { 'mock-provider': { loop: true } },
       headers: {
         'custom-request-header': 'request-header-value',

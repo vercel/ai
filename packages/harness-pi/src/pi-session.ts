@@ -29,7 +29,7 @@ import type {
   HarnessV1ToolSpec,
 } from '@ai-sdk/harness';
 import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
-import { resolvePiAuth, type PiAuthOptions } from './pi-auth';
+import { resolvePiEnv, type PiAuthOptions } from './pi-auth';
 import { getPiTerminalError, parseNativeEvent } from './pi-events';
 import { createPiModelResolver } from './pi-model-resolver';
 import { createPiPathMapper } from './pi-paths';
@@ -38,6 +38,7 @@ import { writePiSkills } from './pi-skills';
 import {
   persistSessionFileToSandbox,
   pullSessionFileFromSandbox,
+  safePiSessionFileName,
 } from './pi-resume-state';
 import {
   createPiTranslatorState,
@@ -268,11 +269,14 @@ export async function createPiSession(
   // host mirror so SessionManager.open can read it.
   let resumeSessionFilePath: string | undefined;
   if (input.isResume && input.resumeSessionFileName) {
+    const resumeSessionFileName = safePiSessionFileName(
+      input.resumeSessionFileName,
+    );
     resumeSessionFilePath = await pullSessionFileFromSandbox({
       sandbox,
       sessionWorkDir: input.sessionWorkDir,
       hostSessionDir,
-      sessionFileName: input.resumeSessionFileName,
+      sessionFileName: resumeSessionFileName,
       ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
     });
   }
@@ -311,9 +315,13 @@ export async function createPiSession(
   const settingsManager = SettingsManager.inMemory();
 
   // Run-scoped env (for the model resolver's gateway fallback heuristic).
-  const resolverEnv = resolvePiAuth(input.settings.auth, process.env, {
-    authStorage,
-    modelRegistry,
+  const resolverEnv = resolvePiEnv({
+    options: input.settings.auth,
+    env: process.env,
+    registries: {
+      authStorage,
+      modelRegistry,
+    },
   });
   const resolveModel = createPiModelResolver(modelRegistry, resolverEnv);
   // Resolve once: deterministic given the configured model. This is the Pi
@@ -565,7 +573,7 @@ export async function createPiSession(
     // round-trip it without guessing the extension.
     const candidatePath = sessionManager.getSessionFile();
     if (candidatePath) {
-      sessionFileName = path.basename(candidatePath);
+      sessionFileName = safePiSessionFileName(path.basename(candidatePath));
     }
 
     translatorState = createPiTranslatorState({
@@ -867,6 +875,29 @@ export async function createPiSession(
     doSuspendTurn: async (): Promise<HarnessV1ContinueTurnState> => {
       if (stopped) {
         throw new Error('Pi session has been stopped.');
+      }
+      if (
+        activeTurn != null &&
+        (pendingToolResults.size > 0 || pendingToolApprovals.size > 0)
+      ) {
+        parkedPiSessions.set(input.sessionId, sessionImpl);
+        if (sessionFileName) {
+          try {
+            await persistSessionFile();
+          } catch {
+            /*
+             * While waiting on host input, the live parked session is the
+             * authoritative same-process continuation path. The sandbox copy
+             * remains a best-effort fallback for a later cold resume.
+             */
+          }
+        }
+        return {
+          type: 'continue-turn',
+          harnessId: HARNESS_ID,
+          specificationVersion: 'harness-v1',
+          data: sessionFileName ? { sessionFileName } : {},
+        };
       }
       /*
        * Pi's model runs in this host process, which is about to be suspended at

@@ -50,6 +50,7 @@ export type GenerateVideoPrompt =
  * @param seed - Seed for the video generation.
  * @param frameImages - Role-tagged image inputs for image-to-video and first-last-frame generation.
  * @param inputReferences - Reference image inputs for reference-to-video generation.
+ * @param generateAudio - Whether the model should generate audio alongside the video.
  * @param providerOptions - Additional provider-specific options that are passed through to the provider
  * as body parameters.
  * @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
@@ -72,6 +73,7 @@ export async function experimental_generateVideo({
   seed,
   frameImages,
   inputReferences,
+  generateAudio,
   providerOptions,
   maxRetries: maxRetriesArg,
   abortSignal,
@@ -142,6 +144,11 @@ export async function experimental_generateVideo({
    * Reference image inputs for reference-to-video generation.
    */
   inputReferences?: Array<DataContent>;
+
+  /**
+   * Whether the model should generate audio alongside the video.
+   */
+  generateAudio?: boolean;
 
   /**
    * Additional provider-specific options that are passed through to the provider
@@ -266,6 +273,7 @@ export async function experimental_generateVideo({
             image: resolvedImage,
             frameImages: normalizedFrameImages,
             inputReferences: effectiveInputReferences,
+            generateAudio,
             providerOptions: providerOptions ?? {},
             headers: headersWithUserAgent,
             abortSignal,

@@ -18,6 +18,7 @@ const defaultOptions = {
   duration: undefined,
   fps: undefined,
   seed: undefined,
+  generateAudio: undefined,
   providerOptions: {
     googleVertex: {
       pollIntervalMs: 10, // Use short polling interval for tests
@@ -823,6 +824,60 @@ describe('GoogleVertexVideoModel', () => {
         parameters: {
           sampleCount: 1,
           generateAudio: true,
+        },
+      });
+    });
+
+    it('should map the top-level generateAudio option', async () => {
+      let capturedBody: unknown;
+      const model = createMockModel({
+        onRequest: (url, body) => {
+          if (url.includes(':predictLongRunning')) {
+            capturedBody = body;
+          }
+        },
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        generateAudio: true,
+      });
+
+      expect(capturedBody).toStrictEqual({
+        instances: [{ prompt }],
+        parameters: {
+          sampleCount: 1,
+          generateAudio: true,
+        },
+      });
+    });
+
+    it('should let the top-level generateAudio override the legacy provider option', async () => {
+      let capturedBody: unknown;
+      const model = createMockModel({
+        onRequest: (url, body) => {
+          if (url.includes(':predictLongRunning')) {
+            capturedBody = body;
+          }
+        },
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        generateAudio: false,
+        providerOptions: {
+          googleVertex: {
+            pollIntervalMs: 10,
+            generateAudio: true,
+          },
+        },
+      });
+
+      expect(capturedBody).toStrictEqual({
+        instances: [{ prompt }],
+        parameters: {
+          sampleCount: 1,
+          generateAudio: false,
         },
       });
     });

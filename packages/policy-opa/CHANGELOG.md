@@ -1,5 +1,127 @@
 # @ai-sdk/policy
 
+## 1.0.6
+
+### Patch Changes
+
+- Updated dependencies [989402d]
+  - ai@7.0.6
+
+## 1.0.5
+
+### Patch Changes
+
+- Updated dependencies [a2750db]
+  - ai@7.0.5
+
+## 1.0.4
+
+### Patch Changes
+
+- Updated dependencies [6a436e3]
+  - @ai-sdk/provider-utils@5.0.1
+  - ai@7.0.4
+
+## 1.0.3
+
+### Patch Changes
+
+- ai@7.0.3
+
+## 1.0.2
+
+### Patch Changes
+
+- ai@7.0.2
+
+## 1.0.1
+
+### Patch Changes
+
+- ai@7.0.1
+
+## 1.0.0
+
+### Major Changes
+
+- a94c258: Introduce `@ai-sdk/policy-opa`, an Open Policy Agent adapter for the
+  `toolApproval` callback on `generateText` / `streamText` / `ToolLoopAgent`.
+
+  Everything is exported from the package root. The engine-neutral core is a
+  `PolicyClient` interface, `shadow()` for safe policy rollout with
+  fire-and-forget telemetry, and `wrapMcpTools()` for making approval
+  configuration total over a discovered tool surface. The OPA layer ships
+  `opaPolicy` / `optionalOpaPolicy` (Rego-as-code authorization),
+  `wasmPolicyClient` and `httpPolicyClient` backends (lazy-loaded optional peer
+  deps), `opaCapabilityMiddleware` for fail-closed model-level tool filtering,
+  and `normalizeOpaDecision` for users who call OPA themselves.
+
+  Sits entirely on top of the public SDK surface, with no changes to `ai`,
+  `@ai-sdk/provider`, or `@ai-sdk/provider-utils`. Transitive enforcement
+  (coarse dispatchers like `bash` / `http.request` / MCP proxies) is handled
+  inside the user's `toolApproval` by parsing the dispatcher input and routing
+  to the same Rego rule that gates the direct tool.
+
+### Patch Changes
+
+- 9a1b0ea: Initial release
+- b8396f0: trigger initial beta release
+
+## 1.0.0-beta.24
+
+### Patch Changes
+
+- ai@7.0.0-beta.187
+
+## 1.0.0-beta.23
+
+### Patch Changes
+
+- ai@7.0.0-beta.186
+
+## 1.0.0-beta.22
+
+### Patch Changes
+
+- Updated dependencies [75763b0]
+  - ai@7.0.0-beta.185
+
+## 1.0.0-beta.21
+
+### Patch Changes
+
+- Updated dependencies [0416e3e]
+  - @ai-sdk/provider@4.0.0-beta.20
+  - ai@7.0.0-beta.184
+  - @ai-sdk/provider-utils@5.0.0-beta.50
+
+## 1.0.0-beta.20
+
+### Patch Changes
+
+- ai@7.0.0-beta.183
+
+## 1.0.0-beta.19
+
+### Patch Changes
+
+- Updated dependencies [cc6ab90]
+  - ai@7.0.0-beta.182
+
+## 1.0.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [6a2caf9]
+  - ai@7.0.0-beta.181
+
+## 1.0.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [81a284b]
+  - ai@7.0.0-beta.180
+
 ## 1.0.0-beta.16
 
 ### Patch Changes

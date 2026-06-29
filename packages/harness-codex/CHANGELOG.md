@@ -1,5 +1,155 @@
 # @ai-sdk/harness-codex
 
+## 1.0.8
+
+### Patch Changes
+
+- c0e991c: fix(harness-codex): fix Codex sometimes stopping after a single text response when using `workflow-harness`
+  - @ai-sdk/harness@1.0.8
+
+## 1.0.7
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.7
+
+## 1.0.6
+
+### Patch Changes
+
+- Updated dependencies [6a436e3]
+  - @ai-sdk/provider-utils@5.0.1
+  - @ai-sdk/harness@1.0.6
+
+## 1.0.5
+
+### Patch Changes
+
+- 43a8c68: fix(harness): use `shellQuote` where appropriate in harness adapters
+  - @ai-sdk/harness@1.0.5
+
+## 1.0.4
+
+### Patch Changes
+
+- c493634: fix(harness): fix harness Zod usage to be v3/v4 compatible
+- Updated dependencies [c493634]
+  - @ai-sdk/harness@1.0.4
+
+## 1.0.3
+
+### Patch Changes
+
+- Updated dependencies [51d10a0]
+  - @ai-sdk/harness@1.0.3
+
+## 1.0.2
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.2
+
+## 1.0.1
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.1
+
+## 1.0.0
+
+### Major Changes
+
+- 3d9a50c: feat(harness): implement harness adapters for Claude Code, Codex, Pi
+
+### Patch Changes
+
+- e5d4a24: chore(harness): update ws package
+- bc77265: chore(harness): enforce more structural conventions in harness adapters
+- aae0138: fix(harness): make listening for sandbox bridge readiness compatible with Bun
+- 1ea15a3: fix(harness): fix various bugs with harness skills not being correctly processed by the harness adapters
+- b8396f0: trigger initial beta release
+- e551763: fix(harness): avoid using peer dependencies for underlying harness and sandbox SDKs
+- 534dac6: fix(harness): fix incomplete OIDC token support for AI Gateway auth in harness adapters
+
+## 1.0.0-beta.24
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.0-beta.27
+
+## 1.0.0-beta.23
+
+### Patch Changes
+
+- Updated dependencies [a83a367]
+  - @ai-sdk/harness@1.0.0-beta.26
+
+## 1.0.0-beta.22
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.0-beta.25
+
+## 1.0.0-beta.21
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.0-beta.24
+
+## 1.0.0-beta.20
+
+### Patch Changes
+
+- Updated dependencies [57e0a59]
+  - @ai-sdk/harness@1.0.0-beta.23
+
+## 1.0.0-beta.19
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.0-beta.22
+- @ai-sdk/provider-utils@5.0.0-beta.50
+
+## 1.0.0-beta.18
+
+### Patch Changes
+
+- bc77265: chore(harness): enforce more structural conventions in harness adapters
+
+## 1.0.0-beta.17
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.0-beta.21
+
+## 1.0.0-beta.16
+
+### Patch Changes
+
+- e5d4a24: chore(harness): update ws package
+- Updated dependencies [e5d4a24]
+  - @ai-sdk/harness@1.0.0-beta.20
+
+## 1.0.0-beta.15
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.0-beta.19
+
+## 1.0.0-beta.14
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.0-beta.18
+
+## 1.0.0-beta.13
+
+### Patch Changes
+
+- 534dac6: fix(harness): fix incomplete OIDC token support for AI Gateway auth in harness adapters
+- Updated dependencies [534dac6]
+  - @ai-sdk/harness@1.0.0-beta.17
+
 ## 1.0.0-beta.12
 
 ### Patch Changes

@@ -46,6 +46,7 @@ export class GatewayVideoModel implements Experimental_VideoModelV4 {
     duration,
     fps,
     seed,
+    generateAudio,
     image,
     frameImages,
     inputReferences,
@@ -83,6 +84,7 @@ export class GatewayVideoModel implements Experimental_VideoModelV4 {
           ...(duration && { duration }),
           ...(fps && { fps }),
           ...(seed && { seed }),
+          ...(generateAudio !== undefined && { generateAudio }),
           ...(providerOptions && { providerOptions }),
           ...(image && { image: maybeEncodeVideoFile(image) }),
           ...(frameImages && {

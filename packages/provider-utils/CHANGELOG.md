@@ -1,5 +1,196 @@
 # @ai-sdk/provider-utils
 
+## 5.0.1
+
+### Patch Changes
+
+- 6a436e3: Limit JSON response body reads in response handlers to prevent unbounded memory use.
+
+## 5.0.0
+
+### Major Changes
+
+- 986c6fd: feat(ai): change type of experimental_context from unknown to generic
+- b0c2869: chore(ai): remove deprecated `media` type part from `ToolResultOutput`
+- f7d4f01: feat(provider): add support for `reasoning-file` type for files that are part of reasoning
+- 776b617: feat(provider): adding new 'custom' content type
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+- 493295c: Remove the deprecated `ToolCallOptions` export.
+
+  Use `ToolExecutionOptions` instead.
+
+- c29a26f: feat(provider): add support for provider references and uploading files as supported per provider
+- 3887c70: feat(provider): add new top-level reasoning parameter to spec and support it in `generateText` and `streamText`
+- 61753c3: ### `@ai-sdk/openai`: remove redundant `name` argument from `openai.tools.customTool()`
+
+  `openai.tools.customTool()` no longer accepts a `name` field. the tool name is now derived from the sdk tool key (the object key in the `tools` object).
+
+  migration: remove the `name` property from `customTool()` calls. the object key is now used as the tool name sent to the openai api.
+
+  before:
+
+  ```ts
+  tools: {
+    write_sql: openai.tools.customTool({
+      name: 'write_sql',
+      description: '...',
+    }),
+  }
+  ```
+
+  after:
+
+  ```ts
+  tools: {
+    write_sql: openai.tools.customTool({
+      description: '...',
+    }),
+  }
+  ```
+
+  ### `@ai-sdk/provider-utils`: `createToolNameMapping()` no longer accepts the `resolveProviderToolName` parameter
+
+  before: tool name can be set dynamically
+
+  ```ts
+  const toolNameMapping = createToolNameMapping({
+    tools,
+    providerToolNames: {
+      "openai.code_interpreter": "code_interpreter",
+      "openai.file_search": "file_search",
+      "openai.image_generation": "image_generation",
+      "openai.local_shell": "local_shell",
+      "openai.shell": "shell",
+      "openai.web_search": "web_search",
+      "openai.web_search_preview": "web_search_preview",
+      "openai.mcp": "mcp",
+      "openai.apply_patch": "apply_patch",
+    },
+    resolveProviderToolName: (tool) =>
+      tool.id === "openai.custom"
+        ? (tool.args as { name?: string }).name
+        : undefined,
+  });
+  ```
+
+  after: tool name is static based on `tools` keys
+
+  ```
+  const toolNameMapping = createToolNameMapping({
+    tools,
+    providerToolNames: {
+      'openai.code_interpreter': 'code_interpreter',
+      'openai.file_search': 'file_search',
+      'openai.image_generation': 'image_generation',
+      'openai.local_shell': 'local_shell',
+      'openai.shell': 'shell',
+      'openai.web_search': 'web_search',
+      'openai.web_search_preview': 'web_search_preview',
+      'openai.mcp': 'mcp',
+      'openai.apply_patch': 'apply_patch',
+    }
+  });
+  ```
+
+- 7e26e81: chore: rename experimental_context to context
+- 8359612: Start v7 pre-release
+- 5463d0d: feat(provider): align tool result output content file part types with top-level message file part types
+
+### Patch Changes
+
+- 2427d88: feat(ai): change Tool.sensitiveContext to telemetry.includeToolsContext and make it opt-in
+- 785fe16: feat: distinguish provider-defined and provider-executed tools
+- ee798eb: chore(provider-utils): rename `Experimental_Sandbox` to `Experimental_SandboxSession`
+- 531251e: fix(security): validate redirect targets in download functions to prevent SSRF bypass
+
+  Both `downloadBlob` and `download` now validate the final URL after following HTTP redirects, preventing attackers from bypassing SSRF protections via open redirects to internal/private addresses.
+
+- 67df0a0: feat: add sensitiveContext property to Tool
+- 105f95b: Ensure the default empty tool input schema includes `type: "object"` for OpenAI-compatible providers that require object schemas.
+- eea8d98: refactoring: rename tool execution events
+- d848405: feat: add optional `abortSignal` parameters to sandbox command execution
+- 46d1149: chore(provider-utils,google): fix grammar errors in error and warning messages
+- 1f509d4: fix(ai): force template check on 'kind' param
+- ca446f8: feat: flexible tool descriptions
+- 3ae1786: fix: better context type inference
+- a7de9c9: fix: make sandbox experimental
+- 9f0e36c: trigger release for all packages after provenance setup
+- befb78c: refactoring: remove real-time delays in unit tests
+- f634bac: feat(mcp): add new McpProviderMetadata type
+- 2e17091: fix(types): move shared tool set utility types into provider-utils
+
+  Moved `ToolSet`, `InferToolSetContext`, and `UnionToIntersection` into `@ai-sdk/provider-utils` and updated `ai` internals to import them directly from there. This keeps the shared tool typing utilities colocated with the core tool type definitions.
+
+- ca39020: Add an optional `workingDirectory` parameter to sandbox command execution.
+- 0458559: fix: deprecate needsApproval on Tool
+- 5852c0a: refactoring(provider-utils): add controller as property to StreamingToolCallTracker
+- 2e98477: fix: retain stack traces on async errors
+- add1126: refactoring: executeTool uses tool as parameter
+- aeda373: fix: only send provider credentials to same-origin response-supplied URLs
+
+  Several provider clients followed a URL taken from the provider's API response (a polling/status URL or a final media URL such as `polling_url`, `urls.get`, `result_url`, `result.sample`, or `video.uri`) and reused the authenticated headers — or appended `?key=<API_KEY>` — on that request. Because the host of the response-supplied URL was never validated, the long-lived API key was sent to whatever host the response named (a CDN in the benign case, or an attacker-chosen host if the provider response was tampered with), allowing credential exfiltration.
+
+  A new `isSameOrigin` helper is added to `@ai-sdk/provider-utils`, and the affected fetches in `@ai-sdk/black-forest-labs`, `@ai-sdk/fireworks`, `@ai-sdk/replicate`, `@ai-sdk/gladia`, `@ai-sdk/fal`, and `@ai-sdk/google` now attach credentials only when the followed URL is same-origin with the provider's configured API origin. Requests to a foreign origin are made without the credential.
+
+- 350ea38: refactoring: introduce Arrayable type
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- f807e45: Extract shared `StreamingToolCallTracker` class into `@ai-sdk/provider-utils` to deduplicate streaming tool call handling across OpenAI-compatible providers. Also adds missing `generateId()` fallback for `toolCallId` in Alibaba's `doGenerate` path and ensures all providers finalize unfinished tool calls during stream flush.
+- 08d2129: feat(mcp): propagate the server name through dynamic tool parts
+- 0c4c275: trigger initial canary release
+- 6fd51c0: fix(provider): preserve error type prefix in getErrorMessage
+- 69254e0: feat(ai): add toolMetadata for tool specific metdata
+- 6c93e36: feat(provider-utils): add `spawnCommand` method to `Experimental_Sandbox` to allow for detached command execution
+- 9bd6512: feat(provider): change file part data property to be tagged with a type and remove the image part type
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- 375fdd7: fix: harden download URL SSRF guard against hostname and redirect bypasses
+
+  `validateDownloadUrl` and the file download helpers (`downloadBlob`, `download`) could be bypassed in several ways when handling untrusted URLs:
+
+  - A fully-qualified hostname with a trailing dot (e.g. `localhost.`, `myhost.local.`) skipped the localhost/`.local` blocklist.
+  - IPv6 addresses that embed an IPv4 address in their last 32 bits — IPv4-compatible (`::127.0.0.1`), IPv4-translated (`::ffff:0:127.0.0.1`), and NAT64 (`64:ff9b::127.0.0.1`, including the `64:ff9b:1::/48` local-use prefix) — were not decoded and checked against the private IPv4 ranges.
+  - Redirects were validated only _after_ `fetch` had already followed them, so the request to a redirect target (e.g. an internal/metadata address) had already been issued before the check ran.
+  - Several reserved/internal address ranges were not blocked: CGNAT (`100.64.0.0/10`, used by some cloud providers for internal traffic), benchmarking (`198.18.0.0/15`), IETF protocol assignments (`192.0.0.0/24`), the reserved `240.0.0.0/4` block (including the `255.255.255.255` broadcast address), and IPv6 site-local (`fec0::/10`) and multicast (`ff00::/8`).
+
+  The validator now strips trailing dots before the hostname checks and fully expands IPv6 addresses to detect embedded private IPv4 targets. The download helpers now follow redirects manually (`redirect: 'manual'`), re-validating each hop before requesting it, so an unsafe redirect target is never fetched. When a redirect cannot be inspected because the runtime returns an opaque response, the helpers fail closed (reject the redirect) on the server; only in a real browser — where SSRF is not reachable (fetch is constrained by CORS and cannot reach a server's internal network or cloud-metadata endpoints) — is the redirect followed natively so legitimate redirected downloads keep working.
+
+- b6783da: refactoring: restructure Tool types
+- 3015fc3: feat: sandbox shell execution abstraction
+- b8396f0: trigger initial beta release
+- daf6637: feat(provider-utils): add `env` option to `spawn` and `run` methods of `Experimental_SandboxSession`
+- a6617c5: feat(provider-utils): add `readFile` and `writeFile` plus convenience wrappers to `Experimental_Sandbox` abstraction
+- 28dfa06: fix: support tools with optional context
+- 083947b: feat(ai): separate toolsContext from context
+- bae5e2b: fix(security): re-validate tool approvals from client message history before execution
+
+  The approval-replay path in `generateText`/`streamText` (and `WorkflowAgent.stream`) reconstructed approved tool calls from the client-supplied messages array and executed them without re-validating input against the tool's schema or re-applying the approval policy. A client could forge an assistant message with a pre-approved tool-call part and have the server execute a tool with attacker-chosen arguments.
+
+  The replay path now validates HMAC signature (when `experimental_toolApprovalSecret` is configured), re-validates tool-call input against the tool's input schema, and re-resolves the approval policy before execution.
+
+- f617ac2: feat(provider-utils): narrow `tool()` return type to `ExecutableTool<...>` when `execute` is provided
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+- b4507d5: fix(provider-utils): cancel response body on download rejection to prevent socket leak
+
+  When a download was rejected early — because the `Content-Length` header exceeded the size limit, the response status was not ok, or a redirect resolved to a blocked URL — the fetch response body was left unconsumed and uncancelled. With WHATWG Fetch/undici this leaves the underlying TCP socket open instead of returning it to the connection pool, allowing an attacker-controlled origin to exhaust file descriptors and cause a denial of service. The body is now cancelled on all early-rejection paths in `readResponseWithSizeLimit`, `download`, and `downloadBlob`, and `fetchWithValidatedRedirects` cancels each redirect hop's body before following or rejecting the next hop.
+
+- e93fa91: rename Sandbox.executeCommand to Sandbox.runCommand
+- fc92055: feat(ai): automatic tool approval
+- b3976a2: Add workflow serialization support to all provider models.
+
+  **`@ai-sdk/provider-utils`:** New `serializeModel()` helper that extracts only serializable properties from a model instance, filtering out functions and objects containing functions. Third-party provider authors can use this to add workflow support to their own models.
+
+  **All providers:** `headers` is now optional in provider config types. This is non-breaking — existing code that passes `headers` continues to work. Custom provider implementations that construct model configs manually can now omit `headers`, which is useful when models are deserialized from a workflow step boundary where auth is provided separately.
+
+  All provider model classes now include `WORKFLOW_SERIALIZE` and `WORKFLOW_DESERIALIZE` static methods, enabling them to cross workflow step boundaries without serialization errors.
+
+- ff5eba1: feat: roll `image-*` tool output types into their equivalent `file-*` types
+
+## 5.0.0-beta.50
+
+### Patch Changes
+
+- Updated dependencies [0416e3e]
+  - @ai-sdk/provider@4.0.0-beta.20
+
 ## 5.0.0-beta.49
 
 ### Patch Changes
