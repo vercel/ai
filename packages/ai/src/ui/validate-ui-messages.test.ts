@@ -1151,6 +1151,56 @@ describe('validateUIMessages', () => {
       `);
     });
 
+    it('should default missing dynamic and static tool output to null before output validation', async () => {
+      const messages = await validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'dynamic-tool',
+                toolName: 'bar',
+                toolCallId: '1',
+                state: 'output-available',
+                input: { foo: 'bar' },
+              },
+              {
+                type: 'tool-foo',
+                toolCallId: '2',
+                state: 'output-available',
+                input: { foo: 'bar' },
+              },
+            ],
+          },
+        ],
+        tools: {
+          foo: {
+            inputSchema: z.object({ foo: z.string() }),
+            outputSchema: z.null(),
+          },
+        },
+      });
+
+      expect(messages[0].parts).toEqual([
+        {
+          type: 'dynamic-tool',
+          toolName: 'bar',
+          toolCallId: '1',
+          state: 'output-available',
+          input: { foo: 'bar' },
+          output: null,
+        },
+        {
+          type: 'tool-foo',
+          toolCallId: '2',
+          state: 'output-available',
+          input: { foo: 'bar' },
+          output: null,
+        },
+      ]);
+    });
+
     it('should preserve result provider metadata when state is output-available', async () => {
       const messages = await validateUIMessages<TestMessage>({
         messages: [

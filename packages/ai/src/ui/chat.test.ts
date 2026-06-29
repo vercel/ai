@@ -70,6 +70,10 @@ function formatChunk(part: UIMessageChunk) {
   return `data: ${JSON.stringify(part)}\n\n`;
 }
 
+function formatRawChunk(part: unknown) {
+  return `data: ${JSON.stringify(part)}\n\n`;
+}
+
 const server = createTestServer({
   'http://localhost:3000/api/chat': {},
 });
@@ -445,6 +449,60 @@ describe('Chat', () => {
           ],
         ]
       `);
+    });
+  });
+
+  describe('send a message with missing tool output', () => {
+    it('should default missing tool output from the stream to null', async () => {
+      server.urls['http://localhost:3000/api/chat'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          formatChunk({ type: 'start' }),
+          formatChunk({ type: 'start-step' }),
+          formatChunk({
+            type: 'tool-input-available',
+            toolCallId: 'call-1',
+            toolName: 'weather',
+            input: { city: 'Tokyo' },
+          }),
+          formatRawChunk({
+            type: 'tool-output-available',
+            toolCallId: 'call-1',
+          }),
+          formatChunk({ type: 'finish-step' }),
+          formatChunk({
+            type: 'finish',
+            finishReason: 'stop',
+          }),
+        ],
+      };
+
+      const finishPromise = createResolvablePromise<void>();
+
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId(),
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+        onFinish: () => finishPromise.resolve(),
+      });
+
+      chat.sendMessage({
+        text: 'What is the weather in Tokyo?',
+      });
+
+      await finishPromise.promise;
+
+      expect(chat.messages.at(-1)?.parts).toContainEqual(
+        expect.objectContaining({
+          type: 'tool-weather',
+          toolCallId: 'call-1',
+          state: 'output-available',
+          input: { city: 'Tokyo' },
+          output: null,
+        }),
+      );
     });
   });
 
