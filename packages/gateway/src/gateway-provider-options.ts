@@ -108,6 +108,15 @@ const gatewayProviderOptions = lazySchema(() =>
        * default.
        */
       serviceTier: z.enum(['flex', 'priority']).optional(),
+      /**
+       * Enables automatic prompt caching across providers. When set to
+       * `'auto'`, the gateway applies the appropriate caching strategy for
+       * the routed provider: it adds a `cache_control` breakpoint to static
+       * content for providers that require explicit markers (such as
+       * Anthropic), while providers with implicit caching cache
+       * automatically. Leave unset to pass requests through unmodified.
+       */
+      caching: z.literal('auto').optional(),
     }),
   ),
 );
