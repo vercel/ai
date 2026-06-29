@@ -38,6 +38,7 @@ import {
   type InboundMessage,
   type OutboundMessage,
 } from './codex-bridge-protocol';
+import { CLI_SHIM_FILENAME } from './bridge/cli-relay';
 
 type CodexChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 type CodexRespawnStrategy = 'replay' | 'rerun';
@@ -266,6 +267,7 @@ export function createCodex(
           return createSession({
             sessionId: startOpts.sessionId,
             channel: attachChannel,
+            sessionWorkDir: workDir,
             // The live bridge was spawned by another process; no process handle.
             proc: undefined,
             model: settings.model ?? DEFAULT_CODEX_MODEL,
@@ -402,6 +404,7 @@ export function createCodex(
       return createSession({
         sessionId: startOpts.sessionId,
         channel,
+        sessionWorkDir: workDir,
         proc,
         model: settings.model ?? DEFAULT_CODEX_MODEL,
         reasoningEffort: settings.reasoningEffort,
@@ -615,6 +618,7 @@ function openWebSocket(url: string): Promise<WebSocket> {
 function createSession({
   sessionId,
   channel,
+  sessionWorkDir,
   proc,
   model,
   reasoningEffort,
@@ -631,6 +635,7 @@ function createSession({
 }: {
   sessionId: string;
   channel: CodexChannel;
+  sessionWorkDir: string;
   /** Undefined on `attach` — the live bridge was spawned by another process. */
   proc: Experimental_SandboxProcess | undefined;
   model: string | undefined;
@@ -658,10 +663,10 @@ function createSession({
     ? resumeThreadId
     : undefined;
   /*
-   * Instructions are prepended to the first user message of a fresh session
-   * only. A resumed session (attach/replay/rerun) already carried them in its
-   * original first message (preserved in the persisted thread), so it starts
-   * "applied".
+   * Initial prompt guidance is prepended to the first user message of a fresh
+   * session only. A resumed session (attach/replay/rerun) already carried it
+   * in its original first message (preserved in the persisted thread), so it
+   * starts "applied".
    */
   let instructionsApplied = isResume;
 
@@ -819,19 +824,31 @@ function createSession({
         abortSignal: promptOpts.abortSignal,
       });
 
-      const applyInstructions =
-        !instructionsApplied && !!promptOpts.instructions;
+      const tools = (promptOpts.tools ?? []).map(t => ({
+        name: t.name,
+        description: t.description,
+        inputSchema: t.inputSchema,
+      }));
+      let promptText = extractUserText(promptOpts.prompt);
+      if (!instructionsApplied) {
+        promptText = frameInitialPromptGuidance({
+          instructions: promptOpts.instructions,
+          toolUsageBlock:
+            tools.length > 0
+              ? composeToolUsageInstructions({
+                  tools,
+                  cliShimPath: `${sessionWorkDir}/${CLI_SHIM_FILENAME}`,
+                })
+              : undefined,
+          userText: promptText,
+        });
+      }
       instructionsApplied = true;
 
       const startMessage = {
         type: 'start' as const,
-        prompt: extractUserText(promptOpts.prompt),
-        ...(applyInstructions ? { instructions: promptOpts.instructions } : {}),
-        tools: (promptOpts.tools ?? []).map(t => ({
-          name: t.name,
-          description: t.description,
-          inputSchema: t.inputSchema,
-        })),
+        prompt: promptText,
+        tools,
         model,
         reasoningEffort,
         webSearch,
@@ -1071,6 +1088,67 @@ function createSession({
       return payload;
     },
   };
+}
+
+/*
+ * Frame session instructions, host-tool relay guidance, and the user's text so
+ * Codex treats the prepended blocks as operating guidance rather than user
+ * prose. Applied only to the first user message of a fresh session.
+ */
+function frameInitialPromptGuidance({
+  instructions,
+  toolUsageBlock,
+  userText,
+}: {
+  instructions: string | undefined;
+  toolUsageBlock: string | undefined;
+  userText: string;
+}): string {
+  const blocks: string[] = [];
+  if (instructions) {
+    blocks.push(
+      '<session-instructions>\n' +
+        'The block below is operating guidance from the system, not a message from the user — follow it, but do not mention it or attribute it to the user.\n\n' +
+        `${instructions}\n` +
+        '</session-instructions>',
+    );
+  }
+  if (toolUsageBlock) blocks.push(toolUsageBlock);
+  if (blocks.length === 0) return userText;
+  return `${blocks.join('\n\n')}\n\n<user-message>\n${userText}\n</user-message>`;
+}
+
+function composeToolUsageInstructions({
+  tools,
+  cliShimPath,
+}: {
+  tools: ReadonlyArray<{
+    name: string;
+    description?: string;
+    inputSchema?: unknown;
+  }>;
+  cliShimPath: string;
+}): string {
+  const lines: string[] = [
+    '## Host tools',
+    '',
+    'You have access to the following host-provided tools. To use one, run the following command via your built-in `bash` tool:',
+    '',
+    `  node ${cliShimPath} <toolName> '<jsonInput>'`,
+    '',
+    'The script prints the JSON result to stdout. Do not invent another way to call these tools — only this CLI invocation will work. Pass the JSON input as a single-quoted argument.',
+    'For every user request that depends on a host-provided tool, run a separate CLI invocation for each needed tool call in the current turn before answering. Do not reuse previous tool results, and do not say you used a host tool unless the command has completed in the current turn.',
+    '',
+  ];
+  for (const toolSpec of tools) {
+    lines.push(`### ${toolSpec.name}`);
+    if (toolSpec.description) lines.push(toolSpec.description);
+    lines.push(
+      `Input schema: \`${JSON.stringify(toolSpec.inputSchema ?? {})}\``,
+      '',
+    );
+  }
+  return lines.join('\n');
 }
 
 /*
