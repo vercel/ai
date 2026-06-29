@@ -1,5 +1,12 @@
 # @ai-sdk/gateway
 
+## 3.0.140
+
+### Patch Changes
+
+- f6689df: feat(gateway): add `caching` provider option to `GatewayProviderOptions`
+- 13b6a72: Backport: chore(provider/gateway): update gateway model settings files
+
 ## 3.0.139
 
 ### Patch Changes
