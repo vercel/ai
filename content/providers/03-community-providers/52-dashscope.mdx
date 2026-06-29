@@ -1,0 +1,527 @@
+---
+title: DashScope
+description: Learn how to use the DashScope provider for the AI SDK.
+---
+
+# DashScope Provider
+
+[DemoMacro/agentor](https://github.com/DemoMacro/agentor) is a community provider for [Alibaba Cloud DashScope (Bailian)](https://help.aliyun.com/en/model-studio/) that provides comprehensive AI SDK integration with support for:
+
+- **Chat Completions** with function calling, streaming, reasoning, and vision
+- **Completions (FIM)** for code completion with Qwen Coder models
+- **Responses API** with built-in tools (web search, code interpreter, MCP, etc.)
+- **Embedding**, **Reranking**, **Image Generation**, **Video Generation**, **TTS**, and **Transcription**
+- **Multi-region** support (Beijing, Singapore, US, Germany)
+- **Context Cache** to reduce cost and latency for repeated prefixes
+
+## Setup
+
+The DashScope provider is available via the `@agentor/dashscope` module. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @agentor/dashscope" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @agentor/dashscope" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @agentor/dashscope" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @agentor/dashscope" dark />
+  </Tab>
+</Tabs>
+
+### Environment variables
+
+Create a `.env` file with a `DASHSCOPE_API_KEY` variable.
+
+## Provider Instance
+
+You can import the default provider instance `dashscope` from `@agentor/dashscope`:
+
+```ts
+import { dashscope } from '@agentor/dashscope';
+```
+
+If you need a customized setup, you can import `createDashScope` from `@agentor/dashscope` and create a provider instance with your settings:
+
+```ts
+import { createDashScope } from '@agentor/dashscope';
+
+const dashscope = createDashScope({
+  apiKey: 'YOUR_API_KEY',
+  region: 'beijing', // beijing | singapore | us | germany
+});
+```
+
+You can use the following optional settings to customize the DashScope provider instance:
+
+- **apiKey** _string_
+
+  API key that is being sent using the `Authorization` header.
+  It defaults to the `DASHSCOPE_API_KEY` environment variable.
+
+- **region** _string_
+
+  Region for API calls. Supported values: `beijing`, `singapore`, `us`, `germany`.
+
+- **workspaceId** _string_
+
+  Workspace ID, required for the Germany region.
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls, e.g. to use proxy servers.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+## Language Models
+
+You can create models that call the [DashScope Chat Completion API](https://help.aliyun.com/en/model-studio/) using the provider instance.
+The first argument is the model id, e.g. `qwen3.5-flash`.
+
+```ts
+const model = dashscope('qwen3.5-flash');
+```
+
+### Example
+
+You can use DashScope language models to generate text with the `generateText` function:
+
+```ts
+import { dashscope } from '@agentor/dashscope';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: dashscope('qwen3.5-flash'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+DashScope language models can also be used in the `streamText` function and support structured data generation with [`Output`](/docs/reference/ai-sdk-core/output)
+(see [AI SDK Core](/docs/ai-sdk-core)).
+
+### Streaming
+
+```ts
+import { dashscope } from '@agentor/dashscope';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: dashscope('qwen3.5-flash'),
+  prompt: 'Explain the Vercel AI SDK in three sentences.',
+});
+
+for await (const part of result.textStream) {
+  process.stdout.write(part);
+}
+```
+
+### Function Calling
+
+```ts
+import { dashscope } from '@agentor/dashscope';
+import { generateText, hasToolCall, tool } from 'ai';
+import { z } from 'zod/v4';
+
+const result = await generateText({
+  model: dashscope('qwen3.5-flash'),
+  tools: {
+    weather: tool({
+      description: 'Get weather information for a city',
+      inputSchema: z.object({
+        city: z.string().describe('City name'),
+      }),
+      execute: async ({ city }) => {
+        return `${city}: Sunny, 25°C`;
+      },
+    }),
+  },
+  prompt: "What's the weather in Beijing?",
+  stopWhen: hasToolCall('weather'),
+});
+```
+
+### Thinking Mode
+
+Enable reasoning with configurable budget:
+
+```ts
+import { dashscope } from '@agentor/dashscope';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: dashscope('qwen3.5-flash'),
+  providerOptions: {
+    dashscope: {
+      enableThinking: true,
+      thinkingBudget: 5000,
+    },
+  },
+  prompt: 'Which is larger, 9.11 or 9.9?',
+});
+```
+
+### Built-in Tools
+
+Enable web search or code interpreter via `providerOptions`:
+
+```ts
+import { dashscope } from '@agentor/dashscope';
+import { generateText } from 'ai';
+
+// Web search
+await generateText({
+  model: dashscope('qwen3.5-flash'),
+  providerOptions: {
+    dashscope: {
+      enableSearch: true,
+    },
+  },
+  prompt: 'What are the latest tech news today?',
+});
+
+// Code interpreter (requires thinking mode)
+await generateText({
+  model: dashscope('qwen3.5-flash'),
+  providerOptions: {
+    dashscope: {
+      enableCodeInterpreter: true,
+      enableThinking: true,
+    },
+  },
+  prompt: 'Calculate the sum of the first 20 Fibonacci numbers.',
+});
+```
+
+Options: `enableSearch`, `searchStrategy` (`"enable"` | `"enable_with_history"` | `"agent_max"`).
+
+### Structured Output
+
+Use `generateText` with `Output.object()` to generate typed JSON:
+
+```ts
+import { dashscope } from '@agentor/dashscope';
+import { generateText, Output } from 'ai';
+import { z } from 'zod/v4';
+
+const result = await generateText({
+  model: dashscope('qwen3.5-flash'),
+  prompt: 'List 3 programming languages with their creators.',
+  output: Output.object({
+    schema: z.object({
+      languages: z.array(
+        z.object({
+          name: z.string(),
+          creator: z.string(),
+          year: z.number(),
+        }),
+      ),
+    }),
+  }),
+});
+
+console.log(result.output);
+```
+
+### Context Cache
+
+Cache long system prompts or content parts to reduce cost and latency (minimum 1024 tokens):
+
+```ts
+import { dashscope } from '@agentor/dashscope';
+import { generateText } from 'ai';
+
+const longText = '...'; // must be >= 1024 tokens
+
+const { text } = await generateText({
+  model: dashscope('qwen3.5-flash'),
+  messages: [
+    {
+      role: 'system',
+      content: longText,
+      providerOptions: {
+        dashscope: { cacheControl: { type: 'ephemeral' } },
+      },
+    },
+    { role: 'user', content: 'What does this code do?' },
+  ],
+});
+```
+
+### Model Capabilities
+
+| Model              | Image Input         | Object Generation   | Tool Usage          | Streaming           |
+| ------------------ | ------------------- | ------------------- | ------------------- | ------------------- |
+| `qwen3.6-max-preview` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `qwen3.5-plus`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `qwen3.5-flash`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `qwq-plus`         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `qwen3-vl-plus`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+
+<Note>
+  The table above lists popular models. Please see the
+  [Alibaba Cloud Model Studio](https://help.aliyun.com/en/model-studio/models)
+  for a full list of available models.
+</Note>
+
+## Completions (FIM)
+
+Use `completionModel()` for text/code completion via the `/completions` endpoint (Fill-In-the-Middle):
+
+```ts
+import { dashscope } from '@agentor/dashscope';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: dashscope.completionModel('qwen2.5-coder-32b-instruct'),
+  prompt:
+    '<|fim_prefix|>def quick_sort(arr):\n    """Sort array using quicksort."""\n<|fim_suffix|>\n    return arr\n<|fim_middle|>',
+});
+```
+
+## Responses API
+
+Use the `responses` namespace for the Responses API with built-in tools:
+
+```ts
+import { dashscope } from '@agentor/dashscope';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: dashscope.responses('qwen3.5-flash'),
+  tools: [dashscope.responses.tools.webSearch()],
+  prompt: 'What are the latest tech news today?',
+});
+```
+
+### Available Built-in Tools
+
+- **`dashscope.responses.tools.webSearch()`** - Web search. Accepts `forcedSearch` and `searchStrategy` options
+- **`dashscope.responses.tools.codeInterpreter()`** - Code interpreter
+- **`dashscope.responses.tools.webExtractor()`** - Web content extraction (can be used together with `webSearch` for enhanced results)
+- **`dashscope.responses.tools.fileSearch({ vectorStoreIds })`** - Search within uploaded knowledge bases
+- **`dashscope.responses.tools.webSearchImage()`** - Text-to-image search
+- **`dashscope.responses.tools.imageSearch()`** - Image-to-image search
+- **`dashscope.responses.tools.mcp({ serverProtocol, serverLabel, serverUrl })`** - MCP integration. Accepts `serverDescription` and `headers` options
+
+### Multi-turn Conversation
+
+Options via `providerOptions.dashscope`: `previousResponseId`, `enableThinking`, `reasoning`, `conversation`, `instructions`, `includeUsage`.
+
+Use `previousResponseId` for multi-turn conversations:
+
+```ts
+const first = await generateText({
+  model: dashscope.responses('qwen3.5-flash'),
+  prompt: 'Tell me about quantum computing.',
+});
+
+const second = await generateText({
+  model: dashscope.responses('qwen3.5-flash'),
+  providerOptions: {
+    dashscope: {
+      previousResponseId: first.response.id,
+    },
+  },
+  prompt: 'Can you explain it in simpler terms?',
+});
+```
+
+## Embedding Models
+
+You can create models that call the DashScope embeddings API using the `.embeddingModel()` factory method.
+
+```ts
+import { dashscope } from '@agentor/dashscope';
+import { embed, embedMany } from 'ai';
+
+// Single embedding
+const { embedding } = await embed({
+  model: dashscope.embeddingModel('text-embedding-v4'),
+  value: 'The clothes quality is excellent',
+});
+
+// Batch embedding
+const { embeddings } = await embedMany({
+  model: dashscope.embeddingModel('text-embedding-v4'),
+  values: ['Hello world', 'Machine learning is fascinating'],
+});
+```
+
+### Custom Dimensions
+
+```ts
+const { embedding } = await embed({
+  model: dashscope.embeddingModel('text-embedding-v4'),
+  value: 'Custom dimension embedding',
+  providerOptions: {
+    openaiCompatible: {
+      dimensions: 256,
+    },
+  },
+});
+```
+
+### Model Capabilities
+
+| Model               | Dimensions             | Languages              |
+| ------------------- | ---------------------- | ---------------------- |
+| `text-embedding-v4` | 64-2048 (default 1024) | 100+ languages         |
+| `text-embedding-v3` | 64-1024 (default 1024) | 50+ languages          |
+| `text-embedding-v2` | 1536                   | Chinese, English, etc. |
+| `text-embedding-v1` | 1536                   | Chinese, English, etc. |
+
+## Reranking Models
+
+You can create models that call the DashScope reranking API using the `.rerankingModel()` factory method.
+
+```ts
+import { dashscope } from '@agentor/dashscope';
+import { rerank } from 'ai';
+
+const { ranking } = await rerank({
+  model: dashscope.rerankingModel('qwen3-rerank'),
+  query: 'What is a reranking model?',
+  documents: [
+    'Reranking models sort candidate texts by relevance',
+    'Quantum computing is a frontier field',
+    'Pre-trained models brought advances to reranking',
+  ],
+});
+
+for (const item of ranking) {
+  console.log(`Index: ${item.originalIndex}, Score: ${item.score}`);
+}
+```
+
+### Top N Results
+
+```ts
+const { ranking } = await rerank({
+  model: dashscope.rerankingModel('qwen3-rerank'),
+  query: 'How to reset password?',
+  documents: [
+    'Go to Settings > Security > Change Password',
+    'Forgot your password?',
+    'Two-factor authentication is supported',
+  ],
+  topN: 2,
+});
+```
+
+## Image Generation
+
+You can create models that call the DashScope image generation API using the `.imageModel()` factory method.
+
+```ts
+import { dashscope } from '@agentor/dashscope';
+import { generateImage } from 'ai';
+
+const { images } = await generateImage({
+  model: dashscope.imageModel('qwen-image-plus'),
+  prompt: 'A cute cat sitting on a windowsill with sunlight streaming in',
+  providerOptions: {
+    dashscope: {
+      size: '1024*1024',
+    },
+  },
+});
+```
+
+## Video Generation
+
+You can create models that call the DashScope video generation API using the `.videoModel()` factory method.
+
+```ts
+import { dashscope } from '@agentor/dashscope';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+// Text-to-video
+const { videos } = await generateVideo({
+  model: dashscope.videoModel('wan2.6-t2v'),
+  prompt: 'A golden retriever running through a field of sunflowers',
+  providerOptions: {
+    dashscope: {
+      size: '1280*720',
+      duration: 5,
+    },
+  },
+});
+```
+
+### Image-to-Video
+
+Use a model ID containing `-i2v` for image-to-video mode:
+
+```ts
+const { videos } = await generateVideo({
+  model: dashscope.videoModel('wan2.7-i2v'),
+  prompt: 'The cat stretches and walks away',
+  providerOptions: {
+    dashscope: {
+      resolution: '720P',
+    },
+  },
+  image: 'data:image/png;base64,...', // or a URL string
+});
+```
+
+## Speech Synthesis (TTS)
+
+You can create models that call the DashScope speech synthesis API using the `.speechModel()` factory method.
+
+```ts
+import { dashscope } from '@agentor/dashscope';
+import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { writeFileSync } from 'fs';
+
+const { audio } = await generateSpeech({
+  model: dashscope.speechModel('cosyvoice-v3-flash'),
+  text: 'Hello, welcome to the AI SDK.',
+  providerOptions: {
+    dashscope: {
+      voice: 'longanyang',
+      format: 'wav',
+      sampleRate: 24000,
+    },
+  },
+});
+
+writeFileSync('output.wav', audio.uint8Array);
+```
+
+## Transcription (STT)
+
+You can create models that call the DashScope transcription API using the `.transcriptionModel()` factory method.
+
+### Short Audio (Sync)
+
+```ts
+import { dashscope } from '@agentor/dashscope';
+import { experimental_transcribe as transcribe } from 'ai';
+
+const { text } = await transcribe({
+  model: dashscope.transcriptionModel('qwen3-asr-flash'),
+  audio: new URL('https://example.com/audio.mp3'),
+});
+```
+
+### Long Audio (Async)
+
+```ts
+const { text, segments } = await transcribe({
+  model: dashscope.transcriptionModel('qwen3-asr-flash-filetrans'),
+  audio: new Uint8Array(0), // placeholder
+  providerOptions: {
+    dashscope: {
+      fileUrl: 'https://example.com/long-audio.mp3',
+      enableWords: true,
+    },
+  },
+});
+```
