@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/tui",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "type": "module",
   "description": "Run AI SDK agents in a terminal UI.",
   "license": "Apache-2.0",

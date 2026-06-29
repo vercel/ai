@@ -94,6 +94,8 @@ describe('asVideoModelV4', () => {
         seed: undefined,
         generateAudio: undefined,
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         providerOptions: {},
       });
 
