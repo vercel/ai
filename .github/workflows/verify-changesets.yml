@@ -32,8 +32,17 @@ jobs:
       - name: get all changed files
         id: changed-files
         run: |
-          echo "changeset-files=$(git diff --diff-filter=dr --name-only $BASE_SHA -- '.changeset/*.md' | tr '\n' ' ')" >> $GITHUB_OUTPUT
-          echo "package-files=$(git diff --name-only $BASE_SHA -- 'packages/**' | tr '\n' ' ')" >> $GITHUB_OUTPUT
+          if git rev-parse HEAD^2 >/dev/null 2>&1; then
+            DIFF_BASE="$(git rev-parse HEAD^1)"
+          else
+            DIFF_BASE="$BASE_SHA"
+          fi
+
+          changeset_files="$(git diff --diff-filter=dr --name-only "$DIFF_BASE" HEAD -- '.changeset/*.md' | tr '\n' ' ')"
+          package_files="$(git diff --name-only "$DIFF_BASE" HEAD -- 'packages/**' | tr '\n' ' ')"
+
+          echo "changeset-files=$changeset_files" >> $GITHUB_OUTPUT
+          echo "package-files=$package_files" >> $GITHUB_OUTPUT
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
       - name: Verify changesets

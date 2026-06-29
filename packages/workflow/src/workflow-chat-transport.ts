@@ -13,6 +13,7 @@ import {
   getErrorMessage,
 } from '@ai-sdk/provider-utils';
 import { createAsyncIterableStream } from 'ai/internal';
+import { normalizeUIMessageStreamParts } from './normalize-ui-message-stream.js';
 
 export interface SendMessagesOptions<UI_MESSAGE extends UIMessage> {
   trigger: 'submit-message' | 'regenerate-message';
@@ -186,7 +187,7 @@ export class WorkflowChatTransport<
     options: SendMessagesOptions<UI_MESSAGE> & ChatRequestOptions,
   ): Promise<ReadableStream<UIMessageChunk>> {
     return convertAsyncIteratorToReadableStream(
-      this.sendMessagesIterator(options),
+      normalizeUIMessageStreamParts(this.sendMessagesIterator(options)),
     );
   }
 
@@ -292,7 +293,9 @@ export class WorkflowChatTransport<
   async reconnectToStream(
     options: ReconnectToStreamOptions & ChatRequestOptions,
   ): Promise<ReadableStream<UIMessageChunk> | null> {
-    const reconnectIterator = this.reconnectToStreamIterator(options);
+    const reconnectIterator = normalizeUIMessageStreamParts(
+      this.reconnectToStreamIterator(options),
+    );
     return convertAsyncIteratorToReadableStream(reconnectIterator);
   }
 

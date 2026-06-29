@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 4.0.3
+
+### Patch Changes
+
+- 1ead90c: Return a helpful error when the Responses stream parser receives Chat Completions chunks.
+
 ## 4.0.2
 
 ### Patch Changes

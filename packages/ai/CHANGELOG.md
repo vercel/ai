@@ -1,5 +1,21 @@
 # ai
 
+## 7.0.6
+
+### Patch Changes
+
+- 989402d: Add ToolLoopAgent types for deprecated tool call callback aliases.
+- Updated dependencies [7e3c99e]
+  - @ai-sdk/gateway@4.0.5
+
+## 7.0.5
+
+### Patch Changes
+
+- a2750db: fix(ai): prune orphaned tool-approval responses in `pruneMessages`
+
+  When pruning a specific tool by name (`toolCalls: [{ type, tools: [...] }]`), `pruneMessages` left the tool's `tool-approval-response` in place while removing its `tool-approval-request` and `tool-call`. The tool name of an approval response was resolved per-message, but approval responses live in a separate `tool` message from their approval request, so the name could never be resolved and the response was always kept. Tool name resolution is now done across all messages, so approval requests and responses are pruned together.
+
 ## 7.0.4
 
 ### Patch Changes
