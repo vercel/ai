@@ -1,6 +1,7 @@
 import {
   AISDKError,
   type Experimental_VideoModelV4,
+  type Experimental_VideoModelV4File,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
@@ -119,6 +120,51 @@ interface ByteDanceVideoModelConfig extends ByteDanceConfig {
   };
 }
 
+function getFirstFrameImage(
+  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
+): Experimental_VideoModelV4File | undefined {
+  return options.frameImages?.find(frame => frame.frameType === 'first_frame')
+    ?.image;
+}
+
+function resolveStartImage(
+  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
+): Experimental_VideoModelV4File | undefined {
+  return getFirstFrameImage(options) ?? options.image;
+}
+
+function resolveReferenceImages(
+  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
+  byteDanceOptions: ByteDanceVideoProviderOptions | undefined,
+): string[] {
+  if (options.frameImages != null && options.frameImages.length > 0) {
+    return [];
+  }
+
+  const inputReferences = options.inputReferences;
+
+  if (inputReferences != null && inputReferences.length > 0) {
+    return inputReferences.map(image => convertImageModelFileToDataUri(image));
+  }
+
+  return byteDanceOptions?.referenceImages ?? [];
+}
+
+function resolveLastFrameImage(
+  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
+  byteDanceOptions: ByteDanceVideoProviderOptions | undefined,
+): string | undefined {
+  const lastFrame = options.frameImages?.find(
+    frame => frame.frameType === 'last_frame',
+  )?.image;
+
+  if (lastFrame != null) {
+    return convertImageModelFileToDataUri(lastFrame);
+  }
+
+  return byteDanceOptions?.lastFrameImage ?? undefined;
+}
+
 export class ByteDanceVideoModel implements Experimental_VideoModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1;
@@ -173,37 +219,37 @@ export class ByteDanceVideoModel implements Experimental_VideoModelV4 {
       });
     }
 
-    if (options.image != null) {
+    const startImage = resolveStartImage(options);
+    const lastFrameImageUrl = resolveLastFrameImage(options, byteDanceOptions);
+    const referenceImageUrls = resolveReferenceImages(
+      options,
+      byteDanceOptions,
+    );
+
+    if (startImage != null) {
       content.push({
         type: 'image_url',
-        image_url: { url: convertImageModelFileToDataUri(options.image) },
-        ...(byteDanceOptions?.lastFrameImage != null
-          ? { role: 'first_frame' }
-          : {}),
+        image_url: { url: convertImageModelFileToDataUri(startImage) },
+        ...(lastFrameImageUrl != null ? { role: 'first_frame' } : {}),
       });
     }
 
     // Add last frame image if provided
-    if (byteDanceOptions?.lastFrameImage != null) {
+    if (lastFrameImageUrl != null) {
       content.push({
         type: 'image_url',
-        image_url: { url: byteDanceOptions.lastFrameImage },
+        image_url: { url: lastFrameImageUrl },
         role: 'last_frame',
       });
     }
 
     // Add reference images if provided
-    if (
-      byteDanceOptions?.referenceImages != null &&
-      byteDanceOptions.referenceImages.length > 0
-    ) {
-      for (const imageUrl of byteDanceOptions.referenceImages) {
-        content.push({
-          type: 'image_url',
-          image_url: { url: imageUrl },
-          role: 'reference_image',
-        });
-      }
+    for (const imageUrl of referenceImageUrls) {
+      content.push({
+        type: 'image_url',
+        image_url: { url: imageUrl },
+        role: 'reference_image',
+      });
     }
 
     // Add reference videos if provided

@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.7
+
+### Patch Changes
+
+- d598481: Fix: `convertToModelMessages` no longer emits an empty assistant message when a block contains only unknown data parts (e.g. a data part before `step-start` with no `convertDataPart` provided)
+
 ## 7.0.6
 
 ### Patch Changes
