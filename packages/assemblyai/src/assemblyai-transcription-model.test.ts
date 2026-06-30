@@ -378,6 +378,22 @@ describe('doGenerate', () => {
     expect(body.summary).toBe('- Hello, world!');
   });
 
+  it('should report segment timings in seconds (ms converted)', async () => {
+    prepareJsonResponse();
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    // Fixture word[0] is start: 250ms, end: 650ms → 0.25s / 0.65s.
+    expect(result.segments[0]).toEqual({
+      text: 'Hello,',
+      startSecond: 0.25,
+      endSecond: 0.65,
+    });
+  });
+
   it('should pass headers', async () => {
     prepareJsonResponse();
 

@@ -293,17 +293,22 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
         transcript.auto_highlights_result;
     }
 
+    const lastWordEndMs = transcript.words?.at(-1)?.end;
+
     return {
       text: transcript.text ?? '',
+      // AssemblyAI returns word timings in milliseconds; the AI SDK reports
+      // segment timings in seconds.
       segments:
         transcript.words?.map(word => ({
           text: word.text,
-          startSecond: word.start,
-          endSecond: word.end,
+          startSecond: word.start / 1000,
+          endSecond: word.end / 1000,
         })) ?? [],
       language: transcript.language_code ?? undefined,
       durationInSeconds:
-        transcript.audio_duration ?? transcript.words?.at(-1)?.end ?? undefined,
+        transcript.audio_duration ??
+        (lastWordEndMs != null ? lastWordEndMs / 1000 : undefined),
       warnings,
       ...(Object.keys(assemblyaiMetadata).length > 0 && {
         providerMetadata: {
