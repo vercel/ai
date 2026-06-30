@@ -1,0 +1,136 @@
+---
+title: OrcaRouter
+description: OrcaRouter Provider for the AI SDK
+---
+
+# OrcaRouter
+
+[OrcaRouter](https://www.orcarouter.ai) is an OpenAI-compatible meta-router that provides access to 150+ models from OpenAI, Anthropic, Google, xAI, DeepSeek, Qwen, Kimi, MiniMax and others through a single API key. The OrcaRouter provider for the AI SDK offers:
+
+- **One API key, 150+ models**: switch between providers without managing multiple accounts
+- **Adaptive routing**: the `orcarouter/auto` router picks an upstream model per request based on your configured strategy (`cheapest`, `balanced`, `quality`, `adaptive`, `gated_adaptive`)
+- **Automatic parameter handling**: per-vendor reasoning protocols and upstream parameter quirks are reshaped for you, so the same code works across model families
+- **Gateway-level security controls for AI agents**
+
+Learn more in the [OrcaRouter documentation](https://docs.orcarouter.ai).
+
+## Setup
+
+The OrcaRouter provider is available in the `orcarouter-ai-sdk-provider` module. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add orcarouter-ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install orcarouter-ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add orcarouter-ai-sdk-provider" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add orcarouter-ai-sdk-provider" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+To create an OrcaRouter provider instance, use the `createOrcaRouter` function:
+
+```typescript
+import { createOrcaRouter } from 'orcarouter-ai-sdk-provider';
+
+const orcarouter = createOrcaRouter({
+  apiKey: 'YOUR_ORCAROUTER_API_KEY',
+});
+```
+
+You can obtain your OrcaRouter API key from the [OrcaRouter Console](https://www.orcarouter.ai/console/keys).
+
+Alternatively, use the default instance, which reads the API key from the `ORCAROUTER_API_KEY` environment variable:
+
+```typescript
+import { orcarouter } from 'orcarouter-ai-sdk-provider';
+```
+
+## Language Models
+
+Pick any model by its OrcaRouter id, including the `orcarouter/auto` adaptive router:
+
+```typescript
+// Adaptive routing: OrcaRouter picks an upstream model per request
+const autoModel = orcarouter('orcarouter/auto');
+
+// Or pin a specific model
+const claude = orcarouter('anthropic/claude-opus-4.8');
+const gpt = orcarouter('openai/gpt-5.5');
+```
+
+You can find the full list of available models in the [OrcaRouter model catalog](https://www.orcarouter.ai/models).
+
+## Examples
+
+### `generateText`
+
+```typescript
+import { createOrcaRouter } from 'orcarouter-ai-sdk-provider';
+import { generateText } from 'ai';
+
+const orcarouter = createOrcaRouter({
+  apiKey: 'YOUR_ORCAROUTER_API_KEY',
+});
+
+const { text } = await generateText({
+  model: orcarouter('orcarouter/auto'),
+  prompt: 'Explain adaptive model routing in one sentence.',
+});
+
+console.log(text);
+```
+
+### `streamText`
+
+```typescript
+import { createOrcaRouter } from 'orcarouter-ai-sdk-provider';
+import { streamText } from 'ai';
+
+const orcarouter = createOrcaRouter({
+  apiKey: 'YOUR_ORCAROUTER_API_KEY',
+});
+
+const result = streamText({
+  model: orcarouter('anthropic/claude-opus-4.8'),
+  prompt: 'Write a short story about a model router.',
+});
+
+for await (const chunk of result.textStream) {
+  console.log(chunk);
+}
+```
+
+## Advanced Features
+
+### Reasoning
+
+Pass a reasoning effort and the provider forwards it in each upstream's native shape: Anthropic thinking models receive a `thinking` block with a token budget derived from the effort, OpenAI and Gemini models receive a flat `reasoning_effort`, and models that reason automatically have the control fields stripped.
+
+```typescript
+const { text } = await generateText({
+  model: orcarouter('anthropic/claude-opus-4.8'),
+  prompt: 'What is 17 * 23?',
+  providerOptions: { orcarouter: { reasoningEffort: 'high' } },
+});
+```
+
+### Attribution Headers
+
+Identify your application in the OrcaRouter console by setting the optional attribution headers:
+
+```typescript
+const orcarouter = createOrcaRouter({
+  apiKey: 'YOUR_ORCAROUTER_API_KEY',
+  appUrl: 'https://your-app.example',
+  appName: 'your-app-name',
+});
+```
