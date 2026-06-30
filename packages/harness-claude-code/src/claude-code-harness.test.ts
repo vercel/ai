@@ -185,6 +185,7 @@ describe('createClaudeCode adapter', () => {
       'TaskList',
       'TaskStop',
       'TaskOutput',
+      'Monitor',
       'ListMcpResources',
       'ReadMcpResource',
       'ExitPlanMode',
