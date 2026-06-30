@@ -1,11 +1,13 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { requireAdmin, requireProfile } from '@/lib/auth';
-import type { MessageTemplate, Profile, Room } from '@/lib/types';
+import type { MessageTemplate, PaymentMethod, Profile, Room } from '@/lib/types';
 import { RoleSelect } from '@/components/role-select';
 import {
   createMessageTemplate,
+  createPaymentMethod,
   createRoom,
   deleteMessageTemplate,
+  deletePaymentMethod,
   deleteRoom,
   toggleMessageTemplateActive,
   toggleRoomActive,
@@ -16,11 +18,13 @@ export default async function AdminPage() {
   requireAdmin(profile);
 
   const supabase = createSupabaseServerClient();
-  const [{ data: profiles }, { data: rooms }, { data: templates }] = await Promise.all([
-    supabase.from('profiles').select('*').order('full_name').returns<Profile[]>(),
-    supabase.from('rooms').select('*').order('name').returns<Room[]>(),
-    supabase.from('message_templates').select('*').order('name').returns<MessageTemplate[]>(),
-  ]);
+  const [{ data: profiles }, { data: rooms }, { data: templates }, { data: paymentMethods }] =
+    await Promise.all([
+      supabase.from('profiles').select('*').order('full_name').returns<Profile[]>(),
+      supabase.from('rooms').select('*').order('name').returns<Room[]>(),
+      supabase.from('message_templates').select('*').order('name').returns<MessageTemplate[]>(),
+      supabase.from('payment_methods').select('*').order('name').returns<PaymentMethod[]>(),
+    ]);
 
   return (
     <div>
@@ -199,6 +203,68 @@ export default async function AdminPage() {
             )}
           </div>
         </div>
+      </div>
+
+      <h2 className="mb-3 text-sm font-semibold text-gray-700">Formas de pagamento</h2>
+      <div className="mb-4 max-w-md rounded-xl bg-white p-4 shadow-sm">
+        <form action={createPaymentMethod} className="flex flex-col gap-2">
+          <input
+            name="name"
+            required
+            placeholder="Nome (ex: Cartão de crédito, Pix)"
+            className="rounded border border-gray-300 px-3 py-2 text-sm"
+          />
+          <select
+            name="payment_type"
+            defaultValue=""
+            className="rounded border border-gray-300 px-3 py-2 text-sm"
+          >
+            <option value="">Tipo (opcional)</option>
+            <option value="dinheiro">Dinheiro</option>
+            <option value="cartao_credito">Cartão de crédito</option>
+            <option value="cartao_debito">Cartão de débito</option>
+            <option value="pix">Pix</option>
+            <option value="boleto">Boleto</option>
+          </select>
+          <label className="flex items-center gap-2 text-sm text-gray-600">
+            <input name="is_default" type="checkbox" />
+            Padrão
+          </label>
+          <button
+            type="submit"
+            className="self-start rounded bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+          >
+            Adicionar forma de pagamento
+          </button>
+        </form>
+      </div>
+      <div className="flex max-w-md flex-col gap-2">
+        {(paymentMethods ?? []).map((method) => (
+          <div
+            key={method.id}
+            className="flex items-center justify-between rounded-xl bg-white p-4 shadow-sm"
+          >
+            <div>
+              <p className="text-sm font-medium text-gray-800">
+                {method.name}
+                {method.is_default && (
+                  <span className="ml-2 text-xs font-normal text-brand-600">(padrão)</span>
+                )}
+              </p>
+              {method.payment_type && (
+                <p className="text-xs text-gray-400">{method.payment_type}</p>
+              )}
+            </div>
+            <form action={deletePaymentMethod.bind(null, method.id)}>
+              <button type="submit" className="text-xs text-red-600 hover:underline">
+                Excluir
+              </button>
+            </form>
+          </div>
+        ))}
+        {(paymentMethods ?? []).length === 0 && (
+          <p className="text-sm text-gray-400">Nenhuma forma de pagamento cadastrada ainda.</p>
+        )}
       </div>
     </div>
   );

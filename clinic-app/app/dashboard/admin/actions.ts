@@ -79,3 +79,26 @@ export async function deleteMessageTemplate(id: string) {
   await supabase.from('message_templates').delete().eq('id', id);
   revalidatePath('/dashboard/admin');
 }
+
+export async function createPaymentMethod(formData: FormData) {
+  const profile = await requireProfile();
+  requireAdmin(profile);
+
+  const supabase = createSupabaseServerClient();
+  await supabase.from('payment_methods').insert({
+    name: String(formData.get('name') ?? ''),
+    payment_type: String(formData.get('payment_type') ?? '') || null,
+    is_default: formData.get('is_default') === 'on',
+  });
+
+  revalidatePath('/dashboard/admin');
+}
+
+export async function deletePaymentMethod(id: string) {
+  const profile = await requireProfile();
+  requireAdmin(profile);
+
+  const supabase = createSupabaseServerClient();
+  await supabase.from('payment_methods').delete().eq('id', id);
+  revalidatePath('/dashboard/admin');
+}

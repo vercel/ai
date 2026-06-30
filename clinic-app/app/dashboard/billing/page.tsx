@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import type { Invoice, Patient } from '@/lib/types';
+import type { Invoice, Patient, PaymentMethod } from '@/lib/types';
 import { MarkPaidButton } from '@/components/mark-paid-button';
 import { DeleteInvoiceButton } from '@/components/delete-invoice-button';
 
@@ -24,11 +24,14 @@ function isOverdue(invoice: Invoice) {
 
 export default async function BillingPage() {
   const supabase = createSupabaseServerClient();
-  const { data: invoices } = await supabase
-    .from('invoices')
-    .select('*, patients(full_name)')
-    .order('created_at', { ascending: false })
-    .returns<InvoiceRow[]>();
+  const [{ data: invoices }, { data: paymentMethods }] = await Promise.all([
+    supabase
+      .from('invoices')
+      .select('*, patients(full_name)')
+      .order('created_at', { ascending: false })
+      .returns<InvoiceRow[]>(),
+    supabase.from('payment_methods').select('*').order('name').returns<PaymentMethod[]>(),
+  ]);
 
   return (
     <div>
@@ -86,7 +89,9 @@ export default async function BillingPage() {
                 </td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex justify-end gap-3">
-                    {invoice.status === 'pendente' && <MarkPaidButton id={invoice.id} />}
+                    {invoice.status === 'pendente' && (
+                      <MarkPaidButton id={invoice.id} paymentMethods={paymentMethods ?? []} />
+                    )}
                     <Link
                       href={`/dashboard/billing/${invoice.id}/edit`}
                       className="text-gray-500 hover:underline"
