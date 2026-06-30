@@ -101,6 +101,9 @@ create table campaigns (
   created_at timestamptz not null default now()
 );
 
+-- Note: leads is superseded by patient_crm (patient_id nullable, with
+-- full_name/phone/email/source for contacts not yet linked to a patient).
+-- Kept only for historical data; no longer written to by the app.
 create table leads (
   id uuid primary key default gen_random_uuid(),
   full_name text not null,
@@ -405,9 +408,16 @@ alter table invoices
   add column if not exists tax_amount_cents integer not null default 0,
   add column if not exists discount_amount_cents integer not null default 0;
 
+-- patient_crm is the unified funnel: patient_id is null for contacts that
+-- aren't patients yet (former "leads"), and set once converted. full_name/
+-- phone/email/source apply only while patient_id is null.
 create table patient_crm (
   id uuid primary key default gen_random_uuid(),
-  patient_id uuid not null references patients (id) on delete cascade,
+  patient_id uuid references patients (id) on delete cascade,
+  full_name text,
+  phone text,
+  email text,
+  source text,
   current_stage text not null default 'Contato Inicial',
   last_interaction_date timestamptz,
   next_action text,

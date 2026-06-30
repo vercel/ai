@@ -1,15 +1,18 @@
-import { createLead } from '../actions';
+import { createCrmContact } from '../actions';
 
-export default function NewLeadPage({ searchParams }: { searchParams: { error?: string } }) {
+export default function NewCrmContactPage({ searchParams }: { searchParams: { error?: string } }) {
   return (
     <div className="max-w-lg">
-      <h1 className="mb-6 text-2xl font-semibold text-gray-800">Novo lead</h1>
+      <h1 className="mb-6 text-2xl font-semibold text-gray-800">Novo contato no funil</h1>
 
       {searchParams.error && (
         <p className="mb-4 rounded bg-red-50 p-2 text-sm text-red-600">{searchParams.error}</p>
       )}
 
-      <form action={createLead} className="flex flex-col gap-3 rounded-xl bg-white p-6 shadow-sm">
+      <form
+        action={createCrmContact}
+        className="flex flex-col gap-3 rounded-xl bg-white p-6 shadow-sm"
+      >
         <label className="text-sm text-gray-600">
           Nome
           <input

@@ -122,7 +122,11 @@ export interface PaymentMethod {
 
 export interface PatientCRM {
   id: string;
-  patient_id: string;
+  patient_id: string | null;
+  full_name: string | null;
+  phone: string | null;
+  email: string | null;
+  source: string | null;
   current_stage: string;
   last_interaction_date: string | null;
   next_action: string | null;

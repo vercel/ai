@@ -1,5 +1,5 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import type { Lead } from '@/lib/types';
+import type { PatientCRM } from '@/lib/types';
 import { ChartsTabs } from '../charts-tabs';
 import { BarList } from '@/components/bar-list';
 
@@ -10,13 +10,13 @@ export default async function ClientsChartPage() {
     .from('patients')
     .select('*', { count: 'exact', head: true });
 
-  const { data: leads } = await supabase
-    .from('leads')
-    .select('stage')
-    .returns<Pick<Lead, 'stage'>[]>();
+  const { data: crmContacts } = await supabase
+    .from('patient_crm')
+    .select('current_stage')
+    .returns<Pick<PatientCRM, 'current_stage'>[]>();
 
-  const byStage = (leads ?? []).reduce<Record<string, number>>((acc, l) => {
-    acc[l.stage] = (acc[l.stage] ?? 0) + 1;
+  const byStage = (crmContacts ?? []).reduce<Record<string, number>>((acc, c) => {
+    acc[c.current_stage] = (acc[c.current_stage] ?? 0) + 1;
     return acc;
   }, {});
 
@@ -36,7 +36,7 @@ export default async function ClientsChartPage() {
       </div>
 
       <div className="rounded-xl bg-white p-5 shadow-sm">
-        <h2 className="mb-3 text-sm font-semibold text-gray-700">Leads por estágio (CRM)</h2>
+        <h2 className="mb-3 text-sm font-semibold text-gray-700">Contatos por estágio (CRM)</h2>
         <BarList items={items} />
       </div>
     </div>

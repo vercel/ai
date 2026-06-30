@@ -1,5 +1,5 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import type { Appointment, Invoice, Lead, Profile } from '@/lib/types';
+import type { Appointment, Invoice, PatientCRM, Profile } from '@/lib/types';
 
 type AppointmentRow = Appointment & { profiles: Pick<Profile, 'full_name'> };
 
@@ -15,7 +15,7 @@ export default async function PanelPage() {
   const todayEnd = new Date();
   todayEnd.setHours(23, 59, 59, 999);
 
-  const [{ data: todayAppointments }, { data: pendingInvoices }, { data: leads }] =
+  const [{ data: todayAppointments }, { data: pendingInvoices }, { data: openCrmContacts }] =
     await Promise.all([
       supabase
         .from('appointments')
@@ -25,7 +25,12 @@ export default async function PanelPage() {
         .order('scheduled_at')
         .returns<AppointmentRow[]>(),
       supabase.from('invoices').select('*').eq('status', 'pendente').returns<Invoice[]>(),
-      supabase.from('leads').select('*').neq('stage', 'convertido').neq('stage', 'perdido').returns<Lead[]>(),
+      supabase
+        .from('patient_crm')
+        .select('id')
+        .neq('current_stage', 'Fidelizado')
+        .neq('current_stage', 'Perdido')
+        .returns<Pick<PatientCRM, 'id'>[]>(),
     ]);
 
   const byProfessional = new Map<string, number>();
@@ -55,8 +60,8 @@ export default async function PanelPage() {
           <p className="text-2xl font-semibold text-gray-800">{formatCurrency(pendingTotal)}</p>
         </div>
         <div className="rounded-xl bg-white p-5 shadow-sm">
-          <p className="text-xs text-gray-400">Leads em aberto</p>
-          <p className="text-2xl font-semibold text-gray-800">{(leads ?? []).length}</p>
+          <p className="text-xs text-gray-400">Contatos em aberto</p>
+          <p className="text-2xl font-semibold text-gray-800">{(openCrmContacts ?? []).length}</p>
         </div>
       </div>
 
