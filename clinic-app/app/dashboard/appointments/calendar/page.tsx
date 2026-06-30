@@ -69,6 +69,12 @@ export default async function CalendarPage({
             Próximo →
           </Link>
           <Link
+            href="/dashboard/appointments/week"
+            className="rounded border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
+          >
+            Semana
+          </Link>
+          <Link
             href="/dashboard/appointments"
             className="rounded bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700"
           >

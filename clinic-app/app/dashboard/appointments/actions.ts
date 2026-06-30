@@ -11,6 +11,8 @@ export async function createAppointment(formData: FormData) {
   const { error } = await supabase.from('appointments').insert({
     patient_id: String(formData.get('patient_id') ?? ''),
     professional_id: String(formData.get('professional_id') ?? ''),
+    room_id: String(formData.get('room_id') ?? '') || null,
+    appointment_type: String(formData.get('appointment_type') ?? '') || null,
     scheduled_at: new Date(String(formData.get('scheduled_at') ?? '')).toISOString(),
     duration_minutes: Number(formData.get('duration_minutes') ?? 30),
     notes: String(formData.get('notes') ?? '') || null,
@@ -38,6 +40,8 @@ export async function updateAppointment(id: string, formData: FormData) {
     .update({
       patient_id: String(formData.get('patient_id') ?? ''),
       professional_id: String(formData.get('professional_id') ?? ''),
+      room_id: String(formData.get('room_id') ?? '') || null,
+      appointment_type: String(formData.get('appointment_type') ?? '') || null,
       scheduled_at: new Date(String(formData.get('scheduled_at') ?? '')).toISOString(),
       duration_minutes: Number(formData.get('duration_minutes') ?? 30),
       status: String(formData.get('status') ?? 'agendado') as AppointmentStatus,

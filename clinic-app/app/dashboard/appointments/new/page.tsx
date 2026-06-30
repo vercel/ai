@@ -1,5 +1,5 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import type { Patient, Profile } from '@/lib/types';
+import type { Patient, Profile, Room } from '@/lib/types';
 import { createAppointment } from '../actions';
 
 export default async function NewAppointmentPage({
@@ -8,7 +8,7 @@ export default async function NewAppointmentPage({
   searchParams: { error?: string };
 }) {
   const supabase = createSupabaseServerClient();
-  const [{ data: patients }, { data: professionals }] = await Promise.all([
+  const [{ data: patients }, { data: professionals }, { data: rooms }] = await Promise.all([
     supabase.from('patients').select('id, full_name').order('full_name').returns<Patient[]>(),
     supabase
       .from('profiles')
@@ -16,6 +16,7 @@ export default async function NewAppointmentPage({
       .in('role', ['medico', 'admin'])
       .order('full_name')
       .returns<Profile[]>(),
+    supabase.from('rooms').select('*').eq('is_active', true).order('name').returns<Room[]>(),
   ]);
 
   return (
@@ -56,6 +57,35 @@ export default async function NewAppointmentPage({
             {(professionals ?? []).map((professional) => (
               <option key={professional.id} value={professional.id}>
                 {professional.full_name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="text-sm text-gray-600">
+          Tipo de atendimento
+          <select
+            name="appointment_type"
+            defaultValue=""
+            className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
+          >
+            <option value="">-</option>
+            <option value="consulta">Consulta</option>
+            <option value="retorno">Retorno</option>
+            <option value="avaliacao">Avaliação</option>
+            <option value="sessao">Sessão</option>
+          </select>
+        </label>
+        <label className="text-sm text-gray-600">
+          Sala
+          <select
+            name="room_id"
+            defaultValue=""
+            className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
+          >
+            <option value="">-</option>
+            {(rooms ?? []).map((room) => (
+              <option key={room.id} value={room.id}>
+                {room.name}
               </option>
             ))}
           </select>
