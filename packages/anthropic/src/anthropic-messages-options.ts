@@ -24,6 +24,7 @@ export type AnthropicMessagesModelId =
   | 'claude-opus-4-7'
   | 'claude-opus-4-8'
   | 'claude-fable-5'
+  | 'claude-sonnet-5'
   | (string & {});
 
 /**
