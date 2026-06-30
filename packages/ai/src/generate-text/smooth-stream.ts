@@ -152,7 +152,15 @@ export function smoothStream<TOOLS extends ToolSet>({
         let match;
 
         while ((match = detectChunk(buffer)) != null) {
-          controller.enqueue({ type, text: match, id });
+          controller.enqueue({
+            type,
+            text: match,
+            id,
+            ...(providerMetadata != null ? { providerMetadata } : {}),
+          });
+          // Emit providerMetadata once (mirroring flushBuffer) so it is neither
+          // dropped from loop-emitted chunks nor duplicated across them.
+          providerMetadata = undefined;
           buffer = buffer.slice(match.length);
 
           await delay(delayInMs);
