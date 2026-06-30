@@ -1,4 +1,8 @@
-import type { TranscriptionModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import type {
+  TranscriptionModelV4,
+  SharedV4Warning,
+  SharedV4ProviderMetadata,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
@@ -152,6 +156,7 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
     abortSignal?: AbortSignal,
   ): Promise<{
     transcript: z.infer<typeof assemblyaiTranscriptionResponseSchema>;
+    rawTranscript: unknown;
     responseHeaders: Record<string, string>;
   }> {
     const pollingInterval =
@@ -188,13 +193,14 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
         });
       }
 
-      const transcript = assemblyaiTranscriptionResponseSchema.parse(
-        await response.json(),
-      );
+      const rawTranscript = await response.json();
+      const transcript =
+        assemblyaiTranscriptionResponseSchema.parse(rawTranscript);
 
       if (transcript.status === 'completed') {
         return {
           transcript,
+          rawTranscript,
           responseHeaders: extractResponseHeaders(response),
         };
       }
@@ -255,11 +261,37 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
       fetch: this.config.fetch,
     });
 
-    const { transcript, responseHeaders } = await this.waitForCompletion(
-      submitResponse.id,
-      options.headers,
-      options.abortSignal,
-    );
+    const { transcript, rawTranscript, responseHeaders } =
+      await this.waitForCompletion(
+        submitResponse.id,
+        options.headers,
+        options.abortSignal,
+      );
+
+    // Surface diarization and audio-intelligence results that the AI SDK's
+    // `segments` shape can't represent. Only included when the corresponding
+    // feature was enabled (and thus present in the response).
+    const assemblyaiMetadata: Record<string, unknown> = {};
+    if (transcript.utterances != null) {
+      assemblyaiMetadata.utterances = transcript.utterances;
+    }
+    if (transcript.sentiment_analysis_results != null) {
+      assemblyaiMetadata.sentimentAnalysisResults =
+        transcript.sentiment_analysis_results;
+    }
+    if (transcript.entities != null) {
+      assemblyaiMetadata.entities = transcript.entities;
+    }
+    if (transcript.content_safety_labels != null) {
+      assemblyaiMetadata.contentSafetyLabels = transcript.content_safety_labels;
+    }
+    if (transcript.iab_categories_result != null) {
+      assemblyaiMetadata.iabCategoriesResult = transcript.iab_categories_result;
+    }
+    if (transcript.auto_highlights_result != null) {
+      assemblyaiMetadata.autoHighlightsResult =
+        transcript.auto_highlights_result;
+    }
 
     return {
       text: transcript.text ?? '',
@@ -273,11 +305,16 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
       durationInSeconds:
         transcript.audio_duration ?? transcript.words?.at(-1)?.end ?? undefined,
       warnings,
+      ...(Object.keys(assemblyaiMetadata).length > 0 && {
+        providerMetadata: {
+          assemblyai: assemblyaiMetadata,
+        } as SharedV4ProviderMetadata,
+      }),
       response: {
         timestamp: currentDate,
         modelId: this.modelId,
         headers: responseHeaders, // Headers from final GET request
-        body: transcript, // Raw response from final GET request
+        body: rawTranscript, // Full raw response from final GET request
       },
     };
   }
@@ -292,21 +329,65 @@ const assemblyaiSubmitResponseSchema = z.object({
   status: z.enum(['queued', 'processing', 'completed', 'error']),
 });
 
+const assemblyaiWordSchema = z.object({
+  start: z.number(),
+  end: z.number(),
+  text: z.string(),
+  confidence: z.number().nullish(),
+  // Speaker label (e.g. 'A', 'B') when speaker diarization is enabled, else null.
+  speaker: z.string().nullish(),
+  channel: z.string().nullish(),
+});
+
 const assemblyaiTranscriptionResponseSchema = z.object({
   id: z.string(),
   status: z.enum(['queued', 'processing', 'completed', 'error']),
   text: z.string().nullish(),
   language_code: z.string().nullish(),
   speech_model_used: z.string().nullish(),
-  words: z
+  words: z.array(assemblyaiWordSchema).nullish(),
+  // Speaker-diarized utterances (present when `speaker_labels` is enabled).
+  utterances: z
     .array(
       z.object({
         start: z.number(),
         end: z.number(),
         text: z.string(),
+        confidence: z.number().nullish(),
+        speaker: z.string().nullish(),
+        channel: z.string().nullish(),
+        words: z.array(assemblyaiWordSchema).nullish(),
       }),
     )
     .nullish(),
+  // Audio-intelligence results, present only when the matching feature is
+  // enabled. Kept intentionally permissive (the full structures are also
+  // available on the raw `response.body`).
+  sentiment_analysis_results: z
+    .array(
+      z.object({
+        text: z.string(),
+        start: z.number().nullish(),
+        end: z.number().nullish(),
+        sentiment: z.string(),
+        confidence: z.number().nullish(),
+        speaker: z.string().nullish(),
+      }),
+    )
+    .nullish(),
+  entities: z
+    .array(
+      z.object({
+        entity_type: z.string(),
+        text: z.string(),
+        start: z.number().nullish(),
+        end: z.number().nullish(),
+      }),
+    )
+    .nullish(),
+  content_safety_labels: z.record(z.string(), z.any()).nullish(),
+  iab_categories_result: z.record(z.string(), z.any()).nullish(),
+  auto_highlights_result: z.record(z.string(), z.any()).nullish(),
   audio_duration: z.number().nullish(),
   error: z.string().nullish(),
 });

@@ -328,6 +328,56 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should surface diarization + audio-intelligence via providerMetadata', async () => {
+    prepareJsonResponse();
+
+    const result = await provider
+      .transcription('universal-3-5-pro')
+      .doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+    const metadata = result.providerMetadata?.assemblyai as
+      | Record<string, any>
+      | undefined;
+    expect(metadata).toBeDefined();
+
+    // Speaker diarization
+    expect(metadata?.utterances?.[0]).toMatchObject({
+      speaker: 'A',
+      text: 'Hello, world!',
+    });
+
+    // Audio-intelligence results
+    expect(metadata?.entities?.[0]).toMatchObject({
+      entity_type: 'location',
+      text: 'Canada',
+    });
+    expect(metadata?.contentSafetyLabels).toBeDefined();
+    expect(metadata?.iabCategoriesResult).toBeDefined();
+    expect(metadata?.autoHighlightsResult).toBeDefined();
+  });
+
+  it('should preserve the full raw response on response.body', async () => {
+    prepareJsonResponse();
+
+    const result = await provider
+      .transcription('universal-3-5-pro')
+      .doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+    const body = result.response.body as Record<string, any>;
+    // Word-level speaker label survives on the raw body.
+    expect(body.words[0].speaker).toBe('speaker');
+    // Fields not modeled in our schema (e.g. chapters, summary) are no longer
+    // stripped — proves response.body is the raw response, not the parsed one.
+    expect(body.chapters).toBeDefined();
+    expect(body.summary).toBe('- Hello, world!');
+  });
+
   it('should pass headers', async () => {
     prepareJsonResponse();
 

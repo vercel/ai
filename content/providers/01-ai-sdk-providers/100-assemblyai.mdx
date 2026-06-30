@@ -281,6 +281,47 @@ The following provider options are available:
   List of words to boost in the transcription.
   Optional.
 
+### Speaker diarization and audio-intelligence results
+
+The AI SDK's `transcribe` result exposes `text`, `segments`, `language`, and
+`durationInSeconds`. AssemblyAI's richer results — speaker diarization and
+audio-intelligence features — don't fit that shape, so they are surfaced in two
+places:
+
+- **`providerMetadata.assemblyai`** — structured results for the features you
+  enabled: `utterances` (speaker-diarized segments, when `speakerLabels` is set),
+  `entities`, `sentimentAnalysisResults`, `contentSafetyLabels`,
+  `iabCategoriesResult`, and `autoHighlightsResult`.
+- **`response.body`** — the complete, raw AssemblyAI transcript response, so any
+  field not surfaced above (e.g. `chapters`, word-level `speaker` labels) is
+  still available.
+
+```ts
+import { transcribe } from 'ai';
+import { assemblyai } from '@ai-sdk/assemblyai';
+import { readFile } from 'fs/promises';
+
+const result = await transcribe({
+  model: assemblyai.transcription('universal-3-5-pro'),
+  audio: await readFile('audio.mp3'),
+  providerOptions: {
+    assemblyai: {
+      speakerLabels: true,
+      entityDetection: true,
+    },
+  },
+});
+
+const { utterances, entities } = result.providerMetadata?.assemblyai ?? {};
+// utterances: [{ speaker: 'A', text: '…', start, end, … }, …]
+```
+
+The following AssemblyAI features are **deprecated** by the API and not surfaced
+in `providerMetadata` (their output remains on the raw `response.body` if
+enabled): Summarization, Auto Chapters, and Custom Topics. Note also that some
+features are language-gated (e.g. sentiment analysis is English-centric); see
+AssemblyAI's documentation for per-language availability.
+
 ### Model Capabilities
 
 | Model               | Transcription       | Duration            | Segments            | Language            |
