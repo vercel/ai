@@ -1,5 +1,12 @@
 # @ai-sdk/gateway
 
+## 4.0.7
+
+### Patch Changes
+
+- 2edc641: chore(provider/gateway): update gateway model settings files
+- c18018c: feat (provider/anthropic): add `claude-sonnet-5` model id
+
 ## 4.0.6
 
 ### Patch Changes
