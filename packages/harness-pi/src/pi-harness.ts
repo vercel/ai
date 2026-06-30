@@ -7,7 +7,11 @@ import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { PiAuthOptions } from './pi-auth';
 import { piResumeStateSchema } from './pi-resume-state';
-import { createPiSession, type PiThinkingLevel } from './pi-session';
+import {
+  createPiSession,
+  type PiProvider,
+  type PiThinkingLevel,
+} from './pi-session';
 
 /**
  * Configuration knobs for `createPi`. Pi runs as an in-process Node library
@@ -16,6 +20,15 @@ import { createPiSession, type PiThinkingLevel } from './pi-session';
 export type PiHarnessSettings = {
   /** Where Pi sources API keys / gateway credentials from. */
   readonly auth?: PiAuthOptions;
+  /**
+   * Custom providers to register into each session's `ModelRegistry` /
+   * `AuthStorage` before model resolution. Enables OAuth / subscription
+   * credentials (e.g. an `openai-codex` ChatGPT-subscription token) and fully
+   * custom providers for catalog models without the `auth.customEnv` API-key
+   * path. Provider names are preferred during model resolution when a model id
+   * is published under multiple providers. See {@link PiProvider}.
+   */
+  readonly providers?: ReadonlyArray<PiProvider>;
   /**
    * Pi model id (or name). Leaving this unset falls back to the AI Gateway
    * default when `AI_GATEWAY_API_KEY` / `VERCEL_OIDC_TOKEN` is set, and to
@@ -126,6 +139,7 @@ export function createPi(
         skills: startOpts.skills ?? [],
         settings: {
           ...(settings.auth ? { auth: settings.auth } : {}),
+          ...(settings.providers ? { providers: settings.providers } : {}),
           ...(settings.model ? { model: settings.model } : {}),
           ...(settings.thinkingLevel
             ? { thinkingLevel: settings.thinkingLevel }

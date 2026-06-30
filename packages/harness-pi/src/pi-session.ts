@@ -132,7 +132,9 @@ async function resolveSandboxHomeDir({
   const homeDir = result.stdout.trim();
   if (result.exitCode !== 0 || !homeDir || !path.posix.isAbsolute(homeDir)) {
     throw new Error(
-      `Unable to resolve sandbox HOME directory: ${result.stderr || result.stdout}`,
+      `Unable to resolve sandbox HOME directory: ${
+        result.stderr || result.stdout
+      }`,
     );
   }
   return homeDir;
@@ -172,10 +174,56 @@ export type PiThinkingLevel =
   | 'high'
   | 'xhigh';
 
+/**
+ * Credential accepted by Pi's per-session `AuthStorage` (OAuth or API key),
+ * derived from the SDK so it tracks upstream changes.
+ */
+type PiAuthCredential = Parameters<AuthStorage['set']>[1];
+
+/** Provider config accepted by `ModelRegistry.registerProvider`. */
+type PiProviderConfig = Parameters<ModelRegistry['registerProvider']>[1];
+
+/**
+ * A custom provider to register into the per-session `ModelRegistry` /
+ * `AuthStorage` before model resolution. Lets a host bring its own credentials
+ * — including OAuth / subscription credentials (e.g. an `openai-codex`
+ * ChatGPT-subscription token) — or fully custom providers for a catalog model,
+ * without going through the `auth.customEnv` API-key path.
+ */
+export interface PiProvider {
+  /** Provider id, e.g. `openai-codex` (built-in) or a custom provider name. */
+  readonly name: string;
+  /**
+   * Credential seeded into the per-session `AuthStorage` for `name`. For a
+   * built-in catalog provider (e.g. `openai-codex`) this is usually all that's
+   * needed: Pi's built-in OAuth refresh path renews it as required.
+   */
+  readonly credential?: PiAuthCredential;
+  /**
+   * Provider definition registered into the per-session `ModelRegistry` via
+   * `registerProvider` (base URL, headers, OAuth provider, custom models, ...).
+   * Use this for providers not in Pi's built-in catalog.
+   */
+  readonly config?: PiProviderConfig;
+  /**
+   * Called whenever Pi writes a refreshed credential for this provider into the
+   * per-session `AuthStorage` — i.e. after an automatic OAuth token refresh.
+   * Lets a long-running host persist the renewed credential to a durable store
+   * so it survives access-token expiry across sessions. Best-effort: throwing
+   * here never fails the turn.
+   */
+  readonly onCredentialRefresh?: (credential: PiAuthCredential) => void;
+}
+
 export interface PiSessionSettings {
   readonly auth?: PiAuthOptions;
   readonly model?: string;
   readonly thinkingLevel?: PiThinkingLevel;
+  /**
+   * Custom providers to register into the per-session `ModelRegistry` /
+   * `AuthStorage` before model resolution. See {@link PiProvider}.
+   */
+  readonly providers?: ReadonlyArray<PiProvider>;
 }
 
 export interface CreatePiSessionInput {
@@ -323,7 +371,68 @@ export async function createPiSession(
       modelRegistry,
     },
   });
-  const resolveModel = createPiModelResolver(modelRegistry, resolverEnv);
+
+  // Custom-provider passthrough. Register caller-supplied providers into THIS
+  // session's per-session AuthStorage + ModelRegistry before model resolution,
+  // so a host can bring OAuth / subscription credentials (e.g. an
+  // `openai-codex` ChatGPT-subscription token) or fully custom providers for a
+  // catalog model without the `customEnv` API-key path. A `credential` is
+  // seeded into AuthStorage (the built-in OAuth refresh path can then renew
+  // it); a `config` is registered into the ModelRegistry. The provider names
+  // are also handed to the resolver so a model id published under several
+  // providers resolves to the one we just seeded.
+  const customProviders = input.settings.providers ?? [];
+  const preferredProviders: string[] = [];
+  for (const provider of customProviders) {
+    if (!provider?.name) continue;
+    if (provider.credential) {
+      authStorage.set(provider.name, provider.credential);
+    }
+    if (provider.config) {
+      modelRegistry.registerProvider(provider.name, provider.config);
+    }
+    preferredProviders.push(provider.name);
+  }
+
+  // Refresh persistence. Pi auto-refreshes an expired OAuth credential inside
+  // `AuthStorage.getApiKey` (when `Date.now() >= cred.expires`) and writes the
+  // renewed credential into THIS session's ephemeral auth store via its locked
+  // storage backend — not via the public `set`. To let a long-running host
+  // persist that refresh, wrap `getApiKey` for our seeded providers: snapshot
+  // the stored credential before/after each call and, when it changed (a
+  // refresh happened), forward the renewed credential to `onCredentialRefresh`.
+  const refreshHandlers = new Map(
+    customProviders
+      .filter(p => p?.name && typeof p.onCredentialRefresh === 'function')
+      .map(p => [p.name, p.onCredentialRefresh!] as const),
+  );
+  if (refreshHandlers.size > 0) {
+    const originalGetApiKey = authStorage.getApiKey.bind(authStorage);
+    authStorage.getApiKey = async (providerName, options) => {
+      const handler = refreshHandlers.get(providerName);
+      const before = handler
+        ? JSON.stringify(authStorage.get(providerName) ?? null)
+        : undefined;
+      const apiKey = await originalGetApiKey(providerName, options);
+      if (handler) {
+        const current = authStorage.get(providerName);
+        if (current && JSON.stringify(current) !== before) {
+          try {
+            handler(current);
+          } catch {
+            // Persistence is best-effort; never break the turn.
+          }
+        }
+      }
+      return apiKey;
+    };
+  }
+
+  const resolveModel = createPiModelResolver(
+    modelRegistry,
+    resolverEnv,
+    preferredProviders,
+  );
   // Resolve once: deterministic given the configured model. This is the Pi
   // `Model` object handed to `createAgentSession`.
   const resolvedModel = resolveModel(input.settings.model);
