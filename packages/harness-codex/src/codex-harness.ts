@@ -192,6 +192,13 @@ export function createCodex(
       return cachedBootstrap;
     },
     doStart: async startOpts => {
+      if (startOpts.builtinToolFiltering != null) {
+        throw new HarnessCapabilityUnsupportedError({
+          message:
+            "Harness 'codex' does not support built-in tool filtering controls.",
+          harnessId: 'codex',
+        });
+      }
       if (
         startOpts.permissionMode != null &&
         startOpts.permissionMode !== 'allow-all'

@@ -105,6 +105,7 @@ describe('createDeepAgents', () => {
     expect(harness.specificationVersion).toBe('harness-v1');
     expect(harness.harnessId).toBe('deepagents');
     expect(harness.supportsBuiltinToolApprovals).toBe(true);
+    expect(harness.supportsBuiltinToolFiltering).toBeUndefined();
   });
 
   it('lists every model-callable DeepAgents built-in tool', () => {
