@@ -20,7 +20,12 @@ export default async function PatientsPage({
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-gray-800">Pacientes</h1>
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-800">Pacientes</h1>
+          <p className="text-sm text-gray-500">
+            {(patients ?? []).length} pacientes cadastrados
+          </p>
+        </div>
         <Link
           href="/dashboard/patients/new"
           className="rounded bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
@@ -46,6 +51,8 @@ export default async function PatientsPage({
               <th className="px-4 py-3">Nome</th>
               <th className="px-4 py-3">Telefone</th>
               <th className="px-4 py-3">E-mail</th>
+              <th className="px-4 py-3">Convênio</th>
+              <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3" />
             </tr>
           </thead>
@@ -55,6 +62,18 @@ export default async function PatientsPage({
                 <td className="px-4 py-3 font-medium text-gray-800">{patient.full_name}</td>
                 <td className="px-4 py-3 text-gray-500">{patient.phone ?? '-'}</td>
                 <td className="px-4 py-3 text-gray-500">{patient.email ?? '-'}</td>
+                <td className="px-4 py-3 text-gray-500">{patient.insurance_provider ?? '-'}</td>
+                <td className="px-4 py-3">
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                      patient.is_active
+                        ? 'bg-green-50 text-green-700'
+                        : 'bg-gray-100 text-gray-500'
+                    }`}
+                  >
+                    {patient.is_active ? 'Ativo' : 'Inativo'}
+                  </span>
+                </td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex justify-end gap-3">
                     <Link
@@ -76,7 +95,7 @@ export default async function PatientsPage({
             ))}
             {(patients ?? []).length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-6 text-center text-gray-400">
+                <td colSpan={6} className="px-4 py-6 text-center text-gray-400">
                   Nenhum paciente encontrado.
                 </td>
               </tr>
