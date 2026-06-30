@@ -507,7 +507,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
       }
 
       const name = toolCallDelta.function?.name;
-      if (name != null) {
+      if (name != null && name.length > 0) {
         const forwardDelta: OpenAICompatibleStreamingToolCallDelta = {
           index,
           id: pending.id,
