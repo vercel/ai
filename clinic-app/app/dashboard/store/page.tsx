@@ -1,139 +1,122 @@
 import Link from 'next/link';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
-import type { Patient, Product, Sale } from '@/lib/types';
-import { DeleteProductButton } from '@/components/delete-product-button';
-import { sellProduct } from './actions';
 
-type SaleRow = Sale & { products: Pick<Product, 'name'> };
+type StoreItem = {
+  name: string;
+  description: string;
+  badge: 'Incluso no Premium' | 'Contratado à parte' | 'Novo';
+  href?: string;
+};
 
-function formatCurrency(cents: number) {
-  return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-}
+const STORE_ITEMS: StoreItem[] = [
+  {
+    name: 'Campanhas',
+    description: 'Envie campanhas de marketing por e-mail, SMS e WhatsApp para sua base de pacientes.',
+    badge: 'Incluso no Premium',
+    href: '/dashboard/campaigns/panel',
+  },
+  {
+    name: 'WhatsApp Automático Oficial',
+    description: 'Atendimento e automações via API oficial do WhatsApp Business.',
+    badge: 'Novo',
+  },
+  {
+    name: 'CRM de vendas',
+    description: 'Gerencie leads e oportunidades em um funil de vendas completo.',
+    badge: 'Incluso no Premium',
+    href: '/dashboard/crm',
+  },
+  {
+    name: 'Assinatura eletrônica',
+    description: 'Solicite e acompanhe assinaturas de documentos, termos e contratos.',
+    badge: 'Incluso no Premium',
+    href: '/dashboard/signatures',
+  },
+  {
+    name: 'Certificado digital A1',
+    description: 'Emita notas fiscais e documentos com certificado digital integrado.',
+    badge: 'Contratado à parte',
+  },
+  {
+    name: 'Santé Conversas',
+    description: 'Central de conversas com assistente de IA para automatizar atendimentos.',
+    badge: 'Contratado à parte',
+    href: '/dashboard/conversations',
+  },
+  {
+    name: 'PIX automatizado',
+    description: 'Receba pagamentos via PIX com conciliação automática.',
+    badge: 'Incluso no Premium',
+  },
+  {
+    name: 'Boleto bancário',
+    description: 'Gere e acompanhe boletos bancários para seus pacientes.',
+    badge: 'Incluso no Premium',
+  },
+  {
+    name: 'Link de pagamento',
+    description: 'Crie links de pagamento para cobranças avulsas.',
+    badge: 'Incluso no Premium',
+  },
+  {
+    name: 'Emissão de NFS-e',
+    description: 'Emita notas fiscais de serviço eletrônicas diretamente pelo sistema.',
+    badge: 'Incluso no Premium',
+    href: '/dashboard/fiscal-notes',
+  },
+];
 
-export default async function StorePage({
-  searchParams,
-}: {
-  searchParams: { error?: string };
-}) {
-  const supabase = createSupabaseServerClient();
-  const [{ data: products }, { data: patients }, { data: sales }] = await Promise.all([
-    supabase.from('products').select('*').order('name').returns<Product[]>(),
-    supabase.from('patients').select('id, full_name').order('full_name').returns<Patient[]>(),
-    supabase
-      .from('sales')
-      .select('*, products(name)')
-      .order('sold_at', { ascending: false })
-      .limit(10)
-      .returns<SaleRow[]>(),
-  ]);
+const BADGE_COLORS: Record<StoreItem['badge'], string> = {
+  'Incluso no Premium': 'bg-brand-50 text-brand-700',
+  'Contratado à parte': 'bg-amber-50 text-amber-700',
+  Novo: 'bg-blue-50 text-blue-700',
+};
 
+export default function StorePage() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-gray-800">Loja</h1>
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-800">Lojinha Santé</h1>
+          <p className="text-sm text-gray-500">
+            Conheça os módulos e add-ons disponíveis para o seu plano.
+          </p>
+        </div>
         <Link
-          href="/dashboard/store/new"
+          href="/dashboard/store/products"
           className="rounded bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
         >
-          + Novo produto
+          Gerenciar produtos
         </Link>
       </div>
 
-      {searchParams.error && (
-        <p className="mb-4 rounded bg-red-50 p-2 text-sm text-red-600">{searchParams.error}</p>
-      )}
+      <p className="mb-4 rounded bg-amber-50 p-3 text-xs text-amber-700">
+        Catálogo de módulos contratáveis (não é uma loja de produtos físicos). A contratação
+        efetiva de itens "Contratado à parte" depende de integração com um provedor de
+        pagamentos/billing ainda não configurado.
+      </p>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div>
-          <h2 className="mb-3 text-sm font-semibold text-gray-700">Produtos</h2>
-          <div className="flex flex-col gap-3">
-            {(products ?? []).map((product) => (
-              <div key={product.id} className="rounded-xl bg-white p-4 shadow-sm">
-                <div className="mb-2 flex items-start justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-800">{product.name}</p>
-                    <p className="text-xs text-gray-400">
-                      {formatCurrency(product.price_cents)} · estoque: {product.stock}
-                    </p>
-                  </div>
-                  <DeleteProductButton id={product.id} />
-                </div>
-                {product.stock > 0 && (
-                  <form action={sellProduct} className="flex items-end gap-2">
-                    <input type="hidden" name="product_id" value={product.id} />
-                    <label className="text-xs text-gray-500">
-                      Qtd
-                      <input
-                        name="quantity"
-                        type="number"
-                        min="1"
-                        max={product.stock}
-                        defaultValue={1}
-                        className="mt-1 w-16 rounded border border-gray-300 px-2 py-1 text-xs"
-                      />
-                    </label>
-                    <label className="flex-1 text-xs text-gray-500">
-                      Paciente (opcional)
-                      <select
-                        name="patient_id"
-                        className="mt-1 w-full rounded border border-gray-300 px-2 py-1 text-xs"
-                      >
-                        <option value="">-</option>
-                        {(patients ?? []).map((patient) => (
-                          <option key={patient.id} value={patient.id}>
-                            {patient.full_name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <button
-                      type="submit"
-                      className="rounded bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700"
-                    >
-                      Vender
-                    </button>
-                  </form>
-                )}
-              </div>
-            ))}
-            {(products ?? []).length === 0 && (
-              <p className="text-sm text-gray-400">Nenhum produto cadastrado ainda.</p>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {STORE_ITEMS.map((item) => (
+          <div key={item.name} className="flex flex-col gap-2 rounded-xl bg-white p-4 shadow-sm">
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-sm font-semibold text-gray-800">{item.name}</p>
+              <span className={`shrink-0 rounded px-2 py-0.5 text-xs ${BADGE_COLORS[item.badge]}`}>
+                {item.badge}
+              </span>
+            </div>
+            <p className="text-xs text-gray-500">{item.description}</p>
+            {item.href ? (
+              <Link
+                href={item.href}
+                className="mt-1 self-start text-xs font-medium text-brand-600 hover:underline"
+              >
+                Saiba mais
+              </Link>
+            ) : (
+              <span className="mt-1 text-xs text-gray-400">Saiba mais (em breve)</span>
             )}
           </div>
-        </div>
-
-        <div>
-          <h2 className="mb-3 text-sm font-semibold text-gray-700">Vendas recentes</h2>
-          <div className="overflow-hidden rounded-xl bg-white shadow-sm">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-left text-gray-500">
-                <tr>
-                  <th className="px-4 py-3">Produto</th>
-                  <th className="px-4 py-3">Qtd</th>
-                  <th className="px-4 py-3">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(sales ?? []).map((sale) => (
-                  <tr key={sale.id} className="border-t border-gray-100">
-                    <td className="px-4 py-3 text-gray-700">{sale.products?.name}</td>
-                    <td className="px-4 py-3 text-gray-500">{sale.quantity}</td>
-                    <td className="px-4 py-3 text-gray-700">
-                      {formatCurrency(sale.total_cents)}
-                    </td>
-                  </tr>
-                ))}
-                {(sales ?? []).length === 0 && (
-                  <tr>
-                    <td colSpan={3} className="px-4 py-6 text-center text-gray-400">
-                      Nenhuma venda registrada ainda.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        ))}
       </div>
     </div>
   );

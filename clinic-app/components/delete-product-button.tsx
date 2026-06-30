@@ -1,6 +1,6 @@
 'use client';
 
-import { deleteProduct } from '@/app/dashboard/store/actions';
+import { deleteProduct } from '@/app/dashboard/store/products/actions';
 
 export function DeleteProductButton({ id }: { id: string }) {
   return (

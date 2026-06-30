@@ -183,6 +183,18 @@ create table conversation_messages (
   created_at timestamptz not null default now()
 );
 
+create type signature_status as enum ('pendente', 'assinado', 'cancelado');
+
+create table document_signatures (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  patient_id uuid references patients (id) on delete set null,
+  status signature_status not null default 'pendente',
+  document_url text,
+  signed_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
 create table campaign_blocklist (
   id uuid primary key default gen_random_uuid(),
   contact text not null,
@@ -241,6 +253,7 @@ create policy "staff manage conversations" on conversations for all using (auth.
 create policy "staff manage conversation_messages" on conversation_messages for all using (auth.uid() is not null);
 create policy "staff manage assistant_settings" on assistant_settings for all using (auth.uid() is not null);
 create policy "staff manage campaign_blocklist" on campaign_blocklist for all using (auth.uid() is not null);
+create policy "staff manage document_signatures" on document_signatures for all using (auth.uid() is not null);
 
 -- Storage bucket for medical record attachments (created via Supabase dashboard/MCP):
 -- insert into storage.buckets (id, name, public) values ('attachments', 'attachments', false);

@@ -17,17 +17,17 @@ export async function createProduct(formData: FormData) {
   });
 
   if (error) {
-    redirect(`/dashboard/store/new?error=${encodeURIComponent(error.message)}`);
+    redirect(`/dashboard/store/products/new?error=${encodeURIComponent(error.message)}`);
   }
 
-  revalidatePath('/dashboard/store');
-  redirect('/dashboard/store');
+  revalidatePath('/dashboard/store/products');
+  redirect('/dashboard/store/products');
 }
 
 export async function deleteProduct(id: string) {
   const supabase = createSupabaseServerClient();
   await supabase.from('products').delete().eq('id', id);
-  revalidatePath('/dashboard/store');
+  revalidatePath('/dashboard/store/products');
 }
 
 export async function sellProduct(formData: FormData) {
@@ -45,7 +45,7 @@ export async function sellProduct(formData: FormData) {
     .single<{ price_cents: number; stock: number }>();
 
   if (!product || product.stock < quantity) {
-    redirect(`/dashboard/store?error=${encodeURIComponent('Estoque insuficiente')}`);
+    redirect(`/dashboard/store/products?error=${encodeURIComponent('Estoque insuficiente')}`);
   }
 
   const { error } = await supabase.from('sales').insert({
@@ -57,7 +57,7 @@ export async function sellProduct(formData: FormData) {
   });
 
   if (error) {
-    redirect(`/dashboard/store?error=${encodeURIComponent(error.message)}`);
+    redirect(`/dashboard/store/products?error=${encodeURIComponent(error.message)}`);
   }
 
   await supabase
@@ -65,6 +65,6 @@ export async function sellProduct(formData: FormData) {
     .update({ stock: product.stock - quantity })
     .eq('id', productId);
 
-  revalidatePath('/dashboard/store');
-  redirect('/dashboard/store');
+  revalidatePath('/dashboard/store/products');
+  redirect('/dashboard/store/products');
 }

@@ -194,3 +194,15 @@ export interface CampaignBlocklistEntry {
   reason: string | null;
   created_at: string;
 }
+
+export type SignatureStatus = 'pendente' | 'assinado' | 'cancelado';
+
+export interface DocumentSignature {
+  id: string;
+  title: string;
+  patient_id: string | null;
+  status: SignatureStatus;
+  document_url: string | null;
+  signed_at: string | null;
+  created_at: string;
+}
