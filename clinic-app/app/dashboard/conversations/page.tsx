@@ -40,12 +40,24 @@ export default async function ConversationsPage({
 
   const { data: conversations } = await query.returns<Conversation[]>();
 
+  const { data: allConversations } = await supabase
+    .from('conversations')
+    .select('status')
+    .returns<{ status: ConversationStatus }[]>();
+
+  const countFor = (value: ConversationStatus | 'todas') =>
+    value === 'todas'
+      ? (allConversations ?? []).length
+      : (allConversations ?? []).filter((c) => c.status === value).length;
+
   return (
     <div>
       <div className="mb-1 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-800">Santé Conversas</h1>
-          <p className="text-sm text-gray-500">Caixa de Entrada · WhatsApp, Instagram e e-mail</p>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-semibold text-gray-800">Conversas</h1>
+          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
+            {STATUS_LABELS[activeTab as Conversation['status']] ?? 'Todas'}
+          </span>
         </div>
         <Link
           href="/dashboard/conversations/new"
@@ -54,19 +66,27 @@ export default async function ConversationsPage({
           + Nova conversa
         </Link>
       </div>
+      <p className="text-sm text-gray-500">Caixa de Entrada · WhatsApp, Instagram e e-mail</p>
 
       <div className="mb-4 mt-4 flex gap-1 border-b border-gray-200">
         {TABS.map((tab) => (
           <Link
             key={tab.value}
             href={`/dashboard/conversations?status=${tab.value}`}
-            className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium ${
+            className={`-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium ${
               activeTab === tab.value
                 ? 'border-brand-600 text-brand-700'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
             {tab.label}
+            <span
+              className={`rounded-full px-1.5 py-0.5 text-xs ${
+                activeTab === tab.value ? 'bg-brand-100 text-brand-700' : 'bg-gray-100 text-gray-500'
+              }`}
+            >
+              {countFor(tab.value)}
+            </span>
           </Link>
         ))}
       </div>
