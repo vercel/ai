@@ -10,6 +10,8 @@ const LINKS: { href: string; label: string; roles: UserRole[] }[] = [
   { href: '/dashboard/patients', label: 'Pacientes', roles: ['admin', 'medico', 'recepcao'] },
   { href: '/dashboard/appointments', label: 'Agendamentos', roles: ['admin', 'medico', 'recepcao'] },
   { href: '/dashboard/billing', label: 'Financeiro', roles: ['admin', 'recepcao'] },
+  { href: '/dashboard/schedule', label: 'Minha agenda', roles: ['admin', 'medico'] },
+  { href: '/dashboard/profile', label: 'Meu perfil', roles: ['admin', 'medico', 'recepcao'] },
   { href: '/dashboard/admin', label: 'Administração', roles: ['admin'] },
 ];
 

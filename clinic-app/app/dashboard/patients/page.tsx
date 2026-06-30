@@ -1,14 +1,21 @@
 import Link from 'next/link';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import type { Patient } from '@/lib/types';
+import { DeletePatientButton } from '@/components/delete-patient-button';
 
-export default async function PatientsPage() {
+export default async function PatientsPage({
+  searchParams,
+}: {
+  searchParams: { q?: string };
+}) {
   const supabase = createSupabaseServerClient();
-  const { data: patients } = await supabase
-    .from('patients')
-    .select('*')
-    .order('full_name')
-    .returns<Patient[]>();
+  const q = searchParams.q?.trim() ?? '';
+
+  let query = supabase.from('patients').select('*').order('full_name');
+  if (q) {
+    query = query.or(`full_name.ilike.%${q}%,cpf.ilike.%${q}%`);
+  }
+  const { data: patients } = await query.returns<Patient[]>();
 
   return (
     <div>
@@ -21,6 +28,16 @@ export default async function PatientsPage() {
           + Novo paciente
         </Link>
       </div>
+
+      <form className="mb-4" method="get">
+        <input
+          type="search"
+          name="q"
+          defaultValue={q}
+          placeholder="Buscar por nome ou CPF..."
+          className="w-full max-w-sm rounded border border-gray-300 px-3 py-2 text-sm"
+        />
+      </form>
 
       <div className="overflow-hidden rounded-xl bg-white shadow-sm">
         <table className="w-full text-sm">
@@ -39,19 +56,28 @@ export default async function PatientsPage() {
                 <td className="px-4 py-3 text-gray-500">{patient.phone ?? '-'}</td>
                 <td className="px-4 py-3 text-gray-500">{patient.email ?? '-'}</td>
                 <td className="px-4 py-3 text-right">
-                  <Link
-                    href={`/dashboard/patients/${patient.id}`}
-                    className="text-brand-600 hover:underline"
-                  >
-                    Ver prontuário
-                  </Link>
+                  <div className="flex justify-end gap-3">
+                    <Link
+                      href={`/dashboard/patients/${patient.id}`}
+                      className="text-brand-600 hover:underline"
+                    >
+                      Ver prontuário
+                    </Link>
+                    <Link
+                      href={`/dashboard/patients/${patient.id}/edit`}
+                      className="text-gray-500 hover:underline"
+                    >
+                      Editar
+                    </Link>
+                    <DeletePatientButton id={patient.id} />
+                  </div>
                 </td>
               </tr>
             ))}
             {(patients ?? []).length === 0 && (
               <tr>
                 <td colSpan={4} className="px-4 py-6 text-center text-gray-400">
-                  Nenhum paciente cadastrado ainda.
+                  Nenhum paciente encontrado.
                 </td>
               </tr>
             )}

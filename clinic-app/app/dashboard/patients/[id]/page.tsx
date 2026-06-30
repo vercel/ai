@@ -1,7 +1,9 @@
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import type { MedicalRecord, Patient, Profile } from '@/lib/types';
 import { addMedicalRecord } from '../actions';
+import { AttachmentLink } from '@/components/attachment-link';
 
 export default async function PatientDetailPage({ params }: { params: { id: string } }) {
   const supabase = createSupabaseServerClient();
@@ -27,14 +29,19 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
 
   return (
     <div className="max-w-2xl">
-      <h1 className="text-2xl font-semibold text-gray-800">{patient.full_name}</h1>
+      <div className="mb-1 flex items-center justify-between">
+        <h1 className="text-2xl font-semibold text-gray-800">{patient.full_name}</h1>
+        <Link href={`/dashboard/patients/${patient.id}/edit`} className="text-sm text-brand-600 hover:underline">
+          Editar dados
+        </Link>
+      </div>
       <p className="mb-6 text-sm text-gray-500">
         {patient.phone ?? 'Sem telefone'} · {patient.email ?? 'Sem e-mail'}
       </p>
 
       <div className="mb-8 rounded-xl bg-white p-6 shadow-sm">
         <h2 className="mb-3 text-sm font-semibold text-gray-700">Nova entrada no prontuário</h2>
-        <form action={addRecord} className="flex flex-col gap-3">
+        <form action={addRecord} encType="multipart/form-data" className="flex flex-col gap-3">
           <textarea
             name="entry"
             required
@@ -42,6 +49,14 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
             placeholder="Anotações clínicas..."
             className="rounded border border-gray-300 px-3 py-2 text-sm"
           />
+          <label className="text-sm text-gray-600">
+            Anexo (exame, documento, imagem)
+            <input
+              name="attachment"
+              type="file"
+              className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            />
+          </label>
           <button
             type="submit"
             className="self-start rounded bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
@@ -56,6 +71,13 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
         {(records ?? []).map((record) => (
           <div key={record.id} className="rounded-xl bg-white p-4 shadow-sm">
             <p className="text-sm text-gray-800">{record.entry}</p>
+            {record.attachments?.length > 0 && (
+              <div className="mt-2 flex flex-col gap-1">
+                {record.attachments.map((path) => (
+                  <AttachmentLink key={path} path={path} />
+                ))}
+              </div>
+            )}
             <p className="mt-2 text-xs text-gray-400">
               {record.profiles?.full_name} · {new Date(record.created_at).toLocaleString('pt-BR')}
             </p>

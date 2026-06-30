@@ -38,6 +38,7 @@ export interface Appointment {
   duration_minutes: number;
   status: AppointmentStatus;
   notes: string | null;
+  created_at: string;
 }
 
 export interface Invoice {
@@ -48,4 +49,14 @@ export interface Invoice {
   status: InvoiceStatus;
   due_date: string | null;
   paid_at: string | null;
+  payment_method: string | null;
+  created_at: string;
+}
+
+export interface Availability {
+  id: string;
+  professional_id: string;
+  weekday: number;
+  start_time: string;
+  end_time: string;
 }

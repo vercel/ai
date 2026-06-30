@@ -53,6 +53,16 @@ create table invoices (
   status invoice_status not null default 'pendente',
   due_date date,
   paid_at timestamptz,
+  payment_method text,
+  created_at timestamptz not null default now()
+);
+
+create table availability (
+  id uuid primary key default gen_random_uuid(),
+  professional_id uuid not null references profiles (id) on delete cascade,
+  weekday smallint not null check (weekday between 0 and 6),
+  start_time time not null,
+  end_time time not null,
   created_at timestamptz not null default now()
 );
 
@@ -63,6 +73,7 @@ alter table patients enable row level security;
 alter table medical_records enable row level security;
 alter table appointments enable row level security;
 alter table invoices enable row level security;
+alter table availability enable row level security;
 
 create policy "staff read profiles" on profiles for select using (auth.uid() is not null);
 create policy "admin manage profiles" on profiles for all using (
@@ -73,6 +84,12 @@ create policy "staff manage patients" on patients for all using (auth.uid() is n
 create policy "staff manage medical_records" on medical_records for all using (auth.uid() is not null);
 create policy "staff manage appointments" on appointments for all using (auth.uid() is not null);
 create policy "staff manage invoices" on invoices for all using (auth.uid() is not null);
+create policy "staff manage availability" on availability for all using (auth.uid() is not null);
+
+-- Storage bucket for medical record attachments (created via Supabase dashboard/MCP):
+-- insert into storage.buckets (id, name, public) values ('attachments', 'attachments', false);
+-- create policy "staff read attachments" on storage.objects for select using (bucket_id = 'attachments' and auth.uid() is not null);
+-- create policy "staff upload attachments" on storage.objects for insert with check (bucket_id = 'attachments' and auth.uid() is not null);
 
 -- Auto-create a profile row when a new auth user signs up.
 create function public.handle_new_user()

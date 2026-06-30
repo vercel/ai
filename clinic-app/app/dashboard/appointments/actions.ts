@@ -29,3 +29,32 @@ export async function updateAppointmentStatus(id: string, status: AppointmentSta
   await supabase.from('appointments').update({ status }).eq('id', id);
   revalidatePath('/dashboard/appointments');
 }
+
+export async function updateAppointment(id: string, formData: FormData) {
+  const supabase = createSupabaseServerClient();
+
+  const { error } = await supabase
+    .from('appointments')
+    .update({
+      patient_id: String(formData.get('patient_id') ?? ''),
+      professional_id: String(formData.get('professional_id') ?? ''),
+      scheduled_at: new Date(String(formData.get('scheduled_at') ?? '')).toISOString(),
+      duration_minutes: Number(formData.get('duration_minutes') ?? 30),
+      status: String(formData.get('status') ?? 'agendado') as AppointmentStatus,
+      notes: String(formData.get('notes') ?? '') || null,
+    })
+    .eq('id', id);
+
+  if (error) {
+    redirect(`/dashboard/appointments/${id}/edit?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath('/dashboard/appointments');
+  redirect('/dashboard/appointments');
+}
+
+export async function deleteAppointment(id: string) {
+  const supabase = createSupabaseServerClient();
+  await supabase.from('appointments').delete().eq('id', id);
+  revalidatePath('/dashboard/appointments');
+}
