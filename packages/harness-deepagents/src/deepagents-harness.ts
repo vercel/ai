@@ -71,8 +71,6 @@ function installRipgrepCommand(): string {
 // Skills source subpath, written under $HOME (out of the work dir so it can't clash with code cloned into the work dir) and also discovered from <workDir> for repo-provided skills.
 const SKILLS_SOURCE_PATH = '/.agents/skills';
 
-const DEEPAGENTS_DEFAULT_CONTEXT_WINDOW = 200_000;
-
 export type DeepAgentsHarnessSettings = {
   readonly auth?: DeepAgentsAuthOptions;
   /** Model id for the DeepAgents runtime, e.g. `claude-sonnet-4` (converted to `provider:model`). */
@@ -84,18 +82,6 @@ export type DeepAgentsHarnessSettings = {
   /** Max LangGraph super-steps per turn before it errors. Defaults to 100; raise for long multi-step tasks. */
   readonly recursionLimit?: number;
 };
-
-// Live bridge coordinates returned by doDetach/doSuspendTurn so a later process can reattach.
-const deepAgentsBridgeCoordsSchema = z.object({
-  port: z.number(),
-  token: z.string(),
-  lastSeenEventId: z.number(),
-  sandboxId: z.string().optional(),
-});
-const deepAgentsResumeStateSchema = z.object({
-  bridge: deepAgentsBridgeCoordsSchema.optional(),
-});
-type DeepAgentsBridgeCoords = z.infer<typeof deepAgentsBridgeCoordsSchema>;
 
 // Every model-callable DeepAgents built-in, keyed by what the bridge emits (commonName ?? nativeName); all must be listed or AI SDK throws AI_NoSuchToolError.
 const DEEPAGENTS_BUILTIN_TOOLS = {
@@ -156,6 +142,18 @@ const DEEPAGENTS_BUILTIN_TOOLS = {
     inputSchema: z.object({ todos: z.array(z.unknown()).optional() }),
   }),
 } as const satisfies Record<string, HarnessV1BuiltinTool<any, any>>;
+
+// Live bridge coordinates returned by doDetach/doSuspendTurn so a later process can reattach.
+const deepAgentsBridgeCoordsSchema = z.object({
+  port: z.number(),
+  token: z.string(),
+  lastSeenEventId: z.number(),
+  sandboxId: z.string().optional(),
+});
+const deepAgentsResumeStateSchema = z.object({
+  bridge: deepAgentsBridgeCoordsSchema.optional(),
+});
+type DeepAgentsBridgeCoords = z.infer<typeof deepAgentsBridgeCoordsSchema>;
 
 export function createDeepAgents(
   settings: DeepAgentsHarnessSettings = {},
@@ -820,5 +818,3 @@ function extractUserText(prompt: HarnessV1Prompt): string {
   }
   return parts.join('\n\n');
 }
-
-export { DEEPAGENTS_BUILTIN_TOOLS, DEEPAGENTS_DEFAULT_CONTEXT_WINDOW };

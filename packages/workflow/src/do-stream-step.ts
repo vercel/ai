@@ -51,6 +51,7 @@ export interface DoStreamStepOptions {
   maxRetries?: number;
   abortSignal?: AbortSignal;
   headers?: Record<string, string | undefined>;
+  reasoning?: LanguageModelV4CallOptions['reasoning'];
   providerOptions?: ProviderOptions;
   toolChoice?: ToolChoice<ToolSet>;
   includeRawChunks?: boolean;
@@ -134,6 +135,7 @@ export async function doStreamStep(
     providerOptions: options?.providerOptions,
     abortSignal: options?.abortSignal,
     headers: options?.headers,
+    reasoning: options?.reasoning,
     maxOutputTokens: options?.maxOutputTokens,
     temperature: options?.temperature,
     topP: options?.topP,

@@ -1,5 +1,43 @@
 # @ai-sdk/react
 
+## 4.0.10
+
+### Patch Changes
+
+- ai@7.0.9
+
+## 4.0.9
+
+### Patch Changes
+
+- Updated dependencies [0274f34]
+  - @ai-sdk/provider@4.0.1
+  - ai@7.0.8
+  - @ai-sdk/mcp@2.0.4
+  - @ai-sdk/provider-utils@5.0.2
+
+## 4.0.8
+
+### Patch Changes
+
+- 550e413: Treat nullish `useChat` IDs the same as omitted IDs so the chat instance is not recreated on every render.
+- Updated dependencies [d598481]
+  - ai@7.0.7
+
+## 4.0.7
+
+### Patch Changes
+
+- Updated dependencies [989402d]
+  - ai@7.0.6
+
+## 4.0.6
+
+### Patch Changes
+
+- Updated dependencies [a2750db]
+  - ai@7.0.5
+
 ## 4.0.5
 
 ### Patch Changes

@@ -38,6 +38,15 @@ import type { GoogleVertexSpeechModelId } from './google-vertex-speech-model-opt
 const EXPRESS_MODE_BASE_URL =
   'https://aiplatform.googleapis.com/v1/publishers/google';
 
+// Tuned models are served from a deployed endpoint and addressed by their
+// `endpoints/{id}` resource, which replaces `publishers/google/models/{id}`.
+// https://cloud.google.com/vertex-ai/generative-ai/docs/deploy/overview
+const ENDPOINT_MODEL_PREFIX = 'endpoints/';
+
+function isEndpointModelId(modelId: string): boolean {
+  return modelId.startsWith(ENDPOINT_MODEL_PREFIX);
+}
+
 // set `x-goog-api-key` header to API key for express mode
 function createExpressModeFetch(
   apiKey: string,
@@ -186,7 +195,11 @@ export function createGoogleVertex(
       description: 'Google Vertex location',
     });
 
-  const loadBaseURL = () => {
+  // Tuned models are addressed via their deployed endpoint
+  // `.../locations/{region}/endpoints/{id}` instead of the base-model
+  // `.../publishers/google/models/{id}` path, so they omit the
+  // `/publishers/google` suffix from the base URL.
+  const loadBaseURL = ({ endpoint = false }: { endpoint?: boolean } = {}) => {
     if (apiKey) {
       return withoutTrailingSlash(options.baseURL) ?? EXPRESS_MODE_BASE_URL;
     }
@@ -206,11 +219,16 @@ export function createGoogleVertex(
 
     return (
       withoutTrailingSlash(options.baseURL) ??
-      `https://${getHost()}/v1beta1/projects/${project}/locations/${region}/publishers/google`
+      `https://${getHost()}/v1beta1/projects/${project}/locations/${region}${
+        endpoint ? '' : '/publishers/google'
+      }`
     );
   };
 
-  const createConfig = (name: string): GoogleVertexConfig => {
+  const createConfig = (
+    name: string,
+    { endpoint = false }: { endpoint?: boolean } = {},
+  ): GoogleVertexConfig => {
     const getHeaders = async () => {
       const originalHeaders = await resolve(options.headers ?? {});
       return withUserAgentSuffix(
@@ -225,13 +243,21 @@ export function createGoogleVertex(
       fetch: apiKey
         ? createExpressModeFetch(apiKey, options.fetch)
         : options.fetch,
-      baseURL: loadBaseURL(),
+      baseURL: loadBaseURL({ endpoint }),
     };
   };
 
   const createChatModel = (modelId: GoogleVertexModelId) => {
+    const endpoint = isEndpointModelId(modelId);
+
+    if (endpoint && apiKey) {
+      throw new Error(
+        'Google Vertex tuned models do not support Express Mode API keys. Use standard Google Cloud credentials instead.',
+      );
+    }
+
     return new GoogleLanguageModel(modelId, {
-      ...createConfig('chat'),
+      ...createConfig('chat', { endpoint }),
       generateId: options.generateId ?? generateId,
       supportedUrls: () => ({
         '*': [

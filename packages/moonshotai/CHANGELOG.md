@@ -1,5 +1,20 @@
 # @ai-sdk/moonshotai
 
+## 3.0.4
+
+### Patch Changes
+
+- Updated dependencies [0274f34]
+  - @ai-sdk/provider@4.0.1
+  - @ai-sdk/openai-compatible@3.0.2
+  - @ai-sdk/provider-utils@5.0.2
+
+## 3.0.3
+
+### Patch Changes
+
+- 5cb600b: feat(moonshotai): support structured outputs for kimi-k2.5
+
 ## 3.0.2
 
 ### Patch Changes
