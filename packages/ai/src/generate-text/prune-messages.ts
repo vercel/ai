@@ -159,13 +159,18 @@ export function pruneMessages({
           }
 
           // keep parts that are not associated with a tool that should be removed:
+          if (toolCall.tools == null) {
+            return false;
+          }
+
+          const associatedToolName =
+            part.type === 'tool-call' || part.type === 'tool-result'
+              ? part.toolName
+              : approvalIdToToolName.get(part.approvalId);
+
           return (
-            toolCall.tools != null &&
-            !toolCall.tools.includes(
-              part.type === 'tool-call' || part.type === 'tool-result'
-                ? part.toolName
-                : approvalIdToToolName.get(part.approvalId),
-            )
+            associatedToolName == null ||
+            !toolCall.tools.includes(associatedToolName)
           );
         }),
       } as AssistantModelMessage | ToolModelMessage;
