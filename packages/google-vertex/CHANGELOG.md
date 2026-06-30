@@ -1,5 +1,13 @@
 # @ai-sdk/google-vertex
 
+## 3.0.145
+
+### Patch Changes
+
+- f236836: feat (provider/anthropic): add `claude-sonnet-5` model id
+- Updated dependencies [f236836]
+  - @ai-sdk/anthropic@2.0.85
+
 ## 3.0.144
 
 ### Patch Changes

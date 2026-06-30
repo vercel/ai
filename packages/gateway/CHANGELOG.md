@@ -1,5 +1,12 @@
 # @ai-sdk/gateway
 
+## 2.0.108
+
+### Patch Changes
+
+- f236836: feat (provider/anthropic): add `claude-sonnet-5` model id
+- bd9365a: Backport: chore(provider/gateway): update gateway model settings files
+
 ## 2.0.107
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.0.85
+
+### Patch Changes
+
+- f236836: feat (provider/anthropic): add `claude-sonnet-5` model id
+
 ## 2.0.84
 
 ### Patch Changes
