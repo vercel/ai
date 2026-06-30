@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import type { Invoice, Patient } from '@/lib/types';
 import { MarkPaidButton } from '@/components/mark-paid-button';
+import { DeleteInvoiceButton } from '@/components/delete-invoice-button';
 
 type InvoiceRow = Invoice & { patients: Pick<Patient, 'full_name'> };
 
@@ -13,6 +14,12 @@ const STATUS_LABELS: Record<Invoice['status'], string> = {
 
 function formatCurrency(cents: number) {
   return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+function isOverdue(invoice: Invoice) {
+  return (
+    invoice.status === 'pendente' && invoice.due_date && new Date(invoice.due_date) < new Date()
+  );
 }
 
 export default async function BillingPage() {
@@ -27,12 +34,20 @@ export default async function BillingPage() {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-gray-800">Financeiro</h1>
-        <Link
-          href="/dashboard/billing/new"
-          className="rounded bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
-        >
-          + Nova fatura
-        </Link>
+        <div className="flex gap-3">
+          <Link
+            href="/dashboard/billing/reports"
+            className="rounded border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+          >
+            Relatórios
+          </Link>
+          <Link
+            href="/dashboard/billing/new"
+            className="rounded bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+          >
+            + Nova fatura
+          </Link>
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-xl bg-white shadow-sm">
@@ -58,9 +73,28 @@ export default async function BillingPage() {
                     ? new Date(invoice.due_date).toLocaleDateString('pt-BR')
                     : '-'}
                 </td>
-                <td className="px-4 py-3 text-gray-500">{STATUS_LABELS[invoice.status]}</td>
+                <td className="px-4 py-3">
+                  <span
+                    className={
+                      isOverdue(invoice)
+                        ? 'rounded bg-red-100 px-2 py-0.5 text-xs text-red-700'
+                        : 'text-gray-500'
+                    }
+                  >
+                    {isOverdue(invoice) ? 'Vencida' : STATUS_LABELS[invoice.status]}
+                  </span>
+                </td>
                 <td className="px-4 py-3 text-right">
-                  {invoice.status === 'pendente' && <MarkPaidButton id={invoice.id} />}
+                  <div className="flex justify-end gap-3">
+                    {invoice.status === 'pendente' && <MarkPaidButton id={invoice.id} />}
+                    <Link
+                      href={`/dashboard/billing/${invoice.id}/edit`}
+                      className="text-gray-500 hover:underline"
+                    >
+                      Editar
+                    </Link>
+                    <DeleteInvoiceButton id={invoice.id} />
+                  </div>
                 </td>
               </tr>
             ))}
