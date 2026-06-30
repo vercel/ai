@@ -187,3 +187,10 @@ export interface AssistantSettings {
   auto_broadcast: boolean;
   updated_at: string;
 }
+
+export interface CampaignBlocklistEntry {
+  id: string;
+  contact: string;
+  reason: string | null;
+  created_at: string;
+}

@@ -37,3 +37,25 @@ export async function deleteCampaign(id: string) {
   await supabase.from('campaigns').delete().eq('id', id);
   revalidatePath('/dashboard/campaigns');
 }
+
+export async function addToBlocklist(formData: FormData) {
+  const supabase = createSupabaseServerClient();
+
+  const { error } = await supabase.from('campaign_blocklist').insert({
+    contact: String(formData.get('contact') ?? ''),
+    reason: String(formData.get('reason') ?? '') || null,
+  });
+
+  if (error) {
+    redirect(`/dashboard/campaigns/blocklist?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath('/dashboard/campaigns/blocklist');
+  redirect('/dashboard/campaigns/blocklist');
+}
+
+export async function removeFromBlocklist(id: string) {
+  const supabase = createSupabaseServerClient();
+  await supabase.from('campaign_blocklist').delete().eq('id', id);
+  revalidatePath('/dashboard/campaigns/blocklist');
+}

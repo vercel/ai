@@ -8,22 +8,48 @@ type FiscalNoteRow = FiscalNote & {
 };
 
 const STATUS_LABELS: Record<FiscalNote['status'], string> = {
-  pendente: 'Pendente',
-  emitida: 'Emitida',
-  cancelada: 'Cancelada',
+  pendente: 'Processando',
+  emitida: 'Autorizado',
+  cancelada: 'Cancelado',
 };
+
+const STATUS_TABS: { value: FiscalNote['status'] | 'todos'; label: string }[] = [
+  { value: 'todos', label: 'Todos' },
+  { value: 'emitida', label: 'Autorizado' },
+  { value: 'pendente', label: 'Processando' },
+  { value: 'cancelada', label: 'Cancelado' },
+];
 
 function formatCurrency(cents: number) {
   return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-export default async function FiscalNotesPage() {
+export default async function FiscalNotesPage({
+  searchParams,
+}: {
+  searchParams: { status?: string; client?: string };
+}) {
   const supabase = createSupabaseServerClient();
-  const { data: notes } = await supabase
+  const activeStatus = (searchParams.status as FiscalNote['status'] | undefined) ?? 'todos';
+
+  let query = supabase
     .from('fiscal_notes')
     .select('*, invoices(amount_cents, patients(full_name))')
-    .order('created_at', { ascending: false })
-    .returns<FiscalNoteRow[]>();
+    .order('created_at', { ascending: false });
+
+  if (activeStatus !== ('todos' as FiscalNote['status'])) {
+    query = query.eq('status', activeStatus);
+  }
+
+  const { data: notes } = await query.returns<FiscalNoteRow[]>();
+
+  const filteredNotes = searchParams.client
+    ? (notes ?? []).filter((note) =>
+        note.invoices?.patients?.full_name
+          ?.toLowerCase()
+          .includes(searchParams.client!.toLowerCase()),
+      )
+    : (notes ?? []);
 
   return (
     <div>
@@ -43,6 +69,41 @@ export default async function FiscalNotesPage() {
         isso, esta tela é apenas um registro de número/série/status.
       </p>
 
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex gap-2">
+          {STATUS_TABS.map((tab) => (
+            <Link
+              key={tab.value}
+              href={`/dashboard/fiscal-notes?status=${tab.value}${
+                searchParams.client ? `&client=${encodeURIComponent(searchParams.client)}` : ''
+              }`}
+              className={`rounded px-3 py-1.5 text-xs font-medium ${
+                activeStatus === tab.value
+                  ? 'bg-brand-600 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {tab.label}
+            </Link>
+          ))}
+        </div>
+        <form className="flex gap-2" action="/dashboard/fiscal-notes">
+          <input type="hidden" name="status" value={activeStatus} />
+          <input
+            name="client"
+            defaultValue={searchParams.client ?? ''}
+            placeholder="Filtrar por cliente"
+            className="rounded border border-gray-300 px-3 py-1.5 text-xs"
+          />
+          <button
+            type="submit"
+            className="rounded bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-200"
+          >
+            Pesquisar
+          </button>
+        </form>
+      </div>
+
       <div className="overflow-hidden rounded-xl bg-white shadow-sm">
         <table className="w-full text-sm">
           <thead className="bg-gray-50 text-left text-gray-500">
@@ -55,7 +116,7 @@ export default async function FiscalNotesPage() {
             </tr>
           </thead>
           <tbody>
-            {(notes ?? []).map((note) => (
+            {filteredNotes.map((note) => (
               <tr key={note.id} className="border-t border-gray-100">
                 <td className="px-4 py-3 font-medium text-gray-800">
                   {note.invoices?.patients?.full_name}
@@ -72,10 +133,10 @@ export default async function FiscalNotesPage() {
                 </td>
               </tr>
             ))}
-            {(notes ?? []).length === 0 && (
+            {filteredNotes.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-4 py-6 text-center text-gray-400">
-                  Nenhuma nota fiscal cadastrada ainda.
+                  Nenhuma nota fiscal encontrada.
                 </td>
               </tr>
             )}

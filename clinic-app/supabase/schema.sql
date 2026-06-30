@@ -183,6 +183,13 @@ create table conversation_messages (
   created_at timestamptz not null default now()
 );
 
+create table campaign_blocklist (
+  id uuid primary key default gen_random_uuid(),
+  contact text not null,
+  reason text,
+  created_at timestamptz not null default now()
+);
+
 create table assistant_settings (
   id uuid primary key default gen_random_uuid(),
   name text not null default 'Fer',
@@ -233,6 +240,7 @@ create policy "staff manage fiscal_notes" on fiscal_notes for all using (auth.ui
 create policy "staff manage conversations" on conversations for all using (auth.uid() is not null);
 create policy "staff manage conversation_messages" on conversation_messages for all using (auth.uid() is not null);
 create policy "staff manage assistant_settings" on assistant_settings for all using (auth.uid() is not null);
+create policy "staff manage campaign_blocklist" on campaign_blocklist for all using (auth.uid() is not null);
 
 -- Storage bucket for medical record attachments (created via Supabase dashboard/MCP):
 -- insert into storage.buckets (id, name, public) values ('attachments', 'attachments', false);
