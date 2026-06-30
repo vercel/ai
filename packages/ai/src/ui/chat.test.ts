@@ -2952,4 +2952,111 @@ describe('Chat', () => {
       `);
     });
   });
+
+  describe('resumeStream deduplication', () => {
+    function createResumeStream(): ReadableStream<UIMessageChunk> {
+      return new ReadableStream<UIMessageChunk>({
+        start(controller) {
+          controller.enqueue({ type: 'start' });
+          controller.enqueue({ type: 'finish' });
+          controller.close();
+        },
+      });
+    }
+
+    it('should make a single resume request for concurrent resumeStream calls on a shared chat instance', async () => {
+      let reconnectCount = 0;
+      // Hold the resume request in flight so all three concurrent calls are
+      // provably overlapping before any of them settles.
+      const release = createResolvablePromise<void>();
+
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId(),
+        transport: {
+          sendMessages: async () => {
+            throw new Error('sendMessages should not be called during resume');
+          },
+          reconnectToStream: async () => {
+            reconnectCount++;
+            await release.promise;
+            return createResumeStream();
+          },
+        },
+      });
+
+      // Simulate many useChat hooks sharing one Chat instance, each firing
+      // resumeStream() on mount (e.g. via `resume: true`).
+      const resumed = Promise.all([
+        chat.resumeStream(),
+        chat.resumeStream(),
+        chat.resumeStream(),
+      ]);
+
+      // While the first resume is still in flight, only one request has been
+      // made even though resumeStream() was called three times.
+      expect(reconnectCount).toBe(1);
+
+      release.resolve();
+      await resumed;
+
+      // Still a single request after everything settles.
+      expect(reconnectCount).toBe(1);
+      expect(chat.status).toBe('ready');
+    });
+
+    // Pairs with the test above: dedup must apply only while a resume is in
+    // flight, not permanently. Once the first resume settles, a later call
+    // must issue a fresh request (guards against a missing `.finally()` reset).
+    it('should make a new resume request once the previous resume has settled', async () => {
+      let reconnectCount = 0;
+
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId(),
+        transport: {
+          sendMessages: async () => {
+            throw new Error('sendMessages should not be called during resume');
+          },
+          reconnectToStream: async () => {
+            reconnectCount++;
+            return createResumeStream();
+          },
+        },
+      });
+
+      await chat.resumeStream();
+      await chat.resumeStream();
+
+      expect(reconnectCount).toBe(2);
+      expect(chat.status).toBe('ready');
+    });
+
+    // The in-flight guard must also reset when there is no active stream to
+    // resume (reconnectToStream resolves to null), otherwise a later resume
+    // would be permanently suppressed.
+    it('should reset the in-flight guard when there is no active stream to resume', async () => {
+      let reconnectCount = 0;
+
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId(),
+        transport: {
+          sendMessages: async () => {
+            throw new Error('sendMessages should not be called during resume');
+          },
+          reconnectToStream: async () => {
+            reconnectCount++;
+            return null;
+          },
+        },
+      });
+
+      await chat.resumeStream();
+      await chat.resumeStream();
+
+      expect(reconnectCount).toBe(2);
+      expect(chat.status).toBe('ready');
+    });
+  });
 });
