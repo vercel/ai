@@ -485,3 +485,54 @@ create table clinic_settings (
 );
 alter table clinic_settings enable row level security;
 create policy "staff manage clinic_settings" on clinic_settings for all using (auth.uid() is not null);
+
+-- Phase 1: multi-tenant plans/clinics (migration: add_plans_and_clinics)
+create table plans (
+  id uuid primary key default gen_random_uuid(),
+  slug text not null unique,
+  name text not null,
+  max_users int,
+  modules text[] not null default '{}',
+  created_at timestamptz not null default now()
+);
+alter table plans enable row level security;
+create policy "staff read plans" on plans for select using (auth.uid() is not null);
+
+create table clinics (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  plan_id uuid not null references plans (id),
+  owner_id uuid,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+alter table clinics enable row level security;
+create policy "staff read own clinic" on clinics for select using (auth.uid() is not null);
+
+alter table profiles add column clinic_id uuid references clinics (id);
+alter table patients add column clinic_id uuid references clinics (id);
+
+create function current_clinic_id()
+returns uuid
+language sql
+security definer
+stable
+as $$
+  select clinic_id from profiles where id = auth.uid();
+$$;
+
+drop policy "staff manage patients" on patients;
+create policy "staff manage patients" on patients for all
+  using (clinic_id = public.current_clinic_id())
+  with check (clinic_id = public.current_clinic_id());
+
+-- handle_new_user() updated to read clinic_id/role from raw_user_meta_data
+
+-- Phase 1: clinic self-registration policies (migration: clinics_signup_policies)
+create policy "anyone can create a clinic" on clinics for insert with check (true);
+create policy "staff update own clinic" on clinics for update using (clinic_id = public.current_clinic_id());
+
+-- handle_new_user() updated again to claim clinics.owner_id for the first admin signup
+
+-- Phase 1: public plan catalog read (migration: plans_public_read)
+create policy "anyone can read plans" on plans for select using (true);

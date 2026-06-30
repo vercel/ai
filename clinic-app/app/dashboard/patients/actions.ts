@@ -55,6 +55,7 @@ export async function createPatient(formData: FormData) {
   const { error } = await supabase.from('patients').insert({
     ...patientFieldsFromForm(formData),
     created_by: profile.id,
+    clinic_id: profile.clinic_id,
   });
 
   if (error) {

@@ -21,12 +21,27 @@ export async function signup(formData: FormData) {
   const email = String(formData.get('email') ?? '');
   const password = String(formData.get('password') ?? '');
   const fullName = String(formData.get('full_name') ?? '');
+  const clinicName = String(formData.get('clinic_name') ?? '');
+  const planId = String(formData.get('plan_id') ?? '');
 
   const supabase = createSupabaseServerClient();
+
+  const { data: clinic, error: clinicError } = await supabase
+    .from('clinics')
+    .insert({ name: clinicName, plan_id: planId })
+    .select('id')
+    .single<{ id: string }>();
+
+  if (clinicError || !clinic) {
+    redirect(
+      `/signup?error=${encodeURIComponent(clinicError?.message ?? 'Não foi possível criar a clínica')}`,
+    );
+  }
+
   const { error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { full_name: fullName } },
+    options: { data: { full_name: fullName, role: 'admin', clinic_id: clinic.id } },
   });
 
   if (error) {

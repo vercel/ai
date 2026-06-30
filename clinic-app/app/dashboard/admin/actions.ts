@@ -1,9 +1,55 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
+import { createClient } from '@supabase/supabase-js';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { requireAdmin, requireProfile } from '@/lib/auth';
+import { requireAdmin, requireProfile, requireProfileWithPlan } from '@/lib/auth';
 import type { UserRole } from '@/lib/types';
+
+export async function createCollaborator(formData: FormData) {
+  const profile = await requireProfileWithPlan();
+  requireAdmin(profile);
+
+  if (!profile.clinic_id) {
+    redirect('/dashboard/admin?error=Clínica não encontrada');
+  }
+
+  const supabase = createSupabaseServerClient();
+  const { count } = await supabase
+    .from('profiles')
+    .select('id', { count: 'exact', head: true })
+    .eq('clinic_id', profile.clinic_id);
+
+  const maxUsers = profile.plan?.max_users ?? null;
+  if (maxUsers !== null && (count ?? 0) >= maxUsers) {
+    redirect(
+      `/dashboard/admin?error=${encodeURIComponent('Limite de usuários do plano atingido')}`,
+    );
+  }
+
+  const email = String(formData.get('email') ?? '');
+  const password = String(formData.get('password') ?? '');
+  const fullName = String(formData.get('full_name') ?? '');
+  const role = String(formData.get('role') ?? 'recepcao') as UserRole;
+
+  const signupClient = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  );
+
+  const { error } = await signupClient.auth.signUp({
+    email,
+    password,
+    options: { data: { full_name: fullName, role, clinic_id: profile.clinic_id } },
+  });
+
+  if (error) {
+    redirect(`/dashboard/admin?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath('/dashboard/admin');
+}
 
 export async function updateUserRole(userId: string, role: UserRole) {
   const profile = await requireProfile();

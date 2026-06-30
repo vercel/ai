@@ -9,33 +9,76 @@ const LINKS: {
   href: string;
   label: string;
   roles: UserRole[];
+  module?: string;
   children?: { href: string; label: string }[];
 }[] = [
   { href: '/dashboard', label: 'Tela Inicial', roles: ['admin', 'medico', 'recepcao'] },
-  { href: '/dashboard/panel', label: 'Painel', roles: ['admin', 'medico', 'recepcao'] },
-  { href: '/dashboard/patients', label: 'Pacientes', roles: ['admin', 'medico', 'recepcao'] },
-  { href: '/dashboard/appointments', label: 'Agendamentos', roles: ['admin', 'medico', 'recepcao'] },
-  { href: '/dashboard/billing', label: 'Financeiro', roles: ['admin', 'recepcao'] },
+  {
+    href: '/dashboard/panel',
+    label: 'Painel',
+    roles: ['admin', 'medico', 'recepcao'],
+    module: 'dashboard',
+  },
+  {
+    href: '/dashboard/patients',
+    label: 'Pacientes',
+    roles: ['admin', 'medico', 'recepcao'],
+    module: 'patients',
+  },
+  {
+    href: '/dashboard/appointments',
+    label: 'Agendamentos',
+    roles: ['admin', 'medico', 'recepcao'],
+    module: 'appointments',
+  },
+  { href: '/dashboard/billing', label: 'Financeiro', roles: ['admin', 'recepcao'], module: 'billing' },
   {
     href: '/dashboard/campaigns',
     label: 'Campanhas',
     roles: ['admin', 'recepcao'],
+    module: 'campaigns',
     children: [
       { href: '/dashboard/campaigns/panel', label: 'Painel' },
       { href: '/dashboard/campaigns', label: 'Campanhas' },
       { href: '/dashboard/campaigns/blocklist', label: 'Lista de bloqueio' },
     ],
   },
-  { href: '/dashboard/fiscal-notes', label: 'Notas fiscais', roles: ['admin', 'recepcao'] },
-  { href: '/dashboard/signatures', label: 'Assinatura eletrônica', roles: ['admin', 'recepcao'] },
-  { href: '/dashboard/crm', label: 'CRM', roles: ['admin', 'recepcao'] },
-  { href: '/dashboard/conversations', label: 'Conversas', roles: ['admin', 'recepcao'] },
-  { href: '/dashboard/lab-orders', label: 'Controle laboratório', roles: ['admin', 'medico', 'recepcao'] },
-  { href: '/dashboard/cash-advances', label: 'Adiantamentos', roles: ['admin', 'medico', 'recepcao'] },
+  {
+    href: '/dashboard/fiscal-notes',
+    label: 'Notas fiscais',
+    roles: ['admin', 'recepcao'],
+    module: 'fiscal_notes',
+  },
+  {
+    href: '/dashboard/signatures',
+    label: 'Assinatura eletrônica',
+    roles: ['admin', 'recepcao'],
+    module: 'signatures',
+  },
+  { href: '/dashboard/crm', label: 'CRM', roles: ['admin', 'recepcao'], module: 'crm' },
+  {
+    href: '/dashboard/conversations',
+    label: 'Conversas',
+    roles: ['admin', 'recepcao'],
+    module: 'conversations',
+  },
+  {
+    href: '/dashboard/lab-orders',
+    label: 'Controle laboratório',
+    roles: ['admin', 'medico', 'recepcao'],
+    module: 'lab_orders',
+  },
+  {
+    href: '/dashboard/cash-advances',
+    label: 'Adiantamentos',
+    roles: ['admin', 'medico', 'recepcao'],
+    module: 'cash_advances',
+  },
   {
     href: '/dashboard/charts',
     label: 'Gráficos',
     roles: ['admin', 'recepcao'],
+    module: 'charts',
     children: [
       { href: '/dashboard/charts/registrations', label: 'Novos cadastros' },
       { href: '/dashboard/charts/clients', label: 'Clientes' },
@@ -51,6 +94,7 @@ const LINKS: {
     href: '/dashboard/reports',
     label: 'Relatórios',
     roles: ['admin', 'recepcao'],
+    module: 'reports',
     children: [
       { href: '/dashboard/reports/agenda', label: 'Agenda' },
       { href: '/dashboard/reports/clients', label: 'Clientes' },
@@ -58,13 +102,21 @@ const LINKS: {
       { href: '/dashboard/reports/treatments', label: 'Tratamentos' },
     ],
   },
-  { href: '/dashboard/store', label: 'Loja', roles: ['admin', 'recepcao'] },
+  { href: '/dashboard/store', label: 'Loja', roles: ['admin', 'recepcao'], module: 'store' },
   { href: '/dashboard/schedule', label: 'Minha agenda', roles: ['admin', 'medico'] },
   { href: '/dashboard/profile', label: 'Meu perfil', roles: ['admin', 'medico', 'recepcao'] },
   { href: '/dashboard/admin', label: 'Administração', roles: ['admin'] },
 ];
 
-export function Sidebar({ role, fullName }: { role: UserRole; fullName: string }) {
+export function Sidebar({
+  role,
+  fullName,
+  modules,
+}: {
+  role: UserRole;
+  fullName: string;
+  modules: string[];
+}) {
   const pathname = usePathname();
 
   return (
@@ -75,7 +127,9 @@ export function Sidebar({ role, fullName }: { role: UserRole; fullName: string }
           <p className="text-xs text-blue-200/70">{fullName}</p>
         </div>
         <nav className="flex flex-col gap-1 px-2 py-3">
-          {LINKS.filter((link) => link.roles.includes(role)).map((link) => {
+          {LINKS.filter(
+            (link) => link.roles.includes(role) && (!link.module || modules.includes(link.module)),
+          ).map((link) => {
             const active =
               pathname === link.href ||
               (link.href !== '/dashboard' && pathname.startsWith(link.href));

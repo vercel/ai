@@ -1,8 +1,10 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { requireAdmin, requireProfile } from '@/lib/auth';
+import { requireAdmin, requireProfileWithPlan } from '@/lib/auth';
 import type { ClinicSettings, MessageTemplate, PaymentMethod, Profile, Room } from '@/lib/types';
+import { MODULE_LABELS } from '@/lib/plans';
 import { RoleSelect } from '@/components/role-select';
 import {
+  createCollaborator,
   createMessageTemplate,
   createPaymentMethod,
   createRoom,
@@ -14,8 +16,12 @@ import {
   updateClinicSettings,
 } from './actions';
 
-export default async function AdminPage() {
-  const profile = await requireProfile();
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams: { error?: string };
+}) {
+  const profile = await requireProfileWithPlan();
   requireAdmin(profile);
 
   const supabase = createSupabaseServerClient();
@@ -26,16 +32,90 @@ export default async function AdminPage() {
     { data: paymentMethods },
     { data: clinicSettings },
   ] = await Promise.all([
-    supabase.from('profiles').select('*').order('full_name').returns<Profile[]>(),
+    supabase
+      .from('profiles')
+      .select('*')
+      .eq('clinic_id', profile.clinic_id)
+      .order('full_name')
+      .returns<Profile[]>(),
     supabase.from('rooms').select('*').order('name').returns<Room[]>(),
     supabase.from('message_templates').select('*').order('name').returns<MessageTemplate[]>(),
     supabase.from('payment_methods').select('*').order('name').returns<PaymentMethod[]>(),
     supabase.from('clinic_settings').select('*').limit(1).maybeSingle<ClinicSettings>(),
   ]);
 
+  const userCount = profiles?.length ?? 0;
+  const maxUsers = profile.plan?.max_users ?? null;
+
   return (
     <div>
       <h1 className="mb-6 text-2xl font-semibold text-gray-800">Administração</h1>
+
+      {searchParams.error && (
+        <p className="mb-4 rounded bg-red-50 p-2 text-sm text-red-600">{searchParams.error}</p>
+      )}
+
+      {profile.plan && (
+        <div className="mb-6 rounded-xl bg-white p-4 shadow-sm">
+          <p className="text-sm font-semibold text-gray-700">
+            Plano: <span className="text-brand-600">{profile.plan.name}</span>
+          </p>
+          <p className="mt-1 text-xs text-gray-500">
+            Usuários: {userCount}/{maxUsers ?? '∞'}
+          </p>
+          <p className="mt-1 text-xs text-gray-500">
+            Módulos: {profile.plan.modules.map((module) => MODULE_LABELS[module] ?? module).join(', ')}
+          </p>
+        </div>
+      )}
+
+      <h2 className="mb-3 text-sm font-semibold text-gray-700">Cadastrar colaborador</h2>
+      <div className="mb-6 max-w-md rounded-xl bg-white p-4 shadow-sm">
+        {maxUsers !== null && userCount >= maxUsers ? (
+          <p className="text-sm text-gray-500">
+            Limite de usuários do plano atingido. Faça upgrade para adicionar mais colaboradores.
+          </p>
+        ) : (
+          <form action={createCollaborator} className="flex flex-col gap-2">
+            <input
+              name="full_name"
+              required
+              placeholder="Nome completo"
+              className="rounded border border-gray-300 px-3 py-2 text-sm"
+            />
+            <input
+              name="email"
+              type="email"
+              required
+              placeholder="E-mail"
+              className="rounded border border-gray-300 px-3 py-2 text-sm"
+            />
+            <input
+              name="password"
+              type="password"
+              required
+              minLength={6}
+              placeholder="Senha"
+              className="rounded border border-gray-300 px-3 py-2 text-sm"
+            />
+            <select
+              name="role"
+              defaultValue="recepcao"
+              className="rounded border border-gray-300 px-3 py-2 text-sm"
+            >
+              <option value="recepcao">Recepção</option>
+              <option value="medico">Médico</option>
+              <option value="admin">Administrador</option>
+            </select>
+            <button
+              type="submit"
+              className="self-start rounded bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+            >
+              Cadastrar colaborador
+            </button>
+          </form>
+        )}
+      </div>
 
       <h2 className="mb-3 text-sm font-semibold text-gray-700">Usuários</h2>
       <div className="mb-10 overflow-hidden rounded-xl bg-white shadow-sm">

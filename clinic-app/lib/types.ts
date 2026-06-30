@@ -13,6 +13,25 @@ export interface Profile {
   id: string;
   full_name: string;
   role: UserRole;
+  clinic_id: string | null;
+  created_at: string;
+}
+
+export interface Plan {
+  id: string;
+  slug: string;
+  name: string;
+  max_users: number | null;
+  modules: string[];
+  created_at: string;
+}
+
+export interface Clinic {
+  id: string;
+  name: string;
+  plan_id: string;
+  owner_id: string | null;
+  is_active: boolean;
   created_at: string;
 }
 
