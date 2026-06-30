@@ -160,6 +160,17 @@ export interface GoogleProviderSettings {
 }
 
 /**
+ * Model ids that are only served by the Gemini Interactions API (no
+ * `:generateContent` equivalent), so `languageModel()` and the bare provider
+ * callable transparently route them through `interactions()`. Today this is the
+ * Omni family (multimodal output, e.g. video); the gateway relies on this
+ * dispatch since it always calls `provider.languageModel(modelId)`.
+ */
+function isInteractionsOnlyModelId(modelId: string): boolean {
+  return modelId.startsWith('gemini-omni');
+}
+
+/**
  * Create a Google provider instance.
  */
 export function createGoogle(
@@ -293,6 +304,11 @@ export function createGoogle(
       },
     );
 
+  const createLanguageModel = (modelId: GoogleModelId): LanguageModelV4 =>
+    isInteractionsOnlyModelId(modelId)
+      ? createInteractionsModel(modelId)
+      : createChatModel(modelId);
+
   const provider = function (modelId: GoogleModelId) {
     if (new.target) {
       throw new Error(
@@ -300,11 +316,11 @@ export function createGoogle(
       );
     }
 
-    return createChatModel(modelId);
+    return createLanguageModel(modelId);
   };
 
   provider.specificationVersion = 'v4' as const;
-  provider.languageModel = createChatModel;
+  provider.languageModel = createLanguageModel;
   provider.chat = createChatModel;
   provider.generativeAI = createChatModel;
   provider.embedding = createEmbeddingModel;

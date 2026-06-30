@@ -6,6 +6,7 @@ import { GoogleEmbeddingModel } from './google-embedding-model';
 import { GoogleImageModel } from './google-image-model';
 import { GoogleVideoModel } from './google-video-model';
 import { GoogleSpeechModel } from './google-speech-model';
+import { GoogleInteractionsLanguageModel } from './interactions/google-interactions-language-model';
 
 // Mock the imported modules using a partial mock to preserve original exports
 vi.mock('@ai-sdk/provider-utils', async importOriginal => {
@@ -33,6 +34,9 @@ vi.mock('./google-video-model', () => ({
 }));
 vi.mock('./google-speech-model', () => ({
   GoogleSpeechModel: vi.fn(),
+}));
+vi.mock('./interactions/google-interactions-language-model', () => ({
+  GoogleInteractionsLanguageModel: vi.fn(),
 }));
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
@@ -411,5 +415,40 @@ describe('google provider - speech', () => {
         baseURL: customBaseURL,
       }),
     );
+  });
+});
+
+describe('google provider - interactions dispatch', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('routes omni-family model ids through the Interactions API via languageModel()', () => {
+    const provider = createGoogle({ apiKey: 'test-api-key' });
+    provider.languageModel('gemini-omni-flash-preview');
+
+    expect(GoogleInteractionsLanguageModel).toHaveBeenCalledWith(
+      'gemini-omni-flash-preview',
+      expect.objectContaining({
+        provider: 'google.generative-ai.interactions',
+      }),
+    );
+    expect(GoogleLanguageModel).not.toHaveBeenCalled();
+  });
+
+  it('routes omni-family model ids through the Interactions API via the bare callable', () => {
+    const provider = createGoogle({ apiKey: 'test-api-key' });
+    provider('gemini-omni-flash-preview');
+
+    expect(GoogleInteractionsLanguageModel).toHaveBeenCalledTimes(1);
+    expect(GoogleLanguageModel).not.toHaveBeenCalled();
+  });
+
+  it('keeps non-omni model ids on the generateContent chat model', () => {
+    const provider = createGoogle({ apiKey: 'test-api-key' });
+    provider.languageModel('gemini-2.5-flash');
+
+    expect(GoogleLanguageModel).toHaveBeenCalledTimes(1);
+    expect(GoogleInteractionsLanguageModel).not.toHaveBeenCalled();
   });
 });
