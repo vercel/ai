@@ -2537,7 +2537,8 @@ function getModelCapabilities(modelId: string): {
   if (
     modelId.includes('claude-opus-4-8') ||
     modelId.includes('claude-opus-4-7') ||
-    modelId.includes('claude-fable-5')
+    modelId.includes('claude-fable-5') ||
+    modelId.includes('claude-sonnet-5')
   ) {
     return {
       maxOutputTokens: 128000,
