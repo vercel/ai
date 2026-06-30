@@ -276,6 +276,15 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
       timeout: z.number(),
     }),
   }),
+  Monitor: tool({
+    description: 'Run and monitor a shell command',
+    inputSchema: z.object({
+      command: z.string(),
+      description: z.string().optional(),
+      timeout_ms: z.number().optional(),
+      persistent: z.boolean().optional(),
+    }),
+  }),
   ListMcpResources: tool({
     description: 'List resources available from MCP servers',
     inputSchema: z.object({ server: z.string().optional() }),
