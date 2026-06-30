@@ -33,7 +33,7 @@ export default async function StorePage({
         <div>
           <h1 className="text-2xl font-semibold text-gray-800">Produtos</h1>
           <Link href="/dashboard/store" className="text-xs text-brand-600 hover:underline">
-            ← Voltar para Lojinha Santé
+            ← Voltar para Loja de Módulos
           </Link>
         </div>
         <Link

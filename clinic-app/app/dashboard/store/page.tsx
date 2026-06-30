@@ -37,7 +37,7 @@ const STORE_ITEMS: StoreItem[] = [
     badge: 'Contratado à parte',
   },
   {
-    name: 'Santé Conversas',
+    name: 'Conversas',
     description: 'Central de conversas com assistente de IA para automatizar atendimentos.',
     badge: 'Contratado à parte',
     href: '/dashboard/conversations',
@@ -76,7 +76,7 @@ export default function StorePage() {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-800">Lojinha Santé</h1>
+          <h1 className="text-2xl font-semibold text-gray-800">Loja de Módulos</h1>
           <p className="text-sm text-gray-500">
             Conheça os módulos e add-ons disponíveis para o seu plano.
           </p>

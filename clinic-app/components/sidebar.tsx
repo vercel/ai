@@ -28,10 +28,10 @@ const LINKS: {
   },
   { href: '/dashboard/fiscal-notes', label: 'Notas fiscais', roles: ['admin', 'recepcao'] },
   { href: '/dashboard/signatures', label: 'Assinatura eletrônica', roles: ['admin', 'recepcao'] },
-  { href: '/dashboard/crm', label: 'Santé CRM', roles: ['admin', 'recepcao'] },
-  { href: '/dashboard/conversations', label: 'Santé Conversas', roles: ['admin', 'recepcao'] },
+  { href: '/dashboard/crm', label: 'CRM', roles: ['admin', 'recepcao'] },
+  { href: '/dashboard/conversations', label: 'Conversas', roles: ['admin', 'recepcao'] },
   { href: '/dashboard/lab-orders', label: 'Controle laboratório', roles: ['admin', 'medico', 'recepcao'] },
-  { href: '/dashboard/cash-advances', label: 'Dr.Cash', roles: ['admin', 'medico', 'recepcao'] },
+  { href: '/dashboard/cash-advances', label: 'Adiantamentos', roles: ['admin', 'medico', 'recepcao'] },
   {
     href: '/dashboard/charts',
     label: 'Gráficos',

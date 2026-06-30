@@ -36,7 +36,7 @@ export default async function ClientsChartPage() {
       </div>
 
       <div className="rounded-xl bg-white p-5 shadow-sm">
-        <h2 className="mb-3 text-sm font-semibold text-gray-700">Leads por estágio (Santé CRM)</h2>
+        <h2 className="mb-3 text-sm font-semibold text-gray-700">Leads por estágio (CRM)</h2>
         <BarList items={items} />
       </div>
     </div>
