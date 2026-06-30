@@ -1,5 +1,11 @@
 # @ai-sdk/harness-codex
 
+## 1.0.11
+
+### Patch Changes
+
+- 0d1cb8e: fix(harness-codex): improve Codex prompt framing and avoid placing relay shim file in session workdir
+
 ## 1.0.10
 
 ### Patch Changes
