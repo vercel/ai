@@ -43,6 +43,8 @@ describe('buildInterruptOn', () => {
       write_file: { allowedDecisions: ['approve', 'reject'] },
       edit_file: { allowedDecisions: ['approve', 'reject'] },
       execute: { allowedDecisions: ['approve', 'reject'] },
+      task: { allowedDecisions: ['approve', 'reject'] },
+      write_todos: { allowedDecisions: ['approve', 'reject'] },
     });
   });
 
@@ -58,6 +60,8 @@ describe('buildInterruptOn', () => {
     ).toEqual({
       edit_file: { allowedDecisions: ['approve', 'reject'] },
       execute: { allowedDecisions: ['approve', 'reject'] },
+      task: { allowedDecisions: ['approve', 'reject'] },
+      write_todos: { allowedDecisions: ['approve', 'reject'] },
     });
   });
 });
@@ -100,6 +104,21 @@ describe('isBuiltinToolIncluded', () => {
         toolFiltering: { mode: 'deny', toolNames: ['bash'] },
       }),
     ).toBe(true);
+  });
+
+  it('applies policies to native-only built-in names', () => {
+    expect(
+      isBuiltinToolIncluded({
+        nativeName: 'write_todos',
+        toolFiltering: { mode: 'allow', toolNames: ['write_todos'] },
+      }),
+    ).toBe(true);
+    expect(
+      isBuiltinToolIncluded({
+        nativeName: 'task',
+        toolFiltering: { mode: 'deny', toolNames: ['task'] },
+      }),
+    ).toBe(false);
   });
 });
 

@@ -156,6 +156,66 @@ describe('createBuiltinToolFilteringMiddleware', () => {
     expect(deniedGlobMessage.tool_call_id).toBe('glob-1');
   });
 
+  it('denies inactive native-only built-ins', async () => {
+    const message = new AIMessage({
+      content: '',
+      tool_calls: [
+        {
+          id: 'task-1',
+          name: 'task',
+          args: { description: 'read the README' },
+        },
+        {
+          id: 'todos-1',
+          name: 'write_todos',
+          args: { todos: [] },
+        },
+      ],
+    });
+
+    const { events, result } = await runAfterModel({
+      messages: [message],
+      builtinToolFiltering: { mode: 'allow', toolNames: ['weather'] },
+    });
+
+    expect(events).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'task-1',
+        toolName: 'task',
+        input: '{"description":"read the README"}',
+        providerExecuted: true,
+        nativeName: 'task',
+      },
+      {
+        type: 'tool-result',
+        toolCallId: 'task-1',
+        toolName: 'task',
+        result:
+          "Tool 'task' is inactive due to the HarnessAgent tool filtering policy.",
+      },
+      {
+        type: 'tool-call',
+        toolCallId: 'todos-1',
+        toolName: 'write_todos',
+        input: '{"todos":[]}',
+        providerExecuted: true,
+        nativeName: 'write_todos',
+      },
+      {
+        type: 'tool-result',
+        toolCallId: 'todos-1',
+        toolName: 'write_todos',
+        result:
+          "Tool 'write_todos' is inactive due to the HarnessAgent tool filtering policy.",
+      },
+    ]);
+    if (!result) throw new Error('expected middleware result');
+    expect(result.jumpTo).toBe('model');
+    expect(ToolMessage.isInstance(result.messages[1])).toBe(true);
+    expect(ToolMessage.isInstance(result.messages[2])).toBe(true);
+  });
+
   it('does nothing when all requested tools are active', async () => {
     const message = new AIMessage({
       content: '',

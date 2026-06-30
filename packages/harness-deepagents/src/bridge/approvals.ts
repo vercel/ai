@@ -13,6 +13,8 @@ export const NATIVE_TOOL_KIND: Readonly<
   grep: 'readonly',
   glob: 'readonly',
   ls: 'readonly',
+  task: 'edit',
+  write_todos: 'edit',
 };
 
 const NATIVE_TO_COMMON: Readonly<Record<string, string>> = {
