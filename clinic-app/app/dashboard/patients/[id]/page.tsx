@@ -4,8 +4,11 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import type { MedicalRecord, Patient, Profile } from '@/lib/types';
 import { addMedicalRecord } from '../actions';
 import { AttachmentLink } from '@/components/attachment-link';
+import { SignRecordButton } from '@/components/sign-record-button';
+import { requireProfile } from '@/lib/auth';
 
 export default async function PatientDetailPage({ params }: { params: { id: string } }) {
+  const profile = await requireProfile();
   const supabase = createSupabaseServerClient();
 
   const { data: patient } = await supabase
@@ -31,9 +34,17 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
     <div className="max-w-2xl">
       <div className="mb-1 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-gray-800">{patient.full_name}</h1>
-        <Link href={`/dashboard/patients/${patient.id}/edit`} className="text-sm text-brand-600 hover:underline">
-          Editar dados
-        </Link>
+        <div className="flex gap-4">
+          <Link
+            href={`/dashboard/patients/${patient.id}/consents`}
+            className="text-sm text-brand-600 hover:underline"
+          >
+            Termos de consentimento
+          </Link>
+          <Link href={`/dashboard/patients/${patient.id}/edit`} className="text-sm text-brand-600 hover:underline">
+            Editar dados
+          </Link>
+        </div>
       </div>
       <p className="mb-6 text-sm text-gray-500">
         {patient.phone ?? 'Sem telefone'} · {patient.email ?? 'Sem e-mail'}
@@ -81,6 +92,22 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
             <p className="mt-2 text-xs text-gray-400">
               {record.profiles?.full_name} · {new Date(record.created_at).toLocaleString('pt-BR')}
             </p>
+            {record.signed_at ? (
+              <div className="mt-2 flex items-center gap-2 rounded bg-green-50 px-2 py-1">
+                {record.signature_data && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={record.signature_data} alt="assinatura" className="h-8" />
+                )}
+                <p className="text-[11px] text-green-700">
+                  Assinado digitalmente em {new Date(record.signed_at).toLocaleString('pt-BR')} ·
+                  hash {record.content_hash?.slice(0, 12)}…
+                </p>
+              </div>
+            ) : (
+              record.professional_id === profile.id && (
+                <SignRecordButton patientId={patient.id} recordId={record.id} />
+              )
+            )}
           </div>
         ))}
         {(records ?? []).length === 0 && (

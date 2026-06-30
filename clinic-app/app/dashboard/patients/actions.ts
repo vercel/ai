@@ -1,5 +1,6 @@
 'use server';
 
+import { createHash } from 'crypto';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
@@ -87,4 +88,35 @@ export async function getAttachmentUrl(path: string) {
   const supabase = createSupabaseServerClient();
   const { data } = await supabase.storage.from('attachments').createSignedUrl(path, 60);
   return data?.signedUrl ?? null;
+}
+
+export async function signMedicalRecord(
+  patientId: string,
+  recordId: string,
+  signatureData: string,
+) {
+  const profile = await requireProfile();
+  const supabase = createSupabaseServerClient();
+
+  const { data: record } = await supabase
+    .from('medical_records')
+    .select('entry, professional_id, signed_at')
+    .eq('id', recordId)
+    .single<{ entry: string; professional_id: string; signed_at: string | null }>();
+
+  if (!record || record.signed_at || record.professional_id !== profile.id) {
+    return;
+  }
+
+  const signedAt = new Date().toISOString();
+  const contentHash = createHash('sha256')
+    .update(`${record.entry}|${profile.id}|${signedAt}`)
+    .digest('hex');
+
+  await supabase
+    .from('medical_records')
+    .update({ signed_at: signedAt, signature_data: signatureData, content_hash: contentHash })
+    .eq('id', recordId);
+
+  revalidatePath(`/dashboard/patients/${patientId}`);
 }

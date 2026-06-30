@@ -27,6 +27,22 @@ export interface MedicalRecord {
   professional_id: string;
   entry: string;
   attachments: string[];
+  signed_at: string | null;
+  signature_data: string | null;
+  content_hash: string | null;
+  created_at: string;
+}
+
+export interface ConsentForm {
+  id: string;
+  patient_id: string;
+  title: string;
+  content: string;
+  created_by: string | null;
+  signed_at: string | null;
+  signer_name: string | null;
+  signature_data: string | null;
+  content_hash: string | null;
   created_at: string;
 }
 

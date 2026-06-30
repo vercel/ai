@@ -31,6 +31,22 @@ create table medical_records (
   professional_id uuid not null references profiles (id),
   entry text not null,
   attachments text[] default '{}',
+  signed_at timestamptz,
+  signature_data text,
+  content_hash text,
+  created_at timestamptz not null default now()
+);
+
+create table consent_forms (
+  id uuid primary key default gen_random_uuid(),
+  patient_id uuid not null references patients (id) on delete cascade,
+  title text not null,
+  content text not null,
+  created_by uuid references profiles (id),
+  signed_at timestamptz,
+  signer_name text,
+  signature_data text,
+  content_hash text,
   created_at timestamptz not null default now()
 );
 
@@ -74,6 +90,7 @@ alter table medical_records enable row level security;
 alter table appointments enable row level security;
 alter table invoices enable row level security;
 alter table availability enable row level security;
+alter table consent_forms enable row level security;
 
 create policy "staff read profiles" on profiles for select using (auth.uid() is not null);
 create policy "admin manage profiles" on profiles for all using (
@@ -85,6 +102,7 @@ create policy "staff manage medical_records" on medical_records for all using (a
 create policy "staff manage appointments" on appointments for all using (auth.uid() is not null);
 create policy "staff manage invoices" on invoices for all using (auth.uid() is not null);
 create policy "staff manage availability" on availability for all using (auth.uid() is not null);
+create policy "staff manage consent_forms" on consent_forms for all using (auth.uid() is not null);
 
 -- Storage bucket for medical record attachments (created via Supabase dashboard/MCP):
 -- insert into storage.buckets (id, name, public) values ('attachments', 'attachments', false);
