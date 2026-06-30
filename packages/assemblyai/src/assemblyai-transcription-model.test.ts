@@ -306,6 +306,37 @@ describe('doGenerate', () => {
     ).toEqual([]);
   });
 
+  it('should route universal-3-pro via the speech_models parameter', async () => {
+    prepareJsonResponse();
+
+    await provider.transcription('universal-3-pro').doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    const requestBody = await server.calls[1].requestBodyJson;
+    expect(requestBody.speech_models).toEqual(['universal-3-pro']);
+    expect(requestBody.speech_model).toBeUndefined();
+  });
+
+  it('should not special-case the removed nano model', async () => {
+    prepareJsonResponse();
+
+    const result = await provider.transcription('nano').doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    // `nano` is no longer a legacy `speech_model` alias: it falls through to
+    // `speech_models` (where the live API rejects it) and emits no warning.
+    const requestBody = await server.calls[1].requestBodyJson;
+    expect(requestBody.speech_models).toEqual(['nano']);
+    expect(requestBody.speech_model).toBeUndefined();
+    expect(
+      result.warnings.filter(warning => warning.type === 'deprecated'),
+    ).toEqual([]);
+  });
+
   it('should still send provider options alongside speech_models', async () => {
     prepareJsonResponse();
 
