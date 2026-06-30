@@ -9,7 +9,7 @@ run(async () => {
   const result = streamText({
     model: anthropic('claude-sonnet-5'),
     prompt:
-      'Solve this step by step: if f(x) = x^3 - 6x^2 + 11x - 6, find all roots and prove they are correct.',
+      'How many "r"s are in the word "strawberry", and what is the square root of 144? Then, how much is the product of both of the resulting values? Think hard about it. Only respond with the resulting final number, nothing more.',
     maxRetries: 0,
     // Claude Sonnet 5 uses adaptive thinking. `display: 'summarized'` is
     // required to receive reasoning output in the stream.
