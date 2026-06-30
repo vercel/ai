@@ -105,6 +105,8 @@ describe('GatewayVideoModel', () => {
       await createTestModel().doGenerate({
         prompt: 'A beautiful sunset over mountains',
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 1,
         aspectRatio: undefined,
         resolution: undefined,
@@ -132,6 +134,8 @@ describe('GatewayVideoModel', () => {
       await createTestModel().doGenerate({
         prompt,
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 1,
         aspectRatio: '16:9',
         resolution: '1920x1080',
@@ -165,6 +169,8 @@ describe('GatewayVideoModel', () => {
       await createTestModel().doGenerate({
         prompt,
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 1,
         aspectRatio: undefined,
         resolution: undefined,
@@ -199,6 +205,8 @@ describe('GatewayVideoModel', () => {
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 2,
         aspectRatio: undefined,
         resolution: undefined,
@@ -225,6 +233,8 @@ describe('GatewayVideoModel', () => {
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 1,
         aspectRatio: undefined,
         resolution: undefined,
@@ -257,6 +267,8 @@ describe('GatewayVideoModel', () => {
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 1,
         aspectRatio: undefined,
         resolution: undefined,
@@ -284,6 +296,8 @@ describe('GatewayVideoModel', () => {
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 1,
         aspectRatio: undefined,
         resolution: undefined,
@@ -311,6 +325,8 @@ describe('GatewayVideoModel', () => {
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 1,
         aspectRatio: undefined,
         resolution: undefined,
@@ -332,6 +348,8 @@ describe('GatewayVideoModel', () => {
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 1,
         aspectRatio: undefined,
         resolution: undefined,
@@ -358,6 +376,8 @@ describe('GatewayVideoModel', () => {
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 1,
         aspectRatio: undefined,
         resolution: undefined,
@@ -389,6 +409,8 @@ describe('GatewayVideoModel', () => {
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 1,
         aspectRatio: undefined,
         resolution: undefined,
@@ -419,6 +441,8 @@ describe('GatewayVideoModel', () => {
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 1,
         aspectRatio: undefined,
         resolution: undefined,
@@ -440,6 +464,8 @@ describe('GatewayVideoModel', () => {
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 1,
         aspectRatio: undefined,
         resolution: undefined,
@@ -461,6 +487,8 @@ describe('GatewayVideoModel', () => {
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 1,
         aspectRatio: undefined,
         resolution: undefined,
@@ -482,6 +510,8 @@ describe('GatewayVideoModel', () => {
       await createTestModel().doGenerate({
         prompt: 'Test prompt',
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 1,
         aspectRatio: undefined,
         resolution: undefined,
@@ -515,6 +545,8 @@ describe('GatewayVideoModel', () => {
       }).doGenerate({
         prompt: 'Test prompt',
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 1,
         aspectRatio: undefined,
         resolution: undefined,
@@ -539,6 +571,8 @@ describe('GatewayVideoModel', () => {
       await createTestModel().doGenerate({
         prompt: 'Test prompt',
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 1,
         aspectRatio: undefined,
         resolution: undefined,
@@ -569,6 +603,8 @@ describe('GatewayVideoModel', () => {
         createTestModel().doGenerate({
           prompt: 'Test prompt',
           image: undefined,
+          frameImages: undefined,
+          inputReferences: undefined,
           n: 1,
           aspectRatio: undefined,
           resolution: undefined,
@@ -597,6 +633,8 @@ describe('GatewayVideoModel', () => {
         createTestModel().doGenerate({
           prompt: 'Test prompt',
           image: undefined,
+          frameImages: undefined,
+          inputReferences: undefined,
           n: 1,
           aspectRatio: undefined,
           resolution: undefined,
@@ -627,6 +665,8 @@ describe('GatewayVideoModel', () => {
         createTestModel().doGenerate({
           prompt: 'Test prompt',
           image: undefined,
+          frameImages: undefined,
+          inputReferences: undefined,
           n: 1,
           aspectRatio: undefined,
           resolution: undefined,
@@ -657,6 +697,8 @@ describe('GatewayVideoModel', () => {
         createTestModel().doGenerate({
           prompt: 'Test prompt',
           image: undefined,
+          frameImages: undefined,
+          inputReferences: undefined,
           n: 1,
           aspectRatio: undefined,
           resolution: undefined,
@@ -679,6 +721,8 @@ describe('GatewayVideoModel', () => {
         createTestModel().doGenerate({
           prompt: 'Test prompt',
           image: undefined,
+          frameImages: undefined,
+          inputReferences: undefined,
           n: 1,
           aspectRatio: undefined,
           resolution: undefined,
@@ -707,6 +751,8 @@ describe('GatewayVideoModel', () => {
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 1,
         aspectRatio: undefined,
         resolution: undefined,
@@ -726,6 +772,8 @@ describe('GatewayVideoModel', () => {
       await createTestModel().doGenerate({
         prompt: 'Test prompt',
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 1,
         aspectRatio: undefined,
         resolution: undefined,
@@ -766,6 +814,8 @@ describe('GatewayVideoModel', () => {
       await createTestModel().doGenerate({
         prompt: 'Test prompt',
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 1,
         aspectRatio: undefined,
         resolution: undefined,
@@ -799,6 +849,8 @@ describe('GatewayVideoModel', () => {
       await model.doGenerate({
         prompt: 'Test prompt',
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 1,
         aspectRatio: undefined,
         resolution: undefined,
@@ -841,6 +893,8 @@ describe('GatewayVideoModel', () => {
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
         n: 1,
         aspectRatio: undefined,
         resolution: undefined,
@@ -885,6 +939,8 @@ describe('GatewayVideoModel', () => {
             data: binaryData,
           },
           n: 1,
+          frameImages: undefined,
+          inputReferences: undefined,
           aspectRatio: undefined,
           resolution: undefined,
           duration: undefined,
@@ -913,6 +969,8 @@ describe('GatewayVideoModel', () => {
             data: 'already-base64-encoded',
           },
           n: 1,
+          frameImages: undefined,
+          inputReferences: undefined,
           aspectRatio: undefined,
           resolution: undefined,
           duration: undefined,
@@ -940,6 +998,8 @@ describe('GatewayVideoModel', () => {
             url: 'https://example.com/image.png',
           },
           n: 1,
+          frameImages: undefined,
+          inputReferences: undefined,
           aspectRatio: undefined,
           resolution: undefined,
           duration: undefined,
@@ -970,6 +1030,8 @@ describe('GatewayVideoModel', () => {
             providerOptions: { fal: { enhanceImage: true } },
           },
           n: 1,
+          frameImages: undefined,
+          inputReferences: undefined,
           aspectRatio: undefined,
           resolution: undefined,
           duration: undefined,
@@ -986,6 +1048,131 @@ describe('GatewayVideoModel', () => {
           data: 'SGVsbG8=',
           providerOptions: { fal: { enhanceImage: true } },
         });
+      });
+    });
+
+    describe('frameImages and inputReferences encoding', () => {
+      it('should encode frameImages with Uint8Array data to base64', async () => {
+        prepareJsonResponse();
+
+        const binaryData = new Uint8Array([72, 101, 108, 108, 111]);
+
+        await createTestModel().doGenerate({
+          prompt: 'Animate between frames',
+          image: undefined,
+          frameImages: [
+            {
+              frameType: 'first_frame',
+              image: {
+                type: 'file',
+                mediaType: 'image/png',
+                data: binaryData,
+              },
+            },
+            {
+              frameType: 'last_frame',
+              image: {
+                type: 'url',
+                url: 'https://example.com/last-frame.png',
+              },
+            },
+          ],
+          inputReferences: undefined,
+          n: 1,
+          aspectRatio: undefined,
+          resolution: undefined,
+          duration: undefined,
+          fps: undefined,
+          seed: undefined,
+          generateAudio: undefined,
+          providerOptions: {},
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.frameImages).toEqual([
+          {
+            frameType: 'first_frame',
+            image: {
+              type: 'file',
+              mediaType: 'image/png',
+              data: 'SGVsbG8=',
+            },
+          },
+          {
+            frameType: 'last_frame',
+            image: {
+              type: 'url',
+              url: 'https://example.com/last-frame.png',
+            },
+          },
+        ]);
+      });
+
+      it('should encode inputReferences with Uint8Array data to base64', async () => {
+        prepareJsonResponse();
+
+        const binaryData = new Uint8Array([72, 101, 108, 108, 111]);
+
+        await createTestModel().doGenerate({
+          prompt: 'Generate from references',
+          image: undefined,
+          frameImages: undefined,
+          inputReferences: [
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: binaryData,
+            },
+            {
+              type: 'url',
+              url: 'https://example.com/reference.png',
+            },
+          ],
+          n: 1,
+          aspectRatio: undefined,
+          resolution: undefined,
+          duration: undefined,
+          fps: undefined,
+          seed: undefined,
+          generateAudio: undefined,
+          providerOptions: {},
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.inputReferences).toEqual([
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: 'SGVsbG8=',
+          },
+          {
+            type: 'url',
+            url: 'https://example.com/reference.png',
+          },
+        ]);
+      });
+
+      it('should omit frameImages and inputReferences when not provided', async () => {
+        prepareJsonResponse();
+
+        await createTestModel().doGenerate({
+          prompt: 'Text to video',
+          image: undefined,
+          frameImages: undefined,
+          inputReferences: undefined,
+          n: 1,
+          aspectRatio: undefined,
+          resolution: undefined,
+          duration: undefined,
+          fps: undefined,
+          seed: undefined,
+          generateAudio: undefined,
+          providerOptions: {},
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody).not.toHaveProperty('frameImages');
+        expect(requestBody).not.toHaveProperty('inputReferences');
       });
     });
   });

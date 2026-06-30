@@ -48,6 +48,8 @@ export class GatewayVideoModel implements Experimental_VideoModelV3 {
     seed,
     generateAudio,
     image,
+    frameImages,
+    inputReferences,
     providerOptions,
     headers,
     abortSignal,
@@ -83,6 +85,17 @@ export class GatewayVideoModel implements Experimental_VideoModelV3 {
           ...(generateAudio !== undefined && { generateAudio }),
           ...(providerOptions && { providerOptions }),
           ...(image && { image: maybeEncodeVideoFile(image) }),
+          ...(frameImages && {
+            frameImages: frameImages.map(frame => ({
+              ...frame,
+              image: maybeEncodeVideoFile(frame.image),
+            })),
+          }),
+          ...(inputReferences && {
+            inputReferences: inputReferences.map(reference =>
+              maybeEncodeVideoFile(reference),
+            ),
+          }),
         },
         successfulResponseHandler: async ({
           response,
