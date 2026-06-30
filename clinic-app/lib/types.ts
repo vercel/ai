@@ -345,6 +345,11 @@ export interface FiscalNote {
   status: FiscalNoteStatus;
   issued_at: string | null;
   created_at: string;
+  clinic_id: string | null;
+  gateway_invoice_id: string | null;
+  pdf_url: string | null;
+  xml_url: string | null;
+  error_message: string | null;
 }
 
 export interface Conversation {
