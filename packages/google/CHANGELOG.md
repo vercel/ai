@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.78
+
+### Patch Changes
+
+- 8260f89: fix(provider/google): include usageMetadata in providerMetadata for non-streaming generate
+
 ## 2.0.77
 
 ### Patch Changes
