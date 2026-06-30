@@ -5,10 +5,10 @@
 // This file supplies only the Codex-specific turn driver.
 //
 // Host-defined tools are routed through an HTTP relay bound to
-// `127.0.0.1:0` with bearer-token auth. The codex CLI spawns
-// `host-tool-mcp.mjs` (shipped alongside this file) as a stdio MCP server;
-// the shim POSTs each tool call to the relay, which emits `tool-call` to
-// the host and waits for the matching `tool-result`.
+// `127.0.0.1:0`. The codex CLI spawns `host-tool-mcp.mjs` (shipped alongside
+// this file) as a stdio MCP server; the shim POSTs each tool call to the
+// relay, which emits `tool-call` to the host and waits for the matching
+// `tool-result`.
 
 import {
   runBridge,
@@ -24,8 +24,14 @@ import { createServer, type Server } from 'node:http';
 import {
   CLI_SHIM_FILENAME,
   buildCliShimScript,
-  isToolRelayCommand,
+  parseToolRelayCommand,
 } from './cli-relay';
+import {
+  ToolRelayAuthorizer,
+  ToolRelayPendingCalls,
+  isToolRelayRequestFromAllowedProcess,
+  type ToolRelayCall,
+} from './tool-relay-auth';
 import { argv, env as procEnv, stdout } from 'node:process';
 
 /*
@@ -88,6 +94,12 @@ await runBridge<StartMessage>({
 });
 
 type Emit = (msg: Record<string, unknown>) => void;
+type ToolRelay = {
+  port: number;
+  close(): void;
+  authorizeToolCall(call: ToolRelayCall): void;
+  authorizeAnyToolCall(): void;
+};
 
 async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   const emit: Emit = msg => turn.emit(msg as BridgeEvent);
@@ -119,12 +131,12 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
    * implement the workaround and can be removed once the upstream bug is fixed.
    */
   const mcpServers: Record<string, unknown> = {};
-  let relay: { port: number; close(): void } | undefined;
+  let relay: ToolRelay | undefined;
   let cliShimPath: string | undefined;
   if (start.tools && start.tools.length > 0) {
-    const relayToken = randomUUID();
+    cliShimPath = `${cliShimDir}/${CLI_SHIM_FILENAME}`;
     relay = await startToolRelay({
-      relayToken,
+      allowedScriptPaths: [cliShimPath, `${bootstrapDir}/host-tool-mcp.mjs`],
       tools: start.tools,
       emit,
       requestToolResult: turn.requestToolResult,
@@ -142,15 +154,13 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
           })),
         ),
         TOOL_RELAY_URL: `http://127.0.0.1:${relay.port}`,
-        TOOL_RELAY_TOKEN: relayToken,
       },
     };
     // Temporary workaround for upstream codex MCP-tool bug — see ./cli-relay.ts
-    cliShimPath = `${cliShimDir}/${CLI_SHIM_FILENAME}`;
     await mkdir(cliShimDir, { recursive: true });
     await writeFile(
       cliShimPath,
-      buildCliShimScript({ relayPort: relay.port, relayToken }),
+      buildCliShimScript({ relayPort: relay.port }),
       'utf8',
     );
   }
@@ -232,12 +242,28 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         emit({ type: 'bridge-thread', threadId: event.thread_id });
       }
       // Temporary workaround for upstream codex MCP-tool bug — see ./cli-relay.ts
-      if (
-        cliShimPath &&
-        event.item?.type === 'command_execution' &&
-        typeof event.item.command === 'string' &&
-        isToolRelayCommand({ command: event.item.command, cliShimPath })
-      ) {
+      if (cliShimPath && event.item?.type === 'command_execution') {
+        const relayCall =
+          typeof event.item.command === 'string'
+            ? parseToolRelayCommand({
+                command: event.item.command,
+                cliShimPath,
+              })
+            : undefined;
+        if (event.type === 'item.started' && relay) {
+          if (relayCall) {
+            relay.authorizeToolCall(relayCall);
+          } else if (typeof event.item.command !== 'string') {
+            relay.authorizeAnyToolCall();
+          }
+        }
+        if (relayCall) {
+          continue;
+        }
+      }
+      if (relay && isHostMcpToolEvent(event)) {
+        const relayCall = relayCallFromCodexMcpEvent(event);
+        if (relayCall) relay.authorizeToolCall(relayCall);
         continue;
       }
       translateAndEmit(event, {
@@ -320,6 +346,25 @@ type CodexEvent = {
   message?: string;
   thread_id?: string;
 };
+
+function isHostMcpToolEvent(event: CodexEvent): boolean {
+  return (
+    event.item?.type === 'mcp_tool_call' &&
+    event.item.server === 'harness-tools'
+  );
+}
+
+function relayCallFromCodexMcpEvent(
+  event: CodexEvent,
+): ToolRelayCall | undefined {
+  if (event.type !== 'item.started') return undefined;
+  const toolName = event.item?.tool;
+  if (!toolName) return undefined;
+  return {
+    toolName,
+    input: event.item?.arguments ?? {},
+  };
+}
 
 function translateAndEmit(
   event: CodexEvent,
@@ -513,34 +558,32 @@ function defaultUsage(): Record<string, unknown> {
 }
 
 /**
- * Tool relay — HTTP server on 127.0.0.1:0 with bearer-token auth. The MCP
- * stdio shim spawned by codex POSTs each tool invocation here; the relay
- * forwards the call to the host (via the shared runtime's `emit`), awaits the
- * matching `tool-result` (via `requestToolResult`), and responds with
- * `{ result }`.
+ * Tool relay — HTTP server on 127.0.0.1:0. The MCP stdio shim spawned by
+ * codex POSTs each tool invocation here; the relay forwards the call to the
+ * host (via the shared runtime's `emit`), awaits the matching `tool-result`
+ * (via `requestToolResult`), and responds with `{ result }`.
  */
 async function startToolRelay({
-  relayToken,
+  allowedScriptPaths,
   tools,
   emit,
   requestToolResult,
 }: {
-  relayToken: string;
+  allowedScriptPaths: ReadonlyArray<string>;
   tools: ReadonlyArray<{ name: string }>;
   emit: Emit;
   requestToolResult: (
     toolCallId: string,
   ) => Promise<{ output: unknown; isError?: boolean }>;
-}): Promise<{ port: number; close(): void }> {
+}): Promise<ToolRelay> {
   const toolNames = new Set(tools.map(t => t.name));
+  const allowedScriptPathSet = new Set(allowedScriptPaths);
+  const authorizer = new ToolRelayAuthorizer();
+  const pendingCalls = new ToolRelayPendingCalls();
 
   const server = createServer(async (req, res) => {
     try {
-      if (
-        req.method !== 'POST' ||
-        req.url !== '/' ||
-        req.headers.authorization !== `Bearer ${relayToken}`
-      ) {
+      if (req.method !== 'POST' || req.url !== '/') {
         res.writeHead(401, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'unauthorized tool relay request' }));
         return;
@@ -563,23 +606,42 @@ async function startToolRelay({
         );
         return;
       }
+      const relayCall = { toolName, input };
+      const authorized =
+        authorizer.consumeToolCall(relayCall) ||
+        (await isToolRelayRequestFromAllowedProcess({
+          socket: req.socket,
+          allowedScriptPaths: allowedScriptPathSet,
+        }));
+      if (!authorized) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'unauthorized tool relay request' }));
+        return;
+      }
 
-      emit({
-        type: 'tool-call',
-        toolCallId: requestId,
-        toolName,
-        input: JSON.stringify(input ?? {}),
-        providerExecuted: false,
-      });
+      const { result } = pendingCalls.begin({
+        call: relayCall,
+        run: async () => {
+          emit({
+            type: 'tool-call',
+            toolCallId: requestId,
+            toolName,
+            input: JSON.stringify(input ?? {}),
+            providerExecuted: false,
+          });
 
-      const { output, isError } = await requestToolResult(requestId);
-      emit({
-        type: 'tool-result',
-        toolCallId: requestId,
-        toolName,
-        result: output ?? null,
-        isError: !!isError,
+          const toolResult = await requestToolResult(requestId);
+          emit({
+            type: 'tool-result',
+            toolCallId: requestId,
+            toolName,
+            result: toolResult.output ?? null,
+            isError: !!toolResult.isError,
+          });
+          return toolResult;
+        },
       });
+      const { output } = await result;
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ result: output }));
@@ -603,6 +665,8 @@ async function startToolRelay({
   return {
     port: address.port,
     close: () => closeServer(server),
+    authorizeToolCall: call => authorizer.authorizeToolCall(call),
+    authorizeAnyToolCall: () => authorizer.authorizeAnyToolCall(),
   };
 }
 
