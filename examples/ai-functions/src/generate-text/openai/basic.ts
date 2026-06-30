@@ -5,13 +5,16 @@ import { print } from '../../lib/print';
 
 run(async () => {
   const result = await generateText({
-    model: openai('gpt-5-nano'),
-    prompt: 'Invent a new holiday and describe its traditions.',
+    model: openai('gpt-5.5'),
+    prompt:
+      'Invent a new holiday and describe its traditions. Consider the ramifications of your answer before responding.',
     maxRetries: 0,
+    reasoning: 'medium',
   });
 
   print('Content:', result.content);
   print('Usage:', result.usage);
   print('Finish reason:', result.finishReason);
   print('Raw finish reason:', result.rawFinishReason);
+  print('Provider metadata:', result.finalStep.providerMetadata);
 });
