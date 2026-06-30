@@ -87,6 +87,20 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
       });
     } else {
       body.speech_models = [this.modelId];
+
+      // Forward-looking nudge: universal-3-5-pro is AssemblyAI's latest
+      // flagship and is set to replace universal-3-pro. Not a deprecation —
+      // both models still work — so this is an informational warning only.
+      if (
+        this.modelId === 'universal-3-pro' ||
+        this.modelId === 'universal-2'
+      ) {
+        warnings.push({
+          type: 'other',
+          message:
+            "'universal-3-5-pro' is AssemblyAI's latest flagship model and is set to replace 'universal-3-pro'. See https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model",
+        });
+      }
     }
 
     // Add provider-specific options

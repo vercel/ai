@@ -82,6 +82,10 @@ removed by AssemblyAI and is no longer available. All newer models are sent usin
 the [`speech_models`](https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model)
 request parameter, which the provider selects automatically based on the model id.
 
+`universal-3-pro` and `universal-2` are fully supported and continue to work, but
+using them emits an informational warning (not a deprecation) suggesting
+`universal-3-5-pro`, AssemblyAI's latest flagship model.
+
 You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the `contentSafety` option will enable content safety filtering.
 
 ```ts highlight="7"
