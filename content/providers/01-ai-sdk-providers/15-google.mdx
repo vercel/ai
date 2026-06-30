@@ -1163,13 +1163,6 @@ any other AI SDK language model.
   request bodies and SSE event vocabularies.
 </Note>
 
-<Note>
-  Omni-family models (e.g. `gemini-omni-flash-preview`, which returns video as a
-  file part) are only served by the Interactions API, so `google(...)` and
-  `google.languageModel(...)` route them through `interactions()` automatically
-  — you do not need to call `google.interactions(...)` explicitly for them.
-</Note>
-
 ### Provider Options
 
 The Interactions model reads its options from the shared

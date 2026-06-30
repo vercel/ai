@@ -12,9 +12,7 @@ run(async () => {
 
   await withSpinner('Generating video...', async () => {
     const result = streamText({
-      // Omni-family ids route through the Interactions API automatically, so
-      // `google(...)` / `languageModel(...)` work without `google.interactions(...)`.
-      model: google('gemini-omni-flash-preview'),
+      model: google.interactions('gemini-omni-flash-preview'),
       prompt:
         'A marble rolling fast on a chain reaction style track, continuous smooth shot.',
       providerOptions: {
