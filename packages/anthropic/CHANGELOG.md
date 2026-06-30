@@ -1,5 +1,19 @@
 # @ai-sdk/anthropic
 
+## 4.0.4
+
+### Patch Changes
+
+- c18018c: feat (provider/anthropic): add `claude-sonnet-5` model id
+
+## 4.0.3
+
+### Patch Changes
+
+- Updated dependencies [0274f34]
+  - @ai-sdk/provider@4.0.1
+  - @ai-sdk/provider-utils@5.0.2
+
 ## 4.0.2
 
 ### Patch Changes

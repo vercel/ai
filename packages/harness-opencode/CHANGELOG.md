@@ -1,5 +1,19 @@
 # @ai-sdk/harness-opencode
 
+## 1.0.11
+
+### Patch Changes
+
+- 2933383: fix(harness): fix harness relay auth
+  - @ai-sdk/harness@1.0.11
+
+## 1.0.10
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.10
+- @ai-sdk/provider-utils@5.0.2
+
 ## 1.0.9
 
 ### Patch Changes

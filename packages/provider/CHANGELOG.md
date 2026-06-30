@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 4.0.1
+
+### Patch Changes
+
+- 0274f34: feat (video): add first-class `frameImages` and `inputReferences` call options for video generation
+
 ## 4.0.0
 
 ### Major Changes
