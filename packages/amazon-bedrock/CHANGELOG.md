@@ -1,5 +1,17 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.126
+
+### Patch Changes
+
+- 95bc6fd: feat (provider/anthropic): add `claude-sonnet-5` model id
+- Updated dependencies [95bc6fd]
+- Updated dependencies [fa850e6]
+  - @ai-sdk/anthropic@3.0.91
+  - @ai-sdk/provider@3.0.13
+  - @ai-sdk/openai@3.0.79
+  - @ai-sdk/provider-utils@4.0.34
+
 ## 4.0.125
 
 ### Patch Changes

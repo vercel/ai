@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 3.0.13
+
+### Patch Changes
+
+- fa850e6: feat (video): add first-class `frameImages` and `inputReferences` call options for video generation
+
 ## 3.0.12
 
 ### Patch Changes

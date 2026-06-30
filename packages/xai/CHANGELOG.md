@@ -1,5 +1,15 @@
 # @ai-sdk/xai
 
+## 3.0.101
+
+### Patch Changes
+
+- fa850e6: feat (video): add first-class `frameImages` and `inputReferences` call options for video generation
+- Updated dependencies [fa850e6]
+  - @ai-sdk/provider@3.0.13
+  - @ai-sdk/openai-compatible@2.0.55
+  - @ai-sdk/provider-utils@4.0.34
+
 ## 3.0.100
 
 ### Patch Changes
