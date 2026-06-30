@@ -1,12 +1,13 @@
 import Link from 'next/link';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import type { Appointment, Patient, Profile } from '@/lib/types';
+import type { Appointment, Patient, Profile, Room } from '@/lib/types';
 import { AppointmentStatusSelect } from '@/components/appointment-status-select';
 import { DeleteAppointmentButton } from '@/components/delete-appointment-button';
 
 type AppointmentRow = Appointment & {
   patients: Pick<Patient, 'full_name'>;
   profiles: Pick<Profile, 'full_name'>;
+  rooms: Pick<Room, 'name'> | null;
 };
 
 export default async function AppointmentsPage({
@@ -25,7 +26,7 @@ export default async function AppointmentsPage({
 
   let query = supabase
     .from('appointments')
-    .select('*, patients(full_name), profiles(full_name)')
+    .select('*, patients(full_name), profiles(full_name), rooms(name)')
     .order('scheduled_at');
 
   if (searchParams.date) {
@@ -44,6 +45,12 @@ export default async function AppointmentsPage({
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-gray-800">Agendamentos</h1>
         <div className="flex gap-3">
+          <Link
+            href="/dashboard/appointments/week"
+            className="rounded border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+          >
+            Semana
+          </Link>
           <Link
             href="/dashboard/appointments/calendar"
             className="rounded border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
@@ -93,6 +100,7 @@ export default async function AppointmentsPage({
               <th className="px-4 py-3">Data/hora</th>
               <th className="px-4 py-3">Paciente</th>
               <th className="px-4 py-3">Profissional</th>
+              <th className="px-4 py-3">Sala</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3" />
             </tr>
@@ -107,6 +115,7 @@ export default async function AppointmentsPage({
                   {appointment.patients?.full_name}
                 </td>
                 <td className="px-4 py-3 text-gray-500">{appointment.profiles?.full_name}</td>
+                <td className="px-4 py-3 text-gray-500">{appointment.rooms?.name ?? '-'}</td>
                 <td className="px-4 py-3">
                   <AppointmentStatusSelect id={appointment.id} status={appointment.status} />
                 </td>
@@ -125,7 +134,7 @@ export default async function AppointmentsPage({
             ))}
             {(appointments ?? []).length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-gray-400">
+                <td colSpan={6} className="px-4 py-6 text-center text-gray-400">
                   Nenhum agendamento encontrado.
                 </td>
               </tr>

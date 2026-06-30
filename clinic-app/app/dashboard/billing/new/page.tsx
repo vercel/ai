@@ -1,5 +1,5 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import type { Patient } from '@/lib/types';
+import type { Patient, PaymentMethod } from '@/lib/types';
 import { createInvoice } from '../actions';
 
 export default async function NewInvoicePage({
@@ -8,11 +8,10 @@ export default async function NewInvoicePage({
   searchParams: { error?: string };
 }) {
   const supabase = createSupabaseServerClient();
-  const { data: patients } = await supabase
-    .from('patients')
-    .select('id, full_name')
-    .order('full_name')
-    .returns<Patient[]>();
+  const [{ data: patients }, { data: paymentMethods }] = await Promise.all([
+    supabase.from('patients').select('id, full_name').order('full_name').returns<Patient[]>(),
+    supabase.from('payment_methods').select('*').order('name').returns<PaymentMethod[]>(),
+  ]);
 
   return (
     <div className="max-w-lg">
@@ -56,6 +55,20 @@ export default async function NewInvoicePage({
             type="date"
             className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
           />
+        </label>
+        <label className="text-sm text-gray-600">
+          Forma de pagamento
+          <select
+            name="payment_method_id"
+            className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
+          >
+            <option value="">-</option>
+            {(paymentMethods ?? []).map((method) => (
+              <option key={method.id} value={method.id}>
+                {method.name}
+              </option>
+            ))}
+          </select>
         </label>
 
         <button

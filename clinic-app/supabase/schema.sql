@@ -101,6 +101,9 @@ create table campaigns (
   created_at timestamptz not null default now()
 );
 
+-- Note: leads is superseded by patient_crm (patient_id nullable, with
+-- full_name/phone/email/source for contacts not yet linked to a patient).
+-- Kept only for historical data; no longer written to by the app.
 create table leads (
   id uuid primary key default gen_random_uuid(),
   full_name text not null,
@@ -283,3 +286,202 @@ $$ language plpgsql security definer;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
+
+-- Migration: expand_clinical_data_model
+-- Adds richer patient/prontuário/agenda/CRM/financeiro fields and tables,
+-- ported from a more complete reference data model.
+
+alter table patients
+  add column if not exists rg text,
+  add column if not exists gender text check (gender in ('Masculino','Feminino','Outro','Prefiro não informar')),
+  add column if not exists address_street text,
+  add column if not exists address_number text,
+  add column if not exists address_complement text,
+  add column if not exists address_neighborhood text,
+  add column if not exists address_city text,
+  add column if not exists address_state text,
+  add column if not exists address_zip_code text,
+  add column if not exists marital_status text,
+  add column if not exists occupation text,
+  add column if not exists emergency_contact_name text,
+  add column if not exists emergency_contact_phone text,
+  add column if not exists insurance_provider text,
+  add column if not exists insurance_id_number text,
+  add column if not exists insurance_authorization_number text,
+  add column if not exists insurance_sessions_authorized integer,
+  add column if not exists insurance_sessions_used integer not null default 0,
+  add column if not exists responsavel_nome text,
+  add column if not exists responsavel_cpf text,
+  add column if not exists responsavel_parentesco text,
+  add column if not exists responsavel_telefone text,
+  add column if not exists responsavel_email text,
+  add column if not exists diagnosis_summary text,
+  add column if not exists diagnosis_date date,
+  add column if not exists allergies text,
+  add column if not exists chronic_conditions text,
+  add column if not exists is_active boolean not null default true;
+
+create table rooms (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  description text,
+  capacity integer not null default 1,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+alter table rooms enable row level security;
+create policy "staff manage rooms" on rooms for all using (auth.uid() is not null);
+
+alter table appointments
+  add column if not exists room_id uuid references rooms (id) on delete set null,
+  add column if not exists appointment_type text,
+  add column if not exists recurrence_series_id uuid,
+  add column if not exists recurrence_index integer;
+
+create table therapy_plans (
+  id uuid primary key default gen_random_uuid(),
+  patient_id uuid not null references patients (id) on delete cascade,
+  professional_id uuid references profiles (id),
+  area text,
+  objetivos text,
+  start_date date,
+  review_date date,
+  status text not null default 'Ativo',
+  created_at timestamptz not null default now()
+);
+alter table therapy_plans enable row level security;
+create policy "staff manage therapy_plans" on therapy_plans for all using (auth.uid() is not null);
+
+create table prescriptions (
+  id uuid primary key default gen_random_uuid(),
+  patient_id uuid not null references patients (id) on delete cascade,
+  author_id uuid references profiles (id),
+  title text not null,
+  description text,
+  status text not null default 'Rascunho',
+  created_at timestamptz not null default now()
+);
+alter table prescriptions enable row level security;
+create policy "staff manage prescriptions" on prescriptions for all using (auth.uid() is not null);
+
+create table patient_documents (
+  id uuid primary key default gen_random_uuid(),
+  patient_id uuid not null references patients (id) on delete cascade,
+  title text not null,
+  description text,
+  file_url text,
+  file_type text,
+  is_archived boolean not null default false,
+  created_at timestamptz not null default now()
+);
+alter table patient_documents enable row level security;
+create policy "staff manage patient_documents" on patient_documents for all using (auth.uid() is not null);
+
+create table invoice_items (
+  id uuid primary key default gen_random_uuid(),
+  invoice_id uuid not null references invoices (id) on delete cascade,
+  description text not null,
+  quantity numeric not null default 1,
+  unit_price integer not null default 0,
+  total_price integer not null default 0,
+  created_at timestamptz not null default now()
+);
+alter table invoice_items enable row level security;
+create policy "staff manage invoice_items" on invoice_items for all using (auth.uid() is not null);
+
+create table payment_methods (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  payment_type text,
+  is_default boolean not null default false,
+  card_brand text,
+  card_last_digits text,
+  pix_key_type text,
+  pix_key text,
+  created_at timestamptz not null default now()
+);
+alter table payment_methods enable row level security;
+create policy "staff manage payment_methods" on payment_methods for all using (auth.uid() is not null);
+
+alter table invoices
+  add column if not exists payment_method_id uuid references payment_methods (id) on delete set null,
+  add column if not exists tax_amount_cents integer not null default 0,
+  add column if not exists discount_amount_cents integer not null default 0;
+
+-- patient_crm is the unified funnel: patient_id is null for contacts that
+-- aren't patients yet (former "leads"), and set once converted. full_name/
+-- phone/email/source apply only while patient_id is null.
+create table patient_crm (
+  id uuid primary key default gen_random_uuid(),
+  patient_id uuid references patients (id) on delete cascade,
+  full_name text,
+  phone text,
+  email text,
+  source text,
+  current_stage text not null default 'Contato Inicial',
+  last_interaction_date timestamptz,
+  next_action text,
+  next_action_date timestamptz,
+  tags text[] default '{}',
+  responsible_id uuid references profiles (id),
+  notes text,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+alter table patient_crm enable row level security;
+create policy "staff manage patient_crm" on patient_crm for all using (auth.uid() is not null);
+
+create table crm_interactions (
+  id uuid primary key default gen_random_uuid(),
+  patient_crm_id uuid not null references patient_crm (id) on delete cascade,
+  interaction_type text,
+  date timestamptz not null default now(),
+  description text,
+  author_id uuid references profiles (id),
+  stage_before text,
+  stage_after text,
+  created_at timestamptz not null default now()
+);
+alter table crm_interactions enable row level security;
+create policy "staff manage crm_interactions" on crm_interactions for all using (auth.uid() is not null);
+
+create table message_templates (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  subject text,
+  content text not null,
+  message_type text not null default 'WhatsApp',
+  purpose text,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+alter table message_templates enable row level security;
+create policy "staff manage message_templates" on message_templates for all using (auth.uid() is not null);
+
+create table scheduled_messages (
+  id uuid primary key default gen_random_uuid(),
+  patient_id uuid not null references patients (id) on delete cascade,
+  template_id uuid references message_templates (id) on delete set null,
+  custom_content text,
+  scheduled_date timestamptz not null,
+  message_type text not null default 'WhatsApp',
+  status text not null default 'Pendente',
+  created_at timestamptz not null default now()
+);
+alter table scheduled_messages enable row level security;
+create policy "staff manage scheduled_messages" on scheduled_messages for all using (auth.uid() is not null);
+
+create table clinic_settings (
+  id uuid primary key default gen_random_uuid(),
+  clinic_name text not null default '',
+  cnpj text,
+  address text,
+  phone text,
+  email text,
+  logo_url text,
+  primary_color text,
+  updated_at timestamptz not null default now()
+);
+alter table clinic_settings enable row level security;
+create policy "staff manage clinic_settings" on clinic_settings for all using (auth.uid() is not null);

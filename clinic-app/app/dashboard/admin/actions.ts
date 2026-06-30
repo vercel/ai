@@ -13,3 +13,123 @@ export async function updateUserRole(userId: string, role: UserRole) {
   await supabase.from('profiles').update({ role }).eq('id', userId);
   revalidatePath('/dashboard/admin');
 }
+
+export async function createRoom(formData: FormData) {
+  const profile = await requireProfile();
+  requireAdmin(profile);
+
+  const supabase = createSupabaseServerClient();
+  await supabase.from('rooms').insert({
+    name: String(formData.get('name') ?? ''),
+    description: String(formData.get('description') ?? '') || null,
+    capacity: Number(formData.get('capacity') ?? 1) || 1,
+  });
+
+  revalidatePath('/dashboard/admin');
+}
+
+export async function toggleRoomActive(id: string, isActive: boolean) {
+  const profile = await requireProfile();
+  requireAdmin(profile);
+
+  const supabase = createSupabaseServerClient();
+  await supabase.from('rooms').update({ is_active: isActive }).eq('id', id);
+  revalidatePath('/dashboard/admin');
+}
+
+export async function deleteRoom(id: string) {
+  const profile = await requireProfile();
+  requireAdmin(profile);
+
+  const supabase = createSupabaseServerClient();
+  await supabase.from('rooms').delete().eq('id', id);
+  revalidatePath('/dashboard/admin');
+}
+
+export async function createMessageTemplate(formData: FormData) {
+  const profile = await requireProfile();
+  requireAdmin(profile);
+
+  const supabase = createSupabaseServerClient();
+  await supabase.from('message_templates').insert({
+    name: String(formData.get('name') ?? ''),
+    subject: String(formData.get('subject') ?? '') || null,
+    content: String(formData.get('content') ?? ''),
+    message_type: String(formData.get('message_type') ?? 'WhatsApp'),
+    purpose: String(formData.get('purpose') ?? '') || null,
+  });
+
+  revalidatePath('/dashboard/admin');
+}
+
+export async function toggleMessageTemplateActive(id: string, isActive: boolean) {
+  const profile = await requireProfile();
+  requireAdmin(profile);
+
+  const supabase = createSupabaseServerClient();
+  await supabase.from('message_templates').update({ is_active: isActive }).eq('id', id);
+  revalidatePath('/dashboard/admin');
+}
+
+export async function deleteMessageTemplate(id: string) {
+  const profile = await requireProfile();
+  requireAdmin(profile);
+
+  const supabase = createSupabaseServerClient();
+  await supabase.from('message_templates').delete().eq('id', id);
+  revalidatePath('/dashboard/admin');
+}
+
+export async function createPaymentMethod(formData: FormData) {
+  const profile = await requireProfile();
+  requireAdmin(profile);
+
+  const supabase = createSupabaseServerClient();
+  await supabase.from('payment_methods').insert({
+    name: String(formData.get('name') ?? ''),
+    payment_type: String(formData.get('payment_type') ?? '') || null,
+    is_default: formData.get('is_default') === 'on',
+  });
+
+  revalidatePath('/dashboard/admin');
+}
+
+export async function deletePaymentMethod(id: string) {
+  const profile = await requireProfile();
+  requireAdmin(profile);
+
+  const supabase = createSupabaseServerClient();
+  await supabase.from('payment_methods').delete().eq('id', id);
+  revalidatePath('/dashboard/admin');
+}
+
+export async function updateClinicSettings(formData: FormData) {
+  const profile = await requireProfile();
+  requireAdmin(profile);
+
+  const supabase = createSupabaseServerClient();
+  const { data: existing } = await supabase
+    .from('clinic_settings')
+    .select('id')
+    .limit(1)
+    .maybeSingle<{ id: string }>();
+
+  const values = {
+    clinic_name: String(formData.get('clinic_name') ?? ''),
+    cnpj: String(formData.get('cnpj') ?? '') || null,
+    address: String(formData.get('address') ?? '') || null,
+    phone: String(formData.get('phone') ?? '') || null,
+    email: String(formData.get('email') ?? '') || null,
+    logo_url: String(formData.get('logo_url') ?? '') || null,
+    primary_color: String(formData.get('primary_color') ?? '') || null,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (existing) {
+    await supabase.from('clinic_settings').update(values).eq('id', existing.id);
+  } else {
+    await supabase.from('clinic_settings').insert(values);
+  }
+
+  revalidatePath('/dashboard/admin');
+}

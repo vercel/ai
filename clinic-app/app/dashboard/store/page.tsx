@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { StoreTabs } from './store-tabs';
 
 type StoreItem = {
   name: string;
@@ -37,7 +38,7 @@ const STORE_ITEMS: StoreItem[] = [
     badge: 'Contratado à parte',
   },
   {
-    name: 'Santé Conversas',
+    name: 'Conversas',
     description: 'Central de conversas com assistente de IA para automatizar atendimentos.',
     badge: 'Contratado à parte',
     href: '/dashboard/conversations',
@@ -76,7 +77,7 @@ export default function StorePage() {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-800">Lojinha Santé</h1>
+          <h1 className="text-2xl font-semibold text-gray-800">Loja de Módulos</h1>
           <p className="text-sm text-gray-500">
             Conheça os módulos e add-ons disponíveis para o seu plano.
           </p>
@@ -88,6 +89,8 @@ export default function StorePage() {
           Gerenciar produtos
         </Link>
       </div>
+
+      <StoreTabs />
 
       <p className="mb-4 rounded bg-amber-50 p-3 text-xs text-amber-700">
         Catálogo de módulos contratáveis (não é uma loja de produtos físicos). A contratação

@@ -22,12 +22,17 @@ export default async function DashboardHome() {
 
   const [
     { count: patientsCount },
+    { count: activePatientsCount },
     { count: appointmentsToday },
     { count: pendingInvoices },
     { data: weekAppointments },
     { data: upcoming },
   ] = await Promise.all([
     supabase.from('patients').select('*', { count: 'exact', head: true }),
+    supabase
+      .from('patients')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_active', true),
     supabase
       .from('appointments')
       .select('*', { count: 'exact', head: true })
@@ -51,6 +56,7 @@ export default async function DashboardHome() {
 
   const cards = [
     { label: 'Pacientes cadastrados', value: patientsCount ?? 0 },
+    { label: 'Pacientes ativos', value: activePatientsCount ?? 0 },
     { label: 'Consultas hoje', value: appointmentsToday ?? 0 },
     { label: 'Faturas pendentes', value: pendingInvoices ?? 0 },
   ];
@@ -76,7 +82,7 @@ export default async function DashboardHome() {
       </h1>
       <p className="mb-6 text-sm text-gray-500">Resumo da clínica</p>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((card) => (
           <div key={card.label} className="rounded-xl bg-white p-5 shadow-sm">
             <p className="text-sm text-gray-500">{card.label}</p>
@@ -104,7 +110,7 @@ export default async function DashboardHome() {
 
         <div className="rounded-xl bg-white p-6 shadow-sm">
           <h2 className="mb-4 text-sm font-semibold text-gray-700">
-            Lembretes · próximas consultas (hoje e amanhã)
+            Agenda do dia · próximas consultas (hoje e amanhã)
           </h2>
           <div className="flex flex-col gap-2">
             {(upcoming ?? []).map((appt) => (

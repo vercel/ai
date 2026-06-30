@@ -39,7 +39,7 @@ export default async function CashflowChartPage() {
           <p className="text-2xl font-semibold text-green-600">{formatCurrency(entradas)}</p>
         </div>
         <div className="rounded-xl bg-white p-5 shadow-sm">
-          <p className="text-xs text-gray-400">Saídas (Dr.Cash pago)</p>
+          <p className="text-xs text-gray-400">Saídas (Adiantamentos pagos)</p>
           <p className="text-2xl font-semibold text-red-500">{formatCurrency(saidas)}</p>
         </div>
         <div className="rounded-xl bg-white p-5 shadow-sm">
