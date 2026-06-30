@@ -231,10 +231,20 @@ alter table fiscal_notes enable row level security;
 alter table conversations enable row level security;
 alter table conversation_messages enable row level security;
 
+create or replace function public.is_admin()
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1 from public.profiles where id = auth.uid() and role = 'admin'
+  );
+$$;
+
 create policy "staff read profiles" on profiles for select using (auth.uid() is not null);
-create policy "admin manage profiles" on profiles for all using (
-  exists (select 1 from profiles p where p.id = auth.uid() and p.role = 'admin')
-);
+create policy "admin manage profiles" on profiles for all using (public.is_admin()) with check (public.is_admin());
 
 create policy "staff manage patients" on patients for all using (auth.uid() is not null);
 create policy "staff manage medical_records" on medical_records for all using (auth.uid() is not null);
