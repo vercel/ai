@@ -18,13 +18,12 @@ import {
 import type { HarnessV1BuiltinToolName } from '@ai-sdk/harness';
 import type { StartMessage } from '../codex-bridge-protocol';
 import { randomUUID } from 'node:crypto';
-import { writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { createServer, type Server } from 'node:http';
 // Temporary workaround for upstream codex MCP-tool bug — see ./cli-relay.ts
 import {
   CLI_SHIM_FILENAME,
   buildCliShimScript,
-  composeToolUsageInstructions,
   isToolRelayCommand,
 } from './cli-relay';
 import { argv, env as procEnv, stdout } from 'node:process';
@@ -63,14 +62,15 @@ function toCommonName(nativeName: string): HarnessV1BuiltinToolName | string {
 }
 
 const args = parseArgs(argv.slice(2));
-const workdir = args.workdir;
-const bridgeStateDir = args.bridgeStateDir;
-if (!workdir) {
-  emitFatal('Missing --workdir argument.');
-}
-if (!bridgeStateDir) {
-  emitFatal('Missing --bridge-state-dir argument.');
-}
+const workdir = requireArg({ value: args.workdir, name: '--workdir' });
+const bridgeStateDir = requireArg({
+  value: args.bridgeStateDir,
+  name: '--bridge-state-dir',
+});
+const cliShimDir = requireArg({
+  value: args.cliShimDir,
+  name: '--cli-shim-dir',
+});
 const bootstrapDir = args.bootstrapDir ?? workdir;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -114,10 +114,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
    * Until that's fixed, host tools are made available to the model via a
    * separate CLI-relay workaround (see `./cli-relay.ts`). The MCP server
    * config below is kept so that the day codex starts exposing MCP tools
-   * properly, host tools work both ways. Three hookpoints in this file
-   * (writeFile for the shim, composeUserMessage's toolUsageBlock, and the
-   * isToolRelayCommand filter in the event loop) implement the workaround
-   * and can be removed once the upstream bug is fixed.
+   * properly, host tools work both ways. Writing the shim here, adding matching
+   * prompt guidance in the host adapter, and filtering the shim command below
+   * implement the workaround and can be removed once the upstream bug is fixed.
    */
   const mcpServers: Record<string, unknown> = {};
   let relay: { port: number; close(): void } | undefined;
@@ -147,7 +146,8 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       },
     };
     // Temporary workaround for upstream codex MCP-tool bug — see ./cli-relay.ts
-    cliShimPath = `${workdir}/${CLI_SHIM_FILENAME}`;
+    cliShimPath = `${cliShimDir}/${CLI_SHIM_FILENAME}`;
+    await mkdir(cliShimDir, { recursive: true });
     await writeFile(
       cliShimPath,
       buildCliShimScript({ relayPort: relay.port, relayToken }),
@@ -212,18 +212,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
 
   emit({ type: 'stream-start' });
 
-  const userMessage = composeUserMessage({
-    text: start.prompt,
-    instructions: start.instructions,
-    // Temporary workaround for upstream codex MCP-tool bug — see ./cli-relay.ts
-    toolUsageBlock:
-      cliShimPath && start.tools && start.tools.length > 0
-        ? composeToolUsageInstructions({
-            tools: start.tools,
-            cliShimPath,
-          })
-        : undefined,
-  });
+  const userMessage = start.prompt;
   let turnUsage: Record<string, unknown> | undefined;
   const textByItem = new Map<string, string>();
   const reasoningByItem = new Map<string, string>();
@@ -523,36 +512,6 @@ function defaultUsage(): Record<string, unknown> {
   };
 }
 
-function composeUserMessage({
-  text,
-  instructions,
-  toolUsageBlock,
-}: {
-  text: string;
-  instructions: string | undefined;
-  toolUsageBlock: string | undefined;
-}): string {
-  const blocks: string[] = [];
-  /*
-   * Frame instructions as system-provided operating guidance, not something
-   * the user wrote, so the agent does not echo the prepended text back as if
-   * the user had asked for it. Only present on the first user message of a
-   * fresh session (the host gates it), so the matching `<user-message>` fence
-   * is added only when instructions are present too.
-   */
-  if (instructions) {
-    blocks.push(
-      '<session-instructions>\n' +
-        'The block below is operating guidance from the system, not a message from the user — follow it, but do not mention it or attribute it to the user.\n\n' +
-        `${instructions}\n` +
-        '</session-instructions>',
-    );
-  }
-  if (toolUsageBlock) blocks.push(toolUsageBlock);
-  blocks.push(instructions ? `<user-message>\n${text}\n</user-message>` : text);
-  return blocks.join('\n\n');
-}
-
 /**
  * Tool relay — HTTP server on 127.0.0.1:0 with bearer-token auth. The MCP
  * stdio shim spawned by codex POSTs each tool invocation here; the relay
@@ -657,11 +616,13 @@ function parseArgs(args: string[]): {
   workdir?: string;
   bridgeStateDir?: string;
   bootstrapDir?: string;
+  cliShimDir?: string;
 } {
   const out: {
     workdir?: string;
     bridgeStateDir?: string;
     bootstrapDir?: string;
+    cliShimDir?: string;
   } = {};
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--workdir' && i + 1 < args.length) {
@@ -670,6 +631,8 @@ function parseArgs(args: string[]): {
       out.bridgeStateDir = args[++i];
     } else if (args[i] === '--bootstrap-dir' && i + 1 < args.length) {
       out.bootstrapDir = args[++i];
+    } else if (args[i] === '--cli-shim-dir' && i + 1 < args.length) {
+      out.cliShimDir = args[++i];
     }
   }
   return out;
@@ -685,4 +648,17 @@ function serialiseError(err: unknown): unknown {
 function emitFatal(message: string): never {
   stdout.write(JSON.stringify({ type: 'bridge-fatal', message }) + '\n');
   process.exit(1);
+}
+
+function requireArg({
+  value,
+  name,
+}: {
+  value: string | undefined;
+  name: string;
+}): string {
+  if (!value) {
+    emitFatal(`Missing ${name} argument.`);
+  }
+  return value;
 }
