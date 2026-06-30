@@ -39,6 +39,7 @@ export type GatewayModelId =
   | 'anthropic/claude-sonnet-4'
   | 'anthropic/claude-sonnet-4.5'
   | 'anthropic/claude-sonnet-4.6'
+  | 'anthropic/claude-sonnet-5'
   | 'arcee-ai/trinity-large-preview'
   | 'arcee-ai/trinity-large-thinking'
   | 'arcee-ai/trinity-mini'
