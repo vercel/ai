@@ -1,6 +1,6 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { requireAdmin, requireProfile } from '@/lib/auth';
-import type { MessageTemplate, PaymentMethod, Profile, Room } from '@/lib/types';
+import type { ClinicSettings, MessageTemplate, PaymentMethod, Profile, Room } from '@/lib/types';
 import { RoleSelect } from '@/components/role-select';
 import {
   createMessageTemplate,
@@ -11,6 +11,7 @@ import {
   deleteRoom,
   toggleMessageTemplateActive,
   toggleRoomActive,
+  updateClinicSettings,
 } from './actions';
 
 export default async function AdminPage() {
@@ -18,13 +19,19 @@ export default async function AdminPage() {
   requireAdmin(profile);
 
   const supabase = createSupabaseServerClient();
-  const [{ data: profiles }, { data: rooms }, { data: templates }, { data: paymentMethods }] =
-    await Promise.all([
-      supabase.from('profiles').select('*').order('full_name').returns<Profile[]>(),
-      supabase.from('rooms').select('*').order('name').returns<Room[]>(),
-      supabase.from('message_templates').select('*').order('name').returns<MessageTemplate[]>(),
-      supabase.from('payment_methods').select('*').order('name').returns<PaymentMethod[]>(),
-    ]);
+  const [
+    { data: profiles },
+    { data: rooms },
+    { data: templates },
+    { data: paymentMethods },
+    { data: clinicSettings },
+  ] = await Promise.all([
+    supabase.from('profiles').select('*').order('full_name').returns<Profile[]>(),
+    supabase.from('rooms').select('*').order('name').returns<Room[]>(),
+    supabase.from('message_templates').select('*').order('name').returns<MessageTemplate[]>(),
+    supabase.from('payment_methods').select('*').order('name').returns<PaymentMethod[]>(),
+    supabase.from('clinic_settings').select('*').limit(1).maybeSingle<ClinicSettings>(),
+  ]);
 
   return (
     <div>
@@ -265,6 +272,77 @@ export default async function AdminPage() {
         {(paymentMethods ?? []).length === 0 && (
           <p className="text-sm text-gray-400">Nenhuma forma de pagamento cadastrada ainda.</p>
         )}
+      </div>
+
+      <h2 className="mb-3 mt-10 text-sm font-semibold text-gray-700">Dados da clínica</h2>
+      <div className="max-w-md rounded-xl bg-white p-4 shadow-sm">
+        <form action={updateClinicSettings} className="flex flex-col gap-2">
+          <label className="text-xs text-gray-500">
+            Nome da clínica
+            <input
+              name="clinic_name"
+              required
+              defaultValue={clinicSettings?.clinic_name ?? ''}
+              className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="text-xs text-gray-500">
+            CNPJ
+            <input
+              name="cnpj"
+              defaultValue={clinicSettings?.cnpj ?? ''}
+              className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="text-xs text-gray-500">
+            Endereço
+            <input
+              name="address"
+              defaultValue={clinicSettings?.address ?? ''}
+              className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="text-xs text-gray-500">
+            Telefone
+            <input
+              name="phone"
+              defaultValue={clinicSettings?.phone ?? ''}
+              className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="text-xs text-gray-500">
+            E-mail
+            <input
+              name="email"
+              type="email"
+              defaultValue={clinicSettings?.email ?? ''}
+              className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="text-xs text-gray-500">
+            URL do logo
+            <input
+              name="logo_url"
+              defaultValue={clinicSettings?.logo_url ?? ''}
+              className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="text-xs text-gray-500">
+            Cor primária
+            <input
+              name="primary_color"
+              type="color"
+              defaultValue={clinicSettings?.primary_color ?? '#2563eb'}
+              className="mt-1 h-9 w-full rounded border border-gray-300 px-1 py-1 text-sm"
+            />
+          </label>
+          <button
+            type="submit"
+            className="self-start rounded bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+          >
+            Salvar dados da clínica
+          </button>
+        </form>
       </div>
     </div>
   );

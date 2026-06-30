@@ -345,6 +345,18 @@ export interface CampaignBlocklistEntry {
 
 export type SignatureStatus = 'pendente' | 'assinado' | 'cancelado';
 
+export interface ClinicSettings {
+  id: string;
+  clinic_name: string;
+  cnpj: string | null;
+  address: string | null;
+  phone: string | null;
+  email: string | null;
+  logo_url: string | null;
+  primary_color: string | null;
+  updated_at: string;
+}
+
 export interface DocumentSignature {
   id: string;
   title: string;

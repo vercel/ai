@@ -461,3 +461,17 @@ create table scheduled_messages (
 );
 alter table scheduled_messages enable row level security;
 create policy "staff manage scheduled_messages" on scheduled_messages for all using (auth.uid() is not null);
+
+create table clinic_settings (
+  id uuid primary key default gen_random_uuid(),
+  clinic_name text not null default '',
+  cnpj text,
+  address text,
+  phone text,
+  email text,
+  logo_url text,
+  primary_color text,
+  updated_at timestamptz not null default now()
+);
+alter table clinic_settings enable row level security;
+create policy "staff manage clinic_settings" on clinic_settings for all using (auth.uid() is not null);
