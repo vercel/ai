@@ -64,7 +64,7 @@ export default function LojinhaPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-gray-800">Lojinha Santé</h1>
+        <h1 className="text-2xl font-semibold text-gray-800">Lojinha</h1>
         <p className="text-sm text-gray-500">
           Insumos, papelaria e equipamentos para sua clínica, com entrega facilitada.
         </p>
@@ -73,7 +73,7 @@ export default function LojinhaPage() {
       <StoreTabs />
 
       <p className="mb-4 rounded bg-amber-50 p-3 text-xs text-amber-700">
-        Catálogo de produtos do marketplace Santé (parceiros). A finalização de pedidos depende
+        Catálogo de produtos do marketplace de parceiros. A finalização de pedidos depende
         de integração com um provedor de pagamentos/checkout ainda não configurado.
       </p>
 

@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 const TABS = [
   { href: '/dashboard/store', label: 'Loja de Módulos' },
   { href: '/dashboard/store/products', label: 'Produtos' },
-  { href: '/dashboard/store/lojinha', label: 'Lojinha Santé' },
+  { href: '/dashboard/store/lojinha', label: 'Lojinha' },
 ];
 
 export function StoreTabs() {
