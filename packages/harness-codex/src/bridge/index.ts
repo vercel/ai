@@ -17,6 +17,7 @@ import {
 } from '@ai-sdk/harness/bridge';
 import type { HarnessV1BuiltinToolName } from '@ai-sdk/harness';
 import type { StartMessage } from '../codex-bridge-protocol';
+import { randomUUID } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { createServer, type Server } from 'node:http';
 // Temporary workaround for upstream codex MCP-tool bug — see ./cli-relay.ts
@@ -27,6 +28,7 @@ import {
 } from './cli-relay';
 import {
   ToolRelayAuthorizer,
+  ToolRelayPendingCalls,
   isToolRelayRequestFromAllowedProcess,
   type ToolRelayCall,
 } from './tool-relay-auth';
@@ -577,6 +579,7 @@ async function startToolRelay({
   const toolNames = new Set(tools.map(t => t.name));
   const allowedScriptPathSet = new Set(allowedScriptPaths);
   const authorizer = new ToolRelayAuthorizer();
+  const pendingCalls = new ToolRelayPendingCalls();
 
   const server = createServer(async (req, res) => {
     try {
@@ -603,8 +606,9 @@ async function startToolRelay({
         );
         return;
       }
+      const relayCall = { toolName, input };
       const authorized =
-        authorizer.consumeToolCall({ toolName, input }) ||
+        authorizer.consumeToolCall(relayCall) ||
         (await isToolRelayRequestFromAllowedProcess({
           socket: req.socket,
           allowedScriptPaths: allowedScriptPathSet,
@@ -615,22 +619,29 @@ async function startToolRelay({
         return;
       }
 
-      emit({
-        type: 'tool-call',
-        toolCallId: requestId,
-        toolName,
-        input: JSON.stringify(input ?? {}),
-        providerExecuted: false,
-      });
+      const { result } = pendingCalls.begin({
+        call: relayCall,
+        run: async () => {
+          emit({
+            type: 'tool-call',
+            toolCallId: requestId,
+            toolName,
+            input: JSON.stringify(input ?? {}),
+            providerExecuted: false,
+          });
 
-      const { output, isError } = await requestToolResult(requestId);
-      emit({
-        type: 'tool-result',
-        toolCallId: requestId,
-        toolName,
-        result: output ?? null,
-        isError: !!isError,
+          const toolResult = await requestToolResult(requestId);
+          emit({
+            type: 'tool-result',
+            toolCallId: requestId,
+            toolName,
+            result: toolResult.output ?? null,
+            isError: !!toolResult.isError,
+          });
+          return toolResult;
+        },
       });
+      const { output } = await result;
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ result: output }));

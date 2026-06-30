@@ -6,6 +6,11 @@ export type ToolRelayCall = {
   input: unknown;
 };
 
+export type ToolRelayResult = {
+  output: unknown;
+  isError?: boolean;
+};
+
 export class ToolRelayAuthorizer {
   private readonly ttlMs: number;
   private readonly now: () => number;
@@ -59,6 +64,33 @@ export class ToolRelayAuthorizer {
         this.authorizations.splice(i, 1);
       }
     }
+  }
+}
+
+export class ToolRelayPendingCalls {
+  private readonly calls = new Map<string, Promise<ToolRelayResult>>();
+
+  begin({
+    call,
+    run,
+  }: {
+    call: ToolRelayCall;
+    run: () => Promise<ToolRelayResult>;
+  }): { result: Promise<ToolRelayResult>; isNew: boolean } {
+    const key = toolRelayCallKey(call);
+    const existing = this.calls.get(key);
+    if (existing) return { result: existing, isNew: false };
+
+    const result = run();
+    this.calls.set(key, result);
+    void result
+      .finally(() => {
+        if (this.calls.get(key) === result) {
+          this.calls.delete(key);
+        }
+      })
+      .catch(() => {});
+    return { result, isNew: true };
   }
 }
 
