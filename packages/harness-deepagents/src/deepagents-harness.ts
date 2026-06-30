@@ -20,8 +20,11 @@ import {
 } from '@ai-sdk/harness';
 import {
   markBridgeStarting,
+  resolveSandboxHomeDir,
   SandboxChannel,
+  shellQuote,
   waitForBridgeReady,
+  writeSkills as writeHarnessSkills,
 } from '@ai-sdk/harness/utils';
 import { tool, type Experimental_SandboxProcess } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
@@ -378,27 +381,6 @@ async function readBridgeAsset(name: string): Promise<string> {
   throw lastErr ?? new Error(`bridge asset not found: ${name}`);
 }
 
-// Resolve the sandbox $HOME so skills can be written outside the work dir.
-async function resolveSandboxHomeDir({
-  sandbox,
-  abortSignal,
-}: {
-  sandbox: ReturnType<HarnessV1NetworkSandboxSession['restricted']>;
-  abortSignal?: AbortSignal;
-}): Promise<string> {
-  const result = await sandbox.run({
-    command: 'printf "%s" "$HOME"',
-    abortSignal,
-  });
-  const homeDir = result.stdout.trim();
-  if (result.exitCode !== 0 || !homeDir.startsWith('/')) {
-    throw new Error(
-      `Unable to resolve sandbox HOME directory: ${result.stderr || result.stdout}`,
-    );
-  }
-  return homeDir;
-}
-
 // Materialize each skill as a native deepagents `<name>/SKILL.md` folder (+ attached files) under the given root, so skills load on demand and file references resolve.
 async function writeSkills({
   sandbox,
@@ -411,50 +393,22 @@ async function writeSkills({
   skills: ReadonlyArray<HarnessV1Skill>;
   abortSignal?: AbortSignal;
 }): Promise<void> {
-  for (const skill of skills) {
-    const name = safeSkillName(skill.name);
-    const skillDir = `${root}/${name}`;
-    // SKILL.md `name` must match the parent directory name (deepagents requirement).
-    const content = `---\nname: ${name}\ndescription: ${skill.description}\n---\n\n${skill.content}`;
-    await sandbox.writeTextFile({
-      path: `${skillDir}/SKILL.md`,
-      content,
-      abortSignal,
-    });
-    for (const file of skill.files ?? []) {
-      await sandbox.writeTextFile({
-        path: `${skillDir}/${safeSkillFilePath(name, file.path)}`,
-        content: file.content,
-        abortSignal,
-      });
-    }
-  }
-}
-
-function safeSkillName(name: string): string {
-  if (!/^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$/.test(name)) {
-    throw new Error(
+  /*
+   * DeepAgents requires each `SKILL.md` frontmatter name to match the parent
+   * directory name, so keep the stricter lowercase skill-name policy here.
+   */
+  await writeHarnessSkills({
+    sandbox,
+    rootDir: root,
+    skills,
+    abortSignal,
+    skillNamePattern: /^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$/,
+    invalidSkillNameMessage: ({ name }) =>
       `Invalid deepagents skill name '${name}': must be lowercase alphanumeric with hyphens, 1-64 chars.`,
-    );
-  }
-  return name;
-}
-
-function safeSkillFilePath(skillName: string, filePath: string): string {
-  const normalized = filePath.replace(/^\/+/, '');
-  if (
-    normalized === '' ||
-    normalized.startsWith('../') ||
-    normalized.includes('/../') ||
-    normalized.endsWith('/..')
-  ) {
-    throw new Error(`Invalid skill file path for '${skillName}': ${filePath}`);
-  }
-  return normalized;
-}
-
-function shellQuote(value: string): string {
-  return `'${value.replace(/'/g, `'\\''`)}'`;
+    filePathMode: 'strip-leading-slashes',
+    invalidSkillFilePathMessage: ({ skillName, filePath }) =>
+      `Invalid skill file path for '${skillName}': ${filePath}`,
+  });
 }
 
 function openWebSocket(url: string): Promise<WebSocket> {

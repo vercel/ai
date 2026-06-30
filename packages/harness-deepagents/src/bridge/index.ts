@@ -3,6 +3,7 @@
 import { randomUUID } from 'node:crypto';
 import { argv } from 'node:process';
 import {
+  jsonSchemaToZodObject,
   runBridge,
   type BridgeEvent,
   type BridgeTurn,
@@ -13,7 +14,6 @@ import { Command, MemorySaver } from '@langchain/langgraph';
 import { createDeepAgent } from 'deepagents';
 import type { StartMessage } from '../deepagents-bridge-protocol';
 import { buildInterruptOn, collectActionRequests } from './approvals';
-import { jsonSchemaToZodObject } from './json-schema-to-zod';
 import { createLocalShellBackend } from './local-shell-backend';
 
 // Native Deep Agents tool name -> harness-v1 common name (renames only; grep/glob/ls/task/write_todos forward unchanged).

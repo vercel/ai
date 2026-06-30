@@ -1,8 +1,8 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
+import { shellQuote } from '@ai-sdk/harness/utils';
 import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { shellQuote } from './pi-utils';
 
 const PI_SESSION_FILE_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*\.jsonl?$/;
 
