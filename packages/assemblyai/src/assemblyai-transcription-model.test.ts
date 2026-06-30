@@ -406,6 +406,50 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass the GA nested input params', async () => {
+    prepareJsonResponse();
+
+    await provider.transcription('universal-3-5-pro').doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        assemblyai: {
+          redactPii: true,
+          speakerOptions: { minSpeakersExpected: 1, maxSpeakersExpected: 3 },
+          languageDetectionOptions: {
+            expectedLanguages: ['en', 'es'],
+            fallbackLanguage: 'en',
+            codeSwitching: true,
+            codeSwitchingConfidenceThreshold: 0.5,
+          },
+          redactPiiAudioOptions: {
+            returnRedactedNoSpeechAudio: true,
+            overrideAudioRedactionMethod: 'silence',
+          },
+          redactPiiReturnUnredacted: true,
+          redactStaticEntities: { INTERNAL_TOOL: ['Bearclaw'] },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[1].requestBodyJson;
+    expect(requestBody).toMatchObject({
+      speaker_options: { min_speakers_expected: 1, max_speakers_expected: 3 },
+      language_detection_options: {
+        expected_languages: ['en', 'es'],
+        fallback_language: 'en',
+        code_switching: true,
+        code_switching_confidence_threshold: 0.5,
+      },
+      redact_pii_audio_options: {
+        return_redacted_no_speech_audio: true,
+        override_audio_redaction_method: 'silence',
+      },
+      redact_pii_return_unredacted: true,
+      redact_static_entities: { INTERNAL_TOOL: ['Bearclaw'] },
+    });
+  });
+
   it('should warn when deprecated wordBoost/boostParam options are used', async () => {
     prepareJsonResponse();
 

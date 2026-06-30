@@ -200,6 +200,13 @@ The following provider options are available:
   Whether to enable language detection.
   Optional.
 
+- **languageDetectionOptions** _object_
+
+  Options for automatic language detection: `expectedLanguages` (array of
+  strings), `fallbackLanguage` (string), `codeSwitching` (boolean),
+  `codeSwitchingConfidenceThreshold` (number, 0-1).
+  Optional.
+
 - **multichannel** _boolean_
 
   Whether to process multiple audio channels separately.
@@ -226,6 +233,12 @@ The following provider options are available:
   Whether to redact PII in the audio file.
   Optional.
 
+- **redactPiiAudioOptions** _object_
+
+  Options for PII-redacted audio: `returnRedactedNoSpeechAudio` (boolean),
+  `overrideAudioRedactionMethod` (`'silence'`). Requires `redactPii`.
+  Optional.
+
 - **redactPiiAudioQuality** _enum_
 
   Quality of the redacted audio file.
@@ -238,10 +251,23 @@ The following provider options are available:
   Supports numerous types like `'person_name'`, `'phone_number'`, etc.
   Optional.
 
+- **redactPiiReturnUnredacted** _boolean_
+
+  Return the original unredacted transcript alongside the redacted one.
+  Requires `redactPii`.
+  Optional.
+
 - **redactPiiSub** _enum_
 
   Substitution method for redacted PII.
   Allowed values: `'entity_name'`, `'hash'`.
+  Optional.
+
+- **redactStaticEntities** _object_
+
+  Map of user-defined labels to exact terms to redact, e.g.
+  `{ INTERNAL_TOOL: ['Bearclaw'] }`. Applied on top of standard PII redaction.
+  Requires `redactPii`.
   Optional.
 
 - **removeAudioTags** _enum_
@@ -259,6 +285,12 @@ The following provider options are available:
 - **speakerLabels** _boolean_
 
   Whether to label different speakers in the transcription.
+  Optional.
+
+- **speakerOptions** _object_
+
+  Options for speaker diarization: `minSpeakersExpected` (number),
+  `maxSpeakersExpected` (number).
   Optional.
 
 - **speakersExpected** _number_

@@ -209,6 +209,16 @@ export type AssemblyAITranscriptionAPITypes = {
   language_detection?: boolean;
 
   /**
+   * Options for automatic language detection.
+   */
+  language_detection_options?: {
+    expected_languages?: string[];
+    fallback_language?: string;
+    code_switching?: boolean;
+    code_switching_confidence_threshold?: number;
+  };
+
+  /**
    * Enable Multichannel transcription, can be true or false.
    * @default false
    */
@@ -231,6 +241,14 @@ export type AssemblyAITranscriptionAPITypes = {
    * @default false
    */
   redact_pii_audio?: boolean;
+
+  /**
+   * Options for PII-redacted audio files. Requires redact_pii.
+   */
+  redact_pii_audio_options?: {
+    return_redacted_no_speech_audio?: boolean;
+    override_audio_redaction_method?: 'silence';
+  };
 
   /**
    * Controls the filetype of the audio created by redact_pii_audio. Currently supports mp3 (default) and wav.
@@ -288,9 +306,21 @@ export type AssemblyAITranscriptionAPITypes = {
   >;
 
   /**
+   * Return the original unredacted transcript alongside the redacted one.
+   * Requires redact_pii.
+   */
+  redact_pii_return_unredacted?: boolean;
+
+  /**
    * The replacement logic for detected PII, can be "entity_name" or "hash".
    */
   redact_pii_sub?: 'entity_name' | 'hash';
+
+  /**
+   * Map of user-defined labels to exact terms to redact, applied on top of
+   * standard PII redaction. Requires redact_pii.
+   */
+  redact_static_entities?: Record<string, string[]>;
 
   /**
    * Enable Sentiment Analysis, can be true or false
@@ -303,6 +333,14 @@ export type AssemblyAITranscriptionAPITypes = {
    * @default false
    */
   speaker_labels?: boolean;
+
+  /**
+   * Options for speaker diarization, e.g. a range of possible speakers.
+   */
+  speaker_options?: {
+    min_speakers_expected?: number;
+    max_speakers_expected?: number;
+  };
 
   /**
    * Tells the speaker label model how many speakers it should attempt to identify, up to 10.

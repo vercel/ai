@@ -91,6 +91,21 @@ export const assemblyaiTranscriptionModelOptionsSchema = z.object({
    */
   languageDetection: z.boolean().nullish(),
   /**
+   * Options for automatic language detection.
+   */
+  languageDetectionOptions: z
+    .object({
+      /** List of languages expected in the audio file. */
+      expectedLanguages: z.array(z.string()).nullish(),
+      /** Fallback language if the detected language is not expected. */
+      fallbackLanguage: z.string().nullish(),
+      /** Whether code switching should be detected. */
+      codeSwitching: z.boolean().nullish(),
+      /** Confidence threshold for code switching detection (0-1). */
+      codeSwitchingConfidenceThreshold: z.number().min(0).max(1).nullish(),
+    })
+    .nullish(),
+  /**
    * Whether to process audio as multichannel.
    */
   multichannel: z.boolean().nullish(),
@@ -112,6 +127,17 @@ export const assemblyaiTranscriptionModelOptionsSchema = z.object({
    */
   redactPiiAudio: z.boolean().nullish(),
   /**
+   * Options for PII-redacted audio files. Requires `redactPii`.
+   */
+  redactPiiAudioOptions: z
+    .object({
+      /** Return redacted audio even for files without detected speech. */
+      returnRedactedNoSpeechAudio: z.boolean().nullish(),
+      /** Redaction method; set to `'silence'` to replace PII with silence. */
+      overrideAudioRedactionMethod: z.string().nullish(),
+    })
+    .nullish(),
+  /**
    * Audio format for PII redaction.
    */
   redactPiiAudioQuality: z.string().nullish(),
@@ -120,9 +146,20 @@ export const assemblyaiTranscriptionModelOptionsSchema = z.object({
    */
   redactPiiPolicies: z.array(z.string()).nullish(),
   /**
+   * Return the original unredacted transcript alongside the redacted one.
+   * Requires `redactPii`.
+   */
+  redactPiiReturnUnredacted: z.boolean().nullish(),
+  /**
    * Substitution method for redacted PII.
    */
   redactPiiSub: z.string().nullish(),
+  /**
+   * Map of user-defined labels to exact terms to redact, e.g.
+   * `{ INTERNAL_TOOL: ['Bearclaw'] }`. Applied on top of standard PII redaction
+   * using `redactPiiSub`. Requires `redactPii`.
+   */
+  redactStaticEntities: z.record(z.string(), z.array(z.string())).nullish(),
   /**
    * Remove inline annotations from rich transcripts. `'all'` removes all inline
    * annotations; `'speaker'` removes only speaker cues. Universal-3 Pro models.
@@ -136,6 +173,17 @@ export const assemblyaiTranscriptionModelOptionsSchema = z.object({
    * Whether to identify different speakers in the audio.
    */
   speakerLabels: z.boolean().nullish(),
+  /**
+   * Options for speaker diarization, e.g. a range of possible speakers.
+   */
+  speakerOptions: z
+    .object({
+      /** Minimum number of speakers expected in the audio file. */
+      minSpeakersExpected: z.number().int().nullish(),
+      /** Maximum number of speakers expected in the audio file. */
+      maxSpeakersExpected: z.number().int().nullish(),
+    })
+    .nullish(),
   /**
    * Number of speakers expected in the audio.
    */

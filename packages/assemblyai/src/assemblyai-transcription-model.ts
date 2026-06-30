@@ -143,6 +143,47 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
       body.remove_audio_tags =
         (assemblyaiOptions.removeAudioTags as never) ?? undefined;
       body.domain = assemblyaiOptions.domain ?? undefined;
+      body.redact_pii_return_unredacted =
+        assemblyaiOptions.redactPiiReturnUnredacted ?? undefined;
+      body.redact_static_entities =
+        assemblyaiOptions.redactStaticEntities ?? undefined;
+
+      if (assemblyaiOptions.speakerOptions) {
+        body.speaker_options = {
+          min_speakers_expected:
+            assemblyaiOptions.speakerOptions.minSpeakersExpected ?? undefined,
+          max_speakers_expected:
+            assemblyaiOptions.speakerOptions.maxSpeakersExpected ?? undefined,
+        };
+      }
+
+      if (assemblyaiOptions.languageDetectionOptions) {
+        body.language_detection_options = {
+          expected_languages:
+            assemblyaiOptions.languageDetectionOptions.expectedLanguages ??
+            undefined,
+          fallback_language:
+            assemblyaiOptions.languageDetectionOptions.fallbackLanguage ??
+            undefined,
+          code_switching:
+            assemblyaiOptions.languageDetectionOptions.codeSwitching ??
+            undefined,
+          code_switching_confidence_threshold:
+            assemblyaiOptions.languageDetectionOptions
+              .codeSwitchingConfidenceThreshold ?? undefined,
+        };
+      }
+
+      if (assemblyaiOptions.redactPiiAudioOptions) {
+        body.redact_pii_audio_options = {
+          return_redacted_no_speech_audio:
+            assemblyaiOptions.redactPiiAudioOptions
+              .returnRedactedNoSpeechAudio ?? undefined,
+          override_audio_redaction_method:
+            (assemblyaiOptions.redactPiiAudioOptions
+              .overrideAudioRedactionMethod as never) ?? undefined,
+        };
+      }
 
       if (
         assemblyaiOptions.wordBoost != null ||
