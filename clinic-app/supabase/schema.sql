@@ -183,6 +183,16 @@ create table conversation_messages (
   created_at timestamptz not null default now()
 );
 
+create table assistant_settings (
+  id uuid primary key default gen_random_uuid(),
+  name text not null default 'Fer',
+  enabled boolean not null default false,
+  persona text not null default 'Assistente virtual da clínica, responde dúvidas, agenda consultas e confirma horários via WhatsApp.',
+  auto_schedule boolean not null default false,
+  auto_broadcast boolean not null default false,
+  updated_at timestamptz not null default now()
+);
+
 -- Row Level Security: any authenticated staff member can read/write clinical
 -- data; only admins can manage profiles/roles.
 alter table profiles enable row level security;
@@ -222,6 +232,7 @@ create policy "staff manage sales" on sales for all using (auth.uid() is not nul
 create policy "staff manage fiscal_notes" on fiscal_notes for all using (auth.uid() is not null);
 create policy "staff manage conversations" on conversations for all using (auth.uid() is not null);
 create policy "staff manage conversation_messages" on conversation_messages for all using (auth.uid() is not null);
+create policy "staff manage assistant_settings" on assistant_settings for all using (auth.uid() is not null);
 
 -- Storage bucket for medical record attachments (created via Supabase dashboard/MCP):
 -- insert into storage.buckets (id, name, public) values ('attachments', 'attachments', false);

@@ -59,12 +59,20 @@ export default async function ConversationsPage({
             {STATUS_LABELS[activeTab as Conversation['status']] ?? 'Todas'}
           </span>
         </div>
-        <Link
-          href="/dashboard/conversations/new"
-          className="rounded bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
-        >
-          + Nova conversa
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/dashboard/conversations/assistant"
+            className="rounded border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+          >
+            Assistente
+          </Link>
+          <Link
+            href="/dashboard/conversations/new"
+            className="rounded bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+          >
+            + Nova conversa
+          </Link>
+        </div>
       </div>
       <p className="text-sm text-gray-500">Caixa de Entrada · WhatsApp, Instagram e e-mail</p>
 

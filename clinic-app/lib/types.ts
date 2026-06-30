@@ -177,3 +177,13 @@ export interface ConversationMessage {
   sent_by: string | null;
   created_at: string;
 }
+
+export interface AssistantSettings {
+  id: string;
+  name: string;
+  enabled: boolean;
+  persona: string;
+  auto_schedule: boolean;
+  auto_broadcast: boolean;
+  updated_at: string;
+}

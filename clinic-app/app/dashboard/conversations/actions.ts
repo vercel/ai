@@ -53,3 +53,21 @@ export async function updateConversationStatus(id: string, status: ConversationS
   revalidatePath('/dashboard/conversations');
   revalidatePath(`/dashboard/conversations/${id}`);
 }
+
+export async function updateAssistantSettings(id: string, formData: FormData) {
+  const supabase = createSupabaseServerClient();
+
+  await supabase
+    .from('assistant_settings')
+    .update({
+      name: String(formData.get('name') ?? 'Fer'),
+      persona: String(formData.get('persona') ?? ''),
+      enabled: formData.get('enabled') === 'on',
+      auto_schedule: formData.get('auto_schedule') === 'on',
+      auto_broadcast: formData.get('auto_broadcast') === 'on',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id);
+
+  revalidatePath('/dashboard/conversations/assistant');
+}
