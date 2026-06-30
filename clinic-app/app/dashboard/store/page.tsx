@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { StoreTabs } from './store-tabs';
 
 type StoreItem = {
   name: string;
@@ -88,6 +89,8 @@ export default function StorePage() {
           Gerenciar produtos
         </Link>
       </div>
+
+      <StoreTabs />
 
       <p className="mb-4 rounded bg-amber-50 p-3 text-xs text-amber-700">
         Catálogo de módulos contratáveis (não é uma loja de produtos físicos). A contratação

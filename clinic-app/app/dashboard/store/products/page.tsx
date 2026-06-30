@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import type { Patient, Product, Sale } from '@/lib/types';
 import { DeleteProductButton } from '@/components/delete-product-button';
+import { StoreTabs } from '../store-tabs';
 import { sellProduct } from './actions';
 
 type SaleRow = Sale & { products: Pick<Product, 'name'> };
@@ -30,12 +31,7 @@ export default async function StorePage({
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-800">Produtos</h1>
-          <Link href="/dashboard/store" className="text-xs text-brand-600 hover:underline">
-            ← Voltar para Loja de Módulos
-          </Link>
-        </div>
+        <h1 className="text-2xl font-semibold text-gray-800">Produtos</h1>
         <Link
           href="/dashboard/store/products/new"
           className="rounded bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
@@ -43,6 +39,8 @@ export default async function StorePage({
           + Novo produto
         </Link>
       </div>
+
+      <StoreTabs />
 
       {searchParams.error && (
         <p className="mb-4 rounded bg-red-50 p-2 text-sm text-red-600">{searchParams.error}</p>
