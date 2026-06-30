@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.5
+
+### Patch Changes
+
+- 85a80fc: fix (amazon-bedrock): send the correct `bedrockRerankingConfiguration` request key for reranking
+
 ## 5.0.4
 
 ### Patch Changes
