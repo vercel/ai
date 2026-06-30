@@ -17,12 +17,16 @@ export interface Profile {
   created_at: string;
 }
 
+export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'suspended' | 'canceled';
+
 export interface Plan {
   id: string;
   slug: string;
   name: string;
   max_users: number | null;
   modules: string[];
+  price_cents: number;
+  trial_days: number;
   created_at: string;
 }
 
@@ -32,7 +36,21 @@ export interface Clinic {
   plan_id: string;
   owner_id: string | null;
   is_active: boolean;
+  trial_ends_at: string | null;
   created_at: string;
+}
+
+export interface Subscription {
+  id: string;
+  clinic_id: string;
+  plan_id: string;
+  status: SubscriptionStatus;
+  current_period_start: string;
+  current_period_end: string;
+  past_due_since: string | null;
+  grace_period_days: number;
+  pending_plan_id: string | null;
+  updated_at: string;
 }
 
 export interface Patient {

@@ -3,7 +3,13 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { logout } from '@/app/login/actions';
-import type { UserRole } from '@/lib/types';
+import type { Subscription, UserRole } from '@/lib/types';
+
+function trialDaysLeft(trialEndsAt: string | null): number | null {
+  if (!trialEndsAt) return null;
+  const days = Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / 86400000);
+  return days > 0 ? days : 0;
+}
 
 const LINKS: {
   href: string;
@@ -112,12 +118,19 @@ export function Sidebar({
   role,
   fullName,
   modules,
+  planName,
+  subscription,
+  trialEndsAt,
 }: {
   role: UserRole;
   fullName: string;
   modules: string[];
+  planName: string | null;
+  subscription: Subscription | null;
+  trialEndsAt: string | null;
 }) {
   const pathname = usePathname();
+  const daysLeft = subscription?.status === 'trialing' ? trialDaysLeft(trialEndsAt) : null;
 
   return (
     <aside className="flex h-screen w-60 flex-col justify-between bg-navy-900">
@@ -125,6 +138,12 @@ export function Sidebar({
         <div className="border-b border-white/10 px-4 py-5">
           <p className="text-lg font-semibold text-white">Clinic Manager</p>
           <p className="text-xs text-blue-200/70">{fullName}</p>
+          {planName && (
+            <span className="mt-1 inline-block rounded-full bg-white/10 px-2 py-0.5 text-xs text-blue-200/80">
+              {planName}
+              {daysLeft !== null && ` · trial ${daysLeft}d`}
+            </span>
+          )}
         </div>
         <nav className="flex flex-col gap-1 px-2 py-3">
           {LINKS.filter(
@@ -170,14 +189,24 @@ export function Sidebar({
           })}
         </nav>
       </div>
-      <form action={logout} className="border-t border-white/10 px-2 py-4">
-        <button
-          type="submit"
-          className="w-full rounded px-3 py-2 text-left text-sm text-blue-200/70 hover:bg-white/5 hover:text-white"
-        >
-          Sair
-        </button>
-      </form>
+      <div className="border-t border-white/10 px-2 py-4">
+        {role === 'admin' && (
+          <Link
+            href="/dashboard/admin/subscription"
+            className="mb-1 block rounded px-3 py-2 text-xs text-blue-200/60 hover:bg-white/5 hover:text-white"
+          >
+            Plano & Assinatura
+          </Link>
+        )}
+        <form action={logout}>
+          <button
+            type="submit"
+            className="w-full rounded px-3 py-2 text-left text-sm text-blue-200/70 hover:bg-white/5 hover:text-white"
+          >
+            Sair
+          </button>
+        </form>
+      </div>
     </aside>
   );
 }
