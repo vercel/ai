@@ -125,8 +125,9 @@ The following provider options are available:
 
 - **boostParam** _enum_
 
-  Boost parameter for the transcription.
+  Boost parameter for `wordBoost`.
   Allowed values: `'low'`, `'default'`, `'high'`.
+  **Deprecated** — only applies to the deprecated `wordBoost`; use `keytermsPrompt` instead.
   Optional.
 
 - **contentSafety** _boolean_
@@ -150,6 +151,12 @@ The following provider options are available:
   Whether to include disfluencies (um, uh, etc.) in the transcription.
   Optional.
 
+- **domain** _string_
+
+  Enable a domain-specific model for specialized terminology.
+  Currently supports `'medical-v1'` (Medical Mode).
+  Optional.
+
 - **entityDetection** _boolean_
 
   Whether to detect entities in the transcription.
@@ -168,6 +175,13 @@ The following provider options are available:
 - **iabCategories** _boolean_
 
   Whether to include IAB categories in the transcription.
+  Optional.
+
+- **keytermsPrompt** _array of strings_
+
+  Domain-specific keyterms to boost recognition for (max 6 words per phrase).
+  Replaces `wordBoost` for newer models — supported by `universal-3-pro`,
+  `universal-3-5-pro`, and `slam-1` (and `universal-2` when enabled).
   Optional.
 
 - **languageCode** _string_
@@ -189,6 +203,12 @@ The following provider options are available:
 - **multichannel** _boolean_
 
   Whether to process multiple audio channels separately.
+  Optional.
+
+- **prompt** _string_
+
+  Natural-language context (up to 1,500 words) to steer the model.
+  Only supported by `universal-3-pro`, `universal-3-5-pro`, and `slam-1`.
   Optional.
 
 - **punctuate** _boolean_
@@ -222,6 +242,13 @@ The following provider options are available:
 
   Substitution method for redacted PII.
   Allowed values: `'entity_name'`, `'hash'`.
+  Optional.
+
+- **removeAudioTags** _enum_
+
+  Remove inline annotations from rich transcripts.
+  Allowed values: `'all'` (all annotations), `'speaker'` (speaker cues only).
+  Universal-3 Pro models.
   Optional.
 
 - **sentimentAnalysis** _boolean_
@@ -261,6 +288,12 @@ The following provider options are available:
   Allowed values: `'bullets'`, `'bullets_verbose'`, `'gist'`, `'headline'`, `'paragraph'`.
   Optional.
 
+- **temperature** _number_
+
+  Sampling temperature (0-1) controlling randomness.
+  Universal-3 Pro models.
+  Optional.
+
 - **webhookAuthHeaderName** _string_
 
   Name of the authentication header for webhook requests.
@@ -279,6 +312,8 @@ The following provider options are available:
 - **wordBoost** _array of strings_
 
   List of words to boost in the transcription.
+  **Deprecated** — rejected by `universal-3-pro`, `universal-3-5-pro`, and `slam-1`
+  (works only on `universal-2`/`best`); use `keytermsPrompt` instead.
   Optional.
 
 ### Speaker diarization and audio-intelligence results

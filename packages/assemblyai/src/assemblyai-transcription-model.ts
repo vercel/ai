@@ -137,6 +137,24 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
         assemblyaiOptions.webhookAuthHeaderValue ?? undefined;
       body.webhook_url = assemblyaiOptions.webhookUrl ?? undefined;
       body.word_boost = assemblyaiOptions.wordBoost ?? undefined;
+      body.keyterms_prompt = assemblyaiOptions.keytermsPrompt ?? undefined;
+      body.prompt = assemblyaiOptions.prompt ?? undefined;
+      body.temperature = assemblyaiOptions.temperature ?? undefined;
+      body.remove_audio_tags =
+        (assemblyaiOptions.removeAudioTags as never) ?? undefined;
+      body.domain = assemblyaiOptions.domain ?? undefined;
+
+      if (
+        assemblyaiOptions.wordBoost != null ||
+        assemblyaiOptions.boostParam != null
+      ) {
+        warnings.push({
+          type: 'deprecated',
+          setting: 'wordBoost',
+          message:
+            "The 'wordBoost' and 'boostParam' options are deprecated and are rejected by 'universal-3-pro' / 'universal-3-5-pro' and 'slam-1'. Use 'keytermsPrompt' instead.",
+        });
+      }
     }
 
     return {

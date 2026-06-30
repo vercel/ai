@@ -19,8 +19,12 @@ export const assemblyaiTranscriptionModelOptionsSchema = z.object({
    */
   autoHighlights: z.boolean().nullish(),
   /**
-   * Boost parameter for the transcription.
+   * Boost parameter for word boost (used with `wordBoost`).
    * Allowed values: 'low', 'default', 'high'.
+   *
+   * @deprecated Only applies to the deprecated `wordBoost` option. Use
+   * `keytermsPrompt` instead, which works with the recommended `universal-*`
+   * models.
    */
   boostParam: z.string().nullish(),
   /**
@@ -47,6 +51,11 @@ export const assemblyaiTranscriptionModelOptionsSchema = z.object({
    */
   disfluencies: z.boolean().nullish(),
   /**
+   * Enable a domain-specific model to improve accuracy for specialized
+   * terminology. Currently supports `'medical-v1'` (Medical Mode).
+   */
+  domain: z.string().nullish(),
+  /**
    * Whether to enable entity detection.
    */
   entityDetection: z.boolean().nullish(),
@@ -63,6 +72,13 @@ export const assemblyaiTranscriptionModelOptionsSchema = z.object({
    */
   iabCategories: z.boolean().nullish(),
   /**
+   * Domain-specific keyterms to boost recognition for (max 6 words per phrase).
+   * Replaces `wordBoost` for newer models: supported by `universal-3-pro` /
+   * `universal-3-5-pro` and `slam-1` (and `universal-2` when metaphone is
+   * enabled for the account).
+   */
+  keytermsPrompt: z.array(z.string()).nullish(),
+  /**
    * Language code for the transcription.
    */
   languageCode: z.union([z.literal('en'), z.string()]).nullish(),
@@ -78,6 +94,11 @@ export const assemblyaiTranscriptionModelOptionsSchema = z.object({
    * Whether to process audio as multichannel.
    */
   multichannel: z.boolean().nullish(),
+  /**
+   * Provide natural-language context (up to 1,500 words) to steer the model.
+   * Only supported by `universal-3-pro` / `universal-3-5-pro` and `slam-1`.
+   */
+  prompt: z.string().nullish(),
   /**
    * Whether to add punctuation to the transcription.
    */
@@ -102,6 +123,11 @@ export const assemblyaiTranscriptionModelOptionsSchema = z.object({
    * Substitution method for redacted PII.
    */
   redactPiiSub: z.string().nullish(),
+  /**
+   * Remove inline annotations from rich transcripts. `'all'` removes all inline
+   * annotations; `'speaker'` removes only speaker cues. Universal-3 Pro models.
+   */
+  removeAudioTags: z.string().nullish(),
   /**
    * Whether to enable sentiment analysis.
    */
@@ -131,6 +157,10 @@ export const assemblyaiTranscriptionModelOptionsSchema = z.object({
    */
   summaryType: z.string().nullish(),
   /**
+   * Sampling temperature (0-1) controlling randomness. Universal-3 Pro models.
+   */
+  temperature: z.number().min(0).max(1).nullish(),
+  /**
    * Name of the authentication header for webhook requests.
    */
   webhookAuthHeaderName: z.string().nullish(),
@@ -144,6 +174,10 @@ export const assemblyaiTranscriptionModelOptionsSchema = z.object({
   webhookUrl: z.string().nullish(),
   /**
    * List of words to boost recognition for.
+   *
+   * @deprecated `wordBoost` is rejected by `universal-3-pro` /
+   * `universal-3-5-pro` and `slam-1` (it only works on `universal-2`/`best`).
+   * Use `keytermsPrompt` instead.
    */
   wordBoost: z.array(z.string()).nullish(),
 });

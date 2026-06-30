@@ -28,6 +28,7 @@ export type AssemblyAITranscriptionAPITypes = {
 
   /**
    * How much to boost specified words
+   * @deprecated Only used with the deprecated `word_boost`. Use `keyterms_prompt`.
    */
   boost_param?: 'low' | 'default' | 'high';
 
@@ -370,6 +371,37 @@ export type AssemblyAITranscriptionAPITypes = {
 
   /**
    * The list of custom vocabulary to boost transcription probability for
+   * @deprecated Rejected by `universal-3-pro` / `universal-3-5-pro` and
+   * `slam-1` (works only on `universal-2`/`best`). Use `keyterms_prompt`.
    */
   word_boost?: string[];
+
+  /**
+   * Domain-specific keyterms to boost (max 6 words per phrase). Replaces
+   * `word_boost` for `universal-3-pro` / `universal-3-5-pro` and `slam-1`.
+   */
+  keyterms_prompt?: string[];
+
+  /**
+   * Natural-language context (up to 1,500 words) to steer the model.
+   * Only supported by `universal-3-pro` / `universal-3-5-pro` and `slam-1`.
+   */
+  prompt?: string;
+
+  /**
+   * Sampling temperature (0-1) controlling randomness. Universal-3 Pro models.
+   */
+  temperature?: number;
+
+  /**
+   * Remove inline annotations from rich transcripts: `'all'` removes all
+   * annotations, `'speaker'` removes only speaker cues. Universal-3 Pro models.
+   */
+  remove_audio_tags?: 'all' | 'speaker';
+
+  /**
+   * Enable a domain-specific model to improve accuracy for specialized
+   * terminology, e.g. `'medical-v1'` for Medical Mode.
+   */
+  domain?: string;
 };

@@ -378,6 +378,54 @@ describe('doGenerate', () => {
     expect(body.summary).toBe('- Hello, world!');
   });
 
+  it('should pass the Universal-3-Pro input params', async () => {
+    prepareJsonResponse();
+
+    await provider.transcription('universal-3-5-pro').doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        assemblyai: {
+          prompt: 'This is a conversation about the AI SDK.',
+          keytermsPrompt: ['Vercel', 'AI SDK'],
+          temperature: 0.2,
+          removeAudioTags: 'speaker',
+          domain: 'medical-v1',
+        },
+      },
+    });
+
+    const requestBody = await server.calls[1].requestBodyJson;
+    expect(requestBody).toMatchObject({
+      speech_models: ['universal-3-5-pro'],
+      prompt: 'This is a conversation about the AI SDK.',
+      keyterms_prompt: ['Vercel', 'AI SDK'],
+      temperature: 0.2,
+      remove_audio_tags: 'speaker',
+      domain: 'medical-v1',
+    });
+  });
+
+  it('should warn when deprecated wordBoost/boostParam options are used', async () => {
+    prepareJsonResponse();
+
+    const result = await provider
+      .transcription('universal-3-5-pro')
+      .doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: {
+          assemblyai: { wordBoost: ['Vercel'], boostParam: 'high' },
+        },
+      });
+
+    expect(result.warnings).toContainEqual({
+      type: 'deprecated',
+      setting: 'wordBoost',
+      message: expect.stringContaining('keytermsPrompt'),
+    });
+  });
+
   it('should report segment timings in seconds (ms converted)', async () => {
     prepareJsonResponse();
 
