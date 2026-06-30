@@ -6,17 +6,54 @@ import { redirect } from 'next/navigation';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { requireProfile } from '@/lib/auth';
 
+function patientFieldsFromForm(formData: FormData) {
+  const field = (name: string) => String(formData.get(name) ?? '') || null;
+
+  return {
+    full_name: String(formData.get('full_name') ?? ''),
+    cpf: field('cpf'),
+    rg: field('rg'),
+    gender: field('gender'),
+    birth_date: field('birth_date'),
+    phone: field('phone'),
+    email: field('email'),
+    address_street: field('address_street'),
+    address_number: field('address_number'),
+    address_complement: field('address_complement'),
+    address_neighborhood: field('address_neighborhood'),
+    address_city: field('address_city'),
+    address_state: field('address_state'),
+    address_zip_code: field('address_zip_code'),
+    marital_status: field('marital_status'),
+    occupation: field('occupation'),
+    emergency_contact_name: field('emergency_contact_name'),
+    emergency_contact_phone: field('emergency_contact_phone'),
+    insurance_provider: field('insurance_provider'),
+    insurance_id_number: field('insurance_id_number'),
+    insurance_authorization_number: field('insurance_authorization_number'),
+    insurance_sessions_authorized: formData.get('insurance_sessions_authorized')
+      ? Number(formData.get('insurance_sessions_authorized'))
+      : null,
+    responsavel_nome: field('responsavel_nome'),
+    responsavel_cpf: field('responsavel_cpf'),
+    responsavel_parentesco: field('responsavel_parentesco'),
+    responsavel_telefone: field('responsavel_telefone'),
+    responsavel_email: field('responsavel_email'),
+    diagnosis_summary: field('diagnosis_summary'),
+    diagnosis_date: field('diagnosis_date'),
+    allergies: field('allergies'),
+    chronic_conditions: field('chronic_conditions'),
+    is_active: formData.get('is_active') !== 'off',
+    notes: field('notes'),
+  };
+}
+
 export async function createPatient(formData: FormData) {
   const profile = await requireProfile();
   const supabase = createSupabaseServerClient();
 
   const { error } = await supabase.from('patients').insert({
-    full_name: String(formData.get('full_name') ?? ''),
-    cpf: String(formData.get('cpf') ?? '') || null,
-    birth_date: String(formData.get('birth_date') ?? '') || null,
-    phone: String(formData.get('phone') ?? '') || null,
-    email: String(formData.get('email') ?? '') || null,
-    address: String(formData.get('address') ?? '') || null,
+    ...patientFieldsFromForm(formData),
     created_by: profile.id,
   });
 
@@ -34,14 +71,7 @@ export async function updatePatient(id: string, formData: FormData) {
 
   const { error } = await supabase
     .from('patients')
-    .update({
-      full_name: String(formData.get('full_name') ?? ''),
-      cpf: String(formData.get('cpf') ?? '') || null,
-      birth_date: String(formData.get('birth_date') ?? '') || null,
-      phone: String(formData.get('phone') ?? '') || null,
-      email: String(formData.get('email') ?? '') || null,
-      address: String(formData.get('address') ?? '') || null,
-    })
+    .update(patientFieldsFromForm(formData))
     .eq('id', id);
 
   if (error) {
