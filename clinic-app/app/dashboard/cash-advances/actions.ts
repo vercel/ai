@@ -12,6 +12,7 @@ export async function createCashAdvance(formData: FormData) {
   const amountReais = Number(formData.get('amount') ?? 0);
 
   const { error } = await supabase.from('cash_advances').insert({
+    clinic_id: profile.clinic_id,
     amount_cents: Math.round(amountReais * 100),
     notes: String(formData.get('notes') ?? '') || null,
     requested_by: profile.id,

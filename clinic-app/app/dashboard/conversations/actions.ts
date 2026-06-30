@@ -7,9 +7,11 @@ import { requireProfile } from '@/lib/auth';
 import type { ConversationStatus } from '@/lib/types';
 
 export async function createConversation(formData: FormData) {
+  const profile = await requireProfile();
   const supabase = createSupabaseServerClient();
 
   const { error } = await supabase.from('conversations').insert({
+    clinic_id: profile.clinic_id,
     contact_name: String(formData.get('contact_name') ?? ''),
     contact_phone: String(formData.get('contact_phone') ?? '') || null,
     channel: String(formData.get('channel') ?? 'whatsapp'),
@@ -33,6 +35,7 @@ export async function sendMessage(conversationId: string, formData: FormData) {
   }
 
   await supabase.from('conversation_messages').insert({
+    clinic_id: profile.clinic_id,
     conversation_id: conversationId,
     sender: 'equipe',
     body,

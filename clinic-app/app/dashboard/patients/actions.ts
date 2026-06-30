@@ -106,6 +106,7 @@ export async function addMedicalRecord(patientId: string, formData: FormData) {
   }
 
   await supabase.from('medical_records').insert({
+    clinic_id: profile.clinic_id,
     patient_id: patientId,
     professional_id: profile.id,
     entry: String(formData.get('entry') ?? ''),
@@ -126,6 +127,7 @@ export async function addPrescription(patientId: string, formData: FormData) {
   const supabase = createSupabaseServerClient();
 
   await supabase.from('prescriptions').insert({
+    clinic_id: profile.clinic_id,
     patient_id: patientId,
     author_id: profile.id,
     title: String(formData.get('title') ?? ''),
@@ -148,6 +150,7 @@ export async function addTherapyPlan(patientId: string, formData: FormData) {
   const supabase = createSupabaseServerClient();
 
   await supabase.from('therapy_plans').insert({
+    clinic_id: profile.clinic_id,
     patient_id: patientId,
     professional_id: profile.id,
     area: String(formData.get('area') ?? '') || null,
@@ -161,7 +164,7 @@ export async function addTherapyPlan(patientId: string, formData: FormData) {
 }
 
 export async function addPatientDocument(patientId: string, formData: FormData) {
-  await requireProfile();
+  const profile = await requireProfile();
   const supabase = createSupabaseServerClient();
 
   let fileUrl: string | null = null;
@@ -177,6 +180,7 @@ export async function addPatientDocument(patientId: string, formData: FormData) 
   }
 
   await supabase.from('patient_documents').insert({
+    clinic_id: profile.clinic_id,
     patient_id: patientId,
     title: String(formData.get('title') ?? ''),
     description: String(formData.get('description') ?? '') || null,

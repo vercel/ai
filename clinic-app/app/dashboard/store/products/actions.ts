@@ -6,10 +6,12 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { requireProfile } from '@/lib/auth';
 
 export async function createProduct(formData: FormData) {
+  const profile = await requireProfile();
   const supabase = createSupabaseServerClient();
   const priceReais = Number(formData.get('price') ?? 0);
 
   const { error } = await supabase.from('products').insert({
+    clinic_id: profile.clinic_id,
     name: String(formData.get('name') ?? ''),
     price_cents: Math.round(priceReais * 100),
     stock: Number(formData.get('stock') ?? 0),
@@ -49,6 +51,7 @@ export async function sellProduct(formData: FormData) {
   }
 
   const { error } = await supabase.from('sales').insert({
+    clinic_id: profile.clinic_id,
     product_id: productId,
     patient_id: patientId,
     quantity,

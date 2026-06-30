@@ -3,12 +3,15 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { requireProfile } from '@/lib/auth';
 import type { AppointmentStatus } from '@/lib/types';
 
 export async function createAppointment(formData: FormData) {
+  const profile = await requireProfile();
   const supabase = createSupabaseServerClient();
 
   const { error } = await supabase.from('appointments').insert({
+    clinic_id: profile.clinic_id,
     patient_id: String(formData.get('patient_id') ?? ''),
     professional_id: String(formData.get('professional_id') ?? ''),
     room_id: String(formData.get('room_id') ?? '') || null,

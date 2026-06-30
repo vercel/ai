@@ -10,6 +10,7 @@ export async function createCampaign(formData: FormData) {
   const supabase = createSupabaseServerClient();
 
   const { error } = await supabase.from('campaigns').insert({
+    clinic_id: profile.clinic_id,
     name: String(formData.get('name') ?? ''),
     channel: String(formData.get('channel') ?? 'email'),
     message: String(formData.get('message') ?? ''),
@@ -39,9 +40,11 @@ export async function deleteCampaign(id: string) {
 }
 
 export async function addToBlocklist(formData: FormData) {
+  const profile = await requireProfile();
   const supabase = createSupabaseServerClient();
 
   const { error } = await supabase.from('campaign_blocklist').insert({
+    clinic_id: profile.clinic_id,
     contact: String(formData.get('contact') ?? ''),
     reason: String(formData.get('reason') ?? '') || null,
   });

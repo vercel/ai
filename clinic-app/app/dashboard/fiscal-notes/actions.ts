@@ -3,11 +3,14 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { requireProfile } from '@/lib/auth';
 
 export async function createFiscalNote(formData: FormData) {
+  const profile = await requireProfile();
   const supabase = createSupabaseServerClient();
 
   const { error } = await supabase.from('fiscal_notes').insert({
+    clinic_id: profile.clinic_id,
     invoice_id: String(formData.get('invoice_id') ?? ''),
     number: String(formData.get('number') ?? '') || null,
     series: String(formData.get('series') ?? '') || null,

@@ -11,6 +11,7 @@ export async function createConsentForm(patientId: string, formData: FormData) {
   const supabase = createSupabaseServerClient();
 
   const { error } = await supabase.from('consent_forms').insert({
+    clinic_id: profile.clinic_id,
     patient_id: patientId,
     title: String(formData.get('title') ?? ''),
     content: String(formData.get('content') ?? ''),

@@ -3,13 +3,16 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { requireProfile } from '@/lib/auth';
 
 export async function createInvoice(formData: FormData) {
+  const profile = await requireProfile();
   const supabase = createSupabaseServerClient();
 
   const amountReais = Number(formData.get('amount') ?? 0);
 
   const { error } = await supabase.from('invoices').insert({
+    clinic_id: profile.clinic_id,
     patient_id: String(formData.get('patient_id') ?? ''),
     amount_cents: Math.round(amountReais * 100),
     due_date: String(formData.get('due_date') ?? '') || null,
@@ -64,6 +67,7 @@ export async function markInvoicePaidWithMethod(id: string, formData: FormData) 
 }
 
 export async function addInvoiceItem(invoiceId: string, formData: FormData) {
+  const profile = await requireProfile();
   const supabase = createSupabaseServerClient();
 
   const quantity = Number(formData.get('quantity') ?? 1) || 1;
@@ -71,6 +75,7 @@ export async function addInvoiceItem(invoiceId: string, formData: FormData) {
   const unitPrice = Math.round(unitPriceReais * 100);
 
   await supabase.from('invoice_items').insert({
+    clinic_id: profile.clinic_id,
     invoice_id: invoiceId,
     description: String(formData.get('description') ?? ''),
     quantity,

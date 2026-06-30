@@ -11,6 +11,7 @@ export async function createLabOrder(formData: FormData) {
   const supabase = createSupabaseServerClient();
 
   const { error } = await supabase.from('lab_orders').insert({
+    clinic_id: profile.clinic_id,
     patient_id: String(formData.get('patient_id') ?? ''),
     professional_id: profile.id,
     exam_name: String(formData.get('exam_name') ?? ''),

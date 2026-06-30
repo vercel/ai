@@ -536,3 +536,99 @@ create policy "staff update own clinic" on clinics for update using (clinic_id =
 
 -- Phase 1: public plan catalog read (migration: plans_public_read)
 create policy "anyone can read plans" on plans for select using (true);
+
+-- ============================================================
+-- Phase 2: Full multi-tenant architecture
+-- ============================================================
+
+-- Migration: add_trial_and_price_to_plans
+alter table plans add column if not exists price_cents int not null default 0;
+alter table plans add column if not exists trial_days int not null default 0;
+alter table clinics add column if not exists trial_ends_at timestamptz;
+
+-- Migration: add_subscriptions
+create type subscription_status as enum ('trialing','active','past_due','suspended','canceled');
+create table subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  clinic_id uuid not null unique references clinics(id) on delete cascade,
+  plan_id uuid not null references plans(id),
+  status subscription_status not null default 'trialing',
+  current_period_start timestamptz not null default now(),
+  current_period_end timestamptz not null default now() + interval '30 days',
+  past_due_since timestamptz,
+  grace_period_days int not null default 5,
+  pending_plan_id uuid references plans(id),
+  gateway_subscription_id text,
+  updated_at timestamptz not null default now()
+);
+alter table subscriptions enable row level security;
+create policy "staff read own subscription" on subscriptions for select using (clinic_id = public.current_clinic_id());
+create policy "staff update own subscription" on subscriptions for update using (clinic_id = public.current_clinic_id());
+
+-- Migration: add_is_locked_and_audit_logs
+alter table profiles add column if not exists is_locked boolean not null default false;
+create table audit_logs (
+  id uuid primary key default gen_random_uuid(),
+  clinic_id uuid references clinics(id),
+  actor_id uuid,
+  actor_role text,
+  action text not null,
+  table_name text,
+  record_id uuid,
+  old_data jsonb,
+  new_data jsonb,
+  ip_address inet,
+  created_at timestamptz not null default now()
+);
+create index audit_logs_clinic_idx on audit_logs (clinic_id, created_at desc);
+create index audit_logs_record_idx on audit_logs (table_name, record_id);
+alter table audit_logs enable row level security;
+create policy "admin read own audit logs" on audit_logs for select using (clinic_id = public.current_clinic_id());
+
+-- Migration: add_audit_log_trigger (log_audit_event + audit_sensitive_change trigger)
+
+-- Migration: add_super_admins_and_impersonation
+create table super_admins (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  email text,
+  created_at timestamptz not null default now()
+);
+create table impersonation_sessions (
+  id uuid primary key default gen_random_uuid(),
+  super_admin_id uuid not null references super_admins(user_id),
+  clinic_id uuid not null references clinics(id),
+  reason text,
+  started_at timestamptz not null default now(),
+  ended_at timestamptz
+);
+
+-- Migration: add_clinic_fiscal_settings
+create table clinic_fiscal_settings (
+  clinic_id uuid primary key references clinics(id) on delete cascade,
+  municipal_registration text,
+  tax_regime text,
+  cnae text,
+  ctiss_code text,
+  iss_rate numeric(5,2),
+  cert_path text,
+  cert_password_encrypted text,
+  cert_expires_at timestamptz,
+  gateway_provider text,
+  gateway_company_id text,
+  nfse_auto_emit boolean not null default false,
+  updated_at timestamptz not null default now()
+);
+alter table clinic_fiscal_settings enable row level security;
+create policy "admin manage fiscal settings" on clinic_fiscal_settings for all
+  using (clinic_id = public.current_clinic_id())
+  with check (clinic_id = public.current_clinic_id());
+
+-- Migration: extend_fiscal_notes_for_nfse
+alter table fiscal_notes add column if not exists clinic_id uuid references clinics(id);
+alter table fiscal_notes add column if not exists gateway_invoice_id text;
+alter table fiscal_notes add column if not exists pdf_url text;
+alter table fiscal_notes add column if not exists xml_url text;
+alter table fiscal_notes add column if not exists error_message text;
+
+-- Migration: clinic_id_on_all_tables
+-- (clinic_id added to all 24 remaining tenant tables + backfill + RLS clinic isolation policies)

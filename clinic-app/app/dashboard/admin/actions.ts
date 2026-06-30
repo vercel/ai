@@ -66,6 +66,7 @@ export async function createRoom(formData: FormData) {
 
   const supabase = createSupabaseServerClient();
   await supabase.from('rooms').insert({
+    clinic_id: profile.clinic_id,
     name: String(formData.get('name') ?? ''),
     description: String(formData.get('description') ?? '') || null,
     capacity: Number(formData.get('capacity') ?? 1) || 1,
@@ -98,6 +99,7 @@ export async function createMessageTemplate(formData: FormData) {
 
   const supabase = createSupabaseServerClient();
   await supabase.from('message_templates').insert({
+    clinic_id: profile.clinic_id,
     name: String(formData.get('name') ?? ''),
     subject: String(formData.get('subject') ?? '') || null,
     content: String(formData.get('content') ?? ''),
@@ -132,6 +134,7 @@ export async function createPaymentMethod(formData: FormData) {
 
   const supabase = createSupabaseServerClient();
   await supabase.from('payment_methods').insert({
+    clinic_id: profile.clinic_id,
     name: String(formData.get('name') ?? ''),
     payment_type: String(formData.get('payment_type') ?? '') || null,
     is_default: formData.get('is_default') === 'on',

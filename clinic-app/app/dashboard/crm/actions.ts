@@ -11,6 +11,7 @@ export async function createCrmContact(formData: FormData) {
   const supabase = createSupabaseServerClient();
 
   const { error } = await supabase.from('patient_crm').insert({
+    clinic_id: profile.clinic_id,
     full_name: String(formData.get('full_name') ?? ''),
     phone: String(formData.get('phone') ?? '') || null,
     email: String(formData.get('email') ?? '') || null,
@@ -36,6 +37,7 @@ export async function addPatientToCrm(formData: FormData) {
   if (!patientId) return;
 
   await supabase.from('patient_crm').insert({
+    clinic_id: profile.clinic_id,
     patient_id: patientId,
     current_stage: CRM_STAGES[0],
     next_action: String(formData.get('next_action') ?? '') || null,
@@ -61,6 +63,7 @@ export async function updatePatientCrmStage(id: string, stage: string) {
     .eq('id', id);
 
   await supabase.from('crm_interactions').insert({
+    clinic_id: profile.clinic_id,
     patient_crm_id: id,
     interaction_type: 'Mudança de estágio',
     author_id: profile.id,
@@ -94,6 +97,7 @@ export async function convertCrmContactToPatient(id: string) {
   const { data: patient, error } = await supabase
     .from('patients')
     .insert({
+      clinic_id: profile.clinic_id,
       full_name: contact.full_name ?? '',
       phone: contact.phone,
       email: contact.email,
