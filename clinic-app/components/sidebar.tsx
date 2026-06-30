@@ -68,13 +68,13 @@ export function Sidebar({ role, fullName }: { role: UserRole; fullName: string }
   const pathname = usePathname();
 
   return (
-    <aside className="flex h-screen w-60 flex-col justify-between border-r border-gray-200 bg-white">
+    <aside className="flex h-screen w-60 flex-col justify-between bg-navy-900">
       <div>
-        <div className="px-4 py-5">
-          <p className="text-lg font-semibold text-brand-700">Clinic Manager</p>
-          <p className="text-xs text-gray-500">{fullName}</p>
+        <div className="border-b border-white/10 px-4 py-5">
+          <p className="text-lg font-semibold text-white">Clinic Manager</p>
+          <p className="text-xs text-blue-200/70">{fullName}</p>
         </div>
-        <nav className="flex flex-col gap-1 px-2">
+        <nav className="flex flex-col gap-1 px-2 py-3">
           {LINKS.filter((link) => link.roles.includes(role)).map((link) => {
             const active =
               pathname === link.href ||
@@ -83,14 +83,16 @@ export function Sidebar({ role, fullName }: { role: UserRole; fullName: string }
               <div key={link.href}>
                 <Link
                   href={link.href}
-                  className={`block rounded px-3 py-2 text-sm ${
-                    active ? 'bg-brand-100 text-brand-700' : 'text-gray-600 hover:bg-gray-100'
+                  className={`block rounded px-3 py-2 text-sm transition-colors ${
+                    active
+                      ? 'bg-brand-600 font-medium text-white'
+                      : 'text-blue-100/80 hover:bg-white/5 hover:text-white'
                   }`}
                 >
                   {link.label}
                 </Link>
                 {link.children && active && (
-                  <div className="ml-3 mt-1 flex flex-col gap-1 border-l border-gray-200 pl-3">
+                  <div className="ml-3 mt-1 flex flex-col gap-1 border-l border-white/10 pl-3">
                     {link.children.map((child) => {
                       const childActive = pathname === child.href;
                       return (
@@ -99,8 +101,8 @@ export function Sidebar({ role, fullName }: { role: UserRole; fullName: string }
                           href={child.href}
                           className={`rounded px-2 py-1 text-xs ${
                             childActive
-                              ? 'bg-brand-50 text-brand-700'
-                              : 'text-gray-500 hover:bg-gray-100'
+                              ? 'bg-white/10 text-white'
+                              : 'text-blue-200/60 hover:bg-white/5 hover:text-white'
                           }`}
                         >
                           {child.label}
@@ -114,10 +116,10 @@ export function Sidebar({ role, fullName }: { role: UserRole; fullName: string }
           })}
         </nav>
       </div>
-      <form action={logout} className="px-2 pb-4">
+      <form action={logout} className="border-t border-white/10 px-2 py-4">
         <button
           type="submit"
-          className="w-full rounded px-3 py-2 text-left text-sm text-gray-500 hover:bg-gray-100"
+          className="w-full rounded px-3 py-2 text-left text-sm text-blue-200/70 hover:bg-white/5 hover:text-white"
         >
           Sair
         </button>
