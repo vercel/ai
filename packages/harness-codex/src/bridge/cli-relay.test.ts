@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import {
   buildCliShimScript,
-  composeToolUsageInstructions,
   isToolRelayCommand,
   parseToolRelayCommand,
 } from './cli-relay';
@@ -17,30 +16,21 @@ describe('buildCliShimScript', () => {
   });
 });
 
-describe('composeToolUsageInstructions', () => {
-  test('requires each host tool use to run through the relay in the current turn', () => {
-    const instructions = composeToolUsageInstructions({
-      cliShimPath: '/tmp/harness/codex/harness-tool.mjs',
-      tools: [
-        {
-          name: 'get_weather',
-          description: 'Get weather',
-          inputSchema: {
-            type: 'object',
-            properties: { city: { type: 'string' } },
-            required: ['city'],
-          },
-        },
-      ],
-    });
+describe('isToolRelayCommand', () => {
+  test('detects command executions that invoke the CLI relay shim', () => {
+    expect(
+      isToolRelayCommand({
+        command: "node /work/harness-tool.mjs get_weather '{}'",
+        cliShimPath: '/work/harness-tool.mjs',
+      }),
+    ).toBe(true);
 
-    expect(instructions).toContain(
-      "node /tmp/harness/codex/harness-tool.mjs <toolName> '<jsonInput>'",
-    );
-    expect(instructions).toContain(
-      'run a separate CLI invocation for each needed tool call in the current turn before answering',
-    );
-    expect(instructions).toContain('Do not reuse previous tool results');
+    expect(
+      isToolRelayCommand({
+        command: 'pnpm test',
+        cliShimPath: '/work/harness-tool.mjs',
+      }),
+    ).toBe(false);
   });
 });
 

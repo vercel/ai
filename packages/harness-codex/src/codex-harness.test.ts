@@ -169,7 +169,7 @@ describe('createCodex adapter', () => {
       "mkdir -p '/vercel/sandbox/codex-s1; env > /tmp/workdir-leak #' '/vercel/sandbox/.agent-runs/s1; env > /tmp/leak #/bridge'",
     );
     expect(spawns).toEqual([
-      "node /tmp/harness/codex/bridge.mjs --workdir '/vercel/sandbox/codex-s1; env > /tmp/workdir-leak #' --bridge-state-dir '/vercel/sandbox/.agent-runs/s1; env > /tmp/leak #/bridge' --bootstrap-dir '/tmp/harness/codex'",
+      "node /tmp/harness/codex/bridge.mjs --workdir '/vercel/sandbox/codex-s1; env > /tmp/workdir-leak #' --bridge-state-dir '/vercel/sandbox/.agent-runs/s1; env > /tmp/leak #/bridge' --bootstrap-dir '/tmp/harness/codex' --cli-shim-dir '/vercel/sandbox/.agent-runs/s1; env > /tmp/leak #/codex'",
     ]);
     await session.doDestroy();
   });

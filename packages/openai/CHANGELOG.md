@@ -1,5 +1,32 @@
 # @ai-sdk/openai
 
+## 4.0.4
+
+### Patch Changes
+
+- Updated dependencies [0274f34]
+  - @ai-sdk/provider@4.0.1
+  - @ai-sdk/provider-utils@5.0.2
+
+## 4.0.3
+
+### Patch Changes
+
+- 1ead90c: Return a helpful error when the Responses stream parser receives Chat Completions chunks.
+
+## 4.0.2
+
+### Patch Changes
+
+- Updated dependencies [6a436e3]
+  - @ai-sdk/provider-utils@5.0.1
+
+## 4.0.1
+
+### Patch Changes
+
+- 9507724: feat(openai): add support for web_search_call.results include option
+
 ## 4.0.0
 
 ### Major Changes

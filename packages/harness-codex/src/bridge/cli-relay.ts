@@ -8,15 +8,15 @@
  *
  * Until that's fixed upstream, this file implements a CLI-based relay:
  *
- *   1. A small Node script is written into the bootstrap dir at turn start
- *      (`buildCliShimScript`). It accepts `<toolName> <jsonInput>` as argv,
- *      POSTs to the same HTTP relay the MCP shim uses, and prints the
+ *   1. A small Node script is written into harness-owned session state at turn
+ *      start (`buildCliShimScript`). It accepts `<toolName> <jsonInput>` as
+ *      argv, POSTs to the same HTTP relay the MCP shim uses, and prints the
  *      result to stdout.
  *
  *   2. Tool descriptions and invocation instructions are injected into the
- *      user prompt (`composeToolUsageInstructions`), telling the model to
- *      call host tools by running `node <shim-path> <toolName> '<jsonInput>'`
- *      via its built-in `bash` tool.
+ *      initial user prompt by the host adapter, telling the model to call host
+ *      tools by running `node <shim-path> <toolName> '<jsonInput>'` via its
+ *      built-in `bash` tool.
  *
  *   3. The bridge's event loop suppresses the matching `command_execution`
  *      events (`isToolRelayCommand`) so callers receive clean `tool-call` /
@@ -65,39 +65,6 @@ if (!response.ok || payload.error) {
 }
 console.log(JSON.stringify(payload.result ?? payload, null, 2));
 `;
-}
-
-export function composeToolUsageInstructions({
-  tools,
-  cliShimPath,
-}: {
-  tools: ReadonlyArray<{
-    name: string;
-    description?: string;
-    inputSchema?: unknown;
-  }>;
-  cliShimPath: string;
-}): string {
-  const lines: string[] = [
-    '## Host tools',
-    '',
-    'You have access to the following host-provided tools. To use one, run the following command via your built-in `bash` tool:',
-    '',
-    `  node ${cliShimPath} <toolName> '<jsonInput>'`,
-    '',
-    'The script prints the JSON result to stdout. Do not invent another way to call these tools — only this CLI invocation will work. Pass the JSON input as a single-quoted argument.',
-    'For every user request that depends on a host-provided tool, run a separate CLI invocation for each needed tool call in the current turn before answering. Do not reuse previous tool results, and do not say you used a host tool unless the command has completed in the current turn.',
-    '',
-  ];
-  for (const tool of tools) {
-    lines.push(`### ${tool.name}`);
-    if (tool.description) lines.push(tool.description);
-    lines.push(
-      `Input schema: \`${JSON.stringify(tool.inputSchema ?? {})}\``,
-      '',
-    );
-  }
-  return lines.join('\n');
 }
 
 export function isToolRelayCommand({

@@ -1,5 +1,6 @@
 import type { SharedV4ProviderOptions } from '../../shared';
 import type { VideoModelV4File } from './video-model-v4-file';
+import type { VideoModelV4FrameImage } from './video-model-v4-frame-image';
 
 export type VideoModelV4CallOptions = {
   /**
@@ -53,6 +54,18 @@ export type VideoModelV4CallOptions = {
    * The image serves as the starting frame that the model will animate.
    */
   image: VideoModelV4File | undefined;
+
+  /**
+   * Role-tagged image inputs for first-last-frame generation.
+   * Each entry declares whether it is the `first_frame` or the
+   * `last_frame` of the generated video.
+   */
+  frameImages: Array<VideoModelV4FrameImage> | undefined;
+
+  /**
+   * Reference image inputs for reference-to-video generation.
+   */
+  inputReferences: Array<VideoModelV4File> | undefined;
 
   /**
    * Whether the model should generate audio alongside the video.

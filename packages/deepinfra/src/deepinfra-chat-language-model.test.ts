@@ -35,13 +35,12 @@ describe('DeepInfraChatLanguageModel', () => {
         provider: 'deepinfra.chat',
         url: () => 'https://api.deepinfra.com/v1/openai/chat/completions',
         headers: () => ({ Authorization: 'Bearer test-key' }),
-        fetch: vi.fn().mockResolvedValue({
-          ok: true,
-          status: 200,
-          headers: new Headers({ 'content-type': 'application/json' }),
-          text: async () => JSON.stringify(responseBody),
-          json: async () => responseBody,
-        }) as any,
+        fetch: vi.fn().mockResolvedValue(
+          new Response(JSON.stringify(responseBody), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          }),
+        ) as any,
       });
 
       const result = await model.doGenerate({
@@ -92,13 +91,12 @@ describe('DeepInfraChatLanguageModel', () => {
           provider: 'deepinfra.chat',
           url: () => 'https://api.deepinfra.com/v1/openai/chat/completions',
           headers: () => ({ Authorization: 'Bearer test-key' }),
-          fetch: vi.fn().mockResolvedValue({
-            ok: true,
-            status: 200,
-            headers: new Headers({ 'content-type': 'application/json' }),
-            text: async () => JSON.stringify(responseBody),
-            json: async () => responseBody,
-          }) as any,
+          fetch: vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(responseBody), {
+              status: 200,
+              headers: { 'content-type': 'application/json' },
+            }),
+          ) as any,
         },
       );
 

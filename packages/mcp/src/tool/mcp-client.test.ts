@@ -9,6 +9,7 @@ import {
   ElicitationRequestSchema,
   LATEST_PROTOCOL_VERSION,
   type CallToolResult,
+  type CompleteResult,
   type ListResourceTemplatesResult,
   type ListResourcesResult,
   type ReadResourceResult,
@@ -743,6 +744,101 @@ describe('MCPClient', () => {
         },
       ]
     `);
+  });
+
+  it('should request completions from the server', async () => {
+    const mockTransport = new MockMCPTransport({
+      completionResult: {
+        completion: {
+          values: ['auth', 'auth-staging'],
+          total: 2,
+          hasMore: false,
+        },
+      },
+    });
+    const sendSpy = vi.spyOn(mockTransport, 'send');
+
+    client = await createMCPClient({
+      transport: mockTransport,
+    });
+
+    const completion = await client.complete({
+      ref: {
+        type: 'ref/resource',
+        uri: 'kubernetes://namespaced/{plural}/{namespace}',
+      },
+      argument: {
+        name: 'namespace',
+        value: 'auth',
+      },
+      context: {
+        arguments: {
+          plural: 'deployments',
+        },
+      },
+    });
+
+    expectTypeOf(completion).toEqualTypeOf<CompleteResult>();
+
+    expect(completion).toMatchInlineSnapshot(`
+      {
+        "completion": {
+          "hasMore": false,
+          "total": 2,
+          "values": [
+            "auth",
+            "auth-staging",
+          ],
+        },
+      }
+    `);
+    expect(sendSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: 'completion/complete',
+        params: {
+          ref: {
+            type: 'ref/resource',
+            uri: 'kubernetes://namespaced/{plural}/{namespace}',
+          },
+          argument: {
+            name: 'namespace',
+            value: 'auth',
+          },
+          context: {
+            arguments: {
+              plural: 'deployments',
+            },
+          },
+        },
+      }),
+    );
+  });
+
+  it('should throw if the server does not support completions', async () => {
+    const mockTransport = new MockMCPTransport();
+    const sendSpy = vi.spyOn(mockTransport, 'send');
+
+    client = await createMCPClient({
+      transport: mockTransport,
+    });
+
+    await expect(
+      client.complete({
+        ref: {
+          type: 'ref/prompt',
+          name: 'code_review',
+        },
+        argument: {
+          name: 'language',
+          value: 'py',
+        },
+      }),
+    ).rejects.toThrow(MCPClientError);
+    expect(sendSpy).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: 'completion/complete',
+      }),
+    );
   });
 
   it('should list prompts from the server', async () => {
