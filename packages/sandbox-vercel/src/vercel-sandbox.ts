@@ -185,6 +185,7 @@ export class VercelSandboxProvider implements HarnessV1SandboxProvider {
         if (resolvedId == null) {
           resolvedId = await pollForTemplateSnapshot(
             templateName,
+            getSandboxLookupParams(baseParams),
             options?.abortSignal,
           );
         }
@@ -228,6 +229,7 @@ export class VercelSandboxProvider implements HarnessV1SandboxProvider {
     }
 
     const sandbox = await Sandbox.get({
+      ...getSandboxLookupParams(this.settings),
       name: sessionSandboxName(options.sessionId),
       ...(options.abortSignal ? { signal: options.abortSignal } : {}),
     });
@@ -250,6 +252,28 @@ const SNAPSHOT_CACHE_KEY = Symbol.for(
 );
 
 type SnapshotCache = Map<string, string>;
+type SandboxLookupParams = {
+  fetch?: typeof fetch;
+  projectId?: string;
+  teamId?: string;
+  token?: string;
+};
+
+function getSandboxLookupParams(
+  settings: VercelSandboxSettings,
+): SandboxLookupParams {
+  if ('sandbox' in settings && settings.sandbox != null) {
+    return {};
+  }
+
+  const { fetch, projectId, teamId, token } = settings as SandboxLookupParams;
+  return {
+    ...(fetch ? { fetch } : {}),
+    ...(projectId ? { projectId } : {}),
+    ...(teamId ? { teamId } : {}),
+    ...(token ? { token } : {}),
+  };
+}
 
 function getSnapshotCache(): SnapshotCache {
   const globals = globalThis as {
@@ -265,12 +289,14 @@ function getSnapshotCache(): SnapshotCache {
 
 async function pollForTemplateSnapshot(
   name: string,
+  lookupParams: ReturnType<typeof getSandboxLookupParams>,
   abortSignal: AbortSignal | undefined,
 ): Promise<string> {
   const deadline = Date.now() + SNAPSHOT_POLL_TIMEOUT_MS;
   while (Date.now() < deadline) {
     abortSignal?.throwIfAborted();
     const refreshed = await Sandbox.get({
+      ...lookupParams,
       name,
       resume: false,
       ...(abortSignal ? { signal: abortSignal } : {}),
