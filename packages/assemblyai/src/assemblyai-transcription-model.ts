@@ -68,13 +68,19 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
 
     const body: Omit<AssemblyAITranscriptionAPITypes, 'audio_url'> = {};
 
-    // The legacy `best` and `nano` models are selected via the deprecated
-    // singular `speech_model` parameter. All newer models (e.g. `universal-2`,
+    // The legacy `best` model is selected via the deprecated singular
+    // `speech_model` parameter. All other models (e.g. `universal-2`,
     // `universal-3-pro`, `universal-3-5-pro`) are only accessible via the
     // `speech_models` array and are rejected by `speech_model`.
     // See https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model
-    if (this.modelId === 'best' || this.modelId === 'nano') {
-      body.speech_model = this.modelId as 'best' | 'nano';
+    if (this.modelId === 'best') {
+      body.speech_model = this.modelId as 'best';
+      warnings.push({
+        type: 'deprecated',
+        setting: `model '${this.modelId}'`,
+        message:
+          "The 'best' model is a legacy AssemblyAI model. Use 'universal-3-5-pro' instead. See documentation: https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model",
+      });
     } else {
       body.speech_models = [this.modelId];
     }

@@ -259,7 +259,7 @@ describe('doGenerate', () => {
   it('should pass the legacy model via the speech_model parameter', async () => {
     prepareJsonResponse();
 
-    await model.doGenerate({
+    const result = await model.doGenerate({
       audio: audioData,
       mediaType: 'audio/wav',
     });
@@ -270,15 +270,29 @@ describe('doGenerate', () => {
       speech_model: 'best',
     });
     expect(requestBody.speech_models).toBeUndefined();
+
+    expect(result.warnings).toContainEqual({
+      type: 'deprecated',
+      setting: "model 'best'",
+      message: expect.stringContaining('universal-3-5-pro'),
+    });
+    const [deprecation] = result.warnings.filter(
+      warning => warning.type === 'deprecated',
+    );
+    expect(deprecation?.message).toContain(
+      'https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model',
+    );
   });
 
   it('should pass newer models via the speech_models parameter', async () => {
     prepareJsonResponse();
 
-    await provider.transcription('universal-3-5-pro').doGenerate({
-      audio: audioData,
-      mediaType: 'audio/wav',
-    });
+    const result = await provider
+      .transcription('universal-3-5-pro')
+      .doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
 
     const requestBody = await server.calls[1].requestBodyJson;
     expect(requestBody).toMatchObject({
@@ -286,6 +300,32 @@ describe('doGenerate', () => {
       speech_models: ['universal-3-5-pro'],
     });
     expect(requestBody.speech_model).toBeUndefined();
+
+    expect(
+      result.warnings.filter(warning => warning.type === 'deprecated'),
+    ).toEqual([]);
+  });
+
+  it('should still send provider options alongside speech_models', async () => {
+    prepareJsonResponse();
+
+    await provider.transcription('universal-3-5-pro').doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        assemblyai: {
+          languageDetection: true,
+          punctuate: false,
+        },
+      },
+    });
+
+    const requestBody = await server.calls[1].requestBodyJson;
+    expect(requestBody).toMatchObject({
+      speech_models: ['universal-3-5-pro'],
+      language_detection: true,
+      punctuate: false,
+    });
   });
 
   it('should pass headers', async () => {

@@ -75,9 +75,11 @@ The first argument is the model id, e.g. `universal-3-5-pro`.
 const model = assemblyai.transcription('universal-3-5-pro');
 ```
 
-The legacy `best` and `nano` models are sent using AssemblyAI's deprecated
-`speech_model` request parameter. All newer models (e.g. `universal-3-5-pro`) are sent using the
-[`speech_models`](https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model)
+The `best` model is a **deprecated** legacy model, sent using AssemblyAI's
+deprecated `speech_model` request parameter. It still works, but using it emits a
+deprecation warning — prefer `universal-3-5-pro`. The older `nano` model has been
+removed by AssemblyAI and is no longer available. All newer models are sent using
+the [`speech_models`](https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model)
 request parameter, which the provider selects automatically based on the model id.
 
 You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the `contentSafety` option will enable content safety filtering.
@@ -89,7 +91,7 @@ import { type AssemblyAITranscriptionModelOptions } from '@ai-sdk/assemblyai';
 import { readFile } from 'fs/promises';
 
 const result = await transcribe({
-  model: assemblyai.transcription('best'),
+  model: assemblyai.transcription('universal-3-5-pro'),
   audio: await readFile('audio.mp3'),
   providerOptions: {
     assemblyai: {

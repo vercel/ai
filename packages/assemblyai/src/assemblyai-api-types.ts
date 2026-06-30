@@ -312,11 +312,11 @@ export type AssemblyAITranscriptionAPITypes = {
    * The speech model to use for the transcription.
    *
    * @deprecated This parameter has been replaced with `speech_models`. It only
-   * supports the legacy `best` and `nano` models. Use `speech_models` for
-   * `universal-2`, `universal-3-pro`, `universal-3-5-pro`, etc.
+   * supports the legacy `best` model. Use `speech_models` for `universal-2`,
+   * `universal-3-pro`, `universal-3-5-pro`, etc.
    * @see https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model
    */
-  speech_model?: 'best' | 'nano';
+  speech_model?: 'best';
 
   /**
    * List of speech models in priority order, allowing the system to
