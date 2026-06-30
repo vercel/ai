@@ -90,6 +90,79 @@ export async function getAttachmentUrl(path: string) {
   return data?.signedUrl ?? null;
 }
 
+export async function addPrescription(patientId: string, formData: FormData) {
+  const profile = await requireProfile();
+  const supabase = createSupabaseServerClient();
+
+  await supabase.from('prescriptions').insert({
+    patient_id: patientId,
+    author_id: profile.id,
+    title: String(formData.get('title') ?? ''),
+    description: String(formData.get('description') ?? '') || null,
+    status: 'Rascunho',
+  });
+
+  revalidatePath(`/dashboard/patients/${patientId}`);
+}
+
+export async function updatePrescriptionStatus(patientId: string, id: string, status: string) {
+  await requireProfile();
+  const supabase = createSupabaseServerClient();
+  await supabase.from('prescriptions').update({ status }).eq('id', id);
+  revalidatePath(`/dashboard/patients/${patientId}`);
+}
+
+export async function addTherapyPlan(patientId: string, formData: FormData) {
+  const profile = await requireProfile();
+  const supabase = createSupabaseServerClient();
+
+  await supabase.from('therapy_plans').insert({
+    patient_id: patientId,
+    professional_id: profile.id,
+    area: String(formData.get('area') ?? '') || null,
+    objetivos: String(formData.get('objetivos') ?? '') || null,
+    start_date: String(formData.get('start_date') ?? '') || null,
+    review_date: String(formData.get('review_date') ?? '') || null,
+    status: 'Ativo',
+  });
+
+  revalidatePath(`/dashboard/patients/${patientId}`);
+}
+
+export async function addPatientDocument(patientId: string, formData: FormData) {
+  await requireProfile();
+  const supabase = createSupabaseServerClient();
+
+  let fileUrl: string | null = null;
+  let fileType: string | null = null;
+  const file = formData.get('file') as File | null;
+  if (file && file.size > 0) {
+    const path = `${patientId}/docs/${Date.now()}-${file.name}`;
+    const { error: uploadError } = await supabase.storage.from('attachments').upload(path, file);
+    if (!uploadError) {
+      fileUrl = path;
+      fileType = file.type;
+    }
+  }
+
+  await supabase.from('patient_documents').insert({
+    patient_id: patientId,
+    title: String(formData.get('title') ?? ''),
+    description: String(formData.get('description') ?? '') || null,
+    file_url: fileUrl,
+    file_type: fileType,
+  });
+
+  revalidatePath(`/dashboard/patients/${patientId}`);
+}
+
+export async function toggleDocumentArchive(patientId: string, id: string, archived: boolean) {
+  await requireProfile();
+  const supabase = createSupabaseServerClient();
+  await supabase.from('patient_documents').update({ is_archived: archived }).eq('id', id);
+  revalidatePath(`/dashboard/patients/${patientId}`);
+}
+
 export async function signMedicalRecord(
   patientId: string,
   recordId: string,
