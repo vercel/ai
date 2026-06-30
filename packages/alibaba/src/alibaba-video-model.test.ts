@@ -505,6 +505,28 @@ describe('AlibabaVideoModel', () => {
       });
     });
 
+    it('should warn when a style reference is provided for R2V model', async () => {
+      const model = createModel({ modelId: 'wan2.6-r2v' });
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        inputReferences: [
+          {
+            type: 'url',
+            url: 'https://example.com/style.png',
+            referenceType: 'style',
+          },
+        ],
+      });
+
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'inputReferences.referenceType',
+        }),
+      );
+    });
+
     it('should send video URL reference in reference_urls for R2V model', async () => {
       const model = createModel({ modelId: 'wan2.6-r2v' });
 

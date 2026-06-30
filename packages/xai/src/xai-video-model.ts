@@ -88,6 +88,16 @@ function resolveReferenceImages(
   warnings: SharedV4Warning[],
 ): Array<{ url: string }> | undefined {
   if (options.inputReferences != null && options.inputReferences.length > 0) {
+    if (options.inputReferences.some(ref => ref.referenceType === 'style')) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'inputReferences.referenceType',
+        details:
+          'xAI only supports subject references; ' +
+          'style references are treated as subject.',
+      });
+    }
+
     const imageReferences = options.inputReferences.filter(reference => {
       if (isVideoFile(reference)) {
         warnings.push({

@@ -823,6 +823,31 @@ describe('ByteDanceVideoModel', () => {
       ]);
     });
 
+    it('should warn when a style reference is provided', async () => {
+      const model = createBasicModel({
+        modelId: 'seedance-1-0-lite-i2v-250428',
+      });
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        inputReferences: [
+          {
+            type: 'url',
+            url: 'https://example.com/style.png',
+            mediaType: 'image/png',
+            referenceType: 'style',
+          },
+        ],
+      });
+
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'inputReferences.referenceType',
+        }),
+      );
+    });
+
     it('should add a reference video from inputReferences with video media type', async () => {
       const model = createBasicModel({
         modelId: 'dreamina-seedance-2-0-260128',

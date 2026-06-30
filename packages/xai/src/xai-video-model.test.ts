@@ -1029,6 +1029,28 @@ describe('XaiVideoModel', () => {
       });
     });
 
+    it('should warn when a style reference is provided', async () => {
+      const model = createModel();
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        inputReferences: [
+          {
+            type: 'url',
+            url: 'https://example.com/style.jpg',
+            referenceType: 'style',
+          },
+        ],
+      });
+
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'inputReferences.referenceType',
+        }),
+      );
+    });
+
     it('should map file inputReferences to data URI reference_images', async () => {
       const model = createModel();
 

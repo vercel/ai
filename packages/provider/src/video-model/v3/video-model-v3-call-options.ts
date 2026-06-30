@@ -1,6 +1,7 @@
 import type { SharedV3ProviderOptions } from '../../shared';
 import type { VideoModelV3File } from './video-model-v3-file';
 import type { VideoModelV3FrameImage } from './video-model-v3-frame-image';
+import type { VideoModelV3Reference } from './video-model-v3-reference';
 
 export type VideoModelV3CallOptions = {
   /**
@@ -63,9 +64,13 @@ export type VideoModelV3CallOptions = {
   frameImages: Array<VideoModelV3FrameImage> | undefined;
 
   /**
-   * Reference image inputs for reference-to-video generation.
+   * Reference inputs for reference-to-video generation.
+   *
+   * Each entry is an image or video file with an optional `referenceType`
+   * (`subject` by default, or `style`) describing what the model should do
+   * with it. Providers map supported roles and warn when a role is unsupported.
    */
-  inputReferences: Array<VideoModelV3File> | undefined;
+  inputReferences: Array<VideoModelV3Reference> | undefined;
 
   /**
    * Additional provider-specific options that are passed through to the provider

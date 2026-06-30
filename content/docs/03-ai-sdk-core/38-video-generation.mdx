@@ -211,6 +211,25 @@ const { video } = await generateVideo({
 });
 ```
 
+The object form also accepts an optional `referenceType` that tells the model
+what to do with the reference: `subject` (the default) reproduces the
+subject/identity, while `style` emulates the visual style. Providers that do not
+support a role emit a warning and fall back to treating the reference as a
+subject. Currently only Google/Vertex (Veo) honor `style`.
+
+```tsx highlight={"5-12"}
+const { video } = await generateVideo({
+  model: __VIDEO_MODEL__,
+  prompt: 'A portrait in the style of the reference painting',
+  inputReferences: [
+    {
+      data: 'https://example.com/style-reference.png',
+      referenceType: 'style',
+    },
+  ],
+});
+```
+
 ### Providing a Seed
 
 You can provide a seed to the `experimental_generateVideo` function to control the output of the video generation process.

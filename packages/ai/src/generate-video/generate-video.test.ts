@@ -1258,6 +1258,49 @@ describe('experimental_generateVideo', () => {
       ]);
     });
 
+    it('should carry referenceType from the object form', async () => {
+      let capturedArgs!: Parameters<Experimental_VideoModelV4['doGenerate']>[0];
+
+      await experimental_generateVideo({
+        model: new MockVideoModelV4({
+          doGenerate: async args => {
+            capturedArgs = args;
+            return createMockResponse({
+              videos: [
+                { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+              ],
+            });
+          },
+        }),
+        prompt: 'a clip',
+        inputReferences: [
+          {
+            data: 'https://example.com/subject.png',
+            referenceType: 'subject',
+          },
+          {
+            data: 'https://example.com/style.png',
+            referenceType: 'style',
+          },
+          'https://example.com/plain.png',
+        ],
+      });
+
+      expect(capturedArgs.inputReferences).toStrictEqual([
+        {
+          type: 'url',
+          url: 'https://example.com/subject.png',
+          referenceType: 'subject',
+        },
+        {
+          type: 'url',
+          url: 'https://example.com/style.png',
+          referenceType: 'style',
+        },
+        { type: 'url', url: 'https://example.com/plain.png' },
+      ]);
+    });
+
     it('should pass inputReferences as undefined when not provided', async () => {
       let capturedArgs!: Parameters<Experimental_VideoModelV4['doGenerate']>[0];
 

@@ -1,6 +1,7 @@
 import type { SharedV4ProviderOptions } from '../../shared';
 import type { VideoModelV4File } from './video-model-v4-file';
 import type { VideoModelV4FrameImage } from './video-model-v4-frame-image';
+import type { VideoModelV4Reference } from './video-model-v4-reference';
 
 export type VideoModelV4CallOptions = {
   /**
@@ -63,9 +64,13 @@ export type VideoModelV4CallOptions = {
   frameImages: Array<VideoModelV4FrameImage> | undefined;
 
   /**
-   * Reference image inputs for reference-to-video generation.
+   * Reference inputs for reference-to-video generation.
+   *
+   * Each entry is an image or video file with an optional `referenceType`
+   * (`subject` by default, or `style`) describing what the model should do
+   * with it. Providers map supported roles and warn when a role is unsupported.
    */
-  inputReferences: Array<VideoModelV4File> | undefined;
+  inputReferences: Array<VideoModelV4Reference> | undefined;
 
   /**
    * Additional provider-specific options that are passed through to the provider

@@ -4,6 +4,8 @@ import type {
   Experimental_VideoModelV4File,
   Experimental_VideoModelV4FrameImage,
   Experimental_VideoModelV4FrameType,
+  Experimental_VideoModelV4Reference,
+  Experimental_VideoModelV4ReferenceType,
   SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
@@ -156,6 +158,14 @@ export async function experimental_generateVideo({
          * 'video/mp4').
          */
         mediaType?: string;
+
+        /**
+         * What the model should do with this reference: `subject` (the
+         * default) to reproduce the subject/identity, or `style` to emulate
+         * the visual style. Providers that do not support a role warn and
+         * fall back to their default behavior.
+         */
+        referenceType?: Experimental_VideoModelV4ReferenceType;
       }
   >;
 
@@ -218,7 +228,7 @@ export async function experimental_generateVideo({
   });
 
   const normalizedInputReferences:
-    | Array<Experimental_VideoModelV4File>
+    | Array<Experimental_VideoModelV4Reference>
     | undefined = inputReferences?.flatMap(reference => {
     const normalized = normalizeReferenceData(reference);
     return normalized != null ? [normalized] : [];
@@ -471,9 +481,9 @@ function normalizeImageData(
 }
 
 /**
- * Normalizes a reference input into a {@link Experimental_VideoModelV4File},
+ * Normalizes a reference input into a {@link Experimental_VideoModelV4Reference},
  * accepting either a plain {@link DataContent} or the object form that carries
- * an explicit `mediaType`.
+ * an explicit `mediaType` and/or `referenceType`.
  */
 function normalizeReferenceData(
   reference:
@@ -481,8 +491,9 @@ function normalizeReferenceData(
     | {
         data: DataContent;
         mediaType?: string;
+        referenceType?: Experimental_VideoModelV4ReferenceType;
       },
-): Experimental_VideoModelV4File | undefined {
+): Experimental_VideoModelV4Reference | undefined {
   const isObjectForm =
     typeof reference === 'object' &&
     reference != null &&
@@ -506,6 +517,9 @@ function normalizeReferenceData(
   return {
     ...normalized,
     ...(reference.mediaType != null ? { mediaType: reference.mediaType } : {}),
+    ...(reference.referenceType != null
+      ? { referenceType: reference.referenceType }
+      : {}),
   };
 }
 
