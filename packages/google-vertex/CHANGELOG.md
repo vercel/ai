@@ -1,5 +1,19 @@
 # @ai-sdk/google-vertex
 
+## 4.0.154
+
+### Patch Changes
+
+- 95bc6fd: feat (provider/anthropic): add `claude-sonnet-5` model id
+- fa850e6: feat (video): add first-class `frameImages` and `inputReferences` call options for video generation
+- Updated dependencies [95bc6fd]
+- Updated dependencies [fa850e6]
+  - @ai-sdk/anthropic@3.0.91
+  - @ai-sdk/provider@3.0.13
+  - @ai-sdk/google@3.0.87
+  - @ai-sdk/openai-compatible@2.0.55
+  - @ai-sdk/provider-utils@4.0.34
+
 ## 4.0.153
 
 ### Patch Changes

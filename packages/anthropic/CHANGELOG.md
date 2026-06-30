@@ -1,5 +1,14 @@
 # @ai-sdk/anthropic
 
+## 3.0.91
+
+### Patch Changes
+
+- 95bc6fd: feat (provider/anthropic): add `claude-sonnet-5` model id
+- Updated dependencies [fa850e6]
+  - @ai-sdk/provider@3.0.13
+  - @ai-sdk/provider-utils@4.0.34
+
 ## 3.0.90
 
 ### Patch Changes
