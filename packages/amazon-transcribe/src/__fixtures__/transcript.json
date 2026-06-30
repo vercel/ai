@@ -1,0 +1,48 @@
+{
+  "jobName": "test-job",
+  "accountId": "123456789012",
+  "status": "COMPLETED",
+  "results": {
+    "language_code": "en-US",
+    "transcripts": [{ "transcript": "Hello from the AI SDK." }],
+    "audio_segments": [
+      {
+        "id": 0,
+        "transcript": "Hello from the AI SDK.",
+        "start_time": "0.0",
+        "end_time": "1.85",
+        "items": [0, 1, 2, 3, 4, 5]
+      }
+    ],
+    "items": [
+      {
+        "type": "pronunciation",
+        "start_time": "0.0",
+        "end_time": "0.5",
+        "alternatives": [{ "confidence": "0.999", "content": "Hello" }]
+      },
+      {
+        "type": "pronunciation",
+        "start_time": "0.5",
+        "end_time": "0.8",
+        "alternatives": [{ "confidence": "0.999", "content": "from" }]
+      },
+      {
+        "type": "pronunciation",
+        "start_time": "0.8",
+        "end_time": "1.0",
+        "alternatives": [{ "confidence": "0.999", "content": "the" }]
+      },
+      {
+        "type": "pronunciation",
+        "start_time": "1.0",
+        "end_time": "1.85",
+        "alternatives": [{ "confidence": "0.999", "content": "AI SDK" }]
+      },
+      {
+        "type": "punctuation",
+        "alternatives": [{ "confidence": "0.0", "content": "." }]
+      }
+    ]
+  }
+}

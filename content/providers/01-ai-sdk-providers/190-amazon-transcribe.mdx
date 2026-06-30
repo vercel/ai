@@ -1,0 +1,197 @@
+---
+title: Amazon Transcribe
+description: Learn how to use the Amazon Transcribe provider for the AI SDK.
+---
+
+# Amazon Transcribe Provider
+
+The [Amazon Transcribe](https://aws.amazon.com/transcribe/) provider contains transcription
+model support for the Amazon Transcribe batch transcription API.
+
+<Note>
+  Amazon Transcribe is a separate AWS service from Amazon Bedrock. Batch
+  transcription reads the audio from, and optionally writes the transcript to,
+  Amazon S3. Because the AI SDK `transcribe` function provides raw audio bytes,
+  the provider uploads the audio to a configured S3 bucket before starting the
+  job, then polls the job until it completes.
+</Note>
+
+## Setup
+
+The Amazon Transcribe provider is available in the `@ai-sdk/amazon-transcribe` module. You can install it with
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/amazon-transcribe" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/amazon-transcribe" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/amazon-transcribe" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @ai-sdk/amazon-transcribe" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can import the default provider instance `amazonTranscribe` from `@ai-sdk/amazon-transcribe`:
+
+```ts
+import { amazonTranscribe } from '@ai-sdk/amazon-transcribe';
+```
+
+If you need a customized setup, you can import `createAmazonTranscribe` from `@ai-sdk/amazon-transcribe` and create a provider instance with your settings:
+
+```ts
+import { createAmazonTranscribe } from '@ai-sdk/amazon-transcribe';
+
+const amazonTranscribe = createAmazonTranscribe({
+  region: 'us-east-1',
+  // credentials are resolved from the environment by default
+});
+```
+
+You can use the following optional settings to customize the Amazon Transcribe provider instance:
+
+- **region** _string_
+
+  The AWS region to use. Defaults to the `AWS_REGION` environment variable.
+
+- **accessKeyId** _string_
+
+  The AWS access key ID. Defaults to the `AWS_ACCESS_KEY_ID` environment variable.
+
+- **secretAccessKey** _string_
+
+  The AWS secret access key. Defaults to the `AWS_SECRET_ACCESS_KEY` environment variable.
+
+- **sessionToken** _string_
+
+  The AWS session token. Defaults to the `AWS_SESSION_TOKEN` environment variable.
+
+- **credentialProvider** _() => Promise&lt;&#123; accessKeyId, secretAccessKey, sessionToken? &#125;&gt;_
+
+  A function returning dynamic AWS credentials (similar to the AWS SDK). When set,
+  its values are used instead of `accessKeyId`, `secretAccessKey`, and `sessionToken`.
+
+- **baseURL** _string_
+
+  Base URL for the Amazon Transcribe API calls. Defaults to
+  `https://transcribe.{region}.amazonaws.com`.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  Defaults to the global `fetch` function.
+
+## Transcription Models
+
+You can create models that call the [Amazon Transcribe StartTranscriptionJob API](https://docs.aws.amazon.com/transcribe/latest/APIReference/API_StartTranscriptionJob.html)
+using the `.transcription()` factory method.
+
+```ts
+const model = amazonTranscribe.transcription();
+```
+
+At minimum you must supply an `inputBucket` via `providerOptions`. This is the S3
+bucket the audio is uploaded to and that Amazon Transcribe reads from. The IAM
+identity used must have permission to `s3:PutObject` to this bucket and
+`transcribe:StartTranscriptionJob` / `transcribe:GetTranscriptionJob`.
+
+```ts highlight="8-11"
+import { transcribe } from 'ai';
+import { amazonTranscribe } from '@ai-sdk/amazon-transcribe';
+import { type AmazonTranscribeTranscriptionModelOptions } from '@ai-sdk/amazon-transcribe';
+import { readFile } from 'fs/promises';
+
+const result = await transcribe({
+  model: amazonTranscribe.transcription(),
+  audio: await readFile('audio.mp3'),
+  providerOptions: {
+    amazonTranscribe: {
+      inputBucket: 'my-audio-bucket',
+      languageCode: 'en-US',
+    } satisfies AmazonTranscribeTranscriptionModelOptions,
+  },
+});
+```
+
+The following provider options are available:
+
+- **inputBucket** _string_ (required)
+
+  Name of the S3 bucket the audio is uploaded to and that Amazon Transcribe reads from.
+
+- **inputKeyPrefix** _string_
+
+  Optional key prefix (folder) for the uploaded audio object.
+
+- **outputBucket** _string_
+
+  Name of the S3 bucket Amazon Transcribe writes the transcript to. When omitted,
+  a service-managed bucket is used and a pre-signed download URL is returned by the API.
+
+- **outputKey** _string_
+
+  The object key for the transcription output within `outputBucket`.
+
+- **transcriptionJobName** _string_
+
+  The name to assign to the transcription job. Must be unique within the AWS account.
+  When omitted, a unique name is generated.
+
+- **languageCode** _string_
+
+  The language code of the audio, e.g. `en-US`. Mutually exclusive with
+  `identifyLanguage` / `identifyMultipleLanguages`. When none of these are set,
+  automatic single-language identification is enabled.
+
+- **identifyLanguage** _boolean_
+
+  Enables automatic identification of the single language spoken in the audio.
+  Defaults to `true` when neither `languageCode` nor `identifyMultipleLanguages`
+  is set; pass `false` to disable it.
+
+- **identifyMultipleLanguages** _boolean_
+
+  Enables automatic identification of multiple languages spoken in the audio.
+
+- **languageOptions** _string[]_
+
+  Restricts automatic language identification to the provided language codes.
+
+- **mediaFormat** _string_
+
+  The format of the input media (`mp3`, `mp4`, `wav`, `flac`, `ogg`, `amr`, `webm`).
+  When omitted, it is inferred from the audio media type.
+
+- **mediaSampleRateHertz** _number_
+
+  Sample rate of the audio in Hertz.
+
+- **settings** _object_
+
+  Additional [`Settings`](https://docs.aws.amazon.com/transcribe/latest/APIReference/API_Settings.html)
+  passed through to `StartTranscriptionJob` (e.g. `ShowSpeakerLabels`, `MaxSpeakerLabels`, `VocabularyName`).
+
+- **pollIntervalMillis** _number_
+
+  Interval in milliseconds between transcription job status polls. Defaults to `3000`.
+
+- **maxPollDurationMillis** _number_
+
+  Maximum time in milliseconds to wait for the job to complete before timing out.
+  Defaults to `600000` (10 minutes).
+
+### Model Capabilities
+
+| Model     | Transcription       | Duration            | Segments            | Language            |
+| --------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `default` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
