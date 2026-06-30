@@ -1,5 +1,17 @@
 # @ai-sdk/google-vertex
 
+## 5.0.4
+
+### Patch Changes
+
+- 0274f34: feat (video): add first-class `frameImages` and `inputReferences` call options for video generation
+- Updated dependencies [0274f34]
+  - @ai-sdk/provider@4.0.1
+  - @ai-sdk/google@4.0.3
+  - @ai-sdk/anthropic@4.0.3
+  - @ai-sdk/openai-compatible@3.0.2
+  - @ai-sdk/provider-utils@5.0.2
+
 ## 5.0.3
 
 ### Patch Changes

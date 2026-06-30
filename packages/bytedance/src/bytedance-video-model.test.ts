@@ -9,6 +9,8 @@ const defaultOptions = {
   prompt,
   n: 1,
   image: undefined,
+  frameImages: undefined,
+  inputReferences: undefined,
   aspectRatio: undefined,
   resolution: undefined,
   duration: undefined,
@@ -655,6 +657,238 @@ describe('ByteDanceVideoModel', () => {
           role: 'last_frame',
         },
       ]);
+    });
+
+    it('should add last frame image from frameImages last_frame with role', async () => {
+      const model = createBasicModel({
+        modelId: 'seedance-1-5-pro-251215',
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        image: {
+          type: 'url',
+          url: 'https://example.com/first-frame.png',
+        },
+        frameImages: [
+          {
+            image: { type: 'url', url: 'https://example.com/last-frame.png' },
+            frameType: 'last_frame',
+          },
+        ],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.content).toStrictEqual([
+        {
+          type: 'text',
+          text: prompt,
+        },
+        {
+          type: 'image_url',
+          image_url: { url: 'https://example.com/first-frame.png' },
+          role: 'first_frame',
+        },
+        {
+          type: 'image_url',
+          image_url: { url: 'https://example.com/last-frame.png' },
+          role: 'last_frame',
+        },
+      ]);
+    });
+
+    it('should prefer frameImages last_frame over providerOptions.bytedance.lastFrameImage', async () => {
+      const model = createBasicModel({
+        modelId: 'seedance-1-5-pro-251215',
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        image: {
+          type: 'url',
+          url: 'https://example.com/first-frame.png',
+        },
+        frameImages: [
+          {
+            image: { type: 'url', url: 'https://example.com/new-last.png' },
+            frameType: 'last_frame',
+          },
+        ],
+        providerOptions: {
+          bytedance: {
+            lastFrameImage: 'https://example.com/legacy-last.png',
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.content).toContainEqual({
+        type: 'image_url',
+        image_url: { url: 'https://example.com/new-last.png' },
+        role: 'last_frame',
+      });
+    });
+
+    it('should use frameImages first_frame as the starting image', async () => {
+      const model = createBasicModel({
+        modelId: 'seedance-1-5-pro-251215',
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        frameImages: [
+          {
+            image: { type: 'url', url: 'https://example.com/first-frame.png' },
+            frameType: 'first_frame',
+          },
+        ],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.content).toStrictEqual([
+        {
+          type: 'text',
+          text: prompt,
+        },
+        {
+          type: 'image_url',
+          image_url: { url: 'https://example.com/first-frame.png' },
+        },
+      ]);
+    });
+
+    it('should prefer frameImages first_frame over the legacy image option', async () => {
+      const model = createBasicModel({
+        modelId: 'seedance-1-5-pro-251215',
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        image: {
+          type: 'url',
+          url: 'https://example.com/legacy-image.png',
+        },
+        frameImages: [
+          {
+            image: { type: 'url', url: 'https://example.com/first-frame.png' },
+            frameType: 'first_frame',
+          },
+          {
+            image: { type: 'url', url: 'https://example.com/last-frame.png' },
+            frameType: 'last_frame',
+          },
+        ],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.content).toStrictEqual([
+        {
+          type: 'text',
+          text: prompt,
+        },
+        {
+          type: 'image_url',
+          image_url: { url: 'https://example.com/first-frame.png' },
+          role: 'first_frame',
+        },
+        {
+          type: 'image_url',
+          image_url: { url: 'https://example.com/last-frame.png' },
+          role: 'last_frame',
+        },
+      ]);
+    });
+
+    it('should send only last_frame when only last_frame is provided without a legacy image', async () => {
+      const model = createBasicModel({
+        modelId: 'seedance-1-5-pro-251215',
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        image: undefined,
+        frameImages: [
+          {
+            image: { type: 'url', url: 'https://example.com/last-frame.png' },
+            frameType: 'last_frame',
+          },
+        ],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.content).toStrictEqual([
+        {
+          type: 'text',
+          text: prompt,
+        },
+        {
+          type: 'image_url',
+          image_url: { url: 'https://example.com/last-frame.png' },
+          role: 'last_frame',
+        },
+      ]);
+    });
+
+    it('should add reference images from inputReferences with role', async () => {
+      const model = createBasicModel({
+        modelId: 'seedance-1-0-lite-i2v-250428',
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        inputReferences: [
+          { type: 'url', url: 'https://example.com/ref1.png' },
+          { type: 'url', url: 'https://example.com/ref2.png' },
+        ],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.content).toStrictEqual([
+        {
+          type: 'text',
+          text: prompt,
+        },
+        {
+          type: 'image_url',
+          image_url: { url: 'https://example.com/ref1.png' },
+          role: 'reference_image',
+        },
+        {
+          type: 'image_url',
+          image_url: { url: 'https://example.com/ref2.png' },
+          role: 'reference_image',
+        },
+      ]);
+    });
+
+    it('should prefer inputReferences over providerOptions.bytedance.referenceImages', async () => {
+      const model = createBasicModel({
+        modelId: 'seedance-1-0-lite-i2v-250428',
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        inputReferences: [
+          { type: 'url', url: 'https://example.com/new-ref.png' },
+        ],
+        providerOptions: {
+          bytedance: {
+            referenceImages: ['https://example.com/legacy-ref.png'],
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.content).toContainEqual({
+        type: 'image_url',
+        image_url: { url: 'https://example.com/new-ref.png' },
+        role: 'reference_image',
+      });
+      expect(requestBody.content).not.toContainEqual({
+        type: 'image_url',
+        image_url: { url: 'https://example.com/legacy-ref.png' },
+        role: 'reference_image',
+      });
     });
 
     it('should add reference images with role', async () => {

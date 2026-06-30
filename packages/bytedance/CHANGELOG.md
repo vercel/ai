@@ -1,5 +1,14 @@
 # @ai-sdk/bytedance
 
+## 2.0.3
+
+### Patch Changes
+
+- 0274f34: feat (video): add first-class `frameImages` and `inputReferences` call options for video generation
+- Updated dependencies [0274f34]
+  - @ai-sdk/provider@4.0.1
+  - @ai-sdk/provider-utils@5.0.2
+
 ## 2.0.2
 
 ### Patch Changes
