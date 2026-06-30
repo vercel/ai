@@ -6,10 +6,18 @@ import { logout } from '@/app/login/actions';
 import type { UserRole } from '@/lib/types';
 
 const LINKS: { href: string; label: string; roles: UserRole[] }[] = [
-  { href: '/dashboard', label: 'Início', roles: ['admin', 'medico', 'recepcao'] },
+  { href: '/dashboard', label: 'Tela Inicial', roles: ['admin', 'medico', 'recepcao'] },
+  { href: '/dashboard/panel', label: 'Painel', roles: ['admin', 'medico', 'recepcao'] },
   { href: '/dashboard/patients', label: 'Pacientes', roles: ['admin', 'medico', 'recepcao'] },
   { href: '/dashboard/appointments', label: 'Agendamentos', roles: ['admin', 'medico', 'recepcao'] },
   { href: '/dashboard/billing', label: 'Financeiro', roles: ['admin', 'recepcao'] },
+  { href: '/dashboard/campaigns', label: 'Campanhas', roles: ['admin', 'recepcao'] },
+  { href: '/dashboard/fiscal-notes', label: 'Notas fiscais', roles: ['admin', 'recepcao'] },
+  { href: '/dashboard/crm', label: 'Santé CRM', roles: ['admin', 'recepcao'] },
+  { href: '/dashboard/conversations', label: 'Santé Conversas', roles: ['admin', 'recepcao'] },
+  { href: '/dashboard/lab-orders', label: 'Controle laboratório', roles: ['admin', 'medico', 'recepcao'] },
+  { href: '/dashboard/cash-advances', label: 'Dr.Cash', roles: ['admin', 'medico', 'recepcao'] },
+  { href: '/dashboard/store', label: 'Loja', roles: ['admin', 'recepcao'] },
   { href: '/dashboard/schedule', label: 'Minha agenda', roles: ['admin', 'medico'] },
   { href: '/dashboard/profile', label: 'Meu perfil', roles: ['admin', 'medico', 'recepcao'] },
   { href: '/dashboard/admin', label: 'Administração', roles: ['admin'] },
