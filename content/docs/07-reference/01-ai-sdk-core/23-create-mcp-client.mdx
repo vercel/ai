@@ -147,6 +147,13 @@ It currently does not support accepting notifications from an MCP server, and cu
               description: 'Handler for uncaught errors',
             },
             {
+              name: 'maxRetries',
+              type: 'number',
+              isOptional: true,
+              description:
+                'Maximum number of retries for transient MCP tool call failures. Set to 0 to disable retries. Defaults to 0. Retries are opt-in and apply to tools/call requests.',
+            },
+            {
               name: 'capabilities',
               type: 'ClientCapabilities',
               isOptional: true,

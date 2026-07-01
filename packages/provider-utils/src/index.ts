@@ -46,6 +46,7 @@ export {
 export { cancelResponseBody } from './cancel-response-body';
 export * from './remove-undefined-entries';
 export * from './resolve';
+export * from './retry-with-exponential-backoff';
 export * from './response-handler';
 export {
   asSchema,
