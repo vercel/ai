@@ -6,7 +6,6 @@ import {
   Bell,
   CalendarCheck2,
   FileSignature,
-  Menu,
   Receipt,
   ShieldCheck,
   Sparkles,
@@ -14,6 +13,7 @@ import {
   TrendingUp,
   Users,
 } from 'lucide-react';
+import { MobileNav } from '@/components/marketing/mobile-nav';
 
 const FEATURES = [
   {
@@ -118,7 +118,7 @@ function Logo() {
 function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-white/5 bg-ink/80 backdrop-blur-md">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
+      <div className="relative mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
         <Logo />
         <nav className="hidden items-center gap-8 text-sm font-medium text-gray-400 md:flex">
           <a href="#recursos" className="transition-colors hover:text-white">Recursos</a>
@@ -133,9 +133,7 @@ function Header() {
             Iniciar Teste Grátis
           </Link>
         </div>
-        <button className="rounded-lg p-2 text-gray-400 hover:bg-white/5 hover:text-white md:hidden" aria-label="Abrir menu">
-          <Menu className="h-5 w-5" />
-        </button>
+        <MobileNav />
       </div>
     </header>
   );
