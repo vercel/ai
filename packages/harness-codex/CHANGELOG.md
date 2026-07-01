@@ -1,5 +1,41 @@
 # @ai-sdk/harness-codex
 
+## 1.0.13
+
+### Patch Changes
+
+- 7859cea: feat(harness): add tool filtering via `activeTools` and `inactiveTools`
+- c857346: feat(harness): add utility functions for certain duplicated layers in harnesses
+- Updated dependencies [7859cea]
+- Updated dependencies [c857346]
+  - @ai-sdk/harness@1.0.12
+
+## 1.0.12
+
+### Patch Changes
+
+- 2933383: fix(harness): fix harness relay auth
+  - @ai-sdk/harness@1.0.11
+
+## 1.0.11
+
+### Patch Changes
+
+- 0d1cb8e: fix(harness-codex): improve Codex prompt framing and avoid placing relay shim file in session workdir
+
+## 1.0.10
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.10
+- @ai-sdk/provider-utils@5.0.2
+
+## 1.0.9
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.9
+
 ## 1.0.8
 
 ### Patch Changes

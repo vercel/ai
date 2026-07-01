@@ -1,5 +1,29 @@
 # ai
 
+## 7.0.9
+
+### Patch Changes
+
+- Updated dependencies [2edc641]
+- Updated dependencies [c18018c]
+  - @ai-sdk/gateway@4.0.7
+
+## 7.0.8
+
+### Patch Changes
+
+- 0274f34: feat (video): add first-class `frameImages` and `inputReferences` call options for video generation
+- Updated dependencies [0274f34]
+  - @ai-sdk/provider@4.0.1
+  - @ai-sdk/gateway@4.0.6
+  - @ai-sdk/provider-utils@5.0.2
+
+## 7.0.7
+
+### Patch Changes
+
+- d598481: Fix: `convertToModelMessages` no longer emits an empty assistant message when a block contains only unknown data parts (e.g. a data part before `step-start` with no `convertDataPart` provided)
+
 ## 7.0.6
 
 ### Patch Changes

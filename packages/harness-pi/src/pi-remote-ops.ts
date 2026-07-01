@@ -1,7 +1,7 @@
 import path from 'node:path';
+import { shellQuote } from '@ai-sdk/harness/utils';
 import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
 import type { PiPathMapper } from './pi-paths';
-import { shellQuote } from './pi-utils';
 
 export type PiRemoteFileChangeKind = 'create' | 'modify';
 

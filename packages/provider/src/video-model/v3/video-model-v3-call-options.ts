@@ -1,5 +1,6 @@
 import type { SharedV3ProviderOptions } from '../../shared';
 import type { VideoModelV3File } from './video-model-v3-file';
+import type { VideoModelV3FrameImage } from './video-model-v3-frame-image';
 
 export type VideoModelV3CallOptions = {
   /**
@@ -53,6 +54,18 @@ export type VideoModelV3CallOptions = {
    * The image serves as the starting frame that the model will animate.
    */
   image: VideoModelV3File | undefined;
+
+  /**
+   * Role-tagged image inputs for first-last-frame generation.
+   * Each entry declares whether it is the `first_frame` or the
+   * `last_frame` of the generated video.
+   */
+  frameImages: Array<VideoModelV3FrameImage> | undefined;
+
+  /**
+   * Reference image inputs for reference-to-video generation.
+   */
+  inputReferences: Array<VideoModelV3File> | undefined;
 
   /**
    * Whether the model should generate audio alongside the video.

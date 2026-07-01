@@ -1,5 +1,20 @@
 # @ai-sdk/google
 
+## 4.0.4
+
+### Patch Changes
+
+- dc1eb8d: Support Gemini Interactions video output. Parse video output blocks from the Google Interactions API into file parts (buffered and streaming), and surface the per-modality output token breakdown via `providerMetadata.google.outputTokensByModality`.
+
+## 4.0.3
+
+### Patch Changes
+
+- 0274f34: feat (video): add first-class `frameImages` and `inputReferences` call options for video generation
+- Updated dependencies [0274f34]
+  - @ai-sdk/provider@4.0.1
+  - @ai-sdk/provider-utils@5.0.2
+
 ## 4.0.2
 
 ### Patch Changes

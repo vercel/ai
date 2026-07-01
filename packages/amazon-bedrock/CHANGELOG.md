@@ -1,5 +1,29 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.6
+
+### Patch Changes
+
+- c18018c: feat (provider/anthropic): add `claude-sonnet-5` model id
+- Updated dependencies [c18018c]
+  - @ai-sdk/anthropic@4.0.4
+
+## 5.0.5
+
+### Patch Changes
+
+- 85a80fc: fix (amazon-bedrock): send the correct `bedrockRerankingConfiguration` request key for reranking
+
+## 5.0.4
+
+### Patch Changes
+
+- Updated dependencies [0274f34]
+  - @ai-sdk/provider@4.0.1
+  - @ai-sdk/anthropic@4.0.3
+  - @ai-sdk/openai@4.0.4
+  - @ai-sdk/provider-utils@5.0.2
+
 ## 5.0.3
 
 ### Patch Changes
