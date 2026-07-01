@@ -9,6 +9,7 @@ import {
   type HarnessV1,
   type HarnessV1Bootstrap,
   type HarnessV1BuiltinTool,
+  type HarnessV1BuiltinToolFiltering,
   type HarnessV1ContinueTurnState,
   type HarnessV1DebugConfig,
   type HarnessV1NetworkSandboxSession,
@@ -298,6 +299,7 @@ export function createOpenCode(
             sandboxId,
             debug: startOpts.observability?.debug,
             permissionMode: startOpts.permissionMode,
+            builtinToolFiltering: startOpts.builtinToolFiltering,
           });
         } catch {}
       }
@@ -424,6 +426,7 @@ export function createOpenCode(
         sandboxId,
         debug: startOpts.observability?.debug,
         permissionMode: startOpts.permissionMode,
+        builtinToolFiltering: startOpts.builtinToolFiltering,
       });
     },
   };
@@ -547,6 +550,7 @@ function createSession({
   sandboxId,
   debug,
   permissionMode,
+  builtinToolFiltering,
 }: {
   sessionId: string;
   channel: OpenCodeChannel;
@@ -563,6 +567,7 @@ function createSession({
   sandboxId: string;
   debug: HarnessV1DebugConfig | undefined;
   permissionMode: HarnessV1PermissionMode | undefined;
+  builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
 }): HarnessV1Session {
   let stopped = false;
   let stopPromise: Promise<void> | undefined;
@@ -714,6 +719,7 @@ function createSession({
     provider,
     ...(reasoningVariant ? { variant: reasoningVariant } : {}),
     ...(permissionMode ? { permissionMode } : {}),
+    ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
     ...(pendingResumeSessionId
       ? { resumeSessionId: pendingResumeSessionId }
       : latestOpenCodeSessionId
