@@ -207,7 +207,7 @@ flows unless you implement it.
 
 MCP tool calls can fail for transient transport reasons, such as rate limits,
 temporary overload, or gateway timeouts. You can opt into automatic retries for
-`tools/call` requests by passing a `retry` policy when creating the client:
+`tools/call` requests by passing `maxRetries` when creating the client:
 
 ```typescript
 const mcpClient = await createMCPClient({
@@ -215,13 +215,7 @@ const mcpClient = await createMCPClient({
     type: 'http',
     url: 'https://your-server.com/mcp',
   },
-  retry: {
-    maxAttempts: 3,
-    initialDelayMs: 500,
-    maxDelayMs: 5000,
-    backoff: 'exponential',
-    retryOn: [408, 429, 500, 502, 503, 504],
-  },
+  maxRetries: 2,
 });
 ```
 

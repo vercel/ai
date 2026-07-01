@@ -1,9 +1,9 @@
 import type { JSONObject, JSONSchema7, JSONValue } from '@ai-sdk/provider';
 import {
   asSchema,
-  delay,
   dynamicTool,
   jsonSchema,
+  retryWithExponentialBackoff,
   safeParseJSON,
   safeValidateTypes,
   tool,
@@ -67,72 +67,17 @@ import {
   type InitializeResult,
 } from './types';
 const CLIENT_VERSION = '1.0.0';
+const DEFAULT_MAX_TOOL_CALL_RETRIES = 0;
 
-// Default retryable HTTP failures. See:
-// https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status
-const DEFAULT_RETRY_STATUS_CODES = [
-  408, // Request Timeout: server timed out waiting for the request.
-  429, // Too Many Requests: rate limited, often recoverable after waiting.
-  500, // Internal Server Error: unexpected server-side failure.
-  502, // Bad Gateway: proxy received an invalid upstream response.
-  503, // Service Unavailable: temporary overload or maintenance.
-  504, // Gateway Timeout: proxy timed out waiting for upstream.
+const DEFAULT_RETRY_ERROR_CODES = [
+  'ConnectionRefused',
+  'ConnectionClosed',
+  'FailedToOpenSocket',
+  'ECONNRESET',
+  'ECONNREFUSED',
+  'ETIMEDOUT',
+  'EPIPE',
 ];
-const DEFAULT_RETRY_ERROR_CODES = ['ECONNRESET', 'ECONNREFUSED', 'ETIMEDOUT'];
-
-type MCPRetryBackoff = 'constant' | 'linear' | 'exponential';
-
-export type MCPRetryContext = {
-  error: unknown;
-  attempt: number;
-  maxAttempts: number;
-  method: 'tools/call';
-  toolName: string;
-  arguments: Record<string, unknown>;
-};
-
-export type MCPRetryEvent = MCPRetryContext & {
-  delayMs: number;
-};
-
-export type MCPRetryConfig = {
-  /**
-   * Maximum total attempts, including the initial call.
-   *
-   * @default 3
-   */
-  maxAttempts?: number;
-  /**
-   * Delay before the first retry.
-   *
-   * @default 1000
-   */
-  initialDelayMs?: number;
-  /**
-   * Maximum delay between attempts.
-   *
-   * @default 10000
-   */
-  maxDelayMs?: number;
-  /**
-   * Backoff strategy for retry delays.
-   *
-   * @default 'exponential'
-   */
-  backoff?: MCPRetryBackoff;
-  /**
-   * Retry filter. Numbers match HTTP status codes. Strings match network-style
-   * error codes, such as ECONNRESET. JSON-RPC application errors are not
-   * retried by the array form; use a function if you intentionally need that.
-   */
-  retryOn?:
-    | Array<number | string>
-    | ((context: MCPRetryContext) => boolean | Promise<boolean>);
-  /**
-   * Called before each retry attempt.
-   */
-  onRetry?: (event: MCPRetryEvent) => void | Promise<void>;
-};
 
 function getErrorStatusCode(error: unknown): number | undefined {
   if (
@@ -160,16 +105,15 @@ function getStringErrorCode(error: unknown): string | undefined {
   return undefined;
 }
 
-function isRetryableByList({
-  error,
-  retryOn,
-}: {
-  error: unknown;
-  retryOn: Array<number | string>;
-}): boolean {
+function isRetryableMCPToolCallError(error: unknown): boolean {
   const statusCode = getErrorStatusCode(error);
-  if (statusCode != null && retryOn.includes(statusCode)) {
-    return true;
+  if (statusCode != null) {
+    return (
+      statusCode === 408 ||
+      statusCode === 409 ||
+      statusCode === 429 ||
+      statusCode >= 500
+    );
   }
 
   if (MCPClientError.isInstance(error) && error.code != null) {
@@ -177,31 +121,27 @@ function isRetryableByList({
   }
 
   const errorCode = getStringErrorCode(error);
-  return errorCode != null && retryOn.includes(errorCode);
+  return errorCode != null && DEFAULT_RETRY_ERROR_CODES.includes(errorCode);
 }
 
-function calculateRetryDelay({
-  attempt,
-  initialDelayMs = 1000,
-  maxDelayMs = 10000,
-  backoff = 'exponential',
-}: {
-  attempt: number;
-  initialDelayMs?: number;
-  maxDelayMs?: number;
-  backoff?: MCPRetryBackoff;
-}): number {
-  const delayMs = Math.max(0, initialDelayMs);
-  const cappedMaxDelayMs = Math.max(0, maxDelayMs);
+function prepareMaxRetries(maxRetries: number | undefined): number {
+  if (maxRetries == null) {
+    return DEFAULT_MAX_TOOL_CALL_RETRIES;
+  }
 
-  const nextDelayMs =
-    backoff === 'constant'
-      ? delayMs
-      : backoff === 'linear'
-        ? delayMs * attempt
-        : delayMs * 2 ** (attempt - 1);
+  if (!Number.isInteger(maxRetries)) {
+    throw new MCPClientError({
+      message: 'maxRetries must be an integer',
+    });
+  }
 
-  return Math.min(nextDelayMs, cappedMaxDelayMs);
+  if (maxRetries < 0) {
+    throw new MCPClientError({
+      message: 'maxRetries must be >= 0',
+    });
+  }
+
+  return maxRetries;
 }
 
 function mcpToModelOutput({
@@ -242,12 +182,14 @@ export interface MCPClientConfig {
   /** Optional callback for uncaught errors */
   onUncaughtError?: (error: unknown) => void;
   /**
-   * Optional retry policy for transient MCP tool call failures.
+   * Maximum number of retries for transient MCP tool call failures.
    *
-   * Retries are opt-in and only apply to tools/call requests. JSON-RPC
-   * application errors, such as invalid params, are not retried by default.
+   * Set to 0 to disable retries. Retries only apply to tools/call requests.
+   * JSON-RPC application errors, such as invalid params, are not retried.
+   *
+   * @default 0
    */
-  retry?: MCPRetryConfig;
+  maxRetries?: number;
   /**
    * Initialize result from a previous MCP session. When provided, the client
    * starts the transport and reuses this metadata without sending a new
@@ -392,7 +334,7 @@ export interface MCPClient {
 class DefaultMCPClient implements MCPClient {
   private transport: MCPTransport;
   private onUncaughtError?: (error: unknown) => void;
-  private retry?: MCPRetryConfig;
+  private maxRetries: number;
   private clientInfo: ClientConfiguration;
   private clientCapabilities: ClientCapabilities;
   private initialInitializeResult?: InitializeResult;
@@ -420,12 +362,12 @@ class DefaultMCPClient implements MCPClient {
     clientName = name ?? 'ai-sdk-mcp-client',
     version = CLIENT_VERSION,
     onUncaughtError,
-    retry,
+    maxRetries,
     capabilities,
     initialInitializeResult,
   }: MCPClientConfig) {
     this.onUncaughtError = onUncaughtError;
-    this.retry = retry;
+    this.maxRetries = prepareMaxRetries(maxRetries);
     this.clientCapabilities = capabilities ?? {};
     this.initialInitializeResult = initialInitializeResult;
 
@@ -665,82 +607,27 @@ class DefaultMCPClient implements MCPClient {
     });
   }
 
-  private async shouldRetryCallTool({
-    retry,
-    context,
-  }: {
-    retry: MCPRetryConfig;
-    context: MCPRetryContext;
-  }): Promise<boolean> {
-    if (typeof retry.retryOn === 'function') {
-      return await retry.retryOn(context);
-    }
-
-    return isRetryableByList({
-      error: context.error,
-      retryOn: retry.retryOn ?? [
-        ...DEFAULT_RETRY_STATUS_CODES,
-        ...DEFAULT_RETRY_ERROR_CODES,
-      ],
-    });
-  }
-
   private async callToolWithRetry({
-    name,
-    args,
     options,
     execute,
   }: {
-    name: string;
-    args: Record<string, unknown>;
     options?: RequestOptions;
     execute: () => Promise<CallToolResult>;
   }): Promise<CallToolResult> {
-    const retry = this.retry;
-    if (!retry) {
+    if (this.maxRetries === 0) {
       return execute();
     }
 
-    const maxAttempts = Math.max(1, Math.floor(retry.maxAttempts ?? 3));
-
-    for (let attempt = 1; ; attempt++) {
-      try {
-        return await execute();
-      } catch (error) {
-        options?.signal?.throwIfAborted();
-
-        const context: MCPRetryContext = {
-          error,
-          attempt,
-          maxAttempts,
-          method: 'tools/call',
-          toolName: name,
-          arguments: args,
-        };
-
-        const shouldRetry =
-          attempt < maxAttempts &&
-          (await this.shouldRetryCallTool({ retry, context }));
-
-        if (!shouldRetry) {
-          throw error;
-        }
-
-        const delayMs = calculateRetryDelay({
-          attempt,
-          initialDelayMs: retry.initialDelayMs,
-          maxDelayMs: retry.maxDelayMs,
-          backoff: retry.backoff,
-        });
-
-        await retry.onRetry?.({
-          ...context,
-          delayMs,
-        });
-
-        await delay(delayMs, { abortSignal: options?.signal });
-      }
-    }
+    return retryWithExponentialBackoff({
+      maxRetries: this.maxRetries,
+      abortSignal: options?.signal,
+      shouldRetry: isRetryableMCPToolCallError,
+      createRetryError: ({ message, errors }) =>
+        new MCPClientError({
+          message,
+          cause: errors[errors.length - 1],
+        }),
+    })(execute);
   }
 
   async callTool({
@@ -754,8 +641,6 @@ class DefaultMCPClient implements MCPClient {
   }): Promise<CallToolResult> {
     try {
       return this.callToolWithRetry({
-        name,
-        args,
         options,
         execute: () =>
           this.request({

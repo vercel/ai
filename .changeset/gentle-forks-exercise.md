@@ -1,5 +1,6 @@
 ---
 "@ai-sdk/mcp": patch
+"@ai-sdk/provider-utils": patch
 ---
 
-feat(mcp): add retry option for failed mcp tool calls
+feat(mcp): add maxRetries option for failed mcp tool calls

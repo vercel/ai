@@ -221,6 +221,7 @@ describe('MCPClient', () => {
   });
 
   afterEach(async () => {
+    vi.useRealTimers();
     await client?.close();
   });
 
@@ -1179,27 +1180,23 @@ describe('MCPClient', () => {
     expect(transport.toolCallAttempts).toBe(1);
   });
 
-  it('should retry transient HTTP tool call failures when retry is configured', async () => {
-    const onRetry = vi.fn();
+  it('should retry transient HTTP tool call failures when maxRetries is configured', async () => {
+    vi.useFakeTimers();
     const transport = new FailsFirstToolCallTransport('transient-http');
     client = await createMCPClient({
       transport,
-      retry: {
-        maxAttempts: 2,
-        initialDelayMs: 0,
-        retryOn: [503],
-        onRetry,
-      },
+      maxRetries: 1,
     });
 
     const tools = await client.tools();
 
-    await expect(
-      tools['retry-tool'].execute(
-        { value: 'test' },
-        { messages: [], toolCallId: '1', context: {} },
-      ),
-    ).resolves.toMatchInlineSnapshot(`
+    const result = tools['retry-tool'].execute(
+      { value: 'test' },
+      { messages: [], toolCallId: '1', context: {} },
+    );
+    await vi.advanceTimersByTimeAsync(2000);
+
+    await expect(result).resolves.toMatchInlineSnapshot(`
       {
         "content": [
           {
@@ -1211,35 +1208,25 @@ describe('MCPClient', () => {
       }
     `);
     expect(transport.toolCallAttempts).toBe(2);
-    expect(onRetry).toHaveBeenCalledWith(
-      expect.objectContaining({
-        attempt: 1,
-        delayMs: 0,
-        maxAttempts: 2,
-        method: 'tools/call',
-        toolName: 'retry-tool',
-      }),
-    );
   });
 
-  it('should retry network-style tool call failures by default when retry is configured', async () => {
+  it('should retry network-style tool call failures when maxRetries is configured', async () => {
+    vi.useFakeTimers();
     const transport = new FailsFirstToolCallTransport('network');
     client = await createMCPClient({
       transport,
-      retry: {
-        maxAttempts: 2,
-        initialDelayMs: 0,
-      },
+      maxRetries: 1,
     });
 
     const tools = await client.tools();
 
-    await expect(
-      tools['retry-tool'].execute(
-        { value: 'test' },
-        { messages: [], toolCallId: '1', context: {} },
-      ),
-    ).resolves.toMatchObject({
+    const result = tools['retry-tool'].execute(
+      { value: 'test' },
+      { messages: [], toolCallId: '1', context: {} },
+    );
+    await vi.advanceTimersByTimeAsync(2000);
+
+    await expect(result).resolves.toMatchObject({
       content: [{ type: 'text', text: 'retried successfully' }],
       isError: false,
     });
@@ -1250,10 +1237,7 @@ describe('MCPClient', () => {
     const transport = new FailsFirstToolCallTransport('unlisted-http');
     client = await createMCPClient({
       transport,
-      retry: {
-        maxAttempts: 3,
-        initialDelayMs: 0,
-      },
+      maxRetries: 2,
     });
 
     const tools = await client.tools();
@@ -1267,39 +1251,11 @@ describe('MCPClient', () => {
     expect(transport.toolCallAttempts).toBe(1);
   });
 
-  it('should retry unlisted HTTP status codes when explicitly configured', async () => {
-    const transport = new FailsFirstToolCallTransport('unlisted-http');
-    client = await createMCPClient({
-      transport,
-      retry: {
-        maxAttempts: 2,
-        initialDelayMs: 0,
-        retryOn: [418],
-      },
-    });
-
-    const tools = await client.tools();
-
-    await expect(
-      tools['retry-tool'].execute(
-        { value: 'test' },
-        { messages: [], toolCallId: '1', context: {} },
-      ),
-    ).resolves.toMatchObject({
-      content: [{ type: 'text', text: 'retried successfully' }],
-      isError: false,
-    });
-    expect(transport.toolCallAttempts).toBe(2);
-  });
-
   it('should not retry invalid argument JSON-RPC errors', async () => {
     const transport = new FailsFirstToolCallTransport('invalid-params');
     client = await createMCPClient({
       transport,
-      retry: {
-        maxAttempts: 3,
-        initialDelayMs: 0,
-      },
+      maxRetries: 2,
     });
 
     const tools = await client.tools();
@@ -1317,10 +1273,7 @@ describe('MCPClient', () => {
     const transport = new FailsFirstToolCallTransport('auth');
     client = await createMCPClient({
       transport,
-      retry: {
-        maxAttempts: 3,
-        initialDelayMs: 0,
-      },
+      maxRetries: 2,
     });
 
     const tools = await client.tools();
@@ -1338,10 +1291,7 @@ describe('MCPClient', () => {
     const transport = new FailsFirstToolCallTransport('tool-result-error');
     client = await createMCPClient({
       transport,
-      retry: {
-        maxAttempts: 3,
-        initialDelayMs: 0,
-      },
+      maxRetries: 2,
     });
 
     const tools = await client.tools();
