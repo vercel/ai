@@ -30,9 +30,29 @@ type DoEmbedResponse = Awaited<ReturnType<EmbeddingModelV3['doEmbed']>>;
 export class BedrockEmbeddingModel implements EmbeddingModelV3 {
   readonly specificationVersion = 'v3';
   readonly provider = 'amazon-bedrock';
-  readonly maxEmbeddingsPerCall = 1;
   readonly supportsParallelCalls = true;
 
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-embedding-model.ts
+=======
+  get maxEmbeddingsPerCall() {
+    return isCohereEmbeddingModel(this.modelId) ? 96 : 1;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: AmazonBedrockEmbeddingModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: AmazonBedrockEmbeddingConfig;
+  }) {
+    return new AmazonBedrockEmbeddingModel(options.modelId, options.config);
+  }
+
+>>>>>>> 1daf48becd (feat(amazon-bedrock): increase limit of embeddings in a request for cohere models (#16559)):packages/amazon-bedrock/src/amazon-bedrock-embedding-model.ts
   constructor(
     readonly modelId: BedrockEmbeddingModelId,
     private readonly config: BedrockEmbeddingConfig,
@@ -71,11 +91,8 @@ export class BedrockEmbeddingModel implements EmbeddingModelV3 {
     // Note: Different embedding model families expect different request/response
     // payloads (e.g. Titan vs Cohere vs Nova). We keep the public interface stable and
     // adapt here based on the modelId.
-    const isNovaModel =
-      this.modelId.startsWith('amazon.nova-') && this.modelId.includes('embed');
-    // Use `includes` so cross-region inference profile ids (e.g.
-    // `us.cohere.embed-v4:0`, `global.cohere.embed-v4:0`) are detected too.
-    const isCohereModel = this.modelId.includes('cohere.embed-');
+    const isNovaModel = isNovaEmbeddingModel(this.modelId);
+    const isCohereModel = isCohereEmbeddingModel(this.modelId);
 
     const args = isNovaModel
       ? {
@@ -94,10 +111,17 @@ export class BedrockEmbeddingModel implements EmbeddingModelV3 {
         ? {
             // Cohere embedding models on Bedrock require `input_type`.
             // Without it, the service attempts other schema branches and rejects the request.
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-embedding-model.ts
             input_type: bedrockOptions.inputType ?? 'search_query',
             texts: [values[0]],
             truncate: bedrockOptions.truncate,
             output_dimension: bedrockOptions.outputDimension,
+=======
+            input_type: amazonBedrockOptions.inputType ?? 'search_query',
+            texts: values,
+            truncate: amazonBedrockOptions.truncate,
+            output_dimension: amazonBedrockOptions.outputDimension,
+>>>>>>> 1daf48becd (feat(amazon-bedrock): increase limit of embeddings in a request for cohere models (#16559)):packages/amazon-bedrock/src/amazon-bedrock-embedding-model.ts
           }
         : {
             inputText: values[0],
@@ -123,11 +147,11 @@ export class BedrockEmbeddingModel implements EmbeddingModelV3 {
       abortSignal,
     });
 
-    // Extract embedding based on response format
-    let embedding: number[];
+    // Extract embeddings based on response format
+    let embeddings: number[][];
     if ('embedding' in response) {
       // Titan response
-      embedding = response.embedding;
+      embeddings = [response.embedding];
     } else if (Array.isArray(response.embeddings)) {
       const firstEmbedding = response.embeddings[0];
       if (
@@ -136,14 +160,14 @@ export class BedrockEmbeddingModel implements EmbeddingModelV3 {
         'embeddingType' in firstEmbedding
       ) {
         // Nova response
-        embedding = firstEmbedding.embedding;
+        embeddings = [firstEmbedding.embedding];
       } else {
         // Cohere v3 response
-        embedding = firstEmbedding as number[];
+        embeddings = response.embeddings as number[][];
       }
     } else {
       // Cohere v4 response
-      embedding = response.embeddings.float[0];
+      embeddings = response.embeddings.float;
     }
 
     // Extract token count based on response format
@@ -158,14 +182,28 @@ export class BedrockEmbeddingModel implements EmbeddingModelV3 {
           : headerTokenCount;
 
     return {
-      embeddings: [embedding],
+      embeddings,
       usage: { tokens },
       warnings: [],
     };
   }
 }
 
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-embedding-model.ts
 const BedrockEmbeddingResponseSchema = z.union([
+=======
+function isCohereEmbeddingModel(modelId: string) {
+  // Use `includes` so cross-region inference profile ids (e.g.
+  // `us.cohere.embed-v4:0`, `global.cohere.embed-v4:0`) are detected too.
+  return modelId.includes('cohere.embed-');
+}
+
+function isNovaEmbeddingModel(modelId: string) {
+  return modelId.startsWith('amazon.nova-') && modelId.includes('embed');
+}
+
+const AmazonBedrockEmbeddingResponseSchema = z.union([
+>>>>>>> 1daf48becd (feat(amazon-bedrock): increase limit of embeddings in a request for cohere models (#16559)):packages/amazon-bedrock/src/amazon-bedrock-embedding-model.ts
   // Titan-style response
   z.object({
     embedding: z.array(z.number()),
