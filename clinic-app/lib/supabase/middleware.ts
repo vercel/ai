@@ -38,10 +38,40 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (data.user && isPublic && request.method === 'GET') {
-    const url = request.nextUrl.clone();
-    url.pathname = '/dashboard';
-    return NextResponse.redirect(url);
+  if (data.user) {
+    // Super admins are locked to the Centro de Comando — the regular clinic
+    // dashboard is only reachable while actively impersonating a clinic.
+    const { data: superAdmin } = await supabase
+      .from('super_admins')
+      .select('user_id')
+      .eq('user_id', data.user.id)
+      .maybeSingle();
+
+    if (superAdmin) {
+      const { data: activeImpersonation } = await supabase
+        .from('impersonation_sessions')
+        .select('id')
+        .eq('super_admin_id', data.user.id)
+        .is('ended_at', null)
+        .maybeSingle();
+
+      if (!activeImpersonation) {
+        if (isPublic && request.method === 'GET') {
+          const url = request.nextUrl.clone();
+          url.pathname = '/super-admin';
+          return NextResponse.redirect(url);
+        }
+        if (request.nextUrl.pathname.startsWith('/dashboard')) {
+          const url = request.nextUrl.clone();
+          url.pathname = '/super-admin';
+          return NextResponse.redirect(url);
+        }
+      }
+    } else if (isPublic && request.method === 'GET') {
+      const url = request.nextUrl.clone();
+      url.pathname = '/dashboard';
+      return NextResponse.redirect(url);
+    }
   }
 
   return response;
