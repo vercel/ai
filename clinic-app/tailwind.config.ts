@@ -19,6 +19,20 @@ const config: Config = {
           900: '#0f1729',
           950: '#0b101e',
         },
+        ink: {
+          DEFAULT: '#0A0A0A',
+          800: '#121212',
+          700: '#1A1A1A',
+        },
+        electric: {
+          DEFAULT: '#007BFF',
+          400: '#3B9DFF',
+          500: '#007BFF',
+          600: '#0062CC',
+        },
+      },
+      boxShadow: {
+        glow: '0 0 40px -8px rgba(0, 123, 255, 0.55)',
       },
     },
   },
