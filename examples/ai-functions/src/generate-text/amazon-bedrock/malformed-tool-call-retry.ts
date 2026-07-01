@@ -1,71 +1,84 @@
 import { amazonBedrock } from '@ai-sdk/amazon-bedrock';
 import {
+  convertToModelMessages,
   generateText,
   isStepCount,
+  readUIMessageStream,
+  streamText,
+  toUIMessageStream,
   tool,
-  type LanguageModelMiddleware,
   wrapLanguageModel,
+  type LanguageModelMiddleware,
+  type UIMessage,
 } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
-const malformedInput = '{ "city": "San Francisco", }';
-
-let hasCorruptedToolCall = false;
-
-const corruptFirstToolCallInput: LanguageModelMiddleware = {
-  wrapGenerate: async ({ doGenerate }) => {
-    const result = await doGenerate();
-
-    if (hasCorruptedToolCall) {
-      return result;
-    }
-
+// Simulate a model emitting malformed JSON (trailing comma) as its tool input.
+const corruptToolCallInput: LanguageModelMiddleware = {
+  wrapStream: async ({ doStream }) => {
+    const { stream, ...rest } = await doStream();
     return {
-      ...result,
-      content: result.content.map(part => {
-        if (part.type !== 'tool-call' || hasCorruptedToolCall) {
-          return part;
-        }
-
-        hasCorruptedToolCall = true;
-        return { ...part, input: malformedInput };
-      }),
+      ...rest,
+      stream: stream.pipeThrough(
+        new TransformStream({
+          transform(chunk, controller) {
+            controller.enqueue(
+              chunk.type === 'tool-call'
+                ? { ...chunk, input: '{ "city": "San Francisco", }' }
+                : chunk,
+            );
+          },
+        }),
+      ),
     };
   },
 };
 
 run(async () => {
-  const result = await generateText({
-    model: wrapLanguageModel({
-      model: amazonBedrock('anthropic.claude-3-5-sonnet-20240620-v1:0'),
-      middleware: corruptFirstToolCallInput,
+  const model = amazonBedrock('us.anthropic.claude-sonnet-4-5-20250929-v1:0');
+
+  const tools = {
+    cityAttractions: tool({
+      inputSchema: z.object({ city: z.string() }),
+      execute: async ({ city }) => ({ city, attractions: ['Golden Gate'] }),
     }),
-    tools: {
-      cityAttractions: tool({
-        description: 'Get tourist attractions for a city',
-        inputSchema: z.object({
-          city: z.string(),
-        }),
-        execute: async ({ city }) => ({
-          city,
-          attractions: ['Golden Gate Bridge', 'Exploratorium'],
-        }),
-      }),
-    },
-    prepareStep: ({ stepNumber }) =>
-      stepNumber === 0
-        ? { toolChoice: { type: 'tool', toolName: 'cityAttractions' } }
-        : undefined,
-    stopWhen: isStepCount(3),
-    prompt:
-      'Find tourist attractions in San Francisco using the cityAttractions tool.',
+  };
+
+  const prompt = 'What are the tourist attractions in San Francisco?';
+
+  // Turn 1: stream the malformed tool call into a persisted UI message,
+  // like a `useChat` server -> client flow.
+  const stream = streamText({
+    model: wrapLanguageModel({ model, middleware: corruptToolCallInput }),
+    tools,
+    toolChoice: { type: 'tool', toolName: 'cityAttractions' },
+    prompt,
   });
 
-  console.log(result.text);
-  console.log('Tool calls:', JSON.stringify(result.toolCalls, null, 2));
-  console.log(
-    'Response messages:',
-    JSON.stringify(result.responseMessages, null, 2),
-  );
+  let assistantMessage: UIMessage | undefined;
+  for await (const uiMessage of readUIMessageStream({
+    stream: toUIMessageStream({ stream: stream.stream }),
+  })) {
+    assistantMessage = uiMessage;
+  }
+
+  // Turn 2: replay the persisted conversation. `convertToModelMessages` is the
+  // unguarded path that passes the raw-string tool input straight to Bedrock,
+  // which rejects it unless it is a JSON object.
+  const messages = await convertToModelMessages([
+    { id: '1', role: 'user', parts: [{ type: 'text', text: prompt }] },
+    assistantMessage!,
+  ]);
+
+  console.log('Replayed tool-call input:', messages[1].content);
+
+  const result = await generateText({
+    model,
+    tools,
+    messages,
+    stopWhen: isStepCount(5),
+  });
+
+  console.log('Recovered:', result.text);
 });
