@@ -1,5 +1,22 @@
 # @ai-sdk/react
 
+## 4.0.12
+
+### Patch Changes
+
+- 8b2dc3c: fix(react): use the latest transport in useChat instead of a stale one
+- Updated dependencies [0a87626]
+  - ai@7.0.11
+
+## 4.0.11
+
+### Patch Changes
+
+- Updated dependencies [8c616f0]
+  - ai@7.0.10
+  - @ai-sdk/mcp@2.0.5
+  - @ai-sdk/provider-utils@5.0.3
+
 ## 4.0.10
 
 ### Patch Changes

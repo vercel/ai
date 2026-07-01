@@ -1,5 +1,12 @@
 # @ai-sdk/openai
 
+## 4.0.5
+
+### Patch Changes
+
+- Updated dependencies [8c616f0]
+  - @ai-sdk/provider-utils@5.0.3
+
 ## 4.0.4
 
 ### Patch Changes
