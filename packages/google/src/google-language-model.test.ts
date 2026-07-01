@@ -656,6 +656,94 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should omit functionCall and functionResponse ids on Vertex', async () => {
+    prepareJsonResponse({ content: 'test response' });
+
+    const vertexModel = new GoogleLanguageModel('gemini-pro', {
+      provider: 'google.vertex.chat',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: { 'x-goog-api-key': 'test-api-key' },
+      generateId: () => 'test-id',
+    });
+
+    await vertexModel.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'What is the weather?' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'weather',
+              input: { location: 'Stockholm' },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'weather',
+              output: {
+                type: 'json',
+                value: { temperature: 21 },
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody).toMatchObject({
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: 'What is the weather?' }],
+        },
+        {
+          role: 'model',
+          parts: [
+            {
+              functionCall: {
+                name: 'weather',
+                args: { location: 'Stockholm' },
+              },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          parts: [
+            {
+              functionResponse: {
+                name: 'weather',
+                response: {
+                  name: 'weather',
+                  content: { temperature: 21 },
+                },
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(requestBody.contents[1].parts[0].functionCall).not.toHaveProperty(
+      'id',
+    );
+    expect(
+      requestBody.contents[2].parts[0].functionResponse,
+    ).not.toHaveProperty('id');
+  });
+
   it('should warn and drop serviceTier on Vertex provider', async () => {
     prepareJsonResponse({ content: 'test response' });
 
