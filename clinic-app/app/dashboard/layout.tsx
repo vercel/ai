@@ -4,6 +4,14 @@ import { Sidebar } from '@/components/sidebar';
 import { SubscriptionBanner } from '@/components/subscription-banner';
 import { ImpersonationBanner } from '@/components/impersonation-banner';
 
+// Every page under /dashboard depends on the logged-in user's live
+// profile/subscription/super-admin status. Without this, Next.js's fetch
+// Data Cache can serve a stale Supabase response (e.g. "not a super admin")
+// captured before a DB change, and that stale entry persists across
+// deployments until explicitly bypassed.
+export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
+
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const profile = await requireProfileWithPlan();
 

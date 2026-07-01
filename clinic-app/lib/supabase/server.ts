@@ -25,6 +25,15 @@ export function createSupabaseServerClient() {
           }
         },
       },
+      global: {
+        // Every query goes through Next.js's patched global fetch, which
+        // caches responses (and persists that cache across deployments)
+        // unless told not to. Without this, a Supabase read can keep
+        // serving a stale result (e.g. a permission check from before a DB
+        // change) indefinitely.
+        fetch: (input: RequestInfo | URL, init?: RequestInit) =>
+          fetch(input, { ...init, cache: 'no-store' }),
+      },
     },
   );
 }
