@@ -1,5 +1,135 @@
 # @ai-sdk/svelte
 
+## 5.0.9
+
+### Patch Changes
+
+- ai@7.0.9
+
+## 5.0.8
+
+### Patch Changes
+
+- Updated dependencies [0274f34]
+  - ai@7.0.8
+  - @ai-sdk/provider-utils@5.0.2
+
+## 5.0.7
+
+### Patch Changes
+
+- Updated dependencies [d598481]
+  - ai@7.0.7
+
+## 5.0.6
+
+### Patch Changes
+
+- Updated dependencies [989402d]
+  - ai@7.0.6
+
+## 5.0.5
+
+### Patch Changes
+
+- Updated dependencies [a2750db]
+  - ai@7.0.5
+
+## 5.0.4
+
+### Patch Changes
+
+- Updated dependencies [6a436e3]
+  - @ai-sdk/provider-utils@5.0.1
+  - ai@7.0.4
+
+## 5.0.3
+
+### Patch Changes
+
+- ai@7.0.3
+
+## 5.0.2
+
+### Patch Changes
+
+- ai@7.0.2
+
+## 5.0.1
+
+### Patch Changes
+
+- ai@7.0.1
+
+## 5.0.0
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- 9f0e36c: trigger release for all packages after provenance setup
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- 0c4c275: trigger initial canary release
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- b8396f0: trigger initial beta release
+
+## 5.0.0-beta.187
+
+### Patch Changes
+
+- ai@7.0.0-beta.187
+
+## 5.0.0-beta.186
+
+### Patch Changes
+
+- ai@7.0.0-beta.186
+
+## 5.0.0-beta.185
+
+### Patch Changes
+
+- Updated dependencies [75763b0]
+  - ai@7.0.0-beta.185
+
+## 5.0.0-beta.184
+
+### Patch Changes
+
+- Updated dependencies [0416e3e]
+  - ai@7.0.0-beta.184
+  - @ai-sdk/provider-utils@5.0.0-beta.50
+
+## 5.0.0-beta.183
+
+### Patch Changes
+
+- ai@7.0.0-beta.183
+
+## 5.0.0-beta.182
+
+### Patch Changes
+
+- Updated dependencies [cc6ab90]
+  - ai@7.0.0-beta.182
+
+## 5.0.0-beta.181
+
+### Patch Changes
+
+- Updated dependencies [6a2caf9]
+  - ai@7.0.0-beta.181
+
+## 5.0.0-beta.180
+
+### Patch Changes
+
+- Updated dependencies [81a284b]
+  - ai@7.0.0-beta.180
+
 ## 5.0.0-beta.179
 
 ### Patch Changes

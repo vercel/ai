@@ -94,6 +94,21 @@ const { video } = await generateVideo({
 });
 ```
 
+### Audio Generation
+
+Some video models can generate audio alongside the video. Use the `generateAudio` option to control this:
+
+```tsx highlight={"7"}
+import { experimental_generateVideo as generateVideo } from 'ai';
+__PROVIDER_IMPORT__;
+
+const { video } = await generateVideo({
+  model: __VIDEO_MODEL__,
+  prompt: 'A jazz band playing in a cozy club',
+  generateAudio: true,
+});
+```
+
 ### Generating Multiple Videos
 
 `experimental_generateVideo` supports generating multiple videos at once:

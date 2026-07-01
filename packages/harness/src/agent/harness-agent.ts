@@ -20,7 +20,10 @@ import type {
   ReasoningOutput,
   StreamTextResult,
 } from 'ai';
-import type { HarnessAgentSettings } from './harness-agent-settings';
+import type {
+  HarnessAgentSandboxConfig,
+  HarnessAgentSettings,
+} from './harness-agent-settings';
 import { HarnessAgentSession } from './harness-agent-session';
 import type {
   HarnessAgentAdapter,
@@ -34,14 +37,18 @@ import {
   collectHarnessAgentToolApprovalContinuations,
   type HarnessAgentToolApprovalContinuation,
 } from './harness-agent-tool-approval-continuation';
-import {
-  applyBootstrapRecipe,
-  hashBootstrap,
-} from './internal/bootstrap-recipe';
+import { applyBootstrapRecipe } from './internal/bootstrap-recipe';
 import {
   acquireBridgePort,
   releaseBridgePort,
 } from './internal/bridge-port-registry';
+import {
+  createSandboxBootstrapPlan,
+  ensureSandboxDirectory,
+  resolveSessionWorkDir,
+  validateSandboxBootstrapSettings,
+  type SandboxBootstrapPlan,
+} from './internal/sandbox-bootstrap';
 import { buildObservability } from './internal/resolve-observability';
 import { validateLifecycleStateData } from './internal/lifecycle-state-validation';
 import {
@@ -130,11 +137,15 @@ export class HarnessAgent<
   readonly tools: HarnessAllTools<THarness, TUserTools>;
 
   private readonly settings: HarnessAgentSettings<THarness, TUserTools>;
+  private readonly sandboxConfig: HarnessAgentSandboxConfig;
   private readonly userTools: TUserTools;
   private readonly permissionMode: HarnessAgentPermissionMode;
 
   constructor(settings: HarnessAgentSettings<THarness, TUserTools>) {
+    const sandboxConfig = resolveSandboxConfig(settings);
+    validateSandboxBootstrapSettings(sandboxConfig);
     this.settings = settings;
+    this.sandboxConfig = sandboxConfig;
     this.id = settings.id;
     this.userTools = settings.tools ?? ({} as TUserTools);
     this.permissionMode = resolvePermissionMode({
@@ -230,19 +241,25 @@ export class HarnessAgent<
       validatedResumeFrom != null || effectiveContinueFrom != null;
 
     let recipe: HarnessV1Bootstrap | undefined;
-    let identity: string | undefined;
-
     if (harness.getBootstrap != null) {
       recipe = await harness.getBootstrap({ abortSignal });
-      identity = await hashBootstrap(recipe);
     }
 
+    // Defines the hashes based on both harness bootstrap recipe and
+    // consumer-defined onBootstrap callback.
+    const sandboxBootstrapPlan = await createSandboxBootstrapPlan({
+      recipe,
+      settings: this.sandboxConfig,
+    });
+
+    // Acquires the concrete sandbox session, either by starting fresh and then
+    // creating a post-bootstrap snapshot, or by reusing a previously created
+    // snapshot based on the bootstrap-based hashes.
     const acquiredSandboxSession = await this._acquireSandbox({
       sandboxProvider,
       sessionId,
       isResume: isResumedSession,
-      recipe,
-      identity,
+      bootstrapPlan: sandboxBootstrapPlan,
       abortSignal,
     });
 
@@ -253,27 +270,37 @@ export class HarnessAgent<
     });
     const sandboxSession = leased.sandboxSession;
     const leasedBridgePort = leased.port;
-    const sessionWorkDir = `${sandboxSession.defaultWorkingDirectory}/${harness.harnessId}-${sessionId}`;
+    const sessionWorkDir = resolveSessionWorkDir({
+      defaultWorkingDirectory: sandboxSession.defaultWorkingDirectory,
+      harnessId: harness.harnessId,
+      sessionId,
+      workDir: sandboxBootstrapPlan.workDir,
+    });
 
     try {
-      /*
-       * Adapter bootstrap is one-time work for fresh sessions. The consumer
-       * hook runs for every acquired sandbox session after the work dir exists.
-       */
-      if (!isResumedSession && recipe != null && identity != null) {
+      // In case the sandbox session was created with a custom sandbox, or in
+      // case the sandbox provider doesn't respect `onFirstCreate`, we still
+      // have to ensure the harness bootstrap recipe has run. In the common
+      // scenario, this will be a cheap no-op based on just a marker check.
+      if (
+        !isResumedSession &&
+        sandboxBootstrapPlan.recipe != null &&
+        sandboxBootstrapPlan.recipeIdentity != null
+      ) {
         await applyBootstrapRecipe(
           sandboxSession.restricted(),
-          recipe,
-          identity,
+          sandboxBootstrapPlan.recipe,
+          sandboxBootstrapPlan.recipeIdentity,
           { abortSignal },
         );
       }
-      await sandboxSession.run({
-        command: `mkdir -p ${sessionWorkDir}`,
+      await ensureSandboxDirectory({
+        session: sandboxSession,
+        workDir: sessionWorkDir,
         abortSignal,
       });
-      if (this.settings.onSandboxSession != null) {
-        await this.settings.onSandboxSession({
+      if (this.sandboxConfig.onSession != null) {
+        await this.sandboxConfig.onSession({
           session: sandboxSession.restricted(),
           sessionWorkDir,
           abortSignal,
@@ -501,8 +528,7 @@ export class HarnessAgent<
     sandboxProvider: HarnessV1SandboxProvider;
     sessionId: string;
     isResume: boolean;
-    recipe: HarnessV1Bootstrap | undefined;
-    identity: string | undefined;
+    bootstrapPlan: SandboxBootstrapPlan;
     abortSignal: AbortSignal | undefined;
   }): Promise<HarnessV1NetworkSandboxSession> {
     const { sandboxProvider } = input;
@@ -521,17 +547,8 @@ export class HarnessAgent<
     return sandboxProvider.createSession({
       sessionId: input.sessionId,
       abortSignal: input.abortSignal,
-      identity: input.identity,
-      onFirstCreate:
-        input.recipe != null && input.identity != null
-          ? (session, opts) =>
-              applyBootstrapRecipe(
-                session,
-                input.recipe!,
-                input.identity!,
-                opts,
-              )
-          : undefined,
+      identity: input.bootstrapPlan.identity,
+      onFirstCreate: input.bootstrapPlan.onFirstCreate,
     });
   }
 
@@ -754,6 +771,24 @@ class HarnessGenerateTextResult<
   get providerMetadata() {
     return this.finalStep.providerMetadata;
   }
+}
+
+function resolveSandboxConfig(
+  settings: Pick<HarnessAgentSettings, 'sandboxConfig' | 'onSandboxSession'>,
+): HarnessAgentSandboxConfig {
+  if (settings.onSandboxSession != null) {
+    console.warn(
+      'HarnessAgent: `onSandboxSession` is deprecated. Use `sandboxConfig.onSession` instead.',
+    );
+  }
+
+  return {
+    ...settings.sandboxConfig,
+    ...(settings.sandboxConfig?.onSession == null &&
+    settings.onSandboxSession != null
+      ? { onSession: settings.onSandboxSession }
+      : {}),
+  };
 }
 
 /*

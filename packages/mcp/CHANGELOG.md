@@ -1,5 +1,107 @@
 # @ai-sdk/mcp
 
+## 2.0.4
+
+### Patch Changes
+
+- Updated dependencies [0274f34]
+  - @ai-sdk/provider@4.0.1
+  - @ai-sdk/provider-utils@5.0.2
+
+## 2.0.3
+
+### Patch Changes
+
+- 68a739a: feat(mcp): allow MCP client to use server completions
+- Updated dependencies [6a436e3]
+  - @ai-sdk/provider-utils@5.0.1
+
+## 2.0.2
+
+### Patch Changes
+
+- ba6d510: chore: fix deprecated use of zod `.passthrough()`
+
+## 2.0.1
+
+### Patch Changes
+
+- 241a8c5: Add Streamable HTTP session hooks, cached initialize metadata, and detach-on-close support for reattaching to MCP sessions.
+
+## 2.0.0
+
+### Major Changes
+
+- 23fa161: fix(mcp): setting redirect: error for MCP transport
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- b79094c: Add `resource_link` content type to `CallToolResultSchema` and `PromptMessageSchema` per MCP spec. Fixes hard rejection when MCP servers return `resource_link` content parts with zod ≥ 4.4.x.
+- 78e0023: fix(mcp): await addClientAuthentication in token exchange and refresh
+- b567a6c: dependency updates
+- e33ad0b: fix(mcp): add optional hook to validate authorization servers
+- e3ea484: fix(mcp): bypass outputSchema validation when tool returns isError
+- 93afb28: feat(mcp): expose server instructions to be accessible through client
+- a00d1d3: feat(mcp): allow custom fetch for HTTP and SSE transports
+- a98bf66: feat(mcp): surface 'serverInfo' exposed from the MCP server
+- 2a150f8: fix(mcp): lock first sse endpoint received via event
+- 2655da8: fix(mcp): use negotiated protocol version in transport request headers
+- 9f0e36c: trigger release for all packages after provenance setup
+- f7bc0b4: feat(mcp): expose `statusCode`, `url`, and `responseBody` on `MCPClientError` for HTTP transport failures
+
+  `MCPClientError` now carries structured HTTP context when it originates from the
+  streamable HTTP transport. This lets downstream consumers (e.g. agent frameworks
+  that need to decide whether to fall back from streamable HTTP to legacy SSE
+  transport per the MCP spec) branch on the actual response status without parsing
+  the error message string.
+
+  Fields are optional — they remain `undefined` for stdio transport errors and for
+  non-response failures (network errors, aborts).
+
+- dcefad3: fix(mcp): respond to ping requests with an empty result per JSON-RPC spec (closes #6282)
+- b44b051: fix(mcp): prevent prototype-named tools from bypassing the `schemas` allowlist
+
+  When using `client.tools({ schemas })` to expose only an explicitly allowed
+  subset of an MCP server's tools, the allowlist check used the `in` operator,
+  which also matches inherited `Object.prototype` properties. A server-advertised
+  tool named `constructor`, `toString`, `__proto__`, etc. would pass the check
+  even though the developer never defined it in `schemas`, and was then exposed to
+  the model and executable. The check now uses `Object.hasOwn`, so only
+  explicitly defined tools are returned.
+
+- f634bac: feat(mcp): add new McpProviderMetadata type
+- b9b3899: changeset for #13384
+- 1e89d62: fix(mcp): strip trailing slash from OAuth resource parameter
+- 3e0b82f: fix(mcp): support official sdk protocol version negotiation
+- 1451759: feat(mcp): deprecate name and use clientName for MCPClient
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- 08d2129: feat(mcp): propagate the server name through dynamic tool parts
+- 58c9eb1: feat(mcp): add `redirect` option to `MCPTransportConfig` for controlling HTTP redirect behavior
+- 0c4c275: trigger initial canary release
+- 611f621: feat(mcp): feat(mcp): add support for MCP Apps
+- 9ecd8ae: fix(mcp): add MCP protocol version 2025-11-25 to supported versions
+- 6c17a9f: fix(mcp): deduplicate auth refresh on http transport
+- 69254e0: feat(ai): add toolMetadata for tool specific metdata
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- f0c6770: fix(mcp): prevent mcp oauth credential exfiltration during rediscovery
+- 5463d0d: feat(provider): align tool result output content file part types with top-level message file part types
+- b8396f0: trigger initial beta release
+- b29e087: fix (mcp): handle SSE messages without explicit event fields
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+- 024a6b4: fix(mcp): validate oauth metadata issuer during discovery
+- 9b0bc8a: fix(mcp): prevent prototype pollution by using secureJsonParse
+- ff5eba1: feat: roll `image-*` tool output types into their equivalent `file-*` types
+
+## 2.0.0-beta.67
+
+### Patch Changes
+
+- Updated dependencies [0416e3e]
+  - @ai-sdk/provider@4.0.0-beta.20
+  - @ai-sdk/provider-utils@5.0.0-beta.50
+
 ## 2.0.0-beta.66
 
 ### Patch Changes

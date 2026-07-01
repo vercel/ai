@@ -78,7 +78,7 @@ Use `toolsContext` for values that belong to a specific tool. Each tool declares
 the context it expects with `contextSchema`; the matching `toolsContext` entry is
 validated and passed to the tool as `context`.
 
-```ts highlight="11-15,26-31"
+```ts highlight="9-12,25-30"
 import { generateText, tool } from 'ai';
 import { z } from 'zod';
 
@@ -131,7 +131,7 @@ include selected top-level runtime context properties in telemetry, and
 `telemetry.includeToolsContext` to include selected top-level tool context
 properties per tool.
 
-```ts highlight="36-45"
+```ts highlight="34-43"
 import { ToolLoopAgent, tool } from 'ai';
 import { z } from 'zod';
 

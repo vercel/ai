@@ -18,6 +18,48 @@ export type HarnessAgentToolApprovalConfiguration = Readonly<
   Record<string, ToolApprovalStatus>
 >;
 
+export type HarnessAgentSandboxConfig = {
+  /**
+   * Optional fixed working directory for all sessions, relative to the
+   * sandbox's default working directory. When omitted, sessions keep the
+   * existing `<harnessId>-<sessionId>` work directory.
+   */
+  readonly workDir?: string;
+
+  /**
+   * Caller-controlled identity for `onBootstrap`. Change this whenever the
+   * bootstrap side effects should invalidate the reusable sandbox snapshot.
+   */
+  readonly bootstrapHash?: string;
+
+  /**
+   * Called during sandbox template creation after the harness adapter's own
+   * bootstrap has run and before snapshot-capable providers publish a snapshot.
+   *
+   * `bootstrapHash` must be provided with this callback.
+   */
+  readonly onBootstrap?: (opts: {
+    readonly session: SandboxSession;
+    readonly workDir: string;
+    readonly abortSignal?: AbortSignal;
+  }) => Promise<void>;
+
+  /**
+   * Called after each sandbox session is acquired and the session work
+   * directory exists, before the harness adapter starts. Runs for fresh and
+   * resumed sessions.
+   *
+   * Use this to write per-session config, install lightweight tools, activate
+   * licenses, or prepare files in `sessionWorkDir`. Keep it idempotent if the
+   * agent may resume sessions.
+   */
+  readonly onSession?: (opts: {
+    readonly session: SandboxSession;
+    readonly sessionWorkDir: string;
+    readonly abortSignal?: AbortSignal;
+  }) => Promise<void>;
+};
+
 /**
  * Construction-time settings for a `HarnessAgent`.
  *
@@ -92,19 +134,12 @@ export type HarnessAgentSettings<
   readonly sandbox: HarnessV1SandboxProvider;
 
   /**
-   * Called after each sandbox session is acquired and the session work
-   * directory exists, before the harness adapter starts. Runs for fresh and
-   * resumed sessions.
-   *
-   * Use this to write per-session config, install lightweight tools, activate
-   * licenses, or prepare files in `sessionWorkDir`. Keep it idempotent if the
-   * agent may resume sessions.
+   * Sandbox working-directory and lifecycle hook configuration.
    */
-  readonly onSandboxSession?: (opts: {
-    readonly session: SandboxSession;
-    readonly sessionWorkDir: string;
-    readonly abortSignal?: AbortSignal;
-  }) => Promise<void>;
+  readonly sandboxConfig?: HarnessAgentSandboxConfig;
+
+  /** @deprecated Use `sandboxConfig.onSession` instead. */
+  readonly onSandboxSession?: HarnessAgentSandboxConfig['onSession'];
 
   /**
    * Telemetry configuration. The harness drives AI SDK's pluggable

@@ -391,6 +391,37 @@ const { text } = await generateText({
 Google Vertex language models can also be used in the `streamText` function
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
+#### Tuned Models
+
+[Tuned models](https://cloud.google.com/vertex-ai/generative-ai/docs/deploy/overview)
+are served from a deployed endpoint and are addressed by their endpoint id rather
+than a published model name. Pass the endpoint resource with the `endpoints/`
+prefix and the provider will route the request to the deployed endpoint
+(`.../locations/{location}/endpoints/{ENDPOINT_ID}`) instead of the base model
+path (`.../publishers/google/models/{MODEL_ID}`):
+
+```ts
+import { googleVertex } from '@ai-sdk/google-vertex';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: googleVertex('endpoints/YOUR_ENDPOINT_ID'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+Use the deployed **endpoint** id, not the tuned model id (a tuned model has both a
+`models/...` resource and a separate `endpoints/...` resource; only the endpoint
+is callable for inference). The request and response format is identical to the
+base model, so all standard call settings and provider options continue to work.
+
+<Note>
+  Tuned models require standard Google Cloud credentials and the
+  project/location of the deployed endpoint (via `GOOGLE_VERTEX_PROJECT` /
+  `GOOGLE_VERTEX_LOCATION` or `createGoogleVertex`). [Express
+  Mode](#express-mode) API keys are not supported for tuned models.
+</Note>
+
 #### Code Execution
 
 With [Code Execution](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/code-execution), certain Gemini models on Vertex AI can generate and execute Python code. This allows the model to perform calculations, data manipulation, and other programmatic tasks to enhance its responses.

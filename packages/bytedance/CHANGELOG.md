@@ -1,5 +1,55 @@
 # @ai-sdk/bytedance
 
+## 2.0.3
+
+### Patch Changes
+
+- 0274f34: feat (video): add first-class `frameImages` and `inputReferences` call options for video generation
+- Updated dependencies [0274f34]
+  - @ai-sdk/provider@4.0.1
+  - @ai-sdk/provider-utils@5.0.2
+
+## 2.0.2
+
+### Patch Changes
+
+- Updated dependencies [6a436e3]
+  - @ai-sdk/provider-utils@5.0.1
+
+## 2.0.1
+
+### Patch Changes
+
+- ba6d510: chore: fix deprecated use of zod `.passthrough()`
+
+## 2.0.0
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- 38fc777: Add AI Gateway hint to provider READMEs
+- a2ad029: Fix ByteDance video payloads to tag the prompt image as the first frame when a last frame image is provided.
+- 12d239b: feat (provider/bytedance): add seedance 2.0 support
+- 9f0e36c: trigger release for all packages after provenance setup
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- 0c4c275: trigger initial canary release
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- b8396f0: trigger initial beta release
+- 0416e3e: feat (video): add first-class `generateAudio` call option
+
+## 2.0.0-beta.53
+
+### Patch Changes
+
+- 0416e3e: feat (video): add first-class `generateAudio` call option
+- Updated dependencies [0416e3e]
+  - @ai-sdk/provider@4.0.0-beta.20
+  - @ai-sdk/provider-utils@5.0.0-beta.50
+
 ## 2.0.0-beta.52
 
 ### Patch Changes

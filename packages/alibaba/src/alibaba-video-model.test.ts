@@ -54,6 +54,7 @@ const defaultOptions = {
   duration: undefined,
   fps: undefined,
   seed: undefined,
+  generateAudio: undefined,
   providerOptions: defaultProviderOptions,
 } as const;
 
@@ -415,6 +416,41 @@ describe('AlibabaVideoModel', () => {
           feature: 'frameImages',
         }),
       );
+    });
+
+    it('should map the top-level generateAudio option', async () => {
+      const model = createModel({ modelId: 'wan2.6-i2v-flash' });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        generateAudio: true,
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        parameters: { audio: true },
+      });
+    });
+
+    it('should let the top-level generateAudio override the legacy audio option', async () => {
+      const model = createModel({ modelId: 'wan2.6-i2v-flash' });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        generateAudio: false,
+        providerOptions: {
+          alibaba: {
+            audio: true,
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        parameters: { audio: false },
+      });
     });
   });
 

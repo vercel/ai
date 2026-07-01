@@ -5,6 +5,7 @@ export {
   type SandboxChannelReconnectOptions,
 } from './sandbox-channel';
 export { classifyDiskLog, type DiskLogRecoveryMode } from './classify-disk-log';
+export { getAiGatewayAuthFromEnv } from './ai-gateway-auth';
 export {
   markBridgeStarting,
   waitForBridgeReady,

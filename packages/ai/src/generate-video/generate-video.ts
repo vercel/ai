@@ -51,6 +51,7 @@ export type GenerateVideoPrompt =
  * @param seed - Seed for the video generation.
  * @param frameImages - Role-tagged image inputs for image-to-video and first-last-frame generation.
  * @param inputReferences - Reference image or video inputs for reference-to-video generation.
+ * @param generateAudio - Whether the model should generate audio alongside the video.
  * @param providerOptions - Additional provider-specific options that are passed through to the provider
  * as body parameters.
  * @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
@@ -73,6 +74,7 @@ export async function experimental_generateVideo({
   seed,
   frameImages,
   inputReferences,
+  generateAudio,
   providerOptions,
   maxRetries: maxRetriesArg,
   abortSignal,
@@ -170,6 +172,11 @@ export async function experimental_generateVideo({
   >;
 
   /**
+   * Whether the model should generate audio alongside the video.
+   */
+  generateAudio?: boolean;
+
+  /**
    * Additional provider-specific options that are passed through to the provider
    * as body parameters.
    */
@@ -239,10 +246,36 @@ export async function experimental_generateVideo({
       ? undefined
       : normalizedInputReferences;
 
-  const resolvedImage =
-    image ??
-    normalizedFrameImages?.find(frame => frame.frameType === 'first_frame')
-      ?.image;
+  const warnings: Array<Warning> = [];
+
+  if (
+    normalizedFrameImages != null &&
+    normalizedFrameImages.length > 0 &&
+    normalizedInputReferences != null &&
+    normalizedInputReferences.length > 0
+  ) {
+    warnings.push({
+      type: 'other',
+      message:
+        'inputReferences were ignored because frameImages were provided; ' +
+        'frameImages and inputReferences cannot be combined.',
+    });
+  }
+
+  const firstFrameImage = normalizedFrameImages?.find(
+    frame => frame.frameType === 'first_frame',
+  )?.image;
+
+  if (image != null && firstFrameImage != null) {
+    warnings.push({
+      type: 'other',
+      message:
+        'prompt.image was ignored because a first_frame frameImage was provided; ' +
+        'the first_frame frameImage takes precedence as the start image.',
+    });
+  }
+
+  const resolvedImage = firstFrameImage ?? image;
 
   const maxVideosPerCallWithDefault =
     maxVideosPerCall ?? (await invokeModelMaxVideosPerCall(model)) ?? 1;
@@ -269,6 +302,7 @@ export async function experimental_generateVideo({
             image: resolvedImage,
             frameImages: normalizedFrameImages,
             inputReferences: effectiveInputReferences,
+            generateAudio,
             providerOptions: providerOptions ?? {},
             headers: headersWithUserAgent,
             abortSignal,
@@ -279,7 +313,6 @@ export async function experimental_generateVideo({
 
   // collect result videos, warnings, and response metadata
   const videos: Array<GeneratedFile> = [];
-  const warnings: Array<Warning> = [];
   const responses: Array<VideoModelResponseMetadata> = [];
   const providerMetadata: SharedV4ProviderMetadata = {};
 

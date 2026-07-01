@@ -18,6 +18,7 @@ const defaultOptions = {
   duration: undefined,
   fps: undefined,
   seed: undefined,
+  generateAudio: undefined,
   providerOptions: {
     google: {
       pollIntervalMs: 10, // Use short polling interval for tests
@@ -412,7 +413,7 @@ describe('GoogleVideoModel', () => {
   });
 
   describe('Image-to-Video', () => {
-    it('should send image as bytesBase64Encoded', async () => {
+    it('should send image as inlineData', async () => {
       let capturedBody: unknown;
       const model = createMockModel({
         onRequest: (url, body) => {
@@ -433,8 +434,10 @@ describe('GoogleVideoModel', () => {
 
       const body = capturedBody as { instances: Array<{ image: unknown }> };
       expect(body.instances[0].image).toStrictEqual({
-        bytesBase64Encoded: 'base64-image-data',
-        mimeType: 'image/png',
+        inlineData: {
+          mimeType: 'image/png',
+          data: 'base64-image-data',
+        },
       });
     });
 
@@ -449,33 +452,6 @@ describe('GoogleVideoModel', () => {
         },
       });
 
-      expect(result.warnings).toHaveLength(1);
-      expect(result.warnings[0]).toMatchObject({
-        type: 'unsupported',
-        feature: 'URL-based image input',
-      });
-    });
-
-    it('should warn and ignore a gs:// image (gcsUri is Vertex-only)', async () => {
-      let capturedBody: unknown;
-      const model = createMockModel({
-        onRequest: (url, body) => {
-          if (url.includes(':predictLongRunning')) {
-            capturedBody = body;
-          }
-        },
-      });
-
-      const result = await model.doGenerate({
-        ...defaultOptions,
-        image: {
-          type: 'url',
-          url: 'gs://bucket/image.png',
-        },
-      });
-
-      const body = capturedBody as { instances: Array<{ image?: unknown }> };
-      expect(body.instances[0].image).toBeUndefined();
       expect(result.warnings).toHaveLength(1);
       expect(result.warnings[0]).toMatchObject({
         type: 'unsupported',
@@ -513,8 +489,10 @@ describe('GoogleVideoModel', () => {
         instances: Array<{ image: unknown }>;
       };
       expect(body.instances[0].image).toStrictEqual({
-        bytesBase64Encoded: 'first-frame-data',
-        mimeType: 'image/png',
+        inlineData: {
+          mimeType: 'image/png',
+          data: 'first-frame-data',
+        },
       });
     });
 
@@ -551,8 +529,10 @@ describe('GoogleVideoModel', () => {
         instances: Array<{ image: unknown }>;
       };
       expect(body.instances[0].image).toStrictEqual({
-        bytesBase64Encoded: 'first-frame-data',
-        mimeType: 'image/png',
+        inlineData: {
+          mimeType: 'image/png',
+          data: 'first-frame-data',
+        },
       });
     });
 
@@ -592,8 +572,10 @@ describe('GoogleVideoModel', () => {
         instances: Array<{ image: unknown; lastFrame: unknown }>;
       };
       expect(body.instances[0].lastFrame).toStrictEqual({
-        bytesBase64Encoded: 'last-frame-data',
-        mimeType: 'image/jpeg',
+        inlineData: {
+          mimeType: 'image/jpeg',
+          data: 'last-frame-data',
+        },
       });
     });
   });
@@ -631,15 +613,19 @@ describe('GoogleVideoModel', () => {
       expect(body.instances[0].referenceImages).toStrictEqual([
         {
           image: {
-            bytesBase64Encoded: 'reference-1',
-            mimeType: 'image/png',
+            inlineData: {
+              mimeType: 'image/png',
+              data: 'reference-1',
+            },
           },
           referenceType: 'asset',
         },
         {
           image: {
-            bytesBase64Encoded: 'reference-2',
-            mimeType: 'image/jpeg',
+            inlineData: {
+              mimeType: 'image/jpeg',
+              data: 'reference-2',
+            },
           },
           referenceType: 'asset',
         },
@@ -679,8 +665,10 @@ describe('GoogleVideoModel', () => {
       expect(body.instances[0].referenceImages).toStrictEqual([
         {
           image: {
-            bytesBase64Encoded: 'reference-from-input',
-            mimeType: 'image/png',
+            inlineData: {
+              mimeType: 'image/png',
+              data: 'reference-from-input',
+            },
           },
           referenceType: 'asset',
         },
@@ -721,15 +709,19 @@ describe('GoogleVideoModel', () => {
       expect(body.instances[0].referenceImages).toStrictEqual([
         {
           image: {
-            bytesBase64Encoded: 'subject-reference',
-            mimeType: 'image/png',
+            inlineData: {
+              mimeType: 'image/png',
+              data: 'subject-reference',
+            },
           },
           referenceType: 'asset',
         },
         {
           image: {
-            bytesBase64Encoded: 'style-reference',
-            mimeType: 'image/png',
+            inlineData: {
+              mimeType: 'image/png',
+              data: 'style-reference',
+            },
           },
           referenceType: 'style',
         },
@@ -824,12 +816,13 @@ describe('GoogleVideoModel', () => {
       };
       expect(body.instances[0].referenceImages).toStrictEqual([
         {
-          bytesBase64Encoded: 'reference-image-data',
-          mimeType: 'image/png',
+          inlineData: {
+            mimeType: 'image/png',
+            data: 'reference-image-data',
+          },
         },
         {
           gcsUri: 'gs://bucket/reference.png',
-          mimeType: 'image/png',
         },
       ]);
     });

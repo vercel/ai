@@ -124,6 +124,13 @@ console.log(videos);
         'Reference image or video inputs for reference-to-video generation. Use the object form with an explicit mediaType for URL-based video references, and referenceType ("subject" by default, or "style") to tell the model what to do with the reference. Providers that do not support a role warn and treat it as subject.',
     },
     {
+      name: 'generateAudio',
+      type: 'boolean',
+      isOptional: true,
+      description:
+        'Whether the model should generate audio alongside the video.',
+    },
+    {
       name: 'providerOptions',
       type: 'ProviderOptions',
       isOptional: true,

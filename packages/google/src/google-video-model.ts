@@ -74,11 +74,18 @@ function convertFileToGoogleImage(
   warnings: SharedV4Warning[],
 ): Record<string, unknown> | undefined {
   if (file.type === 'url') {
+    if (file.url.startsWith('gs://')) {
+      return {
+        gcsUri: file.url,
+        mimeType: 'image/png',
+      };
+    }
+
     warnings.push({
       type: 'unsupported',
       feature: 'URL-based image input',
       details:
-        'Google Generative AI video models require base64-encoded images. URL will be ignored.',
+        'Google Generative AI video models require base64-encoded images or GCS URIs. URL will be ignored.',
     });
     return undefined;
   }
@@ -88,9 +95,13 @@ function convertFileToGoogleImage(
       ? file.data
       : convertUint8ArrayToBase64(file.data);
 
+  // The Gemini Developer API (generativelanguage.googleapis.com) requires
+  // inline image bytes wrapped as `inlineData`.
   return {
-    bytesBase64Encoded: base64Data,
-    mimeType: file.mediaType || 'image/png',
+    inlineData: {
+      mimeType: file.mediaType || 'image/png',
+      data: base64Data,
+    },
   };
 }
 
@@ -99,15 +110,16 @@ function convertProviderReferenceImage(
 ): Record<string, unknown> {
   if (refImg.bytesBase64Encoded) {
     return {
-      bytesBase64Encoded: refImg.bytesBase64Encoded,
-      mimeType: 'image/png',
+      inlineData: {
+        mimeType: 'image/png',
+        data: refImg.bytesBase64Encoded,
+      },
     };
   }
 
   if (refImg.gcsUri) {
     return {
       gcsUri: refImg.gcsUri,
-      mimeType: 'image/png',
     };
   }
 

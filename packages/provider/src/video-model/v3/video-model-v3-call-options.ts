@@ -73,6 +73,11 @@ export type VideoModelV3CallOptions = {
   inputReferences: Array<VideoModelV3Reference> | undefined;
 
   /**
+   * Whether the model should generate audio alongside the video.
+   */
+  generateAudio: boolean | undefined;
+
+  /**
    * Additional provider-specific options that are passed through to the provider
    * as body parameters.
    *
