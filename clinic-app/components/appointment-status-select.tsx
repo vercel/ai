@@ -6,6 +6,7 @@ import type { AppointmentStatus } from '@/lib/types';
 const STATUS_LABELS: Record<AppointmentStatus, string> = {
   agendado: 'Agendado',
   confirmado: 'Confirmado',
+  in_progress: 'Em atendimento',
   cancelado: 'Cancelado',
   concluido: 'Concluído',
 };

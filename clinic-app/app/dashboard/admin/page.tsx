@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { requireAdmin, requireProfileWithPlan } from '@/lib/auth';
 import type { ClinicSettings, MessageTemplate, PaymentMethod, Profile, Room } from '@/lib/types';
@@ -19,7 +20,7 @@ import {
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: { error?: string };
+  searchParams: { error?: string; success?: string };
 }) {
   const profile = await requireProfileWithPlan();
   requireAdmin(profile);
@@ -54,6 +55,9 @@ export default async function AdminPage({
       {searchParams.error && (
         <p className="mb-4 rounded bg-red-50 p-2 text-sm text-red-600">{searchParams.error}</p>
       )}
+      {searchParams.success && (
+        <p className="mb-4 rounded bg-green-50 p-2 text-sm text-green-700">{searchParams.success}</p>
+      )}
 
       {profile.plan && (
         <div className="mb-6 rounded-xl bg-white p-4 shadow-sm">
@@ -69,7 +73,15 @@ export default async function AdminPage({
         </div>
       )}
 
-      <h2 className="mb-3 text-sm font-semibold text-gray-700">Cadastrar colaborador</h2>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-gray-700">Cadastrar colaborador</h2>
+        <Link
+          href="/dashboard/admin/professionals/new"
+          className="text-xs font-medium text-brand-600 hover:underline"
+        >
+          Cadastrar profissional (com repasse) →
+        </Link>
+      </div>
       <div className="mb-6 max-w-md rounded-xl bg-white p-4 shadow-sm">
         {maxUsers !== null && userCount >= maxUsers ? (
           <p className="text-sm text-gray-500">

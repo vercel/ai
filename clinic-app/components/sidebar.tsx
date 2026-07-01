@@ -109,6 +109,7 @@ const LINKS: {
     ],
   },
   { href: '/dashboard/store', label: 'Loja', roles: ['admin', 'recepcao'], module: 'store' },
+  { href: '/dashboard/minha-agenda', label: 'Meus Atendimentos', roles: ['medico'] },
   { href: '/dashboard/schedule', label: 'Minha agenda', roles: ['admin', 'medico'] },
   { href: '/dashboard/profile', label: 'Meu perfil', roles: ['admin', 'medico', 'recepcao'] },
   { href: '/dashboard/admin', label: 'Administração', roles: ['admin'] },

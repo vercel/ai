@@ -10,6 +10,7 @@ type AppointmentRow = Appointment & {
 const STATUS_LABELS: Record<Appointment['status'], string> = {
   agendado: 'Agendado',
   confirmado: 'Confirmado',
+  in_progress: 'Em atendimento',
   cancelado: 'Cancelado',
   concluido: 'Concluído',
 };

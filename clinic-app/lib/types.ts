@@ -1,5 +1,5 @@
 export type UserRole = 'admin' | 'medico' | 'recepcao';
-export type AppointmentStatus = 'agendado' | 'confirmado' | 'cancelado' | 'concluido';
+export type AppointmentStatus = 'agendado' | 'confirmado' | 'in_progress' | 'cancelado' | 'concluido';
 export type InvoiceStatus = 'pendente' | 'pago' | 'cancelado';
 export type CampaignStatus = 'rascunho' | 'agendada' | 'enviada';
 export type LeadStage = 'novo' | 'contato' | 'agendado' | 'convertido' | 'perdido';
@@ -15,6 +15,13 @@ export interface Profile {
   role: UserRole;
   clinic_id: string | null;
   created_at: string;
+  email: string | null;
+  cpf: string | null;
+  council_registration: string | null;
+  specialty: string | null;
+  phone: string | null;
+  commission_rate: number;
+  is_locked?: boolean;
 }
 
 export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'suspended' | 'canceled';
