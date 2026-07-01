@@ -1,0 +1,153 @@
+---
+title: OpenGradient
+description: OpenGradient Provider for the AI SDK
+---
+
+# OpenGradient Provider
+
+[OpenGradient](https://opengradient.ai) runs LLM inference inside a Trusted
+Execution Environment (TEE) and returns a verifiable attestation with every
+response, paid for on-chain via [x402](https://www.x402.org). The
+[`opengradient-ai-provider`](https://github.com/gilbertsahumada/opengradient-ai-provider)
+is a community provider that exposes this through the AI SDK:
+
+- **Verifiable inference**: each response carries a TEE signature you can verify, surfaced via `providerMetadata`.
+- **On-chain payment**: inference is paid per request with x402 (OPG token + Permit2 on Base), no API key.
+- **Standard AI SDK surface**: `generateText`, `streamText`, and tool calling against `LanguageModelV3`.
+
+## Setup
+
+The OpenGradient provider is available in the `opengradient-ai-provider` module. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add opengradient-ai-provider ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install opengradient-ai-provider ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add opengradient-ai-provider ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add opengradient-ai-provider ai" dark />
+  </Tab>
+</Tabs>
+
+`ai` (the AI SDK) is a peer dependency.
+
+## Provider Instance
+
+To create an OpenGradient provider instance, use the `createOpenGradient` function:
+
+```typescript
+import { createOpenGradient } from 'opengradient-ai-provider';
+
+const opengradient = createOpenGradient({
+  // server-only; falls back to OPENGRADIENT_PRIVATE_KEY when omitted
+  privateKey: process.env.OPENGRADIENT_PRIVATE_KEY,
+  // TEE endpoint(s); see "TEE endpoints" below
+  llmServerUrl: process.env.OPENGRADIENT_LLM_SERVER_URL?.split(','),
+});
+```
+
+The `privateKey` is an EVM key used to pay for inference via x402, it is
+**server-only** and must never be exposed to the client.
+
+### TEE endpoints
+
+The published OpenGradient SDK's default on-chain TEE registry currently returns
+no active TEEs, so until that is fixed you pass one or more TEE endpoints
+explicitly through `llmServerUrl` (a string or an array). The provider tries them
+in order and fails over to the next on a connection failure. You can also set
+`OPENGRADIENT_LLM_SERVER_URL` (comma-separated for a failover list). See the
+[README](https://github.com/gilbertsahumada/opengradient-ai-provider#tee-endpoints-llmserverurl-currently-required)
+for current endpoints and caveats.
+
+## Language Models
+
+Create a model with the provider instance and use it with the AI SDK's
+`generateText`:
+
+```typescript
+import { createOpenGradient } from 'opengradient-ai-provider';
+import { generateText } from 'ai';
+
+const opengradient = createOpenGradient();
+
+const { text, providerMetadata } = await generateText({
+  model: opengradient('anthropic/claude-haiku-4-5'),
+  prompt: 'In one sentence, what is a TEE?',
+});
+
+console.log(text);
+console.log('TEE signature:', providerMetadata?.opengradient?.teeSignature);
+```
+
+Model ids are OpenGradient's TEE LLM model ids (for example
+`anthropic/claude-haiku-4-5`).
+
+### Streaming
+
+```typescript
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: opengradient('anthropic/claude-haiku-4-5'),
+  prompt: 'Explain verifiable inference in two sentences.',
+});
+
+for await (const delta of result.textStream) process.stdout.write(delta);
+```
+
+### Tool calling
+
+```typescript
+import { generateText, tool, jsonSchema } from 'ai';
+
+const { toolCalls } = await generateText({
+  model: opengradient('anthropic/claude-haiku-4-5'),
+  prompt: 'What is the weather in Paris? Use the tool.',
+  tools: {
+    get_weather: tool({
+      description: 'Get the current weather for a city.',
+      inputSchema: jsonSchema<{ city: string }>({
+        type: 'object',
+        properties: { city: { type: 'string' } },
+        required: ['city'],
+      }),
+    }),
+  },
+});
+```
+
+## TEE Attestation
+
+Every response exposes attestation and payment data under
+`providerMetadata.opengradient`:
+
+| Field          | Description                                          |
+| -------------- | ---------------------------------------------------- |
+| `teeSignature` | RSA-PSS signature over the response (verifiable).    |
+| `teeId`        | On-chain registry id of the enclave that served it.  |
+| `teeEndpoint`  | Endpoint URL of the serving TEE.                     |
+| `teeTimestamp` | ISO-8601 signing time.                               |
+| `paymentHash`  | x402 payment hash (non-streaming only).              |
+
+## Configuration
+
+`createOpenGradient(settings)` accepts the following, all optional with an env
+fallback:
+
+| Setting        | Type                 | Env fallback                  | Notes                                            |
+| -------------- | -------------------- | ----------------------------- | ------------------------------------------------ |
+| `privateKey`   | `string`             | `OPENGRADIENT_PRIVATE_KEY`    | EVM key that pays for inference. Server-only.    |
+| `llmServerUrl` | `string \| string[]` | `OPENGRADIENT_LLM_SERVER_URL` | Explicit TEE endpoint(s) with failover.          |
+| `rpcUrl`       | `string`             | `OPENGRADIENT_RPC_URL`        | RPC for the on-chain TEE registry.               |
+
+Payment (the OPG token, x402, and Permit2) runs on **Base mainnet**, which is an
+OpenGradient constraint; there is no testnet payment path.
+
+For the full API, attestation verification, on-chain setup (`ensureOpgApproval`,
+`checkOpenGradientSetup`), and examples, see the
+[OpenGradient provider repository](https://github.com/gilbertsahumada/opengradient-ai-provider).
