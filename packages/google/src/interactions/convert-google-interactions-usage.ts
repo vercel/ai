@@ -45,3 +45,25 @@ export function convertGoogleInteractionsUsage(
     raw: usage as unknown as JSONObject,
   };
 }
+
+/**
+ * Extracts the per-modality output token breakdown from an Interactions usage
+ * record (e.g. `{ video: 57920, text: 12 }`).
+ */
+export function getGoogleInteractionsOutputTokensByModality(
+  usage: GoogleInteractionsUsage | undefined | null,
+): Record<string, number> | undefined {
+  const byModality = usage?.output_tokens_by_modality;
+  if (byModality == null) {
+    return undefined;
+  }
+
+  const result: Record<string, number> = {};
+  for (const entry of byModality) {
+    if (entry?.modality != null && entry.tokens != null) {
+      result[entry.modality] = entry.tokens;
+    }
+  }
+
+  return Object.keys(result).length > 0 ? result : undefined;
+}

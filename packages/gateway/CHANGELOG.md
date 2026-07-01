@@ -1,5 +1,28 @@
 # @ai-sdk/gateway
 
+## 4.0.8
+
+### Patch Changes
+
+- Updated dependencies [8c616f0]
+  - @ai-sdk/provider-utils@5.0.3
+
+## 4.0.7
+
+### Patch Changes
+
+- 2edc641: chore(provider/gateway): update gateway model settings files
+- c18018c: feat (provider/anthropic): add `claude-sonnet-5` model id
+
+## 4.0.6
+
+### Patch Changes
+
+- 0274f34: feat (video): add first-class `frameImages` and `inputReferences` call options for video generation
+- Updated dependencies [0274f34]
+  - @ai-sdk/provider@4.0.1
+  - @ai-sdk/provider-utils@5.0.2
+
 ## 4.0.5
 
 ### Patch Changes

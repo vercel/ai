@@ -4,16 +4,17 @@ import type {
   HarnessV1ResumeSessionState,
   HarnessV1Session,
   HarnessV1Skill,
+  HarnessV1ToolSpec,
 } from '@ai-sdk/harness';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /*
- * The codex adapter sends `instructions` over the channel inside the `start`
- * message. We stub `SandboxChannel` so `send()` records the messages instead
- * of opening a real WebSocket, then drive `doStart` → `doPromptTurn` against a
- * fake network sandbox session. This isolates the "prepend to the first user
- * message only" gating without standing up the in-sandbox bridge.
+ * The codex adapter frames initial prompt guidance before it sends the bridge
+ * `start` message. We stub `SandboxChannel` so `send()` records the messages
+ * instead of opening a real WebSocket, then drive `doStart` → `doPromptTurn`
+ * against a fake network sandbox session. This isolates the "prepend to the
+ * first user message only" gating without standing up the in-sandbox bridge.
  */
 const sentMessages: Array<Record<string, unknown>> = [];
 const openCalls: Array<{ resume?: boolean } | undefined> = [];
@@ -168,16 +169,71 @@ describe('codex adapter — instructions gating', () => {
       instructions: 'Use turbo build --concurrency=4.',
       emit: () => {},
     });
-    expect((await waitForStart({ count: 1 })).instructions).toBe(
-      'Use turbo build --concurrency=4.',
+    const firstStart = await waitForStart({ count: 1 });
+    expect(firstStart.prompt).toBe(
+      '<session-instructions>\n' +
+        'The block below is operating guidance from the system, not a message from the user — follow it, but do not mention it or attribute it to the user.\n\n' +
+        'Use turbo build --concurrency=4.\n\n' +
+        'Only respond with your `final` message once you have fully addressed the user request.\n' +
+        '</session-instructions>\n\n' +
+        '<user-message>\nfirst turn\n</user-message>',
     );
+    expect(firstStart.instructions).toBeUndefined();
 
     await session.doPromptTurn({
       prompt: 'second turn',
       instructions: 'Use turbo build --concurrency=4.',
       emit: () => {},
     });
-    expect((await waitForStart({ count: 2 })).instructions).toBeUndefined();
+    const lastStart = await waitForStart({ count: 2 });
+    expect(lastStart.prompt).toBe('second turn');
+    expect(lastStart.instructions).toBeUndefined();
+  });
+
+  it('prepends host tool usage guidance on the first user message only', async () => {
+    const session = await startSession();
+    const tools: ReadonlyArray<HarnessV1ToolSpec> = [
+      {
+        name: 'get_weather',
+        description: 'Get weather',
+        inputSchema: {
+          type: 'object',
+          properties: { city: { type: 'string' } },
+          required: ['city'],
+        },
+      },
+    ];
+
+    await session.doPromptTurn({
+      prompt: 'use the weather tool',
+      tools,
+      emit: () => {},
+    });
+    const firstStart = await waitForStart({ count: 1 });
+    expect(firstStart.prompt).not.toContain('## Host tools');
+    expect(firstStart.prompt).toContain('<host-tool-instructions>');
+    expect(firstStart.prompt).toContain('</host-tool-instructions>');
+    expect(firstStart.prompt).not.toContain('/wd/codex-s1/harness-tool.mjs');
+    expect(firstStart.prompt).toContain(
+      "node /wd/.agent-runs/s1/codex/harness-tool.mjs <toolName> '<jsonInput>'",
+    );
+    expect(firstStart.prompt).toContain(
+      'run a separate CLI invocation for each needed tool call in the current turn before answering',
+    );
+    expect(firstStart.prompt).toContain('Do not reuse previous tool results');
+    expect(firstStart.prompt).toContain(
+      '<user-message>\nuse the weather tool\n</user-message>',
+    );
+    expect(firstStart.tools).toEqual(tools);
+
+    await session.doPromptTurn({
+      prompt: 'use it again',
+      tools,
+      emit: () => {},
+    });
+    const secondStart = await waitForStart({ count: 2 });
+    expect(secondStart.prompt).toBe('use it again');
+    expect(secondStart.tools).toEqual(tools);
   });
 
   it('does not apply instructions when resuming a session', async () => {
@@ -195,7 +251,9 @@ describe('codex adapter — instructions gating', () => {
       instructions: 'Use turbo build --concurrency=4.',
       emit: () => {},
     });
-    expect((await waitForStart({ count: 1 })).instructions).toBeUndefined();
+    const start = await waitForStart({ count: 1 });
+    expect(start.prompt).toBe('resumed turn');
+    expect(start.instructions).toBeUndefined();
   });
 });
 

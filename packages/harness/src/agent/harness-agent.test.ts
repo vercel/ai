@@ -10,12 +10,15 @@ import type {
   HarnessV1SandboxProvider,
   HarnessV1Session,
   HarnessV1StreamPart,
+  HarnessV1ToolSpec,
 } from '../v1';
 import { tool } from '@ai-sdk/provider-utils';
+import { NoSuchToolError } from 'ai';
 import { describe, expect, test, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { HarnessAgent } from './harness-agent';
 import { HarnessAgentSession } from './harness-agent-session';
+import { HarnessCapabilityUnsupportedError } from '../errors/harness-capability-unsupported-error';
 import { hashHarnessBootstrap } from './internal/bootstrap-recipe';
 
 /**
@@ -33,6 +36,11 @@ function mockHarness(options: {
       output: unknown;
     }) => Promise<void>,
   ) => HarnessV1StreamPart[];
+  builtinTools?: HarnessV1['builtinTools'];
+  supportsBuiltinToolApprovals?: boolean;
+  supportsBuiltinToolFiltering?: boolean;
+  onDoStart?: (options: Parameters<HarnessV1['doStart']>[0]) => void;
+  onPromptTurn?: (options: HarnessV1PromptTurnOptions) => void;
   continueScript?: (
     submitToolResult: (input: {
       toolCallId: string;
@@ -43,6 +51,11 @@ function mockHarness(options: {
   harness: HarnessV1;
   prompts: HarnessV1PromptTurnOptions['prompt'][];
   toolResults: { toolCallId: string; output: unknown }[];
+  toolApprovals: {
+    approvalId: string;
+    approved: boolean;
+    reason?: string;
+  }[];
   doStart: ReturnType<typeof vi.fn>;
   doDetach: ReturnType<typeof vi.fn>;
   doContinueTurn: ReturnType<typeof vi.fn>;
@@ -53,6 +66,11 @@ function mockHarness(options: {
 } {
   const prompts: HarnessV1PromptTurnOptions['prompt'][] = [];
   const toolResults: { toolCallId: string; output: unknown }[] = [];
+  const toolApprovals: {
+    approvalId: string;
+    approved: boolean;
+    reason?: string;
+  }[] = [];
   const resumeState = {
     type: 'resume-session' as const,
     harnessId: 'mock',
@@ -75,6 +93,9 @@ function mockHarness(options: {
       submitToolResult: async input => {
         toolResults.push(input);
       },
+      submitToolApproval: async input => {
+        toolApprovals.push(input);
+      },
       done: Promise.resolve(),
     };
     const events =
@@ -87,16 +108,23 @@ function mockHarness(options: {
     return control;
   });
   let session: HarnessV1Session;
-  const doStart = vi.fn(async () => session);
+  const doStart = vi.fn(async (opts: Parameters<HarnessV1['doStart']>[0]) => {
+    options.onDoStart?.(opts);
+    return session;
+  });
 
   session = {
     sessionId: 'mock-session-1',
     isResume: false,
     doPromptTurn: async (opts: HarnessV1PromptTurnOptions) => {
       prompts.push(opts.prompt);
+      options.onPromptTurn?.(opts);
       const control: HarnessV1PromptControl = {
         submitToolResult: async input => {
           toolResults.push(input);
+        },
+        submitToolApproval: async input => {
+          toolApprovals.push(input);
         },
         done: Promise.resolve(),
       };
@@ -121,11 +149,20 @@ function mockHarness(options: {
     harness: {
       specificationVersion: 'harness-v1',
       harnessId: 'mock',
-      builtinTools: {},
+      builtinTools: options.builtinTools ?? {},
+      ...(options.supportsBuiltinToolApprovals !== undefined
+        ? { supportsBuiltinToolApprovals: options.supportsBuiltinToolApprovals }
+        : {}),
+      ...(options.supportsBuiltinToolFiltering !== undefined
+        ? {
+            supportsBuiltinToolFiltering: options.supportsBuiltinToolFiltering,
+          }
+        : {}),
       doStart,
     },
     prompts,
     toolResults,
+    toolApprovals,
     doStart,
     doDetach,
     doContinueTurn,
@@ -163,6 +200,37 @@ function makeSandboxProvider(
     createSession: async () => sandboxSession,
     resumeSession: async () => sandboxSession,
   };
+}
+
+function zeroUsage() {
+  return {
+    inputTokens: {
+      total: undefined,
+      noCache: undefined,
+      cacheRead: undefined,
+      cacheWrite: undefined,
+    },
+    outputTokens: {
+      total: undefined,
+      text: undefined,
+      reasoning: undefined,
+    },
+  };
+}
+
+function finishEvents(): HarnessV1StreamPart[] {
+  return [
+    {
+      type: 'finish-step',
+      finishReason: { unified: 'tool-calls', raw: 'tool_use' },
+      usage: zeroUsage(),
+    },
+    {
+      type: 'finish',
+      finishReason: { unified: 'tool-calls', raw: 'tool_use' },
+      totalUsage: zeroUsage(),
+    },
+  ];
 }
 
 function makeLifecycleSession(options: {
@@ -999,6 +1067,219 @@ describe('HarnessAgent', () => {
     expect(result.toolCalls).toHaveLength(1);
     expect(result.toolCalls[0]!.toolName).toBe('echo');
 
+    await session.destroy();
+  });
+
+  test('rejects activeTools and inactiveTools together at runtime', () => {
+    const { harness } = mockHarness({ script: () => [] });
+
+    expect(
+      () =>
+        new HarnessAgent({
+          harness,
+          activeTools: [],
+          inactiveTools: [],
+          sandbox: makeSandboxProvider(),
+        } as never),
+    ).toThrow(/either `activeTools` or `inactiveTools`/);
+  });
+
+  test('rejects unknown active tool names', () => {
+    const { harness } = mockHarness({ script: () => [] });
+
+    expect(
+      () =>
+        new HarnessAgent({
+          harness,
+          activeTools: ['missing'],
+          sandbox: makeSandboxProvider(),
+        }),
+    ).toThrow(NoSuchToolError);
+  });
+
+  test('activeTools filters custom tool specs and blocks inactive custom execution', async () => {
+    const receivedToolSpecs: HarnessV1ToolSpec[][] = [];
+    const { harness, toolResults } = mockHarness({
+      onPromptTurn: opts => {
+        receivedToolSpecs.push([...(opts.tools ?? [])]);
+      },
+      script: () => [
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'hidden',
+          input: JSON.stringify({ value: 'ping' }),
+        },
+        ...finishEvents(),
+      ],
+    });
+    const echo = tool({
+      inputSchema: z.object({ value: z.string() }),
+      execute: async ({ value }: { value: string }) => ({ echoed: value }),
+    });
+    const hidden = tool({
+      inputSchema: z.object({ value: z.string() }),
+      execute: async ({ value }: { value: string }) => ({ hidden: value }),
+    });
+    const agent = new HarnessAgent({
+      harness,
+      tools: { echo, hidden },
+      activeTools: ['echo'],
+      sandbox: makeSandboxProvider(),
+    });
+    const session = await agent.createSession();
+
+    await agent.generate({ session, prompt: 'go' });
+
+    expect(receivedToolSpecs[0]?.map(spec => spec.name)).toEqual(['echo']);
+    expect(toolResults).toEqual([
+      {
+        toolCallId: 'c1',
+        output: {
+          type: 'execution-denied',
+          reason:
+            "Tool 'hidden' is inactive due to the HarnessAgent tool filtering policy.",
+        },
+      },
+    ]);
+    await session.destroy();
+  });
+
+  test('inactiveTools filters custom tool specs and blocks inactive custom execution', async () => {
+    const receivedToolSpecs: HarnessV1ToolSpec[][] = [];
+    const { harness, toolResults } = mockHarness({
+      onPromptTurn: opts => {
+        receivedToolSpecs.push([...(opts.tools ?? [])]);
+      },
+      script: () => [
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'hidden',
+          input: JSON.stringify({ value: 'ping' }),
+        },
+        ...finishEvents(),
+      ],
+    });
+    const echo = tool({
+      inputSchema: z.object({ value: z.string() }),
+      execute: async ({ value }: { value: string }) => ({ echoed: value }),
+    });
+    const hidden = tool({
+      inputSchema: z.object({ value: z.string() }),
+      execute: async ({ value }: { value: string }) => ({ hidden: value }),
+    });
+    const agent = new HarnessAgent({
+      harness,
+      tools: { echo, hidden },
+      inactiveTools: ['hidden'],
+      sandbox: makeSandboxProvider(),
+    });
+    const session = await agent.createSession();
+
+    await agent.generate({ session, prompt: 'go' });
+
+    expect(receivedToolSpecs[0]?.map(spec => spec.name)).toEqual(['echo']);
+    expect(toolResults[0]?.output).toMatchObject({
+      type: 'execution-denied',
+    });
+    await session.destroy();
+  });
+
+  test('rejects builtin filtering when the harness cannot enforce it', () => {
+    const { harness } = mockHarness({
+      builtinTools: {
+        bash: tool({
+          inputSchema: z.object({ command: z.string() }),
+        }),
+      },
+      script: () => [],
+    });
+
+    expect(
+      () =>
+        new HarnessAgent({
+          harness,
+          activeTools: [],
+          sandbox: makeSandboxProvider(),
+        }),
+    ).toThrow(HarnessCapabilityUnsupportedError);
+  });
+
+  test('passes builtin filtering policy to approval-capable harnesses', async () => {
+    let startBuiltinFiltering:
+      | Parameters<HarnessV1['doStart']>[0]['builtinToolFiltering']
+      | undefined;
+    const { harness } = mockHarness({
+      builtinTools: {
+        bash: tool({
+          inputSchema: z.object({ command: z.string() }),
+        }),
+      },
+      supportsBuiltinToolApprovals: true,
+      onDoStart: opts => {
+        startBuiltinFiltering = opts.builtinToolFiltering;
+      },
+      script: () => finishEvents(),
+    });
+    const agent = new HarnessAgent({
+      harness,
+      activeTools: [],
+      sandbox: makeSandboxProvider(),
+    });
+    const session = await agent.createSession();
+
+    expect(startBuiltinFiltering).toEqual({ mode: 'allow', toolNames: [] });
+    await session.destroy();
+  });
+
+  test('auto-denies inactive builtin approvals without approval stream parts', async () => {
+    const { harness, toolApprovals } = mockHarness({
+      builtinTools: {
+        bash: tool({
+          inputSchema: z.object({ command: z.string() }),
+        }),
+      },
+      supportsBuiltinToolApprovals: true,
+      script: () => [
+        {
+          type: 'tool-call',
+          toolCallId: 'b1',
+          toolName: 'bash',
+          input: JSON.stringify({ command: 'pwd' }),
+          providerExecuted: true,
+        },
+        {
+          type: 'tool-approval-request',
+          approvalId: 'b1',
+          toolCallId: 'b1',
+        },
+        ...finishEvents(),
+      ],
+    });
+    const agent = new HarnessAgent({
+      harness,
+      inactiveTools: ['bash'],
+      sandbox: makeSandboxProvider(),
+    });
+    const session = await agent.createSession();
+    const result = await agent.stream({ session, prompt: 'go' });
+    const parts: string[] = [];
+
+    for await (const part of result.fullStream) {
+      parts.push(part.type);
+    }
+
+    expect(parts).not.toContain('tool-approval-request');
+    expect(parts).not.toContain('tool-approval-response');
+    expect(toolApprovals).toEqual([
+      {
+        approvalId: 'b1',
+        approved: false,
+        reason:
+          "Tool 'bash' is inactive due to the HarnessAgent tool filtering policy.",
+      },
+    ]);
     await session.destroy();
   });
 

@@ -3,7 +3,6 @@ import {
   type BridgeEvent,
   type BridgeTurn,
 } from '@ai-sdk/harness/bridge';
-import type { HarnessV1BuiltinToolName } from '@ai-sdk/harness';
 import { randomUUID } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
@@ -32,21 +31,39 @@ import {
   type HarnessUsage,
   type OpenCodeTokenUsage,
 } from './opencode-usage';
+import {
+  ToolRelayAuthorizer,
+  isToolRelayRequestFromAllowedProcess,
+  type ToolRelayCall,
+} from './tool-relay-auth';
 
 type Emit = (msg: Record<string, unknown>) => void;
 
 type OpenCodeClient = ReturnType<typeof createOpencodeClient>;
 type OpenCodeServer = Awaited<ReturnType<typeof createOpencodeServer>>;
+type ToolRelay = {
+  port: number;
+  close(): void;
+  authorizeToolCall(call: ToolRelayCall): void;
+};
 
 type RuntimeState = {
   server?: OpenCodeServer;
   client?: OpenCodeClient;
   sessionId?: string;
-  relay?: { port: number; close(): void };
+  relay?: ToolRelay;
   toolNames: Set<string>;
 };
 
-const NATIVE_TO_COMMON: Readonly<Record<string, HarnessV1BuiltinToolName>> = {
+type CommonBuiltinToolName =
+  | 'read'
+  | 'write'
+  | 'edit'
+  | 'bash'
+  | 'glob'
+  | 'grep';
+
+const NATIVE_TO_COMMON: Readonly<Record<string, CommonBuiltinToolName>> = {
   view: 'read',
   read: 'read',
   write: 'write',
@@ -63,6 +80,20 @@ const OPENCODE_TO_WIRE: Readonly<Record<string, string>> = {
   task: 'agent',
   agent: 'agent',
   subtask: 'agent',
+};
+
+const PUBLIC_TO_NATIVE: Readonly<Record<string, string>> = {
+  read: 'view',
+  write: 'write',
+  edit: 'edit',
+  bash: 'bash',
+  glob: 'glob',
+  grep: 'grep',
+  ls: 'list',
+  webfetch: 'webfetch',
+  skill: 'skill',
+  todowrite: 'todowrite',
+  agent: 'agent',
 };
 
 const TOOL_KIND: Readonly<Record<string, 'readonly' | 'edit' | 'bash'>> = {
@@ -133,12 +164,10 @@ async function ensureRuntime({
 }): Promise<void> {
   if (runtime.client) return;
 
-  let relayToken: string | undefined;
   if (start.tools && start.tools.length > 0) {
-    relayToken = randomUUID();
     runtime.toolNames = new Set(start.tools.map(tool => tool.name));
     runtime.relay = await startToolRelay({
-      relayToken,
+      allowedScriptPaths: [`${bootstrapDir}/host-tool-mcp.mjs`],
       tools: start.tools,
       emit,
       requestToolResult: turn.requestToolResult,
@@ -151,7 +180,6 @@ async function ensureRuntime({
     timeout: 30_000,
     config: buildOpenCodeConfig({
       start,
-      relayToken,
       relayPort: runtime.relay?.port,
     }) as never,
   });
@@ -164,11 +192,9 @@ async function ensureRuntime({
 
 function buildOpenCodeConfig({
   start,
-  relayToken,
   relayPort,
 }: {
   start: StartMessage;
-  relayToken: string | undefined;
   relayPort: number | undefined;
 }): Record<string, unknown> {
   const config: Record<string, unknown> = {
@@ -189,9 +215,21 @@ function buildOpenCodeConfig({
   };
   if (start.model) config.model = start.model;
   if (skillsDir) config.skills = { paths: [skillsDir] };
+  const inactiveToolNames = resolveInactiveBuiltinToolNames(start);
+  const permission = config.permission as Record<string, unknown>;
+  for (const toolName of inactiveToolNames) {
+    const permissionName = toPermissionToolName(
+      PUBLIC_TO_NATIVE[toolName] ?? toolName,
+    );
+    if (permissionName === 'ls') {
+      permission.list = 'ask';
+    } else {
+      permission[permissionName] = 'ask';
+    }
+  }
   const provider = buildProviderConfig(start);
   if (provider) config.provider = provider;
-  if (relayToken && relayPort && start.tools && start.tools.length > 0) {
+  if (relayPort && start.tools && start.tools.length > 0) {
     config.mcp = {
       'harness-tools': {
         type: 'local',
@@ -206,7 +244,6 @@ function buildOpenCodeConfig({
             })),
           ),
           TOOL_RELAY_URL: `http://127.0.0.1:${relayPort}`,
-          TOOL_RELAY_TOKEN: relayToken,
         },
       },
     };
@@ -498,6 +535,7 @@ async function runPrompt({
     client,
     sessionId,
     permissionMode: start.permissionMode,
+    builtinToolFiltering: start.builtinToolFiltering,
     turn,
     emit: msg => {
       if (msg.type === 'text-delta' || msg.type === 'reasoning-delta') {
@@ -620,6 +658,7 @@ async function runCompaction({
     client,
     sessionId,
     permissionMode: start.permissionMode,
+    builtinToolFiltering: start.builtinToolFiltering,
     turn,
     emit: msg => {
       if (msg.type === 'compaction') sawCompaction = true;
@@ -684,6 +723,7 @@ async function consumeEvents({
   client,
   sessionId,
   permissionMode,
+  builtinToolFiltering,
   turn,
   emit,
   signal,
@@ -692,6 +732,7 @@ async function consumeEvents({
   client: OpenCodeClient;
   sessionId: string;
   permissionMode: StartMessage['permissionMode'];
+  builtinToolFiltering: StartMessage['builtinToolFiltering'];
   turn: BridgeTurn;
   emit: Emit;
   signal: AbortSignal;
@@ -710,6 +751,7 @@ async function consumeEvents({
       state,
       sessionId,
       permissionMode,
+      builtinToolFiltering,
       client,
       turn,
       emit,
@@ -725,6 +767,7 @@ type TranslationState = {
   toolNames: Map<string, { rawToolName: string; toolName: string }>;
   toolCallsEmitted: Set<string>;
   toolResultsEmitted: Set<string>;
+  hostToolCallsAuthorized: Set<string>;
   shellCommands: Map<string, string>;
   messageRoles: Map<string, string>;
   turnUsage: Record<string, unknown> | undefined;
@@ -740,6 +783,7 @@ function createTranslationState(): TranslationState {
     toolNames: new Map(),
     toolCallsEmitted: new Set(),
     toolResultsEmitted: new Set(),
+    hostToolCallsAuthorized: new Set(),
     shellCommands: new Map(),
     messageRoles: new Map(),
     turnUsage: undefined,
@@ -753,6 +797,7 @@ async function translateAndEmit({
   state,
   sessionId,
   permissionMode,
+  builtinToolFiltering,
   client,
   turn,
   emit,
@@ -761,6 +806,7 @@ async function translateAndEmit({
   state: TranslationState;
   sessionId: string;
   permissionMode: StartMessage['permissionMode'];
+  builtinToolFiltering: StartMessage['builtinToolFiltering'];
   client: OpenCodeClient;
   turn: BridgeTurn;
   emit: Emit;
@@ -922,7 +968,16 @@ async function translateAndEmit({
     const rawToolName = String(props.tool ?? 'unknown');
     const toolName = toWireToolName(rawToolName);
     state.toolNames.set(callID, { rawToolName, toolName });
-    if (isHostTool(toolName, props.tool)) return;
+    const hostToolName = getHostToolName(toolName, props.tool);
+    if (hostToolName) {
+      authorizeHostToolCall({
+        callID,
+        toolName: hostToolName,
+        input: props.input ?? parseToolInput(state, props),
+        state,
+      });
+      return;
+    }
     emit({
       type: 'tool-call',
       toolCallId: callID,
@@ -947,7 +1002,7 @@ async function translateAndEmit({
       String((props as { tool?: unknown }).tool ?? '');
     const toolName =
       cachedTool?.toolName ?? toWireToolName(rawToolName || 'unknown');
-    if (isHostTool(toolName, rawToolName)) return;
+    if (getHostToolName(toolName, rawToolName)) return;
     emit({
       type: 'tool-result',
       toolCallId: callID,
@@ -1007,6 +1062,7 @@ async function translateAndEmit({
       client,
       sessionId,
       permissionMode,
+      builtinToolFiltering,
       turn,
       emit,
       event,
@@ -1018,6 +1074,7 @@ async function translateAndEmit({
       client,
       sessionId,
       permissionMode,
+      builtinToolFiltering,
       turn,
       emit,
       event,
@@ -1152,7 +1209,18 @@ function emitLegacyToolPart({
   const rawToolName = toolPart.tool;
   const toolName = toWireToolName(rawToolName);
   state.toolNames.set(callID, { rawToolName, toolName });
-  if (isHostTool(toolName, rawToolName)) return;
+  const hostToolName = getHostToolName(toolName, rawToolName);
+  if (hostToolName) {
+    if (status === 'running') {
+      authorizeHostToolCall({
+        callID,
+        toolName: hostToolName,
+        input: legacyToolPartInput(toolPart),
+        state,
+      });
+    }
+    return;
+  }
   if (!state.toolCallsEmitted.has(callID)) {
     state.toolCallsEmitted.add(callID);
     emit({
@@ -1242,6 +1310,7 @@ async function handlePermissionV2({
   client,
   sessionId,
   permissionMode,
+  builtinToolFiltering,
   turn,
   emit,
   event,
@@ -1249,6 +1318,7 @@ async function handlePermissionV2({
   client: OpenCodeClient;
   sessionId: string;
   permissionMode: StartMessage['permissionMode'];
+  builtinToolFiltering: StartMessage['builtinToolFiltering'];
   turn: BridgeTurn;
   emit: Emit;
   event: OpenCodeEvent;
@@ -1269,6 +1339,7 @@ async function handlePermissionV2({
         ? String((props.source as { callID?: unknown }).callID)
         : requestID,
     permissionMode,
+    builtinToolFiltering,
     turn,
     emit,
   });
@@ -1284,6 +1355,7 @@ async function handlePermission({
   client,
   sessionId,
   permissionMode,
+  builtinToolFiltering,
   turn,
   emit,
   event,
@@ -1291,6 +1363,7 @@ async function handlePermission({
   client: OpenCodeClient;
   sessionId: string;
   permissionMode: StartMessage['permissionMode'];
+  builtinToolFiltering: StartMessage['builtinToolFiltering'];
   turn: BridgeTurn;
   emit: Emit;
   event: OpenCodeEvent;
@@ -1309,6 +1382,7 @@ async function handlePermission({
         ? String((props.tool as { callID?: unknown }).callID)
         : requestID,
     permissionMode,
+    builtinToolFiltering,
     turn,
     emit,
   });
@@ -1327,6 +1401,7 @@ async function selectPermissionReply({
   requestID,
   toolCallId,
   permissionMode,
+  builtinToolFiltering,
   turn,
   emit,
 }: {
@@ -1335,12 +1410,29 @@ async function selectPermissionReply({
   requestID: string;
   toolCallId: string;
   permissionMode: StartMessage['permissionMode'];
+  builtinToolFiltering: StartMessage['builtinToolFiltering'];
   turn: BridgeTurn;
   emit: Emit;
 }): Promise<{ reply: 'once' | 'always' | 'reject'; message?: string }> {
   const toolName = toPermissionToolName(action);
   if (resources.some(resource => isExternalPath(resource))) {
     return { reply: 'reject', message: 'External directory access rejected.' };
+  }
+  if (
+    isBuiltinToolInactive({ toolName, toolFiltering: builtinToolFiltering })
+  ) {
+    emit({
+      type: 'tool-approval-request',
+      approvalId: requestID,
+      toolCallId,
+    });
+    const decision = await turn.requestToolApproval(requestID);
+    return decision.approved
+      ? { reply: 'once' }
+      : {
+          reply: 'reject',
+          ...(decision.reason ? { message: decision.reason } : {}),
+        };
   }
   if (!permissionMode || permissionMode === 'allow-all') {
     return { reply: 'always' };
@@ -1382,6 +1474,28 @@ function toPermissionToolName(action: string): string {
   return toWireToolName(normalized);
 }
 
+function resolveInactiveBuiltinToolNames(
+  start: StartMessage,
+): ReadonlyArray<string> {
+  const toolFiltering = start.builtinToolFiltering;
+  if (toolFiltering == null) return [];
+  return toolFiltering.mode === 'allow'
+    ? Object.keys(PUBLIC_TO_NATIVE).filter(
+        name => !toolFiltering.toolNames.includes(name),
+      )
+    : toolFiltering.toolNames;
+}
+
+function isBuiltinToolInactive(input: {
+  toolName: string;
+  toolFiltering: StartMessage['builtinToolFiltering'];
+}): boolean {
+  if (input.toolFiltering == null) return false;
+  return input.toolFiltering.mode === 'allow'
+    ? !input.toolFiltering.toolNames.includes(input.toolName)
+    : input.toolFiltering.toolNames.includes(input.toolName);
+}
+
 function isExternalPath(resource: string): boolean {
   if (!path.isAbsolute(resource)) return false;
   const normalized = path.resolve(resource);
@@ -1413,19 +1527,38 @@ function nativeNameField({
   return { nativeName };
 }
 
-function isHostTool(toolName: string, rawToolName: unknown): boolean {
-  if (runtime.toolNames.has(toolName)) return true;
+function getHostToolName(
+  toolName: string,
+  rawToolName: unknown,
+): string | undefined {
+  if (runtime.toolNames.has(toolName)) return toolName;
   if (typeof rawToolName === 'string' && runtime.toolNames.has(rawToolName)) {
-    return true;
+    return rawToolName;
   }
   if (
     typeof rawToolName === 'string' &&
     rawToolName.startsWith('harness-tools_') &&
     runtime.toolNames.has(rawToolName.slice('harness-tools_'.length))
   ) {
-    return true;
+    return rawToolName.slice('harness-tools_'.length);
   }
-  return false;
+  return undefined;
+}
+
+function authorizeHostToolCall({
+  callID,
+  toolName,
+  input,
+  state,
+}: {
+  callID: string;
+  toolName: string;
+  input: unknown;
+  state: TranslationState;
+}): void {
+  if (state.hostToolCallsAuthorized.has(callID)) return;
+  state.hostToolCallsAuthorized.add(callID);
+  runtime.relay?.authorizeToolCall({ toolName, input });
 }
 
 async function emitContextFallback({
@@ -1601,26 +1734,24 @@ function mapFinishReason(
 }
 
 async function startToolRelay({
-  relayToken,
+  allowedScriptPaths,
   tools,
   emit,
   requestToolResult,
 }: {
-  relayToken: string;
+  allowedScriptPaths: ReadonlyArray<string>;
   tools: ReadonlyArray<{ name: string }>;
   emit: Emit;
   requestToolResult: (
     toolCallId: string,
   ) => Promise<{ output: unknown; isError?: boolean }>;
-}): Promise<{ port: number; close(): void }> {
+}): Promise<ToolRelay> {
   const toolNames = new Set(tools.map(t => t.name));
+  const allowedScriptPathSet = new Set(allowedScriptPaths);
+  const authorizer = new ToolRelayAuthorizer();
   const server = createServer(async (req, res) => {
     try {
-      if (
-        req.method !== 'POST' ||
-        req.url !== '/' ||
-        req.headers.authorization !== `Bearer ${relayToken}`
-      ) {
+      if (req.method !== 'POST' || req.url !== '/') {
         res.writeHead(401, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'unauthorized tool relay request' }));
         return;
@@ -1641,6 +1772,17 @@ async function startToolRelay({
         res.end(
           JSON.stringify({ error: `Tool "${toolName}" is not available` }),
         );
+        return;
+      }
+      const authorized =
+        authorizer.consumeToolCall({ toolName, input }) ||
+        (await isToolRelayRequestFromAllowedProcess({
+          socket: req.socket,
+          allowedScriptPaths: allowedScriptPathSet,
+        }));
+      if (!authorized) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'unauthorized tool relay request' }));
         return;
       }
 
@@ -1683,6 +1825,7 @@ async function startToolRelay({
   return {
     port: address.port,
     close: () => closeServer(server),
+    authorizeToolCall: call => authorizer.authorizeToolCall(call),
   };
 }
 

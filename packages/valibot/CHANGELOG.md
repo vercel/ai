@@ -1,5 +1,18 @@
 # @ai-sdk/valibot
 
+## 3.0.3
+
+### Patch Changes
+
+- Updated dependencies [8c616f0]
+  - @ai-sdk/provider-utils@5.0.3
+
+## 3.0.2
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@5.0.2
+
 ## 3.0.1
 
 ### Patch Changes

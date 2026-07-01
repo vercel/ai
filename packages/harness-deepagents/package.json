@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/harness-deepagents",
-  "version": "1.0.7",
+  "version": "1.0.13",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,

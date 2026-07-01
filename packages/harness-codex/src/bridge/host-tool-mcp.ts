@@ -6,7 +6,7 @@
 // Env vars (set by the bridge when starting a turn):
 //   TOOL_SCHEMAS    — JSON array of { name, description, inputSchema }
 //   TOOL_RELAY_URL  — http://127.0.0.1:<port> of the bridge relay server
-//   TOOL_RELAY_TOKEN — bearer token required by the relay
+// Relay authorization is issued by bridge runtime events, not an env token.
 
 /*
  * CONSTRAINT — the third-party imports below are NEVER bundled into the
@@ -56,7 +56,6 @@ type JsonSchemaObject = {
 
 const schemas: ToolSchema[] = JSON.parse(process.env.TOOL_SCHEMAS || '[]');
 const relayUrl = process.env.TOOL_RELAY_URL || '';
-const relayToken = process.env.TOOL_RELAY_TOKEN || '';
 
 if (!schemas.length || !relayUrl) {
   process.stderr.write(
@@ -80,7 +79,6 @@ for (const schema of schemas) {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...(relayToken ? { Authorization: `Bearer ${relayToken}` } : {}),
           },
           body: JSON.stringify({ requestId, toolName: schema.name, input }),
         });
@@ -109,12 +107,12 @@ for (const schema of schemas) {
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function toZodShape(schema: JsonSchemaObject | undefined): Record<string, any> {
+function toZodShape(
+  schema: JsonSchemaObject | undefined,
+): Record<string, z.ZodTypeAny> {
   if (!schema?.properties) return {};
   const required = new Set(schema.required ?? []);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const shape: Record<string, any> = {};
+  const shape: Record<string, z.ZodTypeAny> = {};
   for (const [key, propSchema] of Object.entries(schema.properties)) {
     const propType = toZodType(propSchema);
     shape[key] = required.has(key) ? propType : propType.optional();
@@ -122,13 +120,12 @@ function toZodShape(schema: JsonSchemaObject | undefined): Record<string, any> {
   return shape;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function toZodType(schema: JsonSchemaObject | undefined): any {
+function toZodType(schema: JsonSchemaObject | undefined): z.ZodTypeAny {
   if (!schema) return z.any();
   const types = Array.isArray(schema.type)
     ? schema.type.filter((t): t is string => t !== 'null')
     : ([schema.type].filter(Boolean) as string[]);
-  let zType;
+  let zType: z.ZodTypeAny;
   switch (types[0]) {
     case 'string':
       zType = z.string();
