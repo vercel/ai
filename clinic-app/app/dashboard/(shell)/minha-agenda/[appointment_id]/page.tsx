@@ -2,9 +2,17 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { requireProfile } from '@/lib/auth';
-import type { Appointment, MedicalRecord, Patient, Prescription, Profile } from '@/lib/types';
+import type {
+  Appointment,
+  MedicalRecord,
+  MedicalRecordTemplate,
+  Patient,
+  Prescription,
+  Profile,
+} from '@/lib/types';
 import { addMedicalRecord, addPrescription } from '../../patients/actions';
 import { AttachmentLink } from '@/components/attachment-link';
+import { MedicalRecordEntryForm } from '@/components/medical-record-entry-form';
 import { ModalForm } from '@/components/modal-form';
 import { startAttendance } from './actions';
 
@@ -64,7 +72,7 @@ export default async function AppointmentAttendancePage({
     );
   }
 
-  const [{ data: records }, { data: prescriptions }] = await Promise.all([
+  const [{ data: records }, { data: prescriptions }, { data: templates }] = await Promise.all([
     supabase
       .from('medical_records')
       .select('*, profiles(full_name)')
@@ -77,6 +85,11 @@ export default async function AppointmentAttendancePage({
       .eq('patient_id', patient.id)
       .order('created_at', { ascending: false })
       .returns<Prescription[]>(),
+    supabase
+      .from('medical_record_templates')
+      .select('*')
+      .order('title')
+      .returns<MedicalRecordTemplate[]>(),
   ]);
 
   const addRecord = addMedicalRecord.bind(null, patient.id);
@@ -104,27 +117,7 @@ export default async function AppointmentAttendancePage({
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-gray-700">Prontuário</h2>
             <ModalForm triggerLabel="+ Nova Nota" title="Nova entrada no prontuário">
-              <form action={addRecord} encType="multipart/form-data" className="flex flex-col gap-3">
-                <textarea
-                  name="entry"
-                  required
-                  rows={4}
-                  placeholder="Anotações clínicas..."
-                  className={inputClass}
-                />
-                <label className="text-sm text-gray-600">
-                  Anexo (exame, documento, imagem)
-                  <input name="attachment" type="file" className={`mt-1 ${inputClass}`} />
-                </label>
-                <div className="mt-2 flex justify-end gap-2">
-                  <button
-                    type="submit"
-                    className="rounded bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
-                  >
-                    Salvar
-                  </button>
-                </div>
-              </form>
+              <MedicalRecordEntryForm action={addRecord} templates={templates ?? []} />
             </ModalForm>
           </div>
           <div className="flex flex-col gap-3">

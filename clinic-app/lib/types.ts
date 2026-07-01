@@ -147,6 +147,15 @@ export interface TherapyPlan {
   created_at: string;
 }
 
+export interface MedicalRecordTemplate {
+  id: string;
+  clinic_id: string;
+  title: string;
+  content: string;
+  created_by: string | null;
+  created_at: string;
+}
+
 export interface Prescription {
   id: string;
   patient_id: string;

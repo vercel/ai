@@ -75,12 +75,20 @@ export default async function AdminPage({
 
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-sm font-semibold text-gray-700">Cadastrar colaborador</h2>
-        <Link
-          href="/dashboard/admin/professionals/new"
-          className="text-xs font-medium text-brand-600 hover:underline"
-        >
-          Cadastrar profissional (com repasse) →
-        </Link>
+        <div className="flex gap-4">
+          <Link
+            href="/dashboard/admin/templates"
+            className="text-xs font-medium text-brand-600 hover:underline"
+          >
+            Modelos de prontuário →
+          </Link>
+          <Link
+            href="/dashboard/admin/professionals/new"
+            className="text-xs font-medium text-brand-600 hover:underline"
+          >
+            Cadastrar profissional (com repasse) →
+          </Link>
+        </div>
       </div>
       <div className="mb-6 max-w-md rounded-xl bg-white p-4 shadow-sm">
         {maxUsers !== null && userCount >= maxUsers ? (
