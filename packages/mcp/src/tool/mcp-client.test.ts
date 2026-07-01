@@ -1479,6 +1479,36 @@ describe('MCPClient', () => {
     });
   });
 
+  describe('notification support', () => {
+    it('should ignore server-initiated notifications instead of erroring per MCP spec', async () => {
+      const onUncaughtError = vi.fn();
+      client = await createMCPClient({
+        transport: { type: 'sse', url: 'https://example.com/sse' },
+        onUncaughtError,
+      });
+
+      const transportInstance = createMockTransport.mock.results.at(-1)
+        ?.value as MockMCPTransport;
+      const sendSpy = vi.spyOn(transportInstance, 'send');
+
+      const notification = {
+        jsonrpc: '2.0' as const,
+        method: 'notifications/message',
+        params: { level: 'info', data: 'hello from server' },
+      };
+
+      transportInstance.onmessage?.(notification);
+
+      await Promise.resolve();
+      await Promise.resolve();
+
+      // Notifications expect no response and unhandled ones must be ignored,
+      // so neither an error nor a reply should be emitted.
+      expect(onUncaughtError).not.toHaveBeenCalled();
+      expect(sendSpy).not.toHaveBeenCalled();
+    });
+  });
+
   it('should use onUncaughtError callback if provided', async () => {
     const onUncaughtError = vi.fn();
     const mockTransport = new MockMCPTransport({
