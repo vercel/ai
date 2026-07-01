@@ -450,8 +450,8 @@ const perplexityChunkSchema = z.object({
   choices: z.array(
     z.object({
       delta: z.object({
-        role: z.literal('assistant'),
-        content: z.string(),
+        role: z.literal('assistant').optional(),
+        content: z.string().nullish(),
       }),
       finish_reason: z.string().nullish(),
     }),
