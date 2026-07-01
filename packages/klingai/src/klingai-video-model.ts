@@ -454,8 +454,14 @@ export class KlingAIVideoModel implements Experimental_VideoModelV4 {
       body.negative_prompt = klingaiOptions.negativePrompt;
     }
 
-    if (klingaiOptions?.sound != null) {
-      body.sound = klingaiOptions.sound;
+    const sound =
+      options.generateAudio != null
+        ? options.generateAudio
+          ? 'on'
+          : 'off'
+        : klingaiOptions?.sound;
+    if (sound != null) {
+      body.sound = sound;
     }
 
     if (klingaiOptions?.cfgScale != null) {
@@ -547,8 +553,14 @@ export class KlingAIVideoModel implements Experimental_VideoModelV4 {
       body.negative_prompt = klingaiOptions.negativePrompt;
     }
 
-    if (klingaiOptions?.sound != null) {
-      body.sound = klingaiOptions.sound;
+    const sound =
+      options.generateAudio != null
+        ? options.generateAudio
+          ? 'on'
+          : 'off'
+        : klingaiOptions?.sound;
+    if (sound != null) {
+      body.sound = sound;
     }
 
     if (klingaiOptions?.cfgScale != null) {

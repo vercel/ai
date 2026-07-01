@@ -502,11 +502,15 @@ function normalizeImageData(
     };
   }
 
-  if (dataContent instanceof Uint8Array) {
+  if (dataContent instanceof Uint8Array || dataContent instanceof ArrayBuffer) {
+    const bytes =
+      dataContent instanceof Uint8Array
+        ? dataContent
+        : new Uint8Array(dataContent);
     return {
       type: 'file',
-      mediaType: detectFileMediaType(dataContent, restrictToImages),
-      data: dataContent,
+      mediaType: detectFileMediaType(bytes, restrictToImages),
+      data: bytes,
     };
   }
 
