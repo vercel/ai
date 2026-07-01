@@ -8,11 +8,6 @@
 //   TOOL_RELAY_URL  — http://127.0.0.1:<port> of the bridge relay server
 // Relay authorization is issued by bridge runtime events, not an env token.
 
-import {
-  jsonSchemaToZodShape,
-  type JsonSchemaObject,
-} from '@ai-sdk/harness/bridge';
-
 /*
  * CONSTRAINT — the third-party imports below are NEVER bundled into the
  * compiled `bridge/host-tool-mcp.mjs`. They are declared `external` in
@@ -32,6 +27,7 @@ import {
  */
 import * as mcpServerModule from '@modelcontextprotocol/sdk/server/mcp.js';
 import * as mcpStdioModule from '@modelcontextprotocol/sdk/server/stdio.js';
+import { z } from 'zod/v4';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const { McpServer } = mcpServerModule as any;
@@ -42,6 +38,20 @@ type ToolSchema = {
   name: string;
   description?: string;
   inputSchema?: JsonSchemaObject;
+};
+
+type JsonSchemaObject = {
+  type?: string | string[];
+  description?: string;
+  properties?: Record<string, JsonSchemaObject>;
+  required?: string[];
+  items?: JsonSchemaObject;
+  enum?: unknown[];
+  const?: unknown;
+  oneOf?: JsonSchemaObject[];
+  anyOf?: JsonSchemaObject[];
+  additionalProperties?: boolean | JsonSchemaObject;
+  nullable?: boolean;
 };
 
 const schemas: ToolSchema[] = JSON.parse(process.env.TOOL_SCHEMAS || '[]');
@@ -57,7 +67,7 @@ if (!schemas.length || !relayUrl) {
 const server = new McpServer({ name: 'harness-tools', version: '1.0.0' });
 
 for (const schema of schemas) {
-  const shape = jsonSchemaToZodShape(schema.inputSchema);
+  const shape = toZodShape(schema.inputSchema);
   server.tool(
     schema.name,
     schema.description ?? '',
@@ -95,6 +105,55 @@ for (const schema of schemas) {
       }
     },
   );
+}
+
+function toZodShape(
+  schema: JsonSchemaObject | undefined,
+): Record<string, z.ZodTypeAny> {
+  if (!schema?.properties) return {};
+  const required = new Set(schema.required ?? []);
+  const shape: Record<string, z.ZodTypeAny> = {};
+  for (const [key, propSchema] of Object.entries(schema.properties)) {
+    const propType = toZodType(propSchema);
+    shape[key] = required.has(key) ? propType : propType.optional();
+  }
+  return shape;
+}
+
+function toZodType(schema: JsonSchemaObject | undefined): z.ZodTypeAny {
+  if (!schema) return z.any();
+  const types = Array.isArray(schema.type)
+    ? schema.type.filter((t): t is string => t !== 'null')
+    : ([schema.type].filter(Boolean) as string[]);
+  let zType: z.ZodTypeAny;
+  switch (types[0]) {
+    case 'string':
+      zType = z.string();
+      break;
+    case 'number':
+      zType = z.number();
+      break;
+    case 'integer':
+      zType = z.number().int();
+      break;
+    case 'boolean':
+      zType = z.boolean();
+      break;
+    case 'array':
+      zType = z.array(toZodType(schema.items));
+      break;
+    case 'object':
+      zType = z.object(toZodShape(schema));
+      break;
+    case 'null':
+      zType = z.null();
+      break;
+    default:
+      zType = z.any();
+  }
+  if (schema.description) zType = zType.describe(schema.description);
+  if (schema.nullable) zType = zType.nullable();
+  return zType;
 }
 
 const transport = new StdioServerTransport();
