@@ -1,0 +1,97 @@
+---
+title: Gonka Broker
+description: Learn how to use the Gonka Broker provider for the AI SDK.
+---
+
+# Gonka Broker Provider
+
+[Gonka Broker](https://gonkabroker.com) provides OpenAI-compatible access to
+open-source models (MiniMax, Kimi, and more) running on the decentralized
+[Gonka](https://gonka.ai) network — no crypto or wallet required.
+
+The [`@gonkabroker/ai-sdk-provider`](https://www.npmjs.com/package/@gonkabroker/ai-sdk-provider)
+package provides language model support for the AI SDK, built on
+[`@ai-sdk/openai-compatible`](https://www.npmjs.com/package/@ai-sdk/openai-compatible).
+
+## Setup
+
+The Gonka Broker provider is available in the `@gonkabroker/ai-sdk-provider` module.
+You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @gonkabroker/ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @gonkabroker/ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @gonkabroker/ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @gonkabroker/ai-sdk-provider" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can import the default provider instance `gonkabroker` from `@gonkabroker/ai-sdk-provider`:
+
+```ts
+import { gonkabroker } from '@gonkabroker/ai-sdk-provider';
+```
+
+If you need a customized setup, you can import `createGonkaBroker` and create a
+provider instance with your settings:
+
+```ts
+import { createGonkaBroker } from '@gonkabroker/ai-sdk-provider';
+
+const gonkabroker = createGonkaBroker({
+  apiKey: process.env.GONKABROKER_API_KEY ?? '',
+  // baseURL: 'https://proxy.gonkabroker.com/v1', // optional override
+});
+```
+
+You can use the following optional settings to customize the provider instance:
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls. The default prefix is
+  `https://proxy.gonkabroker.com/v1`.
+
+- **apiKey** _string_
+
+  API key sent using the `Authorization` header. Defaults to the
+  `GONKABROKER_API_KEY` environment variable. Get a key in the app at
+  [gonkabroker.com](https://gonkabroker.com).
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+## Language Models
+
+You can create language models using a provider instance. The first argument is the
+model id, e.g.:
+
+```ts
+import { gonkabroker } from '@gonkabroker/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: gonkabroker('MiniMaxAI/MiniMax-M2.7'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+The authoritative, always-current list of available models is the public catalog at
+[`GET /v1/models`](https://proxy.gonkabroker.com/v1/models).
+
+Streaming (`streamText`) and tool calling are supported through the OpenAI-compatible base.
+
+## Additional Resources
+
+- [`@gonkabroker/ai-sdk-provider` on npm](https://www.npmjs.com/package/@gonkabroker/ai-sdk-provider)
+- [Source code](https://github.com/gonkabroker/gonkabroker-integrations/tree/master/vercel-ai-sdk)
+- [Gonka Broker](https://gonkabroker.com)
