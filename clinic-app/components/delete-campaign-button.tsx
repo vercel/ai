@@ -1,6 +1,6 @@
 'use client';
 
-import { deleteCampaign } from '@/app/dashboard/campaigns/actions';
+import { deleteCampaign } from '@/app/dashboard/(shell)/campaigns/actions';
 
 export function DeleteCampaignButton({ id }: { id: string }) {
   return (

@@ -1,6 +1,6 @@
 'use client';
 
-import { updateUserRole } from '@/app/dashboard/admin/actions';
+import { updateUserRole } from '@/app/dashboard/(shell)/admin/actions';
 import type { UserRole } from '@/lib/types';
 
 const ROLE_LABELS: Record<UserRole, string> = {

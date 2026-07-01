@@ -1,6 +1,6 @@
 'use client';
 
-import { deleteInvoice } from '@/app/dashboard/billing/actions';
+import { deleteInvoice } from '@/app/dashboard/(shell)/billing/actions';
 
 export function DeleteInvoiceButton({ id }: { id: string }) {
   return (

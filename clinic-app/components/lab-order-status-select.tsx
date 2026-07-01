@@ -1,6 +1,6 @@
 'use client';
 
-import { updateLabOrderStatus } from '@/app/dashboard/lab-orders/actions';
+import { updateLabOrderStatus } from '@/app/dashboard/(shell)/lab-orders/actions';
 import type { LabOrderStatus } from '@/lib/types';
 
 const STATUS_LABELS: Record<LabOrderStatus, string> = {

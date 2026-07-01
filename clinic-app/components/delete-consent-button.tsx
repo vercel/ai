@@ -1,6 +1,6 @@
 'use client';
 
-import { deleteConsentForm } from '@/app/dashboard/patients/[id]/consents/actions';
+import { deleteConsentForm } from '@/app/dashboard/(shell)/patients/[id]/consents/actions';
 
 export function DeleteConsentButton({
   patientId,

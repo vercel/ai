@@ -1,6 +1,6 @@
 'use client';
 
-import { cancelSignatureRequest, markSignatureSigned } from '@/app/dashboard/signatures/actions';
+import { cancelSignatureRequest, markSignatureSigned } from '@/app/dashboard/(shell)/signatures/actions';
 import type { SignatureStatus } from '@/lib/types';
 
 export function SignatureActions({ id, status }: { id: string; status: SignatureStatus }) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { deletePatient } from '@/app/dashboard/patients/actions';
+import { deletePatient } from '@/app/dashboard/(shell)/patients/actions';
 
 export function DeletePatientButton({ id }: { id: string }) {
   return (

@@ -1,6 +1,6 @@
 'use client';
 
-import { cancelFiscalNote, markFiscalNoteIssued } from '@/app/dashboard/fiscal-notes/actions';
+import { cancelFiscalNote, markFiscalNoteIssued } from '@/app/dashboard/(shell)/fiscal-notes/actions';
 import type { FiscalNoteStatus } from '@/lib/types';
 
 export function FiscalNoteActions({ id, status }: { id: string; status: FiscalNoteStatus }) {

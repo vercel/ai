@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { signPrescription } from '@/app/dashboard/patients/actions';
+import { signPrescription } from '@/app/dashboard/(shell)/patients/actions';
 import { SignaturePad } from './signature-pad';
 
 export function SignPrescriptionButton({

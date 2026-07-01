@@ -1,6 +1,6 @@
 'use client';
 
-import { deletePatientCrm } from '@/app/dashboard/crm/actions';
+import { deletePatientCrm } from '@/app/dashboard/(shell)/crm/actions';
 
 export function DeletePatientCrmButton({ id }: { id: string }) {
   return (

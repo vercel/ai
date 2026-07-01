@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { getAttachmentUrl } from '@/app/dashboard/patients/actions';
+import { getAttachmentUrl } from '@/app/dashboard/(shell)/patients/actions';
 
 export function AttachmentLink({ path }: { path: string }) {
   const [loading, setLoading] = useState(false);

@@ -1,6 +1,6 @@
 'use client';
 
-import { convertCrmContactToPatient } from '@/app/dashboard/crm/actions';
+import { convertCrmContactToPatient } from '@/app/dashboard/(shell)/crm/actions';
 
 export function ConvertCrmContactButton({ id }: { id: string }) {
   return (

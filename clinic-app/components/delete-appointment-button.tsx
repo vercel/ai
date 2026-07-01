@@ -1,6 +1,6 @@
 'use client';
 
-import { deleteAppointment } from '@/app/dashboard/appointments/actions';
+import { deleteAppointment } from '@/app/dashboard/(shell)/appointments/actions';
 
 export function DeleteAppointmentButton({ id }: { id: string }) {
   return (

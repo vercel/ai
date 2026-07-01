@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { generatePatientPortalLink } from '@/app/dashboard/patients/actions';
+import { generatePatientPortalLink } from '@/app/dashboard/(shell)/patients/actions';
 
 export function PatientPortalLinkButton({ patientId }: { patientId: string }) {
   const [link, setLink] = useState<string | null>(null);

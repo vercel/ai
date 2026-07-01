@@ -1,6 +1,6 @@
 'use client';
 
-import { updateConversationStatus } from '@/app/dashboard/conversations/actions';
+import { updateConversationStatus } from '@/app/dashboard/(shell)/conversations/actions';
 import type { ConversationStatus } from '@/lib/types';
 
 const STATUS_LABELS: Record<ConversationStatus, string> = {

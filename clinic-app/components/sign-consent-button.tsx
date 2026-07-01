@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { signConsentForm } from '@/app/dashboard/patients/[id]/consents/actions';
+import { signConsentForm } from '@/app/dashboard/(shell)/patients/[id]/consents/actions';
 import { SignaturePad } from './signature-pad';
 
 export function SignConsentButton({

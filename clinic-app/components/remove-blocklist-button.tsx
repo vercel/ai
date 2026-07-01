@@ -1,6 +1,6 @@
 'use client';
 
-import { removeFromBlocklist } from '@/app/dashboard/campaigns/actions';
+import { removeFromBlocklist } from '@/app/dashboard/(shell)/campaigns/actions';
 
 export function RemoveBlocklistButton({ id }: { id: string }) {
   return (

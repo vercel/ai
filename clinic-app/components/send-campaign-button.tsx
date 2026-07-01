@@ -1,6 +1,6 @@
 'use client';
 
-import { markCampaignSent } from '@/app/dashboard/campaigns/actions';
+import { markCampaignSent } from '@/app/dashboard/(shell)/campaigns/actions';
 
 export function SendCampaignButton({ id }: { id: string }) {
   return (

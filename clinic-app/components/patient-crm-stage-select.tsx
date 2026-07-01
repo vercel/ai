@@ -1,6 +1,6 @@
 'use client';
 
-import { updatePatientCrmStage } from '@/app/dashboard/crm/actions';
+import { updatePatientCrmStage } from '@/app/dashboard/(shell)/crm/actions';
 import { CRM_STAGES } from '@/lib/crm';
 
 export function PatientCrmStageSelect({ id, stage }: { id: string; stage: string }) {

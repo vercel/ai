@@ -46,6 +46,7 @@ export interface Clinic {
   plan_id: string;
   owner_id: string | null;
   is_active: boolean;
+  onboarding_completed: boolean;
   trial_ends_at: string | null;
   created_at: string;
 }

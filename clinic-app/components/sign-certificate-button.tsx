@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { signMedicalCertificate } from '@/app/dashboard/patients/actions';
+import { signMedicalCertificate } from '@/app/dashboard/(shell)/patients/actions';
 import { SignaturePad } from './signature-pad';
 
 export function SignCertificateButton({

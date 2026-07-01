@@ -1,6 +1,6 @@
 'use client';
 
-import { deleteLabOrder } from '@/app/dashboard/lab-orders/actions';
+import { deleteLabOrder } from '@/app/dashboard/(shell)/lab-orders/actions';
 
 export function DeleteLabOrderButton({ id }: { id: string }) {
   return (

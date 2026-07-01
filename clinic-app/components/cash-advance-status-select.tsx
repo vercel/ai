@@ -1,6 +1,6 @@
 'use client';
 
-import { updateCashAdvanceStatus } from '@/app/dashboard/cash-advances/actions';
+import { updateCashAdvanceStatus } from '@/app/dashboard/(shell)/cash-advances/actions';
 import type { CashAdvanceStatus } from '@/lib/types';
 
 const STATUS_LABELS: Record<CashAdvanceStatus, string> = {

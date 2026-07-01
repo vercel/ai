@@ -72,6 +72,32 @@ export async function updateSession(request: NextRequest) {
       url.pathname = '/dashboard';
       return NextResponse.redirect(url);
     }
+
+    if (!superAdmin && request.nextUrl.pathname.startsWith('/dashboard')) {
+      const isOnboardingRoute = request.nextUrl.pathname.startsWith('/dashboard/onboarding');
+
+      if (!isOnboardingRoute) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('clinic_id')
+          .eq('id', data.user.id)
+          .maybeSingle<{ clinic_id: string | null }>();
+
+        if (profile?.clinic_id) {
+          const { data: clinic } = await supabase
+            .from('clinics')
+            .select('onboarding_completed')
+            .eq('id', profile.clinic_id)
+            .maybeSingle<{ onboarding_completed: boolean }>();
+
+          if (clinic && !clinic.onboarding_completed) {
+            const url = request.nextUrl.clone();
+            url.pathname = '/dashboard/onboarding';
+            return NextResponse.redirect(url);
+          }
+        }
+      }
+    }
   }
 
   return response;

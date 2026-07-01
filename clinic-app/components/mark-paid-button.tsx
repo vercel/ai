@@ -1,6 +1,6 @@
 'use client';
 
-import { markInvoicePaidWithMethod } from '@/app/dashboard/billing/actions';
+import { markInvoicePaidWithMethod } from '@/app/dashboard/(shell)/billing/actions';
 import type { PaymentMethod } from '@/lib/types';
 
 export function MarkPaidButton({

@@ -1,6 +1,6 @@
 'use client';
 
-import { updateAppointmentStatus } from '@/app/dashboard/appointments/actions';
+import { updateAppointmentStatus } from '@/app/dashboard/(shell)/appointments/actions';
 import type { AppointmentStatus } from '@/lib/types';
 
 const STATUS_LABELS: Record<AppointmentStatus, string> = {

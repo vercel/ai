@@ -1,6 +1,6 @@
 'use client';
 
-import { updateLabOrderResult } from '@/app/dashboard/lab-orders/actions';
+import { updateLabOrderResult } from '@/app/dashboard/(shell)/lab-orders/actions';
 
 export function LabOrderResultForm({
   id,

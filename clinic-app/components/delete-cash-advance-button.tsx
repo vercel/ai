@@ -1,6 +1,6 @@
 'use client';
 
-import { deleteCashAdvance } from '@/app/dashboard/cash-advances/actions';
+import { deleteCashAdvance } from '@/app/dashboard/(shell)/cash-advances/actions';
 
 export function DeleteCashAdvanceButton({ id }: { id: string }) {
   return (
