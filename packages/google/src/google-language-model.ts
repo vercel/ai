@@ -243,6 +243,15 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       isVertexProvider,
     });
 
+    if (responseFormat?.type === 'json' && googleTools != null && googleTools.length > 0) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'responseFormat',
+        details:
+          'JSON response format (responseMimeType/responseSchema) cannot be combined with tools in Google; response format is ignored.',
+      });
+    }
+
     const resolvedThinking = resolveThinkingConfig({
       reasoning,
       modelId: this.modelId,
@@ -290,17 +299,26 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           seed,
 
           // response format:
+          // Google rejects requests that combine responseMimeType/responseSchema
+          // with function calling tools. When tools are present they take
+          // precedence and the response format fields are omitted.
           responseMimeType:
-            responseFormat?.type === 'json' ? 'application/json' : undefined,
+            googleTools != null && googleTools.length > 0
+              ? undefined
+              : responseFormat?.type === 'json'
+                ? 'application/json'
+                : undefined,
           responseSchema:
-            responseFormat?.type === 'json' &&
-            responseFormat.schema != null &&
-            // Google GenAI does not support all OpenAPI Schema features,
-            // so this is needed as an escape hatch:
-            // TODO convert into provider option
-            (googleOptions?.structuredOutputs ?? true)
-              ? convertJSONSchemaToOpenAPISchema(responseFormat.schema)
-              : undefined,
+            googleTools != null && googleTools.length > 0
+              ? undefined
+              : responseFormat?.type === 'json' &&
+                  responseFormat.schema != null &&
+                  // Google GenAI does not support all OpenAPI Schema features,
+                  // so this is needed as an escape hatch:
+                  // TODO convert into provider option
+                  (googleOptions?.structuredOutputs ?? true)
+                ? convertJSONSchemaToOpenAPISchema(responseFormat.schema)
+                : undefined,
           ...(googleOptions?.audioTimestamp && {
             audioTimestamp: googleOptions.audioTimestamp,
           }),

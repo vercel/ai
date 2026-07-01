@@ -983,6 +983,81 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should suppress response_format and emit warning when tools are present', async () => {
+    prepareJsonFixtureResponse('groq-text');
+
+    const { warnings } = await model.doGenerate({
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { value: { type: 'string' } },
+          required: ['value'],
+          additionalProperties: false,
+          $schema: 'http://json-schema.org/draft-07/schema#',
+        },
+      },
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          inputSchema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "gemma2-9b-it",
+        "tool_choice": "auto",
+        "tools": [
+          {
+            "function": {
+              "name": "test-tool",
+              "parameters": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "value",
+                ],
+                "type": "object",
+              },
+            },
+            "type": "function",
+          },
+        ],
+      }
+    `);
+
+    expect(warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "JSON response format cannot be combined with tools in Groq; response_format is ignored.",
+          "feature": "responseFormat",
+          "type": "unsupported",
+        },
+      ]
+    `);
+  });
+
   it('should send request body', async () => {
     prepareJsonFixtureResponse('groq-text');
 
