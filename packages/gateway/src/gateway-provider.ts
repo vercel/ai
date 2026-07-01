@@ -181,7 +181,8 @@ export interface GatewayProvider extends ProviderV4 {
 
 export interface GatewayProviderSettings {
   /**
-   * The base URL prefix for API calls. Defaults to `https://ai-gateway.vercel.sh/v4/ai`.
+   * The base URL prefix for API calls. Defaults to the `AI_GATEWAY_BASE_URL`
+   * environment variable, then `https://ai-gateway.vercel.sh/v4/ai`.
    */
   baseURL?: string;
 
@@ -242,7 +243,7 @@ export function createGateway(
   let lastFetchTime = 0;
 
   const baseURL =
-    withoutTrailingSlash(options.baseURL) ??
+    withoutTrailingSlash(options.baseURL ?? process.env.AI_GATEWAY_BASE_URL) ??
     'https://ai-gateway.vercel.sh/v4/ai';
 
   const createAuthHeaders = (auth: {
