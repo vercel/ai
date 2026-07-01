@@ -1098,7 +1098,7 @@ describe('MCPClient', () => {
     await expect(
       tools['retry-tool'].execute(
         { value: 'test' },
-        { messages: [], toolCallId: '1', context: {} },
+        { messages: [], toolCallId: '1' },
       ),
     ).rejects.toThrow(MCPClientError);
     expect(transport.toolCallAttempts).toBe(1);
@@ -1116,7 +1116,7 @@ describe('MCPClient', () => {
 
     const result = tools['retry-tool'].execute(
       { value: 'test' },
-      { messages: [], toolCallId: '1', context: {} },
+      { messages: [], toolCallId: '1' },
     );
     await vi.advanceTimersByTimeAsync(2000);
 
@@ -1146,7 +1146,7 @@ describe('MCPClient', () => {
 
     const result = tools['retry-tool'].execute(
       { value: 'test' },
-      { messages: [], toolCallId: '1', context: {} },
+      { messages: [], toolCallId: '1' },
     );
     await vi.advanceTimersByTimeAsync(2000);
 
@@ -1169,7 +1169,7 @@ describe('MCPClient', () => {
     await expect(
       tools['retry-tool'].execute(
         { value: 'test' },
-        { messages: [], toolCallId: '1', context: {} },
+        { messages: [], toolCallId: '1' },
       ),
     ).rejects.toMatchObject({ statusCode: 418 });
     expect(transport.toolCallAttempts).toBe(1);
@@ -1187,7 +1187,7 @@ describe('MCPClient', () => {
     await expect(
       tools['retry-tool'].execute(
         { value: 'test' },
-        { messages: [], toolCallId: '1', context: {} },
+        { messages: [], toolCallId: '1' },
       ),
     ).rejects.toMatchObject({ code: -32602 });
     expect(transport.toolCallAttempts).toBe(1);
@@ -1205,7 +1205,7 @@ describe('MCPClient', () => {
     await expect(
       tools['retry-tool'].execute(
         { value: 'test' },
-        { messages: [], toolCallId: '1', context: {} },
+        { messages: [], toolCallId: '1' },
       ),
     ).rejects.toMatchObject({ statusCode: 401 });
     expect(transport.toolCallAttempts).toBe(1);
@@ -1223,7 +1223,7 @@ describe('MCPClient', () => {
     await expect(
       tools['retry-tool'].execute(
         { value: 'test' },
-        { messages: [], toolCallId: '1', context: {} },
+        { messages: [], toolCallId: '1' },
       ),
     ).resolves.toMatchInlineSnapshot(`
       {
