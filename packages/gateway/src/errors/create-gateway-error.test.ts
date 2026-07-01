@@ -66,6 +66,25 @@ describe('Valid error responses', () => {
     expect(error.message).toBe('Request denied by a routing rule.');
     expect(error.statusCode).toBe(403);
     expect(error.type).toBe('forbidden');
+    expect((error as GatewayForbiddenError).ruleId).toBeUndefined();
+  });
+
+  it('exposes the ruleId on GatewayForbiddenError when present', async () => {
+    const response: GatewayErrorResponse = {
+      error: {
+        message: 'Request denied by a routing rule.',
+        type: 'forbidden',
+        ruleId: 'rule_abc123',
+      },
+    };
+
+    const error = await createGatewayErrorFromResponse({
+      response,
+      statusCode: 403,
+    });
+
+    expect(error).toBeInstanceOf(GatewayForbiddenError);
+    expect((error as GatewayForbiddenError).ruleId).toBe('rule_abc123');
   });
 
   it('should create GatewayRateLimitError for rate_limit_exceeded type', async () => {

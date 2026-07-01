@@ -13,19 +13,23 @@ export class GatewayForbiddenError extends GatewayError {
 
   readonly name = name;
   readonly type = 'forbidden';
+  readonly ruleId?: string;
 
   constructor({
     message = 'Forbidden',
     statusCode = 403,
     cause,
     generationId,
+    ruleId,
   }: {
     message?: string;
     statusCode?: number;
     cause?: unknown;
     generationId?: string;
+    ruleId?: string;
   } = {}) {
     super({ message, statusCode, cause, generationId });
+    this.ruleId = ruleId;
   }
 
   static isInstance(error: unknown): error is GatewayForbiddenError {
