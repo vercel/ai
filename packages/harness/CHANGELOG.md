@@ -1,5 +1,12 @@
 # @ai-sdk/harness
 
+## 1.0.12
+
+### Patch Changes
+
+- 7859cea: feat(harness): add tool filtering via `activeTools` and `inactiveTools`
+- c857346: feat(harness): add utility functions for certain duplicated layers in harnesses
+
 ## 1.0.11
 
 ### Patch Changes

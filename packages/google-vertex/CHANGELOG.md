@@ -1,5 +1,13 @@
 # @ai-sdk/google-vertex
 
+## 5.0.6
+
+### Patch Changes
+
+- 7ac79e7: feat(vertex): support tuned models
+- Updated dependencies [dc1eb8d]
+  - @ai-sdk/google@4.0.4
+
 ## 5.0.5
 
 ### Patch Changes
