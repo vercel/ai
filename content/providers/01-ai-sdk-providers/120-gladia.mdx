@@ -50,7 +50,7 @@ You can use the following optional settings to customize the Gladia provider ins
 
 - **apiKey** _string_
 
-  API key that is being sent using the `Authorization` header.
+  API key that is being sent using the `x-gladia-key` header.
   It defaults to the `GLADIA_API_KEY` environment variable.
 
 - **headers** _Record&lt;string,string&gt;_
@@ -73,7 +73,31 @@ using the `.transcription()` factory method.
 const model = gladia.transcription();
 ```
 
-You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the `summarize` option will enable summaries for sections of content.
+You can optionally select the transcription model by passing its id to the
+factory method. If you omit it, the Gladia API uses its default model
+(`solaria-1`).
+
+```ts
+const model = gladia.transcription('solaria-3');
+```
+
+The following models are available:
+
+- **solaria-1** (default) — Gladia's generalist model with the broadest language
+  coverage (100+ languages). Supports code switching and multi-language
+  configuration, and is available for both pre-recorded and live transcription.
+- **solaria-3** — Gladia's latest model, tuned for the highest accuracy on
+  European real-world audio. **Pre-recorded (async) only** — not available for
+  live transcription. Supports a **single language** chosen from English,
+  French, German, Spanish, or Italian: pass exactly one language in
+  `languageConfig` and do not enable `codeSwitching`.
+
+Both models support all of Gladia's audio intelligence add-ons. Choose
+`solaria-3` when transcribing one of its five supported European languages and
+accuracy matters most; otherwise use the default `solaria-1` for the widest
+language coverage, code switching, or live transcription.
+
+You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the `summarization` option will enable summaries for sections of content.
 
 ```ts highlight="7"
 import { transcribe } from 'ai';
@@ -92,19 +116,9 @@ const result = await transcribe({
 });
 ```
 
-<Note>
-  Gladia does not have various models, so you can omit the standard `model` id
-  parameter.
-</Note>
-
 The following provider options are available:
 
-- **contextPrompt** _string_
-
-  Context to feed the transcription model with for possible better accuracy.
-  Optional.
-
-- **customVocabulary** _boolean | any[]_
+- **customVocabulary** _boolean_
 
   Custom vocabulary to improve transcription accuracy.
   Optional.
@@ -116,26 +130,12 @@ The following provider options are available:
   - **vocabulary** _Array&lt;string | \{ value: string, intensity?: number, pronunciations?: string[], language?: string \}&gt;_
   - **defaultIntensity** _number_
 
-- **detectLanguage** _boolean_
+- **languageConfig** _object_
 
-  Whether to automatically detect the language.
+  Language configuration for transcription.
   Optional.
-
-- **enableCodeSwitching** _boolean_
-
-  Enable code switching for multilingual audio.
-  Optional.
-
-- **codeSwitchingConfig** _object_
-
-  Configuration for code switching.
-  Optional.
-  - **languages** _string[]_
-
-- **language** _string_
-
-  Specify the language of the audio.
-  Optional.
+  - **languages** _string[]_ — If one language is set, it is used for transcription. Otherwise, language is auto-detected.
+  - **codeSwitching** _boolean_ — If true, language is auto-detected on each utterance.
 
 - **callback** _boolean_
 
@@ -177,7 +177,6 @@ The following provider options are available:
   - **numberOfSpeakers** _number_
   - **minSpeakers** _number_
   - **maxSpeakers** _number_
-  - **enhanced** _boolean_
 
 - **translation** _boolean_
 
@@ -191,6 +190,10 @@ The following provider options are available:
   - **targetLanguages** _string[]_
   - **model** _'base' | 'enhanced'_
   - **matchOriginalUtterances** _boolean_
+  - **lipsync** _boolean_
+  - **contextAdaptation** _boolean_
+  - **context** _string_
+  - **informal** _boolean_
 
 - **summarization** _boolean_
 
@@ -203,24 +206,9 @@ The following provider options are available:
   Optional.
   - **type** _'general' | 'bullet_points' | 'concise'_
 
-- **moderation** _boolean_
-
-  Enable content moderation.
-  Optional.
-
 - **namedEntityRecognition** _boolean_
 
   Enable named entity recognition.
-  Optional.
-
-- **chapterization** _boolean_
-
-  Enable chapterization of the transcription.
-  Optional.
-
-- **nameConsistency** _boolean_
-
-  Enable name consistency in the transcription.
   Optional.
 
 - **customSpelling** _boolean_
@@ -233,17 +221,6 @@ The following provider options are available:
   Configuration for custom spelling.
   Optional.
   - **spellingDictionary** _Record&lt;string, string[]&gt;_
-
-- **structuredDataExtraction** _boolean_
-
-  Enable structured data extraction.
-  Optional.
-
-- **structuredDataExtractionConfig** _object_
-
-  Configuration for structured data extraction.
-  Optional.
-  - **classes** _string[]_
 
 - **sentimentAnalysis** _boolean_
 
@@ -260,8 +237,21 @@ The following provider options are available:
   Configuration for audio to LLM.
   Optional.
   - **prompts** _string[]_
+  - **model** _string_
 
-- **customMetadata** _Record&lt;string, any&gt;_
+- **piiRedaction** _boolean_
+
+  Enable PII redaction.
+  Optional.
+
+- **piiRedactionConfig** _object_
+
+  Configuration for PII redaction.
+  Optional.
+  - **entityTypes** _string[]_
+  - **processedTextType** _'MARKER' | 'MASK'_
+
+- **customMetadata** _Record&lt;string, unknown&gt;_
 
   Custom metadata to include with the request.
   Optional.
@@ -269,11 +259,6 @@ The following provider options are available:
 - **sentences** _boolean_
 
   Enable sentence detection.
-  Optional.
-
-- **displayMode** _boolean_
-
-  Enable display mode.
   Optional.
 
 - **punctuationEnhanced** _boolean_

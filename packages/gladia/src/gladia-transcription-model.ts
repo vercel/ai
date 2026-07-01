@@ -23,6 +23,7 @@ import type { GladiaConfig } from './gladia-config';
 import { gladiaFailedResponseHandler } from './gladia-error';
 import { gladiaTranscriptionModelOptionsSchema } from './gladia-transcription-model-options';
 import type { GladiaTranscriptionInitiateAPITypes } from './gladia-api-types';
+import type { GladiaTranscriptionModelId } from './gladia-transcription-options';
 
 interface GladiaTranscriptionModelConfig extends GladiaConfig {
   _internal?: {
@@ -45,14 +46,14 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
-    modelId: 'default';
+    modelId: GladiaTranscriptionModelId;
     config: GladiaTranscriptionModelConfig;
   }) {
     return new GladiaTranscriptionModel(options.modelId, options.config);
   }
 
   constructor(
-    readonly modelId: string,
+    readonly modelId: GladiaTranscriptionModelId,
     private readonly config: GladiaTranscriptionModelConfig,
   ) {}
 
@@ -70,35 +71,29 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
 
     const body: Omit<GladiaTranscriptionInitiateAPITypes, 'audio_url'> = {};
 
+    // Select the transcription model. `default` is the placeholder used when no
+    // model id is passed to `gladia.transcription()`; in that case we omit the
+    // field and let the Gladia API fall back to its own default (`solaria-1`).
+    if (this.modelId !== 'default') {
+      body.model = this.modelId;
+    }
+
     // Add provider-specific options
     if (gladiaOptions) {
-      body.context_prompt = gladiaOptions.contextPrompt ?? undefined;
       body.custom_vocabulary = gladiaOptions.customVocabulary ?? undefined;
-      body.detect_language = gladiaOptions.detectLanguage ?? undefined;
-      body.enable_code_switching =
-        gladiaOptions.enableCodeSwitching ?? undefined;
-      body.language = gladiaOptions.language ?? undefined;
       body.callback = gladiaOptions.callback ?? undefined;
       body.subtitles = gladiaOptions.subtitles ?? undefined;
       body.diarization = gladiaOptions.diarization ?? undefined;
       body.translation = gladiaOptions.translation ?? undefined;
       body.summarization = gladiaOptions.summarization ?? undefined;
-      body.moderation = gladiaOptions.moderation ?? undefined;
       body.named_entity_recognition =
         gladiaOptions.namedEntityRecognition ?? undefined;
-      body.chapterization = gladiaOptions.chapterization ?? undefined;
-      body.name_consistency = gladiaOptions.nameConsistency ?? undefined;
       body.custom_spelling = gladiaOptions.customSpelling ?? undefined;
-      body.structured_data_extraction =
-        gladiaOptions.structuredDataExtraction ?? undefined;
-      body.structured_data_extraction_config =
-        gladiaOptions.structuredDataExtractionConfig ?? undefined;
       body.sentiment_analysis = gladiaOptions.sentimentAnalysis ?? undefined;
       body.audio_to_llm = gladiaOptions.audioToLlm ?? undefined;
-      body.audio_to_llm_config = gladiaOptions.audioToLlmConfig ?? undefined;
+      body.pii_redaction = gladiaOptions.piiRedaction ?? undefined;
       body.custom_metadata = gladiaOptions.customMetadata ?? undefined;
       body.sentences = gladiaOptions.sentences ?? undefined;
-      body.display_mode = gladiaOptions.displayMode ?? undefined;
       body.punctuation_enhanced =
         gladiaOptions.punctuationEnhanced ?? undefined;
 
@@ -120,14 +115,35 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
         };
       }
 
-      // Handle code switching config
-      if (gladiaOptions.codeSwitchingConfig) {
-        body.code_switching_config = {
-          languages: gladiaOptions.codeSwitchingConfig.languages ?? undefined,
+      if (gladiaOptions.languageConfig) {
+        // `solaria-3` only supports a single language and no code switching.
+        // Warn rather than fail so the request still reaches the API.
+        if (this.modelId === 'solaria-3') {
+          if ((gladiaOptions.languageConfig.languages?.length ?? 0) > 1) {
+            warnings.push({
+              type: 'other',
+              message:
+                'The "solaria-3" model supports a single language only. ' +
+                'Pass exactly one language in languageConfig.languages.',
+            });
+          }
+          if (gladiaOptions.languageConfig.codeSwitching) {
+            warnings.push({
+              type: 'other',
+              message:
+                'The "solaria-3" model does not support code switching. ' +
+                'The codeSwitching option will be ignored.',
+            });
+          }
+        }
+
+        body.language_config = {
+          languages: gladiaOptions.languageConfig.languages ?? undefined,
+          code_switching:
+            gladiaOptions.languageConfig.codeSwitching ?? undefined,
         };
       }
 
-      // Handle callback config
       if (gladiaOptions.callbackConfig) {
         body.callback_config = {
           url: gladiaOptions.callbackConfig.url,
@@ -135,7 +151,6 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
         };
       }
 
-      // Handle subtitles config
       if (gladiaOptions.subtitlesConfig) {
         body.subtitles_config = {
           formats: gladiaOptions.subtitlesConfig.formats ?? undefined,
@@ -151,7 +166,6 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
         };
       }
 
-      // Handle diarization config
       if (gladiaOptions.diarizationConfig) {
         body.diarization_config = {
           number_of_speakers:
@@ -160,11 +174,9 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
             gladiaOptions.diarizationConfig.minSpeakers ?? undefined,
           max_speakers:
             gladiaOptions.diarizationConfig.maxSpeakers ?? undefined,
-          enhanced: gladiaOptions.diarizationConfig.enhanced ?? undefined,
         };
       }
 
-      // Handle translation config
       if (gladiaOptions.translationConfig) {
         body.translation_config = {
           target_languages: gladiaOptions.translationConfig.targetLanguages,
@@ -172,21 +184,40 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
           match_original_utterances:
             gladiaOptions.translationConfig.matchOriginalUtterances ??
             undefined,
+          lipsync: gladiaOptions.translationConfig.lipsync ?? undefined,
+          context_adaptation:
+            gladiaOptions.translationConfig.contextAdaptation ?? undefined,
+          context: gladiaOptions.translationConfig.context ?? undefined,
+          informal: gladiaOptions.translationConfig.informal ?? undefined,
         };
       }
 
-      // Handle summarization config
       if (gladiaOptions.summarizationConfig) {
         body.summarization_config = {
           type: gladiaOptions.summarizationConfig.type ?? undefined,
         };
       }
 
-      // Handle custom spelling config
       if (gladiaOptions.customSpellingConfig) {
         body.custom_spelling_config = {
           spelling_dictionary:
             gladiaOptions.customSpellingConfig.spellingDictionary,
+        };
+      }
+
+      if (gladiaOptions.audioToLlmConfig) {
+        body.audio_to_llm_config = {
+          prompts: gladiaOptions.audioToLlmConfig.prompts,
+          model: gladiaOptions.audioToLlmConfig.model ?? undefined,
+        };
+      }
+
+      if (gladiaOptions.piiRedactionConfig) {
+        body.pii_redaction_config = {
+          entity_types:
+            gladiaOptions.piiRedactionConfig.entityTypes ?? undefined,
+          processed_text_type:
+            gladiaOptions.piiRedactionConfig.processedTextType ?? undefined,
         };
       }
     }

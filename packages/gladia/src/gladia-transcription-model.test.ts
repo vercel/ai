@@ -64,6 +64,113 @@ describe('doGenerate', () => {
       });
     });
 
+    it('should pass provider options to pre-recorded endpoint', async () => {
+      await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: {
+          gladia: {
+            languageConfig: {
+              languages: ['en'],
+              codeSwitching: true,
+            },
+            piiRedaction: true,
+            piiRedactionConfig: {
+              entityTypes: ['EMAIL_ADDRESS', 'NAME'],
+              processedTextType: 'MARKER',
+            },
+          },
+        },
+      });
+
+      expect(await server.calls[1].requestBodyJson).toMatchObject({
+        audio_url: uploadFixture.audio_url,
+        language_config: {
+          languages: ['en'],
+          code_switching: true,
+        },
+        pii_redaction: true,
+        pii_redaction_config: {
+          entity_types: ['EMAIL_ADDRESS', 'NAME'],
+          processed_text_type: 'MARKER',
+        },
+      });
+    });
+
+    it('should pass the model id to the pre-recorded endpoint', async () => {
+      await provider.transcription('solaria-3').doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: {
+          gladia: {
+            languageConfig: {
+              languages: ['fr'],
+            },
+          },
+        },
+      });
+
+      expect(await server.calls[1].requestBodyJson).toMatchObject({
+        audio_url: uploadFixture.audio_url,
+        model: 'solaria-3',
+        language_config: {
+          languages: ['fr'],
+        },
+      });
+    });
+
+    it('does not send a model when none is specified', async () => {
+      await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+      const requestBody = await server.calls[1].requestBodyJson;
+      expect(requestBody).not.toHaveProperty('model');
+    });
+
+    it('warns when solaria-3 is combined with multiple languages or code switching', async () => {
+      const result = await provider.transcription('solaria-3').doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: {
+          gladia: {
+            languageConfig: {
+              languages: ['fr', 'en'],
+              codeSwitching: true,
+            },
+          },
+        },
+      });
+
+      expect(result.warnings).toEqual([
+        expect.objectContaining({
+          type: 'other',
+          message: expect.stringContaining('single language'),
+        }),
+        expect.objectContaining({
+          type: 'other',
+          message: expect.stringContaining('code switching'),
+        }),
+      ]);
+    });
+
+    it('does not warn when solaria-3 is used with a single language', async () => {
+      const result = await provider.transcription('solaria-3').doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: {
+          gladia: {
+            languageConfig: {
+              languages: ['fr'],
+            },
+          },
+        },
+      });
+
+      expect(result.warnings).toEqual([]);
+    });
+
     it('does not send the API key when the result URL is on a foreign origin', async () => {
       const foreignResultUrl =
         'https://cdn.evil.example/v2/pre-recorded/result';
@@ -106,6 +213,7 @@ describe('doGenerate', () => {
 
       expect(server.calls[1].requestHeaders).toMatchObject({
         'x-gladia-key': 'test-api-key',
+        'x-gladia-version': 'ai-sdk/0.0.0-test',
         'content-type': 'application/json',
         'custom-provider-header': 'provider-header-value',
         'custom-request-header': 'request-header-value',
