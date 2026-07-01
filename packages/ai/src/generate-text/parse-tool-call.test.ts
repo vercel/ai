@@ -345,6 +345,35 @@ describe('parseToolCall', () => {
     `);
   });
 
+  it('should wrap unparseable input in a JSON object so API stays valid', async () => {
+    // Regression: previously the raw string was stored as `input`, which causes
+    // providers like Amazon Bedrock to reject the next API call with
+    // "toolUse.input must be a JSON object".
+    const result = await parseToolCall({
+      toolCall: {
+        type: 'tool-call',
+        toolName: 'testTool',
+        toolCallId: '123',
+        input: 'this is not json',
+      },
+      tools: {
+        testTool: tool({
+          inputSchema: z.object({ param1: z.string() }),
+        }),
+      } as const,
+      repairToolCall: undefined,
+      messages: [],
+      instructions: undefined,
+    });
+
+    expect(result.invalid).toBe(true);
+    // input must be a plain object, not a raw string
+    expect(typeof result.input).toBe('object');
+    expect(result.input).toEqual({ rawInvalidInput: 'this is not json' });
+    // error is still surfaced so the model can react
+    expect(result.error).toBeDefined();
+  });
+
   describe('tool call repair', () => {
     it('should invoke repairTool when provided and use its result', async () => {
       const repairToolCall = vi.fn().mockResolvedValue({
@@ -471,7 +500,9 @@ describe('parseToolCall', () => {
           "dynamic": true,
           "error": [AI_InvalidToolInputError: Invalid input for tool testTool: AI_JSONParseError: JSON parsing failed: Text: invalid json.
         Error message: SyntaxError: Unexpected token 'i', "invalid json" is not valid JSON],
-          "input": "invalid json",
+          "input": {
+            "rawInvalidInput": "invalid json",
+          },
           "invalid": true,
           "providerExecuted": undefined,
           "providerMetadata": undefined,
@@ -510,7 +541,9 @@ describe('parseToolCall', () => {
         {
           "dynamic": true,
           "error": [AI_ToolCallRepairError: Error repairing tool call: Error: test error],
-          "input": "invalid json",
+          "input": {
+            "rawInvalidInput": "invalid json",
+          },
           "invalid": true,
           "providerExecuted": undefined,
           "providerMetadata": undefined,
