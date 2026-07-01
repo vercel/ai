@@ -7,6 +7,22 @@ import { redirect } from 'next/navigation';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { requireProfile } from '@/lib/auth';
 
+export async function generatePatientPortalLink(patientId: string) {
+  await requireProfile();
+  const supabase = createSupabaseServerClient();
+
+  const { data: token, error } = await supabase.rpc('create_patient_portal_token', {
+    p_patient_id: patientId,
+    p_days: 30,
+  });
+
+  if (error || !token) {
+    return null;
+  }
+
+  return `/p/${token}`;
+}
+
 function requestIp() {
   const forwardedFor = headers().get('x-forwarded-for');
   return forwardedFor?.split(',')[0]?.trim() || null;

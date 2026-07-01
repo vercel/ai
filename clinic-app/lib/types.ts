@@ -40,6 +40,7 @@ export interface Plan {
 export interface Clinic {
   id: string;
   name: string;
+  slug: string;
   legal_name: string | null;
   document_number: string | null;
   plan_id: string;

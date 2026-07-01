@@ -21,6 +21,7 @@ import {
   updatePrescriptionStatus,
 } from '../actions';
 import { AttachmentLink } from '@/components/attachment-link';
+import { PatientPortalLinkButton } from '@/components/patient-portal-link-button';
 import { SignRecordButton } from '@/components/sign-record-button';
 import { ModalForm } from '@/components/modal-form';
 import { Tabs } from '@/components/tabs';
@@ -144,6 +145,7 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
           </p>
         </div>
         <div className="flex gap-4">
+          <PatientPortalLinkButton patientId={patient.id} />
           <Link
             href={`/dashboard/patients/${patient.id}/consents`}
             className="self-center text-sm text-brand-600 hover:underline"
