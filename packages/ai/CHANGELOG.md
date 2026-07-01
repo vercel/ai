@@ -1,5 +1,14 @@
 # ai
 
+## 7.0.10
+
+### Patch Changes
+
+- 8c616f0: feat(mcp): add maxRetries option for failed mcp tool calls
+- Updated dependencies [8c616f0]
+  - @ai-sdk/provider-utils@5.0.3
+  - @ai-sdk/gateway@4.0.8
+
 ## 7.0.9
 
 ### Patch Changes
