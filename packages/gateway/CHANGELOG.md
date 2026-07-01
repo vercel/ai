@@ -1,5 +1,56 @@
 # @ai-sdk/gateway
 
+## 4.0.7
+
+### Patch Changes
+
+- 2edc641: chore(provider/gateway): update gateway model settings files
+- c18018c: feat (provider/anthropic): add `claude-sonnet-5` model id
+
+## 4.0.6
+
+### Patch Changes
+
+- 0274f34: feat (video): add first-class `frameImages` and `inputReferences` call options for video generation
+- Updated dependencies [0274f34]
+  - @ai-sdk/provider@4.0.1
+  - @ai-sdk/provider-utils@5.0.2
+
+## 4.0.5
+
+### Patch Changes
+
+- 7e3c99e: chore(provider/gateway): update gateway model settings files
+
+## 4.0.4
+
+### Patch Changes
+
+- Updated dependencies [6a436e3]
+  - @ai-sdk/provider-utils@5.0.1
+
+## 4.0.3
+
+### Patch Changes
+
+- 728eaa0: feat(provider/gateway): add `has` provider option to restrict routing to models with given capabilities (e.g. `implicit-caching`)
+
+## 4.0.2
+
+### Patch Changes
+
+- 9dce0a7: Add realtime models to Gateway metadata and generated model settings support.
+
+## 4.0.1
+
+### Patch Changes
+
+- b2791b3: chore(provider/gateway): update gateway model settings files
+- 330f6e2: Clarify `parallel_search` `source_policy` field descriptions so the model emits
+  values the Parallel API accepts: `include_domains`/`exclude_domains` must be plain
+  hosts (no scheme/path/port), and `after_date` must be an ISO 8601 calendar date
+  formatted `YYYY-MM-DD`.
+
 ## 4.0.0
 
 ### Major Changes

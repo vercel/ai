@@ -9,6 +9,7 @@ import {
   type HarnessV1,
   type HarnessV1Bootstrap,
   type HarnessV1BuiltinTool,
+  type HarnessV1BuiltinToolFiltering,
   type HarnessV1ContinueTurnState,
   type HarnessV1DebugConfig,
   type HarnessV1NetworkSandboxSession,
@@ -32,7 +33,7 @@ import {
   type Experimental_SandboxSession,
 } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import {
   resolveOpenCodeEnv,
   splitOpenCodeModel,
@@ -72,123 +73,99 @@ const OPENCODE_BUILTIN_TOOLS = {
     nativeName: 'view',
     toolUseKind: 'readonly',
     description: 'Read file contents',
-    inputSchema: z
-      .object({
-        file_path: z.string().optional(),
-        path: z.string().optional(),
-      })
-      .passthrough(),
+    inputSchema: z.looseObject({
+      file_path: z.string().optional(),
+      path: z.string().optional(),
+    }),
   }),
   write: commonTool('write', {
     nativeName: 'write',
     toolUseKind: 'edit',
     description: 'Write content to a file',
-    inputSchema: z
-      .object({
-        file_path: z.string().optional(),
-        path: z.string().optional(),
-        content: z.string().optional(),
-      })
-      .passthrough(),
+    inputSchema: z.looseObject({
+      file_path: z.string().optional(),
+      path: z.string().optional(),
+      content: z.string().optional(),
+    }),
   }),
   edit: commonTool('edit', {
     nativeName: 'edit',
     toolUseKind: 'edit',
     description: 'Edit a file by replacing text',
-    inputSchema: z
-      .object({
-        file_path: z.string().optional(),
-        path: z.string().optional(),
-        old_string: z.string().optional(),
-        new_string: z.string().optional(),
-      })
-      .passthrough(),
+    inputSchema: z.looseObject({
+      file_path: z.string().optional(),
+      path: z.string().optional(),
+      old_string: z.string().optional(),
+      new_string: z.string().optional(),
+    }),
   }),
   bash: commonTool('bash', {
     nativeName: 'bash',
     toolUseKind: 'bash',
     description: 'Execute a shell command',
-    inputSchema: z
-      .object({
-        command: z.string().optional(),
-      })
-      .passthrough(),
+    inputSchema: z.looseObject({
+      command: z.string().optional(),
+    }),
   }),
   glob: commonTool('glob', {
     nativeName: 'glob',
     toolUseKind: 'readonly',
     description: 'Find files matching a glob pattern',
-    inputSchema: z
-      .object({
-        pattern: z.string().optional(),
-        path: z.string().optional(),
-      })
-      .passthrough(),
+    inputSchema: z.looseObject({
+      pattern: z.string().optional(),
+      path: z.string().optional(),
+    }),
   }),
   grep: commonTool('grep', {
     nativeName: 'grep',
     toolUseKind: 'readonly',
     description: 'Search file contents with regex',
-    inputSchema: z
-      .object({
-        pattern: z.string().optional(),
-        path: z.string().optional(),
-      })
-      .passthrough(),
+    inputSchema: z.looseObject({
+      pattern: z.string().optional(),
+      path: z.string().optional(),
+    }),
   }),
   ls: tool({
     description: 'List directory contents',
-    inputSchema: z
-      .object({
-        path: z.string().optional(),
-      })
-      .passthrough(),
+    inputSchema: z.looseObject({
+      path: z.string().optional(),
+    }),
   }),
   webfetch: tool({
     description: 'Fetch a URL',
-    inputSchema: z
-      .object({
-        url: z.string().optional(),
-        prompt: z.string().optional(),
-      })
-      .passthrough(),
+    inputSchema: z.looseObject({
+      url: z.string().optional(),
+      prompt: z.string().optional(),
+    }),
   }),
   skill: tool({
     description: 'Load an OpenCode skill by name',
-    inputSchema: z
-      .object({
-        name: z.string().optional(),
-      })
-      .passthrough(),
+    inputSchema: z.looseObject({
+      name: z.string().optional(),
+    }),
   }),
   todowrite: tool({
     description: 'Replace the OpenCode session todo list',
-    inputSchema: z
-      .object({
-        todos: z
-          .array(
-            z
-              .object({
-                content: z.string().optional(),
-                status: z.string().optional(),
-                priority: z.string().optional(),
-              })
-              .passthrough(),
-          )
-          .optional(),
-      })
-      .passthrough(),
+    inputSchema: z.looseObject({
+      todos: z
+        .array(
+          z.looseObject({
+            content: z.string().optional(),
+            status: z.string().optional(),
+            priority: z.string().optional(),
+          }),
+        )
+        .optional(),
+    }),
   }),
   agent: tool({
     description: 'Run an OpenCode subagent',
-    inputSchema: z
-      .object({
-        agent: z.string().optional(),
-        prompt: z.string().optional(),
-        description: z.string().optional(),
-        metadata: optionalStringRecord,
-      })
-      .passthrough(),
+    inputSchema: z.looseObject({
+      agent: z.string().optional(),
+      prompt: z.string().optional(),
+      description: z.string().optional(),
+      metadata: optionalStringRecord,
+    }),
   }),
 } as const satisfies Record<string, HarnessV1BuiltinTool<any, any>>;
 
@@ -319,6 +296,7 @@ export function createOpenCode(
             sandboxId,
             debug: startOpts.observability?.debug,
             permissionMode: startOpts.permissionMode,
+            builtinToolFiltering: startOpts.builtinToolFiltering,
           });
         } catch {}
       }
@@ -445,6 +423,7 @@ export function createOpenCode(
         sandboxId,
         debug: startOpts.observability?.debug,
         permissionMode: startOpts.permissionMode,
+        builtinToolFiltering: startOpts.builtinToolFiltering,
       });
     },
   };
@@ -643,6 +622,7 @@ function createSession({
   sandboxId,
   debug,
   permissionMode,
+  builtinToolFiltering,
 }: {
   sessionId: string;
   channel: OpenCodeChannel;
@@ -659,6 +639,7 @@ function createSession({
   sandboxId: string;
   debug: HarnessV1DebugConfig | undefined;
   permissionMode: HarnessV1PermissionMode | undefined;
+  builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
 }): HarnessV1Session {
   let stopped = false;
   let stopPromise: Promise<void> | undefined;
@@ -810,6 +791,7 @@ function createSession({
     provider,
     ...(reasoningVariant ? { variant: reasoningVariant } : {}),
     ...(permissionMode ? { permissionMode } : {}),
+    ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
     ...(pendingResumeSessionId
       ? { resumeSessionId: pendingResumeSessionId }
       : latestOpenCodeSessionId

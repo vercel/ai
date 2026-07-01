@@ -96,10 +96,12 @@ function fakeNetworkSandboxSessionForStartupFailure({
 
 function fakeNetworkSandboxSessionForStartupSuccess({
   bridgePortUrl,
+  spawns,
   writes,
   runs,
 }: {
   bridgePortUrl: string;
+  spawns?: string[];
   writes: Array<{ path: string; content: string }>;
   runs: string[];
 }): HarnessV1NetworkSandboxSession {
@@ -121,12 +123,15 @@ function fakeNetworkSandboxSessionForStartupSuccess({
     }) => {
       writes.push({ path, content });
     },
-    spawn: async () => ({
-      stdout: textStream('{"type":"bridge-ready","port":4319}\n'),
-      stderr: textStream(''),
-      kill: async () => {},
-      wait: async () => ({ exitCode: 0 }),
-    }),
+    spawn: async ({ command }: { command: string }) => {
+      spawns?.push(command);
+      return {
+        stdout: textStream('{"type":"bridge-ready","port":4319}\n'),
+        stderr: textStream(''),
+        kill: async () => {},
+        wait: async () => ({ exitCode: 0 }),
+      };
+    },
   };
   return {
     id: 'test-sandbox',
@@ -162,6 +167,7 @@ describe('createClaudeCode adapter', () => {
     expect(harness.harnessId).toBe('claude-code');
     expect(harness.specificationVersion).toBe('harness-v1');
     expect(harness.supportsBuiltinToolApprovals).toBe(true);
+    expect(harness.supportsBuiltinToolFiltering).toBe(true);
     expect(Object.keys(harness.builtinTools)).toEqual([
       'read',
       'write',
@@ -180,6 +186,7 @@ describe('createClaudeCode adapter', () => {
       'TaskList',
       'TaskStop',
       'TaskOutput',
+      'Monitor',
       'ListMcpResources',
       'ReadMcpResource',
       'ExitPlanMode',
@@ -218,6 +225,32 @@ describe('createClaudeCode adapter', () => {
         sessionWorkDir: '/vercel/sandbox/claude-code-s1',
       }),
     ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
+  });
+
+  it('quotes dynamic startup paths in shell commands', async () => {
+    const runs: string[] = [];
+    const spawns: string[] = [];
+    const writes: Array<{ path: string; content: string }> = [];
+    const harness = createClaudeCode();
+    const session = await harness.doStart({
+      sessionId: 's1; env > /tmp/leak #',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        runs,
+        spawns,
+        writes,
+      }),
+      sessionWorkDir:
+        '/vercel/sandbox/claude-code-s1; env > /tmp/workdir-leak #',
+    });
+
+    expect(runs).toContain(
+      "mkdir -p '/vercel/sandbox/claude-code-s1; env > /tmp/workdir-leak #' '/vercel/sandbox/.agent-runs/s1; env > /tmp/leak #/bridge'",
+    );
+    expect(spawns).toEqual([
+      "node /tmp/harness/claude-code/bridge.mjs --workdir '/vercel/sandbox/claude-code-s1; env > /tmp/workdir-leak #' --bridge-state-dir '/vercel/sandbox/.agent-runs/s1; env > /tmp/leak #/bridge'",
+    ]);
+    await session.doDestroy();
   });
 
   it('writes standard Claude skill files and enables their names on start', async () => {

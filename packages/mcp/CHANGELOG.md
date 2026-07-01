@@ -1,5 +1,33 @@
 # @ai-sdk/mcp
 
+## 2.0.4
+
+### Patch Changes
+
+- Updated dependencies [0274f34]
+  - @ai-sdk/provider@4.0.1
+  - @ai-sdk/provider-utils@5.0.2
+
+## 2.0.3
+
+### Patch Changes
+
+- 68a739a: feat(mcp): allow MCP client to use server completions
+- Updated dependencies [6a436e3]
+  - @ai-sdk/provider-utils@5.0.1
+
+## 2.0.2
+
+### Patch Changes
+
+- ba6d510: chore: fix deprecated use of zod `.passthrough()`
+
+## 2.0.1
+
+### Patch Changes
+
+- 241a8c5: Add Streamable HTTP session hooks, cached initialize metadata, and detach-on-close support for reattaching to MCP sessions.
+
 ## 2.0.0
 
 ### Major Changes

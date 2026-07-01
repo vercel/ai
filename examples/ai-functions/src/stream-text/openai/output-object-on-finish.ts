@@ -21,9 +21,9 @@ run(async () => {
     }),
     prompt:
       'Generate 3 character descriptions for a fantasy role playing game.',
-    onFinish({ usage }) {
+    onEnd({ usage }) {
       console.log();
-      console.log('onFinish');
+      console.log('onEnd');
       console.log('Token usage:', usage);
     },
   });
