@@ -62,69 +62,60 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
   resume = false,
   ...options
 }: UseChatOptions<UI_MESSAGE> = {}): UseChatHelpers<UI_MESSAGE> {
-  // Create a single ref for all callbacks to avoid stale closures
-  const callbacksRef = useRef(
-    !('chat' in options)
-      ? {
-          onToolCall: options.onToolCall,
-          onData: options.onData,
-          onFinish: options.onFinish,
-          onError: options.onError,
-          sendAutomaticallyWhen: options.sendAutomaticallyWhen,
-        }
-      : {},
-  );
+  // the Chat instance is created once and not recreated when options change,
+  // so it would normally keep the callbacks/transport from the first render forever
 
-  // Update callbacks ref on each render to keep them current
+  // keep latest values in a ref that is refreshed on every render,
+  // and hand `Chat` stable wrappers that read from it to avoid stale closures
+  const latestRef = useRef<
+    Partial<
+      Pick<
+        ChatInit<UI_MESSAGE>,
+        | 'onToolCall'
+        | 'onData'
+        | 'onFinish'
+        | 'onError'
+        | 'sendAutomaticallyWhen'
+        | 'transport'
+      >
+    >
+  >({});
+
   if (!('chat' in options)) {
-    callbacksRef.current = {
+    latestRef.current = {
       onToolCall: options.onToolCall,
       onData: options.onData,
       onFinish: options.onFinish,
       onError: options.onError,
       sendAutomaticallyWhen: options.sendAutomaticallyWhen,
+      transport: options.transport,
     };
   }
 
-  // keep ref to the latest transport
-  const transportRef = useRef(
-    !('chat' in options) ? options.transport : undefined,
-  );
-  // update transport ref on each render to keep it current
-  if (!('chat' in options)) {
-    transportRef.current = options.transport;
-  }
+  // resolve the latest transport and fallback to a lazily created default transport
+  let defaultTransport: ChatTransport<UI_MESSAGE> | undefined;
+  const getTransport = () =>
+    latestRef.current.transport ??
+    (defaultTransport ??= new DefaultChatTransport<UI_MESSAGE>());
 
-  // stable proxy transport that forwards to the latest transport in the ref
-  // falls back to a lazily-created default transport when none is provided
-  const transportProxyRef = useRef<ChatTransport<UI_MESSAGE>>(undefined);
-  if (transportProxyRef.current == null) {
-    let defaultTransport: ChatTransport<UI_MESSAGE> | undefined;
-    const getTransport = () =>
-      transportRef.current ??
-      (defaultTransport ??= new DefaultChatTransport<UI_MESSAGE>());
-
-    transportProxyRef.current = {
+  // give `Chat` stable wrappers that always read the latest values from `latestRef`
+  const chatOptions: typeof options = {
+    ...options,
+    transport: {
       sendMessages: sendOptions => getTransport().sendMessages(sendOptions),
       reconnectToStream: reconnectOptions =>
         getTransport().reconnectToStream(reconnectOptions),
-    };
-  }
-
-  // Ensure the Chat instance has the latest callbacks and transport
-  const optionsWithCallbacks: typeof options = {
-    ...options,
-    transport: transportProxyRef.current,
-    onToolCall: arg => callbacksRef.current.onToolCall?.(arg),
-    onData: arg => callbacksRef.current.onData?.(arg),
-    onFinish: arg => callbacksRef.current.onFinish?.(arg),
-    onError: arg => callbacksRef.current.onError?.(arg),
+    },
+    onToolCall: arg => latestRef.current.onToolCall?.(arg),
+    onData: arg => latestRef.current.onData?.(arg),
+    onFinish: arg => latestRef.current.onFinish?.(arg),
+    onError: arg => latestRef.current.onError?.(arg),
     sendAutomaticallyWhen: arg =>
-      callbacksRef.current.sendAutomaticallyWhen?.(arg) ?? false,
+      latestRef.current.sendAutomaticallyWhen?.(arg) ?? false,
   };
 
   const chatRef = useRef<Chat<UI_MESSAGE>>(
-    'chat' in options ? options.chat : new Chat(optionsWithCallbacks),
+    'chat' in options ? options.chat : new Chat(chatOptions),
   );
 
   const shouldRecreateChat =
@@ -134,8 +125,7 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
       chatRef.current.id !== options.id);
 
   if (shouldRecreateChat) {
-    chatRef.current =
-      'chat' in options ? options.chat : new Chat(optionsWithCallbacks);
+    chatRef.current = 'chat' in options ? options.chat : new Chat(chatOptions);
   }
 
   const subscribeToMessages = useCallback(
