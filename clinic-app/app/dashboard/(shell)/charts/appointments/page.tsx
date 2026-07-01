@@ -7,6 +7,7 @@ const STATUS_LABELS: Record<Appointment['status'], string> = {
   agendado: 'Agendado',
   confirmado: 'Confirmado',
   in_progress: 'Em atendimento',
+  no_show: 'Não compareceu',
   cancelado: 'Cancelado',
   concluido: 'Concluído',
 };

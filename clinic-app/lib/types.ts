@@ -1,5 +1,11 @@
 export type UserRole = 'admin' | 'medico' | 'recepcao';
-export type AppointmentStatus = 'agendado' | 'confirmado' | 'in_progress' | 'cancelado' | 'concluido';
+export type AppointmentStatus =
+  | 'agendado'
+  | 'confirmado'
+  | 'in_progress'
+  | 'no_show'
+  | 'cancelado'
+  | 'concluido';
 export type InvoiceStatus = 'pendente' | 'pago' | 'cancelado';
 export type CampaignStatus = 'rascunho' | 'agendada' | 'enviada';
 export type LeadStage = 'novo' | 'contato' | 'agendado' | 'convertido' | 'perdido';
