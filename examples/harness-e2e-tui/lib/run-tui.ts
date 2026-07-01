@@ -1,13 +1,10 @@
-import { existsSync } from 'node:fs';
-import { dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import type { HarnessAgent, HarnessAgentSession } from '@ai-sdk/harness/agent';
 import {
   runAgentTUI,
   type AgentTUIAgent,
   type RunAgentTUIOptions,
 } from '@ai-sdk/tui';
-import { config } from 'dotenv';
+import { loadEnvFiles } from './load-env-files';
 
 type TUIHarnessAgent = HarnessAgent<any, any, any>;
 
@@ -74,23 +71,4 @@ function withSession({
     ...requestObject,
     session,
   };
-}
-
-function loadEnvFiles(options: { entrypointUrl: string }) {
-  const entrypointDir = dirname(fileURLToPath(options.entrypointUrl));
-  const cwd = process.cwd();
-  const dirs = entrypointDir === cwd ? [entrypointDir] : [entrypointDir, cwd];
-  const envFiles = ['.env.local', '.env'];
-  const loaded = new Set<string>();
-
-  for (const dir of dirs) {
-    for (const envFile of envFiles) {
-      const path = `${dir}/${envFile}`;
-      if (loaded.has(path) || !existsSync(path)) {
-        continue;
-      }
-      config({ path });
-      loaded.add(path);
-    }
-  }
 }
