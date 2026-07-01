@@ -797,3 +797,138 @@ describe('buildGoogleSessionConfig', () => {
     expect(result.model).toBe('models/gemini-2.0-flash');
   });
 });
+
+describe('GoogleRealtimeEventMapper usage', () => {
+  it('attaches per-modality usage to response-done on turnComplete', () => {
+    const mapper = new GoogleRealtimeEventMapper();
+    const events = mapper.parseServerEvent({
+      serverContent: { turnComplete: true },
+      usageMetadata: {
+        promptTokenCount: 60,
+        responseTokenCount: 200,
+        promptTokensDetails: [
+          { modality: 'AUDIO', tokenCount: 50 },
+          { modality: 'TEXT', tokenCount: 10 },
+        ],
+        responseTokensDetails: [{ modality: 'AUDIO', tokenCount: 200 }],
+      },
+    });
+
+    const list = Array.isArray(events) ? events : [events];
+    const done = list.find(e => e.type === 'response-done');
+    expect(done?.type === 'response-done' && done.usage).toMatchInlineSnapshot(`
+      {
+        "inputAudioTokens": 50,
+        "inputTextTokens": 10,
+        "outputAudioTokens": 200,
+      }
+    `);
+  });
+
+  it('falls back to aggregate counts as text when modality details are absent', () => {
+    const mapper = new GoogleRealtimeEventMapper();
+    const events = mapper.parseServerEvent({
+      serverContent: { turnComplete: true },
+      usageMetadata: { promptTokenCount: 12, responseTokenCount: 34 },
+    });
+
+    const list = Array.isArray(events) ? events : [events];
+    const done = list.find(e => e.type === 'response-done');
+    expect(done?.type === 'response-done' && done.usage).toMatchInlineSnapshot(`
+      {
+        "inputTextTokens": 12,
+        "outputTextTokens": 34,
+      }
+    `);
+  });
+
+  it('buffers standalone usage until turnComplete arrives', () => {
+    const mapper = new GoogleRealtimeEventMapper();
+
+    expect(
+      mapper.parseServerEvent({
+        usageMetadata: {
+          promptTokensDetails: [{ modality: 'TEXT', tokenCount: 12 }],
+          responseTokensDetails: [{ modality: 'TEXT', tokenCount: 34 }],
+        },
+      }),
+    ).toEqual({
+      type: 'custom',
+      rawType: 'usageMetadata',
+      raw: {
+        usageMetadata: {
+          promptTokensDetails: [{ modality: 'TEXT', tokenCount: 12 }],
+          responseTokensDetails: [{ modality: 'TEXT', tokenCount: 34 }],
+        },
+      },
+    });
+
+    const events = mapper.parseServerEvent({
+      serverContent: { turnComplete: true },
+    });
+
+    const list = Array.isArray(events) ? events : [events];
+    const done = list.find(e => e.type === 'response-done');
+    expect(done?.type === 'response-done' && done.usage).toEqual({
+      inputTextTokens: 12,
+      outputTextTokens: 34,
+    });
+  });
+
+  it('emits usage on a terminal event when usage arrives after turnComplete', () => {
+    const mapper = new GoogleRealtimeEventMapper();
+    mapper.parseServerEvent({ serverContent: { turnComplete: true } });
+
+    const event = mapper.parseServerEvent({
+      usageMetadata: {
+        promptTokensDetails: [{ modality: 'AUDIO', tokenCount: 50 }],
+        responseTokensDetails: [{ modality: 'AUDIO', tokenCount: 200 }],
+      },
+    });
+
+    expect(event).toEqual({
+      type: 'response-done',
+      responseId: 'google-resp-0',
+      status: 'completed',
+      usage: {
+        inputAudioTokens: 50,
+        outputAudioTokens: 200,
+      },
+      raw: {
+        usageMetadata: {
+          promptTokensDetails: [{ modality: 'AUDIO', tokenCount: 50 }],
+          responseTokensDetails: [{ modality: 'AUDIO', tokenCount: 200 }],
+        },
+      },
+    });
+  });
+
+  it('does not emit duplicate usage for an already-accounted turn', () => {
+    const mapper = new GoogleRealtimeEventMapper();
+    mapper.parseServerEvent({
+      serverContent: { turnComplete: true },
+      usageMetadata: { promptTokenCount: 12, responseTokenCount: 34 },
+    });
+
+    expect(
+      mapper.parseServerEvent({
+        usageMetadata: { promptTokenCount: 12, responseTokenCount: 34 },
+      }),
+    ).toEqual({
+      type: 'custom',
+      rawType: 'usageMetadata',
+      raw: { usageMetadata: { promptTokenCount: 12, responseTokenCount: 34 } },
+    });
+  });
+
+  it('omits usage when no usageMetadata is present', () => {
+    const mapper = new GoogleRealtimeEventMapper();
+    const events = mapper.parseServerEvent({
+      serverContent: { turnComplete: true },
+    });
+
+    const list = Array.isArray(events) ? events : [events];
+    const done = list.find(e => e.type === 'response-done');
+    expect(done?.type === 'response-done' && done.usage).toBeUndefined();
+  });
+});

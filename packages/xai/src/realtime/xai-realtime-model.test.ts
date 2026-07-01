@@ -29,6 +29,37 @@ describe('XaiRealtimeModel', () => {
     });
   });
 
+  describe('getServerConnection', () => {
+    it('builds the voice URL with the model query param and forwards headers', () => {
+      expect(createModel().getServerConnection()).toMatchInlineSnapshot(`
+        {
+          "headers": {
+            "authorization": "Bearer test-key",
+          },
+          "url": "wss://api.x.ai/v1/realtime?model=grok-voice-latest",
+        }
+      `);
+    });
+
+    it('uses ws:// for an http base URL (local/proxy)', () => {
+      const localModel = new XaiRealtimeModel('grok-voice-latest', {
+        provider: 'xai.realtime',
+        baseURL: 'http://localhost:8787/v1',
+        headers: () => ({ authorization: 'Bearer test-key' }),
+      });
+
+      expect(localModel.getServerConnection().url).toMatchInlineSnapshot(
+        `"ws://localhost:8787/v1/realtime?model=grok-voice-latest"`,
+      );
+    });
+
+    it('rejects unsupported endpoint intents', () => {
+      expect(() =>
+        createModel().getServerConnection({ intent: 'translation' }),
+      ).toThrow("does not support the 'translation' session intent");
+    });
+  });
+
   describe('serializeClientEvent', () => {
     it('drops conversation-item-truncate (unsupported over WebSocket)', () => {
       const result = createModel().serializeClientEvent({

@@ -3,10 +3,15 @@ import type {
   Experimental_RealtimeModelV4ClientEvent as RealtimeModelV4ClientEvent,
   Experimental_RealtimeModelV4ClientSecretOptions as RealtimeModelV4ClientSecretOptions,
   Experimental_RealtimeModelV4ClientSecretResult as RealtimeModelV4ClientSecretResult,
+  Experimental_RealtimeModelV4ServerConnection as RealtimeModelV4ServerConnection,
   Experimental_RealtimeModelV4ServerEvent as RealtimeModelV4ServerEvent,
   Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
+  Experimental_RealtimeModelV4SessionIntent as RealtimeModelV4SessionIntent,
 } from '@ai-sdk/provider';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
+import {
+  type FetchFunction,
+  removeUndefinedEntries,
+} from '@ai-sdk/provider-utils';
 import {
   buildXaiSessionConfig,
   parseXaiRealtimeServerEvent,
@@ -82,6 +87,25 @@ export class XaiRealtimeModel implements RealtimeModelV4 {
     return {
       url: options.url,
       protocols: [`xai-client-secret.${options.token}`],
+    };
+  }
+
+  getServerConnection(options?: {
+    intent?: RealtimeModelV4SessionIntent;
+  }): RealtimeModelV4ServerConnection {
+    // xAI exposes only the conversational voice endpoint; fail fast instead of
+    // silently downgrading unsupported intents.
+    if (options?.intent != null && options.intent !== 'conversation') {
+      throw new Error(
+        `xAI realtime does not support the '${options.intent}' session intent.`,
+      );
+    }
+    const url = new URL(this.config.baseURL);
+    const protocol = url.protocol === 'http:' ? 'ws:' : 'wss:';
+    const base = `${protocol}//${url.host}${url.pathname.replace(/\/$/, '')}`;
+    return {
+      url: `${base}/realtime?model=${encodeURIComponent(this.modelId)}`,
+      headers: removeUndefinedEntries(this.config.headers()),
     };
   }
 

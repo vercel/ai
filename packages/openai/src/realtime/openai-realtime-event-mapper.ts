@@ -2,13 +2,44 @@ import type {
   Experimental_RealtimeModelV4ClientEvent as RealtimeModelV4ClientEvent,
   Experimental_RealtimeModelV4ServerEvent as RealtimeModelV4ServerEvent,
   Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
+  Experimental_RealtimeModelV4SessionIntent as RealtimeModelV4SessionIntent,
+  Experimental_RealtimeModelV4Usage as RealtimeModelV4Usage,
 } from '@ai-sdk/provider';
+
+type OpenAIRealtimeSessionOptions = {
+  intent?: RealtimeModelV4SessionIntent;
+};
+
+type OpenAIRealtimeTokenDetails = {
+  audio_tokens?: number;
+  text_tokens?: number;
+};
+
+type OpenAIRealtimeInputTokenDetails = OpenAIRealtimeTokenDetails & {
+  cached_tokens_details?: OpenAIRealtimeTokenDetails;
+};
+
+type OpenAIRealtimeResponseUsage = {
+  input_token_details?: OpenAIRealtimeInputTokenDetails;
+  output_token_details?: OpenAIRealtimeTokenDetails;
+};
+
+type OpenAIRealtimeTranscriptionUsage = {
+  type?: string;
+  seconds?: number;
+  output_tokens?: number;
+  input_token_details?: OpenAIRealtimeTokenDetails;
+};
 
 type OpenAIRealtimeWireEvent = {
   type: string;
   session?: { id?: string };
   item?: { id?: string } & Record<string, unknown>;
-  response?: { id?: string; status?: string };
+  response?: {
+    id?: string;
+    status?: string;
+    usage?: OpenAIRealtimeResponseUsage;
+  };
   error?: { message?: string; code?: string };
   item_id: string;
   previous_item_id?: string;
@@ -21,6 +52,7 @@ type OpenAIRealtimeWireEvent = {
   arguments: string;
   message?: string;
   code?: string;
+  usage?: OpenAIRealtimeTranscriptionUsage;
 };
 
 /**
@@ -76,13 +108,16 @@ export function parseOpenAIRealtimeServerEvent(
         raw,
       };
 
-    case 'conversation.item.input_audio_transcription.completed':
+    case 'conversation.item.input_audio_transcription.completed': {
+      const usage = mapTranscriptionUsage(event.usage);
       return {
         type: 'input-transcription-completed',
         itemId: event.item_id,
         transcript: event.transcript ?? '',
+        ...(usage != null ? { usage } : {}),
         raw,
       };
+    }
 
     // ── Response lifecycle ──────────────────────────────────────────
     case 'response.created':
@@ -92,13 +127,16 @@ export function parseOpenAIRealtimeServerEvent(
         raw,
       };
 
-    case 'response.done':
+    case 'response.done': {
+      const usage = mapResponseUsage(event.response?.usage);
       return {
         type: 'response-done',
         responseId: event.response?.id ?? event.response_id,
         status: event.response?.status ?? 'completed',
+        ...(usage != null ? { usage } : {}),
         raw,
       };
+    }
 
     // ── Output item lifecycle ───────────────────────────────────────
     case 'response.output_item.added':
@@ -227,17 +265,80 @@ export function parseOpenAIRealtimeServerEvent(
 }
 
 /**
+ * Maps OpenAI realtime `response.done` usage to normalized usage.
+ *
+ * Input buckets are reported gross (cache-inclusive) with the cached portion
+ * surfaced separately, so consumers can apply their own cached-vs-uncached
+ * billing split without re-reading `raw`.
+ */
+function mapResponseUsage(
+  usage: OpenAIRealtimeResponseUsage | undefined,
+): RealtimeModelV4Usage | undefined {
+  if (usage == null) return undefined;
+
+  const input = usage.input_token_details;
+  const output = usage.output_token_details;
+  const cached = input?.cached_tokens_details;
+
+  return compactUsage({
+    inputAudioTokens: input?.audio_tokens,
+    inputTextTokens: input?.text_tokens,
+    outputAudioTokens: output?.audio_tokens,
+    outputTextTokens: output?.text_tokens,
+    cachedInputAudioTokens: cached?.audio_tokens,
+    cachedInputTextTokens: cached?.text_tokens,
+  });
+}
+
+/**
+ * Maps OpenAI realtime transcription-completed usage to normalized usage.
+ * Duration-billed transcription reports `seconds`; token-billed reports tokens.
+ */
+function mapTranscriptionUsage(
+  usage: OpenAIRealtimeTranscriptionUsage | undefined,
+): RealtimeModelV4Usage | undefined {
+  if (usage == null) return undefined;
+
+  if (usage.type === 'duration') {
+    return usage.seconds != null ? { audioSeconds: usage.seconds } : undefined;
+  }
+
+  const input = usage.input_token_details;
+  return compactUsage({
+    inputAudioTokens: input?.audio_tokens,
+    inputTextTokens: input?.text_tokens,
+    outputTextTokens: usage.output_tokens,
+  });
+}
+
+/** Drop `undefined` fields; return `undefined` when nothing is observable. */
+function compactUsage(
+  usage: RealtimeModelV4Usage,
+): RealtimeModelV4Usage | undefined {
+  const result: RealtimeModelV4Usage = {};
+  for (const [key, value] of Object.entries(usage)) {
+    if (value != null) {
+      result[key as keyof RealtimeModelV4Usage] = value;
+    }
+  }
+  return Object.keys(result).length > 0 ? result : undefined;
+}
+
+/**
  * Serializes a normalized client event into OpenAI's Realtime API format.
  */
 export function serializeOpenAIRealtimeClientEvent(
   event: RealtimeModelV4ClientEvent,
   modelId: string,
+  options?: OpenAIRealtimeSessionOptions,
 ): unknown {
+  assertSupportedOpenAIIntent(options?.intent);
+
   switch (event.type) {
     case 'session-update':
       return {
         type: 'session.update',
-        session: buildOpenAISessionConfig(event.config, modelId),
+        session: buildOpenAISessionConfig(event.config, modelId, options),
       };
 
     case 'input-audio-append':
@@ -325,23 +426,28 @@ export function serializeOpenAIRealtimeClientEvent(
 export function buildOpenAISessionConfig(
   config: RealtimeModelV4SessionConfig,
   modelId: string,
+  options?: OpenAIRealtimeSessionOptions,
 ): Record<string, unknown> {
+  const intent = options?.intent ?? 'conversation';
+  assertSupportedOpenAIIntent(intent);
+
   const session: Record<string, unknown> = {
-    type: 'realtime',
-    model: modelId,
+    type: intent === 'transcription' ? 'transcription' : 'realtime',
+    ...(intent === 'conversation' ? { model: modelId } : {}),
   };
 
-  if (config.instructions != null) {
+  if (intent === 'conversation' && config.instructions != null) {
     session.instructions = config.instructions;
   }
 
-  if (config.outputModalities != null) {
+  if (intent === 'conversation' && config.outputModalities != null) {
     session.output_modalities = config.outputModalities;
   }
 
   const audio: Record<string, unknown> = {};
 
   if (
+    intent === 'transcription' ||
     config.inputAudioFormat != null ||
     config.inputAudioTranscription != null ||
     config.turnDetection != null
@@ -380,7 +486,17 @@ export function buildOpenAISessionConfig(
       }
     }
 
-    if (config.inputAudioTranscription != null) {
+    if (intent === 'transcription') {
+      input.transcription = {
+        model: modelId,
+        ...(config.inputAudioTranscription?.language != null
+          ? { language: config.inputAudioTranscription.language }
+          : {}),
+        ...(config.inputAudioTranscription?.prompt != null
+          ? { prompt: config.inputAudioTranscription.prompt }
+          : {}),
+      };
+    } else if (config.inputAudioTranscription != null) {
       input.transcription = {
         model: config.inputAudioTranscription.model ?? 'gpt-realtime-whisper',
         ...(config.inputAudioTranscription.language != null
@@ -395,7 +511,10 @@ export function buildOpenAISessionConfig(
     audio.input = input;
   }
 
-  if (config.outputAudioFormat != null || config.voice != null) {
+  if (
+    intent === 'conversation' &&
+    (config.outputAudioFormat != null || config.voice != null)
+  ) {
     const output: Record<string, unknown> = {};
 
     if (config.outputAudioFormat != null) {
@@ -418,7 +537,11 @@ export function buildOpenAISessionConfig(
     session.audio = audio;
   }
 
-  if (config.tools != null && config.tools.length > 0) {
+  if (
+    intent === 'conversation' &&
+    config.tools != null &&
+    config.tools.length > 0
+  ) {
     session.tools = config.tools.map(tool => ({
       type: tool.type,
       name: tool.name,
@@ -433,4 +556,14 @@ export function buildOpenAISessionConfig(
   }
 
   return session;
+}
+
+function assertSupportedOpenAIIntent(
+  intent: RealtimeModelV4SessionIntent | undefined,
+): void {
+  if (intent === 'translation') {
+    throw new Error(
+      'OpenAI realtime translation sessions are not supported by the normalized RealtimeModelV4 codec yet.',
+    );
+  }
 }

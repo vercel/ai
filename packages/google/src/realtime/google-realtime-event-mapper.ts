@@ -4,6 +4,7 @@ import type {
   Experimental_RealtimeModelV4FunctionCallOutput as RealtimeModelV4FunctionCallOutput,
   Experimental_RealtimeModelV4ServerEvent as RealtimeModelV4ServerEvent,
   Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
+  Experimental_RealtimeModelV4Usage as RealtimeModelV4Usage,
 } from '@ai-sdk/provider';
 import { safeParseJSON } from '@ai-sdk/provider-utils';
 import { convertJSONSchemaToOpenAPISchema } from '../convert-json-schema-to-openapi-schema';
@@ -29,6 +30,19 @@ type GoogleRealtimeServerContent = {
   turnComplete?: boolean;
 };
 
+type GoogleRealtimeTokenDetail = {
+  modality?: string;
+  tokenCount?: number;
+};
+
+type GoogleRealtimeUsageMetadata = {
+  promptTokenCount?: number;
+  responseTokenCount?: number;
+  totalTokenCount?: number;
+  promptTokensDetails?: GoogleRealtimeTokenDetail[];
+  responseTokensDetails?: GoogleRealtimeTokenDetail[];
+};
+
 type GoogleRealtimeWireEvent = {
   setupComplete?: unknown;
   toolCall?: {
@@ -37,6 +51,7 @@ type GoogleRealtimeWireEvent = {
   toolCallCancellation?: unknown;
   serverContent?: GoogleRealtimeServerContent;
   inputTranscription?: { text?: string };
+  usageMetadata?: GoogleRealtimeUsageMetadata;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -56,7 +71,9 @@ export class GoogleRealtimeEventMapper {
   private hasText = false;
   private hasTranscript = false;
   private turnClosed = false;
+  private closedTurnHasUsage = false;
   private inputAudioRate = 16000;
+  private pendingUsage: RealtimeModelV4Usage | undefined;
 
   private get responseId(): string {
     return `google-resp-${this.turnCounter}`;
@@ -80,6 +97,7 @@ export class GoogleRealtimeEventMapper {
     this.hasAudio = false;
     this.hasText = false;
     this.hasTranscript = false;
+    this.closedTurnHasUsage = false;
     this.turnClosed = false;
   }
 
@@ -128,7 +146,11 @@ export class GoogleRealtimeEventMapper {
     }
 
     if (data.serverContent != null) {
-      return this.parseServerContent(data.serverContent, raw);
+      return this.parseServerContent(
+        data.serverContent,
+        raw,
+        data.usageMetadata,
+      );
     }
 
     if (data.inputTranscription?.text != null) {
@@ -140,14 +162,48 @@ export class GoogleRealtimeEventMapper {
       };
     }
 
+    if (data.usageMetadata != null) {
+      return this.parseUsageMetadata(raw, data.usageMetadata);
+    }
+
     return { type: 'custom', rawType: String(Object.keys(data)[0]), raw };
+  }
+
+  private parseUsageMetadata(
+    raw: unknown,
+    usageMetadata: GoogleRealtimeUsageMetadata,
+  ): RealtimeModelV4ServerEvent {
+    const usage = mapGoogleUsage(usageMetadata);
+    if (usage == null) {
+      return { type: 'custom', rawType: 'usageMetadata', raw };
+    }
+
+    if (this.turnClosed) {
+      if (this.closedTurnHasUsage) {
+        return { type: 'custom', rawType: 'usageMetadata', raw };
+      }
+
+      this.closedTurnHasUsage = true;
+      return {
+        type: 'response-done',
+        responseId: this.responseId,
+        status: 'completed',
+        usage,
+        raw,
+      };
+    }
+
+    this.pendingUsage = usage;
+    return { type: 'custom', rawType: 'usageMetadata', raw };
   }
 
   private parseServerContent(
     serverContent: GoogleRealtimeServerContent,
     raw: unknown,
+    usageMetadata?: GoogleRealtimeUsageMetadata,
   ): RealtimeModelV4ServerEvent | RealtimeModelV4ServerEvent[] {
     const events: RealtimeModelV4ServerEvent[] = [];
+    const usage = mapGoogleUsage(usageMetadata);
 
     if (serverContent.interrupted) {
       events.push({
@@ -228,15 +284,21 @@ export class GoogleRealtimeEventMapper {
           raw,
         });
       }
+      const completedUsage = usage ?? this.pendingUsage;
+      this.pendingUsage = undefined;
+      this.closedTurnHasUsage = completedUsage != null;
       events.push({
         type: 'response-done',
         responseId: this.responseId,
         status: 'completed',
+        ...(completedUsage != null ? { usage: completedUsage } : {}),
         raw,
       });
       // Mark the turn closed but defer advancing the counter until the next
       // response actually begins (see `beginTurnIfClosed`).
       this.turnClosed = true;
+    } else if (usage != null) {
+      this.pendingUsage = usage;
     }
 
     if (events.length === 0) {
@@ -305,6 +367,78 @@ export class GoogleRealtimeEventMapper {
 
     return null;
   }
+}
+
+/**
+ * Maps Gemini Live `usageMetadata` to normalized usage. Google reports usage
+ * per modality in `promptTokensDetails` / `responseTokensDetails`.
+ *
+ * Field names are Live-API-specific: the Live `UsageMetadata` uses
+ * `responseTokenCount` / `responseTokensDetails` for output, NOT the
+ * `candidatesTokenCount` / `candidatesTokensDetails` of the regular
+ * `generateContent` response (see google-language-model.ts). Do not "align"
+ * these to `candidates*` — they are different wire shapes.
+ *
+ * Caveats (the normalized usage type only has text/audio buckets):
+ * - Only AUDIO and TEXT modality entries are summed. Other modalities (e.g.
+ *   IMAGE/VIDEO from screen-share or video input) are dropped, so for such
+ *   sessions the normalized input total will be lower than what Google billed.
+ * - When details are absent we fall back to the aggregate counts as TEXT. On an
+ *   audio turn that omits details this misclassifies audio tokens as text, which
+ *   matters to a consumer applying per-modality pricing.
+ */
+function mapGoogleUsage(
+  usageMetadata: GoogleRealtimeUsageMetadata | undefined,
+): RealtimeModelV4Usage | undefined {
+  if (usageMetadata == null) return undefined;
+
+  const input = sumByModality(usageMetadata.promptTokensDetails);
+  const output = sumByModality(usageMetadata.responseTokensDetails);
+
+  return compactUsage({
+    inputTextTokens:
+      usageMetadata.promptTokensDetails != null
+        ? input.text
+        : usageMetadata.promptTokenCount,
+    inputAudioTokens: input.audio,
+    outputTextTokens:
+      usageMetadata.responseTokensDetails != null
+        ? output.text
+        : usageMetadata.responseTokenCount,
+    outputAudioTokens: output.audio,
+  });
+}
+
+/** Aggregate Gemini per-modality token details into text/audio buckets. */
+function sumByModality(details: GoogleRealtimeTokenDetail[] | undefined): {
+  text?: number;
+  audio?: number;
+} {
+  if (details == null) return {};
+  const totals: { text?: number; audio?: number } = {};
+  for (const detail of details) {
+    const count = detail.tokenCount ?? 0;
+    const modality = detail.modality?.toUpperCase();
+    if (modality === 'AUDIO') {
+      totals.audio = (totals.audio ?? 0) + count;
+    } else if (modality === 'TEXT') {
+      totals.text = (totals.text ?? 0) + count;
+    }
+  }
+  return totals;
+}
+
+/** Drop `undefined` fields; return `undefined` when nothing is observable. */
+function compactUsage(
+  usage: RealtimeModelV4Usage,
+): RealtimeModelV4Usage | undefined {
+  const result: RealtimeModelV4Usage = {};
+  for (const [key, value] of Object.entries(usage)) {
+    if (value != null) {
+      result[key as keyof RealtimeModelV4Usage] = value;
+    }
+  }
+  return Object.keys(result).length > 0 ? result : undefined;
 }
 
 async function serializeFunctionCallOutput(
