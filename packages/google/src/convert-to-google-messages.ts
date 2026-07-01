@@ -218,9 +218,16 @@ export function convertToGoogleMessages(
 
   let sentinelInjected = false;
   const missingSignatureToolNames: string[] = [];
-  const injectSkipSignature = (toolName: string) => {
-    missingSignatureToolNames.push(toolName);
-    sentinelInjected = true;
+  // Always returns the sentinel (required so the request doesn't fail with HTTP
+  // 400), but only records the tool name for the "missing thoughtSignature"
+  // warning when `countAsMissing` is true. Gemini 3 signs only the first
+  // functionCall of a parallel batch, so unsigned siblings are expected and must
+  // not be flagged as dropped signatures.
+  const injectSkipSignature = (toolName: string, countAsMissing: boolean) => {
+    if (countAsMissing) {
+      missingSignatureToolNames.push(toolName);
+      sentinelInjected = true;
+    }
     return SKIP_THOUGHT_SIGNATURE_VALIDATOR;
   };
 
@@ -333,6 +340,17 @@ export function convertToGoogleMessages(
 
       case 'assistant': {
         systemMessagesAllowed = false;
+
+        // Gemini 3 signs only the first functionCall of a parallel batch; the
+        // remaining parallel calls in the same assistant message are legitimately
+        // unsigned. If any tool-call here carries a real thoughtSignature, treat
+        // the unsigned ones as parallel siblings: still inject the skip sentinel
+        // (so the request doesn't 400) but don't warn about them.
+        const hasSignedToolCall = content.some(
+          part =>
+            part.type === 'tool-call' &&
+            readProviderOpts(part)?.thoughtSignature != null,
+        );
 
         contents.push({
           role: 'model',
@@ -459,7 +477,12 @@ export function convertToGoogleMessages(
                   const effectiveThoughtSignature =
                     thoughtSignature ??
                     (isGemini3Model
-                      ? injectSkipSignature(part.toolName)
+                      ? injectSkipSignature(
+                          part.toolName,
+                          // Only a genuine dropped signature (no signed sibling in
+                          // this message) is worth warning about.
+                          !hasSignedToolCall,
+                        )
                       : undefined);
 
                   if (serverToolCallId && serverToolType) {
