@@ -1,4 +1,11 @@
-import type { AbstractChat, ChatInit, CreateUIMessage, UIMessage } from 'ai';
+import {
+  type AbstractChat,
+  type ChatInit,
+  type ChatTransport,
+  type CreateUIMessage,
+  type UIMessage,
+  DefaultChatTransport,
+} from 'ai';
 import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 import { Chat } from './chat.react';
 
@@ -79,9 +86,35 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     };
   }
 
-  // Ensure the Chat instance has the latest callbacks
+  // keep ref to the latest transport
+  const transportRef = useRef(
+    !('chat' in options) ? options.transport : undefined,
+  );
+  // update transport ref on each render to keep it current
+  if (!('chat' in options)) {
+    transportRef.current = options.transport;
+  }
+
+  // stable proxy transport that forwards to the latest transport in the ref
+  // falls back to a lazily-created default transport when none is provided
+  const transportProxyRef = useRef<ChatTransport<UI_MESSAGE>>(undefined);
+  if (transportProxyRef.current == null) {
+    let defaultTransport: ChatTransport<UI_MESSAGE> | undefined;
+    const getTransport = () =>
+      transportRef.current ??
+      (defaultTransport ??= new DefaultChatTransport<UI_MESSAGE>());
+
+    transportProxyRef.current = {
+      sendMessages: sendOptions => getTransport().sendMessages(sendOptions),
+      reconnectToStream: reconnectOptions =>
+        getTransport().reconnectToStream(reconnectOptions),
+    };
+  }
+
+  // Ensure the Chat instance has the latest callbacks and transport
   const optionsWithCallbacks: typeof options = {
     ...options,
+    transport: transportProxyRef.current,
     onToolCall: arg => callbacksRef.current.onToolCall?.(arg),
     onData: arg => callbacksRef.current.onData?.(arg),
     onFinish: arg => callbacksRef.current.onFinish?.(arg),
