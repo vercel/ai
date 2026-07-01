@@ -62,6 +62,7 @@ export interface Subscription {
   grace_period_days: number;
   pending_plan_id: string | null;
   gateway_subscription_id: string | null;
+  billing_alert_message: string | null;
   updated_at: string;
 }
 

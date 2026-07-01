@@ -6,24 +6,39 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { requireSuperAdmin } from '@/lib/super-admin';
 import { log_audit_event_action } from '@/lib/audit';
 
-export async function suspendClinic(clinicId: string) {
+/**
+ * The one place that flips a clinic between suspended (Hard-Block, manual
+ * only) and active. Suspending sets a billing_alert_message so the reason
+ * survives into the /suspended page and the (now redundant, but harmless)
+ * dashboard banner; activating clears it along with past_due_since.
+ */
+export async function toggleClinicSuspension(clinicId: string, isSuspended: boolean) {
   const actor = await requireSuperAdmin();
   const supabase = createSupabaseServerClient();
 
+  const status = isSuspended ? 'suspended' : 'active';
+  const subscriptionUpdate = isSuspended
+    ? {
+        status,
+        billing_alert_message:
+          'Acesso suspenso pelo suporte por inadimplência. Regularize o pagamento para reativar.',
+      }
+    : { status, billing_alert_message: null, past_due_since: null };
+
   await Promise.all([
-    supabase.from('clinics').update({ is_active: false }).eq('id', clinicId),
-    supabase.from('subscriptions').update({ status: 'suspended' }).eq('clinic_id', clinicId),
+    supabase.from('clinics').update({ is_active: !isSuspended }).eq('id', clinicId),
+    supabase.from('subscriptions').update(subscriptionUpdate).eq('clinic_id', clinicId),
   ]);
 
   await log_audit_event_action({
     clinic_id: clinicId,
     actor_id: actor.id,
     actor_role: 'super_admin',
-    action: 'suspend_clinic',
+    action: isSuspended ? 'suspend_clinic' : 'activate_clinic',
     table_name: 'clinics',
     record_id: clinicId,
-    old_data: { is_active: true },
-    new_data: { is_active: false, subscription_status: 'suspended' },
+    old_data: { is_active: !isSuspended },
+    new_data: { is_active: isSuspended, subscription_status: status },
   });
 
   revalidatePath(`/super-admin/clinics/${clinicId}`);
@@ -31,29 +46,12 @@ export async function suspendClinic(clinicId: string) {
   revalidatePath('/super-admin/clinics');
 }
 
+export async function suspendClinic(clinicId: string) {
+  await toggleClinicSuspension(clinicId, true);
+}
+
 export async function activateClinic(clinicId: string) {
-  const actor = await requireSuperAdmin();
-  const supabase = createSupabaseServerClient();
-
-  await Promise.all([
-    supabase.from('clinics').update({ is_active: true }).eq('id', clinicId),
-    supabase.from('subscriptions').update({ status: 'active', past_due_since: null }).eq('clinic_id', clinicId),
-  ]);
-
-  await log_audit_event_action({
-    clinic_id: clinicId,
-    actor_id: actor.id,
-    actor_role: 'super_admin',
-    action: 'activate_clinic',
-    table_name: 'clinics',
-    record_id: clinicId,
-    old_data: { is_active: false },
-    new_data: { is_active: true, subscription_status: 'active' },
-  });
-
-  revalidatePath(`/super-admin/clinics/${clinicId}`);
-  revalidatePath('/super-admin');
-  revalidatePath('/super-admin/clinics');
+  await toggleClinicSuspension(clinicId, false);
 }
 
 export async function changePlanSuperAdmin(clinicId: string, formData: FormData) {

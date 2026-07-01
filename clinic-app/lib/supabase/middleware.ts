@@ -74,16 +74,31 @@ export async function updateSession(request: NextRequest) {
     }
 
     if (!superAdmin && request.nextUrl.pathname.startsWith('/dashboard')) {
-      const isOnboardingRoute = request.nextUrl.pathname.startsWith('/dashboard/onboarding');
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('clinic_id')
+        .eq('id', data.user.id)
+        .maybeSingle<{ clinic_id: string | null }>();
 
-      if (!isOnboardingRoute) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('clinic_id')
-          .eq('id', data.user.id)
-          .maybeSingle<{ clinic_id: string | null }>();
+      if (profile?.clinic_id) {
+        // Hard-Block: a manually suspended subscription locks the clinic out
+        // of every /dashboard/* route, including onboarding. past_due is a
+        // soft warning only — the clinic stays navigable, banner handles it.
+        const { data: subscription } = await supabase
+          .from('subscriptions')
+          .select('status')
+          .eq('clinic_id', profile.clinic_id)
+          .maybeSingle<{ status: string }>();
 
-        if (profile?.clinic_id) {
+        if (subscription?.status === 'suspended') {
+          const url = request.nextUrl.clone();
+          url.pathname = '/suspended';
+          url.searchParams.set('reason', 'billing');
+          return NextResponse.redirect(url);
+        }
+
+        const isOnboardingRoute = request.nextUrl.pathname.startsWith('/dashboard/onboarding');
+        if (!isOnboardingRoute) {
           const { data: clinic } = await supabase
             .from('clinics')
             .select('onboarding_completed')

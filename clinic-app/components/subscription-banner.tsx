@@ -37,19 +37,24 @@ export function SubscriptionBanner({
     );
   }
 
-  if (status === 'past_due' && subscription.past_due_since) {
-    const days = daysSince(subscription.past_due_since);
+  if (status === 'past_due') {
+    const days = subscription.past_due_since ? daysSince(subscription.past_due_since) : 0;
     const graceDaysLeft = Math.max(0, subscription.grace_period_days - days);
+    const message =
+      subscription.billing_alert_message ??
+      `Pagamento em atraso há ${days} dia${days > 1 ? 's' : ''}.${
+        graceDaysLeft > 0
+          ? ` Regularize em até ${graceDaysLeft} dia${graceDaysLeft > 1 ? 's' : ''} para evitar suspensão.`
+          : ' Conta sujeita a suspensão imediata.'
+      }`;
     return (
-      <div className="flex items-center justify-between bg-red-50 px-6 py-2 text-sm text-red-700 border-b border-red-200">
-        <span>
-          Pagamento em atraso há <strong>{days} dia{days > 1 ? 's' : ''}</strong>.
-          {graceDaysLeft > 0
-            ? ` Regularize em até ${graceDaysLeft} dia${graceDaysLeft > 1 ? 's' : ''} para evitar suspensão.`
-            : ' Conta sujeita a suspensão imediata.'}
-        </span>
-        <Link href="/dashboard/admin/subscription" className="ml-4 rounded bg-red-600 px-3 py-1 text-xs font-medium text-white hover:bg-red-700">
-          Regularizar
+      <div className="sticky top-0 z-40 flex items-center justify-between bg-red-50 px-6 py-2 text-sm text-red-700 border-b border-red-200">
+        <span>{message}</span>
+        <Link
+          href="/dashboard/admin/subscription"
+          className="ml-4 shrink-0 rounded bg-red-600 px-3 py-1 text-xs font-medium text-white hover:bg-red-700"
+        >
+          Atualizar Cartão
         </Link>
       </div>
     );
