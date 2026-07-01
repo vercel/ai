@@ -2,7 +2,12 @@ import fs from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
+import {
+  convertArrayToReadableStream,
+  convertReadableStreamToArray,
+} from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
 import { createOpenAI } from '../openai-provider';
 import { OpenAITranscriptionModel } from './openai-transcription-model';
 import { describe, it, expect, vi } from 'vitest';
@@ -21,6 +26,39 @@ const server = createTestServer({
   'https://api.openai.com/v1/audio/transcriptions': {},
 });
 
+class MockWebSocket {
+  static instances: MockWebSocket[] = [];
+
+  readyState = 0;
+  send = vi.fn();
+  close = vi.fn(() => {
+    this.readyState = 3;
+  });
+  onopen: ((event: unknown) => void) | null = null;
+  onmessage: ((event: { data: unknown }) => void) | null = null;
+  onerror: ((event: unknown) => void) | null = null;
+  onclose: ((event: unknown) => void) | null = null;
+
+  constructor(
+    public url: string | URL,
+    public protocols?: string | string[],
+    public options?: { headers?: Record<string, string | undefined> },
+  ) {
+    MockWebSocket.instances.push(this);
+  }
+
+  open() {
+    this.readyState = 1;
+    this.onopen?.({});
+  }
+
+  message(value: unknown) {
+    this.onmessage?.({ data: JSON.stringify(value) });
+  }
+}
+
+const flush = () => new Promise(resolve => setTimeout(resolve, 0));
+
 function prepareJsonFixtureResponse(
   filename: string,
   headers?: Record<string, string>,
@@ -38,6 +76,15 @@ function prepareJsonFixtureResponse(
 }
 
 describe('doGenerate', () => {
+  it('should reject gpt-realtime-whisper for non-streaming transcription', async () => {
+    await expect(
+      provider.transcription('gpt-realtime-whisper').doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      }),
+    ).rejects.toBeInstanceOf(UnsupportedFunctionalityError);
+  });
+
   it('should pass the model', async () => {
     prepareJsonFixtureResponse('openai-transcription');
 
@@ -475,5 +522,99 @@ describe('doGenerate', () => {
     `);
     expect(result.language).toBeUndefined();
     expect(result.durationInSeconds).toBeUndefined();
+  });
+});
+
+describe('doStream', () => {
+  it('should stream gpt-realtime-whisper using OpenAI realtime transcription', async () => {
+    MockWebSocket.instances = [];
+    const testDate = new Date(0);
+    const model = new OpenAITranscriptionModel('gpt-realtime-whisper', {
+      provider: 'test-provider',
+      url: ({ path }) => `https://api.openai.com/v1${path}`,
+      headers: () => ({ Authorization: 'Bearer test-api-key' }),
+      webSocket: MockWebSocket,
+      _internal: { currentDate: () => testDate },
+    });
+
+    const result = await model.doStream({
+      audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+      providerOptions: {
+        openai: {
+          language: 'en',
+          streaming: {
+            delay: 'low',
+            include: ['item.input_audio_transcription.logprobs'],
+          },
+        },
+      },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    expect(ws.url.toString()).toBe(
+      'wss://api.openai.com/v1/realtime?intent=transcription',
+    );
+    expect(ws.protocols).toEqual([
+      'realtime',
+      'openai-insecure-api-key.test-api-key',
+    ]);
+
+    ws.open();
+    await flush();
+
+    expect(JSON.parse(ws.send.mock.calls[0][0])).toEqual({
+      type: 'session.update',
+      session: {
+        type: 'transcription',
+        audio: {
+          input: {
+            format: { type: 'audio/pcm', rate: 24000 },
+            transcription: {
+              model: 'gpt-realtime-whisper',
+              language: 'en',
+              delay: 'low',
+            },
+            turn_detection: null,
+          },
+        },
+        include: ['item.input_audio_transcription.logprobs'],
+      },
+    });
+    expect(JSON.parse(ws.send.mock.calls[1][0])).toEqual({
+      type: 'input_audio_buffer.append',
+      audio: 'AQID',
+    });
+    expect(JSON.parse(ws.send.mock.calls[2][0])).toEqual({
+      type: 'input_audio_buffer.commit',
+    });
+
+    ws.message({
+      type: 'conversation.item.input_audio_transcription.delta',
+      item_id: 'item-1',
+      delta: 'Hel',
+    });
+    ws.message({
+      type: 'conversation.item.input_audio_transcription.completed',
+      item_id: 'item-1',
+      transcript: 'Hello',
+    });
+
+    await expect(partsPromise).resolves.toEqual([
+      { type: 'stream-start', warnings: [] },
+      { type: 'transcript-delta', id: 'item-1', delta: 'Hel' },
+      { type: 'transcript-final', id: 'item-1', text: 'Hello' },
+      {
+        type: 'finish',
+        text: 'Hello',
+        segments: [],
+        language: 'en',
+      },
+    ]);
+    expect(result.response).toEqual({
+      timestamp: testDate,
+      modelId: 'gpt-realtime-whisper',
+    });
   });
 });

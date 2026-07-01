@@ -1,15 +1,20 @@
-import type {
-  TranscriptionModelV4,
-  TranscriptionModelV4CallOptions,
-  SharedV4Warning,
+import {
+  UnsupportedFunctionalityError,
+  type SharedV4Warning,
+  type TranscriptionModelV4,
+  type TranscriptionModelV4CallOptions,
+  type TranscriptionModelV4StreamOptions,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
+  convertToBase64,
   createJsonResponseHandler,
+  getWebSocketConstructor,
   mediaTypeToExtension,
   parseProviderOptions,
   postFormDataToApi,
+  safeParseJSON,
   serializeModelOptions,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
@@ -29,6 +34,25 @@ export type OpenAITranscriptionCallOptions = Omit<
   providerOptions?: {
     openai?: OpenAITranscriptionModelOptions;
   };
+};
+
+export type OpenAITranscriptionStreamOptions = Omit<
+  TranscriptionModelV4StreamOptions,
+  'providerOptions'
+> & {
+  providerOptions?: {
+    openai?: OpenAITranscriptionModelOptions;
+  };
+};
+
+type OpenAIRealtimeTranscriptionEvent = {
+  type?: string;
+  item_id?: string;
+  delta?: string;
+  transcript?: string;
+  error?: { message?: string; code?: string };
+  message?: string;
+  code?: string;
 };
 
 interface OpenAITranscriptionModelConfig extends OpenAIConfig {
@@ -199,6 +223,12 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
   async doGenerate(
     options: OpenAITranscriptionCallOptions,
   ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
+    if (this.modelId === 'gpt-realtime-whisper') {
+      throw new UnsupportedFunctionalityError({
+        functionality: 'non-streaming transcription with gpt-realtime-whisper',
+      });
+    }
+
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { formData, warnings } = await this.getArgs(options);
 
@@ -251,4 +281,262 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
       },
     };
   }
+
+  async doStream(
+    options: OpenAITranscriptionStreamOptions,
+  ): Promise<
+    Awaited<ReturnType<NonNullable<TranscriptionModelV4['doStream']>>>
+  > {
+    if (this.modelId !== 'gpt-realtime-whisper') {
+      throw new UnsupportedFunctionalityError({
+        functionality: `streaming transcription with ${this.modelId}`,
+      });
+    }
+
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const openAIOptions = await parseProviderOptions({
+      provider: 'openai',
+      providerOptions: options.providerOptions,
+      schema: openAITranscriptionModelOptions,
+    });
+    const warnings: SharedV4Warning[] = [];
+    const headers = combineHeaders(this.config.headers?.(), options.headers);
+    const sessionUpdate = buildOpenAIRealtimeTranscriptionSession({
+      modelId: this.modelId,
+      inputAudioFormat: options.inputAudioFormat,
+      providerOptions: openAIOptions,
+    });
+
+    return {
+      request: { body: sessionUpdate },
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+      },
+      stream: new ReadableStream({
+        start: controller => {
+          const WebSocketConstructor = getWebSocketConstructor(
+            this.config.webSocket,
+          );
+          const ws = new WebSocketConstructor(
+            toWebSocketUrl(
+              this.config.url({
+                path: '/realtime?intent=transcription',
+                modelId: this.modelId,
+              }),
+            ),
+            getOpenAIRealtimeProtocols(headers),
+            { headers },
+          );
+          let finished = false;
+
+          const finishWithError = (error: unknown) => {
+            if (finished) return;
+            finished = true;
+            try {
+              ws.close();
+            } catch {}
+            controller.error(error);
+          };
+
+          const finish = (text: string, id?: string) => {
+            if (finished) return;
+            finished = true;
+            if (id != null) {
+              controller.enqueue({ type: 'transcript-final', id, text });
+            }
+            controller.enqueue({
+              type: 'finish',
+              text,
+              segments: [],
+              language: openAIOptions?.language,
+            });
+            controller.close();
+            try {
+              ws.close(1000);
+            } catch {}
+          };
+
+          const abort = () => {
+            finishWithError(
+              options.abortSignal?.reason ?? new Error('Aborted'),
+            );
+          };
+          if (options.abortSignal?.aborted) {
+            abort();
+            return;
+          }
+          options.abortSignal?.addEventListener('abort', abort, { once: true });
+
+          ws.onopen = () => {
+            controller.enqueue({ type: 'stream-start', warnings });
+            ws.send(JSON.stringify(sessionUpdate));
+            void sendOpenAIAudioStream({
+              audio: options.audio,
+              send: audio => {
+                ws.send(
+                  JSON.stringify({
+                    type: 'input_audio_buffer.append',
+                    audio,
+                  }),
+                );
+              },
+              commit: () => {
+                ws.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
+              },
+            }).catch(finishWithError);
+          };
+
+          ws.onmessage = event => {
+            void readWebSocketText(event.data)
+              .then(async text => {
+                const parsed = await safeParseJSON({ text });
+                if (!parsed.success) return;
+                const raw = parsed.value as OpenAIRealtimeTranscriptionEvent;
+
+                if (options.includeRawChunks) {
+                  controller.enqueue({ type: 'raw', rawValue: raw });
+                }
+
+                switch (raw.type) {
+                  case 'conversation.item.input_audio_transcription.delta': {
+                    controller.enqueue({
+                      type: 'transcript-delta',
+                      id: raw.item_id,
+                      delta: raw.delta ?? '',
+                    });
+                    break;
+                  }
+
+                  case 'conversation.item.input_audio_transcription.completed': {
+                    finish(raw.transcript ?? '', raw.item_id);
+                    break;
+                  }
+
+                  case 'error': {
+                    const message =
+                      raw.error?.message ??
+                      raw.message ??
+                      'OpenAI realtime error';
+                    const error = new Error(message);
+                    controller.enqueue({ type: 'error', error });
+                    finishWithError(error);
+                    break;
+                  }
+                }
+              })
+              .catch(finishWithError);
+          };
+
+          ws.onerror = () => {
+            finishWithError(new Error('OpenAI realtime transcription error'));
+          };
+
+          ws.onclose = () => {
+            options.abortSignal?.removeEventListener('abort', abort);
+            if (!finished) {
+              controller.close();
+            }
+          };
+        },
+      }),
+    };
+  }
+}
+
+function buildOpenAIRealtimeTranscriptionSession({
+  modelId,
+  inputAudioFormat,
+  providerOptions,
+}: {
+  modelId: string;
+  inputAudioFormat: TranscriptionModelV4StreamOptions['inputAudioFormat'];
+  providerOptions: OpenAITranscriptionModelOptions | undefined;
+}) {
+  return {
+    type: 'session.update',
+    session: {
+      type: 'transcription',
+      audio: {
+        input: {
+          format: {
+            type: inputAudioFormat.type,
+            ...(inputAudioFormat.rate != null
+              ? { rate: inputAudioFormat.rate }
+              : {}),
+          },
+          transcription: {
+            model: modelId,
+            ...(providerOptions?.language != null
+              ? { language: providerOptions.language }
+              : {}),
+            ...(providerOptions?.streaming?.delay != null
+              ? { delay: providerOptions.streaming.delay }
+              : {}),
+          },
+          turn_detection: null,
+        },
+      },
+      ...(providerOptions?.streaming?.include != null
+        ? { include: providerOptions.streaming.include }
+        : {}),
+    },
+  };
+}
+
+async function sendOpenAIAudioStream({
+  audio,
+  send,
+  commit,
+}: {
+  audio: ReadableStream<Uint8Array | string>;
+  send: (audio: string) => void;
+  commit: () => void;
+}) {
+  const reader = audio.getReader();
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      send(convertToBase64(value));
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  commit();
+}
+
+function getOpenAIRealtimeProtocols(
+  headers: Record<string, string | undefined>,
+): string[] {
+  const authorization = headers.Authorization ?? headers.authorization;
+  const token = authorization?.startsWith('Bearer ')
+    ? authorization.slice('Bearer '.length)
+    : undefined;
+
+  return token == null
+    ? ['realtime']
+    : ['realtime', `openai-insecure-api-key.${token}`];
+}
+
+function toWebSocketUrl(url: string): string {
+  const wsUrl = new URL(url);
+  if (wsUrl.protocol === 'http:') {
+    wsUrl.protocol = 'ws:';
+  } else if (wsUrl.protocol === 'https:') {
+    wsUrl.protocol = 'wss:';
+  }
+  return wsUrl.toString();
+}
+
+async function readWebSocketText(data: unknown): Promise<string> {
+  if (typeof data === 'string') return data;
+  if (data instanceof ArrayBuffer) return new TextDecoder().decode(data);
+  if (ArrayBuffer.isView(data)) {
+    return new TextDecoder().decode(data);
+  }
+  if (typeof Blob !== 'undefined' && data instanceof Blob) {
+    return data.text();
+  }
+  return String(data);
 }
