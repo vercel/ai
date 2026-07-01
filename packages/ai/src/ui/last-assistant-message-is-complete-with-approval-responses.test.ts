@@ -228,6 +228,66 @@ describe('lastAssistantMessageIsCompleteWithApprovalResponses', () => {
     ).toBe(false);
   });
 
+  it('should return true when one tool is approval-responded and another is output-denied', () => {
+    expect(
+      lastAssistantMessageIsCompleteWithApprovalResponses({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-getWeather',
+                toolCallId: 'call_1',
+                state: 'approval-responded',
+                input: { city: 'Tokyo' },
+                approval: { id: 'approval_1', approved: true },
+              },
+              {
+                type: 'tool-getWeather',
+                toolCallId: 'call_2',
+                state: 'output-denied',
+                input: { city: 'Paris' },
+                approval: { id: 'approval_2', approved: false },
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(true);
+  });
+
+  it('should return false when tool is approval-requested even if another is output-denied', () => {
+    expect(
+      lastAssistantMessageIsCompleteWithApprovalResponses({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-getWeather',
+                toolCallId: 'call_1',
+                state: 'approval-requested',
+                input: { city: 'Tokyo' },
+                approval: { id: 'approval_1' },
+              },
+              {
+                type: 'tool-getWeather',
+                toolCallId: 'call_2',
+                state: 'output-denied',
+                input: { city: 'Paris' },
+                approval: { id: 'approval_2', approved: false },
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(false);
+  });
+
   it('should only consider the last step in a multi-step message', () => {
     expect(
       lastAssistantMessageIsCompleteWithApprovalResponses({
