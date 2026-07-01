@@ -123,7 +123,7 @@ function convertInputReferenceImage(
   warnings: SharedV3Warning[],
 ): Record<string, unknown> | undefined {
   const image = convertFileToVertexImage(file, warnings);
-  return image != null ? { image, referenceType: 'asset' } : undefined;
+  return image != null ? { image } : undefined;
 }
 
 export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {

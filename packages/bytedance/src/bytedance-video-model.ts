@@ -135,10 +135,19 @@ function resolveStartImage(
   return getFirstFrameImage(options) ?? options.image;
 }
 
-function resolveReferenceImages(
+function getTopLevelMediaType(mediaType: string): string {
+  const slashIndex = mediaType.indexOf('/');
+  return slashIndex === -1 ? mediaType : mediaType.substring(0, slashIndex);
+}
+
+const isVideoFile = (f: Experimental_VideoModelV3File) =>
+  f.mediaType != null && getTopLevelMediaType(f.mediaType) === 'video';
+
+function resolveReferenceContent(
   options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
   byteDanceOptions: ByteDanceVideoProviderOptions | undefined,
-): string[] {
+  warnings: SharedV3Warning[],
+): Array<Record<string, unknown>> {
   if (options.frameImages != null && options.frameImages.length > 0) {
     return [];
   }
@@ -146,10 +155,44 @@ function resolveReferenceImages(
   const inputReferences = options.inputReferences;
 
   if (inputReferences != null && inputReferences.length > 0) {
-    return inputReferences.map(image => convertImageModelFileToDataUri(image));
+    return inputReferences.map(reference => {
+      if (reference.type === 'url' && reference.mediaType == null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'inputReferences',
+          details:
+            'ByteDance requires an explicit mediaType to route URL references as ' +
+            'video or image. Pass { data: url, mediaType: "video/mp4" } for video ' +
+            'references. The reference was treated as an image.',
+        });
+      }
+
+      const url = convertImageModelFileToDataUri(reference);
+      return isVideoFile(reference)
+        ? { type: 'video_url', video_url: { url }, role: 'reference_video' }
+        : { type: 'image_url', image_url: { url }, role: 'reference_image' };
+    });
   }
 
-  return byteDanceOptions?.referenceImages ?? [];
+  const content: Array<Record<string, unknown>> = [];
+
+  for (const imageUrl of byteDanceOptions?.referenceImages ?? []) {
+    content.push({
+      type: 'image_url',
+      image_url: { url: imageUrl },
+      role: 'reference_image',
+    });
+  }
+
+  for (const videoUrl of byteDanceOptions?.referenceVideos ?? []) {
+    content.push({
+      type: 'video_url',
+      video_url: { url: videoUrl },
+      role: 'reference_video',
+    });
+  }
+
+  return content;
 }
 
 function resolveLastFrameImage(
@@ -223,9 +266,10 @@ export class ByteDanceVideoModel implements Experimental_VideoModelV3 {
 
     const startImage = resolveStartImage(options);
     const lastFrameImageUrl = resolveLastFrameImage(options, byteDanceOptions);
-    const referenceImageUrls = resolveReferenceImages(
+    const referenceContent = resolveReferenceContent(
       options,
       byteDanceOptions,
+      warnings,
     );
 
     if (startImage != null) {
@@ -245,27 +289,8 @@ export class ByteDanceVideoModel implements Experimental_VideoModelV3 {
       });
     }
 
-    // Add reference images if provided
-    for (const imageUrl of referenceImageUrls) {
-      content.push({
-        type: 'image_url',
-        image_url: { url: imageUrl },
-        role: 'reference_image',
-      });
-    }
-
-    // Add reference videos if provided
-    if (
-      byteDanceOptions?.referenceVideos != null &&
-      byteDanceOptions.referenceVideos.length > 0
-    ) {
-      for (const videoUrl of byteDanceOptions.referenceVideos) {
-        content.push({
-          type: 'video_url',
-          video_url: { url: videoUrl },
-          role: 'reference_video',
-        });
-      }
+    for (const entry of referenceContent) {
+      content.push(entry);
     }
 
     // Add reference audio if provided

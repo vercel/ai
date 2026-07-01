@@ -34,16 +34,45 @@ function fileToImageString(file: Experimental_VideoModelV3File): string {
     : convertUint8ArrayToBase64(file.data);
 }
 
+function getTopLevelMediaType(mediaType: string): string {
+  const slashIndex = mediaType.indexOf('/');
+  return slashIndex === -1 ? mediaType : mediaType.substring(0, slashIndex);
+}
+
+/**
+ * KlingAI does not support video reference inputs. This detects whether a file
+ * is a video so it can be guarded against and excluded.
+ */
+const isVideoFile = (file: Experimental_VideoModelV3File): boolean =>
+  file.mediaType != null && getTopLevelMediaType(file.mediaType) === 'video';
+
 function getReferenceImages(
   options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
+  warnings: SharedV3Warning[],
 ): Array<Experimental_VideoModelV3File> | undefined {
   if (options.frameImages != null && options.frameImages.length > 0) {
     return undefined;
   }
 
-  return options.inputReferences != null && options.inputReferences.length > 0
-    ? options.inputReferences
-    : undefined;
+  if (options.inputReferences == null || options.inputReferences.length === 0) {
+    return undefined;
+  }
+
+  const imageReferences = options.inputReferences.filter(reference => {
+    if (isVideoFile(reference)) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'inputReferences',
+        details:
+          'KlingAI does not support video reference inputs; the video ' +
+          'reference was ignored.',
+      });
+      return false;
+    }
+    return true;
+  });
+
+  return imageReferences.length > 0 ? imageReferences : undefined;
 }
 
 function getFirstFrameImage(
@@ -55,19 +84,42 @@ function getFirstFrameImage(
 
 function resolveStartImage(
   options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
+  warnings: SharedV3Warning[],
 ): Experimental_VideoModelV3File | undefined {
-  return getFirstFrameImage(options) ?? options.image;
+  const startImage = getFirstFrameImage(options) ?? options.image;
+
+  if (startImage != null && isVideoFile(startImage)) {
+    warnings.push({
+      type: 'unsupported',
+      feature: 'frameImages',
+      details:
+        'KlingAI does not accept video as a frame image; it was ignored.',
+    });
+    return undefined;
+  }
+
+  return startImage;
 }
 
 function resolveImageTail(
   options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
   klingaiOptions: KlingAIVideoModelOptions | undefined,
+  warnings: SharedV3Warning[],
 ): string | undefined {
   const lastFrame = options.frameImages?.find(
     frame => frame.frameType === 'last_frame',
   )?.image;
 
   if (lastFrame != null) {
+    if (isVideoFile(lastFrame)) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'frameImages',
+        details:
+          'KlingAI does not accept video as a frame image; it was ignored.',
+      });
+      return undefined;
+    }
     return fileToImageString(lastFrame);
   }
 
@@ -454,7 +506,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
       schema: klingaiVideoModelOptionsSchema,
     })) as KlingAIVideoModelOptions | undefined;
 
-    const referenceImages = getReferenceImages(options);
+    const referenceImages = getReferenceImages(options, warnings);
     const effectiveMode: KlingAIVideoMode =
       mode === 'i2v' && referenceImages != null ? 'mi2v' : mode;
 
@@ -726,7 +778,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
     }
 
     // Image is not supported for T2V
-    if (resolveStartImage(options) != null) {
+    if (resolveStartImage(options, warnings) != null) {
       warnings.push({
         type: 'unsupported',
         feature: 'image',
@@ -754,14 +806,14 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
       body.prompt = options.prompt;
     }
 
-    const startImage = resolveStartImage(options);
+    const startImage = resolveStartImage(options, warnings);
     if (startImage != null) {
       body.image = fileToImageString(startImage);
     }
 
     // End frame image: prefer top-level frameImages (last_frame), fall back to
     // providerOptions.klingai.imageTail.
-    const imageTail = resolveImageTail(options, klingaiOptions);
+    const imageTail = resolveImageTail(options, klingaiOptions, warnings);
     if (imageTail != null) {
       body.image_tail = imageTail;
     }
@@ -889,17 +941,17 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
       body.watermark_info = { enabled: klingaiOptions.watermarkEnabled };
     }
 
-    if (resolveStartImage(options) != null) {
+    if (resolveStartImage(options, warnings) != null) {
       warnings.push({
         type: 'unsupported',
-        feature: 'frameImages',
+        feature: 'image',
         details:
           'KlingAI reference-to-video does not support a separate start frame. ' +
           'Provide all guidance images via inputReferences instead.',
       });
     }
 
-    if (resolveImageTail(options, klingaiOptions) != null) {
+    if (resolveImageTail(options, klingaiOptions, warnings) != null) {
       warnings.push({
         type: 'unsupported',
         feature: 'frameImages',
@@ -943,7 +995,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
       body.prompt = options.prompt;
     }
 
-    const startImage = resolveStartImage(options);
+    const startImage = resolveStartImage(options, warnings);
     if (startImage != null) {
       body.image_url = fileToImageString(startImage);
     }

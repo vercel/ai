@@ -541,6 +541,38 @@ describe('AlibabaVideoModel', () => {
       });
     });
 
+    it('should send video URL reference in reference_urls for R2V model', async () => {
+      const model = createModel({ modelId: 'wan2.6-r2v' });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        inputReferences: [
+          {
+            type: 'url',
+            url: 'https://example.com/character-1.png',
+            mediaType: 'image/png',
+          },
+          {
+            type: 'url',
+            url: 'https://example.com/role.mp4',
+            mediaType: 'video/mp4',
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        model: 'wan2.6-r2v',
+        input: {
+          prompt,
+          reference_urls: [
+            'https://example.com/character-1.png',
+            'https://example.com/role.mp4',
+          ],
+        },
+      });
+    });
+
     it('should prefer inputReferences over providerOptions.alibaba.referenceUrls', async () => {
       const model = createModel({ modelId: 'wan2.6-r2v-flash' });
 
