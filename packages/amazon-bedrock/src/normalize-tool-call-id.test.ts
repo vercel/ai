@@ -33,40 +33,53 @@ describe('normalizeToolCallId', () => {
     expect(normalizeToolCallId(originalId, false)).toBe(originalId);
   });
 
-  it('should extract first 9 alphanumeric characters for Mistral models', () => {
-    // Bedrock format: tooluse_bpe71yCfRu2b5i-nKGDr5g
-    // After removing non-alphanumeric: toolusebpe71yCfRu2b5inKGDr5g
-    // First 9 chars: toolusebp
-    expect(normalizeToolCallId('tooluse_bpe71yCfRu2b5i-nKGDr5g', true)).toBe(
-      'toolusebp',
-    );
+  it('should always produce exactly 9 alphanumeric characters for Mistral models', () => {
+    const inputs = [
+      'tooluse_bpe71yCfRu2b5i-nKGDr5g',
+      'tool-use_123ABC456',
+      'abc',
+      '12345',
+      '___---___',
+      '',
+    ];
+    for (const input of inputs) {
+      expect(normalizeToolCallId(input, true)).toMatch(/^[a-zA-Z0-9]{9}$/);
+    }
   });
 
-  it('should handle IDs with various special characters', () => {
-    expect(normalizeToolCallId('tool-use_123ABC456', true)).toBe('tooluse12');
+  it('should be deterministic', () => {
+    const id = 'tooluse_bpe71yCfRu2b5i-nKGDr5g';
+    expect(normalizeToolCallId(id, true)).toBe('6VmclqrqY');
+    expect(normalizeToolCallId(id, true)).toBe(normalizeToolCallId(id, true));
+  });
+
+  it('should not collide for distinct Bedrock IDs that share the first 9 alphanumeric characters', () => {
+    // Regression test: both of these start with the constant `tooluse` prefix
+    // plus `Ac`, so first-9-character truncation maps both to `tooluseAc`,
+    // producing duplicate toolUse IDs that Bedrock rejects with
+    // `ValidationException: ... contain duplicate Ids`.
+    const a = normalizeToolCallId('tooluse_Ac1Xq9ZklmNoPq', true);
+    const b = normalizeToolCallId('tooluse_Ac2Yt7WrstUvWx', true);
+    expect(a).not.toBe(b);
+    expect(a).toMatch(/^[a-zA-Z0-9]{9}$/);
+    expect(b).toMatch(/^[a-zA-Z0-9]{9}$/);
+  });
+
+  it('should return already-normalized (9 alphanumeric char) IDs unchanged', () => {
+    // A normalized ID is returned to the caller, persisted, and re-normalized
+    // when the request is rebuilt; round-tripping must be stable so a tool call
+    // and its tool result keep the same ID.
+    expect(normalizeToolCallId('abcdefghi', true)).toBe('abcdefghi');
+    expect(normalizeToolCallId('abc123XYZ', true)).toBe('abc123XYZ');
     expect(normalizeToolCallId('___abc123DEF___', true)).toBe('abc123DEF');
   });
 
-  it('should handle IDs that are already alphanumeric', () => {
-    expect(normalizeToolCallId('abcdefghi', true)).toBe('abcdefghi');
-    expect(normalizeToolCallId('abc123XYZ', true)).toBe('abc123XYZ');
+  it('should map short IDs to exactly 9 characters', () => {
+    expect(normalizeToolCallId('abc', true)).toBe('naOMmDqz3');
+    expect(normalizeToolCallId('12345', true)).toBe('dt6dDZQCF');
   });
 
-  it('should handle short IDs', () => {
-    expect(normalizeToolCallId('abc', true)).toBe('abc');
-    expect(normalizeToolCallId('12345', true)).toBe('12345');
-  });
-
-  it('should handle IDs with only special characters', () => {
-    expect(normalizeToolCallId('___---___', true)).toBe('');
-  });
-
-  it('should produce valid Mistral tool call IDs (9 alphanumeric chars)', () => {
-    const normalizedId = normalizeToolCallId(
-      'tooluse_bpe71yCfRu2b5i-nKGDr5g',
-      true,
-    );
-    // Verify the ID matches Mistral's requirements: ^[a-zA-Z0-9]{1,9}$
-    expect(normalizedId).toMatch(/^[a-zA-Z0-9]{1,9}$/);
+  it('should map IDs with only special characters to exactly 9 characters', () => {
+    expect(normalizeToolCallId('___---___', true)).toBe('riTOazhtd');
   });
 });
