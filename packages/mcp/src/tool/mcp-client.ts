@@ -3,6 +3,7 @@ import {
   asSchema,
   dynamicTool,
   jsonSchema,
+  retryWithExponentialBackoff,
   safeParseJSON,
   safeValidateTypes,
   tool,
@@ -64,6 +65,82 @@ import {
 } from './types';
 
 const CLIENT_VERSION = '1.0.0';
+const DEFAULT_MAX_TOOL_CALL_RETRIES = 0;
+
+const DEFAULT_RETRY_ERROR_CODES = [
+  'ConnectionRefused',
+  'ConnectionClosed',
+  'FailedToOpenSocket',
+  'ECONNRESET',
+  'ECONNREFUSED',
+  'ETIMEDOUT',
+  'EPIPE',
+];
+
+function getErrorStatusCode(error: unknown): number | undefined {
+  if (
+    error != null &&
+    typeof error === 'object' &&
+    'statusCode' in error &&
+    typeof error.statusCode === 'number'
+  ) {
+    return error.statusCode;
+  }
+
+  return undefined;
+}
+
+function getStringErrorCode(error: unknown): string | undefined {
+  if (
+    error != null &&
+    typeof error === 'object' &&
+    'code' in error &&
+    typeof error.code === 'string'
+  ) {
+    return error.code;
+  }
+
+  return undefined;
+}
+
+function isRetryableMCPToolCallError(error: unknown): boolean {
+  const statusCode = getErrorStatusCode(error);
+  if (statusCode != null) {
+    return (
+      statusCode === 408 ||
+      statusCode === 409 ||
+      statusCode === 429 ||
+      statusCode >= 500
+    );
+  }
+
+  if (MCPClientError.isInstance(error) && error.code != null) {
+    return false;
+  }
+
+  const errorCode = getStringErrorCode(error);
+  return errorCode != null && DEFAULT_RETRY_ERROR_CODES.includes(errorCode);
+}
+
+function prepareMaxRetries(maxRetries: number | undefined): number {
+  if (maxRetries == null) {
+    return DEFAULT_MAX_TOOL_CALL_RETRIES;
+  }
+
+  if (!Number.isInteger(maxRetries)) {
+    throw new MCPClientError({
+      message: 'maxRetries must be an integer',
+    });
+  }
+
+  if (maxRetries < 0) {
+    throw new MCPClientError({
+      message: 'maxRetries must be >= 0',
+    });
+  }
+
+  return maxRetries;
+}
 
 function mcpToModelOutput({
   output,
@@ -102,6 +179,24 @@ export interface MCPClientConfig {
   transport: MCPTransportConfig | MCPTransport;
   /** Optional callback for uncaught errors */
   onUncaughtError?: (error: unknown) => void;
+<<<<<<< HEAD
+=======
+  /**
+   * Maximum number of retries for transient MCP tool call failures.
+   *
+   * Set to 0 to disable retries. Retries only apply to tools/call requests.
+   * JSON-RPC application errors, such as invalid params, are not retried.
+   *
+   * @default 0
+   */
+  maxRetries?: number;
+  /**
+   * Initialize result from a previous MCP session. When provided, the client
+   * starts the transport and reuses this metadata without sending a new
+   * initialize request.
+   */
+  initialInitializeResult?: InitializeResult;
+>>>>>>> 8c616f0305 (feat(mcp): add retry option for failed mcp tool calls (#16494))
   /** Optional client name, defaults to 'ai-sdk-mcp-client' */
   clientName?: string;
   /**
@@ -225,6 +320,7 @@ export interface MCPClient {
 class DefaultMCPClient implements MCPClient {
   private transport: MCPTransport;
   private onUncaughtError?: (error: unknown) => void;
+  private maxRetries: number;
   private clientInfo: ClientConfiguration;
   private clientCapabilities: ClientCapabilities;
   private requestMessageId = 0;
@@ -246,9 +342,11 @@ class DefaultMCPClient implements MCPClient {
     clientName = name ?? 'ai-sdk-mcp-client',
     version = CLIENT_VERSION,
     onUncaughtError,
+    maxRetries,
     capabilities,
   }: MCPClientConfig) {
     this.onUncaughtError = onUncaughtError;
+    this.maxRetries = prepareMaxRetries(maxRetries);
     this.clientCapabilities = capabilities ?? {};
 
     if (isCustomMcpTransport(transportConfig)) {
@@ -470,7 +568,34 @@ class DefaultMCPClient implements MCPClient {
     });
   }
 
+<<<<<<< HEAD
   private async callTool({
+=======
+  private async callToolWithRetry({
+    options,
+    execute,
+  }: {
+    options?: RequestOptions;
+    execute: () => Promise<CallToolResult>;
+  }): Promise<CallToolResult> {
+    if (this.maxRetries === 0) {
+      return execute();
+    }
+
+    return retryWithExponentialBackoff({
+      maxRetries: this.maxRetries,
+      abortSignal: options?.signal,
+      shouldRetry: isRetryableMCPToolCallError,
+      createRetryError: ({ message, errors }) =>
+        new MCPClientError({
+          message,
+          cause: errors[errors.length - 1],
+        }),
+    })(execute);
+  }
+
+  async callTool({
+>>>>>>> 8c616f0305 (feat(mcp): add retry option for failed mcp tool calls (#16494))
     name,
     args,
     options,
@@ -480,12 +605,26 @@ class DefaultMCPClient implements MCPClient {
     options?: ToolExecutionOptions;
   }): Promise<CallToolResult> {
     try {
+<<<<<<< HEAD
       return this.request({
         request: { method: 'tools/call', params: { name, arguments: args } },
         resultSchema: CallToolResultSchema,
         options: {
           signal: options?.abortSignal,
         },
+=======
+      return this.callToolWithRetry({
+        options,
+        execute: () =>
+          this.request({
+            request: {
+              method: 'tools/call',
+              params: { name, arguments: args },
+            },
+            resultSchema: CallToolResultSchema,
+            options,
+          }),
+>>>>>>> 8c616f0305 (feat(mcp): add retry option for failed mcp tool calls (#16494))
       });
     } catch (error) {
       throw error;

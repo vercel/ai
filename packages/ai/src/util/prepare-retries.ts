@@ -1,9 +1,14 @@
 import { InvalidArgumentError } from '../error/invalid-argument-error';
+<<<<<<< HEAD
 import {
   retryWithExponentialBackoffRespectingRetryHeaders,
   type RetryFunction,
 } from '../util/retry-with-exponential-backoff';
 
+=======
+import type { RetryFunction } from '@ai-sdk/provider-utils';
+import { retryWithExponentialBackoffRespectingRetryHeaders } from '../util/retry-with-exponential-backoff';
+>>>>>>> 8c616f0305 (feat(mcp): add retry option for failed mcp tool calls (#16494))
 /**
  * Validate and prepare retries.
  */

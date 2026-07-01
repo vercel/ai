@@ -156,6 +156,34 @@ This hook is called before the SDK fetches authorization server metadata, so a
 rejected URL is not requested. It is optional and does not change existing OAuth
 flows unless you implement it.
 
+### Retrying Transient Tool Failures
+
+MCP tool calls can fail for transient transport reasons, such as rate limits,
+temporary overload, or gateway timeouts. You can opt into automatic retries for
+`tools/call` requests by passing `maxRetries` when creating the client:
+
+```typescript
+const mcpClient = await createMCPClient({
+  transport: {
+    type: 'http',
+    url: 'https://your-server.com/mcp',
+  },
+  maxRetries: 2,
+});
+```
+
+Retries are disabled by default. Built-in retry matching is intended for
+transient HTTP and network failures only. JSON-RPC application errors, such as
+invalid tool arguments, are surfaced immediately without retrying. Successful
+MCP tool responses with `isError: true` are also returned to the model without
+retrying.
+
+<Note type="warning">
+  Only enable retries for MCP tools where retrying is safe. Retrying
+  non-idempotent tools, such as tools that send emails or create records, can
+  duplicate side effects.
+</Note>
+
 ### Closing the MCP Client
 
 After initialization, you should close the MCP client based on your usage pattern:
