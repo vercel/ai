@@ -1,4 +1,5 @@
 ---
+"ai": patch
 "@ai-sdk/mcp": patch
 "@ai-sdk/provider-utils": patch
 ---
