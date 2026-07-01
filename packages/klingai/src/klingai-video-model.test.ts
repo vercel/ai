@@ -65,6 +65,7 @@ const defaultOptions = {
   duration: undefined,
   fps: undefined,
   seed: undefined,
+  generateAudio: undefined,
   providerOptions: klingaiProviderOptions,
 } as const;
 
@@ -87,6 +88,7 @@ const t2vDefaultOptions = {
   duration: undefined,
   fps: undefined,
   seed: undefined,
+  generateAudio: undefined,
   providerOptions: t2vProviderOptions,
 } as const;
 
@@ -112,6 +114,7 @@ const i2vDefaultOptions = {
   duration: undefined,
   fps: undefined,
   seed: undefined,
+  generateAudio: undefined,
   providerOptions: i2vProviderOptions,
 } as const;
 
