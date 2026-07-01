@@ -51,6 +51,42 @@ describe('detectMediaType signature matching', () => {
     });
   });
 
+  describe('SVG', () => {
+    it('should detect SVG from bytes starting with <svg', () => {
+      const svgBytes = new Uint8Array(
+        new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg">'),
+      );
+      expect(
+        detectMediaType({
+          data: svgBytes,
+          topLevelType: 'image',
+        }),
+      ).toBe('image/svg+xml');
+    });
+
+    it('should detect SVG from bytes starting with an XML prolog', () => {
+      const svgBytes = new Uint8Array(
+        new TextEncoder().encode('<?xml version="1.0"?><svg></svg>'),
+      );
+      expect(
+        detectMediaType({
+          data: svgBytes,
+          topLevelType: 'image',
+        }),
+      ).toBe('image/svg+xml');
+    });
+
+    it('should detect SVG from base64', () => {
+      const svgBase64 = Buffer.from('<svg></svg>').toString('base64');
+      expect(
+        detectMediaType({
+          data: svgBase64,
+          topLevelType: 'image',
+        }),
+      ).toBe('image/svg+xml');
+    });
+  });
+
   describe('JPEG', () => {
     it('should detect JPEG from bytes', () => {
       const jpegBytes = new Uint8Array([0xff, 0xd8, 0xff, 0xff]);
