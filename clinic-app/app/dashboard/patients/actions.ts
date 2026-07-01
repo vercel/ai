@@ -167,6 +167,96 @@ export async function updatePrescriptionStatus(patientId: string, id: string, st
   revalidatePath(`/dashboard/patients/${patientId}`);
 }
 
+export async function signPrescription(
+  patientId: string,
+  prescriptionId: string,
+  signatureData: string,
+) {
+  const profile = await requireProfile();
+  const supabase = createSupabaseServerClient();
+
+  const { data: prescription } = await supabase
+    .from('prescriptions')
+    .select('title, description, author_id, signed_at')
+    .eq('id', prescriptionId)
+    .single<{ title: string; description: string | null; author_id: string; signed_at: string | null }>();
+
+  if (!prescription || prescription.signed_at || prescription.author_id !== profile.id) {
+    return;
+  }
+
+  const signedAt = new Date().toISOString();
+  const contentHash = createHash('sha256')
+    .update(`${prescription.title}|${prescription.description ?? ''}|${profile.id}|${signedAt}`)
+    .digest('hex');
+
+  await supabase
+    .from('prescriptions')
+    .update({
+      signed_at: signedAt,
+      signature_data: signatureData,
+      content_hash: contentHash,
+      signer_ip: requestIp(),
+      status: 'Finalizada',
+    })
+    .eq('id', prescriptionId);
+
+  revalidatePath(`/dashboard/patients/${patientId}`);
+}
+
+export async function addMedicalCertificate(patientId: string, formData: FormData) {
+  const profile = await requireProfile();
+  const supabase = createSupabaseServerClient();
+
+  const daysOff = formData.get('days_off') ? Number(formData.get('days_off')) : null;
+
+  await supabase.from('medical_certificates').insert({
+    clinic_id: profile.clinic_id,
+    patient_id: patientId,
+    professional_id: profile.id,
+    content: String(formData.get('content') ?? ''),
+    days_off: daysOff,
+  });
+
+  revalidatePath(`/dashboard/patients/${patientId}`);
+}
+
+export async function signMedicalCertificate(
+  patientId: string,
+  certificateId: string,
+  signatureData: string,
+) {
+  const profile = await requireProfile();
+  const supabase = createSupabaseServerClient();
+
+  const { data: certificate } = await supabase
+    .from('medical_certificates')
+    .select('content, professional_id, signed_at')
+    .eq('id', certificateId)
+    .single<{ content: string; professional_id: string; signed_at: string | null }>();
+
+  if (!certificate || certificate.signed_at || certificate.professional_id !== profile.id) {
+    return;
+  }
+
+  const signedAt = new Date().toISOString();
+  const contentHash = createHash('sha256')
+    .update(`${certificate.content}|${profile.id}|${signedAt}`)
+    .digest('hex');
+
+  await supabase
+    .from('medical_certificates')
+    .update({
+      signed_at: signedAt,
+      signature_data: signatureData,
+      content_hash: contentHash,
+      signer_ip: requestIp(),
+    })
+    .eq('id', certificateId);
+
+  revalidatePath(`/dashboard/patients/${patientId}`);
+}
+
 export async function addTherapyPlan(patientId: string, formData: FormData) {
   const profile = await requireProfile();
   const supabase = createSupabaseServerClient();

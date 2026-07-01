@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import type {
   Appointment,
   Invoice,
+  MedicalCertificate,
   MedicalRecord,
   Patient,
   PatientDocument,
@@ -13,6 +14,7 @@ import type {
   TherapyPlan,
 } from '@/lib/types';
 import {
+  addMedicalCertificate,
   addMedicalRecord,
   addPatientDocument,
   addPrescription,
@@ -23,6 +25,8 @@ import {
 import { AttachmentLink } from '@/components/attachment-link';
 import { PatientPortalLinkButton } from '@/components/patient-portal-link-button';
 import { SignRecordButton } from '@/components/sign-record-button';
+import { SignPrescriptionButton } from '@/components/sign-prescription-button';
+import { SignCertificateButton } from '@/components/sign-certificate-button';
 import { ModalForm } from '@/components/modal-form';
 import { Tabs } from '@/components/tabs';
 import { requireProfile } from '@/lib/auth';
@@ -75,6 +79,7 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
   const [
     { data: records },
     { data: prescriptions },
+    { data: certificates },
     { data: therapyPlans },
     { data: documents },
     { data: appointments },
@@ -92,6 +97,12 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
       .eq('patient_id', params.id)
       .order('created_at', { ascending: false })
       .returns<Prescription[]>(),
+    supabase
+      .from('medical_certificates')
+      .select('*')
+      .eq('patient_id', params.id)
+      .order('created_at', { ascending: false })
+      .returns<MedicalCertificate[]>(),
     supabase
       .from('therapy_plans')
       .select('*')
@@ -120,6 +131,7 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
 
   const addRecord = addMedicalRecord.bind(null, params.id);
   const addPrescriptionAction = addPrescription.bind(null, params.id);
+  const addCertificateAction = addMedicalCertificate.bind(null, params.id);
   const addTherapyPlanAction = addTherapyPlan.bind(null, params.id);
   const addDocumentAction = addPatientDocument.bind(null, params.id);
   const age = calculateAge(patient.birth_date);
@@ -449,25 +461,114 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
                                   {prescription.status}
                                 </span>
                               </div>
-                              <form
-                                action={updatePrescriptionStatus.bind(
-                                  null,
-                                  params.id,
-                                  prescription.id,
-                                  'Finalizada',
-                                )}
-                                className="mt-2"
-                              >
-                                {prescription.status !== 'Finalizada' && (
-                                  <button type="submit" className="text-xs text-brand-600 hover:underline">
-                                    Marcar como finalizada
-                                  </button>
-                                )}
-                              </form>
+                              {prescription.signed_at ? (
+                                <p className="mt-2 text-[11px] text-green-700">
+                                  Assinada digitalmente em{' '}
+                                  {new Date(prescription.signed_at).toLocaleString('pt-BR')} · hash{' '}
+                                  {prescription.content_hash?.slice(0, 12)}…
+                                </p>
+                              ) : (
+                                <div className="mt-2 flex items-center gap-3">
+                                  <form
+                                    action={updatePrescriptionStatus.bind(
+                                      null,
+                                      params.id,
+                                      prescription.id,
+                                      'Finalizada',
+                                    )}
+                                  >
+                                    {prescription.status !== 'Finalizada' && (
+                                      <button
+                                        type="submit"
+                                        className="text-xs text-brand-600 hover:underline"
+                                      >
+                                        Marcar como finalizada
+                                      </button>
+                                    )}
+                                  </form>
+                                  {prescription.author_id === profile.id && (
+                                    <SignPrescriptionButton
+                                      patientId={patient.id}
+                                      prescriptionId={prescription.id}
+                                    />
+                                  )}
+                                </div>
+                              )}
                             </div>
                           ))}
                           {(prescriptions ?? []).length === 0 && (
                             <p className="text-sm text-gray-400">Nenhuma receita cadastrada ainda.</p>
+                          )}
+                        </div>
+                      </div>
+                    ),
+                  },
+                  {
+                    id: 'atestados',
+                    label: 'Atestados',
+                    content: (
+                      <div>
+                        <div className="mb-3 flex items-center justify-between">
+                          <h2 className="text-sm font-semibold text-gray-700">Atestados</h2>
+                          <ModalForm triggerLabel="+ Novo Atestado" title="Novo atestado">
+                            <form action={addCertificateAction} className="flex flex-col gap-3">
+                              <textarea
+                                name="content"
+                                required
+                                rows={4}
+                                placeholder="Texto do atestado..."
+                                className={inputClass}
+                              />
+                              <label className={labelClass}>
+                                Dias de afastamento (opcional)
+                                <input
+                                  name="days_off"
+                                  type="number"
+                                  min={0}
+                                  className={`mt-1 w-full ${inputClass}`}
+                                />
+                              </label>
+                              <div className="mt-2 flex justify-end gap-2">
+                                <button
+                                  type="submit"
+                                  className="rounded bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+                                >
+                                  Salvar
+                                </button>
+                              </div>
+                            </form>
+                          </ModalForm>
+                        </div>
+                        <div className="flex flex-col gap-3">
+                          {(certificates ?? []).map((certificate) => (
+                            <div key={certificate.id} className="rounded-xl bg-white p-4 shadow-sm">
+                              <p className="text-sm text-gray-800">{certificate.content}</p>
+                              {certificate.days_off !== null && (
+                                <p className="mt-1 text-xs text-gray-500">
+                                  {certificate.days_off} dia(s) de afastamento
+                                </p>
+                              )}
+                              <p className="mt-2 text-xs text-gray-400">
+                                {new Date(certificate.created_at).toLocaleString('pt-BR')}
+                              </p>
+                              {certificate.signed_at ? (
+                                <p className="mt-2 text-[11px] text-green-700">
+                                  Assinado digitalmente em{' '}
+                                  {new Date(certificate.signed_at).toLocaleString('pt-BR')} · hash{' '}
+                                  {certificate.content_hash?.slice(0, 12)}…
+                                </p>
+                              ) : (
+                                certificate.professional_id === profile.id && (
+                                  <SignCertificateButton
+                                    patientId={patient.id}
+                                    certificateId={certificate.id}
+                                  />
+                                )
+                              )}
+                            </div>
+                          ))}
+                          {(certificates ?? []).length === 0 && (
+                            <p className="text-sm text-gray-400">Nenhum atestado emitido ainda.</p>
                           )}
                         </div>
                       </div>

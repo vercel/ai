@@ -18,6 +18,14 @@ export interface PortalPrescription {
   description: string | null;
   status: string;
   created_at: string;
+  signed_at: string | null;
+}
+
+export interface PortalCertificate {
+  id: string;
+  content: string;
+  created_at: string;
+  signed_at: string | null;
 }
 
 export interface PortalDocument {
@@ -50,6 +58,28 @@ function formatBRL(cents: number) {
   return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
+function GeneratedPdfLink({
+  token,
+  documentId,
+  documentType,
+  label,
+}: {
+  token: string;
+  documentId: string;
+  documentType: 'prescription' | 'certificate';
+  label: string;
+}) {
+  return (
+    <a
+      href={`/api/portal/documents/generate-pdf?token=${encodeURIComponent(token)}&document_id=${documentId}&type=${documentType}`}
+      className="flex items-center gap-1 rounded-full bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700"
+    >
+      <Download size={14} />
+      {label}
+    </a>
+  );
+}
+
 function DownloadButton({ token, path }: { token: string; path: string }) {
   const [loading, setLoading] = useState(false);
 
@@ -75,12 +105,14 @@ export function PatientPortalTabs({
   token,
   appointments,
   prescriptions,
+  certificates,
   documents,
   invoices,
 }: {
   token: string;
   appointments: PortalAppointment[];
   prescriptions: PortalPrescription[];
+  certificates: PortalCertificate[];
   documents: PortalDocument[];
   invoices: PortalInvoice[];
 }) {
@@ -149,14 +181,31 @@ export function PatientPortalTabs({
           <div className="flex flex-col gap-5">
             <div>
               <h2 className="mb-2 text-sm font-semibold text-gray-700">Receitas</h2>
+              <p className="mb-2 text-xs text-gray-400">Documentos digitais emitidos e assinados no sistema.</p>
               <div className="flex flex-col gap-2">
                 {prescriptions.map((p) => (
                   <div key={p.id} className="rounded-xl bg-white p-4 shadow-sm">
-                    <p className="text-sm font-medium text-gray-800">{p.title}</p>
-                    {p.description && <p className="mt-1 text-sm text-gray-600">{p.description}</p>}
-                    <p className="mt-2 text-xs text-gray-400">
-                      {new Date(p.created_at).toLocaleDateString('pt-BR')}
-                    </p>
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">{p.title}</p>
+                        {p.description && <p className="mt-1 text-sm text-gray-600">{p.description}</p>}
+                        <p className="mt-2 text-xs text-gray-400">
+                          {new Date(p.created_at).toLocaleDateString('pt-BR')}
+                        </p>
+                      </div>
+                      {p.signed_at ? (
+                        <GeneratedPdfLink
+                          token={token}
+                          documentId={p.id}
+                          documentType="prescription"
+                          label="Baixar PDF"
+                        />
+                      ) : (
+                        <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
+                          Aguardando assinatura
+                        </span>
+                      )}
+                    </div>
                   </div>
                 ))}
                 {prescriptions.length === 0 && (
@@ -166,7 +215,42 @@ export function PatientPortalTabs({
             </div>
 
             <div>
-              <h2 className="mb-2 text-sm font-semibold text-gray-700">Atestados e documentos</h2>
+              <h2 className="mb-2 text-sm font-semibold text-gray-700">Atestados</h2>
+              <p className="mb-2 text-xs text-gray-400">Documentos digitais emitidos e assinados no sistema.</p>
+              <div className="flex flex-col gap-2">
+                {certificates.map((c) => (
+                  <div key={c.id} className="rounded-xl bg-white p-4 shadow-sm">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="text-sm text-gray-800">{c.content}</p>
+                        <p className="mt-2 text-xs text-gray-400">
+                          {new Date(c.created_at).toLocaleDateString('pt-BR')}
+                        </p>
+                      </div>
+                      {c.signed_at ? (
+                        <GeneratedPdfLink
+                          token={token}
+                          documentId={c.id}
+                          documentType="certificate"
+                          label="Baixar PDF"
+                        />
+                      ) : (
+                        <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
+                          Aguardando assinatura
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {certificates.length === 0 && (
+                  <p className="text-sm text-gray-400">Nenhum atestado registrado.</p>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <h2 className="mb-2 text-sm font-semibold text-gray-700">Outros documentos</h2>
+              <p className="mb-2 text-xs text-gray-400">Arquivos anexados manualmente pela clínica.</p>
               <div className="flex flex-col gap-2">
                 {documents.map((d) => (
                   <div key={d.id} className="rounded-xl bg-white p-4 shadow-sm">

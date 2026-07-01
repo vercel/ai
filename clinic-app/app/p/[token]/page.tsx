@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import {
   PatientPortalTabs,
   type PortalAppointment,
+  type PortalCertificate,
   type PortalDocument,
   type PortalInvoice,
   type PortalPrescription,
@@ -35,6 +36,7 @@ export default async function PatientPortalPage({ params }: { params: { token: s
         token={params.token}
         appointments={(appointments ?? []) as PortalAppointment[]}
         prescriptions={(documentsData?.prescriptions ?? []) as PortalPrescription[]}
+        certificates={(documentsData?.certificates ?? []) as PortalCertificate[]}
         documents={(documentsData?.documents ?? []) as PortalDocument[]}
         invoices={(invoices ?? []) as PortalInvoice[]}
       />

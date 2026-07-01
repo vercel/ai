@@ -146,6 +146,23 @@ export interface Prescription {
   description: string | null;
   status: string;
   created_at: string;
+  signed_at: string | null;
+  signature_data: string | null;
+  content_hash: string | null;
+  signer_ip: string | null;
+}
+
+export interface MedicalCertificate {
+  id: string;
+  patient_id: string;
+  professional_id: string;
+  content: string;
+  days_off: number | null;
+  signed_at: string | null;
+  signature_data: string | null;
+  content_hash: string | null;
+  signer_ip: string | null;
+  created_at: string;
 }
 
 export interface PatientDocument {
