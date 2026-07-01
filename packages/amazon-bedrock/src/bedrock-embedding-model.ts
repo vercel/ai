@@ -32,27 +32,10 @@ export class BedrockEmbeddingModel implements EmbeddingModelV3 {
   readonly provider = 'amazon-bedrock';
   readonly supportsParallelCalls = true;
 
-<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-embedding-model.ts
-=======
   get maxEmbeddingsPerCall() {
     return isCohereEmbeddingModel(this.modelId) ? 96 : 1;
   }
 
-  static [WORKFLOW_SERIALIZE](model: AmazonBedrockEmbeddingModel) {
-    return serializeModelOptions({
-      modelId: model.modelId,
-      config: model.config,
-    });
-  }
-
-  static [WORKFLOW_DESERIALIZE](options: {
-    modelId: string;
-    config: AmazonBedrockEmbeddingConfig;
-  }) {
-    return new AmazonBedrockEmbeddingModel(options.modelId, options.config);
-  }
-
->>>>>>> 1daf48becd (feat(amazon-bedrock): increase limit of embeddings in a request for cohere models (#16559)):packages/amazon-bedrock/src/amazon-bedrock-embedding-model.ts
   constructor(
     readonly modelId: BedrockEmbeddingModelId,
     private readonly config: BedrockEmbeddingConfig,
@@ -111,17 +94,10 @@ export class BedrockEmbeddingModel implements EmbeddingModelV3 {
         ? {
             // Cohere embedding models on Bedrock require `input_type`.
             // Without it, the service attempts other schema branches and rejects the request.
-<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-embedding-model.ts
             input_type: bedrockOptions.inputType ?? 'search_query',
-            texts: [values[0]],
+            texts: values,
             truncate: bedrockOptions.truncate,
             output_dimension: bedrockOptions.outputDimension,
-=======
-            input_type: amazonBedrockOptions.inputType ?? 'search_query',
-            texts: values,
-            truncate: amazonBedrockOptions.truncate,
-            output_dimension: amazonBedrockOptions.outputDimension,
->>>>>>> 1daf48becd (feat(amazon-bedrock): increase limit of embeddings in a request for cohere models (#16559)):packages/amazon-bedrock/src/amazon-bedrock-embedding-model.ts
           }
         : {
             inputText: values[0],
@@ -189,9 +165,6 @@ export class BedrockEmbeddingModel implements EmbeddingModelV3 {
   }
 }
 
-<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-embedding-model.ts
-const BedrockEmbeddingResponseSchema = z.union([
-=======
 function isCohereEmbeddingModel(modelId: string) {
   // Use `includes` so cross-region inference profile ids (e.g.
   // `us.cohere.embed-v4:0`, `global.cohere.embed-v4:0`) are detected too.
@@ -202,8 +175,7 @@ function isNovaEmbeddingModel(modelId: string) {
   return modelId.startsWith('amazon.nova-') && modelId.includes('embed');
 }
 
-const AmazonBedrockEmbeddingResponseSchema = z.union([
->>>>>>> 1daf48becd (feat(amazon-bedrock): increase limit of embeddings in a request for cohere models (#16559)):packages/amazon-bedrock/src/amazon-bedrock-embedding-model.ts
+const BedrockEmbeddingResponseSchema = z.union([
   // Titan-style response
   z.object({
     embedding: z.array(z.number()),

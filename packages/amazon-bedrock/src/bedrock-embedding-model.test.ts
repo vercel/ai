@@ -100,15 +100,12 @@ describe('doEmbed', () => {
   });
 
   it('should expose model-specific max embeddings per call', () => {
-    const cohereModel = new AmazonBedrockEmbeddingModel(
-      'cohere.embed-english-v3',
-      {
-        baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
-        headers: mockConfigHeaders,
-        fetch: fakeFetchWithAuth,
-      },
-    );
-    const cohereV4UsProfileModel = new AmazonBedrockEmbeddingModel(
+    const cohereModel = new BedrockEmbeddingModel('cohere.embed-english-v3', {
+      baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+      headers: mockConfigHeaders,
+      fetch: fakeFetchWithAuth,
+    });
+    const cohereV4UsProfileModel = new BedrockEmbeddingModel(
       'us.cohere.embed-v4:0',
       {
         baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
@@ -116,7 +113,7 @@ describe('doEmbed', () => {
         fetch: fakeFetchWithAuth,
       },
     );
-    const novaModel = new AmazonBedrockEmbeddingModel(
+    const novaModel = new BedrockEmbeddingModel(
       'amazon.nova-2-multimodal-embeddings-v1:0',
       {
         baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
@@ -259,7 +256,7 @@ describe('doEmbed', () => {
       ),
     };
 
-    const cohereV4Model = new AmazonBedrockEmbeddingModel('cohere.embed-v4:0', {
+    const cohereV4Model = new BedrockEmbeddingModel('cohere.embed-v4:0', {
       baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
       headers: mockConfigHeaders,
       fetch: fakeFetchWithAuth,
