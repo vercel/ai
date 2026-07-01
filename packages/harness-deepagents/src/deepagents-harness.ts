@@ -8,6 +8,7 @@ import {
   type HarnessV1,
   type HarnessV1Bootstrap,
   type HarnessV1BuiltinTool,
+  type HarnessV1BuiltinToolFiltering,
   type HarnessV1ContinueTurnState,
   type HarnessV1NetworkSandboxSession,
   type HarnessV1PermissionMode,
@@ -247,6 +248,7 @@ export function createDeepAgents(
             isResume: true,
             attached: true,
             permissionMode,
+            builtinToolFiltering: startOpts.builtinToolFiltering,
             recursionLimit: settings.recursionLimit,
           });
         } catch {
@@ -340,6 +342,7 @@ export function createDeepAgents(
         attached: false,
         skillsPaths,
         permissionMode,
+        builtinToolFiltering: startOpts.builtinToolFiltering,
         recursionLimit: settings.recursionLimit,
       });
     },
@@ -506,6 +509,7 @@ function createSession({
   attached,
   skillsPaths,
   permissionMode,
+  builtinToolFiltering,
   recursionLimit,
 }: {
   sessionId: string;
@@ -523,6 +527,7 @@ function createSession({
   attached: boolean;
   skillsPaths?: string[];
   permissionMode?: HarnessV1PermissionMode;
+  builtinToolFiltering?: HarnessV1BuiltinToolFiltering;
   recursionLimit?: number;
 }): HarnessV1Session {
   let stopped = false;
@@ -679,6 +684,7 @@ function createSession({
         ...(model ? { model } : {}),
         ...(skillsPaths?.length ? { skillsPaths } : {}),
         ...(permissionMode ? { permissionMode } : {}),
+        ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
         ...(recursionLimit != null ? { recursionLimit } : {}),
       });
 

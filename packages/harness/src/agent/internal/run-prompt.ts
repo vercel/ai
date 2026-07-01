@@ -1,11 +1,14 @@
-import type {
-  HarnessV1,
-  HarnessV1PendingToolApproval,
-  HarnessV1Prompt,
-  HarnessV1PromptControl,
-  HarnessV1Session,
-  HarnessV1StreamPart,
-  HarnessV1ToolSpec,
+import {
+  getHarnessV1BuiltinToolFilteringDenialReason,
+  isHarnessV1BuiltinToolIncluded,
+  type HarnessV1,
+  type HarnessV1BuiltinToolFiltering,
+  type HarnessV1PendingToolApproval,
+  type HarnessV1Prompt,
+  type HarnessV1PromptControl,
+  type HarnessV1Session,
+  type HarnessV1StreamPart,
+  type HarnessV1ToolSpec,
 } from '../../v1';
 import { toHarnessStream } from './to-harness-stream';
 import {
@@ -60,7 +63,9 @@ export function runPrompt<
   prompt?: HarnessV1Prompt;
   instructions: string | undefined;
   tools: TOOLS;
+  activeTools?: ToolSet;
   toolSpecs: HarnessV1ToolSpec[];
+  builtinToolFiltering?: HarnessV1BuiltinToolFiltering | undefined;
   sandboxSession: SandboxSession;
   sessionWorkDir: string;
   runtimeContext: RUNTIME_CONTEXT;
@@ -89,6 +94,7 @@ export function runPrompt<
   const pendingToolApprovals = input.pendingToolApprovals ?? [];
   const onPendingToolApproval = input.onPendingToolApproval ?? (() => {});
   const onToolApprovalSettled = input.onToolApprovalSettled ?? (() => {});
+  const activeTools = input.activeTools ?? input.tools;
 
   const telemetry = createTurnTelemetry({
     telemetry: input.telemetry,
@@ -304,7 +310,7 @@ export function runPrompt<
 
       const outcome = await maybeExecuteHostTool({
         event: rawToolCall,
-        tools: input.tools,
+        tools: activeTools,
         sandboxSession: input.sandboxSession,
         abortSignal: input.abortSignal,
         control,
@@ -377,6 +383,39 @@ export function runPrompt<
 
         if (settledApprovalToolCallReplay) {
           continue;
+        }
+
+        if (displayValue.type === 'tool-approval-request') {
+          const toolCall = toolCallsByToolCallId.get(displayValue.toolCallId);
+          if (toolCall == null) {
+            throw new Error(
+              `Harness '${input.harness.harnessId}' emitted approval request '${displayValue.approvalId}' for unknown tool call '${displayValue.toolCallId}'.`,
+            );
+          }
+          const rawToolCall = rawToolCallsByToolCallId.get(
+            displayValue.toolCallId,
+          );
+          const toolName = rawToolCall?.toolName ?? toolCall.toolName;
+          if (
+            !isHarnessV1BuiltinToolIncluded({
+              toolName,
+              toolFiltering: input.builtinToolFiltering,
+            })
+          ) {
+            if (control.submitToolApproval == null) {
+              throw new Error(
+                `Harness '${input.harness.harnessId}' emitted a built-in tool approval request but does not support approval responses.`,
+              );
+            }
+            await control.submitToolApproval({
+              approvalId: displayValue.approvalId,
+              approved: false,
+              reason: getHarnessV1BuiltinToolFilteringDenialReason({
+                toolName,
+              }),
+            });
+            continue;
+          }
         }
 
         // Forward to consumer as soon as possible.
@@ -514,6 +553,20 @@ export function runPrompt<
               `Harness '${input.harness.harnessId}' could not find parsed tool call '${toolCall.toolCallId}' for custom tool approval.`,
             );
           }
+          if (!hasTool({ tools: activeTools, toolName: toolCall.toolName })) {
+            const output = {
+              type: 'execution-denied',
+              reason: getHarnessV1BuiltinToolFilteringDenialReason({
+                toolName: toolCall.toolName,
+              }),
+            };
+            await control.submitToolResult({
+              toolCallId: toolCall.toolCallId,
+              output,
+            });
+            telemetry.toolEnd(toolCall.toolCallId, { ok: true, output });
+            continue;
+          }
           const customToolApprovalDecision = resolveCustomToolApproval({
             toolName: toolCall.toolName,
             toolApproval: input.toolApproval,
@@ -595,7 +648,7 @@ export function runPrompt<
           }
           const outcome = await maybeExecuteHostTool({
             event: toolCall,
-            tools: input.tools,
+            tools: activeTools,
             sandboxSession: input.sandboxSession,
             abortSignal: input.abortSignal,
             control,
@@ -693,6 +746,10 @@ type ToolCallTextStreamPart = {
   readonly error?: unknown;
   readonly title?: string;
 };
+
+function hasTool(input: { tools: ToolSet; toolName: string }): boolean {
+  return Object.prototype.hasOwnProperty.call(input.tools, input.toolName);
+}
 
 async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
   event: { toolCallId: string; toolName: string; input: string };

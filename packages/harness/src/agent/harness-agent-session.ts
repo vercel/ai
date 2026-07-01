@@ -2,6 +2,7 @@ import type { Context, ToolSet } from '@ai-sdk/provider-utils';
 import type { StreamTextResult, TelemetryOptions } from 'ai';
 import type { HarnessAgentToolApprovalConfiguration } from './harness-agent-settings';
 import type {
+  HarnessV1BuiltinToolFiltering,
   HarnessV1NetworkSandboxSession,
   HarnessV1SandboxProvider,
 } from '../v1';
@@ -138,7 +139,9 @@ export class HarnessAgentSession {
     prompt: HarnessAgentPrompt;
     instructions: string | undefined;
     tools: TOOLS;
+    activeTools: ToolSet;
     toolSpecs: HarnessAgentToolSpec[];
+    builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
     runtimeContext: RUNTIME_CONTEXT;
     abortSignal: AbortSignal | undefined;
     telemetry: TelemetryOptions | undefined;
@@ -154,7 +157,9 @@ export class HarnessAgentSession {
         prompt: options.prompt,
         instructions: options.instructions,
         tools: options.tools,
+        activeTools: options.activeTools,
         toolSpecs: options.toolSpecs,
+        builtinToolFiltering: options.builtinToolFiltering,
         sandboxSession: sandboxSession.restricted(),
         sessionWorkDir: this.sessionWorkDir,
         runtimeContext: options.runtimeContext,
@@ -187,7 +192,9 @@ export class HarnessAgentSession {
   >(options: {
     instructions: string | undefined;
     tools: TOOLS;
+    activeTools: ToolSet;
     toolSpecs: HarnessAgentToolSpec[];
+    builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
     runtimeContext: RUNTIME_CONTEXT;
     abortSignal: AbortSignal | undefined;
     telemetry: TelemetryOptions | undefined;
@@ -206,7 +213,9 @@ export class HarnessAgentSession {
         mode: 'continue',
         instructions: options.instructions,
         tools: options.tools,
+        activeTools: options.activeTools,
         toolSpecs: options.toolSpecs,
+        builtinToolFiltering: options.builtinToolFiltering,
         sandboxSession: sandboxSession.restricted(),
         sessionWorkDir: this.sessionWorkDir,
         runtimeContext: options.runtimeContext,
