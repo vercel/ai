@@ -1236,6 +1236,86 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should suppress responseMimeType/responseSchema and emit warning when tools are present', async () => {
+    prepareJsonFixtureResponse('google-text');
+
+    const { warnings } = await provider.languageModel('gemini-pro').doGenerate({
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            property1: { type: 'string' },
+          },
+          required: ['property1'],
+          additionalProperties: false,
+        },
+      },
+      tools: [
+        {
+          name: 'test-tool',
+          type: 'function',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              property1: { type: 'string' },
+            },
+            required: ['property1'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "Hello",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "generationConfig": {},
+        "tools": [
+          {
+            "functionDeclarations": [
+              {
+                "description": "",
+                "name": "test-tool",
+                "parameters": {
+                  "properties": {
+                    "property1": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "property1",
+                  ],
+                  "type": "object",
+                },
+              },
+            ],
+          },
+        ],
+      }
+    `);
+
+    expect(warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "JSON response format (responseMimeType/responseSchema) cannot be combined with tools in Google; response format is ignored.",
+          "feature": "responseFormat",
+          "type": "unsupported",
+        },
+      ]
+    `);
+  });
+
   it('should pass headers', async () => {
     prepareJsonFixtureResponse('google-text');
 

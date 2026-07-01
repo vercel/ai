@@ -243,6 +243,15 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       isVertexProvider,
     });
 
+    if (responseFormat?.type === 'json' && googleTools != null && googleTools.length > 0) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'responseFormat',
+        details:
+          'JSON response format (responseMimeType/responseSchema) cannot be combined with tools in Google; response format is ignored.',
+      });
+    }
+
     const resolvedThinking = resolveThinkingConfig({
       reasoning,
       modelId: this.modelId,

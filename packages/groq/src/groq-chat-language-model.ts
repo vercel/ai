@@ -128,6 +128,15 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
       toolWarnings,
     } = prepareTools({ tools, toolChoice, modelId: this.modelId });
 
+    if (responseFormat?.type === 'json' && groqTools != null && groqTools.length > 0) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'responseFormat',
+        details:
+          'JSON response format cannot be combined with tools in Groq; response_format is ignored.',
+      });
+    }
+
     return {
       args: {
         // model id:
