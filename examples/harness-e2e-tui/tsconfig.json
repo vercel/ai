@@ -44,6 +44,9 @@
       "path": "../../packages/harness-codex"
     },
     {
+      "path": "../../packages/harness-eve"
+    },
+    {
       "path": "../../packages/harness-pi"
     },
     {

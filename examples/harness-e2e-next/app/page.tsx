@@ -50,6 +50,11 @@ const HARNESSES = [
     ],
   },
   {
+    slug: 'eve',
+    label: 'Eve',
+    variants: ['basic'],
+  },
+  {
     slug: 'opencode',
     label: 'OpenCode',
     variants: [

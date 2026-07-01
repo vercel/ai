@@ -611,6 +611,9 @@ importers:
       '@ai-sdk/harness-deepagents':
         specifier: workspace:*
         version: link:../../packages/harness-deepagents
+      '@ai-sdk/harness-eve':
+        specifier: workspace:*
+        version: link:../../packages/harness-eve
       '@ai-sdk/harness-opencode':
         specifier: workspace:*
         version: link:../../packages/harness-opencode
@@ -702,6 +705,9 @@ importers:
       '@ai-sdk/harness-deepagents':
         specifier: workspace:*
         version: link:../../packages/harness-deepagents
+      '@ai-sdk/harness-eve':
+        specifier: workspace:*
+        version: link:../../packages/harness-eve
       '@ai-sdk/harness-opencode':
         specifier: workspace:*
         version: link:../../packages/harness-opencode

@@ -5,14 +5,14 @@ import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const url = process.env.EVE_AGENT_URL;
+  const url = process.env.EVE_BASIC_AGENT_URL;
   if (!url) {
-    throw new Error('Set EVE_AGENT_URL to a remote Eve agent URL.');
+    throw new Error('Set EVE_BASIC_AGENT_URL to a remote Eve agent URL.');
   }
 
   const agent = new HarnessAgent({
     harness: createEve({ url }),
-    sandbox: createJustBashSandbox(),
+    sandbox: createJustBashSandbox(), // Ignored by eve harness.
   });
 
   const session = await agent.createSession();
