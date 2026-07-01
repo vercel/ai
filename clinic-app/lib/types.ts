@@ -50,7 +50,21 @@ export interface Subscription {
   past_due_since: string | null;
   grace_period_days: number;
   pending_plan_id: string | null;
+  gateway_subscription_id: string | null;
   updated_at: string;
+}
+
+export interface DataExport {
+  id: string;
+  clinic_id: string;
+  requested_by: string | null;
+  reason: string;
+  status: 'processing' | 'ready' | 'failed';
+  file_path: string | null;
+  signed_url: string | null;
+  expires_at: string | null;
+  error_message: string | null;
+  created_at: string;
 }
 
 export interface Patient {
@@ -219,6 +233,7 @@ export interface MedicalRecord {
   signed_at: string | null;
   signature_data: string | null;
   content_hash: string | null;
+  signer_ip: string | null;
   created_at: string;
 }
 
@@ -232,6 +247,7 @@ export interface ConsentForm {
   signer_name: string | null;
   signature_data: string | null;
   content_hash: string | null;
+  signer_ip: string | null;
   created_at: string;
 }
 
@@ -410,5 +426,9 @@ export interface DocumentSignature {
   status: SignatureStatus;
   document_url: string | null;
   signed_at: string | null;
+  signer_id: string | null;
+  signer_ip: string | null;
+  content_hash: string | null;
+  signature_data: string | null;
   created_at: string;
 }

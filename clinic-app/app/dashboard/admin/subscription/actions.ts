@@ -173,3 +173,46 @@ export async function unlockUser(userId: string) {
 
   revalidatePath('/dashboard/admin/subscription');
 }
+
+/**
+ * LGPD data portability: request a consolidated export of every record
+ * belonging to this clinic. Creates a "processing" row and invokes the
+ * export-clinic-data Edge Function, which uploads a signed manifest and
+ * flips the row to "ready" (or "failed").
+ */
+export async function exportClinicData() {
+  const profile = await requireProfileWithPlan();
+  requireAdmin(profile);
+  if (!profile.clinic_id) return;
+
+  const supabase = createSupabaseServerClient();
+
+  await supabase.from('data_exports').insert({
+    clinic_id: profile.clinic_id,
+    requested_by: profile.id,
+    reason: 'manual',
+    status: 'processing',
+  });
+
+  await fetch(`${process.env.SUPABASE_FUNCTIONS_URL}/export-clinic-data`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-internal-secret': process.env.INTERNAL_FUNCTIONS_SECRET ?? '',
+    },
+    body: JSON.stringify({ clinic_id: profile.clinic_id, reason: 'manual' }),
+  });
+
+  await log_audit_event_action({
+    clinic_id: profile.clinic_id,
+    actor_id: profile.id,
+    actor_role: profile.role,
+    action: 'request_data_export',
+    table_name: 'data_exports',
+    record_id: null,
+    old_data: null,
+    new_data: null,
+  });
+
+  revalidatePath('/dashboard/admin/subscription');
+}

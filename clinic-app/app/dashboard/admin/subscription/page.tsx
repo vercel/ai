@@ -1,7 +1,17 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { requireAdmin, requireProfileWithPlan } from '@/lib/auth';
 import type { Plan, Profile } from '@/lib/types';
-import { changePlan, unlockUser } from './actions';
+import { changePlan, exportClinicData, unlockUser } from './actions';
+
+type DataExportRow = {
+  id: string;
+  status: 'processing' | 'ready' | 'failed';
+  reason: string;
+  signed_url: string | null;
+  expires_at: string | null;
+  error_message: string | null;
+  created_at: string;
+};
 
 function formatPrice(cents: number) {
   return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -28,7 +38,7 @@ export default async function SubscriptionPage({
 
   const supabase = createSupabaseServerClient();
 
-  const [{ data: plans }, { data: users }] = await Promise.all([
+  const [{ data: plans }, { data: users }, { data: exports }] = await Promise.all([
     supabase.from('plans').select('*').order('price_cents').returns<Plan[]>(),
     supabase
       .from('profiles')
@@ -36,6 +46,13 @@ export default async function SubscriptionPage({
       .eq('clinic_id', profile.clinic_id)
       .order('full_name')
       .returns<Profile[]>(),
+    supabase
+      .from('data_exports')
+      .select('id, status, reason, signed_url, expires_at, error_message, created_at')
+      .eq('clinic_id', profile.clinic_id)
+      .order('created_at', { ascending: false })
+      .limit(5)
+      .returns<DataExportRow[]>(),
   ]);
 
   const sub = profile.subscription;
@@ -158,6 +175,62 @@ export default async function SubscriptionPage({
           </div>
         </div>
       )}
+
+      {/* LGPD data portability */}
+      <div className="mt-8 rounded-xl bg-white p-6 shadow-sm">
+        <h2 className="mb-1 text-sm font-semibold text-gray-700">Portabilidade de dados (LGPD)</h2>
+        <p className="mb-4 text-xs text-gray-400">
+          Gere um pacote com todos os dados da clínica (pacientes, prontuários, financeiro, documentos)
+          e um link de download temporário. Também é gerado automaticamente caso a assinatura seja cancelada.
+        </p>
+        <form action={exportClinicData}>
+          <button
+            type="submit"
+            className="rounded bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-900"
+          >
+            Solicitar exportação
+          </button>
+        </form>
+
+        {(exports ?? []).length > 0 && (
+          <div className="mt-4 flex flex-col gap-2">
+            {(exports ?? []).map((exp) => (
+              <div key={exp.id} className="flex items-center justify-between rounded-lg border border-gray-100 p-3 text-sm">
+                <div>
+                  <p className="text-gray-700">
+                    {new Date(exp.created_at).toLocaleString('pt-BR')} ·{' '}
+                    <span className="text-gray-400">{exp.reason === 'manual' ? 'manual' : 'cancelamento'}</span>
+                  </p>
+                  {exp.status === 'failed' && (
+                    <p className="text-xs text-red-500">{exp.error_message}</p>
+                  )}
+                  {exp.expires_at && (
+                    <p className="text-xs text-gray-400">
+                      Expira em {new Date(exp.expires_at).toLocaleDateString('pt-BR')}
+                    </p>
+                  )}
+                </div>
+                {exp.status === 'ready' && exp.signed_url && (
+                  <a
+                    href={exp.signed_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded bg-brand-50 px-3 py-1 text-xs font-medium text-brand-600 hover:bg-brand-100"
+                  >
+                    Baixar
+                  </a>
+                )}
+                {exp.status === 'processing' && (
+                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-700">Processando</span>
+                )}
+                {exp.status === 'failed' && (
+                  <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-700">Falhou</span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
