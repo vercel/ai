@@ -2597,6 +2597,56 @@ describe('Chat', () => {
   });
 
   describe('addToolApprovalResponse', () => {
+    describe('approved with signature', () => {
+      let chat: TestChat;
+
+      beforeEach(async () => {
+        chat = new TestChat({
+          id: '123',
+          generateId: mockId({ prefix: 'newid' }),
+          transport: new DefaultChatTransport({
+            api: 'http://localhost:3000/api/chat',
+          }),
+          messages: [
+            {
+              id: 'id-0',
+              role: 'user',
+              parts: [{ text: 'What is the weather in Tokyo?', type: 'text' }],
+            },
+            {
+              id: 'id-1',
+              role: 'assistant',
+              parts: [
+                { type: 'step-start' },
+                {
+                  type: 'tool-weather',
+                  toolCallId: 'call-1',
+                  state: 'approval-requested',
+                  input: { city: 'Tokyo' },
+                  approval: { id: 'approval-1', signature: 'test-signature' },
+                },
+              ],
+            },
+          ],
+        });
+
+        await chat.addToolApprovalResponse({
+          id: 'approval-1',
+          approved: true,
+        });
+      });
+
+      it('should preserve the signature in the approval response', () => {
+        expect(chat.messages[1].parts[1]).toMatchObject({
+          approval: {
+            id: 'approval-1',
+            approved: true,
+            signature: 'test-signature',
+          },
+        });
+      });
+    });
+
     describe('approved', () => {
       let chat: TestChat;
 
