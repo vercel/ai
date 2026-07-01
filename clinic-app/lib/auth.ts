@@ -68,7 +68,7 @@ export async function requireProfileWithPlan(): Promise<ProfileWithPlan> {
     ...profile,
     clinic: clinicFields,
     plan,
-    modules: plan?.modules ?? [],
+    modules: Array.from(new Set([...(plan?.modules ?? []), ...(clinicFields.extra_modules ?? [])])),
     subscription: subscription ?? null,
   };
 }

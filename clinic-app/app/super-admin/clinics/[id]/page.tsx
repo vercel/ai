@@ -1,15 +1,25 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { requireSuperAdmin } from '@/lib/super-admin';
 import type { Clinic, Plan, Profile, Subscription } from '@/lib/types';
-import { activateClinic, changePlanSuperAdmin, startImpersonation, suspendClinic } from './actions';
+import {
+  activateClinic,
+  changePlanSuperAdmin,
+  getPatientPortalLinkSuperAdmin,
+  impersonateUser,
+  startImpersonation,
+  suspendClinic,
+  toggleClinicModule,
+} from './actions';
+import { ViewPatientPortalButton } from '@/components/super-admin/view-patient-portal-button';
 
 type ClinicRow = Clinic & { plans: Plan; subscriptions: Subscription[] };
+type ClinicPatientRow = { id: string; full_name: string; phone: string | null };
 
 export default async function ClinicDetailPage({ params }: { params: { id: string } }) {
   const actor = await requireSuperAdmin();
   const supabase = createSupabaseServerClient();
 
-  const [{ data: clinic }, { data: plans }, { data: users }, { data: activeImpersonation }] =
+  const [{ data: clinic }, { data: plans }, { data: users }, { data: activeImpersonation }, { data: patientsData }] =
     await Promise.all([
       supabase
         .from('clinics')
@@ -31,9 +41,12 @@ export default async function ClinicDetailPage({ params }: { params: { id: strin
         .order('started_at', { ascending: false })
         .limit(1)
         .maybeSingle<{ id: string; clinic_id: string; started_at: string }>(),
+      supabase.rpc('list_clinic_patients_for_super_admin', { p_clinic_id: params.id }),
     ]);
 
   if (!clinic) return <p className="text-slate-500">Clínica não encontrada.</p>;
+
+  const patients = (patientsData ?? []) as ClinicPatientRow[];
 
   const sub = clinic.subscriptions?.[0] ?? null;
   const isSuspended = sub?.status === 'suspended' || !clinic.is_active;
@@ -111,6 +124,32 @@ export default async function ClinicDetailPage({ params }: { params: { id: strin
         </form>
       </div>
 
+      {/* Differentials */}
+      <div className="mb-6 rounded-2xl border border-white/5 bg-slate-900/60 p-6">
+        <h2 className="mb-1 text-sm font-semibold text-slate-200">Diferenciais</h2>
+        <p className="mb-3 text-xs text-slate-500">
+          Recursos fora do plano padrão, ativados individualmente quando a clínica tem interesse.
+        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-slate-200">Loja</p>
+            <p className="text-xs text-slate-500">Marketplace/vendas de produtos dentro do dashboard.</p>
+          </div>
+          <form action={toggleClinicModule.bind(null, params.id, 'store', !clinic.extra_modules.includes('store'))}>
+            <button
+              type="submit"
+              className={`rounded-lg px-4 py-1.5 text-sm font-medium ${
+                clinic.extra_modules.includes('store')
+                  ? 'bg-red-600 text-white hover:bg-red-500'
+                  : 'bg-emerald-600 text-white hover:bg-emerald-500'
+              }`}
+            >
+              {clinic.extra_modules.includes('store') ? 'Desativar' : 'Ativar'}
+            </button>
+          </form>
+        </div>
+      </div>
+
       {/* Impersonation */}
       <div className="mb-6 rounded-2xl border border-white/5 bg-slate-900/60 p-6">
         <h2 className="mb-1 text-sm font-semibold text-slate-200">Impersonar clínica</h2>
@@ -129,10 +168,14 @@ export default async function ClinicDetailPage({ params }: { params: { id: strin
         </form>
       </div>
 
-      {/* Users */}
-      <div className="overflow-hidden rounded-2xl border border-white/5 bg-slate-900/60">
+      {/* Users / Equipe */}
+      <div className="mb-6 overflow-hidden rounded-2xl border border-white/5 bg-slate-900/60">
         <div className="border-b border-white/5 px-6 py-4">
-          <h2 className="text-sm font-semibold text-slate-200">Usuários ({(users ?? []).length})</h2>
+          <h2 className="text-sm font-semibold text-slate-200">Equipe/Profissionais ({(users ?? []).length})</h2>
+          <p className="mt-0.5 text-xs text-slate-500">
+            "Acessar como" simula a sessão desse usuário: a auditoria fica registrada e o suporte enxerga
+            exatamente o que ele enxerga (prontuários, agenda, permissões).
+          </p>
         </div>
         <table className="w-full text-sm">
           <thead className="text-left text-xs text-slate-500">
@@ -141,6 +184,7 @@ export default async function ClinicDetailPage({ params }: { params: { id: strin
               <th className="px-4 py-3">Função</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Cadastro</th>
+              <th className="px-4 py-3 text-right">Ação</th>
             </tr>
           </thead>
           <tbody>
@@ -158,8 +202,68 @@ export default async function ClinicDetailPage({ params }: { params: { id: strin
                 <td className="px-4 py-3 text-slate-500">
                   {new Date(u.created_at).toLocaleDateString('pt-BR')}
                 </td>
+                <td className="px-4 py-3 text-right">
+                  {!u.is_locked && (
+                    <form action={impersonateUser.bind(null, params.id, u.id)}>
+                      <input type="hidden" name="reason" value={`Suporte técnico — ${u.full_name}`} />
+                      <button
+                        type="submit"
+                        className="rounded-lg bg-slate-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-600"
+                      >
+                        Acessar como {u.full_name.split(' ')[0]}
+                      </button>
+                    </form>
+                  )}
+                </td>
               </tr>
             ))}
+            {(users ?? []).length === 0 && (
+              <tr>
+                <td colSpan={5} className="px-4 py-6 text-center text-slate-500">
+                  Nenhum profissional cadastrado ainda.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Patients */}
+      <div className="overflow-hidden rounded-2xl border border-white/5 bg-slate-900/60">
+        <div className="border-b border-white/5 px-6 py-4">
+          <h2 className="text-sm font-semibold text-slate-200">Pacientes ({(patients ?? []).length})</h2>
+          <p className="mt-0.5 text-xs text-slate-500">
+            "Ver Portal do Paciente" abre o link mágico em uma nova aba — não altera sua sessão de suporte.
+          </p>
+        </div>
+        <table className="w-full text-sm">
+          <thead className="text-left text-xs text-slate-500">
+            <tr>
+              <th className="px-4 py-3">Nome</th>
+              <th className="px-4 py-3">Telefone</th>
+              <th className="px-4 py-3 text-right">Ação</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(patients ?? []).map((p) => (
+              <tr key={p.id} className="border-t border-white/5">
+                <td className="px-4 py-3 font-medium text-slate-200">{p.full_name}</td>
+                <td className="px-4 py-3 text-slate-400">{p.phone ?? '—'}</td>
+                <td className="px-4 py-3 text-right">
+                  <ViewPatientPortalButton
+                    patientId={p.id}
+                    getLinkAction={getPatientPortalLinkSuperAdmin}
+                  />
+                </td>
+              </tr>
+            ))}
+            {(patients ?? []).length === 0 && (
+              <tr>
+                <td colSpan={3} className="px-4 py-6 text-center text-slate-500">
+                  Nenhum paciente cadastrado ainda.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

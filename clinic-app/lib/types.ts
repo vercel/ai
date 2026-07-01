@@ -53,6 +53,7 @@ export interface Clinic {
   owner_id: string | null;
   is_active: boolean;
   onboarding_completed: boolean;
+  extra_modules: string[];
   trial_ends_at: string | null;
   created_at: string;
 }
