@@ -83,6 +83,7 @@ export {
   type Schema,
   type ValidationResult,
 } from './schema';
+export { secureJsonParse } from './secure-json-parse';
 export { serializeModelOptions } from './serialize-model-options';
 export {
   StreamingToolCallTracker,
