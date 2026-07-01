@@ -88,6 +88,9 @@
       "path": "packages/harness-deepagents"
     },
     {
+      "path": "packages/harness-eve"
+    },
+    {
       "path": "packages/harness-opencode"
     },
     {

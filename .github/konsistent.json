@@ -136,7 +136,6 @@
                 "from": "./${harnessId}-harness"
               }
             ],
-            "exportConstants": ["${harnessId.toCamelCase()}"],
             "exportTypes": [
               {
                 "name": "${harnessId.toPascalCase()}HarnessSettings",
@@ -144,6 +143,14 @@
               }
             ],
             "haveFiles": ["${harnessId}-harness.ts"]
+          }
+        },
+        {
+          "name": "harness-package-must-export-default-harness-instance",
+          "description": "Every generic harness package must export a default harness instance.",
+          "excludeFiles": ["packages/harness-eve/src/index.ts"],
+          "must": {
+            "exportConstants": ["${harnessId.toCamelCase()}"]
           }
         },
         {
@@ -211,6 +218,7 @@
           "name": "harness-auth-file-must-export-relevant-symbols",
           "description": "Every harness auth file must export the relevant symbols.",
           "for": { "files": ["${harnessId}-auth.ts"] },
+          "excludeFiles": ["packages/harness-eve/src/eve-auth.ts"],
           "must": {
             "import": [
               {
