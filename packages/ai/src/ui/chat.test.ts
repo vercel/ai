@@ -2952,4 +2952,78 @@ describe('Chat', () => {
       `);
     });
   });
+
+  describe('active response cleanup', () => {
+    it('calls onFinish from the request-local response when activeResponse is cleared', async () => {
+      let controller: ReadableStreamDefaultController<UIMessageChunk>;
+      const responseStream = new ReadableStream<UIMessageChunk>({
+        start: controllerArg => {
+          controller = controllerArg;
+          controller.enqueue({ type: 'start' });
+          controller.enqueue({ type: 'start-step' });
+          controller.enqueue({ type: 'text-start', id: 'text-1' });
+          controller.enqueue({
+            type: 'text-delta',
+            id: 'text-1',
+            delta: 'Hello',
+          });
+        },
+      });
+
+      const onFinish = vi.fn();
+      const consoleError = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId(),
+        transport: {
+          sendMessages: async () => responseStream,
+          reconnectToStream: () => {
+            throw new Error('not implemented');
+          },
+        },
+        onFinish,
+      });
+
+      try {
+        const sendPromise = chat.sendMessage({
+          text: 'Hello, world!',
+        });
+
+        while ((chat.messages[1]?.parts[1] as any)?.text !== 'Hello') {
+          await vi.advanceTimersByTimeAsync(0);
+        }
+
+        (chat as any).activeResponse = undefined;
+
+        controller!.enqueue({ type: 'text-end', id: 'text-1' });
+        controller!.enqueue({ type: 'finish-step' });
+        controller!.enqueue({
+          type: 'finish',
+          finishReason: 'stop',
+        });
+        controller!.close();
+
+        await sendPromise;
+
+        expect(consoleError).not.toHaveBeenCalled();
+        expect(onFinish).toHaveBeenCalledWith(
+          expect.objectContaining({
+            finishReason: 'stop',
+            isAbort: false,
+            isDisconnect: false,
+            isError: false,
+            message: expect.objectContaining({
+              id: 'id-1',
+              role: 'assistant',
+            }),
+          }),
+        );
+      } finally {
+        consoleError.mockRestore();
+      }
+    });
+  });
 });
