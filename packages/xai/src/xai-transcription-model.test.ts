@@ -293,6 +293,30 @@ describe('doGenerate', () => {
 });
 
 describe('doStream', () => {
+  it('should require channels when streaming multichannel audio', async () => {
+    MockWebSocket.instances = [];
+
+    const result = model.doStream!({
+      audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      providerOptions: {
+        xai: {
+          multichannel: true,
+        },
+      },
+    });
+
+    await expect(result).rejects.toMatchObject({
+      name: 'AI_InvalidArgumentError',
+      argument: 'providerOptions',
+    });
+    await expect(result).rejects.toThrow(
+      'providerOptions.xai.channels is required when providerOptions.xai.multichannel is true',
+    );
+
+    expect(MockWebSocket.instances).toHaveLength(0);
+  });
+
   it('should stream xAI STT over WebSocket', async () => {
     MockWebSocket.instances = [];
     const testDate = new Date(0);

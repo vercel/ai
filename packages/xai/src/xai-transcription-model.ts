@@ -1,7 +1,8 @@
-import type {
-  SharedV4Warning,
-  TranscriptionModelV4,
-  TranscriptionModelV4StreamOptions,
+import {
+  InvalidArgumentError,
+  type SharedV4Warning,
+  type TranscriptionModelV4,
+  type TranscriptionModelV4StreamOptions,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -185,6 +186,14 @@ export class XaiTranscriptionModel implements TranscriptionModelV4 {
       schema: xaiTranscriptionModelOptionsSchema,
     });
 
+    if (xaiOptions?.multichannel === true && xaiOptions.channels == null) {
+      throw new InvalidArgumentError({
+        argument: 'providerOptions',
+        message:
+          'providerOptions.xai.channels is required when providerOptions.xai.multichannel is true',
+      });
+    }
+
     if (xaiOptions?.format != null) {
       warnings.push({
         type: 'unsupported',
@@ -213,7 +222,7 @@ export class XaiTranscriptionModel implements TranscriptionModelV4 {
           );
           const ws = new WebSocketConstructor(url, undefined, { headers });
           const expectedDoneCount =
-            xaiOptions?.multichannel === true ? (xaiOptions.channels ?? 1) : 1;
+            xaiOptions?.multichannel === true ? xaiOptions.channels! : 1;
           const doneTexts = new Map<number, string>();
           let doneDuration: number | undefined;
           let finished = false;
