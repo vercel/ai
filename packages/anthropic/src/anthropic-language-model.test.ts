@@ -9011,6 +9011,47 @@ describe('AnthropicLanguageModel', () => {
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
       });
+
+      it('should preserve the text editor discriminator for streamed skill tool calls', async () => {
+        prepareChunksFixtureResponse(
+          'anthropic-code-execution-20250825.pptx-skill',
+        );
+
+        const result = await model.doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.code_execution_20250825',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+          providerOptions: {
+            anthropic: {
+              container: {
+                skills: [{ type: 'anthropic', skillId: 'pptx' }],
+              },
+            } satisfies AnthropicLanguageModelOptions,
+          },
+        });
+
+        const parts = await convertReadableStreamToArray(result.stream);
+        const skillReadToolCall = parts.find(
+          part =>
+            part.type === 'tool-call' &&
+            part.toolName === 'code_execution' &&
+            part.input.includes('/skills/pptx/SKILL.md'),
+        );
+
+        expect(skillReadToolCall).toMatchObject({
+          type: 'tool-call',
+          toolName: 'code_execution',
+          input:
+            '{"type": "text_editor_code_execution","command": "view", "path": "/skills/pptx/SKILL.md"}',
+          providerExecuted: true,
+        });
+      });
     });
 
     describe('function tool', () => {
@@ -10631,6 +10672,19 @@ describe('getModelCapabilities', () => {
 
   it('should return correct capabilities for claude-opus-4-7', () => {
     expect(getModelCapabilities('claude-opus-4-7')).toMatchInlineSnapshot(`
+      {
+        "isKnownModel": true,
+        "maxOutputTokens": 128000,
+        "rejectsSamplingParameters": true,
+        "supportsAdaptiveThinking": true,
+        "supportsStructuredOutput": true,
+        "supportsXhighEffort": true,
+      }
+    `);
+  });
+
+  it('should return correct capabilities for claude-sonnet-5', () => {
+    expect(getModelCapabilities('claude-sonnet-5')).toMatchInlineSnapshot(`
       {
         "isKnownModel": true,
         "maxOutputTokens": 128000,

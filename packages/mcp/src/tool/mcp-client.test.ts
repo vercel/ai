@@ -1,4 +1,5 @@
 import type * as McpTransportModule from './mcp-transport';
+import type { MCPTransport } from './mcp-transport';
 import { z } from 'zod/v4';
 import { MCPClientError } from '../error/mcp-client-error';
 import { createMCPClient } from './mcp-client';
@@ -6,15 +7,18 @@ import { MockMCPTransport } from './mock-mcp-transport';
 import {
   ListToolsResult,
   ElicitationRequestSchema,
+  LATEST_PROTOCOL_VERSION,
   type CallToolResult,
+  type CompleteResult,
   type ListResourceTemplatesResult,
   type ListResourcesResult,
   type ReadResourceResult,
   type ListPromptsResult,
   type GetPromptResult,
   type Configuration,
+  type InitializeResult,
 } from './types';
-import type { JSONRPCRequest } from './json-rpc-message';
+import type { JSONRPCMessage, JSONRPCRequest } from './json-rpc-message';
 import {
   beforeEach,
   afterEach,
@@ -26,6 +30,48 @@ import {
 } from 'vitest';
 
 const createMockTransport = vi.fn(config => new MockMCPTransport(config));
+
+class GetterOnlyProtocolVersionTransport implements MCPTransport {
+  private readonly transport: MockMCPTransport;
+  private negotiatedProtocolVersion?: string;
+
+  onmessage?: (message: JSONRPCMessage) => void;
+  onclose?: () => void;
+  onerror?: (error: Error) => void;
+
+  constructor(protocolVersion: string) {
+    this.transport = new MockMCPTransport({
+      initializeResult: {
+        protocolVersion,
+        serverInfo: { name: 'mock-mcp-server', version: '1.0.0' },
+        capabilities: { tools: {} },
+      },
+    });
+  }
+
+  get protocolVersion(): string | undefined {
+    return this.negotiatedProtocolVersion;
+  }
+
+  setProtocolVersion(version: string): void {
+    this.negotiatedProtocolVersion = version;
+  }
+
+  async start(): Promise<void> {
+    await this.transport.start();
+  }
+
+  async send(message: JSONRPCMessage): Promise<void> {
+    this.transport.onmessage = this.onmessage;
+    this.transport.onclose = this.onclose;
+    this.transport.onerror = this.onerror;
+    await this.transport.send(message);
+  }
+
+  async close(): Promise<void> {
+    await this.transport.close();
+  }
+}
 
 vi.mock('./mcp-transport.ts', async importOriginal => {
   const actual = await importOriginal<typeof McpTransportModule>();
@@ -700,6 +746,101 @@ describe('MCPClient', () => {
     `);
   });
 
+  it('should request completions from the server', async () => {
+    const mockTransport = new MockMCPTransport({
+      completionResult: {
+        completion: {
+          values: ['auth', 'auth-staging'],
+          total: 2,
+          hasMore: false,
+        },
+      },
+    });
+    const sendSpy = vi.spyOn(mockTransport, 'send');
+
+    client = await createMCPClient({
+      transport: mockTransport,
+    });
+
+    const completion = await client.complete({
+      ref: {
+        type: 'ref/resource',
+        uri: 'kubernetes://namespaced/{plural}/{namespace}',
+      },
+      argument: {
+        name: 'namespace',
+        value: 'auth',
+      },
+      context: {
+        arguments: {
+          plural: 'deployments',
+        },
+      },
+    });
+
+    expectTypeOf(completion).toEqualTypeOf<CompleteResult>();
+
+    expect(completion).toMatchInlineSnapshot(`
+      {
+        "completion": {
+          "hasMore": false,
+          "total": 2,
+          "values": [
+            "auth",
+            "auth-staging",
+          ],
+        },
+      }
+    `);
+    expect(sendSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: 'completion/complete',
+        params: {
+          ref: {
+            type: 'ref/resource',
+            uri: 'kubernetes://namespaced/{plural}/{namespace}',
+          },
+          argument: {
+            name: 'namespace',
+            value: 'auth',
+          },
+          context: {
+            arguments: {
+              plural: 'deployments',
+            },
+          },
+        },
+      }),
+    );
+  });
+
+  it('should throw if the server does not support completions', async () => {
+    const mockTransport = new MockMCPTransport();
+    const sendSpy = vi.spyOn(mockTransport, 'send');
+
+    client = await createMCPClient({
+      transport: mockTransport,
+    });
+
+    await expect(
+      client.complete({
+        ref: {
+          type: 'ref/prompt',
+          name: 'code_review',
+        },
+        argument: {
+          name: 'language',
+          value: 'py',
+        },
+      }),
+    ).rejects.toThrow(MCPClientError);
+    expect(sendSpy).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: 'completion/complete',
+      }),
+    );
+  });
+
   it('should list prompts from the server', async () => {
     client = await createMCPClient({
       transport: { type: 'sse', url: 'https://example.com/sse' },
@@ -839,6 +980,57 @@ describe('MCPClient', () => {
     });
 
     expect(tools).not.toHaveProperty('nonexistent-tool');
+  });
+
+  it('should not return server tools named after Object.prototype properties unless explicitly allowed', async () => {
+    const mockTransport = new MockMCPTransport({
+      overrideTools: [
+        {
+          name: 'allowed-tool',
+          description: 'An explicitly allowed tool',
+          inputSchema: {
+            type: 'object',
+            properties: { foo: { type: 'string' } },
+          },
+        },
+        {
+          name: 'constructor',
+          description: 'Tool named after an inherited prototype property',
+          inputSchema: { type: 'object' },
+        },
+        {
+          name: 'toString',
+          description: 'Tool named after an inherited prototype property',
+          inputSchema: { type: 'object' },
+        },
+        {
+          name: '__proto__',
+          description: 'Tool named after an inherited prototype property',
+          inputSchema: { type: 'object' },
+        },
+      ],
+    });
+
+    client = await createMCPClient({
+      transport: mockTransport,
+    });
+
+    const tools = await client.tools({
+      schemas: {
+        'allowed-tool': {
+          inputSchema: z.object({ foo: z.string() }),
+        },
+      },
+    });
+
+    expect(Object.keys(tools)).toEqual(['allowed-tool']);
+    expect(Object.prototype.hasOwnProperty.call(tools, 'constructor')).toBe(
+      false,
+    );
+    expect(Object.prototype.hasOwnProperty.call(tools, 'toString')).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(tools, '__proto__')).toBe(
+      false,
+    );
   });
 
   it('should error when calling tool with misconfigured parameters', async () => {
@@ -1017,6 +1209,62 @@ describe('MCPClient', () => {
       expect(tools).toBeDefined();
       await client.close();
     }
+  });
+
+  it('should resume from an initial initialize result without reinitializing', async () => {
+    const sentMessages: JSONRPCMessage[] = [];
+    const initialInitializeResult: InitializeResult = {
+      protocolVersion: LATEST_PROTOCOL_VERSION,
+      serverInfo: {
+        name: 'resumed-server',
+        version: '1.0.0',
+      },
+      capabilities: {
+        tools: {},
+      },
+      instructions: 'Cached server instructions',
+    };
+    const transport: MCPTransport = {
+      start: vi.fn(async () => {}),
+      close: vi.fn(async () => {}),
+      send: vi.fn(async message => {
+        sentMessages.push(message);
+        if (
+          'method' in message &&
+          'id' in message &&
+          message.method === 'tools/list'
+        ) {
+          transport.onmessage?.({
+            jsonrpc: '2.0',
+            id: message.id,
+            result: {
+              tools: [],
+            },
+          });
+        }
+      }),
+    };
+
+    client = await createMCPClient({
+      transport,
+      initialInitializeResult,
+    });
+
+    expect(transport.start).toHaveBeenCalledTimes(1);
+    expect(sentMessages).toEqual([]);
+    expect(transport.protocolVersion).toBe(LATEST_PROTOCOL_VERSION);
+    expect(client.serverInfo).toEqual({
+      name: 'resumed-server',
+      version: '1.0.0',
+    });
+    expect(client.initializeResult).toEqual(initialInitializeResult);
+    expect(client.instructions).toBe('Cached server instructions');
+
+    await expect(client.listTools()).resolves.toEqual({ tools: [] });
+    expect(sentMessages).toHaveLength(1);
+    expect(sentMessages[0]).toMatchObject({
+      method: 'tools/list',
+    });
   });
 
   it('should expose serverInfo from initialization', async () => {
@@ -2201,6 +2449,16 @@ describe('MCPClient', () => {
       });
 
       expect(mockTransport.protocolVersion).toBe('2025-06-18');
+    });
+
+    it('should support transports with getter-only protocolVersion and setProtocolVersion', async () => {
+      const transport = new GetterOnlyProtocolVersionTransport('2025-06-18');
+
+      client = await createMCPClient({
+        transport,
+      });
+
+      expect(transport.protocolVersion).toBe('2025-06-18');
     });
   });
 });

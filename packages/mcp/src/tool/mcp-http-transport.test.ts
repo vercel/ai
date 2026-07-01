@@ -107,6 +107,58 @@ describe('HttpMCPTransport', () => {
     });
   });
 
+  it('should initialize MCP client from SSE response without explicit event field', async () => {
+    const controller = new TestResponseController();
+
+    server.urls['http://localhost:4000/stream'].response = ({ callNumber }) => {
+      switch (callNumber) {
+        case 0:
+          return { type: 'error', status: 405 };
+        case 1:
+          return {
+            type: 'controlled-stream',
+            controller,
+            headers: { 'content-type': 'text/event-stream' },
+          };
+        case 2:
+          return { type: 'empty', status: 202 };
+        default:
+          return { type: 'empty', status: 200 };
+      }
+    };
+
+    const clientPromise = createMCPClient({
+      transport: {
+        type: 'http',
+        url: 'http://localhost:4000/stream',
+      },
+    });
+
+    await vi.waitFor(() => {
+      expect(server.calls[1]?.requestMethod).toBe('POST');
+    });
+
+    controller.write(
+      `data: ${JSON.stringify({
+        jsonrpc: '2.0',
+        id: 0,
+        result: {
+          protocolVersion: LATEST_PROTOCOL_VERSION,
+          capabilities: {},
+          serverInfo: { name: 'test-server', version: '1.0.0' },
+        },
+      })}\n\n`,
+    );
+
+    const client = await clientPromise;
+    expect(client.serverInfo).toEqual({
+      name: 'test-server',
+      version: '1.0.0',
+    });
+
+    await client.close();
+  });
+
   it('should (re)open inbound SSE after 202 Accepted', async () => {
     const controller = new TestResponseController();
 
@@ -180,6 +232,236 @@ describe('HttpMCPTransport', () => {
     expect(server.calls[2].requestHeaders['mcp-session-id']).toBe(
       'xyz-session',
     );
+  });
+
+  it('should not DELETE to terminate session on close when disabled', async () => {
+    transport = new HttpMCPTransport({
+      url: 'http://localhost:4000/mcp',
+      terminateSessionOnClose: false,
+    });
+
+    server.urls['http://localhost:4000/mcp'].response = ({ callNumber }) => {
+      switch (callNumber) {
+        case 0:
+          return { type: 'error', status: 405 };
+        case 1:
+          return {
+            type: 'json-value',
+            headers: { 'mcp-session-id': 'xyz-session' },
+            body: { jsonrpc: '2.0', id: 1, result: { ok: true } },
+          };
+        default:
+          return { type: 'empty', status: 200 };
+      }
+    };
+
+    await transport.start();
+    await transport.send({
+      jsonrpc: '2.0' as const,
+      method: 'initialize',
+      id: 1,
+      params: {},
+    });
+
+    await transport.close();
+
+    expect(server.calls).toHaveLength(2);
+    expect(server.calls[0].requestMethod).toBe('GET');
+    expect(server.calls[1].requestMethod).toBe('POST');
+  });
+
+  it('should send initial session id on resumed HTTP requests', async () => {
+    const initialSessionId = 'saved-session';
+    const initialProtocolVersion = '2025-06-18';
+
+    transport = new HttpMCPTransport({
+      url: 'http://localhost:4000/mcp',
+      initialSessionId,
+      initialProtocolVersion,
+    });
+
+    server.urls['http://localhost:4000/mcp'].response = ({ callNumber }) => {
+      switch (callNumber) {
+        case 0:
+          return { type: 'error', status: 405 };
+        case 1:
+          return {
+            type: 'json-value',
+            body: { jsonrpc: '2.0', id: 1, result: { ok: true } },
+          };
+        case 2:
+          return {
+            type: 'json-value',
+            body: { jsonrpc: '2.0', id: 2, result: { ok: true } },
+          };
+        default:
+          return { type: 'empty', status: 200 };
+      }
+    };
+
+    await transport.start();
+    await transport.send({
+      jsonrpc: '2.0' as const,
+      method: 'initialize',
+      id: 1,
+      params: {},
+    });
+    await transport.send({
+      jsonrpc: '2.0' as const,
+      method: 'tools/list',
+      id: 2,
+      params: {},
+    });
+
+    expect(server.calls[0].requestMethod).toBe('GET');
+    expect(server.calls[0].requestHeaders['mcp-session-id']).toBe(
+      initialSessionId,
+    );
+    expect(server.calls[0].requestHeaders['mcp-protocol-version']).toBe(
+      initialProtocolVersion,
+    );
+
+    expect(server.calls[1].requestMethod).toBe('POST');
+    expect(server.calls[1].requestHeaders['mcp-session-id']).toBeUndefined();
+    expect(server.calls[1].requestHeaders['mcp-protocol-version']).toBe(
+      initialProtocolVersion,
+    );
+
+    expect(server.calls[2].requestMethod).toBe('POST');
+    expect(server.calls[2].requestHeaders['mcp-session-id']).toBe(
+      initialSessionId,
+    );
+    expect(server.calls[2].requestHeaders['mcp-protocol-version']).toBe(
+      initialProtocolVersion,
+    );
+  });
+
+  it('should notify when the server changes the session id', async () => {
+    const onSessionIdChange = vi.fn();
+
+    transport = new HttpMCPTransport({
+      url: 'http://localhost:4000/mcp',
+      onSessionIdChange,
+    });
+
+    server.urls['http://localhost:4000/mcp'].response = ({ callNumber }) => {
+      switch (callNumber) {
+        case 0:
+          return { type: 'error', status: 405 };
+        default:
+          return {
+            type: 'json-value',
+            headers: { 'mcp-session-id': 'new-session' },
+            body: {
+              jsonrpc: '2.0',
+              id: callNumber,
+              result: { ok: true },
+            },
+          };
+      }
+    };
+
+    await transport.start();
+    await transport.send({
+      jsonrpc: '2.0' as const,
+      method: 'initialize',
+      id: 1,
+      params: {},
+    });
+    await transport.send({
+      jsonrpc: '2.0' as const,
+      method: 'tools/list',
+      id: 2,
+      params: {},
+    });
+
+    expect(onSessionIdChange).toHaveBeenCalledTimes(1);
+    expect(onSessionIdChange).toHaveBeenCalledWith('new-session');
+    expect(server.calls[2].requestHeaders['mcp-session-id']).toBe(
+      'new-session',
+    );
+  });
+
+  it('should notify and clear the session id when POST returns 404', async () => {
+    const onSessionIdChange = vi.fn();
+    const onSessionExpired = vi.fn();
+
+    transport = new HttpMCPTransport({
+      url: 'http://localhost:4000/mcp',
+      initialSessionId: 'expired-session',
+      onSessionIdChange,
+      onSessionExpired,
+    });
+
+    server.urls['http://localhost:4000/mcp'].response = ({ callNumber }) => {
+      switch (callNumber) {
+        case 0:
+          return { type: 'error', status: 405 };
+        case 1:
+          return { type: 'error', status: 404, body: 'Not Found' };
+        case 2:
+          return {
+            type: 'json-value',
+            body: { jsonrpc: '2.0', id: 2, result: { ok: true } },
+          };
+        default:
+          return { type: 'empty', status: 200 };
+      }
+    };
+
+    await transport.start();
+    await expect(
+      transport.send({
+        jsonrpc: '2.0' as const,
+        method: 'tools/list',
+        id: 1,
+        params: {},
+      }),
+    ).rejects.toThrow('The MCP session expired');
+
+    expect(onSessionExpired).toHaveBeenCalledTimes(1);
+    expect(onSessionExpired).toHaveBeenCalledWith('expired-session');
+    expect(onSessionIdChange).toHaveBeenCalledTimes(1);
+    expect(onSessionIdChange).toHaveBeenCalledWith(undefined);
+
+    await transport.send({
+      jsonrpc: '2.0' as const,
+      method: 'tools/list',
+      id: 2,
+      params: {},
+    });
+
+    expect(server.calls[2].requestHeaders['mcp-session-id']).toBeUndefined();
+  });
+
+  it('should notify and clear the session id when inbound SSE returns 404', async () => {
+    const onSessionIdChange = vi.fn();
+    const onSessionExpired = vi.fn();
+
+    transport = new HttpMCPTransport({
+      url: 'http://localhost:4000/mcp',
+      initialSessionId: 'expired-session',
+      onSessionIdChange,
+      onSessionExpired,
+    });
+
+    server.urls['http://localhost:4000/mcp'].response = {
+      type: 'error',
+      status: 404,
+      body: 'Not Found',
+    };
+
+    await transport.start();
+
+    await vi.waitFor(() => {
+      expect(onSessionExpired).toHaveBeenCalledWith('expired-session');
+    });
+
+    expect(server.calls[0].requestMethod).toBe('GET');
+    expect(server.calls[0].requestHeaders['mcp-session-id']).toBe(
+      'expired-session',
+    );
+    expect(onSessionIdChange).toHaveBeenCalledWith(undefined);
   });
 
   it('should report HTTP errors from POST', async () => {
@@ -293,6 +575,29 @@ describe('HttpMCPTransport', () => {
     expect(error.statusCode).toBe(503);
     expect(error.url).toBe('http://localhost:4000/mcp');
     expect(error.message).toContain('GET SSE failed');
+  });
+
+  it('should handle inbound SSE messages without explicit event field', async () => {
+    const controller = new TestResponseController();
+    server.urls['http://localhost:4000/mcp'].response = {
+      type: 'controlled-stream',
+      controller,
+      headers: { 'content-type': 'text/event-stream' },
+    };
+
+    const message = { jsonrpc: '2.0' as const, id: 1, result: { ok: true } };
+    const messagePromise = new Promise(resolve => {
+      transport.onmessage = msg => resolve(msg);
+    });
+
+    await transport.start();
+    await vi.waitFor(() => {
+      expect(server.calls[0]?.requestMethod).toBe('GET');
+    });
+
+    controller.write(`data: ${JSON.stringify(message)}\n\n`);
+
+    expect(await messagePromise).toEqual(message);
   });
 
   it('should handle invalid JSON-RPC messages from inbound SSE', async () => {

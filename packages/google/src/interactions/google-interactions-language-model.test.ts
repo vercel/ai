@@ -143,6 +143,11 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
       `);
     });
 
+    it('does not send an Api-Revision header', async () => {
+      await model.doGenerate({ prompt: TEST_PROMPT });
+      expect(server.calls[0].requestHeaders).not.toHaveProperty('api-revision');
+    });
+
     it('exposes the request body via result.request.body', async () => {
       const { request } = await model.doGenerate({ prompt: TEST_PROMPT });
       expect(request?.body).toMatchInlineSnapshot(`
@@ -448,6 +453,46 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
       });
 
       expect(providerMetadata?.google?.serviceTier).toBeUndefined();
+    });
+  });
+
+  describe('output token modality breakdown', () => {
+    it('surfaces output_tokens_by_modality on providerMetadata.google.outputTokensByModality', async () => {
+      const fixture = JSON.parse(
+        fs.readFileSync('src/interactions/__fixtures__/basic.json', 'utf8'),
+      );
+      server.urls[TEST_URL].response = {
+        type: 'json-value',
+        body: {
+          ...fixture,
+          usage: {
+            ...fixture.usage,
+            output_tokens_by_modality: [
+              { modality: 'video', tokens: 57920 },
+              { modality: 'text', tokens: 19 },
+            ],
+          },
+        },
+      };
+
+      const { providerMetadata } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(providerMetadata?.google?.outputTokensByModality).toEqual({
+        video: 57920,
+        text: 19,
+      });
+    });
+
+    it('omits outputTokensByModality when the response has no breakdown', async () => {
+      prepareJsonFixtureResponse('basic');
+
+      const { providerMetadata } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(providerMetadata?.google?.outputTokensByModality).toBeUndefined();
     });
   });
 
@@ -1998,6 +2043,64 @@ describe('GoogleInteractionsLanguageModel agent polling', () => {
         type: 'file',
         mediaType: 'image/png',
         data: { type: 'url', url: new URL('https://example.com/img.png') },
+      }),
+    ]);
+  });
+
+  it('surfaces video outputs as file parts in the synthesized stream', async () => {
+    pollServer.urls[POST_URL].response = {
+      type: 'json-value',
+      body: {
+        id: 'v1_poll-test',
+        status: 'completed',
+        steps: [
+          {
+            type: 'model_output',
+            content: [
+              { type: 'text', text: 'here is your video' },
+              {
+                type: 'video',
+                data: 'AAAAIGZ0eXBpc29t',
+                mime_type: 'video/mp4',
+              },
+              {
+                type: 'video',
+                uri: 'https://example.com/clip.mp4',
+                mime_type: 'video/mp4',
+              },
+            ],
+          },
+        ],
+        usage: {
+          total_input_tokens: 5,
+          total_output_tokens: 3,
+          total_tokens: 8,
+        },
+      },
+    };
+
+    const fastProvider = createGoogle({
+      apiKey: 'test-api-key',
+      generateId: () => 'test-id',
+    });
+    const agentModel = fastProvider.interactions({ agent: AGENT_NAME });
+    const { stream } = await agentModel.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+      providerOptions: { google: { background: true } },
+    });
+    const parts = await convertReadableStreamToArray(stream);
+    const fileParts = parts.filter(p => p.type === 'file');
+    expect(fileParts).toEqual([
+      expect.objectContaining({
+        type: 'file',
+        mediaType: 'video/mp4',
+        data: { type: 'data', data: 'AAAAIGZ0eXBpc29t' },
+      }),
+      expect.objectContaining({
+        type: 'file',
+        mediaType: 'video/mp4',
+        data: { type: 'url', url: new URL('https://example.com/clip.mp4') },
       }),
     ]);
   });

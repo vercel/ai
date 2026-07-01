@@ -52,6 +52,17 @@ export type HarnessV1<TBuiltinTools extends ToolSet = ToolSet> = {
   readonly supportsBuiltinToolApprovals?: boolean;
 
   /**
+   * Whether the adapter can prevent its underlying runtime from seeing or
+   * calling inactive built-in tools for every tool in `builtinTools`.
+   *
+   * Adapters without native filtering can still support `activeTools` and
+   * `inactiveTools` for built-ins when `supportsBuiltinToolApprovals` is
+   * `true`: the framework routes inactive built-in tool calls through the
+   * approval path and auto-denies them before they execute.
+   */
+  readonly supportsBuiltinToolFiltering?: boolean;
+
+  /**
    * Optional schema for the adapter-defined `data` payload returned by session
    * lifecycle methods. When present, the adapter promises that exported state
    * validated by this schema can be re-imported in a future

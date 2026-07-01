@@ -69,7 +69,9 @@ describe('inboundMessageSchema', () => {
         model: 'claude-sonnet-4-5',
         maxTurns: 5,
         thinking: 'adaptive',
+        skills: ['weather-forecast', 'weather-codes'],
         permissionMode: 'allow-edits',
+        builtinToolFiltering: { mode: 'deny', toolNames: ['bash'] },
       }),
     ).not.toThrow();
   });

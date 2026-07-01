@@ -8,26 +8,29 @@ import {
   SettingsManager,
   type AgentSession,
   type AgentToolResult,
+  type Skill,
   type ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
 import { mkdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { Type } from 'typebox';
-import type {
-  HarnessV1ContinueOptions,
-  HarnessV1ContinueTurnState,
-  HarnessV1PromptControl,
-  HarnessV1PromptOptions,
-  HarnessV1NetworkSandboxSession,
-  HarnessV1PermissionMode,
-  HarnessV1ResumeSessionState,
-  HarnessV1Session,
-  HarnessV1Skill,
-  HarnessV1StreamPart,
-  HarnessV1ToolSpec,
+import {
+  type HarnessV1BuiltinToolFiltering,
+  type HarnessV1ContinueTurnOptions,
+  type HarnessV1ContinueTurnState,
+  type HarnessV1PromptControl,
+  type HarnessV1PromptTurnOptions,
+  type HarnessV1NetworkSandboxSession,
+  type HarnessV1PermissionMode,
+  type HarnessV1ResumeSessionState,
+  type HarnessV1Session,
+  type HarnessV1Skill,
+  type HarnessV1StreamPart,
+  type HarnessV1ToolSpec,
 } from '@ai-sdk/harness';
-import { resolvePiAuth, type PiAuthOptions } from './pi-auth';
+import { resolveSandboxHomeDir } from '@ai-sdk/harness/utils';
+import { resolvePiEnv, type PiAuthOptions } from './pi-auth';
 import { getPiTerminalError, parseNativeEvent } from './pi-events';
 import { createPiModelResolver } from './pi-model-resolver';
 import { createPiPathMapper } from './pi-paths';
@@ -36,6 +39,7 @@ import { writePiSkills } from './pi-skills';
 import {
   persistSessionFileToSandbox,
   pullSessionFileFromSandbox,
+  safePiSessionFileName,
 } from './pi-resume-state';
 import {
   createPiTranslatorState,
@@ -46,6 +50,7 @@ import { toolSpecToTypeBoxParameters } from './pi-typebox-adapter';
 import {
   extractUserText,
   frameInstructions,
+  safePiMetadataSegment,
   serializeToolOutput,
 } from './pi-utils';
 import { PiWorkspaceVfs } from './pi-workspace-vfs';
@@ -63,23 +68,55 @@ const HARNESS_ID = 'pi';
 const parkedPiSessions = new Map<string, HarnessV1Session>();
 
 /**
+ * Whether a discovered resource path belongs to a specific directory.
+ */
+function isWithinDirectory(parent: string, child: string): boolean {
+  const rel = path.relative(parent, child);
+  return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
+}
+
+/**
  * Whether a discovered resource path belongs to the session workspace — either
  * the sandbox-side working directory the model sees (`sessionWorkDir`) or its
- * host-side mirror (`hostWorkDir`). Pi runs in the host process and would
- * otherwise surface the host developer's personal skills (`~/.agents/skills`,
- * `~/.pi/agent/skills`) to the model; those resolve to host paths the
- * sandbox-backed tools cannot reach, so they are filtered out.
+ * host-side mirror (`hostWorkDir`).
  */
 function isWithinWorkspace(
   candidate: string,
   sessionWorkDir: string,
   hostWorkDir: string,
 ): boolean {
-  const inside = (parent: string, child: string): boolean => {
-    const rel = path.relative(parent, child);
-    return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
-  };
-  return inside(sessionWorkDir, candidate) || inside(hostWorkDir, candidate);
+  return (
+    isWithinDirectory(sessionWorkDir, candidate) ||
+    isWithinDirectory(hostWorkDir, candidate)
+  );
+}
+
+function createHarnessPiSkills({
+  skills,
+  sandboxSkillRootDir,
+}: {
+  skills: ReadonlyArray<HarnessV1Skill>;
+  sandboxSkillRootDir: string;
+}): Skill[] {
+  return skills.map(skill => {
+    const name = safePiMetadataSegment(skill.name, 'skill');
+    const baseDir = path.posix.join(sandboxSkillRootDir, name);
+    const filePath = path.posix.join(baseDir, 'SKILL.md');
+    return {
+      name: skill.name,
+      description: skill.description,
+      filePath,
+      baseDir,
+      sourceInfo: {
+        path: filePath,
+        source: 'harness',
+        scope: 'temporary',
+        origin: 'top-level',
+        baseDir,
+      },
+      disableModelInvocation: false,
+    };
+  });
 }
 
 const PI_NATIVE_BUILTIN_NAMES = [
@@ -96,6 +133,18 @@ const NATIVE_TO_COMMON: Readonly<Record<string, string>> = {
   find: 'glob',
 };
 
+const PUBLIC_TO_NATIVE: Readonly<
+  Record<string, (typeof PI_NATIVE_BUILTIN_NAMES)[number]>
+> = {
+  read: 'read',
+  write: 'write',
+  edit: 'edit',
+  bash: 'bash',
+  grep: 'grep',
+  glob: 'find',
+  ls: 'ls',
+};
+
 const PI_NATIVE_TOOL_KINDS: Readonly<
   Record<(typeof PI_NATIVE_BUILTIN_NAMES)[number], 'readonly' | 'edit' | 'bash'>
 > = {
@@ -107,6 +156,24 @@ const PI_NATIVE_TOOL_KINDS: Readonly<
   find: 'readonly',
   ls: 'readonly',
 };
+
+function resolveActivePiBuiltinNames(
+  toolFiltering: HarnessV1BuiltinToolFiltering | undefined,
+): ReadonlyArray<(typeof PI_NATIVE_BUILTIN_NAMES)[number]> {
+  if (toolFiltering == null) return PI_NATIVE_BUILTIN_NAMES;
+  if (toolFiltering.mode === 'allow') {
+    return toolFiltering.toolNames
+      .map(name => PUBLIC_TO_NATIVE[name])
+      .filter(
+        (name): name is (typeof PI_NATIVE_BUILTIN_NAMES)[number] =>
+          name != null,
+      );
+  }
+  return PI_NATIVE_BUILTIN_NAMES.filter(
+    native =>
+      !toolFiltering.toolNames.includes(NATIVE_TO_COMMON[native] ?? native),
+  );
+}
 
 export type PiThinkingLevel =
   | 'off'
@@ -130,6 +197,7 @@ export interface CreatePiSessionInput {
   readonly settings: PiSessionSettings;
   readonly isResume: boolean;
   readonly permissionMode?: HarnessV1PermissionMode;
+  readonly builtinToolFiltering?: HarnessV1BuiltinToolFiltering;
   readonly resumeSessionFileName?: string;
   readonly abortSignal?: AbortSignal;
 }
@@ -187,13 +255,23 @@ export async function createPiSession(
 
   const sandbox = input.sandboxSession.restricted();
   const permissionMode = input.permissionMode ?? 'allow-all';
+  let sandboxSkillRootDir: string | undefined;
+  let harnessSkills: Skill[] = [];
 
-  // Materialise skills into the sandbox workspace once. The host's VFS will
-  // make them visible to Pi's `DefaultResourceLoader` after mount + sync.
+  // Materialise harness-provided skills into sandbox HOME, not the workspace.
   if (input.skills.length > 0) {
+    const sandboxHomeDir = await resolveSandboxHomeDir({
+      sandbox,
+      ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
+    });
+    sandboxSkillRootDir = path.posix.join(sandboxHomeDir, '.agents', 'skills');
+    harnessSkills = createHarnessPiSkills({
+      skills: input.skills,
+      sandboxSkillRootDir,
+    });
     await writePiSkills({
       sandbox,
-      sessionWorkDir: input.sessionWorkDir,
+      sandboxHomeDir,
       skills: input.skills,
       ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
     });
@@ -203,11 +281,14 @@ export async function createPiSession(
   // host mirror so SessionManager.open can read it.
   let resumeSessionFilePath: string | undefined;
   if (input.isResume && input.resumeSessionFileName) {
+    const resumeSessionFileName = safePiSessionFileName(
+      input.resumeSessionFileName,
+    );
     resumeSessionFilePath = await pullSessionFileFromSandbox({
       sandbox,
       sessionWorkDir: input.sessionWorkDir,
       hostSessionDir,
-      sessionFileName: input.resumeSessionFileName,
+      sessionFileName: resumeSessionFileName,
       ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
     });
   }
@@ -228,7 +309,13 @@ export async function createPiSession(
   const workspaceVfs = new PiWorkspaceVfs();
   workspaceVfs.mount(hostWorkDir, sessionWorkDir);
 
-  const paths = createPiPathMapper(hostWorkDir, sessionWorkDir);
+  const paths = createPiPathMapper({
+    hostWorkDir,
+    sandboxWorkDir: sessionWorkDir,
+    readableRoots: sandboxSkillRootDir
+      ? [{ sandboxDir: sandboxSkillRootDir }]
+      : [],
+  });
 
   // Pi auth + model registry are global to this Pi session. These live on the
   // real host filesystem (`hostAgentDir`), never in the sandbox/workspace.
@@ -240,9 +327,13 @@ export async function createPiSession(
   const settingsManager = SettingsManager.inMemory();
 
   // Run-scoped env (for the model resolver's gateway fallback heuristic).
-  const resolverEnv = resolvePiAuth(input.settings.auth, process.env, {
-    authStorage,
-    modelRegistry,
+  const resolverEnv = resolvePiEnv({
+    options: input.settings.auth,
+    env: process.env,
+    registries: {
+      authStorage,
+      modelRegistry,
+    },
   });
   const resolveModel = createPiModelResolver(modelRegistry, resolverEnv);
   // Resolve once: deterministic given the configured model. This is the Pi
@@ -260,16 +351,19 @@ export async function createPiSession(
     // The harness does not expose extensions, themes, or prompt templates, so
     // disable those entirely — this also avoids loading and executing a host
     // developer's personal Pi extensions inside the server process. Skills are
-    // kept (the harness writes project skills into `.pi/skills`) but filtered
-    // to the workspace so host-home skills never reach the model.
+    // kept but filtered to workspace project skills plus harness-provided
+    // skills whose files live in sandbox HOME.
     noExtensions: true,
     noThemes: true,
     noPromptTemplates: true,
     skillsOverride: base => ({
       ...base,
-      skills: base.skills.filter(skill =>
-        isWithinWorkspace(skill.filePath, sessionWorkDir, hostWorkDir),
-      ),
+      skills: [
+        ...base.skills.filter(skill =>
+          isWithinWorkspace(skill.filePath, sessionWorkDir, hostWorkDir),
+        ),
+        ...harnessSkills,
+      ],
     }),
   });
   await resourceLoader.reload();
@@ -420,8 +514,11 @@ export async function createPiSession(
     customTools: ToolDefinition[];
     builtinNames: string[];
   } {
+    const builtinNames = resolveActivePiBuiltinNames(
+      input.builtinToolFiltering,
+    );
     const customTools: ToolDefinition[] = [
-      ...PI_NATIVE_BUILTIN_NAMES.map(native =>
+      ...builtinNames.map(native =>
         buildBuiltinToolDefinition({
           native,
           remoteOps,
@@ -434,7 +531,7 @@ export async function createPiSession(
     ];
     return {
       customTools,
-      builtinNames: [...PI_NATIVE_BUILTIN_NAMES],
+      builtinNames: [...builtinNames],
     };
   }
 
@@ -491,7 +588,7 @@ export async function createPiSession(
     // round-trip it without guessing the extension.
     const candidatePath = sessionManager.getSessionFile();
     if (candidatePath) {
-      sessionFileName = path.basename(candidatePath);
+      sessionFileName = safePiSessionFileName(path.basename(candidatePath));
     }
 
     translatorState = createPiTranslatorState({
@@ -694,7 +791,7 @@ export async function createPiSession(
     // sandbox, i.e. `rerun`.
 
     doPromptTurn: async (
-      promptOpts: HarnessV1PromptOptions,
+      promptOpts: HarnessV1PromptTurnOptions,
     ): Promise<HarnessV1PromptControl> => {
       let text = extractUserText(promptOpts.prompt);
       if (!instructionsApplied && promptOpts.instructions) {
@@ -711,7 +808,7 @@ export async function createPiSession(
     },
 
     doContinueTurn: async (
-      continueOpts: HarnessV1ContinueOptions,
+      continueOpts: HarnessV1ContinueTurnOptions,
     ): Promise<HarnessV1PromptControl> => {
       if (activeTurn != null) {
         currentEmit = continueOpts.emit;
@@ -793,6 +890,29 @@ export async function createPiSession(
     doSuspendTurn: async (): Promise<HarnessV1ContinueTurnState> => {
       if (stopped) {
         throw new Error('Pi session has been stopped.');
+      }
+      if (
+        activeTurn != null &&
+        (pendingToolResults.size > 0 || pendingToolApprovals.size > 0)
+      ) {
+        parkedPiSessions.set(input.sessionId, sessionImpl);
+        if (sessionFileName) {
+          try {
+            await persistSessionFile();
+          } catch {
+            /*
+             * While waiting on host input, the live parked session is the
+             * authoritative same-process continuation path. The sandbox copy
+             * remains a best-effort fallback for a later cold resume.
+             */
+          }
+        }
+        return {
+          type: 'continue-turn',
+          harnessId: HARNESS_ID,
+          specificationVersion: 'harness-v1',
+          data: sessionFileName ? { sessionFileName } : {},
+        };
       }
       /*
        * Pi's model runs in this host process, which is about to be suspended at

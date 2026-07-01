@@ -230,6 +230,9 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                       approvalId: part.approval.id,
                       toolCallId: part.toolCallId,
                       isAutomatic: part.approval.isAutomatic,
+                      ...(part.approval.signature != null
+                        ? { signature: part.approval.signature }
+                        : {}),
                     });
                   }
 
@@ -277,10 +280,12 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
               }
             }
 
-            modelMessages.push({
-              role: 'assistant',
-              content,
-            });
+            if (content.length > 0) {
+              modelMessages.push({
+                role: 'assistant',
+                content,
+              });
+            }
 
             // check if there are tool invocations with results in the block
             // Include non-provider-executed tools, OR provider-executed tools with approval responses

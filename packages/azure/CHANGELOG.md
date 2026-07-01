@@ -1,5 +1,115 @@
 # @ai-sdk/azure
 
+## 4.0.4
+
+### Patch Changes
+
+- Updated dependencies [0274f34]
+  - @ai-sdk/provider@4.0.1
+  - @ai-sdk/deepseek@3.0.2
+  - @ai-sdk/openai@4.0.4
+  - @ai-sdk/provider-utils@5.0.2
+
+## 4.0.3
+
+### Patch Changes
+
+- Updated dependencies [1ead90c]
+  - @ai-sdk/openai@4.0.3
+
+## 4.0.2
+
+### Patch Changes
+
+- Updated dependencies [6a436e3]
+  - @ai-sdk/provider-utils@5.0.1
+  - @ai-sdk/deepseek@3.0.1
+  - @ai-sdk/openai@4.0.2
+
+## 4.0.1
+
+### Patch Changes
+
+- Updated dependencies [9507724]
+  - @ai-sdk/openai@4.0.1
+
+## 4.0.0
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+- c29a26f: feat(provider): add support for provider references and uploading files as supported per provider
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- 9f4dca0: Add Microsoft Entra ID token provider authentication for Azure OpenAI.
+- 38fc777: Add AI Gateway hint to provider READMEs
+- 83f9d04: feat(openai): upgrade v3 specs to v4
+- b23b042: feat(azure): add deepseek model support to azure
+- e776fc7: feat(provider/azure):web search tool in the Azure OpenAI Responses API.
+- 9f0e36c: trigger release for all packages after provenance setup
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- 0c4c275: trigger initial canary release
+- 9bd6512: feat(provider): change file part data property to be tagged with a type and remove the image part type
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- b8396f0: trigger initial beta release
+
+## 4.0.0-beta.79
+
+### Patch Changes
+
+- Updated dependencies [0416e3e]
+  - @ai-sdk/provider@4.0.0-beta.20
+  - @ai-sdk/deepseek@3.0.0-beta.56
+  - @ai-sdk/openai@4.0.0-beta.77
+  - @ai-sdk/provider-utils@5.0.0-beta.50
+
+## 4.0.0-beta.78
+
+### Patch Changes
+
+- Updated dependencies [2c4767d]
+  - @ai-sdk/openai@4.0.0-beta.76
+
+## 4.0.0-beta.77
+
+### Patch Changes
+
+- Updated dependencies [1772a63]
+  - @ai-sdk/openai@4.0.0-beta.75
+
+## 4.0.0-beta.76
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/deepseek@3.0.0-beta.55
+  - @ai-sdk/openai@4.0.0-beta.74
+  - @ai-sdk/provider-utils@5.0.0-beta.49
+  - @ai-sdk/provider@4.0.0-beta.19
+
+## 4.0.0-canary.75
+
+### Patch Changes
+
+- Updated dependencies [aeda373]
+- Updated dependencies [375fdd7]
+- Updated dependencies [b4507d5]
+  - @ai-sdk/provider-utils@5.0.0-canary.48
+  - @ai-sdk/deepseek@3.0.0-canary.54
+  - @ai-sdk/openai@4.0.0-canary.73
+
+## 4.0.0-canary.74
+
+### Patch Changes
+
+- Updated dependencies [bae5e2b]
+  - @ai-sdk/provider-utils@5.0.0-canary.47
+  - @ai-sdk/deepseek@3.0.0-canary.53
+  - @ai-sdk/openai@4.0.0-canary.72
+
 ## 4.0.0-canary.73
 
 ### Patch Changes

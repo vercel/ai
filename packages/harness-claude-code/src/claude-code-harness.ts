@@ -7,9 +7,10 @@ import {
   HarnessCapabilityUnsupportedError,
   type HarnessV1,
   type HarnessV1Bootstrap,
-  type HarnessV1DebugConfig,
+  type HarnessV1BuiltinToolFiltering,
   type HarnessV1BuiltinTool,
   type HarnessV1ContinueTurnState,
+  type HarnessV1DebugConfig,
   type HarnessV1PermissionMode,
   type HarnessV1Prompt,
   type HarnessV1PromptControl,
@@ -19,21 +20,27 @@ import {
   type HarnessV1Skill,
   type HarnessV1StreamPart,
 } from '@ai-sdk/harness';
-import { classifyDiskLog, SandboxChannel } from '@ai-sdk/harness/utils';
 import {
-  safeParseJSON,
+  classifyDiskLog,
+  markBridgeStarting,
+  resolveSandboxHomeDir,
+  SandboxChannel,
+  shellQuote,
+  waitForBridgeReady,
+  writeSkills as writeHarnessSkills,
+} from '@ai-sdk/harness/utils';
+import {
   tool,
   type Experimental_SandboxSession,
   type Experimental_SandboxProcess,
 } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import {
   resolveClaudeCodeEnv,
   type ClaudeCodeAuthOptions,
 } from './claude-code-auth';
 import {
-  bridgeReadySchema,
   outboundMessageSchema,
   type InboundMessage,
   type OutboundMessage,
@@ -227,7 +234,7 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
       subject: z.string(),
       description: z.string(),
       activeForm: z.string().optional(),
-      metadata: z.record(z.unknown()).optional(),
+      metadata: z.record(z.string(), z.unknown()).optional(),
     }),
   }),
   TaskGet: tool({
@@ -250,7 +257,7 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
       addBlocks: z.array(z.string()).optional(),
       addBlockedBy: z.array(z.string()).optional(),
       owner: z.string().optional(),
-      metadata: z.record(z.unknown()).optional(),
+      metadata: z.record(z.string(), z.unknown()).optional(),
     }),
   }),
   TaskList: tool({
@@ -272,6 +279,15 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
       timeout: z.number(),
     }),
   }),
+  Monitor: tool({
+    description: 'Run and monitor a shell command',
+    inputSchema: z.object({
+      command: z.string(),
+      description: z.string().optional(),
+      timeout_ms: z.number().optional(),
+      persistent: z.boolean().optional(),
+    }),
+  }),
   ListMcpResources: tool({
     description: 'List resources available from MCP servers',
     inputSchema: z.object({ server: z.string().optional() }),
@@ -282,18 +298,16 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
   }),
   ExitPlanMode: tool({
     description: 'Exit plan mode with optional permission approvals',
-    inputSchema: z
-      .object({
-        allowedPrompts: z
-          .array(
-            z.object({
-              tool: z.literal('Bash'),
-              prompt: z.string(),
-            }),
-          )
-          .optional(),
-      })
-      .passthrough(),
+    inputSchema: z.looseObject({
+      allowedPrompts: z
+        .array(
+          z.object({
+            tool: z.literal('Bash'),
+            prompt: z.string(),
+          }),
+        )
+        .optional(),
+    }),
   }),
   EnterWorktree: tool({
     description: 'Create or enter an isolated git worktree',
@@ -329,9 +343,10 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
         )
         .min(1)
         .max(4),
-      answers: z.record(z.string()).optional(),
+      answers: z.record(z.string(), z.string()).optional(),
       annotations: z
         .record(
+          z.string(),
           z.object({
             preview: z.string().optional(),
             notes: z.string().optional(),
@@ -369,7 +384,7 @@ const BOOTSTRAP_DIR = '/tmp/harness/claude-code';
  * future process uses them to reopen a socket to the still-running bridge
  * (`attach`) instead of re-spawning it. Absent on a `doStop()` payload.
  */
-const bridgeCoordsSchema = z.object({
+const claudeCodeBridgeCoordsSchema = z.object({
   port: z.number(),
   token: z.string(),
   lastSeenEventId: z.number(),
@@ -383,13 +398,13 @@ const bridgeCoordsSchema = z.object({
  * sandbox via `provider.resumeSession({ sessionId })`, and the Claude SDK's
  * `{ continue: true }` flag rehydrates the thread from the workdir. A
  * `doDetach()` payload additionally carries `bridge` coordinates for
- * cross-process `attach`. `.passthrough()` keeps both shapes valid.
+ * cross-process `attach`. A loose object keeps both shapes valid.
  */
-const claudeCodeResumeStateSchema = z
-  .object({ bridge: bridgeCoordsSchema.optional() })
-  .passthrough();
+const claudeCodeResumeStateSchema = z.looseObject({
+  bridge: claudeCodeBridgeCoordsSchema.optional(),
+});
 
-type ClaudeCodeBridgeCoords = z.infer<typeof bridgeCoordsSchema>;
+type ClaudeCodeBridgeCoords = z.infer<typeof claudeCodeBridgeCoordsSchema>;
 
 export function createClaudeCode(
   settings: ClaudeCodeHarnessSettings = {},
@@ -401,6 +416,7 @@ export function createClaudeCode(
     harnessId: 'claude-code',
     builtinTools: CLAUDE_CODE_BUILTIN_TOOLS,
     supportsBuiltinToolApprovals: true,
+    supportsBuiltinToolFiltering: true,
     lifecycleStateSchema: claudeCodeResumeStateSchema,
     getBootstrap: async () => {
       if (cachedBootstrap != null) return cachedBootstrap;
@@ -506,6 +522,8 @@ export function createClaudeCode(
             sandboxId,
             debug: startOpts.observability?.debug,
             permissionMode: startOpts.permissionMode,
+            builtinToolFiltering: startOpts.builtinToolFiltering,
+            skills: startOpts.skills ?? [],
           });
         } catch {
           // Bridge no longer reachable — recover by respawning below.
@@ -536,12 +554,20 @@ export function createClaudeCode(
         }
       }
 
+      const sandboxHomeDir =
+        startOpts.skills && startOpts.skills.length > 0
+          ? await resolveSandboxHomeDir({
+              sandbox: session,
+              abortSignal: startOpts.abortSignal,
+            })
+          : undefined;
       const port = resolveBridgePort(sandboxSession, settings.port);
       const token = randomBytes(32).toString('hex');
       const env = {
         ...resolveClaudeCodeEnv(settings.auth),
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),
+        ...(sandboxHomeDir ? { HOME: sandboxHomeDir } : {}),
         ...(respawnStrategy === 'replay'
           ? { BRIDGE_REPLAY_FROM_DISK: '1' }
           : {}),
@@ -555,22 +581,32 @@ export function createClaudeCode(
        */
       if (respawnStrategy === undefined) {
         await session.run({
-          command: `mkdir -p ${workDir} ${bridgeStateDir}`,
+          command: `mkdir -p ${shellQuote(workDir)} ${shellQuote(bridgeStateDir)}`,
           abortSignal: startOpts.abortSignal,
         });
 
         if (startOpts.skills && startOpts.skills.length > 0) {
-          await writeSkills({
+          if (!sandboxHomeDir) {
+            throw new Error('Unable to resolve sandbox HOME directory.');
+          }
+          await writeClaudeCodeSkills({
             sandbox: session,
-            workdir: workDir,
+            homeDir: sandboxHomeDir,
             skills: startOpts.skills,
             abortSignal: startOpts.abortSignal,
           });
         }
       }
 
+      await markBridgeStarting({
+        sandbox: session,
+        bridgeStateDir,
+        bridgeType: 'claude-code',
+        abortSignal: startOpts.abortSignal,
+      });
+
       const proc = await session.spawn({
-        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${workDir} --bridge-state-dir ${bridgeStateDir}`,
+        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)}`,
         env,
         abortSignal: startOpts.abortSignal,
       });
@@ -589,10 +625,27 @@ export function createClaudeCode(
       void bridgeStartupStderrDone;
       const { port: boundPort } = await waitForBridgeReady({
         proc,
+        sandbox: session,
+        bridgeStateDir,
+        bridgeType: 'claude-code',
         timeoutMs,
         abortSignal: startOpts.abortSignal,
-        stderrTail: bridgeStartupStderr,
-        stderrDone: bridgeStartupStderrDone,
+        createTimeoutError: ({ proc, stdoutTail }) =>
+          createBridgeStartupError({
+            message: 'claude-code bridge did not become ready in time.',
+            proc,
+            stdoutTail,
+            stderrTail: bridgeStartupStderr,
+            stderrDone: bridgeStartupStderrDone,
+          }),
+        createExitError: ({ proc, stdoutTail }) =>
+          createBridgeStartupError({
+            message: 'claude-code bridge exited before becoming ready.',
+            proc,
+            stdoutTail,
+            stderrTail: bridgeStartupStderr,
+            stderrDone: bridgeStartupStderrDone,
+          }),
       });
       void drainRest(proc.stdout);
 
@@ -632,6 +685,8 @@ export function createClaudeCode(
         sandboxId,
         debug: startOpts.observability?.debug,
         permissionMode: startOpts.permissionMode,
+        builtinToolFiltering: startOpts.builtinToolFiltering,
+        skills: startOpts.skills ?? [],
       });
     },
   };
@@ -652,31 +707,34 @@ function resolveBridgePort(
 }
 
 /**
- * Materialise skill files into `${workdir}/.claude/skills/<name>.md`. The
- * `claude` CLI auto-discovers skills from that directory on startup, so the
- * files have to be in place before the bridge is spawned. Each file uses
- * the YAML-frontmatter shape the CLI expects.
+ * Materialise skill files into
+ * `$HOME/.claude/skills/<name>/SKILL.md`. The `claude` CLI
+ * auto-discovers skills from that directory on startup, so the files have to
+ * be in place before the bridge is spawned without mutating the session
+ * workdir. Each file uses the YAML-frontmatter shape the CLI expects.
  */
-async function writeSkills({
+async function writeClaudeCodeSkills({
   sandbox,
-  workdir,
+  homeDir,
   skills,
   abortSignal,
 }: {
   sandbox: Experimental_SandboxSession;
-  workdir: string;
+  homeDir: string;
   skills: ReadonlyArray<HarnessV1Skill>;
   abortSignal?: AbortSignal;
 }): Promise<void> {
-  await sandbox.run({
-    command: `mkdir -p ${workdir}/.claude/skills`,
+  await writeHarnessSkills({
+    sandbox,
+    rootDir: `${homeDir}/.claude/skills`,
+    skills,
     abortSignal,
+    invalidSkillNameMessage: ({ name }) =>
+      `Invalid Claude Code skill name: ${name}`,
+    invalidSkillFilePathMessage: ({ skillName, filePath }) =>
+      `Invalid Claude Code skill file path for ${skillName}: ${filePath}`,
+    trailingNewline: true,
   });
-  for (const skill of skills) {
-    const path = `${workdir}/.claude/skills/${skill.name}.md`;
-    const content = `---\nname: ${skill.name}\ndescription: ${skill.description}\n---\n\n${skill.content}\n`;
-    await sandbox.writeTextFile({ path, content, abortSignal });
-  }
 }
 
 async function readBridgeAsset(name: string): Promise<string> {
@@ -695,80 +753,6 @@ async function readBridgeAsset(name: string): Promise<string> {
     }
   }
   throw lastErr ?? new Error(`bridge asset not found: ${name}`);
-}
-
-async function waitForBridgeReady({
-  proc,
-  timeoutMs,
-  abortSignal,
-  stderrTail,
-  stderrDone,
-}: {
-  proc: Experimental_SandboxProcess;
-  timeoutMs: number;
-  abortSignal: AbortSignal | undefined;
-  stderrTail: string[];
-  stderrDone: Promise<void>;
-}): Promise<{ port: number }> {
-  const reader = proc.stdout.pipeThrough(new TextDecoderStream()).getReader();
-
-  const decoder = lineDecoder();
-  const stdoutTail: string[] = [];
-
-  const deadline = Date.now() + timeoutMs;
-  try {
-    while (true) {
-      if (abortSignal?.aborted) {
-        await proc.kill();
-        throw abortSignal.reason ?? new DOMException('Aborted', 'AbortError');
-      }
-      const remaining = deadline - Date.now();
-      if (remaining <= 0) {
-        await proc.kill();
-        throw await createBridgeStartupError({
-          message: 'claude-code bridge did not become ready in time.',
-          proc,
-          stdoutTail,
-          stderrTail,
-          stderrDone,
-        });
-      }
-      const { value, done } = (await Promise.race([
-        reader.read(),
-        new Promise(resolve =>
-          setTimeout(
-            () => resolve({ value: undefined, done: false }),
-            remaining,
-          ),
-        ),
-      ])) as ReadableStreamReadResult<string>;
-      if (done) {
-        for (const line of decoder.flush()) {
-          stdoutTail.push(line);
-          if (stdoutTail.length > 20) stdoutTail.shift();
-        }
-        throw await createBridgeStartupError({
-          message: 'claude-code bridge exited before becoming ready.',
-          proc,
-          stdoutTail,
-          stderrTail,
-          stderrDone,
-        });
-      }
-      if (value === undefined) continue;
-      for (const line of decoder.push(value)) {
-        stdoutTail.push(line);
-        if (stdoutTail.length > 20) stdoutTail.shift();
-        const parsed = await safeParseJSON({
-          text: line,
-          schema: bridgeReadySchema,
-        });
-        if (parsed.success) return { port: parsed.value.port };
-      }
-    }
-  } finally {
-    reader.releaseLock();
-  }
 }
 
 async function createBridgeStartupError({
@@ -1063,6 +1047,8 @@ function createSession({
   sandboxId,
   debug,
   permissionMode,
+  builtinToolFiltering,
+  skills,
 }: {
   sessionId: string;
   channel: ClaudeCodeChannel;
@@ -1079,6 +1065,8 @@ function createSession({
   sandboxId: string;
   debug: HarnessV1DebugConfig | undefined;
   permissionMode: HarnessV1PermissionMode | undefined;
+  builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
+  skills: ReadonlyArray<HarnessV1Skill>;
 }): HarnessV1Session {
   let stopped = false;
   let stopPromise: Promise<void> | undefined;
@@ -1259,7 +1247,11 @@ function createSession({
         model,
         maxTurns,
         thinking,
+        ...(skills.length > 0
+          ? { skills: skills.map(skill => skill.name) }
+          : {}),
         ...(permissionMode ? { permissionMode } : {}),
+        ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
         ...(debug ? { debug } : {}),
         ...(pendingResumeFlag ? { continue: true } : {}),
       };
@@ -1307,7 +1299,11 @@ function createSession({
           model,
           maxTurns,
           thinking,
+          ...(skills.length > 0
+            ? { skills: skills.map(skill => skill.name) }
+            : {}),
           ...(permissionMode ? { permissionMode } : {}),
+          ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
           ...(debug ? { debug } : {}),
           continue: true,
         });

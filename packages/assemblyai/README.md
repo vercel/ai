@@ -33,7 +33,7 @@ import { assemblyai } from '@ai-sdk/assemblyai';
 
 ```ts
 import { assemblyai } from '@ai-sdk/assemblyai';
-import { experimental_transcribe as transcribe } from 'ai';
+import { transcribe } from 'ai';
 
 const { text } = await transcribe({
   model: assemblyai.transcription('best'),

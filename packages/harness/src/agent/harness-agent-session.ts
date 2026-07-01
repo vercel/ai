@@ -1,28 +1,46 @@
-import type {
-  HarnessV1,
-  HarnessV1ContinueTurnState,
-  HarnessV1LifecycleState,
-  HarnessV1NetworkSandboxSession,
-  HarnessV1PendingToolApproval,
-  HarnessV1Prompt,
-  HarnessV1ResumeSessionState,
-  HarnessV1SandboxProvider,
-  HarnessV1Session,
-  HarnessV1ToolSpec,
-} from '../v1';
 import type { Context, ToolSet } from '@ai-sdk/provider-utils';
-import type { TelemetryOptions } from 'ai';
+import type { StreamTextResult, TelemetryOptions } from 'ai';
 import type { HarnessAgentToolApprovalConfiguration } from './harness-agent-settings';
+import type {
+  HarnessV1BuiltinToolFiltering,
+  HarnessV1NetworkSandboxSession,
+  HarnessV1SandboxProvider,
+} from '../v1';
+import type {
+  HarnessAgentAdapter,
+  HarnessAgentAdapterSession,
+  HarnessAgentContinueTurnState,
+  HarnessAgentPendingToolApproval,
+  HarnessAgentPrompt,
+  HarnessAgentResumeSessionState,
+  HarnessAgentToolSpec,
+} from './harness-agent-types';
 import type { HarnessAgentToolApprovalContinuation } from './harness-agent-tool-approval-continuation';
 import { releaseBridgePort } from './internal/bridge-port-registry';
 import { validateLifecycleStateData } from './internal/lifecycle-state-validation';
 import { runPrompt } from './internal/run-prompt';
 
+type HarnessAgentTurnResult<
+  TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context,
+> = {
+  result: StreamTextResult<TOOLS, RUNTIME_CONTEXT, never>;
+  done: Promise<void>;
+};
+
+type HarnessAgentSessionState = 'active' | 'detached' | 'stopped' | 'destroyed';
+
+type HarnessAgentTurnState =
+  | 'idle'
+  | 'running'
+  | 'awaiting-approval'
+  | 'suspended';
+
 /**
  * Live harness session held by the caller.
  *
  * Created by {@link import('./harness-agent').HarnessAgent.createSession}.
- * Owns the underlying `HarnessV1Session`, the network sandbox session, and the
+ * Owns the underlying adapter session, the network sandbox session, and the
  * bridge-port lease (when the provider wraps a caller-provided sandbox with a
  * port pool).
  *
@@ -40,10 +58,10 @@ export class HarnessAgentSession {
    */
   readonly sessionId: string;
 
-  private readonly harness: HarnessV1;
+  private readonly harness: HarnessAgentAdapter;
   private readonly sandboxProvider: HarnessV1SandboxProvider;
   private readonly sessionWorkDir: string;
-  private underlyingSession: HarnessV1Session | undefined;
+  private underlyingSession: HarnessAgentAdapterSession | undefined;
   private sandboxSession: HarnessV1NetworkSandboxSession | undefined;
   private leasedBridgePort: number | undefined;
   private readonly toolApproval:
@@ -51,9 +69,12 @@ export class HarnessAgentSession {
     | undefined;
   private readonly pendingToolApprovals = new Map<
     string,
-    HarnessV1PendingToolApproval
+    HarnessAgentPendingToolApproval
   >();
-  private stopped = false;
+  private sessionState: HarnessAgentSessionState = 'active';
+  private turnState: HarnessAgentTurnState;
+  private turnSequence = 0;
+  private activeTurnSequence = 0;
 
   /**
    * Whether this session was created from `resumeFrom` or `continueFrom`.
@@ -63,14 +84,15 @@ export class HarnessAgentSession {
 
   constructor(options: {
     sessionId: string;
-    harness: HarnessV1;
-    underlyingSession: HarnessV1Session;
+    harness: HarnessAgentAdapter;
+    underlyingSession: HarnessAgentAdapterSession;
     sandboxSession: HarnessV1NetworkSandboxSession;
     sandboxProvider: HarnessV1SandboxProvider;
     leasedBridgePort?: number;
     sessionWorkDir: string;
     toolApproval: HarnessAgentToolApprovalConfiguration | undefined;
-    pendingToolApprovals?: readonly HarnessV1PendingToolApproval[];
+    pendingToolApprovals?: readonly HarnessAgentPendingToolApproval[];
+    turnState?: HarnessAgentTurnState;
   }) {
     this.sessionId = options.sessionId;
     this.harness = options.harness;
@@ -83,6 +105,9 @@ export class HarnessAgentSession {
     for (const approval of options.pendingToolApprovals ?? []) {
       this.pendingToolApprovals.set(approval.approvalId, approval);
     }
+    this.turnState =
+      options.turnState ??
+      (this.pendingToolApprovals.size > 0 ? 'awaiting-approval' : 'idle');
     this.isResume = options.underlyingSession.isResume;
   }
 
@@ -92,7 +117,7 @@ export class HarnessAgentSession {
    * @internal — accessed by session turn and lifecycle drivers.
    */
   getSandboxSession(): HarnessV1NetworkSandboxSession {
-    if (this.stopped || this.sandboxSession == null) {
+    if (this.sessionState !== 'active' || this.sandboxSession == null) {
       throw new Error(
         `Harness session ${this.sessionId} has ended and cannot be reused.`,
       );
@@ -111,42 +136,54 @@ export class HarnessAgentSession {
   }
 
   promptTurn<TOOLS extends ToolSet, RUNTIME_CONTEXT extends Context>(options: {
-    prompt: HarnessV1Prompt;
+    prompt: HarnessAgentPrompt;
     instructions: string | undefined;
     tools: TOOLS;
-    toolSpecs: HarnessV1ToolSpec[];
+    activeTools: ToolSet;
+    toolSpecs: HarnessAgentToolSpec[];
+    builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
     runtimeContext: RUNTIME_CONTEXT;
     abortSignal: AbortSignal | undefined;
     telemetry: TelemetryOptions | undefined;
-  }): ReturnType<typeof runPrompt<TOOLS, RUNTIME_CONTEXT>> {
+  }): HarnessAgentTurnResult<TOOLS, RUNTIME_CONTEXT> {
     const session = this.requireReusableSession();
-    if (this.pendingToolApprovals.size > 0) {
-      throw new Error(
-        `Harness session ${this.sessionId} has pending tool approvals and must be continued with approval responses before accepting a new prompt.`,
-      );
-    }
+    this.requirePromptableTurn();
     const sandboxSession = this.getSandboxSession();
-    return runPrompt<TOOLS, RUNTIME_CONTEXT>({
-      harness: this.harness,
-      session,
-      prompt: options.prompt,
-      instructions: options.instructions,
-      tools: options.tools,
-      toolSpecs: options.toolSpecs,
-      sandboxSession: sandboxSession.restricted(),
-      sessionWorkDir: this.sessionWorkDir,
-      runtimeContext: options.runtimeContext,
-      abortSignal: options.abortSignal,
-      telemetry: options.telemetry,
-      toolApproval: this.toolApproval,
-      pendingToolApprovals: this.getPendingToolApprovals(),
-      onPendingToolApproval: approval => {
-        this.pendingToolApprovals.set(approval.approvalId, approval);
-      },
-      onToolApprovalSettled: approvalId => {
-        this.pendingToolApprovals.delete(approvalId);
-      },
-    });
+    const turnId = this.startTrackedTurn();
+    try {
+      const turn = runPrompt<TOOLS, RUNTIME_CONTEXT>({
+        harness: this.harness,
+        session,
+        prompt: options.prompt,
+        instructions: options.instructions,
+        tools: options.tools,
+        activeTools: options.activeTools,
+        toolSpecs: options.toolSpecs,
+        builtinToolFiltering: options.builtinToolFiltering,
+        sandboxSession: sandboxSession.restricted(),
+        sessionWorkDir: this.sessionWorkDir,
+        runtimeContext: options.runtimeContext,
+        abortSignal: options.abortSignal,
+        telemetry: options.telemetry,
+        toolApproval: this.toolApproval,
+        pendingToolApprovals: this.getPendingToolApprovals(),
+        onPendingToolApproval: approval => {
+          this.pendingToolApprovals.set(approval.approvalId, approval);
+          this.markAwaitingApprovalIfActive();
+        },
+        onToolApprovalSettled: approvalId => {
+          this.pendingToolApprovals.delete(approvalId);
+        },
+        onTurnFinished: () => {
+          this.finishTrackedTurn({ turnId });
+        },
+      });
+      this.trackTurnCompletion({ done: turn.done, turnId });
+      return turn;
+    } catch (error) {
+      this.finishTrackedTurn({ turnId });
+      throw error;
+    }
   }
 
   continueTurn<
@@ -155,38 +192,55 @@ export class HarnessAgentSession {
   >(options: {
     instructions: string | undefined;
     tools: TOOLS;
-    toolSpecs: HarnessV1ToolSpec[];
+    activeTools: ToolSet;
+    toolSpecs: HarnessAgentToolSpec[];
+    builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
     runtimeContext: RUNTIME_CONTEXT;
     abortSignal: AbortSignal | undefined;
     telemetry: TelemetryOptions | undefined;
     toolApprovalContinuations?:
       | readonly HarnessAgentToolApprovalContinuation[]
       | undefined;
-  }): ReturnType<typeof runPrompt<TOOLS, RUNTIME_CONTEXT>> {
+  }): HarnessAgentTurnResult<TOOLS, RUNTIME_CONTEXT> {
     const session = this.requireReusableSession();
+    this.requireContinuableTurn();
     const sandboxSession = this.getSandboxSession();
-    return runPrompt<TOOLS, RUNTIME_CONTEXT>({
-      harness: this.harness,
-      session,
-      mode: 'continue',
-      instructions: options.instructions,
-      tools: options.tools,
-      toolSpecs: options.toolSpecs,
-      sandboxSession: sandboxSession.restricted(),
-      sessionWorkDir: this.sessionWorkDir,
-      runtimeContext: options.runtimeContext,
-      abortSignal: options.abortSignal,
-      telemetry: options.telemetry,
-      toolApproval: this.toolApproval,
-      pendingToolApprovals: this.getPendingToolApprovals(),
-      toolApprovalContinuations: options.toolApprovalContinuations,
-      onPendingToolApproval: approval => {
-        this.pendingToolApprovals.set(approval.approvalId, approval);
-      },
-      onToolApprovalSettled: approvalId => {
-        this.pendingToolApprovals.delete(approvalId);
-      },
-    });
+    const turnId = this.startTrackedTurn();
+    try {
+      const turn = runPrompt<TOOLS, RUNTIME_CONTEXT>({
+        harness: this.harness,
+        session,
+        mode: 'continue',
+        instructions: options.instructions,
+        tools: options.tools,
+        activeTools: options.activeTools,
+        toolSpecs: options.toolSpecs,
+        builtinToolFiltering: options.builtinToolFiltering,
+        sandboxSession: sandboxSession.restricted(),
+        sessionWorkDir: this.sessionWorkDir,
+        runtimeContext: options.runtimeContext,
+        abortSignal: options.abortSignal,
+        telemetry: options.telemetry,
+        toolApproval: this.toolApproval,
+        pendingToolApprovals: this.getPendingToolApprovals(),
+        toolApprovalContinuations: options.toolApprovalContinuations,
+        onPendingToolApproval: approval => {
+          this.pendingToolApprovals.set(approval.approvalId, approval);
+          this.markAwaitingApprovalIfActive();
+        },
+        onToolApprovalSettled: approvalId => {
+          this.pendingToolApprovals.delete(approvalId);
+        },
+        onTurnFinished: () => {
+          this.finishTrackedTurn({ turnId });
+        },
+      });
+      this.trackTurnCompletion({ done: turn.done, turnId });
+      return turn;
+    } catch (error) {
+      this.finishTrackedTurn({ turnId });
+      throw error;
+    }
   }
 
   /**
@@ -209,23 +263,31 @@ export class HarnessAgentSession {
    * The runtime and sandbox keep running; this local session handle becomes
    * unusable.
    */
-  async detach(): Promise<HarnessV1ResumeSessionState> {
-    if (this.stopped || this.underlyingSession == null) {
+  async detach(): Promise<HarnessAgentResumeSessionState> {
+    if (this.sessionState !== 'active' || this.underlyingSession == null) {
       throw new Error(
         `Harness session ${this.sessionId} is not active and cannot be detached.`,
       );
     }
     const session = this.underlyingSession;
     try {
+      if (this.turnState !== 'idle') {
+        return this.toResumeStateWithContinuation({
+          continueFrom: await this.suspendCurrentTurn({ session }),
+        });
+      }
       const raw = await session.doDetach();
       const validated = await validateLifecycleStateData({
         harness: this.harness,
         state: raw,
         expectedType: 'resume-session',
       });
-      return this.withPendingToolApprovals(validated);
+      return validated;
     } finally {
-      this.endLocalHandle({ releasePortLease: false });
+      this.endLocalHandle({
+        sessionState: 'detached',
+        releasePortLease: false,
+      });
     }
   }
 
@@ -234,8 +296,8 @@ export class HarnessAgentSession {
    * Returns the resume state for a future
    * `agent.createSession({ sessionId, resumeFrom })` call.
    */
-  async stop(): Promise<HarnessV1ResumeSessionState> {
-    if (this.stopped || this.underlyingSession == null) {
+  async stop(): Promise<HarnessAgentResumeSessionState> {
+    if (this.sessionState !== 'active' || this.underlyingSession == null) {
       throw new Error(
         `Harness session ${this.sessionId} is not active and cannot be stopped.`,
       );
@@ -243,15 +305,23 @@ export class HarnessAgentSession {
     const session = this.underlyingSession;
     const sandboxSession = this.getSandboxSession();
     try {
+      if (this.turnState !== 'idle') {
+        return this.toResumeStateWithContinuation({
+          continueFrom: await this.suspendCurrentTurn({ session }),
+        });
+      }
       const raw = await session.doStop();
       const validated = await validateLifecycleStateData({
         harness: this.harness,
         state: raw,
         expectedType: 'resume-session',
       });
-      return this.withPendingToolApprovals(validated);
+      return validated;
     } finally {
-      this.endLocalHandle({ releasePortLease: true });
+      this.endLocalHandle({
+        sessionState: 'stopped',
+        releasePortLease: true,
+      });
       await Promise.resolve(sandboxSession.stop()).catch(() => {});
     }
   }
@@ -261,10 +331,10 @@ export class HarnessAgentSession {
    * the provider supports destruction; otherwise it is stopped.
    */
   async destroy(): Promise<void> {
-    if (this.stopped) return;
+    if (this.sessionState !== 'active') return;
     const session = this.underlyingSession;
     const sandboxSession = this.getSandboxSession();
-    this.endLocalHandle({ releasePortLease: true });
+    this.endLocalHandle({ sessionState: 'destroyed', releasePortLease: true });
     if (session != null) {
       await Promise.resolve(session.doDestroy()).catch(() => {});
     }
@@ -276,44 +346,45 @@ export class HarnessAgentSession {
   /**
    * Gracefully freeze the active turn at the slice boundary and return the
    * continuation payload, **leaving the sandbox/runtime running** so the next
-   * process can continue. Resolves once the in-flight `stream()`/`continueTurn()`
-   * has cleanly wound down at a precise cursor (see
-   * {@link HarnessV1Session.doSuspendTurn}).
+   * process can continue. Resolves once the in-flight `stream()` /
+   * `continueStream()` has cleanly wound down at a precise cursor (see
+   * `doSuspendTurn`).
    *
-   * After this call the session is marked stopped. This in-process handle no
+   * After this call the session is detached. This in-process handle no
    * longer drives turns; a future slice creates a fresh session from the
    * returned state. The sandbox is **not** stopped and no port lease is
    * released, because bridge-backed adapters may still have a live bridge on
    * that port.
    */
-  async suspendTurn(): Promise<HarnessV1ContinueTurnState> {
-    if (this.stopped || this.underlyingSession == null) {
+  async suspendTurn(): Promise<HarnessAgentContinueTurnState> {
+    if (this.sessionState !== 'active' || this.underlyingSession == null) {
       throw new Error(
         `Harness session ${this.sessionId} is not active and cannot be suspended.`,
       );
     }
+    if (this.turnState === 'idle') {
+      throw new Error(
+        `Harness session ${this.sessionId} has no unfinished turn to suspend.`,
+      );
+    }
     const session = this.underlyingSession;
-    const raw = await session.doSuspendTurn();
-    const validated = await validateLifecycleStateData({
-      harness: this.harness,
-      state: raw,
-      expectedType: 'continue-turn',
-    });
-    // Drop the in-process references without stopping the sandbox or releasing
-    // the port lease: bridge-backed adapters may keep using that port.
-    this.stopped = true;
-    this.underlyingSession = undefined;
-    this.sandboxSession = undefined;
-    return this.withPendingToolApprovals(validated);
+    try {
+      return await this.suspendCurrentTurn({ session });
+    } finally {
+      this.endLocalHandle({
+        sessionState: 'detached',
+        releasePortLease: false,
+      });
+    }
   }
 
-  private getPendingToolApprovals(): readonly HarnessV1PendingToolApproval[] {
+  private getPendingToolApprovals(): readonly HarnessAgentPendingToolApproval[] {
     return Array.from(this.pendingToolApprovals.values());
   }
 
-  private withPendingToolApprovals<STATE extends HarnessV1LifecycleState>(
-    state: STATE,
-  ): STATE {
+  private addPendingToolApprovals(
+    state: HarnessAgentContinueTurnState,
+  ): HarnessAgentContinueTurnState {
     const pendingToolApprovals = this.getPendingToolApprovals();
     if (pendingToolApprovals.length === 0) {
       return {
@@ -321,16 +392,105 @@ export class HarnessAgentSession {
         harnessId: state.harnessId,
         specificationVersion: state.specificationVersion,
         data: state.data,
-      } as STATE;
+      };
     }
     return {
       ...state,
       pendingToolApprovals,
-    } as STATE;
+    };
   }
 
-  private endLocalHandle(options: { releasePortLease: boolean }): void {
-    this.stopped = true;
+  private async suspendCurrentTurn(options: {
+    session: HarnessAgentAdapterSession;
+  }): Promise<HarnessAgentContinueTurnState> {
+    const raw = await options.session.doSuspendTurn();
+    const validated = await validateLifecycleStateData({
+      harness: this.harness,
+      state: raw,
+      expectedType: 'continue-turn',
+    });
+    this.turnState = 'suspended';
+    return this.addPendingToolApprovals(validated);
+  }
+
+  private toResumeStateWithContinuation(options: {
+    continueFrom: HarnessAgentContinueTurnState;
+  }): HarnessAgentResumeSessionState {
+    const { continueFrom } = options;
+    return {
+      type: 'resume-session',
+      harnessId: continueFrom.harnessId,
+      specificationVersion: continueFrom.specificationVersion,
+      data: continueFrom.data,
+      continueFrom,
+    };
+  }
+
+  private requirePromptableTurn(): void {
+    if (this.turnState === 'idle') return;
+    if (this.turnState === 'running') {
+      throw new Error(
+        `Harness session ${this.sessionId} already has a turn in progress.`,
+      );
+    }
+    throw new Error(
+      `Harness session ${this.sessionId} has an unfinished turn and must be continued before accepting a new prompt.`,
+    );
+  }
+
+  private requireContinuableTurn(): void {
+    if (
+      this.turnState === 'awaiting-approval' ||
+      this.turnState === 'suspended'
+    ) {
+      return;
+    }
+    if (this.turnState === 'running') {
+      throw new Error(
+        `Harness session ${this.sessionId} already has a turn in progress.`,
+      );
+    }
+    throw new Error(
+      `Harness session ${this.sessionId} has no unfinished turn to continue.`,
+    );
+  }
+
+  private markAwaitingApprovalIfActive(): void {
+    if (this.sessionState === 'active') {
+      this.turnState = 'awaiting-approval';
+    }
+  }
+
+  private startTrackedTurn(): number {
+    const turnId = ++this.turnSequence;
+    this.activeTurnSequence = turnId;
+    this.turnState = 'running';
+    return turnId;
+  }
+
+  private trackTurnCompletion(options: {
+    done: Promise<void>;
+    turnId: number;
+  }): void {
+    void Promise.resolve(options.done)
+      .finally(() => {
+        this.finishTrackedTurn({ turnId: options.turnId });
+      })
+      .catch(() => {});
+  }
+
+  private finishTrackedTurn(options: { turnId: number }): void {
+    if (this.sessionState !== 'active') return;
+    if (this.activeTurnSequence !== options.turnId) return;
+    this.turnState =
+      this.pendingToolApprovals.size > 0 ? 'awaiting-approval' : 'idle';
+  }
+
+  private endLocalHandle(options: {
+    sessionState: Exclude<HarnessAgentSessionState, 'active'>;
+    releasePortLease: boolean;
+  }): void {
+    this.sessionState = options.sessionState;
     this.underlyingSession = undefined;
     this.sandboxSession = undefined;
     if (options.releasePortLease) {
@@ -347,8 +507,8 @@ export class HarnessAgentSession {
     this.leasedBridgePort = undefined;
   }
 
-  private requireReusableSession(): HarnessV1Session {
-    if (this.stopped || this.underlyingSession == null) {
+  private requireReusableSession(): HarnessAgentAdapterSession {
+    if (this.sessionState !== 'active' || this.underlyingSession == null) {
       throw new Error(
         `Harness session ${this.sessionId} has ended and cannot be reused.`,
       );

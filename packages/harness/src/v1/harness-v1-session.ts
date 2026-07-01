@@ -10,6 +10,7 @@ import type {
 import type { HarnessV1Skill } from './harness-v1-skill';
 import type { HarnessV1StreamPart } from './harness-v1-stream-part';
 import type { HarnessV1ToolSpec } from './harness-v1-tool-spec';
+import type { HarnessV1BuiltinToolFiltering } from './harness-v1-tool-filtering';
 
 /**
  * Options passed to `HarnessV1.doStart`.
@@ -28,23 +29,21 @@ export type HarnessV1StartOptions = {
 
   /**
    * Skills made available to the underlying runtime for the lifetime of
-   * the session. Adapters decide how to surface them — the `claude` CLI
-   * picks them up from `.claude/skills/*.md`, while the `codex` adapter
-   * inlines them into every user message.
+   * the session. Adapters decide how to surface them.
    */
   readonly skills?: ReadonlyArray<HarnessV1Skill>;
 
   /**
-   * Optional resume payload returned by a prior between-turn session lifecycle
-   * method. When provided, the adapter should resume the existing session before
-   * accepting a new prompt.
+   * Optional resume payload returned by a prior session lifecycle method. When
+   * provided, the adapter should resume the existing session before accepting a
+   * new prompt or continuing a nested unfinished turn.
    */
   readonly resumeFrom?: HarnessV1ResumeSessionState;
 
   /**
-   * Optional continuation payload returned by `doSuspendTurn`. When provided,
-   * the adapter should resume the existing session in a shape ready for
-   * `doContinueTurn` rather than for a fresh prompt.
+   * Optional continuation payload returned by `doSuspendTurn`, or nested in
+   * `resumeFrom`. When provided, the adapter should resume the existing session
+   * in a shape ready for `doContinueTurn` rather than for a fresh prompt.
    */
   readonly continueFrom?: HarnessV1ContinueTurnState;
 
@@ -54,6 +53,13 @@ export type HarnessV1StartOptions = {
    * the adapter.
    */
   readonly permissionMode?: HarnessV1PermissionMode;
+
+  /**
+   * Adapter-native built-in tools that should be available for this session.
+   * Custom host-executed tools are filtered by the framework before they reach
+   * the adapter.
+   */
+  readonly builtinToolFiltering?: HarnessV1BuiltinToolFiltering;
 
   /**
    * Signal that aborts startup. The adapter must propagate cancellation to
@@ -128,8 +134,6 @@ export type HarnessV1PromptTurnOptions = {
   readonly emit: (event: HarnessV1StreamPart) => void;
 };
 
-export type HarnessV1PromptOptions = HarnessV1PromptTurnOptions;
-
 /**
  * Options passed to `HarnessV1Session.doContinueTurn`.
  *
@@ -157,8 +161,6 @@ export type HarnessV1ContinueTurnOptions = {
    */
   readonly emit: (event: HarnessV1StreamPart) => void;
 };
-
-export type HarnessV1ContinueOptions = HarnessV1ContinueTurnOptions;
 
 /**
  * Active harness session, returned by `HarnessV1.doStart`.

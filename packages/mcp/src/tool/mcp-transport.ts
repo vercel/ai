@@ -45,6 +45,11 @@ export interface MCPTransport {
    * The protocol version negotiated during initialization.
    */
   protocolVersion?: string;
+
+  /**
+   * Set the protocol version negotiated during initialization.
+   */
+  setProtocolVersion?(version: string): void;
 }
 
 export type MCPTransportConfig = {
@@ -72,6 +77,42 @@ export type MCPTransportConfig = {
    * @default 'error'
    */
   redirect?: 'follow' | 'error';
+
+  /**
+   * Initial MCP session id to send with resumed Streamable HTTP requests after
+   * initialization.
+   * Only used by the HTTP transport.
+   */
+  initialSessionId?: string;
+
+  /**
+   * Initial MCP protocol version to send before initialize negotiates one.
+   * Only used by the HTTP transport.
+   */
+  initialProtocolVersion?: string;
+
+  /**
+   * Called when the Streamable HTTP server creates, changes, or clears the MCP
+   * session id.
+   * Only used by the HTTP transport.
+   */
+  onSessionIdChange?: (sessionId: string | undefined) => void;
+
+  /**
+   * Called when a Streamable HTTP request returns 404 for an existing MCP
+   * session id. The transport clears the session id before reporting the
+   * underlying HTTP error.
+   * Only used by the HTTP transport.
+   */
+  onSessionExpired?: (sessionId: string) => void;
+
+  /**
+   * Whether close() should send DELETE for the current MCP session id.
+   * Set to false when the application intends to reattach to the session later.
+   * Only used by the HTTP transport.
+   * @default true
+   */
+  terminateSessionOnClose?: boolean;
 
   /**
    * Optional custom fetch implementation to use for HTTP requests.

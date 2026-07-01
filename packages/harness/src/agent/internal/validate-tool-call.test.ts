@@ -1,7 +1,7 @@
 import { tool } from '@ai-sdk/provider-utils';
 import type { TextStreamPart, ToolSet } from 'ai';
 import { describe, expect, it } from 'vitest';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { validateToolCall } from './run-prompt';
 
 const bashTool = tool({

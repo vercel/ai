@@ -5,11 +5,11 @@ import {
   weatherForecastSkill,
   weatherInstructions,
 } from '@/lib/weather-utils';
-import { HarnessAgent } from '@ai-sdk/harness/agent';
 import {
+  HarnessAgent,
   createFileReporter,
   createTraceTreeReporter,
-} from '@ai-sdk/harness/observability';
+} from '@ai-sdk/harness/agent';
 import { pi } from '@ai-sdk/harness-pi';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import type { InferUITools, UIMessage } from 'ai';
@@ -22,12 +22,14 @@ export const weatherPiHarnessAgent = new HarnessAgent({
   sandbox: createVercelSandbox({
     runtime: 'node24',
   }),
-  onSandboxSession: async ({ session, sessionWorkDir, abortSignal }) => {
-    await session.writeTextFile({
-      path: `${sessionWorkDir}/weather-codes.md`,
-      content: WEATHER_CODES_REFERENCE,
-      abortSignal,
-    });
+  sandboxConfig: {
+    onSession: async ({ session, sessionWorkDir, abortSignal }) => {
+      await session.writeTextFile({
+        path: `${sessionWorkDir}/weather-codes.md`,
+        content: WEATHER_CODES_REFERENCE,
+        abortSignal,
+      });
+    },
   },
   debug: { enabled: true },
   telemetry: {

@@ -77,10 +77,24 @@ export type AgentCallParameters<
     /**
      * Callback that is called when the agent operation begins, before any LLM calls.
      */
+    onStart?: GenerateTextOnStartCallback<TOOLS, RUNTIME_CONTEXT>;
+
+    /**
+     * Callback that is called when the agent operation begins, before any LLM calls.
+     *
+     * @deprecated Use `onStart` instead.
+     */
     experimental_onStart?: GenerateTextOnStartCallback<TOOLS, RUNTIME_CONTEXT>;
 
     /**
      * Callback that is called when a step (LLM call) begins, before the provider is called.
+     */
+    onStepStart?: GenerateTextOnStepStartCallback<TOOLS, RUNTIME_CONTEXT>;
+
+    /**
+     * Callback that is called when a step (LLM call) begins, before the provider is called.
+     *
+     * @deprecated Use `onStepStart` instead.
      */
     experimental_onStepStart?: GenerateTextOnStepStartCallback<
       TOOLS,
@@ -93,9 +107,23 @@ export type AgentCallParameters<
     onToolExecutionStart?: OnToolExecutionStartCallback<TOOLS>;
 
     /**
+     * Callback that is called before each tool execution begins.
+     *
+     * @deprecated Use `onToolExecutionStart` instead.
+     */
+    experimental_onToolCallStart?: OnToolExecutionStartCallback<TOOLS>;
+
+    /**
      * Callback that is called after each tool execution completes.
      */
     onToolExecutionEnd?: OnToolExecutionEndCallback<TOOLS>;
+
+    /**
+     * Callback that is called after each tool execution completes.
+     *
+     * @deprecated Use `onToolExecutionEnd` instead.
+     */
+    experimental_onToolCallFinish?: OnToolExecutionEndCallback<TOOLS>;
 
     /**
      * Callback that is called when each step (LLM call) ends, including intermediate steps.

@@ -23,7 +23,7 @@ export async function POST(req: Request) {
         reasoningSummary: 'detailed', // 'auto' for condensed or 'detailed' for comprehensive
       } satisfies OpenAILanguageModelResponsesOptions,
     },
-    onFinish: ({ finalStep }) => {
+    onEnd: ({ finalStep }) => {
       console.dir(finalStep.request.body, { depth: null });
     },
   });

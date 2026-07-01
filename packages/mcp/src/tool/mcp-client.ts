@@ -28,6 +28,7 @@ import {
 import { getMCPAppToolMeta, MCP_APP_MIME_TYPE } from './mcp-apps';
 import {
   CallToolResultSchema,
+  CompleteResultSchema,
   ElicitationRequestSchema,
   ElicitResultSchema,
   InitializeResultSchema,
@@ -41,6 +42,8 @@ import {
   SUPPORTED_PROTOCOL_VERSIONS,
   type CallToolResult,
   type ClientCapabilities,
+  type CompleteRequestParams,
+  type CompleteResult,
   type Configuration,
   type Configuration as ClientConfiguration,
   type ElicitationRequest,
@@ -60,6 +63,7 @@ import {
   type ToolSchemas,
   type ToolMeta,
   type McpProviderMetadata,
+  type InitializeResult,
 } from './types';
 const CLIENT_VERSION = '1.0.0';
 
@@ -100,6 +104,12 @@ export interface MCPClientConfig {
   transport: MCPTransportConfig | MCPTransport;
   /** Optional callback for uncaught errors */
   onUncaughtError?: (error: unknown) => void;
+  /**
+   * Initialize result from a previous MCP session. When provided, the client
+   * starts the transport and reuses this metadata without sending a new
+   * initialize request.
+   */
+  initialInitializeResult?: InitializeResult;
   /** Optional client name, defaults to 'ai-sdk-mcp-client' */
   clientName?: string;
   /**
@@ -132,6 +142,12 @@ export interface MCPClient {
    * @see https://modelcontextprotocol.io/specification/2025-11-25/schema#implementation
    */
   readonly serverInfo: Configuration;
+
+  /**
+   * The full initialize result used by this client, either from the server
+   * during initialization or from `initialInitializeResult`.
+   */
+  readonly initializeResult: InitializeResult;
 
   /**
    * Optional instructions provided by the server during the initialize handshake.
@@ -197,6 +213,12 @@ export interface MCPClient {
     options?: RequestOptions;
   }): Promise<GetPromptResult>;
 
+  complete(
+    args: CompleteRequestParams & {
+      options?: RequestOptions;
+    },
+  ): Promise<CompleteResult>;
+
   onElicitationRequest(
     schema: typeof ElicitationRequestSchema,
     handler: (
@@ -220,7 +242,7 @@ export interface MCPClient {
  *
  * Not supported:
  * - Accepting notifications
- * - Session management (when passing a sessionId to an instance of the Streamable HTTP transport)
+ * - Automatic session persistence for Streamable HTTP transport
  * - Resumable SSE streams
  */
 class DefaultMCPClient implements MCPClient {
@@ -228,6 +250,7 @@ class DefaultMCPClient implements MCPClient {
   private onUncaughtError?: (error: unknown) => void;
   private clientInfo: ClientConfiguration;
   private clientCapabilities: ClientCapabilities;
+  private initialInitializeResult?: InitializeResult;
   private requestMessageId = 0;
   private responseHandlers: Map<
     number,
@@ -235,6 +258,11 @@ class DefaultMCPClient implements MCPClient {
   > = new Map();
   private serverCapabilities: ServerCapabilities = {};
   private _serverInfo: Configuration = { name: '', version: '' };
+  private _initializeResult: InitializeResult = {
+    protocolVersion: LATEST_PROTOCOL_VERSION,
+    capabilities: {},
+    serverInfo: this._serverInfo,
+  };
   private _serverInstructions?: string;
   private isClosed = true;
   private elicitationRequestHandler?: (
@@ -248,9 +276,11 @@ class DefaultMCPClient implements MCPClient {
     version = CLIENT_VERSION,
     onUncaughtError,
     capabilities,
+    initialInitializeResult,
   }: MCPClientConfig) {
     this.onUncaughtError = onUncaughtError;
     this.clientCapabilities = capabilities ?? {};
+    this.initialInitializeResult = initialInitializeResult;
 
     if (isCustomMcpTransport(transportConfig)) {
       this.transport = transportConfig;
@@ -287,6 +317,10 @@ class DefaultMCPClient implements MCPClient {
     return this._serverInfo;
   }
 
+  get initializeResult(): InitializeResult {
+    return this._initializeResult;
+  }
+
   get instructions(): string | undefined {
     return this._serverInstructions;
   }
@@ -295,6 +329,14 @@ class DefaultMCPClient implements MCPClient {
     try {
       await this.transport.start();
       this.isClosed = false;
+
+      if (this.initialInitializeResult) {
+        const result = InitializeResultSchema.parse(
+          this.initialInitializeResult,
+        );
+        this.applyInitializeResult(result);
+        return this;
+      }
 
       const result = await this.request({
         request: {
@@ -314,16 +356,7 @@ class DefaultMCPClient implements MCPClient {
         });
       }
 
-      if (!SUPPORTED_PROTOCOL_VERSIONS.includes(result.protocolVersion)) {
-        throw new MCPClientError({
-          message: `Server's protocol version is not supported: ${result.protocolVersion}`,
-        });
-      }
-
-      this.serverCapabilities = result.capabilities;
-      this._serverInfo = result.serverInfo;
-      this.transport.protocolVersion = result.protocolVersion;
-      this._serverInstructions = result.instructions;
+      this.applyInitializeResult(result);
 
       // Complete initialization handshake:
       await this.notification({
@@ -337,6 +370,24 @@ class DefaultMCPClient implements MCPClient {
     }
   }
 
+  private applyInitializeResult(result: InitializeResult): void {
+    if (!SUPPORTED_PROTOCOL_VERSIONS.includes(result.protocolVersion)) {
+      throw new MCPClientError({
+        message: `Server's protocol version is not supported: ${result.protocolVersion}`,
+      });
+    }
+
+    this.serverCapabilities = result.capabilities;
+    this._serverInfo = result.serverInfo;
+    this._initializeResult = result;
+    if (this.transport.setProtocolVersion) {
+      this.transport.setProtocolVersion(result.protocolVersion);
+    } else {
+      this.transport.protocolVersion = result.protocolVersion;
+    }
+    this._serverInstructions = result.instructions;
+  }
+
   async close(): Promise<void> {
     if (this.isClosed) return;
     await this.transport?.close();
@@ -346,6 +397,13 @@ class DefaultMCPClient implements MCPClient {
   private assertCapability(method: string): void {
     switch (method) {
       case 'initialize':
+        break;
+      case 'completion/complete':
+        if (!this.serverCapabilities.completions) {
+          throw new MCPClientError({
+            message: `Server does not support completions`,
+          });
+        }
         break;
       case 'tools/list':
       case 'tools/call':
@@ -570,6 +628,19 @@ class DefaultMCPClient implements MCPClient {
     }
   }
 
+  private async completeInternal({
+    options,
+    ...params
+  }: CompleteRequestParams & {
+    options?: RequestOptions;
+  }): Promise<CompleteResult> {
+    return this.request({
+      request: { method: 'completion/complete', params },
+      resultSchema: CompleteResultSchema,
+      options,
+    });
+  }
+
   private async notification(notification: Notification): Promise<void> {
     const jsonrpcNotification: JSONRPCNotification = {
       ...notification,
@@ -614,7 +685,10 @@ class DefaultMCPClient implements MCPClient {
       _meta,
     } of definitions.tools) {
       const resolvedTitle = title ?? annotations?.title;
-      if (schemas !== 'automatic' && !(name in schemas)) {
+      if (
+        schemas !== 'automatic' &&
+        !Object.prototype.hasOwnProperty.call(schemas, name)
+      ) {
         continue;
       }
 
@@ -785,6 +859,14 @@ class DefaultMCPClient implements MCPClient {
     options?: RequestOptions;
   }): Promise<GetPromptResult> {
     return this.getPromptInternal({ name, args, options });
+  }
+
+  complete(
+    args: CompleteRequestParams & {
+      options?: RequestOptions;
+    },
+  ): Promise<CompleteResult> {
+    return this.completeInternal(args);
   }
 
   onElicitationRequest(

@@ -10,6 +10,11 @@ import { z } from 'zod';
 import { Output, streamText } from '../generate-text';
 import type { Instructions } from '../prompt';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
+import type { UIMessage } from '../ui';
+import type {
+  UIMessageStreamOnEndCallback,
+  UIMessageStreamOnFinishCallback,
+} from '../ui-message-stream';
 import type { AsyncIterableStream } from '../util';
 import type { DeepPartial } from '../util/deep-partial';
 import type { GenerateTextEndEvent } from './generate-text-events';
@@ -67,6 +72,31 @@ describe('streamText types', () => {
           >();
           expectTypeOf(event.providerMetadata).toEqualTypeOf<
             StepResult<any>['providerMetadata']
+          >();
+        },
+      });
+    });
+  });
+
+  describe('toUIMessageStream options', () => {
+    it('should support onEnd and deprecated onFinish', () => {
+      const result = streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+      });
+
+      result.toUIMessageStream({
+        onEnd: event => {
+          expectTypeOf(event).toMatchTypeOf<
+            Parameters<UIMessageStreamOnEndCallback<UIMessage>>[0]
+          >();
+        },
+      });
+
+      result.toUIMessageStream({
+        onFinish: event => {
+          expectTypeOf(event).toMatchTypeOf<
+            Parameters<UIMessageStreamOnFinishCallback<UIMessage>>[0]
           >();
         },
       });
@@ -465,13 +495,13 @@ describe('streamText types', () => {
         telemetry: {
           includeRuntimeContext: { userId: true },
         },
-        experimental_onStart: ({ runtimeContext }) => {
+        onStart: ({ runtimeContext }) => {
           expectTypeOf(runtimeContext).toEqualTypeOf<{
             userId: string;
             requestId: string;
           }>();
         },
-        experimental_onStepStart: ({ runtimeContext }) => {
+        onStepStart: ({ runtimeContext }) => {
           expectTypeOf(runtimeContext).toEqualTypeOf<{
             userId: string;
             requestId: string;

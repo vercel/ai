@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/harness",
-  "version": "1.0.0-canary.4",
+  "version": "1.0.12",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -47,11 +47,6 @@
       "import": "./dist/utils/index.js",
       "default": "./dist/utils/index.js"
     },
-    "./observability": {
-      "types": "./dist/observability/index.d.ts",
-      "import": "./dist/observability/index.js",
-      "default": "./dist/observability/index.js"
-    },
     "./bridge": {
       "types": "./dist/bridge/index.d.ts",
       "import": "./dist/bridge/index.js",
@@ -64,7 +59,8 @@
     "ai": "workspace:*"
   },
   "peerDependencies": {
-    "ws": "^8.20.1"
+    "ws": "^8.21.0",
+    "zod": "^3.25.76 || ^4.1.8"
   },
   "peerDependenciesMeta": {
     "ws": {
@@ -77,7 +73,7 @@
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8.5.1",
     "typescript": "5.8.3",
-    "ws": "^8.20.1",
+    "ws": "^8.21.0",
     "zod": "3.25.76"
   },
   "engines": {

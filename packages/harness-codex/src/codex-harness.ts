@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   commonTool,
@@ -19,23 +20,36 @@ import {
   type HarnessV1Skill,
   type HarnessV1StreamPart,
 } from '@ai-sdk/harness';
-import { classifyDiskLog, SandboxChannel } from '@ai-sdk/harness/utils';
 import {
-  safeParseJSON,
+  classifyDiskLog,
+  markBridgeStarting,
+  resolveSandboxHomeDir,
+  SandboxChannel,
+  shellQuote,
+  waitForBridgeReady,
+  writeSkills as writeHarnessSkills,
+} from '@ai-sdk/harness/utils';
+import {
   type Experimental_SandboxProcess,
+  type Experimental_SandboxSession,
 } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { resolveCodexEnv, type CodexAuthOptions } from './codex-auth';
 import {
-  bridgeReadySchema,
   outboundMessageSchema,
   type InboundMessage,
   type OutboundMessage,
 } from './codex-bridge-protocol';
+import { CLI_SHIM_FILENAME } from './bridge/cli-relay';
 
 type CodexChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 type CodexRespawnStrategy = 'replay' | 'rerun';
+
+type WriteSkillsResult = {
+  readonly homeDir: string;
+  readonly codexHomeDir: string;
+};
 
 /*
  * The model the adapter pins when the consumer configures none. The Codex SDK
@@ -105,12 +119,11 @@ const CODEX_BUILTIN_TOOLS = {
  * reinstall the CLI and bridge files on any fresh sandbox from the recipe.
  * Persistence comes from the sandbox provider's snapshot, not the path.
  *
- * The session work dir (`startOpts.sessionWorkDir`) and the bridge-state dir
- * derived from `sandboxSession.defaultWorkingDirectory` both live under the sandbox's
- * default working directory — the provider's persistent mount — so the
- * workdir's contents (the codex CLI shim and any files the agent edits) and
- * the bridge state files survive both detach -> attach and
- * stop -> snapshot -> resume cycles.
+ * The session work dir (`startOpts.sessionWorkDir`) lives under the sandbox's
+ * default working directory — the provider's persistent mount — so any files
+ * the agent edits survive both detach -> attach and stop -> snapshot -> resume
+ * cycles. Harness infra derived from `sandboxSession.defaultWorkingDirectory`
+ * lives under `.agent-runs`, outside the agent workdir.
  */
 const BOOTSTRAP_DIR = '/tmp/harness/codex';
 
@@ -119,7 +132,7 @@ const BOOTSTRAP_DIR = '/tmp/harness/codex';
  * future process uses them to reopen a socket to the still-running bridge
  * (`attach`) instead of re-spawning it. Absent on a `doStop()` payload.
  */
-const bridgeCoordsSchema = z.object({
+const codexBridgeCoordsSchema = z.object({
   port: z.number(),
   token: z.string(),
   lastSeenEventId: z.number(),
@@ -136,10 +149,10 @@ const bridgeCoordsSchema = z.object({
  */
 const codexResumeStateSchema = z.object({
   threadId: z.string().optional(),
-  bridge: bridgeCoordsSchema.optional(),
+  bridge: codexBridgeCoordsSchema.optional(),
 });
 
-type CodexBridgeCoords = z.infer<typeof bridgeCoordsSchema>;
+type CodexBridgeCoords = z.infer<typeof codexBridgeCoordsSchema>;
 
 export function createCodex(
   settings: CodexHarnessSettings = {},
@@ -182,6 +195,13 @@ export function createCodex(
       return cachedBootstrap;
     },
     doStart: async startOpts => {
+      if (startOpts.builtinToolFiltering != null) {
+        throw new HarnessCapabilityUnsupportedError({
+          message:
+            "Harness 'codex' does not support built-in tool filtering controls.",
+          harnessId: 'codex',
+        });
+      }
       if (
         startOpts.permissionMode != null &&
         startOpts.permissionMode !== 'allow-all'
@@ -215,6 +235,8 @@ export function createCodex(
       const workDir = startOpts.sessionWorkDir;
       const sessionDataDir = `${sandboxSession.defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
       const bridgeStateDir = `${sessionDataDir}/bridge`;
+      const cliShimDir = `${sessionDataDir}/codex`;
+      const cliShimPath = `${cliShimDir}/${CLI_SHIM_FILENAME}`;
       const timeoutMs = settings.startupTimeoutMs ?? 120_000;
 
       // Normalize each forwarded bridge diagnostics frame into the general
@@ -256,9 +278,9 @@ export function createCodex(
           return createSession({
             sessionId: startOpts.sessionId,
             channel: attachChannel,
+            cliShimPath,
             // The live bridge was spawned by another process; no process handle.
             proc: undefined,
-            skills: startOpts.skills,
             model: settings.model ?? DEFAULT_CODEX_MODEL,
             reasoningEffort: settings.reasoningEffort,
             webSearch: settings.webSearch,
@@ -302,10 +324,24 @@ export function createCodex(
 
       const port = resolveBridgePort(sandboxSession, settings.port);
       const token = randomBytes(32).toString('hex');
+      const codexSkillSetup =
+        startOpts.skills && startOpts.skills.length > 0
+          ? await writeCodexSkills({
+              sandbox: session,
+              skills: startOpts.skills,
+              abortSignal: startOpts.abortSignal,
+            })
+          : undefined;
       const env = {
         ...resolveCodexEnv(settings.auth),
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),
+        ...(codexSkillSetup
+          ? {
+              HOME: codexSkillSetup.homeDir,
+              CODEX_HOME: codexSkillSetup.codexHomeDir,
+            }
+          : {}),
         ...(respawnStrategy === 'replay'
           ? { BRIDGE_REPLAY_FROM_DISK: '1' }
           : {}),
@@ -313,22 +349,47 @@ export function createCodex(
 
       if (respawnStrategy === undefined) {
         await session.run({
-          command: `mkdir -p ${workDir} ${bridgeStateDir}`,
+          command: `mkdir -p ${shellQuote(workDir)} ${shellQuote(bridgeStateDir)}`,
           abortSignal: startOpts.abortSignal,
         });
       }
 
+      await markBridgeStarting({
+        sandbox: session,
+        bridgeStateDir,
+        bridgeType: 'codex',
+        abortSignal: startOpts.abortSignal,
+      });
+
       const proc = await session.spawn({
-        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${workDir} --bridge-state-dir ${bridgeStateDir} --bootstrap-dir ${BOOTSTRAP_DIR}`,
+        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --bootstrap-dir ${shellQuote(BOOTSTRAP_DIR)} --cli-shim-dir ${shellQuote(cliShimDir)}`,
         env,
         abortSignal: startOpts.abortSignal,
       });
 
       const { port: boundPort } = await waitForBridgeReady({
         proc,
+        sandbox: session,
+        bridgeStateDir,
+        bridgeType: 'codex',
         timeoutMs,
         abortSignal: startOpts.abortSignal,
+        createTimeoutError: () =>
+          new Error('codex bridge did not become ready in time.'),
+        createExitError: () =>
+          new Error('codex bridge exited before becoming ready.'),
       });
+      void drainRest(proc.stdout);
+      /*
+       * Bridge stderr is the only diagnostic channel for what happens
+       * inside the sandbox once the bridge is running (uncaught
+       * exceptions, Codex SDK errors, network failures). Forward it
+       * line-by-line to the host console so a mid-turn bridge crash can
+       * be inspected from `pnpm dev` logs without redeploying. The
+       * bridge itself writes nothing to stderr in steady state, so this
+       * is silent on the happy path.
+       */
+      void forwardBridgeStderr(proc.stderr);
 
       const wsUrl =
         (await sandboxSession.getPortUrl({
@@ -354,8 +415,8 @@ export function createCodex(
       return createSession({
         sessionId: startOpts.sessionId,
         channel,
+        cliShimPath,
         proc,
-        skills: startOpts.skills,
         model: settings.model ?? DEFAULT_CODEX_MODEL,
         reasoningEffort: settings.reasoningEffort,
         webSearch: settings.webSearch,
@@ -405,83 +466,36 @@ async function readBridgeAsset(name: string): Promise<string> {
   throw lastErr ?? new Error(`bridge asset not found: ${name}`);
 }
 
-async function waitForBridgeReady({
-  proc,
-  timeoutMs,
+async function writeCodexSkills({
+  sandbox,
+  skills,
   abortSignal,
 }: {
-  proc: Experimental_SandboxProcess;
-  timeoutMs: number;
-  abortSignal: AbortSignal | undefined;
-}): Promise<{ port: number }> {
-  const reader = proc.stdout.pipeThrough(new TextDecoderStream()).getReader();
+  sandbox: Experimental_SandboxSession;
+  skills: ReadonlyArray<HarnessV1Skill>;
+  abortSignal?: AbortSignal;
+}): Promise<WriteSkillsResult> {
+  const homeDir = await resolveSandboxHomeDir({ sandbox, abortSignal });
+  const codexHomeDir = path.posix.join(homeDir, '.codex');
+  await sandbox.run({
+    command: `mkdir -p ${shellQuote(codexHomeDir)}`,
+    abortSignal,
+  });
 
-  const decoder = lineDecoder();
+  const rootDir = path.posix.join(homeDir, '.agents', 'skills');
+  await writeHarnessSkills({
+    sandbox,
+    rootDir,
+    skills,
+    abortSignal,
+    invalidSkillNameMessage: ({ name }) => `Invalid Codex skill name: ${name}`,
+    invalidSkillFilePathMessage: ({ skillName, filePath }) =>
+      `Invalid Codex skill file path for ${skillName}: ${filePath}`,
+  });
 
-  const deadline = Date.now() + timeoutMs;
-  try {
-    while (true) {
-      if (abortSignal?.aborted) {
-        await proc.kill();
-        throw abortSignal.reason ?? new DOMException('Aborted', 'AbortError');
-      }
-      const remaining = deadline - Date.now();
-      if (remaining <= 0) {
-        await proc.kill();
-        throw new Error('codex bridge did not become ready in time.');
-      }
-      const { value, done } = (await Promise.race([
-        reader.read(),
-        new Promise(resolve =>
-          setTimeout(
-            () => resolve({ value: undefined, done: false }),
-            remaining,
-          ),
-        ),
-      ])) as ReadableStreamReadResult<string>;
-      if (done) {
-        throw new Error('codex bridge exited before becoming ready.');
-      }
-      if (value === undefined) continue;
-      for (const line of decoder.push(value)) {
-        const parsed = await safeParseJSON({
-          text: line,
-          schema: bridgeReadySchema,
-        });
-        if (parsed.success) return { port: parsed.value.port };
-      }
-    }
-  } finally {
-    reader.releaseLock();
-    void drainRest(proc.stdout);
-    /*
-     * Bridge stderr is the only diagnostic channel for what happens
-     * inside the sandbox once the bridge is running (uncaught
-     * exceptions, Codex SDK errors, network failures). Forward it
-     * line-by-line to the host console so a mid-turn bridge crash can
-     * be inspected from `pnpm dev` logs without redeploying. The
-     * bridge itself writes nothing to stderr in steady state, so this
-     * is silent on the happy path.
-     */
-    void forwardBridgeStderr(proc.stderr);
-  }
-}
-
-function lineDecoder() {
-  let buffer = '';
   return {
-    push(chunk: string): string[] {
-      buffer += chunk;
-      const lines: string[] = [];
-      let nl: number;
-      while ((nl = buffer.indexOf('\n')) !== -1) {
-        const raw = buffer.slice(0, nl);
-        buffer = buffer.slice(nl + 1);
-        const line = raw.replace(/\r$/, '').trim();
-        if (line.length > 0) lines.push(line);
-      }
-      return lines;
-    },
+    homeDir,
+    codexHomeDir,
   };
 }
 
@@ -535,8 +549,8 @@ function openWebSocket(url: string): Promise<WebSocket> {
 function createSession({
   sessionId,
   channel,
+  cliShimPath,
   proc,
-  skills,
   model,
   reasoningEffort,
   webSearch,
@@ -552,9 +566,9 @@ function createSession({
 }: {
   sessionId: string;
   channel: CodexChannel;
+  cliShimPath: string;
   /** Undefined on `attach` — the live bridge was spawned by another process. */
   proc: Experimental_SandboxProcess | undefined;
-  skills: ReadonlyArray<HarnessV1Skill> | undefined;
   model: string | undefined;
   reasoningEffort: 'low' | 'medium' | 'high' | undefined;
   webSearch: boolean | undefined;
@@ -580,10 +594,10 @@ function createSession({
     ? resumeThreadId
     : undefined;
   /*
-   * Instructions are prepended to the first user message of a fresh session
-   * only. A resumed session (attach/replay/rerun) already carried them in its
-   * original first message (preserved in the persisted thread), so it starts
-   * "applied".
+   * Initial prompt guidance is prepended to the first user message of a fresh
+   * session only. A resumed session (attach/replay/rerun) already carried it
+   * in its original first message (preserved in the persisted thread), so it
+   * starts "applied".
    */
   let instructionsApplied = isResume;
 
@@ -607,7 +621,10 @@ function createSession({
   const wireTurn = (turnOpts: {
     emit: (event: HarnessV1StreamPart) => void;
     abortSignal?: AbortSignal;
-  }): HarnessV1PromptControl => {
+  }): {
+    control: HarnessV1PromptControl;
+    sendStart: (send: () => void) => void;
+  } => {
     let pendingResolve: (() => void) | undefined;
     let pendingReject: ((err: unknown) => void) | undefined;
     const done = new Promise<void>((resolve, reject) => {
@@ -707,7 +724,7 @@ function createSession({
       }
     }
 
-    return {
+    const control: HarnessV1PromptControl = {
       submitToolResult: async input => {
         channel.send({
           type: 'tool-result',
@@ -729,6 +746,26 @@ function createSession({
       },
       done,
     };
+
+    return {
+      control,
+      sendStart: send => {
+        /*
+         * Codex can complete short turns without using tools. Deferring the
+         * start frame gives the harness runner one event-loop turn to finish
+         * wiring the prompt control and stream output before Codex can settle.
+         */
+        const timer = setTimeout(() => {
+          if (isSettled) return;
+          try {
+            send();
+          } catch (err) {
+            settleError(err);
+          }
+        }, 0);
+        timer.unref?.();
+      },
+    };
   };
 
   return {
@@ -736,49 +773,55 @@ function createSession({
     isResume,
     modelId: model,
     doPromptTurn: async promptOpts => {
-      const control = wireTurn({
+      const turn = wireTurn({
         emit: promptOpts.emit,
         abortSignal: promptOpts.abortSignal,
       });
 
-      const applyInstructions =
-        !instructionsApplied && !!promptOpts.instructions;
+      const tools = (promptOpts.tools ?? []).map(t => ({
+        name: t.name,
+        description: t.description,
+        inputSchema: t.inputSchema,
+      }));
+      let promptText = extractUserText(promptOpts.prompt);
+      if (!instructionsApplied) {
+        const instructions =
+          (promptOpts.instructions ? promptOpts.instructions + '\n\n' : '') +
+          'Only respond with your `final` message once you have fully addressed the user request.';
+        promptText = frameInitialPromptGuidance({
+          instructions,
+          toolUsageBlock:
+            tools.length > 0
+              ? composeToolUsageInstructions({
+                  tools,
+                  cliShimPath,
+                })
+              : undefined,
+          userText: promptText,
+        });
+      }
       instructionsApplied = true;
 
       const startMessage = {
         type: 'start' as const,
-        prompt: extractUserText(promptOpts.prompt),
-        ...(applyInstructions ? { instructions: promptOpts.instructions } : {}),
-        tools: (promptOpts.tools ?? []).map(t => ({
-          name: t.name,
-          description: t.description,
-          inputSchema: t.inputSchema,
-        })),
+        prompt: promptText,
+        tools,
         model,
         reasoningEffort,
         webSearch,
         ...(permissionMode ? { permissionMode } : {}),
-        ...(skills && skills.length > 0
-          ? {
-              skills: skills.map(s => ({
-                name: s.name,
-                description: s.description,
-                content: s.content,
-              })),
-            }
-          : {}),
         ...(pendingResumeThreadId
           ? { resumeThreadId: pendingResumeThreadId }
           : {}),
         ...(debug ? { debug } : {}),
       };
       pendingResumeThreadId = undefined;
-      channel.send(startMessage);
+      turn.sendStart(() => channel.send(startMessage));
 
-      return control;
+      return turn.control;
     },
     doContinueTurn: async continueOpts => {
-      const control = wireTurn({
+      const turn = wireTurn({
         emit: continueOpts.emit,
         abortSignal: continueOpts.abortSignal,
       });
@@ -798,31 +841,33 @@ function createSession({
       if (rerunContinue) {
         const threadId = pendingResumeThreadId ?? latestThreadId;
         pendingResumeThreadId = undefined;
-        channel.send({
-          type: 'start' as const,
-          /*
-           * A continuation nudge rather than an empty prompt: `resumeThreadId`
-           * rehydrates the prior thread, and this is the new user turn that
-           * drives it forward. Keeping it non-empty avoids handing the runtime
-           * an empty user message (and mirrors the claude-code adapter, where an
-           * empty text block trips the Anthropic API's `cache_control` rule).
-           */
-          prompt: 'Continue.',
-          tools: (continueOpts.tools ?? []).map(t => ({
-            name: t.name,
-            description: t.description,
-            inputSchema: t.inputSchema,
-          })),
-          model,
-          reasoningEffort,
-          webSearch,
-          ...(permissionMode ? { permissionMode } : {}),
-          ...(threadId ? { resumeThreadId: threadId } : {}),
-          ...(debug ? { debug } : {}),
-        });
+        turn.sendStart(() =>
+          channel.send({
+            type: 'start' as const,
+            /*
+             * A continuation nudge rather than an empty prompt: `resumeThreadId`
+             * rehydrates the prior thread, and this is the new user turn that
+             * drives it forward. Keeping it non-empty avoids handing the runtime
+             * an empty user message (and mirrors the claude-code adapter, where an
+             * empty text block trips the Anthropic API's `cache_control` rule).
+             */
+            prompt: 'Continue.',
+            tools: (continueOpts.tools ?? []).map(t => ({
+              name: t.name,
+              description: t.description,
+              inputSchema: t.inputSchema,
+            })),
+            model,
+            reasoningEffort,
+            webSearch,
+            ...(permissionMode ? { permissionMode } : {}),
+            ...(threadId ? { resumeThreadId: threadId } : {}),
+            ...(debug ? { debug } : {}),
+          }),
+        );
       }
 
-      return control;
+      return turn.control;
     },
     doCompact: async () => {
       /*
@@ -1002,6 +1047,67 @@ function createSession({
       return payload;
     },
   };
+}
+
+/*
+ * Frame session instructions, host-tool relay guidance, and the user's text so
+ * Codex treats the prepended blocks as operating guidance rather than user
+ * prose. Applied only to the first user message of a fresh session.
+ */
+function frameInitialPromptGuidance({
+  instructions,
+  toolUsageBlock,
+  userText,
+}: {
+  instructions: string | undefined;
+  toolUsageBlock: string | undefined;
+  userText: string;
+}): string {
+  const blocks: string[] = [];
+  if (instructions) {
+    blocks.push(
+      '<session-instructions>\n' +
+        'The block below is operating guidance from the system, not a message from the user — follow it, but do not mention it or attribute it to the user.\n\n' +
+        `${instructions}\n` +
+        '</session-instructions>',
+    );
+  }
+  if (toolUsageBlock) blocks.push(toolUsageBlock);
+  if (blocks.length === 0) return userText;
+  return `${blocks.join('\n\n')}\n\n<user-message>\n${userText}\n</user-message>`;
+}
+
+function composeToolUsageInstructions({
+  tools,
+  cliShimPath,
+}: {
+  tools: ReadonlyArray<{
+    name: string;
+    description?: string;
+    inputSchema?: unknown;
+  }>;
+  cliShimPath: string;
+}): string {
+  const lines: string[] = [
+    '<host-tool-instructions>',
+    'You have access to the following host-provided tools. To use one, run the following command via your built-in `bash` tool:',
+    '',
+    `  node ${cliShimPath} <toolName> '<jsonInput>'`,
+    '',
+    'The script prints the JSON result to stdout. Do not invent another way to call these tools — only this CLI invocation will work. Pass the JSON input as a single-quoted argument.',
+    'For every user request that depends on a host-provided tool, run a separate CLI invocation for each needed tool call in the current turn before answering. Do not reuse previous tool results, and do not say you used a host tool unless the command has completed in the current turn.',
+    '',
+  ];
+  for (const toolSpec of tools) {
+    lines.push(
+      `- **${toolSpec.name}**${toolSpec.description ? ': ' + toolSpec.description : ''}`,
+    );
+    lines.push(
+      `  - Input schema: \`${JSON.stringify(toolSpec.inputSchema ?? {})}\``,
+    );
+  }
+  lines.push('</host-tool-instructions>');
+  return lines.join('\n');
 }
 
 /*

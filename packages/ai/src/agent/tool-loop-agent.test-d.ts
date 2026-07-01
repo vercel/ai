@@ -139,6 +139,51 @@ describe('ToolLoopAgent', () => {
         },
       });
     });
+
+    it('should support stable start callbacks', async () => {
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4(),
+        onStart: event => {
+          expectTypeOf(event.runtimeContext).toEqualTypeOf<Context>();
+        },
+        onStepStart: event => {
+          expectTypeOf(event.runtimeContext).toEqualTypeOf<Context>();
+        },
+      });
+
+      await agent.generate({
+        prompt: 'Hello, world!',
+        onStart: event => {
+          expectTypeOf(event.runtimeContext).toEqualTypeOf<Context>();
+        },
+        onStepStart: event => {
+          expectTypeOf(event.runtimeContext).toEqualTypeOf<Context>();
+        },
+      });
+    });
+
+    it('should support deprecated tool call callbacks', async () => {
+      const tools = {
+        calculator: tool({
+          inputSchema: z.object({ expression: z.string() }),
+          execute: async () => 'result',
+        }),
+      };
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4(),
+        tools,
+      });
+
+      await agent.generate({
+        prompt: 'Hello, world!',
+        experimental_onToolCallStart: event => {
+          expectTypeOf(event.callId).toEqualTypeOf<string>();
+        },
+        experimental_onToolCallFinish: event => {
+          expectTypeOf(event.callId).toEqualTypeOf<string>();
+        },
+      });
+    });
   });
 
   describe('stream', () => {
@@ -191,6 +236,45 @@ describe('ToolLoopAgent', () => {
       expectTypeOf<typeof partialOutputStream>().toEqualTypeOf<
         AsyncIterableStream<DeepPartial<{ value: string }>>
       >();
+    });
+
+    it('should support stable start callbacks', async () => {
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4(),
+      });
+
+      await agent.stream({
+        prompt: 'Hello, world!',
+        onStart: event => {
+          expectTypeOf(event.runtimeContext).toEqualTypeOf<Context>();
+        },
+        onStepStart: event => {
+          expectTypeOf(event.runtimeContext).toEqualTypeOf<Context>();
+        },
+      });
+    });
+
+    it('should support deprecated tool call callbacks', async () => {
+      const tools = {
+        calculator: tool({
+          inputSchema: z.object({ expression: z.string() }),
+          execute: async () => 'result',
+        }),
+      };
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4(),
+        tools,
+      });
+
+      await agent.stream({
+        prompt: 'Hello, world!',
+        experimental_onToolCallStart: event => {
+          expectTypeOf(event.callId).toEqualTypeOf<string>();
+        },
+        experimental_onToolCallFinish: event => {
+          expectTypeOf(event.callId).toEqualTypeOf<string>();
+        },
+      });
     });
   });
 

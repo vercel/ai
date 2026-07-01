@@ -1,17 +1,13 @@
-import type { HARNESS_V1_BUILTIN_TOOLS } from '@ai-sdk/harness';
-import type { UIToolInvocation } from 'ai';
 import ToolSpinner from './tool-spinner';
 
-type FileToolPart =
-  | ({ type: 'tool-read' } & UIToolInvocation<
-      typeof HARNESS_V1_BUILTIN_TOOLS.read
-    >)
-  | ({ type: 'tool-write' } & UIToolInvocation<
-      typeof HARNESS_V1_BUILTIN_TOOLS.write
-    >)
-  | ({ type: 'tool-edit' } & UIToolInvocation<
-      typeof HARNESS_V1_BUILTIN_TOOLS.edit
-    >);
+type FileToolPart = {
+  type: 'tool-read' | 'tool-write' | 'tool-edit';
+  state: string;
+  input?: {
+    file_path?: string;
+    path?: string;
+  };
+};
 
 const LABELS = {
   'tool-read': 'Read',
@@ -24,7 +20,8 @@ export default function HarnessFileToolView({
 }: {
   invocation: FileToolPart;
 }) {
-  if (!invocation.input?.file_path) {
+  const filePath = invocation.input?.file_path ?? invocation.input?.path;
+  if (!filePath) {
     return null;
   }
 
@@ -34,7 +31,7 @@ export default function HarnessFileToolView({
   return (
     <div className="relative mb-2 text-sm text-gray-500">
       {running && <ToolSpinner />}
-      <strong>{label}</strong>(<code>{invocation.input.file_path}</code>)
+      <strong>{label}</strong>(<code>{filePath}</code>)
     </div>
   );
 }

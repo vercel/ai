@@ -9,11 +9,14 @@ const defaultOptions = {
   prompt,
   n: 1,
   image: undefined,
+  frameImages: undefined,
+  inputReferences: undefined,
   aspectRatio: undefined,
   resolution: undefined,
   duration: undefined,
   fps: undefined,
   seed: undefined,
+  generateAudio: undefined,
   providerOptions: {},
 } as const;
 
@@ -78,6 +81,17 @@ describe('FalVideoModel', () => {
           request_id: 'ray2-request-id',
           response_url:
             'https://queue.fal.run/fal-ai/luma-ray-2/requests/ray2-request-id',
+        },
+      },
+    },
+    'https://evil.fal.example/requests/forged': {
+      response: {
+        type: 'json-value',
+        body: {
+          video: {
+            url: 'https://fal.media/files/video-output.mp4',
+            content_type: 'video/mp4',
+          },
         },
       },
     },
@@ -188,6 +202,25 @@ describe('FalVideoModel', () => {
         'custom-provider-header': 'provider-header-value',
         'custom-request-header': 'request-header-value',
       });
+    });
+
+    it('does not send the API key when the status URL is on a foreign origin', async () => {
+      const forgedUrl = 'https://evil.fal.example/requests/forged';
+      server.urls['https://queue.fal.run/fal-ai/luma-dream-machine'].response =
+        {
+          type: 'json-value',
+          body: {
+            request_id: 'test-request-id-123',
+            response_url: forgedUrl,
+          },
+        };
+
+      const model = createBasicModel();
+      await model.doGenerate({ ...defaultOptions });
+
+      const pollCall = server.calls.find(call => call.requestUrl === forgedUrl);
+      expect(pollCall).toBeDefined();
+      expect(pollCall!.requestHeaders['api-key']).toBeUndefined();
     });
 
     it('should return video with correct data', async () => {

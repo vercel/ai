@@ -1,5 +1,220 @@
 # @ai-sdk/rsc
 
+## 3.0.9
+
+### Patch Changes
+
+- ai@7.0.9
+
+## 3.0.8
+
+### Patch Changes
+
+- Updated dependencies [0274f34]
+  - @ai-sdk/provider@4.0.1
+  - ai@7.0.8
+  - @ai-sdk/provider-utils@5.0.2
+
+## 3.0.7
+
+### Patch Changes
+
+- Updated dependencies [d598481]
+  - ai@7.0.7
+
+## 3.0.6
+
+### Patch Changes
+
+- Updated dependencies [989402d]
+  - ai@7.0.6
+
+## 3.0.5
+
+### Patch Changes
+
+- Updated dependencies [a2750db]
+  - ai@7.0.5
+
+## 3.0.4
+
+### Patch Changes
+
+- Updated dependencies [6a436e3]
+  - @ai-sdk/provider-utils@5.0.1
+  - ai@7.0.4
+
+## 3.0.3
+
+### Patch Changes
+
+- ai@7.0.3
+
+## 3.0.2
+
+### Patch Changes
+
+- ai@7.0.2
+
+## 3.0.1
+
+### Patch Changes
+
+- ai@7.0.1
+
+## 3.0.0
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- 31ee822: refactoring(ai): extract filterActiveTools and expose it as experimental_filterActiveTools
+- 83f9d04: feat(openai): upgrade v3 specs to v4
+- 1db29c8: feat(ai): break `CallSettings` apart into `LanguageModelCallOptions` and `RequestOptions`
+- 9f0e36c: trigger release for all packages after provenance setup
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- 0c4c275: trigger initial canary release
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- 6abd098: split `prepareToolsAndToolChoice()` into `prepareTools()` and `prepareToolChoice()`
+- e79e644: chore(ai/core): remove `timeout` from `CallSettings` as it was effectively unused there
+- b8396f0: trigger initial beta release
+
+## 3.0.0-beta.188
+
+### Patch Changes
+
+- ai@7.0.0-beta.187
+
+## 3.0.0-beta.187
+
+### Patch Changes
+
+- ai@7.0.0-beta.186
+
+## 3.0.0-beta.186
+
+### Patch Changes
+
+- Updated dependencies [75763b0]
+  - ai@7.0.0-beta.185
+
+## 3.0.0-beta.185
+
+### Patch Changes
+
+- Updated dependencies [0416e3e]
+  - @ai-sdk/provider@4.0.0-beta.20
+  - ai@7.0.0-beta.184
+  - @ai-sdk/provider-utils@5.0.0-beta.50
+
+## 3.0.0-beta.184
+
+### Patch Changes
+
+- ai@7.0.0-beta.183
+
+## 3.0.0-beta.183
+
+### Patch Changes
+
+- Updated dependencies [cc6ab90]
+  - ai@7.0.0-beta.182
+
+## 3.0.0-beta.182
+
+### Patch Changes
+
+- Updated dependencies [6a2caf9]
+  - ai@7.0.0-beta.181
+
+## 3.0.0-beta.181
+
+### Patch Changes
+
+- Updated dependencies [81a284b]
+  - ai@7.0.0-beta.180
+
+## 3.0.0-beta.180
+
+### Patch Changes
+
+- ai@7.0.0-beta.179
+
+## 3.0.0-beta.179
+
+### Patch Changes
+
+- Updated dependencies [b097c52]
+  - ai@7.0.0-beta.178
+
+## 3.0.0-beta.178
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/provider-utils@5.0.0-beta.49
+  - @ai-sdk/provider@4.0.0-beta.19
+  - ai@7.0.0-beta.177
+
+## 3.0.0-canary.177
+
+### Patch Changes
+
+- ai@7.0.0-canary.176
+
+## 3.0.0-canary.176
+
+### Patch Changes
+
+- Updated dependencies [6ec57f5]
+  - ai@7.0.0-canary.175
+
+## 3.0.0-canary.175
+
+### Patch Changes
+
+- ai@7.0.0-canary.174
+
+## 3.0.0-canary.174
+
+### Patch Changes
+
+- ai@7.0.0-canary.173
+
+## 3.0.0-canary.173
+
+### Patch Changes
+
+- Updated dependencies [aeda373]
+- Updated dependencies [25a64f8]
+- Updated dependencies [375fdd7]
+- Updated dependencies [f18b08f]
+- Updated dependencies [b4507d5]
+  - @ai-sdk/provider-utils@5.0.0-canary.48
+  - ai@7.0.0-canary.172
+
+## 3.0.0-canary.172
+
+### Patch Changes
+
+- Updated dependencies [89ad56f]
+- Updated dependencies [f9a496f]
+- Updated dependencies [3295831]
+  - ai@7.0.0-canary.171
+
+## 3.0.0-canary.171
+
+### Patch Changes
+
+- Updated dependencies [bae5e2b]
+- Updated dependencies [69d7128]
+  - ai@7.0.0-canary.170
+  - @ai-sdk/provider-utils@5.0.0-canary.47
+
 ## 3.0.0-canary.170
 
 ### Patch Changes

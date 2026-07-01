@@ -36,24 +36,58 @@ export async function validateLifecycleStateData<
       message: `Lifecycle state was produced by harness '${state.harnessId}' but this agent uses '${harness.harnessId}'.`,
     });
   }
-  if (harness.lifecycleStateSchema == null) {
-    return state;
-  }
-  const result = await safeValidateTypes({
-    value: state.data,
-    schema: harness.lifecycleStateSchema,
-  });
-  if (!result.success) {
+  if (
+    state.type === 'resume-session' &&
+    'pendingToolApprovals' in state &&
+    state.pendingToolApprovals !== undefined
+  ) {
     throw new HarnessError({
-      message: `Lifecycle state failed schema validation for harness '${harness.harnessId}': ${result.error.message}`,
-      cause: result.error,
+      message:
+        'Resume session state cannot contain pending tool approvals; unfinished turns must be stored as `continueFrom`.',
     });
   }
+
+  const data =
+    harness.lifecycleStateSchema == null
+      ? state.data
+      : await (async () => {
+          const result = await safeValidateTypes({
+            value: state.data,
+            schema: harness.lifecycleStateSchema!,
+          });
+          if (!result.success) {
+            throw new HarnessError({
+              message: `Lifecycle state failed schema validation for harness '${harness.harnessId}': ${result.error.message}`,
+              cause: result.error,
+            });
+          }
+          return result.value as STATE['data'];
+        })();
+
+  if (state.type === 'resume-session') {
+    const continueFrom =
+      state.continueFrom == null
+        ? undefined
+        : await validateLifecycleStateData({
+            harness,
+            state: state.continueFrom,
+            expectedType: 'continue-turn',
+          });
+
+    return {
+      type: state.type,
+      harnessId: state.harnessId,
+      specificationVersion: state.specificationVersion,
+      data,
+      ...(continueFrom !== undefined ? { continueFrom } : {}),
+    } as STATE;
+  }
+
   return {
     type: state.type,
     harnessId: state.harnessId,
     specificationVersion: state.specificationVersion,
-    data: result.value as STATE['data'],
+    data,
     ...(state.pendingToolApprovals !== undefined
       ? { pendingToolApprovals: state.pendingToolApprovals }
       : {}),
