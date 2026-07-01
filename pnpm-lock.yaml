@@ -457,6 +457,9 @@ importers:
       valibot:
         specifier: 1.1.0
         version: 1.1.0(typescript@5.8.3)
+      ws:
+        specifier: ^8.21.0
+        version: 8.21.0
       zod:
         specifier: 3.25.76
         version: 3.25.76
@@ -464,6 +467,9 @@ importers:
       '@types/node':
         specifier: 22.19.19
         version: 22.19.19
+      '@types/ws':
+        specifier: ^8.5.13
+        version: 8.18.1
       tsx:
         specifier: 4.19.2
         version: 4.19.2

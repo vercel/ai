@@ -28,3 +28,34 @@ export function getWebSocketConstructor(
 
   return WebSocketConstructor;
 }
+
+/**
+ * Converts an http(s) URL to the corresponding ws(s) URL.
+ */
+export function toWebSocketUrl(url: string | URL): URL {
+  const wsUrl = new URL(url);
+  if (wsUrl.protocol === 'http:') {
+    wsUrl.protocol = 'ws:';
+  } else if (wsUrl.protocol === 'https:') {
+    wsUrl.protocol = 'wss:';
+  }
+  return wsUrl;
+}
+
+const textDecoder = new TextDecoder();
+
+/**
+ * Reads WebSocket message data as text, handling string, binary,
+ * and Blob payloads.
+ */
+export async function readWebSocketMessageText(data: unknown): Promise<string> {
+  if (typeof data === 'string') return data;
+  if (data instanceof ArrayBuffer) return textDecoder.decode(data);
+  if (ArrayBuffer.isView(data)) {
+    return textDecoder.decode(data);
+  }
+  if (typeof Blob !== 'undefined' && data instanceof Blob) {
+    return data.text();
+  }
+  return String(data);
+}
