@@ -33,6 +33,8 @@ export interface Plan {
 export interface Clinic {
   id: string;
   name: string;
+  legal_name: string | null;
+  document_number: string | null;
   plan_id: string;
   owner_id: string | null;
   is_active: boolean;

@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { isValidDocumentLength, onlyDigits } from '@/lib/document';
 
 export async function login(formData: FormData) {
   const email = String(formData.get('email') ?? '');
@@ -22,7 +23,13 @@ export async function signup(formData: FormData) {
   const password = String(formData.get('password') ?? '');
   const fullName = String(formData.get('full_name') ?? '');
   const clinicName = String(formData.get('clinic_name') ?? '');
+  const legalName = String(formData.get('legal_name') ?? '');
+  const documentNumber = onlyDigits(String(formData.get('document_number') ?? ''));
   const planId = String(formData.get('plan_id') ?? '');
+
+  if (!isValidDocumentLength(documentNumber)) {
+    redirect(`/signup?error=${encodeURIComponent('CPF ou CNPJ inválido. Verifique a quantidade de dígitos.')}`);
+  }
 
   const supabase = createSupabaseServerClient();
 
@@ -39,7 +46,13 @@ export async function signup(formData: FormData) {
 
   const { data: clinic, error: clinicError } = await supabase
     .from('clinics')
-    .insert({ name: clinicName, plan_id: planId, trial_ends_at: trialEndsAt })
+    .insert({
+      name: clinicName,
+      legal_name: legalName,
+      document_number: documentNumber,
+      plan_id: planId,
+      trial_ends_at: trialEndsAt,
+    })
     .select('id')
     .single<{ id: string }>();
 
