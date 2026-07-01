@@ -121,6 +121,7 @@ export function Sidebar({
   planName,
   subscription,
   trialEndsAt,
+  isSuperAdmin,
 }: {
   role: UserRole;
   fullName: string;
@@ -128,6 +129,7 @@ export function Sidebar({
   planName: string | null;
   subscription: Subscription | null;
   trialEndsAt: string | null;
+  isSuperAdmin?: boolean;
 }) {
   const pathname = usePathname();
   const daysLeft = subscription?.status === 'trialing' ? trialDaysLeft(trialEndsAt) : null;
@@ -196,6 +198,14 @@ export function Sidebar({
             className="mb-1 block rounded px-3 py-2 text-xs text-blue-200/60 hover:bg-white/5 hover:text-white"
           >
             Plano & Assinatura
+          </Link>
+        )}
+        {isSuperAdmin && (
+          <Link
+            href="/super-admin"
+            className="mb-1 flex items-center gap-1.5 rounded px-3 py-2 text-xs font-medium text-emerald-300/90 hover:bg-white/5 hover:text-emerald-200"
+          >
+            Centro de Comando
           </Link>
         )}
         <form action={logout}>
