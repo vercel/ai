@@ -26,12 +26,20 @@ export default async function PatientsPage({
             {(patients ?? []).length} pacientes cadastrados
           </p>
         </div>
-        <Link
-          href="/dashboard/patients/new"
-          className="rounded bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
-        >
-          + Novo paciente
-        </Link>
+        <div className="flex gap-3">
+          <Link
+            href="/dashboard/patients/import"
+            className="rounded border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+          >
+            Importar CSV
+          </Link>
+          <Link
+            href="/dashboard/patients/new"
+            className="rounded bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+          >
+            + Novo paciente
+          </Link>
+        </div>
       </div>
 
       <form className="mb-4" method="get">
