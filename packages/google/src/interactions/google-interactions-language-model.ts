@@ -158,13 +158,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     let toolsForBody: Array<GoogleInteractionsTool> | undefined;
     let toolChoiceForBody: GoogleInteractionsToolChoice | undefined;
 
-    if (hasTools && isAgent) {
-      warnings.push({
-        type: 'other',
-        message:
-          'google.interactions: tools are not supported when an agent is set; tools will be omitted from the request body.',
-      });
-    } else if (hasTools) {
+    if (hasTools) {
       const prepared = prepareGoogleInteractionsTools({
         tools: options.tools,
         toolChoice: options.toolChoice,
