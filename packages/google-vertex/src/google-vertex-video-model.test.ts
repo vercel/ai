@@ -686,14 +686,12 @@ describe('GoogleVertexVideoModel', () => {
             bytesBase64Encoded: 'reference-1',
             mimeType: 'image/png',
           },
-          referenceType: 'asset',
         },
         {
           image: {
             bytesBase64Encoded: 'reference-2',
             mimeType: 'image/jpeg',
           },
-          referenceType: 'asset',
         },
       ]);
     });
@@ -734,7 +732,6 @@ describe('GoogleVertexVideoModel', () => {
             bytesBase64Encoded: 'reference-from-input',
             mimeType: 'image/png',
           },
-          referenceType: 'asset',
         },
       ]);
     });

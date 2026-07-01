@@ -250,6 +250,28 @@ describe('XaiVideoModel', () => {
       });
     });
 
+    it('should warn and exclude a video image input from the image field', async () => {
+      const model = createModel();
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        image: {
+          type: 'url',
+          url: 'https://example.com/clip.mp4',
+          mediaType: 'video/mp4',
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('image');
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'image',
+        }),
+      );
+    });
+
     it('should send video object to /videos/edits for video editing with explicit mode', async () => {
       const model = createModel();
 
@@ -927,6 +949,33 @@ describe('XaiVideoModel', () => {
       expect(result.warnings).toEqual([]);
     });
 
+    it('should warn and exclude a video first_frame from the image field', async () => {
+      const model = createModel();
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        frameImages: [
+          {
+            image: {
+              type: 'url',
+              url: 'https://example.com/clip.mp4',
+              mediaType: 'video/mp4',
+            },
+            frameType: 'first_frame',
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('image');
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'frameImages',
+        }),
+      );
+    });
+
     it('should warn and ignore a last_frame image', async () => {
       const model = createModel();
 
@@ -1043,6 +1092,34 @@ describe('XaiVideoModel', () => {
         image: { url: 'https://example.com/first.png' },
       });
       expect(body).not.toHaveProperty('reference_images');
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'inputReferences',
+        }),
+      );
+    });
+
+    it('should warn and exclude a video inputReference from reference_images', async () => {
+      const model = createModel();
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        inputReferences: [
+          { type: 'url', url: 'https://example.com/ref1.jpg' },
+          {
+            type: 'url',
+            url: 'https://example.com/clip.mp4',
+            mediaType: 'video/mp4',
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        reference_images: [{ url: 'https://example.com/ref1.jpg' }],
+      });
+      expect(body.reference_images).toHaveLength(1);
       expect(result.warnings).toContainEqual(
         expect.objectContaining({
           type: 'unsupported',
