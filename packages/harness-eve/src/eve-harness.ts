@@ -175,6 +175,13 @@ export function createEve(
       assertNoSkills({
         skills: startOpts.skills ?? [],
       });
+      assertNoBuiltinToolFiltering({
+        builtinToolFiltering: (
+          startOpts as {
+            readonly builtinToolFiltering?: unknown;
+          }
+        ).builtinToolFiltering,
+      });
 
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
       const client = new Client(resolveEveClientOptions({ settings }));
@@ -1007,6 +1014,17 @@ function assertNoHostTools({
 }): void {
   if (tools.length === 0) return;
   unsupported('custom host tools because Eve agents define their own tools');
+}
+
+function assertNoBuiltinToolFiltering({
+  builtinToolFiltering,
+}: {
+  readonly builtinToolFiltering: unknown;
+}): void {
+  if (builtinToolFiltering == null) return;
+  unsupported(
+    'activeTools or inactiveTools because Eve agents control their own tool set',
+  );
 }
 
 function assertNoSkills({

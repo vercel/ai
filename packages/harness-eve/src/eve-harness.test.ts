@@ -495,6 +495,17 @@ describe('createEve adapter', () => {
       }),
     ).rejects.toSatisfy(HarnessCapabilityUnsupportedError.isInstance);
 
+    await expect(
+      harness.doStart({
+        sessionId: 'session-1',
+        sandboxSession: {} as never,
+        sessionWorkDir: '/tmp/eve',
+        ...({
+          builtinToolFiltering: { mode: 'deny', toolNames: ['bash'] },
+        } as { readonly builtinToolFiltering: unknown }),
+      }),
+    ).rejects.toSatisfy(HarnessCapabilityUnsupportedError.isInstance);
+
     const session = await createStartedSession();
     await expect(
       session.doPromptTurn({

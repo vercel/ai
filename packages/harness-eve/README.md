@@ -107,6 +107,7 @@ Supported auth modes:
 
 - No `eve` default export is provided. Use `createEve({ url })`.
 - Host-defined AI SDK tools are not supported.
+- `activeTools` and `inactiveTools` are not supported.
 - Host-provided skills are not supported.
 - Custom AI SDK sandbox control is not supported by Eve.
 - Manual compaction is not supported.
