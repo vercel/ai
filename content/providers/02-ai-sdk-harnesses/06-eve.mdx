@@ -1,0 +1,222 @@
+---
+title: Eve
+description: Learn how to use the Eve harness adapter.
+---
+
+# Eve Harness
+
+The Eve harness adapter connects `HarnessAgent` to a specific remote
+[Eve](https://eve.dev/) agent. Eve does not expose a generic harness process;
+the harness is part of the Eve agent application, so the adapter requires the
+URL of the Eve agent you want to run.
+
+<Note>
+  Harness packages are **experimental**. The Eve adapter is especially
+  experimental because the remote Eve agent owns its tools, skills, model, and
+  sandbox.
+</Note>
+
+## Setup
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet
+      text="pnpm add @ai-sdk/harness @ai-sdk/harness-eve @ai-sdk/sandbox-just-bash"
+      dark
+    />
+  </Tab>
+  <Tab>
+    <Snippet
+      text="npm install @ai-sdk/harness @ai-sdk/harness-eve @ai-sdk/sandbox-just-bash"
+      dark
+    />
+  </Tab>
+  <Tab>
+    <Snippet
+      text="yarn add @ai-sdk/harness @ai-sdk/harness-eve @ai-sdk/sandbox-just-bash"
+      dark
+    />
+  </Tab>
+  <Tab>
+    <Snippet
+      text="bun add @ai-sdk/harness @ai-sdk/harness-eve @ai-sdk/sandbox-just-bash"
+      dark
+    />
+  </Tab>
+</Tabs>
+
+## Import
+
+```ts
+import { createEve } from '@ai-sdk/harness-eve';
+```
+
+The package does not export an `eve` constant. Each harness instance needs a
+specific Eve agent URL.
+
+## Basic Usage
+
+```ts
+import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { createEve } from '@ai-sdk/harness-eve';
+import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
+
+const agent = new HarnessAgent({
+  harness: createEve({
+    url: process.env.EVE_AGENT_URL!,
+  }),
+  sandbox: createJustBashSandbox(),
+});
+
+const session = await agent.createSession();
+
+try {
+  const result = await agent.stream({
+    session,
+    prompt: 'Check the test failures and explain the smallest fix.',
+  });
+
+  for await (const part of result.stream) {
+    if (part.type === 'text-delta') {
+      process.stdout.write(part.text);
+    }
+  }
+} finally {
+  await session.destroy();
+}
+```
+
+## Adapter Settings
+
+Use `createEve()` to configure the remote agent connection:
+
+```ts
+const harness = createEve({
+  url: 'https://my-eve-agent.vercel.app',
+  auth: 'auto',
+});
+```
+
+Settings:
+
+- `url`: remote Eve agent URL.
+- `auth`: Eve client auth mode. Defaults to `auto`.
+- `headers`: additional headers for the Eve client.
+- `redirect`: fetch redirect policy.
+- `maxReconnectAttempts`: stream reconnect attempts.
+- `preserveCompletedSessions`: whether Eve keeps continuation state after
+  completed turns. Defaults to `true`.
+
+## Authentication
+
+By default, remote Eve agent URLs use Eve's public Vercel OIDC auth helper.
+That helper reads `VERCEL_OIDC_TOKEN` and refreshes development tokens when
+needed. This matches the credential-bearing request path used by remote Eve
+development clients.
+
+```ts
+const harness = createEve({
+  url: process.env.EVE_AGENT_URL!,
+});
+```
+
+For a public Eve agent that does not require auth, opt out explicitly:
+
+```ts
+const harness = createEve({
+  url: process.env.EVE_AGENT_URL!,
+  auth: 'none',
+});
+```
+
+Explicit credential modes are also available:
+
+```ts
+const harness = createEve({
+  url: process.env.EVE_AGENT_URL!,
+  auth: {
+    type: 'vercel-oidc',
+    token: process.env.VERCEL_OIDC_TOKEN,
+  },
+});
+```
+
+If the resolver needs an explicit Vercel scope, pass `team` and `project`
+instead of a static token:
+
+```ts
+const harness = createEve({
+  url: process.env.EVE_AGENT_URL!,
+  auth: {
+    type: 'vercel-oidc',
+    team: 'team_...',
+    project: 'prj_...',
+  },
+});
+```
+
+When `VERCEL_AUTOMATION_BYPASS_SECRET` is set, the adapter forwards it as the
+Vercel deployment protection bypass header.
+
+Supported auth modes:
+
+- `auto`: uses Eve's Vercel OIDC resolver for remote URLs; local URLs can run
+  without auth when no token is available.
+- `none`: sends no Eve auth headers.
+- `vercel-oidc`: sends a Vercel OIDC token.
+- `bearer`: sends a bearer token.
+- `basic`: sends basic auth credentials.
+
+## Sandbox
+
+`HarnessAgent` still requires a sandbox provider, but Eve does not use the AI
+SDK sandbox. The remote Eve agent uses its own sandbox configuration and does
+not expose a public API for the AI SDK adapter to replace it.
+
+Use `@ai-sdk/sandbox-just-bash` when you only need a lightweight required
+sandbox provider:
+
+```ts
+const agent = new HarnessAgent({
+  harness: createEve({
+    url: process.env.EVE_AGENT_URL!,
+  }),
+  sandbox: createJustBashSandbox(),
+});
+```
+
+## Built-in Tools
+
+The adapter exposes these Eve framework tools through `agent.tools`:
+
+- `read`
+- `write`
+- `bash`
+- `grep`
+- `glob`
+- `webSearch`
+- `web_fetch`
+- `todo`
+- `agent`
+- `load_skill`
+- `connection_search`
+
+Eve-authored tools and other agent-specific tools are surfaced as
+provider-executed dynamic tool calls when the remote agent requests them.
+
+Eve confirmation approvals are supported. `ask_question` and other non-
+confirmation input requests are not supported by this adapter.
+
+## Limitations
+
+- Host-defined AI SDK tools are not supported.
+- Host-provided skills are not supported.
+- The AI SDK cannot provide or replace the remote Eve sandbox.
+- Manual compaction is not supported.
+- Eve `ask_question` requests are not supported.
+
+## Related
+
+- [HarnessAgent](/docs/ai-sdk-harnesses/harness-agent)
+- [Harness tools](/docs/ai-sdk-harnesses/tools)
+- [Harness adapters](/docs/ai-sdk-harnesses/harness-adapters)
