@@ -241,6 +241,22 @@ await generateText({
 
 Documentation for additional settings based on the selected model can be found within the [Amazon Bedrock Inference Parameter Documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters.html).
 
+For Anthropic User Profile attribution on Bedrock Anthropic models, pass the profile ID with `providerOptions.amazonBedrock.userProfileId`. The SDK sends it as the `user_profile_id` body field in `additionalModelRequestFields`.
+
+```ts highlight="8"
+import { type AmazonBedrockLanguageModelChatOptions } from '@ai-sdk/amazon-bedrock';
+
+await generateText({
+  model: amazonBedrock('anthropic.claude-3-sonnet-20240229-v1:0'),
+  prompt: 'Write a welcome email.',
+  providerOptions: {
+    amazonBedrock: {
+      userProfileId: 'uprof_01HqRxK2mN8vT3wY',
+    } satisfies AmazonBedrockLanguageModelChatOptions,
+  },
+});
+```
+
 You can use Amazon Bedrock language models to generate text with the `generateText` function:
 
 ```ts
@@ -1446,6 +1462,10 @@ The following optional provider options are available for Bedrock Anthropic mode
 
   Optional. Metadata to include with the request. See the [Anthropic API documentation](https://platform.claude.com/docs/en/api/messages/create) for details.
   - `userId` _string_ - An external identifier for the end-user.
+
+- `userProfileId` _string_
+
+  Optional. Anthropic User Profile ID (`uprof_...`) for end-customer attribution. Sent as the `user_profile_id` request body field.
 
 ### Cache Control
 

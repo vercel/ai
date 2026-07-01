@@ -132,6 +132,13 @@ export const amazonBedrockLanguageModelChatOptions = z.object({
    */
   anthropicBeta: z.array(z.string()).optional(),
   /**
+   * Anthropic User Profile ID to attribute this request to an end customer.
+   *
+   * Only applies to Anthropic models. Sent as the `user_profile_id` body field
+   * in Bedrock's `additionalModelRequestFields`.
+   */
+  userProfileId: z.string().optional(),
+  /**
    * Service tier for the request.
    * @see https://docs.aws.amazon.com/bedrock/latest/userguide/service-tiers-inference.html
    *
