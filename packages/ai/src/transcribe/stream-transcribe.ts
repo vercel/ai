@@ -1,5 +1,6 @@
 import {
   UnsupportedFunctionalityError,
+  type Experimental_TranscriptionModelV4StreamPart,
   type JSONObject,
 } from '@ai-sdk/provider';
 import {
@@ -38,7 +39,7 @@ type TranscriptSegment = {
  *
  * @returns A result object that contains the streaming transcript and final transcript metadata.
  */
-export function experimental_streamTranscribe({
+export function streamTranscribe({
   model,
   audio,
   inputAudioFormat,
@@ -105,9 +106,17 @@ export function experimental_streamTranscribe({
     throw new Error('Model could not be resolved');
   }
 
-  if (resolvedModel.doStream == null) {
+  const doStream = resolvedModel.doStream?.bind(resolvedModel);
+  if (doStream == null) {
     throw new UnsupportedFunctionalityError({
       functionality: 'streaming transcription',
+      message:
+        `The ${resolvedModel.provider} model "${resolvedModel.modelId}" does not support streaming transcription.` +
+        (typeof model === 'string'
+          ? ' String model IDs resolve through the global provider (AI Gateway by default),' +
+            ' which does not support streaming transcription yet.' +
+            " Pass a provider model instance instead, e.g. openai.transcription('gpt-realtime-whisper')."
+          : ''),
     });
   }
 
@@ -118,6 +127,8 @@ export function experimental_streamTranscribe({
 
   const textPromise = new DelayedPromise<string>();
   const segmentsPromise = new DelayedPromise<Array<TranscriptSegment>>();
+  const languagePromise = new DelayedPromise<string | undefined>();
+  const durationInSecondsPromise = new DelayedPromise<number | undefined>();
   const warningsPromise = new DelayedPromise<Array<Warning>>();
   const responsesPromise = new DelayedPromise<
     Array<TranscriptionModelResponseMetadata>
@@ -126,132 +137,123 @@ export function experimental_streamTranscribe({
     Record<string, JSONObject>
   >();
 
-  const stream = createAsyncIterableStream(
-    new ReadableStream<TranscriptionStreamPart>({
-      async start(controller) {
-        const startedAt = currentDate();
-        let warnings: Array<Warning> | undefined;
-        let response: TranscriptionModelResponseMetadata | undefined;
+  const rejectPendingPromises = (error: unknown) => {
+    for (const promise of [
+      textPromise,
+      segmentsPromise,
+      languagePromise,
+      durationInSecondsPromise,
+      warningsPromise,
+      responsesPromise,
+      providerMetadataPromise,
+    ]) {
+      if (promise.isPending()) {
+        promise.reject(error);
+      }
+    }
+  };
 
-        const rejectPromises = (error: unknown) => {
-          textPromise.reject(error);
-          segmentsPromise.reject(error);
-          warningsPromise.reject(error);
-          responsesPromise.reject(error);
-          providerMetadataPromise.reject(error);
-        };
+  const startedAt = currentDate();
+  let response: TranscriptionModelResponseMetadata | undefined;
+  const currentResponseMetadata = () =>
+    response ?? { timestamp: startedAt, modelId: resolvedModel.modelId };
 
-        try {
-          const result = await resolvedModel.doStream!({
-            audio,
-            inputAudioFormat,
-            providerOptions,
-            abortSignal,
-            headers: headersWithUserAgent,
-            includeRawChunks,
-          });
+  const resolveWarnings = (warnings: Array<Warning>) => {
+    warningsPromise.resolve(warnings);
+    logWarnings({
+      warnings,
+      provider: resolvedModel.provider,
+      model: resolvedModel.modelId,
+    });
+  };
 
+  const transform = new TransformStream<
+    Experimental_TranscriptionModelV4StreamPart,
+    TranscriptionStreamPart
+  >({
+    transform(value, controller) {
+      switch (value.type) {
+        case 'stream-start': {
+          resolveWarnings(value.warnings);
+          break;
+        }
+
+        case 'response-metadata': {
           response = {
-            timestamp: result.response?.timestamp ?? startedAt,
-            modelId: result.response?.modelId ?? resolvedModel.modelId,
-            headers: result.response?.headers,
+            timestamp: value.timestamp ?? currentResponseMetadata().timestamp,
+            modelId: value.modelId ?? currentResponseMetadata().modelId,
+            headers: value.headers ?? response?.headers,
           };
+          break;
+        }
 
-          const reader = result.stream.getReader();
+        case 'transcript-delta':
+        case 'transcript-partial':
+        case 'transcript-final':
+        case 'raw':
+        case 'error': {
+          controller.enqueue(value);
+          break;
+        }
 
-          try {
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-
-              switch (value.type) {
-                case 'stream-start': {
-                  const streamWarnings = value.warnings;
-                  warnings = streamWarnings;
-                  warningsPromise.resolve(streamWarnings);
-                  logWarnings({
-                    warnings: streamWarnings,
-                    provider: resolvedModel.provider,
-                    model: resolvedModel.modelId,
-                  });
-                  break;
-                }
-
-                case 'response-metadata': {
-                  response = {
-                    timestamp:
-                      value.timestamp ?? response?.timestamp ?? startedAt,
-                    modelId:
-                      value.modelId ??
-                      response?.modelId ??
-                      resolvedModel.modelId,
-                    headers: value.headers ?? response?.headers,
-                  };
-                  break;
-                }
-
-                case 'transcript-delta':
-                case 'transcript-partial':
-                case 'transcript-final':
-                case 'raw':
-                case 'error': {
-                  controller.enqueue(value);
-                  break;
-                }
-
-                case 'finish': {
-                  const responseMetadata = response ?? {
-                    timestamp: startedAt,
-                    modelId: resolvedModel.modelId,
-                  };
-
-                  if (!warningsPromise.isResolved()) {
-                    warnings = [];
-                    warningsPromise.resolve(warnings);
-                    logWarnings({
-                      warnings,
-                      provider: resolvedModel.provider,
-                      model: resolvedModel.modelId,
-                    });
-                  }
-
-                  if (!value.text) {
-                    throw new NoTranscriptGeneratedError({
-                      responses: [responseMetadata],
-                    });
-                  }
-
-                  textPromise.resolve(value.text);
-                  segmentsPromise.resolve(value.segments);
-                  responsesPromise.resolve([responseMetadata]);
-                  providerMetadataPromise.resolve(value.providerMetadata ?? {});
-                  break;
-                }
-              }
-            }
-          } finally {
-            reader.releaseLock();
+        case 'finish': {
+          if (!warningsPromise.isResolved()) {
+            resolveWarnings([]);
           }
 
-          if (textPromise.isPending()) {
+          if (!value.text) {
             throw new NoTranscriptGeneratedError({
-              responses: [
-                response ?? {
-                  timestamp: startedAt,
-                  modelId: resolvedModel.modelId,
-                },
-              ],
+              responses: [currentResponseMetadata()],
             });
           }
 
-          controller.close();
-        } catch (error) {
-          rejectPromises(error);
-          controller.error(error);
+          textPromise.resolve(value.text);
+          segmentsPromise.resolve(value.segments);
+          languagePromise.resolve(value.language);
+          durationInSecondsPromise.resolve(value.durationInSeconds);
+          responsesPromise.resolve([currentResponseMetadata()]);
+          providerMetadataPromise.resolve(value.providerMetadata ?? {});
+          break;
         }
-      },
-    }),
-  );
+      }
+    },
+
+    flush() {
+      if (textPromise.isPending()) {
+        throw new NoTranscriptGeneratedError({
+          responses: [currentResponseMetadata()],
+        });
+      }
+    },
+  });
+
+  // Piping (instead of an eager read loop) preserves consumer backpressure
+  // and propagates cancellation of `fullStream` to the model stream.
+  void (async () => {
+    const result = await doStream({
+      audio,
+      inputAudioFormat,
+      providerOptions,
+      abortSignal,
+      headers: headersWithUserAgent,
+      includeRawChunks,
+    });
+
+    response = {
+      timestamp: result.response?.timestamp ?? startedAt,
+      modelId: result.response?.modelId ?? resolvedModel.modelId,
+      headers: result.response?.headers,
+    };
+
+    await result.stream.pipeTo(transform.writable);
+  })().catch(error => {
+    const reason =
+      error ?? new Error('Transcription stream was cancelled or errored.');
+    rejectPendingPromises(reason);
+    transform.writable.abort(reason).catch(() => {
+      // the writable is already errored when the model stream failed mid-pipe
+    });
+  });
 
   return {
     get text() {
@@ -259,6 +261,12 @@ export function experimental_streamTranscribe({
     },
     get segments() {
       return segmentsPromise.promise;
+    },
+    get language() {
+      return languagePromise.promise;
+    },
+    get durationInSeconds() {
+      return durationInSecondsPromise.promise;
     },
     get warnings() {
       return warningsPromise.promise;
@@ -269,6 +277,6 @@ export function experimental_streamTranscribe({
     get providerMetadata() {
       return providerMetadataPromise.promise;
     },
-    fullStream: stream,
+    fullStream: createAsyncIterableStream(transform.readable),
   };
 }

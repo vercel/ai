@@ -1,9 +1,8 @@
 import type { TranscriptionResult } from './transcribe-result';
 import { transcribe } from './transcribe';
-import { experimental_streamTranscribe } from './stream-transcribe';
 
 export { transcribe } from './transcribe';
-export { experimental_streamTranscribe } from './stream-transcribe';
+export { streamTranscribe as experimental_streamTranscribe } from './stream-transcribe';
 export type {
   StreamTranscriptionResult,
   TranscriptionStreamPart,
