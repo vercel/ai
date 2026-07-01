@@ -22,7 +22,7 @@ export default async function SuperAdminLayout({ children }: { children: React.R
             </div>
             <div>
               <p className="text-sm font-semibold text-white">Centro de Comando</p>
-              <p className="text-[11px] text-slate-500">Santé Clinic · Super Admin</p>
+              <p className="text-[11px] text-slate-500">clinic-app · Super Admin</p>
             </div>
           </div>
           <nav className="flex flex-col gap-1 px-3 py-4 text-sm">
