@@ -63,10 +63,16 @@ export async function importPatientsBulk(rows: ImportedPatientRow[]): Promise<Im
     return { imported: 0, skipped, error: 'Nenhum registro válido (nome é obrigatório)' };
   }
 
+  // Upserting on (clinic_id, cpf) means a re-sent file (or a CPF repeated
+  // across rows) refreshes the existing patient's contact data instead of
+  // creating a duplicate row — their id, and everything linked to it
+  // (appointments, medical records, invoices...), stays intact.
   let imported = 0;
   for (let i = 0; i < records.length; i += BATCH_SIZE) {
     const batch = records.slice(i, i + BATCH_SIZE);
-    const { error, count } = await supabase.from('patients').insert(batch, { count: 'exact' });
+    const { error, count } = await supabase
+      .from('patients')
+      .upsert(batch, { onConflict: 'clinic_id,cpf', ignoreDuplicates: false, count: 'exact' });
     if (error) {
       return { imported, skipped: rows.length - imported, error: error.message };
     }
