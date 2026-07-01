@@ -17,6 +17,8 @@ import { lastAssistantMessageIsCompleteWithApprovalResponses } from './last-assi
 import { lastAssistantMessageIsCompleteWithToolCalls } from './last-assistant-message-is-complete-with-tool-calls';
 import type { UIMessage } from './ui-messages';
 
+type TextUIPart = Extract<UIMessage['parts'][number], { type: 'text' }>;
+
 class TestChatState<
   UI_MESSAGE extends UIMessage,
 > implements ChatState<UI_MESSAGE> {
@@ -68,6 +70,33 @@ class TestChat extends AbstractChat<UIMessage> {
 
 function formatChunk(part: UIMessageChunk) {
   return `data: ${JSON.stringify(part)}\n\n`;
+}
+
+function createGatedChunkStream({
+  gate,
+  text,
+}: {
+  gate: Promise<void>;
+  text: string;
+}) {
+  return new ReadableStream<UIMessageChunk>({
+    async start(controller) {
+      await gate;
+
+      controller.enqueue({ type: 'start' });
+      controller.enqueue({ type: 'start-step' });
+      controller.enqueue({ type: 'text-start', id: 'text-1' });
+      controller.enqueue({
+        type: 'text-delta',
+        id: 'text-1',
+        delta: text,
+      });
+      controller.enqueue({ type: 'text-end', id: 'text-1' });
+      controller.enqueue({ type: 'finish-step' });
+      controller.enqueue({ type: 'finish', finishReason: 'stop' });
+      controller.close();
+    },
+  });
 }
 
 const server = createTestServer({
@@ -902,6 +931,64 @@ describe('Chat', () => {
         ]
       `);
     });
+  });
+
+  it('should finish overlapping requests against their own active response', async () => {
+    const firstGate = createResolvablePromise<void>();
+    const secondGate = createResolvablePromise<void>();
+    const onFinish = vi.fn();
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+
+    let sendCount = 0;
+    const transport = {
+      sendMessages: async () => {
+        sendCount++;
+
+        return createGatedChunkStream({
+          gate: sendCount === 1 ? firstGate.promise : secondGate.promise,
+          text: sendCount === 1 ? 'first response' : 'second response',
+        });
+      },
+      reconnectToStream: async () => null,
+    };
+
+    try {
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId(),
+        transport,
+        onFinish,
+      });
+
+      const firstRequest = chat.sendMessage({ text: 'first prompt' });
+      await Promise.resolve();
+
+      const secondRequest = chat.sendMessage({ text: 'second prompt' });
+      await Promise.resolve();
+
+      firstGate.resolve(undefined);
+      await firstRequest;
+
+      secondGate.resolve(undefined);
+      await secondRequest;
+
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+      expect(onFinish).toHaveBeenCalledTimes(2);
+      expect(
+        onFinish.mock.calls.map(([event]) => {
+          const message = event.message as UIMessage;
+
+          return message.parts
+            .filter((part): part is TextUIPart => part.type === 'text')
+            .map(part => part.text)
+            .join('');
+        }),
+      ).toEqual(['first response', 'second response']);
+    } finally {
+      consoleErrorSpy.mockRestore();
+    }
   });
 
   it('should include the metadata of text message', async () => {
