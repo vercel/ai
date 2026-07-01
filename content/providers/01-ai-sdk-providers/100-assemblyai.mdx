@@ -240,7 +240,7 @@ The following provider options are available:
 - **redactPiiAudioOptions** _object_
 
   Options for PII-redacted audio: `returnRedactedNoSpeechAudio` (boolean),
-  `overrideAudioRedactionMethod` (`'silence'`). Requires `redactPii`.
+  `overrideAudioRedactionMethod` (`'silence'`). Requires `redactPiiAudio`.
   Optional.
 
 - **redactPiiAudioQuality** _enum_
@@ -367,6 +367,10 @@ places:
   field not surfaced above (e.g. `chapters`, word-level `speaker` labels) is
   still available.
 
+Note: timings inside `providerMetadata` and `response.body` (e.g.
+`utterances[].start`) are in **milliseconds**, matching the AssemblyAI API —
+whereas the top-level `segments` use **seconds**.
+
 ```ts
 import { transcribe } from 'ai';
 import { assemblyai } from '@ai-sdk/assemblyai';
@@ -384,7 +388,7 @@ const result = await transcribe({
 });
 
 const { utterances, entities } = result.providerMetadata?.assemblyai ?? {};
-// utterances: [{ speaker: 'A', text: '…', start, end, … }, …]
+// utterances: [{ speaker: 'A', text: '…', start, end, … }, …]  (start/end in ms)
 ```
 
 The following AssemblyAI features are **deprecated** by the API and not surfaced
@@ -398,4 +402,7 @@ AssemblyAI's documentation for per-language availability.
 | Model               | Transcription       | Duration            | Segments            | Language            |
 | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
 | `universal-3-5-pro` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `universal-3-pro`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `universal-2`       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `best`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 

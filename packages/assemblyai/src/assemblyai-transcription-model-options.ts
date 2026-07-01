@@ -127,14 +127,14 @@ export const assemblyaiTranscriptionModelOptionsSchema = z.object({
    */
   redactPiiAudio: z.boolean().nullish(),
   /**
-   * Options for PII-redacted audio files. Requires `redactPii`.
+   * Options for PII-redacted audio files. Requires `redactPiiAudio`.
    */
   redactPiiAudioOptions: z
     .object({
       /** Return redacted audio even for files without detected speech. */
       returnRedactedNoSpeechAudio: z.boolean().nullish(),
       /** Redaction method; set to `'silence'` to replace PII with silence. */
-      overrideAudioRedactionMethod: z.string().nullish(),
+      overrideAudioRedactionMethod: z.enum(['silence']).nullish(),
     })
     .nullish(),
   /**
@@ -164,7 +164,7 @@ export const assemblyaiTranscriptionModelOptionsSchema = z.object({
    * Remove inline annotations from rich transcripts. `'all'` removes all inline
    * annotations; `'speaker'` removes only speaker cues. Universal-3 Pro models.
    */
-  removeAudioTags: z.string().nullish(),
+  removeAudioTags: z.enum(['all', 'speaker']).nullish(),
   /**
    * Whether to enable sentiment analysis.
    */

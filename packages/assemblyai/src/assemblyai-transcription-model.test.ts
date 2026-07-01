@@ -233,6 +233,16 @@ describe('doGenerate', () => {
         summary_model: 'informative',
         summary: '- Hello, world!',
         sentiment_analysis: true,
+        sentiment_analysis_results: [
+          {
+            text: 'Hello, world!',
+            start: 250,
+            end: 26950,
+            sentiment: 'POSITIVE',
+            confidence: 0.9,
+            speaker: 'A',
+          },
+        ],
         entity_detection: true,
         entities: [
           {
@@ -317,10 +327,11 @@ describe('doGenerate', () => {
     expect(requestBody.speech_models).toEqual(['universal-3-pro']);
     expect(requestBody.speech_model).toBeUndefined();
 
-    expect(result.warnings).toContainEqual({
-      type: 'other',
-      message: expect.stringContaining('universal-3-5-pro'),
-    });
+    // universal-3-pro is the model universal-3-5-pro replaces, so the message
+    // names it explicitly.
+    const [nudge] = result.warnings.filter(w => w.type === 'other');
+    expect(nudge?.message).toContain('universal-3-5-pro');
+    expect(nudge?.message).toContain("replace 'universal-3-pro'");
   });
 
   it('should nudge universal-2 users toward universal-3-5-pro', async () => {
@@ -331,10 +342,10 @@ describe('doGenerate', () => {
       mediaType: 'audio/wav',
     });
 
-    expect(result.warnings).toContainEqual({
-      type: 'other',
-      message: expect.stringContaining('universal-3-5-pro'),
-    });
+    // The nudge for universal-2 must not claim it is replaced by universal-3-pro.
+    const [nudge] = result.warnings.filter(w => w.type === 'other');
+    expect(nudge?.message).toContain('universal-3-5-pro');
+    expect(nudge?.message).not.toContain("replace 'universal-3-pro'");
   });
 
   it('should not special-case the removed nano model', async () => {
@@ -402,6 +413,10 @@ describe('doGenerate', () => {
     expect(metadata?.entities?.[0]).toMatchObject({
       entity_type: 'location',
       text: 'Canada',
+    });
+    expect(metadata?.sentimentAnalysisResults?.[0]).toMatchObject({
+      sentiment: 'POSITIVE',
+      text: 'Hello, world!',
     });
     expect(metadata?.contentSafetyLabels).toBeDefined();
     expect(metadata?.iabCategoriesResult).toBeDefined();
@@ -514,9 +529,90 @@ describe('doGenerate', () => {
 
     expect(result.warnings).toContainEqual({
       type: 'deprecated',
-      setting: 'wordBoost',
+      setting: 'wordBoost, boostParam',
       message: expect.stringContaining('keytermsPrompt'),
     });
+  });
+
+  it('should attribute the deprecation warning to boostParam when only boostParam is set', async () => {
+    prepareJsonResponse();
+
+    const result = await provider
+      .transcription('universal-3-5-pro')
+      .doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: { assemblyai: { boostParam: 'high' } },
+      });
+
+    expect(result.warnings).toContainEqual({
+      type: 'deprecated',
+      setting: 'boostParam',
+      message: expect.stringContaining('keytermsPrompt'),
+    });
+  });
+
+  it('should warn when redactPii-dependent options are set without redactPii', async () => {
+    prepareJsonResponse();
+
+    const result = await provider
+      .transcription('universal-3-5-pro')
+      .doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: {
+          assemblyai: { redactStaticEntities: { TOOL: ['Vercel'] } },
+        },
+      });
+
+    expect(
+      result.warnings.some(
+        w => w.type === 'other' && w.message.includes('redactPii'),
+      ),
+    ).toBe(true);
+  });
+
+  it('should warn when redactPiiAudioOptions is set without redactPiiAudio', async () => {
+    prepareJsonResponse();
+
+    const result = await provider
+      .transcription('universal-3-5-pro')
+      .doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: {
+          assemblyai: {
+            redactPii: true,
+            redactPiiAudioOptions: { overrideAudioRedactionMethod: 'silence' },
+          },
+        },
+      });
+
+    expect(
+      result.warnings.some(
+        w => w.type === 'other' && w.message.includes('redactPiiAudio'),
+      ),
+    ).toBe(true);
+  });
+
+  it('should warn when languageCode and languageDetection are combined', async () => {
+    prepareJsonResponse();
+
+    const result = await provider
+      .transcription('universal-3-5-pro')
+      .doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: {
+          assemblyai: { languageCode: 'en', languageDetection: true },
+        },
+      });
+
+    expect(
+      result.warnings.some(
+        w => w.type === 'other' && w.message.includes('languageDetection'),
+      ),
+    ).toBe(true);
   });
 
   it('should report segment timings in seconds (ms converted)', async () => {

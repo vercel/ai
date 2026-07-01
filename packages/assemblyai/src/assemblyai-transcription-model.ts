@@ -95,10 +95,14 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
         this.modelId === 'universal-3-pro' ||
         this.modelId === 'universal-2'
       ) {
+        const docsUrl =
+          'https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model';
         warnings.push({
           type: 'other',
           message:
-            "'universal-3-5-pro' is AssemblyAI's latest flagship model and is set to replace 'universal-3-pro'. See https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model",
+            this.modelId === 'universal-3-pro'
+              ? `'universal-3-5-pro' is AssemblyAI's latest flagship model and is set to replace 'universal-3-pro'. See ${docsUrl}`
+              : `'universal-3-5-pro' is AssemblyAI's latest flagship model. See ${docsUrl}`,
         });
       }
     }
@@ -154,8 +158,7 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
       body.keyterms_prompt = assemblyaiOptions.keytermsPrompt ?? undefined;
       body.prompt = assemblyaiOptions.prompt ?? undefined;
       body.temperature = assemblyaiOptions.temperature ?? undefined;
-      body.remove_audio_tags =
-        (assemblyaiOptions.removeAudioTags as never) ?? undefined;
+      body.remove_audio_tags = assemblyaiOptions.removeAudioTags ?? undefined;
       body.domain = assemblyaiOptions.domain ?? undefined;
       body.redact_pii_return_unredacted =
         assemblyaiOptions.redactPiiReturnUnredacted ?? undefined;
@@ -194,20 +197,59 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
             assemblyaiOptions.redactPiiAudioOptions
               .returnRedactedNoSpeechAudio ?? undefined,
           override_audio_redaction_method:
-            (assemblyaiOptions.redactPiiAudioOptions
-              .overrideAudioRedactionMethod as never) ?? undefined,
+            assemblyaiOptions.redactPiiAudioOptions
+              .overrideAudioRedactionMethod ?? undefined,
         };
       }
 
-      if (
-        assemblyaiOptions.wordBoost != null ||
-        assemblyaiOptions.boostParam != null
-      ) {
+      const deprecatedBoostOptions: string[] = [];
+      if (assemblyaiOptions.wordBoost != null) {
+        deprecatedBoostOptions.push('wordBoost');
+      }
+      if (assemblyaiOptions.boostParam != null) {
+        deprecatedBoostOptions.push('boostParam');
+      }
+      if (deprecatedBoostOptions.length > 0) {
         warnings.push({
           type: 'deprecated',
-          setting: 'wordBoost',
+          setting: deprecatedBoostOptions.join(', '),
           message:
-            "The 'wordBoost' and 'boostParam' options are deprecated and are rejected by 'universal-3-pro' / 'universal-3-5-pro' and 'slam-1'. Use 'keytermsPrompt' instead.",
+            "'wordBoost' and 'boostParam' are deprecated and are rejected by 'universal-3-pro' / 'universal-3-5-pro' and 'slam-1'. Use 'keytermsPrompt' instead.",
+        });
+      }
+
+      // The following options only take effect alongside a prerequisite
+      // option; without it AssemblyAI either rejects the request (400) or
+      // silently ignores the option. Warn rather than mutate user input.
+      if (
+        (assemblyaiOptions.redactPiiReturnUnredacted != null ||
+          assemblyaiOptions.redactStaticEntities != null) &&
+        !assemblyaiOptions.redactPii
+      ) {
+        warnings.push({
+          type: 'other',
+          message:
+            "'redactPiiReturnUnredacted' and 'redactStaticEntities' require 'redactPii' to be enabled; AssemblyAI rejects the request otherwise.",
+        });
+      }
+      if (
+        assemblyaiOptions.redactPiiAudioOptions != null &&
+        !assemblyaiOptions.redactPiiAudio
+      ) {
+        warnings.push({
+          type: 'other',
+          message:
+            "'redactPiiAudioOptions' only applies when 'redactPiiAudio' is enabled; it is otherwise ignored.",
+        });
+      }
+      if (
+        assemblyaiOptions.languageCode != null &&
+        assemblyaiOptions.languageDetection
+      ) {
+        warnings.push({
+          type: 'other',
+          message:
+            "'languageDetection' cannot be combined with an explicit 'languageCode'; AssemblyAI rejects requests that set both.",
         });
       }
     }
@@ -235,12 +277,16 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
     const pollingInterval =
       this.config.pollingInterval ?? this.POLLING_INTERVAL_MS;
 
+    // Honor a caller-provided fetch (proxy, auth injection, tests) for the
+    // polling GETs, matching the upload/submit calls that use config.fetch.
+    const fetchImpl = this.config.fetch ?? globalThis.fetch;
+
     while (true) {
       if (abortSignal?.aborted) {
         throw new Error('Transcription request was aborted');
       }
 
-      const response = await fetch(
+      const response = await fetchImpl(
         this.config.url({
           path: `/v2/transcript/${transcriptId}`,
           modelId: this.modelId,
@@ -342,28 +388,33 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
       );
 
     // Surface diarization and audio-intelligence results that the AI SDK's
-    // `segments` shape can't represent. Only included when the corresponding
-    // feature was enabled (and thus present in the response).
+    // `segments` shape can't represent, keyed under `assemblyai`. Presence is
+    // gated on the parsed transcript, but values are taken from the raw
+    // response so no fields are stripped by the schema.
+    //
+    // NOTE: timings inside these objects (e.g. `utterances[].start`) are in
+    // milliseconds, matching the AssemblyAI API — unlike the top-level
+    // `segments`, whose `startSecond`/`endSecond` are in seconds.
+    const raw = (rawTranscript ?? {}) as Record<string, unknown>;
     const assemblyaiMetadata: Record<string, unknown> = {};
     if (transcript.utterances != null) {
-      assemblyaiMetadata.utterances = transcript.utterances;
+      assemblyaiMetadata.utterances = raw.utterances;
     }
     if (transcript.sentiment_analysis_results != null) {
       assemblyaiMetadata.sentimentAnalysisResults =
-        transcript.sentiment_analysis_results;
+        raw.sentiment_analysis_results;
     }
     if (transcript.entities != null) {
-      assemblyaiMetadata.entities = transcript.entities;
+      assemblyaiMetadata.entities = raw.entities;
     }
     if (transcript.content_safety_labels != null) {
-      assemblyaiMetadata.contentSafetyLabels = transcript.content_safety_labels;
+      assemblyaiMetadata.contentSafetyLabels = raw.content_safety_labels;
     }
     if (transcript.iab_categories_result != null) {
-      assemblyaiMetadata.iabCategoriesResult = transcript.iab_categories_result;
+      assemblyaiMetadata.iabCategoriesResult = raw.iab_categories_result;
     }
     if (transcript.auto_highlights_result != null) {
-      assemblyaiMetadata.autoHighlightsResult =
-        transcript.auto_highlights_result;
+      assemblyaiMetadata.autoHighlightsResult = raw.auto_highlights_result;
     }
 
     const lastWordEndMs = transcript.words?.at(-1)?.end;
