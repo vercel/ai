@@ -5,9 +5,9 @@
 //
 // Only standard JSON Schema structural keys are recursed into, so that tool or
 // response parameters whose name happens to be "pattern" are never touched.
-export function removePatternKeyword(schema: unknown): unknown {
+export function removePatternKeyword<T>(schema: T): T {
   if (!schema || typeof schema !== 'object') return schema;
-  if (Array.isArray(schema)) return schema.map(removePatternKeyword);
+  if (Array.isArray(schema)) return schema.map(removePatternKeyword) as unknown as T;
 
   const result = { ...(schema as Record<string, unknown>) };
 
@@ -48,5 +48,5 @@ export function removePatternKeyword(schema: unknown): unknown {
     }
   }
 
-  return result;
+  return result as unknown as T;
 }
