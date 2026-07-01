@@ -1,11 +1,12 @@
 import Link from 'next/link';
-import { LayoutGrid, Building2, Users, LogOut, ArrowLeft, Radar } from 'lucide-react';
+import { LayoutGrid, Building2, Users, LogOut, ArrowLeft, Radar, BarChart3 } from 'lucide-react';
 import { requireSuperAdmin } from '@/lib/super-admin';
 import { logout } from '@/app/login/actions';
 
 const NAV_ITEMS = [
   { href: '/super-admin', label: 'Visão geral', icon: LayoutGrid },
   { href: '/super-admin/clinics', label: 'Clínicas', icon: Building2 },
+  { href: '/super-admin/reports', label: 'Relatórios', icon: BarChart3 },
   { href: '/super-admin/team', label: 'Equipe', icon: Users },
 ];
 
