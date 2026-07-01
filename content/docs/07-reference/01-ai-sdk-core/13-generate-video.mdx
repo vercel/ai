@@ -118,10 +118,10 @@ console.log(videos);
     },
     {
       name: 'inputReferences',
-      type: 'Array<DataContent | { data: DataContent; mediaType?: string; referenceType?: "subject" | "style" }>',
+      type: 'Array<DataContent | { data: DataContent; mediaType?: string }>',
       isOptional: true,
       description:
-        'Reference image or video inputs for reference-to-video generation. Use the object form with an explicit mediaType for URL-based video references, and referenceType ("subject" by default, or "style") to tell the model what to do with the reference. Providers that do not support a role warn and treat it as subject.',
+        'Reference image or video inputs for reference-to-video generation. Use the object form with an explicit mediaType for URL-based video references. Providers route each reference by its media type and warn when a reference kind is unsupported.',
     },
     {
       name: 'generateAudio',

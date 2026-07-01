@@ -8,7 +8,3 @@ export type {
   VideoModelV3FrameImage as Experimental_VideoModelV3FrameImage,
   VideoModelV3FrameType as Experimental_VideoModelV3FrameType,
 } from './video-model-v3-frame-image';
-export type {
-  VideoModelV3Reference as Experimental_VideoModelV3Reference,
-  VideoModelV3ReferenceType as Experimental_VideoModelV3ReferenceType,
-} from './video-model-v3-reference';

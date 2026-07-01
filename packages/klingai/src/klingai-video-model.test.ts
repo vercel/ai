@@ -1396,29 +1396,6 @@ describe('KlingAIVideoModel', () => {
       });
     });
 
-    it('should warn when a style reference is provided', async () => {
-      const model = createBasicModel({ modelId: 'kling-v2.6-i2v' });
-
-      const result = await model.doGenerate({
-        ...i2vDefaultOptions,
-        image: undefined,
-        inputReferences: [
-          {
-            type: 'url' as const,
-            url: 'https://example.com/style.png',
-            referenceType: 'style' as const,
-          },
-        ],
-      });
-
-      expect(result.warnings).toContainEqual(
-        expect.objectContaining({
-          type: 'unsupported',
-          feature: 'inputReferences.referenceType',
-        }),
-      );
-    });
-
     it('should encode file-based reference images as base64 in image_list', async () => {
       const model = createBasicModel({ modelId: 'kling-v2.6-i2v' });
 

@@ -686,14 +686,12 @@ describe('GoogleVertexVideoModel', () => {
             bytesBase64Encoded: 'reference-1',
             mimeType: 'image/png',
           },
-          referenceType: 'asset',
         },
         {
           image: {
             bytesBase64Encoded: 'reference-2',
             mimeType: 'image/jpeg',
           },
-          referenceType: 'asset',
         },
       ]);
     });
@@ -734,56 +732,6 @@ describe('GoogleVertexVideoModel', () => {
             bytesBase64Encoded: 'reference-from-input',
             mimeType: 'image/png',
           },
-          referenceType: 'asset',
-        },
-      ]);
-    });
-
-    it('should map referenceType subject to asset and style to style', async () => {
-      let capturedBody: unknown;
-      const model = createMockModel({
-        onRequest: (url, body) => {
-          if (url.includes(':predictLongRunning')) {
-            capturedBody = body;
-          }
-        },
-      });
-
-      await model.doGenerate({
-        ...defaultOptions,
-        inputReferences: [
-          {
-            type: 'file',
-            data: 'subject-reference',
-            mediaType: 'image/png',
-            referenceType: 'subject',
-          },
-          {
-            type: 'file',
-            data: 'style-reference',
-            mediaType: 'image/png',
-            referenceType: 'style',
-          },
-        ],
-      });
-
-      const body = capturedBody as {
-        instances: Array<{ referenceImages: unknown }>;
-      };
-      expect(body.instances[0].referenceImages).toStrictEqual([
-        {
-          image: {
-            bytesBase64Encoded: 'subject-reference',
-            mimeType: 'image/png',
-          },
-          referenceType: 'asset',
-        },
-        {
-          image: {
-            bytesBase64Encoded: 'style-reference',
-            mimeType: 'image/png',
-          },
-          referenceType: 'style',
         },
       ]);
     });

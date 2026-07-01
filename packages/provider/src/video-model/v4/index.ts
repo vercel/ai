@@ -9,7 +9,3 @@ export type {
   VideoModelV4FrameImage as Experimental_VideoModelV4FrameImage,
   VideoModelV4FrameType as Experimental_VideoModelV4FrameType,
 } from './video-model-v4-frame-image';
-export type {
-  VideoModelV4Reference as Experimental_VideoModelV4Reference,
-  VideoModelV4ReferenceType as Experimental_VideoModelV4ReferenceType,
-} from './video-model-v4-reference';

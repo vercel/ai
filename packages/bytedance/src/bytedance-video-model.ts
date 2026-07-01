@@ -149,16 +149,6 @@ function resolveReferenceContent(
   const inputReferences = options.inputReferences;
 
   if (inputReferences != null && inputReferences.length > 0) {
-    if (inputReferences.some(ref => ref.referenceType === 'style')) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'inputReferences.referenceType',
-        details:
-          'ByteDance only supports subject references; ' +
-          'style references are treated as subject.',
-      });
-    }
-
     return inputReferences.map(reference => {
       if (reference.type === 'url' && reference.mediaType == null) {
         warnings.push({

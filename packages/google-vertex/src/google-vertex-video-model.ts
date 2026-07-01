@@ -2,7 +2,6 @@ import {
   AISDKError,
   type Experimental_VideoModelV4,
   type Experimental_VideoModelV4File,
-  type Experimental_VideoModelV4Reference,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
@@ -57,7 +56,7 @@ function getLastFrameImage(
 
 function getInputReferences(
   options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
-): Array<Experimental_VideoModelV4Reference> | undefined {
+): Array<Experimental_VideoModelV4File> | undefined {
   if (options.frameImages != null && options.frameImages.length > 0) {
     return undefined;
   }
@@ -100,18 +99,11 @@ function convertFileToVertexImage(
 }
 
 function convertInputReferenceImage(
-  reference: Experimental_VideoModelV4Reference,
+  file: Experimental_VideoModelV4File,
   warnings: SharedV4Warning[],
 ): Record<string, unknown> | undefined {
-  const image = convertFileToVertexImage(reference, warnings);
-  if (image == null) {
-    return undefined;
-  }
-
-  // Veo distinguishes subject references (`asset`) from style references.
-  // `subject` is the default when no role is specified.
-  const referenceType = reference.referenceType === 'style' ? 'style' : 'asset';
-  return { image, referenceType };
+  const image = convertFileToVertexImage(file, warnings);
+  return image != null ? { image } : undefined;
 }
 
 export class GoogleVertexVideoModel implements Experimental_VideoModelV4 {

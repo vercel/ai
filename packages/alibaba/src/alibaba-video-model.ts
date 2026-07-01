@@ -124,16 +124,6 @@ function resolveReferenceUrls(
   }
 
   if (options.inputReferences != null && options.inputReferences.length > 0) {
-    if (options.inputReferences.some(ref => ref.referenceType === 'style')) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'inputReferences.referenceType',
-        details:
-          'Alibaba only supports subject references; ' +
-          'style references are treated as subject.',
-      });
-    }
-
     const urls: string[] = [];
 
     for (const reference of options.inputReferences) {

@@ -618,7 +618,6 @@ describe('GoogleVideoModel', () => {
               data: 'reference-1',
             },
           },
-          referenceType: 'asset',
         },
         {
           image: {
@@ -627,7 +626,6 @@ describe('GoogleVideoModel', () => {
               data: 'reference-2',
             },
           },
-          referenceType: 'asset',
         },
       ]);
     });
@@ -670,60 +668,6 @@ describe('GoogleVideoModel', () => {
               data: 'reference-from-input',
             },
           },
-          referenceType: 'asset',
-        },
-      ]);
-    });
-
-    it('should map referenceType subject to asset and style to style', async () => {
-      let capturedBody: unknown;
-      const model = createMockModel({
-        onRequest: (url, body) => {
-          if (url.includes(':predictLongRunning')) {
-            capturedBody = body;
-          }
-        },
-      });
-
-      await model.doGenerate({
-        ...defaultOptions,
-        inputReferences: [
-          {
-            type: 'file',
-            data: 'subject-reference',
-            mediaType: 'image/png',
-            referenceType: 'subject',
-          },
-          {
-            type: 'file',
-            data: 'style-reference',
-            mediaType: 'image/png',
-            referenceType: 'style',
-          },
-        ],
-      });
-
-      const body = capturedBody as {
-        instances: Array<{ referenceImages: unknown }>;
-      };
-      expect(body.instances[0].referenceImages).toStrictEqual([
-        {
-          image: {
-            inlineData: {
-              mimeType: 'image/png',
-              data: 'subject-reference',
-            },
-          },
-          referenceType: 'asset',
-        },
-        {
-          image: {
-            inlineData: {
-              mimeType: 'image/png',
-              data: 'style-reference',
-            },
-          },
-          referenceType: 'style',
         },
       ]);
     });

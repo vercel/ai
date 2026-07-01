@@ -9,4 +9,4 @@
 "@ai-sdk/xai": patch
 ---
 
-feat (video): support video reference inputs and reference roles in `inputReferences` for reference-to-video generation
+feat (video): support video (not just image) reference inputs in `inputReferences` for reference-to-video generation
