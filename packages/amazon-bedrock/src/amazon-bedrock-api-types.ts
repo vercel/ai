@@ -163,8 +163,16 @@ export interface AmazonBedrockDocumentBlock {
   };
 }
 
+export interface AmazonBedrockGuardrailTextBlock extends AmazonBedrockTextBlock {
+  qualifiers?: Array<'grounding_source' | 'query' | 'guard_content'>;
+}
+
 export interface AmazonBedrockGuardrailConverseContentBlock {
-  guardContent: unknown;
+  guardContent:
+    | {
+        text: AmazonBedrockGuardrailTextBlock;
+      }
+    | AmazonBedrockImageBlock;
 }
 
 export interface AmazonBedrockImageBlock {
