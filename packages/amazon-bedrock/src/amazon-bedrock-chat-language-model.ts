@@ -49,6 +49,7 @@ import {
   type AmazonBedrockUsage,
 } from './convert-amazon-bedrock-usage';
 import { convertToAmazonBedrockChatMessages } from './convert-to-amazon-bedrock-chat-messages';
+import { formatBedrockModelId } from './format-bedrock-model-id';
 import { mapAmazonBedrockFinishReason } from './map-amazon-bedrock-finish-reason';
 import { isMistralModel, normalizeToolCallId } from './normalize-tool-call-id';
 import type { AmazonBedrockReasoningMetadata } from './amazon-bedrock-reasoning-metadata';
@@ -1049,8 +1050,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
   }
 
   private getUrl(modelId: string) {
-    const encodedModelId = encodeURIComponent(modelId);
-    return `${this.config.baseUrl()}/model/${encodedModelId}`;
+    return `${this.config.baseUrl()}/model/${formatBedrockModelId(modelId)}`;
   }
 }
 
