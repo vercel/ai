@@ -147,20 +147,25 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
         seed,
 
         // response format:
+        // Groq rejects requests that combine json_schema response format with tool
+        // calling. When tools are present, omit response_format so the caller's
+        // tools take precedence and the request succeeds.
         response_format:
-          responseFormat?.type === 'json'
-            ? structuredOutputs && responseFormat.schema != null
-              ? {
-                  type: 'json_schema',
-                  json_schema: {
-                    schema: responseFormat.schema,
-                    strict: strictJsonSchema,
-                    name: responseFormat.name ?? 'response',
-                    description: responseFormat.description,
-                  },
-                }
-              : { type: 'json_object' }
-            : undefined,
+          groqTools != null && groqTools.length > 0
+            ? undefined
+            : responseFormat?.type === 'json'
+              ? structuredOutputs && responseFormat.schema != null
+                ? {
+                    type: 'json_schema',
+                    json_schema: {
+                      schema: responseFormat.schema,
+                      strict: strictJsonSchema,
+                      name: responseFormat.name ?? 'response',
+                      description: responseFormat.description,
+                    },
+                  }
+                : { type: 'json_object' }
+              : undefined,
 
         // provider options:
         reasoning_format: groqOptions?.reasoningFormat,
