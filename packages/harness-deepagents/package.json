@@ -51,7 +51,7 @@
     "@types/ws": "^8.5.13",
     "@vercel/ai-tsconfig": "workspace:*",
     "deepagents": "1.10.2",
-    "tsup": "^8.5.1",
+    "tsup": "^8.3.5",
     "typescript": "5.8.3",
     "zod": "3.25.76"
   },

@@ -42,7 +42,7 @@
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
     "ai": "workspace:*",
-    "tsup": "^8.5.1",
+    "tsup": "^8.3.5",
     "typescript": "5.8.3"
   },
   "peerDependencies": {
