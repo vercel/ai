@@ -2274,15 +2274,20 @@ class DefaultStreamTextResult<
                   clearStepTimeout();
                   clearChunkTimeout();
 
+                  const hasClientResultsToSend =
+                    clientToolOutputs.length > 0 ||
+                    deniedToolApprovalResponses.length > 0;
+
                   if (
                     // Continue if:
                     // 1. There are client tool calls that have all been executed or denied, OR
-                    // 2. There are pending deferred results from provider-executed tools, OR
+                    // 2. There are pending deferred results from provider-executed tools AND client output to send back with the next request.
                     ((clientToolCalls.length > 0 &&
                       clientToolCalls.length ===
                         clientToolOutputs.length +
                           deniedToolApprovalResponses.length) ||
-                      pendingDeferredToolCalls.size > 0) &&
+                      (pendingDeferredToolCalls.size > 0 &&
+                        hasClientResultsToSend)) &&
                     // continue until a stop condition is met:
                     !(await isStopConditionMet({
                       stopConditions,

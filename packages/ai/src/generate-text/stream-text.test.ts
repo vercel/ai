@@ -25612,7 +25612,7 @@ describe('streamText', () => {
             doStream: async () => {
               switch (responseCount++) {
                 case 0:
-                  // Step 1: tool call without result
+                  // Step 1: deferred provider tool call + client tool call (no provider result yet - it is deferred)
                   return {
                     stream: convertArrayToReadableStream([
                       {
@@ -25629,6 +25629,12 @@ describe('streamText', () => {
                         providerExecuted: true,
                       },
                       {
+                        type: 'tool-call',
+                        toolCallId: 'client-1',
+                        toolName: 'client_tool',
+                        input: `{ "value": "go" }`,
+                      },
+                      {
                         type: 'finish',
                         finishReason: { unified: 'tool-calls', raw: undefined },
                         usage: testUsage,
@@ -25637,7 +25643,7 @@ describe('streamText', () => {
                     response: {},
                   };
                 case 1:
-                  // Step 2: tool-error arrives
+                  // Step 2: deferred provider tool-error arrives
                   return {
                     stream: convertArrayToReadableStream([
                       {
@@ -25692,6 +25698,10 @@ describe('streamText', () => {
               args: {},
               supportsDeferredResults: true,
             },
+            client_tool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async () => 'client-output',
+            }),
           },
           ...defaultSettings(),
           stopWhen: isStepCount(3),
@@ -25717,6 +25727,27 @@ describe('streamText', () => {
               "type": "tool-call",
             },
             {
+              "input": {
+                "value": "go",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "client-1",
+              "toolName": "client_tool",
+              "type": "tool-call",
+            },
+            {
+              "dynamic": false,
+              "input": {
+                "value": "go",
+              },
+              "output": "client-output",
+              "toolCallId": "client-1",
+              "toolName": "client_tool",
+              "type": "tool-result",
+            },
+            {
               "dynamic": undefined,
               "error": "ERROR",
               "input": undefined,
@@ -25732,6 +25763,75 @@ describe('streamText', () => {
             },
           ]
         `);
+      });
+
+      it('should not run an extra step when a deferred provider tool is pending but there is no client output to send back', async () => {
+        let responseCount = 0;
+        const result = streamText({
+          model: new MockLanguageModelV4({
+            doStream: async () => {
+              if (responseCount++ > 0) {
+                throw new Error(
+                  'streamText scheduled an extra step with no client output to send back',
+                );
+              }
+              return {
+                stream: convertArrayToReadableStream([
+                  {
+                    type: 'response-metadata',
+                    id: 'msg-1',
+                    modelId: 'mock-model-id',
+                    timestamp: new Date(0),
+                  },
+                  {
+                    type: 'tool-call',
+                    toolCallId: 'call-1',
+                    toolName: 'deferred_tool',
+                    input: `{ "value": "test" }`,
+                    providerExecuted: true,
+                  },
+                  {
+                    type: 'text-start',
+                    id: '1',
+                  },
+                  {
+                    type: 'text-delta',
+                    id: '1',
+                    delta: 'Done.',
+                  },
+                  {
+                    type: 'text-end',
+                    id: '1',
+                  },
+                  {
+                    type: 'finish',
+                    finishReason: { unified: 'tool-calls', raw: undefined },
+                    usage: testUsage,
+                  },
+                ]),
+                response: {},
+              };
+            },
+          }),
+          tools: {
+            deferred_tool: {
+              type: 'provider',
+              isProviderExecuted: true,
+              id: 'test.deferred_tool',
+              inputSchema: z.object({ value: z.string() }),
+              outputSchema: z.object({ value: z.string() }),
+              args: {},
+              supportsDeferredResults: true,
+            },
+          },
+          ...defaultSettings(),
+          stopWhen: isStepCount(5),
+        });
+
+        await result.consumeStream();
+
+        expect((await result.steps).length).toBe(1);
+        expect(responseCount).toBe(1);
       });
     });
   });

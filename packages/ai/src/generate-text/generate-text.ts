@@ -1344,7 +1344,9 @@ export async function generateText<
         ((clientToolCalls.length > 0 &&
           clientToolOutputs.length + deniedToolApprovalResponses.length ===
             clientToolCalls.length) ||
-          pendingDeferredToolCalls.size > 0) &&
+          (pendingDeferredToolCalls.size > 0 &&
+            (clientToolOutputs.length > 0 ||
+              deniedToolApprovalResponses.length > 0))) &&
         // continue until a stop condition is met:
         !(await isStopConditionMet({ stopConditions, steps }))
       );
