@@ -1,0 +1,15 @@
+{
+  "name": "svs-vercel-ai-verified-action-example",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Reviewable Vercel AI SDK example that routes Solana tool calls through SVS human approval and proof verification.",
+  "scripts": {
+    "validate": "node ./validate.mjs"
+  },
+  "dependencies": {
+    "@svsprotocol/solana": "^0.2.0",
+    "ai": "^6.0.202",
+    "zod": "^4.4.3"
+  }
+}
