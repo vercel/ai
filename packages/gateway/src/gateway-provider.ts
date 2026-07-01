@@ -36,7 +36,10 @@ import { GatewayVideoModel } from './gateway-video-model';
 import { GatewayRerankingModel } from './gateway-reranking-model';
 import { GatewaySpeechModel } from './gateway-speech-model';
 import { GatewayTranscriptionModel } from './gateway-transcription-model';
-import { GatewayRealtimeModel } from './gateway-realtime-model';
+import {
+  GatewayRealtimeModel,
+  type GatewayRealtimeControlConfig,
+} from './gateway-realtime-model';
 import type { GatewayEmbeddingModelId } from './gateway-embedding-model-settings';
 import type { GatewayImageModelId } from './gateway-image-model-settings';
 import type { GatewayRerankingModelId } from './gateway-reranking-model-settings';
@@ -60,6 +63,26 @@ import type {
   ProviderV4,
 } from '@ai-sdk/provider';
 import { VERSION } from './version';
+
+/**
+ * `getToken` options for the Gateway realtime factory, widened to accept an
+ * optional Eve voice `control` config sealed into the minted token.
+ */
+export type GatewayRealtimeGetTokenOptions =
+  RealtimeFactoryV4GetTokenOptions & {
+    control?: GatewayRealtimeControlConfig;
+  };
+
+/**
+ * The Gateway realtime factory: the standard {@link RealtimeFactoryV4} call
+ * signature plus a `getToken` that accepts the Eve voice `control` config.
+ */
+export interface GatewayRealtimeFactory {
+  (modelId: GatewayRealtimeModelId): ReturnType<RealtimeFactoryV4>;
+  getToken(
+    options: GatewayRealtimeGetTokenOptions,
+  ): ReturnType<RealtimeFactoryV4['getToken']>;
+}
 
 export interface GatewayProvider extends ProviderV4 {
   (modelId: GatewayModelId): LanguageModelV4;
@@ -170,8 +193,11 @@ export interface GatewayProvider extends ProviderV4 {
   /**
    * Creates an experimental realtime model for bidirectional audio/text
    * communication over WebSocket, normalized through the AI Gateway.
+   *
+   * `getToken` additionally accepts an Eve voice `control` config that is
+   * sealed into the minted `vcst_` token (server-side mint only).
    */
-  experimental_realtime: RealtimeFactoryV4;
+  experimental_realtime: GatewayRealtimeFactory;
 
   /**
    * Gateway-specific tools executed server-side.
@@ -298,6 +324,7 @@ export function createGateway(
   const mintRealtimeClientSecret = async (params: {
     modelId: string;
     expiresAfterSeconds?: number;
+    control?: GatewayRealtimeControlConfig;
   }): Promise<{ token: string; expiresAt?: number }> => {
     assertGatewayRealtimeServerEnvironment();
     const auth = await getRealtimeAuthToken();
@@ -312,6 +339,7 @@ export function createGateway(
           ...(params.expiresAfterSeconds != null && {
             expiresIn: params.expiresAfterSeconds,
           }),
+          ...(params.control != null && { control: params.control }),
         },
         successfulResponseHandler: createJsonResponseHandler(
           gatewayClientSecretResponseSchema,
@@ -536,7 +564,7 @@ export function createGateway(
   provider.experimental_realtime = Object.assign(
     (modelId: GatewayRealtimeModelId) => createRealtimeModel(modelId),
     {
-      getToken: async (tokenOptions: RealtimeFactoryV4GetTokenOptions) => {
+      getToken: async (tokenOptions: GatewayRealtimeGetTokenOptions) => {
         const { model: modelId, ...secretOptions } = tokenOptions;
         const model = createRealtimeModel(modelId);
         const secret = await model.doCreateClientSecret(secretOptions);
@@ -547,7 +575,7 @@ export function createGateway(
         };
       },
     },
-  ) as RealtimeFactoryV4;
+  ) as GatewayRealtimeFactory;
 
   provider.chat = provider.languageModel;
   provider.embedding = provider.embeddingModel;

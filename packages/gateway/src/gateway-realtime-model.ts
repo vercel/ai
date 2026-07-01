@@ -8,6 +8,19 @@ import type {
 } from '@ai-sdk/provider';
 import { getGatewayRealtimeProtocols } from './gateway-realtime-auth';
 
+/**
+ * Optional Gateway-owned realtime voice control plane configuration. When
+ * supplied at mint time, the Gateway opens one outbound control WebSocket to
+ * the given Eve `url` per live session (authenticating with `token` as
+ * `Authorization: Bearer`) and drives turns over it instead of the browser.
+ * Server-authenticated mint only; the Gateway seals it into the `vcst_` token.
+ */
+export interface GatewayRealtimeControlConfig {
+  mode: 'eve';
+  token: string;
+  url: string;
+}
+
 export type GatewayRealtimeModelConfig = {
   provider: string;
   baseURL: string;
@@ -21,6 +34,7 @@ export type GatewayRealtimeModelConfig = {
   createClientSecret: (params: {
     modelId: string;
     expiresAfterSeconds?: number;
+    control?: GatewayRealtimeControlConfig;
   }) => PromiseLike<{ token: string; expiresAt?: number }>;
 };
 
@@ -57,13 +71,16 @@ export class GatewayRealtimeModel implements RealtimeModelV4 {
    * normalized `session-update` event.
    */
   async doCreateClientSecret(
-    options?: RealtimeModelV4ClientSecretOptions,
+    options?: RealtimeModelV4ClientSecretOptions & {
+      control?: GatewayRealtimeControlConfig;
+    },
   ): Promise<RealtimeModelV4ClientSecretResult> {
     const secret = await this.config.createClientSecret({
       modelId: this.modelId,
       ...(options?.expiresAfterSeconds != null && {
         expiresAfterSeconds: options.expiresAfterSeconds,
       }),
+      ...(options?.control != null && { control: options.control }),
     });
     return {
       token: secret.token,
