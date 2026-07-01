@@ -79,7 +79,12 @@ first argument is the model id, e.g. `grok-4.20-non-reasoning`.
 const model = xai('grok-4.20-non-reasoning');
 ```
 
-By default, `xai(modelId)` uses the Responses API. To use the [Chat Completions API](https://docs.x.ai/docs/api-reference#chat-completions) (legacy), use `xai.chat(modelId)`.
+<Note>
+  Since AI SDK 7, `xai(modelId)` uses the xAI Responses API by default. To use
+  the [Chat Completions
+  API](https://docs.x.ai/docs/api-reference#chat-completions) (legacy), use
+  `xai.chat(modelId)`.
+</Note>
 
 ### Example
 
@@ -165,7 +170,7 @@ calling pattern.
 
 ## Responses API (Agentic Tools)
 
-The xAI Responses API is the default when using `xai(modelId)`. You can also use `xai.responses(modelId)` explicitly. This enables the model to autonomously orchestrate tool calls and research on xAI's servers.
+The xAI Responses API is the default when using `xai(modelId)` (since AI SDK 7). You can also use `xai.responses(modelId)` explicitly. This enables the model to autonomously orchestrate tool calls and research on xAI's servers.
 
 ```ts
 const model = xai.responses('grok-4.20-non-reasoning');
