@@ -27,6 +27,8 @@ export async function suspendClinic(clinicId: string) {
   });
 
   revalidatePath(`/super-admin/clinics/${clinicId}`);
+  revalidatePath('/super-admin');
+  revalidatePath('/super-admin/clinics');
 }
 
 export async function activateClinic(clinicId: string) {
@@ -50,6 +52,8 @@ export async function activateClinic(clinicId: string) {
   });
 
   revalidatePath(`/super-admin/clinics/${clinicId}`);
+  revalidatePath('/super-admin');
+  revalidatePath('/super-admin/clinics');
 }
 
 export async function changePlanSuperAdmin(clinicId: string, formData: FormData) {

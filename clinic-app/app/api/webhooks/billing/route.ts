@@ -5,6 +5,9 @@ import { z } from 'zod';
 const eventSchema = z.object({
   event_type: z.enum(['payment_confirmed', 'payment_failed']),
   gateway_subscription_id: z.string().min(1),
+  gateway_invoice_id: z.string().nullish(),
+  amount_cents: z.number().int().nullish(),
+  due_date: z.string().nullish(),
 });
 
 /**
@@ -43,6 +46,9 @@ export async function POST(request: NextRequest) {
     p_secret: secret,
     p_gateway_subscription_id: parsed.data.gateway_subscription_id,
     p_event_type: parsed.data.event_type,
+    p_gateway_invoice_id: parsed.data.gateway_invoice_id ?? null,
+    p_amount_cents: parsed.data.amount_cents ?? null,
+    p_due_date: parsed.data.due_date ?? null,
   });
 
   if (error) {
@@ -71,6 +77,11 @@ function normalizeGatewayPayload(json: unknown): unknown {
     return {
       event_type: eventTypeMap[body.type],
       gateway_subscription_id: stripeObject.subscription ?? stripeObject.id,
+      gateway_invoice_id: stripeObject.id,
+      amount_cents: stripeObject.amount_paid ?? stripeObject.amount_due ?? null,
+      due_date: stripeObject.due_date
+        ? new Date(stripeObject.due_date * 1000).toISOString()
+        : null,
     };
   }
 
@@ -85,6 +96,9 @@ function normalizeGatewayPayload(json: unknown): unknown {
     return {
       event_type: asaasEventMap[body.event],
       gateway_subscription_id: payment.subscription,
+      gateway_invoice_id: payment.id,
+      amount_cents: payment.value ? Math.round(payment.value * 100) : null,
+      due_date: payment.dueDate ? new Date(payment.dueDate).toISOString() : null,
     };
   }
 

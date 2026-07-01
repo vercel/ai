@@ -33,7 +33,7 @@ export default async function ClinicDetailPage({ params }: { params: { id: strin
         .maybeSingle<{ id: string; clinic_id: string; started_at: string }>(),
     ]);
 
-  if (!clinic) return <p className="text-gray-500">Clínica não encontrada.</p>;
+  if (!clinic) return <p className="text-slate-500">Clínica não encontrada.</p>;
 
   const sub = clinic.subscriptions?.[0] ?? null;
   const isSuspended = sub?.status === 'suspended' || !clinic.is_active;
@@ -41,35 +41,35 @@ export default async function ClinicDetailPage({ params }: { params: { id: strin
 
   return (
     <div className="max-w-3xl">
-      <div className="mb-2 text-xs text-gray-400">
+      <div className="mb-2 text-xs text-slate-500">
         <a href="/super-admin/clinics" className="hover:underline">Clínicas</a> / {clinic.name}
       </div>
-      <h1 className="mb-6 text-2xl font-semibold text-gray-800">{clinic.name}</h1>
+      <h1 className="mb-6 text-2xl font-semibold text-white">{clinic.name}</h1>
 
       {/* Active impersonation warning */}
       {activeImpersonation && activeImpersonation.clinic_id === params.id && (
-        <div className="mb-4 rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
+        <div className="mb-4 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-300">
           Você está impersonando esta clínica.{' '}
           <a href="/dashboard" className="font-medium underline">Ir para o dashboard</a>
         </div>
       )}
 
       {/* Status card */}
-      <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
+      <div className="mb-6 rounded-2xl border border-white/5 bg-slate-900/60 p-6">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-gray-400">Plano</p>
-            <p className="mt-0.5 text-lg font-semibold text-gray-800">{clinic.plans?.name ?? '—'}</p>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Plano</p>
+            <p className="mt-0.5 text-lg font-semibold text-white">{clinic.plans?.name ?? '—'}</p>
+            <p className="text-xs text-slate-500">
               {clinic.plans?.max_users ? `Até ${clinic.plans.max_users} usuários` : 'Ilimitado'} ·{' '}
               Usuários ativos: {activeUserCount}
             </p>
           </div>
           <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
-            isSuspended ? 'bg-red-100 text-red-700' :
-            sub?.status === 'past_due' ? 'bg-amber-100 text-amber-700' :
-            sub?.status === 'trialing' ? 'bg-blue-100 text-blue-700' :
-            'bg-green-100 text-green-700'
+            isSuspended ? 'bg-red-500/10 text-red-400' :
+            sub?.status === 'past_due' ? 'bg-amber-500/10 text-amber-400' :
+            sub?.status === 'trialing' ? 'bg-blue-500/10 text-blue-400' :
+            'bg-emerald-500/10 text-emerald-400'
           }`}>
             {sub?.status ?? (clinic.is_active ? 'ativo' : 'inativo')}
           </span>
@@ -78,13 +78,13 @@ export default async function ClinicDetailPage({ params }: { params: { id: strin
         <div className="mt-4 flex gap-3">
           {isSuspended ? (
             <form action={activateClinic.bind(null, params.id)}>
-              <button type="submit" className="rounded bg-green-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-green-700">
+              <button type="submit" className="rounded-lg bg-emerald-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-emerald-500">
                 Reativar clínica
               </button>
             </form>
           ) : (
             <form action={suspendClinic.bind(null, params.id)}>
-              <button type="submit" className="rounded bg-red-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-red-700">
+              <button type="submit" className="rounded-lg bg-red-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-red-500">
                 Suspender clínica
               </button>
             </form>
@@ -93,49 +93,49 @@ export default async function ClinicDetailPage({ params }: { params: { id: strin
       </div>
 
       {/* Change plan */}
-      <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
-        <h2 className="mb-3 text-sm font-semibold text-gray-700">Alterar plano</h2>
+      <div className="mb-6 rounded-2xl border border-white/5 bg-slate-900/60 p-6">
+        <h2 className="mb-3 text-sm font-semibold text-slate-200">Alterar plano</h2>
         <form action={changePlanSuperAdmin.bind(null, params.id)} className="flex items-end gap-3">
           <select
             name="plan_id"
             defaultValue={clinic.plan_id}
-            className="rounded border border-gray-300 px-3 py-2 text-sm"
+            className="rounded-lg border border-white/10 bg-slate-800 px-3 py-2 text-sm text-slate-200"
           >
             {(plans ?? []).map((p) => (
               <option key={p.id} value={p.id}>{p.name}</option>
             ))}
           </select>
-          <button type="submit" className="rounded bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
+          <button type="submit" className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500">
             Aplicar
           </button>
         </form>
       </div>
 
       {/* Impersonation */}
-      <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
-        <h2 className="mb-1 text-sm font-semibold text-gray-700">Impersonar clínica</h2>
-        <p className="mb-3 text-xs text-gray-400">
+      <div className="mb-6 rounded-2xl border border-white/5 bg-slate-900/60 p-6">
+        <h2 className="mb-1 text-sm font-semibold text-slate-200">Impersonar clínica</h2>
+        <p className="mb-3 text-xs text-slate-500">
           Você acessará o dashboard como se fosse o administrador desta clínica. A ação é registrada nos logs de auditoria.
         </p>
         <form action={startImpersonation.bind(null, params.id)} className="flex flex-col gap-2 max-w-sm">
           <input
             name="reason"
             placeholder="Motivo (ex: suporte técnico)"
-            className="rounded border border-gray-300 px-3 py-2 text-sm"
+            className="rounded-lg border border-white/10 bg-slate-800 px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600"
           />
-          <button type="submit" className="self-start rounded bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-900">
+          <button type="submit" className="self-start rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600">
             Entrar como esta clínica
           </button>
         </form>
       </div>
 
       {/* Users */}
-      <div className="rounded-xl bg-white shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100">
-          <h2 className="text-sm font-semibold text-gray-700">Usuários ({(users ?? []).length})</h2>
+      <div className="overflow-hidden rounded-2xl border border-white/5 bg-slate-900/60">
+        <div className="border-b border-white/5 px-6 py-4">
+          <h2 className="text-sm font-semibold text-slate-200">Usuários ({(users ?? []).length})</h2>
         </div>
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 text-left text-xs text-gray-500">
+          <thead className="text-left text-xs text-slate-500">
             <tr>
               <th className="px-4 py-3">Nome</th>
               <th className="px-4 py-3">Função</th>
@@ -145,17 +145,17 @@ export default async function ClinicDetailPage({ params }: { params: { id: strin
           </thead>
           <tbody>
             {(users ?? []).map((u) => (
-              <tr key={u.id} className="border-t border-gray-100">
-                <td className="px-4 py-3 font-medium text-gray-800">{u.full_name}</td>
-                <td className="px-4 py-3 text-gray-500 capitalize">{u.role}</td>
+              <tr key={u.id} className="border-t border-white/5">
+                <td className="px-4 py-3 font-medium text-slate-200">{u.full_name}</td>
+                <td className="px-4 py-3 text-slate-400 capitalize">{u.role}</td>
                 <td className="px-4 py-3">
                   <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                    u.is_locked ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-700'
+                    u.is_locked ? 'bg-red-500/10 text-red-400' : 'bg-emerald-500/10 text-emerald-400'
                   }`}>
                     {u.is_locked ? 'Bloqueado' : 'Ativo'}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-gray-400">
+                <td className="px-4 py-3 text-slate-500">
                   {new Date(u.created_at).toLocaleDateString('pt-BR')}
                 </td>
               </tr>
