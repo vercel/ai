@@ -281,6 +281,35 @@ describe('amazon-bedrock-anthropic-provider', () => {
     expect(transformedBody).not.toHaveProperty('model');
   });
 
+  it('should transform user profile ID to the Bedrock body field', () => {
+    const provider = createAmazonBedrockAnthropic({
+      region: 'us-east-1',
+      accessKeyId: 'test-key',
+      secretAccessKey: 'test-secret',
+    });
+    provider('test-model-id');
+
+    const constructorCall = vi.mocked(AnthropicLanguageModel).mock.calls[
+      vi.mocked(AnthropicLanguageModel).mock.calls.length - 1
+    ];
+    const config = constructorCall[1];
+
+    const transformedBody = config.transformRequestBody?.(
+      {
+        model: 'test-model-id',
+        messages: [{ role: 'user', content: 'Hello' }],
+        max_tokens: 1024,
+      },
+      new Set(),
+      'uprof_123',
+    );
+
+    expect(transformedBody).toMatchObject({
+      user_profile_id: 'uprof_123',
+      anthropic_version: 'bedrock-2023-05-31',
+    });
+  });
+
   it('should strip stream parameter from request body', () => {
     const provider = createAmazonBedrockAnthropic({
       region: 'us-east-1',

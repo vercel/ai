@@ -130,6 +130,8 @@ const model = anthropicAws('claude-sonnet-4-6');
 
 Model IDs are identical to the first-party Anthropic API. See the [Anthropic provider docs](/providers/ai-sdk-providers/anthropic#language-models) for the full list of language model options, prompt caching, computer use, web search, code execution, and Agent Skills. All of these work identically here because Claude Platform on AWS uses Anthropic's runtime directly.
 
+Anthropic User Profile attribution also uses the same `providerOptions.anthropic.userProfileId` option as the first-party Anthropic provider. The SDK sends it as the `anthropic-user-profile-id` request header.
+
 ### Example
 
 ```ts

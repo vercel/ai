@@ -8122,6 +8122,40 @@ describe('AnthropicLanguageModel', () => {
       );
     });
 
+    it('should include providerOptions.anthropic.userProfileId in anthropic-user-profile-id header', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'json-value',
+        body: {
+          id: 'msg_1',
+          type: 'message',
+          role: 'assistant',
+          content: [{ type: 'text', text: 'ok' }],
+          model: 'claude-3-haiku-20240307',
+          stop_reason: 'end_turn',
+          stop_sequence: null,
+          usage: { input_tokens: 1, output_tokens: 1 },
+        },
+      };
+
+      const provider = createAnthropic({ apiKey: 'test-api-key' });
+
+      await provider('claude-3-haiku-20240307').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            userProfileId: 'uprof_123',
+          } satisfies AnthropicLanguageModelOptions,
+        },
+      });
+
+      expect(server.calls[0].requestHeaders).toMatchObject({
+        'anthropic-user-profile-id': 'uprof_123',
+      });
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'user_profile_id',
+      );
+    });
+
     it('should support cache control', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'stream-chunks',
@@ -10310,6 +10344,7 @@ describe('AnthropicLanguageModel', () => {
           ],
         }),
         expect.any(Set),
+        undefined,
       );
 
       // Verify transformed body was sent
@@ -10353,6 +10388,7 @@ describe('AnthropicLanguageModel', () => {
           stream: true,
         }),
         expect.any(Set),
+        undefined,
       );
 
       // Verify transformed body was sent

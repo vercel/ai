@@ -262,7 +262,7 @@ export function createAmazonBedrockAnthropic(
           isStreaming ? 'invoke-with-response-stream' : 'invoke'
         }`,
 
-      transformRequestBody: (args, betas) => {
+      transformRequestBody: (args, betas, userProfileId) => {
         const {
           model: _model,
           stream: _stream,
@@ -318,6 +318,7 @@ export function createAmazonBedrockAnthropic(
 
         return {
           ...rest,
+          ...(userProfileId != null ? { user_profile_id: userProfileId } : {}),
           ...(transformedTools != null ? { tools: transformedTools } : {}),
           ...(transformedToolChoice != null
             ? { tool_choice: transformedToolChoice }
@@ -328,6 +329,8 @@ export function createAmazonBedrockAnthropic(
           anthropic_version: 'bedrock-2023-05-31',
         };
       },
+
+      userProfileIdLocation: 'body',
 
       // Bedrock Anthropic doesn't support URL sources, force download and base64 conversion
       supportedUrls: () => ({}),

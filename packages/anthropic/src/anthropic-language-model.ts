@@ -66,6 +66,8 @@ import { CacheControlValidator } from './get-cache-control';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 import { sanitizeJsonSchema } from './sanitize-json-schema';
 
+const ANTHROPIC_USER_PROFILE_ID_HEADER = 'anthropic-user-profile-id';
+
 function createCitationSource(
   citation: Citation,
   citationDocuments: Array<{
@@ -134,7 +136,9 @@ type AnthropicLanguageModelConfig = {
   transformRequestBody?: (
     args: Record<string, any>,
     betas: Set<string>,
+    userProfileId?: string,
   ) => Record<string, any>;
+  userProfileIdLocation?: 'body' | 'header';
   supportedUrls?: () => LanguageModelV4['supportedUrls'];
   generateId?: () => string;
 
@@ -776,20 +780,26 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       toolNameMapping,
       providerOptionsName,
       usedCustomProviderKey,
+      userProfileId: anthropicOptions?.userProfileId,
     };
   }
 
   private async getHeaders({
     betas,
     headers,
+    userProfileId,
   }: {
     betas: Set<string>;
     headers: Record<string, string | undefined> | undefined;
+    userProfileId: string | undefined;
   }) {
     return combineHeaders(
       this.config.headers ? await resolve(this.config.headers) : undefined,
       headers,
       betas.size > 0 ? { 'anthropic-beta': Array.from(betas).join(',') } : {},
+      userProfileId != null && this.config.userProfileIdLocation !== 'body'
+        ? { [ANTHROPIC_USER_PROFILE_ID_HEADER]: userProfileId }
+        : {},
     );
   }
 
@@ -823,8 +833,11 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
   private transformRequestBody(
     args: Record<string, any>,
     betas: Set<string>,
+    userProfileId: string | undefined,
   ): Record<string, any> {
-    return this.config.transformRequestBody?.(args, betas) ?? args;
+    return (
+      this.config.transformRequestBody?.(args, betas, userProfileId) ?? args
+    );
   }
 
   private extractCitationDocuments(prompt: LanguageModelV4Prompt): Array<{
@@ -881,6 +894,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       toolNameMapping,
       providerOptionsName,
       usedCustomProviderKey,
+      userProfileId,
     } = await this.getArgs({
       ...options,
       stream: false,
@@ -902,8 +916,12 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url: this.buildRequestUrl(false),
-      headers: await this.getHeaders({ betas, headers: options.headers }),
-      body: this.transformRequestBody(args, betas),
+      headers: await this.getHeaders({
+        betas,
+        headers: options.headers,
+        userProfileId,
+      }),
+      body: this.transformRequestBody(args, betas, userProfileId),
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         anthropicResponseSchema,
@@ -1446,6 +1464,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       toolNameMapping,
       providerOptionsName,
       usedCustomProviderKey,
+      userProfileId,
     } = await this.getArgs({
       ...options,
       stream: true,
@@ -1464,8 +1483,12 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     const url = this.buildRequestUrl(true);
     const { responseHeaders, value: response } = await postJsonToApi({
       url,
-      headers: await this.getHeaders({ betas, headers: options.headers }),
-      body: this.transformRequestBody(body, betas),
+      headers: await this.getHeaders({
+        betas,
+        headers: options.headers,
+        userProfileId,
+      }),
+      body: this.transformRequestBody(body, betas, userProfileId),
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler:
         createEventSourceResponseHandler(anthropicChunkSchema),

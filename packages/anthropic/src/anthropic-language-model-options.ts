@@ -146,6 +146,15 @@ export const anthropicLanguageModelOptions = z.object({
     .optional(),
 
   /**
+   * Anthropic User Profile ID to attribute this request to an end customer.
+   *
+   * The Anthropic API, Claude Platform on AWS, and Claude on Vertex AI send this
+   * as the `anthropic-user-profile-id` request header. Claude in Amazon Bedrock
+   * sends it as the `user_profile_id` request body field.
+   */
+  userProfileId: z.string().optional(),
+
+  /**
    * MCP servers to be utilized in this request.
    */
   mcpServers: z

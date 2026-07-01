@@ -236,6 +236,22 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       };
     }
 
+    if (amazonBedrockOptions.userProfileId != null) {
+      if (isAnthropicModel) {
+        amazonBedrockOptions.additionalModelRequestFields = {
+          ...amazonBedrockOptions.additionalModelRequestFields,
+          user_profile_id: amazonBedrockOptions.userProfileId,
+        };
+      } else {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'userProfileId',
+          details:
+            'userProfileId applies only to Anthropic models on Bedrock and will be ignored for this model.',
+        });
+      }
+    }
+
     const thinkingType = amazonBedrockOptions.reasoningConfig?.type;
     const thinkingBudget =
       thinkingType === 'enabled'
@@ -420,6 +436,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       reasoningConfig: _,
       additionalModelRequestFields: __,
       serviceTier: ___,
+      userProfileId: _userProfileId,
       ...filteredAmazonBedrockOptions
     } = providerOptions?.amazonBedrock ?? providerOptions?.bedrock ?? {};
 

@@ -158,6 +158,29 @@ The following optional provider options are available for Anthropic models:
   Optional. Metadata to include with the request. See the [Anthropic API documentation](https://platform.claude.com/docs/en/api/messages/create) for details.
   - `userId` _string_ - An external identifier for the end-user. Should be a UUID, hash, or other opaque identifier. Must not contain PII.
 
+- `userProfileId` _string_
+
+  Optional. Anthropic User Profile ID (`uprof_...`) for end-customer attribution. Sent as the `anthropic-user-profile-id` request header.
+
+### User Profile Attribution
+
+Anthropic User Profiles let you attribute inference traffic to downstream customers. After creating and storing a profile ID with Anthropic, pass it on each request with `userProfileId`:
+
+```ts highlight="8"
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: anthropic('claude-sonnet-4-5'),
+  prompt: 'Write a welcome email.',
+  providerOptions: {
+    anthropic: {
+      userProfileId: 'uprof_01HqRxK2mN8vT3wY',
+    } satisfies AnthropicLanguageModelOptions,
+  },
+});
+```
+
 ### Structured Outputs and Tool Input Streaming
 
 Tool call streaming is enabled by default. You can opt out by setting the
