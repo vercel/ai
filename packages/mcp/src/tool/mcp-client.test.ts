@@ -5,6 +5,7 @@ import { MCPClientError } from '../error/mcp-client-error';
 import { createMCPClient } from './mcp-client';
 import { MockMCPTransport } from './mock-mcp-transport';
 import {
+  LATEST_PROTOCOL_VERSION,
   ListToolsResult,
   ElicitationRequestSchema,
   type CallToolResult,

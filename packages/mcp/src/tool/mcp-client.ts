@@ -179,8 +179,6 @@ export interface MCPClientConfig {
   transport: MCPTransportConfig | MCPTransport;
   /** Optional callback for uncaught errors */
   onUncaughtError?: (error: unknown) => void;
-<<<<<<< HEAD
-=======
   /**
    * Maximum number of retries for transient MCP tool call failures.
    *
@@ -190,13 +188,6 @@ export interface MCPClientConfig {
    * @default 0
    */
   maxRetries?: number;
-  /**
-   * Initialize result from a previous MCP session. When provided, the client
-   * starts the transport and reuses this metadata without sending a new
-   * initialize request.
-   */
-  initialInitializeResult?: InitializeResult;
->>>>>>> 8c616f0305 (feat(mcp): add retry option for failed mcp tool calls (#16494))
   /** Optional client name, defaults to 'ai-sdk-mcp-client' */
   clientName?: string;
   /**
@@ -568,14 +559,11 @@ class DefaultMCPClient implements MCPClient {
     });
   }
 
-<<<<<<< HEAD
-  private async callTool({
-=======
   private async callToolWithRetry({
     options,
     execute,
   }: {
-    options?: RequestOptions;
+    options?: ToolExecutionOptions;
     execute: () => Promise<CallToolResult>;
   }): Promise<CallToolResult> {
     if (this.maxRetries === 0) {
@@ -584,7 +572,7 @@ class DefaultMCPClient implements MCPClient {
 
     return retryWithExponentialBackoff({
       maxRetries: this.maxRetries,
-      abortSignal: options?.signal,
+      abortSignal: options?.abortSignal,
       shouldRetry: isRetryableMCPToolCallError,
       createRetryError: ({ message, errors }) =>
         new MCPClientError({
@@ -595,7 +583,6 @@ class DefaultMCPClient implements MCPClient {
   }
 
   async callTool({
->>>>>>> 8c616f0305 (feat(mcp): add retry option for failed mcp tool calls (#16494))
     name,
     args,
     options,
@@ -605,14 +592,6 @@ class DefaultMCPClient implements MCPClient {
     options?: ToolExecutionOptions;
   }): Promise<CallToolResult> {
     try {
-<<<<<<< HEAD
-      return this.request({
-        request: { method: 'tools/call', params: { name, arguments: args } },
-        resultSchema: CallToolResultSchema,
-        options: {
-          signal: options?.abortSignal,
-        },
-=======
       return this.callToolWithRetry({
         options,
         execute: () =>
@@ -622,9 +601,10 @@ class DefaultMCPClient implements MCPClient {
               params: { name, arguments: args },
             },
             resultSchema: CallToolResultSchema,
-            options,
+            options: {
+              signal: options?.abortSignal,
+            },
           }),
->>>>>>> 8c616f0305 (feat(mcp): add retry option for failed mcp tool calls (#16494))
       });
     } catch (error) {
       throw error;

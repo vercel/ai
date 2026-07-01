@@ -147,8 +147,6 @@ It currently does not support accepting notifications from an MCP server, and cu
               description: 'Handler for uncaught errors',
             },
             {
-<<<<<<< HEAD
-=======
               name: 'maxRetries',
               type: 'number',
               isOptional: true,
@@ -156,14 +154,6 @@ It currently does not support accepting notifications from an MCP server, and cu
                 'Maximum number of retries for transient MCP tool call failures. Set to 0 to disable retries. Defaults to 0. Retries are opt-in and apply to tools/call requests.',
             },
             {
-              name: 'initialInitializeResult',
-              type: 'InitializeResult',
-              isOptional: true,
-              description:
-                'Initialize result from a previous MCP session. When provided, the client starts the transport and reuses this metadata without sending a new initialize request.',
-            },
-            {
->>>>>>> 8c616f0305 (feat(mcp): add retry option for failed mcp tool calls (#16494))
               name: 'capabilities',
               type: 'ClientCapabilities',
               isOptional: true,
