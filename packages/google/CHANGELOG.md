@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 4.0.4
+
+### Patch Changes
+
+- dc1eb8d: Support Gemini Interactions video output. Parse video output blocks from the Google Interactions API into file parts (buffered and streaming), and surface the per-modality output token breakdown via `providerMetadata.google.outputTokensByModality`.
+
 ## 4.0.3
 
 ### Patch Changes

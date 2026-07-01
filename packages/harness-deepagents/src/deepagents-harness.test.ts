@@ -101,6 +101,7 @@ describe('createDeepAgents', () => {
     expect(harness.specificationVersion).toBe('harness-v1');
     expect(harness.harnessId).toBe('deepagents');
     expect(harness.supportsBuiltinToolApprovals).toBe(true);
+    expect(harness.supportsBuiltinToolFiltering).toBeUndefined();
   });
 
   it('ships the node bridge files and a pnpm install command in its bootstrap', async () => {
