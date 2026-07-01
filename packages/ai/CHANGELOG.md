@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.11
+
+### Patch Changes
+
+- 0a87626: fix(ai): replace dynamic import() with loadBuiltinModule for diagnostics_channel to fix React Native/Hermes builds
+
 ## 7.0.10
 
 ### Patch Changes
