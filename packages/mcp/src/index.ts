@@ -1,3 +1,10 @@
+export {
+  JSONRPCErrorSchema,
+  JSONRPCMessageSchema,
+  JSONRPCNotificationSchema,
+  JSONRPCRequestSchema,
+  JSONRPCResponseSchema,
+} from './tool/json-rpc-message';
 export type {
   JSONRPCError,
   JSONRPCMessage,
