@@ -584,4 +584,36 @@ console.log(result.text);`,
     websiteUrl: 'https://nitrosend.com',
     npmUrl: 'https://www.npmjs.com/package/@nitrosend/ai-sdk',
   },
+  {
+    slug: 'nimble',
+    name: 'Nimble',
+    description:
+      'Nimble adds real-time web search to your LLMs through its Web Intelligence platform. The nimbleSearch tool runs live web searches and returns ranked results with titles, URLs, snippets, and full page content to ground agent answers in current, factual information.',
+    packageName: '@nimble-way/ai-sdk',
+    tags: ['search', 'web'],
+    apiKeyEnvName: 'NIMBLE_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @nimble-way/ai-sdk',
+      npm: 'npm install @nimble-way/ai-sdk',
+      yarn: 'yarn add @nimble-way/ai-sdk',
+      bun: 'bun add @nimble-way/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { nimbleSearch } from '@nimble-way/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'What are the latest developments in agentic web search? Cite sources.',
+  tools: {
+    webSearch: nimbleSearch(),
+  },
+  stopWhen: isStepCount(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://github.com/Nimbleway/ai-sdk#readme',
+    apiKeyUrl: 'https://app.nimbleway.com',
+    websiteUrl: 'https://nimbleway.com',
+    npmUrl: 'https://www.npmjs.com/package/@nimble-way/ai-sdk',
+  },
 ];
