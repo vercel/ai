@@ -342,10 +342,11 @@ describe('toResponseMessages', () => {
     if (toolMessage?.role !== 'tool') {
       throw new Error('Expected a tool message');
     }
-    expect(toolMessage.content.map(part => part.toolCallId)).toEqual([
-      'call-a',
-      'call-b',
-    ]);
+    expect(
+      toolMessage.content.map(part =>
+        part.type === 'tool-result' ? part.toolCallId : undefined,
+      ),
+    ).toEqual(['call-a', 'call-b']);
   });
 
   it('should handle undefined text', async () => {

@@ -142,7 +142,25 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
     });
   }
 
-  const toolResultContent: ToolContent = [];
+  const toolCallOrder = new Map<string, number>();
+  for (const part of inputContent) {
+    if (part.type === 'tool-call' && !toolCallOrder.has(part.toolCallId)) {
+      toolCallOrder.set(part.toolCallId, toolCallOrder.size);
+    }
+
+    if (
+      part.type === 'tool-approval-request' &&
+      !toolCallOrder.has(part.toolCall.toolCallId)
+    ) {
+      toolCallOrder.set(part.toolCall.toolCallId, toolCallOrder.size);
+    }
+  }
+
+  const toolResultContent: Array<{
+    part: ToolContent[number];
+    toolCallId: string | undefined;
+    index: number;
+  }> = [];
   for (const part of inputContent) {
     if (
       part.type !== 'tool-approval-response' &&
@@ -154,11 +172,15 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
 
     if (part.type === 'tool-approval-response') {
       toolResultContent.push({
-        type: 'tool-approval-response',
-        approvalId: part.approvalId,
-        approved: part.approved,
-        reason: part.reason,
-        providerExecuted: part.providerExecuted,
+        part: {
+          type: 'tool-approval-response',
+          approvalId: part.approvalId,
+          approved: part.approved,
+          reason: part.reason,
+          providerExecuted: part.providerExecuted,
+        },
+        toolCallId: part.toolCall.toolCallId,
+        index: toolResultContent.length,
       });
 
       // when the tool approval is denied,
@@ -166,13 +188,17 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
       // since there is no corresponding tool result for the tool call
       if (part.approved === false) {
         toolResultContent.push({
-          type: 'tool-result',
-          toolCallId: part.toolCall.toolCallId,
-          toolName: part.toolCall.toolName,
-          output: {
-            type: 'execution-denied' as const,
-            reason: part.reason,
+          part: {
+            type: 'tool-result',
+            toolCallId: part.toolCall.toolCallId,
+            toolName: part.toolCall.toolName,
+            output: {
+              type: 'execution-denied' as const,
+              reason: part.reason,
+            },
           },
+          toolCallId: part.toolCall.toolCallId,
+          index: toolResultContent.length,
         });
       }
       continue;
@@ -191,22 +217,42 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
     });
 
     toolResultContent.push({
-      type: 'tool-result',
+      part: {
+        type: 'tool-result',
+        toolCallId: part.toolCallId,
+        toolName: part.toolName,
+        output,
+        ...(part.providerMetadata != null
+          ? { providerOptions: part.providerMetadata }
+          : {}),
+      },
       toolCallId: part.toolCallId,
-      toolName: part.toolName,
-      output,
-      ...(part.providerMetadata != null
-        ? { providerOptions: part.providerMetadata }
-        : {}),
+      index: toolResultContent.length,
     });
   }
 
   if (toolResultContent.length > 0) {
     responseMessages.push({
       role: 'tool',
-      content: toolResultContent,
+      content: [...toolResultContent]
+        .sort((a, b) => {
+          const orderA = getToolCallOrder(toolCallOrder, a.toolCallId);
+          const orderB = getToolCallOrder(toolCallOrder, b.toolCallId);
+
+          return orderA === orderB ? a.index - b.index : orderA - orderB;
+        })
+        .map(({ part }) => part),
     });
   }
 
   return responseMessages;
+}
+
+function getToolCallOrder(
+  toolCallOrder: Map<string, number>,
+  toolCallId: string | undefined,
+) {
+  return toolCallId == null
+    ? Number.MAX_SAFE_INTEGER
+    : (toolCallOrder.get(toolCallId) ?? Number.MAX_SAFE_INTEGER);
 }
