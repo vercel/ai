@@ -11434,6 +11434,98 @@ describe('streamText', () => {
       stepInputs = [];
     });
 
+    it('should make reused text part ids unique across steps', async () => {
+      let responseCount = 0;
+
+      const result = streamText({
+        ...defaultSettings(),
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  stream: convertArrayToReadableStream([
+                    { type: 'text-start', id: 'txt-0' },
+                    {
+                      type: 'text-delta',
+                      id: 'txt-0',
+                      delta: 'Checking...',
+                    },
+                    { type: 'text-end', id: 'txt-0' },
+                    {
+                      type: 'tool-call',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: `{ "value": "value" }`,
+                    },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'tool-calls', raw: undefined },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+              case 1:
+                return {
+                  stream: convertArrayToReadableStream([
+                    { type: 'text-start', id: 'txt-0' },
+                    {
+                      type: 'text-delta',
+                      id: 'txt-0',
+                      delta: 'Done.',
+                    },
+                    { type: 'text-end', id: 'txt-0' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+              default:
+                throw new Error(`Unexpected response count: ${responseCount}`);
+            }
+          },
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'tool result',
+          },
+        },
+        prompt: 'test-input',
+        stopWhen: isStepCount(2),
+      });
+
+      const textParts = (
+        await convertAsyncIterableToArray(result.fullStream)
+      ).filter(
+        part =>
+          part.type === 'text-start' ||
+          part.type === 'text-delta' ||
+          part.type === 'text-end',
+      );
+
+      expect(textParts).toStrictEqual([
+        { type: 'text-start', id: 'txt-0' },
+        {
+          type: 'text-delta',
+          id: 'txt-0',
+          text: 'Checking...',
+          providerMetadata: undefined,
+        },
+        { type: 'text-end', id: 'txt-0' },
+        { type: 'text-start', id: 'txt-1' },
+        {
+          type: 'text-delta',
+          id: 'txt-1',
+          text: 'Done.',
+          providerMetadata: undefined,
+        },
+        { type: 'text-end', id: 'txt-1' },
+      ]);
+    });
+
     describe('2 steps: initial, tool-result', () => {
       beforeEach(async () => {
         let responseCount = 0;
