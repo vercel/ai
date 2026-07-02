@@ -99,6 +99,35 @@ describe('doEmbed', () => {
     fetch: fakeFetchWithAuth,
   });
 
+  it('should expose model-specific max embeddings per call', () => {
+    const cohereModel = new BedrockEmbeddingModel('cohere.embed-english-v3', {
+      baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+      headers: mockConfigHeaders,
+      fetch: fakeFetchWithAuth,
+    });
+    const cohereV4UsProfileModel = new BedrockEmbeddingModel(
+      'us.cohere.embed-v4:0',
+      {
+        baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+        headers: mockConfigHeaders,
+        fetch: fakeFetchWithAuth,
+      },
+    );
+    const novaModel = new BedrockEmbeddingModel(
+      'amazon.nova-2-multimodal-embeddings-v1:0',
+      {
+        baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+        headers: mockConfigHeaders,
+        fetch: fakeFetchWithAuth,
+      },
+    );
+
+    expect(model.maxEmbeddingsPerCall).toBe(1);
+    expect(cohereModel.maxEmbeddingsPerCall).toBe(96);
+    expect(cohereV4UsProfileModel.maxEmbeddingsPerCall).toBe(96);
+    expect(novaModel.maxEmbeddingsPerCall).toBe(1);
+  });
+
   let callCount = 0;
 
   beforeEach(() => {
@@ -208,6 +237,42 @@ describe('doEmbed', () => {
     expect(body).toEqual({
       input_type: 'search_query',
       texts: [testValues[0]],
+      truncate: undefined,
+      output_dimension: undefined,
+    });
+  });
+
+  it('should send multiple values for Cohere embedding models', async () => {
+    server.urls[cohereV4EmbedUrl].response = {
+      type: 'binary',
+      headers: {
+        'content-type': 'application/json',
+        'x-amzn-bedrock-input-token-count': '12',
+      },
+      body: Buffer.from(
+        JSON.stringify({
+          embeddings: { float: mockEmbeddings },
+        }),
+      ),
+    };
+
+    const cohereV4Model = new BedrockEmbeddingModel('cohere.embed-v4:0', {
+      baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+      headers: mockConfigHeaders,
+      fetch: fakeFetchWithAuth,
+    });
+
+    const { embeddings, usage } = await cohereV4Model.doEmbed({
+      values: testValues,
+    });
+
+    expect(embeddings).toStrictEqual(mockEmbeddings);
+    expect(usage?.tokens).toBe(12);
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body).toEqual({
+      input_type: 'search_query',
+      texts: testValues,
       truncate: undefined,
       output_dimension: undefined,
     });
