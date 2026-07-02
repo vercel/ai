@@ -201,6 +201,33 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
     });
   }
 
+  // Sort tool results into tool-call order: parallel results arrive in
+  // nondeterministic completion order, which breaks byte-sensitive provider
+  // prompt caching (#16567). Skipped when approval responses are present,
+  // since their ordering is position-dependent.
+  if (
+    toolResultContent.length > 1 &&
+    toolResultContent.every(part => part.type === 'tool-result')
+  ) {
+    const toolCallRank = new Map(
+      inputContent
+        .filter(part => part.type === 'tool-call')
+        .map((part, index) => [part.toolCallId, index]),
+    );
+    toolResultContent.sort((a, b) => {
+      const aRank = toolCallRank.get(a.toolCallId);
+      const bRank = toolCallRank.get(b.toolCallId);
+      if (aRank != null && bRank != null) return aRank - bRank;
+      if (aRank != null) return -1;
+      if (bRank != null) return 1;
+      return a.toolCallId < b.toolCallId
+        ? -1
+        : a.toolCallId > b.toolCallId
+          ? 1
+          : 0;
+    });
+  }
+
   if (toolResultContent.length > 0) {
     responseMessages.push({
       role: 'tool',

@@ -1507,4 +1507,281 @@ describe('toResponseMessages', () => {
       ]
     `);
   });
+
+  describe('parallel tool result ordering', () => {
+    const weatherTool = tool({
+      description: 'Get weather information',
+      inputSchema: z.object({ city: z.string() }),
+    });
+
+    it('should order tool results by tool-call order, not completion order', async () => {
+      const result = await toResponseMessages({
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'weather',
+            input: { city: 'Tokyo' },
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-2',
+            toolName: 'weather',
+            input: { city: 'London' },
+          },
+          // completion order: call-2 finished first
+          {
+            type: 'tool-result',
+            toolCallId: 'call-2',
+            toolName: 'weather',
+            input: { city: 'London' },
+            output: '14C and rainy',
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'weather',
+            input: { city: 'Tokyo' },
+            output: '25C and sunny',
+          },
+        ],
+        tools: { weather: weatherTool },
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "input": {
+                  "city": "Tokyo",
+                },
+                "providerExecuted": undefined,
+                "providerOptions": undefined,
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-call",
+              },
+              {
+                "input": {
+                  "city": "London",
+                },
+                "providerExecuted": undefined,
+                "providerOptions": undefined,
+                "toolCallId": "call-2",
+                "toolName": "weather",
+                "type": "tool-call",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "text",
+                  "value": "25C and sunny",
+                },
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-result",
+              },
+              {
+                "output": {
+                  "type": "text",
+                  "value": "14C and rainy",
+                },
+                "toolCallId": "call-2",
+                "toolName": "weather",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+    });
+
+    it('should keep tool results unchanged when they already match tool-call order', async () => {
+      const result = await toResponseMessages({
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'weather',
+            input: { city: 'Tokyo' },
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-2',
+            toolName: 'weather',
+            input: { city: 'London' },
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'weather',
+            input: { city: 'Tokyo' },
+            output: '25C and sunny',
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'call-2',
+            toolName: 'weather',
+            input: { city: 'London' },
+            output: '14C and rainy',
+          },
+        ],
+        tools: { weather: weatherTool },
+      });
+
+      const toolMessage = result.find(message => message.role === 'tool');
+      expect(
+        toolMessage?.content.map(part =>
+          part.type === 'tool-result' ? part.toolCallId : part.type,
+        ),
+      ).toEqual(['call-1', 'call-2']);
+    });
+
+    it('should order tool errors together with tool results by tool-call order', async () => {
+      const result = await toResponseMessages({
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'weather',
+            input: { city: 'Tokyo' },
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-2',
+            toolName: 'weather',
+            input: { city: 'London' },
+          },
+          // completion order: call-2 errored first
+          {
+            type: 'tool-error',
+            toolCallId: 'call-2',
+            toolName: 'weather',
+            input: { city: 'London' },
+            error: 'City not found',
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'weather',
+            input: { city: 'Tokyo' },
+            output: '25C and sunny',
+          },
+        ],
+        tools: { weather: weatherTool },
+      });
+
+      const toolMessage = result.find(message => message.role === 'tool');
+      expect(
+        toolMessage?.content.map(part =>
+          part.type === 'tool-result' ? part.toolCallId : part.type,
+        ),
+      ).toEqual(['call-1', 'call-2']);
+    });
+
+    it('should sort tool results without a matching tool call last, tie-broken by id', async () => {
+      const result = await toResponseMessages({
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'weather',
+            input: { city: 'Tokyo' },
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'call-3',
+            toolName: 'weather',
+            input: { city: 'Paris' },
+            output: '18C and cloudy',
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'weather',
+            input: { city: 'Tokyo' },
+            output: '25C and sunny',
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'call-2',
+            toolName: 'weather',
+            input: { city: 'London' },
+            output: '14C and rainy',
+          },
+        ],
+        tools: { weather: weatherTool },
+      });
+
+      const toolMessage = result.find(message => message.role === 'tool');
+      expect(
+        toolMessage?.content.map(part =>
+          part.type === 'tool-result' ? part.toolCallId : part.type,
+        ),
+      ).toEqual(['call-1', 'call-2', 'call-3']);
+    });
+
+    it('should not reorder the tool message when approval responses are present', async () => {
+      const result = await toResponseMessages({
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'weather',
+            input: { city: 'Tokyo' },
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-2',
+            toolName: 'weather',
+            input: { city: 'London' },
+          },
+          {
+            type: 'tool-approval-request',
+            approvalId: 'approval-1',
+            toolCall: {
+              type: 'tool-call',
+              toolCallId: 'call-2',
+              toolName: 'weather',
+              input: { city: 'London' },
+            },
+          },
+          // completion order: call-2's denial resolved first
+          {
+            type: 'tool-approval-response',
+            approvalId: 'approval-1',
+            approved: false,
+            reason: 'User denied access',
+            toolCall: {
+              type: 'tool-call',
+              toolCallId: 'call-2',
+              toolName: 'weather',
+              input: { city: 'London' },
+            },
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'weather',
+            input: { city: 'Tokyo' },
+            output: '25C and sunny',
+          },
+        ],
+        tools: { weather: weatherTool },
+      });
+
+      const toolMessage = result.find(message => message.role === 'tool');
+      expect(
+        toolMessage?.content.map(part =>
+          part.type === 'tool-result' ? part.toolCallId : part.type,
+        ),
+      ).toEqual(['tool-approval-response', 'call-2', 'call-1']);
+    });
+  });
 });
