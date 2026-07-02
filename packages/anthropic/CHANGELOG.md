@@ -1,5 +1,14 @@
 # @ai-sdk/anthropic
 
+## 4.0.6
+
+### Patch Changes
+
+- c6f5e62: Prevent prototype pollution when synchronously parsing provider JSON inputs and expose `secureJsonParse` from provider-utils.
+- 679c52a: Normalize a bare `https://api.anthropic.com` base URL to include `/v1`.
+- Updated dependencies [c6f5e62]
+  - @ai-sdk/provider-utils@5.0.4
+
 ## 4.0.5
 
 ### Patch Changes

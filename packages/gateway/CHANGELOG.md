@@ -1,5 +1,13 @@
 # @ai-sdk/gateway
 
+## 4.0.9
+
+### Patch Changes
+
+- c6f5e62: Prevent prototype pollution when synchronously parsing provider JSON inputs and expose `secureJsonParse` from provider-utils.
+- Updated dependencies [c6f5e62]
+  - @ai-sdk/provider-utils@5.0.4
+
 ## 4.0.8
 
 ### Patch Changes
