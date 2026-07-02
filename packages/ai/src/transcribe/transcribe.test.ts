@@ -20,6 +20,9 @@ vi.mock('../version', () => {
 });
 
 const audioData = new Uint8Array([1, 2, 3, 4]); // Sample audio data
+const m4aAudioData = new Uint8Array([
+  0x00, 0x00, 0x00, 0x1c, 0x66, 0x74, 0x79, 0x70, 0x4d, 0x34, 0x41, 0x20,
+]);
 const testDate = new Date(2024, 0, 1);
 
 const sampleTranscript = {
@@ -113,6 +116,24 @@ describe('transcribe', () => {
       abortSignal,
       providerOptions: {},
     });
+  });
+
+  it('should detect M4A/MP4 audio data as audio/mp4', async () => {
+    let capturedArgs!: Parameters<TranscriptionModelV4['doGenerate']>[0];
+
+    await transcribe({
+      model: new MockTranscriptionModelV4({
+        doGenerate: async args => {
+          capturedArgs = args;
+          return createMockResponse({
+            ...sampleTranscript,
+          });
+        },
+      }),
+      audio: m4aAudioData,
+    });
+
+    expect(capturedArgs.mediaType).toBe('audio/mp4');
   });
 
   it('should return warnings', async () => {
