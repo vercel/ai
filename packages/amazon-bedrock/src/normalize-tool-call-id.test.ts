@@ -69,4 +69,13 @@ describe('normalizeToolCallId', () => {
     // Verify the ID matches Mistral's requirements: ^[a-zA-Z0-9]{1,9}$
     expect(normalizedId).toMatch(/^[a-zA-Z0-9]{1,9}$/);
   });
+
+  it('should not collide for distinct Bedrock IDs that share the tooluse prefix and first two suffix chars', () => {
+    const a = normalizeToolCallId('tooluse_Ac1Xq9ZklmNoPq', true);
+    const b = normalizeToolCallId('tooluse_Ac2Yt7WrstUvWx', true);
+
+    expect(a).toMatch(/^[a-zA-Z0-9]{9}$/);
+    expect(b).toMatch(/^[a-zA-Z0-9]{9}$/);
+    expect(a).not.toBe(b);
+  });
 });
