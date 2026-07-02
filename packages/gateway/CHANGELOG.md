@@ -1,5 +1,14 @@
 # @ai-sdk/gateway
 
+## 4.0.11
+
+### Patch Changes
+
+- 5c5c0f5: Add experimental streaming transcription support for transcription models, including OpenAI `gpt-realtime-whisper` and xAI WebSocket STT.
+- Updated dependencies [5c5c0f5]
+  - @ai-sdk/provider@4.0.2
+  - @ai-sdk/provider-utils@5.0.5
+
 ## 4.0.10
 
 ### Patch Changes
