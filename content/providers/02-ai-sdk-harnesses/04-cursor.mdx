@@ -22,7 +22,7 @@ back to the host over a sandbox-exposed WebSocket.
 
 ## Setup
 
-<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+<Tabs items={["pnpm", "npm", "yarn", "bun"]}>
   <Tab>
     <Snippet
       text="pnpm add @ai-sdk/harness@beta @ai-sdk/harness-cursor@beta @ai-sdk/sandbox-vercel@beta"
@@ -55,7 +55,7 @@ starts.
 ## Import
 
 ```ts
-import { cursor, createCursor } from '@ai-sdk/harness-cursor';
+import { cursor, createCursor } from "@ai-sdk/harness-cursor";
 ```
 
 `cursor` is equivalent to `createCursor()` with its default configuration.
@@ -63,14 +63,14 @@ import { cursor, createCursor } from '@ai-sdk/harness-cursor';
 ## Basic Usage
 
 ```ts
-import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { cursor } from '@ai-sdk/harness-cursor';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { HarnessAgent } from "@ai-sdk/harness/agent";
+import { cursor } from "@ai-sdk/harness-cursor";
+import { createVercelSandbox } from "@ai-sdk/sandbox-vercel";
 
 const agent = new HarnessAgent({
   harness: cursor,
   sandbox: createVercelSandbox({
-    runtime: 'node24',
+    runtime: "node24",
     ports: [4000],
   }),
 });
@@ -81,11 +81,11 @@ let exitCode = 0;
 try {
   const result = await agent.stream({
     session,
-    prompt: 'Summarize README.md in two sentences.',
+    prompt: "Summarize README.md in two sentences.",
   });
 
   for await (const part of result.stream) {
-    if (part.type === 'text-delta') {
+    if (part.type === "text-delta") {
       process.stdout.write(part.text);
     }
   }
@@ -105,7 +105,7 @@ the sandbox provider.
 
 ```ts
 const harness = createCursor({
-  model: 'composer-2.5',
+  model: "composer-2.5",
   auth: { apiKey: process.env.CURSOR_API_KEY },
 });
 ```
@@ -129,7 +129,7 @@ Cursor requires a network sandbox with at least one exposed port and Node.js
 
 ```ts
 const sandbox = createVercelSandbox({
-  runtime: 'node24',
+  runtime: "node24",
   ports: [4000],
 });
 ```
@@ -151,6 +151,23 @@ Built-in interactive tool approval is not supported in v1. When
 `permissionMode` is not `'allow-all'`, the adapter enables Cursor
 `autoReview` as a best-effort safety gate. Host-executed AI SDK tool approvals
 still work.
+
+Use `activeTools` or `inactiveTools` on `HarnessAgent` to filter built-in tools.
+The adapter denies inactive built-in calls via auto-rejection in the bridge
+stream. Because Cursor executes built-ins inside `@cursor/sdk`, filtering is
+best-effort and may not prevent side effects that occur before the denial is
+observed.
+
+## Known Limitations
+
+Cursor does not support interactive built-in tool approval requests. Use
+`permissionMode: 'allow-all'` when you need the adapter to avoid enabling
+`autoReview`. Host-executed AI SDK tool approvals still work.
+
+Built-in tool filtering is enforced via auto-rejection rather than native SDK
+tool disable controls. Filtering inactive built-ins such as `bash` or `read`
+works for stream and tool-result semantics, but may not block every side effect
+inside the Cursor runtime.
 
 ## Skills
 
