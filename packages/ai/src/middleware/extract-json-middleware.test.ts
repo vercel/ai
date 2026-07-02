@@ -1,4 +1,7 @@
-import type { LanguageModelV4Usage } from '@ai-sdk/provider';
+import type {
+  LanguageModelV4StreamPart,
+  LanguageModelV4Usage,
+} from '@ai-sdk/provider';
 import {
   convertArrayToReadableStream,
   convertAsyncIterableToArray,
@@ -362,7 +365,16 @@ describe('extractJsonMiddleware', () => {
         }),
       } as any);
 
-      const chunks = await convertAsyncIterableToArray(wrapped.stream);
+      const reader = wrapped.stream.getReader();
+      const chunks: LanguageModelV4StreamPart[] = [];
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          break;
+        }
+        chunks.push(value);
+      }
+
       const text = chunks
         .filter(chunk => chunk.type === 'text-delta')
         .map(chunk => chunk.delta)
