@@ -270,6 +270,17 @@ describe('doStream', () => {
         }
       `);
     });
+
+    it('should expose the request body', async () => {
+      const result = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(result.request?.body).toEqual(
+        await server.calls[0].requestBodyJson,
+      );
+    });
   });
 
   describe('reasoning', () => {
@@ -3288,6 +3299,16 @@ describe('doGenerate', () => {
           "test-header": "test-value",
         }
       `);
+    });
+
+    it('should expose the request body', async () => {
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.request?.body).toEqual(
+        await server.calls[0].requestBodyJson,
+      );
     });
   });
 
