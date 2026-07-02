@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": 400,
+    "message": "* BatchEmbedContentsRequest.requests: at most 100 requests can be in one batch\n",
+    "status": "INVALID_ARGUMENT"
+  }
+}

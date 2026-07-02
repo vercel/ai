@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import type { EmbeddingModelV4Embedding } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { GoogleEmbeddingModel } from './google-embedding-model';
@@ -268,6 +269,31 @@ describe('GoogleEmbeddingModel', () => {
     await expect(model.doEmbed({ values: tooManyValues })).rejects.toThrow(
       'Too many values for a single embedding call. The google.generative-ai model "gemini-embedding-001" can only embed up to 2048 values per call, but 2049 values were provided.',
     );
+  });
+
+  it('should not send more than 100 values to the Google batch embedding endpoint', async () => {
+    server.urls[URL].response = {
+      type: 'error',
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+      body: fs.readFileSync(
+        'src/__fixtures__/google-embedding-batch-limit-error.json',
+        'utf8',
+      ),
+    };
+
+    const tooManyValuesForGoogleBatchEndpoint = Array.from(
+      { length: 101 },
+      (_, index) => `test ${index}`,
+    );
+
+    await expect(
+      model.doEmbed({ values: tooManyValuesForGoogleBatchEndpoint }),
+    ).rejects.toThrow(
+      'Too many values for a single embedding call. The google.generative-ai model "gemini-embedding-001" can only embed up to 100 values per call, but 101 values were provided.',
+    );
+
+    expect(server.calls).toHaveLength(0);
   });
 
   it('should use the batch embeddings endpoint', async () => {
