@@ -92,9 +92,10 @@ function detectMode(modelId: string): 't2v' | 'i2v' | 'r2v' {
   return 't2v';
 }
 
-// wan2.7 models use the new reference-to-video protocol (input.media)
-// instead of the legacy wan2.6 protocol (input.reference_urls).
-function usesMediaProtocol(modelId: string): boolean {
+// wan2.7 models use a different protocol than earlier wan models:
+// resolution tiers + ratio instead of size, input.media instead of
+// input.reference_urls (R2V), and no shot_type or audio parameters.
+function isWan27Model(modelId: string): boolean {
   return modelId.startsWith('wan2.7');
 }
 
@@ -293,7 +294,9 @@ export class AlibabaVideoModel implements Experimental_VideoModelV4 {
     }
 
     const startImage = resolveStartImage(options);
-    const mediaProtocol = mode === 'r2v' && usesMediaProtocol(this.modelId);
+    const wan27 = isWan27Model(this.modelId);
+    // wan2.7 T2V and R2V take an explicit aspect ratio (I2V follows the input image)
+    const supportsRatio = wan27 && mode !== 'i2v';
 
     // Handle image input for I2V mode
     if (mode === 'i2v' && startImage != null) {
@@ -302,8 +305,8 @@ export class AlibabaVideoModel implements Experimental_VideoModelV4 {
 
     // Handle references for R2V mode
     if (mode === 'r2v') {
-      if (mediaProtocol) {
-        // wan2.7: new protocol with input.media
+      if (wan27) {
+        // wan2.7: input.media
         const media = resolveMedia(options, alibabaOptions, warnings);
         if (media != null) {
           input.media = media;
@@ -362,19 +365,30 @@ export class AlibabaVideoModel implements Experimental_VideoModelV4 {
 
     // Resolution / Size mapping
     if (options.resolution != null) {
-      if (mode === 'i2v' || mediaProtocol) {
-        // I2V and wan2.7 R2V use "720P" / "1080P" format
-        parameters.resolution =
+      if (mode === 'i2v' || wan27) {
+        // I2V and wan2.7 models use "720P" / "1080P" format
+        const resolutionTier =
           resolutionTierMap[options.resolution] || options.resolution;
+        if (wan27 && resolutionTier !== '720P' && resolutionTier !== '1080P') {
+          warnings.push({
+            type: 'unsupported',
+            feature: 'resolution',
+            details:
+              'wan2.7 models only support 720P and 1080P ' +
+              `resolutions. The resolution "${options.resolution}" was ignored.`,
+          });
+        } else {
+          parameters.resolution = resolutionTier;
+        }
       } else {
-        // T2V and wan2.6 R2V use "WIDTH*HEIGHT" format for the size parameter
+        // wan2.6 T2V and R2V use "WIDTH*HEIGHT" format for the size parameter
         // Convert "WIDTHxHEIGHT" (SDK standard) to "WIDTH*HEIGHT" (Alibaba API)
         parameters.size = options.resolution.replace('x', '*');
       }
     }
 
-    // wan2.7 R2V supports an explicit aspect ratio parameter
-    if (mediaProtocol) {
+    // wan2.7 T2V and R2V support an explicit aspect ratio parameter
+    if (supportsRatio) {
       const ratio =
         alibabaOptions?.ratio ??
         options.aspectRatio ??
@@ -391,18 +405,40 @@ export class AlibabaVideoModel implements Experimental_VideoModelV4 {
       parameters.prompt_extend = alibabaOptions.promptExtend;
     }
     if (alibabaOptions?.shotType != null) {
-      parameters.shot_type = alibabaOptions.shotType;
+      if (wan27) {
+        // wan2.7 removed shot_type; shot structure is described in the prompt
+        warnings.push({
+          type: 'unsupported',
+          feature: 'shotType',
+          details:
+            'wan2.7 models do not support the shotType option. ' +
+            'Describe the shot structure in the prompt instead.',
+        });
+      } else {
+        parameters.shot_type = alibabaOptions.shotType;
+      }
     }
     if (alibabaOptions?.watermark != null) {
       parameters.watermark = alibabaOptions.watermark;
     }
     const audio = options.generateAudio ?? alibabaOptions?.audio;
     if (audio != null) {
-      parameters.audio = audio;
+      if (wan27) {
+        // wan2.7 does not have an audio parameter (audio is always generated)
+        warnings.push({
+          type: 'unsupported',
+          feature: 'generateAudio',
+          details:
+            'wan2.7 models always generate audio. ' +
+            'The audio option was ignored.',
+        });
+      } else {
+        parameters.audio = audio;
+      }
     }
 
     // Warn about unsupported standard options
-    if (options.aspectRatio && !mediaProtocol) {
+    if (options.aspectRatio && !supportsRatio) {
       warnings.push({
         type: 'unsupported',
         feature: 'aspectRatio',

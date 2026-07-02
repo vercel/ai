@@ -353,6 +353,21 @@ const { video } = await generateVideo({
 });
 ```
 
+`wan2.7` models additionally support the `aspectRatio` option (mapped to the
+API's `ratio` parameter) and always generate audio. Multi-shot structure is
+described directly in the prompt instead of the `shotType` option:
+
+```ts
+const { video } = await generateVideo({
+  model: alibaba.video('wan2.7-t2v'),
+  prompt:
+    'A serene mountain lake at sunset. The camera pans across the water, then cuts to a close-up of ripples catching the light.',
+  resolution: '1920x1080',
+  aspectRatio: '16:9',
+  duration: 5,
+});
+```
+
 ### Image-to-Video
 
 Generate videos from a first-frame image and optional text prompt:
@@ -442,7 +457,7 @@ const { video } = await generateVideo({
   resolution: '1920x1080',
   duration: 5,
   inputReferences: [
-    { data: imageBytes, mediaType: 'image/png' }, // sent as base64 data URI
+    imageBytes, // inline image data, sent as base64 data URI
     'https://example.com/background.png',
   ],
   providerOptions: {
@@ -504,7 +519,7 @@ The following provider options are available via `providerOptions.alibaba`:
 
 - **audio** _boolean_
 
-  Whether to generate audio (for I2V and R2V models that support it).
+  Whether to generate audio (for `wan2.6` I2V and R2V models; `wan2.7` models always generate audio).
 
 - **referenceUrls** _string[]_
 
@@ -520,7 +535,8 @@ The following provider options are available via `providerOptions.alibaba`:
 
 - **ratio** `'16:9'` | `'9:16'` | `'1:1'` | `'4:3'` | `'3:4'`
 
-  Aspect ratio for reference-to-video mode (`wan2.7` models).
+  Aspect ratio (`wan2.7` text-to-video and reference-to-video models).
+  The top-level `aspectRatio` option is mapped to this parameter automatically.
 
 - **pollIntervalMs** _number_
 
@@ -540,10 +556,12 @@ The following provider options are available via `providerOptions.alibaba`:
 
 #### Text-to-Video
 
-| Model                | Audio | Resolution        | Duration |
-| -------------------- | ----- | ----------------- | -------- |
-| `wan2.6-t2v`         | Yes   | 720P, 1080P       | 2-15s    |
-| `wan2.5-t2v-preview` | Yes   | 480P, 720P, 1080P | 5s, 10s  |
+| Model                   | Audio | Resolution        | Duration |
+| ----------------------- | ----- | ----------------- | -------- |
+| `wan2.6-t2v`            | Yes   | 720P, 1080P       | 2-15s    |
+| `wan2.5-t2v-preview`    | Yes   | 480P, 720P, 1080P | 5s, 10s  |
+| `wan2.7-t2v`            | Yes   | 720P, 1080P       | 2-15s    |
+| `wan2.7-t2v-2026-06-12` | Yes   | 720P, 1080P       | 2-15s    |
 
 #### Image-to-Video (First Frame)
 

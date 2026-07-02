@@ -8,11 +8,17 @@ export type AlibabaVideoModelOptions = {
   audioUrl?: string | null;
   /** Enable prompt extension/rewriting for better generation. Defaults to true. */
   promptExtend?: boolean | null;
-  /** Shot type: 'single' for single-shot or 'multi' for multi-shot narrative. */
+  /**
+   * Shot type: 'single' for single-shot or 'multi' for multi-shot narrative
+   * (wan2.6 and earlier; wan2.7 models describe shot structure in the prompt).
+   */
   shotType?: 'single' | 'multi' | null;
   /** Whether to add watermark to generated video. Defaults to false. */
   watermark?: boolean | null;
-  /** Enable audio generation (for I2V/R2V models). */
+  /**
+   * Enable audio generation (for wan2.6 I2V/R2V models;
+   * wan2.7 models always generate audio).
+   */
   audio?: boolean | null;
   /**
    * Reference URLs for reference-to-video mode (wan2.6 models).
@@ -34,7 +40,7 @@ export type AlibabaVideoModelOptions = {
     referenceVoice?: string | null;
   }> | null;
   /**
-   * Aspect ratio for reference-to-video mode (wan2.7 models).
+   * Aspect ratio (wan2.7 text-to-video and reference-to-video models).
    */
   ratio?: '16:9' | '9:16' | '1:1' | '4:3' | '3:4' | null;
   /** Polling interval in milliseconds. Defaults to 5000 (5 seconds). */
