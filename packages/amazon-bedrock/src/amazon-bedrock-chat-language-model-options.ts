@@ -143,6 +143,21 @@ export const amazonBedrockLanguageModelChatOptions = z.object({
    * - 'flex': Lower-cost tier for flexible latency workloads
    */
   serviceTier: z.enum(['reserved', 'priority', 'default', 'flex']).optional(),
+  /**
+   * Controls how object generation (structured output) is requested for
+   * Anthropic models on Bedrock. Mirrors the `structuredOutputMode` option of
+   * the `@ai-sdk/anthropic` provider.
+   *
+   * - `'auto'` (default): use Bedrock's native structured output
+   *   (`output_config.format`) when the model supports it, otherwise fall back
+   *   to the tool-based JSON path.
+   * - `'jsonTool'`: always use the tool-based JSON path. Use this on Bedrock
+   *   partitions/regions that do not accept `output_config.format` (e.g. AWS
+   *   GovCloud), which otherwise reject the request with
+   *   `output_config.format: Extra inputs are not permitted`.
+   * - `'outputFormat'`: always use native `output_config.format`.
+   */
+  structuredOutputMode: z.enum(['outputFormat', 'jsonTool', 'auto']).optional(),
 });
 
 export type AmazonBedrockLanguageModelChatOptions = z.infer<

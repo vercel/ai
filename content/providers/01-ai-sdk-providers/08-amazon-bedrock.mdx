@@ -570,6 +570,38 @@ Supported values are:
 
 See the [Amazon Bedrock service tiers documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/service-tiers-inference.html) for model availability and behavior.
 
+## Structured Outputs
+
+For Anthropic models, Bedrock can request object generation either through its **native** structured output (`output_config.format`) or through a **tool-based** JSON path. By default (`structuredOutputMode: 'auto'`) the provider uses native structured output when the model supports it and falls back to the tool path otherwise.
+
+Some Bedrock partitions and regions — notably **AWS GovCloud (`us-gov-*`)** — do not accept the native `output_config.format` field and reject the request with `output_config.format: Extra inputs are not permitted`. Set `structuredOutputMode: 'jsonTool'` to force the tool-based path on those endpoints:
+
+```ts
+import {
+  amazonBedrock,
+  type AmazonBedrockLanguageModelChatOptions,
+} from '@ai-sdk/amazon-bedrock';
+import { generateObject } from 'ai';
+import { z } from 'zod';
+
+const result = await generateObject({
+  model: amazonBedrock('us-gov.anthropic.claude-sonnet-4-5-20250929-v1:0'),
+  schema: z.object({ summary: z.string() }),
+  prompt: 'Summarize this support ticket backlog.',
+  providerOptions: {
+    bedrock: {
+      structuredOutputMode: 'jsonTool',
+    } satisfies AmazonBedrockLanguageModelChatOptions,
+  },
+});
+```
+
+Supported values are:
+
+- `auto` _(default)_ — native `output_config.format` when the model supports it, otherwise the tool-based JSON path.
+- `jsonTool` — always use the tool-based JSON path.
+- `outputFormat` — always use native `output_config.format`.
+
 ## Extended Context Window
 
 Claude Sonnet 4 models on Amazon Bedrock support an extended context window of up to 1 million tokens when using the `context-1m-2025-08-07` beta feature.
