@@ -49,7 +49,7 @@ export class SpritesSandboxSession implements Experimental_SandboxSession {
   }): Promise<{ exitCode: number; stdout: string; stderr: string }> {
     abortSignal?.throwIfAborted();
 
-    const proc = this.client.exec(this.spriteName, {
+    const proc = await this.client.exec(this.spriteName, {
       argv: ['bash', '-c', command],
       cwd: workingDirectory ?? this.workingDirectory,
       ...(env !== undefined ? { env } : {}),
@@ -77,7 +77,7 @@ export class SpritesSandboxSession implements Experimental_SandboxSession {
   }): Promise<Experimental_SandboxProcess> {
     abortSignal?.throwIfAborted();
 
-    return this.client.exec(this.spriteName, {
+    return await this.client.exec(this.spriteName, {
       argv: ['bash', '-c', command],
       cwd: workingDirectory ?? this.workingDirectory,
       ...(env !== undefined ? { env } : {}),
@@ -140,7 +140,7 @@ export class SpritesSandboxSession implements Experimental_SandboxSession {
     content: ReadableStream<Uint8Array>;
     abortSignal?: AbortSignal;
   }): Promise<void> {
-    const bytes = await collectBytes(content);
+    const bytes = await collectBytes(content, abortSignal);
     await this.writeBinaryFile({ path, content: bytes, abortSignal });
   }
 
@@ -200,16 +200,45 @@ function bytesToStream(bytes: Uint8Array): ReadableStream<Uint8Array> {
 
 async function collectBytes(
   stream: ReadableStream<Uint8Array>,
+  abortSignal?: AbortSignal,
 ): Promise<Uint8Array> {
   const reader = stream.getReader();
   const chunks: Uint8Array[] = [];
   let total = 0;
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    if (value) {
-      chunks.push(value);
-      total += value.byteLength;
+  // A slow/never-ending source stream must not keep writeFile hung past an
+  // abort: race each read against the signal, matching the abort error shape
+  // `exec`'s `wait()` throws (see sprites-api-client.ts).
+  let onAbort: (() => void) | undefined;
+  const aborted =
+    abortSignal != null
+      ? new Promise<never>((_, reject) => {
+          onAbort = () => {
+            reject(
+              abortSignal.reason ?? new DOMException('Aborted', 'AbortError'),
+            );
+          };
+          abortSignal.addEventListener('abort', onAbort);
+        })
+      : undefined;
+  try {
+    abortSignal?.throwIfAborted();
+    while (true) {
+      const { value, done } = await (aborted
+        ? Promise.race([reader.read(), aborted])
+        : reader.read());
+      if (done) break;
+      if (value) {
+        chunks.push(value);
+        total += value.byteLength;
+      }
+    }
+  } catch (error) {
+    await reader.cancel(abortSignal?.reason).catch(() => {});
+    reader.releaseLock();
+    throw error;
+  } finally {
+    if (abortSignal != null && onAbort != null) {
+      abortSignal.removeEventListener('abort', onAbort);
     }
   }
   const out = new Uint8Array(total);

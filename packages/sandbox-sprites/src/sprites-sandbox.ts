@@ -3,7 +3,7 @@ import type {
   HarnessV1SandboxProvider,
 } from '@ai-sdk/harness';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import {
   SPRITES_DEFAULT_BASE_URL,
   SpritesApiClient,
@@ -50,9 +50,11 @@ export interface SpritesConnectionSettings {
  * Settings for {@link createSpritesSandbox}. Two mutually-exclusive shapes:
  *
  * - `{ spriteName }` — wrap an already-created Sprite by name. The caller owns
- *   its lifecycle; the provider's `destroy()` is a no-op. Set `urlAuth` to
- *   `'public'` if the harness bridge needs the Sprite's public URL reachable
- *   by a stock WebSocket client.
+ *   its lifecycle; the provider's `destroy()` is a no-op. `urlAuth` is left
+ *   alone unless set: a wrapped Sprite left on `'sprite'` auth is unreachable
+ *   to a stock WebSocket bridge client, which is redirected (302) at the auth
+ *   gate instead of reaching the in-Sprite bridge. Set `urlAuth` to `'public'`
+ *   if the harness bridge needs the Sprite's public URL reachable that way.
  * - create-new (no `spriteName`) — the provider creates a fresh Sprite per
  *   session. When a `sessionId` is supplied the Sprite is named
  *   deterministically so `resumeSession({ sessionId })` can reattach. `urlAuth`
@@ -229,6 +231,16 @@ export class SpritesSandboxProvider implements HarnessV1SandboxProvider {
         this.settings.spriteName,
         options.abortSignal,
       );
+      if (
+        this.settings.urlAuth != null &&
+        sprite.urlAuth !== this.settings.urlAuth
+      ) {
+        await this.client.setUrlAuth(
+          sprite.name,
+          this.settings.urlAuth,
+          options.abortSignal,
+        );
+      }
       return new SpritesNetworkSandboxSession({
         client: this.client,
         sprite,
@@ -248,17 +260,51 @@ export class SpritesSandboxProvider implements HarnessV1SandboxProvider {
   };
 }
 
+/** Max chars of the readable slug portion of a derived name (see {@link sanitizeName}). */
+const NAME_SLUG_MAX_LENGTH = 28;
 /**
- * Turn an arbitrary session id into a DNS-label-safe Sprite name fragment:
- * lowercase alphanumerics and single hyphens, no leading/trailing hyphen.
+ * Hex chars of the SHA-256 suffix (see {@link sanitizeName}). 10 hex = 40 bits:
+ * the birthday bound puts a 50% collision at ~2^20 (~1M) distinct inputs, which
+ * dwarfs any realistic live session/identity population, while keeping the
+ * derived fragment inside the platform's DNS-label budget.
+ */
+const NAME_HASH_LENGTH = 10;
+
+/**
+ * Turn an arbitrary session id or identity into a DNS-label-safe, *collision-
+ * resistant* Sprite name fragment. This is security-critical: names are the
+ * durable lookup key `resumeSession` re-derives, so two distinct inputs that
+ * mapped to the same name would let a resumed session attach to another
+ * session's Sprite and read its data.
+ *
+ * Layout: `<slug>-<hash>`, or just `<hash>` when the slug is empty, where
+ *  - `slug` is the lowercased input with runs of non-alphanumerics collapsed to
+ *    single hyphens (leading/trailing stripped) and truncated to
+ *    {@link NAME_SLUG_MAX_LENGTH} — a lossy, human-readable hint only, never
+ *    relied on for uniqueness;
+ *  - `hash` is the first {@link NAME_HASH_LENGTH} hex chars of SHA-256 over the
+ *    *original* (un-sanitized) value, so two inputs whose slugs collide still
+ *    differ here.
+ *
+ * The result is fully deterministic — no randomness, no stored state — so
+ * `resumeSession({ sessionId })` and the bootstrap marker path re-derive the
+ * identical name. Length: the longest prefix (`ai-sdk-harness-session-`, 23) +
+ * 28 slug + `-` + 10 hash = 62, within the 63-char DNS-label limit of the
+ * `<name>-<suffix>.sprites.app` public URL.
  */
 function sanitizeName(value: string): string {
-  const cleaned = value
+  const hash = createHash('sha256')
+    .update(value)
+    .digest('hex')
+    .slice(0, NAME_HASH_LENGTH);
+  const slug = value
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
-    .slice(0, 40);
-  return cleaned.length > 0 ? cleaned : randomSuffix();
+    .slice(0, NAME_SLUG_MAX_LENGTH)
+    // A slice can land mid-hyphen-run, re-introducing a trailing hyphen.
+    .replace(/-+$/g, '');
+  return slug.length > 0 ? `${slug}-${hash}` : hash;
 }
 
 function randomSuffix(): string {

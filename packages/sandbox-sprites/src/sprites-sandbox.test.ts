@@ -25,6 +25,8 @@ interface FetchScenario {
   auth?: 'public' | 'sprite';
   /** Whether a bootstrap marker file already exists (fs/read → 200 vs 404). */
   markerExists?: boolean;
+  /** Whether GET /v1/sprites/{name} finds the sprite (default true). */
+  spriteExists?: boolean;
 }
 
 function installFetch(scenario: FetchScenario = {}): ReturnType<typeof vi.fn> {
@@ -47,6 +49,9 @@ function installFetch(scenario: FetchScenario = {}): ReturnType<typeof vi.fn> {
     // GET /v1/sprites/{name}
     const getMatch = u.pathname.match(/^\/v1\/sprites\/([^/]+)$/);
     if (getMatch && method === 'GET') {
+      if (scenario.spriteExists === false) {
+        return new Response('{"error":"not found"}', { status: 404 });
+      }
       return new Response(spriteBody(decodeURIComponent(getMatch[1]), auth), {
         status: 200,
       });
@@ -113,16 +118,15 @@ describe('create-new createSession', () => {
     });
     const session = await provider.createSession({ sessionId: 'Run #7!' });
 
-    expect(session.id).toBe('ai-sdk-harness-session-run-7');
+    // Readable slug + deterministic SHA-256 suffix binding the full sessionId.
+    expect(session.id).toMatch(/^ai-sdk-harness-session-run-7-[0-9a-f]{10}$/);
     expect(session.defaultWorkingDirectory).toBe('/home/sprite');
     expect([...session.ports]).toEqual([8080]);
 
     const create = calls.find(
       c => c.method === 'POST' && c.url.endsWith('/v1/sprites'),
     );
-    expect(JSON.parse(create?.body ?? '{}').name).toBe(
-      'ai-sdk-harness-session-run-7',
-    );
+    expect(JSON.parse(create?.body ?? '{}').name).toBe(session.id);
     // url auth was sprite -> provider PUTs public
     const put = calls.find(c => c.method === 'PUT');
     expect(put?.body).toContain('"auth":"public"');
@@ -160,10 +164,38 @@ describe('create-new createSession', () => {
       sessionId: 's1',
       onFirstCreate,
     });
-    expect(session.id).toBe('ai-sdk-harness-session-s1');
+    expect(session.id).toMatch(/^ai-sdk-harness-session-s1-[0-9a-f]{10}$/);
     expect(onFirstCreate).not.toHaveBeenCalled();
     // fell back to GET
     expect(calls.some(c => c.method === 'GET')).toBe(true);
+  });
+
+  it('reuses an existing sprite on a 400 duplicate-name response', async () => {
+    installFetch({ createStatus: 400 });
+    const provider = createSpritesSandbox({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+    });
+    const onFirstCreate = vi.fn(async () => {});
+    const session = await provider.createSession({
+      sessionId: 's1',
+      onFirstCreate,
+    });
+    expect(session.id).toMatch(/^ai-sdk-harness-session-s1-[0-9a-f]{10}$/);
+    expect(onFirstCreate).not.toHaveBeenCalled();
+    // fell back to GET
+    expect(calls.some(c => c.method === 'GET')).toBe(true);
+  });
+
+  it('throws the original create error when a 400 create fails and no existing sprite is found', async () => {
+    installFetch({ createStatus: 400, spriteExists: false });
+    const provider = createSpritesSandbox({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+    });
+    await expect(provider.createSession({ sessionId: 's1' })).rejects.toThrow(
+      /failed: 400/,
+    );
   });
 
   it('destroy() deletes the provider-owned sprite', async () => {
@@ -202,13 +234,18 @@ describe('prewarm / identity', () => {
       identity: 'recipe-hash-1',
       onFirstCreate,
     });
-    expect(session.id).toBe('ai-sdk-harness-tmpl-recipe-hash-1');
+    expect(session.id).toMatch(
+      /^ai-sdk-harness-tmpl-recipe-hash-1-[0-9a-f]{10}$/,
+    );
     expect(onFirstCreate).toHaveBeenCalledTimes(1);
-    // marker persisted via fs/write to a path keyed by identity
+    // marker persisted via fs/write to a path keyed by identity, using the
+    // same collision-resistant derivation as the sprite name.
     const markerWrite = calls.find(
       c => c.method === 'PUT' && c.url.includes('/fs/write'),
     );
-    expect(markerWrite?.url).toContain('bootstrap-recipe-hash-1.done');
+    expect(markerWrite?.url).toMatch(
+      /bootstrap-recipe-hash-1-[0-9a-f]{10}\.done/,
+    );
   });
 
   it('skips onFirstCreate when the identity marker already exists (409 reuse)', async () => {
@@ -242,15 +279,15 @@ describe('getPortUrl', () => {
       baseUrl: 'https://api.test',
     });
     const session = await provider.createSession({ sessionId: 'p' });
+    // The fake control-plane serves the public URL as `<name>-x.sprites.app`.
+    const host = `${session.id}-x.sprites.app`;
 
-    expect(await session.getPortUrl({ port: 8080 })).toBe(
-      'https://ai-sdk-harness-session-p-x.sprites.app/',
-    );
+    expect(await session.getPortUrl({ port: 8080 })).toBe(`https://${host}/`);
     expect(await session.getPortUrl({ port: 8080, protocol: 'ws' })).toBe(
-      'wss://ai-sdk-harness-session-p-x.sprites.app/',
+      `wss://${host}/`,
     );
     expect(await session.getPortUrl({ port: 8080, protocol: 'http' })).toBe(
-      'https://ai-sdk-harness-session-p-x.sprites.app/',
+      `https://${host}/`,
     );
   });
 
@@ -335,11 +372,70 @@ describe('resumeSession', () => {
     });
     expect(provider.resumeSession).toBeDefined();
     const session = await provider.resumeSession?.({ sessionId: 's1' });
-    expect(session?.id).toBe('ai-sdk-harness-session-s1');
+    expect(session?.id).toMatch(/^ai-sdk-harness-session-s1-[0-9a-f]{10}$/);
     expect(
-      calls.some(
-        c => c.method === 'GET' && c.url.endsWith('ai-sdk-harness-session-s1'),
-      ),
+      calls.some(c => c.method === 'GET' && c.url.endsWith(session?.id ?? '')),
     ).toBe(true);
+  });
+
+  it('re-derives the identical name createSession produced for the same sessionId', async () => {
+    installFetch({ auth: 'public' });
+    const provider = createSpritesSandbox({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+    });
+    const created = await provider.createSession({ sessionId: 'weird/../id' });
+    const resumed = await provider.resumeSession?.({
+      sessionId: 'weird/../id',
+    });
+    expect(resumed?.id).toBe(created.id);
+  });
+
+  it('derives collision-resistant names for distinct ids whose slugs collide', async () => {
+    installFetch({ auth: 'public' });
+    const provider = createSpritesSandbox({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+    });
+    // Two distinct ids that sanitize to the same lossy 40-char slug the old
+    // implementation used (identical first 40 alphanumerics), differing only
+    // beyond it. The SHA-256 suffix over the full value must keep them apart.
+    const a = `${'a'.repeat(45)}-one`;
+    const b = `${'a'.repeat(45)}-two`;
+    const sa = await provider.createSession({ sessionId: a });
+    const sb = await provider.createSession({ sessionId: b });
+    expect(sa.id).not.toBe(sb.id);
+    // Both remain DNS-label-safe and within the 63-char limit.
+    for (const id of [sa.id, sb.id]) {
+      expect(id).toMatch(/^[a-z0-9-]+$/);
+      expect(id.length).toBeLessThanOrEqual(63);
+    }
+  });
+
+  it('reconciles urlAuth for a wrapped Sprite on resume, mirroring createSession', async () => {
+    installFetch({ auth: 'sprite' });
+    const provider = createSpritesSandbox({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+      spriteName: 'my-existing',
+      urlAuth: 'public',
+    });
+    const session = await provider.resumeSession?.({ sessionId: 'ignored' });
+    expect(session?.id).toBe('my-existing');
+    // url auth was sprite -> provider PUTs public, same as createSession
+    const put = calls.find(c => c.method === 'PUT');
+    expect(put?.body).toContain('"auth":"public"');
+  });
+
+  it('does not change url auth for a wrapped Sprite already on the requested auth', async () => {
+    installFetch({ auth: 'public' });
+    const provider = createSpritesSandbox({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+      spriteName: 'my-existing',
+      urlAuth: 'public',
+    });
+    await provider.resumeSession?.({ sessionId: 'ignored' });
+    expect(calls.some(c => c.method === 'PUT')).toBe(false);
   });
 });

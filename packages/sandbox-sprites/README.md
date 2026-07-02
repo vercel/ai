@@ -125,15 +125,15 @@ match on domains), so `allowedCIDRs` / `deniedCIDRs` are rejected.
 
 ## Settings
 
-| Setting            | Description                                                                            |
-| ------------------ | -------------------------------------------------------------------------------------- |
-| `apiKey`           | Sprites API token. Defaults to `SPRITES_API_KEY` / `SPRITES_TOKEN`.                    |
-| `baseUrl`          | Control-plane base URL. Defaults to `SPRITES_API_URL` or `https://api.sprites.dev`.    |
+| Setting            | Description                                                                                                                                                      |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apiKey`           | Sprites API token. Defaults to `SPRITES_API_KEY` / `SPRITES_TOKEN`.                                                                                              |
+| `baseUrl`          | Control-plane base URL. Defaults to `SPRITES_API_URL` or `https://api.sprites.dev`.                                                                              |
 | `workingDirectory` | Base dir for resolving relative file paths **and** the default `cwd` for `run`/`spawn` when no per-call `workingDirectory` is given. Defaults to `/home/sprite`. |
-| `spriteName`       | Wrap an existing Sprite by name instead of creating one.                               |
-| `name`             | Explicit name for a created Sprite (else auto-derived from the session id).            |
-| `urlAuth`          | `'public'` (default for created Sprites) or `'sprite'`.                                |
-| `waitForCapacity`  | Block on fleet capacity instead of failing fast when creating a Sprite.               |
+| `spriteName`       | Wrap an existing Sprite by name instead of creating one.                                                                                                         |
+| `name`             | Explicit name for a created Sprite (else auto-derived from the session id).                                                                                      |
+| `urlAuth`          | `'public'` (default for created Sprites) or `'sprite'`.                                                                                                          |
+| `waitForCapacity`  | Block on fleet capacity instead of failing fast when creating a Sprite.                                                                                          |
 
 ## Known limitations & security
 

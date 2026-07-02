@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import {
   safeParseJSON,
   type Experimental_SandboxProcess,
@@ -190,19 +191,25 @@ export class SpritesApiClient {
       };
     }
     const body = await response.text().catch(() => '');
-    // 409 is the authoritative "name already taken" signal. Do not infer reuse
-    // from an arbitrary error body, which could swallow a real 4xx/5xx failure.
-    if (response.status === 409) {
-      return {
-        sprite: await this.getSprite(options.name, options.abortSignal),
-        created: false,
-      };
-    }
-    throw new Error(
+    const createError = new Error(
       `Sprites API POST ${this.baseUrl}/v1/sprites failed: ${response.status} ${response.statusText}${
         body ? ` — ${body}` : ''
       }`,
     );
+    // The platform's "name already taken" status is ambiguous (docs say 400,
+    // observed live 409), so probe for the sprite on either status rather than
+    // trusting a single code. Only reuse it if the probe actually finds it —
+    // otherwise surface the original create error, not the probe's, so a real
+    // 4xx/5xx failure is not swallowed by an unrelated getSprite error.
+    if (response.status === 400 || response.status === 409) {
+      try {
+        const sprite = await this.getSprite(options.name, options.abortSignal);
+        return { sprite, created: false };
+      } catch {
+        throw createError;
+      }
+    }
+    throw createError;
   }
 
   async deleteSprite(name: string, abortSignal?: AbortSignal): Promise<void> {
@@ -255,7 +262,9 @@ export class SpritesApiClient {
   ): Promise<Uint8Array | null> {
     const url = this.spritePath(
       name,
-      `/fs/read?path=${encodeURIComponent(path)}`,
+      // `workingDir` is required by the fs endpoints per the platform docs;
+      // paths passed here are always absolute already, so `/` is a no-op base.
+      `/fs/read?path=${encodeURIComponent(path)}&workingDir=${encodeURIComponent('/')}`,
     );
     const response = await this.request(url, { method: 'GET', abortSignal });
     if (response.status === 404) {
@@ -281,7 +290,9 @@ export class SpritesApiClient {
   ): Promise<void> {
     const url = this.spritePath(
       name,
-      `/fs/write?path=${encodeURIComponent(path)}`,
+      // See the comment in readFile: `workingDir` is required by the fs
+      // endpoints; paths passed here are always absolute already.
+      `/fs/write?path=${encodeURIComponent(path)}&workingDir=${encodeURIComponent('/')}`,
     );
     await this.requestVoid(url, {
       method: 'PUT',
@@ -299,18 +310,62 @@ export class SpritesApiClient {
    * `0x01` stdout, `0x02` stderr, `0x03` exit + code byte) and exposes the
    * exit code via `wait()` (also surfaced as a JSON `{ type: 'exit' }` control
    * message). `kill()` terminates the in-Sprite session.
+   *
+   * Environment variables ({@link SpriteExecOptions.env}) are **not** sent on
+   * the WS query string. A WebSocket handshake is an HTTP GET whose full URL —
+   * query included — is routinely captured in server/proxy access logs, so
+   * putting secret values there would defeat the reason the SandboxSession
+   * contract offers env as an option. Instead they are written to a temporary
+   * file inside the Sprite and sourced by a wrapper command, keeping them off
+   * the URL entirely. The no-env path is unchanged: no extra round-trip, same
+   * query, same behavior as before.
    */
-  exec(name: string, options: SpriteExecOptions): Experimental_SandboxProcess {
+  async exec(
+    name: string,
+    options: SpriteExecOptions,
+  ): Promise<Experimental_SandboxProcess> {
+    options.abortSignal?.throwIfAborted();
+
+    let argv: ReadonlyArray<string> = options.argv;
+    if (options.env != null && Object.keys(options.env).length > 0) {
+      // Random filename so concurrent execs never clobber each other's env.
+      const envPath = `/tmp/.ai-sdk-env-${randomUUID()}`;
+      await this.writeFile(
+        name,
+        envPath,
+        encodeEnvFile(options.env),
+        options.abortSignal,
+      );
+      // `set -a; . f; set +a` merges the vars into (rather than replacing) the
+      // Sprite's default environment, matching the platform's live behavior.
+      // `rm -f` runs *before* the payload, so even a crashing or killed
+      // command leaves no secret file behind. `exec "$@"` then runs the
+      // original argv verbatim — no re-quoting — preserving semantics for
+      // every call path (bash -c, raw argv, interactive spawn); `$0` is a
+      // label, `"$@"` is the original argv.
+      argv = [
+        'bash',
+        '-c',
+        `set -a; . '${envPath}'; set +a; rm -f '${envPath}'; exec "$@"`,
+        'ai-sdk-env-wrapper',
+        ...options.argv,
+      ];
+    }
+
+    return this.connectExec(name, argv, options.cwd, options.abortSignal);
+  }
+
+  private connectExec(
+    name: string,
+    argv: ReadonlyArray<string>,
+    cwd: string | undefined,
+    abortSignal: AbortSignal | undefined,
+  ): Experimental_SandboxProcess {
     const WebSocketCtor = getWebSocketCtor();
 
     const query = new URLSearchParams();
-    for (const arg of options.argv) query.append('cmd', arg);
-    if (options.cwd != null) query.set('dir', options.cwd);
-    if (options.env != null) {
-      for (const [key, value] of Object.entries(options.env)) {
-        query.append('env', `${key}=${value}`);
-      }
-    }
+    for (const arg of argv) query.append('cmd', arg);
+    if (cwd != null) query.set('dir', cwd);
 
     const wsBase = this.baseUrl.replace(/^http(s?):\/\//, 'ws$1://');
     const url = `${wsBase}/v1/sprites/${encodeURIComponent(name)}/exec?${query.toString()}`;
@@ -347,8 +402,9 @@ export class SpritesApiClient {
       resolveClosed = resolve;
     });
 
-    // The full `url` carries `cmd`/`dir`/`env` (potentially secrets) in its
-    // query string; never embed it in a user-facing error.
+    // The full `url` carries `cmd`/`dir` (the command text, potentially
+    // sensitive) in its query string; never embed it in a user-facing error.
+    // (Env values are routed through a temp file, never the query — see exec.)
     const safeUrl = `${wsBase}/v1/sprites/${encodeURIComponent(name)}/exec`;
 
     const ws = new WebSocketCtor(url, { headers: this.authHeaders() });
@@ -357,8 +413,8 @@ export class SpritesApiClient {
     const finish = (): void => {
       if (settled) return;
       settled = true;
-      if (onAbort != null && options.abortSignal != null) {
-        options.abortSignal.removeEventListener('abort', onAbort);
+      if (onAbort != null && abortSignal != null) {
+        abortSignal.removeEventListener('abort', onAbort);
       }
       stdoutController?.close();
       stderrController?.close();
@@ -439,14 +495,14 @@ export class SpritesApiClient {
       }
     };
 
-    if (options.abortSignal != null) {
+    if (abortSignal != null) {
       onAbort = (): void => {
         void killSession();
       };
-      if (options.abortSignal.aborted) {
+      if (abortSignal.aborted) {
         onAbort();
       } else {
-        options.abortSignal.addEventListener('abort', onAbort);
+        abortSignal.addEventListener('abort', onAbort);
       }
     }
 
@@ -461,11 +517,8 @@ export class SpritesApiClient {
         if (exitObserved) {
           return { exitCode: exitCode ?? 0 };
         }
-        if (options.abortSignal?.aborted) {
-          throw (
-            options.abortSignal.reason ??
-            new DOMException('Aborted', 'AbortError')
-          );
+        if (abortSignal?.aborted) {
+          throw abortSignal.reason ?? new DOMException('Aborted', 'AbortError');
         }
         // Closed without ever reporting an exit: a dropped/abnormal connection.
         // Surface it rather than masquerading as a successful `exitCode: 0`.
@@ -481,6 +534,19 @@ export class SpritesApiClient {
       },
     };
   }
+}
+
+/**
+ * Serialize env vars into a bash-sourceable file (used with `set -a` so each
+ * assignment is auto-exported). Values are single-quoted with the `'\''`
+ * escape so arbitrary characters — spaces, `$`, quotes, newlines — are taken
+ * literally, never re-interpreted by the shell.
+ */
+function encodeEnvFile(env: Record<string, string>): Uint8Array {
+  const body = Object.entries(env)
+    .map(([key, value]) => `${key}='${value.replace(/'/g, `'\\''`)}'`)
+    .join('\n');
+  return new TextEncoder().encode(`${body}\n`);
 }
 
 async function parseSprite(text: string): Promise<SpriteResource> {

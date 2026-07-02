@@ -101,8 +101,11 @@ export class SpritesNetworkSandboxSession
   };
 
   stop = async (): Promise<void> => {
-    // Sprites auto-suspend (go "cold") when idle; there is no explicit stop
-    // primitive. Resource teardown for provider-owned sprites happens in
+    // Sprites have no explicit stop primitive — they only auto-suspend (go
+    // "cold") after ~30s idle. The contract's "stop" therefore maps to that
+    // auto-suspend behavior rather than an action this method takes: it
+    // returns without doing anything, and the Sprite will suspend on its own
+    // once idle. Resource teardown for provider-owned sprites happens in
     // destroy().
   };
 
