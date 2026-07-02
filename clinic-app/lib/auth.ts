@@ -31,6 +31,37 @@ export async function requireProfile(): Promise<Profile> {
     redirect('/suspended?reason=locked');
   }
 
+  // Support mode: when an active impersonation session targets a specific
+  // user, the app sees the *target's* profile (id, role, name) so every
+  // app-layer filter keyed on profile.id — minha-agenda, prontuário
+  // authorship, sign buttons — mirrors the target, matching what the RLS
+  // Need-to-Know policies already do via impersonated_user_id(). RLS on
+  // impersonation_sessions (is_super_admin()) makes this query return
+  // nothing for regular users. Anything that must identify the real
+  // operator (requireSuperAdmin, ImpersonationBanner) reads auth.getUser()
+  // directly and is unaffected by this override.
+  const { data: impersonation } = await supabase
+    .from('impersonation_sessions')
+    .select('target_user_id')
+    .eq('super_admin_id', userData.user.id)
+    .is('ended_at', null)
+    .not('target_user_id', 'is', null)
+    .order('started_at', { ascending: false })
+    .limit(1)
+    .maybeSingle<{ target_user_id: string }>();
+
+  if (impersonation?.target_user_id) {
+    const { data: targetProfile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', impersonation.target_user_id)
+      .maybeSingle();
+
+    if (targetProfile) {
+      return targetProfile as Profile;
+    }
+  }
+
   return profile as Profile;
 }
 

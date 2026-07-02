@@ -22,6 +22,17 @@ export async function updateProfile(formData: FormData) {
   }
 
   if (newPassword) {
+    // During impersonation requireProfile() returns the target's profile,
+    // but auth.updateUser always hits the real authenticated account — a
+    // support operator "changing the professional's password" would in fact
+    // change their own super admin password. Block that combination.
+    const { data: userData } = await supabase.auth.getUser();
+    if (userData.user?.id !== profile.id) {
+      redirect(
+        `/dashboard/profile?error=${encodeURIComponent('Troca de senha indisponível em modo suporte')}`,
+      );
+    }
+
     const { error: passwordError } = await supabase.auth.updateUser({ password: newPassword });
     if (passwordError) {
       redirect(`/dashboard/profile?error=${encodeURIComponent(passwordError.message)}`);

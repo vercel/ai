@@ -25,7 +25,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         trialEndsAt={profile.clinic?.trial_ends_at ?? null}
       />
       <div className="flex flex-1 flex-col overflow-hidden">
-        <ImpersonationBanner actorId={profile.id} />
+        <ImpersonationBanner />
         <SubscriptionBanner subscription={profile.subscription} trialEndsAt={profile.clinic?.trial_ends_at ?? null} />
         <main className="flex-1 overflow-y-auto p-8">{children}</main>
       </div>
