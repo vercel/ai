@@ -1,5 +1,4 @@
 import type { HarnessV1BuiltinToolFiltering } from '@ai-sdk/harness';
-import type { StartMessage } from './cursor-bridge-protocol';
 
 /**
  * Cursor native tool name → cross-harness common name.
@@ -49,5 +48,3 @@ export function getCursorBuiltinToolFilteringDenialReason(input: {
   const toolName = toCursorCommonName(input.nativeName);
   return `Tool '${toolName}' is inactive due to the HarnessAgent tool filtering policy.`;
 }
-
-export type CursorBuiltinToolFiltering = StartMessage['builtinToolFiltering'];

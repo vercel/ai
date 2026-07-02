@@ -17,7 +17,7 @@ import {
   finalizeCursorTextBlocks,
   translateCursorStreamEvent,
   type CursorStreamEvent,
-} from '../cursor-events';
+} from './cursor-events';
 
 /*
  * CONSTRAINT — third-party imports below are NEVER bundled into `bridge.mjs`.
