@@ -11,42 +11,49 @@ export function MobileNav() {
     <div className="md:hidden">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="rounded-lg p-2 text-gray-400 hover:bg-white/5 hover:text-white"
+        className="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
         aria-label={open ? 'Fechar menu' : 'Abrir menu'}
       >
         {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </button>
 
       {open && (
-        <div className="absolute inset-x-0 top-full border-b border-white/5 bg-ink px-6 py-4 shadow-2xl">
-          <nav className="flex flex-col gap-1 text-sm font-medium text-gray-300">
+        <div className="absolute inset-x-0 top-full border-b border-gray-100 bg-white px-6 py-4 shadow-lg">
+          <nav className="flex flex-col gap-1 text-sm font-medium text-gray-600">
             <a
-              href="#recursos"
+              href="#funcionalidades"
               onClick={() => setOpen(false)}
-              className="rounded-lg px-3 py-2.5 hover:bg-white/5 hover:text-white"
+              className="rounded-lg px-3 py-2.5 hover:bg-gray-50 hover:text-gray-900"
             >
-              Recursos
+              Funcionalidades
             </a>
             <a
-              href="#planos"
+              href="#precos"
               onClick={() => setOpen(false)}
-              className="rounded-lg px-3 py-2.5 hover:bg-white/5 hover:text-white"
+              className="rounded-lg px-3 py-2.5 hover:bg-gray-50 hover:text-gray-900"
             >
-              Planos
+              Preços
+            </a>
+            <a
+              href="#faq"
+              onClick={() => setOpen(false)}
+              className="rounded-lg px-3 py-2.5 hover:bg-gray-50 hover:text-gray-900"
+            >
+              FAQ
             </a>
             <Link
               href="/login"
               onClick={() => setOpen(false)}
-              className="rounded-lg px-3 py-2.5 hover:bg-white/5 hover:text-white"
+              className="rounded-lg px-3 py-2.5 hover:bg-gray-50 hover:text-gray-900"
             >
               Entrar
             </Link>
             <Link
               href="/signup"
               onClick={() => setOpen(false)}
-              className="mt-2 rounded-lg bg-electric-500 px-3 py-2.5 text-center font-semibold text-white shadow-glow hover:bg-electric-600"
+              className="mt-2 rounded-lg bg-brand-600 px-3 py-2.5 text-center font-semibold text-white hover:bg-brand-700"
             >
-              Iniciar Teste Grátis
+              Teste Grátis
             </Link>
           </nav>
         </div>
