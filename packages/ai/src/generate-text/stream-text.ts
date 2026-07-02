@@ -1090,6 +1090,30 @@ class DefaultStreamTextResult<
     const initialResponseMessages: Array<ResponseMessage> = [];
     let stepMessagesForNextStep: Array<ModelMessage> | undefined;
     let currentStepMessages: Array<ModelMessage> = [];
+    const usedTextPartIds = new Set<string>();
+    const activeTextPartIdMappings = new Map<string, string>();
+
+    function getUniqueTextPartId(id: string): string {
+      if (!usedTextPartIds.has(id)) {
+        usedTextPartIds.add(id);
+        return id;
+      }
+
+      const match = /^(.*?)(\d+)$/.exec(id);
+      let index = match == null ? 1 : Number(match[2]) + 1;
+
+      while (true) {
+        const candidate =
+          match == null ? `${id}-${index}` : `${match[1]}${index}`;
+
+        if (!usedTextPartIds.has(candidate)) {
+          usedTextPartIds.add(candidate);
+          return candidate;
+        }
+
+        index++;
+      }
+    }
 
     // Track provider-executed tool calls that support deferred results
     // (e.g., code_execution in programmatic tool calling scenarios).
@@ -2076,8 +2100,6 @@ class DefaultStreamTextResult<
                     case 'file':
                     case 'custom':
                     case 'source':
-                    case 'text-start':
-                    case 'text-end':
                     case 'reasoning-start':
                     case 'reasoning-end':
                     case 'reasoning-delta':
@@ -2090,10 +2112,29 @@ class DefaultStreamTextResult<
                       break;
                     }
 
+                    case 'text-start': {
+                      const id = getUniqueTextPartId(chunk.id);
+                      activeTextPartIdMappings.set(chunk.id, id);
+                      controller.enqueue({ ...chunk, id });
+                      break;
+                    }
+
                     case 'text-delta': {
                       if (chunk.text.length > 0) {
-                        controller.enqueue(chunk);
+                        controller.enqueue({
+                          ...chunk,
+                          id:
+                            activeTextPartIdMappings.get(chunk.id) ?? chunk.id,
+                        });
                       }
+                      break;
+                    }
+
+                    case 'text-end': {
+                      const id =
+                        activeTextPartIdMappings.get(chunk.id) ?? chunk.id;
+                      activeTextPartIdMappings.delete(chunk.id);
+                      controller.enqueue({ ...chunk, id });
                       break;
                     }
 

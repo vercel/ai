@@ -11434,6 +11434,102 @@ describe('streamText', () => {
       stepInputs = [];
     });
 
+    it('should use unique text part ids across tool-call steps', async () => {
+      let responseCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  stream: convertArrayToReadableStream([
+                    { type: 'text-start', id: 'txt-0' },
+                    {
+                      type: 'text-delta',
+                      id: 'txt-0',
+                      delta: 'before tool',
+                    },
+                    {
+                      type: 'tool-call',
+                      id: 'call-1',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: '{}',
+                    },
+                    { type: 'text-end', id: 'txt-0' },
+                    {
+                      type: 'finish',
+                      finishReason: {
+                        unified: 'tool-calls',
+                        raw: 'tool_calls',
+                      },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+              case 1:
+                return {
+                  stream: convertArrayToReadableStream([
+                    { type: 'text-start', id: 'txt-0' },
+                    {
+                      type: 'text-delta',
+                      id: 'txt-0',
+                      delta: 'after tool',
+                    },
+                    { type: 'text-end', id: 'txt-0' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+              default:
+                throw new Error(`Unexpected response count: ${responseCount}`);
+            }
+          },
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({}),
+            execute: async () => 'tool result',
+          },
+        },
+        prompt: 'test-input',
+        stopWhen: isStepCount(3),
+        onError: () => {},
+      });
+
+      const textParts = (
+        await convertAsyncIterableToArray(result.fullStream)
+      ).filter(
+        part =>
+          part.type === 'text-start' ||
+          part.type === 'text-delta' ||
+          part.type === 'text-end',
+      );
+
+      expect(textParts).toStrictEqual([
+        { type: 'text-start', id: 'txt-0' },
+        {
+          type: 'text-delta',
+          id: 'txt-0',
+          text: 'before tool',
+          providerMetadata: undefined,
+        },
+        { type: 'text-end', id: 'txt-0' },
+        { type: 'text-start', id: 'txt-1' },
+        {
+          type: 'text-delta',
+          id: 'txt-1',
+          text: 'after tool',
+          providerMetadata: undefined,
+        },
+        { type: 'text-end', id: 'txt-1' },
+      ]);
+    });
+
     describe('2 steps: initial, tool-result', () => {
       beforeEach(async () => {
         let responseCount = 0;
