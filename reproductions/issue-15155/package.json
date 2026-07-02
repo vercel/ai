@@ -1,0 +1,21 @@
+{
+  "name": "reproduce-vercel-ai-15155",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "start": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "2.0.0",
+    "ai": "6.0.0-beta.93",
+    "dotenv": "16.4.5",
+    "effect": "^3.12.0",
+    "tsx": "4.19.2",
+    "typescript": "^5.7.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0"
+  }
+}
