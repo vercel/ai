@@ -2597,6 +2597,51 @@ describe('Chat', () => {
   });
 
   describe('addToolApprovalResponse', () => {
+    it('reproduces issue #16543: preserves approval signature when responding manually', async () => {
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId({ prefix: 'newid' }),
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+        messages: [
+          {
+            id: 'id-0',
+            role: 'user',
+            parts: [{ text: 'What is the weather in Tokyo?', type: 'text' }],
+          },
+          {
+            id: 'id-1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-weather',
+                toolCallId: 'call-1',
+                state: 'approval-requested',
+                input: { city: 'Tokyo' },
+                approval: {
+                  id: 'approval-1',
+                  signature: 'signed-approval-token',
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      await chat.addToolApprovalResponse({
+        id: 'approval-1',
+        approved: true,
+      });
+
+      expect((chat.messages[1].parts[0] as any).approval).toEqual({
+        id: 'approval-1',
+        approved: true,
+        reason: undefined,
+        signature: 'signed-approval-token',
+      });
+    });
+
     describe('approved', () => {
       let chat: TestChat;
 
