@@ -263,11 +263,15 @@ describe('GoogleEmbeddingModel', () => {
       headers: () => ({}),
     });
 
-    const tooManyValues = Array(2049).fill('test');
+    const tooManyValues = Array(101).fill('test');
 
     await expect(model.doEmbed({ values: tooManyValues })).rejects.toThrow(
-      'Too many values for a single embedding call. The google.generative-ai model "gemini-embedding-001" can only embed up to 2048 values per call, but 2049 values were provided.',
+      'Too many values for a single embedding call. The google.generative-ai model "gemini-embedding-001" can only embed up to 100 values per call, but 101 values were provided.',
     );
+  });
+
+  it('should cap batch size at the Gemini batchEmbedContents limit', () => {
+    expect(model.maxEmbeddingsPerCall).toBe(100);
   });
 
   it('should use the batch embeddings endpoint', async () => {
