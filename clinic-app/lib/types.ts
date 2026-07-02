@@ -30,7 +30,13 @@ export interface Profile {
   is_locked?: boolean;
 }
 
-export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'suspended' | 'canceled';
+export type SubscriptionStatus =
+  | 'pending_payment'
+  | 'trialing'
+  | 'active'
+  | 'past_due'
+  | 'suspended'
+  | 'canceled';
 
 export interface Plan {
   id: string;

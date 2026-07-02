@@ -40,6 +40,7 @@ const FEATURES = [
 const PLANS = [
   {
     name: 'Básico',
+    planSlug: 'basico',
     price: 'Grátis',
     period: '',
     description: 'Para quem está começando a digitalizar a clínica.',
@@ -56,6 +57,7 @@ const PLANS = [
   },
   {
     name: 'Profissional',
+    planSlug: 'intermediario',
     price: 'R$ 99',
     period: '/mês',
     description: 'Para clínicas em crescimento com equipe maior.',
@@ -73,6 +75,7 @@ const PLANS = [
   },
   {
     name: 'Enterprise',
+    planSlug: 'premium',
     price: 'R$ 199',
     period: '/mês',
     description: 'Para operações que não podem parar de crescer.',
@@ -244,7 +247,7 @@ function Pricing() {
             </ul>
 
             <Link
-              href="/signup"
+              href={`/signup?plan=${plan.planSlug}`}
               className={`mt-8 rounded-lg px-5 py-3 text-center text-sm font-semibold transition-colors ${
                 plan.highlight
                   ? 'bg-brand-600 text-white hover:bg-brand-700'

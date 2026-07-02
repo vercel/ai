@@ -9,13 +9,21 @@ import { signup } from '../login/actions';
 const inputClass =
   'w-full rounded-lg border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-sm text-gray-100 placeholder:text-gray-600 focus:border-electric-500 focus:outline-none focus:ring-1 focus:ring-electric-500';
 
-export default async function SignupPage({ searchParams }: { searchParams: { error?: string } }) {
+export default async function SignupPage({
+  searchParams,
+}: {
+  searchParams: { error?: string; plan?: string };
+}) {
   const supabase = createSupabaseServerClient();
   const { data: plans } = await supabase
     .from('plans')
     .select('*')
     .order('max_users', { ascending: true, nullsFirst: false })
     .returns<Plan[]>();
+
+  // Captures the plan chosen on the landing page (?plan=slug) to pre-select
+  // the matching radio button; falls back to the first plan otherwise.
+  const preselectedIndex = (plans ?? []).findIndex((plan) => plan.slug === searchParams.plan);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-ink px-4 py-10">
@@ -107,7 +115,7 @@ export default async function SignupPage({ searchParams }: { searchParams: { err
                       name="plan_id"
                       value={plan.id}
                       required
-                      defaultChecked={index === 0}
+                      defaultChecked={index === (preselectedIndex >= 0 ? preselectedIndex : 0)}
                       className="accent-electric-500"
                     />
                     {plan.name}

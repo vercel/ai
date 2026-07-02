@@ -33,12 +33,16 @@ export async function signup(formData: FormData) {
 
   const supabase = createSupabaseServerClient();
 
-  // Fetch plan to get trial_days
+  // Fetch plan to get trial_days and whether it's a paid tier (Hard Paywall
+  // only applies to paid plans — the free tier keeps its existing
+  // no-card-required trial flow straight into onboarding).
   const { data: plan } = await supabase
     .from('plans')
-    .select('id, trial_days')
+    .select('id, trial_days, price_cents')
     .eq('id', planId)
-    .single<{ id: string; trial_days: number }>();
+    .single<{ id: string; trial_days: number; price_cents: number }>();
+
+  const isPaidPlan = (plan?.price_cents ?? 0) > 0;
 
   const trialEndsAt = plan?.trial_days
     ? new Date(Date.now() + plan.trial_days * 86400000).toISOString()
@@ -77,10 +81,14 @@ export async function signup(formData: FormData) {
   await supabase.from('subscriptions').insert({
     clinic_id: clinic.id,
     plan_id: planId,
-    status: trialEndsAt ? 'trialing' : 'active',
+    status: isPaidPlan ? 'pending_payment' : trialEndsAt ? 'trialing' : 'active',
     current_period_start: new Date().toISOString(),
     current_period_end: periodEnd,
   });
+
+  if (isPaidPlan) {
+    redirect('/checkout');
+  }
 
   redirect('/login?message=Verifique seu e-mail para confirmar o cadastro');
 }

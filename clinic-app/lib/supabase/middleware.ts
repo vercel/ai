@@ -104,6 +104,15 @@ export async function updateSession(request: NextRequest) {
           return NextResponse.redirect(url);
         }
 
+        // Hard Paywall: a clinic that signed up for a paid plan can't reach
+        // any /dashboard/* route — including the Setup Wizard — until the
+        // payment gateway's webhook flips the subscription to 'active'.
+        if (subscription?.status === 'pending_payment') {
+          const url = request.nextUrl.clone();
+          url.pathname = '/checkout';
+          return NextResponse.redirect(url);
+        }
+
         const isOnboardingRoute = request.nextUrl.pathname.startsWith('/dashboard/onboarding');
         if (!isOnboardingRoute) {
           const { data: clinic } = await supabase

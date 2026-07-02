@@ -22,6 +22,7 @@ export type ClinicOverviewRow = {
 const STATUS_FILTERS = [
   { value: 'all', label: 'Todos os status' },
   { value: 'active', label: 'Ativa' },
+  { value: 'pending_payment', label: 'Aguardando pagamento' },
   { value: 'past_due_suspended', label: 'Inadimplente' },
   { value: 'trialing', label: 'Trial' },
   { value: 'canceled', label: 'Cancelada' },
@@ -29,6 +30,7 @@ const STATUS_FILTERS = [
 
 const STATUS_BADGE: Record<string, string> = {
   active: 'bg-emerald-500/10 text-emerald-400',
+  pending_payment: 'bg-purple-500/10 text-purple-400',
   trialing: 'bg-blue-500/10 text-blue-400',
   past_due: 'bg-amber-500/10 text-amber-400',
   suspended: 'bg-red-500/10 text-red-400',
@@ -37,6 +39,7 @@ const STATUS_BADGE: Record<string, string> = {
 
 const STATUS_LABEL: Record<string, string> = {
   active: 'Ativo',
+  pending_payment: 'Aguardando pagamento',
   trialing: 'Trial',
   past_due: 'Em atraso',
   suspended: 'Suspenso',
