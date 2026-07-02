@@ -119,13 +119,26 @@ const audioMediaTypeSignatures = [
   },
   {
     mediaType: 'audio/mp4' as const,
-    bytesPrefix: [0x66, 0x74, 0x79, 0x70],
+    bytesPrefix: [
+      0x00,
+      0x00,
+      0x00,
+      null,
+      0x66,
+      0x74,
+      0x79,
+      0x70, // ftyp
+    ],
   },
   {
     mediaType: 'audio/webm',
     bytesPrefix: [0x1a, 0x45, 0xdf, 0xa3],
   },
 ] as const;
+
+const audioMediaTypeSignaturesWithoutMp4 = audioMediaTypeSignatures.filter(
+  signature => signature.mediaType !== 'audio/mp4',
+);
 
 const videoMediaTypeSignatures = [
   {
@@ -259,7 +272,7 @@ export function detectMediaType({
       signatures: [
         ...imageMediaTypeSignatures,
         ...documentMediaTypeSignatures,
-        ...audioMediaTypeSignatures,
+        ...audioMediaTypeSignaturesWithoutMp4,
         ...videoMediaTypeSignatures,
       ],
     });
