@@ -159,6 +159,11 @@ describe('SpritesSandboxSession.run', () => {
   });
 
   it('does not leak the env query string into connection errors', async () => {
+    // env now triggers a temp-file write before the WS connects; stub it.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('', { status: 200 })),
+    );
     execErrorBeforeOpen = true;
     const session = makeSession();
     const err = await session
@@ -166,6 +171,30 @@ describe('SpritesSandboxSession.run', () => {
       .catch((e: Error) => e);
     expect(String(err)).not.toContain('topsecret');
     expect(String(err)).not.toContain('SECRET=');
+    // And it is never in the connection URL either.
+    expect(lastWsUrl).not.toContain('topsecret');
+  });
+
+  it('ignores interleaved text frames and unknown JSON types (no stdout corruption)', async () => {
+    // The live server interleaves JSON text frames (session_created,
+    // session_info, unknown future types) with the binary 0x01/0x02/0x03
+    // frames. Only binary frames feed stdout/stderr; text frames must never
+    // leak into the streams.
+    execMessages = [
+      JSON.stringify({ type: 'session_created', session_id: '1' }),
+      frame(1, 'hel'),
+      JSON.stringify({ type: 'session_info', session_id: '1' }),
+      'not json at all',
+      frame(1, 'lo\n'),
+      JSON.stringify({ type: 'something_unknown', foo: 'bar' }),
+      JSON.stringify({ type: 'exit', exit_code: 0 }),
+      frame(3, [0]),
+    ];
+    const session = makeSession();
+    const result = await session.run({ command: 'x' });
+    expect(result.stdout).toBe('hello\n');
+    expect(result.stderr).toBe('');
+    expect(result.exitCode).toBe(0);
   });
 
   it('defaults the working directory to the session base when none is given', async () => {
@@ -175,21 +204,88 @@ describe('SpritesSandboxSession.run', () => {
     expect(new URL(lastWsUrl).searchParams.get('dir')).toBe('/home/sprite');
   });
 
-  it('passes argv as bash -c, plus cwd and env, and the auth header', async () => {
+  it('passes argv as bash -c plus cwd and the auth header (no env)', async () => {
+    const fetchMock = vi.fn(async () => new Response('', { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
     execMessages = [frame(3, [0])];
     const session = makeSession();
-    await session.run({
-      command: 'echo hi',
-      workingDirectory: '/tmp',
-      env: { FOO: 'bar' },
-    });
+    await session.run({ command: 'echo hi', workingDirectory: '/tmp' });
     const url = new URL(lastWsUrl);
     expect(url.protocol).toBe('wss:');
     expect(url.pathname).toBe('/v1/sprites/my-sprite/exec');
     expect(url.searchParams.getAll('cmd')).toEqual(['bash', '-c', 'echo hi']);
     expect(url.searchParams.get('dir')).toBe('/tmp');
-    expect(url.searchParams.get('env')).toBe('FOO=bar');
+    // No env param, and — critically — no extra fs round-trip when env absent.
+    expect(url.searchParams.has('env')).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
     expect(lastWsHeaders?.authorization).toBe('Bearer tok');
+  });
+
+  it('routes env through a sourced temp file, never the WS query string', async () => {
+    const writes: Array<{ url: string; body: unknown }> = [];
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      writes.push({ url, body: init?.body });
+      return new Response('', { status: 200 });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    execMessages = [frame(3, [0])];
+    const session = makeSession();
+    await session.run({
+      command: 'echo hi',
+      env: { SECRET: 'top secret', FOO: 'bar' },
+    });
+
+    const url = new URL(lastWsUrl);
+    // No env values anywhere on the handshake URL (the whole point).
+    expect(url.searchParams.getAll('env')).toEqual([]);
+    expect(lastWsUrl).not.toContain('SECRET');
+    expect(lastWsUrl).not.toContain('secret');
+    expect(lastWsUrl).not.toContain('bar');
+
+    // Env written to a random /tmp file via fs/write.
+    const write = writes.find(w => w.url.includes('/fs/write'));
+    expect(write).toBeDefined();
+    const path = new URL(write!.url).searchParams.get('path');
+    expect(path).toMatch(/^\/tmp\/\.ai-sdk-env-[0-9a-f-]+$/);
+    const body = new TextDecoder().decode(write!.body as Uint8Array);
+    expect(body).toBe("SECRET='top secret'\nFOO='bar'\n");
+
+    // Wrapper sources then removes the file before exec-ing the original argv.
+    const cmd = url.searchParams.getAll('cmd');
+    expect(cmd[0]).toBe('bash');
+    expect(cmd[1]).toBe('-c');
+    expect(cmd[2]).toMatch(
+      /^set -a; \. '\/tmp\/\.ai-sdk-env-[0-9a-f-]+'; set \+a; rm -f '\/tmp\/\.ai-sdk-env-[0-9a-f-]+'; exec "\$@"$/,
+    );
+    // rm precedes exec of the payload, so a crash leaves no secret file.
+    const script = cmd[2];
+    expect(script.indexOf('rm -f')).toBeLessThan(script.indexOf('exec'));
+    // Original argv preserved verbatim as positional args after the $0 label.
+    expect(cmd.slice(3)).toEqual([
+      'ai-sdk-env-wrapper',
+      'bash',
+      '-c',
+      'echo hi',
+    ]);
+  });
+
+  it('single-quote-escapes env values so the sourced file is injection-safe', async () => {
+    const writes: Array<{ url: string; body: unknown }> = [];
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      writes.push({ url, body: init?.body });
+      return new Response('', { status: 200 });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    execMessages = [frame(3, [0])];
+    const session = makeSession();
+    await session.run({
+      command: 'echo hi',
+      env: { EVIL: `a'; rm -rf /; echo '` },
+    });
+    const write = writes.find(w => w.url.includes('/fs/write'));
+    const body = new TextDecoder().decode(write!.body as Uint8Array);
+    // Each `'` becomes the literal close-escape-reopen sequence `'\''`.
+    expect(body).toBe(`EVIL='a'\\''; rm -rf /; echo '\\'''\n`);
   });
 
   it('throws synchronously when already aborted', async () => {
@@ -258,7 +354,7 @@ describe('SpritesSandboxSession filesystem', () => {
     expect(init).toBeDefined();
     const requestInit = init as RequestInit;
     expect(url).toBe(
-      'https://api.test/v1/sprites/my-sprite/fs/write?path=%2Fhome%2Fsprite%2Fnotes%2Fa.txt',
+      'https://api.test/v1/sprites/my-sprite/fs/write?path=%2Fhome%2Fsprite%2Fnotes%2Fa.txt&workingDir=%2F',
     );
     expect(requestInit.method).toBe('PUT');
     expect((requestInit.headers as Record<string, string>).authorization).toBe(
@@ -288,6 +384,32 @@ describe('SpritesSandboxSession filesystem', () => {
     expect((fetchMock.mock.calls[0][1] as RequestInit).method).toBe('PUT');
   });
 
+  it('writeFile rejects and stops draining when aborted mid-stream', async () => {
+    const fetchMock = vi.fn(
+      async (_url: string, _init?: RequestInit) =>
+        new Response('', { status: 200 }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const session = makeSession();
+    const controller = new AbortController();
+    // A source that never enqueues or closes, reproducing a hung upstream.
+    const stream = new ReadableStream<Uint8Array>({
+      pull() {
+        // never resolves
+      },
+    });
+    const result = session.writeFile({
+      path: '/x.bin',
+      content: stream,
+      abortSignal: controller.signal,
+    });
+    controller.abort();
+    await expect(result).rejects.toThrow(/aborted/i);
+    // The write endpoint is never reached: draining failed before the request.
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('readTextFile decodes content and applies a line range', async () => {
     const fetchMock = vi.fn(
       async (_url: string) => new Response('a\nb\nc\nd', { status: 200 }),
@@ -303,7 +425,7 @@ describe('SpritesSandboxSession filesystem', () => {
     expect(text).toBe('b\nc');
     const [url] = fetchMock.mock.calls[0];
     expect(url).toBe(
-      'https://api.test/v1/sprites/my-sprite/fs/read?path=%2Fhome%2Fsprite%2Flines.txt',
+      'https://api.test/v1/sprites/my-sprite/fs/read?path=%2Fhome%2Fsprite%2Flines.txt&workingDir=%2F',
     );
   });
 
