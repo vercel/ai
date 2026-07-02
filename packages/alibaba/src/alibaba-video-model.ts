@@ -6,6 +6,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
+  convertImageModelFileToDataUri,
   convertUint8ArrayToBase64,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
@@ -161,17 +162,6 @@ function resolveStartImage(
   return getFirstFrameImage(options) ?? options.image;
 }
 
-function fileToDataUri(file: {
-  data: string | Uint8Array;
-  mediaType: string;
-}): string {
-  const base64 =
-    typeof file.data === 'string'
-      ? file.data
-      : convertUint8ArrayToBase64(file.data);
-  return `data:${file.mediaType};base64,${base64}`;
-}
-
 function isVideoUrl(url: string): boolean {
   return /\.(mp4|mov)([?#]|$)/i.test(url);
 }
@@ -203,7 +193,7 @@ function resolveMedia(
     } else if (reference.mediaType.startsWith('image/')) {
       media.push({
         type: 'reference_image',
-        url: fileToDataUri(reference),
+        url: convertImageModelFileToDataUri(reference),
       });
     } else {
       warnings.push({
@@ -220,8 +210,7 @@ function resolveMedia(
   if (firstFrame != null) {
     media.push({
       type: 'first_frame',
-      url:
-        firstFrame.type === 'url' ? firstFrame.url : fileToDataUri(firstFrame),
+      url: convertImageModelFileToDataUri(firstFrame),
     });
   }
 
