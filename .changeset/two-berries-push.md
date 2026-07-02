@@ -1,5 +1,5 @@
 ---
-"ai": patch
+"@ai-sdk/amazon-bedrock": patch
 ---
 
-fix: wrap invalid tool input in object
+fix(bedrock): wrap invalid tool input in object
