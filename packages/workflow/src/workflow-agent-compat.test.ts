@@ -263,6 +263,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         prepareCall: options => {
           return {
             ...options,
+            reasoning: 'none',
             providerOptions: {
               test: { value: 'from-prepareCall' },
             },
@@ -284,6 +285,43 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
           },
         }
       `);
+      expect(doStreamOptions?.reasoning).toBe('none');
+    });
+
+    it('should pass reasoning to streamText', async () => {
+      const agent = new WorkflowAgent({
+        model: mockModel,
+        reasoning: 'low',
+      });
+
+      const { writable } = createMockWritable();
+
+      await agent.stream({
+        messages: [{ role: 'user' as const, content: 'Hello, world!' }],
+        writable,
+        reasoning: 'none',
+      });
+
+      expect(doStreamOptions?.reasoning).toBe('none');
+    });
+
+    it('should allow prepareStep to override reasoning', async () => {
+      const agent = new WorkflowAgent({
+        model: mockModel,
+        reasoning: 'none',
+        prepareStep: () => ({
+          reasoning: 'high',
+        }),
+      });
+
+      const { writable } = createMockWritable();
+
+      await agent.stream({
+        messages: [{ role: 'user' as const, content: 'Hello, world!' }],
+        writable,
+      });
+
+      expect(doStreamOptions?.reasoning).toBe('high');
     });
 
     it('should pass abortSignal to streamText', async () => {
@@ -616,6 +654,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
                     },
                   ],
                   "providerOptions": undefined,
+                  "reasoning": undefined,
                   "responseFormat": undefined,
                   "seed": undefined,
                   "stopSequences": undefined,
@@ -789,6 +828,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
                     },
                   ],
                   "providerOptions": undefined,
+                  "reasoning": undefined,
                   "responseFormat": undefined,
                   "seed": undefined,
                   "stopSequences": undefined,

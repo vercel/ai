@@ -1,5 +1,92 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.14
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.14
+
+## 1.0.13
+
+### Patch Changes
+
+- Updated dependencies [8c616f0]
+  - @ai-sdk/provider-utils@5.0.3
+  - @ai-sdk/harness@1.0.13
+
+## 1.0.12
+
+### Patch Changes
+
+- 7859cea: feat(harness): add tool filtering via `activeTools` and `inactiveTools`
+- c857346: feat(harness): add utility functions for certain duplicated layers in harnesses
+- 7a24276: fix(harness-claude-code): declare Claude Code's Monitor tool as built-in tool
+- Updated dependencies [7859cea]
+- Updated dependencies [c857346]
+  - @ai-sdk/harness@1.0.12
+
+## 1.0.11
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.11
+
+## 1.0.10
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.10
+- @ai-sdk/provider-utils@5.0.2
+
+## 1.0.9
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.9
+
+## 1.0.8
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.8
+
+## 1.0.7
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.7
+
+## 1.0.6
+
+### Patch Changes
+
+- Updated dependencies [6a436e3]
+  - @ai-sdk/provider-utils@5.0.1
+  - @ai-sdk/harness@1.0.6
+
+## 1.0.5
+
+### Patch Changes
+
+- 43a8c68: fix(harness): use `shellQuote` where appropriate in harness adapters
+- ba6d510: chore: fix deprecated use of zod `.passthrough()`
+  - @ai-sdk/harness@1.0.5
+
+## 1.0.4
+
+### Patch Changes
+
+- c493634: fix(harness): fix harness Zod usage to be v3/v4 compatible
+- Updated dependencies [c493634]
+  - @ai-sdk/harness@1.0.4
+
+## 1.0.3
+
+### Patch Changes
+
+- Updated dependencies [51d10a0]
+  - @ai-sdk/harness@1.0.3
+
 ## 1.0.2
 
 ### Patch Changes

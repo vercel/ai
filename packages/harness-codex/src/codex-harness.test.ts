@@ -2,9 +2,28 @@ import {
   HarnessCapabilityUnsupportedError,
   type HarnessV1NetworkSandboxSession,
 } from '@ai-sdk/harness';
+import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import type * as NodeFsPromises from 'node:fs/promises';
 import { describe, expect, it, vi } from 'vitest';
 import { createCodex } from './codex-harness';
+
+vi.mock('@ai-sdk/harness/utils', async importOriginal => {
+  const actual = await importOriginal<typeof HarnessUtils>();
+  class FakeSandboxChannel {
+    async open(): Promise<void> {}
+    on(): () => void {
+      return () => {};
+    }
+    onClose(): void {}
+    send(): void {}
+    beginClose(): void {}
+    isClosed(): boolean {
+      return false;
+    }
+    close(): void {}
+  }
+  return { ...actual, SandboxChannel: FakeSandboxChannel };
+});
 
 vi.mock('node:fs/promises', async importOriginal => {
   const actual = await importOriginal<typeof NodeFsPromises>();
@@ -23,6 +42,66 @@ vi.mock('node:fs/promises', async importOriginal => {
     }),
   };
 });
+
+function textStream(text: string): ReadableStream<Uint8Array> {
+  return new ReadableStream<Uint8Array>({
+    start(controller) {
+      if (text.length > 0) {
+        controller.enqueue(new TextEncoder().encode(text));
+      }
+      controller.close();
+    },
+  });
+}
+
+function fakeNetworkSandboxSessionForStartupSuccess({
+  bridgePortUrl,
+  runs,
+  spawns,
+  writes,
+}: {
+  bridgePortUrl: string;
+  runs: string[];
+  spawns: string[];
+  writes: Array<{ path: string; content: string }>;
+}): HarnessV1NetworkSandboxSession {
+  const session = {
+    run: async ({ command }: { command: string }) => {
+      runs.push(command);
+      return { exitCode: 0, stdout: '', stderr: '' };
+    },
+    readTextFile: async () => null,
+    writeTextFile: async ({
+      path,
+      content,
+    }: {
+      path: string;
+      content: string;
+    }) => {
+      writes.push({ path, content });
+    },
+    spawn: async ({ command }: { command: string }) => {
+      spawns.push(command);
+      return {
+        stdout: textStream('{"type":"bridge-ready","port":4319}\n'),
+        stderr: textStream(''),
+        kill: async () => {},
+        wait: async () => ({ exitCode: 0 }),
+      };
+    },
+  };
+  return {
+    id: 'test-sandbox',
+    defaultWorkingDirectory: '/vercel/sandbox',
+    restricted: () => session,
+    ports: [4319],
+    async getPortUrl() {
+      return bridgePortUrl;
+    },
+    async stop() {},
+    ...session,
+  } as unknown as HarnessV1NetworkSandboxSession;
+}
 
 describe('createCodex adapter', () => {
   it('declares the harness id and builtin tools', () => {
@@ -49,6 +128,18 @@ describe('createCodex adapter', () => {
     ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
   });
 
+  it('rejects built-in tool filtering controls', async () => {
+    const harness = createCodex();
+    await expect(
+      harness.doStart({
+        sessionId: 's1',
+        sandboxSession: {} as HarnessV1NetworkSandboxSession,
+        sessionWorkDir: '/vercel/sandbox/codex-s1',
+        builtinToolFiltering: { mode: 'deny', toolNames: ['bash'] },
+      }),
+    ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
+  });
+
   it('throws HarnessCapabilityUnsupportedError when the network sandbox session exposes no ports', async () => {
     const harness = createCodex();
     const sandboxSession = {
@@ -68,6 +159,31 @@ describe('createCodex adapter', () => {
         sessionWorkDir: '/vercel/sandbox/codex-s1',
       }),
     ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
+  });
+
+  it('quotes dynamic startup paths in shell commands', async () => {
+    const runs: string[] = [];
+    const spawns: string[] = [];
+    const writes: Array<{ path: string; content: string }> = [];
+    const harness = createCodex();
+    const session = await harness.doStart({
+      sessionId: 's1; env > /tmp/leak #',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        runs,
+        spawns,
+        writes,
+      }),
+      sessionWorkDir: '/vercel/sandbox/codex-s1; env > /tmp/workdir-leak #',
+    });
+
+    expect(runs).toContain(
+      "mkdir -p '/vercel/sandbox/codex-s1; env > /tmp/workdir-leak #' '/vercel/sandbox/.agent-runs/s1; env > /tmp/leak #/bridge'",
+    );
+    expect(spawns).toEqual([
+      "node /tmp/harness/codex/bridge.mjs --workdir '/vercel/sandbox/codex-s1; env > /tmp/workdir-leak #' --bridge-state-dir '/vercel/sandbox/.agent-runs/s1; env > /tmp/leak #/bridge' --bootstrap-dir '/tmp/harness/codex' --cli-shim-dir '/vercel/sandbox/.agent-runs/s1; env > /tmp/leak #/codex'",
+    ]);
+    await session.doDestroy();
   });
 
   describe('getBootstrap', () => {

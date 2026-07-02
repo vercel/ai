@@ -81,9 +81,10 @@ Please run `pnpm update-references` in workspace root to update the `references`
 We greatly appreciate your pull requests. Here are the steps to submit them:
 
 1. **Create a New Branch**: Initiate your changes in a fresh branch. It's recommended to name the branch in a manner that signifies the changes you're implementing.
-2. **Add a patch changeset**: If you're updating any packages and want to ensure they're released, add a **patch** changeset to your branch by running `pnpm changeset` in the workspace root.
+2. **Add a patch changeset**: If you update any packages, add a **patch** changeset to your branch by running `pnpm changeset` in the workspace root.
    - **Please do not use minor or major changesets**, we'll let you know when you need to use a different changeset type than patch.
-   - You don't need to select any of the `examples/*` packages, as they are not released.
+   - Changesets should always be created when any API or behavior is changed. We also recommend it for large refactors, just in case an uncaught regression is introduced.
+   - You don't need to create changesets for docs or any of the `examples/*` packages, as they are not released. But, if you change a `README.md`, create a changeset so that the package's documentation on npm's website is updated.
 
 3. **Add a codemod**: If the change introduces a deprecation or a breaking change, add a codemod if possible. See [how to contribute codemods](contributing/codemods.md)
 4. **Commit Your Changes**: Ensure your commits are succinct and clear, detailing what modifications have been made and the reasons behind them. We don't require a specific commit message format, but please be descriptive.

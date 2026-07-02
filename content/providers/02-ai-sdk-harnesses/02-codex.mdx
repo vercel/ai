@@ -172,9 +172,15 @@ fit a common tool shape.
 Codex file changes may also appear as dynamic `fileChange` tool parts because
 some Codex file mutations do not originate from a visible model-callable tool.
 
+## Known Limitations
+
 Codex does not currently support built-in tool approval requests. Use
 `permissionMode: 'allow-all'` with this adapter. Host-executed AI SDK tool
 approvals still work.
+
+Codex does not currently support built-in tool filtering. You can still use
+`activeTools` and `inactiveTools` to filter host-executed tools, but filtering
+Codex built-ins such as `bash` or `webSearch` will throw.
 
 ## Related
 

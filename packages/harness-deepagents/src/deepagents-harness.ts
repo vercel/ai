@@ -8,6 +8,7 @@ import {
   type HarnessV1,
   type HarnessV1Bootstrap,
   type HarnessV1BuiltinTool,
+  type HarnessV1BuiltinToolFiltering,
   type HarnessV1ContinueTurnState,
   type HarnessV1NetworkSandboxSession,
   type HarnessV1PermissionMode,
@@ -20,12 +21,15 @@ import {
 } from '@ai-sdk/harness';
 import {
   markBridgeStarting,
+  resolveSandboxHomeDir,
   SandboxChannel,
+  shellQuote,
   waitForBridgeReady,
+  writeSkills as writeHarnessSkills,
 } from '@ai-sdk/harness/utils';
 import { tool, type Experimental_SandboxProcess } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import {
   resolveDeepAgentsEnv,
   type DeepAgentsAuthOptions,
@@ -70,8 +74,6 @@ function installRipgrepCommand(): string {
 // Skills source subpath, written under $HOME (out of the work dir so it can't clash with code cloned into the work dir) and also discovered from <workDir> for repo-provided skills.
 const SKILLS_SOURCE_PATH = '/.agents/skills';
 
-const DEEPAGENTS_DEFAULT_CONTEXT_WINDOW = 200_000;
-
 export type DeepAgentsHarnessSettings = {
   readonly auth?: DeepAgentsAuthOptions;
   /** Model id for the DeepAgents runtime, e.g. `claude-sonnet-4` (converted to `provider:model`). */
@@ -83,18 +85,6 @@ export type DeepAgentsHarnessSettings = {
   /** Max LangGraph super-steps per turn before it errors. Defaults to 100; raise for long multi-step tasks. */
   readonly recursionLimit?: number;
 };
-
-// Live bridge coordinates returned by doDetach/doSuspendTurn so a later process can reattach.
-const deepAgentsBridgeCoordsSchema = z.object({
-  port: z.number(),
-  token: z.string(),
-  lastSeenEventId: z.number(),
-  sandboxId: z.string().optional(),
-});
-const deepAgentsResumeStateSchema = z.object({
-  bridge: deepAgentsBridgeCoordsSchema.optional(),
-});
-type DeepAgentsBridgeCoords = z.infer<typeof deepAgentsBridgeCoordsSchema>;
 
 // Every model-callable DeepAgents built-in, keyed by what the bridge emits (commonName ?? nativeName); all must be listed or AI SDK throws AI_NoSuchToolError.
 const DEEPAGENTS_BUILTIN_TOOLS = {
@@ -155,6 +145,18 @@ const DEEPAGENTS_BUILTIN_TOOLS = {
     inputSchema: z.object({ todos: z.array(z.unknown()).optional() }),
   }),
 } as const satisfies Record<string, HarnessV1BuiltinTool<any, any>>;
+
+// Live bridge coordinates returned by doDetach/doSuspendTurn so a later process can reattach.
+const deepAgentsBridgeCoordsSchema = z.object({
+  port: z.number(),
+  token: z.string(),
+  lastSeenEventId: z.number(),
+  sandboxId: z.string().optional(),
+});
+const deepAgentsResumeStateSchema = z.object({
+  bridge: deepAgentsBridgeCoordsSchema.optional(),
+});
+type DeepAgentsBridgeCoords = z.infer<typeof deepAgentsBridgeCoordsSchema>;
 
 export function createDeepAgents(
   settings: DeepAgentsHarnessSettings = {},
@@ -249,6 +251,7 @@ export function createDeepAgents(
             isResume: true,
             attached: true,
             permissionMode,
+            builtinToolFiltering: startOpts.builtinToolFiltering,
             recursionLimit: settings.recursionLimit,
           });
         } catch {
@@ -342,6 +345,7 @@ export function createDeepAgents(
         attached: false,
         skillsPaths,
         permissionMode,
+        builtinToolFiltering: startOpts.builtinToolFiltering,
         recursionLimit: settings.recursionLimit,
       });
     },
@@ -380,27 +384,6 @@ async function readBridgeAsset(name: string): Promise<string> {
   throw lastErr ?? new Error(`bridge asset not found: ${name}`);
 }
 
-// Resolve the sandbox $HOME so skills can be written outside the work dir.
-async function resolveSandboxHomeDir({
-  sandbox,
-  abortSignal,
-}: {
-  sandbox: ReturnType<HarnessV1NetworkSandboxSession['restricted']>;
-  abortSignal?: AbortSignal;
-}): Promise<string> {
-  const result = await sandbox.run({
-    command: 'printf "%s" "$HOME"',
-    abortSignal,
-  });
-  const homeDir = result.stdout.trim();
-  if (result.exitCode !== 0 || !homeDir.startsWith('/')) {
-    throw new Error(
-      `Unable to resolve sandbox HOME directory: ${result.stderr || result.stdout}`,
-    );
-  }
-  return homeDir;
-}
-
 // Materialize each skill as a native deepagents `<name>/SKILL.md` folder (+ attached files) under the given root, so skills load on demand and file references resolve.
 async function writeSkills({
   sandbox,
@@ -413,50 +396,22 @@ async function writeSkills({
   skills: ReadonlyArray<HarnessV1Skill>;
   abortSignal?: AbortSignal;
 }): Promise<void> {
-  for (const skill of skills) {
-    const name = safeSkillName(skill.name);
-    const skillDir = `${root}/${name}`;
-    // SKILL.md `name` must match the parent directory name (deepagents requirement).
-    const content = `---\nname: ${name}\ndescription: ${skill.description}\n---\n\n${skill.content}`;
-    await sandbox.writeTextFile({
-      path: `${skillDir}/SKILL.md`,
-      content,
-      abortSignal,
-    });
-    for (const file of skill.files ?? []) {
-      await sandbox.writeTextFile({
-        path: `${skillDir}/${safeSkillFilePath(name, file.path)}`,
-        content: file.content,
-        abortSignal,
-      });
-    }
-  }
-}
-
-function safeSkillName(name: string): string {
-  if (!/^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$/.test(name)) {
-    throw new Error(
+  /*
+   * DeepAgents requires each `SKILL.md` frontmatter name to match the parent
+   * directory name, so keep the stricter lowercase skill-name policy here.
+   */
+  await writeHarnessSkills({
+    sandbox,
+    rootDir: root,
+    skills,
+    abortSignal,
+    skillNamePattern: /^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$/,
+    invalidSkillNameMessage: ({ name }) =>
       `Invalid deepagents skill name '${name}': must be lowercase alphanumeric with hyphens, 1-64 chars.`,
-    );
-  }
-  return name;
-}
-
-function safeSkillFilePath(skillName: string, filePath: string): string {
-  const normalized = filePath.replace(/^\/+/, '');
-  if (
-    normalized === '' ||
-    normalized.startsWith('../') ||
-    normalized.includes('/../') ||
-    normalized.endsWith('/..')
-  ) {
-    throw new Error(`Invalid skill file path for '${skillName}': ${filePath}`);
-  }
-  return normalized;
-}
-
-function shellQuote(value: string): string {
-  return `'${value.replace(/'/g, `'\\''`)}'`;
+    filePathMode: 'strip-leading-slashes',
+    invalidSkillFilePathMessage: ({ skillName, filePath }) =>
+      `Invalid skill file path for '${skillName}': ${filePath}`,
+  });
 }
 
 function openWebSocket(url: string): Promise<WebSocket> {
@@ -508,6 +463,7 @@ function createSession({
   attached,
   skillsPaths,
   permissionMode,
+  builtinToolFiltering,
   recursionLimit,
 }: {
   sessionId: string;
@@ -525,6 +481,7 @@ function createSession({
   attached: boolean;
   skillsPaths?: string[];
   permissionMode?: HarnessV1PermissionMode;
+  builtinToolFiltering?: HarnessV1BuiltinToolFiltering;
   recursionLimit?: number;
 }): HarnessV1Session {
   let stopped = false;
@@ -681,6 +638,7 @@ function createSession({
         ...(model ? { model } : {}),
         ...(skillsPaths?.length ? { skillsPaths } : {}),
         ...(permissionMode ? { permissionMode } : {}),
+        ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
         ...(recursionLimit != null ? { recursionLimit } : {}),
       });
 
@@ -814,5 +772,3 @@ function extractUserText(prompt: HarnessV1Prompt): string {
   }
   return parts.join('\n\n');
 }
-
-export { DEEPAGENTS_BUILTIN_TOOLS, DEEPAGENTS_DEFAULT_CONTEXT_WINDOW };
