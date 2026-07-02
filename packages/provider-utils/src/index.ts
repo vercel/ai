@@ -96,6 +96,8 @@ export * from './validate-types';
 export { VERSION } from './version';
 export {
   getWebSocketConstructor,
+  readWebSocketMessageText,
+  toWebSocketUrl,
   type WebSocketConstructor,
   type WebSocketLike,
 } from './websocket';

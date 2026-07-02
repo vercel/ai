@@ -70,24 +70,24 @@ export const xaiTranscriptionModelOptionsSchema = lazySchema(() =>
           /**
            * Emit interim transcript results while speech is being processed.
            */
-          interimResults: z.boolean().nullish(),
+          interimResults: z.boolean().optional(),
 
           /**
            * Silence duration in milliseconds before an utterance-final event.
            */
-          endpointing: z.number().int().min(0).max(5000).nullish(),
+          endpointing: z.number().int().min(0).max(5000).optional(),
 
           /**
            * End-of-turn detection threshold. When set, enables Smart Turn.
            */
-          smartTurn: z.number().min(0).max(1).nullish(),
+          smartTurn: z.number().min(0).max(1).optional(),
 
           /**
            * Maximum silence duration in milliseconds before forcing speech_final.
            */
-          smartTurnTimeout: z.number().int().min(1).max(5000).nullish(),
+          smartTurnTimeout: z.number().int().min(1).max(5000).optional(),
         })
-        .nullish(),
+        .optional(),
     }),
   ),
 );

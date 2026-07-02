@@ -1,4 +1,4 @@
-import type { JSONObject } from '@ai-sdk/provider';
+import type { JSONObject, SharedV4ProviderMetadata } from '@ai-sdk/provider';
 import type { AsyncIterableStream } from '../util/async-iterable-stream';
 import type { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
 import type { Warning } from '../types/warning';
@@ -8,6 +8,7 @@ export type TranscriptionStreamPart =
       type: 'transcript-delta';
       id?: string;
       delta: string;
+      providerMetadata?: SharedV4ProviderMetadata;
     }
   | {
       type: 'transcript-partial';
@@ -16,6 +17,7 @@ export type TranscriptionStreamPart =
       startSecond?: number;
       durationInSeconds?: number;
       channelIndex?: number;
+      providerMetadata?: SharedV4ProviderMetadata;
     }
   | {
       type: 'transcript-final';
@@ -24,6 +26,7 @@ export type TranscriptionStreamPart =
       startSecond?: number;
       endSecond?: number;
       channelIndex?: number;
+      providerMetadata?: SharedV4ProviderMetadata;
     }
   | {
       type: 'raw';
@@ -50,6 +53,16 @@ export interface StreamTranscriptionResult {
       endSecond: number;
     }>
   >;
+
+  /**
+   * The language of the transcript, if available.
+   */
+  readonly language: PromiseLike<string | undefined>;
+
+  /**
+   * The duration of the transcript in seconds, if available.
+   */
+  readonly durationInSeconds: PromiseLike<number | undefined>;
 
   /**
    * Warnings for the call, e.g. unsupported settings.

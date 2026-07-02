@@ -750,6 +750,14 @@ const result = await transcribe({
 | --------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
 | `default` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
+<Note>
+  Word timestamps, diarization results, and segments are only returned on the
+  request/response path (`transcribe`). Streaming transcription
+  (`experimental_streamTranscribe`) emits partial and final transcript text with
+  utterance-level timing, but does not surface per-word timestamps, speaker
+  labels, or segments.
+</Note>
+
 ## Image Models
 
 You can create xAI image models using the `.image()` factory method. For more on image generation with the AI SDK see [generateImage()](/docs/reference/ai-sdk-core/generate-image).

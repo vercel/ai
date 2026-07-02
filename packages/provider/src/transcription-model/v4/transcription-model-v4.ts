@@ -35,6 +35,11 @@ export type TranscriptionModelV4 = {
 
   /**
    * Streams a transcript for live audio.
+   *
+   * Experimental: the streaming transcription contract may change in patch
+   * releases while `experimental_streamTranscribe` is experimental. The
+   * stream option/part/result types are exported with `Experimental_`
+   * prefixes for this reason.
    */
   doStream?(
     options: TranscriptionModelV4StreamOptions,

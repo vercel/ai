@@ -405,12 +405,6 @@ describe('doStream', () => {
         channelIndex: undefined,
       },
       {
-        type: 'transcript-final',
-        id: undefined,
-        text: 'Hello',
-        channelIndex: undefined,
-      },
-      {
         type: 'finish',
         text: 'Hello',
         segments: [],
@@ -419,5 +413,101 @@ describe('doStream', () => {
       },
     ]);
     expect(result.response).toEqual({ timestamp: testDate, modelId: '' });
+  });
+
+  it('should error the stream with the server message on error events', async () => {
+    MockWebSocket.instances = [];
+    const model = new XaiTranscriptionModel('', {
+      provider: 'xai.transcription',
+      baseURL: 'https://api.x.ai/v1',
+      headers: () => ({ Authorization: 'Bearer test-api-key' }),
+      webSocket: MockWebSocket,
+    });
+
+    const result = await model.doStream({
+      audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+
+    ws.message({ type: 'transcript.created' });
+    await flush();
+
+    const assertion = expect(partsPromise).rejects.toThrow(
+      'invalid sample_rate',
+    );
+    ws.message({ type: 'error', message: 'invalid sample_rate' });
+    await assertion;
+
+    expect(ws.close).toHaveBeenCalled();
+  });
+
+  it('should close the WebSocket and stop reading audio when the stream is cancelled', async () => {
+    MockWebSocket.instances = [];
+    const model = new XaiTranscriptionModel('', {
+      provider: 'xai.transcription',
+      baseURL: 'https://api.x.ai/v1',
+      headers: () => ({ Authorization: 'Bearer test-api-key' }),
+      webSocket: MockWebSocket,
+    });
+
+    let audioCancelled = false;
+    const audio = new ReadableStream<Uint8Array>({
+      cancel() {
+        audioCancelled = true;
+      },
+    });
+
+    const result = await model.doStream({
+      audio,
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+    });
+
+    const ws = MockWebSocket.instances[0];
+    ws.message({ type: 'transcript.created' });
+    await flush();
+
+    await result.stream.cancel();
+    await flush();
+
+    expect(ws.close).toHaveBeenCalled();
+    expect(audioCancelled).toBe(true);
+  });
+
+  it('should warn on unrecognized inputAudioFormat types', async () => {
+    MockWebSocket.instances = [];
+    const model = new XaiTranscriptionModel('', {
+      provider: 'xai.transcription',
+      baseURL: 'https://api.x.ai/v1',
+      headers: () => ({ Authorization: 'Bearer test-api-key' }),
+      webSocket: MockWebSocket,
+    });
+
+    const result = await model.doStream({
+      audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+      inputAudioFormat: { type: 'audio/wav' },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+
+    ws.message({ type: 'transcript.created' });
+    await flush();
+    ws.message({ type: 'transcript.done', text: 'Hello' });
+
+    const parts = await partsPromise;
+    expect(parts[0]).toEqual({
+      type: 'stream-start',
+      warnings: [
+        {
+          type: 'other',
+          message: expect.stringContaining(
+            'Unrecognized inputAudioFormat.type "audio/wav"',
+          ),
+        },
+      ],
+    });
   });
 });

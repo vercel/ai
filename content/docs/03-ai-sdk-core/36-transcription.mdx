@@ -71,7 +71,23 @@ for await (const part of result.fullStream) {
 console.log(await result.text);
 ```
 
+To access the final transcript metadata:
+
+```ts
+const text = await result.text; // final transcript text
+const segments = await result.segments; // final segments with timing, if available
+const language = await result.language; // language of the transcript, if available
+const durationInSeconds = await result.durationInSeconds; // duration in seconds, if available
+```
+
 The `audio` stream must contain raw audio chunks. `Uint8Array` chunks are raw bytes; `string` chunks are base64-encoded raw bytes. Always set `inputAudioFormat` to match the chunks you send.
+
+<Note>
+  Streaming transcription requires a provider model instance (e.g.
+  `openai.transcription('gpt-realtime-whisper')`). String model IDs resolve
+  through the global provider (AI Gateway by default), which does not support
+  streaming transcription yet.
+</Note>
 
 OpenAI streaming transcription uses `openai.transcription('gpt-realtime-whisper')`. xAI uses the same `xai.transcription()` model for request/response and streaming transcription; `experimental_streamTranscribe` uses xAI's WebSocket STT transport under the hood.
 
