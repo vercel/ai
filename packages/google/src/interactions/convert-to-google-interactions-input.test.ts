@@ -858,6 +858,37 @@ describe('convertToGoogleInteractionsInput', () => {
       expect(fnCall?.arguments).toEqual({ location: 'Boston' });
     });
 
+    it('rejects prototype-polluting stringified tool-call input', () => {
+      const prompt: LanguageModelV4Prompt = [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Hi' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call_abc',
+              toolName: 'getWeather',
+              input: '{"__proto__":{"polluted":true}}',
+            },
+          ],
+        },
+      ];
+
+      const result = convertToGoogleInteractionsInput({ prompt });
+      const steps = result.input as Array<{
+        type: string;
+        arguments?: Record<string, unknown>;
+      }>;
+      const fnCall = steps.find(step => step.type === 'function_call');
+
+      expect(fnCall?.arguments).toEqual({
+        value: '{"__proto__":{"polluted":true}}',
+      });
+    });
+
     it('round-trips a function_call signature via providerMetadata.google.signature', () => {
       const prompt: LanguageModelV4Prompt = [
         {
