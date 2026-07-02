@@ -471,9 +471,7 @@ describe('parseToolCall', () => {
           "dynamic": true,
           "error": [AI_InvalidToolInputError: Invalid input for tool testTool: AI_JSONParseError: JSON parsing failed: Text: invalid json.
         Error message: SyntaxError: Unexpected token 'i', "invalid json" is not valid JSON],
-          "input": {
-            "rawInvalidInput": "invalid json",
-          },
+          "input": "invalid json",
           "invalid": true,
           "providerExecuted": undefined,
           "providerMetadata": undefined,
@@ -512,9 +510,7 @@ describe('parseToolCall', () => {
         {
           "dynamic": true,
           "error": [AI_ToolCallRepairError: Error repairing tool call: Error: test error],
-          "input": {
-            "rawInvalidInput": "invalid json",
-          },
+          "input": "invalid json",
           "invalid": true,
           "providerExecuted": undefined,
           "providerMetadata": undefined,
