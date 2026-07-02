@@ -35,8 +35,8 @@ export const xaiLanguageModelResponsesOptions = z.object({
    */
   previousResponseId: z.string().optional(),
   /**
-   * A stable cache routing key. Requests with the same key are routed to the
-   * same server, maximizing prompt cache hits across consecutive requests.
+   * Stable cache routing key; requests with the same key are routed to the
+   * same server to maximize prompt cache hits.
    *
    * @see https://docs.x.ai/developers/advanced-api-usage/prompt-caching/maximizing-cache-hits
    */
