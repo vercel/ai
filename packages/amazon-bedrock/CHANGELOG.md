@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.8
+
+### Patch Changes
+
+- 1daf48b: feat(amazon-bedrock): increase limit of embeddings in a request for cohere models
+
 ## 5.0.7
 
 ### Patch Changes
