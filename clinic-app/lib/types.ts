@@ -454,6 +454,7 @@ export type SignatureStatus = 'pendente' | 'assinado' | 'cancelado';
 
 export interface ClinicSettings {
   id: string;
+  clinic_id: string;
   clinic_name: string;
   cnpj: string | null;
   address: string | null;

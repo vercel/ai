@@ -156,14 +156,14 @@ export async function updateClinicSettings(formData: FormData) {
   const profile = await requireProfile();
   requireAdmin(profile);
 
+  if (!profile.clinic_id) {
+    redirect('/dashboard/admin?error=Clínica não encontrada');
+  }
+
   const supabase = createSupabaseServerClient();
-  const { data: existing } = await supabase
-    .from('clinic_settings')
-    .select('id')
-    .limit(1)
-    .maybeSingle<{ id: string }>();
 
   const values = {
+    clinic_id: profile.clinic_id,
     clinic_name: String(formData.get('clinic_name') ?? ''),
     cnpj: String(formData.get('cnpj') ?? '') || null,
     address: String(formData.get('address') ?? '') || null,
@@ -175,11 +175,7 @@ export async function updateClinicSettings(formData: FormData) {
     updated_at: new Date().toISOString(),
   };
 
-  if (existing) {
-    await supabase.from('clinic_settings').update(values).eq('id', existing.id);
-  } else {
-    await supabase.from('clinic_settings').insert(values);
-  }
+  await supabase.from('clinic_settings').upsert(values, { onConflict: 'clinic_id' });
 
   revalidatePath('/dashboard/admin');
 }

@@ -43,7 +43,11 @@ export default async function AdminPage({
     supabase.from('rooms').select('*').order('name').returns<Room[]>(),
     supabase.from('message_templates').select('*').order('name').returns<MessageTemplate[]>(),
     supabase.from('payment_methods').select('*').order('name').returns<PaymentMethod[]>(),
-    supabase.from('clinic_settings').select('*').limit(1).maybeSingle<ClinicSettings>(),
+    supabase
+      .from('clinic_settings')
+      .select('*')
+      .eq('clinic_id', profile.clinic_id)
+      .maybeSingle<ClinicSettings>(),
   ]);
 
   const userCount = profiles?.length ?? 0;

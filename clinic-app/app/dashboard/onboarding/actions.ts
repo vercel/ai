@@ -43,13 +43,8 @@ export async function completeOnboarding(formData: FormData) {
     .update({ name: clinicName, document_number: cnpj })
     .eq('id', profile.clinic_id);
 
-  const { data: existingSettings } = await supabase
-    .from('clinic_settings')
-    .select('id')
-    .limit(1)
-    .maybeSingle<{ id: string }>();
-
   const settingsValues = {
+    clinic_id: profile.clinic_id,
     clinic_name: clinicName,
     cnpj,
     phone: clinicPhone,
@@ -57,11 +52,7 @@ export async function completeOnboarding(formData: FormData) {
     updated_at: new Date().toISOString(),
   };
 
-  if (existingSettings) {
-    await supabase.from('clinic_settings').update(settingsValues).eq('id', existingSettings.id);
-  } else {
-    await supabase.from('clinic_settings').insert(settingsValues);
-  }
+  await supabase.from('clinic_settings').upsert(settingsValues, { onConflict: 'clinic_id' });
 
   const authClient = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
