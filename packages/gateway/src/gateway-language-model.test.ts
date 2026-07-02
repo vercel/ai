@@ -1652,6 +1652,142 @@ describe('GatewayLanguageModel', () => {
       });
     });
 
+    it('should nest non-gateway provider options under gateway.providerOptions for doGenerate', async () => {
+      prepareJsonResponse({
+        content: { type: 'text', text: 'Test response' },
+      });
+
+      await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          google: {
+            thinkingConfig: {
+              thinkingBudget: 128,
+              includeThoughts: false,
+            },
+          },
+          gateway: {
+            models: ['google/gemini-2.5-flash', 'openai/gpt-5-mini'],
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.providerOptions).toEqual({
+        google: {
+          thinkingConfig: {
+            thinkingBudget: 128,
+            includeThoughts: false,
+          },
+        },
+        gateway: {
+          models: ['google/gemini-2.5-flash', 'openai/gpt-5-mini'],
+          providerOptions: {
+            google: {
+              thinkingConfig: {
+                thinkingBudget: 128,
+                includeThoughts: false,
+              },
+            },
+          },
+        },
+      });
+    });
+
+    it('should nest non-gateway provider options under gateway.providerOptions for doStream', async () => {
+      prepareStreamResponse({
+        content: ['Hello', ' world'],
+      });
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            cacheControl: { type: 'ephemeral' },
+          },
+          gateway: {
+            order: ['bedrock', 'anthropic'],
+          },
+        },
+      });
+
+      await convertReadableStreamToArray(stream);
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.providerOptions).toEqual({
+        anthropic: {
+          cacheControl: { type: 'ephemeral' },
+        },
+        gateway: {
+          order: ['bedrock', 'anthropic'],
+          providerOptions: {
+            anthropic: {
+              cacheControl: { type: 'ephemeral' },
+            },
+          },
+        },
+      });
+    });
+
+    it('should not modify providerOptions when no non-gateway options exist', async () => {
+      prepareJsonResponse({
+        content: { type: 'text', text: 'Test response' },
+      });
+
+      await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          gateway: {
+            order: ['openai'],
+            zeroDataRetention: true,
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.providerOptions).toEqual({
+        gateway: {
+          order: ['openai'],
+          zeroDataRetention: true,
+        },
+      });
+      expect(
+        (requestBody.providerOptions as Record<string, unknown>).gateway,
+      ).not.toHaveProperty('providerOptions');
+    });
+
+    it('should preserve original top-level non-gateway options for backward compatibility', async () => {
+      prepareJsonResponse({
+        content: { type: 'text', text: 'Test response' },
+      });
+
+      await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          google: {
+            thinkingConfig: {
+              thinkingBudget: 128,
+              includeThoughts: false,
+            },
+          },
+          gateway: {
+            models: ['google/gemini-2.5-flash'],
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+
+      expect(
+        (requestBody.providerOptions as Record<string, unknown>).google,
+      ).toEqual({
+        thinkingConfig: {
+          thinkingBudget: 128,
+          includeThoughts: false,
+        },
+      });
+    });
+
     it('should pass both zeroDataRetention and hipaaCompliant options', async () => {
       prepareJsonResponse({
         content: { type: 'text', text: 'Test response' },
