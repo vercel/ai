@@ -12,6 +12,7 @@ import {
   type ChatState,
   type ChatStatus,
 } from './chat';
+import type { ChatTransport } from './chat-transport';
 import { DefaultChatTransport } from './default-chat-transport';
 import { lastAssistantMessageIsCompleteWithApprovalResponses } from './last-assistant-message-is-complete-with-approval-responses';
 import { lastAssistantMessageIsCompleteWithToolCalls } from './last-assistant-message-is-complete-with-tool-calls';
@@ -81,6 +82,52 @@ describe('Chat', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  describe('overlapping resume streams', () => {
+    it('should not log a TypeError when one resume clears activeResponse before the other finishes', async () => {
+      const controllers: Array<ReadableStreamDefaultController<UIMessageChunk>> =
+        [];
+
+      const transport: ChatTransport<UIMessage> = {
+        async sendMessages() {
+          throw new Error('sendMessages should not be called');
+        },
+        async reconnectToStream() {
+          return new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              controllers.push(controller);
+            },
+          });
+        },
+      };
+
+      const consoleErrorSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId(),
+        transport,
+        onFinish: () => {},
+      });
+
+      const firstResume = chat.resumeStream();
+      const secondResume = chat.resumeStream();
+
+      await vi.waitFor(() => {
+        expect(controllers).toHaveLength(2);
+      });
+
+      controllers[1].close();
+      await secondResume;
+
+      controllers[0].close();
+      await firstResume;
+
+      expect(consoleErrorSpy).not.toHaveBeenCalledWith(expect.any(TypeError));
+    });
   });
 
   describe('send a simple message', () => {
