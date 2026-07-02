@@ -1,140 +1,252 @@
 ---
-title: 'Sarvam'
+title: 'Sarvam AI'
 description: 'Learn how to use the Sarvam AI provider for the AI SDK.'
 ---
 
-# Sarvam Provider
+# Sarvam AI Provider
 
-The Sarvam AI Provider is a library developed to integrate with the AI SDK. This library brings Speech to Text (STT) capabilities to your applications, allowing for seamless interaction with audio and text data.
+The Sarvam AI Provider ([sarvam-ai-sdk](https://github.com/sarvamai/sarvam-ai-sdk)) is an official community provider that allows you to use [Sarvam AI](https://sarvam.ai) models with the AI SDK.
+
+It includes support for the Chat completion, Text-to-Speech, Speech-to-Text and other Text Processing APIs.
 
 ## Setup
 
-The Sarvam provider is available in the `sarvam-ai-provider` module. You can install it with:
+The Sarvam AI provider is available in the `sarvam-ai-sdk` module. You can install it with:
 
 <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
-    <Snippet text="pnpm add sarvam-ai-provider" dark />
+    <Snippet text="pnpm add sarvam-ai-sdk" dark />
   </Tab>
   <Tab>
-    <Snippet text="npm install sarvam-ai-provider" dark />
+    <Snippet text="npm install sarvam-ai-sdk" dark />
   </Tab>
   <Tab>
-    <Snippet text="yarn add sarvam-ai-provider" dark />
+    <Snippet text="yarn add sarvam-ai-sdk" dark />
   </Tab>
   <Tab>
-    <Snippet text="bun add sarvam-ai-provider" dark />
+    <Snippet text="bun add sarvam-ai-sdk" dark />
   </Tab>
 </Tabs>
 
 ## Provider Instance
 
-First, get your **Sarvam API Key** from the [Sarvam Dashboard](https://dashboard.sarvam.ai/auth/signin).
+First, get your **Sarvam API Key** from [Sarvam Dashboard](https://dashboard.sarvam.ai/).
 
-Then initialize `Sarvam` in your application:
+```bash filename=".env"
+SARVAM_API_KEY="your_api_key"
+```
+
+Then initialize `sarvam` in your application:
 
 ```ts
-import { createSarvam } from 'sarvam-ai-provider';
+import { sarvam } from "sarvam-ai-sdk";
 
-const sarvam = createSarvam({
-  headers: {
-    'api-subscription-key': 'YOUR_API_KEY',
-  },
+sarvam("sarvam-105b");
+```
+
+To create a Sarvam AI provider instance, use the `createSarvam` function:
+
+```ts
+import { createSarvam } from "sarvam-ai-sdk";
+
+const sarvam = createSarvam({ apiKey: "your_api_key" })
+```
+
+## Examples
+
+Here are examples of using Sarvam AI with the AI SDK:
+
+### Chat Completion
+
+```ts
+import { sarvam } from "sarvam-ai-sdk";
+import { generateText } from "ai";
+
+const { text } = await generateText({
+  model: sarvam("sarvam-30b"),
+  prompt: "Translate this to malayalam: 'Keep cooking, guys'",
 });
+
+console.log(text); // പാചകം തുടരൂ, സുഹൃത്തുക്കളേ
 ```
 
-<Note>
-  The `api-subscription-key` needs to be passed in headers. Consider using
-  `YOUR_API_KEY` as environment variables for security.
-</Note>
-
-- Transcribe speech to text
+### Text-to-Speech
 
 ```ts
-import { transcribe } from 'ai';
-import { readFile } from 'fs/promises';
+import { sarvam } from "sarvam-ai-sdk";
+import { generateSpeech } from "ai";
+import { writeFile } from "fs/promises";
 
-await transcribe({
-  model: sarvam.transcription('saarika:v2'),
-  audio: await readFile('./src/transcript-test.mp3'),
-  providerOptions: {
-    sarvam: {
-      language_code: 'en-IN',
-    },
-  },
+const { audio } = await generateSpeech({
+  model: sarvam.speech("bulbul:v3", "ml-IN"),
+  text: "പാചകം തുടരൂ, സുഹൃത്തുക്കളേ",
 });
+
+const audioBuffer = Buffer.from(audio.base64, "base64");
+await writeFile("./src/transcript-test.wav", audioBuffer);
 ```
 
-## Features
-
-### Changing parameters
-
-- Change language_code
+### Speech-to-Text
 
 ```ts
-providerOptions: {
-    sarvam: {
-      language_code: 'en-IN',
-    },
-  },
+import { sarvam } from "sarvam-ai-sdk";
+import { transcribe } from "ai";
+import { readFile } from "fs/promises";
+
+const { text } = await transcribe({
+  model: sarvam.transcription("saaras:v3", "en-IN"),
+  audio: await readFile("./src/transcript-test.wav"),
+});
+
+console.log(text); // Pachakam thudaroo, suhruthukkale.
 ```
 
-<Note>
-  `language_code` specifies the language of the input audio and is required for
-  accurate transcription. • It is mandatory for the `saarika:v1` model (this
-  model does not support `unknown`). • It is optional for the `saarika:v2`
-  model. • Use `unknown` when the language is not known; in that case, the API
-  will auto‑detect it. Available options: `unknown`, `hi-IN`, `bn-IN`, `kn-IN`,
-  `ml-IN`, `mr-IN`, `od-IN`, `pa-IN`, `ta-IN`, `te-IN`, `en-IN`, `gu-IN`.
-</Note>
-
-- with_timestamps?
+### Tool Calling
 
 ```ts
-providerOptions: {
-  sarvam: {
-    with_timestamps: true,
+import { z } from "zod";
+import { generateText, tool } from "ai";
+import { sarvam } from "sarvam-ai-sdk";
+
+const result = await generateText({
+  model: sarvam("sarvam-30b"),
+  tools: {
+    weather: tool({
+      description: "Get the weather in a location",
+      inputSchema: z.object({
+        location: z.string(),
+      }),
+      execute: async ({ location }) => ({
+        location,
+        temperature: 72 + Math.floor(Math.random() * 21) - 10,
+      }),
+    }),
   },
-},
+  instructions: "You are a helpful AI",
+  prompt: "കൊച്ചിയിലെ കാലാവസ്ഥ എന്താണ്?",
+});
+
+console.log(result.toolResults);
 ```
 
-<Note>
-  `with_timestamps` specifies whether to include start/end timestamps for each
-  word/token. • Type: boolean • When true, each word/token will include
-  start/end timestamps. • Default: false
-</Note>
-
-- with_diarization?
+### Structured Output
 
 ```ts
-providerOptions: {
-  sarvam: {
-    with_diarization: true,
-  },
-},
+import { z } from "zod";
+import { sarvam } from "sarvam-ai-sdk";
+import { generateText, Output } from "ai";
+
+const { output } = await generateText({
+  model: sarvam("sarvam-105b", {
+    // uncomment to enable direct JSON mode
+    // experimental_json_mode: true,
+
+    // uncomment to reduce inference time
+    // reasoning_effort: "none",
+  }),
+  output: Output.object({
+    name: "Recipe",
+    description: "A recipe with a name, ingredients and steps",
+    schema: z.object({
+      recipe: z.object({
+        name: z.string(),
+        ingredients: z.array(z.string()),
+        steps: z.array(z.string()),
+      }),
+    }),
+  }),
+  prompt: "Generate a South Indian recipe, in Malayalam",
+});
+
+console.log(output);
 ```
 
+### Text Processing
+
 <Note>
-  `with_diarization` enables speaker diarization (Beta). • Type: boolean • When
-  true, enables speaker diarization. • Default: false
+  Text Processing only supports input from `prompt` and `role:user` in messages, not `role:system` or `role:assistant`.
 </Note>
 
-- num_speakers?
+#### Translation
 
 ```ts
-providerOptions: {
-  sarvam: {
-    with_diarization: true,
-    num_speakers: 2,
-  },
-},
+import { sarvam } from "sarvam-ai-sdk";
+import { generateText } from "ai";
+
+const result = await generateText({
+  model: sarvam.translation("mayura:v1", {
+      from: "ml-IN",
+      to: "en-IN",
+  }),
+  prompt: "ഇതൊക്കെ ശ്രദ്ധിക്കണ്ടേ അംബാനെ?",
+});
+
+console.log(result.text); // Shouldn't we be careful about this, Ambane?
 ```
 
-<Note>
-  `num_speakers` sets the number of distinct speakers to detect (only when
-  `with_diarization` is true). • Type: number | null • Number of distinct
-  speakers to detect. • Default: null
-</Note>
+#### Transliterate
 
-## References
+```ts
+import { sarvam } from "sarvam-ai-sdk";
+import { generateText } from "ai";
 
-- [Sarvam API Docs](https://docs.sarvam.ai/api-reference-docs/endpoints/speech-to-text)
+const result = await generateText({
+  model: sarvam.transliterate({
+    to: "ml-IN",
+    from: "en-IN", // optional
+  }),
+  prompt: "eda mone, happy alle?",
+});
+
+console.log(result.text); // എടാ മോനെ, ഹാപ്പി അല്ലേ?
+```
+
+#### Language Identification
+
+```ts
+import { sarvam } from "sarvam-ai-sdk";
+import { generateText } from "ai";
+
+const result = await generateText({
+  model: sarvam.languageIdentification(),
+  prompt: "ബുദ്ധിയാണ് സാറേ ഇവൻ്റെ മെയിൻ",
+});
+
+console.log(result.text); // ml-IN
+```
+
+## Available APIs
+
+These are the APIs available in this SDK.
+
+```ts
+import { sarvam, createSarvam } from "sarvam-ai-sdk";
+
+// Override `SARVAM_API_KEY` using
+createSarvam({ apiKey: "your_api_key" })
+
+// Text-to-Text + Chat Completion
+sarvam("sarvam-105b");
+sarvam.languageModel("sarvam-30b");
+
+// Text-to-Text + Transliteration
+sarvam.transliterate({ to: "ml-IN", from: "en-IN" });
+
+// Text-to-Text + Translation
+sarvam.translation("mayura:v1", { from: "en-IN", to: "ml-IN" });
+
+// Text-to-Text + Language Identification
+sarvam.languageIdentification();
+
+// Text-to-Speech
+sarvam.speech("bulbul:v3", "ml-IN");
+
+// Speech-to-Text
+sarvam.transcription("saaras:v3");
+```
+
+## Additional Resources
+
+- [Sarvam Dashboard](https://dashboard.sarvam.ai/)
+- [Sarvam API documentation](https://docs.sarvam.ai)
+- [Sarvam AI SDK repository](https://github.com/sarvamai/sarvam-ai-sdk)
