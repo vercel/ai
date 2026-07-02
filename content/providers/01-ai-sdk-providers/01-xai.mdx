@@ -513,6 +513,10 @@ The following provider options are available:
 
   The ID of the previous response from the model. You can use it to continue a conversation.
 
+- **promptCacheKey** _string_
+
+  A stable cache routing key (for example a conversation ID). Requests with the same key are routed to the same server, maximizing [prompt cache](https://docs.x.ai/developers/advanced-api-usage/prompt-caching) hits across consecutive requests.
+
 <Note>
   The Responses API only supports server-side tools. You cannot mix server-side
   tools with client-side function tools in the same request.
