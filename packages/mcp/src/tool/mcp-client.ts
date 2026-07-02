@@ -558,17 +558,21 @@ class DefaultMCPClient implements MCPClient {
 
       const cleanup = () => {
         this.responseHandlers.delete(messageId);
+        signal?.removeEventListener('abort', onAbort);
+      };
+
+      const onAbort = () => {
+        cleanup();
+        reject(
+          new MCPClientError({
+            message: 'Request was aborted',
+            cause: signal?.reason,
+          }),
+        );
       };
 
       this.responseHandlers.set(messageId, response => {
-        if (signal?.aborted) {
-          return reject(
-            new MCPClientError({
-              message: 'Request was aborted',
-              cause: signal.reason,
-            }),
-          );
-        }
+        cleanup();
 
         if (response instanceof Error) {
           return reject(response);
@@ -585,6 +589,12 @@ class DefaultMCPClient implements MCPClient {
           reject(parseError);
         }
       });
+
+      // The JSON-RPC transport has no request-cancellation frame, so an
+      // in-flight request can only be observed as aborted here. On abort we
+      // remove the response handler (settling the promise and preventing a
+      // leaked handler); a late server response is subsequently ignored.
+      signal?.addEventListener('abort', onAbort, { once: true });
 
       this.transport.send(jsonrpcRequest).catch(error => {
         cleanup();
