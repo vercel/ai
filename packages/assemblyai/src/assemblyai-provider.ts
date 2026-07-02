@@ -14,7 +14,7 @@ import { VERSION } from './version';
 
 export interface AssemblyAIProvider extends ProviderV2 {
   (
-    modelId: 'best',
+    modelId: AssemblyAITranscriptionModelId,
     settings?: {},
   ): {
     transcription: AssemblyAITranscriptionModel;

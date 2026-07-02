@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 async function main() {
   const result = await transcribe({
-    model: assemblyai.transcription('best'),
+    model: assemblyai.transcription('universal-3-5-pro'),
     audio: new URL(
       'https://github.com/vercel/ai/raw/refs/heads/main/examples/ai-core/data/galileo.mp3',
     ),

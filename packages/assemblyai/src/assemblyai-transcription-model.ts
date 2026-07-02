@@ -1,6 +1,7 @@
 import type {
   TranscriptionModelV2,
   TranscriptionModelV2CallWarning,
+  SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -35,8 +36,12 @@ const assemblyaiProviderOptionsSchema = z.object({
    */
   autoHighlights: z.boolean().nullish(),
   /**
-   * Boost parameter for the transcription.
+   * Boost parameter for word boost (used with `wordBoost`).
    * Allowed values: 'low', 'default', 'high'.
+   *
+   * @deprecated Only applies to the deprecated `wordBoost` option. Use
+   * `keytermsPrompt` instead, which works with the recommended `universal-*`
+   * models.
    */
   boostParam: z.string().nullish(),
   /**
@@ -63,6 +68,11 @@ const assemblyaiProviderOptionsSchema = z.object({
    */
   disfluencies: z.boolean().nullish(),
   /**
+   * Enable a domain-specific model to improve accuracy for specialized
+   * terminology. Currently supports `'medical-v1'` (Medical Mode).
+   */
+  domain: z.string().nullish(),
+  /**
    * Whether to enable entity detection.
    */
   entityDetection: z.boolean().nullish(),
@@ -79,6 +89,13 @@ const assemblyaiProviderOptionsSchema = z.object({
    */
   iabCategories: z.boolean().nullish(),
   /**
+   * Domain-specific keyterms to boost recognition for (max 6 words per phrase).
+   * Replaces `wordBoost` for newer models: supported by `universal-3-pro` /
+   * `universal-3-5-pro` and `slam-1` (and `universal-2` when metaphone is
+   * enabled for the account).
+   */
+  keytermsPrompt: z.array(z.string()).nullish(),
+  /**
    * Language code for the transcription.
    */
   languageCode: z.union([z.literal('en'), z.string()]).nullish(),
@@ -91,9 +108,29 @@ const assemblyaiProviderOptionsSchema = z.object({
    */
   languageDetection: z.boolean().nullish(),
   /**
+   * Options for automatic language detection.
+   */
+  languageDetectionOptions: z
+    .object({
+      /** List of languages expected in the audio file. */
+      expectedLanguages: z.array(z.string()).nullish(),
+      /** Fallback language if the detected language is not expected. */
+      fallbackLanguage: z.string().nullish(),
+      /** Whether code switching should be detected. */
+      codeSwitching: z.boolean().nullish(),
+      /** Confidence threshold for code switching detection (0-1). */
+      codeSwitchingConfidenceThreshold: z.number().min(0).max(1).nullish(),
+    })
+    .nullish(),
+  /**
    * Whether to process audio as multichannel.
    */
   multichannel: z.boolean().nullish(),
+  /**
+   * Provide natural-language context (up to 1,500 words) to steer the model.
+   * Only supported by `universal-3-pro` / `universal-3-5-pro` and `slam-1`.
+   */
+  prompt: z.string().nullish(),
   /**
    * Whether to add punctuation to the transcription.
    */
@@ -107,6 +144,17 @@ const assemblyaiProviderOptionsSchema = z.object({
    */
   redactPiiAudio: z.boolean().nullish(),
   /**
+   * Options for PII-redacted audio files. Requires `redactPiiAudio`.
+   */
+  redactPiiAudioOptions: z
+    .object({
+      /** Return redacted audio even for files without detected speech. */
+      returnRedactedNoSpeechAudio: z.boolean().nullish(),
+      /** Redaction method; set to `'silence'` to replace PII with silence. */
+      overrideAudioRedactionMethod: z.enum(['silence']).nullish(),
+    })
+    .nullish(),
+  /**
    * Audio format for PII redaction.
    */
   redactPiiAudioQuality: z.string().nullish(),
@@ -115,9 +163,25 @@ const assemblyaiProviderOptionsSchema = z.object({
    */
   redactPiiPolicies: z.array(z.string()).nullish(),
   /**
+   * Return the original unredacted transcript alongside the redacted one.
+   * Requires `redactPii`.
+   */
+  redactPiiReturnUnredacted: z.boolean().nullish(),
+  /**
    * Substitution method for redacted PII.
    */
   redactPiiSub: z.string().nullish(),
+  /**
+   * Map of user-defined labels to exact terms to redact, e.g.
+   * `{ INTERNAL_TOOL: ['Bearclaw'] }`. Applied on top of standard PII redaction
+   * using `redactPiiSub`. Requires `redactPii`.
+   */
+  redactStaticEntities: z.record(z.string(), z.array(z.string())).nullish(),
+  /**
+   * Remove inline annotations from rich transcripts. `'all'` removes all inline
+   * annotations; `'speaker'` removes only speaker cues. Universal-3 Pro models.
+   */
+  removeAudioTags: z.enum(['all', 'speaker']).nullish(),
   /**
    * Whether to enable sentiment analysis.
    */
@@ -126,6 +190,17 @@ const assemblyaiProviderOptionsSchema = z.object({
    * Whether to identify different speakers in the audio.
    */
   speakerLabels: z.boolean().nullish(),
+  /**
+   * Options for speaker diarization, e.g. a range of possible speakers.
+   */
+  speakerOptions: z
+    .object({
+      /** Minimum number of speakers expected in the audio file. */
+      minSpeakersExpected: z.number().int().nullish(),
+      /** Maximum number of speakers expected in the audio file. */
+      maxSpeakersExpected: z.number().int().nullish(),
+    })
+    .nullish(),
   /**
    * Number of speakers expected in the audio.
    */
@@ -147,6 +222,10 @@ const assemblyaiProviderOptionsSchema = z.object({
    */
   summaryType: z.string().nullish(),
   /**
+   * Sampling temperature (0-1) controlling randomness. Universal-3 Pro models.
+   */
+  temperature: z.number().min(0).max(1).nullish(),
+  /**
    * Name of the authentication header for webhook requests.
    */
   webhookAuthHeaderName: z.string().nullish(),
@@ -160,6 +239,10 @@ const assemblyaiProviderOptionsSchema = z.object({
   webhookUrl: z.string().nullish(),
   /**
    * List of words to boost recognition for.
+   *
+   * @deprecated `wordBoost` is rejected by `universal-3-pro` /
+   * `universal-3-5-pro` and `slam-1` (it only works on `universal-2`/`best`).
+   * Use `keytermsPrompt` instead.
    */
   wordBoost: z.array(z.string()).nullish(),
 });
@@ -203,9 +286,41 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV2 {
       schema: assemblyaiProviderOptionsSchema,
     });
 
-    const body: Omit<AssemblyAITranscriptionAPITypes, 'audio_url'> = {
-      speech_model: this.modelId,
-    };
+    const body: Omit<AssemblyAITranscriptionAPITypes, 'audio_url'> = {};
+
+    // The legacy `best` model is selected via the deprecated singular
+    // `speech_model` parameter. All other models (e.g. `universal-2`,
+    // `universal-3-pro`, `universal-3-5-pro`) are only accessible via the
+    // `speech_models` array and are rejected by `speech_model`.
+    // See https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model
+    if (this.modelId === 'best') {
+      body.speech_model = this.modelId as 'best';
+      warnings.push({
+        type: 'other',
+        message:
+          "The 'best' model is a legacy AssemblyAI model. Use 'universal-3-5-pro' instead. See documentation: https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model",
+      });
+    } else {
+      body.speech_models = [this.modelId];
+
+      // Forward-looking nudge: universal-3-5-pro is AssemblyAI's latest
+      // flagship and is set to replace universal-3-pro. Not a deprecation —
+      // both models still work — so this is an informational warning only.
+      if (
+        this.modelId === 'universal-3-pro' ||
+        this.modelId === 'universal-2'
+      ) {
+        const docsUrl =
+          'https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model';
+        warnings.push({
+          type: 'other',
+          message:
+            this.modelId === 'universal-3-pro'
+              ? `'universal-3-5-pro' is AssemblyAI's latest flagship model and is set to replace 'universal-3-pro'. See ${docsUrl}`
+              : `'universal-3-5-pro' is AssemblyAI's latest flagship model. See ${docsUrl}`,
+        });
+      }
+    }
 
     // Add provider-specific options
     if (assemblyaiOptions) {
@@ -255,6 +370,103 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV2 {
         assemblyaiOptions.webhookAuthHeaderValue ?? undefined;
       body.webhook_url = assemblyaiOptions.webhookUrl ?? undefined;
       body.word_boost = assemblyaiOptions.wordBoost ?? undefined;
+      body.keyterms_prompt = assemblyaiOptions.keytermsPrompt ?? undefined;
+      body.prompt = assemblyaiOptions.prompt ?? undefined;
+      body.temperature = assemblyaiOptions.temperature ?? undefined;
+      body.remove_audio_tags = assemblyaiOptions.removeAudioTags ?? undefined;
+      body.domain = assemblyaiOptions.domain ?? undefined;
+      body.redact_pii_return_unredacted =
+        assemblyaiOptions.redactPiiReturnUnredacted ?? undefined;
+      body.redact_static_entities =
+        assemblyaiOptions.redactStaticEntities ?? undefined;
+
+      if (assemblyaiOptions.speakerOptions) {
+        body.speaker_options = {
+          min_speakers_expected:
+            assemblyaiOptions.speakerOptions.minSpeakersExpected ?? undefined,
+          max_speakers_expected:
+            assemblyaiOptions.speakerOptions.maxSpeakersExpected ?? undefined,
+        };
+      }
+
+      if (assemblyaiOptions.languageDetectionOptions) {
+        body.language_detection_options = {
+          expected_languages:
+            assemblyaiOptions.languageDetectionOptions.expectedLanguages ??
+            undefined,
+          fallback_language:
+            assemblyaiOptions.languageDetectionOptions.fallbackLanguage ??
+            undefined,
+          code_switching:
+            assemblyaiOptions.languageDetectionOptions.codeSwitching ??
+            undefined,
+          code_switching_confidence_threshold:
+            assemblyaiOptions.languageDetectionOptions
+              .codeSwitchingConfidenceThreshold ?? undefined,
+        };
+      }
+
+      if (assemblyaiOptions.redactPiiAudioOptions) {
+        body.redact_pii_audio_options = {
+          return_redacted_no_speech_audio:
+            assemblyaiOptions.redactPiiAudioOptions
+              .returnRedactedNoSpeechAudio ?? undefined,
+          override_audio_redaction_method:
+            assemblyaiOptions.redactPiiAudioOptions
+              .overrideAudioRedactionMethod ?? undefined,
+        };
+      }
+
+      const deprecatedBoostOptions: string[] = [];
+      if (assemblyaiOptions.wordBoost != null) {
+        deprecatedBoostOptions.push('wordBoost');
+      }
+      if (assemblyaiOptions.boostParam != null) {
+        deprecatedBoostOptions.push('boostParam');
+      }
+      if (deprecatedBoostOptions.length > 0) {
+        warnings.push({
+          type: 'other',
+          message: `${deprecatedBoostOptions.join(', ')} ${
+            deprecatedBoostOptions.length > 1 ? 'are' : 'is'
+          } deprecated and rejected by 'universal-3-pro' / 'universal-3-5-pro' and 'slam-1'. Use 'keytermsPrompt' instead.`,
+        });
+      }
+
+      // The following options only take effect alongside a prerequisite
+      // option; without it AssemblyAI either rejects the request (400) or
+      // silently ignores the option. Warn rather than mutate user input.
+      if (
+        (assemblyaiOptions.redactPiiReturnUnredacted != null ||
+          assemblyaiOptions.redactStaticEntities != null) &&
+        !assemblyaiOptions.redactPii
+      ) {
+        warnings.push({
+          type: 'other',
+          message:
+            "'redactPiiReturnUnredacted' and 'redactStaticEntities' require 'redactPii' to be enabled; AssemblyAI rejects the request otherwise.",
+        });
+      }
+      if (
+        assemblyaiOptions.redactPiiAudioOptions != null &&
+        !assemblyaiOptions.redactPiiAudio
+      ) {
+        warnings.push({
+          type: 'other',
+          message:
+            "'redactPiiAudioOptions' only applies when 'redactPiiAudio' is enabled; it is otherwise ignored.",
+        });
+      }
+      if (
+        assemblyaiOptions.languageCode != null &&
+        assemblyaiOptions.languageDetection
+      ) {
+        warnings.push({
+          type: 'other',
+          message:
+            "'languageDetection' cannot be combined with an explicit 'languageCode'; AssemblyAI rejects requests that set both.",
+        });
+      }
     }
 
     return {
@@ -274,17 +486,22 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV2 {
     abortSignal?: AbortSignal,
   ): Promise<{
     transcript: z.infer<typeof assemblyaiTranscriptionResponseSchema>;
+    rawTranscript: unknown;
     responseHeaders: Record<string, string>;
   }> {
     const pollingInterval =
       this.config.pollingInterval ?? this.POLLING_INTERVAL_MS;
+
+    // Honor a caller-provided fetch (proxy, auth injection, tests) for the
+    // polling GETs, matching the upload/submit calls that use config.fetch.
+    const fetchImpl = this.config.fetch ?? globalThis.fetch;
 
     while (true) {
       if (abortSignal?.aborted) {
         throw new Error('Transcription request was aborted');
       }
 
-      const response = await fetch(
+      const response = await fetchImpl(
         this.config.url({
           path: `/v2/transcript/${transcriptId}`,
           modelId: this.modelId,
@@ -310,13 +527,14 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV2 {
         });
       }
 
-      const transcript = assemblyaiTranscriptionResponseSchema.parse(
-        await response.json(),
-      );
+      const rawTranscript = await response.json();
+      const transcript =
+        assemblyaiTranscriptionResponseSchema.parse(rawTranscript);
 
       if (transcript.status === 'completed') {
         return {
           transcript,
+          rawTranscript,
           responseHeaders: extractResponseHeaders(response),
         };
       }
@@ -377,29 +595,70 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV2 {
       fetch: this.config.fetch,
     });
 
-    const { transcript, responseHeaders } = await this.waitForCompletion(
-      submitResponse.id,
-      options.headers,
-      options.abortSignal,
-    );
+    const { transcript, rawTranscript, responseHeaders } =
+      await this.waitForCompletion(
+        submitResponse.id,
+        options.headers,
+        options.abortSignal,
+      );
+
+    // Surface diarization and audio-intelligence results that the AI SDK's
+    // `segments` shape can't represent, keyed under `assemblyai`. Presence is
+    // gated on the parsed transcript, but values are taken from the raw
+    // response so no fields are stripped by the schema.
+    //
+    // NOTE: timings inside these objects (e.g. `utterances[].start`) are in
+    // milliseconds, matching the AssemblyAI API — unlike the top-level
+    // `segments`, whose `startSecond`/`endSecond` are in seconds.
+    const raw = (rawTranscript ?? {}) as Record<string, unknown>;
+    const assemblyaiMetadata: Record<string, unknown> = {};
+    if (transcript.utterances != null) {
+      assemblyaiMetadata.utterances = raw.utterances;
+    }
+    if (transcript.sentiment_analysis_results != null) {
+      assemblyaiMetadata.sentimentAnalysisResults =
+        raw.sentiment_analysis_results;
+    }
+    if (transcript.entities != null) {
+      assemblyaiMetadata.entities = raw.entities;
+    }
+    if (transcript.content_safety_labels != null) {
+      assemblyaiMetadata.contentSafetyLabels = raw.content_safety_labels;
+    }
+    if (transcript.iab_categories_result != null) {
+      assemblyaiMetadata.iabCategoriesResult = raw.iab_categories_result;
+    }
+    if (transcript.auto_highlights_result != null) {
+      assemblyaiMetadata.autoHighlightsResult = raw.auto_highlights_result;
+    }
+
+    const lastWordEndMs = transcript.words?.at(-1)?.end;
 
     return {
       text: transcript.text ?? '',
+      // AssemblyAI returns word timings in milliseconds; the AI SDK reports
+      // segment timings in seconds.
       segments:
         transcript.words?.map(word => ({
           text: word.text,
-          startSecond: word.start,
-          endSecond: word.end,
+          startSecond: word.start / 1000,
+          endSecond: word.end / 1000,
         })) ?? [],
       language: transcript.language_code ?? undefined,
       durationInSeconds:
-        transcript.audio_duration ?? transcript.words?.at(-1)?.end ?? undefined,
+        transcript.audio_duration ??
+        (lastWordEndMs != null ? lastWordEndMs / 1000 : undefined),
       warnings,
+      ...(Object.keys(assemblyaiMetadata).length > 0 && {
+        providerMetadata: {
+          assemblyai: assemblyaiMetadata,
+        } as SharedV2ProviderMetadata,
+      }),
       response: {
         timestamp: currentDate,
         modelId: this.modelId,
         headers: responseHeaders, // Headers from final GET request
-        body: transcript, // Raw response from final GET request
+        body: rawTranscript, // Full raw response from final GET request
       },
     };
   }
@@ -414,20 +673,65 @@ const assemblyaiSubmitResponseSchema = z.object({
   status: z.enum(['queued', 'processing', 'completed', 'error']),
 });
 
+const assemblyaiWordSchema = z.object({
+  start: z.number(),
+  end: z.number(),
+  text: z.string(),
+  confidence: z.number().nullish(),
+  // Speaker label (e.g. 'A', 'B') when speaker diarization is enabled, else null.
+  speaker: z.string().nullish(),
+  channel: z.string().nullish(),
+});
+
 const assemblyaiTranscriptionResponseSchema = z.object({
   id: z.string(),
   status: z.enum(['queued', 'processing', 'completed', 'error']),
   text: z.string().nullish(),
   language_code: z.string().nullish(),
-  words: z
+  speech_model_used: z.string().nullish(),
+  words: z.array(assemblyaiWordSchema).nullish(),
+  // Speaker-diarized utterances (present when `speaker_labels` is enabled).
+  utterances: z
     .array(
       z.object({
         start: z.number(),
         end: z.number(),
         text: z.string(),
+        confidence: z.number().nullish(),
+        speaker: z.string().nullish(),
+        channel: z.string().nullish(),
+        words: z.array(assemblyaiWordSchema).nullish(),
       }),
     )
     .nullish(),
+  // Audio-intelligence results, present only when the matching feature is
+  // enabled. Kept intentionally permissive (the full structures are also
+  // available on the raw `response.body`).
+  sentiment_analysis_results: z
+    .array(
+      z.object({
+        text: z.string(),
+        start: z.number().nullish(),
+        end: z.number().nullish(),
+        sentiment: z.string(),
+        confidence: z.number().nullish(),
+        speaker: z.string().nullish(),
+      }),
+    )
+    .nullish(),
+  entities: z
+    .array(
+      z.object({
+        entity_type: z.string(),
+        text: z.string(),
+        start: z.number().nullish(),
+        end: z.number().nullish(),
+      }),
+    )
+    .nullish(),
+  content_safety_labels: z.record(z.string(), z.any()).nullish(),
+  iab_categories_result: z.record(z.string(), z.any()).nullish(),
+  auto_highlights_result: z.record(z.string(), z.any()).nullish(),
   audio_duration: z.number().nullish(),
   error: z.string().nullish(),
 });
