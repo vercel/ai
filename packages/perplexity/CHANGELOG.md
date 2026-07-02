@@ -1,5 +1,11 @@
 # @ai-sdk/perplexity
 
+## 3.0.42
+
+### Patch Changes
+
+- 6ffec02: fix perplexityChunkSchema to allow optional role and nullish content in streaming chunks
+
 ## 3.0.41
 
 ### Patch Changes
