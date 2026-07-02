@@ -162,6 +162,13 @@ const sandbox = createVercelSandbox({
 });
 ```
 
+The sandbox is required even when your agent primarily uses skills. The adapter
+starts a Deep Agents bridge inside the sandbox and communicates with it over the
+exposed port. Use [`activeTools`](/docs/ai-sdk-harnesses/tools#active-tools) or
+[`inactiveTools`](/docs/ai-sdk-harnesses/tools#inactive-tools) to restrict which
+built-in tools can run, and use `permissionMode` when you want built-in tool
+calls to require approval before execution.
+
 ## Skills
 
 Skills passed to the session are materialized as native Deep Agents skill folders
