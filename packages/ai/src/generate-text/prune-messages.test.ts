@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { pruneMessages } from './prune-messages';
+import { convertToModelMessages } from '../ui/convert-to-model-messages';
 import type { ModelMessage } from '@ai-sdk/provider-utils';
 
 const messagesFixture1: ModelMessage[] = [
@@ -711,6 +712,199 @@ describe('pruneMessages', () => {
                 },
               ],
               "role": "assistant",
+            },
+          ]
+        `);
+      });
+    });
+
+    describe('selective tool pruning with approvals (regression)', () => {
+      it('should prune the approval response together with its request and tool-call', async () => {
+        const messages = JSON.parse(
+          JSON.stringify(
+            await convertToModelMessages([
+              {
+                role: 'user',
+                parts: [
+                  {
+                    type: 'text',
+                    text: 'Weather in Tokyo and Busan?',
+                  },
+                ],
+              },
+              {
+                role: 'assistant',
+                parts: [
+                  {
+                    type: 'step-start',
+                  },
+                  {
+                    type: 'tool-get-weather-tool-1',
+                    toolCallId: 'call-1',
+                    state: 'output-available',
+                    input: { city: 'Tokyo' },
+                    output: 'sunny',
+                  },
+                  {
+                    type: 'tool-get-weather-tool-2',
+                    toolCallId: 'call-2',
+                    state: 'output-available',
+                    input: { city: 'Busan' },
+                    output: 'rainy',
+                    approval: {
+                      id: 'approval-1',
+                      approved: true,
+                    },
+                  },
+                ],
+              },
+            ]),
+          ),
+        ) as ModelMessage[];
+
+        const result = pruneMessages({
+          messages,
+          toolCalls: [{ type: 'all', tools: ['get-weather-tool-2'] }],
+        });
+
+        expect(result).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "text": "Weather in Tokyo and Busan?",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "content": [
+                {
+                  "input": {
+                    "city": "Tokyo",
+                  },
+                  "toolCallId": "call-1",
+                  "toolName": "get-weather-tool-1",
+                  "type": "tool-call",
+                },
+              ],
+              "role": "assistant",
+            },
+            {
+              "content": [
+                {
+                  "output": {
+                    "type": "text",
+                    "value": "sunny",
+                  },
+                  "toolCallId": "call-1",
+                  "toolName": "get-weather-tool-1",
+                  "type": "tool-result",
+                },
+              ],
+              "role": "tool",
+            },
+          ]
+        `);
+
+        // No orphaned approval responses remain in the pruned output.
+        const approvalIds = new Set<string>();
+        const responseIds = new Set<string>();
+        for (const message of result) {
+          if (typeof message.content === 'string') continue;
+          for (const part of message.content) {
+            if (part.type === 'tool-approval-request') {
+              approvalIds.add(part.approvalId);
+            } else if (part.type === 'tool-approval-response') {
+              responseIds.add(part.approvalId);
+            }
+          }
+        }
+        for (const id of responseIds) {
+          expect(approvalIds).toContain(id);
+        }
+      });
+
+      it('should drop unresolved approval responses during selective pruning', () => {
+        const messages: ModelMessage[] = [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Weather in Tokyo and Busan?' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'get-weather-tool-1',
+                input: { city: 'Tokyo' },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'unknown-approval',
+                approved: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'get-weather-tool-1',
+                output: { type: 'text', value: 'sunny' },
+              },
+            ],
+          },
+        ];
+
+        const result = pruneMessages({
+          messages,
+          toolCalls: [{ type: 'all', tools: ['get-weather-tool-2'] }],
+        });
+
+        // The unresolved approval response must not survive as authority
+        // context; only get-weather-tool-1 parts remain.
+        expect(result).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "text": "Weather in Tokyo and Busan?",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "content": [
+                {
+                  "input": {
+                    "city": "Tokyo",
+                  },
+                  "toolCallId": "call-1",
+                  "toolName": "get-weather-tool-1",
+                  "type": "tool-call",
+                },
+              ],
+              "role": "assistant",
+            },
+            {
+              "content": [
+                {
+                  "output": {
+                    "type": "text",
+                    "value": "sunny",
+                  },
+                  "toolCallId": "call-1",
+                  "toolName": "get-weather-tool-1",
+                  "type": "tool-result",
+                },
+              ],
+              "role": "tool",
             },
           ]
         `);

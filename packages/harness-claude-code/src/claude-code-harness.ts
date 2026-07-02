@@ -1,6 +1,5 @@
 import { randomBytes } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
-import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   commonTool,
@@ -8,9 +7,10 @@ import {
   HarnessCapabilityUnsupportedError,
   type HarnessV1,
   type HarnessV1Bootstrap,
-  type HarnessV1DebugConfig,
+  type HarnessV1BuiltinToolFiltering,
   type HarnessV1BuiltinTool,
   type HarnessV1ContinueTurnState,
+  type HarnessV1DebugConfig,
   type HarnessV1PermissionMode,
   type HarnessV1Prompt,
   type HarnessV1PromptControl,
@@ -23,8 +23,11 @@ import {
 import {
   classifyDiskLog,
   markBridgeStarting,
+  resolveSandboxHomeDir,
   SandboxChannel,
+  shellQuote,
   waitForBridgeReady,
+  writeSkills as writeHarnessSkills,
 } from '@ai-sdk/harness/utils';
 import {
   tool,
@@ -32,7 +35,7 @@ import {
   type Experimental_SandboxProcess,
 } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import {
   resolveClaudeCodeEnv,
   type ClaudeCodeAuthOptions,
@@ -231,7 +234,7 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
       subject: z.string(),
       description: z.string(),
       activeForm: z.string().optional(),
-      metadata: z.record(z.unknown()).optional(),
+      metadata: z.record(z.string(), z.unknown()).optional(),
     }),
   }),
   TaskGet: tool({
@@ -254,7 +257,7 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
       addBlocks: z.array(z.string()).optional(),
       addBlockedBy: z.array(z.string()).optional(),
       owner: z.string().optional(),
-      metadata: z.record(z.unknown()).optional(),
+      metadata: z.record(z.string(), z.unknown()).optional(),
     }),
   }),
   TaskList: tool({
@@ -276,6 +279,15 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
       timeout: z.number(),
     }),
   }),
+  Monitor: tool({
+    description: 'Run and monitor a shell command',
+    inputSchema: z.object({
+      command: z.string(),
+      description: z.string().optional(),
+      timeout_ms: z.number().optional(),
+      persistent: z.boolean().optional(),
+    }),
+  }),
   ListMcpResources: tool({
     description: 'List resources available from MCP servers',
     inputSchema: z.object({ server: z.string().optional() }),
@@ -286,18 +298,16 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
   }),
   ExitPlanMode: tool({
     description: 'Exit plan mode with optional permission approvals',
-    inputSchema: z
-      .object({
-        allowedPrompts: z
-          .array(
-            z.object({
-              tool: z.literal('Bash'),
-              prompt: z.string(),
-            }),
-          )
-          .optional(),
-      })
-      .passthrough(),
+    inputSchema: z.looseObject({
+      allowedPrompts: z
+        .array(
+          z.object({
+            tool: z.literal('Bash'),
+            prompt: z.string(),
+          }),
+        )
+        .optional(),
+    }),
   }),
   EnterWorktree: tool({
     description: 'Create or enter an isolated git worktree',
@@ -333,9 +343,10 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
         )
         .min(1)
         .max(4),
-      answers: z.record(z.string()).optional(),
+      answers: z.record(z.string(), z.string()).optional(),
       annotations: z
         .record(
+          z.string(),
           z.object({
             preview: z.string().optional(),
             notes: z.string().optional(),
@@ -373,7 +384,7 @@ const BOOTSTRAP_DIR = '/tmp/harness/claude-code';
  * future process uses them to reopen a socket to the still-running bridge
  * (`attach`) instead of re-spawning it. Absent on a `doStop()` payload.
  */
-const bridgeCoordsSchema = z.object({
+const claudeCodeBridgeCoordsSchema = z.object({
   port: z.number(),
   token: z.string(),
   lastSeenEventId: z.number(),
@@ -387,13 +398,13 @@ const bridgeCoordsSchema = z.object({
  * sandbox via `provider.resumeSession({ sessionId })`, and the Claude SDK's
  * `{ continue: true }` flag rehydrates the thread from the workdir. A
  * `doDetach()` payload additionally carries `bridge` coordinates for
- * cross-process `attach`. `.passthrough()` keeps both shapes valid.
+ * cross-process `attach`. A loose object keeps both shapes valid.
  */
-const claudeCodeResumeStateSchema = z
-  .object({ bridge: bridgeCoordsSchema.optional() })
-  .passthrough();
+const claudeCodeResumeStateSchema = z.looseObject({
+  bridge: claudeCodeBridgeCoordsSchema.optional(),
+});
 
-type ClaudeCodeBridgeCoords = z.infer<typeof bridgeCoordsSchema>;
+type ClaudeCodeBridgeCoords = z.infer<typeof claudeCodeBridgeCoordsSchema>;
 
 export function createClaudeCode(
   settings: ClaudeCodeHarnessSettings = {},
@@ -405,6 +416,7 @@ export function createClaudeCode(
     harnessId: 'claude-code',
     builtinTools: CLAUDE_CODE_BUILTIN_TOOLS,
     supportsBuiltinToolApprovals: true,
+    supportsBuiltinToolFiltering: true,
     lifecycleStateSchema: claudeCodeResumeStateSchema,
     getBootstrap: async () => {
       if (cachedBootstrap != null) return cachedBootstrap;
@@ -510,6 +522,7 @@ export function createClaudeCode(
             sandboxId,
             debug: startOpts.observability?.debug,
             permissionMode: startOpts.permissionMode,
+            builtinToolFiltering: startOpts.builtinToolFiltering,
             skills: startOpts.skills ?? [],
           });
         } catch {
@@ -568,7 +581,7 @@ export function createClaudeCode(
        */
       if (respawnStrategy === undefined) {
         await session.run({
-          command: `mkdir -p ${workDir} ${bridgeStateDir}`,
+          command: `mkdir -p ${shellQuote(workDir)} ${shellQuote(bridgeStateDir)}`,
           abortSignal: startOpts.abortSignal,
         });
 
@@ -576,7 +589,7 @@ export function createClaudeCode(
           if (!sandboxHomeDir) {
             throw new Error('Unable to resolve sandbox HOME directory.');
           }
-          await writeSkills({
+          await writeClaudeCodeSkills({
             sandbox: session,
             homeDir: sandboxHomeDir,
             skills: startOpts.skills,
@@ -593,7 +606,7 @@ export function createClaudeCode(
       });
 
       const proc = await session.spawn({
-        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${workDir} --bridge-state-dir ${bridgeStateDir}`,
+        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)}`,
         env,
         abortSignal: startOpts.abortSignal,
       });
@@ -672,6 +685,7 @@ export function createClaudeCode(
         sandboxId,
         debug: startOpts.observability?.debug,
         permissionMode: startOpts.permissionMode,
+        builtinToolFiltering: startOpts.builtinToolFiltering,
         skills: startOpts.skills ?? [],
       });
     },
@@ -699,7 +713,7 @@ function resolveBridgePort(
  * be in place before the bridge is spawned without mutating the session
  * workdir. Each file uses the YAML-frontmatter shape the CLI expects.
  */
-async function writeSkills({
+async function writeClaudeCodeSkills({
   sandbox,
   homeDir,
   skills,
@@ -710,89 +724,17 @@ async function writeSkills({
   skills: ReadonlyArray<HarnessV1Skill>;
   abortSignal?: AbortSignal;
 }): Promise<void> {
-  for (const skill of skills) {
-    safeClaudeSkillName(skill.name);
-    for (const file of skill.files ?? []) {
-      safeClaudeSkillFilePath({
-        skillName: skill.name,
-        filePath: file.path,
-      });
-    }
-  }
-
-  await sandbox.run({
-    command: `mkdir -p ${shellQuote(homeDir)}/.claude/skills`,
+  await writeHarnessSkills({
+    sandbox,
+    rootDir: `${homeDir}/.claude/skills`,
+    skills,
     abortSignal,
-  });
-  for (const skill of skills) {
-    const name = safeClaudeSkillName(skill.name);
-    const skillDir = `${homeDir}/.claude/skills/${name}`;
-    const path = `${skillDir}/SKILL.md`;
-    const content = `---\nname: ${skill.name}\ndescription: ${skill.description}\n---\n\n${skill.content}\n`;
-    await sandbox.writeTextFile({ path, content, abortSignal });
-    for (const file of skill.files ?? []) {
-      const filePath = safeClaudeSkillFilePath({
-        skillName: skill.name,
-        filePath: file.path,
-      });
-      await sandbox.writeTextFile({
-        path: `${skillDir}/${filePath}`,
-        content: file.content,
-        abortSignal,
-      });
-    }
-  }
-}
-
-async function resolveSandboxHomeDir({
-  sandbox,
-  abortSignal,
-}: {
-  sandbox: Experimental_SandboxSession;
-  abortSignal?: AbortSignal;
-}): Promise<string> {
-  const result = await sandbox.run({
-    command: 'printf "%s" "$HOME"',
-    abortSignal,
-  });
-  const homeDir = result.stdout.trim();
-  if (result.exitCode !== 0 || !homeDir || !path.posix.isAbsolute(homeDir)) {
-    throw new Error(
-      `Unable to resolve sandbox HOME directory: ${result.stderr || result.stdout}`,
-    );
-  }
-  return homeDir;
-}
-
-function safeClaudeSkillName(name: string): string {
-  if (!/^[A-Za-z0-9._-]+$/.test(name) || name === '.' || name === '..') {
-    throw new Error(`Invalid Claude Code skill name: ${name}`);
-  }
-  return name;
-}
-
-function safeClaudeSkillFilePath({
-  skillName,
-  filePath,
-}: {
-  skillName: string;
-  filePath: string;
-}): string {
-  const normalized = path.posix.normalize(filePath);
-  if (
-    normalized === '.' ||
-    normalized.startsWith('../') ||
-    path.posix.isAbsolute(normalized)
-  ) {
-    throw new Error(
+    invalidSkillNameMessage: ({ name }) =>
+      `Invalid Claude Code skill name: ${name}`,
+    invalidSkillFilePathMessage: ({ skillName, filePath }) =>
       `Invalid Claude Code skill file path for ${skillName}: ${filePath}`,
-    );
-  }
-  return normalized;
-}
-
-function shellQuote(value: string): string {
-  return `'${value.replace(/'/g, `'\\''`)}'`;
+    trailingNewline: true,
+  });
 }
 
 async function readBridgeAsset(name: string): Promise<string> {
@@ -1105,6 +1047,7 @@ function createSession({
   sandboxId,
   debug,
   permissionMode,
+  builtinToolFiltering,
   skills,
 }: {
   sessionId: string;
@@ -1122,6 +1065,7 @@ function createSession({
   sandboxId: string;
   debug: HarnessV1DebugConfig | undefined;
   permissionMode: HarnessV1PermissionMode | undefined;
+  builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
   skills: ReadonlyArray<HarnessV1Skill>;
 }): HarnessV1Session {
   let stopped = false;
@@ -1307,6 +1251,7 @@ function createSession({
           ? { skills: skills.map(skill => skill.name) }
           : {}),
         ...(permissionMode ? { permissionMode } : {}),
+        ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
         ...(debug ? { debug } : {}),
         ...(pendingResumeFlag ? { continue: true } : {}),
       };
@@ -1358,6 +1303,7 @@ function createSession({
             ? { skills: skills.map(skill => skill.name) }
             : {}),
           ...(permissionMode ? { permissionMode } : {}),
+          ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
           ...(debug ? { debug } : {}),
           continue: true,
         });

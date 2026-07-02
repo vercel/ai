@@ -1091,6 +1091,45 @@ Google realtime models may require provider-specific audio formats, depending
 on the model and modality. See [Realtime](/docs/ai-sdk-core/realtime) for the
 complete setup and tool calling pattern.
 
+### Live Translation
+
+Use `gemini-3.5-live-translate-preview` for low-latency speech-to-speech
+translation. Configure the target language with
+`providerOptions.google.translationConfig` in the realtime session config you
+use when creating the token:
+
+```ts
+import {
+  google,
+  type Experimental_GoogleRealtimeModelOptions as GoogleRealtimeModelOptions,
+} from '@ai-sdk/google';
+
+const token = await google.experimental_realtime.getToken({
+  model: 'gemini-3.5-live-translate-preview',
+  sessionConfig: {
+    outputModalities: ['audio'],
+    inputAudioTranscription: {},
+    outputAudioTranscription: {},
+    providerOptions: {
+      google: {
+        translationConfig: {
+          targetLanguageCode: 'pl',
+          echoTargetLanguage: true,
+        },
+      } satisfies GoogleRealtimeModelOptions,
+    },
+  },
+});
+```
+
+Set `targetLanguageCode` to a BCP-47 language code (defaults to `en`). When
+`echoTargetLanguage` is `true`, input audio already in the target language is
+echoed instead of producing silence.
+
+Gemini Live Translation accepts audio input and produces translated audio
+output. Text input, tools, and custom instructions are not supported by this
+model.
+
 ## Interactions API
 
 The [Gemini Interactions API](https://ai.google.dev/gemini-api/docs/interactions)

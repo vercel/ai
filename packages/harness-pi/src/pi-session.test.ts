@@ -62,6 +62,24 @@ describe('createPiSession', () => {
     });
   });
 
+  it('rejects unsafe resume session filenames before sandbox restore', async () => {
+    const sandboxSession = createSandboxSession();
+
+    await expect(
+      createPiSession({
+        sessionId: 'session-unsafe',
+        sandboxSession,
+        sessionWorkDir: '/sandbox/work',
+        skills: [],
+        settings: {},
+        isResume: true,
+        resumeSessionFileName: '../session.jsonl',
+      }),
+    ).rejects.toThrow('Invalid Pi session file name');
+
+    expect(sandboxSession.readBinaryFile).not.toHaveBeenCalled();
+  });
+
   it('parks a pending tool turn on suspend and resumes it in-process', async () => {
     const toolStarted = createDeferred<void>();
     let resolvedToolResult: unknown;

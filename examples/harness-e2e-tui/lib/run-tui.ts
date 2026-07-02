@@ -47,18 +47,33 @@ function createTUIAgent(options: {
     id: agent.id,
     tools: agent.tools,
     generate(request: Parameters<AgentTUIAgent['generate']>[0]) {
-      return agent.generate({
-        ...request,
-        session,
-      } as Parameters<typeof agent.generate>[0]);
+      return agent.generate(
+        withSession({ request, session }) as Parameters<
+          typeof agent.generate
+        >[0],
+      );
     },
     stream(request: Parameters<AgentTUIAgent['stream']>[0]) {
-      return agent.stream({
-        ...request,
-        session,
-      } as Parameters<typeof agent.stream>[0]);
+      return agent.stream(
+        withSession({ request, session }) as Parameters<typeof agent.stream>[0],
+      );
     },
   } as AgentTUIAgent;
+}
+
+function withSession({
+  request,
+  session,
+}: {
+  request: unknown;
+  session: HarnessAgentSession;
+}) {
+  const requestObject =
+    typeof request === 'object' && request !== null ? request : {};
+  return {
+    ...requestObject,
+    session,
+  };
 }
 
 function loadEnvFiles(options: { entrypointUrl: string }) {

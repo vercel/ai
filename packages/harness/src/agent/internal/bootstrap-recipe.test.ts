@@ -5,7 +5,7 @@ import {
   BOOTSTRAP_SCHEMA_VERSION,
   applyBootstrapRecipe,
   bootstrapMarkerPath,
-  hashBootstrap,
+  hashHarnessBootstrap,
 } from './bootstrap-recipe';
 
 const baseRecipe: HarnessV1Bootstrap = {
@@ -18,10 +18,10 @@ const baseRecipe: HarnessV1Bootstrap = {
   commands: [{ command: 'mkdir -p /tmp/harness/demo' }, { command: 'echo ok' }],
 };
 
-describe('hashBootstrap', () => {
+describe('hashHarnessBootstrap', () => {
   it('produces a deterministic 16-char hex id for the same recipe', async () => {
-    const a = await hashBootstrap(baseRecipe);
-    const b = await hashBootstrap(baseRecipe);
+    const a = await hashHarnessBootstrap(baseRecipe);
+    const b = await hashHarnessBootstrap(baseRecipe);
     expect(a).toBe(b);
     expect(a).toMatch(/^[0-9a-f]{16}$/);
   });
@@ -31,8 +31,8 @@ describe('hashBootstrap', () => {
       ...baseRecipe,
       files: [...baseRecipe.files].reverse(),
     };
-    expect(await hashBootstrap(baseRecipe)).toBe(
-      await hashBootstrap(reordered),
+    expect(await hashHarnessBootstrap(baseRecipe)).toBe(
+      await hashHarnessBootstrap(reordered),
     );
   });
 
@@ -44,8 +44,8 @@ describe('hashBootstrap', () => {
         baseRecipe.files[1],
       ],
     };
-    expect(await hashBootstrap(altered)).not.toBe(
-      await hashBootstrap(baseRecipe),
+    expect(await hashHarnessBootstrap(altered)).not.toBe(
+      await hashHarnessBootstrap(baseRecipe),
     );
   });
 
@@ -54,15 +54,15 @@ describe('hashBootstrap', () => {
       ...baseRecipe,
       commands: [{ command: 'echo different' }],
     };
-    expect(await hashBootstrap(altered)).not.toBe(
-      await hashBootstrap(baseRecipe),
+    expect(await hashHarnessBootstrap(altered)).not.toBe(
+      await hashHarnessBootstrap(baseRecipe),
     );
   });
 
   it('changes when harnessId changes', async () => {
     const altered: HarnessV1Bootstrap = { ...baseRecipe, harnessId: 'other' };
-    expect(await hashBootstrap(altered)).not.toBe(
-      await hashBootstrap(baseRecipe),
+    expect(await hashHarnessBootstrap(altered)).not.toBe(
+      await hashHarnessBootstrap(baseRecipe),
     );
   });
 
@@ -71,8 +71,8 @@ describe('hashBootstrap', () => {
       ...baseRecipe,
       bootstrapDir: '/tmp/other',
     };
-    expect(await hashBootstrap(altered)).not.toBe(
-      await hashBootstrap(baseRecipe),
+    expect(await hashHarnessBootstrap(altered)).not.toBe(
+      await hashHarnessBootstrap(baseRecipe),
     );
   });
 });

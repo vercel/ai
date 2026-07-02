@@ -74,7 +74,7 @@ function makeSandboxProvider(): HarnessV1SandboxProvider {
     defaultWorkingDirectory: '/work',
     ports: [],
     getPortUrl: async () => 'ws://example.test/',
-    run: async () => ({}),
+    run: async () => ({ exitCode: 0, stdout: '', stderr: '' }),
     stop: async () => {},
     destroy: async () => {},
     restricted: () => ({}),

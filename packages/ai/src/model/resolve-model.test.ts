@@ -26,6 +26,18 @@ import {
   resolveVideoModel,
 } from './resolve-model';
 
+let mockProcessEmitWarning: ReturnType<typeof vi.spyOn>;
+
+beforeEach(() => {
+  mockProcessEmitWarning = vi
+    .spyOn(process, 'emitWarning')
+    .mockImplementation(() => {});
+});
+
+afterEach(() => {
+  mockProcessEmitWarning.mockRestore();
+});
+
 describe('resolveLanguageModel', () => {
   describe('when a language model v4 is provided', () => {
     it('should return it as-is', () => {

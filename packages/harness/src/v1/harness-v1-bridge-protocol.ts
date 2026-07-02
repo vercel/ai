@@ -73,6 +73,20 @@ export const harnessV1BridgePermissionModeSchema = z.enum([
   'allow-all',
 ]);
 
+export const harnessV1BridgeBuiltinToolFilteringSchema = z.discriminatedUnion(
+  'mode',
+  [
+    z.object({
+      mode: z.literal('allow'),
+      toolNames: z.array(z.string()),
+    }),
+    z.object({
+      mode: z.literal('deny'),
+      toolNames: z.array(z.string()),
+    }),
+  ],
+);
+
 /**
  * Common fields of the inbound `start` message. Each adapter extends this with
  * its runtime-specific configuration (e.g. `thinking`/`continue` for Claude
@@ -90,6 +104,7 @@ export const harnessV1BridgeStartBaseSchema = z.object({
   model: z.string().optional(),
   debug: harnessV1DebugConfigSchema.optional(),
   permissionMode: harnessV1BridgePermissionModeSchema.optional(),
+  builtinToolFiltering: harnessV1BridgeBuiltinToolFilteringSchema.optional(),
 });
 
 // --- Transport / control frames (outbound, not consumer events) ---

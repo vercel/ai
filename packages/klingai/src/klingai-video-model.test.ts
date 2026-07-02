@@ -58,11 +58,14 @@ const defaultOptions = {
   prompt,
   n: 1,
   image: undefined,
+  frameImages: undefined,
+  inputReferences: undefined,
   aspectRatio: undefined,
   resolution: undefined,
   duration: undefined,
   fps: undefined,
   seed: undefined,
+  generateAudio: undefined,
   providerOptions: klingaiProviderOptions,
 } as const;
 
@@ -78,11 +81,14 @@ const t2vDefaultOptions = {
   prompt,
   n: 1,
   image: undefined,
+  frameImages: undefined,
+  inputReferences: undefined,
   aspectRatio: undefined,
   resolution: undefined,
   duration: undefined,
   fps: undefined,
   seed: undefined,
+  generateAudio: undefined,
   providerOptions: t2vProviderOptions,
 } as const;
 
@@ -101,11 +107,14 @@ const i2vDefaultOptions = {
     type: 'url' as const,
     url: 'https://example.com/start-frame.png',
   },
+  frameImages: undefined,
+  inputReferences: undefined,
   aspectRatio: undefined,
   resolution: undefined,
   duration: undefined,
   fps: undefined,
   seed: undefined,
+  generateAudio: undefined,
   providerOptions: i2vProviderOptions,
 } as const;
 
@@ -166,6 +175,19 @@ describe('KlingAIVideoModel', () => {
       },
     },
     [`${TEST_BASE_URL}/v1/videos/image2video/task-abc-123`]: {
+      response: {
+        type: 'json-value',
+        body: successfulTaskResponse,
+      },
+    },
+    // Multi-image (reference-to-video) endpoints
+    [`${TEST_BASE_URL}/v1/videos/multi-image2video`]: {
+      response: {
+        type: 'json-value',
+        body: createTaskResponse,
+      },
+    },
+    [`${TEST_BASE_URL}/v1/videos/multi-image2video/task-abc-123`]: {
       response: {
         type: 'json-value',
         body: successfulTaskResponse,
@@ -650,6 +672,36 @@ describe('KlingAIVideoModel', () => {
       expect(body).toMatchObject({ sound: 'on' });
     });
 
+    it('should map the top-level generateAudio option to sound', async () => {
+      const model = createBasicModel({ modelId: 'kling-v2.6-t2v' });
+
+      await model.doGenerate({
+        ...t2vDefaultOptions,
+        generateAudio: true,
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({ sound: 'on' });
+    });
+
+    it('should let the top-level generateAudio override the legacy sound option', async () => {
+      const model = createBasicModel({ modelId: 'kling-v2.6-t2v' });
+
+      await model.doGenerate({
+        ...t2vDefaultOptions,
+        generateAudio: false,
+        providerOptions: {
+          klingai: {
+            ...t2vProviderOptions.klingai,
+            sound: 'on',
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({ sound: 'off' });
+    });
+
     it('should send cfg_scale when provided', async () => {
       const model = createBasicModel({ modelId: 'kling-v2.6-t2v' });
 
@@ -943,6 +995,132 @@ describe('KlingAIVideoModel', () => {
       });
     });
 
+    it('should send image_tail from frameImages last_frame (URL)', async () => {
+      const model = createBasicModel({ modelId: 'kling-v2.6-i2v' });
+
+      await model.doGenerate({
+        ...i2vDefaultOptions,
+        frameImages: [
+          {
+            image: { type: 'url', url: 'https://example.com/end-frame.png' },
+            frameType: 'last_frame',
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        image_tail: 'https://example.com/end-frame.png',
+      });
+    });
+
+    it('should send image_tail as base64 from frameImages last_frame (file)', async () => {
+      const model = createBasicModel({ modelId: 'kling-v2.6-i2v' });
+
+      await model.doGenerate({
+        ...i2vDefaultOptions,
+        frameImages: [
+          {
+            image: {
+              type: 'file',
+              data: new Uint8Array([137, 80, 78, 71]),
+              mediaType: 'image/png',
+            },
+            frameType: 'last_frame',
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({ image_tail: 'iVBORw==' });
+    });
+
+    it('should prefer frameImages last_frame over providerOptions.klingai.imageTail', async () => {
+      const model = createBasicModel({ modelId: 'kling-v2.6-i2v' });
+
+      await model.doGenerate({
+        ...i2vDefaultOptions,
+        frameImages: [
+          {
+            image: { type: 'url', url: 'https://example.com/new-end.png' },
+            frameType: 'last_frame',
+          },
+        ],
+        providerOptions: {
+          klingai: {
+            ...i2vProviderOptions.klingai,
+            imageTail: 'https://example.com/legacy-end.png',
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        image_tail: 'https://example.com/new-end.png',
+      });
+    });
+
+    it('should use frameImages first_frame as the start image (URL)', async () => {
+      const model = createBasicModel({ modelId: 'kling-v2.6-i2v' });
+
+      await model.doGenerate({
+        ...i2vDefaultOptions,
+        image: undefined,
+        frameImages: [
+          {
+            image: { type: 'url', url: 'https://example.com/start-frame.png' },
+            frameType: 'first_frame',
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        image: 'https://example.com/start-frame.png',
+      });
+    });
+
+    it('should prefer frameImages first_frame over the legacy image option', async () => {
+      const model = createBasicModel({ modelId: 'kling-v2.6-i2v' });
+
+      await model.doGenerate({
+        ...i2vDefaultOptions,
+        image: { type: 'url', url: 'https://example.com/legacy-start.png' },
+        frameImages: [
+          {
+            image: { type: 'url', url: 'https://example.com/new-start.png' },
+            frameType: 'first_frame',
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        image: 'https://example.com/new-start.png',
+      });
+    });
+
+    it('should send only image_tail when only last_frame is provided without a legacy image', async () => {
+      const model = createBasicModel({ modelId: 'kling-v2.6-i2v' });
+
+      await model.doGenerate({
+        ...i2vDefaultOptions,
+        image: undefined,
+        frameImages: [
+          {
+            image: { type: 'url', url: 'https://example.com/end-frame.png' },
+            frameType: 'last_frame',
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        image_tail: 'https://example.com/end-frame.png',
+      });
+      expect(body.image).toBeUndefined();
+    });
+
     it('should send prompt with image', async () => {
       const model = createBasicModel({ modelId: 'kling-v2.6-i2v' });
 
@@ -1159,6 +1337,191 @@ describe('KlingAIVideoModel', () => {
       const model = createBasicModel({ modelId: 'kling-v2.6-i2v' });
 
       const result = await model.doGenerate({ ...i2vDefaultOptions });
+
+      expect(result.videos[0]).toStrictEqual({
+        type: 'url',
+        url: 'https://p1.a.kwimgs.com/output/video-001.mp4',
+        mediaType: 'video/mp4',
+      });
+    });
+  });
+
+  describe('doGenerate - reference-to-video (multi-image)', () => {
+    const referenceImages = [
+      { type: 'url' as const, url: 'https://example.com/ref-1.png' },
+      { type: 'url' as const, url: 'https://example.com/ref-2.png' },
+    ];
+
+    it('should POST to /v1/videos/multi-image2video when inputReferences are provided', async () => {
+      const model = createBasicModel({ modelId: 'kling-v2.6-i2v' });
+
+      await model.doGenerate({
+        ...i2vDefaultOptions,
+        image: undefined,
+        inputReferences: referenceImages,
+      });
+
+      expect(server.calls[0].requestUrl).toBe(
+        `${TEST_BASE_URL}/v1/videos/multi-image2video`,
+      );
+    });
+
+    it('should GET from /v1/videos/multi-image2video/{id} for polling', async () => {
+      const model = createBasicModel({ modelId: 'kling-v2.6-i2v' });
+
+      await model.doGenerate({
+        ...i2vDefaultOptions,
+        image: undefined,
+        inputReferences: referenceImages,
+      });
+
+      expect(server.calls[1].requestUrl).toBe(
+        `${TEST_BASE_URL}/v1/videos/multi-image2video/task-abc-123`,
+      );
+    });
+
+    it('should map inputReferences to image_list', async () => {
+      const model = createBasicModel({ modelId: 'kling-v2.6-i2v' });
+
+      await model.doGenerate({
+        ...i2vDefaultOptions,
+        image: undefined,
+        inputReferences: referenceImages,
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        model_name: 'kling-v2-6',
+        image_list: [
+          { image: 'https://example.com/ref-1.png' },
+          { image: 'https://example.com/ref-2.png' },
+        ],
+      });
+    });
+
+    it('should encode file-based reference images as base64 in image_list', async () => {
+      const model = createBasicModel({ modelId: 'kling-v2.6-i2v' });
+
+      await model.doGenerate({
+        ...i2vDefaultOptions,
+        image: undefined,
+        inputReferences: [
+          {
+            type: 'file',
+            data: new Uint8Array([137, 80, 78, 71]),
+            mediaType: 'image/png',
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        image_list: [{ image: 'iVBORw==' }],
+      });
+    });
+
+    it('should map aspectRatio and duration for reference-to-video', async () => {
+      const model = createBasicModel({ modelId: 'kling-v2.6-i2v' });
+
+      await model.doGenerate({
+        ...i2vDefaultOptions,
+        image: undefined,
+        inputReferences: referenceImages,
+        aspectRatio: '16:9',
+        duration: 10,
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        aspect_ratio: '16:9',
+        duration: '10',
+      });
+    });
+
+    it('should not warn about aspectRatio for reference-to-video', async () => {
+      const model = createBasicModel({ modelId: 'kling-v2.6-i2v' });
+
+      const result = await model.doGenerate({
+        ...i2vDefaultOptions,
+        image: undefined,
+        inputReferences: referenceImages,
+        aspectRatio: '16:9',
+      });
+
+      expect(result.warnings).not.toContainEqual(
+        expect.objectContaining({ feature: 'aspectRatio' }),
+      );
+    });
+
+    it('should send negative_prompt, cfg_scale and mode for reference-to-video', async () => {
+      const model = createBasicModel({ modelId: 'kling-v2.6-i2v' });
+
+      await model.doGenerate({
+        ...i2vDefaultOptions,
+        image: undefined,
+        inputReferences: referenceImages,
+        providerOptions: {
+          klingai: {
+            ...i2vProviderOptions.klingai,
+            mode: 'pro',
+            negativePrompt: 'blurry',
+            cfgScale: 0.5,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        mode: 'pro',
+        negative_prompt: 'blurry',
+        cfg_scale: 0.5,
+      });
+    });
+
+    it('should warn when a start image is provided alongside inputReferences', async () => {
+      const model = createBasicModel({ modelId: 'kling-v2.6-i2v' });
+
+      const result = await model.doGenerate({
+        ...i2vDefaultOptions,
+        image: { type: 'url', url: 'https://example.com/start-frame.png' },
+        inputReferences: referenceImages,
+      });
+
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'frameImages',
+        }),
+      );
+    });
+
+    it('should warn when inputReferences are provided for text-to-video', async () => {
+      const model = createBasicModel({ modelId: 'kling-v2.6-t2v' });
+
+      const result = await model.doGenerate({
+        ...t2vDefaultOptions,
+        inputReferences: referenceImages,
+      });
+
+      expect(server.calls[0].requestUrl).toBe(
+        `${TEST_BASE_URL}/v1/videos/text2video`,
+      );
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'inputReferences',
+        }),
+      );
+    });
+
+    it('should return videos from successful reference-to-video generation', async () => {
+      const model = createBasicModel({ modelId: 'kling-v2.6-i2v' });
+
+      const result = await model.doGenerate({
+        ...i2vDefaultOptions,
+        image: undefined,
+        inputReferences: referenceImages,
+      });
 
       expect(result.videos[0]).toStrictEqual({
         type: 'url',

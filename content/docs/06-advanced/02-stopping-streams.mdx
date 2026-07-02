@@ -53,7 +53,7 @@ This will cancel the stream from the client side to the server.
   both.
 </Note>
 
-```tsx file="app/page.tsx" highlight="9,18-20"
+```tsx file="app/page.tsx" highlight="6,11-14"
 'use client';
 
 import { useCompletion } from '@ai-sdk/react';
@@ -82,7 +82,7 @@ export default function Chat() {
 
 When streams are aborted, you may need to perform cleanup operations such as persisting partial results or cleaning up resources. The `onAbort` callback provides a way to handle these scenarios on the server side.
 
-Unlike `onFinish`, which is called when a stream completes normally, `onAbort` is specifically called when a stream is aborted via `AbortSignal`. This distinction allows you to handle normal completion and aborted streams differently.
+Unlike `onEnd`, which is called when a stream completes normally, `onAbort` is specifically called when a stream is aborted via `AbortSignal`. This distinction allows you to handle normal completion and aborted streams differently.
 
 <Note>
   For UI message streams (`toUIMessageStreamResponse`), the `onEnd` callback
@@ -104,7 +104,7 @@ const result = streamText({
     await savePartialResults(steps);
     await logAbortEvent(steps.length);
   },
-  onFinish: ({ steps, totalUsage }) => {
+  onEnd: ({ steps, totalUsage }) => {
     // Called when stream completes normally
     await saveFinalResults(steps, totalUsage);
   },
@@ -124,7 +124,7 @@ This is particularly useful for:
 
 You can also handle abort events directly in the stream using the `abort` stream part:
 
-```tsx highlight="8-12"
+```tsx highlight="6-9"
 for await (const part of result.stream) {
   switch (part.type) {
     case 'text-delta':

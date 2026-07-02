@@ -15,25 +15,23 @@ export type FalVideoModelOptions = {
 // Provider options schema for FAL video generation
 export const falVideoModelOptionsSchema = lazySchema(() =>
   zodSchema(
-    z
-      .object({
-        // Video loop - only for Luma models
-        loop: z.boolean().nullish(),
+    z.looseObject({
+      // Video loop - only for Luma models
+      loop: z.boolean().nullish(),
 
-        // Motion strength (provider-specific)
-        motionStrength: z.number().min(0).max(1).nullish(),
+      // Motion strength (provider-specific)
+      motionStrength: z.number().min(0).max(1).nullish(),
 
-        // Polling configuration
-        pollIntervalMs: z.number().positive().nullish(),
-        pollTimeoutMs: z.number().positive().nullish(),
+      // Polling configuration
+      pollIntervalMs: z.number().positive().nullish(),
+      pollTimeoutMs: z.number().positive().nullish(),
 
-        // Resolution (model-specific, e.g., '480p', '720p', '1080p')
-        resolution: z.string().nullish(),
+      // Resolution (model-specific, e.g., '480p', '720p', '1080p')
+      resolution: z.string().nullish(),
 
-        // Model-specific parameters
-        negativePrompt: z.string().nullish(),
-        promptOptimizer: z.boolean().nullish(),
-      })
-      .passthrough(),
+      // Model-specific parameters
+      negativePrompt: z.string().nullish(),
+      promptOptimizer: z.boolean().nullish(),
+    }),
   ),
 );

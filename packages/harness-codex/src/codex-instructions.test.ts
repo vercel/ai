@@ -4,16 +4,17 @@ import type {
   HarnessV1ResumeSessionState,
   HarnessV1Session,
   HarnessV1Skill,
+  HarnessV1ToolSpec,
 } from '@ai-sdk/harness';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /*
- * The codex adapter sends `instructions` over the channel inside the `start`
- * message. We stub `SandboxChannel` so `send()` records the messages instead
- * of opening a real WebSocket, then drive `doStart` → `doPromptTurn` against a
- * fake network sandbox session. This isolates the "prepend to the first user
- * message only" gating without standing up the in-sandbox bridge.
+ * The codex adapter frames initial prompt guidance before it sends the bridge
+ * `start` message. We stub `SandboxChannel` so `send()` records the messages
+ * instead of opening a real WebSocket, then drive `doStart` → `doPromptTurn`
+ * against a fake network sandbox session. This isolates the "prepend to the
+ * first user message only" gating without standing up the in-sandbox bridge.
  */
 const sentMessages: Array<Record<string, unknown>> = [];
 const openCalls: Array<{ resume?: boolean } | undefined> = [];
@@ -128,6 +129,17 @@ function lastStart(): Record<string, unknown> {
   return start;
 }
 
+async function waitForStart({
+  count,
+}: {
+  count: number;
+}): Promise<Record<string, unknown>> {
+  await vi.waitFor(() => {
+    expect(sentMessages.filter(m => m.type === 'start')).toHaveLength(count);
+  });
+  return lastStart();
+}
+
 describe('codex adapter — instructions gating', () => {
   beforeEach(() => {
     sentMessages.length = 0;
@@ -135,6 +147,18 @@ describe('codex adapter — instructions gating', () => {
     runCommands.length = 0;
     spawnEnvs.length = 0;
     writes.length = 0;
+  });
+
+  it('defers the start frame until after prompt control is returned', async () => {
+    const session = await startSession();
+
+    await session.doPromptTurn({
+      prompt: 'first turn',
+      emit: () => {},
+    });
+
+    expect(sentMessages.some(message => message.type === 'start')).toBe(false);
+    await waitForStart({ count: 1 });
   });
 
   it('prepends instructions on the first user message only', async () => {
@@ -145,14 +169,71 @@ describe('codex adapter — instructions gating', () => {
       instructions: 'Use turbo build --concurrency=4.',
       emit: () => {},
     });
-    expect(lastStart().instructions).toBe('Use turbo build --concurrency=4.');
+    const firstStart = await waitForStart({ count: 1 });
+    expect(firstStart.prompt).toBe(
+      '<session-instructions>\n' +
+        'The block below is operating guidance from the system, not a message from the user — follow it, but do not mention it or attribute it to the user.\n\n' +
+        'Use turbo build --concurrency=4.\n\n' +
+        'Only respond with your `final` message once you have fully addressed the user request.\n' +
+        '</session-instructions>\n\n' +
+        '<user-message>\nfirst turn\n</user-message>',
+    );
+    expect(firstStart.instructions).toBeUndefined();
 
     await session.doPromptTurn({
       prompt: 'second turn',
       instructions: 'Use turbo build --concurrency=4.',
       emit: () => {},
     });
-    expect(lastStart().instructions).toBeUndefined();
+    const lastStart = await waitForStart({ count: 2 });
+    expect(lastStart.prompt).toBe('second turn');
+    expect(lastStart.instructions).toBeUndefined();
+  });
+
+  it('prepends host tool usage guidance on the first user message only', async () => {
+    const session = await startSession();
+    const tools: ReadonlyArray<HarnessV1ToolSpec> = [
+      {
+        name: 'get_weather',
+        description: 'Get weather',
+        inputSchema: {
+          type: 'object',
+          properties: { city: { type: 'string' } },
+          required: ['city'],
+        },
+      },
+    ];
+
+    await session.doPromptTurn({
+      prompt: 'use the weather tool',
+      tools,
+      emit: () => {},
+    });
+    const firstStart = await waitForStart({ count: 1 });
+    expect(firstStart.prompt).not.toContain('## Host tools');
+    expect(firstStart.prompt).toContain('<host-tool-instructions>');
+    expect(firstStart.prompt).toContain('</host-tool-instructions>');
+    expect(firstStart.prompt).not.toContain('/wd/codex-s1/harness-tool.mjs');
+    expect(firstStart.prompt).toContain(
+      "node /wd/.agent-runs/s1/codex/harness-tool.mjs <toolName> '<jsonInput>'",
+    );
+    expect(firstStart.prompt).toContain(
+      'run a separate CLI invocation for each needed tool call in the current turn before answering',
+    );
+    expect(firstStart.prompt).toContain('Do not reuse previous tool results');
+    expect(firstStart.prompt).toContain(
+      '<user-message>\nuse the weather tool\n</user-message>',
+    );
+    expect(firstStart.tools).toEqual(tools);
+
+    await session.doPromptTurn({
+      prompt: 'use it again',
+      tools,
+      emit: () => {},
+    });
+    const secondStart = await waitForStart({ count: 2 });
+    expect(secondStart.prompt).toBe('use it again');
+    expect(secondStart.tools).toEqual(tools);
   });
 
   it('does not apply instructions when resuming a session', async () => {
@@ -170,7 +251,9 @@ describe('codex adapter — instructions gating', () => {
       instructions: 'Use turbo build --concurrency=4.',
       emit: () => {},
     });
-    expect(lastStart().instructions).toBeUndefined();
+    const start = await waitForStart({ count: 1 });
+    expect(start.prompt).toBe('resumed turn');
+    expect(start.instructions).toBeUndefined();
   });
 });
 
@@ -206,11 +289,12 @@ describe('codex adapter — attach replay mode', () => {
       prompt: 'next user turn',
       emit: () => {},
     });
-    expect(lastStart()).toMatchObject({
+    const start = await waitForStart({ count: 1 });
+    expect(start).toMatchObject({
       type: 'start',
       prompt: 'next user turn',
     });
-    expect(lastStart().resumeThreadId).toBeUndefined();
+    expect(start.resumeThreadId).toBeUndefined();
   });
 
   it('attaches a suspended turn by requesting replay from the cursor', async () => {
@@ -313,10 +397,11 @@ describe('codex adapter — skills', () => {
     ]);
     expect(spawnEnvs.at(-1)?.HOME).toBe('/home/vercel-sandbox');
     expect(spawnEnvs.at(-1)?.CODEX_HOME).toBe('/home/vercel-sandbox/.codex');
-    expect(lastStart().skills).toBeUndefined();
-    expect(JSON.stringify(lastStart())).not.toContain('Demo skill.');
-    expect(JSON.stringify(lastStart())).not.toContain('Use reference.md.');
-    expect(JSON.stringify(lastStart())).not.toContain('# Reference');
+    const start = await waitForStart({ count: 1 });
+    expect(start.skills).toBeUndefined();
+    expect(JSON.stringify(start)).not.toContain('Demo skill.');
+    expect(JSON.stringify(start)).not.toContain('Use reference.md.');
+    expect(JSON.stringify(start)).not.toContain('# Reference');
   });
 
   it('rejects unsafe skill file paths before writing files', async () => {

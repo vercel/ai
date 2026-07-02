@@ -10,6 +10,7 @@ This example demonstrates using the AI SDK's `WorkflowAgent` with the Workflow D
 - **Streaming**: Real-time streaming responses via `getWritable()` and `createUIMessageStreamResponse`
 - **Resumable**: Workflow runs survive restarts and can be reconnected
 - **Telemetry E2E Harness**: Visit `/telemetry` to run deterministic WorkflowAgent telemetry scenarios for lifecycle events, tool execution, context filtering, approvals, errors, and reconnects
+- **Sandbox E2E Harness**: Visit `/sandbox` to run a deterministic WorkflowAgent sandbox tool execution scenario
 
 ## Testing `toModelOutput`
 
@@ -40,3 +41,7 @@ The `calculate` tool has no `toModelOutput`, so its model-facing output stays th
 ## Telemetry
 
 Open http://localhost:3000/telemetry to run deterministic WorkflowAgent telemetry scenarios. The harness records stable AI SDK telemetry integration events for lifecycle callbacks, model calls, chunks, tool execution, context filtering, approval resume, error handling, and reconnect behavior.
+
+## Sandbox
+
+Open http://localhost:3000/sandbox to run a deterministic WorkflowAgent `experimental_sandbox` scenario. The harness verifies that the sandbox session provided to `agent.stream` is available during tool execution.

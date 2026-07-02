@@ -7,8 +7,8 @@ import {
   writeFile,
 } from 'node:fs/promises';
 import path from 'node:path';
+import { shellQuote } from '@ai-sdk/harness/utils';
 import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
-import { shellQuote } from './pi-utils';
 
 /*
  * Pi runs on the host with its working directory pointed at the local mirror,

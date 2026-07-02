@@ -251,30 +251,52 @@ const model = gateway.experimental_realtime('openai/gpt-realtime-2');
 
 The Gateway normalizes realtime the same way it normalizes every other modality: your client speaks the [normalized AI SDK realtime protocol](/docs/ai-sdk-core/realtime) and the Gateway translates to and from the upstream provider server-side. This means the same client code works regardless of which provider backs the model.
 
-Gateway realtime v0 is server-side only. Calling `gateway.experimental_realtime()` in a browser throws an error. `getToken()` returns the Gateway auth token resolved by the provider (`apiKey`, `AI_GATEWAY_API_KEY`, or Vercel OIDC token), so do not expose it to browser clients.
+Realtime sessions run in the browser and require a short-lived Gateway client secret created on your server with `gateway.experimental_realtime.getToken()`. The method uses your Gateway credential (`apiKey`, `AI_GATEWAY_API_KEY`, or Vercel OIDC token) to mint a `vcst_` client secret and returns the WebSocket URL for the model.
 
-```ts
-import { gateway } from '@ai-sdk/gateway';
+```ts filename='app/api/realtime/setup/route.ts'
+import { gateway } from 'ai';
 
-// Server-side only. Do not return this token to browser clients.
-const token = await gateway.experimental_realtime.getToken({
-  model: 'openai/gpt-realtime-2',
-});
+export async function POST() {
+  const token = await gateway.experimental_realtime.getToken({
+    model: 'openai/gpt-realtime-2',
+    expiresAfterSeconds: 60 * 10,
+  });
+
+  return Response.json(token);
+}
 ```
 
-<Note>
-  Gateway realtime v0 does not mint a provider-style short-lived client secret.
-  Gateway-minted ephemeral secrets are planned as future work; browser support
-  should wait for that flow.
-</Note>
+Use the matching Gateway realtime model in the browser. Creating the model is
+safe in browser code; only `getToken()` is server-side.
+
+```tsx filename='app/realtime/page.tsx'
+'use client';
+
+import { experimental_useRealtime } from '@ai-sdk/react';
+import { gateway } from 'ai';
+
+export default function RealtimePage() {
+  const realtime = experimental_useRealtime({
+    model: gateway.experimental_realtime('openai/gpt-realtime-2'),
+    api: {
+      token: '/api/realtime/setup',
+    },
+  });
+
+  // ...
+}
+```
+
+Do not expose your Gateway API key or OIDC token to browser clients. Only return
+the short-lived setup response from `getToken()`.
 
 <Note>
-  The Gateway WebSocket route transports auth via the versioned
-  `Sec-WebSocket-Protocol` subprotocol and the model id via the `?ai-model-id=`
-  query - the WebSocket transport of the `Authorization` and `ai-model-id`
-  headers the HTTP routes use. Subprotocol values must fit the WebSocket token
-  grammar, and the complete `Sec-WebSocket-Protocol` header should stay compact
-  (under an 8 KiB safe header budget).
+  The Gateway WebSocket route transports the short-lived auth token via the
+  versioned `Sec-WebSocket-Protocol` subprotocol and the model id via the
+  `?ai-model-id=` query - the WebSocket transport of the `Authorization` and
+  `ai-model-id` headers the HTTP routes use. Subprotocol values must fit the
+  WebSocket token grammar, and the complete `Sec-WebSocket-Protocol` header
+  should stay compact (under an 8 KiB safe header budget).
 </Note>
 
 ### Provider Options
@@ -298,10 +320,10 @@ const sessionConfig = {
 The `GatewayProviderOptions` type is exported from `@ai-sdk/gateway` for stable client-facing fields. The type also accepts service-owned option keys so the Gateway service can add or change server-side options without requiring an SDK release for every schema change. Runtime validation is owned by the Gateway service.
 
 <Note>
-  Provider options are sent in the first `session.update` frame (after the
-  socket opens), so connect-time options such as `byok` and quota selection
-  require a Gateway that resolves them from that frame. Routing knobs like
-  `order` / `only` do not apply to realtime, where the Gateway selects the
+  Provider options are sent in the initial session update after the socket
+  opens, so connect-time options such as `byok` and quota selection require a
+  Gateway that resolves them from that update. Routing knobs like `order` /
+  `only` do not apply to realtime, where the Gateway selects the
   WebSocket-capable provider.
 </Note>
 
@@ -633,6 +655,93 @@ for await (const part of result.stream) {
 }
 ```
 
+#### Exa Search
+
+The Exa Search tool enables models to search the web using [Exa's Search API](https://exa.ai/docs/reference/search-api-guide-for-coding-agents). This tool is executed by the AI Gateway and returns token-efficient web excerpts for agent workflows.
+
+```ts
+import { gateway, generateText } from 'ai';
+
+const result = await generateText({
+  model: 'openai/gpt-5.4-nano',
+  prompt:
+    'Find the latest AI regulation updates and summarize the key changes.',
+  tools: {
+    exa_search: gateway.tools.exaSearch(),
+  },
+});
+
+console.log(result.text);
+console.log('Tool calls:', JSON.stringify(result.toolCalls, null, 2));
+console.log('Tool results:', JSON.stringify(result.toolResults, null, 2));
+```
+
+You can also configure the search with optional parameters:
+
+```ts
+import { gateway, generateText } from 'ai';
+
+const result = await generateText({
+  model: 'openai/gpt-5.4-nano',
+  prompt: 'Find recent AI regulation news from trusted sources.',
+  tools: {
+    exa_search: gateway.tools.exaSearch({
+      type: 'fast',
+      numResults: 5,
+      category: 'news',
+      includeDomains: ['reuters.com', 'bbc.com', 'nytimes.com'],
+      contents: {
+        highlights: true,
+        maxAgeHours: 24,
+      },
+    }),
+  },
+});
+
+console.log(result.text);
+console.log('Tool calls:', JSON.stringify(result.toolCalls, null, 2));
+console.log('Tool results:', JSON.stringify(result.toolResults, null, 2));
+```
+
+The Exa Search tool supports the following optional configuration options:
+
+- **type** _'auto' | 'fast' | 'instant'_
+
+  Search mode. `'auto'` is the default balance of speed and quality.
+
+- **numResults** _number_
+
+  Maximum number of results to return (1-100, default: 10).
+
+- **category** _'company' | 'people' | 'research paper' | 'news' | 'personal site' | 'financial report'_
+
+  Focus results on a specific content type.
+
+- **includeDomains** / **excludeDomains** _string[]_
+
+  Restrict or exclude search results by domain.
+
+- **startPublishedDate** / **endPublishedDate** _string_
+
+  Filter results by ISO 8601 publication date.
+
+- **contents** _object_
+
+  Control result extraction and freshness:
+  - `text` - Return full page text, optionally capped with `maxCharacters`
+  - `highlights` - Return token-efficient excerpts
+  - `maxAgeHours` - Control cached content freshness
+  - `livecrawlTimeout` - Livecrawl timeout in milliseconds
+  - `subpages` / `subpageTarget` - Crawl related subpages
+  - `extras.links` / `extras.imageLinks` - Extract links from pages
+
+The tool works with both `generateText` and `streamText`.
+
+This initial Gateway integration supports Exa's plain Search modes and
+token-efficient content controls. Deep synthesis modes and generated summaries
+are intentionally not exposed yet because they have separate pricing from
+standard Search.
+
 #### Parallel Search
 
 The Parallel Search tool enables models to search the web using [Parallel AI's Search API](https://docs.parallel.ai/api-reference/search-beta/search). This tool is optimized for LLM consumption, returning relevant excerpts from web pages that can replace multiple keyword searches with a single call.
@@ -936,6 +1045,12 @@ The following gateway provider options are available:
 
   The unique identifier for the entity against which quota is tracked. Used for quota management and enforcement purposes.
 
+- **has** _Array&lt;'implicit-caching'&gt;_
+
+  Restricts routing to provider models that have all of the specified capabilities. Currently supports `'implicit-caching'`, which limits routing to models that perform automatic (implicit) prompt caching. Applies to both BYOK and system credentials, since the capability is a property of the model rather than the credential. If no provider model for the requested model satisfies the capabilities, the request fails. Unsupported values are rejected.
+
+  Example: `has: ['implicit-caching']` will only route to models that support implicit caching.
+
 - **providerTimeouts** _object_
 
   Per-provider timeouts for BYOK credentials in milliseconds. Controls how long to wait for a provider to start responding before falling back to the next available provider.
@@ -1084,6 +1199,25 @@ const { text } = await generateText({
   providerOptions: {
     gateway: {
       quotaEntityId: 'org-123',
+    } satisfies GatewayProviderOptions,
+  },
+});
+```
+
+#### Filtering by Model Capability
+
+Set `has` to restrict routing to provider models that have the specified capabilities. This applies to both BYOK and system credentials, since the capability is a property of the model rather than the credential. Currently `'implicit-caching'` is supported, which limits routing to models that perform automatic prompt caching. If no provider model for the requested model satisfies the capabilities, the request fails.
+
+```ts
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5.5',
+  prompt: 'Summarize this report...',
+  providerOptions: {
+    gateway: {
+      has: ['implicit-caching'],
     } satisfies GatewayProviderOptions,
   },
 });

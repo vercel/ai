@@ -16,6 +16,14 @@ export type GoogleInteractionsProviderMetadata = {
   serviceTier?: string;
 
   /**
+   * Output token counts keyed by modality (e.g. `{ video: 57920 }`), sourced
+   * from the Interactions API `output_tokens_by_modality`. Present only when
+   * the response reports a breakdown. Preview surface for per-modality billing;
+   * may be promoted to a first-class usage field later.
+   */
+  outputTokensByModality?: Record<string, number>;
+
+  /**
    * Per-block signature hash for backend validation. Set by the SDK on output
    * reasoning / tool-call parts and round-tripped on input parts.
    */

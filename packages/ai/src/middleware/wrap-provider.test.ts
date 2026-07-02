@@ -4,9 +4,21 @@ import { MockImageModelV4 } from '../test/mock-image-model-v4';
 import { MockProviderV2 } from '../test/mock-provider-v2';
 import { MockProviderV4 } from '../test/mock-provider-v4';
 import { wrapProvider } from './wrap-provider';
-import { describe, it, expect, vi } from 'vitest';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 
 describe('wrapProvider', () => {
+  let mockProcessEmitWarning: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    mockProcessEmitWarning = vi
+      .spyOn(process, 'emitWarning')
+      .mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    mockProcessEmitWarning.mockRestore();
+  });
+
   it('should wrap all language models in the provider', () => {
     const model1 = new MockLanguageModelV4({ modelId: 'model-1' });
     const model2 = new MockLanguageModelV4({ modelId: 'model-2' });

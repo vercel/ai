@@ -19,25 +19,25 @@ Codex thread events back to the host over a sandbox-exposed WebSocket.
 <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
     <Snippet
-      text="pnpm add @ai-sdk/harness@beta @ai-sdk/harness-codex@beta @ai-sdk/sandbox-vercel@beta"
+      text="pnpm add @ai-sdk/harness @ai-sdk/harness-codex @ai-sdk/sandbox-vercel"
       dark
     />
   </Tab>
   <Tab>
     <Snippet
-      text="npm install @ai-sdk/harness@beta @ai-sdk/harness-codex@beta @ai-sdk/sandbox-vercel@beta"
+      text="npm install @ai-sdk/harness @ai-sdk/harness-codex @ai-sdk/sandbox-vercel"
       dark
     />
   </Tab>
   <Tab>
     <Snippet
-      text="yarn add @ai-sdk/harness@beta @ai-sdk/harness-codex@beta @ai-sdk/sandbox-vercel@beta"
+      text="yarn add @ai-sdk/harness @ai-sdk/harness-codex @ai-sdk/sandbox-vercel"
       dark
     />
   </Tab>
   <Tab>
     <Snippet
-      text="bun add @ai-sdk/harness@beta @ai-sdk/harness-codex@beta @ai-sdk/sandbox-vercel@beta"
+      text="bun add @ai-sdk/harness @ai-sdk/harness-codex @ai-sdk/sandbox-vercel"
       dark
     />
   </Tab>
@@ -172,9 +172,15 @@ fit a common tool shape.
 Codex file changes may also appear as dynamic `fileChange` tool parts because
 some Codex file mutations do not originate from a visible model-callable tool.
 
+## Known Limitations
+
 Codex does not currently support built-in tool approval requests. Use
 `permissionMode: 'allow-all'` with this adapter. Host-executed AI SDK tool
 approvals still work.
+
+Codex does not currently support built-in tool filtering. You can still use
+`activeTools` and `inactiveTools` to filter host-executed tools, but filtering
+Codex built-ins such as `bash` or `webSearch` will throw.
 
 ## Related
 

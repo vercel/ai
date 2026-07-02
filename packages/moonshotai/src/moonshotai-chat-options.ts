@@ -4,12 +4,10 @@ export type MoonshotAIChatModelId =
   | 'moonshot-v1-8k'
   | 'moonshot-v1-32k'
   | 'moonshot-v1-128k'
-  | 'kimi-k2'
-  | 'kimi-k2-0905'
-  | 'kimi-k2-thinking'
-  | 'kimi-k2-thinking-turbo'
-  | 'kimi-k2-turbo'
   | 'kimi-k2.5'
+  | 'kimi-k2.6'
+  | 'kimi-k2.7-code'
+  | 'kimi-k2.7-code-highspeed'
   | (string & {});
 
 export const moonshotaiLanguageModelOptions = z.object({

@@ -29,18 +29,16 @@ export type AlibabaVideoModelOptions = {
 
 export const alibabaVideoModelOptionsSchema = lazySchema(() =>
   zodSchema(
-    z
-      .object({
-        negativePrompt: z.string().nullish(),
-        audioUrl: z.string().nullish(),
-        promptExtend: z.boolean().nullish(),
-        shotType: z.enum(['single', 'multi']).nullish(),
-        watermark: z.boolean().nullish(),
-        audio: z.boolean().nullish(),
-        referenceUrls: z.array(z.string()).nullish(),
-        pollIntervalMs: z.number().positive().nullish(),
-        pollTimeoutMs: z.number().positive().nullish(),
-      })
-      .passthrough(),
+    z.looseObject({
+      negativePrompt: z.string().nullish(),
+      audioUrl: z.string().nullish(),
+      promptExtend: z.boolean().nullish(),
+      shotType: z.enum(['single', 'multi']).nullish(),
+      watermark: z.boolean().nullish(),
+      audio: z.boolean().nullish(),
+      referenceUrls: z.array(z.string()).nullish(),
+      pollIntervalMs: z.number().positive().nullish(),
+      pollTimeoutMs: z.number().positive().nullish(),
+    }),
   ),
 );

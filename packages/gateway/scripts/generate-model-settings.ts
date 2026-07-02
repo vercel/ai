@@ -41,6 +41,10 @@ const MODALITY_CONFIG: Record<
     outputFile: 'gateway-video-model-settings.ts',
     typeName: 'GatewayVideoModelId',
   },
+  realtime: {
+    outputFile: 'gateway-realtime-model-settings.ts',
+    typeName: 'GatewayRealtimeModelId',
+  },
   reranking: {
     outputFile: 'gateway-reranking-model-settings.ts',
     typeName: 'GatewayRerankingModelId',

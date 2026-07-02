@@ -93,7 +93,7 @@ async function processMessages(
       instructions:
         'You are a helpful assistant. When asked to register a user, use the register_user tool.',
       messages: await convertToModelMessages(messages),
-      onFinish: async () => {
+      onEnd: async () => {
         await mcpClient.close();
       },
     });

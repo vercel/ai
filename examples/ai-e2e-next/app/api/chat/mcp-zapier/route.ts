@@ -27,7 +27,7 @@ export async function POST(req: Request) {
       model: openai('gpt-4o'),
       messages: await convertToModelMessages(messages),
       tools: zapierTools,
-      onFinish: async () => {
+      onEnd: async () => {
         await mcpClient.close();
       },
       stopWhen: isStepCount(10),

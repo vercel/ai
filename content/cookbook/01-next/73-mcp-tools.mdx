@@ -88,7 +88,7 @@ export async function POST(req: Request) {
       tools,
       prompt,
       // When streaming, the client should be closed after the response is finished:
-      onFinish: async () => {
+      onEnd: async () => {
         await stdioClient.close();
         await httpClient.close();
         await sseClient.close();

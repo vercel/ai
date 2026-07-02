@@ -35,7 +35,7 @@ export async function POST(req: Request) {
       instructions:
         'You are a helpful chatbot capable of basic arithmetic problems',
       messages: await convertToModelMessages(messages),
-      onFinish: async () => {
+      onEnd: async () => {
         await client.close();
       },
       // Optional, enables immediate clean up of resources but connection will not be retained for retries:

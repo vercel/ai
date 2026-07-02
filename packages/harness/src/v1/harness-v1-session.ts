@@ -10,6 +10,7 @@ import type {
 import type { HarnessV1Skill } from './harness-v1-skill';
 import type { HarnessV1StreamPart } from './harness-v1-stream-part';
 import type { HarnessV1ToolSpec } from './harness-v1-tool-spec';
+import type { HarnessV1BuiltinToolFiltering } from './harness-v1-tool-filtering';
 
 /**
  * Options passed to `HarnessV1.doStart`.
@@ -52,6 +53,13 @@ export type HarnessV1StartOptions = {
    * the adapter.
    */
   readonly permissionMode?: HarnessV1PermissionMode;
+
+  /**
+   * Adapter-native built-in tools that should be available for this session.
+   * Custom host-executed tools are filtered by the framework before they reach
+   * the adapter.
+   */
+  readonly builtinToolFiltering?: HarnessV1BuiltinToolFiltering;
 
   /**
    * Signal that aborts startup. The adapter must propagate cancellation to

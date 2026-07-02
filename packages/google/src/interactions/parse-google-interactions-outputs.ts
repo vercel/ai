@@ -151,6 +151,27 @@ export function parseGoogleInteractionsOutputs({
                 ...googleProviderMetadata({ interactionId }),
               });
             }
+          } else if (blockType === 'video') {
+            const video = block as {
+              data?: string;
+              mime_type?: string;
+              uri?: string;
+            };
+            if (video.data != null && video.data.length > 0) {
+              content.push({
+                type: 'file',
+                mediaType: video.mime_type ?? 'video/mp4',
+                data: { type: 'data', data: video.data },
+                ...googleProviderMetadata({ interactionId }),
+              });
+            } else if (video.uri != null && video.uri.length > 0) {
+              content.push({
+                type: 'file',
+                mediaType: video.mime_type ?? 'video/mp4',
+                data: { type: 'url', url: new URL(video.uri) },
+                ...googleProviderMetadata({ interactionId }),
+              });
+            }
           }
         }
         break;

@@ -2,6 +2,7 @@ import type * as ProviderUtilsModule from '@ai-sdk/provider-utils';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createGoogleVertex } from './google-vertex-provider-base';
 import {
+  GoogleInteractionsLanguageModel,
   GoogleLanguageModel,
   GoogleSpeechModel,
 } from '@ai-sdk/google/internal';
@@ -40,6 +41,7 @@ vi.mock('@ai-sdk/provider-utils', async importOriginal => {
 
 vi.mock('@ai-sdk/google/internal', () => ({
   GoogleLanguageModel: vi.fn(),
+  GoogleInteractionsLanguageModel: vi.fn(),
   GoogleSpeechModel: vi.fn(),
   googleTools: {
     googleSearch: vi.fn(),
@@ -91,6 +93,39 @@ describe('google-vertex-provider-base', () => {
         headers: expect.any(Function),
         generateId: expect.any(Function),
       }),
+    );
+  });
+
+  it('should create an interactions model targeting the location-scoped interactions resource', () => {
+    const provider = createGoogleVertex({
+      project: 'test-project',
+      location: 'test-location',
+    });
+    provider.interactions('gemini-omni-flash-preview');
+
+    expect(GoogleInteractionsLanguageModel).toHaveBeenCalledWith(
+      'gemini-omni-flash-preview',
+      expect.objectContaining({
+        provider: 'google.vertex.interactions',
+        // No `/publishers/google` suffix — the interactions model appends
+        // `/interactions` to reach `.../locations/{region}/interactions`.
+        baseURL:
+          'https://test-location-aiplatform.googleapis.com/v1beta1/projects/test-project/locations/test-location',
+        headers: expect.any(Function),
+        generateId: expect.any(Function),
+      }),
+    );
+  });
+
+  it('should throw for interactions models when an Express Mode API key is set', () => {
+    process.env.GOOGLE_VERTEX_API_KEY = 'test-api-key';
+    const provider = createGoogleVertex({
+      project: 'test-project',
+      location: 'test-location',
+    });
+
+    expect(() => provider.interactions('gemini-omni-flash-preview')).toThrow(
+      /do not support Express Mode API keys/,
     );
   });
 
@@ -253,6 +288,68 @@ describe('google-vertex-provider-base', () => {
       expect.objectContaining({
         baseURL: customBaseURL,
       }),
+    );
+  });
+
+  it('should use a tuned model endpoints/ id with no publishers/google suffix', () => {
+    const provider = createGoogleVertex({
+      project: 'test-project',
+      location: 'test-location',
+    });
+    provider('endpoints/1234567890');
+
+    expect(GoogleLanguageModel).toHaveBeenCalledWith(
+      'endpoints/1234567890',
+      expect.objectContaining({
+        provider: 'google.vertex.chat',
+        baseURL:
+          'https://test-location-aiplatform.googleapis.com/v1beta1/projects/test-project/locations/test-location',
+        headers: expect.any(Function),
+        generateId: expect.any(Function),
+      }),
+    );
+  });
+
+  it('should leave base model ids and the publishers/google base URL unchanged', () => {
+    const provider = createGoogleVertex({
+      project: 'test-project',
+      location: 'test-location',
+    });
+    provider('gemini-2.5-pro');
+
+    expect(GoogleLanguageModel).toHaveBeenCalledWith(
+      'gemini-2.5-pro',
+      expect.objectContaining({
+        baseURL:
+          'https://test-location-aiplatform.googleapis.com/v1beta1/projects/test-project/locations/test-location/publishers/google',
+      }),
+    );
+  });
+
+  it('should respect a custom baseURL for tuned model endpoints/ ids', () => {
+    const customBaseURL = 'https://custom-endpoint.example.com';
+    const provider = createGoogleVertex({
+      project: 'test-project',
+      location: 'test-location',
+      baseURL: customBaseURL,
+    });
+    provider('endpoints/1234567890');
+
+    expect(GoogleLanguageModel).toHaveBeenCalledWith(
+      'endpoints/1234567890',
+      expect.objectContaining({
+        baseURL: customBaseURL,
+      }),
+    );
+  });
+
+  it('should reject Express Mode for tuned models', () => {
+    const provider = createGoogleVertex({
+      apiKey: 'test-api-key',
+    });
+
+    expect(() => provider('endpoints/1234567890')).toThrow(
+      'Google Vertex tuned models do not support Express Mode API keys. Use standard Google Cloud credentials instead.',
     );
   });
 

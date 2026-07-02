@@ -24,9 +24,12 @@ export {
 export { ElicitationRequestSchema, ElicitResultSchema } from './tool/types';
 export type {
   CallToolResult,
+  CompleteRequestParams,
+  CompleteResult,
   Configuration,
   ElicitationRequest,
   ElicitResult,
+  InitializeResult,
   ListToolsResult,
   McpProviderMetadata,
   ClientCapabilities as MCPClientCapabilities,

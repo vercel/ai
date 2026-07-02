@@ -7,6 +7,7 @@ describe('createPi adapter', () => {
     expect(harness.harnessId).toBe('pi');
     expect(harness.specificationVersion).toBe('harness-v1');
     expect(harness.supportsBuiltinToolApprovals).toBe(true);
+    expect(harness.supportsBuiltinToolFiltering).toBe(true);
     expect(Object.keys(harness.builtinTools).sort()).toEqual([
       'bash',
       'edit',

@@ -76,7 +76,7 @@ export class AmazonBedrockRerankingModel implements RerankingModelV4 {
           },
         ],
         rerankingConfiguration: {
-          amazonBedrockRerankingConfiguration: {
+          bedrockRerankingConfiguration: {
             modelConfiguration: {
               modelArn: `arn:aws:bedrock:${this.config.region}::foundation-model/${this.modelId}`,
               additionalModelRequestFields:

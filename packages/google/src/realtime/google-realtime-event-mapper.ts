@@ -8,6 +8,7 @@ import type {
 import { safeParseJSON } from '@ai-sdk/provider-utils';
 import { convertJSONSchemaToOpenAPISchema } from '../convert-json-schema-to-openapi-schema';
 import { getModelPath } from '../get-model-path';
+import type { GoogleRealtimeModelOptions } from './google-realtime-model-options';
 
 type GoogleRealtimeFunctionCall = {
   id: string;
@@ -37,6 +38,10 @@ type GoogleRealtimeWireEvent = {
   serverContent?: GoogleRealtimeServerContent;
   inputTranscription?: { text?: string };
 };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value != null && typeof value === 'object' && !Array.isArray(value);
+}
 
 /**
  * Stateful event mapper for Google's Gemini Live API.
@@ -268,6 +273,12 @@ export class GoogleRealtimeEventMapper {
         };
 
       case 'input-audio-commit':
+        return {
+          realtimeInput: {
+            audioStreamEnd: true,
+          },
+        };
+
       case 'input-audio-clear':
       case 'response-create':
       case 'response-cancel':
@@ -375,8 +386,25 @@ export function buildGoogleSessionConfig(
     setup.outputAudioTranscription = {};
   }
 
-  if (config?.providerOptions != null) {
-    Object.assign(setup, config.providerOptions);
+  if (config?.providerOptions == null) {
+    return setup;
+  }
+
+  const { google, ...providerOptions } = config.providerOptions;
+  Object.assign(setup, providerOptions);
+
+  const googleOptions = isRecord(google)
+    ? (google as GoogleRealtimeModelOptions)
+    : undefined;
+
+  if (googleOptions?.translationConfig != null) {
+    const target = isRecord(setup.generationConfig)
+      ? setup.generationConfig
+      : generationConfig;
+    setup.generationConfig = {
+      ...target,
+      translationConfig: googleOptions.translationConfig,
+    };
   }
 
   return setup;

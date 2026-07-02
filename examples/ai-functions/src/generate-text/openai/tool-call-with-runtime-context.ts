@@ -34,8 +34,8 @@ run(async () => {
         },
       };
     },
-    onFinish: ({ runtimeContext }) => {
-      console.log('onFinish runtimeContext:', runtimeContext);
+    onEnd: ({ runtimeContext }) => {
+      console.log('onEnd runtimeContext:', runtimeContext);
     },
     prompt: 'What is the weather in San Francisco?',
   });

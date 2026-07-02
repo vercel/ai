@@ -1,11 +1,16 @@
 'use client';
 
-import type { claudeCode } from '@ai-sdk/harness-claude-code';
-import type { UIToolInvocation } from 'ai';
 import CollapsibleOutput from './collapsible-output';
 import ToolSpinner from './tool-spinner';
 
-type BashInvocation = UIToolInvocation<typeof claudeCode.builtinTools.bash>;
+type BashInvocation = {
+  state: string;
+  input?: {
+    command?: string;
+  };
+  output?: unknown;
+  errorText?: string;
+};
 
 const PRE_CLASS =
   'overflow-x-auto px-2 py-1.5 font-mono text-sm text-black whitespace-pre-wrap bg-gray-100 rounded-lg border border-gray-300';

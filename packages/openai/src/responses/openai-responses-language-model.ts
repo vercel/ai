@@ -1199,8 +1199,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
+              const error = isOpenAIChatCompletionChunk(chunk.rawValue)
+                ? createOpenAIResponsesChatCompletionsMismatchError({
+                    value: chunk.rawValue,
+                    cause: chunk.error,
+                    url,
+                    requestBodyValues: body,
+                    responseHeaders,
+                  })
+                : chunk.error;
+
               finishReason = { unified: 'error', raw: undefined };
-              controller.enqueue({ type: 'error', error: chunk.error });
+              controller.enqueue({ type: 'error', error });
               return;
             }
 
@@ -2233,6 +2243,50 @@ function isTextDeltaChunk(
   chunk: OpenAIResponsesChunk,
 ): chunk is OpenAIResponsesChunk & { type: 'response.output_text.delta' } {
   return chunk.type === 'response.output_text.delta';
+}
+
+function isOpenAIChatCompletionChunk(value: unknown): boolean {
+  const chunk = asRecord(value);
+
+  return (
+    chunk != null &&
+    Array.isArray(chunk.choices) &&
+    typeof chunk.type !== 'string'
+  );
+}
+
+function createOpenAIResponsesChatCompletionsMismatchError({
+  value,
+  cause,
+  url,
+  requestBodyValues,
+  responseHeaders,
+}: {
+  value: unknown;
+  cause: unknown;
+  url: string;
+  requestBodyValues: unknown;
+  responseHeaders?: Record<string, string>;
+}): APICallError {
+  return new APICallError({
+    message:
+      'Received a Chat Completions stream while using the OpenAI Responses API. ' +
+      "The default OpenAI provider model uses the Responses API. If your custom baseURL targets a Chat Completions-compatible endpoint, use openai.chat('model-id') or createOpenAI(...).chat('model-id') instead. " +
+      'You can also use @ai-sdk/openai-compatible for OpenAI-compatible providers.',
+    url,
+    requestBodyValues,
+    responseHeaders,
+    responseBody: JSON.stringify(value),
+    cause,
+    data: value,
+    isRetryable: false,
+  });
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return typeof value === 'object' && value != null
+    ? (value as Record<string, unknown>)
+    : undefined;
 }
 
 function isResponseOutputItemDoneChunk(

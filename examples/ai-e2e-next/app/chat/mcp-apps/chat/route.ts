@@ -49,7 +49,7 @@ export async function POST(req: Request) {
       stopWhen: isStepCount(5),
       messages: modelMessages,
       onStepFinish: logModelStep,
-      onFinish: async event => {
+      onEnd: async event => {
         console.log('[mcp-apps/chat] model finish', {
           finishReason: event.finishReason,
           text: event.text,

@@ -10,13 +10,13 @@ description: Learn how to build realtime voice conversations with the AI SDK.
 The AI SDK provides realtime models for bidirectional audio and text
 conversations over WebSockets. Realtime sessions run in the browser and connect
 directly to the provider using a short-lived token that you create on your
-server.
+server. You can also route the connection through [AI Gateway](/providers/ai-sdk-providers/ai-gateway#realtime).
 
 The typical flow is:
 
 1. The browser calls your setup endpoint.
-1. Your server creates a short-lived provider token with `experimental_realtime.getToken()`.
-1. The browser opens a WebSocket connection to the provider.
+1. Your server creates a short-lived realtime token with `experimental_realtime.getToken()`.
+1. The browser opens a WebSocket connection to the provider or AI Gateway.
 1. The model streams audio, text, and tool calls back to the browser.
 1. Tool calls are handled by your application with `onToolCall`.
 
@@ -62,13 +62,71 @@ export async function POST(request: Request) {
 
 <Note>
   In production, authenticate and rate-limit your setup endpoint. It creates
-  provider sessions using your server-side API key.
+  realtime sessions using your server-side API key.
 </Note>
+
+## AI Gateway
+
+Use [AI Gateway](/providers/ai-sdk-providers/ai-gateway) when you want the same
+realtime client code to work across supported upstream providers. The Gateway
+normalizes realtime events server-side, and the browser still receives only a
+short-lived client secret.
+
+Create the short-lived Gateway realtime token from a server-side setup endpoint:
+
+```ts filename='app/api/realtime/setup/route.ts'
+import { gateway } from 'ai';
+
+export async function POST() {
+  const token = await gateway.experimental_realtime.getToken({
+    model: 'openai/gpt-realtime-2',
+  });
+
+  return Response.json(token);
+}
+```
+
+Then use the matching Gateway realtime model in the browser:
+
+```tsx filename='app/realtime/page.tsx'
+'use client';
+
+import { experimental_useRealtime } from '@ai-sdk/react';
+import { gateway } from 'ai';
+
+export default function RealtimePage() {
+  const realtime = experimental_useRealtime({
+    model: gateway.experimental_realtime('openai/gpt-realtime-2'),
+    api: {
+      token: '/api/realtime/setup',
+    },
+    sessionConfig: {
+      instructions: 'You are a helpful assistant. Be concise.',
+      inputAudioTranscription: {},
+      voice: 'alloy',
+      turnDetection: { type: 'server-vad' },
+    },
+  });
+
+  // ...
+}
+```
+
+<Note>
+  `gateway.experimental_realtime.getToken()` must run on your server because it
+  uses your Gateway credential to mint a `vcst_` client secret. Creating the
+  realtime model with `gateway.experimental_realtime()` is safe in the browser.
+</Note>
+
+Tool definitions work the same way with AI Gateway: convert AI SDK tools with
+`experimental_getRealtimeToolDefinitions()` in your setup endpoint and return
+the definitions alongside the token. The hook includes them in the session
+update after the WebSocket opens.
 
 ## Client Session
 
-Use the `experimental_useRealtime` hook to connect to the provider, capture microphone audio,
-play model audio, send text messages, and render messages.
+Use the `experimental_useRealtime` hook to connect to a realtime model, capture
+microphone audio, play model audio, send text messages, and render messages.
 
 ```tsx filename='app/realtime/page.tsx'
 'use client';
@@ -211,8 +269,8 @@ import { gateway } from '@ai-sdk/gateway';
 const gatewayModel = gateway.experimental_realtime('openai/gpt-realtime-2');
 ```
 
-Gateway realtime v0 is server-side only and throws if used in a browser. It uses
-the resolved Gateway auth token for the WebSocket upgrade rather than a
-provider-minted short-lived client secret. See the
-[AI Gateway realtime docs](/providers/ai-sdk-providers/ai-gateway#realtime) for
-the Gateway-specific token and subprotocol details.
+`gateway.experimental_realtime.getToken()` mints a short-lived Gateway client
+secret on your server. The browser uses that token to open the Gateway
+WebSocket; the SDK handles the Gateway-specific WebSocket subprotocols for you.
+See the [AI Gateway realtime docs](/providers/ai-sdk-providers/ai-gateway#realtime)
+for Gateway-specific token and provider option details.

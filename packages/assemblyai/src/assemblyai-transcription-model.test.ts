@@ -233,6 +233,16 @@ describe('doGenerate', () => {
         summary_model: 'informative',
         summary: '- Hello, world!',
         sentiment_analysis: true,
+        sentiment_analysis_results: [
+          {
+            text: 'Hello, world!',
+            start: 250,
+            end: 26950,
+            sentiment: 'POSITIVE',
+            confidence: 0.9,
+            speaker: 'A',
+          },
+        ],
         entity_detection: true,
         entities: [
           {
@@ -256,17 +266,368 @@ describe('doGenerate', () => {
     };
   }
 
-  it('should pass the model', async () => {
+  it('should pass the legacy model via the speech_model parameter', async () => {
     prepareJsonResponse();
 
-    await model.doGenerate({
+    const result = await model.doGenerate({
       audio: audioData,
       mediaType: 'audio/wav',
     });
 
-    expect(await server.calls[1].requestBodyJson).toMatchObject({
+    const requestBody = await server.calls[1].requestBodyJson;
+    expect(requestBody).toMatchObject({
       audio_url: 'https://storage.assemblyai.com/mock-upload-url',
       speech_model: 'best',
+    });
+    expect(requestBody.speech_models).toBeUndefined();
+
+    expect(result.warnings).toContainEqual({
+      type: 'deprecated',
+      setting: "model 'best'",
+      message: expect.stringContaining('universal-3-5-pro'),
+    });
+    const [deprecation] = result.warnings.filter(
+      warning => warning.type === 'deprecated',
+    );
+    expect(deprecation?.message).toContain(
+      'https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model',
+    );
+  });
+
+  it('should pass newer models via the speech_models parameter', async () => {
+    prepareJsonResponse();
+
+    const result = await provider
+      .transcription('universal-3-5-pro')
+      .doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+    const requestBody = await server.calls[1].requestBodyJson;
+    expect(requestBody).toMatchObject({
+      audio_url: 'https://storage.assemblyai.com/mock-upload-url',
+      speech_models: ['universal-3-5-pro'],
+    });
+    expect(requestBody.speech_model).toBeUndefined();
+
+    // No deprecation and no nudge for the latest flagship model.
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('should route universal-3-pro via speech_models and nudge to universal-3-5-pro', async () => {
+    prepareJsonResponse();
+
+    const result = await provider.transcription('universal-3-pro').doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    const requestBody = await server.calls[1].requestBodyJson;
+    expect(requestBody.speech_models).toEqual(['universal-3-pro']);
+    expect(requestBody.speech_model).toBeUndefined();
+
+    // universal-3-pro is the model universal-3-5-pro replaces, so the message
+    // names it explicitly.
+    const [nudge] = result.warnings.filter(w => w.type === 'other');
+    expect(nudge?.message).toContain('universal-3-5-pro');
+    expect(nudge?.message).toContain("replace 'universal-3-pro'");
+  });
+
+  it('should nudge universal-2 users toward universal-3-5-pro', async () => {
+    prepareJsonResponse();
+
+    const result = await provider.transcription('universal-2').doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    // The nudge for universal-2 must not claim it is replaced by universal-3-pro.
+    const [nudge] = result.warnings.filter(w => w.type === 'other');
+    expect(nudge?.message).toContain('universal-3-5-pro');
+    expect(nudge?.message).not.toContain("replace 'universal-3-pro'");
+  });
+
+  it('should not special-case the removed nano model', async () => {
+    prepareJsonResponse();
+
+    const result = await provider.transcription('nano').doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    // `nano` is no longer a legacy `speech_model` alias: it falls through to
+    // `speech_models` (where the live API rejects it) and emits no warning.
+    const requestBody = await server.calls[1].requestBodyJson;
+    expect(requestBody.speech_models).toEqual(['nano']);
+    expect(requestBody.speech_model).toBeUndefined();
+    expect(
+      result.warnings.filter(warning => warning.type === 'deprecated'),
+    ).toEqual([]);
+  });
+
+  it('should still send provider options alongside speech_models', async () => {
+    prepareJsonResponse();
+
+    await provider.transcription('universal-3-5-pro').doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        assemblyai: {
+          languageDetection: true,
+          punctuate: false,
+        },
+      },
+    });
+
+    const requestBody = await server.calls[1].requestBodyJson;
+    expect(requestBody).toMatchObject({
+      speech_models: ['universal-3-5-pro'],
+      language_detection: true,
+      punctuate: false,
+    });
+  });
+
+  it('should surface diarization + audio-intelligence via providerMetadata', async () => {
+    prepareJsonResponse();
+
+    const result = await provider
+      .transcription('universal-3-5-pro')
+      .doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+    const metadata = result.providerMetadata?.assemblyai as
+      | Record<string, any>
+      | undefined;
+    expect(metadata).toBeDefined();
+
+    // Speaker diarization
+    expect(metadata?.utterances?.[0]).toMatchObject({
+      speaker: 'A',
+      text: 'Hello, world!',
+    });
+
+    // Audio-intelligence results
+    expect(metadata?.entities?.[0]).toMatchObject({
+      entity_type: 'location',
+      text: 'Canada',
+    });
+    expect(metadata?.sentimentAnalysisResults?.[0]).toMatchObject({
+      sentiment: 'POSITIVE',
+      text: 'Hello, world!',
+    });
+    expect(metadata?.contentSafetyLabels).toBeDefined();
+    expect(metadata?.iabCategoriesResult).toBeDefined();
+    expect(metadata?.autoHighlightsResult).toBeDefined();
+  });
+
+  it('should preserve the full raw response on response.body', async () => {
+    prepareJsonResponse();
+
+    const result = await provider
+      .transcription('universal-3-5-pro')
+      .doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+    const body = result.response.body as Record<string, any>;
+    // Word-level speaker label survives on the raw body.
+    expect(body.words[0].speaker).toBe('speaker');
+    // Fields not modeled in our schema (e.g. chapters, summary) are no longer
+    // stripped — proves response.body is the raw response, not the parsed one.
+    expect(body.chapters).toBeDefined();
+    expect(body.summary).toBe('- Hello, world!');
+  });
+
+  it('should pass the Universal-3-Pro input params', async () => {
+    prepareJsonResponse();
+
+    await provider.transcription('universal-3-5-pro').doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        assemblyai: {
+          prompt: 'This is a conversation about the AI SDK.',
+          keytermsPrompt: ['Vercel', 'AI SDK'],
+          temperature: 0.2,
+          removeAudioTags: 'speaker',
+          domain: 'medical-v1',
+        },
+      },
+    });
+
+    const requestBody = await server.calls[1].requestBodyJson;
+    expect(requestBody).toMatchObject({
+      speech_models: ['universal-3-5-pro'],
+      prompt: 'This is a conversation about the AI SDK.',
+      keyterms_prompt: ['Vercel', 'AI SDK'],
+      temperature: 0.2,
+      remove_audio_tags: 'speaker',
+      domain: 'medical-v1',
+    });
+  });
+
+  it('should pass the GA nested input params', async () => {
+    prepareJsonResponse();
+
+    await provider.transcription('universal-3-5-pro').doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        assemblyai: {
+          redactPii: true,
+          speakerOptions: { minSpeakersExpected: 1, maxSpeakersExpected: 3 },
+          languageDetectionOptions: {
+            expectedLanguages: ['en', 'es'],
+            fallbackLanguage: 'en',
+            codeSwitching: true,
+            codeSwitchingConfidenceThreshold: 0.5,
+          },
+          redactPiiAudioOptions: {
+            returnRedactedNoSpeechAudio: true,
+            overrideAudioRedactionMethod: 'silence',
+          },
+          redactPiiReturnUnredacted: true,
+          redactStaticEntities: { INTERNAL_TOOL: ['Bearclaw'] },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[1].requestBodyJson;
+    expect(requestBody).toMatchObject({
+      speaker_options: { min_speakers_expected: 1, max_speakers_expected: 3 },
+      language_detection_options: {
+        expected_languages: ['en', 'es'],
+        fallback_language: 'en',
+        code_switching: true,
+        code_switching_confidence_threshold: 0.5,
+      },
+      redact_pii_audio_options: {
+        return_redacted_no_speech_audio: true,
+        override_audio_redaction_method: 'silence',
+      },
+      redact_pii_return_unredacted: true,
+      redact_static_entities: { INTERNAL_TOOL: ['Bearclaw'] },
+    });
+  });
+
+  it('should warn when deprecated wordBoost/boostParam options are used', async () => {
+    prepareJsonResponse();
+
+    const result = await provider
+      .transcription('universal-3-5-pro')
+      .doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: {
+          assemblyai: { wordBoost: ['Vercel'], boostParam: 'high' },
+        },
+      });
+
+    expect(result.warnings).toContainEqual({
+      type: 'deprecated',
+      setting: 'wordBoost, boostParam',
+      message: expect.stringContaining('keytermsPrompt'),
+    });
+  });
+
+  it('should attribute the deprecation warning to boostParam when only boostParam is set', async () => {
+    prepareJsonResponse();
+
+    const result = await provider
+      .transcription('universal-3-5-pro')
+      .doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: { assemblyai: { boostParam: 'high' } },
+      });
+
+    expect(result.warnings).toContainEqual({
+      type: 'deprecated',
+      setting: 'boostParam',
+      message: expect.stringContaining('keytermsPrompt'),
+    });
+  });
+
+  it('should warn when redactPii-dependent options are set without redactPii', async () => {
+    prepareJsonResponse();
+
+    const result = await provider
+      .transcription('universal-3-5-pro')
+      .doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: {
+          assemblyai: { redactStaticEntities: { TOOL: ['Vercel'] } },
+        },
+      });
+
+    expect(
+      result.warnings.some(
+        w => w.type === 'other' && w.message.includes('redactPii'),
+      ),
+    ).toBe(true);
+  });
+
+  it('should warn when redactPiiAudioOptions is set without redactPiiAudio', async () => {
+    prepareJsonResponse();
+
+    const result = await provider
+      .transcription('universal-3-5-pro')
+      .doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: {
+          assemblyai: {
+            redactPii: true,
+            redactPiiAudioOptions: { overrideAudioRedactionMethod: 'silence' },
+          },
+        },
+      });
+
+    expect(
+      result.warnings.some(
+        w => w.type === 'other' && w.message.includes('redactPiiAudio'),
+      ),
+    ).toBe(true);
+  });
+
+  it('should warn when languageCode and languageDetection are combined', async () => {
+    prepareJsonResponse();
+
+    const result = await provider
+      .transcription('universal-3-5-pro')
+      .doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: {
+          assemblyai: { languageCode: 'en', languageDetection: true },
+        },
+      });
+
+    expect(
+      result.warnings.some(
+        w => w.type === 'other' && w.message.includes('languageDetection'),
+      ),
+    ).toBe(true);
+  });
+
+  it('should report segment timings in seconds (ms converted)', async () => {
+    prepareJsonResponse();
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    // Fixture word[0] is start: 250ms, end: 650ms → 0.25s / 0.65s.
+    expect(result.segments[0]).toEqual({
+      text: 'Hello,',
+      startSecond: 0.25,
+      endSecond: 0.65,
     });
   });
 
