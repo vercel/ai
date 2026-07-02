@@ -80,6 +80,11 @@ import { notify } from '../util/notify';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
 import { setAbortTimeout } from '../util/set-abort-timeout';
+import {
+  appendToTextAccumulator,
+  finalizeTextAccumulator,
+  prepareTextAccumulator,
+} from '../util/text-accumulator';
 import type { ActiveTools } from './active-tools';
 import { collectToolApprovals } from './collect-tool-approvals';
 import type { ContentPart } from './content-part';
@@ -1148,11 +1153,11 @@ class DefaultStreamTextResult<
         }
 
         if (part.type === 'text-start') {
-          activeTextContent[part.id] = {
+          activeTextContent[part.id] = prepareTextAccumulator({
             type: 'text',
             text: '',
             providerMetadata: part.providerMetadata,
-          };
+          });
 
           recordedContent.push(activeTextContent[part.id]);
         }
@@ -1171,7 +1176,10 @@ class DefaultStreamTextResult<
             return;
           }
 
-          activeText.text += part.text;
+          appendToTextAccumulator({
+            part: activeText,
+            textDelta: part.text,
+          });
           activeText.providerMetadata =
             part.providerMetadata ?? activeText.providerMetadata;
         }
@@ -1193,15 +1201,16 @@ class DefaultStreamTextResult<
           activeText.providerMetadata =
             part.providerMetadata ?? activeText.providerMetadata;
 
+          finalizeTextAccumulator(activeText);
           delete activeTextContent[part.id];
         }
 
         if (part.type === 'reasoning-start') {
-          activeReasoningContent[part.id] = {
+          activeReasoningContent[part.id] = prepareTextAccumulator({
             type: 'reasoning',
             text: '',
             providerMetadata: part.providerMetadata,
-          };
+          });
 
           recordedContent.push(activeReasoningContent[part.id]);
         }
@@ -1220,7 +1229,10 @@ class DefaultStreamTextResult<
             return;
           }
 
-          activeReasoning.text += part.text;
+          appendToTextAccumulator({
+            part: activeReasoning,
+            textDelta: part.text,
+          });
           activeReasoning.providerMetadata =
             part.providerMetadata ?? activeReasoning.providerMetadata;
         }
@@ -1242,6 +1254,7 @@ class DefaultStreamTextResult<
           activeReasoning.providerMetadata =
             part.providerMetadata ?? activeReasoning.providerMetadata;
 
+          finalizeTextAccumulator(activeReasoning);
           delete activeReasoningContent[part.id];
         }
 
