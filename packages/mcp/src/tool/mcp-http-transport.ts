@@ -244,17 +244,11 @@ export class HttpMCPTransport implements MCPTransport {
         if (contentType.includes('application/json')) {
           const data = await response.json();
           const messages: JSONRPCMessage[] = Array.isArray(data)
-<<<<<<< HEAD
-            ? data.map((m: unknown) => JSONRPCMessageSchema.parse(m))
-            : [JSONRPCMessageSchema.parse(data)];
-          for (const m of messages) this.onmessage?.(m);
-=======
             ? data.map((message: unknown) => validateJSONRPCMessage(message))
             : [validateJSONRPCMessage(data)];
           for (const jsonRpcMessage of messages) {
             this.onmessage?.(jsonRpcMessage);
           }
->>>>>>> 3c30eb4c8e (feat(mcp): export the json-rpc schema for requests and response (#16553))
           return;
         }
 
