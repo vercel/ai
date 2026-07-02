@@ -23,7 +23,10 @@ import {
 } from '@ai-sdk/provider-utils';
 import { googleFailedResponseHandler } from '../google-error';
 import { buildGoogleInteractionsStreamTransform } from './build-google-interactions-stream-transform';
-import { convertGoogleInteractionsUsage } from './convert-google-interactions-usage';
+import {
+  convertGoogleInteractionsUsage,
+  getGoogleInteractionsOutputTokensByModality,
+} from './convert-google-interactions-usage';
 import { convertToGoogleInteractionsInput } from './convert-to-google-interactions-input';
 import {
   googleInteractionsEventSchema,
@@ -546,10 +549,15 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
      * `response.id` is omitted when `store: false` (fully stateless mode), so
      * `interactionId` is only surfaced when the API actually returned one.
      */
+    const outputTokensByModality = getGoogleInteractionsOutputTokensByModality(
+      response.usage,
+    );
+
     const providerMetadata: SharedV4ProviderMetadata = {
       google: {
         ...(interactionId != null ? { interactionId } : {}),
         ...(serviceTier != null ? { serviceTier } : {}),
+        ...(outputTokensByModality != null ? { outputTokensByModality } : {}),
       },
     };
 
