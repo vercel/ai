@@ -347,6 +347,30 @@ describe('extractJsonMiddleware', () => {
       expect(await result.text).toBe('{"value": "test"}');
     });
 
+    it('should preserve leading space in final streamed suffix without fences', async () => {
+      const middleware = extractJsonMiddleware();
+
+      const wrapped = await middleware.wrapStream!({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'stream-start', warnings: [] },
+            { type: 'text-start', id: 't' },
+            { type: 'text-delta', id: 't', delta: 'there' },
+            { type: 'text-delta', id: 't', delta: ' altogether?' },
+            { type: 'text-end', id: 't' },
+          ]),
+        }),
+      } as any);
+
+      const chunks = await convertAsyncIterableToArray(wrapped.stream);
+      const text = chunks
+        .filter(chunk => chunk.type === 'text-delta')
+        .map(chunk => chunk.delta)
+        .join('');
+
+      expect(text).toBe('there altogether?');
+    });
+
     it('should handle fence split across multiple deltas', async () => {
       const mockModel = new MockLanguageModelV4({
         async doStream() {
