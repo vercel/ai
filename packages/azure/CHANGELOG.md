@@ -1,5 +1,11 @@
 # @ai-sdk/azure
 
+## 3.0.84
+
+### Patch Changes
+
+- 58c5e3f: fix(azure): use custom base urls if provided
+
 ## 3.0.83
 
 ### Patch Changes

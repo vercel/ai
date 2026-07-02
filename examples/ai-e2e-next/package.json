@@ -10,7 +10,7 @@
   "dependencies": {
     "@ai-sdk/amazon-bedrock": "4.0.128",
     "@ai-sdk/anthropic": "3.0.92",
-    "@ai-sdk/azure": "3.0.83",
+    "@ai-sdk/azure": "3.0.84",
     "@ai-sdk/cohere": "3.0.44",
     "@ai-sdk/deepseek": "2.0.44",
     "@ai-sdk/fireworks": "2.0.64",
