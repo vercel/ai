@@ -1828,6 +1828,69 @@ describe('Gemini 3 missing thoughtSignature mitigation', () => {
     expect(onWarning.mock.calls[0][0].message).toContain('`weather`');
     expect(onWarning.mock.calls[0][0].message).toContain('`search`');
   });
+
+  it('issue #16298 repro: does not warn or inject the skip validator for an unsigned parallel tool call following a signed one', () => {
+    const onWarning = vi.fn();
+
+    const result = convertToGoogleMessages(
+      [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'check Paris and Tokyo weather' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_paris',
+              toolName: 'get_weather',
+              input: { city: 'Paris' },
+              providerOptions: {
+                vertex: { thoughtSignature: 'parallel-batch-signature' },
+              },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_tokyo',
+              toolName: 'get_weather',
+              input: { city: 'Tokyo' },
+            },
+          ],
+        },
+      ],
+      {
+        isGemini3Model: true,
+        providerOptionsNames: ['googleVertex', 'vertex'],
+        onWarning,
+      },
+    );
+
+    const assistant = result.contents.find(content => content.role === 'model');
+
+    expect(assistant?.parts).toEqual([
+      {
+        functionCall: {
+          id: 'tc_paris',
+          name: 'get_weather',
+          args: { city: 'Paris' },
+        },
+        thoughtSignature: 'parallel-batch-signature',
+      },
+      {
+        functionCall: {
+          id: 'tc_tokyo',
+          name: 'get_weather',
+          args: { city: 'Tokyo' },
+        },
+        thoughtSignature: undefined,
+      },
+    ]);
+    expect(assistant?.parts[1]?.thoughtSignature).not.toBe(
+      SKIP_THOUGHT_SIGNATURE_VALIDATOR,
+    );
+    expect(onWarning).not.toHaveBeenCalled();
+  });
 });
 
 describe('top-level-only media type resolution', () => {
