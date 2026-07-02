@@ -290,6 +290,64 @@ describe('toResponseMessages', () => {
     `);
   });
 
+  it('should serialize parallel tool results in tool call order', async () => {
+    const result = await toResponseMessages({
+      content: [
+        {
+          type: 'text',
+          text: 'Using tools',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call-a',
+          toolName: 'toolA',
+          input: {},
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call-b',
+          toolName: 'toolB',
+          input: {},
+        },
+        // Simulates parallel execution where toolB resolved before toolA.
+        {
+          type: 'tool-result',
+          toolCallId: 'call-b',
+          toolName: 'toolB',
+          output: 'B result',
+          input: {},
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'call-a',
+          toolName: 'toolA',
+          output: 'A result',
+          input: {},
+        },
+      ],
+      tools: {
+        toolA: tool({
+          description: 'Tool A',
+          inputSchema: z.object({}),
+        }),
+        toolB: tool({
+          description: 'Tool B',
+          inputSchema: z.object({}),
+        }),
+      },
+    });
+
+    const toolMessage = result[1];
+    expect(toolMessage?.role).toBe('tool');
+    if (toolMessage?.role !== 'tool') {
+      throw new Error('Expected a tool message');
+    }
+    expect(toolMessage.content.map(part => part.toolCallId)).toEqual([
+      'call-a',
+      'call-b',
+    ]);
+  });
+
   it('should handle undefined text', async () => {
     const result = await toResponseMessages({
       content: [
