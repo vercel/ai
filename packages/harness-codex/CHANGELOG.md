@@ -1,5 +1,29 @@
 # @ai-sdk/harness-codex
 
+## 1.0.15
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.14
+
+## 1.0.14
+
+### Patch Changes
+
+- Updated dependencies [8c616f0]
+  - @ai-sdk/provider-utils@5.0.3
+  - @ai-sdk/harness@1.0.13
+
+## 1.0.13
+
+### Patch Changes
+
+- 7859cea: feat(harness): add tool filtering via `activeTools` and `inactiveTools`
+- c857346: feat(harness): add utility functions for certain duplicated layers in harnesses
+- Updated dependencies [7859cea]
+- Updated dependencies [c857346]
+  - @ai-sdk/harness@1.0.12
+
 ## 1.0.12
 
 ### Patch Changes

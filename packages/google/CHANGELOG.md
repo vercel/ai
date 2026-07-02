@@ -1,5 +1,24 @@
 # @ai-sdk/google
 
+## 4.0.6
+
+### Patch Changes
+
+- d20f0dc: Add `vertex.interactions()` for the Gemini Interactions API on Vertex AI. Targets the location-scoped `.../locations/{region}/interactions` resource using the existing Vertex OAuth credentials, enabling multimodal-output models such as `gemini-omni-flash-preview` (video output) through Vertex. The `GoogleInteractionsLanguageModel` is now exported from `@ai-sdk/google/internal` for provider reuse.
+
+## 4.0.5
+
+### Patch Changes
+
+- Updated dependencies [8c616f0]
+  - @ai-sdk/provider-utils@5.0.3
+
+## 4.0.4
+
+### Patch Changes
+
+- dc1eb8d: Support Gemini Interactions video output. Parse video output blocks from the Google Interactions API into file parts (buffered and streaming), and surface the per-modality output token breakdown via `providerMetadata.google.outputTokensByModality`.
+
 ## 4.0.3
 
 ### Patch Changes

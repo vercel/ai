@@ -1,6 +1,5 @@
 import { randomBytes } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
-import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   commonTool,
@@ -24,8 +23,11 @@ import {
 import {
   classifyDiskLog,
   markBridgeStarting,
+  resolveSandboxHomeDir,
   SandboxChannel,
+  shellQuote,
   waitForBridgeReady,
+  writeSkills as writeHarnessSkills,
 } from '@ai-sdk/harness/utils';
 import {
   tool,
@@ -587,7 +589,7 @@ export function createClaudeCode(
           if (!sandboxHomeDir) {
             throw new Error('Unable to resolve sandbox HOME directory.');
           }
-          await writeSkills({
+          await writeClaudeCodeSkills({
             sandbox: session,
             homeDir: sandboxHomeDir,
             skills: startOpts.skills,
@@ -711,7 +713,7 @@ function resolveBridgePort(
  * be in place before the bridge is spawned without mutating the session
  * workdir. Each file uses the YAML-frontmatter shape the CLI expects.
  */
-async function writeSkills({
+async function writeClaudeCodeSkills({
   sandbox,
   homeDir,
   skills,
@@ -722,89 +724,17 @@ async function writeSkills({
   skills: ReadonlyArray<HarnessV1Skill>;
   abortSignal?: AbortSignal;
 }): Promise<void> {
-  for (const skill of skills) {
-    safeClaudeSkillName(skill.name);
-    for (const file of skill.files ?? []) {
-      safeClaudeSkillFilePath({
-        skillName: skill.name,
-        filePath: file.path,
-      });
-    }
-  }
-
-  await sandbox.run({
-    command: `mkdir -p ${shellQuote(homeDir)}/.claude/skills`,
+  await writeHarnessSkills({
+    sandbox,
+    rootDir: `${homeDir}/.claude/skills`,
+    skills,
     abortSignal,
-  });
-  for (const skill of skills) {
-    const name = safeClaudeSkillName(skill.name);
-    const skillDir = `${homeDir}/.claude/skills/${name}`;
-    const path = `${skillDir}/SKILL.md`;
-    const content = `---\nname: ${skill.name}\ndescription: ${skill.description}\n---\n\n${skill.content}\n`;
-    await sandbox.writeTextFile({ path, content, abortSignal });
-    for (const file of skill.files ?? []) {
-      const filePath = safeClaudeSkillFilePath({
-        skillName: skill.name,
-        filePath: file.path,
-      });
-      await sandbox.writeTextFile({
-        path: `${skillDir}/${filePath}`,
-        content: file.content,
-        abortSignal,
-      });
-    }
-  }
-}
-
-async function resolveSandboxHomeDir({
-  sandbox,
-  abortSignal,
-}: {
-  sandbox: Experimental_SandboxSession;
-  abortSignal?: AbortSignal;
-}): Promise<string> {
-  const result = await sandbox.run({
-    command: 'printf "%s" "$HOME"',
-    abortSignal,
-  });
-  const homeDir = result.stdout.trim();
-  if (result.exitCode !== 0 || !homeDir || !path.posix.isAbsolute(homeDir)) {
-    throw new Error(
-      `Unable to resolve sandbox HOME directory: ${result.stderr || result.stdout}`,
-    );
-  }
-  return homeDir;
-}
-
-function safeClaudeSkillName(name: string): string {
-  if (!/^[A-Za-z0-9._-]+$/.test(name) || name === '.' || name === '..') {
-    throw new Error(`Invalid Claude Code skill name: ${name}`);
-  }
-  return name;
-}
-
-function safeClaudeSkillFilePath({
-  skillName,
-  filePath,
-}: {
-  skillName: string;
-  filePath: string;
-}): string {
-  const normalized = path.posix.normalize(filePath);
-  if (
-    normalized === '.' ||
-    normalized.startsWith('../') ||
-    path.posix.isAbsolute(normalized)
-  ) {
-    throw new Error(
+    invalidSkillNameMessage: ({ name }) =>
+      `Invalid Claude Code skill name: ${name}`,
+    invalidSkillFilePathMessage: ({ skillName, filePath }) =>
       `Invalid Claude Code skill file path for ${skillName}: ${filePath}`,
-    );
-  }
-  return normalized;
-}
-
-function shellQuote(value: string): string {
-  return `'${value.replace(/'/g, `'\\''`)}'`;
+    trailingNewline: true,
+  });
 }
 
 async function readBridgeAsset(name: string): Promise<string> {

@@ -24,8 +24,11 @@ import {
 import {
   classifyDiskLog,
   markBridgeStarting,
+  resolveSandboxHomeDir,
   SandboxChannel,
+  shellQuote,
   waitForBridgeReady,
+  writeSkills as writeHarnessSkills,
 } from '@ai-sdk/harness/utils';
 import {
   tool,
@@ -328,7 +331,7 @@ export function createOpenCode(
       const xdgStateHome = `${sandboxHomeDir}/.local/state`;
       const skillSetup =
         startOpts.skills && startOpts.skills.length > 0
-          ? await writeSkills({
+          ? await writeOpenCodeSkills({
               sandbox: session,
               skills: startOpts.skills,
               homeDir: sandboxHomeDir,
@@ -461,7 +464,7 @@ async function readBridgeAsset(name: string): Promise<string> {
   throw lastErr ?? new Error(`bridge asset not found: ${name}`);
 }
 
-async function writeSkills({
+async function writeOpenCodeSkills({
   sandbox,
   skills,
   homeDir,
@@ -472,94 +475,19 @@ async function writeSkills({
   homeDir: string;
   abortSignal?: AbortSignal;
 }): Promise<WriteSkillsResult> {
-  for (const skill of skills) {
-    safeOpenCodeSkillName(skill.name);
-    for (const file of skill.files ?? []) {
-      safeOpenCodeSkillFilePath({ skillName: skill.name, filePath: file.path });
-    }
-  }
-
   const skillsDir = path.posix.join(homeDir, '.agents', 'skills');
-  await sandbox.run({
-    command: `mkdir -p ${shellQuote(skillsDir)}`,
+  await writeHarnessSkills({
+    sandbox,
+    rootDir: skillsDir,
+    skills,
     abortSignal,
+    invalidSkillNameMessage: ({ name }) =>
+      `Invalid OpenCode skill name: ${name}`,
+    invalidSkillFilePathMessage: ({ skillName, filePath }) =>
+      `Invalid OpenCode skill file path for ${skillName}: ${filePath}`,
   });
-
-  for (const skill of skills) {
-    const name = safeOpenCodeSkillName(skill.name);
-    const skillDir = path.posix.join(skillsDir, name);
-    const content = `---\nname: ${skill.name}\ndescription: ${skill.description}\n---\n\n${skill.content}`;
-    await sandbox.writeTextFile({
-      path: path.posix.join(skillDir, 'SKILL.md'),
-      content,
-      abortSignal,
-    });
-
-    for (const file of skill.files ?? []) {
-      const filePath = safeOpenCodeSkillFilePath({
-        skillName: skill.name,
-        filePath: file.path,
-      });
-      await sandbox.writeTextFile({
-        path: path.posix.join(skillDir, filePath),
-        content: file.content,
-        abortSignal,
-      });
-    }
-  }
 
   return { skillsDir };
-}
-
-async function resolveSandboxHomeDir({
-  sandbox,
-  abortSignal,
-}: {
-  sandbox: Experimental_SandboxSession;
-  abortSignal?: AbortSignal;
-}): Promise<string> {
-  const result = await sandbox.run({
-    command: 'printf "%s" "$HOME"',
-    abortSignal,
-  });
-  const homeDir = result.stdout.trim();
-  if (result.exitCode !== 0 || !homeDir || !path.posix.isAbsolute(homeDir)) {
-    throw new Error(
-      `Unable to resolve sandbox HOME directory: ${result.stderr || result.stdout}`,
-    );
-  }
-  return homeDir;
-}
-
-function safeOpenCodeSkillName(name: string): string {
-  if (!/^[A-Za-z0-9._-]+$/.test(name) || name === '.' || name === '..') {
-    throw new Error(`Invalid OpenCode skill name: ${name}`);
-  }
-  return name;
-}
-
-function safeOpenCodeSkillFilePath({
-  skillName,
-  filePath,
-}: {
-  skillName: string;
-  filePath: string;
-}): string {
-  const normalized = path.posix.normalize(filePath);
-  if (
-    normalized === '.' ||
-    normalized.startsWith('../') ||
-    path.posix.isAbsolute(normalized)
-  ) {
-    throw new Error(
-      `Invalid OpenCode skill file path for ${skillName}: ${filePath}`,
-    );
-  }
-  return normalized;
-}
-
-function shellQuote(value: string): string {
-  return `'${value.replace(/'/g, `'\\''`)}'`;
 }
 
 async function forwardBridgeStderr(
