@@ -20652,7 +20652,6 @@ describe('streamText', () => {
         `);
       });
     });
-
     describe('onAbort inputMessages and partialText', () => {
       it('should have inputMessages and undefined partialText when abort fires before first chunk', async () => {
         const abortController = new AbortController();
