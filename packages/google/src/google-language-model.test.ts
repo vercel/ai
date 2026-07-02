@@ -1056,8 +1056,7 @@ describe('doGenerate', () => {
           },
         ],
         "generationConfig": {
-          "responseMimeType": "application/json",
-          "responseSchema": {
+          "responseJsonSchema": {
             "properties": {
               "location": {
                 "type": "string",
@@ -1065,6 +1064,7 @@ describe('doGenerate', () => {
             },
             "type": "object",
           },
+          "responseMimeType": "application/json",
         },
       }
     `);
@@ -1102,8 +1102,7 @@ describe('doGenerate', () => {
           },
         ],
         "generationConfig": {
-          "responseMimeType": "application/json",
-          "responseSchema": {
+          "responseJsonSchema": {
             "properties": {
               "property1": {
                 "type": "string",
@@ -1118,6 +1117,7 @@ describe('doGenerate', () => {
             ],
             "type": "object",
           },
+          "responseMimeType": "application/json",
         },
       }
     `);
@@ -1161,6 +1161,60 @@ describe('doGenerate', () => {
         ],
         "generationConfig": {
           "responseMimeType": "application/json",
+        },
+      }
+    `);
+  });
+
+  it('should pass Vertex response format using responseSchema', async () => {
+    prepareJsonFixtureResponse('google-text');
+
+    const vertexModel = new GoogleLanguageModel('gemini-pro', {
+      provider: 'google.vertex.chat',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: { 'x-goog-api-key': 'test-api-key' },
+      generateId: () => 'test-id',
+    });
+
+    await vertexModel.doGenerate({
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            property1: { type: 'string' },
+          },
+          required: ['property1'],
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "Hello",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "generationConfig": {
+          "responseMimeType": "application/json",
+          "responseSchema": {
+            "properties": {
+              "property1": {
+                "type": "string",
+              },
+            },
+            "required": [
+              "property1",
+            ],
+            "type": "object",
+          },
         },
       }
     `);
@@ -1298,8 +1352,7 @@ describe('doGenerate', () => {
           },
         ],
         "generationConfig": {
-          "responseMimeType": "application/json",
-          "responseSchema": {
+          "responseJsonSchema": {
             "properties": {
               "text": {
                 "type": "string",
@@ -1310,6 +1363,7 @@ describe('doGenerate', () => {
             ],
             "type": "object",
           },
+          "responseMimeType": "application/json",
         },
       }
     `);
@@ -4073,6 +4127,51 @@ describe('doStream', () => {
           "connection": "keep-alive",
           "content-type": "text/event-stream",
           "test-header": "test-value",
+        }
+      `);
+    });
+
+    it('should pass stream response format using responseJsonSchema', async () => {
+      await model.doStream({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: {
+              text: { type: 'string' },
+            },
+            required: ['text'],
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "contents": [
+            {
+              "parts": [
+                {
+                  "text": "Hello",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "generationConfig": {
+            "responseJsonSchema": {
+              "properties": {
+                "text": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "text",
+              ],
+              "type": "object",
+            },
+            "responseMimeType": "application/json",
+          },
         }
       `);
     });
