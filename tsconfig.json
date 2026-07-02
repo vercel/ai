@@ -172,6 +172,9 @@
       "path": "packages/sandbox-just-bash"
     },
     {
+      "path": "packages/sandbox-sprites"
+    },
+    {
       "path": "packages/sandbox-vercel"
     },
     {
