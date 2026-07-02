@@ -738,7 +738,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         ? {
             tools: [...(tools ?? []), jsonResponseTool],
             toolChoice: { type: 'required' },
-            disableParallelToolUse: true,
+            disableParallelToolUse:
+              anthropicOptions?.disableParallelToolUse ?? true,
             cacheControlValidator,
             supportsStructuredOutput: false,
             supportsStrictTools,
