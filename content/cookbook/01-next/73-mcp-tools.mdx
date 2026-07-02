@@ -18,7 +18,11 @@ If you prefer to use the official transports (optional), install the official Ty
 
 ```ts filename="app/api/completion/route.ts"
 import { createMCPClient } from '@ai-sdk/mcp';
-import { streamText } from 'ai';
+import {
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+} from 'ai';
 import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
 import { openai } from '@ai-sdk/openai';
 // Optional: Official transports if you prefer them
@@ -103,7 +107,9 @@ export async function POST(req: Request) {
       },
     });
 
-    return response.toDataStreamResponse();
+    return createUIMessageStreamResponse({
+      stream: toUIMessageStream({ stream: response.stream }),
+    });
   } catch (error) {
     return new Response('Internal Server Error', { status: 500 });
   }
