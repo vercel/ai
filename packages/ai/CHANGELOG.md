@@ -1,5 +1,463 @@
 # ai
 
+## 7.0.11
+
+### Patch Changes
+
+- 0a87626: fix(ai): replace dynamic import() with loadBuiltinModule for diagnostics_channel to fix React Native/Hermes builds
+
+## 7.0.10
+
+### Patch Changes
+
+- 8c616f0: feat(mcp): add maxRetries option for failed mcp tool calls
+- Updated dependencies [8c616f0]
+  - @ai-sdk/provider-utils@5.0.3
+  - @ai-sdk/gateway@4.0.8
+
+## 7.0.9
+
+### Patch Changes
+
+- Updated dependencies [2edc641]
+- Updated dependencies [c18018c]
+  - @ai-sdk/gateway@4.0.7
+
+## 7.0.8
+
+### Patch Changes
+
+- 0274f34: feat (video): add first-class `frameImages` and `inputReferences` call options for video generation
+- Updated dependencies [0274f34]
+  - @ai-sdk/provider@4.0.1
+  - @ai-sdk/gateway@4.0.6
+  - @ai-sdk/provider-utils@5.0.2
+
+## 7.0.7
+
+### Patch Changes
+
+- d598481: Fix: `convertToModelMessages` no longer emits an empty assistant message when a block contains only unknown data parts (e.g. a data part before `step-start` with no `convertDataPart` provided)
+
+## 7.0.6
+
+### Patch Changes
+
+- 989402d: Add ToolLoopAgent types for deprecated tool call callback aliases.
+- Updated dependencies [7e3c99e]
+  - @ai-sdk/gateway@4.0.5
+
+## 7.0.5
+
+### Patch Changes
+
+- a2750db: fix(ai): prune orphaned tool-approval responses in `pruneMessages`
+
+  When pruning a specific tool by name (`toolCalls: [{ type, tools: [...] }]`), `pruneMessages` left the tool's `tool-approval-response` in place while removing its `tool-approval-request` and `tool-call`. The tool name of an approval response was resolved per-message, but approval responses live in a separate `tool` message from their approval request, so the name could never be resolved and the response was always kept. Tool name resolution is now done across all messages, so approval requests and responses are pruned together.
+
+## 7.0.4
+
+### Patch Changes
+
+- Updated dependencies [6a436e3]
+  - @ai-sdk/provider-utils@5.0.1
+  - @ai-sdk/gateway@4.0.4
+
+## 7.0.3
+
+### Patch Changes
+
+- Updated dependencies [728eaa0]
+  - @ai-sdk/gateway@4.0.3
+
+## 7.0.2
+
+### Patch Changes
+
+- Updated dependencies [9dce0a7]
+  - @ai-sdk/gateway@4.0.2
+
+## 7.0.1
+
+### Patch Changes
+
+- Updated dependencies [b2791b3]
+- Updated dependencies [330f6e2]
+  - @ai-sdk/gateway@4.0.1
+
+## 7.0.0
+
+### Major Changes
+
+- 986c6fd: feat(ai): change type of experimental_context from unknown to generic
+- b0c2869: chore(ai): remove deprecated `media` type part from `ToolResultOutput`
+- 1949571: feat(ai): make experimental_telemetry stable
+- 6542d93: feat(ai): change naming nomenclature for `*TelemetryIntegration` to `*Telemetry`
+- 31f69de: fix(ai): carry prepareStep message overrides forward across steps
+- 7c71ac6: fix(ai): limit response messages in StepResult to messages created in that step
+- cf93359: feat(ai): remove/refactor event data sent via callbacks
+- 776b617: feat(provider): adding new 'custom' content type
+- 34bd95d: feat(ai): add support for uploading provider skills using the provider references abstraction
+- 1f7db50: fix(ai): remove experimental_customProvider
+- 3debdb7: feat(ai): rename `stepCountIs` to `isStepCount`
+- fcc6869: refactor(ai/core): rename `ModelCallStreamPart` to `LanguageModelStreamPart` and align stream model call naming (`streamLanguageModelCall`, `experimental_streamLanguageModelCall`).
+
+  This updates experimental low-level stream primitives to use "language model call" terminology consistently.
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+- 493295c: Remove the deprecated `ToolCallOptions` export.
+
+  Use `ToolExecutionOptions` instead.
+
+- 116c89f: feat(ai): remove telemetry data from the user-facing event data
+- c29a26f: feat(provider): add support for provider references and uploading files as supported per provider
+- 3887c70: feat(provider): add new top-level reasoning parameter to spec and support it in `generateText` and `streamText`
+- 9bd6512: feat(provider): change file part data property to be tagged with a type and remove the image part type
+- 4b46062: refactoring(ai): extract tool callback invocation into separate function and forward chunks before callback invocation
+- 7e26e81: chore: rename experimental_context to context
+- 8359612: Start v7 pre-release
+- 5463d0d: feat(provider): align tool result output content file part types with top-level message file part types
+- 72223e7: chore(ai): remove deprecated isToolOrDynamicToolUIPart function
+- 57bf606: chore(ai): simplify unified telemetry creation
+- b3c9f6a: feat(ai): create new opentelemetry package (@ai-sdk/otel)
+- b9cf502: refactoring(ai): delay tool execution in stream text until model call is finished
+- 5b8c58f: feat(ai): decouple otel from core functions
+- 4e095b0: fix(ai): reject system messages in messages or prompt by default (opt-in)
+
+### Patch Changes
+
+- e3d9c0e: Add `allowSystemInMessages` option to `ToolLoopAgent`.
+
+  This exposes the same option that exists on `streamText` and `generateText`, whether `role: "system"` messages are allowed in the `prompt` or `messages` fields. When unset, system messages are rejected because they can create a prompt injection attack risk. Ideally, use the `instructions` option instead. Set to `true` to allow system messages, or `false` to explicitly reject them.
+
+  ```ts
+  const agent = new ToolLoopAgent({
+    model,
+    allowSystemInMessages: true,
+  });
+
+  await agent.generate({
+    messages: [
+      { role: "system", content: "Server context" },
+      { role: "user", content: "Hello" },
+    ],
+  });
+  ```
+
+  The option can also be returned from `prepareCall` for dynamic per-call configuration.
+
+- b56301c: feat(ai): decouple otel from generate/streamObject
+- 2427d88: feat(ai): change Tool.sensitiveContext to telemetry.includeToolsContext and make it opt-in
+- 38fc777: Add AI Gateway hint to provider READMEs
+- 023550e: Deprecate `streamText` result `fullStream` in favor of `stream`.
+- 38ca8dc: fix(gateway): enable retry support for gateway errors
+- 19736ee: feat(ai): rename onStepFinish to onStepEnd
+- 6d76710: fix URL of hero animation in README
+- 5ceed7d: fix(ai): doStream should reflect transformed values
+- 4757690: feat(ai): rename onObjectStepFinish to onObjectStepEnd
+- bc47739: chore(ai): cleanup telemetry event data
+- d1b3786: fix(ai): deprecate properties on result that have moved to finalStep
+- 382d53b: refactoring: rename context to runtimeContext
+- ff9ce30: feat(ai): introduce experimental callbacks for embed function
+- ee798eb: chore(provider-utils): rename `Experimental_Sandbox` to `Experimental_SandboxSession`
+- 4873966: chore(ai): allow general usage of `logWarnings` and emit them via Node API when available
+- e67d80e: fix: rename onFinish to onEnd
+- 7bf7d7f: feat(ai): enable:true for telemetry by default
+- 99bf941: feat(ai): extract streamModelCall function for streaming text generation
+- e95e38d: fix: Make `generateText` and `streamText` result `usage` report total usage across all steps and deprecate `totalUsage`.
+- 6a3793e: chore(ai): add optional ChatRequestOptions to `addToolApprovalResponse` and `addToolOutput`
+- 5f3749c: refactoring: rename toolNeedsApproval to toolApproval
+- 016e877: feat(ai): add `instructions` as the primary prompt option and deprecate `system`
+- 2fe1099: feat(ai): emit streaming chunks throught the onChunk callback
+- f319fde: feat(ai): validate tool context against contextSchema at runtime
+
+  Tool execution and approval callbacks now validate each tool's `toolsContext` entry against its `contextSchema`. Invalid tool context now throws `TypeValidationError` with tool-context validation metadata in `error.context`.
+
+- 31ee822: refactoring(ai): extract filterActiveTools and expose it as experimental_filterActiveTools
+- b67525f: feat: instructions as prepareStep input
+- e68be55: fix(ai): skip stringifying text when streaming partial text
+- 1db29c8: feat(ai): break `CallSettings` apart into `LanguageModelCallOptions` and `RequestOptions`
+- 0a51f7d: fix(ai): enforce `callOptionsSchema` at runtime in `ToolLoopAgent`
+
+  `ToolLoopAgentSettings.callOptionsSchema` was declared and documented as a runtime schema for `options`, but `tool-loop-agent.ts` never invoked it. Any invariant a developer encoded in the schema was silently bypassed at runtime, and unchecked `options` flowed straight into `prepareCall` and any `instructions` template that interpolated them.
+
+  `ToolLoopAgent.prepareCall` now validates caller-supplied `options` against `callOptionsSchema` (when set) via `safeValidateTypes`, throwing `InvalidArgumentError` on failure before forwarding to `prepareCall` / `generateText` / `streamText`.
+
+- d1a8bed: fix(ui): export `isDynamicToolUIPart` from `ai` package
+- bcce2dd: feat(stream-text): expose standalone stream transformation helpers and deprecate the equivalent `streamText` result methods.
+
+  The new `toUIMessageChunk` and `toUIMessageStream` helpers let you convert a `streamText` `stream` (or any compatible `ReadableStream<TextStreamPart<TOOLS>>`) into UI message chunks without going through the result object — useful for custom transports, tests, and other producers of `TextStreamPart`.
+
+  `result.toUIMessageStreamResponse(options)` and `result.pipeUIMessageStreamToResponse(response, options)` can migrate by passing `toUIMessageStream({ stream: result.stream, ...options })` to `createUIMessageStreamResponse` or `pipeUIMessageStreamToResponse`.
+
+  The new `toTextStream` helper extracts text deltas from a `streamText` `stream`, so `result.toTextStreamResponse(options)` and `result.pipeTextStreamToResponse(response, options)` can migrate to `createTextStreamResponse({ stream: toTextStream({ stream: result.stream }), ...options })` and `pipeTextStreamToResponse({ response, stream: toTextStream({ stream: result.stream }), ...options })`.
+
+  `result.toUIMessageStream`, `result.toUIMessageStreamResponse`, `result.pipeUIMessageStreamToResponse`, `result.toTextStreamResponse`, and `result.pipeTextStreamToResponse` are now `@deprecated`. They still work in v7 and will be removed in the next major release. Migration snippets are in the v6 → v7 migration guide.
+
+- 2a74d43: Remove the deprecated `experimental_prepareStep` option from `generateText`.
+
+  Use `prepareStep` instead.
+
+- 71d3022: fix(ai): unify generate text event callbacks
+- 6cca112: feat: add timeBetweenOutputTokensMs stats
+- fd4f578: fix(ai): exclude request and response bodies from text generation results by default to reduce memory usage.
+- 511902c: skip validation for tool parts in terminal states when tool schema is no longer registered
+- a5018ab: fix(ai): return schema-transformed elements in array output mode
+
+  Previously final array output validation checked each element against the schema but returned the raw model output. Array output now returns the validated values so Zod transforms, coercions, defaults, and pipes are applied consistently with object output.
+
+- 531251e: fix(security): validate redirect targets in download functions to prevent SSRF bypass
+
+  Both `downloadBlob` and `download` now validate the final URL after following HTTP redirects, preventing attackers from bypassing SSRF protections via open redirects to internal/private addresses.
+
+- eeefc3f: fix(ai): enforce `timeout.stepMs` for the whole step in `streamText`
+
+  Previously `streamText`'s step timer was cleared synchronously right after the step's stream was registered, before the stream produced anything, so `stepMs` never aborted a step that stalled before emitting content. The step timer now survives until the step's stream finishes or aborts, matching `generateText`. `chunkMs`/`totalMs` and normal step-finish cleanup are unchanged.
+
+- ec98264: feat(ai): allow multiple integrations to be registered at once
+- 43a6750: fix(ai): preserve `allowSystemInMessages` across `streamText` retries
+- 67df0a0: feat: add sensitiveContext property to Tool
+- b79b6a8: fix(ai): add approval guard for denied tool outputs
+- 81caa5d: fix(ai): remove ExtractLiteralUnion export
+- 4181cfe: fix(ai): harden `getMediaTypeFromUrl` against prototype-property collisions
+
+  `getMediaTypeFromUrl` (used to infer media types for `file-url` / `image-url` parts) used `ext in URL_EXTENSION_TO_MEDIA_TYPE` against a plain object literal. A URL ending in `.constructor` therefore resolved through the prototype chain and returned the `Object` constructor function, violating the helper's `: string` return type and forwarding a non-string value to provider adapters.
+
+  Switch to `Object.hasOwn(...)` so attacker-controlled extensions like `.constructor` cannot resolve to inherited `Object.prototype` keys.
+
+- 208d045: fix(ai): skip global telemetry registration when local integration defined
+- 5a6f514: feat(ai): support several tools in hasToolCall stop condition
+- ed74dae: fix(ui): make `input` optional on `output-error` tool and dynamic-tool UI message parts
+
+  `validateUIMessages` rejected persisted assistant messages whose `output-error` tool parts had no `input` key. This happened for any errored tool call where the SDK set `input: undefined` (e.g. `NoSuchToolError` / `InvalidToolInputError`): JSON serialization stripped the `undefined` value, and Zod 4.4+ treats a missing `z.unknown()` key as a validation failure (previously it was implicitly optional). The schema now matches the runtime shape produced by `process-ui-message-stream`, so reloading a thread that contains an errored tool call no longer throws `AI_TypeValidationError`.
+
+- ca99fea: feat: expose `finalStep` on text generation results
+- 9b47dea: fix(ai): remove otel Tracer api from telemetry settings
+- 877bf12: fix(ai): flatten model attributes for telemetry
+- eea8d98: refactoring: rename tool execution events
+- d66ae02: Return validated elements from generateText array output
+- 5d0f18e: feat(ai): move opentelemetry to new package
+- 21d3d60: feat(harness): implement harness specification
+- 1582efa: chore(ai): remove the metadata field from the telemetry settings
+- 80d4dde: fix(ai): include tool input on tool result for provider executed dynamic tools
+- 98627e5: feat(ai): remove onChunk event from telemetry
+- 51ce232: feat(ai): add sensitiveRuntimeContext option
+- 82fc0ab: fix(ai): pass all stream text parts to `onChunk`
+- 1f509d4: fix(ai): force template check on 'kind' param
+- ca446f8: feat: flexible tool descriptions
+- 176466a: chore(provider): align V4 model return types to have their own definitions across all model interfaces
+- c0c8ca2: fix(ai): remove deprecated LanguageModelUsage properties
+- 75763b0: agents: tag outgoing requests with an ai-sdk-agent user-agent segment for usage attribution (tool-loop, workflow)
+- 6ec57f5: feat(ai): make the experimental lifecycle callbacks stable
+- 3ae1786: fix: better context type inference
+- a7de9c9: fix: make sandbox experimental
+- caf1b6f: feat(ai): introduce experimental callbacks for rerank function
+- 9f0e36c: trigger release for all packages after provenance setup
+- befb78c: refactoring: remove real-time delays in unit tests
+- 6866afe: fix(ai): fix `lastAssistantMessageIsCompleteWithApprovalResponses` to no longer ignore `providerExecuted` tool approvals
+- 29d8cf4: feat(ai): rename the core-event types
+- 2e17091: fix(types): move shared tool set utility types into provider-utils
+
+  Moved `ToolSet`, `InferToolSetContext`, and `UnionToIntersection` into `@ai-sdk/provider-utils` and updated `ai` internals to import them directly from there. This keeps the shared tool typing utilities colocated with the core tool type definitions.
+
+- 210ed3d: feat(ai): pass result provider metadata across the stream
+- a3fd75b: feat(ai): expose Experimental_ModelCallStreamPart type
+- f4cc8eb: feat: add performance statistics
+- 2add429: fix(ai): skip passing invalid JSON inputs to response messages
+- 5588abd: feat(ai): add experimental_refineToolInput option to ToolLoopAgent, generateText, streamText
+- e80ada0: fix(ai): download tool-result file URLs
+- 58a2ad7: fix: more precise default message for tool execution denial
+- 62d6481: Post-publish release notifications now link to each package’s GitHub release and npm page.
+- 1fe058b: fix(anthropic): preserve the error code returned by model
+- 5c4d910: feat(ai): add new `isLoopFinished` stop condition helper for unlimited steps
+- e4182bd: chore: rm export of OutputInterface
+- 34fd051: feat(ai): add toolMs to timeout configuration
+- 72cb801: feat(ai): concurrent event notification
+- 2e98477: fix: retain stack traces on async errors
+- add1126: refactoring: executeTool uses tool as parameter
+- 81a284b: fix(ai): handle partial unicode escapes in fixJson
+- 76fd58c: fix: consider file outputs and tool calls for time to first output
+- 7392266: feat: move includeRawChunks to include.rawChunks
+- 69aeb0e: feat: add deprecated tool call lifecycle callback aliases for AI SDK 6 compatibility.
+- 37d69b2: feat(ai): access runtime context in tool approval functions
+- 1043274: feat(ai): add a ModelCall start/end event
+- 350ea38: refactoring: introduce Arrayable type
+- 7f59f04: feat(ai): add approval reason to automatic tool approvals
+- 7677c1e: feat(ai): allow tool approval functions to return undefined
+- 476e1ca: feat(ai): remove telemetry dependency on onChunk callback
+- 008271d: feat(openai-compatible): emit warning when using kebab-case instead of camelCase
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- 594029e: feat(ai): wrap the model call in telemetry context
+- 426dbbb: fix(ai): reject `streamText` result promises with `NoOutputGeneratedError` when the model stream ends without producing any output. Previously such streams resolved with an empty step. Incomplete streams with partial output still resolve with the partial result.
+- 25a64f8: Remove deprecated experimental generateImage exports.
+- 75ef93e: remove the deprecated `experimental_output` alias and document the `output` migration for AI SDK 7
+- c26ca8d: Remove custom User-Agent header from HttpChatTransport to fix CORS preflight failures in Safari and Firefox
+- eaf849f: Rename rerank telemetry finish callback to `onRerankEnd`.
+- 664a0eb: feat (ai/core): support plain string model IDs in `rerank()` function
+
+  The `rerank()` function now accepts plain model strings (e.g., `'cohere/rerank-v3.5'`) in addition to `RerankingModel` objects, matching the behavior of `generateText`, `embed`, and other core functions.
+
+- 08d2129: feat(mcp): propagate the server name through dynamic tool parts
+- 5faf71c: feat: introduce responseMessages on GenerateTextResult and StreamTextResult
+- 0c4c275: trigger initial canary release
+- 118b953: feat(ai): decouple otel from embed functions
+- 6fd51c0: fix(provider): preserve error type prefix in getErrorMessage
+- 1dca341: fix: rename telemetry onFinish to onEnd
+- ebd4da2: feat(ai): add missing usage attributes
+- bc67b4f: feat(ai): add experimental callbacks for structured outputs
+- f0b0b20: feat(ai): add per-tool timeout overrides via toolTimeouts
+- 2852a84: fix(ai): make input optional on input-streaming UIMessagePart variants
+- 2a9c144: feat(ai): add toolNeedsApproval option
+- ce769dd: feat(provider): add experimental Realtime API support for voice conversations
+
+  Adds first-class support for realtime (speech-to-speech) APIs:
+
+  - `Experimental_RealtimeModelV4` spec in `@ai-sdk/provider` with normalized event types and factory
+  - OpenAI, Google, and xAI realtime provider implementations
+  - `openai.experimental_realtime()` / `google.experimental_realtime()` / `xai.experimental_realtime()` work in both server and browser
+  - `.getToken()` static method on each provider for server-side ephemeral token creation
+  - `experimental_getRealtimeToolDefinitions` helper for provider session tool definitions
+  - `experimental_useRealtime` hook in `@ai-sdk/react` returning `UIMessage[]` (aligned with `useChat`), with `onToolCall` and `addToolOutput` for client-driven tool execution
+  - `inputAudioTranscription` session config for showing transcribed user audio messages when supported by the provider
+
+- e3a0419: fix(ai): default missing embedding warnings to an empty array
+- f04adcb: feat(ai): refresh `customProvider` and `createProviderRegistry` to support file and skill upload abstractions
+- 876fd3e: fix(ai): limit tool execution time duration to actual tool execution
+- e311194: feat(ai): allow passing provider instance to `uploadFile` and `uploadSkill` as shorthand
+- 989d3d2: fix(ai): include generated files in OTEL response attributes
+- b5092f5: fix(ai): do not re-validate tool input for output-error parts in validateUIMessages
+- 6dd6b83: feat(ai): change sensitiveRuntimeContext to telemetry.includeRuntimeContext and make it opt-in
+- 69254e0: feat(ai): add toolMetadata for tool specific metdata
+- 79b2468: feat: add request.messages to StepResult
+- 6c93e36: feat(provider-utils): add `spawnCommand` method to `Experimental_Sandbox` to allow for detached command execution
+- 2605e5f: fix test mocks to return the first array-backed result on the first call
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- f58f9bc: fix(ai): remove stopWhen from onStart event
+- 8565dcb: fix: rename onEmbedFinish to onEmbedEnd
+- 6abd098: split `prepareToolsAndToolChoice()` into `prepareTools()` and `prepareToolChoice()`
+- e1bfb9c: feat(ai): remove unnecessary data from events
+- 375fdd7: fix: harden download URL SSRF guard against hostname and redirect bypasses
+
+  `validateDownloadUrl` and the file download helpers (`downloadBlob`, `download`) could be bypassed in several ways when handling untrusted URLs:
+
+  - A fully-qualified hostname with a trailing dot (e.g. `localhost.`, `myhost.local.`) skipped the localhost/`.local` blocklist.
+  - IPv6 addresses that embed an IPv4 address in their last 32 bits — IPv4-compatible (`::127.0.0.1`), IPv4-translated (`::ffff:0:127.0.0.1`), and NAT64 (`64:ff9b::127.0.0.1`, including the `64:ff9b:1::/48` local-use prefix) — were not decoded and checked against the private IPv4 ranges.
+  - Redirects were validated only _after_ `fetch` had already followed them, so the request to a redirect target (e.g. an internal/metadata address) had already been issued before the check ran.
+  - Several reserved/internal address ranges were not blocked: CGNAT (`100.64.0.0/10`, used by some cloud providers for internal traffic), benchmarking (`198.18.0.0/15`), IETF protocol assignments (`192.0.0.0/24`), the reserved `240.0.0.0/4` block (including the `255.255.255.255` broadcast address), and IPv6 site-local (`fec0::/10`) and multicast (`ff00::/8`).
+
+  The validator now strips trailing dots before the hostname checks and fully expands IPv6 addresses to detect embedded private IPv4 targets. The download helpers now follow redirects manually (`redirect: 'manual'`), re-validating each hop before requesting it, so an unsafe redirect target is never fetched. When a redirect cannot be inspected because the runtime returns an opaque response, the helpers fail closed (reject the redirect) on the server; only in a real browser — where SSRF is not reachable (fetch is constrained by CORS and cannot reach a server's internal network or cloud-metadata endpoints) — is the redirect followed natively so legitimate redirected downloads keep working.
+
+- 89ad56f: Promote `generateSpeech` and `SpeechResult` to stable exports.
+- f9a496f: Promote `transcribe` and `TranscriptionResult` to stable exports, with deprecated experimental aliases for backwards compatibility.
+- 334ae5d: Update step performance metrics with explicit effective, input, output, and total token throughput fields.
+- 3295831: Harden stream text processing and middleware against prototype pollution from stream part IDs.
+- b097c52: feat(ai): use tracing channels to track parent-child context
+- e79e644: chore(ai/core): remove `timeout` from `CallSettings` as it was effectively unused there
+- 3015fc3: feat: sandbox shell execution abstraction
+- b8396f0: trigger initial beta release
+- 48e92f3: feat: make include stable
+- 33d099c: fix(ai): omit reasoning-start/end when sendReasoning is false
+- e87d71b: feat(ai): support automatic tool approval in ui messages
+- a6617c5: feat(provider-utils): add `readFile` and `writeFile` plus convenience wrappers to `Experimental_Sandbox` abstraction
+- eee1166: feat(ai): expose initial and response messages in prepareStep
+- 9d486aa: feat(ai): generic tool approval function
+- c3d4019: chore(ai): rename 'TelemetrySettings' to 'TelemetryOptions'
+- 28dfa06: fix: support tools with optional context
+- bcacd48: fix(ai): accumulative properties on StreamTextResult, GenerateTextResult
+- e92fc45: feat(ai): introduce onAbort hook to close telemetry spans
+- 083947b: feat(ai): separate toolsContext from context
+- 47e65d6: fix(ai): tag step/chunk timeout aborts with `TimeoutError` reason
+
+  When `timeout: { stepMs }` or `timeout: { chunkMs }` fires, the abort reason is now a `TimeoutError` `DOMException`, matching what `AbortSignal.timeout()` produces natively. Consumers can distinguish a framework timeout from a user-initiated cancel via `signal.reason.name === 'TimeoutError'`.
+
+- 6a2caf9: Serialize `undefined` tool output to `null` in UI message chunks
+- 202f107: feat(ai): create a diagnostics channel to push event data
+- bae5e2b: fix(security): re-validate tool approvals from client message history before execution
+
+  The approval-replay path in `generateText`/`streamText` (and `WorkflowAgent.stream`) reconstructed approved tool calls from the client-supplied messages array and executed them without re-validating input against the tool's schema or re-applying the approval policy. A client could forge an assistant message with a pre-approved tool-call part and have the server execute a tool with attacker-chosen arguments.
+
+  The replay path now validates HMAC signature (when `experimental_toolApprovalSecret` is configured), re-validates tool-call input against the tool's input schema, and re-resolves the approval policy before execution.
+
+- c907622: Add a `toolOrder` option to control the order in which tools are sent to provider APIs.
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+- c4f4b5f: refactoring(ai): remove deprecated experimental_activeTools option
+- f4cfccd: feat(ai): decouple otel from rerank function
+- f5a6f89: README updates
+- f18b08f: fix: redact server error details from UI message streams by default
+
+  `toUIMessageStream`, `createUIMessageStream`, and `toUIMessageChunk` defaulted their `onError` callback to `getErrorMessage`, which serializes the raw error (`error.toString()` / `JSON.stringify(error)`) into the client-facing `{ type: 'error', errorText }` chunk — and also into `tool-output-error` parts. The documented default was `() => 'An error occurred.'`, so applications relying on the documented behavior were unknowingly streaming server exception details (internal hostnames, paths, provider request data, validation inputs) to end users.
+
+  The default `onError` now returns the documented generic `'An error occurred.'`. Raw error details are only emitted when the developer explicitly supplies an `onError` handler. This also redacts `tool-output-error` and invalid-tool-input error text by default; pass an `onError` to surface richer messages.
+
+- 7fd3360: Harden UI message stream processing against prototype pollution from chunk IDs.
+- 0416e3e: feat (video): add first-class `generateAudio` call option
+- d775a57: feat: introduce Instructions type
+- b4507d5: fix(provider-utils): cancel response body on download rejection to prevent socket leak
+
+  When a download was rejected early — because the `Content-Length` header exceeded the size limit, the response status was not ok, or a redirect resolved to a blocked URL — the fetch response body was left unconsumed and uncancelled. With WHATWG Fetch/undici this leaves the underlying TCP socket open instead of returning it to the connection pool, allowing an attacker-controlled origin to exhaust file descriptors and cause a denial of service. The body is now cancelled on all early-rejection paths in `readResponseWithSizeLimit`, `download`, and `downloadBlob`, and `fetchWithValidatedRedirects` cancels each redirect hop's body before following or rejecting the next hop.
+
+- 6147cdf: fix(ai): fix auto-complete on provider registry and custom provider
+- e93fa91: rename Sandbox.executeCommand to Sandbox.runCommand
+- f32c750: refactoring(ai): simplify mergeAbortSignals
+- 7dbf992: feat(ai): allow prepareStep to override sandbox per step
+- 9b0bc8a: fix(mcp): prevent prototype pollution by using secureJsonParse
+- 4bb4dbc: feat: introduce include.requestMessage option for step request message storage opt-in
+- c22750c: fix(ai): move onToolExecutionStart and onToolExecutionEnd to stable
+- 538c12b: feat: use instructions on ToolCallRepairFunction, parseToolCall, and events
+- fc92055: feat(ai): automatic tool approval
+- f372547: fix(ai): fix `providerExecuted` tool approvals being passed to language model twice
+- 1e4b350: Honor `tool.toModelOutput` in `WorkflowAgent`.
+
+  `WorkflowAgent` now routes successful local, provider-executed, and approved tool results through each tool's optional `toModelOutput` hook, matching `generateText`, `streamText`, and `ToolLoopAgent`. Previously the hook was ignored and results were always serialized as `text` or `json`.
+
+  Internally exports the shared tool-result model-output helpers from `ai/internal`, and uses the shared `getErrorMessage` behavior for workflow tool error results.
+
+- 69d7128: fix(workflow): reuse the core tool-approval validation in WorkflowAgent
+
+  `WorkflowAgent.stream` previously reconstructed approved tool calls with a copy of the core collection logic and validated them inline. Because the logic was duplicated, it could drift from the hardened `generateText`/`streamText` implementation. WorkflowAgent now collects approvals via the shared `collectToolApprovals` and re-validates each one through the shared `validateApprovedToolApprovals` (input-schema re-validation, HMAC signature verification when configured, and approval-policy re-resolution) in addition to its existing `needsApproval` guard, so a client-forged approval cannot execute a tool with unvalidated input. The duplicated collector was removed; `collectToolApprovals` and `validateApprovedToolApprovals` are now exported from `ai/internal`.
+
+- ff5eba1: feat: roll `image-*` tool output types into their equivalent `file-*` types
+- cc6ab90: feat(ai): rename ui message stream onFinish to onEnd
+- e27ed76: feat(devtools): add new devtools integration for telemetry
+
+## 7.0.0-beta.187
+
+### Patch Changes
+
+- Updated dependencies [77cc1af]
+  - @ai-sdk/gateway@4.0.0-beta.114
+
+## 7.0.0-beta.186
+
+### Patch Changes
+
+- Updated dependencies [eb024b6]
+  - @ai-sdk/gateway@4.0.0-beta.113
+
+## 7.0.0-beta.185
+
+### Patch Changes
+
+- 75763b0: agents: tag outgoing requests with an ai-sdk-agent user-agent segment for usage attribution (tool-loop, workflow)
+
+## 7.0.0-beta.184
+
+### Patch Changes
+
+- 0416e3e: feat (video): add first-class `generateAudio` call option
+- Updated dependencies [a403276]
+- Updated dependencies [0416e3e]
+  - @ai-sdk/gateway@4.0.0-beta.112
+  - @ai-sdk/provider@4.0.0-beta.20
+  - @ai-sdk/provider-utils@5.0.0-beta.50
+
+## 7.0.0-beta.183
+
+### Patch Changes
+
+- Updated dependencies [8e990ff]
+  - @ai-sdk/gateway@4.0.0-beta.111
+
 ## 7.0.0-beta.182
 
 ### Patch Changes

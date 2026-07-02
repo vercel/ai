@@ -1,5 +1,49 @@
 # @ai-sdk/devtools
 
+## 1.0.1
+
+### Patch Changes
+
+- Updated dependencies [0274f34]
+  - @ai-sdk/provider@4.0.1
+
+## 1.0.0
+
+### Major Changes
+
+- 1949571: feat(ai): make experimental_telemetry stable
+- 6542d93: feat(ai): change naming nomenclature for `*TelemetryIntegration` to `*Telemetry`
+- cf93359: feat(ai): remove/refactor event data sent via callbacks
+- 116c89f: feat(ai): remove telemetry data from the user-facing event data
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- 19736ee: feat(ai): rename onStepFinish to onStepEnd
+- 4757690: feat(ai): rename onObjectStepFinish to onObjectStepEnd
+- 7bf7d7f: feat(ai): enable:true for telemetry by default
+- b567a6c: dependency updates
+- ddfcdc7: Fix `ToolItem` expand/collapse logic: chevron now shows whenever there's expandable content (parameters or description), expanded view shows full description plus parameters, collapsed view shows truncated description only.
+- b05f5ee: fix: bump hono to ^4.12.25 to resolve CVE-2026-54290 (CORS Middleware reflects any Origin with credentials when origin defaults to the wildcard)
+- ee7bb67: fix(devtools): add pointer cursor to DevTools buttons
+- 98627e5: feat(ai): remove onChunk event from telemetry
+- 29d8cf4: feat(ai): rename the core-event types
+- 32ce45c: fix(devtools): secure devtools viewer api access
+- 275674e: fix(devtools): validate viewer database paths
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- 0c4c275: trigger initial canary release
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- b8396f0: trigger initial beta release
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+- e27ed76: feat(devtools): add new devtools integration for telemetry
+
+## 1.0.0-beta.33
+
+### Patch Changes
+
+- Updated dependencies [0416e3e]
+  - @ai-sdk/provider@4.0.0-beta.20
+
 ## 1.0.0-beta.32
 
 ### Patch Changes

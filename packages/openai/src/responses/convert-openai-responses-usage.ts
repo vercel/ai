@@ -5,9 +5,12 @@ export type OpenAIResponsesUsage = {
   output_tokens: number;
   input_tokens_details?: {
     cached_tokens?: number | null;
+    orchestration_input_tokens?: number | null;
+    orchestration_input_cached_tokens?: number | null;
   } | null;
   output_tokens_details?: {
     reasoning_tokens?: number | null;
+    orchestration_output_tokens?: number | null;
   } | null;
 };
 
