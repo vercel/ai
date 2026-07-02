@@ -3,6 +3,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { GoogleEmbeddingModel } from './google-embedding-model';
 import { createGoogle } from './google-provider';
 import { describe, it, expect, vi } from 'vitest';
+import googleBatchEmbed150ErrorFixture from './__fixtures__/issue-16101-google-batch-embed-150-error.json';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
@@ -268,6 +269,20 @@ describe('GoogleEmbeddingModel', () => {
     await expect(model.doEmbed({ values: tooManyValues })).rejects.toThrow(
       'Too many values for a single embedding call. The google.generative-ai model "gemini-embedding-001" can only embed up to 2048 values per call, but 2049 values were provided.',
     );
+  });
+
+  it('issue #16101: should expose the Google batch embedding API limit', () => {
+    expect(googleBatchEmbed150ErrorFixture).toMatchObject({
+      status: 400,
+      body: {
+        error: {
+          message:
+            '* BatchEmbedContentsRequest.requests: at most 100 requests can be in one batch\n',
+        },
+      },
+    });
+
+    expect(model.maxEmbeddingsPerCall).toBe(100);
   });
 
   it('should use the batch embeddings endpoint', async () => {
