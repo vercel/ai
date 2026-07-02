@@ -757,6 +757,55 @@ describe('AnthropicLanguageModel', () => {
           }
         `);
       });
+
+      it('should respect disableParallelToolUse false with jsonTool structured output and real tools', async () => {
+        prepareJsonFixtureResponse('anthropic-json-tool.1');
+
+        await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'searchDocs',
+              description: 'Search docs',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  query: { type: 'string' },
+                },
+                required: ['query'],
+                additionalProperties: false,
+                $schema: 'http://json-schema.org/draft-07/schema#',
+              },
+            },
+          ],
+          providerOptions: {
+            anthropic: {
+              structuredOutputMode: 'jsonTool',
+              disableParallelToolUse: false,
+            } satisfies AnthropicLanguageModelOptions,
+          },
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: {
+                items: { type: 'array', items: { type: 'string' } },
+              },
+              required: ['items'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          tool_choice: {
+            type: 'any',
+            disable_parallel_tool_use: false,
+          },
+        });
+      });
     });
 
     describe('json schema response format with other tool response (unsupported model)', () => {
