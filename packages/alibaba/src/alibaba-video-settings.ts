@@ -9,4 +9,6 @@ export type AlibabaVideoModelId =
   // Reference-to-Video
   | 'wan2.6-r2v'
   | 'wan2.6-r2v-flash'
+  | 'wan2.7-r2v'
+  | 'wan2.7-r2v-2026-06-12'
   | (string & {});

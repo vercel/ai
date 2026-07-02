@@ -92,6 +92,44 @@ function detectMode(modelId: string): 't2v' | 'i2v' | 'r2v' {
   return 't2v';
 }
 
+// wan2.7 models use the new reference-to-video protocol (input.media)
+// instead of the legacy wan2.6 protocol (input.reference_urls).
+function usesMediaProtocol(modelId: string): boolean {
+  return modelId.startsWith('wan2.7');
+}
+
+// Maps SDK "WIDTHxHEIGHT" resolutions to Alibaba resolution tiers.
+const resolutionTierMap: Record<string, string> = {
+  '1280x720': '720P',
+  '720x1280': '720P',
+  '960x960': '720P',
+  '1088x832': '720P',
+  '832x1088': '720P',
+  '1920x1080': '1080P',
+  '1080x1920': '1080P',
+  '1440x1440': '1080P',
+  '1632x1248': '1080P',
+  '1248x1632': '1080P',
+  '832x480': '480P',
+  '480x832': '480P',
+  '624x624': '480P',
+};
+
+const supportedRatios = new Set(['16:9', '9:16', '1:1', '4:3', '3:4']);
+
+function deriveRatioFromResolution(
+  resolution: `${number}x${number}`,
+): string | undefined {
+  const [width, height] = resolution.split('x').map(Number);
+  let a = width;
+  let b = height;
+  while (b !== 0) {
+    [a, b] = [b, a % b];
+  }
+  const ratio = `${width / a}:${height / a}`;
+  return supportedRatios.has(ratio) ? ratio : undefined;
+}
+
 function fileToImageString(file: Experimental_VideoModelV4File): string {
   if (file.type === 'url') {
     return file.url;
@@ -112,6 +150,73 @@ function resolveStartImage(
   options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
 ): Experimental_VideoModelV4File | undefined {
   return getFirstFrameImage(options) ?? options.image;
+}
+
+function fileToDataUri(file: {
+  data: string | Uint8Array;
+  mediaType: string;
+}): string {
+  const base64 =
+    typeof file.data === 'string'
+      ? file.data
+      : convertUint8ArrayToBase64(file.data);
+  return `data:${file.mediaType};base64,${base64}`;
+}
+
+function isVideoUrl(url: string): boolean {
+  return /\.(mp4|mov)([?#]|$)/i.test(url);
+}
+
+// Builds the wan2.7 input.media array from inputReferences and frameImages.
+function resolveMedia(
+  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
+  alibabaOptions: AlibabaVideoModelOptions | undefined,
+  warnings: SharedV4Warning[],
+): Array<Record<string, unknown>> | undefined {
+  if (alibabaOptions?.media != null && alibabaOptions.media.length > 0) {
+    return alibabaOptions.media.map(item => ({
+      type: item.type,
+      url: item.url,
+      ...(item.referenceVoice != null
+        ? { reference_voice: item.referenceVoice }
+        : {}),
+    }));
+  }
+
+  const media: Array<Record<string, unknown>> = [];
+
+  for (const reference of options.inputReferences ?? []) {
+    if (reference.type === 'url') {
+      media.push({
+        type: isVideoUrl(reference.url) ? 'reference_video' : 'reference_image',
+        url: reference.url,
+      });
+    } else if (reference.mediaType.startsWith('image/')) {
+      media.push({
+        type: 'reference_image',
+        url: fileToDataUri(reference),
+      });
+    } else {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'inputReferences',
+        details:
+          'Alibaba reference-to-video requires URL references for videos. ' +
+          'Non-URL video reference was skipped.',
+      });
+    }
+  }
+
+  const firstFrame = getFirstFrameImage(options);
+  if (firstFrame != null) {
+    media.push({
+      type: 'first_frame',
+      url:
+        firstFrame.type === 'url' ? firstFrame.url : fileToDataUri(firstFrame),
+    });
+  }
+
+  return media.length > 0 ? media : undefined;
 }
 
 function resolveReferenceUrls(
@@ -188,20 +293,32 @@ export class AlibabaVideoModel implements Experimental_VideoModelV4 {
     }
 
     const startImage = resolveStartImage(options);
-    const referenceUrls = resolveReferenceUrls(
-      options,
-      alibabaOptions,
-      warnings,
-    );
+    const mediaProtocol = mode === 'r2v' && usesMediaProtocol(this.modelId);
 
     // Handle image input for I2V mode
     if (mode === 'i2v' && startImage != null) {
       input.img_url = fileToImageString(startImage);
     }
 
-    // Handle reference URLs for R2V mode
-    if (mode === 'r2v' && referenceUrls != null && referenceUrls.length > 0) {
-      input.reference_urls = referenceUrls;
+    // Handle references for R2V mode
+    if (mode === 'r2v') {
+      if (mediaProtocol) {
+        // wan2.7: new protocol with input.media
+        const media = resolveMedia(options, alibabaOptions, warnings);
+        if (media != null) {
+          input.media = media;
+        }
+      } else {
+        // wan2.6: legacy protocol with input.reference_urls
+        const referenceUrls = resolveReferenceUrls(
+          options,
+          alibabaOptions,
+          warnings,
+        );
+        if (referenceUrls != null && referenceUrls.length > 0) {
+          input.reference_urls = referenceUrls;
+        }
+      }
     }
 
     const lastFrame = options.frameImages?.find(
@@ -245,29 +362,27 @@ export class AlibabaVideoModel implements Experimental_VideoModelV4 {
 
     // Resolution / Size mapping
     if (options.resolution != null) {
-      if (mode === 'i2v') {
-        // I2V uses "720P" / "1080P" format
-        const resolutionMap: Record<string, string> = {
-          '1280x720': '720P',
-          '720x1280': '720P',
-          '960x960': '720P',
-          '1088x832': '720P',
-          '832x1088': '720P',
-          '1920x1080': '1080P',
-          '1080x1920': '1080P',
-          '1440x1440': '1080P',
-          '1632x1248': '1080P',
-          '1248x1632': '1080P',
-          '832x480': '480P',
-          '480x832': '480P',
-          '624x624': '480P',
-        };
+      if (mode === 'i2v' || mediaProtocol) {
+        // I2V and wan2.7 R2V use "720P" / "1080P" format
         parameters.resolution =
-          resolutionMap[options.resolution] || options.resolution;
+          resolutionTierMap[options.resolution] || options.resolution;
       } else {
-        // T2V and R2V use "WIDTH*HEIGHT" format for the size parameter
+        // T2V and wan2.6 R2V use "WIDTH*HEIGHT" format for the size parameter
         // Convert "WIDTHxHEIGHT" (SDK standard) to "WIDTH*HEIGHT" (Alibaba API)
         parameters.size = options.resolution.replace('x', '*');
+      }
+    }
+
+    // wan2.7 R2V supports an explicit aspect ratio parameter
+    if (mediaProtocol) {
+      const ratio =
+        alibabaOptions?.ratio ??
+        options.aspectRatio ??
+        (options.resolution != null
+          ? deriveRatioFromResolution(options.resolution)
+          : undefined);
+      if (ratio != null) {
+        parameters.ratio = ratio;
       }
     }
 
@@ -287,7 +402,7 @@ export class AlibabaVideoModel implements Experimental_VideoModelV4 {
     }
 
     // Warn about unsupported standard options
-    if (options.aspectRatio) {
+    if (options.aspectRatio && !mediaProtocol) {
       warnings.push({
         type: 'unsupported',
         feature: 'aspectRatio',
