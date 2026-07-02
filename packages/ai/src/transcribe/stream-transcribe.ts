@@ -14,7 +14,7 @@ import { resolveTranscriptionModel } from '../model/resolve-model';
 import type { TranscriptionModel } from '../types/transcription-model';
 import type { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
 import type { Warning } from '../types/warning';
-import { createAsyncIterableStream } from '../util/async-iterable-stream';
+import { asAsyncIterableStream } from '../util/async-iterable-stream';
 import { VERSION } from '../version';
 import type {
   StreamTranscriptionResult,
@@ -167,10 +167,18 @@ export function streamTranscribe({
     });
   };
 
-  const transform = new TransformStream<
+  // When the consumer cancels `fullStream` early, we abort the model pipe below
+  // with a defined reason via this controller. Relying on the default cancel
+  // cascade aborts the pipe with an `undefined` reason, which surfaces as a
+  // spurious unhandled rejection on Node.js 26 when the transform drops chunks.
+  const pipeAbortController = new AbortController();
+
+  // `Transformer.cancel` is part of the Streams spec (and supported at runtime),
+  // but not yet reflected in the ambient `Transformer` type, so widen it here.
+  const transformer: Transformer<
     Experimental_TranscriptionModelV4StreamPart,
     TranscriptionStreamPart
-  >({
+  > & { cancel?: (reason?: unknown) => void } = {
     transform(value, controller) {
       switch (value.type) {
         case 'stream-start': {
@@ -225,7 +233,18 @@ export function streamTranscribe({
         });
       }
     },
-  });
+
+    cancel(reason) {
+      pipeAbortController.abort(
+        reason ?? new Error('Transcription stream was cancelled.'),
+      );
+    },
+  };
+
+  const transform = new TransformStream<
+    Experimental_TranscriptionModelV4StreamPart,
+    TranscriptionStreamPart
+  >(transformer);
 
   // Piping (instead of an eager read loop) preserves consumer backpressure
   // and propagates cancellation of `fullStream` to the model stream.
@@ -245,7 +264,9 @@ export function streamTranscribe({
       headers: result.response?.headers,
     };
 
-    await result.stream.pipeTo(transform.writable);
+    await result.stream.pipeTo(transform.writable, {
+      signal: pipeAbortController.signal,
+    });
   })().catch(error => {
     const reason =
       error ?? new Error('Transcription stream was cancelled or errored.');
@@ -277,6 +298,12 @@ export function streamTranscribe({
     get providerMetadata() {
       return providerMetadataPromise.promise;
     },
-    fullStream: createAsyncIterableStream(transform.readable),
+    // `transform.readable` is fresh and exclusively owned here, so attach the
+    // async iterator in place rather than piping through another transform.
+    // The extra transform (as `createAsyncIterableStream` would add) chains two
+    // transforms fed by the active model pipe below and surfaces a spurious
+    // unhandled `undefined` rejection when the consumer cancels early on
+    // Node.js 26.
+    fullStream: asAsyncIterableStream(transform.readable),
   };
 }
