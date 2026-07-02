@@ -2,46 +2,33 @@
 
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { MessageCircle } from 'lucide-react';
+import type {
+  ChurnRiskPatient,
+  FinancialMetrics,
+  ProfessionalPerformance,
+} from '@/app/dashboard/(shell)/reports/actions';
 
-export interface ProfessionalPerformance {
-  professional_id: string;
-  professional_name: string;
-  revenue_cents: number;
-  appointments_count: number;
-}
-
-export interface ChurnRiskPatient {
-  patient_id: string;
-  full_name: string;
-  phone: string | null;
-  last_appointment_at: string;
-}
-
-interface FinancialMetrics {
-  total_revenue_cents: number;
-  average_ticket_cents: number;
-  default_rate: number;
-}
+// A falta em mais de 1 a cada 10 consultas é o ponto em que o gestor
+// precisa agir (confirmações, lembretes) — acima disso o card fica vermelho.
+const HIGH_NO_SHOW_THRESHOLD = 10;
 
 function formatBRL(cents: number) {
   return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-function whatsappLink(phone: string) {
-  const digits = phone.replace(/\D/g, '');
-  return `https://wa.me/55${digits}`;
+function whatsappLink(patient: ChurnRiskPatient) {
+  const digits = (patient.phone ?? '').replace(/\D/g, '');
+  const firstName = patient.full_name.split(' ')[0];
+  const message = `Olá ${firstName}, sentimos sua falta! Faz um tempo desde sua última consulta. Que tal agendar um retorno? Estamos à disposição.`;
+  return `https://wa.me/55${digits}?text=${encodeURIComponent(message)}`;
 }
 
 export function ReportsOverview({
   financial,
-  appointmentsThisMonth,
-  noShowRate,
   performance,
   churnRisk,
 }: {
   financial: FinancialMetrics;
-  appointmentsThisMonth: number;
-  noShowRate: number;
   performance: ProfessionalPerformance[];
   churnRisk: ChurnRiskPatient[];
 }) {
@@ -54,11 +41,16 @@ export function ReportsOverview({
   return (
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <KpiCard label="Receita do mês" value={formatBRL(financial.total_revenue_cents)} />
+        <KpiCard label="Faturamento bruto" value={formatBRL(financial.total_revenue_cents)} />
         <KpiCard label="Ticket médio" value={formatBRL(financial.average_ticket_cents)} />
         <KpiCard label="Taxa de inadimplência" value={`${financial.default_rate}%`} tone="amber" />
-        <KpiCard label="Consultas no mês" value={String(appointmentsThisMonth)} />
-        <KpiCard label="Taxa de no-show" value={`${noShowRate}%`} tone="red" />
+        <KpiCard label="Consultas realizadas" value={String(financial.consultations_count)} />
+        <KpiCard
+          label="Taxa de faltas (no-show)"
+          value={`${financial.no_show_rate}%`}
+          tone={financial.no_show_rate >= HIGH_NO_SHOW_THRESHOLD ? 'red' : 'default'}
+          alert={financial.no_show_rate >= HIGH_NO_SHOW_THRESHOLD}
+        />
       </div>
 
       <div className="rounded-xl bg-white p-5 shadow-sm">
@@ -107,13 +99,13 @@ export function ReportsOverview({
                   <td className="px-4 py-3 text-right">
                     {patient.phone ? (
                       <a
-                        href={whatsappLink(patient.phone)}
+                        href={whatsappLink(patient)}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100"
                       >
                         <MessageCircle size={14} />
-                        WhatsApp
+                        Chamar no WhatsApp
                       </a>
                     ) : (
                       <span className="text-xs text-gray-400">Sem telefone</span>
@@ -140,18 +132,25 @@ function KpiCard({
   label,
   value,
   tone = 'default',
+  alert = false,
 }: {
   label: string;
   value: string;
   tone?: 'default' | 'amber' | 'red';
+  alert?: boolean;
 }) {
   const toneClass =
     tone === 'amber' ? 'text-amber-600' : tone === 'red' ? 'text-red-600' : 'text-gray-800';
 
   return (
-    <div className="rounded-xl bg-white p-4 shadow-sm">
-      <p className="text-xs text-gray-400">{label}</p>
+    <div
+      className={`rounded-xl p-4 shadow-sm ${
+        alert ? 'border border-red-200 bg-red-50' : 'bg-white'
+      }`}
+    >
+      <p className={`text-xs ${alert ? 'text-red-500' : 'text-gray-400'}`}>{label}</p>
       <p className={`mt-1 text-xl font-semibold ${toneClass}`}>{value}</p>
+      {alert && <p className="mt-1 text-[11px] text-red-500">Acima do aceitável — reforce as confirmações</p>}
     </div>
   );
 }
