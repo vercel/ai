@@ -16,6 +16,7 @@ import {
   anthropicTools,
   AnthropicLanguageModel,
 } from '@ai-sdk/anthropic/internal';
+import { encodeBedrockModelId } from '../amazon-bedrock-encode-model-id';
 import {
   createApiKeyFetchFunction,
   createSigV4FetchFunction,
@@ -258,7 +259,7 @@ export function createAmazonBedrockAnthropic(
       fetch: fetchFunction,
 
       buildRequestUrl: (baseURL, isStreaming) =>
-        `${baseURL}/model/${encodeURIComponent(modelId)}/${
+        `${baseURL}/model/${encodeBedrockModelId(modelId)}/${
           isStreaming ? 'invoke-with-response-stream' : 'invoke'
         }`,
 

@@ -41,6 +41,7 @@ import {
   type AmazonBedrockLanguageModelChatOptions,
   type AmazonBedrockChatModelId,
 } from './amazon-bedrock-chat-language-model-options';
+import { encodeBedrockModelId } from './amazon-bedrock-encode-model-id';
 import { AmazonBedrockErrorSchema } from './amazon-bedrock-error';
 import { createAmazonBedrockEventStreamResponseHandler } from './amazon-bedrock-event-stream-response-handler';
 import { prepareTools } from './amazon-bedrock-prepare-tools';
@@ -1049,7 +1050,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
   }
 
   private getUrl(modelId: string) {
-    const encodedModelId = encodeURIComponent(modelId);
+    const encodedModelId = encodeBedrockModelId(modelId);
     return `${this.config.baseUrl()}/model/${encodedModelId}`;
   }
 }
