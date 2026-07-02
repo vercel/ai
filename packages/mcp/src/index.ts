@@ -1,3 +1,4 @@
+export { validateJSONRPCMessage } from './tool/json-rpc-message';
 export type {
   JSONRPCError,
   JSONRPCMessage,

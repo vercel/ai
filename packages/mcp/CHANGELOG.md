@@ -1,5 +1,13 @@
 # @ai-sdk/mcp
 
+## 2.0.6
+
+### Patch Changes
+
+- 3c30eb4: feat(mcp): expose a json-rpc message validator
+- Updated dependencies [c6f5e62]
+  - @ai-sdk/provider-utils@5.0.4
+
 ## 2.0.5
 
 ### Patch Changes

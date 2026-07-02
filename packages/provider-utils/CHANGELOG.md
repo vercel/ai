@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 5.0.4
+
+### Patch Changes
+
+- c6f5e62: Prevent prototype pollution when synchronously parsing provider JSON inputs and expose `secureJsonParse` from provider-utils.
+
 ## 5.0.3
 
 ### Patch Changes
