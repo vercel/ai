@@ -202,6 +202,39 @@ class FailsFirstToolCallTransport implements MCPTransport {
   }
 }
 
+class HangingToolCallTransport implements MCPTransport {
+  onmessage?: (message: JSONRPCMessage) => void;
+  onclose?: () => void;
+  onerror?: (error: Error) => void;
+
+  async start(): Promise<void> {}
+
+  async close(): Promise<void> {
+    this.onclose?.();
+  }
+
+  async send(message: JSONRPCMessage): Promise<void> {
+    if (!('method' in message) || !('id' in message)) {
+      return;
+    }
+
+    if (message.method === 'initialize') {
+      this.onmessage?.({
+        jsonrpc: '2.0',
+        id: message.id,
+        result: {
+          protocolVersion: LATEST_PROTOCOL_VERSION,
+          serverInfo: { name: 'hanging-test-server', version: '1.0.0' },
+          capabilities: { tools: {} },
+        },
+      });
+      return;
+    }
+
+    // tools/call is intentionally never answered to emulate a hung server.
+  }
+}
+
 vi.mock('./mcp-transport.ts', async importOriginal => {
   const actual = await importOriginal<typeof McpTransportModule>();
   return {
@@ -1657,6 +1690,46 @@ describe('MCPClient', () => {
     ).rejects.toSatisfy(
       error => error instanceof Error && error.name === 'AbortError',
     );
+  });
+
+  it('should reject an in-flight request when the signal aborts after send', async () => {
+    const transport = new HangingToolCallTransport();
+    client = await createMCPClient({ transport });
+
+    const abortController = new AbortController();
+    const resultPromise = client.callTool({
+      name: 'mock-tool',
+      arguments: { foo: 'bar' },
+      options: { signal: abortController.signal },
+    });
+
+    abortController.abort();
+
+    await expect(resultPromise).rejects.toThrowError('Request was aborted');
+  });
+
+  it('should not leak response handlers when a request is aborted', async () => {
+    const transport = new HangingToolCallTransport();
+    client = await createMCPClient({ transport });
+
+    const responseHandlers = (
+      client as unknown as { responseHandlers: Map<number, unknown> }
+    ).responseHandlers;
+
+    for (let i = 0; i < 5; i++) {
+      const abortController = new AbortController();
+      const resultPromise = client.callTool({
+        name: 'mock-tool',
+        arguments: { foo: 'bar' },
+        options: { signal: abortController.signal },
+      });
+
+      abortController.abort();
+
+      await expect(resultPromise).rejects.toThrowError('Request was aborted');
+    }
+
+    expect(responseHandlers.size).toBe(0);
   });
 
   describe('elicitation support', () => {
