@@ -445,9 +445,36 @@ export default async function AdminPage({
               className="mt-1 h-9 w-full rounded border border-gray-300 px-1 py-1 text-sm"
             />
           </label>
+
+          <h3 className="mt-4 text-xs font-semibold uppercase tracking-wide text-gray-400">
+            Integração WhatsApp
+          </h3>
+          <p className="text-xs text-gray-500">
+            Usado para enviar lembretes automáticos de consulta (Evolution API, Z-API ou compatível).
+          </p>
+          <label className="text-xs text-gray-500">
+            URL da instância
+            <input
+              name="whatsapp_instance_url"
+              placeholder="https://sua-instancia.exemplo.com/message/send"
+              defaultValue={clinicSettings?.whatsapp_instance_url ?? ''}
+              className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="text-xs text-gray-500">
+            Token da API
+            <input
+              name="whatsapp_api_token"
+              type="password"
+              placeholder="Token/apikey da instância"
+              defaultValue={clinicSettings?.whatsapp_api_token ?? ''}
+              className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            />
+          </label>
+
           <button
             type="submit"
-            className="self-start rounded bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+            className="mt-2 self-start rounded bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
           >
             Salvar dados da clínica
           </button>

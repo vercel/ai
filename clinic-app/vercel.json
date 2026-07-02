@@ -1,4 +1,10 @@
 {
   "installCommand": "npm install",
-  "buildCommand": "npm run build"
+  "buildCommand": "npm run build",
+  "crons": [
+    {
+      "path": "/api/cron/whatsapp-reminders",
+      "schedule": "0 * * * *"
+    }
+  ]
 }

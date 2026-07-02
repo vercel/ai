@@ -6,6 +6,13 @@ type CookieToSet = { name: string; value: string; options: CookieOptions };
 const PUBLIC_PATHS = ['/login', '/signup', '/suspended', '/p/', '/book/'];
 
 export async function updateSession(request: NextRequest) {
+  // API routes authenticate themselves (webhook/cron secrets, RLS-scoped
+  // portal tokens) — they must never get redirected to /login just because
+  // the caller (a cron job, a payment gateway) sends no session cookie.
+  if (request.nextUrl.pathname.startsWith('/api/')) {
+    return NextResponse.next({ request });
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(

@@ -308,6 +308,7 @@ export interface Appointment {
   notes: string | null;
   recurrence_series_id: string | null;
   recurrence_index: number | null;
+  whatsapp_reminder_sent_at: string | null;
   created_at: string;
 }
 
@@ -463,6 +464,8 @@ export interface ClinicSettings {
   logo_url: string | null;
   letterhead_url: string | null;
   primary_color: string | null;
+  whatsapp_instance_url: string | null;
+  whatsapp_api_token: string | null;
   updated_at: string;
 }
 

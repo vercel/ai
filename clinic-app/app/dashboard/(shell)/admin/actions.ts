@@ -172,6 +172,8 @@ export async function updateClinicSettings(formData: FormData) {
     logo_url: String(formData.get('logo_url') ?? '') || null,
     letterhead_url: String(formData.get('letterhead_url') ?? '') || null,
     primary_color: String(formData.get('primary_color') ?? '') || null,
+    whatsapp_instance_url: String(formData.get('whatsapp_instance_url') ?? '') || null,
+    whatsapp_api_token: String(formData.get('whatsapp_api_token') ?? '') || null,
     updated_at: new Date().toISOString(),
   };
 
