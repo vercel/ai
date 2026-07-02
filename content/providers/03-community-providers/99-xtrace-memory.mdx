@@ -1,0 +1,163 @@
+---
+title: 'XTrace Memory'
+description: 'Learn how to use the XTrace Memory AI SDK provider for the AI SDK.'
+---
+
+# XTrace Memory Provider
+
+The [XTrace Memory Provider](https://github.com/XTraceAI/memory-sdk-ts) is a library developed by [**XTrace**](https://xtrace.ai)
+to integrate with the AI SDK.
+This library lets you wrap any `LanguageModel` so it auto-searches your stored memory before each call
+and auto-ingests the turn after — giving any agent persistent memory across conversations and sessions.
+
+XTrace Memory is a hosted service that extracts structured **facts**, **artifacts**, and **episodes** from
+conversation messages and stores them in a per-org vector index, queryable with natural-language search
+and structured filters.
+
+## Setup
+
+The XTrace Memory provider lives at the `/ai-sdk` subpath of the `@xtraceai/memory` package. Install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @xtraceai/memory" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @xtraceai/memory" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @xtraceai/memory" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @xtraceai/memory" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+First, get your **API key** and **Org id** from [app.xtrace.ai](https://app.xtrace.ai) → Settings → API Keys.
+
+Then create the wrapper:
+
+```ts
+import { createXtraceMemory } from '@xtraceai/memory/ai-sdk';
+
+const xtrace = createXtraceMemory({
+  apiKey: process.env.XTRACE_API_KEY!,
+  orgId: process.env.XTRACE_ORG_ID!,
+  user_id: 'alice',
+  conv_id: 'conv_42',
+});
+```
+
+<Note>
+  Use `XTRACE_API_KEY` and `XTRACE_ORG_ID` as environment variables for security.
+</Note>
+
+## Usage
+
+### Memory-aware model wrapper (auto-context + auto-ingest)
+
+Wrap any `LanguageModel` and pass it to `streamText` / `generateText`. Before each call the wrapper
+searches memory using the latest user message and prepends results as a system block; after each call
+it ingests the (user, assistant) turn back into memory.
+
+```ts
+import { streamText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { createXtraceMemory } from '@xtraceai/memory/ai-sdk';
+
+const xtrace = createXtraceMemory({
+  apiKey: process.env.XTRACE_API_KEY!,
+  orgId: process.env.XTRACE_ORG_ID!,
+  user_id: 'alice',
+  conv_id: 'conv_42',
+});
+
+const result = streamText({
+  model: xtrace(openai('gpt-4o-mini')),
+  messages,
+});
+```
+
+The same wrapper works with `generateText`, `generateObject`, `streamObject`, and any other AI SDK
+function that takes a `LanguageModel`.
+
+### Memory as tools (LLM decides when to recall / save)
+
+Alternative pattern: expose memory as tools the LLM can call deliberately. Useful for agent loops where
+you want the model in control of memory access (and one search call per turn instead of every step).
+
+```ts
+import { streamText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { MemoryClient } from '@xtraceai/memory';
+import { memoryTools } from '@xtraceai/memory/ai-sdk';
+
+const client = new MemoryClient({
+  apiKey: process.env.XTRACE_API_KEY!,
+  orgId: process.env.XTRACE_ORG_ID!,
+});
+
+const result = streamText({
+  model: openai('gpt-4o-mini'),
+  tools: memoryTools(client, { user_id: 'alice', conv_id: 'conv_42' }),
+  messages,
+});
+```
+
+The model gets two tools:
+
+- `search_memory(query, limit?)` — natural-language search over the user's stored memory.
+- `save_memory(fact)` — save a durable fact about the user.
+
+Use `{ includeSave: false }` to make memory read-only from the model's perspective.
+
+## Configuration
+
+`createXtraceMemory` accepts:
+
+| Option            | Type             | Description                                                                          |
+| ----------------- | ---------------- | ------------------------------------------------------------------------------------ |
+| `apiKey`          | `string`         | XTrace API key (`xtk_…`). Required.                                                  |
+| `orgId`           | `string`         | XTrace organization id. Required.                                                    |
+| `user_id`         | `string`         | Memories are scoped to this user. Required.                                          |
+| `conv_id`         | `string`         | Conversation anchor for ingests. Required.                                           |
+| `baseUrl`         | `string?`        | Override the XTrace base URL. Defaults to production.                                |
+| `searchLimit`     | `number?`        | How many memories to fetch as context per turn. Default `8`.                         |
+| `injectContext`   | `boolean?`       | Whether to inject retrieved memories as a system message. Default `true`.            |
+| `autoIngest`      | `boolean?`       | Whether to ingest the user+assistant turn after each completion. Default `true`.     |
+| `client`          | `MemoryClient?`  | Inject an existing `MemoryClient` instance instead of building one.                  |
+
+`memoryTools` accepts:
+
+| Option         | Type         | Description                                                                |
+| -------------- | ------------ | -------------------------------------------------------------------------- |
+| `user_id`      | `string`     | Scope memory searches and ingests to this user. Required.                  |
+| `conv_id`     | `string`     | Scope ingests to this conversation. Required.                              |
+| `searchLimit`  | `number?`    | Default per-call search limit. Default `5`.                                |
+| `includeSave`  | `boolean?`   | Whether to expose `save_memory` to the model. Default `true`.              |
+
+## Best Practices
+
+- **User identification**: use a stable `user_id` so memories accumulate across sessions for the same person.
+- **Conversation anchoring**: pick a `conv_id` that represents a meaningful unit of discourse. Episodes
+  are summarized per conversation.
+- **Agent loops**: if you're running multi-step agents (tool calls + reasoning), prefer `memoryTools`
+  over `createXtraceMemory`. The wrapper searches on every step using the same user message, which is
+  wasteful in long loops.
+- **Sensitive data**: never ingest raw API keys, passwords, or other secrets. The extraction layer
+  doesn't strip them.
+
+## Help
+
+- For more details on the AI SDK, visit the [Vercel AI SDK documentation](/docs/introduction).
+- For XTrace Memory documentation, see [docs.mem.xtrace.ai](https://docs.mem.xtrace.ai).
+- For issues with the provider, file an issue at [XTraceAI/memory-sdk-ts](https://github.com/XTraceAI/memory-sdk-ts/issues).
+
+## References
+
+- [XTrace Memory documentation](https://docs.mem.xtrace.ai)
+- [API Reference](https://docs.mem.xtrace.ai/api-reference)
+- [SDK on npm](https://www.npmjs.com/package/@xtraceai/memory)
+- [SDK source on GitHub](https://github.com/XTraceAI/memory-sdk-ts)
