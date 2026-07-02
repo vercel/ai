@@ -241,6 +241,87 @@ describe('doGenerate', () => {
     );
   });
 
+  it('should poll when sync-wait returns starting with null output', async () => {
+    const fetchCalls: Array<{ url: string; method: string }> = [];
+    const imageBytes = Buffer.from('test-binary-content');
+    const pollUrl =
+      'https://api.replicate.com/v1/predictions/s7x1e3dcmhrmc0cm8rbatcneec';
+    const imageUrl = 'https://replicate.delivery/xezq/abc/out-0.webp';
+
+    const modelWithFetch = new ReplicateImageModel(
+      'black-forest-labs/flux-dev',
+      {
+        provider: 'replicate',
+        baseURL: 'https://api.replicate.com/v1',
+        headers: { authorization: 'Bearer test-api-token' },
+        fetch: async (url, options) => {
+          const requestUrl = url.toString();
+          const method = options?.method ?? 'GET';
+          fetchCalls.push({ url: requestUrl, method });
+
+          if (method === 'POST') {
+            return new Response(
+              JSON.stringify({
+                id: 's7x1e3dcmhrmc0cm8rbatcneec',
+                model: 'black-forest-labs/flux-dev',
+                status: 'starting',
+                output: null,
+                error: null,
+                urls: {
+                  get: pollUrl,
+                },
+              }),
+              {
+                status: 201,
+                headers: { 'content-type': 'application/json' },
+              },
+            );
+          }
+
+          if (requestUrl === pollUrl) {
+            return Response.json({
+              id: 's7x1e3dcmhrmc0cm8rbatcneec',
+              model: 'black-forest-labs/flux-dev',
+              status: 'succeeded',
+              output: [imageUrl],
+              error: null,
+              urls: {
+                get: pollUrl,
+              },
+            });
+          }
+
+          if (requestUrl === imageUrl) {
+            return new Response(imageBytes);
+          }
+
+          return new Response('not found', { status: 404 });
+        },
+      },
+    );
+
+    const result = await modelWithFetch.doGenerate({
+      prompt,
+      files: undefined,
+      mask: undefined,
+      n: 1,
+      size: '1024x1024',
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {},
+    });
+
+    expect(result.images).toStrictEqual([new Uint8Array(imageBytes)]);
+    expect(fetchCalls).toStrictEqual([
+      {
+        method: 'POST',
+        url: 'https://api.replicate.com/v1/models/black-forest-labs/flux-dev/predictions',
+      },
+      { method: 'GET', url: pollUrl },
+      { method: 'GET', url: imageUrl },
+    ]);
+  });
+
   it('should return response metadata', async () => {
     const modelWithTimestamp = new ReplicateImageModel(
       'black-forest-labs/flux-schnell',
