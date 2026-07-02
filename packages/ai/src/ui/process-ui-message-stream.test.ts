@@ -7757,6 +7757,75 @@ describe('processUIMessageStream', () => {
     });
   });
 
+  describe('automatic tool approval signature preservation', () => {
+    beforeEach(async () => {
+      const stream = createUIMessageStream([
+        { type: 'start' },
+        { type: 'start-step' },
+        {
+          input: {
+            value: 'value',
+          },
+          toolCallId: 'call-1',
+          toolName: 'tool1',
+          type: 'tool-input-available',
+        },
+        {
+          approvalId: 'id-1',
+          isAutomatic: true,
+          signature: 'test-signature',
+          toolCallId: 'call-1',
+          type: 'tool-approval-request',
+        },
+        {
+          approvalId: 'id-1',
+          approved: true,
+          type: 'tool-approval-response',
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+    });
+
+    it('should keep signature through approval response', () => {
+      expect(writeCalls.map(call => call.message.parts[1])).toMatchObject([
+        {}, // tool-input-available
+        {
+          approval: {
+            id: 'id-1',
+            isAutomatic: true,
+            signature: 'test-signature',
+          },
+          state: 'approval-requested',
+        },
+        {
+          approval: {
+            id: 'id-1',
+            approved: true,
+            isAutomatic: true,
+            signature: 'test-signature',
+          },
+          state: 'approval-responded',
+        },
+      ]);
+    });
+  });
+
   describe('automatic tool approval denial (static tool)', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
