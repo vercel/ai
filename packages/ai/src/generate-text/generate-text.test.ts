@@ -9423,6 +9423,77 @@ describe('generateText', () => {
         `);
       });
     });
+
+    it('should expose malformed JSON tool input as an object in public results and next-step messages', async () => {
+      const malformedInput = '{ "city": "San Francisco", }';
+      const prepareStepResponseMessages: Array<ModelMessage[]> = [];
+
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: [
+            {
+              ...dummyResponseValues,
+              finishReason: { unified: 'tool-calls', raw: undefined },
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'cityAttractions',
+                  input: malformedInput,
+                },
+              ],
+            },
+            {
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: 'Done.' }],
+            },
+          ],
+        }),
+        tools: {
+          cityAttractions: tool({
+            inputSchema: z.object({ city: z.string() }),
+          }),
+        },
+        prompt: 'What are the tourist attractions in San Francisco?',
+        stopWhen: isStepCount(2),
+        prepareStep: ({ responseMessages, stepNumber }) => {
+          if (stepNumber === 1) {
+            prepareStepResponseMessages.push([...responseMessages]);
+          }
+
+          return undefined;
+        },
+      });
+
+      expect(result.steps).toHaveLength(2);
+      expect(result.toolCalls[0]).toMatchObject({
+        dynamic: true,
+        invalid: true,
+        input: { rawInvalidInput: malformedInput },
+      });
+      expect(result.content[0]).toMatchObject({
+        type: 'tool-call',
+        input: { rawInvalidInput: malformedInput },
+      });
+      expect(result.responseMessages[0]).toMatchObject({
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            input: { rawInvalidInput: malformedInput },
+          },
+        ],
+      });
+      expect(prepareStepResponseMessages[0][0]).toMatchObject({
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            input: { rawInvalidInput: malformedInput },
+          },
+        ],
+      });
+    });
   });
 
   describe('tools with preliminary results', () => {
