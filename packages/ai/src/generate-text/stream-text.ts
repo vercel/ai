@@ -1729,6 +1729,25 @@ class DefaultStreamTextResult<
 
       self._initialResponseMessages.resolve(initialResponseMessages);
 
+      const usedTextPartIds = new Set<string>();
+      const activeTextPartIdMappings = new Map<string, string>();
+      let nextTextPartIndex = 0;
+
+      function getTextPartId(providerTextPartId: string): string {
+        if (!usedTextPartIds.has(providerTextPartId)) {
+          usedTextPartIds.add(providerTextPartId);
+          return providerTextPartId;
+        }
+
+        let textPartId: string;
+        do {
+          textPartId = `txt-${nextTextPartIndex++}`;
+        } while (usedTextPartIds.has(textPartId));
+
+        usedTextPartIds.add(textPartId);
+        return textPartId;
+      }
+
       async function streamStep({
         currentStep,
         usage,
@@ -2076,8 +2095,6 @@ class DefaultStreamTextResult<
                     case 'file':
                     case 'custom':
                     case 'source':
-                    case 'text-start':
-                    case 'text-end':
                     case 'reasoning-start':
                     case 'reasoning-end':
                     case 'reasoning-delta':
@@ -2090,10 +2107,30 @@ class DefaultStreamTextResult<
                       break;
                     }
 
+                    case 'text-start': {
+                      const id = getTextPartId(chunk.id);
+                      activeTextPartIdMappings.set(chunk.id, id);
+                      controller.enqueue({ ...chunk, id });
+                      break;
+                    }
+
                     case 'text-delta': {
                       if (chunk.text.length > 0) {
-                        controller.enqueue(chunk);
+                        controller.enqueue({
+                          ...chunk,
+                          id:
+                            activeTextPartIdMappings.get(chunk.id) ?? chunk.id,
+                        });
                       }
+                      break;
+                    }
+
+                    case 'text-end': {
+                      controller.enqueue({
+                        ...chunk,
+                        id: activeTextPartIdMappings.get(chunk.id) ?? chunk.id,
+                      });
+                      activeTextPartIdMappings.delete(chunk.id);
                       break;
                     }
 
