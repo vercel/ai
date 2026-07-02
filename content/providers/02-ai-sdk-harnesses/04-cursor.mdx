@@ -1,0 +1,181 @@
+---
+title: Cursor
+description: Learn how to use the Cursor harness adapter.
+---
+
+# Cursor Harness
+
+The Cursor harness adapter connects `HarnessAgent` to Cursor through
+`@cursor/sdk`. The adapter runs a bridge inside the sandbox that drives a
+**local** Cursor agent (`local.cwd = sessionWorkDir`) and streams SDK events
+back to the host over a sandbox-exposed WebSocket.
+
+<Note>
+  Harness packages are **experimental**. Expect breaking changes between
+  releases as this early API gets further refined.
+</Note>
+
+<Note>
+  v1 supports **local Cursor agents only**. Cloud Cursor VMs are not integrated
+  with the AI SDK sandbox model.
+</Note>
+
+## Setup
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet
+      text="pnpm add @ai-sdk/harness@beta @ai-sdk/harness-cursor@beta @ai-sdk/sandbox-vercel@beta"
+      dark
+    />
+  </Tab>
+  <Tab>
+    <Snippet
+      text="npm install @ai-sdk/harness@beta @ai-sdk/harness-cursor@beta @ai-sdk/sandbox-vercel@beta"
+      dark
+    />
+  </Tab>
+  <Tab>
+    <Snippet
+      text="yarn add @ai-sdk/harness@beta @ai-sdk/harness-cursor@beta @ai-sdk/sandbox-vercel@beta"
+      dark
+    />
+  </Tab>
+  <Tab>
+    <Snippet
+      text="bun add @ai-sdk/harness@beta @ai-sdk/harness-cursor@beta @ai-sdk/sandbox-vercel@beta"
+      dark
+    />
+  </Tab>
+</Tabs>
+
+The adapter bootstraps `@cursor/sdk` inside the sandbox when the first session
+starts.
+
+## Import
+
+```ts
+import { cursor, createCursor } from '@ai-sdk/harness-cursor';
+```
+
+`cursor` is equivalent to `createCursor()` with its default configuration.
+
+## Basic Usage
+
+```ts
+import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { cursor } from '@ai-sdk/harness-cursor';
+import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+
+const agent = new HarnessAgent({
+  harness: cursor,
+  sandbox: createVercelSandbox({
+    runtime: 'node24',
+    ports: [4000],
+  }),
+});
+
+const session = await agent.createSession();
+
+let exitCode = 0;
+try {
+  const result = await agent.stream({
+    session,
+    prompt: 'Summarize README.md in two sentences.',
+  });
+
+  for await (const part of result.stream) {
+    if (part.type === 'text-delta') {
+      process.stdout.write(part.text);
+    }
+  }
+} catch (err) {
+  exitCode = 1;
+  console.error(err);
+} finally {
+  await session.destroy();
+  process.exit(exitCode);
+}
+```
+
+Set `CURSOR_API_KEY` on the host and `VERCEL_OIDC_TOKEN` (or equivalent) for
+the sandbox provider.
+
+## Adapter Settings
+
+```ts
+const harness = createCursor({
+  model: 'composer-2.5',
+  auth: { apiKey: process.env.CURSOR_API_KEY },
+});
+```
+
+Settings:
+
+- `auth.apiKey`: explicit Cursor API key override.
+- `model`: Cursor model id. Defaults to `composer-2.5`.
+- `port`: bridge port override.
+- `startupTimeoutMs`: maximum time to wait for the bridge to start.
+
+## Authentication
+
+The adapter forwards `CURSOR_API_KEY` to the sandbox bridge. Resolve it from
+the host environment or pass `createCursor({ auth: { apiKey } })`.
+
+## Sandbox
+
+Cursor requires a network sandbox with at least one exposed port and Node.js
+≥ 22.13:
+
+```ts
+const sandbox = createVercelSandbox({
+  runtime: 'node24',
+  ports: [4000],
+});
+```
+
+The sandbox must be able to reach the Cursor API and run Linux x64 `@cursor/sdk`
+binaries.
+
+## Built-in Tools
+
+Common Cursor built-ins exposed through `agent.tools`:
+
+- `read`, `write`, `edit`, `bash`, `grep`, `glob`
+- `ls`, `semSearch` (Cursor-native names)
+
+Custom host tools are mapped through Cursor `local.customTools` in the
+bridge — no MCP shim is required.
+
+Built-in interactive tool approval is not supported in v1. When
+`permissionMode` is not `'allow-all'`, the adapter enables Cursor
+`autoReview` as a best-effort safety gate. Host-executed AI SDK tool approvals
+still work.
+
+Use `activeTools` or `inactiveTools` on `HarnessAgent` to filter built-in tools.
+The adapter denies inactive built-in calls via auto-rejection in the bridge
+stream. Because Cursor executes built-ins inside `@cursor/sdk`, filtering is
+best-effort and may not prevent side effects that occur before the denial is
+observed.
+
+## Known Limitations
+
+Cursor does not support interactive built-in tool approval requests. Use
+`permissionMode: 'allow-all'` when you need the adapter to avoid enabling
+`autoReview`. Host-executed AI SDK tool approvals still work.
+
+Built-in tool filtering is enforced via auto-rejection rather than native SDK
+tool disable controls. Filtering inactive built-ins such as `bash` or `read`
+works for stream and tool-result semantics, but may not block every side effect
+inside the Cursor runtime.
+
+## Skills
+
+When you pass `skills` on `HarnessAgent`, the adapter writes them to
+`$HOME/.cursor/skills/` in the sandbox (outside `sessionWorkDir`).
+
+## Related
+
+- [HarnessAgent](/docs/ai-sdk-harnesses/harness-agent)
+- [Harness tools](/docs/ai-sdk-harnesses/tools)
+- [Harness adapters](/docs/ai-sdk-harnesses/harness-adapters)
