@@ -115,7 +115,10 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   const customTools = buildCustomTools(start.tools, turn, emit);
   const prompt = composePrompt(start.prompt, start.instructions);
 
-  const translator = createCursorTranslatorState(hostToolNames);
+  const translator = createCursorTranslatorState(
+    hostToolNames,
+    start.builtinToolFiltering,
+  );
 
   try {
     const run = await agent.send(prompt, {

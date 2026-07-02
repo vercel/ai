@@ -2,6 +2,7 @@ import {
   HarnessCapabilityUnsupportedError,
   type HarnessV1NetworkSandboxSession,
 } from '@ai-sdk/harness';
+import { HarnessAgent } from '@ai-sdk/harness/agent';
 import type * as NodeFsPromises from 'node:fs/promises';
 import { describe, expect, it, vi } from 'vitest';
 import { createCursor } from './cursor-harness';
@@ -27,7 +28,7 @@ describe('createCursor adapter', () => {
     const harness = createCursor();
     expect(harness.harnessId).toBe('cursor');
     expect(harness.specificationVersion).toBe('harness-v1');
-    expect(harness.supportsBuiltinToolApprovals).toBe(false);
+    expect(harness.supportsBuiltinToolApprovals).toBe(true);
     expect(Object.keys(harness.builtinTools)).toEqual([
       'read',
       'write',
@@ -40,6 +41,43 @@ describe('createCursor adapter', () => {
     ]);
     expect(harness.builtinTools.bash.nativeName).toBe('shell');
     expect(harness.builtinTools.bash.commonName).toBe('bash');
+  });
+
+  it('allows built-in tool filtering controls via approvals capability', () => {
+    const harness = createCursor();
+    expect(
+      () =>
+        new HarnessAgent({
+          harness,
+          inactiveTools: ['bash'],
+          sandbox: {
+            specificationVersion: 'harness-sandbox-v1',
+            providerId: 'mock-sandbox',
+            createSession: async () =>
+              ({
+                id: 'sandbox',
+                defaultWorkingDirectory: '/vercel/sandbox',
+                ports: [4000],
+                restricted: () => ({}) as never,
+                async getPortUrl() {
+                  return 'ws://127.0.0.1:4000';
+                },
+                async stop() {},
+              }) as unknown as HarnessV1NetworkSandboxSession,
+            resumeSession: async () =>
+              ({
+                id: 'sandbox',
+                defaultWorkingDirectory: '/vercel/sandbox',
+                ports: [4000],
+                restricted: () => ({}) as never,
+                async getPortUrl() {
+                  return 'ws://127.0.0.1:4000';
+                },
+                async stop() {},
+              }) as unknown as HarnessV1NetworkSandboxSession,
+          },
+        }),
+    ).not.toThrow(HarnessCapabilityUnsupportedError);
   });
 
   it('throws HarnessCapabilityUnsupportedError when the network sandbox session exposes no ports', async () => {

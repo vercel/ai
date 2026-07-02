@@ -87,6 +87,54 @@ describe('translateCursorStreamEvent', () => {
     });
   });
 
+  it('denies inactive built-in tools at stream time', () => {
+    const emitted: Array<Record<string, unknown>> = [];
+    const state = createCursorTranslatorState([], {
+      mode: 'deny',
+      toolNames: ['bash'],
+    });
+    translateCursorStreamEvent(
+      {
+        type: 'tool_call',
+        call_id: 'c-deny',
+        name: 'shell',
+        status: 'running',
+        args: { command: 'ls' },
+      },
+      state,
+      msg => emitted.push(msg),
+    );
+    translateCursorStreamEvent(
+      {
+        type: 'tool_call',
+        call_id: 'c-deny',
+        name: 'shell',
+        status: 'completed',
+        result: 'should be ignored',
+      },
+      state,
+      msg => emitted.push(msg),
+    );
+    expect(emitted).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'c-deny',
+        toolName: 'bash',
+        nativeName: 'shell',
+        input: '{"command":"ls"}',
+        providerExecuted: true,
+      },
+      {
+        type: 'tool-result',
+        toolCallId: 'c-deny',
+        toolName: 'bash',
+        result:
+          "Tool 'bash' is inactive due to the HarnessAgent tool filtering policy.",
+        isError: true,
+      },
+    ]);
+  });
+
   it('marks host tools as not provider-executed', () => {
     const emitted: Array<Record<string, unknown>> = [];
     const state = createCursorTranslatorState(['deploy']);

@@ -62,5 +62,6 @@ Harness-provided skills are written to `$HOME/.cursor/skills/` in the sandbox (n
 
 - **Local agents only** — cloud Cursor VMs are not supported
 - **No interactive built-in tool approval** — `permissionMode` maps to Cursor `autoReview` only
+- **Built-in tool filtering via auto-rejection** — `activeTools` / `inactiveTools` deny inactive built-ins in the bridge stream; may not prevent all SDK side effects
 - **Cursor-hosted models** — inference goes through the Cursor API (`CURSOR_API_KEY`)
 - **No manual compaction**

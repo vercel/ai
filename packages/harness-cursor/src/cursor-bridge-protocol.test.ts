@@ -63,6 +63,7 @@ describe('inboundMessageSchema', () => {
         model: 'composer-2.5',
         resumeAgentId: 'agent-abc',
         autoReview: true,
+        builtinToolFiltering: { mode: 'deny', toolNames: ['bash'] },
       }),
     ).not.toThrow();
   });

@@ -1,31 +1,15 @@
-import type { HarnessV1BuiltinToolName } from '@ai-sdk/harness';
+import type { HarnessV1BuiltinToolFiltering } from '@ai-sdk/harness';
 import { randomUUID } from 'node:crypto';
+import {
+  getCursorBuiltinToolFilteringDenialReason,
+  isCursorBuiltinToolIncluded,
+  toCursorCommonName,
+} from './cursor-tool-filtering';
 
-/**
- * Cursor native tool name → cross-harness common name.
- */
-export const CURSOR_NATIVE_TO_COMMON: Readonly<
-  Partial<Record<string, HarnessV1BuiltinToolName>>
-> = {
-  shell: 'bash',
-  Shell: 'bash',
-  read: 'read',
-  Read: 'read',
-  write: 'write',
-  Write: 'write',
-  edit: 'edit',
-  Edit: 'edit',
-  grep: 'grep',
-  Grep: 'grep',
-  glob: 'glob',
-  Glob: 'glob',
-};
-
-export function toCursorCommonName(
-  nativeName: string,
-): HarnessV1BuiltinToolName | string {
-  return CURSOR_NATIVE_TO_COMMON[nativeName] ?? nativeName;
-}
+export {
+  CURSOR_NATIVE_TO_COMMON,
+  toCursorCommonName,
+} from './cursor-tool-filtering';
 
 export type CursorStreamEvent = {
   type: string;
@@ -48,20 +32,25 @@ export type CursorEmit = (msg: Record<string, unknown>) => void;
 
 export type CursorTranslatorState = {
   readonly hostToolNames: ReadonlySet<string>;
+  readonly builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
   textBlockId: string | undefined;
   reasoningBlockId: string | undefined;
   emittedToolCalls: Set<string>;
+  deniedToolCalls: Set<string>;
   streamStarted: boolean;
 };
 
 export function createCursorTranslatorState(
   hostToolNames: ReadonlyArray<string> = [],
+  builtinToolFiltering?: HarnessV1BuiltinToolFiltering,
 ): CursorTranslatorState {
   return {
     hostToolNames: new Set(hostToolNames),
+    builtinToolFiltering,
     textBlockId: undefined,
     reasoningBlockId: undefined,
     emittedToolCalls: new Set(),
+    deniedToolCalls: new Set(),
     streamStarted: false,
   };
 }
@@ -119,6 +108,13 @@ export function translateCursorStreamEvent(
       if (event.status === 'running') {
         if (state.emittedToolCalls.has(callId)) return;
         state.emittedToolCalls.add(callId);
+        const isInactiveBuiltin =
+          !isHostTool &&
+          !isCursorBuiltinToolIncluded({
+            nativeName,
+            hostToolNames: state.hostToolNames,
+            toolFiltering: state.builtinToolFiltering,
+          });
         emit({
           type: 'tool-call',
           toolCallId: callId,
@@ -127,8 +123,20 @@ export function translateCursorStreamEvent(
           input: safeStringify(event.args ?? {}),
           providerExecuted: !isHostTool,
         });
+        if (isInactiveBuiltin) {
+          state.deniedToolCalls.add(callId);
+          emit({
+            type: 'tool-result',
+            toolCallId: callId,
+            toolName: commonName,
+            result: getCursorBuiltinToolFilteringDenialReason({ nativeName }),
+            isError: true,
+          });
+        }
         return;
       }
+
+      if (state.deniedToolCalls.has(callId)) return;
 
       if (event.status === 'completed' || event.status === 'error') {
         emit({
