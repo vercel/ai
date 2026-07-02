@@ -4,7 +4,18 @@ import type {
   LanguageModelV3ToolResultOutput,
   SharedV3Warning,
 } from '@ai-sdk/provider';
+<<<<<<< HEAD
 import { convertToBase64 } from '@ai-sdk/provider-utils';
+=======
+import {
+  convertToBase64,
+  getTopLevelMediaType,
+  isFullMediaType,
+  resolveFullMediaType,
+  resolveProviderReference,
+  secureJsonParse,
+} from '@ai-sdk/provider-utils';
+>>>>>>> c6f5e624a (fix: Raw `JSON.parse` used in production provider code (prototype pollution risk) (#16579))
 import type {
   GoogleInteractionsContent,
   GoogleInteractionsContentBlock,
@@ -372,7 +383,7 @@ function compactPromptForPreviousInteraction({
 
 function safeParseToolArgs(input: string): Record<string, unknown> {
   try {
-    const parsed = JSON.parse(input);
+    const parsed = secureJsonParse(input);
     if (
       parsed != null &&
       typeof parsed === 'object' &&

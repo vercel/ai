@@ -24,6 +24,14 @@ import {
   parseProviderOptions,
   postJsonToApi,
   resolve,
+<<<<<<< HEAD:packages/anthropic/src/anthropic-messages-language-model.ts
+=======
+  resolveProviderReference,
+  secureJsonParse,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+>>>>>>> c6f5e624a (fix: Raw `JSON.parse` used in production provider code (prototype pollution risk) (#16579)):packages/anthropic/src/anthropic-language-model.ts
   type FetchFunction,
   type InferSchema,
   type ParseResult,
@@ -2078,7 +2086,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                         contentBlock.input === '' ? '{}' : contentBlock.input;
                       if (contentBlock.providerToolName === 'code_execution') {
                         try {
-                          const parsed = JSON.parse(finalInput);
+                          const parsed = secureJsonParse(finalInput);
                           if (
                             parsed != null &&
                             typeof parsed === 'object' &&

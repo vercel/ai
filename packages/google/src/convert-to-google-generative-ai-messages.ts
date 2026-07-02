@@ -3,7 +3,18 @@ import {
   type LanguageModelV3Prompt,
   type SharedV3Warning,
 } from '@ai-sdk/provider';
+<<<<<<< HEAD:packages/google/src/convert-to-google-generative-ai-messages.ts
 import { convertToBase64 } from '@ai-sdk/provider-utils';
+=======
+import {
+  convertToBase64,
+  getTopLevelMediaType,
+  isFullMediaType,
+  resolveFullMediaType,
+  resolveProviderReference,
+  secureJsonParse,
+} from '@ai-sdk/provider-utils';
+>>>>>>> c6f5e624a (fix: Raw `JSON.parse` used in production provider code (prototype pollution risk) (#16579)):packages/google/src/convert-to-google-messages.ts
 import type {
   GoogleGenerativeAIContent,
   GoogleGenerativeAIContentPart,
@@ -385,7 +396,7 @@ export function convertToGoogleGenerativeAIMessages(
                         toolType: serverToolType,
                         args:
                           typeof part.input === 'string'
-                            ? JSON.parse(part.input)
+                            ? secureJsonParse(part.input)
                             : part.input,
                         id: serverToolCallId,
                       },

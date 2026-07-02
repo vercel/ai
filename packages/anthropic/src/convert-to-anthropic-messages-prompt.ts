@@ -9,10 +9,18 @@ import {
 import {
   convertBase64ToUint8Array,
   convertToBase64,
+<<<<<<< HEAD:packages/anthropic/src/convert-to-anthropic-messages-prompt.ts
   parseProviderOptions,
   safeParseJSON,
-  validateTypes,
+=======
+  getTopLevelMediaType,
   isNonNullable,
+  parseProviderOptions,
+  resolveFullMediaType,
+  resolveProviderReference,
+  secureJsonParse,
+>>>>>>> c6f5e624a (fix: Raw `JSON.parse` used in production provider code (prototype pollution risk) (#16579)):packages/anthropic/src/convert-to-anthropic-prompt.ts
+  validateTypes,
   type ToolNameMapping,
 } from '@ai-sdk/provider-utils';
 import {
@@ -74,6 +82,7 @@ function getUrlString(data: LanguageModelV3DataContent): string {
  * Extract error information from a provider tool error result value.
  * Handles both stringified JSON and plain object forms.
  */
+<<<<<<< HEAD:packages/anthropic/src/convert-to-anthropic-messages-prompt.ts
 async function extractErrorValue(
   value: unknown,
 ): Promise<{ errorCode?: string }> {
@@ -86,6 +95,14 @@ async function extractErrorValue(
       result.value !== null
     ) {
       return result.value as { errorCode?: string };
+=======
+function extractErrorValue(value: unknown): { errorCode?: string } {
+  try {
+    if (typeof value === 'string') {
+      return secureJsonParse(value);
+    } else if (typeof value === 'object' && value !== null) {
+      return value as { errorCode?: string };
+>>>>>>> c6f5e624a (fix: Raw `JSON.parse` used in production provider code (prototype pollution risk) (#16579)):packages/anthropic/src/convert-to-anthropic-prompt.ts
     }
 
     return {
@@ -767,7 +784,7 @@ export async function convertToAnthropicMessagesPrompt({
                     let errorInfo: { type?: string; errorCode?: string } = {};
                     try {
                       if (typeof output.value === 'string') {
-                        errorInfo = JSON.parse(output.value);
+                        errorInfo = secureJsonParse(output.value);
                       } else if (
                         typeof output.value === 'object' &&
                         output.value !== null
