@@ -186,7 +186,7 @@ export class HttpMCPTransport implements MCPTransport {
     }
     this.abortController = new AbortController();
 
-    void this.openInboundSse();
+    this.openInboundSseSafely();
   }
 
   async close(): Promise<void> {
@@ -260,7 +260,7 @@ export class HttpMCPTransport implements MCPTransport {
           // If inbound SSE was not available earlier (e.g. 405 before init), try again now
           // Do not await to avoid blocking send()
           if (!this.inboundSseConnection) {
-            void this.openInboundSse();
+            this.openInboundSseSafely();
           }
           return;
         }
@@ -357,7 +357,7 @@ export class HttpMCPTransport implements MCPTransport {
             }
           };
 
-          processEvents();
+          processEvents().catch(error => this.onerror?.(error));
           return;
         }
 
@@ -404,8 +404,24 @@ export class HttpMCPTransport implements MCPTransport {
     this.inboundReconnectAttempts += 1;
     setTimeout(async () => {
       if (this.abortController?.signal.aborted) return;
-      await this.openInboundSse(false, this.lastInboundEventId);
+      await this.openInboundSse(false, this.lastInboundEventId).catch(error =>
+        this.handleInboundSseError(error),
+      );
     }, delay);
+  }
+
+  private openInboundSseSafely(): void {
+    this.openInboundSse().catch(error => this.handleInboundSseError(error));
+  }
+
+  private handleInboundSseError(error: unknown): void {
+    if (error instanceof Error && error.name === 'AbortError') {
+      return;
+    }
+    this.onerror?.(error);
+    if (!this.abortController?.signal.aborted) {
+      this.scheduleInboundSseReconnection();
+    }
   }
 
   // Open optional inbound SSE stream; best-effort and resumable
@@ -515,15 +531,9 @@ export class HttpMCPTransport implements MCPTransport {
         close: () => reader.cancel(),
       };
       this.inboundReconnectAttempts = 0;
-      processEvents();
+      processEvents().catch(error => this.handleInboundSseError(error));
     } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        return;
-      }
-      this.onerror?.(error);
-      if (!this.abortController?.signal.aborted) {
-        this.scheduleInboundSseReconnection();
-      }
+      this.handleInboundSseError(error);
     }
   }
 }

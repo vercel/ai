@@ -577,6 +577,37 @@ describe('HttpMCPTransport', () => {
     expect(error.message).toContain('GET SSE failed');
   });
 
+  it('should route background inbound SSE rejections to onerror', async () => {
+    const networkError = new TypeError('terminated');
+    const fetchFn = vi.fn(async () => {
+      throw networkError;
+    });
+
+    transport = new HttpMCPTransport({
+      url: 'http://localhost:4000/mcp',
+      fetch: fetchFn,
+    });
+
+    const errors: unknown[] = [];
+    transport.onerror = error => {
+      errors.push(error);
+    };
+
+    await expect(transport.start()).resolves.toBeUndefined();
+
+    await vi.waitFor(() => {
+      expect(errors).toContain(networkError);
+    });
+
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(1000);
+    await vi.waitFor(() => {
+      expect(fetchFn).toHaveBeenCalledTimes(2);
+    });
+    expect(errors).toContain(networkError);
+  });
+
   it('should handle inbound SSE messages without explicit event field', async () => {
     const controller = new TestResponseController();
     server.urls['http://localhost:4000/mcp'].response = {
