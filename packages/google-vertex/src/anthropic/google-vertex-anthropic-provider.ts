@@ -224,10 +224,10 @@ export function createGoogleVertexAnthropic(
       },
       // Google Vertex Anthropic doesn't support URL sources, force download and base64 conversion
       supportedUrls: () => ({}),
-      // force the use of JSON tool fallback for structured outputs since beta header isn't supported
-      supportsNativeStructuredOutput: false,
-      // Vertex Anthropic doesn't support strict mode on tool definitions.
-      supportsStrictTools: false,
+      // Vertex Anthropic supports native structured outputs.
+      supportsNativeStructuredOutput: true,
+      // Vertex Anthropic supports strict mode on tool definitions.
+      supportsStrictTools: true,
     });
 
   const provider = function (modelId: GoogleVertexAnthropicModelId) {

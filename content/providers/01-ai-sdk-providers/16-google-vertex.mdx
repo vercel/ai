@@ -1687,6 +1687,12 @@ and support structured data generation with [`Output`](/docs/reference/ai-sdk-co
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
 <Note>
+  For projects in a Google Cloud organization, you must enable the
+  [`structured_outputs` partner model feature](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/control-model-access#enable-structured-outputs)
+  for the model to use native structured outputs or strict tools.
+</Note>
+
+<Note>
   The Anthropic API returns streaming tool calls all at once after a delay. This
   causes structured output generation to complete fully after a delay instead of
   streaming incrementally.
@@ -1835,9 +1841,8 @@ Google Vertex Anthropic supports a subset of Anthropic's built-in tools. The fol
 </Note>
 
 <Note>
-  Google Vertex Anthropic does not support strict mode on tool definitions.
-  Setting `strict: true` on a tool will be ignored and a warning will be
-  emitted.
+  Google Vertex Anthropic supports strict mode on tool definitions. Setting
+  `strict: true` on a tool passes the strict setting through to Vertex.
 </Note>
 
 For more background on Anthropic tools, see [Anthropic's documentation](https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview).
