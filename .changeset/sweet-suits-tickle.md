@@ -2,4 +2,4 @@
 "@ai-sdk/mcp": patch
 ---
 
-feat(mcp): export the json-rpc schema for requests and response
+feat(mcp): expose a json-rpc message validator
