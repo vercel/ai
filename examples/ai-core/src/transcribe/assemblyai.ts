@@ -5,7 +5,7 @@ import { readFile } from 'fs/promises';
 
 async function main() {
   const result = await transcribe({
-    model: assemblyai.transcription('best'),
+    model: assemblyai.transcription('universal-3-5-pro'),
     audio: await readFile('data/galileo.mp3'),
   });
 
