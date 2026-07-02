@@ -160,22 +160,34 @@ export async function POST(req: Request) {
 ```tsx
 'use client';
 
+import { useState } from 'react';
+import { DefaultChatTransport } from 'ai';
 import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat({
-    api: '/api/chat',
+  const [input, setInput] = useState('');
+  const { messages, sendMessage } = useChat({
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+    }),
   });
+
+  const handleSubmit = event => {
+    event.preventDefault();
+    sendMessage({ text: input });
+    setInput('');
+  };
 
   return (
     <div>
       {messages.map(m => (
         <div key={m.id}>
-          {m.role}: {m.content}
+          {m.role}:{' '}
+          {m.parts.map(part => (part.type === 'text' ? part.text : null))}
         </div>
       ))}
       <form onSubmit={handleSubmit}>
-        <input value={input} onChange={handleInputChange} />
+        <input value={input} onChange={event => setInput(event.target.value)} />
         <button type="submit">Send</button>
       </form>
     </div>
