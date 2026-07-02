@@ -1,7 +1,14 @@
-import { Document, Page, StyleSheet, Text, View } from '@react-pdf/renderer';
+import { Document, Image, Page, StyleSheet, Text, View } from '@react-pdf/renderer';
 
 export interface DocumentPdfProps {
-  clinic: { name: string; document_number: string | null; address: string | null; phone: string | null };
+  clinic: {
+    name: string;
+    document_number: string | null;
+    address: string | null;
+    phone: string | null;
+    logo_url: string | null;
+    letterhead_url: string | null;
+  };
   patient: { full_name: string };
   document: {
     title: string;
@@ -17,6 +24,8 @@ export interface DocumentPdfProps {
 
 const styles = StyleSheet.create({
   page: { padding: 40, fontSize: 11, fontFamily: 'Helvetica', color: '#1f2937' },
+  letterhead: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' },
+  logo: { height: 40, marginBottom: 8, objectFit: 'contain' },
   clinicName: { fontSize: 16, fontWeight: 700 },
   clinicMeta: { fontSize: 9, color: '#6b7280', marginTop: 2 },
   divider: { borderBottomWidth: 1, borderBottomColor: '#e5e7eb', marginVertical: 16 },
@@ -37,7 +46,10 @@ export function DocumentPdf({ clinic, patient, document }: DocumentPdfProps) {
   return (
     <Document>
       <Page size="A4" style={styles.page}>
+        {clinic.letterhead_url && <Image src={clinic.letterhead_url} style={styles.letterhead} fixed />}
+
         <View>
+          {clinic.logo_url && <Image src={clinic.logo_url} style={styles.logo} />}
           <Text style={styles.clinicName}>{clinic.name}</Text>
           <Text style={styles.clinicMeta}>
             {clinic.document_number ? `CNPJ ${clinic.document_number}` : null}

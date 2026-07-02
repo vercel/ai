@@ -11,8 +11,9 @@ export async function createTemplate(formData: FormData) {
 
   const title = String(formData.get('title') ?? '').trim();
   const content = String(formData.get('content') ?? '').trim();
+  const isContentEmpty = content.replace(/<[^>]*>/g, '').trim().length === 0;
 
-  if (!title || !content) {
+  if (!title || isContentEmpty) {
     redirect('/dashboard/admin/templates?error=Preencha título e conteúdo do modelo');
   }
 

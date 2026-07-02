@@ -4,6 +4,7 @@ import { requireAdmin, requireProfileWithPlan } from '@/lib/auth';
 import type { ClinicSettings, MessageTemplate, PaymentMethod, Profile, Room } from '@/lib/types';
 import { MODULE_LABELS } from '@/lib/plans';
 import { RoleSelect } from '@/components/role-select';
+import { AssetUploadField } from '@/components/asset-upload-field';
 import {
   createCollaborator,
   createMessageTemplate,
@@ -419,14 +420,18 @@ export default async function AdminPage({
               className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
             />
           </label>
-          <label className="text-xs text-gray-500">
-            URL do logo
-            <input
-              name="logo_url"
-              defaultValue={clinicSettings?.logo_url ?? ''}
-              className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
-            />
-          </label>
+          <AssetUploadField
+            clinicId={profile.clinic_id!}
+            name="logo_url"
+            label="Logo"
+            currentUrl={clinicSettings?.logo_url ?? null}
+          />
+          <AssetUploadField
+            clinicId={profile.clinic_id!}
+            name="letterhead_url"
+            label="Timbre (fundo do cabeçalho dos documentos)"
+            currentUrl={clinicSettings?.letterhead_url ?? null}
+          />
           <label className="text-xs text-gray-500">
             Cor primária
             <input

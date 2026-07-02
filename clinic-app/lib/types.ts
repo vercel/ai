@@ -460,8 +460,20 @@ export interface ClinicSettings {
   phone: string | null;
   email: string | null;
   logo_url: string | null;
+  letterhead_url: string | null;
   primary_color: string | null;
   updated_at: string;
+}
+
+export interface AppointmentAttachment {
+  id: string;
+  clinic_id: string;
+  appointment_id: string;
+  patient_id: string;
+  professional_id: string;
+  file_url: string;
+  file_name: string;
+  created_at: string;
 }
 
 export interface DocumentSignature {

@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { requireAdmin, requireProfile } from '@/lib/auth';
 import type { MedicalRecordTemplate } from '@/lib/types';
 import { DeleteTemplateButton } from '@/components/delete-template-button';
+import { RichTextEditor } from '@/components/rich-text-editor';
 import { createTemplate } from './actions';
 
 const inputClass = 'w-full rounded border border-gray-300 px-3 py-2 text-sm';
@@ -40,13 +41,7 @@ export default async function TemplatesPage({
         <h2 className="mb-4 text-sm font-semibold text-gray-700">Novo modelo</h2>
         <form action={createTemplate} className="flex flex-col gap-3">
           <input name="title" required placeholder="Título (ex: Evolução Padrão)" className={inputClass} />
-          <textarea
-            name="content"
-            required
-            rows={5}
-            placeholder="Texto padrão da evolução..."
-            className={inputClass}
-          />
+          <RichTextEditor name="content" />
           <button
             type="submit"
             className="self-start rounded bg-brand-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-700"
@@ -63,7 +58,10 @@ export default async function TemplatesPage({
               <p className="text-sm font-medium text-gray-800">{template.title}</p>
               <DeleteTemplateButton templateId={template.id} />
             </div>
-            <p className="mt-1 whitespace-pre-wrap text-sm text-gray-600">{template.content}</p>
+            <div
+              className="prose prose-sm mt-1 max-w-none text-gray-600"
+              dangerouslySetInnerHTML={{ __html: template.content }}
+            />
           </div>
         ))}
         {(templates ?? []).length === 0 && (

@@ -357,7 +357,10 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
                         <div className="flex flex-col gap-3">
                           {(records ?? []).map((record) => (
                             <div key={record.id} className="rounded-xl bg-white p-4 shadow-sm">
-                              <p className="text-sm text-gray-800">{record.entry}</p>
+                              <div
+                                className="prose prose-sm max-w-none text-sm text-gray-800"
+                                dangerouslySetInnerHTML={{ __html: record.entry }}
+                              />
                               {record.attachments?.length > 0 && (
                                 <div className="mt-2 flex flex-col gap-1">
                                   {record.attachments.map((path) => (

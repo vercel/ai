@@ -170,6 +170,7 @@ export async function updateClinicSettings(formData: FormData) {
     phone: String(formData.get('phone') ?? '') || null,
     email: String(formData.get('email') ?? '') || null,
     logo_url: String(formData.get('logo_url') ?? '') || null,
+    letterhead_url: String(formData.get('letterhead_url') ?? '') || null,
     primary_color: String(formData.get('primary_color') ?? '') || null,
     updated_at: new Date().toISOString(),
   };

@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { requireProfile } from '@/lib/auth';
 import type {
   Appointment,
+  AppointmentAttachment,
   MedicalRecord,
   MedicalRecordTemplate,
   Patient,
@@ -12,6 +13,7 @@ import type {
 } from '@/lib/types';
 import { addMedicalRecord, addPrescription } from '../../patients/actions';
 import { AttachmentLink } from '@/components/attachment-link';
+import { AppointmentAttachmentUploader } from '@/components/appointment-attachment-uploader';
 import { MedicalRecordEntryForm } from '@/components/medical-record-entry-form';
 import { ModalForm } from '@/components/modal-form';
 import { startAttendance } from './actions';
@@ -72,25 +74,32 @@ export default async function AppointmentAttendancePage({
     );
   }
 
-  const [{ data: records }, { data: prescriptions }, { data: templates }] = await Promise.all([
-    supabase
-      .from('medical_records')
-      .select('*, profiles(full_name)')
-      .eq('patient_id', patient.id)
-      .order('created_at', { ascending: false })
-      .returns<(MedicalRecord & { profiles: Pick<Profile, 'full_name'> })[]>(),
-    supabase
-      .from('prescriptions')
-      .select('*')
-      .eq('patient_id', patient.id)
-      .order('created_at', { ascending: false })
-      .returns<Prescription[]>(),
-    supabase
-      .from('medical_record_templates')
-      .select('*')
-      .order('title')
-      .returns<MedicalRecordTemplate[]>(),
-  ]);
+  const [{ data: records }, { data: prescriptions }, { data: templates }, { data: attachments }] =
+    await Promise.all([
+      supabase
+        .from('medical_records')
+        .select('*, profiles(full_name)')
+        .eq('patient_id', patient.id)
+        .order('created_at', { ascending: false })
+        .returns<(MedicalRecord & { profiles: Pick<Profile, 'full_name'> })[]>(),
+      supabase
+        .from('prescriptions')
+        .select('*')
+        .eq('patient_id', patient.id)
+        .order('created_at', { ascending: false })
+        .returns<Prescription[]>(),
+      supabase
+        .from('medical_record_templates')
+        .select('*')
+        .order('title')
+        .returns<MedicalRecordTemplate[]>(),
+      supabase
+        .from('appointment_attachments')
+        .select('*')
+        .eq('appointment_id', appointment.id)
+        .order('created_at', { ascending: false })
+        .returns<AppointmentAttachment[]>(),
+    ]);
 
   const addRecord = addMedicalRecord.bind(null, patient.id);
   const addPrescriptionAction = addPrescription.bind(null, patient.id);
@@ -123,7 +132,10 @@ export default async function AppointmentAttendancePage({
           <div className="flex flex-col gap-3">
             {(records ?? []).map((record) => (
               <div key={record.id} className="rounded-lg bg-gray-50 p-3">
-                <p className="text-sm text-gray-800">{record.entry}</p>
+                <div
+                  className="prose prose-sm max-w-none text-sm text-gray-800"
+                  dangerouslySetInnerHTML={{ __html: record.entry }}
+                />
                 {record.attachments?.length > 0 && (
                   <div className="mt-2 flex flex-col gap-1">
                     {record.attachments.map((path) => (
@@ -187,6 +199,12 @@ export default async function AppointmentAttendancePage({
             )}
           </div>
         </div>
+
+        <AppointmentAttachmentUploader
+          appointmentId={appointment.id}
+          patientId={patient.id}
+          attachments={attachments ?? []}
+        />
 
         <div className="rounded-xl bg-white p-5 shadow-sm md:col-span-2">
           <h2 className="mb-3 text-sm font-semibold text-gray-700">Histórico Clínico</h2>

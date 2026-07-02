@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { MedicalRecordTemplate } from '@/lib/types';
+import { RichTextEditor } from './rich-text-editor';
 
 const inputClass = 'w-full rounded border border-gray-300 px-3 py-2 text-sm';
 
@@ -12,7 +13,8 @@ export function MedicalRecordEntryForm({
   action: (formData: FormData) => void | Promise<void>;
   templates: MedicalRecordTemplate[];
 }) {
-  const [entry, setEntry] = useState('');
+  const [entryContent, setEntryContent] = useState('');
+  const [editorKey, setEditorKey] = useState(0);
 
   return (
     <form action={action} encType="multipart/form-data" className="flex flex-col gap-3">
@@ -23,7 +25,10 @@ export function MedicalRecordEntryForm({
             defaultValue=""
             onChange={(e) => {
               const template = templates.find((t) => t.id === e.target.value);
-              if (template) setEntry(template.content);
+              if (template) {
+                setEntryContent(template.content);
+                setEditorKey((k) => k + 1);
+              }
             }}
             className={`mt-1 ${inputClass}`}
           >
@@ -38,15 +43,7 @@ export function MedicalRecordEntryForm({
           </select>
         </label>
       )}
-      <textarea
-        name="entry"
-        required
-        rows={6}
-        placeholder="Anotações clínicas..."
-        value={entry}
-        onChange={(e) => setEntry(e.target.value)}
-        className={inputClass}
-      />
+      <RichTextEditor key={editorKey} name="entry" initialContent={entryContent} />
       <label className="text-sm text-gray-600">
         Anexo (exame, documento, imagem)
         <input name="attachment" type="file" className={`mt-1 ${inputClass}`} />
