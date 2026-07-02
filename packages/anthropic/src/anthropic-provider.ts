@@ -17,7 +17,22 @@ import { AnthropicMessagesLanguageModel } from './anthropic-messages-language-mo
 import type { AnthropicMessagesModelId } from './anthropic-messages-options';
 import { anthropicTools } from './anthropic-tools';
 
+<<<<<<< HEAD
 export interface AnthropicProvider extends ProviderV3 {
+=======
+const ANTHROPIC_API_URL = 'https://api.anthropic.com';
+const ANTHROPIC_API_VERSIONED_URL = `${ANTHROPIC_API_URL}/v1`;
+
+function normalizeBaseURL(baseURL: string | undefined): string | undefined {
+  const baseURLWithoutTrailingSlash = withoutTrailingSlash(baseURL);
+
+  return baseURLWithoutTrailingSlash === ANTHROPIC_API_URL
+    ? ANTHROPIC_API_VERSIONED_URL
+    : baseURLWithoutTrailingSlash;
+}
+
+export interface AnthropicProvider extends ProviderV4 {
+>>>>>>> 679c52a01 (fix: normalize bare Anthropic API base URL to avoid missing /v1 path (#16584))
   /**
    * Creates a model for text generation.
    */
@@ -91,12 +106,12 @@ export function createAnthropic(
   options: AnthropicProviderSettings = {},
 ): AnthropicProvider {
   const baseURL =
-    withoutTrailingSlash(
+    normalizeBaseURL(
       loadOptionalSetting({
         settingValue: options.baseURL,
         environmentVariableName: 'ANTHROPIC_BASE_URL',
       }),
-    ) ?? 'https://api.anthropic.com/v1';
+    ) ?? ANTHROPIC_API_VERSIONED_URL;
 
   const providerName = options.name ?? 'anthropic.messages';
 
