@@ -122,6 +122,14 @@ function deriveRatioFromResolution(
   resolution: `${number}x${number}`,
 ): string | undefined {
   const [width, height] = resolution.split('x').map(Number);
+  if (
+    !Number.isInteger(width) ||
+    !Number.isInteger(height) ||
+    width <= 0 ||
+    height <= 0
+  ) {
+    return undefined;
+  }
   let a = width;
   let b = height;
   while (b !== 0) {
