@@ -956,6 +956,15 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                   });
                 }
 
+                if (event.type === 'response.output_item.done') {
+                  controller.enqueue({
+                    type: 'tool-result',
+                    toolCallId: part.id,
+                    toolName,
+                    result: {},
+                  });
+                }
+
                 return;
               }
 
