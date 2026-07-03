@@ -361,6 +361,7 @@ export class AlibabaVideoModel implements Experimental_VideoModelV4 {
     }
 
     // Resolution / Size mapping
+    let resolutionAccepted = false;
     if (options.resolution != null) {
       if (mode === 'i2v' || wan27) {
         // I2V and wan2.7 models use "720P" / "1080P" format
@@ -376,20 +377,26 @@ export class AlibabaVideoModel implements Experimental_VideoModelV4 {
           });
         } else {
           parameters.resolution = resolutionTier;
+          resolutionAccepted = true;
         }
       } else {
         // wan2.6 T2V and R2V use "WIDTH*HEIGHT" format for the size parameter
         // Convert "WIDTHxHEIGHT" (SDK standard) to "WIDTH*HEIGHT" (Alibaba API)
         parameters.size = options.resolution.replace('x', '*');
+        resolutionAccepted = true;
       }
     }
 
-    // wan2.7 T2V and R2V support an explicit aspect ratio parameter
+    // wan2.7 T2V and R2V support an explicit aspect ratio parameter.
+    // Only derive a ratio from the resolution when that resolution was
+    // accepted: an unsupported resolution is ignored (see the warning above),
+    // so deriving a ratio from it would silently send a ratio the model does
+    // not support (e.g. "4:3" from "1024x768").
     if (supportsRatio) {
       const ratio =
         alibabaOptions?.ratio ??
         options.aspectRatio ??
-        (options.resolution != null
+        (resolutionAccepted && options.resolution != null
           ? deriveRatioFromResolution(options.resolution)
           : undefined);
       if (ratio != null) {

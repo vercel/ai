@@ -1031,6 +1031,28 @@ describe('AlibabaVideoModel', () => {
       expect(body.parameters).toMatchObject({ size: '1920*1080' });
       expect(body.parameters).not.toHaveProperty('ratio');
     });
+
+    it('should not derive a ratio from an unsupported resolution', async () => {
+      const model = createModel({ modelId: 'wan2.7-t2v' });
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        // 1024x768 is 4:3 and not a supported 720P/1080P tier. It must be
+        // ignored entirely, without leaking a "4:3" ratio (which wan2.7 does
+        // not support) derived from it.
+        resolution: '1024x768',
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.parameters).not.toHaveProperty('resolution');
+      expect(body.parameters).not.toHaveProperty('ratio');
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'resolution',
+        }),
+      );
+    });
   });
 
   describe('headers', () => {
