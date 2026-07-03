@@ -1,5 +1,28 @@
 # @ai-sdk/otel
 
+## 1.0.14
+
+### Patch Changes
+
+- 5c5c0f5: Add experimental streaming transcription support for transcription models, including OpenAI `gpt-realtime-whisper` and xAI WebSocket STT.
+- Updated dependencies [5c5c0f5]
+  - ai@7.0.14
+  - @ai-sdk/provider@4.0.2
+
+## 1.0.13
+
+### Patch Changes
+
+- ai@7.0.13
+
+## 1.0.12
+
+### Patch Changes
+
+- Updated dependencies [ecfeb6f]
+- Updated dependencies [a193137]
+  - ai@7.0.12
+
 ## 1.0.11
 
 ### Patch Changes

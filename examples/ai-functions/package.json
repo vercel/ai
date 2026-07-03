@@ -80,6 +80,7 @@
     "terminal-image": "^2.0.0",
     "undici": "^8.5.0",
     "valibot": "1.1.0",
+    "ws": "^8.21.0",
     "zod": "3.25.76"
   },
   "scripts": {
@@ -89,6 +90,7 @@
   },
   "devDependencies": {
     "@types/node": "22.19.19",
+    "@types/ws": "^8.5.13",
     "tsx": "4.19.2",
     "typescript": "5.8.3"
   }

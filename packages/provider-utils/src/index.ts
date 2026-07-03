@@ -84,6 +84,7 @@ export {
   type ValidationResult,
 } from './schema';
 export { serializeModelOptions } from './serialize-model-options';
+export { secureJsonParse } from './secure-json-parse';
 export {
   StreamingToolCallTracker,
   type StreamingToolCallDelta,
@@ -94,6 +95,13 @@ export * from './uint8-utils';
 export { validateDownloadUrl } from './validate-download-url';
 export * from './validate-types';
 export { VERSION } from './version';
+export {
+  getWebSocketConstructor,
+  readWebSocketMessageText,
+  toWebSocketUrl,
+  type WebSocketConstructor,
+  type WebSocketLike,
+} from './websocket';
 export { withUserAgentSuffix } from './with-user-agent-suffix';
 export * from './without-trailing-slash';
 
