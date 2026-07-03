@@ -74,7 +74,39 @@ describe('user messages', () => {
           { type: 'text', text: 'Hello' },
           {
             type: 'image_url',
-            image_url: { url: 'AAECAw==' },
+            image_url: { url: 'data:image/png;base64,AAECAw==' },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should convert messages with Uint8Array image parts to data URLs', async () => {
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'image/jpeg',
+              data: {
+                type: 'data' as const,
+                data: new Uint8Array([0xff, 0xd8, 0xff, 0xe0]),
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.messages).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'image_url',
+            image_url: { url: 'data:image/jpeg;base64,/9j/4A==' },
           },
         ],
       },
@@ -112,7 +144,7 @@ describe('user messages', () => {
           {
             type: 'image_url',
             image_url: {
-              url: 'AAECAw==',
+              url: 'data:image/png;base64,AAECAw==',
               detail: 'low',
             },
           },
@@ -515,7 +547,7 @@ describe('user messages', () => {
         expect((result.messages[0]!.content as unknown[])[0]).toEqual({
           type: 'image_url',
           image_url: {
-            url: pngBase64,
+            url: `data:image/png;base64,${pngBase64}`,
             detail: undefined,
           },
         });
@@ -539,7 +571,7 @@ describe('user messages', () => {
         expect((result.messages[0]!.content as unknown[])[0]).toEqual({
           type: 'image_url',
           image_url: {
-            url: pngBase64,
+            url: `data:image/png;base64,${pngBase64}`,
             detail: undefined,
           },
         });
@@ -612,7 +644,7 @@ describe('user messages', () => {
         expect((result.messages[0]!.content as unknown[])[0]).toEqual({
           type: 'image_url',
           image_url: {
-            url: pngBase64,
+            url: `data:image/png;base64,${pngBase64}`,
             detail: undefined,
           },
         });
