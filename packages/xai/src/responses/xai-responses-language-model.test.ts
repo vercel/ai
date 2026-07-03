@@ -2454,6 +2454,47 @@ describe('XaiResponsesLanguageModel', () => {
         });
       });
 
+      it('should stream tool-result for completed provider-executed web_search calls', async () => {
+        prepareChunksFixtureResponse(
+          'xai-13218-web-search-provider-tool-result.1',
+        );
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.web_search',
+              name: 'web_search',
+              args: {},
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        const webSearchToolCalls = parts.filter(
+          part =>
+            part.type === 'tool-call' &&
+            part.providerExecuted &&
+            part.toolName === 'web_search',
+        );
+
+        expect(webSearchToolCalls.length).toBeGreaterThan(0);
+
+        expect(parts).toEqual(
+          expect.arrayContaining(
+            webSearchToolCalls.map(toolCall =>
+              expect.objectContaining({
+                type: 'tool-result',
+                toolCallId: toolCall.toolCallId,
+                toolName: toolCall.toolName,
+              }),
+            ),
+          ),
+        );
+      });
+
       it('should stream function tool call arguments', async () => {
         prepareStreamChunks([
           JSON.stringify({
