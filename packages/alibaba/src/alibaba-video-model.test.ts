@@ -784,6 +784,32 @@ describe('AlibabaVideoModel', () => {
 
       const body = await server.calls[0].requestBodyJson;
       expect(body.parameters).not.toHaveProperty('resolution');
+      // ratio must NOT be derived from a dropped resolution (regression: #16663)
+      expect(body.parameters).not.toHaveProperty('ratio');
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'resolution',
+        }),
+      );
+    });
+
+    it('should not derive a ratio from an unsupported resolution (regression: #16663)', async () => {
+      const model = createModel({ modelId: 'wan2.7-r2v' });
+
+      // 1024x768 maps to 4:3 which is not a valid wan2.7 ratio, and the
+      // resolution itself is not in the tier map (not 720P or 1080P).
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        resolution: '1024x768',
+        inputReferences: [
+          { type: 'url', url: 'https://example.com/character.png' },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.parameters).not.toHaveProperty('resolution');
+      expect(body.parameters).not.toHaveProperty('ratio');
       expect(result.warnings).toContainEqual(
         expect.objectContaining({
           type: 'unsupported',
@@ -1030,6 +1056,27 @@ describe('AlibabaVideoModel', () => {
       const body = await server.calls[0].requestBodyJson;
       expect(body.parameters).toMatchObject({ size: '1920*1080' });
       expect(body.parameters).not.toHaveProperty('ratio');
+    });
+
+    it('should not derive a ratio from an unsupported resolution (regression: #16663)', async () => {
+      const model = createModel({ modelId: 'wan2.7-t2v' });
+
+      // 1024x768 maps to 4:3 which is not a valid wan2.7 ratio, and the
+      // resolution itself is not in the tier map (not 720P or 1080P).
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        resolution: '1024x768',
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.parameters).not.toHaveProperty('resolution');
+      expect(body.parameters).not.toHaveProperty('ratio');
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'resolution',
+        }),
+      );
     });
   });
 
