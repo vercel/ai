@@ -444,6 +444,43 @@ Because `WorkflowAgent` runs inside the Workflow runtime, context values may be 
 
 This differs from `ToolLoopAgent`, which runs in memory and can carry richer JavaScript values for the lifetime of a single process. With `WorkflowAgent`, treating context as durable data keeps workflow replay and step execution reliable.
 
+### experimental_sandbox
+
+Pass a sandbox session when tools need an execution environment. The sandbox is
+available to tool `execute` functions as `experimental_sandbox` and to
+`prepareStep`, where you can override it for the current step:
+
+```ts
+const agent = new WorkflowAgent({
+  model: 'anthropic/claude-sonnet-4-6',
+  tools: {
+    shell: tool({
+      description: 'Run a shell command in the sandbox.',
+      inputSchema: z.object({ command: z.string() }),
+      execute: async ({ command }, { experimental_sandbox }) => {
+        if (!experimental_sandbox) {
+          throw new Error('Sandbox is not available');
+        }
+
+        return experimental_sandbox.run({ command });
+      },
+    }),
+  },
+  experimental_sandbox: sandbox,
+});
+
+await agent.stream({
+  messages,
+  writable: getWritable(),
+  experimental_sandbox: requestSandbox, // Overrides the constructor default.
+});
+```
+
+`experimental_sandbox` is a live runtime handle, not durable context. Do not
+store it in `runtimeContext` or `toolsContext`. If a tool runs as a separate
+workflow step, pass serializable sandbox identifiers or configuration and
+reattach inside that step.
+
 ### prepareCall
 
 Called once before the agent loop starts. Use it to transform model, instructions, or other settings based on runtime context:
@@ -466,9 +503,12 @@ Called before each step (LLM call). Use it to modify settings, manage context, o
 ```ts
 const agent = new WorkflowAgent({
   model: 'anthropic/claude-sonnet-4-6',
-  prepareStep: async ({ stepNumber, messages }) => {
+  prepareStep: async ({ stepNumber, experimental_sandbox }) => {
     if (stepNumber > 5) {
       return { toolChoice: 'none' }; // Force text response after 5 steps
+    }
+    if (experimental_sandbox) {
+      return { temperature: 0.2 };
     }
     return {};
   },
@@ -662,7 +702,7 @@ For persistence, store `UIMessage[]` as your source of truth and call [`convertT
 
 ### Everything else
 
-Other options carry over with the same names: `prepareStep`, `onStepEnd`, `onEnd`, `onError`, `toolChoice`, `activeTools`, `timeout`, `experimental_repairToolCall`, and the usual generation settings (`temperature`, `maxOutputTokens`, `topP`, …). `WorkflowAgent` additionally adds `prepareCall` (runs once before the loop) and the `experimental_onStart` / `experimental_onStepStart` / `onToolExecutionStart` / `onToolExecutionEnd` lifecycle callbacks documented above.
+Other options carry over with the same names: `prepareStep`, `onStepEnd`, `onEnd`, `onError`, `toolChoice`, `activeTools`, `timeout`, `experimental_repairToolCall`, `experimental_sandbox`, and the usual generation settings (`temperature`, `maxOutputTokens`, `topP`, …). `WorkflowAgent` additionally adds `prepareCall` (runs once before the loop) and the `experimental_onStart` / `experimental_onStepStart` / `onToolExecutionStart` / `onToolExecutionEnd` lifecycle callbacks documented above.
 
 ## Next Steps
 

@@ -93,6 +93,9 @@ describe('amazon-bedrock-anthropic-provider', () => {
     'anthropic.claude-fable-5',
     'us.anthropic.claude-fable-5',
     'eu.anthropic.claude-fable-5',
+    'anthropic.claude-sonnet-5',
+    'us.anthropic.claude-sonnet-5',
+    'eu.anthropic.claude-sonnet-5',
   ])(
     'should disable native structured output for %s (Bedrock rejects output_config.format)',
     modelId => {

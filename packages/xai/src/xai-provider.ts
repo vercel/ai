@@ -16,6 +16,7 @@ import {
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
+  type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
 import { XaiChatLanguageModel } from './xai-chat-language-model';
 import type { XaiChatModelId } from './xai-chat-language-model-options';
@@ -129,6 +130,12 @@ export interface XaiProviderSettings {
    * or to provide a custom fetch implementation for e.g. testing.
    */
   fetch?: FetchFunction;
+
+  /**
+   * Custom WebSocket implementation. Required in runtimes whose native
+   * WebSocket constructor does not support headers for xAI streaming STT.
+   */
+  webSocket?: WebSocketConstructor;
 }
 
 export function createXai(options: XaiProviderSettings = {}): XaiProvider {
@@ -210,6 +217,7 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
+      webSocket: options.webSocket,
     });
   };
 

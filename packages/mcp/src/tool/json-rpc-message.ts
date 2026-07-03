@@ -61,8 +61,12 @@ export const JSONRPCMessageSchema = z.union([
 
 export type JSONRPCMessage = z.infer<typeof JSONRPCMessageSchema>;
 
+export function validateJSONRPCMessage(message: unknown): JSONRPCMessage {
+  return JSONRPCMessageSchema.parse(message);
+}
+
 export async function parseJSONRPCMessage(
   text: string,
 ): Promise<JSONRPCMessage> {
-  return JSONRPCMessageSchema.parse(await parseJSON({ text }));
+  return validateJSONRPCMessage(await parseJSON({ text }));
 }

@@ -272,9 +272,20 @@ export class HarnessStreamTextResult<
   /**
    * Resolve every delayed promise and close `fullStream`. Idempotent.
    */
-  async finish(): Promise<void> {
+  async finish(input?: {
+    finishReason: LanguageModelV4FinishReason;
+    totalUsage: LanguageModelV4Usage;
+    providerMetadata: ProviderMetadata | undefined;
+  }): Promise<void> {
     if (this.settled) return;
     this.settled = true;
+
+    if (input != null) {
+      this.finalFinishReason = input.finishReason.unified;
+      this.finalRawFinishReason = input.finishReason.raw;
+      this.finalProviderMetadata = input.providerMetadata;
+      this.accumulatedUsage = asLanguageModelUsage(input.totalUsage);
+    }
 
     // Flush any trailing content not yet captured by a finish-step. We
     // construct the step directly here (the public `finishStep` takes V4

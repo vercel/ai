@@ -71,6 +71,7 @@ describe('inboundMessageSchema', () => {
         thinking: 'adaptive',
         skills: ['weather-forecast', 'weather-codes'],
         permissionMode: 'allow-edits',
+        builtinToolFiltering: { mode: 'deny', toolNames: ['bash'] },
       }),
     ).not.toThrow();
   });

@@ -1,6 +1,7 @@
 import {
   AISDKError,
   type Experimental_VideoModelV4,
+  type Experimental_VideoModelV4File,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
@@ -53,22 +54,20 @@ const HANDLED_PROVIDER_OPTIONS = new Set([
 
 export const byteDanceVideoProviderOptionsSchema = lazySchema(() =>
   zodSchema(
-    z
-      .object({
-        watermark: z.boolean().nullish(),
-        generateAudio: z.boolean().nullish(),
-        cameraFixed: z.boolean().nullish(),
-        returnLastFrame: z.boolean().nullish(),
-        serviceTier: z.enum(['default', 'flex']).nullish(),
-        draft: z.boolean().nullish(),
-        lastFrameImage: z.string().nullish(),
-        referenceImages: z.array(z.string()).nullish(),
-        referenceVideos: z.array(z.string()).nullish(),
-        referenceAudio: z.array(z.string()).nullish(),
-        pollIntervalMs: z.number().positive().nullish(),
-        pollTimeoutMs: z.number().positive().nullish(),
-      })
-      .passthrough(),
+    z.looseObject({
+      watermark: z.boolean().nullish(),
+      generateAudio: z.boolean().nullish(),
+      cameraFixed: z.boolean().nullish(),
+      returnLastFrame: z.boolean().nullish(),
+      serviceTier: z.enum(['default', 'flex']).nullish(),
+      draft: z.boolean().nullish(),
+      lastFrameImage: z.string().nullish(),
+      referenceImages: z.array(z.string()).nullish(),
+      referenceVideos: z.array(z.string()).nullish(),
+      referenceAudio: z.array(z.string()).nullish(),
+      pollIntervalMs: z.number().positive().nullish(),
+      pollTimeoutMs: z.number().positive().nullish(),
+    }),
   ),
 );
 
@@ -119,6 +118,51 @@ interface ByteDanceVideoModelConfig extends ByteDanceConfig {
   _internal?: {
     currentDate?: () => Date;
   };
+}
+
+function getFirstFrameImage(
+  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
+): Experimental_VideoModelV4File | undefined {
+  return options.frameImages?.find(frame => frame.frameType === 'first_frame')
+    ?.image;
+}
+
+function resolveStartImage(
+  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
+): Experimental_VideoModelV4File | undefined {
+  return getFirstFrameImage(options) ?? options.image;
+}
+
+function resolveReferenceImages(
+  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
+  byteDanceOptions: ByteDanceVideoProviderOptions | undefined,
+): string[] {
+  if (options.frameImages != null && options.frameImages.length > 0) {
+    return [];
+  }
+
+  const inputReferences = options.inputReferences;
+
+  if (inputReferences != null && inputReferences.length > 0) {
+    return inputReferences.map(image => convertImageModelFileToDataUri(image));
+  }
+
+  return byteDanceOptions?.referenceImages ?? [];
+}
+
+function resolveLastFrameImage(
+  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
+  byteDanceOptions: ByteDanceVideoProviderOptions | undefined,
+): string | undefined {
+  const lastFrame = options.frameImages?.find(
+    frame => frame.frameType === 'last_frame',
+  )?.image;
+
+  if (lastFrame != null) {
+    return convertImageModelFileToDataUri(lastFrame);
+  }
+
+  return byteDanceOptions?.lastFrameImage ?? undefined;
 }
 
 export class ByteDanceVideoModel implements Experimental_VideoModelV4 {
@@ -175,37 +219,37 @@ export class ByteDanceVideoModel implements Experimental_VideoModelV4 {
       });
     }
 
-    if (options.image != null) {
+    const startImage = resolveStartImage(options);
+    const lastFrameImageUrl = resolveLastFrameImage(options, byteDanceOptions);
+    const referenceImageUrls = resolveReferenceImages(
+      options,
+      byteDanceOptions,
+    );
+
+    if (startImage != null) {
       content.push({
         type: 'image_url',
-        image_url: { url: convertImageModelFileToDataUri(options.image) },
-        ...(byteDanceOptions?.lastFrameImage != null
-          ? { role: 'first_frame' }
-          : {}),
+        image_url: { url: convertImageModelFileToDataUri(startImage) },
+        ...(lastFrameImageUrl != null ? { role: 'first_frame' } : {}),
       });
     }
 
     // Add last frame image if provided
-    if (byteDanceOptions?.lastFrameImage != null) {
+    if (lastFrameImageUrl != null) {
       content.push({
         type: 'image_url',
-        image_url: { url: byteDanceOptions.lastFrameImage },
+        image_url: { url: lastFrameImageUrl },
         role: 'last_frame',
       });
     }
 
     // Add reference images if provided
-    if (
-      byteDanceOptions?.referenceImages != null &&
-      byteDanceOptions.referenceImages.length > 0
-    ) {
-      for (const imageUrl of byteDanceOptions.referenceImages) {
-        content.push({
-          type: 'image_url',
-          image_url: { url: imageUrl },
-          role: 'reference_image',
-        });
-      }
+    for (const imageUrl of referenceImageUrls) {
+      content.push({
+        type: 'image_url',
+        image_url: { url: imageUrl },
+        role: 'reference_image',
+      });
     }
 
     // Add reference videos if provided
@@ -262,12 +306,15 @@ export class ByteDanceVideoModel implements Experimental_VideoModelV4 {
       }
     }
 
+    const generateAudio =
+      options.generateAudio ?? byteDanceOptions?.generateAudio;
+    if (generateAudio != null) {
+      body.generate_audio = generateAudio;
+    }
+
     if (byteDanceOptions != null) {
       if (byteDanceOptions.watermark != null) {
         body.watermark = byteDanceOptions.watermark;
-      }
-      if (byteDanceOptions.generateAudio != null) {
-        body.generate_audio = byteDanceOptions.generateAudio;
       }
       if (byteDanceOptions.cameraFixed != null) {
         body.camera_fixed = byteDanceOptions.cameraFixed;

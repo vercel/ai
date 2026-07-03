@@ -713,6 +713,18 @@ describe('LegacyOpenTelemetry', () => {
       expect(setAttrsCall['gen_ai.usage.output_tokens']).toBe(20);
     });
 
+    it('omits malformed gen_ai finish reason arrays', () => {
+      otelIntegration.onStart!(makeOnStartEvent());
+      otelIntegration.onStepStart!(makeStepStartEvent());
+      otelIntegration.onStepFinish!(
+        makeStepFinishEvent({ finishReason: undefined }),
+      );
+
+      const stepSpan = tracer.spans[1];
+      const setAttrsCall = getSetAttributesArg(stepSpan);
+      expect('gen_ai.response.finish_reasons' in setAttrsCall).toBe(false);
+    });
+
     it('includes text in output attributes', () => {
       otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());

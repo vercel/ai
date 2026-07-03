@@ -161,6 +161,29 @@ describe('ToolLoopAgent', () => {
         },
       });
     });
+
+    it('should support deprecated tool call callbacks', async () => {
+      const tools = {
+        calculator: tool({
+          inputSchema: z.object({ expression: z.string() }),
+          execute: async () => 'result',
+        }),
+      };
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4(),
+        tools,
+      });
+
+      await agent.generate({
+        prompt: 'Hello, world!',
+        experimental_onToolCallStart: event => {
+          expectTypeOf(event.callId).toEqualTypeOf<string>();
+        },
+        experimental_onToolCallFinish: event => {
+          expectTypeOf(event.callId).toEqualTypeOf<string>();
+        },
+      });
+    });
   });
 
   describe('stream', () => {
@@ -227,6 +250,29 @@ describe('ToolLoopAgent', () => {
         },
         onStepStart: event => {
           expectTypeOf(event.runtimeContext).toEqualTypeOf<Context>();
+        },
+      });
+    });
+
+    it('should support deprecated tool call callbacks', async () => {
+      const tools = {
+        calculator: tool({
+          inputSchema: z.object({ expression: z.string() }),
+          execute: async () => 'result',
+        }),
+      };
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4(),
+        tools,
+      });
+
+      await agent.stream({
+        prompt: 'Hello, world!',
+        experimental_onToolCallStart: event => {
+          expectTypeOf(event.callId).toEqualTypeOf<string>();
+        },
+        experimental_onToolCallFinish: event => {
+          expectTypeOf(event.callId).toEqualTypeOf<string>();
         },
       });
     });

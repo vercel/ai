@@ -256,7 +256,7 @@ Let's enhance your chatbot by adding a simple weather tool.
 
 Modify your `src/routes/api/chat/+server.ts` file to include the new weather tool:
 
-```tsx filename="src/routes/api/chat/+server.ts" highlight="2,3,19-33"
+```tsx filename="src/routes/api/chat/+server.ts" highlight="5-8,25-39"
 import {
   createGateway,
   streamText,
@@ -437,7 +437,7 @@ By setting `stopWhen: isStepCount(5)`, you're allowing the model to use up to 5 
 
 Update your `src/routes/api/chat/+server.ts` file to add a new tool to convert the temperature from Fahrenheit to Celsius:
 
-```tsx filename="src/routes/api/chat/+server.ts" highlight="34-47"
+```tsx filename="src/routes/api/chat/+server.ts" highlight="40-53"
 import {
   createGateway,
   streamText,
@@ -504,7 +504,7 @@ export async function POST({ request }) {
 
 Update your UI to handle the new temperature conversion tool by modifying the tool part handling:
 
-```svelte filename="src/routes/+page.svelte" highlight="17"
+```svelte filename="src/routes/+page.svelte" highlight="23-24"
 <script lang="ts">
   import { Chat } from '@ai-sdk/svelte';
 

@@ -47,11 +47,14 @@ const defaultOptions = {
   prompt,
   n: 1,
   image: undefined,
+  frameImages: undefined,
+  inputReferences: undefined,
   aspectRatio: undefined,
   resolution: undefined,
   duration: undefined,
   fps: undefined,
   seed: undefined,
+  generateAudio: undefined,
   providerOptions: defaultProviderOptions,
 } as const;
 
@@ -311,6 +314,144 @@ describe('AlibabaVideoModel', () => {
         parameters: { audio: false },
       });
     });
+
+    it('should use frameImages first_frame as img_url', async () => {
+      const model = createModel({ modelId: 'wan2.6-i2v' });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        frameImages: [
+          {
+            image: {
+              type: 'url',
+              url: 'https://example.com/first-frame.png',
+            },
+            frameType: 'first_frame',
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        input: {
+          prompt,
+          img_url: 'https://example.com/first-frame.png',
+        },
+      });
+    });
+
+    it('should prefer frameImages first_frame over the legacy image option', async () => {
+      const model = createModel({ modelId: 'wan2.6-i2v' });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        image: {
+          type: 'url',
+          url: 'https://example.com/legacy-image.png',
+        },
+        frameImages: [
+          {
+            image: {
+              type: 'url',
+              url: 'https://example.com/first-frame.png',
+            },
+            frameType: 'first_frame',
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        input: {
+          img_url: 'https://example.com/first-frame.png',
+        },
+      });
+    });
+
+    it('should send img_url as base64 from frameImages first_frame file data', async () => {
+      const model = createModel({ modelId: 'wan2.6-i2v-flash' });
+      const imageData = new Uint8Array([137, 80, 78, 71]);
+
+      await model.doGenerate({
+        ...defaultOptions,
+        frameImages: [
+          {
+            image: {
+              type: 'file',
+              data: imageData,
+              mediaType: 'image/png',
+            },
+            frameType: 'first_frame',
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        input: {
+          img_url: 'iVBORw==',
+        },
+      });
+    });
+
+    it('should warn when frameImages last_frame is provided', async () => {
+      const model = createModel({ modelId: 'wan2.6-i2v' });
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        frameImages: [
+          {
+            image: {
+              type: 'url',
+              url: 'https://example.com/last-frame.png',
+            },
+            frameType: 'last_frame',
+          },
+        ],
+      });
+
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'frameImages',
+        }),
+      );
+    });
+
+    it('should map the top-level generateAudio option', async () => {
+      const model = createModel({ modelId: 'wan2.6-i2v-flash' });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        generateAudio: true,
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        parameters: { audio: true },
+      });
+    });
+
+    it('should let the top-level generateAudio override the legacy audio option', async () => {
+      const model = createModel({ modelId: 'wan2.6-i2v-flash' });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        generateAudio: false,
+        providerOptions: {
+          alibaba: {
+            audio: true,
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        parameters: { audio: false },
+      });
+    });
   });
 
   describe('doGenerate - reference-to-video', () => {
@@ -374,6 +515,97 @@ describe('AlibabaVideoModel', () => {
 
       const body = await server.calls[0].requestBodyJson;
       expect(body.input).not.toHaveProperty('reference_urls');
+    });
+
+    it('should send reference_urls from inputReferences for R2V model', async () => {
+      const model = createModel({ modelId: 'wan2.6-r2v' });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        inputReferences: [
+          { type: 'url', url: 'https://example.com/character-1.png' },
+          { type: 'url', url: 'https://example.com/character-2.png' },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        model: 'wan2.6-r2v',
+        input: {
+          prompt,
+          reference_urls: [
+            'https://example.com/character-1.png',
+            'https://example.com/character-2.png',
+          ],
+        },
+      });
+    });
+
+    it('should prefer inputReferences over providerOptions.alibaba.referenceUrls', async () => {
+      const model = createModel({ modelId: 'wan2.6-r2v-flash' });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        inputReferences: [
+          { type: 'url', url: 'https://example.com/new-ref.png' },
+        ],
+        providerOptions: {
+          alibaba: {
+            referenceUrls: ['https://example.com/legacy-ref.png'],
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        input: {
+          reference_urls: ['https://example.com/new-ref.png'],
+        },
+      });
+    });
+
+    it('should warn and skip non-URL inputReferences for R2V model', async () => {
+      const model = createModel({ modelId: 'wan2.6-r2v' });
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        inputReferences: [
+          {
+            type: 'file',
+            data: new Uint8Array([137, 80, 78, 71]),
+            mediaType: 'image/png',
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.input).not.toHaveProperty('reference_urls');
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'inputReferences',
+        }),
+      );
+    });
+
+    it('should warn when inputReferences are provided for non-R2V model', async () => {
+      const model = createModel({ modelId: 'wan2.6-i2v' });
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        inputReferences: [{ type: 'url', url: 'https://example.com/ref.png' }],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.input).not.toHaveProperty('reference_urls');
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'inputReferences',
+        }),
+      );
     });
   });
 
