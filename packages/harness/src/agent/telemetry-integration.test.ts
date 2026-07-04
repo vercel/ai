@@ -171,7 +171,10 @@ describe('HarnessAgent telemetry integration', () => {
 
     // The model's output content reaches the inference-call end (gen_ai output
     // messages): the streamed text and the tool-call, captured non-lossily.
-    const lmEnd = events.onLanguageModelCallEnd as { content: unknown[] };
+    const lmEnd = events.onLanguageModelCallEnd as {
+      content: unknown[];
+      performance: unknown;
+    };
     expect(lmEnd.content).toEqual([
       { type: 'text', text: 'hi' },
       {
@@ -181,6 +184,32 @@ describe('HarnessAgent telemetry integration', () => {
         input: '{"command":"ls"}',
       },
     ]);
+    expect(lmEnd.performance).toEqual({
+      responseTimeMs: undefined,
+      timeToFirstOutputMs: undefined,
+      timeBetweenOutputChunksMs: undefined,
+    });
+
+    const end = events.onEnd as {
+      text: string;
+      finalStep: { reasoning: unknown[]; providerMetadata: unknown };
+      toolCalls: unknown[];
+      files: unknown[];
+    };
+    expect(end.text).toBe('hi');
+    expect(end.finalStep).toEqual({
+      reasoning: [],
+      providerMetadata: undefined,
+    });
+    expect(end.toolCalls).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'c1',
+        toolName: 'bash',
+        input: '{"command":"ls"}',
+      },
+    ]);
+    expect(end.files).toEqual([]);
     // The input prompt is on the operation start (gen_ai input messages).
     const start = events.onStart as { messages: unknown[] };
     expect(start.messages).toEqual([{ role: 'user', content: 'go' }]);

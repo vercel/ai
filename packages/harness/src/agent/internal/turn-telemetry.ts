@@ -111,6 +111,15 @@ export function createTurnTelemetry(opts: {
   let stepOpen = false;
   let stepNumber = 0;
   let ended = false;
+  let outputText = '';
+  let outputReasoning: Array<{ text: string }> = [];
+  let outputToolCalls: Array<{
+    type: 'tool-call';
+    toolCallId: string;
+    toolName: string;
+    input: unknown;
+  }> = [];
+  let finalStepProviderMetadata: unknown;
   /** Tool calls started in the current turn and not yet ended. */
   const openTools = new Map<
     string,
@@ -199,8 +208,25 @@ export function createTurnTelemetry(opts: {
         responseId: callId,
         usage: info.usage,
         content: info.content,
+        performance: {
+          responseTimeMs: undefined,
+          timeToFirstOutputMs: undefined,
+          timeBetweenOutputChunksMs: undefined,
+        },
       }),
     );
+  };
+
+  const recordOutputContent = (content: TurnContentPart[]): void => {
+    for (const part of content) {
+      if (part.type === 'text') {
+        outputText += part.text;
+      } else if (part.type === 'reasoning') {
+        outputReasoning.push({ text: part.text });
+      } else if (part.type === 'tool-call') {
+        outputToolCalls.push(part);
+      }
+    }
   };
 
   const closeOpenTools = (): void => {
@@ -232,6 +258,8 @@ export function createTurnTelemetry(opts: {
     stepFinish(info) {
       if (!stepOpen) return;
       const content = info.content ?? [];
+      recordOutputContent(content);
+      finalStepProviderMetadata = info.providerMetadata;
       closeOpenTools();
       inferenceEnd({
         finishReason: info.finishReason,
@@ -336,6 +364,13 @@ export function createTurnTelemetry(opts: {
           usage: info.usage,
           totalUsage: info.usage,
           content: [],
+          text: outputText,
+          finalStep: {
+            reasoning: outputReasoning,
+            providerMetadata: finalStepProviderMetadata,
+          },
+          toolCalls: outputToolCalls,
+          files: [],
           steps: new Array(stepNumber),
           response: {
             id: callId,
