@@ -1,5 +1,12 @@
 # @ai-sdk/gateway
 
+## 4.0.12
+
+### Patch Changes
+
+- 0c3c7e4: feat(alibaba): support wan2.7 text-to-video and reference-to-video models with the new protocol (`input.media`, `resolution` + `ratio`)
+- c8d2726: chore(provider/gateway): update gateway model settings files
+
 ## 4.0.11
 
 ### Patch Changes
