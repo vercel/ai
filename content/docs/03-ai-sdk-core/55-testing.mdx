@@ -179,6 +179,41 @@ const result = streamText({
 });
 ```
 
+### ToolLoopAgent
+
+```ts
+import { ToolLoopAgent } from 'ai';
+import { MockLanguageModelV4 } from 'ai/test';
+
+const agent = new ToolLoopAgent({
+  model: new MockLanguageModelV4({
+    doGenerate: async () => ({
+      content: [{ type: 'text', text: 'Hello from the test agent!' }],
+      finishReason: { unified: 'stop', raw: undefined },
+      usage: {
+        inputTokens: {
+          total: 10,
+          noCache: 10,
+          cacheRead: undefined,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: 20,
+          text: 20,
+          reasoning: undefined,
+        },
+      },
+      warnings: [],
+    }),
+  }),
+  instructions: 'You are a test agent.',
+});
+
+const result = await agent.generate({
+  prompt: 'Say hello.',
+});
+```
+
 ### Simulate UI Message Stream Responses
 
 You can also simulate [UI Message Stream](/docs/ai-sdk-ui/stream-protocol#ui-message-stream) responses for testing,
