@@ -208,8 +208,8 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
    * Optional callback function that is invoked when a tool call is received.
    * Intended for automatic client-side tool execution.
    *
-   * You can optionally return a result for the tool call,
-   * either synchronously or asynchronously.
+   * The callback return value is ignored. To provide a tool result, call
+   * `addToolOutput` with the tool call id and output.
    */
   onToolCall?: ChatOnToolCallCallback<UI_MESSAGE>;
 
