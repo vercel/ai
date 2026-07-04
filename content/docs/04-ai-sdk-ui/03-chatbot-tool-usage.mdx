@@ -635,6 +635,16 @@ export default function Chat() {
                     return <pre>{JSON.stringify(part.output, null, 2)}</pre>;
                   case 'output-error':
                     return <div>Error: {part.errorText}</div>;
+                  case 'approval-requested':
+                    return <div>Waiting for approval...</div>;
+                  case 'approval-responded':
+                    return (
+                      <div>
+                        Approval {part.approval.approved ? 'granted' : 'denied'}
+                      </div>
+                    );
+                  case 'output-denied':
+                    return <div>Tool execution was denied.</div>;
                 }
             }
           })}
