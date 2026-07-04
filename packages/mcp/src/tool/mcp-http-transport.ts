@@ -6,8 +6,8 @@ import {
 } from '@ai-sdk/provider-utils';
 import { MCPClientError } from '../error/mcp-client-error';
 import {
-  JSONRPCMessageSchema,
   parseJSONRPCMessage,
+  validateJSONRPCMessage,
   type JSONRPCMessage,
 } from './json-rpc-message';
 import type { MCPTransport } from './mcp-transport';
@@ -302,10 +302,8 @@ export class HttpMCPTransport implements MCPTransport {
         if (contentType.includes('application/json')) {
           const data = await response.json();
           const messages: JSONRPCMessage[] = Array.isArray(data)
-            ? data.map((message: unknown) =>
-                JSONRPCMessageSchema.parse(message),
-              )
-            : [JSONRPCMessageSchema.parse(data)];
+            ? data.map((message: unknown) => validateJSONRPCMessage(message))
+            : [validateJSONRPCMessage(data)];
           for (const jsonRpcMessage of messages) {
             this.onmessage?.(jsonRpcMessage);
           }
