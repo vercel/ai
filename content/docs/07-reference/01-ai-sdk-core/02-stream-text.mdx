@@ -4005,7 +4005,7 @@ To see `streamText` in action, check out [these examples](#examples).
               type: '(error: unknown) => string',
               isOptional: true,
               description:
-                'Process an error, e.g. to log it. Returns error message to include in the data stream. Defaults to () => "An error occurred."',
+                'Process an error and return the error message to include in the data stream. This callback may be invoked more than once for the same upstream error, so side effects such as logging, metrics, or persistence should be idempotent or deduplicated externally. Defaults to () => "An error occurred."',
             },
             {
               name: 'consumeSseStream',
