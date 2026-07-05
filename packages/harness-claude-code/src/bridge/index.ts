@@ -9,7 +9,6 @@ import {
   type BridgeEvent,
   type BridgeTurn,
 } from '@ai-sdk/harness/bridge';
-import type { HarnessV1BuiltinToolName } from '@ai-sdk/harness';
 import { createCompactionLatch } from './compaction-latch';
 import type { StartMessage } from '../claude-code-bridge-protocol';
 import { randomUUID } from 'node:crypto';
@@ -42,7 +41,16 @@ import { toClaudeSkillsOption } from './claude-skills-option';
  * map (e.g. `WebFetch`, `NotebookEdit`) have no common equivalent; their
  * native name is forwarded as-is on `tool-call` events.
  */
-const NATIVE_TO_COMMON: Readonly<Record<string, HarnessV1BuiltinToolName>> = {
+type CommonBuiltinToolName =
+  | 'read'
+  | 'write'
+  | 'edit'
+  | 'bash'
+  | 'glob'
+  | 'grep'
+  | 'webSearch';
+
+const NATIVE_TO_COMMON: Readonly<Record<string, CommonBuiltinToolName>> = {
   Read: 'read',
   Write: 'write',
   Edit: 'edit',
@@ -51,6 +59,36 @@ const NATIVE_TO_COMMON: Readonly<Record<string, HarnessV1BuiltinToolName>> = {
   Grep: 'grep',
   WebSearch: 'webSearch',
 };
+
+const PUBLIC_TO_NATIVE: Readonly<Record<string, string>> = {
+  read: 'Read',
+  write: 'Write',
+  edit: 'Edit',
+  bash: 'Bash',
+  glob: 'Glob',
+  grep: 'Grep',
+  webSearch: 'WebSearch',
+  WebFetch: 'WebFetch',
+  NotebookEdit: 'NotebookEdit',
+  TodoWrite: 'TodoWrite',
+  Agent: 'Agent',
+  TaskCreate: 'TaskCreate',
+  TaskGet: 'TaskGet',
+  TaskUpdate: 'TaskUpdate',
+  TaskList: 'TaskList',
+  TaskStop: 'TaskStop',
+  TaskOutput: 'TaskOutput',
+  Monitor: 'Monitor',
+  ListMcpResources: 'ListMcpResources',
+  ReadMcpResource: 'ReadMcpResource',
+  ExitPlanMode: 'ExitPlanMode',
+  EnterWorktree: 'EnterWorktree',
+  ExitWorktree: 'ExitWorktree',
+  AskUserQuestion: 'AskUserQuestion',
+  Skill: 'Skill',
+};
+
+const PUBLIC_TOOL_NAMES = Object.keys(PUBLIC_TO_NATIVE);
 
 const NATIVE_TOOL_KINDS: Readonly<
   Record<string, 'readonly' | 'edit' | 'bash'>
@@ -78,10 +116,39 @@ const NATIVE_TOOL_KINDS: Readonly<
   Skill: 'edit',
   AskUserQuestion: 'readonly',
   Bash: 'bash',
+  Monitor: 'bash',
 };
 
-function toCommonName(nativeName: string): HarnessV1BuiltinToolName | string {
+function toCommonName(nativeName: string): CommonBuiltinToolName | string {
   return NATIVE_TO_COMMON[nativeName] ?? nativeName;
+}
+
+function toNativeName(toolName: string): string {
+  return PUBLIC_TO_NATIVE[toolName] ?? toolName;
+}
+
+function resolveNativeTools(start: StartMessage): string[] | undefined {
+  const toolFiltering = start.builtinToolFiltering;
+  if (toolFiltering == null) return undefined;
+  const activeToolNames =
+    toolFiltering.mode === 'allow'
+      ? toolFiltering.toolNames
+      : PUBLIC_TOOL_NAMES.filter(
+          name => !toolFiltering.toolNames.includes(name),
+        );
+  return activeToolNames.map(name => toNativeName(name));
+}
+
+function resolveInactiveNativeTools(start: StartMessage): string[] {
+  const toolFiltering = start.builtinToolFiltering;
+  if (toolFiltering == null) return [];
+  const inactiveToolNames =
+    toolFiltering.mode === 'allow'
+      ? PUBLIC_TOOL_NAMES.filter(
+          name => !toolFiltering.toolNames.includes(name),
+        )
+      : toolFiltering.toolNames;
+  return inactiveToolNames.map(name => toNativeName(name));
 }
 
 /*
@@ -146,13 +213,19 @@ type Emit = (msg: Record<string, unknown>) => void;
 
 function createPermissionOptions(input: {
   start: StartMessage;
+  inactiveNativeTools: readonly string[];
   turn: BridgeTurn;
   emit: Emit;
   nativeToolCallNames: Map<string, string>;
   approvalRequestedToolUseIds: Set<string>;
 }): Record<string, unknown> {
   const permissionMode = input.start.permissionMode ?? 'allow-all';
-  if (permissionMode === 'allow-all') {
+  const inactiveNativeTools = new Set(input.inactiveNativeTools);
+  const permissionSettings = createPermissionSettings({
+    permissionMode,
+    inactiveNativeTools,
+  });
+  if (permissionMode === 'allow-all' && inactiveNativeTools.size === 0) {
     return {
       permissionMode: 'bypassPermissions',
       allowDangerouslySkipPermissions: true,
@@ -163,7 +236,7 @@ function createPermissionOptions(input: {
     permissionMode:
       permissionMode === 'allow-edits' ? 'acceptEdits' : 'default',
     allowDangerouslySkipPermissions: false,
-    settings: createPermissionSettings({ permissionMode }),
+    ...(permissionSettings ? { settings: permissionSettings } : {}),
     canUseTool: async (
       toolName: string,
       toolInput: Record<string, unknown>,
@@ -173,6 +246,7 @@ function createPermissionOptions(input: {
         return { behavior: 'allow', updatedInput: toolInput };
       }
       if (
+        !inactiveNativeTools.has(toolName) &&
         !nativeToolRequiresApproval({
           nativeName: toolName,
           permissionMode,
@@ -212,21 +286,26 @@ function createPermissionOptions(input: {
 
 function createPermissionSettings(input: {
   permissionMode: 'allow-reads' | 'allow-edits' | 'allow-all';
+  inactiveNativeTools: ReadonlySet<string>;
 }): Record<string, unknown> | undefined {
-  const askRules = Object.entries(NATIVE_TOOL_KINDS)
-    .filter(([, kind]) =>
-      input.permissionMode === 'allow-reads'
+  const askRules = new Set<string>();
+  for (const [nativeName, kind] of Object.entries(NATIVE_TOOL_KINDS)) {
+    if (
+      input.inactiveNativeTools.has(nativeName) ||
+      (input.permissionMode === 'allow-reads'
         ? kind === 'edit' || kind === 'bash'
         : input.permissionMode === 'allow-edits'
           ? kind === 'bash'
-          : false,
-    )
-    .map(([nativeName]) => `${nativeName}(*)`);
+          : false)
+    ) {
+      askRules.add(`${nativeName}(*)`);
+    }
+  }
 
-  if (askRules.length === 0) return undefined;
+  if (askRules.size === 0) return undefined;
 
   return {
-    permissions: { ask: askRules },
+    permissions: { ask: [...askRules] },
     sandbox: { autoAllowBashIfSandboxed: false },
   };
 }
@@ -330,8 +409,11 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     abortSignal: abortCtl.signal,
   });
   const skillsOption = toClaudeSkillsOption(start.skills);
+  const nativeTools = resolveNativeTools(start);
+  const inactiveNativeTools = resolveInactiveNativeTools(start);
   const permissionOptions = createPermissionOptions({
     start,
+    inactiveNativeTools,
     turn,
     emit,
     nativeToolCallNames,
@@ -344,6 +426,10 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       ...(start.model ? { model: start.model } : {}),
       ...(start.maxTurns !== undefined ? { maxTurns: start.maxTurns } : {}),
       ...(skillsOption ? { skills: skillsOption } : {}),
+      ...(nativeTools !== undefined ? { tools: nativeTools } : {}),
+      ...(inactiveNativeTools.length > 0
+        ? { disallowedTools: inactiveNativeTools }
+        : {}),
       ...(toThinkingConfig(start.thinking)
         ? { thinking: toThinkingConfig(start.thinking) }
         : {}),

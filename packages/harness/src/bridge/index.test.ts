@@ -188,7 +188,7 @@ describe('runBridge', () => {
     const b = await connect(handle.port);
     await b.waitFor(f => f.type === 'bridge-hello');
     b.send({ type: 'resume', lastSeenEventId: 0 });
-    await new Promise(r => setTimeout(r, 50));
+    await b.waitFor(f => f.seq === 4);
 
     const replayedSeqs = b.frames
       .filter(f => typeof f.seq === 'number')

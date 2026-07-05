@@ -1,5 +1,57 @@
 # @ai-sdk/react
 
+## 4.0.16
+
+### Patch Changes
+
+- ai@7.0.15
+
+## 4.0.15
+
+### Patch Changes
+
+- 5c5c0f5: Add experimental streaming transcription support for transcription models, including OpenAI `gpt-realtime-whisper` and xAI WebSocket STT.
+- Updated dependencies [5c5c0f5]
+  - ai@7.0.14
+  - @ai-sdk/provider@4.0.2
+  - @ai-sdk/provider-utils@5.0.5
+  - @ai-sdk/mcp@2.0.7
+
+## 4.0.14
+
+### Patch Changes
+
+- ai@7.0.13
+
+## 4.0.13
+
+### Patch Changes
+
+- Updated dependencies [ecfeb6f]
+- Updated dependencies [a193137]
+- Updated dependencies [c6f5e62]
+- Updated dependencies [3c30eb4]
+  - ai@7.0.12
+  - @ai-sdk/provider-utils@5.0.4
+  - @ai-sdk/mcp@2.0.6
+
+## 4.0.12
+
+### Patch Changes
+
+- 8b2dc3c: fix(react): use the latest transport in useChat instead of a stale one
+- Updated dependencies [0a87626]
+  - ai@7.0.11
+
+## 4.0.11
+
+### Patch Changes
+
+- Updated dependencies [8c616f0]
+  - ai@7.0.10
+  - @ai-sdk/mcp@2.0.5
+  - @ai-sdk/provider-utils@5.0.3
+
 ## 4.0.10
 
 ### Patch Changes

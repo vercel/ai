@@ -73,6 +73,135 @@ class GetterOnlyProtocolVersionTransport implements MCPTransport {
   }
 }
 
+class FailsFirstToolCallTransport implements MCPTransport {
+  toolCallAttempts = 0;
+
+  onmessage?: (message: JSONRPCMessage) => void;
+  onclose?: () => void;
+  onerror?: (error: Error) => void;
+
+  constructor(
+    private readonly failure:
+      | 'transient-http'
+      | 'unlisted-http'
+      | 'network'
+      | 'invalid-params'
+      | 'auth'
+      | 'tool-result-error',
+  ) {}
+
+  async start(): Promise<void> {}
+
+  async close(): Promise<void> {
+    this.onclose?.();
+  }
+
+  async send(message: JSONRPCMessage): Promise<void> {
+    if (!('method' in message) || !('id' in message)) {
+      return;
+    }
+
+    if (message.method === 'initialize') {
+      this.onmessage?.({
+        jsonrpc: '2.0',
+        id: message.id,
+        result: {
+          protocolVersion: LATEST_PROTOCOL_VERSION,
+          serverInfo: { name: 'retry-test-server', version: '1.0.0' },
+          capabilities: { tools: {} },
+        },
+      });
+      return;
+    }
+
+    if (message.method === 'tools/list') {
+      this.onmessage?.({
+        jsonrpc: '2.0',
+        id: message.id,
+        result: {
+          tools: [
+            {
+              name: 'retry-tool',
+              description: 'A retry test tool',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  value: { type: 'string' },
+                },
+              },
+            },
+          ],
+        },
+      });
+      return;
+    }
+
+    if (message.method === 'tools/call') {
+      this.toolCallAttempts += 1;
+
+      if (this.toolCallAttempts === 1) {
+        if (this.failure === 'transient-http') {
+          throw new MCPClientError({
+            message: 'temporary overload',
+            statusCode: 503,
+          });
+        }
+
+        if (this.failure === 'unlisted-http') {
+          throw new MCPClientError({
+            message: 'not retryable by default',
+            statusCode: 418,
+          });
+        }
+
+        if (this.failure === 'network') {
+          throw Object.assign(new Error('connection reset'), {
+            code: 'ECONNRESET',
+          });
+        }
+
+        if (this.failure === 'invalid-params') {
+          this.onmessage?.({
+            jsonrpc: '2.0',
+            id: message.id,
+            error: {
+              code: -32602,
+              message: 'Invalid params',
+            },
+          });
+          return;
+        }
+
+        if (this.failure === 'auth') {
+          throw new MCPClientError({
+            message: 'Unauthorized',
+            statusCode: 401,
+          });
+        }
+
+        this.onmessage?.({
+          jsonrpc: '2.0',
+          id: message.id,
+          result: {
+            content: [{ type: 'text', text: 'tool-level error' }],
+            isError: true,
+          },
+        });
+        return;
+      }
+
+      this.onmessage?.({
+        jsonrpc: '2.0',
+        id: message.id,
+        result: {
+          content: [{ type: 'text', text: 'retried successfully' }],
+          isError: false,
+        },
+      });
+    }
+  }
+}
+
 vi.mock('./mcp-transport.ts', async importOriginal => {
   const actual = await importOriginal<typeof McpTransportModule>();
   return {
@@ -92,6 +221,7 @@ describe('MCPClient', () => {
   });
 
   afterEach(async () => {
+    vi.useRealTimers();
     await client?.close();
   });
 
@@ -1031,6 +1161,158 @@ describe('MCPClient', () => {
     expect(Object.prototype.hasOwnProperty.call(tools, '__proto__')).toBe(
       false,
     );
+  });
+
+  it('should not retry tool calls by default', async () => {
+    const transport = new FailsFirstToolCallTransport('transient-http');
+    client = await createMCPClient({
+      transport,
+    });
+
+    const tools = await client.tools();
+
+    await expect(
+      tools['retry-tool'].execute(
+        { value: 'test' },
+        { messages: [], toolCallId: '1', context: {} },
+      ),
+    ).rejects.toThrow(MCPClientError);
+    expect(transport.toolCallAttempts).toBe(1);
+  });
+
+  it('should retry transient HTTP tool call failures when maxRetries is configured', async () => {
+    vi.useFakeTimers();
+    const transport = new FailsFirstToolCallTransport('transient-http');
+    client = await createMCPClient({
+      transport,
+      maxRetries: 1,
+    });
+
+    const tools = await client.tools();
+
+    const result = tools['retry-tool'].execute(
+      { value: 'test' },
+      { messages: [], toolCallId: '1', context: {} },
+    );
+    await vi.advanceTimersByTimeAsync(2000);
+
+    await expect(result).resolves.toMatchInlineSnapshot(`
+      {
+        "content": [
+          {
+            "text": "retried successfully",
+            "type": "text",
+          },
+        ],
+        "isError": false,
+      }
+    `);
+    expect(transport.toolCallAttempts).toBe(2);
+  });
+
+  it('should retry network-style tool call failures when maxRetries is configured', async () => {
+    vi.useFakeTimers();
+    const transport = new FailsFirstToolCallTransport('network');
+    client = await createMCPClient({
+      transport,
+      maxRetries: 1,
+    });
+
+    const tools = await client.tools();
+
+    const result = tools['retry-tool'].execute(
+      { value: 'test' },
+      { messages: [], toolCallId: '1', context: {} },
+    );
+    await vi.advanceTimersByTimeAsync(2000);
+
+    await expect(result).resolves.toMatchObject({
+      content: [{ type: 'text', text: 'retried successfully' }],
+      isError: false,
+    });
+    expect(transport.toolCallAttempts).toBe(2);
+  });
+
+  it('should not retry HTTP status codes outside the default retry list', async () => {
+    const transport = new FailsFirstToolCallTransport('unlisted-http');
+    client = await createMCPClient({
+      transport,
+      maxRetries: 2,
+    });
+
+    const tools = await client.tools();
+
+    await expect(
+      tools['retry-tool'].execute(
+        { value: 'test' },
+        { messages: [], toolCallId: '1', context: {} },
+      ),
+    ).rejects.toMatchObject({ statusCode: 418 });
+    expect(transport.toolCallAttempts).toBe(1);
+  });
+
+  it('should not retry invalid argument JSON-RPC errors', async () => {
+    const transport = new FailsFirstToolCallTransport('invalid-params');
+    client = await createMCPClient({
+      transport,
+      maxRetries: 2,
+    });
+
+    const tools = await client.tools();
+
+    await expect(
+      tools['retry-tool'].execute(
+        { value: 'test' },
+        { messages: [], toolCallId: '1', context: {} },
+      ),
+    ).rejects.toMatchObject({ code: -32602 });
+    expect(transport.toolCallAttempts).toBe(1);
+  });
+
+  it('should not retry auth failures', async () => {
+    const transport = new FailsFirstToolCallTransport('auth');
+    client = await createMCPClient({
+      transport,
+      maxRetries: 2,
+    });
+
+    const tools = await client.tools();
+
+    await expect(
+      tools['retry-tool'].execute(
+        { value: 'test' },
+        { messages: [], toolCallId: '1', context: {} },
+      ),
+    ).rejects.toMatchObject({ statusCode: 401 });
+    expect(transport.toolCallAttempts).toBe(1);
+  });
+
+  it('should not retry successful MCP tool results with isError', async () => {
+    const transport = new FailsFirstToolCallTransport('tool-result-error');
+    client = await createMCPClient({
+      transport,
+      maxRetries: 2,
+    });
+
+    const tools = await client.tools();
+
+    await expect(
+      tools['retry-tool'].execute(
+        { value: 'test' },
+        { messages: [], toolCallId: '1', context: {} },
+      ),
+    ).resolves.toMatchInlineSnapshot(`
+      {
+        "content": [
+          {
+            "text": "tool-level error",
+            "type": "text",
+          },
+        ],
+        "isError": true,
+      }
+    `);
+    expect(transport.toolCallAttempts).toBe(1);
   });
 
   it('should error when calling tool with misconfigured parameters', async () => {

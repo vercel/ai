@@ -167,6 +167,7 @@ describe('createClaudeCode adapter', () => {
     expect(harness.harnessId).toBe('claude-code');
     expect(harness.specificationVersion).toBe('harness-v1');
     expect(harness.supportsBuiltinToolApprovals).toBe(true);
+    expect(harness.supportsBuiltinToolFiltering).toBe(true);
     expect(Object.keys(harness.builtinTools)).toEqual([
       'read',
       'write',
@@ -299,7 +300,7 @@ describe('createClaudeCode adapter', () => {
     const bridgeMetaWrite = writes.find(write =>
       write.path.endsWith('/bridge-meta.json'),
     );
-    expect(runs).toContain("mkdir -p '/home/vercel-sandbox'/.claude/skills");
+    expect(runs).toContain("mkdir -p '/home/vercel-sandbox/.claude/skills'");
     expect(bridgeMetaWrite).toEqual({
       path: '/vercel/sandbox/.agent-runs/s1/bridge/bridge-meta.json',
       content: JSON.stringify({ type: 'claude-code', state: 'starting' }),
@@ -365,7 +366,7 @@ describe('createClaudeCode adapter', () => {
     ).rejects.toThrow('Invalid Claude Code skill file path');
     expect(writes).toEqual([]);
     expect(runs).not.toContain(
-      "mkdir -p '/home/vercel-sandbox'/.claude/skills",
+      "mkdir -p '/home/vercel-sandbox/.claude/skills'",
     );
   });
 

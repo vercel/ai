@@ -1,5 +1,7 @@
 import type { TranscriptionModelV4CallOptions } from './transcription-model-v4-call-options';
 import type { TranscriptionModelV4Result } from './transcription-model-v4-result';
+import type { TranscriptionModelV4StreamOptions } from './transcription-model-v4-stream-options';
+import type { TranscriptionModelV4StreamResult } from './transcription-model-v4-stream-result';
 
 /**
  * Transcription model specification version 3.
@@ -30,4 +32,16 @@ export type TranscriptionModelV4 = {
   doGenerate(
     options: TranscriptionModelV4CallOptions,
   ): PromiseLike<TranscriptionModelV4Result>;
+
+  /**
+   * Streams a transcript for live audio.
+   *
+   * Experimental: the streaming transcription contract may change in patch
+   * releases while `experimental_streamTranscribe` is experimental. The
+   * stream option/part/result types are exported with `Experimental_`
+   * prefixes for this reason.
+   */
+  doStream?(
+    options: TranscriptionModelV4StreamOptions,
+  ): PromiseLike<TranscriptionModelV4StreamResult>;
 };

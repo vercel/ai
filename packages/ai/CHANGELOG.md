@@ -1,5 +1,55 @@
 # ai
 
+## 7.0.15
+
+### Patch Changes
+
+- Updated dependencies [0c3c7e4]
+- Updated dependencies [c8d2726]
+  - @ai-sdk/gateway@4.0.12
+
+## 7.0.14
+
+### Patch Changes
+
+- 5c5c0f5: Add experimental streaming transcription support for transcription models, including OpenAI `gpt-realtime-whisper` and xAI WebSocket STT.
+- Updated dependencies [5c5c0f5]
+  - @ai-sdk/provider@4.0.2
+  - @ai-sdk/provider-utils@5.0.5
+  - @ai-sdk/gateway@4.0.11
+
+## 7.0.13
+
+### Patch Changes
+
+- Updated dependencies [31abef7]
+  - @ai-sdk/gateway@4.0.10
+
+## 7.0.12
+
+### Patch Changes
+
+- ecfeb6f: Sort tool results by their tool call order when converting generation output to response messages.
+- a193137: Fix `extractJsonMiddleware` preserving leading whitespace in the final streamed text suffix when no markdown fence prefix was stripped.
+- Updated dependencies [c6f5e62]
+  - @ai-sdk/gateway@4.0.9
+  - @ai-sdk/provider-utils@5.0.4
+
+## 7.0.11
+
+### Patch Changes
+
+- 0a87626: fix(ai): replace dynamic import() with loadBuiltinModule for diagnostics_channel to fix React Native/Hermes builds
+
+## 7.0.10
+
+### Patch Changes
+
+- 8c616f0: feat(mcp): add maxRetries option for failed mcp tool calls
+- Updated dependencies [8c616f0]
+  - @ai-sdk/provider-utils@5.0.3
+  - @ai-sdk/gateway@4.0.8
+
 ## 7.0.9
 
 ### Patch Changes

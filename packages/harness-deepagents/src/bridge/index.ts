@@ -15,6 +15,7 @@ import type { StartMessage } from '../deepagents-bridge-protocol';
 import { buildInterruptOn, collectActionRequests } from './approvals';
 import { jsonSchemaToZodObject } from './json-schema-to-zod';
 import { createLocalShellBackend } from './local-shell-backend';
+import { createBuiltinToolFilteringMiddleware } from './tool-filtering';
 
 // Native Deep Agents tool name -> harness-v1 common name (renames only; grep/glob/ls/task/write_todos forward unchanged).
 const NATIVE_TO_COMMON: Readonly<Record<string, string>> = {
@@ -118,9 +119,22 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   const emit = (event: Record<string, unknown>) =>
     turn.emit(event as BridgeEvent);
 
-  const interruptOn = buildInterruptOn(start.permissionMode);
+  const interruptOn = buildInterruptOn(
+    start.permissionMode,
+    start.builtinToolFiltering,
+  );
   if (!agent) {
     const model = buildModel(start.model);
+    const builtinToolFilteringMiddleware = createBuiltinToolFilteringMiddleware(
+      {
+        builtinToolFiltering: start.builtinToolFiltering,
+        emit: event => {
+          const turn = currentTurn;
+          if (!turn) throw new Error('no active turn');
+          turn.emit(event as BridgeEvent);
+        },
+      },
+    );
     agent = createDeepAgent({
       // Defer to Deep Agents's own default when the host configured no model.
       ...(model ? { model } : {}),
@@ -129,6 +143,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       systemPrompt: start.instructions || undefined,
       // Native skills loaded from the source dirs ($HOME-materialized + <workDir> for repo-provided skills).
       ...(start.skillsPaths?.length ? { skills: start.skillsPaths } : {}),
+      ...(builtinToolFilteringMiddleware
+        ? { middleware: [builtinToolFilteringMiddleware] }
+        : {}),
       // Gate built-in tools behind HITL approval when the permission mode requires it.
       ...(interruptOn ? { interruptOn } : {}),
       // Real instance (LangGraph rejects `true` for root graphs); gives multi-turn memory.

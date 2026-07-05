@@ -1,5 +1,39 @@
 # @ai-sdk/anthropic-aws
 
+## 1.0.8
+
+### Patch Changes
+
+- Updated dependencies [0aa0ff3]
+  - @ai-sdk/anthropic@4.0.8
+
+## 1.0.7
+
+### Patch Changes
+
+- 5c5c0f5: Add experimental streaming transcription support for transcription models, including OpenAI `gpt-realtime-whisper` and xAI WebSocket STT.
+- Updated dependencies [5c5c0f5]
+  - @ai-sdk/provider@4.0.2
+  - @ai-sdk/provider-utils@5.0.5
+  - @ai-sdk/anthropic@4.0.7
+
+## 1.0.6
+
+### Patch Changes
+
+- Updated dependencies [c6f5e62]
+- Updated dependencies [679c52a]
+  - @ai-sdk/anthropic@4.0.6
+  - @ai-sdk/provider-utils@5.0.4
+
+## 1.0.5
+
+### Patch Changes
+
+- Updated dependencies [8c616f0]
+  - @ai-sdk/provider-utils@5.0.3
+  - @ai-sdk/anthropic@4.0.5
+
 ## 1.0.4
 
 ### Patch Changes

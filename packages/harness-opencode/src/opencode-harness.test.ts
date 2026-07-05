@@ -96,6 +96,7 @@ describe('createOpenCode adapter', () => {
     expect(harness.harnessId).toBe('opencode');
     expect(harness.specificationVersion).toBe('harness-v1');
     expect(harness.supportsBuiltinToolApprovals).toBe(true);
+    expect(harness.supportsBuiltinToolFiltering).toBeUndefined();
     expect(Object.keys(harness.builtinTools)).toEqual([
       'read',
       'write',

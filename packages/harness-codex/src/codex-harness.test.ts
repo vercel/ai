@@ -128,6 +128,18 @@ describe('createCodex adapter', () => {
     ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
   });
 
+  it('rejects built-in tool filtering controls', async () => {
+    const harness = createCodex();
+    await expect(
+      harness.doStart({
+        sessionId: 's1',
+        sandboxSession: {} as HarnessV1NetworkSandboxSession,
+        sessionWorkDir: '/vercel/sandbox/codex-s1',
+        builtinToolFiltering: { mode: 'deny', toolNames: ['bash'] },
+      }),
+    ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
+  });
+
   it('throws HarnessCapabilityUnsupportedError when the network sandbox session exposes no ports', async () => {
     const harness = createCodex();
     const sandboxSession = {

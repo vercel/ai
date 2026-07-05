@@ -1,5 +1,58 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.18
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.18
+
+## 1.0.17
+
+### Patch Changes
+
+- Updated dependencies [5c5c0f5]
+  - @ai-sdk/provider-utils@5.0.5
+  - @ai-sdk/harness@1.0.17
+
+## 1.0.16
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.16
+
+## 1.0.15
+
+### Patch Changes
+
+- Updated dependencies [c6f5e62]
+  - @ai-sdk/provider-utils@5.0.4
+  - @ai-sdk/harness@1.0.15
+
+## 1.0.14
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.14
+
+## 1.0.13
+
+### Patch Changes
+
+- Updated dependencies [8c616f0]
+  - @ai-sdk/provider-utils@5.0.3
+  - @ai-sdk/harness@1.0.13
+
+## 1.0.12
+
+### Patch Changes
+
+- 7859cea: feat(harness): add tool filtering via `activeTools` and `inactiveTools`
+- c857346: feat(harness): add utility functions for certain duplicated layers in harnesses
+- 7a24276: fix(harness-claude-code): declare Claude Code's Monitor tool as built-in tool
+- Updated dependencies [7859cea]
+- Updated dependencies [c857346]
+  - @ai-sdk/harness@1.0.12
+
 ## 1.0.11
 
 ### Patch Changes

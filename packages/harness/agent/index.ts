@@ -1,4 +1,5 @@
 export { HarnessAgent } from '../src/agent/harness-agent';
+export type { HarnessAllTools } from '../src/agent/harness-agent-tool-types';
 export type {
   HarnessAgentSandboxConfig,
   HarnessAgentSettings,
