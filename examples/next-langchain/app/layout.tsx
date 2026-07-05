@@ -6,6 +6,25 @@ export const metadata = {
   title: 'AI SDK + LangChain Examples',
   description:
     'Example applications showcasing AI SDK with LangChain integration',
+  openGraph: {
+    title: 'AI SDK + LangChain Examples',
+    description:
+      'Example applications showcasing AI SDK with LangChain integration',
+    images: [
+      {
+        url: 'https://ai-sdk.dev/images/og-image.png',
+        width: 1200,
+        height: 630,
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'AI SDK + LangChain Examples',
+    description:
+      'Example applications showcasing AI SDK with LangChain integration',
+    images: ['https://ai-sdk.dev/images/og-image.png'],
+  },
 };
 
 export default function RootLayout({

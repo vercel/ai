@@ -7,6 +7,24 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'AI SDK and FastAPI Examples',
+  description: 'Examples of using the AI SDK with Next.js and FastAPI.',
+  openGraph: {
+    title: 'AI SDK and FastAPI Examples',
+    description: 'Examples of using the AI SDK with Next.js and FastAPI.',
+    images: [
+      {
+        url: 'https://ai-sdk.dev/images/og-image.png',
+        width: 1200,
+        height: 630,
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'AI SDK and FastAPI Examples',
+    description: 'Examples of using the AI SDK with Next.js and FastAPI.',
+    images: ['https://ai-sdk.dev/images/og-image.png'],
+  },
 };
 
 export default function RootLayout({
