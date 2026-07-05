@@ -21,7 +21,12 @@ const config: PlaywrightTestConfig = {
   projects: [
     {
       name: 'chromium',
-      use: devices['Desktop Chrome'],
+      use: {
+        ...devices['Desktop Chrome'],
+        launchOptions: {
+          executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+        },
+      },
     },
   ],
   use: {
