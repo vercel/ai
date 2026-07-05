@@ -130,11 +130,18 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
         'Default custom download function for URLs. Per-stream values override this default.',
     },
     {
+      name: 'experimental_sandbox',
+      type: 'Experimental_SandboxSession',
+      isOptional: true,
+      description:
+        'Default sandbox session passed to tool execution as `experimental_sandbox` and exposed to `prepareStep`. Per-stream values override this default.',
+    },
+    {
       name: 'prepareStep',
       type: 'PrepareStepCallback',
       isOptional: true,
       description:
-        'Callback called before each step in the agent loop. Use it to modify settings, manage context, or inject messages dynamically. Receives step number, previous steps, messages, and context.',
+        'Callback called before each step in the agent loop. Use it to modify settings, manage context, inject messages dynamically, or override `experimental_sandbox` for the current step. Receives step number, previous steps, messages, context, and sandbox.',
     },
     {
       name: 'prepareCall',
@@ -537,6 +544,13 @@ const result = await agent.stream({
       type: 'DownloadFunction',
       isOptional: true,
       description: 'Custom download function for fetching files/URLs.',
+    },
+    {
+      name: 'experimental_sandbox',
+      type: 'Experimental_SandboxSession',
+      isOptional: true,
+      description:
+        'Sandbox session passed to tool execution as `experimental_sandbox` and exposed to `prepareStep`. Overrides the constructor default.',
     },
     {
       name: 'telemetry',

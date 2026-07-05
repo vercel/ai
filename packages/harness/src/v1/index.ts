@@ -58,6 +58,7 @@ export {
 } from './harness-v1-stream-part';
 export {
   harnessV1BridgeAbortInboundSchema,
+  harnessV1BridgeBuiltinToolFilteringSchema,
   harnessV1BridgeDebugEventSchema,
   harnessV1BridgeDetachInboundSchema,
   harnessV1BridgeDetachSchema,
@@ -91,3 +92,8 @@ export {
 } from './harness-v1-diagnostic';
 export type { HarnessV1ToolSpec } from './harness-v1-tool-spec';
 export type { HarnessV1PermissionMode } from './harness-v1-permission-mode';
+export type { HarnessV1BuiltinToolFiltering } from './harness-v1-tool-filtering';
+export {
+  getHarnessV1BuiltinToolFilteringDenialReason,
+  isHarnessV1BuiltinToolIncluded,
+} from './harness-v1-tool-filtering';

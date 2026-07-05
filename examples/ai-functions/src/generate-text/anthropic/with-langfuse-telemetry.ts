@@ -1,8 +1,8 @@
-import { anthropic, createAnthropic } from '@ai-sdk/anthropic';
-import { generateText, isStepCount, registerTelemetry } from 'ai';
-import { LegacyOpenTelemetry } from '@ai-sdk/otel';
+import { anthropic } from '@ai-sdk/anthropic';
+import { OpenTelemetry } from '@ai-sdk/otel';
 import { LangfuseSpanProcessor } from '@langfuse/otel';
 import { NodeSDK } from '@opentelemetry/sdk-node';
+import { generateText, isStepCount, registerTelemetry } from 'ai';
 import { run } from '../../lib/run';
 import { z } from 'zod';
 
@@ -11,13 +11,9 @@ const sdk = new NodeSDK({
 });
 
 sdk.start();
-registerTelemetry(new LegacyOpenTelemetry());
+registerTelemetry(new OpenTelemetry());
 
 run(async () => {
-  const myCustomProvider = createAnthropic({
-    name: 'my-anthropic-proxy',
-  });
-
   const result = await generateText({
     model: anthropic('claude-sonnet-4-5-20250929'),
     prompt: 'what is the weather in Tokyo?',
@@ -38,7 +34,7 @@ run(async () => {
     reasoning: 'medium',
     stopWhen: isStepCount(5),
     telemetry: {
-      functionId: 'anthropic-custom-provider-demo',
+      functionId: 'anthropic-tool-call-step-performance',
     },
   });
 
@@ -47,6 +43,9 @@ run(async () => {
   console.log();
   console.log('Text:');
   console.log(result.text);
+  console.log();
+  console.log('Step performance:');
+  console.log(result.steps.map(step => step.performance));
 
   await sdk.shutdown();
 });

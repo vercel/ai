@@ -140,9 +140,19 @@ const contentBlockSchema = () => {
     })
     .loose();
 
+  const videoContent = z
+    .object({
+      type: z.literal('video'),
+      data: z.string().nullish(),
+      mime_type: z.string().nullish(),
+      uri: z.string().nullish(),
+    })
+    .loose();
+
   return z.union([
     textContent,
     imageContent,
+    videoContent,
     z.object({ type: z.string() }).loose(),
   ]);
 };
@@ -385,6 +395,19 @@ export const googleInteractionsEventSchema = lazySchema(() =>
         .loose();
 
       /*
+       * `video` deltas carry the entire payload per delta (`data` base64 +
+       * `mime_type`, or `uri`) — there is no per-byte streaming.
+       */
+      const stepDeltaVideo = z
+        .object({
+          type: z.literal('video'),
+          data: z.string().nullish(),
+          mime_type: z.string().nullish(),
+          uri: z.string().nullish(),
+        })
+        .loose();
+
+      /*
        * Built-in tool call/result step deltas mirror the shape of their step
        * counterparts (full payload per delta — there is no per-token
        * streaming of arguments). Result deltas carry the populated `result`
@@ -419,6 +442,7 @@ export const googleInteractionsEventSchema = lazySchema(() =>
       const stepDeltaUnion = z.union([
         stepDeltaText,
         stepDeltaImage,
+        stepDeltaVideo,
         stepDeltaThoughtSummary,
         stepDeltaThoughtSignature,
         stepDeltaArgumentsDelta,

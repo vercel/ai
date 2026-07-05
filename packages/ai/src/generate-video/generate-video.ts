@@ -2,6 +2,8 @@ import type {
   Experimental_VideoModelV4,
   Experimental_VideoModelV4CallOptions,
   Experimental_VideoModelV4File,
+  Experimental_VideoModelV4FrameImage,
+  Experimental_VideoModelV4FrameType,
   SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
@@ -26,6 +28,7 @@ import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
 import type { GenerateVideoResult } from './generate-video-result';
 import { splitDataUrl } from '../prompt/split-data-url';
+import { convertDataContentToUint8Array } from '../prompt/data-content';
 
 export type GenerateVideoPrompt =
   | string
@@ -45,6 +48,9 @@ export type GenerateVideoPrompt =
  * @param duration - Duration of the video in seconds.
  * @param fps - Frames per second for the video.
  * @param seed - Seed for the video generation.
+ * @param frameImages - Role-tagged image inputs for image-to-video and first-last-frame generation.
+ * @param inputReferences - Reference image inputs for reference-to-video generation.
+ * @param generateAudio - Whether the model should generate audio alongside the video.
  * @param providerOptions - Additional provider-specific options that are passed through to the provider
  * as body parameters.
  * @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
@@ -65,6 +71,9 @@ export async function experimental_generateVideo({
   duration,
   fps,
   seed,
+  frameImages,
+  inputReferences,
+  generateAudio,
   providerOptions,
   maxRetries: maxRetriesArg,
   abortSignal,
@@ -117,6 +126,31 @@ export async function experimental_generateVideo({
   seed?: number;
 
   /**
+   * Role-tagged image inputs for image-to-video and first-last-frame generation.
+   */
+  frameImages?: Array<{
+    /**
+     * The image for this frame.
+     */
+    image: DataContent;
+
+    /**
+     * Which frame this image represents.
+     */
+    frameType: Experimental_VideoModelV4FrameType;
+  }>;
+
+  /**
+   * Reference image inputs for reference-to-video generation.
+   */
+  inputReferences?: Array<DataContent>;
+
+  /**
+   * Whether the model should generate audio alongside the video.
+   */
+  generateAudio?: boolean;
+
+  /**
    * Additional provider-specific options that are passed through to the provider
    * as body parameters.
    */
@@ -165,6 +199,55 @@ export async function experimental_generateVideo({
 
   const { prompt, image } = normalizePrompt(promptArg);
 
+  const normalizedFrameImages:
+    | Array<Experimental_VideoModelV4FrameImage>
+    | undefined = frameImages?.map(frame => ({
+    image: normalizeImageData(frame.image),
+    frameType: frame.frameType,
+  }));
+
+  const normalizedInputReferences:
+    | Array<Experimental_VideoModelV4File>
+    | undefined = inputReferences?.map(reference =>
+    normalizeImageData(reference),
+  );
+
+  const effectiveInputReferences =
+    normalizedFrameImages != null && normalizedFrameImages.length > 0
+      ? undefined
+      : normalizedInputReferences;
+
+  const warnings: Array<Warning> = [];
+
+  if (
+    normalizedFrameImages != null &&
+    normalizedFrameImages.length > 0 &&
+    normalizedInputReferences != null &&
+    normalizedInputReferences.length > 0
+  ) {
+    warnings.push({
+      type: 'other',
+      message:
+        'inputReferences were ignored because frameImages were provided; ' +
+        'frameImages and inputReferences cannot be combined.',
+    });
+  }
+
+  const firstFrameImage = normalizedFrameImages?.find(
+    frame => frame.frameType === 'first_frame',
+  )?.image;
+
+  if (image != null && firstFrameImage != null) {
+    warnings.push({
+      type: 'other',
+      message:
+        'prompt.image was ignored because a first_frame frameImage was provided; ' +
+        'the first_frame frameImage takes precedence as the start image.',
+    });
+  }
+
+  const resolvedImage = firstFrameImage ?? image;
+
   const maxVideosPerCallWithDefault =
     maxVideosPerCall ?? (await invokeModelMaxVideosPerCall(model)) ?? 1;
 
@@ -187,7 +270,10 @@ export async function experimental_generateVideo({
             duration,
             fps,
             seed,
-            image,
+            image: resolvedImage,
+            frameImages: normalizedFrameImages,
+            inputReferences: effectiveInputReferences,
+            generateAudio,
             providerOptions: providerOptions ?? {},
             headers: headersWithUserAgent,
             abortSignal,
@@ -198,7 +284,6 @@ export async function experimental_generateVideo({
 
   // collect result videos, warnings, and response metadata
   const videos: Array<GeneratedFile> = [];
-  const warnings: Array<Warning> = [];
   const responses: Array<VideoModelResponseMetadata> = [];
   const providerMetadata: SharedV4ProviderMetadata = {};
 
@@ -334,59 +419,55 @@ function normalizePrompt(promptArg: GenerateVideoPrompt): {
     };
   }
 
-  let image: Experimental_VideoModelV4File | undefined;
-
-  if (promptArg.image != null) {
-    const dataContent = promptArg.image;
-
-    if (typeof dataContent === 'string') {
-      if (
-        dataContent.startsWith('http://') ||
-        dataContent.startsWith('https://')
-      ) {
-        image = {
-          type: 'url',
-          url: dataContent,
-        };
-      } else if (dataContent.startsWith('data:')) {
-        const { mediaType, base64Content } = splitDataUrl(dataContent);
-        image = {
-          type: 'file',
-          mediaType: mediaType ?? 'image/png',
-          data: convertBase64ToUint8Array(base64Content ?? ''),
-        };
-      } else {
-        const bytes = convertBase64ToUint8Array(dataContent);
-        const mediaType =
-          detectMediaType({
-            data: bytes,
-            topLevelType: 'image',
-          }) ?? 'image/png';
-
-        image = {
-          type: 'file',
-          mediaType,
-          data: bytes,
-        };
-      }
-    } else if (dataContent instanceof Uint8Array) {
-      const mediaType =
-        detectMediaType({
-          data: dataContent,
-          topLevelType: 'image',
-        }) ?? 'image/png';
-
-      image = {
-        type: 'file',
-        mediaType,
-        data: dataContent,
-      };
-    }
-  }
-
   return {
     prompt: promptArg.text,
-    image,
+    image:
+      promptArg.image != null ? normalizeImageData(promptArg.image) : undefined,
+  };
+}
+
+/**
+ * Normalizes a {@link DataContent} image into a {@link Experimental_VideoModelV4File}.
+ * Accepts a URL string, a data URL, a base64 string, or binary image data.
+ */
+function normalizeImageData(
+  dataContent: DataContent,
+): Experimental_VideoModelV4File {
+  if (typeof dataContent === 'string') {
+    if (
+      dataContent.startsWith('http://') ||
+      dataContent.startsWith('https://')
+    ) {
+      return {
+        type: 'url',
+        url: dataContent,
+      };
+    }
+
+    if (dataContent.startsWith('data:')) {
+      const { mediaType, base64Content } = splitDataUrl(dataContent);
+      return {
+        type: 'file',
+        mediaType: mediaType ?? 'image/png',
+        data: convertBase64ToUint8Array(base64Content ?? ''),
+      };
+    }
+
+    const bytes = convertBase64ToUint8Array(dataContent);
+    return {
+      type: 'file',
+      mediaType:
+        detectMediaType({ data: bytes, topLevelType: 'image' }) ?? 'image/png',
+      data: bytes,
+    };
+  }
+
+  const bytes = convertDataContentToUint8Array(dataContent);
+  return {
+    type: 'file',
+    mediaType:
+      detectMediaType({ data: bytes, topLevelType: 'image' }) ?? 'image/png',
+    data: bytes,
   };
 }
 

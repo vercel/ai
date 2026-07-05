@@ -11,6 +11,7 @@ import {
   readUIMessageStream,
   type Agent,
   type AgentStreamParameters,
+  type Experimental_SandboxSession,
   type ModelMessage,
   type TextStreamPart,
   type ToolSet,
@@ -318,6 +319,25 @@ describe('AgentTUIRunner', () => {
     expect(renderer.contextSizes).toEqual([200_000]);
   });
 
+  it('passes the sandbox to every agent stream call', async () => {
+    const streamCalls: AgentTUIStreamCall[] = [];
+    useRenderer(
+      createRenderer({
+        prompts: ['first', 'second', undefined],
+      }),
+    );
+    const agent = createAgent(streamCalls);
+    const sandbox = createSandboxSession();
+
+    await new AgentTUIRunner({ agent, title: 'Test Agent', sandbox }).run();
+
+    expect(streamCalls).toHaveLength(2);
+    expect(streamCalls.map(call => call.experimental_sandbox)).toEqual([
+      sandbox,
+      sandbox,
+    ]);
+  });
+
   it('streams total token usage in response metadata', async () => {
     const streamCalls: AgentTUIStreamCall[] = [];
     const renderer = useRenderer(
@@ -431,6 +451,29 @@ function createApprovalAgent(streamCalls: AgentTUIStreamCall[]): AgentTUIAgent {
 
 function createAISDKAgent(): Agent<any, any, any, any> {
   return { version: 'agent-v1' } as Agent<any, any, any, any>;
+}
+
+function createSandboxSession(): Experimental_SandboxSession {
+  return {
+    description: 'test sandbox',
+    readFile: async () => null,
+    readBinaryFile: async () => null,
+    readTextFile: async () => null,
+    writeFile: async () => {},
+    writeBinaryFile: async () => {},
+    writeTextFile: async () => {},
+    spawn: async () => ({
+      stdout: new ReadableStream<Uint8Array>(),
+      stderr: new ReadableStream<Uint8Array>(),
+      wait: async () => ({ exitCode: 0 }),
+      kill: async () => {},
+    }),
+    run: async () => ({
+      exitCode: 0,
+      stdout: '',
+      stderr: '',
+    }),
+  };
 }
 
 type TestRenderer = AgentTUIRenderer & {

@@ -55,6 +55,31 @@ await runAgentTUI({
 
 `runAgentTUI` runs until the user exits with `Esc` or `Ctrl+C`.
 
+## Sandbox
+
+Pass a sandbox session with the `sandbox` option when your agent tools need an
+execution environment:
+
+```ts
+import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
+
+const sandboxSession = await createJustBashSandbox({
+  cwd: '/home/user',
+}).createSession();
+
+await runAgentTUI({
+  title: 'Sandbox Agent',
+  agent,
+  sandbox: sandboxSession.restricted(),
+});
+```
+
+The terminal UI forwards the sandbox to every agent call as
+`experimental_sandbox`. Tool description functions and tool `execute` functions
+can read it from their options and delegate command or file operations to it.
+Add the sandbox description to your agent instructions if the model should know
+details such as the working directory, public hostname, or exposed ports.
+
 ## Display Options
 
 You can control how tool calls, reasoning, and response statistics are shown:

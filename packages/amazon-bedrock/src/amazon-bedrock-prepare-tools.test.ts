@@ -395,5 +395,41 @@ describe('prepareTools', () => {
       expect((tools[1] as any).toolSpec.strict).toBe(false);
       expect((tools[2] as any).toolSpec).not.toHaveProperty('strict');
     });
+
+    it('should omit strict for claude-opus-4-7', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+            strict: true,
+          },
+        ],
+        modelId: 'us.anthropic.claude-opus-4-7',
+      });
+
+      const toolSpec = (result.toolConfig.tools![0] as any).toolSpec;
+      expect(toolSpec).not.toHaveProperty('strict');
+    });
+
+    it('should omit strict for claude-opus-4-8', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+            strict: true,
+          },
+        ],
+        modelId: 'anthropic.claude-opus-4-8',
+      });
+
+      const toolSpec = (result.toolConfig.tools![0] as any).toolSpec;
+      expect(toolSpec).not.toHaveProperty('strict');
+    });
   });
 });

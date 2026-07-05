@@ -5,7 +5,13 @@ import {
   TestResponseController,
 } from '@ai-sdk/test-server/with-vitest';
 import { mockId } from '@ai-sdk/provider-utils/test';
-import { fireEvent, screen, waitFor, render } from '@testing-library/react';
+import {
+  cleanup,
+  fireEvent,
+  screen,
+  waitFor,
+  render,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
   DefaultChatTransport,
@@ -884,6 +890,56 @@ describe('use-chat', () => {
 
       expect(onToolCallA).toHaveBeenCalledTimes(0);
       expect(onToolCallB).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('stale transport', () => {
+    afterEach(cleanup);
+
+    it('should use the latest transport body after a state change (no stale closure)', async () => {
+      const Test = () => {
+        const [subagent, setSubagent] = React.useState('todos-agent');
+        const { sendMessage } = useChat({
+          transport: new DefaultChatTransport({
+            body: { subagent },
+          }),
+        });
+
+        return (
+          <div>
+            <button
+              data-testid="change-subagent"
+              onClick={() => setSubagent('research-agent')}
+            />
+            <button
+              data-testid="do-send"
+              onClick={() => {
+                sendMessage({ parts: [{ text: 'hi', type: 'text' }] });
+              }}
+            />
+          </div>
+        );
+      };
+
+      render(<Test />);
+
+      server.urls['/api/chat'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          formatChunk({ type: 'text-start', id: '0' }),
+          formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+          formatChunk({ type: 'text-end', id: '0' }),
+        ],
+      };
+
+      await userEvent.click(screen.getByTestId('change-subagent'));
+      await userEvent.click(screen.getByTestId('do-send'));
+
+      await vi.waitUntil(() => server.calls.length > 0, { timeout: 2000 });
+
+      expect((await server.calls[0].requestBodyJson).subagent).toBe(
+        'research-agent',
+      );
     });
   });
 
@@ -2421,6 +2477,84 @@ describe('use-chat', () => {
       await userEvent.click(screen.getByTestId('do-change-id'));
 
       expect(screen.queryByTestId('message-0')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('undefined id', () => {
+    setupTestComponent(
+      () => {
+        const [renderCount, setRenderCount] = React.useState(0);
+        const {
+          messages,
+          setMessages,
+          id: idKey,
+        } = useChat({
+          id: undefined,
+          generateId: mockId(),
+        });
+
+        return (
+          <div>
+            <div data-testid="id">{idKey}</div>
+            <div data-testid="render-count">{renderCount}</div>
+            <div data-testid="messages">
+              {JSON.stringify(messages, null, 2)}
+            </div>
+            <button
+              data-testid="set-message"
+              onClick={() => {
+                setMessages([
+                  {
+                    id: 'message-0',
+                    role: 'user',
+                    parts: [{ text: 'hi', type: 'text' }],
+                  },
+                ]);
+              }}
+            />
+            <button
+              data-testid="rerender"
+              onClick={() => {
+                setRenderCount(count => count + 1);
+              }}
+            />
+          </div>
+        );
+      },
+      {
+        init: TestComponent => <TestComponent />,
+      },
+    );
+
+    it('should not recreate chat when id is explicitly undefined', async () => {
+      const initialId = screen.getByTestId('id').textContent;
+
+      await userEvent.click(screen.getByTestId('set-message'));
+
+      await waitFor(() => {
+        expect(
+          JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+        ).toStrictEqual([
+          {
+            id: 'message-0',
+            role: 'user',
+            parts: [{ text: 'hi', type: 'text' }],
+          },
+        ]);
+      });
+
+      await userEvent.click(screen.getByTestId('rerender'));
+
+      expect(screen.getByTestId('id').textContent).toBe(initialId);
+      expect(
+        JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+      ).toStrictEqual([
+        {
+          id: 'message-0',
+          role: 'user',
+          parts: [{ text: 'hi', type: 'text' }],
+        },
+      ]);
     });
   });
 

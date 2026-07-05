@@ -547,7 +547,7 @@ By setting `stopWhen: isStepCount(5)`, you're allowing the model to use up to 5 
 
 Update your `app/api/chat+api.ts` file to add a new tool to convert the temperature from Fahrenheit to Celsius:
 
-```tsx filename="app/api/chat+api.ts" highlight="30-43"
+```tsx filename="app/api/chat+api.ts" highlight="34-47"
 import {
   streamText,
   UIMessage,
@@ -617,7 +617,7 @@ export async function POST(req: Request) {
 
 To display the temperature conversion tool invocation in your UI, update your `app/(tabs)/index.tsx` file to handle the new tool part:
 
-```tsx filename="app/(tabs)/index.tsx" highlight="37-42"
+```tsx filename="app/(tabs)/index.tsx" highlight="39-45"
 import { generateAPIUrl } from '@/utils';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';

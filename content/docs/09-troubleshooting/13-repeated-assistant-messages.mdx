@@ -69,7 +69,7 @@ export async function POST(req: Request) {
       stream: result.stream,
       originalMessages: messages, // Pass the original messages here
       generateMessageId: generateId,
-      onFinish: ({ messages }) => {
+      onEnd: ({ messages }) => {
         saveChat({ id, messages });
       },
     }),

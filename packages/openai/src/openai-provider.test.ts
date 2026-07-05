@@ -94,5 +94,57 @@ describe('createOpenAI', () => {
       const call = fetchMock.mock.calls[0]!;
       expect(call[0]).toBe('https://option.openai.example/v1/embeddings');
     });
+
+    it('uses the Responses API for the default language model', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ error: { message: 'test error' } }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
+      const provider = createOpenAI({
+        apiKey: 'test-api-key',
+        baseURL: 'https://proxy.openai.example/v1/',
+        fetch: fetchMock,
+      });
+
+      try {
+        await provider('gpt-4o-mini').doGenerate({
+          prompt: [
+            { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+          ],
+        });
+      } catch {}
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const call = fetchMock.mock.calls[0]!;
+      expect(call[0]).toBe('https://proxy.openai.example/v1/responses');
+    });
+
+    it('uses the Chat Completions API for chat models', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ error: { message: 'test error' } }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
+      const provider = createOpenAI({
+        apiKey: 'test-api-key',
+        baseURL: 'https://proxy.openai.example/v1/',
+        fetch: fetchMock,
+      });
+
+      try {
+        await provider.chat('gpt-4o-mini').doGenerate({
+          prompt: [
+            { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+          ],
+        });
+      } catch {}
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const call = fetchMock.mock.calls[0]!;
+      expect(call[0]).toBe('https://proxy.openai.example/v1/chat/completions');
+    });
   });
 });

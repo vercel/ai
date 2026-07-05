@@ -9,11 +9,12 @@ import {
   convertBase64ToUint8Array,
   convertToBase64,
   getTopLevelMediaType,
+  isNonNullable,
   parseProviderOptions,
   resolveFullMediaType,
   resolveProviderReference,
+  secureJsonParse,
   validateTypes,
-  isNonNullable,
   type ToolNameMapping,
 } from '@ai-sdk/provider-utils';
 import {
@@ -48,7 +49,7 @@ function convertBytesDataToString(data: Uint8Array | string): string {
 function extractErrorValue(value: unknown): { errorCode?: string } {
   try {
     if (typeof value === 'string') {
-      return JSON.parse(value);
+      return secureJsonParse(value);
     } else if (typeof value === 'object' && value !== null) {
       return value as { errorCode?: string };
     }
@@ -844,7 +845,7 @@ export async function convertToAnthropicPrompt({
                     let errorInfo: { type?: string; errorCode?: string } = {};
                     try {
                       if (typeof output.value === 'string') {
-                        errorInfo = JSON.parse(output.value);
+                        errorInfo = secureJsonParse(output.value);
                       } else if (
                         typeof output.value === 'object' &&
                         output.value !== null
@@ -1209,7 +1210,10 @@ export async function convertToAnthropicPrompt({
           }
         }
 
-        messages.push({ role: 'assistant', content: anthropicContent });
+        messages.push({
+          role: 'assistant',
+          content: moveToolUseBlocksToEnd(anthropicContent),
+        });
 
         break;
       }
@@ -1294,4 +1298,32 @@ function groupIntoBlocks(
   }
 
   return blocks;
+}
+
+function moveToolUseBlocksToEnd(
+  content: AnthropicAssistantMessage['content'],
+): AnthropicAssistantMessage['content'] {
+  const result: AnthropicAssistantMessage['content'] = [];
+  let segment: AnthropicAssistantMessage['content'] = [];
+
+  function flushSegment() {
+    result.push(
+      ...segment.filter(part => part.type !== 'tool_use'),
+      ...segment.filter(part => part.type === 'tool_use'),
+    );
+    segment = [];
+  }
+
+  for (const part of content) {
+    if (part.type === 'thinking' || part.type === 'redacted_thinking') {
+      flushSegment();
+      result.push(part);
+    } else {
+      segment.push(part);
+    }
+  }
+
+  flushSegment();
+
+  return result;
 }

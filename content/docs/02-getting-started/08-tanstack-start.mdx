@@ -262,7 +262,7 @@ Let's enhance your chatbot by adding a simple weather tool.
 
 Modify your `src/routes/api/chat.ts` file to include the new weather tool:
 
-```tsx filename="src/routes/api/chat.ts" highlight="9,20-34"
+```tsx filename="src/routes/api/chat.ts" highlight="9,22-38"
 import {
   streamText,
   UIMessage,
@@ -336,7 +336,7 @@ Notice the blank response in the UI? This is because instead of generating a tex
 
 To display the tool invocation in your UI, update your `src/routes/index.tsx` file:
 
-```tsx filename="src/routes/index.tsx" highlight="16-21"
+```tsx filename="src/routes/index.tsx" highlight="21-26"
 import { createFileRoute } from '@tanstack/react-router';
 import { useChat } from '@ai-sdk/react';
 import { useState } from 'react';
@@ -463,7 +463,7 @@ By setting `stopWhen: isStepCount(5)`, you're allowing the model to use up to 5 
 
 Update your `src/routes/api/chat.ts` file to add a new tool to convert the temperature from Fahrenheit to Celsius:
 
-```tsx filename="src/routes/api/chat.ts" highlight="36-49"
+```tsx filename="src/routes/api/chat.ts" highlight="40-53"
 import {
   streamText,
   UIMessage,
@@ -533,7 +533,7 @@ export const Route = createFileRoute('/api/chat')({
 
 update your `src/routes/index.tsx` file to render the new temperature conversion tool:
 
-```tsx filename="src/routes/index.tsx" highlight="21"
+```tsx filename="src/routes/index.tsx" highlight="21-26"
 import { createFileRoute } from '@tanstack/react-router';
 import { useChat } from '@ai-sdk/react';
 import { useState } from 'react';

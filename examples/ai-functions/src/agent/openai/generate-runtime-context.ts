@@ -33,8 +33,8 @@ const agent = new ToolLoopAgent({
       },
     };
   },
-  onFinish: ({ runtimeContext }) => {
-    console.log('onFinish runtimeContext:', runtimeContext);
+  onEnd: ({ runtimeContext }) => {
+    console.log('onEnd runtimeContext:', runtimeContext);
   },
   instructions: 'You are a helpful assistant.',
 });

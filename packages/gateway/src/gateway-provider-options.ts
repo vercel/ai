@@ -15,6 +15,12 @@ export type GatewayProviderOptions = {
   /** Filter to providers that do not train on prompt data. */
   disallowPromptTraining?: boolean;
 
+  /**
+   * Restrict routing to models that have all of the given capabilities.
+   * Currently supports `'implicit-caching'`.
+   */
+  has?: Array<'implicit-caching'>;
+
   /** Filter to providers that are HIPAA compliant with Vercel AI Gateway. */
   hipaaCompliant?: boolean;
 

@@ -6,7 +6,13 @@ import {
   type TerminalPartDisplayMode,
 } from '@ai-sdk/tui';
 import { MockLanguageModelV4 } from 'ai/test';
-import { ToolLoopAgent, tool } from 'ai';
+import {
+  Output,
+  ToolLoopAgent,
+  tool,
+  type Agent,
+  type Experimental_SandboxSession,
+} from 'ai';
 import { assertType, describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
 
@@ -25,6 +31,7 @@ describe('runAgentTUI types', () => {
       'outputTokenCount' | 'outputTokensPerSecond'
     >();
     expectTypeOf<RunAgentTUIOptions>().toHaveProperty('agent');
+    expectTypeOf<RunAgentTUIOptions>().toHaveProperty('sandbox');
     expectTypeOf<RunAgentTUIOptions>().toHaveProperty('responseStatistics');
   });
 
@@ -77,6 +84,17 @@ describe('runAgentTUI types', () => {
     ).toEqualTypeOf<Promise<void>>();
   });
 
+  it('accepts a sandbox option', () => {
+    const agent = new ToolLoopAgent({
+      model,
+    });
+    const sandbox = null as unknown as Experimental_SandboxSession;
+
+    expectTypeOf(
+      runAgentTUI({ title: 'Sandbox Agent', agent, sandbox }),
+    ).toEqualTypeOf<Promise<void>>();
+  });
+
   it('accepts a ToolLoopAgent with terminal display options', () => {
     expectTypeOf(
       runAgentTUI({
@@ -93,34 +111,109 @@ describe('runAgentTUI types', () => {
     ).toEqualTypeOf<Promise<void>>();
   });
 
-  it('rejects a ToolLoopAgent with optional call options', () => {
+  it('accepts an explicit undefined call options generic', () => {
+    const agent = new ToolLoopAgent<undefined>({
+      model,
+      tools: {
+        weather: tool({
+          inputSchema: z.object({ city: z.string() }),
+          execute: async ({ city }) => ({ city, temperature: 72 }),
+        }),
+      },
+    });
+
+    expectTypeOf(agent).toMatchTypeOf<AgentTUIAgent>();
+    expectTypeOf(
+      runAgentTUI({ title: 'Undefined Call Options Agent', agent }),
+    ).toEqualTypeOf<Promise<void>>();
+  });
+
+  it('accepts a ToolLoopAgent with optional call options', () => {
     const agent = new ToolLoopAgent<{ temperature?: number }>({
       model,
       callOptionsSchema: z.object({ temperature: z.number().optional() }),
     });
 
-    expectTypeOf(agent).not.toMatchTypeOf<AgentTUIAgent>();
+    expectTypeOf(agent).toMatchTypeOf<AgentTUIAgent>();
 
-    runAgentTUI({
-      title: 'Optional Call Options Agent',
-      // @ts-expect-error runAgentTUI cannot provide per-call options.
-      agent,
-    });
+    expectTypeOf(
+      runAgentTUI({ title: 'Optional Call Options Agent', agent }),
+    ).toEqualTypeOf<Promise<void>>();
   });
 
-  it('rejects a ToolLoopAgent with required call options', () => {
+  it('accepts a ToolLoopAgent with required call options', () => {
     const agent = new ToolLoopAgent<{ sessionId: string }>({
       model,
       callOptionsSchema: z.object({ sessionId: z.string() }),
     });
 
-    expectTypeOf(agent).not.toMatchTypeOf<AgentTUIAgent>();
+    expectTypeOf(agent).toMatchTypeOf<AgentTUIAgent>();
 
-    runAgentTUI({
-      title: 'Required Call Options Agent',
-      // @ts-expect-error runAgentTUI cannot provide required per-call options.
-      agent,
+    expectTypeOf(
+      runAgentTUI({ title: 'Required Call Options Agent', agent }),
+    ).toEqualTypeOf<Promise<void>>();
+  });
+
+  it('accepts a ToolLoopAgent with structured output', () => {
+    const agent = new ToolLoopAgent({
+      model,
+      output: Output.object({
+        schema: z.object({ summary: z.string() }),
+      }),
     });
+
+    expectTypeOf(agent).toMatchTypeOf<AgentTUIAgent>();
+    expectTypeOf(
+      runAgentTUI({ title: 'Structured Output Agent', agent }),
+    ).toEqualTypeOf<Promise<void>>();
+  });
+
+  it('accepts custom Agent instances with different generic parameters', () => {
+    const defaultAgent = null as unknown as Agent;
+    const undefinedOptionsAgent = null as unknown as Agent<undefined>;
+    const optionalOptionsAgent = null as unknown as Agent<{
+      temperature?: number;
+    }>;
+    const requiredOptionsAgent = null as unknown as Agent<{
+      sessionId: string;
+    }>;
+    const runtimeContextAgent = null as unknown as Agent<
+      never,
+      {},
+      { userId: string }
+    >;
+    const structuredOutputAgent = null as unknown as Agent<
+      never,
+      {},
+      {},
+      ReturnType<typeof Output.object<{ summary: string }>>
+    >;
+
+    expectTypeOf(defaultAgent).toMatchTypeOf<AgentTUIAgent>();
+    expectTypeOf(undefinedOptionsAgent).toMatchTypeOf<AgentTUIAgent>();
+    expectTypeOf(optionalOptionsAgent).toMatchTypeOf<AgentTUIAgent>();
+    expectTypeOf(requiredOptionsAgent).toMatchTypeOf<AgentTUIAgent>();
+    expectTypeOf(runtimeContextAgent).toMatchTypeOf<AgentTUIAgent>();
+    expectTypeOf(structuredOutputAgent).toMatchTypeOf<AgentTUIAgent>();
+
+    expectTypeOf(runAgentTUI({ agent: defaultAgent })).toEqualTypeOf<
+      Promise<void>
+    >();
+    expectTypeOf(runAgentTUI({ agent: undefinedOptionsAgent })).toEqualTypeOf<
+      Promise<void>
+    >();
+    expectTypeOf(runAgentTUI({ agent: optionalOptionsAgent })).toEqualTypeOf<
+      Promise<void>
+    >();
+    expectTypeOf(runAgentTUI({ agent: requiredOptionsAgent })).toEqualTypeOf<
+      Promise<void>
+    >();
+    expectTypeOf(runAgentTUI({ agent: runtimeContextAgent })).toEqualTypeOf<
+      Promise<void>
+    >();
+    expectTypeOf(runAgentTUI({ agent: structuredOutputAgent })).toEqualTypeOf<
+      Promise<void>
+    >();
   });
 
   it('rejects the old name option', () => {
