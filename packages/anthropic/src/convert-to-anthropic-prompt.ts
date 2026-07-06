@@ -1330,7 +1330,7 @@ function moveToolUseBlocksToEnd(
   return result;
 }
 
-// wrap invalid tool call input because Bedrock requires it to be an object
+// wrap invalid tool call input because Anthropic requires it to be an object
 function toAnthropicToolInput(input: unknown): JSONObject {
   return typeof input === 'object' && input !== null && !Array.isArray(input)
     ? (input as JSONObject)
