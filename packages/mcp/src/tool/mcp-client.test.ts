@@ -1570,10 +1570,18 @@ describe('MCPClient', () => {
 
     const abortController = new AbortController();
     const abortReason = new Error('abort after send');
-    const toolCallPromise = client.callTool({
+    const toolCallPromise = (
+      client as unknown as {
+        callTool: (args: {
+          name: string;
+          args: Record<string, unknown>;
+          options?: { abortSignal?: AbortSignal };
+        }) => Promise<unknown>;
+      }
+    ).callTool({
       name: 'hanging-tool',
-      arguments: {},
-      options: { signal: abortController.signal },
+      args: {},
+      options: { abortSignal: abortController.signal },
     });
 
     expect(
