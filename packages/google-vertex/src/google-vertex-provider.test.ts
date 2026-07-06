@@ -1,7 +1,10 @@
 import type * as ProviderUtilsModule from '@ai-sdk/provider-utils';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createVertex } from './google-vertex-provider';
-import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
+import {
+  GoogleGenerativeAILanguageModel,
+  GoogleInteractionsLanguageModel,
+} from '@ai-sdk/google/internal';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
 import { GoogleVertexImageModel } from './google-vertex-image-model';
 import { GoogleVertexVideoModel } from './google-vertex-video-model';
@@ -37,6 +40,7 @@ vi.mock('@ai-sdk/provider-utils', async importOriginal => {
 
 vi.mock('@ai-sdk/google/internal', () => ({
   GoogleGenerativeAILanguageModel: vi.fn(),
+  GoogleInteractionsLanguageModel: vi.fn(),
   googleTools: {
     googleSearch: vi.fn(),
     urlContext: vi.fn(),
@@ -87,6 +91,39 @@ describe('google-vertex-provider', () => {
         headers: expect.any(Function),
         generateId: expect.any(Function),
       }),
+    );
+  });
+
+  it('should create an interactions model targeting the location-scoped interactions resource', () => {
+    const provider = createVertex({
+      project: 'test-project',
+      location: 'test-location',
+    });
+    provider.interactions('gemini-omni-flash-preview');
+
+    expect(GoogleInteractionsLanguageModel).toHaveBeenCalledWith(
+      'gemini-omni-flash-preview',
+      expect.objectContaining({
+        provider: 'google.vertex.interactions',
+        // No `/publishers/google` suffix — the interactions model appends
+        // `/interactions` to reach `.../locations/{region}/interactions`.
+        baseURL:
+          'https://test-location-aiplatform.googleapis.com/v1beta1/projects/test-project/locations/test-location',
+        headers: expect.any(Function),
+        generateId: expect.any(Function),
+      }),
+    );
+  });
+
+  it('should throw for interactions models when an Express Mode API key is set', () => {
+    process.env.GOOGLE_VERTEX_API_KEY = 'test-api-key';
+    const provider = createVertex({
+      project: 'test-project',
+      location: 'test-location',
+    });
+
+    expect(() => provider.interactions('gemini-omni-flash-preview')).toThrow(
+      /do not support Express Mode API keys/,
     );
   });
 

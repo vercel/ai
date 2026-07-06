@@ -1,4 +1,10 @@
-import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
+import {
+  GoogleGenerativeAILanguageModel,
+  GoogleInteractionsLanguageModel,
+  type GoogleInteractionsAgentName,
+  type GoogleInteractionsModelId,
+  type GoogleInteractionsModelInput,
+} from '@ai-sdk/google/internal';
 import type {
   Experimental_VideoModelV3,
   ImageModelV3,
@@ -57,6 +63,19 @@ export interface GoogleVertexProvider extends ProviderV3 {
   (modelId: GoogleVertexModelId): LanguageModelV3;
 
   languageModel: (modelId: GoogleVertexModelId) => LanguageModelV3;
+
+  /**
+   * Creates a language model targeting the Gemini Interactions API
+   * (`.../locations/{region}/interactions`) on Vertex, reusing the Vertex
+   * OAuth credentials. Pass a model id (e.g. `gemini-omni-flash-preview`) or an
+   * `{ agent }` / `{ managedAgent }` reference.
+   */
+  interactions(
+    modelIdOrAgent:
+      | GoogleInteractionsModelId
+      | { agent: GoogleInteractionsAgentName }
+      | { managedAgent: string },
+  ): LanguageModelV3;
 
   /**
    * Creates a model for image generation.
@@ -171,7 +190,7 @@ export function createVertex(
       description: 'Google Vertex location',
     });
 
-  const loadBaseURL = () => {
+  const loadBaseURL = ({ endpoint = false }: { endpoint?: boolean } = {}) => {
     if (apiKey) {
       return withoutTrailingSlash(options.baseURL) ?? EXPRESS_MODE_BASE_URL;
     }
@@ -191,11 +210,16 @@ export function createVertex(
 
     return (
       withoutTrailingSlash(options.baseURL) ??
-      `https://${getHost()}/v1beta1/projects/${project}/locations/${region}/publishers/google`
+      `https://${getHost()}/v1beta1/projects/${project}/locations/${region}${
+        endpoint ? '' : '/publishers/google'
+      }`
     );
   };
 
-  const createConfig = (name: string): GoogleVertexConfig => {
+  const createConfig = (
+    name: string,
+    { endpoint = false }: { endpoint?: boolean } = {},
+  ): GoogleVertexConfig => {
     const getHeaders = async () => {
       const originalHeaders = await resolve(options.headers ?? {});
       return withUserAgentSuffix(
@@ -210,7 +234,7 @@ export function createVertex(
       fetch: apiKey
         ? createExpressModeFetch(apiKey, options.fetch)
         : options.fetch,
-      baseURL: loadBaseURL(),
+      baseURL: loadBaseURL({ endpoint }),
     };
   };
 
@@ -227,6 +251,31 @@ export function createVertex(
         ],
       }),
     });
+  };
+
+  const createInteractionsModel = (
+    modelIdOrAgent:
+      | GoogleInteractionsModelId
+      | { agent: GoogleInteractionsAgentName }
+      | { managedAgent: string },
+  ) => {
+    if (apiKey) {
+      throw new Error(
+        'Google Vertex Interactions models do not support Express Mode API keys. Use standard Google Cloud credentials instead.',
+      );
+    }
+
+    return new GoogleInteractionsLanguageModel(
+      modelIdOrAgent as GoogleInteractionsModelInput,
+      {
+        // The Interactions API is a location-scoped resource
+        // (`.../locations/{region}/interactions`), so it uses the
+        // endpoint-style base URL without the `/publishers/google` suffix that
+        // the base-model paths carry.
+        ...createConfig('interactions', { endpoint: true }),
+        generateId: options.generateId ?? generateId,
+      },
+    );
   };
 
   const createEmbeddingModel = (modelId: GoogleVertexEmbeddingModelId) =>
@@ -277,6 +326,7 @@ export function createVertex(
 
   provider.specificationVersion = 'v3' as const;
   provider.languageModel = createChatModel;
+  provider.interactions = createInteractionsModel;
   provider.embeddingModel = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
   provider.image = createImageModel;
