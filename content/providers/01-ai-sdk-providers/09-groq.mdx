@@ -376,7 +376,7 @@ const result = streamText({
   toolChoice: 'required',
 });
 
-for await (const delta of result.fullStream) {
+for await (const delta of result.stream) {
   if (delta.type === 'text-delta') {
     process.stdout.write(delta.text);
   }
@@ -437,7 +437,7 @@ const model = groq.transcription('whisper-large-v3');
 You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the input language in ISO-639-1 (e.g. `en`) format will improve accuracy and latency.
 
 ```ts highlight="6"
-import { experimental_transcribe as transcribe } from 'ai';
+import { transcribe } from 'ai';
 import { groq, type GroqTranscriptionModelOptions } from '@ai-sdk/groq';
 import { readFile } from 'fs/promises';
 

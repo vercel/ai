@@ -33,7 +33,7 @@ import { hume } from '@ai-sdk/hume';
 
 ```ts
 import { hume } from '@ai-sdk/hume';
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 
 const result = await generateSpeech({
   model: hume.speech('aurora'),

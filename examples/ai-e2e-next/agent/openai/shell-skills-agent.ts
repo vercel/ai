@@ -9,13 +9,13 @@ const skillMd = readFileSync(
   join(process.cwd(), 'data', 'island-rescue', 'SKILL.md'),
 );
 
-let globalSandboxId: string | null = null;
+let globalSandboxName: string | null = null;
 async function getSandbox(): Promise<Sandbox> {
-  if (globalSandboxId) {
-    return await Sandbox.get({ sandboxId: globalSandboxId });
+  if (globalSandboxName) {
+    return await Sandbox.get({ name: globalSandboxName });
   }
   const sandbox = await Sandbox.create();
-  globalSandboxId = sandbox.sandboxId;
+  globalSandboxName = sandbox.name;
 
   await sandbox.runCommand({ cmd: 'mkdir', args: ['-p', skillPath] });
   await sandbox.writeFiles([

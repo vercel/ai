@@ -13863,7 +13863,7 @@ exports[`AnthropicLanguageModel > doStream > programmatic tool calling > with fi
     "type": "tool-input-start",
   },
   {
-    "delta": "{"code": "\\nimport async",
+    "delta": "{"type": "programmatic-tool-call","code": "\\nimport async",
     "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
     "type": "tool-input-delta",
   },
@@ -14577,7 +14577,7 @@ exports[`AnthropicLanguageModel > doStream > programmatic tool calling > with fi
     "type": "tool-input-end",
   },
   {
-    "input": "{"type":"programmatic-tool-call","code":"\\nimport asyncio\\n\\nasync def main():\\n    player1_wins = 0\\n    player2_wins = 0\\n    round_num = 0\\n    \\n    print(\\"=== DICE GAME: First to 3 Wins ===\\\\n\\")\\n    \\n    # Play until one player wins 3 rounds\\n    while player1_wins < 3 and player2_wins < 3:\\n        round_num += 1\\n        print(f\\"--- Round {round_num} ---\\")\\n        \\n        # Both players roll their dice\\n        player1_roll = await rollDie({\\"player\\": \\"player1\\"})\\n        player2_roll = await rollDie({\\"player\\": \\"player2\\"})\\n        \\n        # Extract the numeric values from the results\\n        p1_value = int(player1_roll.strip())\\n        p2_value = int(player2_roll.strip())\\n        \\n        print(f\\"Player 1 rolls: {p1_value}\\")\\n        print(f\\"Player 2 rolls: {p2_value}\\")\\n        \\n        # Determine round winner\\n        if p1_value > p2_value:\\n            player1_wins += 1\\n            print(f\\"Player 1 wins this round!\\")\\n        elif p2_value > p1_value:\\n            player2_wins += 1\\n            print(f\\"Player 2 wins this round!\\")\\n        else:\\n            print(f\\"Draw! No one gets a point.\\")\\n        \\n        print(f\\"Score: Player 1 = {player1_wins}, Player 2 = {player2_wins}\\\\n\\")\\n    \\n    # Announce the game winner\\n    print(\\"=\\" * 40)\\n    if player1_wins == 3:\\n        print(f\\"🏆 GAME OVER: Player 1 wins the game! (3-{player2_wins})\\")\\n    else:\\n        print(f\\"🏆 GAME OVER: Player 2 wins the game! (3-{player1_wins})\\")\\n    print(\\"=\\" * 40)\\n    \\n    # Determine who was cheating based on the results\\n    print(\\"\\\\n📊 Analysis:\\")\\n    print(f\\"Total rounds played: {round_num}\\")\\n    if player1_wins > player2_wins:\\n        print(\\"Player 1 had better results - likely using the loaded die! 🎲\\")\\n    elif player2_wins > player1_wins:\\n        print(\\"Player 2 had better results - likely using the loaded die! 🎲\\")\\n    else:\\n        print(\\"Results were even - hard to determine who was cheating from this game alone.\\")\\n\\nasyncio.run(main())\\n"}",
+    "input": "{"type": "programmatic-tool-call","code": "\\nimport asyncio\\n\\nasync def main():\\n    player1_wins = 0\\n    player2_wins = 0\\n    round_num = 0\\n    \\n    print(\\"=== DICE GAME: First to 3 Wins ===\\\\n\\")\\n    \\n    # Play until one player wins 3 rounds\\n    while player1_wins < 3 and player2_wins < 3:\\n        round_num += 1\\n        print(f\\"--- Round {round_num} ---\\")\\n        \\n        # Both players roll their dice\\n        player1_roll = await rollDie({\\"player\\": \\"player1\\"})\\n        player2_roll = await rollDie({\\"player\\": \\"player2\\"})\\n        \\n        # Extract the numeric values from the results\\n        p1_value = int(player1_roll.strip())\\n        p2_value = int(player2_roll.strip())\\n        \\n        print(f\\"Player 1 rolls: {p1_value}\\")\\n        print(f\\"Player 2 rolls: {p2_value}\\")\\n        \\n        # Determine round winner\\n        if p1_value > p2_value:\\n            player1_wins += 1\\n            print(f\\"Player 1 wins this round!\\")\\n        elif p2_value > p1_value:\\n            player2_wins += 1\\n            print(f\\"Player 2 wins this round!\\")\\n        else:\\n            print(f\\"Draw! No one gets a point.\\")\\n        \\n        print(f\\"Score: Player 1 = {player1_wins}, Player 2 = {player2_wins}\\\\n\\")\\n    \\n    # Announce the game winner\\n    print(\\"=\\" * 40)\\n    if player1_wins == 3:\\n        print(f\\"🏆 GAME OVER: Player 1 wins the game! (3-{player2_wins})\\")\\n    else:\\n        print(f\\"🏆 GAME OVER: Player 2 wins the game! (3-{player1_wins})\\")\\n    print(\\"=\\" * 40)\\n    \\n    # Determine who was cheating based on the results\\n    print(\\"\\\\n📊 Analysis:\\")\\n    print(f\\"Total rounds played: {round_num}\\")\\n    if player1_wins > player2_wins:\\n        print(\\"Player 1 had better results - likely using the loaded die! 🎲\\")\\n    elif player2_wins > player1_wins:\\n        print(\\"Player 2 had better results - likely using the loaded die! 🎲\\")\\n    else:\\n        print(\\"Results were even - hard to determine who was cheating from this game alone.\\")\\n\\nasyncio.run(main())\\n"}",
     "providerExecuted": true,
     "toolCallId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
     "toolName": "code_execution",
@@ -16932,7 +16932,7 @@ exports[`AnthropicLanguageModel > doStream > web fetch 20260209 tool > input pro
     "type": "tool-input-start",
   },
   {
-    "delta": "{"code": "\\nimport json",
+    "delta": "{"type": "programmatic-tool-call","code": "\\nimport json",
     "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
     "type": "tool-input-delta",
   },
@@ -17021,7 +17021,7 @@ exports[`AnthropicLanguageModel > doStream > web fetch 20260209 tool > input pro
     "type": "tool-input-end",
   },
   {
-    "input": "{"type":"programmatic-tool-call","code":"\\nimport json\\nresult = await web_fetch({\\"url\\": \\"https://example.com\\"})\\nif isinstance(result, list):\\n    print(result[0][\\"content\\"][:500])\\nelse:\\n    print(result)\\n"}",
+    "input": "{"type": "programmatic-tool-call","code": "\\nimport json\\nresult = await web_fetch({\\"url\\": \\"https://example.com\\"})\\nif isinstance(result, list):\\n    print(result[0][\\"content\\"][:500])\\nelse:\\n    print(result)\\n"}",
     "providerExecuted": true,
     "toolCallId": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
     "toolName": "code_execution",

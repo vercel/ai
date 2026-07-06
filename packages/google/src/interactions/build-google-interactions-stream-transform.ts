@@ -11,7 +11,10 @@ import type {
   GoogleInteractionsEvent,
   GoogleInteractionsUsage,
 } from './google-interactions-api';
-import { convertGoogleInteractionsUsage } from './convert-google-interactions-usage';
+import {
+  convertGoogleInteractionsUsage,
+  getGoogleInteractionsOutputTokensByModality,
+} from './convert-google-interactions-usage';
 import {
   annotationsToSources,
   builtinToolResultToSources,
@@ -446,25 +449,25 @@ export function buildGoogleInteractionsStreamTransform({
               open.kind === 'text' ||
               open.kind === 'image')
           ) {
-            const img = event.delta as
+            const imageDelta = event.delta as
               | { data?: string; mime_type?: string; uri?: string }
               | undefined;
             const google: Record<string, string> = {};
             if (interactionId != null) google.interactionId = interactionId;
             const providerMetadata =
               Object.keys(google).length > 0 ? { google } : undefined;
-            if (img?.data != null && img.data.length > 0) {
+            if (imageDelta?.data != null && imageDelta.data.length > 0) {
               controller.enqueue({
                 type: 'file',
-                mediaType: img.mime_type ?? 'image/png',
-                data: { type: 'data', data: img.data },
+                mediaType: imageDelta.mime_type ?? 'image/png',
+                data: { type: 'data', data: imageDelta.data },
                 ...(providerMetadata ? { providerMetadata } : {}),
               });
-            } else if (img?.uri != null && img.uri.length > 0) {
+            } else if (imageDelta?.uri != null && imageDelta.uri.length > 0) {
               controller.enqueue({
                 type: 'file',
-                mediaType: img.mime_type ?? 'image/png',
-                data: { type: 'url', url: new URL(img.uri) },
+                mediaType: imageDelta.mime_type ?? 'image/png',
+                data: { type: 'url', url: new URL(imageDelta.uri) },
                 ...(providerMetadata ? { providerMetadata } : {}),
               });
             }
@@ -474,6 +477,41 @@ export function buildGoogleInteractionsStreamTransform({
             if (open.kind === 'image') {
               open.data = undefined;
               open.uri = undefined;
+            }
+            break;
+          }
+
+          /*
+           * `video` deltas inside `model_output` carry the full payload in a
+           * single chunk (no per-byte streaming), mirroring `image`. Emit the
+           * `file` part as soon as the delta arrives so it surfaces regardless
+           * of whether a text block is currently open at the same index.
+           */
+          if (
+            dtype === 'video' &&
+            (open.kind === 'pending_model_output' || open.kind === 'text')
+          ) {
+            const videoDelta = event.delta as
+              | { data?: string; mime_type?: string; uri?: string }
+              | undefined;
+            const google: Record<string, string> = {};
+            if (interactionId != null) google.interactionId = interactionId;
+            const providerMetadata =
+              Object.keys(google).length > 0 ? { google } : undefined;
+            if (videoDelta?.data != null && videoDelta.data.length > 0) {
+              controller.enqueue({
+                type: 'file',
+                mediaType: videoDelta.mime_type ?? 'video/mp4',
+                data: { type: 'data', data: videoDelta.data },
+                ...(providerMetadata ? { providerMetadata } : {}),
+              });
+            } else if (videoDelta?.uri != null && videoDelta.uri.length > 0) {
+              controller.enqueue({
+                type: 'file',
+                mediaType: videoDelta.mime_type ?? 'video/mp4',
+                data: { type: 'url', url: new URL(videoDelta.uri) },
+                ...(providerMetadata ? { providerMetadata } : {}),
+              });
             }
             break;
           }
@@ -800,10 +838,14 @@ export function buildGoogleInteractionsStreamTransform({
         raw: finishStatus,
       };
 
+      const outputTokensByModality =
+        getGoogleInteractionsOutputTokensByModality(usage);
+
       const providerMetadata: SharedV4ProviderMetadata = {
         google: {
           ...(interactionId != null ? { interactionId } : {}),
           ...(serviceTier != null ? { serviceTier } : {}),
+          ...(outputTokensByModality != null ? { outputTokensByModality } : {}),
         },
       };
 

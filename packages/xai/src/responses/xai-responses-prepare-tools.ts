@@ -54,6 +54,7 @@ export async function prepareResponsesTools({
             type: 'web_search',
             allowed_domains: args.allowedDomains,
             excluded_domains: args.excludedDomains,
+            enable_image_search: args.enableImageSearch,
             enable_image_understanding: args.enableImageUnderstanding,
           });
           break;

@@ -7,7 +7,9 @@ import type { Context } from '@ai-sdk/provider-utils';
 import {
   experimental_filterActiveTools as filterActiveTools,
   type Experimental_LanguageModelStreamPart as ModelCallStreamPart,
+  type Experimental_SandboxSession as SandboxSession,
   type LanguageModel,
+  type LanguageModelUsage,
   type ModelMessage,
   type StepResult,
   type ToolCallRepairFunction,
@@ -16,16 +18,19 @@ import {
 } from 'ai';
 import { createRestrictedTelemetryDispatcher } from 'ai/internal';
 import {
+  type DoStreamStepRawResult,
   doStreamStep,
   type ModelStopCondition,
   type ParsedToolCall,
   type ProviderExecutedToolResult,
+  type StreamFinish,
 } from './do-stream-step.js';
 import { serializeToolSet } from './serializable-schema.js';
 import type {
   GenerationSettings,
   PrepareStepCallback,
   WorkflowAgentOnErrorCallback,
+  WorkflowAgentOnStepEndCallback,
   WorkflowAgentOnStepFinishCallback,
   TelemetryOptions,
   WorkflowAgentOnStepStartCallback,
@@ -51,6 +56,8 @@ export interface StreamTextIteratorYieldValue {
   toolsContext?: Record<string, Context | undefined>;
   /** Provider-executed tool results (keyed by tool call ID) */
   providerExecutedToolResults?: Map<string, ProviderExecutedToolResult>;
+  /** The sandbox selected for the current step. */
+  experimental_sandbox?: SandboxSession;
 }
 
 // This runs in the workflow context
@@ -60,6 +67,7 @@ export async function* streamTextIterator({
   writable,
   model,
   stopConditions,
+  onStepEnd,
   onStepFinish,
   onStepStart,
   onError,
@@ -72,12 +80,15 @@ export async function* streamTextIterator({
   includeRawChunks = false,
   repairToolCall,
   responseFormat,
+  experimental_sandbox: sandbox,
 }: {
   prompt: LanguageModelV4Prompt;
   tools: ToolSet;
   writable?: WritableStream<ModelCallStreamPart<ToolSet>>;
   model: LanguageModel;
   stopConditions?: ModelStopCondition[] | ModelStopCondition;
+  onStepEnd?: WorkflowAgentOnStepEndCallback<any>;
+  /** @deprecated Use `onStepEnd` instead. */
   onStepFinish?: WorkflowAgentOnStepFinishCallback<any>;
   onStepStart?: WorkflowAgentOnStepStartCallback;
   onError?: WorkflowAgentOnErrorCallback;
@@ -90,6 +101,7 @@ export async function* streamTextIterator({
   includeRawChunks?: boolean;
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
   responseFormat?: LanguageModelV4CallOptions['responseFormat'];
+  experimental_sandbox?: SandboxSession;
 }): AsyncGenerator<
   StreamTextIteratorYieldValue,
   LanguageModelV4Prompt,
@@ -131,6 +143,8 @@ export async function* streamTextIterator({
       break;
     }
 
+    let stepSandbox = sandbox;
+
     // Call prepareStep callback before each step if provided
     if (prepareStep) {
       const prepareResult = await prepareStep({
@@ -140,7 +154,10 @@ export async function* streamTextIterator({
         messages: conversationPrompt,
         runtimeContext: currentRuntimeContext,
         toolsContext: currentToolsContext as never,
+        experimental_sandbox: sandbox,
       });
+
+      stepSandbox = prepareResult?.experimental_sandbox ?? sandbox;
 
       // Apply any overrides from prepareStep
       if (prepareResult?.model !== undefined) {
@@ -245,6 +262,12 @@ export async function* streamTextIterator({
           headers: prepareResult.headers,
         };
       }
+      if (prepareResult?.reasoning !== undefined) {
+        currentGenerationSettings = {
+          ...currentGenerationSettings,
+          reasoning: prepareResult.reasoning,
+        };
+      }
       if (prepareResult?.providerOptions !== undefined) {
         currentGenerationSettings = {
           ...currentGenerationSettings,
@@ -319,11 +342,12 @@ export async function* streamTextIterator({
         frequencyPenalty: currentGenerationSettings.frequencyPenalty,
         stopSequences: currentGenerationSettings.stopSequences,
         seed: currentGenerationSettings.seed,
+        reasoning: currentGenerationSettings.reasoning,
         providerOptions: currentGenerationSettings.providerOptions,
         headers: currentGenerationSettings.headers,
       } as never);
 
-      const { toolCalls, finish, step, providerExecutedToolResults } =
+      const { toolCalls, finish, raw, providerExecutedToolResults } =
         await doStreamStep(
           conversationPrompt,
           currentModel,
@@ -335,11 +359,16 @@ export async function* streamTextIterator({
             includeRawChunks,
             repairToolCall,
             responseFormat,
-            runtimeContext: currentRuntimeContext,
-            toolsContext: currentToolsContext,
-            stepNumber,
           },
         );
+      // Reconstruct the full StepResult outside the step boundary so the
+      // durable event log doesn't carry StepResult's redundant copies (or the
+      // per-chunk snapshot the step used to return).
+      const step = buildStepResult(raw, toolCalls, finish, {
+        stepNumber,
+        runtimeContext: currentRuntimeContext,
+        toolsContext: currentToolsContext,
+      });
 
       await telemetryDispatcher.onLanguageModelCallEnd?.({
         callId: step.callId,
@@ -394,6 +423,7 @@ export async function* streamTextIterator({
           step,
           runtimeContext: currentRuntimeContext,
           toolsContext: currentToolsContext,
+          experimental_sandbox: stepSandbox,
           providerExecutedToolResults,
         };
 
@@ -448,10 +478,11 @@ export async function* streamTextIterator({
         );
       }
 
-      if (onStepFinish) {
-        await onStepFinish(step);
+      const resolvedOnStepEnd = onStepEnd ?? onStepFinish;
+      if (resolvedOnStepEnd) {
+        await resolvedOnStepEnd(step);
       }
-      await telemetryDispatcher.onStepFinish?.(normalizeStepForTelemetry(step));
+      await telemetryDispatcher.onStepEnd?.(normalizeStepForTelemetry(step));
     } catch (error) {
       if (onError) {
         await onError({ error });
@@ -468,6 +499,7 @@ export async function* streamTextIterator({
       step: lastStep,
       runtimeContext: currentRuntimeContext,
       toolsContext: currentToolsContext,
+      experimental_sandbox: sandbox,
     };
   }
 
@@ -488,6 +520,108 @@ function normalizeStepForTelemetry(step: StepResult<any, any>) {
     ...step,
     model: step.model ?? { provider: 'unknown', modelId: 'unknown' },
   };
+}
+
+/**
+ * Reconstruct a full `StepResult` from the minimal aggregates returned by
+ * `doStreamStep`. Runs outside the step boundary so StepResult's redundant
+ * fields (duplicate tool-call lists, `content`, `reasoningText`, the
+ * always-empty `*ToolResults` arrays) and the per-chunk snapshot don't cross
+ * it. The shape matches what the AI SDK's `streamText` exposes to callers.
+ */
+function buildStepResult(
+  raw: DoStreamStepRawResult,
+  toolCalls: ParsedToolCall[],
+  finish: StreamFinish | undefined,
+  opts: {
+    stepNumber: number;
+    runtimeContext: Context;
+    toolsContext: Record<string, Context | undefined>;
+  },
+): StepResult<ToolSet, any> {
+  const { text, reasoning: reasoningParts, responseMetadata, warnings } = raw;
+  const reasoningText = reasoningParts.map(r => r.text).join('') || undefined;
+
+  const validToolCalls = toolCalls
+    .filter(tc => !tc.invalid)
+    .map(tc => ({
+      type: 'tool-call' as const,
+      toolCallId: tc.toolCallId,
+      toolName: tc.toolName,
+      input: tc.input,
+      ...(tc.dynamic ? { dynamic: true as const } : {}),
+    }));
+
+  return {
+    callId: 'workflow-agent',
+    stepNumber: opts.stepNumber,
+    model: {
+      provider: responseMetadata?.modelId?.split(':')[0] ?? 'unknown',
+      modelId: responseMetadata?.modelId ?? 'unknown',
+    },
+    functionId: undefined,
+    metadata: undefined,
+    runtimeContext: opts.runtimeContext ?? {},
+    toolsContext: opts.toolsContext ?? {},
+    content: [
+      ...(text ? [{ type: 'text' as const, text }] : []),
+      ...validToolCalls,
+    ],
+    text,
+    reasoning: reasoningParts.map(r => ({
+      type: 'reasoning' as const,
+      text: r.text,
+    })),
+    reasoningText,
+    files: [],
+    sources: [],
+    toolCalls: validToolCalls,
+    staticToolCalls: [],
+    dynamicToolCalls: validToolCalls.filter(tc => tc.dynamic),
+    toolResults: [],
+    staticToolResults: [],
+    dynamicToolResults: [],
+    finishReason: finish?.finishReason ?? 'other',
+    rawFinishReason: finish?.rawFinishReason,
+    usage:
+      finish?.usage ??
+      ({
+        inputTokens: 0,
+        inputTokenDetails: {
+          noCacheTokens: undefined,
+          cacheReadTokens: undefined,
+          cacheWriteTokens: undefined,
+        },
+        outputTokens: 0,
+        outputTokenDetails: {
+          textTokens: undefined,
+          reasoningTokens: undefined,
+        },
+        totalTokens: 0,
+      } as LanguageModelUsage),
+    performance: {
+      effectiveOutputTokensPerSecond: 0,
+      outputTokensPerSecond: undefined,
+      inputTokensPerSecond: undefined,
+      effectiveTotalTokensPerSecond: 0,
+      stepTimeMs: 0,
+      responseTimeMs: 0,
+      toolExecutionMs: {},
+      timeToFirstOutputMs: undefined,
+    },
+    warnings,
+    request: {
+      body: '',
+      messages: [], // TODO implement step request messages
+    },
+    response: {
+      id: responseMetadata?.id ?? 'unknown',
+      timestamp: responseMetadata?.timestamp ?? new Date(),
+      modelId: responseMetadata?.modelId ?? 'unknown',
+      messages: [],
+    },
+    providerMetadata: finish?.providerMetadata ?? {},
+  } as StepResult<ToolSet, any>;
 }
 
 /**

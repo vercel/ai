@@ -291,8 +291,11 @@ export class MCPAppBridge {
           throw new Error('No tools/call handler configured');
         }
         const params = assertToolCallParams(request.params);
+        // Deny-by-default: the (untrusted) MCP App may only invoke tools the
+        // host has explicitly allow-listed. Omitting `allowedTools` exposes no
+        // tools, rather than forwarding every requested tool to `callTool`.
         if (
-          this.handlers.allowedTools != null &&
+          this.handlers.allowedTools == null ||
           !this.handlers.allowedTools.includes(params.name)
         ) {
           throw new Error(`Tool is not app-visible: ${params.name}`);

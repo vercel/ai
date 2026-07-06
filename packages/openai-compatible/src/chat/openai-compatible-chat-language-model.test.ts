@@ -1797,6 +1797,34 @@ describe('doStream', () => {
     `);
   });
 
+  it('should handle empty string role in delta chunks', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1702657020,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"role":"","content":"Hello"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1702657020,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"role":"","content":" World"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1702657020,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const textDeltas = events.filter(e => e.type === 'text-delta');
+
+    expect(textDeltas).toStrictEqual([
+      { type: 'text-delta', delta: 'Hello', id: 'txt-0' },
+      { type: 'text-delta', delta: ' World', id: 'txt-0' },
+    ]);
+  });
+
   it('should respect the includeUsage option', async () => {
     prepareStreamResponse({
       content: ['Hello', ', ', 'World!'],

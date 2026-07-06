@@ -23,6 +23,7 @@ import {
   agentPrepareCallE2e,
   agentRepairToolCallE2e,
   agentRuntimeAndToolsContextE2e,
+  agentSandboxE2e,
   agentTimeoutE2e,
   agentToolApprovalE2e,
   agentToolCallE2e,
@@ -249,6 +250,24 @@ describe('WorkflowAgent integration', { timeout: 120_000 }, () => {
       });
       expect(rv.onFinishToolsContext).toEqual({
         lookupCustomer: { apiKey: 'sk-test-key', region: 'us' },
+      });
+    });
+  });
+
+  describe('experimental_sandbox', () => {
+    it('flows through to tool execute', async () => {
+      const run = await start(agentSandboxE2e, []);
+      const rv = await run.returnValue;
+
+      expect(rv.stepCount).toBe(2);
+      expect(rv.lastStepText).toBe('Command executed.');
+      expect(rv.constructorSandboxRanCommand).toBe('not-run');
+      expect(rv.stepSandboxRanCommand).toBe('echo hello');
+      expect(rv.firstPrepareStepSawConstructorSandbox).toBe(true);
+      expect(rv.secondPrepareStepSawConstructorSandbox).toBe(true);
+      expect(rv.prepareStepSawStepSandbox).toBe(false);
+      expect(rv.toolResults[0]?.output).toMatchObject({
+        stdout: 'ran: echo hello',
       });
     });
   });

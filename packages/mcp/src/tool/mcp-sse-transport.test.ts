@@ -21,6 +21,14 @@ describe('SseMCPTransport', () => {
       },
     },
     'http://localhost:3333/sse': {},
+    'http://localhost:3333/messages': {
+      response: {
+        type: 'json-value',
+        body: {
+          ok: true,
+        },
+      },
+    },
   });
 
   let transport: SseMCPTransport;
@@ -97,6 +105,40 @@ describe('SseMCPTransport', () => {
     controller.write(
       `event: message\ndata: ${JSON.stringify(testMessage)}\n\n`,
     );
+
+    expect(await messagePromise).toEqual(testMessage);
+
+    await transport.close();
+  });
+
+  it('should handle JSON-RPC messages without explicit event field', async () => {
+    const controller = new TestResponseController();
+
+    server.urls['http://localhost:3000/sse'].response = {
+      type: 'controlled-stream',
+      controller,
+    };
+
+    const messagePromise = new Promise(resolve => {
+      transport.onmessage = msg => resolve(msg);
+    });
+
+    const connectPromise = transport.start();
+
+    controller.write(
+      'event: endpoint\ndata: http://localhost:3000/messages\n\n',
+    );
+
+    await connectPromise;
+
+    const testMessage = {
+      jsonrpc: '2.0' as const,
+      method: 'test',
+      params: { foo: 'bar' },
+      id: '1',
+    };
+
+    controller.write(`data: ${JSON.stringify(testMessage)}\n\n`);
 
     expect(await messagePromise).toEqual(testMessage);
 
@@ -201,6 +243,79 @@ describe('SseMCPTransport', () => {
     expect(server.calls[1].requestMethod).toBe('POST');
     expect(server.calls[1].requestUrl).toBe('http://localhost:3000/messages');
     expect(await server.calls[1].requestBodyJson).toEqual(message);
+
+    await transport.close();
+  });
+
+  it('should reject cross-origin endpoints before connecting', async () => {
+    const controller = new TestResponseController();
+
+    server.urls['http://localhost:3000/sse'].response = {
+      type: 'controlled-stream',
+      controller,
+    };
+
+    const errorPromise = new Promise<unknown>(resolve => {
+      transport.onerror = err => resolve(err);
+    });
+
+    const connectPromise = transport.start();
+    controller.write(
+      'event: endpoint\ndata: http://localhost:3333/messages\n\n',
+    );
+
+    await expect(connectPromise).rejects.toThrow(
+      'Endpoint origin does not match connection origin: http://localhost:3333',
+    );
+
+    const error = await errorPromise;
+    expect(error).toBeInstanceOf(MCPClientError);
+    expect(transport['connected']).toBe(false);
+    expect(transport['endpoint']).toBeUndefined();
+
+    await expect(
+      transport.send({
+        jsonrpc: '2.0' as const,
+        method: 'test',
+        params: {},
+        id: '1',
+      }),
+    ).rejects.toThrow('Not connected');
+
+    await transport.close();
+  });
+
+  it('should ignore endpoint events after connecting', async () => {
+    const controller = new TestResponseController();
+
+    server.urls['http://localhost:3000/sse'].response = {
+      type: 'controlled-stream',
+      controller,
+    };
+
+    const connectPromise = transport.start();
+    controller.write(
+      'event: endpoint\ndata: http://localhost:3000/messages\n\n',
+    );
+    await connectPromise;
+
+    controller.write(
+      'event: endpoint\ndata: http://localhost:3333/messages\n\n',
+    );
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    const message = {
+      jsonrpc: '2.0' as const,
+      method: 'test',
+      params: { foo: 'bar' },
+      id: '1',
+    };
+
+    await transport.send(message);
+
+    const postCalls = server.calls.filter(c => c.requestMethod === 'POST');
+    expect(postCalls).toHaveLength(1);
+    expect(postCalls[0].requestUrl).toBe('http://localhost:3000/messages');
 
     await transport.close();
   });

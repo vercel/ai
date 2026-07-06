@@ -51,7 +51,7 @@ run(async () => {
     prompt: 'What is the weather like in my current location?',
   });
 
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     switch (chunk.type) {
       case 'text-delta': {
         process.stdout.write(chunk.text);

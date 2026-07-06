@@ -191,20 +191,20 @@ export function toUIMessageChunk(
       // standard ModelCallStreamPart types but are written by the
       // WorkflowAgent between tool execution and the next model step
       // to ensure proper message splitting in convertToModelMessages.
-      const p = part as any;
-      if (p.type === 'tool-approval-request') {
+      const passthroughPart = part as any;
+      if (passthroughPart.type === 'tool-approval-request') {
         return {
           type: 'tool-approval-request',
-          approvalId: p.approvalId,
-          toolCallId: p.toolCallId,
+          approvalId: passthroughPart.approvalId,
+          toolCallId: passthroughPart.toolCallId,
         } as UIMessageChunk;
       }
       if (
-        p.type === 'finish-step' ||
-        p.type === 'start-step' ||
-        p.type === 'tool-output-denied'
+        passthroughPart.type === 'finish-step' ||
+        passthroughPart.type === 'start-step' ||
+        passthroughPart.type === 'tool-output-denied'
       ) {
-        return p as UIMessageChunk;
+        return passthroughPart as UIMessageChunk;
       }
       return undefined;
     }

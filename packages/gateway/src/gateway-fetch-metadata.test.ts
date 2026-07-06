@@ -227,6 +227,7 @@ describe('GatewayFetchMetadata', () => {
         'embedding',
         'image',
         'language',
+        'realtime',
         'reranking',
         'speech',
         'transcription',

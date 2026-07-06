@@ -5,6 +5,7 @@ import type { LanguageModelUsage } from '../types/usage';
 import type { ContentPart } from './content-part';
 import type { StandardizedPrompt } from '../prompt/standardize-prompt';
 import type { LanguageModelCallOptions } from '../prompt';
+import type { OutputChunkTimingStats } from './step-result';
 
 /**
  * Common model information used across callback events.
@@ -66,16 +67,16 @@ export type LanguageModelCallEndEvent<TOOLS extends ToolSet = ToolSet> =
       readonly effectiveOutputTokensPerSecond: number;
 
       /**
-       * Number of output tokens per second after the first output token was
-       * received.
+       * Number of output tokens per second after the first generated output
+       * chunk was received.
        *
        * Only available for streaming calls.
        */
       readonly outputTokensPerSecond: number | undefined;
 
       /**
-       * Number of input tokens processed per second before the first output
-       * token was received.
+       * Number of input tokens processed per second before the first generated
+       * output chunk was received.
        *
        * Only available for streaming calls.
        */
@@ -88,15 +89,23 @@ export type LanguageModelCallEndEvent<TOOLS extends ToolSet = ToolSet> =
       readonly effectiveTotalTokensPerSecond: number;
 
       /**
-       * Time until the first text, reasoning, or tool input delta was received
-       * in milliseconds.
+       * Time until the first generated output chunk was received in
+       * milliseconds.
        */
-      readonly timeToFirstOutputTokenMs: number | undefined;
+      readonly timeToFirstOutputMs: number | undefined;
+
+      /**
+       * Timing statistics for the gaps between generated output chunks in
+       * milliseconds.
+       *
+       * Only available for streaming calls with at least two output chunks.
+       */
+      readonly timeBetweenOutputChunksMs?: OutputChunkTimingStats;
     };
   };
 
 /**
- * Callback that is set using the `experimental_onLanguageModelCallStart` option.
+ * Callback that is set using the `onLanguageModelCallStart` option.
  *
  * Called immediately before the provider model call begins.
  * Unlike step-start callbacks, this is scoped to model work only and
@@ -108,7 +117,7 @@ export type OnLanguageModelCallStartCallback =
   Callback<LanguageModelCallStartEvent>;
 
 /**
- * Callback that is set using the `experimental_onLanguageModelCallEnd` option.
+ * Callback that is set using the `onLanguageModelCallEnd` option.
  *
  * Called after the model response has been normalized and parsed, but before
  * any client-side tool execution begins.

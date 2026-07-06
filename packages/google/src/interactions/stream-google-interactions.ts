@@ -170,16 +170,19 @@ export function streamGoogleInteractionEvents({
             receivedAnyEventThisAttempt = true;
 
             if (value.success) {
-              const ev = value.value as {
+              const streamEvent = value.value as {
                 event_id?: string;
                 event_type?: string;
               };
-              if (typeof ev.event_id === 'string' && ev.event_id.length > 0) {
-                lastEventId = ev.event_id;
+              if (
+                typeof streamEvent.event_id === 'string' &&
+                streamEvent.event_id.length > 0
+              ) {
+                lastEventId = streamEvent.event_id;
               }
               if (
-                ev.event_type === 'interaction.completed' ||
-                ev.event_type === 'error'
+                streamEvent.event_type === 'interaction.completed' ||
+                streamEvent.event_type === 'error'
               ) {
                 complete = true;
               }

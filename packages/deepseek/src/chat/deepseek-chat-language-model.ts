@@ -49,6 +49,7 @@ export type DeepSeekChatConfig = {
   headers?: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
+  supportsThinking?: boolean;
 };
 
 export class DeepSeekChatLanguageModel implements LanguageModelV4 {
@@ -141,11 +142,13 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
     });
 
     const thinking =
-      deepseekOptions.thinking?.type != null
-        ? { type: deepseekOptions.thinking.type }
-        : isCustomReasoning(reasoning)
-          ? { type: reasoning === 'none' ? 'disabled' : 'enabled' }
-          : undefined;
+      this.config.supportsThinking === false
+        ? undefined
+        : deepseekOptions.thinking?.type != null
+          ? { type: deepseekOptions.thinking.type }
+          : isCustomReasoning(reasoning)
+            ? { type: reasoning === 'none' ? 'disabled' : 'enabled' }
+            : undefined;
 
     const reasoningEffort =
       deepseekOptions.reasoningEffort ??

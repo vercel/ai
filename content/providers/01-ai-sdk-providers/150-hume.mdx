@@ -76,7 +76,7 @@ const model = hume.speech();
 You can pass standard speech generation options like `voice`, `speed`, `instructions`, and `outputFormat`:
 
 ```ts
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 import { hume } from '@ai-sdk/hume';
 
 const result = await generateSpeech({
@@ -123,7 +123,7 @@ const result = await generateSpeech({
 You can pass additional provider-specific options using the `providerOptions` argument:
 
 ```ts
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 import { hume } from '@ai-sdk/hume';
 import { type HumeSpeechModelOptions } from '@ai-sdk/hume';
 

@@ -5,11 +5,13 @@ on:
     types: [opened]
 
 permissions:
-  pull-requests: write
+  contents: read
 
 jobs:
   assign:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
     # Only assign pull requests by team members, ignore pull requests from forks
     # And only assign if pull request was created by a user, ignore bots
     if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.type == 'User'

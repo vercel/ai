@@ -76,7 +76,7 @@ const model = gladia.transcription();
 You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the `summarize` option will enable summaries for sections of content.
 
 ```ts highlight="7"
-import { experimental_transcribe as transcribe } from 'ai';
+import { transcribe } from 'ai';
 import { gladia } from '@ai-sdk/gladia';
 import { type GladiaTranscriptionModelOptions } from '@ai-sdk/gladia';
 import { readFile } from 'fs/promises';
