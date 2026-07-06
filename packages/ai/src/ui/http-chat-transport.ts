@@ -23,13 +23,13 @@ export type PrepareSendMessagesRequest<UI_MESSAGE extends UIMessage> = (
   },
 ) =>
   | {
-      body: object;
+      body: Resolvable<object>;
       headers?: HeadersInit;
       credentials?: RequestCredentials;
       api?: string;
     }
   | PromiseLike<{
-      body: object;
+      body: Resolvable<object>;
       headers?: HeadersInit;
       credentials?: RequestCredentials;
       api?: string;
@@ -172,9 +172,14 @@ export abstract class HttpChatTransport<
       preparedRequest?.headers !== undefined
         ? normalizeHeaders(preparedRequest.headers)
         : baseHeaders;
-    const body =
+    const resolvedPreparedBody =
       preparedRequest?.body !== undefined
-        ? preparedRequest.body
+        ? await resolve(preparedRequest.body)
+        : undefined;
+
+    const body =
+      resolvedPreparedBody !== undefined
+        ? resolvedPreparedBody
         : {
             ...resolvedBody,
             ...options.body,
