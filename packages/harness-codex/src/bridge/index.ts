@@ -5,10 +5,9 @@
 // This file supplies only the Codex-specific turn driver.
 //
 // Host-defined tools are routed through an HTTP relay bound to
-// `127.0.0.1:0`. The codex CLI spawns `host-tool-mcp.mjs` (shipped alongside
-// this file) as a stdio MCP server; the shim POSTs each tool call to the
-// relay, which emits `tool-call` to the host and waits for the matching
-// `tool-result`.
+// `127.0.0.1:0`. The bridge writes a CLI shim into the per-session runtime
+// directory; the shim POSTs each tool call to the relay, which emits
+// `tool-call` to the host and waits for the matching `tool-result`.
 
 import {
   runBridge,
@@ -77,7 +76,6 @@ const cliShimDir = requireArg({
   value: args.cliShimDir,
   name: '--cli-shim-dir',
 });
-const bootstrapDir = args.bootstrapDir ?? workdir;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const codexSdk = codexSdkModule as any;
@@ -115,47 +113,27 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   }
 
   /*
-   * Known limitation: codex CLI does not currently surface MCP tools to the
+   * Known limitation: codex CLI does not reliably surface MCP tools to the
    * model in `codex exec --experimental-json` mode (the path the
-   * `@openai/codex-sdk` uses). The MCP handshake completes and `tools/list`
-   * returns the host tool, but codex never registers it as a model-callable
-   * function. Built-in MCP-resource accessors (`list_mcp_resources` etc.) are
-   * exposed; tools are not. Tracked upstream at
-   * https://github.com/openai/codex/issues/19425.
+   * `@openai/codex-sdk` uses). Some versions do not register MCP tools at all;
+   * others expose the tool names but pass empty arguments.
    *
    * Until that's fixed, host tools are made available to the model via a
-   * separate CLI-relay workaround (see `./cli-relay.ts`). The MCP server
-   * config below is kept so that the day codex starts exposing MCP tools
-   * properly, host tools work both ways. Writing the shim here, adding matching
-   * prompt guidance in the host adapter, and filtering the shim command below
-   * implement the workaround and can be removed once the upstream bug is fixed.
+   * separate CLI-relay workaround (see `./cli-relay.ts`). Writing the shim
+   * here, adding matching prompt guidance in the host adapter, and filtering
+   * the shim command below implement the workaround and can be removed once the
+   * upstream bug is fixed.
    */
-  const mcpServers: Record<string, unknown> = {};
   let relay: ToolRelay | undefined;
   let cliShimPath: string | undefined;
   if (start.tools && start.tools.length > 0) {
     cliShimPath = `${cliShimDir}/${CLI_SHIM_FILENAME}`;
     relay = await startToolRelay({
-      allowedScriptPaths: [cliShimPath, `${bootstrapDir}/host-tool-mcp.mjs`],
+      allowedScriptPaths: [cliShimPath],
       tools: start.tools,
       emit,
       requestToolResult: turn.requestToolResult,
     });
-    mcpServers['harness-tools'] = {
-      enabled: true,
-      command: 'node',
-      args: [`${bootstrapDir}/host-tool-mcp.mjs`],
-      env: {
-        TOOL_SCHEMAS: JSON.stringify(
-          start.tools.map(t => ({
-            name: t.name,
-            description: t.description,
-            inputSchema: t.inputSchema,
-          })),
-        ),
-        TOOL_RELAY_URL: `http://127.0.0.1:${relay.port}`,
-      },
-    };
     // Temporary workaround for upstream codex MCP-tool bug — see ./cli-relay.ts
     await mkdir(cliShimDir, { recursive: true });
     await writeFile(
@@ -166,7 +144,6 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   }
 
   const codexConfig: Record<string, unknown> = {};
-  if (Object.keys(mcpServers).length > 0) codexConfig.mcp_servers = mcpServers;
 
   const gatewayBaseUrl = procEnv.AI_GATEWAY_BASE_URL;
   const hasGatewayAuth = Boolean(procEnv.AI_GATEWAY_API_KEY || gatewayBaseUrl);
@@ -261,11 +238,6 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
           continue;
         }
       }
-      if (relay && isHostMcpToolEvent(event)) {
-        const relayCall = relayCallFromCodexMcpEvent(event);
-        if (relayCall) relay.authorizeToolCall(relayCall);
-        continue;
-      }
       translateAndEmit(event, {
         send: emit,
         textByItem,
@@ -346,25 +318,6 @@ type CodexEvent = {
   message?: string;
   thread_id?: string;
 };
-
-function isHostMcpToolEvent(event: CodexEvent): boolean {
-  return (
-    event.item?.type === 'mcp_tool_call' &&
-    event.item.server === 'harness-tools'
-  );
-}
-
-function relayCallFromCodexMcpEvent(
-  event: CodexEvent,
-): ToolRelayCall | undefined {
-  if (event.type !== 'item.started') return undefined;
-  const toolName = event.item?.tool;
-  if (!toolName) return undefined;
-  return {
-    toolName,
-    input: event.item?.arguments ?? {},
-  };
-}
 
 function translateAndEmit(
   event: CodexEvent,
@@ -465,15 +418,14 @@ function translateAndEmit(
   }
 
   if (item.type === 'mcp_tool_call') {
-    const isHostTool = item.server === 'harness-tools';
     if (event.type === 'item.started') {
       ctx.send({
         type: 'tool-call',
         toolCallId: id,
         toolName: item.tool ?? 'unknown',
-        ...(isHostTool ? {} : { nativeName: item.tool ?? 'unknown' }),
+        nativeName: item.tool ?? 'unknown',
         input: JSON.stringify(item.arguments ?? {}),
-        providerExecuted: !isHostTool,
+        providerExecuted: true,
       });
     } else if (event.type === 'item.completed') {
       ctx.send({
@@ -558,10 +510,10 @@ function defaultUsage(): Record<string, unknown> {
 }
 
 /**
- * Tool relay — HTTP server on 127.0.0.1:0. The MCP stdio shim spawned by
- * codex POSTs each tool invocation here; the relay forwards the call to the
- * host (via the shared runtime's `emit`), awaits the matching `tool-result`
- * (via `requestToolResult`), and responds with `{ result }`.
+ * Tool relay — HTTP server on 127.0.0.1:0. The CLI shim invoked by Codex POSTs
+ * each tool invocation here; the relay forwards the call to the host (via the
+ * shared runtime's `emit`), awaits the matching `tool-result` (via
+ * `requestToolResult`), and responds with `{ result }`.
  */
 async function startToolRelay({
   allowedScriptPaths,
