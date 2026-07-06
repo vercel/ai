@@ -1,11 +1,7 @@
-<<<<<<< HEAD
-import type { LanguageModelV3Usage } from '@ai-sdk/provider';
-=======
 import type {
-  LanguageModelV4StreamPart,
-  LanguageModelV4Usage,
+  LanguageModelV3StreamPart,
+  LanguageModelV3Usage,
 } from '@ai-sdk/provider';
->>>>>>> a193137a1 (fix: extractJsonMiddleware removes valid leading space from final streamed suffix (#16576))
 import {
   convertArrayToReadableStream,
   convertAsyncIterableToArray,
@@ -370,7 +366,7 @@ describe('extractJsonMiddleware', () => {
       } as any);
 
       const reader = wrapped.stream.getReader();
-      const chunks: LanguageModelV4StreamPart[] = [];
+      const chunks: LanguageModelV3StreamPart[] = [];
       while (true) {
         const { done, value } = await reader.read();
         if (done) {
