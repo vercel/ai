@@ -25,7 +25,10 @@ import {
   type AnthropicUserMessage,
   type AnthropicWebFetchToolResultContent,
 } from './anthropic-api';
-import { anthropicFilePartProviderOptions } from './anthropic-language-model-options';
+import {
+  anthropicFilePartProviderOptions,
+  anthropicToolResultSearchResultOptions,
+} from './anthropic-language-model-options';
 import { CacheControlValidator } from './get-cache-control';
 import { advisor_20260301OutputSchema } from './tool/advisor_20260301';
 import { codeExecution_20250522OutputSchema } from './tool/code-execution_20250522';
@@ -192,6 +195,72 @@ export async function convertToAnthropicPrompt({
                   }
 
                   case 'file': {
+                    const filePartOptions = await parseProviderOptions({
+                      provider: 'anthropic',
+                      providerOptions: part.providerOptions,
+                      schema: anthropicFilePartProviderOptions,
+                    });
+
+                    if (filePartOptions?.type === 'search_result') {
+                      const contentBlocks =
+                        filePartOptions.content ??
+                        (part.data.type === 'text'
+                          ? [{ type: 'text' as const, text: part.data.text }]
+                          : part.data.type === 'data'
+                            ? [
+                                {
+                                  type: 'text' as const,
+                                  text: convertBytesDataToString(
+                                    part.data.data,
+                                  ),
+                                },
+                              ]
+                            : undefined);
+
+                      if (contentBlocks == null) {
+                        warnings.push({
+                          type: 'other',
+                          message: `unsupported file part data type for search results: ${part.data.type}`,
+                        });
+                        break;
+                      }
+
+                      anthropicContent.push({
+                        type: 'search_result',
+                        source: filePartOptions.source,
+                        title:
+                          filePartOptions.title ??
+                          part.filename ??
+                          'Untitled Search Result',
+                        content: contentBlocks,
+                        ...(filePartOptions.citations?.enabled && {
+                          citations: { enabled: true },
+                        }),
+                        cache_control: cacheControl,
+                      });
+                      break;
+                    }
+
+                    const customContentSource = filePartOptions?.source;
+                    if (
+                      typeof customContentSource === 'object' &&
+                      customContentSource?.type === 'content'
+                    ) {
+                      anthropicContent.push({
+                        type: 'document',
+                        source: customContentSource,
+                        title: filePartOptions?.title ?? part.filename,
+                        ...(filePartOptions?.context && {
+                          context: filePartOptions.context,
+                        }),
+                        ...(filePartOptions?.citations?.enabled && {
+                          citations: { enabled: true },
+                        }),
+                        cache_control: cacheControl,
+                      });
+                      break;
+                    }
+
                     switch (part.data.type) {
                       case 'reference': {
                         const fileId = resolveProviderReference({
@@ -403,11 +472,56 @@ export async function convertToAnthropicPrompt({
                     contentValue = output.value
                       .map(contentPart => {
                         switch (contentPart.type) {
-                          case 'text':
+                          case 'text': {
+                            const anthropicOptions =
+                              contentPart.providerOptions?.anthropic;
+
+                            if (
+                              anthropicOptions != null &&
+                              (anthropicOptions as { type?: unknown }).type ===
+                                'search_result'
+                            ) {
+                              const parsedOptions =
+                                anthropicToolResultSearchResultOptions.safeParse(
+                                  anthropicOptions,
+                                );
+
+                              if (!parsedOptions.success) {
+                                warnings.push({
+                                  type: 'other',
+                                  message: `invalid search result options on tool result content part; sending as plain text`,
+                                });
+                                return {
+                                  type: 'text' as const,
+                                  text: contentPart.text,
+                                };
+                              }
+
+                              return {
+                                type: 'search_result' as const,
+                                source: parsedOptions.data.source,
+                                title:
+                                  parsedOptions.data.title ??
+                                  'Untitled Search Result',
+                                content: parsedOptions.data.content?.length
+                                  ? parsedOptions.data.content
+                                  : [
+                                      {
+                                        type: 'text' as const,
+                                        text: contentPart.text,
+                                      },
+                                    ],
+                                ...(parsedOptions.data.citations?.enabled && {
+                                  citations: { enabled: true },
+                                }),
+                              };
+                            }
+
                             return {
                               type: 'text' as const,
                               text: contentPart.text,
                             };
+                          }
                           case 'file': {
                             const topLevel = getTopLevelMediaType(
                               contentPart.mediaType,
@@ -499,7 +613,9 @@ export async function convertToAnthropicPrompt({
                           default: {
                             warnings.push({
                               type: 'other',
-                              message: `unsupported tool content part type: ${(contentPart as { type: string }).type}`,
+                              message: `unsupported tool content part type: ${
+                                (contentPart as { type: string }).type
+                              }`,
                             });
 
                             return undefined;

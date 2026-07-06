@@ -594,6 +594,180 @@ describe('user messages', () => {
     });
   });
 
+  it('should add search_result blocks for file parts with search_result provider options', async () => {
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: {
+                type: 'data' as const,
+                data: Buffer.from('search result content', 'utf-8').toString(
+                  'base64',
+                ),
+              },
+              mediaType: 'text/plain',
+              filename: 'search-result.txt',
+              providerOptions: {
+                anthropic: {
+                  type: 'search_result',
+                  source: 'https://example.com/result',
+                  title: 'Search Result Title',
+                  citations: { enabled: true },
+                },
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'search_result',
+                source: 'https://example.com/result',
+                title: 'Search Result Title',
+                content: [{ type: 'text', text: 'search result content' }],
+                citations: { enabled: true },
+                cache_control: undefined,
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      },
+      betas: new Set(),
+    });
+  });
+
+  it('should use explicit content blocks for search_result file parts when provided', async () => {
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: { type: 'text' as const, text: 'unused' },
+              mediaType: 'text/plain',
+              providerOptions: {
+                anthropic: {
+                  type: 'search_result',
+                  source: 'https://example.com/result',
+                  title: 'Chunked Result',
+                  content: [
+                    { type: 'text', text: 'First block' },
+                    { type: 'text', text: 'Second block' },
+                  ],
+                  citations: { enabled: true },
+                },
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'search_result',
+                source: 'https://example.com/result',
+                title: 'Chunked Result',
+                content: [
+                  { type: 'text', text: 'First block' },
+                  { type: 'text', text: 'Second block' },
+                ],
+                citations: { enabled: true },
+                cache_control: undefined,
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      },
+      betas: new Set(),
+    });
+  });
+
+  it('should add custom content documents from provider source blocks', async () => {
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: { type: 'text' as const, text: 'unused' },
+              mediaType: 'text/plain',
+              filename: 'custom.txt',
+              providerOptions: {
+                anthropic: {
+                  source: {
+                    type: 'content',
+                    content: [
+                      { type: 'text', text: 'First chunk' },
+                      { type: 'text', text: 'Second chunk' },
+                    ],
+                  },
+                  title: 'Custom Content Doc',
+                  citations: { enabled: true },
+                },
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'document',
+                source: {
+                  type: 'content',
+                  content: [
+                    { type: 'text', text: 'First chunk' },
+                    { type: 'text', text: 'Second chunk' },
+                  ],
+                },
+                title: 'Custom Content Doc',
+                citations: { enabled: true },
+                cache_control: undefined,
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      },
+      betas: new Set(),
+    });
+  });
+
   it('should throw error for unsupported file types', async () => {
     await expect(
       convertToAnthropicPrompt({
@@ -1042,6 +1216,158 @@ describe('tool messages', () => {
                   ],
                   "is_error": undefined,
                   "tool_use_id": "image-gen-1",
+                  "type": "tool_result",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
+  });
+
+  it('should fall back to plain text with a warning for invalid search_result options on tool result content parts', async () => {
+    const warnings: SharedV4Warning[] = [];
+
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'search_docs',
+              toolCallId: 'search-1',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'text',
+                    text: 'result body',
+                    providerOptions: {
+                      anthropic: {
+                        type: 'search_result',
+                        // invalid: source is required but missing
+                        title: 'Doc One',
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "message": "invalid search result options on tool result content part; sending as plain text",
+          "type": "other",
+        },
+      ]
+    `);
+
+    expect(result.prompt.messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "cache_control": undefined,
+              "content": [
+                {
+                  "text": "result body",
+                  "type": "text",
+                },
+              ],
+              "is_error": undefined,
+              "tool_use_id": "search-1",
+              "type": "tool_result",
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
+  });
+
+  it('should convert text tool result content parts with search_result provider options into search_result blocks', async () => {
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'search_docs',
+              toolCallId: 'search-1',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'text',
+                    text: 'First search result body',
+                    providerOptions: {
+                      anthropic: {
+                        type: 'search_result',
+                        source: 'https://example.com/doc-1',
+                        title: 'Doc One',
+                        citations: { enabled: true },
+                      },
+                    },
+                  },
+                  {
+                    type: 'text',
+                    text: 'plain text result',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {},
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "content": [
+                    {
+                      "citations": {
+                        "enabled": true,
+                      },
+                      "content": [
+                        {
+                          "text": "First search result body",
+                          "type": "text",
+                        },
+                      ],
+                      "source": "https://example.com/doc-1",
+                      "title": "Doc One",
+                      "type": "search_result",
+                    },
+                    {
+                      "text": "plain text result",
+                      "type": "text",
+                    },
+                  ],
+                  "is_error": undefined,
+                  "tool_use_id": "search-1",
                   "type": "tool_result",
                 },
               ],

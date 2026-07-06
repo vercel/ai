@@ -92,7 +92,30 @@ function createCitationSource(
     };
   }
 
-  if (citation.type !== 'page_location' && citation.type !== 'char_location') {
+  if (citation.type === 'search_result_location') {
+    return {
+      type: 'source' as const,
+      sourceType: 'document' as const,
+      id: generateId(),
+      mediaType: 'text/plain',
+      title: citation.title ?? 'Untitled Search Result',
+      providerMetadata: {
+        anthropic: {
+          citedText: citation.cited_text,
+          source: citation.source,
+          searchResultIndex: citation.search_result_index,
+          startBlockIndex: citation.start_block_index,
+          endBlockIndex: citation.end_block_index,
+        },
+      } satisfies SharedV4ProviderMetadata,
+    };
+  }
+
+  if (
+    citation.type !== 'page_location' &&
+    citation.type !== 'char_location' &&
+    citation.type !== 'content_block_location'
+  ) {
     return;
   }
 
@@ -117,11 +140,17 @@ function createCitationSource(
               startPageNumber: citation.start_page_number,
               endPageNumber: citation.end_page_number,
             }
-          : {
-              citedText: citation.cited_text,
-              startCharIndex: citation.start_char_index,
-              endCharIndex: citation.end_char_index,
-            },
+          : citation.type === 'content_block_location'
+            ? {
+                citedText: citation.cited_text,
+                startBlockIndex: citation.start_block_index,
+                endBlockIndex: citation.end_block_index,
+              }
+            : {
+                citedText: citation.cited_text,
+                startCharIndex: citation.start_char_index,
+                endCharIndex: citation.end_char_index,
+              },
     } satisfies SharedV4ProviderMetadata,
   };
 }
@@ -840,7 +869,13 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     const isCitationPart = (part: {
       type: string;
       mediaType?: string;
-      providerOptions?: { anthropic?: { citations?: { enabled?: boolean } } };
+      providerOptions?: {
+        anthropic?: {
+          citations?: { enabled?: boolean };
+          title?: string;
+          type?: string;
+        };
+      };
     }) => {
       if (part.type !== 'file') {
         return false;
@@ -857,7 +892,18 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       const citationsConfig = anthropic?.citations as
         | { enabled?: boolean }
         | undefined;
-      return citationsConfig?.enabled ?? false;
+      if (citationsConfig?.enabled !== true) {
+        return false;
+      }
+
+      // Search result blocks are not documents: their citations use
+      // search_result_location (search_result_index) instead of
+      // document_index, so they must not shift document indices.
+      if (anthropic?.type === 'search_result') {
+        return false;
+      }
+
+      return true;
     };
 
     return prompt
@@ -867,8 +913,11 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       .map(part => {
         // TypeScript knows this is a file part due to our filter
         const filePart = part as Extract<typeof part, { type: 'file' }>;
+        const anthropic = filePart.providerOptions?.anthropic as
+          | { title?: string }
+          | undefined;
         return {
-          title: filePart.filename ?? 'Untitled Document',
+          title: anthropic?.title ?? filePart.filename ?? 'Untitled Document',
           filename: filePart.filename,
           mediaType: filePart.mediaType,
         };
@@ -2273,7 +2322,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       contentBlock.firstDelta &&
                       contentBlock.providerToolInputType != null
                     ) {
-                      delta = `{"type": "${contentBlock.providerToolInputType}",${delta.substring(1)}`;
+                      delta = `{"type": "${
+                        contentBlock.providerToolInputType
+                      }",${delta.substring(1)}`;
                     }
 
                     controller.enqueue({

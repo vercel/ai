@@ -2660,6 +2660,299 @@ describe('AnthropicLanguageModel', () => {
       `);
     });
 
+    it('should process search result citation responses', async () => {
+      const mockProvider = createAnthropic({
+        apiKey: 'test-api-key',
+        generateId: () => 'test-search-result-citation-id',
+      });
+      const modelWithMockId = mockProvider('claude-3-haiku-20240307');
+
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'json-value',
+        body: {
+          id: 'msg_017TfcQ4AgGxKyBduUpqYPZn',
+          type: 'message',
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'The search results show important information.',
+              citations: [
+                {
+                  type: 'search_result_location',
+                  cited_text: 'important information',
+                  source: 'https://example.com/result',
+                  title: 'Search Result Title',
+                  search_result_index: 0,
+                  start_block_index: 0,
+                  end_block_index: 1,
+                },
+              ],
+            },
+          ],
+          model: 'claude-3-haiku-20240307',
+          stop_reason: 'end_turn',
+          stop_sequence: null,
+          usage: { input_tokens: 4, output_tokens: 30 },
+        },
+      };
+
+      const result = await modelWithMockId.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: {
+                  type: 'text' as const,
+                  text: 'Test search result content',
+                },
+                mediaType: 'text/plain',
+                providerOptions: {
+                  anthropic: {
+                    type: 'search_result',
+                    source: 'https://example.com/result',
+                    title: 'Search Result Title',
+                    citations: { enabled: true },
+                  },
+                },
+              },
+              {
+                type: 'text',
+                text: 'What do the results say?',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "text": "The search results show important information.",
+            "type": "text",
+          },
+          {
+            "id": "test-search-result-citation-id",
+            "mediaType": "text/plain",
+            "providerMetadata": {
+              "anthropic": {
+                "citedText": "important information",
+                "endBlockIndex": 1,
+                "searchResultIndex": 0,
+                "source": "https://example.com/result",
+                "startBlockIndex": 0,
+              },
+            },
+            "sourceType": "document",
+            "title": "Search Result Title",
+            "type": "source",
+          },
+        ]
+      `);
+    });
+
+    it('should process content block citation responses for custom content documents', async () => {
+      const mockProvider = createAnthropic({
+        apiKey: 'test-api-key',
+        generateId: () => 'test-content-block-citation-id',
+      });
+      const modelWithMockId = mockProvider('claude-3-haiku-20240307');
+
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'json-value',
+        body: {
+          id: 'msg_017TfcQ4AgGxKyBduUpqYPZn',
+          type: 'message',
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'The document shows important information.',
+              citations: [
+                {
+                  type: 'content_block_location',
+                  cited_text: 'important information',
+                  document_index: 0,
+                  document_title: 'Custom Content Doc',
+                  start_block_index: 1,
+                  end_block_index: 2,
+                },
+              ],
+            },
+          ],
+          model: 'claude-3-haiku-20240307',
+          stop_reason: 'end_turn',
+          stop_sequence: null,
+          usage: { input_tokens: 4, output_tokens: 30 },
+        },
+      };
+
+      const result = await modelWithMockId.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: { type: 'text' as const, text: 'unused' },
+                mediaType: 'text/plain',
+                filename: 'custom.txt',
+                providerOptions: {
+                  anthropic: {
+                    source: {
+                      type: 'content',
+                      content: [
+                        { type: 'text', text: 'First chunk' },
+                        { type: 'text', text: 'Second chunk' },
+                      ],
+                    },
+                    title: 'Custom Content Doc',
+                    citations: { enabled: true },
+                  },
+                },
+              },
+              {
+                type: 'text',
+                text: 'What does this say?',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "text": "The document shows important information.",
+            "type": "text",
+          },
+          {
+            "filename": "custom.txt",
+            "id": "test-content-block-citation-id",
+            "mediaType": "text/plain",
+            "providerMetadata": {
+              "anthropic": {
+                "citedText": "important information",
+                "endBlockIndex": 2,
+                "startBlockIndex": 1,
+              },
+            },
+            "sourceType": "document",
+            "title": "Custom Content Doc",
+            "type": "source",
+          },
+        ]
+      `);
+    });
+
+    it('should keep document_index aligned when search results and documents are mixed', async () => {
+      const mockProvider = createAnthropic({
+        apiKey: 'test-api-key',
+        generateId: () => 'test-alignment-id',
+      });
+      const modelWithMockId = mockProvider('claude-3-haiku-20240307');
+
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'json-value',
+        body: {
+          id: 'msg_017TfcQ4AgGxKyBduUpqYPZn',
+          type: 'message',
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'The document shows important information.',
+              citations: [
+                {
+                  // document_index counts documents only: the preceding
+                  // search_result block must not shift it.
+                  type: 'char_location',
+                  cited_text: 'important information',
+                  document_index: 0,
+                  document_title: null,
+                  start_char_index: 15,
+                  end_char_index: 35,
+                },
+              ],
+            },
+          ],
+          model: 'claude-3-haiku-20240307',
+          stop_reason: 'end_turn',
+          stop_sequence: null,
+          usage: { input_tokens: 4, output_tokens: 30 },
+        },
+      };
+
+      const result = await modelWithMockId.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: {
+                  type: 'text' as const,
+                  text: 'Search result content',
+                },
+                mediaType: 'text/plain',
+                providerOptions: {
+                  anthropic: {
+                    type: 'search_result',
+                    source: 'https://example.com/result',
+                    title: 'Search Result Title',
+                    citations: { enabled: true },
+                  },
+                },
+              },
+              {
+                type: 'file',
+                data: {
+                  type: 'text' as const,
+                  text: 'Regular document content',
+                },
+                mediaType: 'text/plain',
+                filename: 'document.txt',
+                providerOptions: {
+                  anthropic: {
+                    title: 'Regular Document',
+                    citations: { enabled: true },
+                  },
+                },
+              },
+              {
+                type: 'text',
+                text: 'What does the document say?',
+              },
+            ],
+          },
+        ],
+      });
+
+      const source = result.content.find(part => part.type === 'source');
+
+      // the citation with document_index 0 must resolve to the regular
+      // document, not to the search_result block that precedes it.
+      expect(source).toMatchInlineSnapshot(`
+        {
+          "filename": "document.txt",
+          "id": "test-alignment-id",
+          "mediaType": "text/plain",
+          "providerMetadata": {
+            "anthropic": {
+              "citedText": "important information",
+              "endCharIndex": 35,
+              "startCharIndex": 15,
+            },
+          },
+          "sourceType": "document",
+          "title": "Regular Document",
+          "type": "source",
+        }
+      `);
+    });
+
     describe('function tool', () => {
       it('should extract tool calls', async () => {
         server.urls['https://api.anthropic.com/v1/messages'].response = {
@@ -8736,6 +9029,81 @@ describe('AnthropicLanguageModel', () => {
 
         const chunks = await convertReadableStreamToArray(stream);
         expect(chunks.filter(chunk => chunk.type === 'raw')).toHaveLength(0);
+      });
+
+      it('should process search result citation responses in streaming', async () => {
+        const mockProvider = createAnthropic({
+          apiKey: 'test-api-key',
+          generateId: mockId(),
+        });
+        const modelWithMockId = mockProvider('claude-3-haiku-20240307');
+
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+            `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Based on the search results"}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"citations_delta","citation":{"type":"search_result_location","cited_text":"important information","source":"https://example.com/result","title":"Search Result Title","search_result_index":0,"start_block_index":0,"end_block_index":1}}}\n\n`,
+            `data: {"type":"content_block_stop","index":0}\n\n`,
+            `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":227}}\n\n`,
+            `data: {"type":"message_stop"}\n\n`,
+          ],
+        };
+
+        const { stream } = await modelWithMockId.doStream({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  data: {
+                    type: 'text' as const,
+                    text: 'Test search result content',
+                  },
+                  mediaType: 'text/plain',
+                  providerOptions: {
+                    anthropic: {
+                      type: 'search_result',
+                      source: 'https://example.com/result',
+                      title: 'Search Result Title',
+                      citations: { enabled: true },
+                    },
+                  },
+                },
+                {
+                  type: 'text',
+                  text: 'What do the results say?',
+                },
+              ],
+            },
+          ],
+        });
+
+        const result = await convertReadableStreamToArray(stream);
+
+        expect(result.filter(part => part.type === 'source'))
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "id": "id-0",
+              "mediaType": "text/plain",
+              "providerMetadata": {
+                "anthropic": {
+                  "citedText": "important information",
+                  "endBlockIndex": 1,
+                  "searchResultIndex": 0,
+                  "source": "https://example.com/result",
+                  "startBlockIndex": 0,
+                },
+              },
+              "sourceType": "document",
+              "title": "Search Result Title",
+              "type": "source",
+            },
+          ]
+        `);
       });
 
       it('should process PDF citation responses in streaming', async () => {

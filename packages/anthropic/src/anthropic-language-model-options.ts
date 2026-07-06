@@ -23,11 +23,7 @@ export type AnthropicModelId =
   | 'claude-sonnet-5'
   | (string & {});
 
-/**
- * Anthropic file part provider options for document-specific features.
- * These options apply to individual file parts (documents).
- */
-export const anthropicFilePartProviderOptions = z.object({
+const anthropicFilePartBaseOptions = z.object({
   /**
    * Upload this file into the code execution container instead of sending it as
    * a normal document or image content block.
@@ -61,9 +57,109 @@ export const anthropicFilePartProviderOptions = z.object({
   context: z.string().optional(),
 });
 
+const anthropicTextBlockSchema = z.object({
+  type: z.literal('text'),
+  text: z.string(),
+});
+
+const anthropicSearchResultOptions = z.object({
+  /**
+   * Interpret this file part as a search result block.
+   * Search results enable natural citations with proper source attribution,
+   * matching the citation quality of web search.
+   */
+  type: z.literal('search_result'),
+
+  /**
+   * Source URL or identifier for this search result.
+   */
+  source: z.string(),
+
+  /**
+   * Search result content blocks.
+   * If not provided, a single text block is created from the file data.
+   */
+  content: z.array(anthropicTextBlockSchema).min(1).optional(),
+});
+
+const anthropicCustomContentDocumentOptions = z.object({
+  /**
+   * Interpret this file part as a custom content document.
+   */
+  type: z.literal('document').optional(),
+
+  /**
+   * Pre-chunked content blocks for document citations.
+   * Citations reference these blocks via `content_block_location`.
+   */
+  source: z.object({
+    type: z.literal('content'),
+    content: z.array(anthropicTextBlockSchema).min(1),
+  }),
+
+  content: z.undefined().optional(),
+});
+
+/**
+ * Anthropic file part provider options for document-specific features.
+ * These options apply to individual file parts (documents, search results,
+ * and custom content documents).
+ */
+export const anthropicFilePartProviderOptions = z.intersection(
+  anthropicFilePartBaseOptions,
+  z.union([
+    z.object({
+      type: z.undefined().optional(),
+      source: z.undefined().optional(),
+      content: z.undefined().optional(),
+    }),
+    anthropicSearchResultOptions,
+    anthropicCustomContentDocumentOptions,
+  ]),
+);
+
 export type AnthropicFilePartProviderOptions = z.infer<
   typeof anthropicFilePartProviderOptions
 >;
+
+/**
+ * Provider options for text parts inside tool results that should be sent
+ * as `search_result` blocks.
+ *
+ * Parsed with `safeParse` in the tool result conversion, which is synchronous
+ * (unlike `parseProviderOptions` used for file parts).
+ */
+export const anthropicToolResultSearchResultOptions = z.object({
+  /**
+   * Interpret this tool content part as a search result block.
+   */
+  type: z.literal('search_result'),
+
+  /**
+   * Source URL or identifier for this search result.
+   */
+  source: z.string(),
+
+  /**
+   * A title for the search result.
+   */
+  title: z.string().optional(),
+
+  /**
+   * Search result content blocks.
+   * If not provided, a single text block is created from the part text.
+   */
+  content: z.array(anthropicTextBlockSchema).min(1).optional(),
+
+  /**
+   * Citation configuration for this search result.
+   */
+  citations: z
+    .object({
+      enabled: z.boolean(),
+    })
+    .optional(),
+});
 
 export const anthropicLanguageModelOptions = z.object({
   /**

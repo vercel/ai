@@ -32,6 +32,7 @@ export interface AnthropicUserMessage {
     | AnthropicTextContent
     | AnthropicImageContent
     | AnthropicDocumentContent
+    | AnthropicSearchResultContent
     | AnthropicContainerUploadContent
     | AnthropicToolResultContent
   >;
@@ -70,6 +71,11 @@ export interface AnthropicTextContent {
   cache_control: AnthropicCacheControl | undefined;
 }
 
+type AnthropicTextBlock = {
+  type: 'text';
+  text: string;
+};
+
 export interface AnthropicThinkingContent {
   type: 'thinking';
   thinking: string;
@@ -103,6 +109,10 @@ type AnthropicContentSource =
       data: string;
     }
   | {
+      type: 'content';
+      content: AnthropicTextBlock[];
+    }
+  | {
       type: 'file';
       file_id: string;
     };
@@ -118,6 +128,15 @@ export interface AnthropicDocumentContent {
   source: AnthropicContentSource;
   title?: string;
   context?: string;
+  citations?: { enabled: boolean };
+  cache_control: AnthropicCacheControl | undefined;
+}
+
+export interface AnthropicSearchResultContent {
+  type: 'search_result';
+  source: string;
+  title: string;
+  content: AnthropicTextBlock[];
   citations?: { enabled: boolean };
   cache_control: AnthropicCacheControl | undefined;
 }
@@ -201,6 +220,13 @@ type AnthropicNestedDocumentContent = Omit<
   cache_control?: never;
 };
 
+type AnthropicNestedSearchResultContent = Omit<
+  AnthropicSearchResultContent,
+  'cache_control'
+> & {
+  cache_control?: never;
+};
+
 export interface AnthropicToolReferenceContent {
   type: 'tool_reference';
   tool_name: string;
@@ -215,6 +241,7 @@ export interface AnthropicToolResultContent {
         | AnthropicNestedTextContent
         | AnthropicNestedImageContent
         | AnthropicNestedDocumentContent
+        | AnthropicNestedSearchResultContent
         | AnthropicToolReferenceContent
       >;
   is_error: boolean | undefined;
@@ -645,6 +672,15 @@ export const anthropicResponseSchema = lazySchema(() =>
                     encrypted_index: z.string(),
                   }),
                   z.object({
+                    type: z.literal('search_result_location'),
+                    cited_text: z.string(),
+                    source: z.string(),
+                    title: z.string().nullable(),
+                    search_result_index: z.number(),
+                    start_block_index: z.number(),
+                    end_block_index: z.number(),
+                  }),
+                  z.object({
                     type: z.literal('page_location'),
                     cited_text: z.string(),
                     document_index: z.number(),
@@ -659,6 +695,14 @@ export const anthropicResponseSchema = lazySchema(() =>
                     document_title: z.string().nullable(),
                     start_char_index: z.number(),
                     end_char_index: z.number(),
+                  }),
+                  z.object({
+                    type: z.literal('content_block_location'),
+                    cited_text: z.string(),
+                    document_index: z.number(),
+                    document_title: z.string().nullable(),
+                    start_block_index: z.number(),
+                    end_block_index: z.number(),
                   }),
                 ]),
               )
@@ -1355,6 +1399,15 @@ export const anthropicChunkSchema = lazySchema(() =>
                 encrypted_index: z.string(),
               }),
               z.object({
+                type: z.literal('search_result_location'),
+                cited_text: z.string(),
+                source: z.string(),
+                title: z.string().nullable(),
+                search_result_index: z.number(),
+                start_block_index: z.number(),
+                end_block_index: z.number(),
+              }),
+              z.object({
                 type: z.literal('page_location'),
                 cited_text: z.string(),
                 document_index: z.number(),
@@ -1369,6 +1422,14 @@ export const anthropicChunkSchema = lazySchema(() =>
                 document_title: z.string().nullable(),
                 start_char_index: z.number(),
                 end_char_index: z.number(),
+              }),
+              z.object({
+                type: z.literal('content_block_location'),
+                cited_text: z.string(),
+                document_index: z.number(),
+                document_title: z.string().nullable(),
+                start_block_index: z.number(),
+                end_block_index: z.number(),
               }),
             ]),
           }),
