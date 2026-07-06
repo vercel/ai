@@ -141,6 +141,37 @@ export interface GoogleGenerativeAIProviderSettings {
   name?: string;
 }
 
+const supportedExternalUrlMediaTypes = [
+  'text/html',
+  'text/css',
+  'text/plain',
+  'text/xml',
+  'text/csv',
+  'text/rtf',
+  'text/javascript',
+  'application/json',
+  'application/pdf',
+  'image/bmp',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'video/mp4',
+  'video/mpeg',
+  'video/quicktime',
+  'video/avi',
+  'video/x-flv',
+  'video/mpg',
+  'video/webm',
+  'video/wmv',
+  'video/3gpp',
+];
+
+const externalHttpsUrlPattern = /^https:\/\/.*$/;
+
+function supportsExternalFileUrls(modelId: string) {
+  return /(^|\/)gemini-/.test(modelId) && !/(^|\/)gemini-2\.0/.test(modelId);
+}
+
 /**
  * Create a Google Generative AI provider instance.
  */
@@ -183,6 +214,14 @@ export function createGoogleGenerativeAI(
           ),
           new RegExp(`^https://youtu\\.be/[\\w-]+(?:\\?[\\w=&.-]*)?$`),
         ],
+        ...(supportsExternalFileUrls(modelId)
+          ? Object.fromEntries(
+              supportedExternalUrlMediaTypes.map(mediaType => [
+                mediaType,
+                [externalHttpsUrlPattern],
+              ]),
+            )
+          : {}),
       }),
       fetch: options.fetch,
     });
