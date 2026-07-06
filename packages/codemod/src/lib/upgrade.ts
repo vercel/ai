@@ -91,6 +91,7 @@ const bundle = [
   'v7/remove-experimental-custom-provider',
   'v7/remove-experimental-generate-image',
   'v7/replace-experimental-output-with-output',
+  'v7/replace-gladia-transcription-options',
   'v7/remove-experimental-prepare-step',
   'v7/replace-cached-input-tokens',
   'v7/replace-reasoning-tokens',
