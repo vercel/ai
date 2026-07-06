@@ -867,6 +867,41 @@ describe('assistant messages', () => {
       },
     ]);
   });
+
+  it('should wrap non-object (invalid) tool call input in an object', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'cityAttractions',
+            // malformed JSON the model produced, kept as a raw string
+            input: '{ "city": "San Francisco", }',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              toolUse: {
+                toolUseId: 'call-1',
+                name: 'cityAttractions',
+                input: { rawInvalidInput: '{ "city": "San Francisco", }' },
+              },
+            },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
 });
 
 describe('tool messages', () => {
