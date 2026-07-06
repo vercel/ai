@@ -2615,7 +2615,6 @@ describe('Chat', () => {
                 input: { city: 'Tokyo' },
                 approval: {
                   id: 'approval-1',
-                  isAutomatic: false,
                   signature: 'signed-approval-envelope',
                 },
               },
@@ -2636,7 +2635,6 @@ describe('Chat', () => {
           id: 'approval-1',
           approved: true,
           reason: 'looks good',
-          isAutomatic: false,
           signature: 'signed-approval-envelope',
         },
       });
