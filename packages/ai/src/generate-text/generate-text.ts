@@ -52,6 +52,7 @@ import { asArray } from '../util/as-array';
 import type { DownloadFunction } from '../util/download/download-function';
 import { mergeObjects } from '../util/merge-objects';
 import { prepareRetries } from '../util/prepare-retries';
+import { setAbortTimeout } from '../util/set-abort-timeout';
 import { VERSION } from '../version';
 import type {
   OnFinishEvent,
@@ -684,10 +685,11 @@ export async function generateText<
 
         do {
           // Set up step timeout if configured
-          const stepTimeoutId =
-            stepTimeoutMs != null
-              ? setTimeout(() => stepAbortController!.abort(), stepTimeoutMs)
-              : undefined;
+          const stepTimeoutId = setAbortTimeout({
+            abortController: stepAbortController,
+            label: 'Step',
+            timeoutMs: stepTimeoutMs,
+          });
 
           try {
             const stepInputMessages = [...initialMessages, ...responseMessages];

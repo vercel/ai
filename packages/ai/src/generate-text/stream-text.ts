@@ -82,6 +82,7 @@ import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { mergeObjects } from '../util/merge-objects';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
+import { setAbortTimeout } from '../util/set-abort-timeout';
 import { collectToolApprovals } from './collect-tool-approvals';
 import { validateApprovedToolApprovals } from './validate-tool-approvals';
 import type {
@@ -1567,25 +1568,25 @@ class DefaultStreamTextResult<
           const includeRawChunks = self.includeRawChunks;
 
           // Set up step timeout if configured
-          const stepTimeoutId =
-            stepTimeoutMs != null
-              ? setTimeout(() => stepAbortController!.abort(), stepTimeoutMs)
-              : undefined;
+          const stepTimeoutId = setAbortTimeout({
+            abortController: stepAbortController,
+            label: 'Step',
+            timeoutMs: stepTimeoutMs,
+          });
 
           // Set up chunk timeout tracking (will be reset on each chunk)
           let chunkTimeoutId: ReturnType<typeof setTimeout> | undefined =
             undefined;
 
           function resetChunkTimeout() {
-            if (chunkTimeoutMs != null) {
-              if (chunkTimeoutId != null) {
-                clearTimeout(chunkTimeoutId);
-              }
-              chunkTimeoutId = setTimeout(
-                () => chunkAbortController!.abort(),
-                chunkTimeoutMs,
-              );
+            if (chunkTimeoutId != null) {
+              clearTimeout(chunkTimeoutId);
             }
+            chunkTimeoutId = setAbortTimeout({
+              abortController: chunkAbortController,
+              label: 'Chunk',
+              timeoutMs: chunkTimeoutMs,
+            });
           }
 
           function clearChunkTimeout() {
