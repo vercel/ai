@@ -30,16 +30,18 @@ Suggested destination in a Vercel AI SDK docs or examples PR:
 examples/svs-verified-action/
 ```
 
-The package is safe to copy because it uses only public dependencies and
-placeholder environment values.
+The package is safe to copy because it uses placeholder environment values and
+only public SVS dependencies. Inside the Vercel AI SDK monorepo, the example
+uses `ai: "workspace:*"` so maintainers validate against the in-repo SDK rather
+than a published npm version.
 
 ## Local Review
 
 From this directory:
 
 ```sh
-npm install
-npm run validate
+pnpm install
+pnpm run validate
 ```
 
 ## Protocol Or Wallet Gate
@@ -75,7 +77,7 @@ read your config, or submit an action:
 node ./svs-verified-action.mjs
 ```
 
-Run `npm run validate` to check the package files and placeholder env template
+Run `pnpm run validate` to check the package files and placeholder env template
 before opening the upstream PR.
 
 Live submission is opt-in:

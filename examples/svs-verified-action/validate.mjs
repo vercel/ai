@@ -13,8 +13,8 @@ const files = {
 assert.equal(files.packageJson.private, true);
 assert.equal(files.packageJson.type, "module");
 assert.equal(files.packageJson.dependencies["@svsprotocol/solana"], "^0.2.0");
-assert.equal(files.packageJson.dependencies.ai, "^6.0.202");
-assert.equal(files.packageJson.dependencies.zod, "^4.4.3");
+assert.equal(files.packageJson.dependencies.ai, "workspace:*");
+assert.equal(files.packageJson.dependencies.zod, "3.25.76");
 assert.equal(files.packageJson.scripts.validate, "node ./validate.mjs");
 
 for (const required of [
