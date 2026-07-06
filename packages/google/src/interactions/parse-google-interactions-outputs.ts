@@ -68,7 +68,7 @@ function builtinToolNameFromResultType(type: string): string {
  * `LanguageModelV3Content[]`. Surfaces:
  *
  * - `model_output` steps: iterates `step.content[]` for `text` (with
- *   annotations → source parts) and `image` content blocks.
+ *   annotations → source parts), `image`, and `video` content blocks.
  * - `thought` steps: emits a single `reasoning` part from `summary[*]`.
  * - `function_call` steps: emits a `tool-call` part directly.
  * - Built-in tool `*_call` / `*_result` steps (Google Search, Code Execution,
@@ -158,6 +158,38 @@ export function parseGoogleInteractionsOutputs({
                   google: {
                     ...(interactionId != null ? { interactionId } : {}),
                     imageUri: image.uri,
+                  },
+                },
+              });
+            }
+          } else if (blockType === 'video') {
+            const video = block as {
+              data?: string;
+              mime_type?: string;
+              uri?: string;
+            };
+            if (video.data != null && video.data.length > 0) {
+              content.push({
+                type: 'file',
+                mediaType: video.mime_type ?? 'video/mp4',
+                data: video.data,
+                ...googleProviderMetadata({ interactionId }),
+              });
+            } else if (video.uri != null && video.uri.length > 0) {
+              /*
+               * V3 `LanguageModelV3File` only supports inline data (`string` /
+               * `Uint8Array`). URL-only video outputs cannot be represented as
+               * a file content part on the v3 spec; surface the URI through
+               * provider metadata so callers can still recover it.
+               */
+              content.push({
+                type: 'file',
+                mediaType: video.mime_type ?? 'video/mp4',
+                data: '',
+                providerMetadata: {
+                  google: {
+                    ...(interactionId != null ? { interactionId } : {}),
+                    videoUri: video.uri,
                   },
                 },
               });

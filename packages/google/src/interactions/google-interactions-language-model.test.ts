@@ -451,6 +451,46 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
     });
   });
 
+  describe('output token modality breakdown', () => {
+    it('surfaces output_tokens_by_modality on providerMetadata.google.outputTokensByModality', async () => {
+      const fixture = JSON.parse(
+        fs.readFileSync('src/interactions/__fixtures__/basic.json', 'utf8'),
+      );
+      server.urls[TEST_URL].response = {
+        type: 'json-value',
+        body: {
+          ...fixture,
+          usage: {
+            ...fixture.usage,
+            output_tokens_by_modality: [
+              { modality: 'video', tokens: 57920 },
+              { modality: 'text', tokens: 19 },
+            ],
+          },
+        },
+      };
+
+      const { providerMetadata } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(providerMetadata?.google?.outputTokensByModality).toEqual({
+        video: 57920,
+        text: 19,
+      });
+    });
+
+    it('omits outputTokensByModality when the response has no breakdown', async () => {
+      prepareJsonFixtureResponse('basic');
+
+      const { providerMetadata } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(providerMetadata?.google?.outputTokensByModality).toBeUndefined();
+    });
+  });
+
   describe('stateful chaining (previousInteractionId, store, thinking)', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('basic');

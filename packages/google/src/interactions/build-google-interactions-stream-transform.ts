@@ -11,7 +11,10 @@ import type {
   GoogleInteractionsEvent,
   GoogleInteractionsUsage,
 } from './google-interactions-api';
-import { convertGoogleInteractionsUsage } from './convert-google-interactions-usage';
+import {
+  convertGoogleInteractionsUsage,
+  getGoogleInteractionsOutputTokensByModality,
+} from './convert-google-interactions-usage';
 import {
   annotationsToSources,
   builtinToolResultToSources,
@@ -490,6 +493,47 @@ export function buildGoogleInteractionsStreamTransform({
             break;
           }
 
+          /*
+           * `video` deltas inside `model_output` carry the full payload in a
+           * single chunk (no per-byte streaming), mirroring `image`. Emit the
+           * `file` part as soon as the delta arrives so it surfaces regardless
+           * of whether a text block is currently open at the same index.
+           */
+          if (
+            dtype === 'video' &&
+            (open.kind === 'pending_model_output' || open.kind === 'text')
+          ) {
+            const videoDelta = event.delta as
+              | { data?: string; mime_type?: string; uri?: string }
+              | undefined;
+            const google: Record<string, string> = {};
+            if (interactionId != null) google.interactionId = interactionId;
+            const providerMetadata =
+              Object.keys(google).length > 0 ? { google } : undefined;
+            if (videoDelta?.data != null && videoDelta.data.length > 0) {
+              controller.enqueue({
+                type: 'file',
+                mediaType: videoDelta.mime_type ?? 'video/mp4',
+                data: videoDelta.data,
+                ...(providerMetadata ? { providerMetadata } : {}),
+              });
+            } else if (videoDelta?.uri != null && videoDelta.uri.length > 0) {
+              const uriProviderMetadata = {
+                google: {
+                  ...(interactionId != null ? { interactionId } : {}),
+                  videoUri: videoDelta.uri,
+                },
+              };
+              controller.enqueue({
+                type: 'file',
+                mediaType: videoDelta.mime_type ?? 'video/mp4',
+                data: '',
+                providerMetadata: uriProviderMetadata,
+              });
+            }
+            break;
+          }
+
           const delta = event.delta as
             | {
                 type?: string;
@@ -824,10 +868,14 @@ export function buildGoogleInteractionsStreamTransform({
         raw: finishStatus,
       };
 
+      const outputTokensByModality =
+        getGoogleInteractionsOutputTokensByModality(usage);
+
       const providerMetadata: SharedV3ProviderMetadata = {
         google: {
           ...(interactionId != null ? { interactionId } : {}),
           ...(serviceTier != null ? { serviceTier } : {}),
+          ...(outputTokensByModality != null ? { outputTokensByModality } : {}),
         },
       };
 
