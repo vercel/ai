@@ -42,6 +42,23 @@ export type AlibabaVideoModelOptions = {
    * Use character identifiers (character1, character2) in prompts to reference them.
    */
   referenceUrls?: string[] | null;
+  /**
+   * Explicit media array for reference-to-video mode (wan2.7 models).
+   * Overrides the automatic mapping from `inputReferences` and `frameImages`.
+   * Use `Image 1`, `Video 1`, etc. in prompts to reference media items
+   * (images and videos are counted separately, in array order).
+   */
+  media?: Array<{
+    type: 'reference_image' | 'reference_video' | 'first_frame';
+    /** Public URL, or a `data:{mime};base64,{data}` URI for images. */
+    url: string;
+    /** URL to an audio file used as voice reference for this media item. */
+    referenceVoice?: string | null;
+  }> | null;
+  /**
+   * Aspect ratio (wan2.7 text-to-video and reference-to-video models).
+   */
+  ratio?: '16:9' | '9:16' | '1:1' | '4:3' | '3:4' | null;
   /** Polling interval in milliseconds. Defaults to 5000 (5 seconds). */
   pollIntervalMs?: number | null;
   /** Maximum wait time in milliseconds for video generation. Defaults to 600000 (10 minutes). */
@@ -60,6 +77,20 @@ const alibabaVideoModelOptionsSchema = lazySchema(() =>
         watermark: z.boolean().nullish(),
         audio: z.boolean().nullish(),
         referenceUrls: z.array(z.string()).nullish(),
+        media: z
+          .array(
+            z.object({
+              type: z.enum([
+                'reference_image',
+                'reference_video',
+                'first_frame',
+              ]),
+              url: z.string(),
+              referenceVoice: z.string().nullish(),
+            }),
+          )
+          .nullish(),
+        ratio: z.enum(['16:9', '9:16', '1:1', '4:3', '3:4']).nullish(),
         pollIntervalMs: z.number().positive().nullish(),
         pollTimeoutMs: z.number().positive().nullish(),
       })
@@ -135,9 +166,6 @@ function detectMode(modelId: string): 't2v' | 'i2v' | 'r2v' {
   return 't2v';
 }
 
-<<<<<<< HEAD
-function fileToImageString(file: Experimental_VideoModelV3File): string {
-=======
 // wan2.7 models use a different protocol than earlier wan models:
 // resolution tiers + ratio instead of size, input.media instead of
 // input.reference_urls (R2V), and no shot_type or audio parameters.
@@ -185,8 +213,7 @@ function deriveRatioFromResolution(
   return supportedRatios.has(ratio) ? ratio : undefined;
 }
 
-function fileToImageString(file: Experimental_VideoModelV4File): string {
->>>>>>> 0c3c7e426d (feat(alibaba): support wan2.7 text-to-video and reference-to-video models (#16644))
+function fileToImageString(file: Experimental_VideoModelV3File): string {
   if (file.type === 'url') {
     return file.url;
   }
@@ -214,9 +241,9 @@ function isVideoUrl(url: string): boolean {
 
 // Builds the wan2.7 input.media array from inputReferences and frameImages.
 function resolveMedia(
-  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
+  options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
   alibabaOptions: AlibabaVideoModelOptions | undefined,
-  warnings: SharedV4Warning[],
+  warnings: SharedV3Warning[],
 ): Array<Record<string, unknown>> | undefined {
   if (alibabaOptions?.media != null && alibabaOptions.media.length > 0) {
     return alibabaOptions.media.map(item => ({
