@@ -17,6 +17,7 @@ import type {
   ProviderMetadata,
   JSONValue,
 } from 'ai';
+import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 
 import type {
   LangGraphEventState,
@@ -216,7 +217,7 @@ export function convertUserContent(content: UserContent): HumanMessage {
         /**
          * Convert to base64 data URL
          */
-        const base64 = btoa(String.fromCharCode(...bytes));
+        const base64 = convertUint8ArrayToBase64(bytes);
         const mimeType = imagePart.mediaType || 'image/png';
         contentBlocks.push({
           type: 'image_url',
@@ -317,7 +318,7 @@ export function convertUserContent(content: UserContent): HumanMessage {
             filePart.data instanceof ArrayBuffer
               ? new Uint8Array(filePart.data)
               : filePart.data;
-          const base64 = btoa(String.fromCharCode(...bytes));
+          const base64 = convertUint8ArrayToBase64(bytes);
           contentBlocks.push({
             type: 'image_url',
             image_url: { url: `data:${filePart.mediaType};base64,${base64}` },
@@ -379,7 +380,7 @@ export function convertUserContent(content: UserContent): HumanMessage {
             filePart.data instanceof ArrayBuffer
               ? new Uint8Array(filePart.data)
               : filePart.data;
-          const base64 = btoa(String.fromCharCode(...bytes));
+          const base64 = convertUint8ArrayToBase64(bytes);
           contentBlocks.push({
             type: 'file',
             data: base64,
