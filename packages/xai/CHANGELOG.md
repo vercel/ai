@@ -1,5 +1,14 @@
 # @ai-sdk/xai
 
+## 3.0.103
+
+### Patch Changes
+
+- cb4e5e1: Emit provider-executed tool results for completed xAI Responses API streaming tool calls.
+- Updated dependencies [0952964]
+  - @ai-sdk/provider-utils@4.0.36
+  - @ai-sdk/openai-compatible@2.0.57
+
 ## 3.0.102
 
 ### Patch Changes

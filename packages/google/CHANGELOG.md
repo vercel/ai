@@ -1,5 +1,14 @@
 # @ai-sdk/google
 
+## 3.0.89
+
+### Patch Changes
+
+- 0952964: Prevent prototype pollution when synchronously parsing provider JSON inputs and expose `secureJsonParse` from provider-utils.
+- f0bfb31: Fix Google embedding batch size to respect the Gemini API limit of 100 requests per batch.
+- Updated dependencies [0952964]
+  - @ai-sdk/provider-utils@4.0.36
+
 ## 3.0.88
 
 ### Patch Changes

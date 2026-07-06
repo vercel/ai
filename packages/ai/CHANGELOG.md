@@ -1,5 +1,17 @@
 # ai
 
+## 6.0.220
+
+### Patch Changes
+
+- 158d027: Sort tool results by their tool call order when converting generation output to response messages.
+- eb3cdd9: Fix `extractJsonMiddleware` preserving leading whitespace in the final streamed text suffix when no markdown fence prefix was stripped.
+- Updated dependencies [7dea716]
+- Updated dependencies [4f7fe37]
+- Updated dependencies [0952964]
+  - @ai-sdk/gateway@3.0.144
+  - @ai-sdk/provider-utils@4.0.36
+
 ## 6.0.219
 
 ### Patch Changes

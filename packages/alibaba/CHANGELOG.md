@@ -1,5 +1,14 @@
 # @ai-sdk/alibaba
 
+## 1.0.35
+
+### Patch Changes
+
+- 7dea716: feat(alibaba): support wan2.7 text-to-video and reference-to-video models with the new protocol (`input.media`, `resolution` + `ratio`)
+- Updated dependencies [0952964]
+  - @ai-sdk/provider-utils@4.0.36
+  - @ai-sdk/openai-compatible@2.0.57
+
 ## 1.0.34
 
 ### Patch Changes

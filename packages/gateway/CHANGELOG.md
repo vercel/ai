@@ -1,5 +1,15 @@
 # @ai-sdk/gateway
 
+## 3.0.144
+
+### Patch Changes
+
+- 7dea716: feat(alibaba): support wan2.7 text-to-video and reference-to-video models with the new protocol (`input.media`, `resolution` + `ratio`)
+- 4f7fe37: Backport: chore(provider/gateway): update gateway model settings files
+- 0952964: Prevent prototype pollution when synchronously parsing provider JSON inputs and expose `secureJsonParse` from provider-utils.
+- Updated dependencies [0952964]
+  - @ai-sdk/provider-utils@4.0.36
+
 ## 3.0.143
 
 ### Patch Changes
