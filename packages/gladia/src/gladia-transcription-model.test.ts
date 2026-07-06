@@ -97,6 +97,45 @@ describe('doGenerate', () => {
       });
     });
 
+    it('should map deprecated language options to language_config', async () => {
+      await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: {
+          gladia: {
+            language: 'en',
+            enableCodeSwitching: true,
+          },
+        },
+      });
+
+      expect(await server.calls[1].requestBodyJson).toMatchObject({
+        language_config: {
+          languages: ['en'],
+          code_switching: true,
+        },
+      });
+    });
+
+    it('should map deprecated customVocabulary arrays to custom_vocabulary_config', async () => {
+      await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: {
+          gladia: {
+            customVocabulary: ['Gladia', 'AI SDK'],
+          },
+        },
+      });
+
+      expect(await server.calls[1].requestBodyJson).toMatchObject({
+        custom_vocabulary: true,
+        custom_vocabulary_config: {
+          vocabulary: ['Gladia', 'AI SDK'],
+        },
+      });
+    });
+
     it('should pass the model id to the pre-recorded endpoint', async () => {
       await provider.transcription('solaria-3').doGenerate({
         audio: audioData,

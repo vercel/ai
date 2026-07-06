@@ -24,6 +24,10 @@ import { gladiaFailedResponseHandler } from './gladia-error';
 import { gladiaTranscriptionModelOptionsSchema } from './gladia-transcription-model-options';
 import type { GladiaTranscriptionInitiateAPITypes } from './gladia-api-types';
 import type { GladiaTranscriptionModelId } from './gladia-transcription-options';
+import {
+  resolveCustomVocabulary,
+  resolveLanguageConfig,
+} from './gladia-transcription-options-resolution';
 
 interface GladiaTranscriptionModelConfig extends GladiaConfig {
   _internal?: {
@@ -80,7 +84,10 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
 
     // Add provider-specific options
     if (gladiaOptions) {
-      body.custom_vocabulary = gladiaOptions.customVocabulary ?? undefined;
+      const { customVocabulary, vocabulary: customVocabularyFromArray } =
+        resolveCustomVocabulary(gladiaOptions);
+
+      body.custom_vocabulary = customVocabulary ?? undefined;
       body.callback = gladiaOptions.callback ?? undefined;
       body.subtitles = gladiaOptions.subtitles ?? undefined;
       body.diarization = gladiaOptions.diarization ?? undefined;
@@ -97,29 +104,33 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
       body.punctuation_enhanced =
         gladiaOptions.punctuationEnhanced ?? undefined;
 
-      if (gladiaOptions.customVocabularyConfig) {
+      const customVocabularyConfig = gladiaOptions.customVocabularyConfig ?? {};
+      const vocabulary =
+        customVocabularyConfig.vocabulary ?? customVocabularyFromArray;
+
+      if (vocabulary) {
         body.custom_vocabulary_config = {
-          vocabulary: gladiaOptions.customVocabularyConfig.vocabulary.map(
-            item => {
-              if (typeof item === 'string') return item;
-              return {
-                value: item.value,
-                intensity: item.intensity ?? undefined,
-                pronunciations: item.pronunciations ?? undefined,
-                language: item.language ?? undefined,
-              };
-            },
-          ),
+          vocabulary: vocabulary.map(item => {
+            if (typeof item === 'string') return item;
+            return {
+              value: item.value,
+              intensity: item.intensity ?? undefined,
+              pronunciations: item.pronunciations ?? undefined,
+              language: item.language ?? undefined,
+            };
+          }),
           default_intensity:
-            gladiaOptions.customVocabularyConfig.defaultIntensity ?? undefined,
+            customVocabularyConfig.defaultIntensity ?? undefined,
         };
       }
 
-      if (gladiaOptions.languageConfig) {
+      const languageConfig = resolveLanguageConfig(gladiaOptions);
+
+      if (languageConfig) {
         // `solaria-3` only supports a single language and no code switching.
         // Warn rather than fail so the request still reaches the API.
         if (this.modelId === 'solaria-3') {
-          if ((gladiaOptions.languageConfig.languages?.length ?? 0) > 1) {
+          if ((languageConfig.languages?.length ?? 0) > 1) {
             warnings.push({
               type: 'other',
               message:
@@ -127,7 +138,7 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
                 'Pass exactly one language in languageConfig.languages.',
             });
           }
-          if (gladiaOptions.languageConfig.codeSwitching) {
+          if (languageConfig.codeSwitching) {
             warnings.push({
               type: 'other',
               message:
@@ -138,9 +149,8 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
         }
 
         body.language_config = {
-          languages: gladiaOptions.languageConfig.languages ?? undefined,
-          code_switching:
-            gladiaOptions.languageConfig.codeSwitching ?? undefined,
+          languages: languageConfig.languages ?? undefined,
+          code_switching: languageConfig.codeSwitching ?? undefined,
         };
       }
 
