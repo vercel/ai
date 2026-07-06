@@ -4,6 +4,8 @@ import type {
   ImageModelV4,
   LanguageModelV4,
   ProviderV4,
+  Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
+  Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
   SpeechModelV4,
   SkillsV4,
   TranscriptionModelV4,
@@ -14,6 +16,7 @@ import {
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
+  type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
 import { OpenAIChatLanguageModel } from './chat/openai-chat-language-model';
 import type { OpenAIChatModelId } from './chat/openai-chat-language-model-options';
@@ -25,6 +28,7 @@ import type { OpenAIEmbeddingModelId } from './embedding/openai-embedding-model-
 import { OpenAIImageModel } from './image/openai-image-model';
 import type { OpenAIImageModelId } from './image/openai-image-model-options';
 import { openaiTools } from './openai-tools';
+import { OpenAIRealtimeModel } from './realtime/openai-realtime-model';
 import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
 import type { OpenAIResponsesModelId } from './responses/openai-responses-language-model-options';
 import { OpenAISpeechModel } from './speech/openai-speech-model';
@@ -98,6 +102,12 @@ export interface OpenAIProvider extends ProviderV4 {
   speech(modelId: OpenAISpeechModelId): SpeechModelV4;
 
   /**
+   * Creates an experimental realtime model for bidirectional audio/text
+   * communication over WebSocket.
+   */
+  experimental_realtime: RealtimeFactoryV4;
+
+  /**
    * Returns a FilesV4 interface for uploading files to OpenAI.
    */
   files(): FilesV4;
@@ -149,6 +159,12 @@ export interface OpenAIProviderSettings {
    * or to provide a custom fetch implementation for e.g. testing.
    */
   fetch?: FetchFunction;
+
+  /**
+   * Custom WebSocket implementation. This is useful for testing or for
+   * runtimes that need a WebSocket constructor with header support.
+   */
+  webSocket?: WebSocketConstructor;
 }
 
 /**
@@ -220,6 +236,7 @@ export function createOpenAI(
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
+      webSocket: options.webSocket,
     });
 
   const createSpeechModel = (modelId: OpenAISpeechModelId) =>
@@ -267,6 +284,33 @@ export function createOpenAI(
     });
   };
 
+  const createRealtimeModel = (modelId: string) =>
+    new OpenAIRealtimeModel(modelId, {
+      provider: `${providerName}.realtime`,
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
+  const experimentalRealtimeFactory = Object.assign(
+    (modelId: string) => createRealtimeModel(modelId),
+    {
+      getToken: async (tokenOptions: RealtimeFactoryV4GetTokenOptions) => {
+        const model = createRealtimeModel(tokenOptions.model);
+        const secret = await model.doCreateClientSecret({
+          sessionConfig: tokenOptions.sessionConfig,
+          expiresAfterSeconds: tokenOptions.expiresAfterSeconds,
+        });
+
+        return {
+          token: secret.token,
+          url: secret.url,
+          expiresAt: secret.expiresAt,
+        };
+      },
+    },
+  ) as RealtimeFactoryV4;
+
   const provider = function (modelId: OpenAIResponsesModelId) {
     return createLanguageModel(modelId);
   };
@@ -291,6 +335,8 @@ export function createOpenAI(
   provider.speechModel = createSpeechModel;
   provider.files = createFiles;
   provider.skills = createSkills;
+
+  provider.experimental_realtime = experimentalRealtimeFactory;
 
   provider.tools = openaiTools;
 

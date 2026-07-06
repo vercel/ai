@@ -19,5 +19,5 @@ export const sandboxAgent = new ToolLoopAgent({
 
 export type SandboxAgentUIMessage = InferAgentUIMessage<
   typeof sandboxAgent,
-  { sandboxId?: string }
+  { sandboxName?: string }
 >;

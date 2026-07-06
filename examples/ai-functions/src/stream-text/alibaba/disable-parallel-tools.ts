@@ -38,7 +38,7 @@ run(async () => {
 
   let toolCallOrder: string[] = [];
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'tool-call':
         toolCallOrder.push(part.toolName);

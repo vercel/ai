@@ -23,6 +23,8 @@ const toolMetadataSchema: z.ZodType<JSONObject> = z.record(
   jsonValueSchema.optional(),
 );
 
+const providerReferenceSchema = z.record(z.string(), z.string());
+
 const uiMessagesSchema = lazySchema(() =>
   zodSchema(
     z
@@ -71,6 +73,7 @@ const uiMessagesSchema = lazySchema(() =>
                   mediaType: z.string(),
                   filename: z.string().optional(),
                   url: z.string(),
+                  providerReference: providerReferenceSchema.optional(),
                   providerMetadata: providerMetadataSchema.optional(),
                 }),
                 z.object({
@@ -129,6 +132,7 @@ const uiMessagesSchema = lazySchema(() =>
                     approved: z.never().optional(),
                     reason: z.never().optional(),
                     isAutomatic: z.boolean().optional(),
+                    signature: z.string().optional(),
                   }),
                 }),
                 z.object({
@@ -147,6 +151,7 @@ const uiMessagesSchema = lazySchema(() =>
                     approved: z.boolean(),
                     reason: z.string().optional(),
                     isAutomatic: z.boolean().optional(),
+                    signature: z.string().optional(),
                   }),
                 }),
                 z.object({
@@ -168,6 +173,7 @@ const uiMessagesSchema = lazySchema(() =>
                       approved: z.literal(true),
                       reason: z.string().optional(),
                       isAutomatic: z.boolean().optional(),
+                      signature: z.string().optional(),
                     })
                     .optional(),
                 }),
@@ -190,6 +196,7 @@ const uiMessagesSchema = lazySchema(() =>
                       approved: z.literal(true),
                       reason: z.string().optional(),
                       isAutomatic: z.boolean().optional(),
+                      signature: z.string().optional(),
                     })
                     .optional(),
                 }),
@@ -209,6 +216,7 @@ const uiMessagesSchema = lazySchema(() =>
                     approved: z.literal(false),
                     reason: z.string().optional(),
                     isAutomatic: z.boolean().optional(),
+                    signature: z.string().optional(),
                   }),
                 }),
                 z.object({
@@ -250,6 +258,7 @@ const uiMessagesSchema = lazySchema(() =>
                     approved: z.never().optional(),
                     reason: z.never().optional(),
                     isAutomatic: z.boolean().optional(),
+                    signature: z.string().optional(),
                   }),
                 }),
                 z.object({
@@ -267,6 +276,7 @@ const uiMessagesSchema = lazySchema(() =>
                     approved: z.boolean(),
                     reason: z.string().optional(),
                     isAutomatic: z.boolean().optional(),
+                    signature: z.string().optional(),
                   }),
                 }),
                 z.object({
@@ -287,6 +297,7 @@ const uiMessagesSchema = lazySchema(() =>
                       approved: z.literal(true),
                       reason: z.string().optional(),
                       isAutomatic: z.boolean().optional(),
+                      signature: z.string().optional(),
                     })
                     .optional(),
                 }),
@@ -308,6 +319,7 @@ const uiMessagesSchema = lazySchema(() =>
                       approved: z.literal(true),
                       reason: z.string().optional(),
                       isAutomatic: z.boolean().optional(),
+                      signature: z.string().optional(),
                     })
                     .optional(),
                 }),
@@ -326,6 +338,7 @@ const uiMessagesSchema = lazySchema(() =>
                     approved: z.literal(false),
                     reason: z.string().optional(),
                     isAutomatic: z.boolean().optional(),
+                    signature: z.string().optional(),
                   }),
                 }),
               ]),
@@ -471,11 +484,13 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
             }
 
             // Tool input validation
+            // Note: input is intentionally not re-validated for `output-error`
+            // states. A tool call that failed with an invalid-input error keeps
+            // its (invalid) input, and re-validating it on replay would throw a
+            // TypeValidationError that crashes follow-up messages.
             if (
               toolPart.state === 'input-available' ||
-              toolPart.state === 'output-available' ||
-              (toolPart.state === 'output-error' &&
-                toolPart.input !== undefined)
+              toolPart.state === 'output-available'
             ) {
               await validateTypes({
                 value: toolPart.input,

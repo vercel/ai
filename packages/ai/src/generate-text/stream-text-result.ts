@@ -11,7 +11,7 @@ import type { Source } from '../types/language-model';
 import type { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import type { LanguageModelUsage } from '../types/usage';
 import type { InferUIMessageChunk } from '../ui-message-stream/ui-message-chunks';
-import type { UIMessageStreamOnFinishCallback } from '../ui-message-stream/ui-message-stream-on-finish-callback';
+import type { UIMessageStreamOnEndCallback } from '../ui-message-stream/ui-message-stream-on-end-callback';
 import type { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
 import type { InferUIMessageMetadata, UIMessage } from '../ui/ui-messages';
 import type { AsyncIterableStream } from '../util/async-iterable-stream';
@@ -57,10 +57,15 @@ export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
    */
   generateMessageId?: IdGenerator;
 
-  onFinish?: UIMessageStreamOnFinishCallback<UI_MESSAGE>;
+  onEnd?: UIMessageStreamOnEndCallback<UI_MESSAGE>;
 
   /**
-   * Extracts message metadata that will be send to the client.
+   * @deprecated Use `onEnd` instead.
+   */
+  onFinish?: UIMessageStreamOnEndCallback<UI_MESSAGE>;
+
+  /**
+   * Extracts message metadata that will be sent to the client.
    *
    * Called on `start` and `finish` events.
    */
@@ -306,6 +311,16 @@ export interface StreamTextResult<
    * You can use it as either an AsyncIterable or a ReadableStream.
    * Only errors that stop the stream, such as network errors, are thrown.
    */
+  readonly stream: AsyncIterableStream<TextStreamPart<TOOLS>>;
+
+  /**
+   * A stream with all events, including text deltas, tool calls, tool results, and
+   * errors.
+   * You can use it as either an AsyncIterable or a ReadableStream.
+   * Only errors that stop the stream, such as network errors, are thrown.
+   *
+   * @deprecated Use `stream` instead.
+   */
   readonly fullStream: AsyncIterableStream<TextStreamPart<TOOLS>>;
 
   /**
@@ -337,7 +352,7 @@ export interface StreamTextResult<
    * Consumes the stream without processing the parts.
    * This is useful to force the stream to finish.
    * It effectively removes the backpressure and allows the stream to finish,
-   * triggering the `onFinish` callback and the promise resolution.
+   * triggering the `onEnd` callback and the promise resolution.
    *
    * If an error occurs, it is passed to the optional `onError` callback.
    */
@@ -347,6 +362,10 @@ export interface StreamTextResult<
    * Converts the result to a UI message stream.
    *
    * @returns A UI message stream.
+   *
+   * @deprecated Use the standalone `toUIMessageStream` helper from
+   *   `'ai'` with `result.stream` instead. This method will be removed
+   *   in the next major release.
    */
   toUIMessageStream<UI_MESSAGE extends UIMessage>(
     options?: UIMessageStreamOptions<UI_MESSAGE>,
@@ -354,6 +373,10 @@ export interface StreamTextResult<
 
   /**
    * Writes UI message stream output to a Node.js response-like object.
+   *
+   * @deprecated Use the standalone `toUIMessageStream` and
+   *   `pipeUIMessageStreamToResponse` helpers from `'ai'` with `result.stream`
+   *   instead. This method will be removed in the next major release.
    */
   pipeUIMessageStreamToResponse<UI_MESSAGE extends UIMessage>(
     response: ServerResponse,
@@ -367,6 +390,10 @@ export interface StreamTextResult<
    *
    * @param response A Node.js response-like object (ServerResponse).
    * @param init Optional headers, status code, and status text.
+   *
+   * @deprecated Use the standalone `toTextStream` and
+   *   `pipeTextStreamToResponse` helpers from `'ai'` with `result.stream`
+   *   instead. This method will be removed in the next major release.
    */
   pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit): void;
 
@@ -374,6 +401,10 @@ export interface StreamTextResult<
    * Converts the result to a streamed response object with a stream data part stream.
    *
    * @returns A response object.
+   *
+   * @deprecated Use the standalone `toUIMessageStream` and
+   *   `createUIMessageStreamResponse` helpers from `'ai'` with `result.stream`
+   *   instead. This method will be removed in the next major release.
    */
   toUIMessageStreamResponse<UI_MESSAGE extends UIMessage>(
     options?: UIMessageStreamResponseInit & UIMessageStreamOptions<UI_MESSAGE>,
@@ -384,6 +415,10 @@ export interface StreamTextResult<
    * Each text delta is encoded as UTF-8 and sent as a separate chunk.
    * Non-text-delta events are ignored.
    * @param init Optional headers, status code, and status text.
+   *
+   * @deprecated Use the standalone `toTextStream` and `createTextStreamResponse`
+   *   helpers from `'ai'` with `result.stream` instead. This method will be
+   *   removed in the next major release.
    */
   toTextStreamResponse(init?: ResponseInit): Response;
 }

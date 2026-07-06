@@ -1,4 +1,3 @@
-import type * as IndexModule from './index';
 import type {
   ImageModelV4,
   ImageModelV4ProviderMetadata,
@@ -1379,46 +1378,5 @@ describe('data URL handling', () => {
         mediaType: 'image/jpeg',
       },
     ]);
-  });
-});
-
-describe('deprecated APIs', () => {
-  it('experimental_generateImage should still work', async () => {
-    // Import the deprecated export
-    const { experimental_generateImage } = await import('./index');
-
-    const result = await experimental_generateImage({
-      model: new MockImageModelV4({
-        doGenerate: async () =>
-          createMockResponse({
-            images: [pngBase64],
-          }),
-      }),
-      prompt,
-    });
-
-    expect(result.images).toHaveLength(1);
-    expect(result.image.base64).toBe(pngBase64);
-  });
-
-  it('Experimental_GenerateImageResult type should be exported', async () => {
-    // Import the deprecated exports
-    const { experimental_generateImage } = await import('./index');
-    type ResultType = IndexModule.Experimental_GenerateImageResult;
-
-    const result: ResultType = await experimental_generateImage({
-      model: new MockImageModelV4({
-        doGenerate: async () =>
-          createMockResponse({
-            images: [pngBase64],
-          }),
-      }),
-      prompt,
-    });
-
-    // Type assertions to verify the shape is correct
-    expect(result.images).toBeDefined();
-    expect(result.image).toBeDefined();
-    expect(result.warnings).toBeDefined();
   });
 });

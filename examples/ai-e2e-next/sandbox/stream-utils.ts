@@ -25,6 +25,14 @@ export async function collectStream(
   return out;
 }
 
+export async function collectStreamToString(
+  stream: ReadableStream<Uint8Array>,
+  encoding: BufferEncoding = 'utf-8',
+): Promise<string> {
+  const bytes = await collectStream(stream);
+  return Buffer.from(bytes).toString(encoding);
+}
+
 export function bytesToStream(bytes: Uint8Array): ReadableStream<Uint8Array> {
   return new ReadableStream<Uint8Array>({
     start(controller) {

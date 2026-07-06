@@ -26,7 +26,7 @@ run(async () => {
   let fullText = '';
   let fullReasoning = '';
 
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     if (chunk.type === 'raw') {
       rawChunkCount++;
       console.log(

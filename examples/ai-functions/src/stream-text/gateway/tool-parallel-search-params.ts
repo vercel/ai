@@ -1,13 +1,9 @@
-import { createGateway, streamText } from 'ai';
+import { gateway, streamText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
-  const gateway = createGateway({
-    baseURL: 'http://localhost:3000/v1/ai',
-  });
-
   const result = streamText({
-    model: gateway('openai/gpt-5-nano'),
+    model: 'openai/gpt-5-nano',
     prompt: `Search for the latest research on quantum computing breakthroughs.`,
     tools: {
       parallel_search: gateway.tools.parallelSearch({
@@ -23,7 +19,7 @@ async function main() {
     },
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'reasoning-delta':
         process.stdout.write(`\x1b[34m${part.text}\x1b[0m`);

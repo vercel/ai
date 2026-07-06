@@ -1,5 +1,329 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.12
+
+### Patch Changes
+
+- Updated dependencies [b51ed36]
+  - @ai-sdk/openai@4.0.8
+
+## 5.0.11
+
+### Patch Changes
+
+- Updated dependencies [0aa0ff3]
+  - @ai-sdk/anthropic@4.0.8
+
+## 5.0.10
+
+### Patch Changes
+
+- 5c5c0f5: Add experimental streaming transcription support for transcription models, including OpenAI `gpt-realtime-whisper` and xAI WebSocket STT.
+- Updated dependencies [5c5c0f5]
+  - @ai-sdk/provider@4.0.2
+  - @ai-sdk/provider-utils@5.0.5
+  - @ai-sdk/anthropic@4.0.7
+  - @ai-sdk/openai@4.0.7
+
+## 5.0.9
+
+### Patch Changes
+
+- Updated dependencies [c6f5e62]
+- Updated dependencies [679c52a]
+  - @ai-sdk/anthropic@4.0.6
+  - @ai-sdk/provider-utils@5.0.4
+  - @ai-sdk/openai@4.0.6
+
+## 5.0.8
+
+### Patch Changes
+
+- 1daf48b: feat(amazon-bedrock): increase limit of embeddings in a request for cohere models
+
+## 5.0.7
+
+### Patch Changes
+
+- Updated dependencies [8c616f0]
+  - @ai-sdk/provider-utils@5.0.3
+  - @ai-sdk/anthropic@4.0.5
+  - @ai-sdk/openai@4.0.5
+
+## 5.0.6
+
+### Patch Changes
+
+- c18018c: feat (provider/anthropic): add `claude-sonnet-5` model id
+- Updated dependencies [c18018c]
+  - @ai-sdk/anthropic@4.0.4
+
+## 5.0.5
+
+### Patch Changes
+
+- 85a80fc: fix (amazon-bedrock): send the correct `bedrockRerankingConfiguration` request key for reranking
+
+## 5.0.4
+
+### Patch Changes
+
+- Updated dependencies [0274f34]
+  - @ai-sdk/provider@4.0.1
+  - @ai-sdk/anthropic@4.0.3
+  - @ai-sdk/openai@4.0.4
+  - @ai-sdk/provider-utils@5.0.2
+
+## 5.0.3
+
+### Patch Changes
+
+- Updated dependencies [dfffb27]
+- Updated dependencies [1ead90c]
+  - @ai-sdk/anthropic@4.0.2
+  - @ai-sdk/openai@4.0.3
+
+## 5.0.2
+
+### Patch Changes
+
+- Updated dependencies [6a436e3]
+  - @ai-sdk/provider-utils@5.0.1
+  - @ai-sdk/anthropic@4.0.1
+  - @ai-sdk/openai@4.0.2
+
+## 5.0.1
+
+### Patch Changes
+
+- Updated dependencies [9507724]
+  - @ai-sdk/openai@4.0.1
+
+## 5.0.0
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+- c29a26f: feat(provider): add support for provider references and uploading files as supported per provider
+- 3887c70: feat(provider): add new top-level reasoning parameter to spec and support it in `generateText` and `streamText`
+- 8359612: Start v7 pre-release
+- 04e9009: chore: make provider implementations code patterns more consistent, including renaming certain exported symbols
+
+  For all externally exported symbols that were renamed, the old names continue to work via deprecated aliases.
+
+### Patch Changes
+
+- cd27bca: added bedrock mantle provider
+- d0dbd96: Fix `createAmazonBedrock()` capturing `globalThis.fetch` at initialization time, which caused telemetry instrumentation (e.g. OpenTelemetry, Datadog) and other `globalThis.fetch` patches applied after provider creation to be silently ignored.
+- bc8ed78: Omit `strict` from tool specs for Claude Opus 4.7/4.8 on Bedrock, which reject the field on the Messages API
+- e02f041: feat(provider/anthropic): add support for `claude-opus-4-8`
+- 38fc777: Add AI Gateway hint to provider READMEs
+- e748b35: chore: update v3 specs to v4
+- b567a6c: dependency updates
+- ed60b47: fix(provider/amazon-bedrock): fix Anthropic reasoning behavior related to Opus 4.7
+- fae8d44: fix(provider/amazon-bedrock): merge custom reasoning config properties when top-level reasoning parameter is set
+- b0c59e8: fix(amazon-bedrock): preserve reasoning text when signature is present
+- 68c5081: fix(provider/amazon-bedrock): mark `input` optional on tool-use schema so streaming `contentBlockStart` events parse under Zod >= 4.4.0
+- 32603d2: fix (provider/amazon-bedrock): correct mantle subpath exports
+- 6732c16: fix(amazon-bedrock): do not use env var AWS_SESSION_TOKEN when keys are explicitly defined
+- 1921625: fix(provider/amazon-bedrock): add tool search beta for Anthropic
+- 24ac76f: fix(amazon-bedrock): preserve empty text blocks when reasoning content is present
+- bcbaae6: fix(bedrock): skip passing unsigned reasoning content
+- 9d5a299: fix(amazon-bedrock): support document files in tool results
+- 6d8716c: feat(bedrock): add support for service tier for model inference
+- 87d1723: chore(anthropic): remove unnecessary messages affix from Anthropic symbols and files
+- 9f0e36c: trigger release for all packages after provenance setup
+- 9eda693: fix(provider/amazon-bedrock): detect Cohere embedding models behind cross-region inference profile ids
+- 4b20a5d: fix(provider/amazon-bedrock): transform bedrock/anthropic error responses to anthropic format
+- b555b23: fix(amazon-bedrock): disable native structured output for claude-opus-4-7
+- 58a2ad7: fix: more precise default message for tool execution denial
+- cdc15f3: feat(bedrock): support native structured output for anthropic models without reasoning
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- 0c4c275: trigger initial canary release
+- 9bd6512: feat(provider): change file part data property to be tagged with a type and remove the image part type
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- 9c78e5d: fix (provider/amazon-bedrock): preserve cache points on message content parts
+- 9fa4e9d: fix(provider/amazon-bedrock): extract Cohere embedding token usage from response header
+- 5463d0d: feat(provider): align tool result output content file part types with top-level message file part types
+- b8396f0: trigger initial beta release
+- 6b4d325: feat(provider/anthropic): add support for `claude-fable-5` and the `fallbacks` API parameter
+- f05a40d: fix(vertex): throw warning when strict: true for vertexAnthropic
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+- b3976a2: Add workflow serialization support to all provider models.
+
+  **`@ai-sdk/provider-utils`:** New `serializeModel()` helper that extracts only serializable properties from a model instance, filtering out functions and objects containing functions. Third-party provider authors can use this to add workflow support to their own models.
+
+  **All providers:** `headers` is now optional in provider config types. This is non-breaking — existing code that passes `headers` continues to work. Custom provider implementations that construct model configs manually can now omit `headers`, which is useful when models are deserialized from a workflow step boundary where auth is provided separately.
+
+  All provider model classes now include `WORKFLOW_SERIALIZE` and `WORKFLOW_DESERIALIZE` static methods, enabling them to cross workflow step boundaries without serialization errors.
+
+- 0d8f107: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements
+- ff5eba1: feat: roll `image-*` tool output types into their equivalent `file-*` types
+
+## 5.0.0-beta.89
+
+### Patch Changes
+
+- Updated dependencies [19c5ee2]
+  - @ai-sdk/anthropic@4.0.0-beta.69
+
+## 5.0.0-beta.88
+
+### Patch Changes
+
+- Updated dependencies [0416e3e]
+  - @ai-sdk/provider@4.0.0-beta.20
+  - @ai-sdk/anthropic@4.0.0-beta.68
+  - @ai-sdk/openai@4.0.0-beta.77
+  - @ai-sdk/provider-utils@5.0.0-beta.50
+
+## 5.0.0-beta.87
+
+### Patch Changes
+
+- bc8ed78: Omit `strict` from tool specs for Claude Opus 4.7/4.8 on Bedrock, which reject the field on the Messages API
+- Updated dependencies [2c4767d]
+  - @ai-sdk/openai@4.0.0-beta.76
+
+## 5.0.0-beta.86
+
+### Patch Changes
+
+- Updated dependencies [1772a63]
+  - @ai-sdk/openai@4.0.0-beta.75
+
+## 5.0.0-beta.85
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/anthropic@4.0.0-beta.67
+  - @ai-sdk/openai@4.0.0-beta.74
+  - @ai-sdk/provider-utils@5.0.0-beta.49
+  - @ai-sdk/provider@4.0.0-beta.19
+
+## 5.0.0-canary.84
+
+### Patch Changes
+
+- Updated dependencies [aeda373]
+- Updated dependencies [375fdd7]
+- Updated dependencies [b4507d5]
+  - @ai-sdk/provider-utils@5.0.0-canary.48
+  - @ai-sdk/anthropic@4.0.0-canary.66
+  - @ai-sdk/openai@4.0.0-canary.73
+
+## 5.0.0-canary.83
+
+### Patch Changes
+
+- Updated dependencies [bae5e2b]
+  - @ai-sdk/provider-utils@5.0.0-canary.47
+  - @ai-sdk/anthropic@4.0.0-canary.65
+  - @ai-sdk/openai@4.0.0-canary.72
+
+## 5.0.0-canary.82
+
+### Patch Changes
+
+- 9eda693: fix(provider/amazon-bedrock): detect Cohere embedding models behind cross-region inference profile ids
+
+## 5.0.0-canary.81
+
+### Patch Changes
+
+- 9fa4e9d: fix(provider/amazon-bedrock): extract Cohere embedding token usage from response header
+
+## 5.0.0-canary.80
+
+### Patch Changes
+
+- Updated dependencies [ae7f932]
+  - @ai-sdk/openai@4.0.0-canary.71
+
+## 5.0.0-canary.79
+
+### Patch Changes
+
+- 6b4d325: feat(provider/anthropic): add support for `claude-fable-5` and the `fallbacks` API parameter
+- Updated dependencies [6a5800e]
+- Updated dependencies [6b4d325]
+  - @ai-sdk/openai@4.0.0-canary.70
+  - @ai-sdk/anthropic@4.0.0-canary.64
+
+## 5.0.0-canary.78
+
+### Patch Changes
+
+- Updated dependencies [ce769dd]
+  - @ai-sdk/provider@4.0.0-canary.18
+  - @ai-sdk/openai@4.0.0-canary.69
+  - @ai-sdk/anthropic@4.0.0-canary.63
+  - @ai-sdk/provider-utils@5.0.0-canary.46
+
+## 5.0.0-canary.77
+
+### Patch Changes
+
+- Updated dependencies [94eba1b]
+  - @ai-sdk/openai@4.0.0-canary.68
+
+## 5.0.0-canary.76
+
+### Patch Changes
+
+- Updated dependencies [ee798eb]
+- Updated dependencies [61bcdb5]
+- Updated dependencies [daf6637]
+  - @ai-sdk/provider-utils@5.0.0-canary.45
+  - @ai-sdk/anthropic@4.0.0-canary.62
+  - @ai-sdk/openai@4.0.0-canary.67
+
+## 5.0.0-canary.75
+
+### Patch Changes
+
+- 32603d2: fix (provider/amazon-bedrock): correct mantle subpath exports
+
+## 5.0.0-canary.74
+
+### Patch Changes
+
+- Updated dependencies [e776fc7]
+  - @ai-sdk/openai@4.0.0-canary.66
+
+## 5.0.0-canary.73
+
+### Patch Changes
+
+- e02f041: feat(provider/anthropic): add support for `claude-opus-4-8`
+- Updated dependencies [e02f041]
+  - @ai-sdk/anthropic@4.0.0-canary.61
+
+## 5.0.0-canary.72
+
+### Patch Changes
+
+- Updated dependencies [cd3de8b]
+  - @ai-sdk/openai@4.0.0-canary.65
+
+## 5.0.0-canary.71
+
+### Patch Changes
+
+- 9d5a299: fix(amazon-bedrock): support document files in tool results
+
+## 5.0.0-canary.70
+
+### Patch Changes
+
+- Updated dependencies [6c93e36]
+- Updated dependencies [f617ac2]
+  - @ai-sdk/provider-utils@5.0.0-canary.44
+  - @ai-sdk/anthropic@4.0.0-canary.60
+  - @ai-sdk/openai@4.0.0-canary.64
+
 ## 5.0.0-canary.69
 
 ### Patch Changes

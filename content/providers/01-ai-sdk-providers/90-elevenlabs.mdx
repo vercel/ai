@@ -79,7 +79,7 @@ The `voice` argument can be set to a voice ID from the [ElevenLabs Voice Library
 You can find voice IDs by selecting a voice in the library and copying its ID.
 
 ```ts highlight="6"
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 import { elevenLabs } from '@ai-sdk/elevenlabs';
 
 const result = await generateSpeech({
@@ -92,7 +92,7 @@ const result = await generateSpeech({
 You can also pass additional provider-specific options using the `providerOptions` argument:
 
 ```ts highlight="7-9"
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 import {
   elevenLabs,
   type ElevenLabsSpeechModelOptions,
@@ -191,7 +191,7 @@ const model = elevenLabs.transcription('scribe_v1');
 You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the input language in ISO-639-1 (e.g. `en`) format can sometimes improve transcription performance if known beforehand.
 
 ```ts highlight="6"
-import { experimental_transcribe as transcribe } from 'ai';
+import { transcribe } from 'ai';
 import {
   elevenLabs,
   type ElevenLabsTranscriptionModelOptions,

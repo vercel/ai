@@ -1,6 +1,10 @@
 import type { Attributes, Tracer } from '@opentelemetry/api';
 import type { TelemetryOptions } from 'ai';
-import { selectAttributes, type AttributeSpecMap } from './select-attributes';
+import {
+  selectAttributes,
+  type AttributeSpec,
+  type AttributeSpecMap,
+} from './select-attributes';
 
 type SupplementalAttributeOption =
   | 'usage'
@@ -115,11 +119,36 @@ export function normalizeSupplementalAttributes(
 export function getRuntimeContextAttributes(
   context: Record<string, unknown> | undefined,
 ): AttributeSpecMap {
-  return Object.fromEntries(
-    Object.entries(context ?? {})
-      .filter(([, value]) => value != null)
-      .map(([key, value]) => [`ai.settings.context.${key}`, value]),
-  ) as AttributeSpecMap;
+  const attributes: AttributeSpecMap = {};
+
+  for (const [key, value] of Object.entries(context ?? {})) {
+    addRuntimeContextAttribute(attributes, `ai.settings.context.${key}`, value);
+  }
+
+  return attributes;
+}
+
+/**
+ * Flattens nested runtime context objects into OTel-compatible attribute keys.
+ * Arrays are preserved because OTel supports primitive array attribute values.
+ */
+function addRuntimeContextAttribute(
+  attributes: AttributeSpecMap,
+  key: string,
+  value: unknown,
+): void {
+  if (value == null) {
+    return;
+  }
+
+  if (Array.isArray(value) || typeof value !== 'object') {
+    attributes[key] = value as AttributeSpec;
+    return;
+  }
+
+  for (const [nestedKey, nestedValue] of Object.entries(value)) {
+    addRuntimeContextAttribute(attributes, `${key}.${nestedKey}`, nestedValue);
+  }
 }
 
 export function getHeaderAttributes(

@@ -9,6 +9,7 @@ import {
   createJsonResponseHandler,
   delay,
   getFromApi,
+  isSameOrigin,
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -217,9 +218,14 @@ export class ReplicateVideoModel implements Experimental_VideoModelV4 {
           });
         }
 
+        const pollUrl = finalPrediction.urls.get;
         const { value: statusPrediction } = await getFromApi({
-          url: finalPrediction.urls.get,
-          headers: await resolve(this.config.headers),
+          url: pollUrl,
+          // The polling URL comes from the provider response; only send
+          // credentials when it stays on the provider's own origin.
+          headers: isSameOrigin(pollUrl, this.config.baseURL)
+            ? await resolve(this.config.headers)
+            : undefined,
           successfulResponseHandler: createJsonResponseHandler(
             replicatePredictionSchema,
           ),

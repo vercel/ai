@@ -131,4 +131,66 @@ describe('MCPAppBridge', () => {
       ]
     `);
   });
+
+  it('denies tool calls by default when allowedTools is omitted', async () => {
+    const targetWindow = createTargetWindow();
+    const callTool = vi.fn(async () => ({ content: [] }));
+    const bridge = new MCPAppBridge({
+      targetWindow,
+      handlers: {
+        // no allowedTools => deny-by-default
+        callTool,
+      },
+    });
+
+    bridge.handleMessage(
+      messageEvent(targetWindow, {
+        jsonrpc: '2.0',
+        id: 3,
+        method: 'tools/call',
+        params: { name: 'filesystem/write', arguments: { path: '~/.ssh' } },
+      }),
+    );
+
+    await vi.waitFor(() => {
+      expect(targetWindow.postMessage).toHaveBeenCalled();
+    });
+
+    // The host handler must not be invoked, and an error is returned.
+    expect(callTool).not.toHaveBeenCalled();
+    const [response] = targetWindow.postMessage.mock.calls[0];
+    expect(response.id).toBe(3);
+    expect(response.result).toBeUndefined();
+    expect(response.error).toBeDefined();
+    expect(response.error.message).toContain('not app-visible');
+  });
+
+  it('denies tool calls not in allowedTools', async () => {
+    const targetWindow = createTargetWindow();
+    const callTool = vi.fn(async () => ({ content: [] }));
+    const bridge = new MCPAppBridge({
+      targetWindow,
+      handlers: {
+        allowedTools: ['refreshDashboardData'],
+        callTool,
+      },
+    });
+
+    bridge.handleMessage(
+      messageEvent(targetWindow, {
+        jsonrpc: '2.0',
+        id: 4,
+        method: 'tools/call',
+        params: { name: 'filesystem/write', arguments: {} },
+      }),
+    );
+
+    await vi.waitFor(() => {
+      expect(targetWindow.postMessage).toHaveBeenCalled();
+    });
+
+    expect(callTool).not.toHaveBeenCalled();
+    const [response] = targetWindow.postMessage.mock.calls[0];
+    expect(response.error?.message).toContain('not app-visible');
+  });
 });

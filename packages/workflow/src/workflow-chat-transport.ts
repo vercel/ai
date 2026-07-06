@@ -13,6 +13,7 @@ import {
   getErrorMessage,
 } from '@ai-sdk/provider-utils';
 import { createAsyncIterableStream } from 'ai/internal';
+import { normalizeUIMessageStreamParts } from './normalize-ui-message-stream.js';
 
 export interface SendMessagesOptions<UI_MESSAGE extends UIMessage> {
   trigger: 'submit-message' | 'regenerate-message';
@@ -186,7 +187,7 @@ export class WorkflowChatTransport<
     options: SendMessagesOptions<UI_MESSAGE> & ChatRequestOptions,
   ): Promise<ReadableStream<UIMessageChunk>> {
     return convertAsyncIteratorToReadableStream(
-      this.sendMessagesIterator(options),
+      normalizeUIMessageStreamParts(this.sendMessagesIterator(options)),
     );
   }
 
@@ -216,7 +217,7 @@ export class WorkflowChatTransport<
       : undefined;
 
     const url = requestConfig?.api ?? this.api;
-    const res = await this.fetch(url, {
+    const response = await this.fetch(url, {
       method: 'POST',
       body: JSON.stringify(
         requestConfig?.body ?? { messages, ...options.body },
@@ -226,13 +227,13 @@ export class WorkflowChatTransport<
       signal: abortSignal,
     });
 
-    if (!res.ok || !res.body) {
+    if (!response.ok || !response.body) {
       throw new Error(
-        `Failed to fetch chat: ${res.status} ${await res.text()}`,
+        `Failed to fetch chat: ${response.status} ${await response.text()}`,
       );
     }
 
-    const workflowRunId = res.headers.get('x-workflow-run-id');
+    const workflowRunId = response.headers.get('x-workflow-run-id');
     if (!workflowRunId) {
       throw new Error(
         'Workflow run ID not found in "x-workflow-run-id" response header',
@@ -242,12 +243,12 @@ export class WorkflowChatTransport<
     // Notify the caller that the chat POST request was sent.
     // This is useful for tracking the chat history on the client
     // side and allows for inspecting response headers.
-    await this.onChatSendMessage?.(res, options);
+    await this.onChatSendMessage?.(response, options);
 
     // Flush the initial stream until the end or an error occurs
     try {
       const chunkStream = parseJsonEventStream({
-        stream: res.body,
+        stream: response.body,
         schema: uiMessageChunkSchema,
       });
       for await (const chunk of createAsyncIterableStream(chunkStream)) {
@@ -292,8 +293,10 @@ export class WorkflowChatTransport<
   async reconnectToStream(
     options: ReconnectToStreamOptions & ChatRequestOptions,
   ): Promise<ReadableStream<UIMessageChunk> | null> {
-    const it = this.reconnectToStreamIterator(options);
-    return convertAsyncIteratorToReadableStream(it);
+    const reconnectIterator = normalizeUIMessageStreamParts(
+      this.reconnectToStreamIterator(options),
+    );
+    return convertAsyncIteratorToReadableStream(reconnectIterator);
   }
 
   private async *reconnectToStreamIterator(
@@ -344,15 +347,15 @@ export class WorkflowChatTransport<
           : chunkIndex;
 
       const url = `${baseUrl}?startIndex=${startIndex}`;
-      const res = await this.fetch(url, {
+      const response = await this.fetch(url, {
         headers: requestConfig?.headers,
         credentials: requestConfig?.credentials,
         signal: options.abortSignal,
       });
 
-      if (!res.ok || !res.body) {
+      if (!response.ok || !response.body) {
         throw new Error(
-          `Failed to fetch chat: ${res.status} ${await res.text()}`,
+          `Failed to fetch chat: ${response.status} ${await response.text()}`,
         );
       }
 
@@ -365,7 +368,9 @@ export class WorkflowChatTransport<
         // resume from (explicitStartIndex + chunks received).
         chunkIndex = explicitStartIndex;
       } else if (useExplicitStartIndex && explicitStartIndex < 0) {
-        const tailIndexHeader = res.headers.get('x-workflow-stream-tail-index');
+        const tailIndexHeader = response.headers.get(
+          'x-workflow-stream-tail-index',
+        );
         const tailIndex =
           tailIndexHeader !== null ? parseInt(tailIndexHeader, 10) : NaN;
 
@@ -389,7 +394,7 @@ export class WorkflowChatTransport<
 
       try {
         const chunkStream = parseJsonEventStream({
-          stream: res.body,
+          stream: response.body,
           schema: uiMessageChunkSchema,
         });
         for await (const chunk of createAsyncIterableStream(chunkStream)) {
