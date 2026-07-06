@@ -1,5 +1,37 @@
 # @ai-sdk/anthropic-aws
 
+## 2.0.0
+
+### Major Changes
+
+- a23b676: Release `@ai-sdk/anthropic-aws` as `2.0.0`. The provider was initially published as `1.0.0` because its `major` changeset was applied to the package's starting `0.0.1` version (`0.0.1` → `1.0.0`) rather than to the `1.0.0` intended for its first stable release. This major bump corrects the version to `2.0.0` to reflect the intended v2 line.
+
+## 1.0.8
+
+### Patch Changes
+
+- Updated dependencies [0aa0ff3]
+  - @ai-sdk/anthropic@4.0.8
+
+## 1.0.7
+
+### Patch Changes
+
+- 5c5c0f5: Add experimental streaming transcription support for transcription models, including OpenAI `gpt-realtime-whisper` and xAI WebSocket STT.
+- Updated dependencies [5c5c0f5]
+  - @ai-sdk/provider@4.0.2
+  - @ai-sdk/provider-utils@5.0.5
+  - @ai-sdk/anthropic@4.0.7
+
+## 1.0.6
+
+### Patch Changes
+
+- Updated dependencies [c6f5e62]
+- Updated dependencies [679c52a]
+  - @ai-sdk/anthropic@4.0.6
+  - @ai-sdk/provider-utils@5.0.4
+
 ## 1.0.5
 
 ### Patch Changes

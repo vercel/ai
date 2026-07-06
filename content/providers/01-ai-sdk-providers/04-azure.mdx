@@ -98,7 +98,9 @@ You can use the following optional settings to customize the OpenAI provider ins
   Either this or `resourceName` can be used.
   When a baseURL is provided, the resourceName is ignored.
 
-  With a baseURL, the resolved URL is `{baseURL}/v1{path}`.
+  With an Azure OpenAI baseURL, the resolved URL is `{baseURL}/v1{path}`.
+  With a non-Azure custom gateway baseURL, the resolved URL is `{baseURL}{path}`;
+  the SDK does not append `/v1` or an `api-version` query parameter in this mode.
 
 - **headers** _Record&lt;string,string&gt;_
 

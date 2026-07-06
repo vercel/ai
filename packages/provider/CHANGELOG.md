@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 4.0.2
+
+### Patch Changes
+
+- 5c5c0f5: Add experimental streaming transcription support for transcription models, including OpenAI `gpt-realtime-whisper` and xAI WebSocket STT.
+
 ## 4.0.1
 
 ### Patch Changes

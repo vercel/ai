@@ -1,5 +1,31 @@
 # @ai-sdk/anthropic
 
+## 4.0.8
+
+### Patch Changes
+
+- 0aa0ff3: fix(anthropic): forward `thinking: { type: 'disabled' }` to the API instead of stripping it
+
+  Previously, setting `providerOptions.anthropic.thinking = { type: 'disabled' }` (or top-level `reasoning: 'none'`) was accepted by the schema but silently dropped from the outgoing request. For models that default thinking on (e.g. Sonnet 5), this left thinking enabled and could consume a small `max_tokens` budget entirely. The `disabled` value is now sent to the Anthropic Messages API.
+
+## 4.0.7
+
+### Patch Changes
+
+- 5c5c0f5: Add experimental streaming transcription support for transcription models, including OpenAI `gpt-realtime-whisper` and xAI WebSocket STT.
+- Updated dependencies [5c5c0f5]
+  - @ai-sdk/provider@4.0.2
+  - @ai-sdk/provider-utils@5.0.5
+
+## 4.0.6
+
+### Patch Changes
+
+- c6f5e62: Prevent prototype pollution when synchronously parsing provider JSON inputs and expose `secureJsonParse` from provider-utils.
+- 679c52a: Normalize a bare `https://api.anthropic.com` base URL to include `/v1`.
+- Updated dependencies [c6f5e62]
+  - @ai-sdk/provider-utils@5.0.4
+
 ## 4.0.5
 
 ### Patch Changes

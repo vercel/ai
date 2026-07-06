@@ -2454,6 +2454,83 @@ describe('XaiResponsesLanguageModel', () => {
         });
       });
 
+      it('should emit a tool result when provider-executed tool calls finish', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast-non-reasoning',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'web_search_call',
+              id: 'ws_123',
+              name: 'web_search',
+              arguments: '{"query":"test"}',
+              call_id: '',
+              status: 'in_progress',
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.output_item.done',
+            item: {
+              type: 'web_search_call',
+              id: 'ws_123',
+              name: 'web_search',
+              arguments: '{"query":"test"}',
+              call_id: '',
+              status: 'completed',
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.web_search',
+              name: 'web_search',
+              args: {},
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts).toContainEqual({
+          type: 'tool-call',
+          toolCallId: 'ws_123',
+          toolName: 'web_search',
+          input: '{"query":"test"}',
+          providerExecuted: true,
+        });
+        expect(parts).toContainEqual({
+          type: 'tool-result',
+          toolCallId: 'ws_123',
+          toolName: 'web_search',
+          result: {},
+        });
+      });
+
       it('should stream function tool call arguments', async () => {
         prepareStreamChunks([
           JSON.stringify({
