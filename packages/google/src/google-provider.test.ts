@@ -270,7 +270,7 @@ describe('google-provider', () => {
     `);
   });
 
-  it('should support documented external HTTPS text/plain URLs for Gemini models that accept external URLs', () => {
+  it('should support documented external HTTPS URLs for Gemini models that accept external URLs', () => {
     const provider = createGoogle({
       apiKey: 'test-api-key',
     });
@@ -283,13 +283,78 @@ describe('google-provider', () => {
 
     const supportedUrls = supportedUrlsFunction!() as Record<string, RegExp[]>;
 
+    const supportedExternalUrlMediaTypes = [
+      'text/html',
+      'text/css',
+      'text/plain',
+      'text/xml',
+      'text/csv',
+      'text/rtf',
+      'text/javascript',
+      'application/json',
+      'application/pdf',
+      'image/bmp',
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'video/mp4',
+      'video/mpeg',
+      'video/quicktime',
+      'video/avi',
+      'video/x-flv',
+      'video/mpg',
+      'video/webm',
+      'video/wmv',
+      'video/3gpp',
+    ];
+
+    for (const mediaType of supportedExternalUrlMediaTypes) {
+      expect(
+        isUrlSupported({
+          url: 'https://example.com/file',
+          mediaType,
+          supportedUrls,
+        }),
+      ).toBe(true);
+    }
+
     expect(
       isUrlSupported({
-        url: 'https://www.rfc-editor.org/rfc/rfc1149.txt',
+        url: 'http://example.com/file.txt',
         mediaType: 'text/plain',
         supportedUrls,
       }),
-    ).toBe(true);
+    ).toBe(false);
+
+    expect(
+      isUrlSupported({
+        url: 'https://example.com/file.md',
+        mediaType: 'text/markdown',
+        supportedUrls,
+      }),
+    ).toBe(false);
+  });
+
+  it('should not support external HTTPS URLs for Gemini 2.0 models', () => {
+    const provider = createGoogle({
+      apiKey: 'test-api-key',
+    });
+    provider('gemini-2.0-flash');
+
+    const call = vi.mocked(GoogleLanguageModel).mock.calls[0];
+    const supportedUrlsFunction = call[1].supportedUrls;
+
+    expect(supportedUrlsFunction).toBeDefined();
+
+    const supportedUrls = supportedUrlsFunction!() as Record<string, RegExp[]>;
+
+    expect(
+      isUrlSupported({
+        url: 'https://example.com/file.txt',
+        mediaType: 'text/plain',
+        supportedUrls,
+      }),
+    ).toBe(false);
   });
 });
 
