@@ -24,14 +24,7 @@ import {
   parseProviderOptions,
   postJsonToApi,
   resolve,
-<<<<<<< HEAD:packages/anthropic/src/anthropic-messages-language-model.ts
-=======
-  resolveProviderReference,
   secureJsonParse,
-  serializeModelOptions,
-  WORKFLOW_SERIALIZE,
-  WORKFLOW_DESERIALIZE,
->>>>>>> c6f5e624a (fix: Raw `JSON.parse` used in production provider code (prototype pollution risk) (#16579)):packages/anthropic/src/anthropic-language-model.ts
   type FetchFunction,
   type InferSchema,
   type ParseResult,

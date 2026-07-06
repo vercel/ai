@@ -4,18 +4,7 @@ import type {
   LanguageModelV3ToolResultOutput,
   SharedV3Warning,
 } from '@ai-sdk/provider';
-<<<<<<< HEAD
-import { convertToBase64 } from '@ai-sdk/provider-utils';
-=======
-import {
-  convertToBase64,
-  getTopLevelMediaType,
-  isFullMediaType,
-  resolveFullMediaType,
-  resolveProviderReference,
-  secureJsonParse,
-} from '@ai-sdk/provider-utils';
->>>>>>> c6f5e624a (fix: Raw `JSON.parse` used in production provider code (prototype pollution risk) (#16579))
+import { convertToBase64, secureJsonParse } from '@ai-sdk/provider-utils';
 import type {
   GoogleInteractionsContent,
   GoogleInteractionsContentBlock,

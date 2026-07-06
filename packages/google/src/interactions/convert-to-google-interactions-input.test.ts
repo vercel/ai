@@ -631,7 +631,7 @@ describe('convertToGoogleInteractionsInput', () => {
     });
 
     it('rejects prototype-polluting stringified tool-call input', () => {
-      const prompt: LanguageModelV4Prompt = [
+      const prompt: LanguageModelV3Prompt = [
         {
           role: 'user',
           content: [{ type: 'text', text: 'Hi' }],
