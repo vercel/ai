@@ -26,17 +26,10 @@ type GoogleGenerativeAIEmbeddingConfig = {
   fetch?: FetchFunction;
 };
 
-<<<<<<< HEAD:packages/google/src/google-generative-ai-embedding-model.ts
 export class GoogleGenerativeAIEmbeddingModel implements EmbeddingModelV3 {
   readonly specificationVersion = 'v3';
   readonly modelId: GoogleGenerativeAIEmbeddingModelId;
-  readonly maxEmbeddingsPerCall = 2048;
-=======
-export class GoogleEmbeddingModel implements EmbeddingModelV4 {
-  readonly specificationVersion = 'v4';
-  readonly modelId: GoogleEmbeddingModelId;
   readonly maxEmbeddingsPerCall = 100;
->>>>>>> bd8d172c7 (fix: embedMany over-batches @ai-sdk/google embedding models (#16575)):packages/google/src/google-embedding-model.ts
   readonly supportsParallelCalls = true;
 
   private readonly config: GoogleGenerativeAIEmbeddingConfig;
