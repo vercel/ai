@@ -625,6 +625,43 @@ try {
 }
 ```
 
+## Tool Annotations
+
+MCP servers can attach [behavioral hints](https://modelcontextprotocol.io/specification/2025-11-25/server/tools#tool) to a tool via its `annotations`. The client surfaces these hints on each tool's `metadata.annotations`, which propagates to the tool call's `toolMetadata`. This lets you gate execution — for example, requiring approval for any tool that reports itself as destructive.
+
+The following hints are surfaced: `readOnlyHint`, `destructiveHint`, `idempotentHint`, and `openWorldHint`. Per the MCP spec, treat these as untrusted hints rather than guarantees.
+
+A single `toolApproval` function decides for every tool call, so use `isMCPToolCall` to scope the MCP branch and read the typed hints with `getMCPToolAnnotations`. Non-MCP tools are handled separately and are never affected by the MCP logic.
+
+```typescript
+import {
+  createMCPClient,
+  getMCPToolAnnotations,
+  isMCPToolCall,
+} from '@ai-sdk/mcp';
+import { generateText } from 'ai';
+
+const client = await createMCPClient({ transport });
+
+const response = await generateText({
+  model: __MODEL__,
+  tools: await client.tools(),
+  toolApproval: ({ toolCall }) => {
+    if (isMCPToolCall(toolCall)) {
+      const annotations = getMCPToolAnnotations(toolCall);
+      // Read-only MCP tools run automatically; anything else needs approval.
+      return annotations?.readOnlyHint === true ? 'approved' : 'user-approval';
+    }
+
+    // Your own policy for non-MCP tools.
+    return 'approved';
+  },
+  messages: [{ role: 'user', content: 'Query the data' }],
+});
+```
+
+Both helpers accept either a discovered tool (reading `metadata`) or a tool call (reading `toolMetadata`). `getMCPToolAnnotations` returns `undefined` both when the source is not an MCP tool and when it is an MCP tool whose server sent no hints — call `isMCPToolCall` first if you need to distinguish those cases.
+
 ## Error Handling
 
 The client throws `MCPClientError` for:
