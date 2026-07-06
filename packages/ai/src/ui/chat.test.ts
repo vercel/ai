@@ -2597,6 +2597,58 @@ describe('Chat', () => {
   });
 
   describe('addToolApprovalResponse', () => {
+    it('should preserve signed approval metadata when recording the response', async () => {
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId({ prefix: 'newid' }),
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+        messages: [
+          {
+            id: 'id-0',
+            role: 'user',
+            parts: [{ text: 'What is the weather in Tokyo?', type: 'text' }],
+          },
+          {
+            id: 'id-1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-weather',
+                toolCallId: 'call-1',
+                state: 'approval-requested',
+                input: { city: 'Tokyo' },
+                approval: {
+                  id: 'approval-1',
+                  isAutomatic: false,
+                  signature: 'signed-approval-envelope',
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      await chat.addToolApprovalResponse({
+        id: 'approval-1',
+        approved: true,
+        reason: 'looks good',
+      });
+
+      expect(chat.messages[1].parts[1]).toMatchObject({
+        state: 'approval-responded',
+        approval: {
+          id: 'approval-1',
+          approved: true,
+          reason: 'looks good',
+          isAutomatic: false,
+          signature: 'signed-approval-envelope',
+        },
+      });
+    });
+
     describe('approved', () => {
       let chat: TestChat;
 
