@@ -1,0 +1,32 @@
+{
+  "issue": 16751,
+  "classification": "provider-specific",
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-16751-google-external-url.ts",
+  "liveProvider": {
+    "provider": "google",
+    "model": "gemini-3.5-flash",
+    "completed": true,
+    "text": "This RFC",
+    "finishReason": "length",
+    "chunks": [
+      { "type": "start" },
+      { "type": "start-step" },
+      { "type": "text-start" },
+      { "type": "text-delta" },
+      { "type": "text-end" },
+      { "type": "finish-step" },
+      { "type": "finish" }
+    ],
+    "streamErrors": []
+  },
+  "downloadDecision": {
+    "url": "https://www.rfc-editor.org/rfc/rfc1149.txt",
+    "mediaType": "text/plain",
+    "isUrlSupportedByModel": false,
+    "performedDownload": true
+  },
+  "expected": {
+    "isUrlSupportedByModel": true,
+    "performedDownload": false
+  }
+}

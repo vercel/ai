@@ -1,4 +1,5 @@
 import type * as ProviderUtilsModule from '@ai-sdk/provider-utils';
+import { isUrlSupported } from '@ai-sdk/provider-utils';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createGoogle } from './google-provider';
 import { GoogleLanguageModel } from './google-language-model';
@@ -267,6 +268,28 @@ describe('google-provider', () => {
         ],
       }
     `);
+  });
+
+  it('should support documented external HTTPS text/plain URLs for Gemini models that accept external URLs', () => {
+    const provider = createGoogle({
+      apiKey: 'test-api-key',
+    });
+    provider('gemini-3.5-flash');
+
+    const call = vi.mocked(GoogleLanguageModel).mock.calls[0];
+    const supportedUrlsFunction = call[1].supportedUrls;
+
+    expect(supportedUrlsFunction).toBeDefined();
+
+    const supportedUrls = supportedUrlsFunction!() as Record<string, RegExp[]>;
+
+    expect(
+      isUrlSupported({
+        url: 'https://www.rfc-editor.org/rfc/rfc1149.txt',
+        mediaType: 'text/plain',
+        supportedUrls,
+      }),
+    ).toBe(true);
   });
 });
 
