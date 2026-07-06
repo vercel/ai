@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/workflow-harness",
-  "version": "1.0.18",
+  "version": "1.0.19",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,

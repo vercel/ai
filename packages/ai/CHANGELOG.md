@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.16
+
+### Patch Changes
+
+- a8f9b6d: Preserve signed tool approval metadata when recording approval responses.
+
 ## 7.0.15
 
 ### Patch Changes
