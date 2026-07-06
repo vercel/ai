@@ -275,12 +275,12 @@ describe('google-provider', () => {
   });
 
   it('should support documented external HTTPS URLs for Gemini models that accept external URLs', () => {
-    const provider = createGoogle({
+    const provider = createGoogleGenerativeAI({
       apiKey: 'test-api-key',
     });
     provider('gemini-3.5-flash');
 
-    const call = vi.mocked(GoogleLanguageModel).mock.calls[0];
+    const call = vi.mocked(GoogleGenerativeAILanguageModel).mock.calls[0];
     const supportedUrlsFunction = call[1].supportedUrls;
 
     expect(supportedUrlsFunction).toBeDefined();
@@ -340,12 +340,12 @@ describe('google-provider', () => {
   });
 
   it('should not support external HTTPS URLs for Gemini 2.0 models', () => {
-    const provider = createGoogle({
+    const provider = createGoogleGenerativeAI({
       apiKey: 'test-api-key',
     });
     provider('gemini-2.0-flash');
 
-    const call = vi.mocked(GoogleLanguageModel).mock.calls[0];
+    const call = vi.mocked(GoogleGenerativeAILanguageModel).mock.calls[0];
     const supportedUrlsFunction = call[1].supportedUrls;
 
     expect(supportedUrlsFunction).toBeDefined();
