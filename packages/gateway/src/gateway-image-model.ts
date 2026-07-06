@@ -13,6 +13,7 @@ import {
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import { mapGatewayWarnings } from './map-gateway-warnings';
 import type { GatewayConfig } from './gateway-config';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
@@ -87,7 +88,7 @@ export class GatewayImageModel implements ImageModelV3 {
 
       return {
         images: responseBody.images, // Always base64 strings from server
-        warnings: responseBody.warnings ?? [],
+        warnings: mapGatewayWarnings(responseBody.warnings),
         providerMetadata:
           responseBody.providerMetadata as ImageModelV3ProviderMetadata,
         response: {

@@ -308,7 +308,7 @@ describe('GatewayImageModel', () => {
       expect(result.warnings).toEqual(mockWarnings);
     });
 
-    it('should return deprecated warnings correctly', async () => {
+    it('should map deprecated warnings to other warnings', async () => {
       const mockWarnings = [
         {
           type: 'deprecated' as const,
@@ -333,7 +333,9 @@ describe('GatewayImageModel', () => {
         providerOptions: {},
       });
 
-      expect(result.warnings).toEqual(mockWarnings);
+      expect(result.warnings).toEqual([
+        { type: 'other', message: 'Use `aspectRatio` instead.' },
+      ]);
     });
 
     it('should return unsupported warnings correctly', async () => {

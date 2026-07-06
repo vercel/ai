@@ -1,8 +1,4 @@
-import type {
-  SharedV3ProviderMetadata,
-  SharedV3Warning,
-  SpeechModelV3,
-} from '@ai-sdk/provider';
+import type { SharedV3ProviderMetadata, SpeechModelV3 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonErrorResponseHandler,
@@ -12,6 +8,7 @@ import {
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import { mapGatewayWarnings } from './map-gateway-warnings';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 import type { GatewayConfig } from './gateway-config';
@@ -80,7 +77,7 @@ export class GatewaySpeechModel implements SpeechModelV3 {
 
       return {
         audio: responseBody.audio,
-        warnings: (responseBody.warnings ?? []) as Array<SharedV3Warning>,
+        warnings: mapGatewayWarnings(responseBody.warnings),
         providerMetadata:
           responseBody.providerMetadata as SharedV3ProviderMetadata,
         response: {

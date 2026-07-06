@@ -1,6 +1,5 @@
 import type {
   SharedV3ProviderMetadata,
-  SharedV3Warning,
   TranscriptionModelV3,
 } from '@ai-sdk/provider';
 import {
@@ -13,6 +12,7 @@ import {
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import { mapGatewayWarnings } from './map-gateway-warnings';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 import type { GatewayConfig } from './gateway-config';
@@ -79,7 +79,7 @@ export class GatewayTranscriptionModel implements TranscriptionModelV3 {
         segments: responseBody.segments ?? [],
         language: responseBody.language ?? undefined,
         durationInSeconds: responseBody.durationInSeconds ?? undefined,
-        warnings: (responseBody.warnings ?? []) as Array<SharedV3Warning>,
+        warnings: mapGatewayWarnings(responseBody.warnings),
         providerMetadata:
           responseBody.providerMetadata as SharedV3ProviderMetadata,
         response: {
