@@ -109,6 +109,39 @@ A bridge-backed harness implementation follows this approach:
 
 Bridge-backed adapters are valid when required by the underlying runtime. If so, the bridge must be installed in the sandbox and all interactions to the harness must happen through the bridge communication protocol.
 
+## Harness and Sandbox Interaction
+
+Ideally, the harness runtime runs in the host environment and operates exclusively on the sandbox session passed to it by `HarnessAgent`.
+
+```mermaid
+flowchart LR
+    Host["Host process\nharness runtime"]
+    Sandbox["Sandbox\nworkspace + shell"]
+
+    Host -->|"Experimental_SandboxSession APIs"| Sandbox
+```
+
+In practice, many coding-agent runtimes cannot run this way.
+If the runtime SDK or CLI needs local workspace access, local process state, or a runtime-specific home directory, the harness must run inside the sandbox and use bridge mode for host communication.
+
+```mermaid
+flowchart LR
+    Host["Host process\nharness adapter"]
+    Bridge["Sandbox bridge"]
+    Runtime["In-sandbox runtime"]
+    Sandbox["Sandbox filesystem/processes"]
+
+    Host -->|"sandbox port"| Bridge
+    Bridge --> Runtime
+    Runtime --> Sandbox
+```
+
+Bridge-backed harnesses must bootstrap the sandbox that is passed to them.
+That bootstrap can be declared as a [`HarnessV1Bootstrap`](../packages/harness/src/v1/harness-v1-bootstrap.ts) recipe so `HarnessAgent` and sandbox providers can apply it consistently.
+
+To prewarm or preconfigure a sandbox for specific harnesses, call [`prepareSandboxForHarness()`](../packages/harness/src/agent/prepare-sandbox-for-harness.ts) against the sandbox session, then commit, snapshot, or otherwise persist the modified sandbox image.
+Future `HarnessAgent` sessions compute the same identity from the harness bootstrap plan and pass it to the sandbox provider; snapshot-capable providers can return the persisted image for that identity and avoid their one-time bootstrap hook.
+
 ## Filesystem Boundaries
 
 Treat `sessionWorkDir` as the user's session workspace.

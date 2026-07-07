@@ -203,6 +203,10 @@ sequenceDiagram
     Agent->>Tool: execute({ experimental_sandbox })
 ```
 
+## Harness and Sandbox Interaction
+
+See [Harness and Sandbox Interaction](./harness-abstraction.md#harness-and-sandbox-interaction).
+
 ## Choosing a Layer
 
 Use the basic layer when:
