@@ -1,5 +1,19 @@
 # ai
 
+## 7.0.16
+
+### Patch Changes
+
+- a8f9b6d: Preserve signed tool approval metadata when recording approval responses.
+
+## 7.0.15
+
+### Patch Changes
+
+- Updated dependencies [0c3c7e4]
+- Updated dependencies [c8d2726]
+  - @ai-sdk/gateway@4.0.12
+
 ## 7.0.14
 
 ### Patch Changes
