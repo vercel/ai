@@ -176,7 +176,7 @@ describe('doGenerate', () => {
   });
 
   it('should forward presencePenalty and frequencyPenalty without unsupported warnings', async () => {
-    prepareJsonFixtureResponse('mistral-penalties');
+    prepareJsonFixtureResponse('mistral-text');
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
