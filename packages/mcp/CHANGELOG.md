@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 0.0.23
+
+### Patch Changes
+
+- 01a2b53: Prevent streamable HTTP MCP background SSE disconnects from surfacing as unhandled promise rejections.
+
 ## 0.0.22
 
 ### Patch Changes

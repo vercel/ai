@@ -1,5 +1,11 @@
 # @ai-sdk/mistral
 
+## 2.0.37
+
+### Patch Changes
+
+- 5c75d78: Forward Mistral presence and frequency penalties without unsupported warnings.
+
 ## 2.0.36
 
 ### Patch Changes
