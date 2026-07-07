@@ -1,5 +1,12 @@
 # @ai-sdk/xai
 
+## 4.0.8
+
+### Patch Changes
+
+- 8e006de: fix: send reasoning effort `none` to the xAI API when the top-level `reasoning: 'none'` option is set
+- 8e006de: fix: omit the reasoning effort parameter and emit an unsupported warning when the top-level `reasoning` option is used with xAI models that reject it (`grok-4.20-reasoning`, `grok-4.20-non-reasoning`, and dated variants)
+
 ## 4.0.7
 
 ### Patch Changes

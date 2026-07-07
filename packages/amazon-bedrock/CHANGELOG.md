@@ -1,5 +1,13 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.13
+
+### Patch Changes
+
+- cf06314: fix(bedrock): wrap invalid tool input in object
+- Updated dependencies [2e45d9c]
+  - @ai-sdk/anthropic@4.0.9
+
 ## 5.0.12
 
 ### Patch Changes
