@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 4.0.7
+
+### Patch Changes
+
+- 5520b8a: Emit provider-executed tool results for completed xAI Responses API streaming tool calls.
+
 ## 4.0.6
 
 ### Patch Changes
