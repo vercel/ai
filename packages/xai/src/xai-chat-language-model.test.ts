@@ -1328,6 +1328,49 @@ describe('XaiChatLanguageModel', () => {
       );
     });
 
+    it('should omit reasoning_effort and warn for models that do not support it', async () => {
+      prepareJsonFixtureResponse('xai-text');
+
+      const modelWithoutReasoningEffort = new XaiChatLanguageModel(
+        'grok-4.20-reasoning',
+        testConfig,
+      );
+
+      const result = await modelWithoutReasoningEffort.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+      });
+
+      expect(
+        (await server.calls[0].requestBodyJson).reasoning_effort,
+      ).toBeUndefined();
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'reasoning',
+        details: 'reasoning "none" is not supported by this model.',
+      });
+    });
+
+    it('should still pass providerOptions reasoningEffort for models that do not support top-level reasoning', async () => {
+      prepareJsonFixtureResponse('xai-text');
+
+      const modelWithoutReasoningEffort = new XaiChatLanguageModel(
+        'grok-4.20-reasoning',
+        testConfig,
+      );
+
+      await modelWithoutReasoningEffort.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          xai: { reasoningEffort: 'none' },
+        },
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'none',
+      );
+    });
+
     it('should extract reasoning content', async () => {
       prepareJsonFixtureResponse('xai-text');
 
