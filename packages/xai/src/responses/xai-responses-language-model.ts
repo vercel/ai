@@ -168,7 +168,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       options.reasoningEffort ??
       (isCustomReasoning(reasoning)
         ? reasoning === 'none'
-          ? undefined
+          ? 'none'
           : mapReasoningToProviderEffort({
               reasoning,
               effortMap: {
