@@ -1,0 +1,28 @@
+{
+  "request": {
+    "url": "https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict",
+    "method": "POST",
+    "body": {
+      "instances": [
+        {
+          "prompt": "a hamster in a hat"
+        }
+      ],
+      "parameters": {
+        "sampleCount": 1,
+        "aspectRatio": "4:3"
+      }
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "predictions": [
+        {
+          "mimeType": "image/png",
+          "bytesBase64Encoded": "<redacted 1949564 chars>"
+        }
+      ]
+    }
+  }
+}
