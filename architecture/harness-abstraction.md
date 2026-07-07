@@ -54,7 +54,7 @@ It should expose native runtime output, tool calls, approvals, completion, and u
   - Represents one active harness session.
   - Handles prompt turns, continued turns, compaction, suspension, detach, stop, and destroy.
 
-`HarnessV1SandboxProvider` and `HarnessV1NetworkSandboxSession` are part of the overall architecture, but they are sandbox contracts rather than harness adapter contracts.
+`HarnessV1SandboxProvider` and `HarnessV1NetworkSandboxSession` are part of the overall architecture, but they are sandbox contracts rather than harness adapter contracts. To implement a sandbox that supports the harness layer, see the [sandbox abstraction architecture doc](./sandbox-abstraction.md).
 
 A harness implementer consumes the `sandboxSession` that `HarnessAgent` passes to `doStart()`; they do not implement the sandbox provider or sandbox session interfaces.
 
