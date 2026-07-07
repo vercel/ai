@@ -1,0 +1,14 @@
+{
+  "name": "@example/ai-functions",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "type-check": "tsc --build"
+  },
+  "devDependencies": {
+    "@types/node": "20.17.24",
+    "tsx": "4.19.2",
+    "typescript": "5.8.3"
+  }
+}

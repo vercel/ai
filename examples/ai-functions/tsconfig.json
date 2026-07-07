@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "declaration": true,
+    "sourceMap": true,
+    "target": "es2022",
+    "lib": ["es2022", "dom"],
+    "module": "esnext",
+    "types": ["node"],
+    "typeRoots": [
+      "../../node_modules/.pnpm/@types+node@20.17.24/node_modules/@types"
+    ],
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "moduleResolution": "Bundler",
+    "rootDir": "./src",
+    "outDir": "./build",
+    "skipLibCheck": true,
+    "composite": true
+  },
+  "include": ["src/**/*.ts"],
+  "references": [
+    {
+      "path": "../../packages/ai"
+    },
+    {
+      "path": "../../packages/anthropic"
+    }
+  ]
+}

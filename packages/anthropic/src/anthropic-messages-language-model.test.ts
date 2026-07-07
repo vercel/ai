@@ -6198,6 +6198,52 @@ describe('claude-opus-4-7 specific behavior', () => {
     );
   });
 
+  it('should match issue #14707 live fixture by warning and stripping temperature', async () => {
+    const liveFixture = JSON.parse(
+      fs.readFileSync(
+        'src/__fixtures__/issue-14707-claude-opus-4-7-temperature-live.json',
+        'utf8',
+      ),
+    ) as {
+      requestBodyIncludesTemperature: boolean;
+      response: { status: number; body: JSONValue };
+      sdkResult: {
+        text: string;
+        warnings: Array<{
+          type: string;
+          setting?: string;
+          details?: string;
+        }>;
+      };
+    };
+
+    server.urls['https://api.anthropic.com/v1/messages'].response = {
+      type: 'json-value',
+      body: liveFixture.response.body,
+    };
+
+    const { content, warnings } = await opusModel.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Respond with exactly OK.' }],
+        },
+      ],
+      temperature: 0.7,
+      maxOutputTokens: 5,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.temperature).toBeUndefined();
+    expect(liveFixture.requestBodyIncludesTemperature).toBe(false);
+    expect(liveFixture.response.status).toBe(200);
+    expect(content).toContainEqual({
+      type: 'text',
+      text: liveFixture.sdkResult.text,
+    });
+    expect(warnings).toEqual(liveFixture.sdkResult.warnings);
+  });
+
   it('should warn and strip topK when set', async () => {
     prepareJsonFixtureResponse('anthropic-text');
 

@@ -1,0 +1,76 @@
+{
+  "issue": 14707,
+  "classification": "provider-specific Anthropic model capability behavior",
+  "modelId": "claude-opus-4-7",
+  "input": {
+    "prompt": "Respond with exactly OK.",
+    "temperature": 0.7,
+    "maxOutputTokens": 5
+  },
+  "expectedIssueError": "`temperature` is deprecated for this model.",
+  "requestBodyIncludesTemperature": false,
+  "request": {
+    "url": "https://api.anthropic.com/v1/messages",
+    "method": "POST",
+    "body": {
+      "model": "claude-opus-4-7",
+      "max_tokens": 5,
+      "messages": [
+        {
+          "role": "user",
+          "content": [
+            {
+              "type": "text",
+              "text": "Respond with exactly OK."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "response": {
+    "status": 200,
+    "ok": true,
+    "body": {
+      "model": "claude-opus-4-7",
+      "id": "msg_011CcnoFbazh88NzQRDzyQqE",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "OK"
+        }
+      ],
+      "stop_reason": "max_tokens",
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 21,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 5,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    }
+  },
+  "sdkResult": {
+    "type": "success",
+    "text": "OK",
+    "warnings": [
+      {
+        "type": "unsupported-setting",
+        "setting": "temperature",
+        "details": "temperature is not supported by claude-opus-4-7 and will be ignored"
+      }
+    ]
+  }
+}
