@@ -6,7 +6,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: togetherai('meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo'),
+    model: togetherai('moonshotai/Kimi-K2.5'),
     maxOutputTokens: 512,
     tools: {
       weather: weatherTool,

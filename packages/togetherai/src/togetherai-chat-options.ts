@@ -1,36 +1,40 @@
 // https://docs.together.ai/docs/serverless-models#chat-models
 export type TogetherAIChatModelId =
-  | 'meta-llama/Llama-3.3-70B-Instruct-Turbo'
-  | 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo'
-  | 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo'
-  | 'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo'
-  | 'meta-llama/Meta-Llama-3-8B-Instruct-Turbo'
-  | 'meta-llama/Meta-Llama-3-70B-Instruct-Turbo'
-  | 'meta-llama/Llama-3.2-3B-Instruct-Turbo'
-  | 'meta-llama/Meta-Llama-3-8B-Instruct-Lite'
-  | 'meta-llama/Meta-Llama-3-70B-Instruct-Lite'
-  | 'meta-llama/Llama-3-8b-chat-hf'
-  | 'meta-llama/Llama-3-70b-chat-hf'
-  | 'nvidia/Llama-3.1-Nemotron-70B-Instruct-HF'
-  | 'Qwen/Qwen2.5-Coder-32B-Instruct'
-  | 'Qwen/QwQ-32B-Preview'
-  | 'microsoft/WizardLM-2-8x22B'
-  | 'google/gemma-2-27b-it'
-  | 'google/gemma-2-9b-it'
-  | 'databricks/dbrx-instruct'
-  | 'deepseek-ai/deepseek-llm-67b-chat'
-  | 'deepseek-ai/DeepSeek-V3'
-  | 'google/gemma-2b-it'
-  | 'Gryphe/MythoMax-L2-13b'
-  | 'meta-llama/Llama-2-13b-chat-hf'
-  | 'mistralai/Mistral-7B-Instruct-v0.1'
-  | 'mistralai/Mistral-7B-Instruct-v0.2'
-  | 'mistralai/Mistral-7B-Instruct-v0.3'
-  | 'mistralai/Mixtral-8x7B-Instruct-v0.1'
-  | 'mistralai/Mixtral-8x22B-Instruct-v0.1'
-  | 'NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO'
+  // DeepSeek
+  | 'deepseek-ai/DeepSeek-V4-Pro'
+  | 'deepseek-ai/DeepSeek-V3.1'
+  | 'deepseek-ai/DeepSeek-R1'
+  // Z.ai
+  | 'zai-org/GLM-5.1'
+  | 'zai-org/GLM-5'
+  // Moonshot / Kimi
+  | 'moonshotai/Kimi-K2.6'
+  | 'moonshotai/Kimi-K2.5'
+  // MiniMax
+  | 'MiniMaxAI/MiniMax-M2.7'
+  // Qwen
+  | 'Qwen/Qwen3.6-Plus'
+  | 'Qwen/Qwen3.5-397B-A17B'
+  | 'Qwen/Qwen3-Coder-Next-FP8'
+  | 'Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8'
+  | 'Qwen/Qwen3-235B-A22B-Instruct-2507-tput'
+  | 'Qwen/Qwen3.5-9B'
   | 'Qwen/Qwen2.5-7B-Instruct-Turbo'
-  | 'Qwen/Qwen2.5-72B-Instruct-Turbo'
-  | 'Qwen/Qwen2-72B-Instruct'
-  | 'upstage/SOLAR-10.7B-Instruct-v1.0'
+  // OpenAI OSS
+  | 'openai/gpt-oss-120b'
+  | 'openai/gpt-oss-20b'
+  // Meta
+  | 'meta-llama/Llama-3.3-70B-Instruct-Turbo'
+  | 'meta-llama/Meta-Llama-3-8B-Instruct-Lite'
+  // Google
+  | 'google/gemma-4-31B-it'
+  | 'google/gemma-3n-E4B-it'
+  // LiquidAI
+  | 'LiquidAI/LFM2-24B-A2B'
+  // Essential AI
+  | 'essentialai/rnj-1-instruct'
+  // Deepcogito
+  | 'deepcogito/cogito-v2-1-671b'
+  // Arize AI
+  | 'arize-ai/qwen-2-1.5b-instruct'
   | (string & {});
