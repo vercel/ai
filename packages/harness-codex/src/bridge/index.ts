@@ -78,6 +78,7 @@ const cliShimDir = requireArg({
   name: '--cli-shim-dir',
 });
 const bootstrapDir = args.bootstrapDir ?? workdir;
+const HARNESS_CLIENT_APP = procEnv.AI_SDK_HARNESS_CLIENT_APP;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const codexSdk = codexSdkModule as any;
@@ -186,6 +187,14 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         env_key: 'CODEX_API_KEY',
         wire_api: 'responses',
         supports_websockets: false,
+        ...(hasGatewayAuth && HARNESS_CLIENT_APP
+          ? {
+              http_headers: {
+                'User-Agent': HARNESS_CLIENT_APP,
+                'x-client-app': HARNESS_CLIENT_APP,
+              },
+            }
+          : {}),
       },
     };
   }

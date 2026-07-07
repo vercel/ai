@@ -47,6 +47,7 @@ import {
   type InboundMessage,
   type OutboundMessage,
 } from './opencode-bridge-protocol';
+import { VERSION } from './version';
 
 type OpenCodeChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 type OpenCodeRespawnStrategy = 'replay' | 'rerun';
@@ -54,6 +55,11 @@ type OpenCodeRespawnStrategy = 'replay' | 'rerun';
 type WriteSkillsResult = {
   readonly skillsDir: string;
 };
+
+/**
+ * Value to use in User-Agent and `x-client-app` headers.
+ */
+const OPENCODE_CLIENT_APP = `ai-sdk/harness-opencode/${VERSION}`;
 
 export type OpenCodeHarnessSettings = {
   readonly auth?: OpenCodeAuthOptions;
@@ -344,6 +350,7 @@ export function createOpenCode(
           model: settings.model,
           provider: settings.provider,
         }),
+        AI_SDK_HARNESS_CLIENT_APP: OPENCODE_CLIENT_APP,
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),
         HOME: sandboxHomeDir,

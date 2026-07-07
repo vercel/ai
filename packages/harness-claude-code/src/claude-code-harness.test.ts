@@ -97,11 +97,13 @@ function fakeNetworkSandboxSessionForStartupFailure({
 function fakeNetworkSandboxSessionForStartupSuccess({
   bridgePortUrl,
   spawns,
+  spawnEnvs,
   writes,
   runs,
 }: {
   bridgePortUrl: string;
   spawns?: string[];
+  spawnEnvs?: Array<Record<string, string | undefined>>;
   writes: Array<{ path: string; content: string }>;
   runs: string[];
 }): HarnessV1NetworkSandboxSession {
@@ -123,8 +125,15 @@ function fakeNetworkSandboxSessionForStartupSuccess({
     }) => {
       writes.push({ path, content });
     },
-    spawn: async ({ command }: { command: string }) => {
+    spawn: async ({
+      command,
+      env,
+    }: {
+      command: string;
+      env?: Record<string, string | undefined>;
+    }) => {
       spawns?.push(command);
+      if (env) spawnEnvs?.push(env);
       return {
         stdout: textStream('{"type":"bridge-ready","port":4319}\n'),
         stderr: textStream(''),
@@ -230,6 +239,7 @@ describe('createClaudeCode adapter', () => {
   it('quotes dynamic startup paths in shell commands', async () => {
     const runs: string[] = [];
     const spawns: string[] = [];
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
     const writes: Array<{ path: string; content: string }> = [];
     const harness = createClaudeCode();
     const session = await harness.doStart({
@@ -238,6 +248,7 @@ describe('createClaudeCode adapter', () => {
         bridgePortUrl: 'ws://127.0.0.1:1',
         runs,
         spawns,
+        spawnEnvs,
         writes,
       }),
       sessionWorkDir:
@@ -250,6 +261,9 @@ describe('createClaudeCode adapter', () => {
     expect(spawns).toEqual([
       "node /tmp/harness/claude-code/bridge.mjs --workdir '/vercel/sandbox/claude-code-s1; env > /tmp/workdir-leak #' --bridge-state-dir '/vercel/sandbox/.agent-runs/s1; env > /tmp/leak #/bridge'",
     ]);
+    expect(spawnEnvs.at(0)?.CLAUDE_AGENT_SDK_CLIENT_APP).toBe(
+      'ai-sdk/harness-claude-code/0.0.0-test',
+    );
     await session.doDestroy();
   });
 
