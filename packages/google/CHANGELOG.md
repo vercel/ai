@@ -1,5 +1,16 @@
 # @ai-sdk/google
 
+## 3.0.90
+
+### Patch Changes
+
+- b585445: Backport Gemini Interactions video output parsing and per-modality output token breakdown for AI SDK v6.
+- 1825ecc: Backport `vertex.interactions()` for the Gemini Interactions API on Vertex AI for AI SDK v6.
+- afee362: Pass documented Gemini external HTTPS file URLs through without downloading them.
+- 327642b: fix: more precise default message for tool execution denial
+- Updated dependencies [d559de9]
+  - @ai-sdk/provider-utils@4.0.37
+
 ## 3.0.89
 
 ### Patch Changes

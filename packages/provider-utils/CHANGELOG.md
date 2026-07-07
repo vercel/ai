@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 4.0.37
+
+### Patch Changes
+
+- d559de9: Ensure the default empty tool input schema includes `type: "object"` for OpenAI-compatible providers that require object schemas.
+
 ## 4.0.36
 
 ### Patch Changes

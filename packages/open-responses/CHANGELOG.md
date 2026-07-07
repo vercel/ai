@@ -1,5 +1,13 @@
 # @ai-sdk/open-responses
 
+## 1.0.26
+
+### Patch Changes
+
+- 327642b: fix: more precise default message for tool execution denial
+- Updated dependencies [d559de9]
+  - @ai-sdk/provider-utils@4.0.37
+
 ## 1.0.25
 
 ### Patch Changes

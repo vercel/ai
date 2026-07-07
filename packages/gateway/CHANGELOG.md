@@ -1,5 +1,14 @@
 # @ai-sdk/gateway
 
+## 3.0.145
+
+### Patch Changes
+
+- 9c54a9f: fix(gateway): accept deprecated warnings in image, speech, transcription, and video responses
+- bbc4bd5: Backport: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [d559de9]
+  - @ai-sdk/provider-utils@4.0.37
+
 ## 3.0.144
 
 ### Patch Changes

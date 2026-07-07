@@ -1,5 +1,17 @@
 # @ai-sdk/deepseek
 
+## 2.0.46
+
+### Patch Changes
+
+- bef93ae: fix(security): prevent streaming tool calls from finalizing on parsable partial JSON
+
+  Streaming tool call arguments were finalized using `isParsableJson()` as a heuristic for completion. If partial accumulated JSON happened to be valid JSON before all chunks arrived, the tool call would be executed with incomplete arguments. Tool call finalization now only occurs in `flush()` after the stream is fully consumed.
+
+- 327642b: fix: more precise default message for tool execution denial
+- Updated dependencies [d559de9]
+  - @ai-sdk/provider-utils@4.0.37
+
 ## 2.0.45
 
 ### Patch Changes

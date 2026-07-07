@@ -1,5 +1,18 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.131
+
+### Patch Changes
+
+- 327642b: fix: more precise default message for tool execution denial
+- Updated dependencies [bef93ae]
+- Updated dependencies [d559de9]
+- Updated dependencies [327642b]
+- Updated dependencies [ae00aeb]
+  - @ai-sdk/openai@3.0.82
+  - @ai-sdk/provider-utils@4.0.37
+  - @ai-sdk/anthropic@3.0.95
+
 ## 4.0.130
 
 ### Patch Changes

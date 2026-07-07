@@ -1,5 +1,14 @@
 # @ai-sdk/mcp
 
+## 1.0.60
+
+### Patch Changes
+
+- 937d731: Reject in-flight MCP requests when their abort signal fires and remove the pending response handler.
+- 2b6c67f: Prevent streamable HTTP MCP background SSE disconnects from surfacing as unhandled promise rejections.
+- Updated dependencies [d559de9]
+  - @ai-sdk/provider-utils@4.0.37
+
 ## 1.0.59
 
 ### Patch Changes

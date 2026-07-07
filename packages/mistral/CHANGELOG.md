@@ -1,5 +1,14 @@
 # @ai-sdk/mistral
 
+## 3.0.47
+
+### Patch Changes
+
+- 187bb1a: Forward Mistral presence and frequency penalties without unsupported warnings.
+- 327642b: fix: more precise default message for tool execution denial
+- Updated dependencies [d559de9]
+  - @ai-sdk/provider-utils@4.0.37
+
 ## 3.0.46
 
 ### Patch Changes

@@ -1,5 +1,22 @@
 # @ai-sdk/google-vertex
 
+## 4.0.158
+
+### Patch Changes
+
+- 1825ecc: Backport `vertex.interactions()` for the Gemini Interactions API on Vertex AI for AI SDK v6.
+- Updated dependencies [4d4e176]
+- Updated dependencies [bef93ae]
+- Updated dependencies [d559de9]
+- Updated dependencies [b585445]
+- Updated dependencies [1825ecc]
+- Updated dependencies [afee362]
+- Updated dependencies [327642b]
+  - @ai-sdk/openai-compatible@2.0.58
+  - @ai-sdk/provider-utils@4.0.37
+  - @ai-sdk/google@3.0.90
+  - @ai-sdk/anthropic@3.0.95
+
 ## 4.0.157
 
 ### Patch Changes

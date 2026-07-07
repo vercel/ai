@@ -1,5 +1,29 @@
 # ai
 
+## 6.0.221
+
+### Patch Changes
+
+- 2958540: fix(ui): export `isDynamicToolUIPart` from `ai` package
+- aa2dbe6: Fix: `convertToModelMessages` no longer emits an empty assistant message when a block contains only unknown data parts (e.g. a data part before `step-start` with no `convertDataPart` provided)
+- faaef7c: fix(ai): enforce `timeout.stepMs` for the whole step in `streamText`
+
+  Previously `streamText`'s step timer was cleared synchronously right after the step's stream was registered, before the stream produced anything, so `stepMs` never aborted a step that stalled before emitting content. The step timer now survives until the step's stream finishes or aborts, matching `generateText`. `chunkMs`/`totalMs` and normal step-finish cleanup are unchanged.
+
+- 45a9cbf: Return validated elements from generateText array output
+- 2706461: fix(ai): include tool input on tool result for provider executed dynamic tools
+- 327642b: fix: more precise default message for tool execution denial
+- 89df298: Preserve signed tool approval metadata when recording approval responses.
+- 8ed1f83: fix(ai): tag step/chunk timeout aborts with `TimeoutError` reason
+
+  When `timeout: { stepMs }` or `timeout: { chunkMs }` fires, the abort reason is now a `TimeoutError` `DOMException`, matching what `AbortSignal.timeout()` produces natively. Consumers can distinguish a framework timeout from a user-initiated cancel via `signal.reason.name === 'TimeoutError'`.
+
+- Updated dependencies [d559de9]
+- Updated dependencies [9c54a9f]
+- Updated dependencies [bbc4bd5]
+  - @ai-sdk/provider-utils@4.0.37
+  - @ai-sdk/gateway@3.0.145
+
 ## 6.0.220
 
 ### Patch Changes

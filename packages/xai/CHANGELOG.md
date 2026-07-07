@@ -1,5 +1,18 @@
 # @ai-sdk/xai
 
+## 3.0.104
+
+### Patch Changes
+
+- 327642b: fix: more precise default message for tool execution denial
+- 19eece6: fix reasoning text extraction from content in responses doGenerate
+- Updated dependencies [4d4e176]
+- Updated dependencies [bef93ae]
+- Updated dependencies [d559de9]
+- Updated dependencies [327642b]
+  - @ai-sdk/openai-compatible@2.0.58
+  - @ai-sdk/provider-utils@4.0.37
+
 ## 3.0.103
 
 ### Patch Changes

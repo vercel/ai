@@ -1,5 +1,13 @@
 # @ai-sdk/anthropic
 
+## 3.0.95
+
+### Patch Changes
+
+- 327642b: fix: more precise default message for tool execution denial
+- Updated dependencies [d559de9]
+  - @ai-sdk/provider-utils@4.0.37
+
 ## 3.0.94
 
 ### Patch Changes

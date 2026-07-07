@@ -1,5 +1,21 @@
 # @ai-sdk/langchain
 
+## 2.0.229
+
+### Patch Changes
+
+- c8e38eb: fix(langchain): reset streamEvents text between model invocations
+- ea6eb0a: fix(langchain): register key mapping for tool calls emitted via messages mode for HITL interrupt matching
+- Updated dependencies [2958540]
+- Updated dependencies [aa2dbe6]
+- Updated dependencies [faaef7c]
+- Updated dependencies [45a9cbf]
+- Updated dependencies [2706461]
+- Updated dependencies [327642b]
+- Updated dependencies [89df298]
+- Updated dependencies [8ed1f83]
+  - ai@6.0.221
+
 ## 2.0.228
 
 ### Patch Changes
