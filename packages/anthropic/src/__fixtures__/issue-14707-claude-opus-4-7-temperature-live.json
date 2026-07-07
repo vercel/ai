@@ -1,0 +1,80 @@
+{
+  "issue": 14707,
+  "model": "claude-opus-4-7",
+  "inputTemperature": 0.7,
+  "requestBody": {
+    "model": "claude-opus-4-7",
+    "max_tokens": 16,
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "Reply with exactly OK."
+          }
+        ]
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "statusText": "OK",
+    "headers": {
+      "content-type": "application/json",
+      "request-id": "req_011CcnjVcHqLqQKPxvPHWZ5U"
+    },
+    "body": {
+      "model": "claude-opus-4-7",
+      "id": "msg_011CcnjVcgeY1HxJJJBmgZBe",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "OK"
+        }
+      ],
+      "stop_reason": "end_turn",
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 21,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 6,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    }
+  },
+  "result": {
+    "ok": true,
+    "text": "OK",
+    "warnings": [
+      {
+        "type": "unsupported",
+        "feature": "temperature",
+        "details": "temperature is not supported by claude-opus-4-7 and will be ignored"
+      }
+    ],
+    "usage": {
+      "inputTokens": 21,
+      "inputTokenDetails": {
+        "noCacheTokens": 21,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "outputTokens": 6,
+      "outputTokenDetails": {},
+      "totalTokens": 27
+    }
+  }
+}
