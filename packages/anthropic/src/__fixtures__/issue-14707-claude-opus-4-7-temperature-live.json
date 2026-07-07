@@ -1,0 +1,79 @@
+{
+  "model": "claude-opus-4-7",
+  "inputTemperature": 0.7,
+  "text": "OK",
+  "warnings": [
+    {
+      "type": "unsupported",
+      "feature": "temperature",
+      "details": "temperature is not supported by claude-opus-4-7 and will be ignored"
+    }
+  ],
+  "calls": [
+    {
+      "request": {
+        "url": "https://api.anthropic.com/v1/messages",
+        "method": "POST",
+        "headers": {
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
+          "user-agent": "ai/0.0.0-test ai-sdk/provider-utils/0.0.0-test runtime/node.js/22",
+          "x-api-key": "[redacted]"
+        },
+        "body": {
+          "model": "claude-opus-4-7",
+          "max_tokens": 5,
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Reply exactly with OK."
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json",
+          "date": "Tue, 07 Jul 2026 13:08:53 GMT",
+          "request-id": "req_011CcnkUPiddarVDRngNU9S9"
+        },
+        "body": {
+          "model": "claude-opus-4-7",
+          "id": "msg_011CcnkURCviqzbiZ4JFqtwp",
+          "type": "message",
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "OK"
+            }
+          ],
+          "stop_reason": "max_tokens",
+          "stop_sequence": null,
+          "stop_details": null,
+          "usage": {
+            "input_tokens": 21,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 5,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        }
+      }
+    }
+  ]
+}
