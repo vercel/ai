@@ -17926,6 +17926,19 @@ describe('streamText', () => {
           ]
         `);
     });
+
+    it('should keep streaming after a tool error (conversation not broken)', async () => {
+      const parts = await convertAsyncIterableToArray(result.stream);
+      const types = parts.map(part => part.type);
+
+      // the thrown tool error is surfaced as a tool-error part
+      expect(types).toContain('tool-error');
+
+      // and the stream still finishes cleanly instead of aborting
+      const toolErrorIndex = types.indexOf('tool-error');
+      const finishIndex = types.lastIndexOf('finish');
+      expect(finishIndex).toBeGreaterThan(toolErrorIndex);
+    });
   });
 
   describe('options.transform', () => {
