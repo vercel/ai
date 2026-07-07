@@ -1,0 +1,25 @@
+{
+  "id": "6925e739d1e341bf99d2c23c6acead16",
+  "created": 1783419090,
+  "model": "mistral-small-latest",
+  "usage": {
+    "prompt_tokens": 20,
+    "total_tokens": 22,
+    "completion_tokens": 2,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  },
+  "object": "chat.completion",
+  "choices": [
+    {
+      "index": 0,
+      "finish_reason": "stop",
+      "message": {
+        "role": "assistant",
+        "tool_calls": null,
+        "content": "OK"
+      }
+    }
+  ]
+}
