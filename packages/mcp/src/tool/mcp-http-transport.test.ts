@@ -270,6 +270,84 @@ describe('HttpMCPTransport', () => {
     expect((error as Error).message).toContain('Failed to parse message');
   });
 
+<<<<<<< HEAD
+=======
+  it('should handle rejected inbound SSE cancel after stream errors', async () => {
+    const streamError = new TypeError('terminated');
+    let streamController:
+      | ReadableStreamDefaultController<Uint8Array>
+      | undefined;
+
+    const fetch = vi.fn(async () => {
+      return new Response(
+        new ReadableStream<Uint8Array>({
+          start(controller) {
+            streamController = controller;
+          },
+        }),
+        {
+          headers: { 'content-type': 'text/event-stream' },
+        },
+      );
+    });
+
+    transport = new HttpMCPTransport({
+      url: 'http://localhost:4000/mcp',
+      fetch,
+    });
+
+    const errors: unknown[] = [];
+    transport.onerror = error => {
+      errors.push(error);
+    };
+
+    await transport.start();
+
+    await vi.waitFor(() => {
+      expect(streamController).toBeDefined();
+    });
+
+    streamController!.error(streamError);
+
+    await vi.waitFor(() => {
+      expect(errors).toContain(streamError);
+    });
+
+    await transport.close();
+
+    await vi.waitFor(() => {
+      expect(errors.filter(error => error === streamError)).toHaveLength(2);
+    });
+  });
+
+  it('should handle non-JSON-RPC response for notifications', async () => {
+    server.urls['http://localhost:4000/mcp'].response = ({ callNumber }) => {
+      switch (callNumber) {
+        case 0:
+          return { type: 'error', status: 405 };
+        case 1:
+          return {
+            type: 'json-value',
+            body: { ok: true },
+          };
+        default:
+          return { type: 'empty', status: 200 };
+      }
+    };
+
+    await transport.start();
+
+    // Send a notification (no 'id' field)
+    const notification = {
+      jsonrpc: '2.0' as const,
+      method: 'notifications/initialized',
+    };
+
+    // Should not throw even though server returned non-JSON-RPC response
+    await expect(transport.send(notification)).resolves.toBeUndefined();
+  });
+
+>>>>>>> eebd14bd8 (fix: prevent HTTP MCP mid-stream disconnects from crashing the process (#16608))
   it('should send custom headers with all requests', async () => {
     const controller = new TestResponseController();
 

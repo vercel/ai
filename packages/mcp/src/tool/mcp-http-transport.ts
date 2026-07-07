@@ -103,7 +103,7 @@ export class HttpMCPTransport implements MCPTransport {
     }
     this.abortController = new AbortController();
 
-    void this.openInboundSse();
+    this.startInboundSse();
   }
 
   async close(): Promise<void> {
@@ -172,7 +172,7 @@ export class HttpMCPTransport implements MCPTransport {
           // If inbound SSE was not available earlier (e.g. 405 before init), try again now
           // Do not await to avoid blocking send()
           if (!this.inboundSseConnection) {
-            void this.openInboundSse();
+            this.startInboundSse();
           }
           return;
         }
@@ -247,7 +247,12 @@ export class HttpMCPTransport implements MCPTransport {
             }
           };
 
-          processEvents();
+          void processEvents().catch(error => {
+            if (error instanceof Error && error.name === 'AbortError') {
+              return;
+            }
+            this.onerror?.(error);
+          });
           return;
         }
 
@@ -290,10 +295,22 @@ export class HttpMCPTransport implements MCPTransport {
 
     const delay = this.getNextReconnectionDelay(this.inboundReconnectAttempts);
     this.inboundReconnectAttempts += 1;
-    setTimeout(async () => {
+    setTimeout(() => {
       if (this.abortController?.signal.aborted) return;
-      await this.openInboundSse(false, this.lastInboundEventId);
+      this.startInboundSse(false, this.lastInboundEventId);
     }, delay);
+  }
+
+  private startInboundSse(
+    triedAuth: boolean = false,
+    resumeToken?: string,
+  ): void {
+    void this.openInboundSse(triedAuth, resumeToken).catch(error => {
+      if (error instanceof Error && error.name === 'AbortError') {
+        return;
+      }
+      this.onerror?.(error);
+    });
   }
 
   // Open optional inbound SSE stream; best-effort and resumable
@@ -396,10 +413,25 @@ export class HttpMCPTransport implements MCPTransport {
       };
 
       this.inboundSseConnection = {
-        close: () => reader.cancel(),
+        close: () => {
+          void reader.cancel().catch(error => {
+            if (error instanceof Error && error.name === 'AbortError') {
+              return;
+            }
+            this.onerror?.(error);
+          });
+        },
       };
       this.inboundReconnectAttempts = 0;
-      processEvents();
+      void processEvents().catch(error => {
+        if (error instanceof Error && error.name === 'AbortError') {
+          return;
+        }
+        this.onerror?.(error);
+        if (!this.abortController?.signal.aborted) {
+          this.scheduleInboundSseReconnection();
+        }
+      });
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
         return;
