@@ -96,7 +96,9 @@ export const conventions = defineConventions([
       exportFunctions: [
         {
           name: 'create${providerId.toPascalCase()}',
-          receiveParamOfType: '${providerId.toPascalCase()}ProviderSettings',
+          receiveParamsOfTypes: [
+            '${providerId.toPascalCase()}ProviderSettings',
+          ],
           returnValueOfType: '${providerId.toPascalCase()}Provider',
         },
       ],

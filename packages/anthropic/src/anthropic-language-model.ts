@@ -28,6 +28,7 @@ import {
   postJsonToApi,
   resolve,
   resolveProviderReference,
+  secureJsonParse,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -421,6 +422,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     const thinkingType = anthropicOptions?.thinking?.type;
     const isThinking =
       thinkingType === 'enabled' || thinkingType === 'adaptive';
+    // `disabled` must still be forwarded to the API: some models (e.g. Sonnet 5)
+    // default thinking on, so omitting it would leave thinking enabled and
+    // consume the max_tokens budget.
+    const sendThinking = isThinking || thinkingType === 'disabled';
     let thinkingBudget =
       thinkingType === 'enabled'
         ? anthropicOptions?.thinking?.budgetTokens
@@ -444,7 +449,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       stop_sequences: stopSequences,
 
       // provider specific settings:
-      ...(isThinking && {
+      ...(sendThinking && {
         thinking: {
           type: thinkingType,
           ...(thinkingBudget != null && { budget_tokens: thinkingBudget }),
@@ -1495,6 +1500,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           providerExecuted?: boolean;
           firstDelta: boolean;
           providerToolName?: string;
+          providerToolInputType?: string;
           caller?: {
             type:
               | 'code_execution_20250825'
@@ -1699,6 +1705,13 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       part.name === 'bash_code_execution'
                         ? 'code_execution'
                         : part.name;
+                    const providerToolInputType =
+                      part.name === 'text_editor_code_execution' ||
+                      part.name === 'bash_code_execution'
+                        ? part.name
+                        : part.name === 'code_execution'
+                          ? 'programmatic-tool-call'
+                          : undefined;
 
                     const customToolName =
                       toolNameMapping.toCustomToolName(providerToolName);
@@ -1727,8 +1740,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       providerToolName === 'code_execution'
                         ? { dynamic: true }
                         : {}),
-                      firstDelta: true,
+                      firstDelta: finalInput.length === 0,
                       providerToolName,
+                      providerToolInputType,
                     };
 
                     controller.enqueue({
@@ -2117,7 +2131,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                         contentBlock.input === '' ? '{}' : contentBlock.input;
                       if (contentBlock.providerToolName === 'code_execution') {
                         try {
-                          const parsed = JSON.parse(finalInput);
+                          const parsed = secureJsonParse(finalInput);
                           if (
                             parsed != null &&
                             typeof parsed === 'object' &&
@@ -2257,9 +2271,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                     // the type to the delta and change the tool name.
                     if (
                       contentBlock.firstDelta &&
-                      contentBlock.providerToolName === 'code_execution'
+                      contentBlock.providerToolInputType != null
                     ) {
-                      delta = `{"type": "programmatic-tool-call",${delta.substring(1)}`;
+                      delta = `{"type": "${contentBlock.providerToolInputType}",${delta.substring(1)}`;
                     }
 
                     controller.enqueue({
@@ -2576,7 +2590,8 @@ export function getModelCapabilities(modelId: string): {
   if (
     modelId.includes('claude-opus-4-8') ||
     modelId.includes('claude-opus-4-7') ||
-    modelId.includes('claude-fable-5')
+    modelId.includes('claude-fable-5') ||
+    modelId.includes('claude-sonnet-5')
   ) {
     return {
       maxOutputTokens: 128000,

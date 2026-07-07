@@ -558,7 +558,7 @@ describe('streamObject', () => {
         // consume stream (runs in parallel)
         convertAsyncIterableToArray(result.partialObjectStream);
 
-        expect(result.object).rejects.toThrow(NoObjectGeneratedError);
+        await expect(result.object).rejects.toThrow(NoObjectGeneratedError);
       });
 
       it('should not lead to unhandled promise rejections when the streamed object does not match the schema', async () => {
@@ -1589,7 +1589,7 @@ describe('streamObject', () => {
       // consume stream
       await convertAsyncIterableToArray(result.partialObjectStream);
 
-      expect(result.object).rejects.toThrow(
+      await expect(result.object).rejects.toThrow(
         'No object generated: response did not match schema.',
       );
     });

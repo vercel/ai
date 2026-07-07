@@ -43,6 +43,7 @@ export type OpenAIResponsesInputItem =
 
 export type OpenAIResponsesIncludeValue =
   | 'web_search_call.action.sources'
+  | 'web_search_call.results'
   | 'code_interpreter_call.outputs'
   | 'computer_call_output.output.image_url'
   | 'file_search_call.results'

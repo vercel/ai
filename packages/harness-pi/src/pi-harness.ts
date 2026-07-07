@@ -4,7 +4,7 @@ import {
   type HarnessV1BuiltinTool,
 } from '@ai-sdk/harness';
 import { tool } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import type { PiAuthOptions } from './pi-auth';
 import { piResumeStateSchema } from './pi-resume-state';
 import { createPiSession, type PiThinkingLevel } from './pi-session';
@@ -112,6 +112,7 @@ export function createPi(
     harnessId: 'pi',
     builtinTools: PI_BUILTIN_TOOLS,
     supportsBuiltinToolApprovals: true,
+    supportsBuiltinToolFiltering: true,
     lifecycleStateSchema: piResumeStateSchema,
     doStart: async startOpts => {
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
@@ -133,6 +134,7 @@ export function createPi(
         },
         isResume: lifecycleState != null,
         permissionMode: startOpts.permissionMode,
+        builtinToolFiltering: startOpts.builtinToolFiltering,
         ...(resumeData?.sessionFileName
           ? { resumeSessionFileName: resumeData.sessionFileName }
           : {}),

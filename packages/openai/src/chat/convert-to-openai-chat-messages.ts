@@ -99,7 +99,7 @@ export function convertToOpenAIChatMessages({
                           url:
                             part.data.type === 'url'
                               ? part.data.url.toString()
-                              : convertToBase64(part.data.data),
+                              : `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`,
 
                           detail: part.providerOptions?.openai?.imageDetail,
                         },

@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { TextStreamPart } from 'ai';
 import { describe, expect, test } from 'vitest';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import type {
   HarnessV1,
   HarnessV1PromptControl,

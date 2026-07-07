@@ -17,6 +17,10 @@ Prefer host-driven when the runtime supports it.
 - **Third-party packages**: Any runtime can publish an external harness package.
 - **First-party `@ai-sdk/harness-<name>` packages**: Create an issue first to discuss whether the runtime belongs in this repo.
 
+## Reference Example
+
+See https://github.com/vercel/ai/pull/16255/changes for a complete example of adding a new harness.
+
 ## Harness Architecture
 
 The AI SDK uses a layered harness architecture following the adapter pattern:
