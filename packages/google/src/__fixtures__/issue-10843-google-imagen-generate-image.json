@@ -1,0 +1,8 @@
+{
+  "predictions": [
+    {
+      "bytesBase64Encoded": "<redacted base64 image bytes; length=1755972; sha256=67797279455848f050cff0afb34315e420d722e4c8d2aa021b47c35f1a02113b>",
+      "mimeType": "image/png"
+    }
+  ]
+}
