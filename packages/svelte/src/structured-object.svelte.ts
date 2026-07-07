@@ -18,7 +18,7 @@ import {
   KeyedStructuredObjectStore,
   type StructuredObjectStore,
 } from './structured-object-context.svelte.js';
-export type Experimental_StructuredObjectOptions<
+export type StructuredObjectOptions<
   SCHEMA extends FlexibleSchema,
   RESULT = InferSchema<SCHEMA>,
 > = {
@@ -89,8 +89,8 @@ export class StructuredObject<
   RESULT = InferSchema<SCHEMA>,
   INPUT = unknown,
 > {
-  #options: Experimental_StructuredObjectOptions<SCHEMA, RESULT> =
-    {} as Experimental_StructuredObjectOptions<SCHEMA, RESULT>;
+  #options: StructuredObjectOptions<SCHEMA, RESULT> =
+    {} as StructuredObjectOptions<SCHEMA, RESULT>;
   readonly #id = $derived(this.#options.id ?? generateId());
   readonly #keyedStore = $state<KeyedStructuredObjectStore>()!;
   readonly #store = $derived(
@@ -120,7 +120,7 @@ export class StructuredObject<
     return this.#store.loading;
   }
 
-  constructor(options: Experimental_StructuredObjectOptions<SCHEMA, RESULT>) {
+  constructor(options: StructuredObjectOptions<SCHEMA, RESULT>) {
     if (hasStructuredObjectContext()) {
       this.#keyedStore = getStructuredObjectContext();
     } else {
@@ -248,3 +248,28 @@ export class StructuredObject<
     this.#store.loading = false;
   };
 }
+
+// deprecated exports
+
+/**
+ * @deprecated Use `StructuredObject` instead.
+ */
+const Experimental_StructuredObject = StructuredObject;
+/**
+ * @deprecated Use `StructuredObject` instead.
+ */
+type Experimental_StructuredObject<
+  SCHEMA extends FlexibleSchema,
+  RESULT = InferSchema<SCHEMA>,
+  INPUT = unknown,
+> = StructuredObject<SCHEMA, RESULT, INPUT>;
+export { Experimental_StructuredObject };
+
+/**
+ * @deprecated Use `StructuredObjectOptions` instead.
+ */
+type Experimental_StructuredObjectOptions<
+  SCHEMA extends FlexibleSchema,
+  RESULT = InferSchema<SCHEMA>,
+> = StructuredObjectOptions<SCHEMA, RESULT>;
+export type { Experimental_StructuredObjectOptions };
