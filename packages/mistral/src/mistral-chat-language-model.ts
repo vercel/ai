@@ -89,50 +89,7 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
       });
     }
 
-<<<<<<< HEAD
-    if (frequencyPenalty != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'frequencyPenalty',
-      });
-    }
-
-    if (presencePenalty != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'presencePenalty',
-      });
-    }
-
     if (stopSequences != null) {
-=======
-    const supportsReasoningEffort =
-      this.modelId === 'mistral-small-latest' ||
-      this.modelId === 'mistral-small-2603' ||
-      this.modelId === 'mistral-medium-3' ||
-      this.modelId === 'mistral-medium-3.5';
-
-    let resolvedReasoningEffort: string | undefined;
-    if (supportsReasoningEffort) {
-      resolvedReasoningEffort =
-        options.reasoningEffort ??
-        (isCustomReasoning(reasoning)
-          ? reasoning === 'none'
-            ? 'none'
-            : mapReasoningToProviderEffort({
-                reasoning,
-                effortMap: {
-                  minimal: 'high',
-                  low: 'high',
-                  medium: 'high',
-                  high: 'high',
-                  xhigh: 'high',
-                },
-                warnings,
-              })
-          : undefined);
-    } else if (isCustomReasoning(reasoning)) {
->>>>>>> ec8c408f2 (fix: Mistral presencePenalty and frequencyPenalty are incorrectly reported as unsupported (#16845))
       warnings.push({
         type: 'unsupported-setting',
         setting: 'stopSequences',
@@ -162,14 +119,10 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
       max_tokens: maxOutputTokens,
       temperature,
       top_p: topP,
-<<<<<<< HEAD
-=======
       ...(frequencyPenalty != null
         ? { frequency_penalty: frequencyPenalty }
         : {}),
       ...(presencePenalty != null ? { presence_penalty: presencePenalty } : {}),
-      stop: stopSequences,
->>>>>>> ec8c408f2 (fix: Mistral presencePenalty and frequencyPenalty are incorrectly reported as unsupported (#16845))
       random_seed: seed,
 
       // response format:
