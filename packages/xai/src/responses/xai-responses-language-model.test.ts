@@ -831,6 +831,70 @@ describe('XaiResponsesLanguageModel', () => {
         });
       });
 
+      describe('top-level reasoning', () => {
+        it('should map top-level reasoning to reasoning effort', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.3',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning: 'high',
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.reasoning.effort).toBe('high');
+        });
+
+        it('should map top-level reasoning none to reasoning effort "none"', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.3',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning: 'none',
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.reasoning.effort).toBe('none');
+        });
+
+        it('should prefer providerOptions reasoningEffort over top-level reasoning', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.3',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning: 'none',
+            providerOptions: {
+              xai: {
+                reasoningEffort: 'high',
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.reasoning.effort).toBe('high');
+        });
+      });
+
       it('should warn about unsupported stopSequences', async () => {
         prepareJsonResponse({
           id: 'resp_123',

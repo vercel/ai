@@ -1299,7 +1299,7 @@ describe('XaiChatLanguageModel', () => {
       );
     });
 
-    it('should not set reasoning_effort for top-level reasoning none', async () => {
+    it('should map top-level reasoning none to reasoning_effort: "none"', async () => {
       prepareJsonFixtureResponse('xai-text');
 
       await reasoningModel.doGenerate({
@@ -1307,9 +1307,9 @@ describe('XaiChatLanguageModel', () => {
         reasoning: 'none',
       });
 
-      expect(
-        (await server.calls[0].requestBodyJson).reasoning_effort,
-      ).toBeUndefined();
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'none',
+      );
     });
 
     it('should prefer providerOptions reasoningEffort over top-level reasoning', async () => {
