@@ -8,6 +8,12 @@ import { z } from 'zod/v4';
 import type { PiAuthOptions } from './pi-auth';
 import { piResumeStateSchema } from './pi-resume-state';
 import { createPiSession, type PiThinkingLevel } from './pi-session';
+import { VERSION } from './version';
+
+/**
+ * Value to use in User-Agent and `x-client-app` headers.
+ */
+const PI_CLIENT_APP = `ai-sdk/harness-pi/${VERSION}`;
 
 /**
  * Configuration knobs for `createPi`. Pi runs as an in-process Node library
@@ -112,6 +118,7 @@ export function createPi(
     harnessId: 'pi',
     builtinTools: PI_BUILTIN_TOOLS,
     supportsBuiltinToolApprovals: true,
+    supportsBuiltinToolFiltering: true,
     lifecycleStateSchema: piResumeStateSchema,
     doStart: async startOpts => {
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
@@ -131,8 +138,10 @@ export function createPi(
             ? { thinkingLevel: settings.thinkingLevel }
             : {}),
         },
+        clientApp: PI_CLIENT_APP,
         isResume: lifecycleState != null,
         permissionMode: startOpts.permissionMode,
+        builtinToolFiltering: startOpts.builtinToolFiltering,
         ...(resumeData?.sessionFileName
           ? { resumeSessionFileName: resumeData.sessionFileName }
           : {}),

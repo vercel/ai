@@ -5,7 +5,13 @@ import {
   TestResponseController,
 } from '@ai-sdk/test-server/with-vitest';
 import { mockId } from '@ai-sdk/provider-utils/test';
-import { fireEvent, screen, waitFor, render } from '@testing-library/react';
+import {
+  cleanup,
+  fireEvent,
+  screen,
+  waitFor,
+  render,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
   DefaultChatTransport,
@@ -884,6 +890,56 @@ describe('use-chat', () => {
 
       expect(onToolCallA).toHaveBeenCalledTimes(0);
       expect(onToolCallB).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('stale transport', () => {
+    afterEach(cleanup);
+
+    it('should use the latest transport body after a state change (no stale closure)', async () => {
+      const Test = () => {
+        const [subagent, setSubagent] = React.useState('todos-agent');
+        const { sendMessage } = useChat({
+          transport: new DefaultChatTransport({
+            body: { subagent },
+          }),
+        });
+
+        return (
+          <div>
+            <button
+              data-testid="change-subagent"
+              onClick={() => setSubagent('research-agent')}
+            />
+            <button
+              data-testid="do-send"
+              onClick={() => {
+                sendMessage({ parts: [{ text: 'hi', type: 'text' }] });
+              }}
+            />
+          </div>
+        );
+      };
+
+      render(<Test />);
+
+      server.urls['/api/chat'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          formatChunk({ type: 'text-start', id: '0' }),
+          formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+          formatChunk({ type: 'text-end', id: '0' }),
+        ],
+      };
+
+      await userEvent.click(screen.getByTestId('change-subagent'));
+      await userEvent.click(screen.getByTestId('do-send'));
+
+      await vi.waitUntil(() => server.calls.length > 0, { timeout: 2000 });
+
+      expect((await server.calls[0].requestBodyJson).subagent).toBe(
+        'research-agent',
+      );
     });
   });
 
@@ -2247,7 +2303,7 @@ describe('use-chat', () => {
     });
   });
 
-  describe('experimental_throttle', () => {
+  describe('throttle', () => {
     const throttleMs = 50;
 
     beforeEach(() => {
@@ -2261,7 +2317,7 @@ describe('use-chat', () => {
 
     setupTestComponent(() => {
       const { messages, sendMessage, status } = useChat({
-        experimental_throttle: throttleMs,
+        throttle: throttleMs,
         generateId: mockId(),
       });
 
@@ -2286,7 +2342,7 @@ describe('use-chat', () => {
       );
     });
 
-    it('should throttle UI updates when experimental_throttle is set', async () => {
+    it('should throttle UI updates when throttle is set', async () => {
       const controller = new TestResponseController();
 
       server.urls['/api/chat'].response = {
@@ -2329,6 +2385,83 @@ describe('use-chat', () => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
         'AI: Hello There',
       );
+    });
+  });
+
+  describe('experimental_throttle (deprecated)', () => {
+    const throttleMs = 50;
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2024-01-01T00:00:00Z'));
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    setupTestComponent(() => {
+      const { messages, sendMessage, status } = useChat({
+        experimental_throttle: throttleMs,
+        generateId: mockId(),
+      });
+
+      return (
+        <div>
+          <div data-testid="status">{status.toString()}</div>
+          {messages.map((m, idx) => (
+            <div data-testid={`message-${idx}`} key={m.id}>
+              {m.role === 'user' ? 'User: ' : 'AI: '}
+              {m.parts
+                .map(part => (part.type === 'text' ? part.text : ''))
+                .join('')}
+            </div>
+          ))}
+          <button
+            data-testid="do-send"
+            onClick={() => {
+              sendMessage({ parts: [{ text: 'hi', type: 'text' }] });
+            }}
+          />
+        </div>
+      );
+    });
+
+    it('should throttle UI updates when the deprecated experimental_throttle option is set', async () => {
+      const controller = new TestResponseController();
+
+      server.urls['/api/chat'].response = {
+        type: 'controlled-stream',
+        controller,
+      };
+
+      fireEvent.click(screen.getByTestId('do-send'));
+      expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+
+      controller.write(formatChunk({ type: 'text-start', id: '0' }));
+      controller.write(
+        formatChunk({ type: 'text-delta', id: '0', delta: 'Hel' }),
+      );
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(throttleMs + 10);
+      });
+
+      expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hel');
+
+      controller.write(
+        formatChunk({ type: 'text-delta', id: '0', delta: 'lo' }),
+      );
+      controller.write(formatChunk({ type: 'text-end', id: '0' }));
+
+      expect(screen.getByTestId('message-1')).not.toHaveTextContent(
+        'AI: Hello',
+      );
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(throttleMs + 10);
+      });
+
+      expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hello');
     });
   });
 

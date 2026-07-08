@@ -1,4 +1,5 @@
 export { HarnessAgent } from '../src/agent/harness-agent';
+export type { HarnessAllTools } from '../src/agent/harness-agent-tool-types';
 export type {
   HarnessAgentSandboxConfig,
   HarnessAgentSettings,
@@ -33,7 +34,7 @@ export {
 export {
   prepareHarnessSandboxTemplate,
   prewarmHarness,
-} from '../src/agent/prewarm';
+} from '../src/agent/prepare-harness-sandbox-template';
 export {
   prepareSandboxForHarness,
   type PrepareSandboxForHarnessResult,

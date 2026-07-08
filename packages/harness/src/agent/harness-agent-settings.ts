@@ -12,7 +12,8 @@ import type {
   Experimental_SandboxSession as SandboxSession,
   ToolSet,
 } from '@ai-sdk/provider-utils';
-import type { TelemetryOptions, ToolApprovalStatus } from 'ai';
+import type { ActiveTools, TelemetryOptions, ToolApprovalStatus } from 'ai';
+import type { HarnessAllTools } from './harness-agent-tool-types';
 
 export type HarnessAgentToolApprovalConfiguration = Readonly<
   Record<string, ToolApprovalStatus>
@@ -60,6 +61,8 @@ export type HarnessAgentSandboxConfig = {
   }) => Promise<void>;
 };
 
+type HarnessTools<TOOLS extends ToolSet> = ActiveTools<NoInfer<TOOLS>>;
+
 /**
  * Construction-time settings for a `HarnessAgent`.
  *
@@ -67,6 +70,24 @@ export type HarnessAgentSandboxConfig = {
  * `AgentCallParameters` / `AgentStreamParameters` passed to `generate` /
  * `stream` and are not duplicated here.
  */
+type HarnessAgentToolFilteringSettings<TOOLS extends ToolSet> =
+  | {
+      /**
+       * Limits the tools that are available for the harness to call without
+       * changing the tool call and result types in the result.
+       */
+      readonly activeTools?: HarnessTools<TOOLS>;
+      readonly inactiveTools?: never;
+    }
+  | {
+      readonly activeTools?: never;
+      /**
+       * Excludes tools from the set that is available for the harness to call
+       * without changing the tool call and result types in the result.
+       */
+      readonly inactiveTools?: HarnessTools<TOOLS>;
+    };
+
 export type HarnessAgentSettings<
   THarness extends HarnessAgentAdapter<any> = HarnessAgentAdapter,
   TUserTools extends ToolSet = {},
@@ -163,4 +184,4 @@ export type HarnessAgentSettings<
    * stderr default — wire this to capture diagnostics in code.
    */
   readonly onLog?: (event: HarnessDiagnostic) => void;
-};
+} & HarnessAgentToolFilteringSettings<HarnessAllTools<THarness, TUserTools>>;

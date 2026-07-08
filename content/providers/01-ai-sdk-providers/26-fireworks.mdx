@@ -351,13 +351,19 @@ You can create Fireworks image models using the `.image()` factory method.
 For more on image generation with the AI SDK see [generateImage()](/docs/reference/ai-sdk-core/generate-image).
 
 ```ts
-import { fireworks } from '@ai-sdk/fireworks';
+import { fireworks, type FireworksImageModelOptions } from '@ai-sdk/fireworks';
 import { generateImage } from 'ai';
 
 const { image } = await generateImage({
   model: fireworks.image('accounts/fireworks/models/flux-1-dev-fp8'),
   prompt: 'A futuristic cityscape at sunset',
   aspectRatio: '16:9',
+  providerOptions: {
+    fireworks: {
+      guidance_scale: 4.5,
+      num_inference_steps: 8,
+    } satisfies FireworksImageModelOptions,
+  },
 });
 ```
 
@@ -367,6 +373,48 @@ const { image } = await generateImage({
   or check the model's documentation on [Fireworks models
   page](https://fireworks.ai/models) for more details.
 </Note>
+
+### Provider Options
+
+Fireworks image models support flexible provider options through the `providerOptions.fireworks` object. Use the `FireworksImageModelOptions` type to validate known Fireworks image options while still allowing model-specific options to pass through.
+
+The following typed provider options are available:
+
+- **guidance_scale** _number_
+
+  Classifier-free guidance scale for the image diffusion process.
+
+- **num_inference_steps** _number_
+
+  Number of denoising steps for FLUX workflow image generation.
+
+- **output_format** _'jpeg' | 'png'_
+
+  Desired output format for FLUX Kontext image generation and editing.
+
+- **prompt_upsampling** _boolean_
+
+  Whether Fireworks should automatically modify the prompt for more creative generation.
+
+- **safety_tolerance** _number_
+
+  Moderation tolerance level for inputs and outputs, from `0` to `6`. Fireworks limits image-to-image requests to `2`.
+
+- **webhook_url** _string_
+
+  URL to receive webhook notifications for async Kontext requests.
+
+- **webhook_secret** _string_
+
+  Secret for webhook signature verification.
+
+- **cfg_scale** _number_
+
+  Guidance scale for legacy `image_generation` models.
+
+- **steps** _number_
+
+  Number of generation steps for legacy `image_generation` models.
 
 ### Image Editing
 
@@ -393,7 +441,8 @@ const { images } = await generateImage({
   providerOptions: {
     fireworks: {
       output_format: 'jpeg',
-    },
+      safety_tolerance: 2,
+    } satisfies FireworksImageModelOptions,
   },
 });
 ```

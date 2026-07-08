@@ -107,12 +107,12 @@ for (const schema of schemas) {
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function toZodShape(schema: JsonSchemaObject | undefined): Record<string, any> {
+function toZodShape(
+  schema: JsonSchemaObject | undefined,
+): Record<string, z.ZodTypeAny> {
   if (!schema?.properties) return {};
   const required = new Set(schema.required ?? []);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const shape: Record<string, any> = {};
+  const shape: Record<string, z.ZodTypeAny> = {};
   for (const [key, propSchema] of Object.entries(schema.properties)) {
     const propType = toZodType(propSchema);
     shape[key] = required.has(key) ? propType : propType.optional();
@@ -120,13 +120,12 @@ function toZodShape(schema: JsonSchemaObject | undefined): Record<string, any> {
   return shape;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function toZodType(schema: JsonSchemaObject | undefined): any {
+function toZodType(schema: JsonSchemaObject | undefined): z.ZodTypeAny {
   if (!schema) return z.any();
   const types = Array.isArray(schema.type)
     ? schema.type.filter((t): t is string => t !== 'null')
     : ([schema.type].filter(Boolean) as string[]);
-  let zType;
+  let zType: z.ZodTypeAny;
   switch (types[0]) {
     case 'string':
       zType = z.string();

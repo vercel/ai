@@ -3,7 +3,6 @@ import {
   type BridgeEvent,
   type BridgeTurn,
 } from '@ai-sdk/harness/bridge';
-import type { HarnessV1BuiltinToolName } from '@ai-sdk/harness';
 import { randomUUID } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
@@ -56,7 +55,15 @@ type RuntimeState = {
   toolNames: Set<string>;
 };
 
-const NATIVE_TO_COMMON: Readonly<Record<string, HarnessV1BuiltinToolName>> = {
+type CommonBuiltinToolName =
+  | 'read'
+  | 'write'
+  | 'edit'
+  | 'bash'
+  | 'glob'
+  | 'grep';
+
+const NATIVE_TO_COMMON: Readonly<Record<string, CommonBuiltinToolName>> = {
   view: 'read',
   read: 'read',
   write: 'write',
@@ -75,6 +82,20 @@ const OPENCODE_TO_WIRE: Readonly<Record<string, string>> = {
   subtask: 'agent',
 };
 
+const PUBLIC_TO_NATIVE: Readonly<Record<string, string>> = {
+  read: 'view',
+  write: 'write',
+  edit: 'edit',
+  bash: 'bash',
+  glob: 'glob',
+  grep: 'grep',
+  ls: 'list',
+  webfetch: 'webfetch',
+  skill: 'skill',
+  todowrite: 'todowrite',
+  agent: 'agent',
+};
+
 const TOOL_KIND: Readonly<Record<string, 'readonly' | 'edit' | 'bash'>> = {
   read: 'readonly',
   glob: 'readonly',
@@ -88,6 +109,7 @@ const TOOL_KIND: Readonly<Record<string, 'readonly' | 'edit' | 'bash'>> = {
   skill: 'edit',
   todowrite: 'edit',
 };
+const HARNESS_CLIENT_APP = procEnv.AI_SDK_HARNESS_CLIENT_APP;
 
 const args = parseArgs(argv.slice(2));
 const workdir = args.workdir ?? emitFatal('Missing --workdir argument.');
@@ -194,6 +216,18 @@ function buildOpenCodeConfig({
   };
   if (start.model) config.model = start.model;
   if (skillsDir) config.skills = { paths: [skillsDir] };
+  const inactiveToolNames = resolveInactiveBuiltinToolNames(start);
+  const permission = config.permission as Record<string, unknown>;
+  for (const toolName of inactiveToolNames) {
+    const permissionName = toPermissionToolName(
+      PUBLIC_TO_NATIVE[toolName] ?? toolName,
+    );
+    if (permissionName === 'ls') {
+      permission.list = 'ask';
+    } else {
+      permission[permissionName] = 'ask';
+    }
+  }
   const provider = buildProviderConfig(start);
   if (provider) config.provider = provider;
   if (relayPort && start.tools && start.tools.length > 0) {
@@ -232,6 +266,9 @@ function buildProviderConfig(
         options: {
           apiKey: procEnv.AI_GATEWAY_API_KEY,
           baseURL: toOpenCodeGatewayBaseUrl(procEnv.AI_GATEWAY_BASE_URL),
+          ...(HARNESS_CLIENT_APP
+            ? { headers: { 'x-client-app': HARNESS_CLIENT_APP } }
+            : {}),
         },
         ...(modelID
           ? {
@@ -502,6 +539,7 @@ async function runPrompt({
     client,
     sessionId,
     permissionMode: start.permissionMode,
+    builtinToolFiltering: start.builtinToolFiltering,
     turn,
     emit: msg => {
       if (msg.type === 'text-delta' || msg.type === 'reasoning-delta') {
@@ -624,6 +662,7 @@ async function runCompaction({
     client,
     sessionId,
     permissionMode: start.permissionMode,
+    builtinToolFiltering: start.builtinToolFiltering,
     turn,
     emit: msg => {
       if (msg.type === 'compaction') sawCompaction = true;
@@ -688,6 +727,7 @@ async function consumeEvents({
   client,
   sessionId,
   permissionMode,
+  builtinToolFiltering,
   turn,
   emit,
   signal,
@@ -696,6 +736,7 @@ async function consumeEvents({
   client: OpenCodeClient;
   sessionId: string;
   permissionMode: StartMessage['permissionMode'];
+  builtinToolFiltering: StartMessage['builtinToolFiltering'];
   turn: BridgeTurn;
   emit: Emit;
   signal: AbortSignal;
@@ -714,6 +755,7 @@ async function consumeEvents({
       state,
       sessionId,
       permissionMode,
+      builtinToolFiltering,
       client,
       turn,
       emit,
@@ -759,6 +801,7 @@ async function translateAndEmit({
   state,
   sessionId,
   permissionMode,
+  builtinToolFiltering,
   client,
   turn,
   emit,
@@ -767,6 +810,7 @@ async function translateAndEmit({
   state: TranslationState;
   sessionId: string;
   permissionMode: StartMessage['permissionMode'];
+  builtinToolFiltering: StartMessage['builtinToolFiltering'];
   client: OpenCodeClient;
   turn: BridgeTurn;
   emit: Emit;
@@ -1022,6 +1066,7 @@ async function translateAndEmit({
       client,
       sessionId,
       permissionMode,
+      builtinToolFiltering,
       turn,
       emit,
       event,
@@ -1033,6 +1078,7 @@ async function translateAndEmit({
       client,
       sessionId,
       permissionMode,
+      builtinToolFiltering,
       turn,
       emit,
       event,
@@ -1268,6 +1314,7 @@ async function handlePermissionV2({
   client,
   sessionId,
   permissionMode,
+  builtinToolFiltering,
   turn,
   emit,
   event,
@@ -1275,6 +1322,7 @@ async function handlePermissionV2({
   client: OpenCodeClient;
   sessionId: string;
   permissionMode: StartMessage['permissionMode'];
+  builtinToolFiltering: StartMessage['builtinToolFiltering'];
   turn: BridgeTurn;
   emit: Emit;
   event: OpenCodeEvent;
@@ -1295,6 +1343,7 @@ async function handlePermissionV2({
         ? String((props.source as { callID?: unknown }).callID)
         : requestID,
     permissionMode,
+    builtinToolFiltering,
     turn,
     emit,
   });
@@ -1310,6 +1359,7 @@ async function handlePermission({
   client,
   sessionId,
   permissionMode,
+  builtinToolFiltering,
   turn,
   emit,
   event,
@@ -1317,6 +1367,7 @@ async function handlePermission({
   client: OpenCodeClient;
   sessionId: string;
   permissionMode: StartMessage['permissionMode'];
+  builtinToolFiltering: StartMessage['builtinToolFiltering'];
   turn: BridgeTurn;
   emit: Emit;
   event: OpenCodeEvent;
@@ -1335,6 +1386,7 @@ async function handlePermission({
         ? String((props.tool as { callID?: unknown }).callID)
         : requestID,
     permissionMode,
+    builtinToolFiltering,
     turn,
     emit,
   });
@@ -1353,6 +1405,7 @@ async function selectPermissionReply({
   requestID,
   toolCallId,
   permissionMode,
+  builtinToolFiltering,
   turn,
   emit,
 }: {
@@ -1361,12 +1414,29 @@ async function selectPermissionReply({
   requestID: string;
   toolCallId: string;
   permissionMode: StartMessage['permissionMode'];
+  builtinToolFiltering: StartMessage['builtinToolFiltering'];
   turn: BridgeTurn;
   emit: Emit;
 }): Promise<{ reply: 'once' | 'always' | 'reject'; message?: string }> {
   const toolName = toPermissionToolName(action);
   if (resources.some(resource => isExternalPath(resource))) {
     return { reply: 'reject', message: 'External directory access rejected.' };
+  }
+  if (
+    isBuiltinToolInactive({ toolName, toolFiltering: builtinToolFiltering })
+  ) {
+    emit({
+      type: 'tool-approval-request',
+      approvalId: requestID,
+      toolCallId,
+    });
+    const decision = await turn.requestToolApproval(requestID);
+    return decision.approved
+      ? { reply: 'once' }
+      : {
+          reply: 'reject',
+          ...(decision.reason ? { message: decision.reason } : {}),
+        };
   }
   if (!permissionMode || permissionMode === 'allow-all') {
     return { reply: 'always' };
@@ -1406,6 +1476,28 @@ function toPermissionToolName(action: string): string {
   if (normalized.includes('glob')) return 'glob';
   if (normalized.includes('read')) return 'read';
   return toWireToolName(normalized);
+}
+
+function resolveInactiveBuiltinToolNames(
+  start: StartMessage,
+): ReadonlyArray<string> {
+  const toolFiltering = start.builtinToolFiltering;
+  if (toolFiltering == null) return [];
+  return toolFiltering.mode === 'allow'
+    ? Object.keys(PUBLIC_TO_NATIVE).filter(
+        name => !toolFiltering.toolNames.includes(name),
+      )
+    : toolFiltering.toolNames;
+}
+
+function isBuiltinToolInactive(input: {
+  toolName: string;
+  toolFiltering: StartMessage['builtinToolFiltering'];
+}): boolean {
+  if (input.toolFiltering == null) return false;
+  return input.toolFiltering.mode === 'allow'
+    ? !input.toolFiltering.toolNames.includes(input.toolName)
+    : input.toolFiltering.toolNames.includes(input.toolName);
 }
 
 function isExternalPath(resource: string): boolean {

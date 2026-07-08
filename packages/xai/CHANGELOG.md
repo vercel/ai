@@ -1,5 +1,53 @@
 # @ai-sdk/xai
 
+## 4.0.9
+
+### Patch Changes
+
+- 72eee24: feat: support `imageDetail` provider option on image file parts to control image processing resolution
+- Updated dependencies [ac306ed]
+  - @ai-sdk/provider-utils@5.0.6
+  - @ai-sdk/openai-compatible@3.0.6
+
+## 4.0.8
+
+### Patch Changes
+
+- 8e006de: fix: send reasoning effort `none` to the xAI API when the top-level `reasoning: 'none'` option is set
+- 8e006de: fix: omit the reasoning effort parameter and emit an unsupported warning when the top-level `reasoning` option is used with xAI models that reject it (`grok-4.20-reasoning`, `grok-4.20-non-reasoning`, and dated variants)
+
+## 4.0.7
+
+### Patch Changes
+
+- 5520b8a: Emit provider-executed tool results for completed xAI Responses API streaming tool calls.
+
+## 4.0.6
+
+### Patch Changes
+
+- 5c5c0f5: Add experimental streaming transcription support for transcription models, including OpenAI `gpt-realtime-whisper` and xAI WebSocket STT.
+- Updated dependencies [5c5c0f5]
+  - @ai-sdk/provider@4.0.2
+  - @ai-sdk/provider-utils@5.0.5
+  - @ai-sdk/openai-compatible@3.0.5
+
+## 4.0.5
+
+### Patch Changes
+
+- Updated dependencies [c6f5e62]
+  - @ai-sdk/provider-utils@5.0.4
+  - @ai-sdk/openai-compatible@3.0.4
+
+## 4.0.4
+
+### Patch Changes
+
+- Updated dependencies [8c616f0]
+  - @ai-sdk/provider-utils@5.0.3
+  - @ai-sdk/openai-compatible@3.0.3
+
 ## 4.0.3
 
 ### Patch Changes

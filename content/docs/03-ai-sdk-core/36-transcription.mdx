@@ -30,6 +30,90 @@ const language = transcript.language; // language of the transcript e.g. "en", i
 const durationInSeconds = transcript.durationInSeconds; // duration of the transcript in seconds, if available
 ```
 
+## Streaming Transcription
+
+<Note type="warning">Streaming transcription is an experimental feature.</Note>
+
+Use `experimental_streamTranscribe` when you have live raw audio and need transcript updates before the full audio stream is complete. The function uses transcription models with streaming support; provider options configure provider-specific behavior, but the streaming operation is selected by the function itself.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { experimental_streamTranscribe as streamTranscribe } from 'ai';
+
+const result = streamTranscribe({
+  model: openai.transcription('gpt-realtime-whisper'),
+  audio: audioStream, // ReadableStream<Uint8Array | string>
+  inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+  providerOptions: {
+    openai: {
+      language: 'en',
+      streaming: {
+        delay: 'low',
+      },
+    },
+  },
+});
+
+for await (const part of result.fullStream) {
+  if (part.type === 'transcript-delta') {
+    process.stdout.write(part.delta);
+  }
+
+  if (part.type === 'transcript-partial') {
+    console.log('partial:', part.text);
+  }
+
+  if (part.type === 'transcript-final') {
+    console.log('final:', part.text);
+  }
+}
+
+console.log(await result.text);
+```
+
+To access the final transcript metadata:
+
+```ts
+const text = await result.text; // final transcript text
+const segments = await result.segments; // final segments with timing, if available
+const language = await result.language; // language of the transcript, if available
+const durationInSeconds = await result.durationInSeconds; // duration in seconds, if available
+```
+
+The `audio` stream must contain raw audio chunks. `Uint8Array` chunks are raw bytes; `string` chunks are base64-encoded raw bytes. Always set `inputAudioFormat` to match the chunks you send.
+
+<Note>
+  Streaming transcription requires a provider model instance (e.g.
+  `openai.transcription('gpt-realtime-whisper')`). String model IDs resolve
+  through the global provider (AI Gateway by default), which does not support
+  streaming transcription yet.
+</Note>
+
+OpenAI streaming transcription uses `openai.transcription('gpt-realtime-whisper')`. xAI uses the same `xai.transcription()` model for request/response and streaming transcription; `experimental_streamTranscribe` uses xAI's WebSocket STT transport under the hood.
+
+```ts
+import { xai } from '@ai-sdk/xai';
+import { experimental_streamTranscribe as streamTranscribe } from 'ai';
+
+const result = streamTranscribe({
+  model: xai.transcription(),
+  audio: audioStream,
+  inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+  providerOptions: {
+    xai: {
+      language: 'en',
+      keyterm: ['AI SDK', 'Grok'],
+      streaming: {
+        interimResults: true,
+        endpointing: 500,
+      },
+    },
+  },
+});
+```
+
+Some providers require WebSocket headers for direct streaming STT. In those runtimes, pass a provider-specific `webSocket` implementation when creating the provider.
+
 ## Settings
 
 ### Provider-Specific settings
@@ -214,8 +298,8 @@ try {
 | [Deepgram](/providers/ai-sdk-providers/deepgram#transcription-models)           | `nova-2` (+ variants)    |
 | [Deepgram](/providers/ai-sdk-providers/deepgram#transcription-models)           | `nova-3` (+ variants)    |
 | [Gladia](/providers/ai-sdk-providers/gladia#transcription-models)               | `default`                |
-| [AssemblyAI](/providers/ai-sdk-providers/assemblyai#transcription-models)       | `best`                   |
-| [AssemblyAI](/providers/ai-sdk-providers/assemblyai#transcription-models)       | `nano`                   |
+| [AssemblyAI](/providers/ai-sdk-providers/assemblyai#transcription-models)       | `universal-3-5-pro`      |
+| [AssemblyAI](/providers/ai-sdk-providers/assemblyai#transcription-models)       | `universal-3-pro`        |
 | [Fal](/providers/ai-sdk-providers/fal#transcription-models)                     | `whisper`                |
 | [Fal](/providers/ai-sdk-providers/fal#transcription-models)                     | `wizper`                 |
 | [Google Vertex](/providers/ai-sdk-providers/google-vertex#transcription-models) | `chirp_2`                |

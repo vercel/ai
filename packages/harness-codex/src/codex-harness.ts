@@ -23,8 +23,11 @@ import {
 import {
   classifyDiskLog,
   markBridgeStarting,
+  resolveSandboxHomeDir,
   SandboxChannel,
+  shellQuote,
   waitForBridgeReady,
+  writeSkills as writeHarnessSkills,
 } from '@ai-sdk/harness/utils';
 import {
   type Experimental_SandboxProcess,
@@ -39,6 +42,7 @@ import {
   type OutboundMessage,
 } from './codex-bridge-protocol';
 import { CLI_SHIM_FILENAME } from './bridge/cli-relay';
+import { VERSION } from './version';
 
 type CodexChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 type CodexRespawnStrategy = 'replay' | 'rerun';
@@ -58,6 +62,11 @@ type WriteSkillsResult = {
  * model deterministic and the telemetry (`gen_ai.request.model`) accurate.
  */
 const DEFAULT_CODEX_MODEL = 'gpt-5.3-codex';
+
+/**
+ * Value to use in User-Agent and `x-client-app` headers.
+ */
+const CODEX_CLIENT_APP = `ai-sdk/harness-codex/${VERSION}`;
 
 export type CodexHarnessSettings = {
   readonly auth?: CodexAuthOptions;
@@ -192,6 +201,13 @@ export function createCodex(
       return cachedBootstrap;
     },
     doStart: async startOpts => {
+      if (startOpts.builtinToolFiltering != null) {
+        throw new HarnessCapabilityUnsupportedError({
+          message:
+            "Harness 'codex' does not support built-in tool filtering controls.",
+          harnessId: 'codex',
+        });
+      }
       if (
         startOpts.permissionMode != null &&
         startOpts.permissionMode !== 'allow-all'
@@ -316,7 +332,7 @@ export function createCodex(
       const token = randomBytes(32).toString('hex');
       const codexSkillSetup =
         startOpts.skills && startOpts.skills.length > 0
-          ? await writeSkills({
+          ? await writeCodexSkills({
               sandbox: session,
               skills: startOpts.skills,
               abortSignal: startOpts.abortSignal,
@@ -324,6 +340,7 @@ export function createCodex(
           : undefined;
       const env = {
         ...resolveCodexEnv(settings.auth),
+        AI_SDK_HARNESS_CLIENT_APP: CODEX_CLIENT_APP,
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),
         ...(codexSkillSetup
@@ -456,7 +473,7 @@ async function readBridgeAsset(name: string): Promise<string> {
   throw lastErr ?? new Error(`bridge asset not found: ${name}`);
 }
 
-async function writeSkills({
+async function writeCodexSkills({
   sandbox,
   skills,
   abortSignal,
@@ -465,16 +482,6 @@ async function writeSkills({
   skills: ReadonlyArray<HarnessV1Skill>;
   abortSignal?: AbortSignal;
 }): Promise<WriteSkillsResult> {
-  for (const skill of skills) {
-    safeCodexSkillName(skill.name);
-    for (const file of skill.files ?? []) {
-      safeCodexSkillFilePath({
-        skillName: skill.name,
-        filePath: file.path,
-      });
-    }
-  }
-
   const homeDir = await resolveSandboxHomeDir({ sandbox, abortSignal });
   const codexHomeDir = path.posix.join(homeDir, '.codex');
   await sandbox.run({
@@ -483,90 +490,20 @@ async function writeSkills({
   });
 
   const rootDir = path.posix.join(homeDir, '.agents', 'skills');
-  await sandbox.run({
-    command: `mkdir -p ${shellQuote(rootDir)}`,
+  await writeHarnessSkills({
+    sandbox,
+    rootDir,
+    skills,
     abortSignal,
+    invalidSkillNameMessage: ({ name }) => `Invalid Codex skill name: ${name}`,
+    invalidSkillFilePathMessage: ({ skillName, filePath }) =>
+      `Invalid Codex skill file path for ${skillName}: ${filePath}`,
   });
-
-  for (const skill of skills) {
-    const name = safeCodexSkillName(skill.name);
-    const skillDir = path.posix.join(rootDir, name);
-    const content = `---\nname: ${skill.name}\ndescription: ${skill.description}\n---\n\n${skill.content}`;
-
-    await sandbox.writeTextFile({
-      path: path.posix.join(skillDir, 'SKILL.md'),
-      content,
-      abortSignal,
-    });
-
-    for (const file of skill.files ?? []) {
-      const filePath = safeCodexSkillFilePath({
-        skillName: skill.name,
-        filePath: file.path,
-      });
-      await sandbox.writeTextFile({
-        path: path.posix.join(skillDir, filePath),
-        content: file.content,
-        abortSignal,
-      });
-    }
-  }
 
   return {
     homeDir,
     codexHomeDir,
   };
-}
-
-async function resolveSandboxHomeDir({
-  sandbox,
-  abortSignal,
-}: {
-  sandbox: Experimental_SandboxSession;
-  abortSignal?: AbortSignal;
-}): Promise<string> {
-  const result = await sandbox.run({
-    command: 'printf "%s" "$HOME"',
-    abortSignal,
-  });
-  const homeDir = result.stdout.trim();
-  if (result.exitCode !== 0 || !homeDir || !path.posix.isAbsolute(homeDir)) {
-    throw new Error(
-      `Unable to resolve sandbox HOME directory: ${result.stderr || result.stdout}`,
-    );
-  }
-  return homeDir;
-}
-
-function safeCodexSkillName(name: string): string {
-  if (!/^[A-Za-z0-9._-]+$/.test(name) || name === '.' || name === '..') {
-    throw new Error(`Invalid Codex skill name: ${name}`);
-  }
-  return name;
-}
-
-function safeCodexSkillFilePath({
-  skillName,
-  filePath,
-}: {
-  skillName: string;
-  filePath: string;
-}): string {
-  const normalized = path.posix.normalize(filePath);
-  if (
-    normalized === '.' ||
-    normalized.startsWith('../') ||
-    path.posix.isAbsolute(normalized)
-  ) {
-    throw new Error(
-      `Invalid Codex skill file path for ${skillName}: ${filePath}`,
-    );
-  }
-  return normalized;
-}
-
-function shellQuote(value: string): string {
-  return `'${value.replace(/'/g, `'\\''`)}'`;
 }
 
 async function forwardBridgeStderr(

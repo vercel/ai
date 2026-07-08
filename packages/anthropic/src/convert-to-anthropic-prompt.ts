@@ -1,5 +1,7 @@
 import {
   UnsupportedFunctionalityError,
+  type JSONObject,
+  type JSONValue,
   type SharedV4Warning,
   type LanguageModelV4Message,
   type LanguageModelV4Prompt,
@@ -9,11 +11,12 @@ import {
   convertBase64ToUint8Array,
   convertToBase64,
   getTopLevelMediaType,
+  isNonNullable,
   parseProviderOptions,
   resolveFullMediaType,
   resolveProviderReference,
+  secureJsonParse,
   validateTypes,
-  isNonNullable,
   type ToolNameMapping,
 } from '@ai-sdk/provider-utils';
 import {
@@ -48,7 +51,7 @@ function convertBytesDataToString(data: Uint8Array | string): string {
 function extractErrorValue(value: unknown): { errorCode?: string } {
   try {
     if (typeof value === 'string') {
-      return JSON.parse(value);
+      return secureJsonParse(value);
     } else if (typeof value === 'object' && value !== null) {
       return value as { errorCode?: string };
     }
@@ -800,7 +803,7 @@ export async function convertToAnthropicPrompt({
                   type: 'tool_use',
                   id: part.toolCallId,
                   name: part.toolName,
-                  input: part.input,
+                  input: toAnthropicToolInput(part.input),
                   ...(caller && { caller }),
                   cache_control: cacheControl,
                 });
@@ -844,7 +847,7 @@ export async function convertToAnthropicPrompt({
                     let errorInfo: { type?: string; errorCode?: string } = {};
                     try {
                       if (typeof output.value === 'string') {
-                        errorInfo = JSON.parse(output.value);
+                        errorInfo = secureJsonParse(output.value);
                       } else if (
                         typeof output.value === 'object' &&
                         output.value !== null
@@ -1325,4 +1328,11 @@ function moveToolUseBlocksToEnd(
   flushSegment();
 
   return result;
+}
+
+// wrap invalid tool call input because Anthropic requires it to be an object
+function toAnthropicToolInput(input: unknown): JSONObject {
+  return typeof input === 'object' && input !== null && !Array.isArray(input)
+    ? (input as JSONObject)
+    : { rawInvalidInput: input as JSONValue };
 }

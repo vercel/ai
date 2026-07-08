@@ -1,5 +1,76 @@
 # @ai-sdk/workflow
 
+## 1.0.18
+
+### Patch Changes
+
+- Updated dependencies [ac306ed]
+  - @ai-sdk/provider-utils@5.0.6
+  - ai@7.0.18
+
+## 1.0.17
+
+### Patch Changes
+
+- 148babc: `WorkflowChatTransport` now drops orphan UI chunks (deltas/ends and tool output/approval chunks whose part was started before the resumed window) when reconnecting with a negative `initialStartIndex`, instead of crashing the AI SDK client. Self-contained `tool-input-available`/`tool-input-error` chunks establish the tool part and are never dropped. A one-time warning links to docs on rewinding to a step boundary server-side.
+- e660e45: Reduce the `doStreamStep` step-boundary payload by returning minimal raw aggregates and reconstructing the `StepResult` outside the step, instead of serializing the full `StepResult` plus the per-chunk array into the durable event log.
+- cc773bc: Expose `totalUsage` and `finishReason` on the `WorkflowAgent.stream()` result, mirroring `GenerateTextResult`/`StreamTextResult` and the existing `onEnd` event payload.
+  - ai@7.0.17
+
+## 1.0.16
+
+### Patch Changes
+
+- Updated dependencies [a8f9b6d]
+  - ai@7.0.16
+
+## 1.0.15
+
+### Patch Changes
+
+- ai@7.0.15
+
+## 1.0.14
+
+### Patch Changes
+
+- 5c5c0f5: Add experimental streaming transcription support for transcription models, including OpenAI `gpt-realtime-whisper` and xAI WebSocket STT.
+- Updated dependencies [5c5c0f5]
+  - ai@7.0.14
+  - @ai-sdk/provider@4.0.2
+  - @ai-sdk/provider-utils@5.0.5
+
+## 1.0.13
+
+### Patch Changes
+
+- ai@7.0.13
+
+## 1.0.12
+
+### Patch Changes
+
+- Updated dependencies [ecfeb6f]
+- Updated dependencies [a193137]
+- Updated dependencies [c6f5e62]
+  - ai@7.0.12
+  - @ai-sdk/provider-utils@5.0.4
+
+## 1.0.11
+
+### Patch Changes
+
+- Updated dependencies [0a87626]
+  - ai@7.0.11
+
+## 1.0.10
+
+### Patch Changes
+
+- Updated dependencies [8c616f0]
+  - ai@7.0.10
+  - @ai-sdk/provider-utils@5.0.3
+
 ## 1.0.9
 
 ### Patch Changes

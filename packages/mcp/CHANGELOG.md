@@ -1,5 +1,44 @@
 # @ai-sdk/mcp
 
+## 2.0.9
+
+### Patch Changes
+
+- Updated dependencies [ac306ed]
+  - @ai-sdk/provider-utils@5.0.6
+
+## 2.0.8
+
+### Patch Changes
+
+- 3e6e955: Reject in-flight MCP requests when their abort signal fires and remove the pending response handler.
+- eebd14b: Prevent streamable HTTP MCP background SSE disconnects from surfacing as unhandled promise rejections.
+
+## 2.0.7
+
+### Patch Changes
+
+- 5c5c0f5: Add experimental streaming transcription support for transcription models, including OpenAI `gpt-realtime-whisper` and xAI WebSocket STT.
+- Updated dependencies [5c5c0f5]
+  - @ai-sdk/provider@4.0.2
+  - @ai-sdk/provider-utils@5.0.5
+
+## 2.0.6
+
+### Patch Changes
+
+- 3c30eb4: feat(mcp): expose a json-rpc message validator
+- Updated dependencies [c6f5e62]
+  - @ai-sdk/provider-utils@5.0.4
+
+## 2.0.5
+
+### Patch Changes
+
+- 8c616f0: feat(mcp): add maxRetries option for failed mcp tool calls
+- Updated dependencies [8c616f0]
+  - @ai-sdk/provider-utils@5.0.3
+
 ## 2.0.4
 
 ### Patch Changes

@@ -96,6 +96,7 @@ describe('createOpenCode adapter', () => {
     expect(harness.harnessId).toBe('opencode');
     expect(harness.specificationVersion).toBe('harness-v1');
     expect(harness.supportsBuiltinToolApprovals).toBe(true);
+    expect(harness.supportsBuiltinToolFiltering).toBeUndefined();
     expect(Object.keys(harness.builtinTools)).toEqual([
       'read',
       'write',
@@ -235,6 +236,9 @@ describe('createOpenCode adapter', () => {
     expect(spawns.at(-1)?.env.USERPROFILE).toBe('/home/vercel-sandbox');
     expect(spawns.at(-1)?.env.XDG_CONFIG_HOME).toBe(
       '/home/vercel-sandbox/.config',
+    );
+    expect(spawns.at(-1)?.env.AI_SDK_HARNESS_CLIENT_APP).toBe(
+      'ai-sdk/harness-opencode/0.0.0-test',
     );
     expect(spawns.at(-1)?.command).toContain(
       "--skills-dir '/home/vercel-sandbox/.agents/skills'",

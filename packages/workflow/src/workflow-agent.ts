@@ -1149,6 +1149,16 @@ export interface WorkflowAgentStreamResult<
   toolResults: ToolResult[];
 
   /**
+   * The finish reason from the last step.
+   */
+  finishReason: FinishReason;
+
+  /**
+   * The total token usage across all steps.
+   */
+  totalUsage: LanguageModelUsage;
+
+  /**
    * The generated structured output. It uses the `output` specification.
    * Only available when `output` is specified.
    */
@@ -2062,6 +2072,8 @@ export class WorkflowAgent<
         steps,
         toolCalls: [],
         toolResults: [],
+        finishReason: 'other',
+        totalUsage: aggregateUsage(steps),
         output: undefined as OUTPUT,
       };
     }
@@ -2264,15 +2276,16 @@ export class WorkflowAgent<
             }
 
             const messages = iterMessages as unknown as ModelMessage[];
+            const lastStep = steps[steps.length - 1];
+            const totalUsage = aggregateUsage(steps);
+            const finishReason = lastStep?.finishReason ?? 'other';
 
             if (mergedOnEnd && !wasAborted) {
-              const lastStep = steps[steps.length - 1];
-              const totalUsage = aggregateUsage(steps);
               await mergedOnEnd({
                 steps,
                 messages,
                 text: lastStep?.text ?? '',
-                finishReason: lastStep?.finishReason ?? 'other',
+                finishReason,
                 usage: totalUsage,
                 totalUsage,
                 runtimeContext,
@@ -2283,10 +2296,10 @@ export class WorkflowAgent<
             }
             if (!wasAborted && steps.length > 0) {
               const telemetrySteps = steps.map(normalizeStepForTelemetry);
-              const lastStep = telemetrySteps[telemetrySteps.length - 1];
-              const totalUsage = aggregateUsage(steps);
+              const lastTelemetryStep =
+                telemetrySteps[telemetrySteps.length - 1];
               await telemetryDispatcher.onEnd?.({
-                ...lastStep,
+                ...lastTelemetryStep,
                 steps: telemetrySteps,
                 usage: totalUsage,
                 totalUsage,
@@ -2327,6 +2340,8 @@ export class WorkflowAgent<
               steps,
               toolCalls: allToolCalls,
               toolResults: allToolResults,
+              finishReason,
+              totalUsage,
               output: undefined as OUTPUT,
             };
           }
@@ -2491,15 +2506,17 @@ export class WorkflowAgent<
       }
     }
 
+    const lastStep = steps[steps.length - 1];
+    const totalUsage = aggregateUsage(steps);
+    const finishReason = lastStep?.finishReason ?? 'other';
+
     // Call onEnd callback if provided (always call, even on errors, but not on abort)
     if (mergedOnEnd && !wasAborted) {
-      const lastStep = steps[steps.length - 1];
-      const totalUsage = aggregateUsage(steps);
       await mergedOnEnd({
         steps,
         messages: messages as ModelMessage[],
         text: lastStep?.text ?? '',
-        finishReason: lastStep?.finishReason ?? 'other',
+        finishReason,
         usage: totalUsage,
         totalUsage,
         runtimeContext,
@@ -2509,10 +2526,9 @@ export class WorkflowAgent<
     }
     if (!wasAborted && steps.length > 0) {
       const telemetrySteps = steps.map(normalizeStepForTelemetry);
-      const lastStep = telemetrySteps[telemetrySteps.length - 1];
-      const totalUsage = aggregateUsage(steps);
+      const lastTelemetryStep = telemetrySteps[telemetrySteps.length - 1];
       await telemetryDispatcher.onEnd?.({
-        ...lastStep,
+        ...lastTelemetryStep,
         steps: telemetrySteps,
         usage: totalUsage,
         totalUsage,
@@ -2546,6 +2562,8 @@ export class WorkflowAgent<
       steps,
       toolCalls: lastStepToolCalls,
       toolResults: lastStepToolResults,
+      finishReason,
+      totalUsage,
       output: experimentalOutput,
     };
   }

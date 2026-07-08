@@ -111,6 +111,7 @@ function convertProviderReferenceImage(
         bytesBase64Encoded: refImg.bytesBase64Encoded,
         mimeType: 'image/png',
       },
+      referenceType: 'asset',
     };
   }
 
@@ -120,6 +121,7 @@ function convertProviderReferenceImage(
         gcsUri: refImg.gcsUri,
         mimeType: 'image/png',
       },
+      referenceType: 'asset',
     };
   }
 
@@ -131,7 +133,7 @@ function convertInputReferenceImage(
   warnings: SharedV4Warning[],
 ): Record<string, unknown> | undefined {
   const image = convertFileToGoogleImage(file, warnings);
-  return image != null ? { image } : undefined;
+  return image != null ? { image, referenceType: 'asset' } : undefined;
 }
 
 export class GoogleVideoModel implements Experimental_VideoModelV4 {

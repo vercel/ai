@@ -1,11 +1,10 @@
 import { APICallError } from '@ai-sdk/provider';
 import { GatewayError } from '@ai-sdk/gateway';
-import { delay, getErrorMessage, isAbortError } from '@ai-sdk/provider-utils';
+import {
+  retryWithExponentialBackoff,
+  type RetryFunction,
+} from '@ai-sdk/provider-utils';
 import { RetryError } from './retry-error';
-
-export type RetryFunction = <OUTPUT>(
-  fn: () => PromiseLike<OUTPUT>,
-) => PromiseLike<OUTPUT>;
 
 function getRetryDelayInMs({
   error,
@@ -62,98 +61,31 @@ function getRetryDelayInMs({
  * while respecting rate limit headers (retry-after-ms and retry-after) if they are provided and reasonable (0-60 seconds).
  * You can configure the maximum number of retries, the initial delay, and the backoff factor.
  */
-export const retryWithExponentialBackoffRespectingRetryHeaders =
-  ({
-    maxRetries = 2,
-    initialDelayInMs = 2000,
-    backoffFactor = 2,
-    abortSignal,
-  }: {
-    maxRetries?: number;
-    initialDelayInMs?: number;
-    backoffFactor?: number;
-    abortSignal?: AbortSignal;
-  } = {}): RetryFunction =>
-  async <OUTPUT>(f: () => PromiseLike<OUTPUT>) =>
-    _retryWithExponentialBackoff(f, {
-      maxRetries,
-      delayInMs: initialDelayInMs,
-      backoffFactor,
-      abortSignal,
-    });
-
-async function _retryWithExponentialBackoff<OUTPUT>(
-  f: () => PromiseLike<OUTPUT>,
-  {
+export const retryWithExponentialBackoffRespectingRetryHeaders = ({
+  maxRetries = 2,
+  initialDelayInMs = 2000,
+  backoffFactor = 2,
+  abortSignal,
+}: {
+  maxRetries?: number;
+  initialDelayInMs?: number;
+  backoffFactor?: number;
+  abortSignal?: AbortSignal;
+} = {}): RetryFunction =>
+  retryWithExponentialBackoff({
     maxRetries,
-    delayInMs,
+    initialDelayInMs,
     backoffFactor,
     abortSignal,
-  }: {
-    maxRetries: number;
-    delayInMs: number;
-    backoffFactor: number;
-    abortSignal: AbortSignal | undefined;
-  },
-  errors: unknown[] = [],
-): Promise<OUTPUT> {
-  try {
-    return await f();
-  } catch (error) {
-    if (isAbortError(error)) {
-      throw error; // don't retry when the request was aborted
-    }
-
-    if (maxRetries === 0) {
-      throw error; // don't wrap the error when retries are disabled
-    }
-
-    const errorMessage = getErrorMessage(error);
-    const newErrors = [...errors, error];
-    const tryNumber = newErrors.length;
-
-    if (tryNumber > maxRetries) {
-      throw new RetryError({
-        message: `Failed after ${tryNumber} attempts. Last error: ${errorMessage}`,
-        reason: 'maxRetriesExceeded',
-        errors: newErrors,
-      });
-    }
-
-    if (
+    shouldRetry: error =>
       error instanceof Error &&
       ((APICallError.isInstance(error) && error.isRetryable === true) ||
-        (GatewayError.isInstance(error) && error.isRetryable === true)) &&
-      tryNumber <= maxRetries
-    ) {
-      await delay(
-        getRetryDelayInMs({
-          error: error as APICallError | GatewayError,
-          exponentialBackoffDelay: delayInMs,
-        }),
-        { abortSignal },
-      );
-
-      return _retryWithExponentialBackoff(
-        f,
-        {
-          maxRetries,
-          delayInMs: backoffFactor * delayInMs,
-          backoffFactor,
-          abortSignal,
-        },
-        newErrors,
-      );
-    }
-
-    if (tryNumber === 1) {
-      throw error; // don't wrap the error when a non-retryable error occurs on the first try
-    }
-
-    throw new RetryError({
-      message: `Failed after ${tryNumber} attempts with non-retryable error: '${errorMessage}'`,
-      reason: 'errorNotRetryable',
-      errors: newErrors,
-    });
-  }
-}
+        (GatewayError.isInstance(error) && error.isRetryable === true)),
+    getDelayInMs: ({ error, exponentialBackoffDelay }) =>
+      getRetryDelayInMs({
+        error: error as APICallError | GatewayError,
+        exponentialBackoffDelay,
+      }),
+    createRetryError: ({ message, reason, errors }) =>
+      new RetryError({ message, reason, errors }),
+  });

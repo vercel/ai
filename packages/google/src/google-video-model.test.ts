@@ -608,12 +608,14 @@ describe('GoogleVideoModel', () => {
             bytesBase64Encoded: 'reference-1',
             mimeType: 'image/png',
           },
+          referenceType: 'asset',
         },
         {
           image: {
             bytesBase64Encoded: 'reference-2',
             mimeType: 'image/jpeg',
           },
+          referenceType: 'asset',
         },
       ]);
     });
@@ -654,6 +656,7 @@ describe('GoogleVideoModel', () => {
             bytesBase64Encoded: 'reference-from-input',
             mimeType: 'image/png',
           },
+          referenceType: 'asset',
         },
       ]);
     });
@@ -750,12 +753,14 @@ describe('GoogleVideoModel', () => {
             bytesBase64Encoded: 'reference-image-data',
             mimeType: 'image/png',
           },
+          referenceType: 'asset',
         },
         {
           image: {
             gcsUri: 'gs://bucket/reference.png',
             mimeType: 'image/png',
           },
+          referenceType: 'asset',
         },
       ]);
     });
