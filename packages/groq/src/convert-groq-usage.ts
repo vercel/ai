@@ -1,4 +1,4 @@
-import type { LanguageModelV4Usage } from "@ai-sdk/provider";
+import type { LanguageModelV4Usage } from '@ai-sdk/provider';
 
 export function convertGroqUsage(
   usage:
@@ -19,7 +19,7 @@ export function convertGroqUsage(
           | undefined;
       }
     | undefined
-    | null
+    | null,
 ): LanguageModelV4Usage {
   if (usage == null) {
     return {

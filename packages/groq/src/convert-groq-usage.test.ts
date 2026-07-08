@@ -1,8 +1,8 @@
-import { describe, it, expect } from "vitest";
-import { convertGroqUsage } from "./convert-groq-usage";
+import { describe, it, expect } from 'vitest';
+import { convertGroqUsage } from './convert-groq-usage';
 
-describe("convertGroqUsage", () => {
-  it("should return undefined values when usage is null", () => {
+describe('convertGroqUsage', () => {
+  it('should return undefined values when usage is null', () => {
     const result = convertGroqUsage(null);
 
     expect(result).toStrictEqual({
@@ -21,7 +21,7 @@ describe("convertGroqUsage", () => {
     });
   });
 
-  it("should return undefined values when usage is undefined", () => {
+  it('should return undefined values when usage is undefined', () => {
     const result = convertGroqUsage(undefined);
 
     expect(result).toStrictEqual({
@@ -40,7 +40,7 @@ describe("convertGroqUsage", () => {
     });
   });
 
-  it("should report cached prompt tokens as cacheRead and reduce noCache", () => {
+  it('should report cached prompt tokens as cacheRead and reduce noCache', () => {
     const result = convertGroqUsage({
       prompt_tokens: 1000,
       completion_tokens: 5,
@@ -57,7 +57,7 @@ describe("convertGroqUsage", () => {
     });
   });
 
-  it("should convert basic usage without token details", () => {
+  it('should convert basic usage without token details', () => {
     const result = convertGroqUsage({
       prompt_tokens: 20,
       completion_tokens: 10,
@@ -82,7 +82,7 @@ describe("convertGroqUsage", () => {
     });
   });
 
-  it("should extract reasoning tokens from completion_tokens_details", () => {
+  it('should extract reasoning tokens from completion_tokens_details', () => {
     const result = convertGroqUsage({
       prompt_tokens: 79,
       completion_tokens: 40,
@@ -113,7 +113,7 @@ describe("convertGroqUsage", () => {
     });
   });
 
-  it("should handle null reasoning_tokens in completion_tokens_details", () => {
+  it('should handle null reasoning_tokens in completion_tokens_details', () => {
     const result = convertGroqUsage({
       prompt_tokens: 20,
       completion_tokens: 10,
@@ -144,7 +144,7 @@ describe("convertGroqUsage", () => {
     });
   });
 
-  it("should handle null completion_tokens_details", () => {
+  it('should handle null completion_tokens_details', () => {
     const result = convertGroqUsage({
       prompt_tokens: 20,
       completion_tokens: 10,
@@ -171,7 +171,7 @@ describe("convertGroqUsage", () => {
     });
   });
 
-  it("should handle zero reasoning tokens", () => {
+  it('should handle zero reasoning tokens', () => {
     const result = convertGroqUsage({
       prompt_tokens: 20,
       completion_tokens: 10,
@@ -202,7 +202,7 @@ describe("convertGroqUsage", () => {
     });
   });
 
-  it("should handle all tokens being reasoning tokens", () => {
+  it('should handle all tokens being reasoning tokens', () => {
     const result = convertGroqUsage({
       prompt_tokens: 20,
       completion_tokens: 50,
@@ -233,7 +233,7 @@ describe("convertGroqUsage", () => {
     });
   });
 
-  it("should handle missing prompt_tokens and completion_tokens", () => {
+  it('should handle missing prompt_tokens and completion_tokens', () => {
     const result = convertGroqUsage({});
 
     expect(result).toStrictEqual({
