@@ -1,5 +1,5 @@
 ---
-'@ai-sdk/cartesia': patch
+'@ai-sdk/cartesia': major
 'ai': patch
 ---
 
