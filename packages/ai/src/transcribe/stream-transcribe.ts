@@ -272,6 +272,12 @@ export function streamTranscribe({
     const reason =
       error ?? new Error('Transcription stream was cancelled or errored.');
     rejectPendingPromises(reason);
+    // When `doStream` rejects before the model stream exists (e.g. auth or
+    // header resolution failure), nothing has taken ownership of `audio` yet,
+    // so cancel it directly — otherwise an upstream producer piping into it
+    // hangs forever. When the model did take a reader, `audio` is locked and
+    // the cancel rejects, which is fine: the model's cleanup owns it then.
+    audio.cancel(reason).catch(() => {});
     transform.writable.abort(reason).catch(() => {
       // the writable is already errored when the model stream failed mid-pipe
     });
