@@ -39,6 +39,7 @@ export function convertGroqUsage(
   }
 
   const promptTokens = usage.prompt_tokens ?? 0;
+  const cachedTokens = usage.prompt_tokens_details?.cached_tokens ?? undefined;
   const completionTokens = usage.completion_tokens ?? 0;
   const reasoningTokens =
     usage.completion_tokens_details?.reasoning_tokens ?? undefined;
@@ -50,8 +51,8 @@ export function convertGroqUsage(
   return {
     inputTokens: {
       total: promptTokens,
-      noCache: promptTokens,
-      cacheRead: undefined,
+      noCache: promptTokens - (cachedTokens ?? 0),
+      cacheRead: cachedTokens,
       cacheWrite: undefined,
     },
     outputTokens: {
