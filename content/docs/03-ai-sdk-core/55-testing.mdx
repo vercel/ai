@@ -179,6 +179,88 @@ const result = streamText({
 });
 ```
 
+### ToolLoopAgent
+
+You can test a `ToolLoopAgent` by returning a tool call from the mock model,
+letting the agent execute the tool, and then returning the final text from the
+next mock response.
+
+```ts
+import { isStepCount, tool, ToolLoopAgent } from 'ai';
+import { MockLanguageModelV4 } from 'ai/test';
+import { expect, test } from 'vitest';
+import { z } from 'zod';
+
+test('ToolLoopAgent calls tools and returns the final answer', async () => {
+  const model = new MockLanguageModelV4({
+    doGenerate: [
+      {
+        content: [
+          {
+            type: 'tool-call',
+            toolCallType: 'function',
+            toolCallId: 'call-1',
+            toolName: 'weather',
+            input: JSON.stringify({ city: 'San Francisco' }),
+          },
+        ],
+        finishReason: { unified: 'tool-calls', raw: undefined },
+        usage: {
+          inputTokens: {
+            total: 3,
+            noCache: 3,
+            cacheRead: undefined,
+            cacheWrite: undefined,
+          },
+          outputTokens: {
+            total: 6,
+            text: 6,
+            reasoning: undefined,
+          },
+        },
+        warnings: [],
+      },
+      {
+        content: [{ type: 'text', text: 'It is sunny in San Francisco.' }],
+        finishReason: { unified: 'stop', raw: 'stop' },
+        usage: {
+          inputTokens: {
+            total: 8,
+            noCache: 8,
+            cacheRead: undefined,
+            cacheWrite: undefined,
+          },
+          outputTokens: {
+            total: 7,
+            text: 7,
+            reasoning: undefined,
+          },
+        },
+        warnings: [],
+      },
+    ],
+  });
+
+  const agent = new ToolLoopAgent({
+    model,
+    stopWhen: isStepCount(3),
+    tools: {
+      weather: tool({
+        inputSchema: z.object({ city: z.string() }),
+        execute: async ({ city }) => `Weather in ${city}: sunny`,
+      }),
+    },
+  });
+
+  const result = await agent.generate({
+    prompt: 'What is the weather in San Francisco?',
+  });
+
+  expect(result.text).toBe('It is sunny in San Francisco.');
+  expect(model.doGenerateCalls).toHaveLength(2);
+});
+```
+
 ### Simulate UI Message Stream Responses
 
 You can also simulate [UI Message Stream](/docs/ai-sdk-ui/stream-protocol#ui-message-stream) responses for testing,
