@@ -1,10 +1,10 @@
 import {
-  EventSourceParserStream,
   withUserAgentSuffix,
   getRuntimeEnvironmentUserAgent,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { MCPClientError } from '../error/mcp-client-error';
+import { JsonEventSourceParserStream } from './json-event-source-parser-stream';
 import { parseJSONRPCMessage, type JSONRPCMessage } from './json-rpc-message';
 import type { MCPTransport } from './mcp-transport';
 import { VERSION } from '../version';
@@ -142,7 +142,7 @@ export class SseMCPTransport implements MCPTransport {
 
           const stream = response.body
             .pipeThrough(new TextDecoderStream())
-            .pipeThrough(new EventSourceParserStream());
+            .pipeThrough(new JsonEventSourceParserStream());
 
           const reader = stream.getReader();
 

@@ -111,6 +111,42 @@ describe('SseMCPTransport', () => {
     await transport.close();
   });
 
+  it('should handle JSON-RPC messages missing the frame terminator', async () => {
+    const controller = new TestResponseController();
+
+    server.urls['http://localhost:3000/sse'].response = {
+      type: 'controlled-stream',
+      controller,
+    };
+
+    const messagePromise = new Promise(resolve => {
+      transport.onmessage = msg => resolve(msg);
+    });
+
+    const connectPromise = transport.start();
+
+    controller.write(
+      'event: endpoint\ndata: http://localhost:3000/messages\n\n',
+    );
+
+    await connectPromise;
+
+    const testMessage = {
+      jsonrpc: '2.0' as const,
+      method: 'test',
+      params: { foo: 'bar' },
+      id: '1',
+    };
+
+    // single trailing newline, no blank-line frame terminator,
+    // and the connection stays open
+    controller.write(`event: message\ndata: ${JSON.stringify(testMessage)}\n`);
+
+    expect(await messagePromise).toEqual(testMessage);
+
+    await transport.close();
+  });
+
   it('should handle JSON-RPC messages without explicit event field', async () => {
     const controller = new TestResponseController();
 
