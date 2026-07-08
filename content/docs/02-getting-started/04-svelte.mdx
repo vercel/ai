@@ -632,6 +632,50 @@ For most use cases, you probably don't need this behavior -- but if you do, you 
 {@render children()}
 ```
 
+### 4. Advanced chat state customization uses subclassing
+
+For advanced Svelte apps with many parallel tool updates, you may want more
+control over how incoming message updates are merged into Svelte state. The
+default `Chat` class replaces the message at the updated index, which is the
+right behavior for most apps.
+
+If you need app-specific fine-grained updates, create a small subclass and
+customize `replaceMessage` on the protected chat state:
+
+```ts filename="src/lib/fine-grained-chat.ts"
+import { Chat, type UIMessage } from '@ai-sdk/svelte';
+import type { ChatInit } from 'ai';
+
+export class FineGrainedChat<
+  UI_MESSAGE extends UIMessage = UIMessage,
+> extends Chat<UI_MESSAGE> {
+  constructor(init: ChatInit<UI_MESSAGE>) {
+    super(init);
+
+    this.state.replaceMessage = (index, message) => {
+      const current = this.state.messages[index];
+
+      if (!current) {
+        this.state.messages[index] = message;
+        return;
+      }
+
+      Object.assign(current, message);
+    };
+  }
+}
+```
+
+You can then use the subclass anywhere you would use `Chat`:
+
+```svelte filename="src/routes/+page.svelte"
+<script lang="ts">
+  import { FineGrainedChat } from '$lib/fine-grained-chat';
+
+  const chat = new FineGrainedChat({});
+</script>
+```
+
 ## Where to Next?
 
 You've built an AI chatbot using the AI SDK! From here, you have several paths to explore:
