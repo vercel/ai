@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.105
+
+### Patch Changes
+
+- c00849a: feat: support `imageDetail` provider option on image file parts to control image processing resolution
+
 ## 3.0.104
 
 ### Patch Changes
