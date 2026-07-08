@@ -22,7 +22,8 @@ import { secureJsonParse } from './secure-json-parse';
  * 4. Every server→client TEXT frame is one JSON-serialized
  *    `TranscriptionModelV4StreamPart` (flattened, no wrapper). `Date` values
  *    (`response-metadata.timestamp`) serialize to ISO 8601 strings and are
- *    revived by `parseTranscriptionStreamPart`.
+ *    revived by `parseTranscriptionStreamPart`. `Error` payloads in `error`
+ *    parts serialize as `{ name, message }`.
  * 5. The server closes with code 1000 after the `finish` part; on failure it
  *    sends an `error` part and closes non-1000. A close without a prior
  *    `finish` is an error.
@@ -82,17 +83,6 @@ export type Experimental_TranscriptionStreamClientFrame =
       /** Unrecognized frame type; ignore for forward compatibility. */
       type: 'unknown';
     };
-
-const knownStreamPartTypes = new Set<TranscriptionModelV4StreamPart['type']>([
-  'error',
-  'finish',
-  'raw',
-  'response-metadata',
-  'stream-start',
-  'transcript-delta',
-  'transcript-final',
-  'transcript-partial',
-]);
 
 /**
  * Server-side: parse a client TEXT frame. Validates envelope shape only and
@@ -180,18 +170,31 @@ export function parseTranscriptionStreamClientFrame(
   }
 }
 
-/** Server-side: serialize a transcription stream part as one TEXT frame. */
+/**
+ * Server-side: serialize a transcription stream part as one TEXT frame.
+ * `Error` payloads in `error` parts serialize as `{ name, message }` —
+ * `Error` properties are non-enumerable, so a plain `JSON.stringify` would
+ * serialize them to `{}` and lose the message end-to-end.
+ */
 export function serializeTranscriptionStreamPart(
   part: TranscriptionModelV4StreamPart,
 ): string {
+  if (part.type === 'error' && part.error instanceof Error) {
+    return JSON.stringify({
+      ...part,
+      error: { name: part.error.name, message: part.error.message },
+    });
+  }
   return JSON.stringify(part);
 }
 
 /**
  * Client-side: parse a server TEXT frame into a transcription stream part.
- * Returns `undefined` for malformed or unsafe (prototype-polluting) JSON and
- * unknown part types (parsed with `secureJsonParse`). Revives
- * `response-metadata.timestamp` to a `Date`.
+ * Returns `undefined` for malformed or unsafe (prototype-polluting) JSON
+ * (parsed with `secureJsonParse`), unknown part types, and known part types
+ * whose required fields are missing or mistyped — downstream SDK code
+ * dereferences those fields, so a drifted server must not crash the stream.
+ * Revives `response-metadata.timestamp` to a `Date`.
  */
 export function parseTranscriptionStreamPart(
   text: string,
@@ -209,16 +212,42 @@ export function parseTranscriptionStreamPart(
 
   const part = value as TranscriptionModelV4StreamPart;
 
-  if (!knownStreamPartTypes.has(part.type)) {
-    return undefined;
-  }
+  switch (part.type) {
+    case 'stream-start':
+      return Array.isArray(part.warnings) ? part : undefined;
 
-  if (part.type === 'response-metadata') {
-    return {
-      ...part,
-      timestamp: part.timestamp != null ? new Date(part.timestamp) : undefined,
-    };
-  }
+    case 'transcript-delta':
+      return typeof part.delta === 'string' ? part : undefined;
 
-  return part;
+    case 'transcript-partial':
+    case 'transcript-final':
+      return typeof part.text === 'string' ? part : undefined;
+
+    case 'finish':
+      return typeof part.text === 'string' && Array.isArray(part.segments)
+        ? part
+        : undefined;
+
+    case 'response-metadata': {
+      // Envelope rule 4: timestamps ride as ISO 8601 strings.
+      const timestamp: unknown = part.timestamp;
+      if (timestamp == null) {
+        return { ...part, timestamp: undefined };
+      }
+      if (typeof timestamp !== 'string') {
+        return undefined;
+      }
+      const revived = new Date(timestamp);
+      return Number.isNaN(revived.getTime())
+        ? undefined
+        : { ...part, timestamp: revived };
+    }
+
+    case 'raw':
+    case 'error':
+      return part;
+
+    default:
+      return undefined;
+  }
 }

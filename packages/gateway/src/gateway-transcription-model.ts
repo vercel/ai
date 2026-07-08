@@ -1,10 +1,11 @@
-import type {
-  Experimental_TranscriptionModelV4StreamOptions as TranscriptionModelV4StreamOptions,
-  Experimental_TranscriptionModelV4StreamPart as TranscriptionModelV4StreamPart,
-  Experimental_TranscriptionModelV4StreamResult as TranscriptionModelV4StreamResult,
-  SharedV4ProviderMetadata,
-  SharedV4Warning,
-  TranscriptionModelV4,
+import {
+  getErrorMessage,
+  type Experimental_TranscriptionModelV4StreamOptions as TranscriptionModelV4StreamOptions,
+  type Experimental_TranscriptionModelV4StreamPart as TranscriptionModelV4StreamPart,
+  type Experimental_TranscriptionModelV4StreamResult as TranscriptionModelV4StreamResult,
+  type SharedV4ProviderMetadata,
+  type SharedV4Warning,
+  type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -441,5 +442,6 @@ function getServerErrorMessage(error: unknown): string {
   ) {
     return error.message;
   }
-  return String(error);
+  // JSON-stringifies object payloads (`String` would yield '[object Object]').
+  return getErrorMessage(error);
 }
