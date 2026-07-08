@@ -1,6 +1,6 @@
 import { z } from 'zod/v4';
 
-export const perplexityLanguageModelOptions = z.object({
+export const perplexityLanguageModelOptions = z.looseObject({
   /**
    * Filters search results to those published within the specified time window.
    * Cannot be combined with other date filters.
@@ -80,9 +80,9 @@ export const perplexityLanguageModelOptions = z.object({
    * Additional media response configuration.
    */
   media_response: z
-    .object({
+    .looseObject({
       overrides: z
-        .object({
+        .looseObject({
           /**
            * If true, video results are included in the response.
            */
@@ -111,7 +111,7 @@ export const perplexityLanguageModelOptions = z.object({
    * Additional web search configuration.
    */
   web_search_options: z
-    .object({
+    .looseObject({
       /**
        * Controls the size of search context injected into the model.
        */
@@ -126,7 +126,7 @@ export const perplexityLanguageModelOptions = z.object({
        * User location for search result personalization.
        */
       user_location: z
-        .object({
+        .looseObject({
           latitude: z.number().optional(),
           longitude: z.number().optional(),
           country: z.string().optional(),
