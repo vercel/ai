@@ -1,0 +1,9 @@
+{
+  "name": "harness-acp-bridge",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "ws": "8.21.0"
+  }
+}

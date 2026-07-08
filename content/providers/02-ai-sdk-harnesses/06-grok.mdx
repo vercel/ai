@@ -1,0 +1,179 @@
+---
+title: Grok
+description: Learn how to use the Grok Build harness adapter.
+---
+
+# Grok Harness
+
+The Grok harness adapter connects `HarnessAgent` to Grok Build through the
+`grok agent stdio` CLI (Agent Client Protocol). The adapter runs an ACP bridge
+inside the sandbox and streams Grok session events back to the host over a
+sandbox-exposed WebSocket.
+
+<Note>
+  Harness packages are **experimental**. Expect breaking changes between
+  releases as this early API gets further refined.
+</Note>
+
+## Setup
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet
+      text="pnpm add @ai-sdk/harness @ai-sdk/harness-grok @ai-sdk/sandbox-vercel"
+      dark
+    />
+  </Tab>
+  <Tab>
+    <Snippet
+      text="npm install @ai-sdk/harness @ai-sdk/harness-grok @ai-sdk/sandbox-vercel"
+      dark
+    />
+  </Tab>
+  <Tab>
+    <Snippet
+      text="yarn add @ai-sdk/harness @ai-sdk/harness-grok @ai-sdk/sandbox-vercel"
+      dark
+    />
+  </Tab>
+  <Tab>
+    <Snippet
+      text="bun add @ai-sdk/harness @ai-sdk/harness-grok @ai-sdk/sandbox-vercel"
+      dark
+    />
+  </Tab>
+</Tabs>
+
+The adapter bootstraps the Grok CLI and ACP bridge dependencies inside the
+sandbox when the first session starts.
+
+## Import
+
+```ts
+import { grok, createGrok } from '@ai-sdk/harness-grok';
+```
+
+`grok` is equivalent to `createGrok()` with its default configuration.
+
+## Basic Usage
+
+```ts
+import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { grok } from '@ai-sdk/harness-grok';
+import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+
+const agent = new HarnessAgent({
+  harness: grok,
+  sandbox: createVercelSandbox({
+    runtime: 'node24',
+    ports: [4000],
+  }),
+});
+
+const session = await agent.createSession();
+
+let exitCode = 0;
+try {
+  const result = await agent.stream({
+    session,
+    prompt: 'Check the test failures and fix the production code.',
+  });
+
+  for await (const part of result.stream) {
+    if (part.type === 'text-delta') {
+      process.stdout.write(part.text);
+    }
+  }
+} catch (err) {
+  exitCode = 1;
+  console.error(err);
+} finally {
+  await session.destroy();
+  process.exit(exitCode);
+}
+```
+
+To use this agent, ensure environment variables include `VERCEL_OIDC_TOKEN` for
+Vercel Sandbox, and one of the variables listed under [authentication](#authentication)
+for Grok.
+
+## Adapter Settings
+
+Use `createGrok()` to configure the runtime:
+
+```ts
+const harness = createGrok({
+  model: 'grok-build-0.1',
+  auth: { apiKey: process.env.XAI_API_KEY },
+  startupTimeoutMs: 120_000,
+});
+```
+
+Settings:
+
+- `auth`: xAI API key settings.
+- `model`: Grok Build model id. If omitted, the adapter uses its pinned default.
+- `port`: bridge port override.
+- `startupTimeoutMs`: maximum time to wait for the bridge to start.
+
+## Authentication
+
+The adapter supports API key and OAuth authentication.
+
+### API key (headless / CI)
+
+Set `XAI_API_KEY` on the host or pass explicit auth:
+
+```ts
+const harness = createGrok({
+  auth: { apiKey: process.env.XAI_API_KEY },
+});
+```
+
+### OAuth (interactive)
+
+When no API key is provided, the adapter uses `xai.oauth`. Bootstrap OAuth
+inside the sandbox with `ensureGrokSandboxOAuth()` in `sandboxConfig.onSession`:
+
+```ts
+import { createGrok, ensureGrokSandboxOAuth } from '@ai-sdk/harness-grok';
+
+const agent = new HarnessAgent({
+  harness: createGrok(),
+  sandbox,
+  sandboxConfig: {
+    onSession: async ({ session, sessionWorkDir }) => {
+      const oauth = await ensureGrokSandboxOAuth({ session, sessionWorkDir });
+      if (!oauth.ready) throw new Error(oauth.question);
+    },
+  },
+});
+```
+
+Supported environment variables:
+
+- `VERCEL_OIDC_TOKEN`
+- `XAI_API_KEY`
+
+## Sandbox
+
+Grok requires a network sandbox with at least one exposed port,
+e.g. `@ai-sdk/sandbox-vercel`:
+
+```ts
+const sandbox = createVercelSandbox({
+  runtime: 'node24',
+  ports: [4000],
+});
+```
+
+## Known Limitations
+
+- No replay/rerun resume ladder parity with `harness-codex` yet.
+- Cursor Cloud (`@cursor/sdk`) is out of scope for this adapter.
+
+## Related
+
+- [HarnessAgent](/docs/ai-sdk-harnesses/harness-agent)
+- [Harness tools](/docs/ai-sdk-harnesses/tools)
+- [Harness adapters](/docs/ai-sdk-harnesses/harness-adapters)

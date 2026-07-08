@@ -1,0 +1,164 @@
+---
+title: Cursor
+description: Learn how to use the Cursor sandbox harness adapter.
+---
+
+# Cursor Harness
+
+The Cursor harness adapter connects `HarnessAgent` to the Cursor sandbox agent
+through `agent acp` (Agent Client Protocol stdio). The adapter runs an ACP
+bridge inside the sandbox and streams Cursor session events back to the host
+over a sandbox-exposed WebSocket.
+
+<Note>
+  Harness packages are **experimental**. Expect breaking changes between
+  releases as this early API gets further refined.
+</Note>
+
+<Note>
+  This adapter covers Cursor sandbox (`agent acp`) only. Cursor Cloud
+  (`@cursor/sdk`) is out of scope and requires a separate SDK-style adapter.
+</Note>
+
+## Setup
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet
+      text="pnpm add @ai-sdk/harness @ai-sdk/harness-cursor @ai-sdk/sandbox-vercel"
+      dark
+    />
+  </Tab>
+  <Tab>
+    <Snippet
+      text="npm install @ai-sdk/harness @ai-sdk/harness-cursor @ai-sdk/sandbox-vercel"
+      dark
+    />
+  </Tab>
+  <Tab>
+    <Snippet
+      text="yarn add @ai-sdk/harness @ai-sdk/harness-cursor @ai-sdk/sandbox-vercel"
+      dark
+    />
+  </Tab>
+  <Tab>
+    <Snippet
+      text="bun add @ai-sdk/harness @ai-sdk/harness-cursor @ai-sdk/sandbox-vercel"
+      dark
+    />
+  </Tab>
+</Tabs>
+
+The adapter bootstraps the Cursor CLI and ACP bridge dependencies inside the
+sandbox when the first session starts.
+
+## Import
+
+```ts
+import { cursor, createCursor } from '@ai-sdk/harness-cursor';
+```
+
+`cursor` is equivalent to `createCursor()` with its default configuration.
+
+## Basic Usage
+
+```ts
+import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { cursor } from '@ai-sdk/harness-cursor';
+import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+
+const agent = new HarnessAgent({
+  harness: cursor,
+  sandbox: createVercelSandbox({
+    runtime: 'node24',
+    ports: [4000],
+  }),
+});
+
+const session = await agent.createSession();
+
+let exitCode = 0;
+try {
+  const result = await agent.stream({
+    session,
+    prompt: 'Check the test failures and fix the production code.',
+  });
+
+  for await (const part of result.stream) {
+    if (part.type === 'text-delta') {
+      process.stdout.write(part.text);
+    }
+  }
+} catch (err) {
+  exitCode = 1;
+  console.error(err);
+} finally {
+  await session.destroy();
+  process.exit(exitCode);
+}
+```
+
+To use this agent, ensure environment variables include `VERCEL_OIDC_TOKEN` for
+Vercel Sandbox and `CURSOR_API_KEY` for Cursor.
+
+## Adapter Settings
+
+Use `createCursor()` to configure the runtime:
+
+```ts
+const harness = createCursor({
+  model: 'default',
+  startupTimeoutMs: 120_000,
+  onAskQuestion: async (question) => {
+    throw new Error(`Need answer: ${question}`);
+  },
+});
+```
+
+Settings:
+
+- `auth`: Cursor API key settings.
+- `model`: Cursor model id. If omitted, the adapter uses its pinned default.
+- `onAskQuestion`: host handler for Cursor ACP question prompts.
+- `startupTimeoutMs`: maximum time to wait for the bridge to start.
+
+## Authentication
+
+By default, authentication is resolved from the host environment and forwarded
+to the sandbox.
+
+Supported environment variables:
+
+- `VERCEL_OIDC_TOKEN`
+- `CURSOR_API_KEY`
+
+You can also pass explicit auth settings:
+
+```ts
+const harness = createCursor({
+  auth: { apiKey: process.env.CURSOR_API_KEY },
+});
+```
+
+## Sandbox
+
+Cursor requires a network sandbox with at least one exposed port,
+e.g. `@ai-sdk/sandbox-vercel`:
+
+```ts
+const sandbox = createVercelSandbox({
+  runtime: 'node24',
+  ports: [4000],
+});
+```
+
+## Known Limitations
+
+- No replay/rerun resume ladder parity with `harness-codex` yet.
+- Cursor Cloud (`@cursor/sdk`) is not covered by this package.
+
+## Related
+
+- [HarnessAgent](/docs/ai-sdk-harnesses/harness-agent)
+- [Harness tools](/docs/ai-sdk-harnesses/tools)
+- [Harness adapters](/docs/ai-sdk-harnesses/harness-adapters)
