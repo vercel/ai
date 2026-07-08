@@ -4,8 +4,6 @@ Generic [Agent Client Protocol](https://agentclientprotocol.com/) harness for AI
 
 Runs ACP stdio agents inside Vercel Sandbox via a WebSocket NDJSON bridge (stdin is not exposed to the host through sandbox `spawn`).
 
-Upstream target: `@ai-sdk/harness-acp`.
-
 ## Usage
 
 ```ts
@@ -19,4 +17,4 @@ const harness = createAcpHarness({
 });
 ```
 
-Prefer `@akvilander/ai-sdk-harness-grok` or `@akvilander/ai-sdk-harness-cursor` for known CLIs.
+Prefer `@ai-sdk/harness-grok` or `@ai-sdk/harness-cursor` for known CLIs.

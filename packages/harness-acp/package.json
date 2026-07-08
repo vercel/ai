@@ -11,6 +11,9 @@
     "dist/**/*",
     "src",
     "!src/**/*.test.ts",
+    "!src/**/*.test-d.ts",
+    "!src/**/__snapshots__",
+    "!src/**/__fixtures__",
     "CHANGELOG.md",
     "README.md"
   ],
@@ -35,7 +38,7 @@
   "dependencies": {
     "@ai-sdk/harness": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
-    "ws": "^8.21.0"
+    "ws": "8.21.0"
   },
   "peerDependencies": {
     "zod": "^3.25.76 || ^4.1.8"
@@ -44,10 +47,8 @@
     "@types/node": "22.19.19",
     "@types/ws": "^8.5.13",
     "@vercel/ai-tsconfig": "workspace:*",
-    "del-cli": "^6.0.0",
     "tsup": "^8.5.1",
     "typescript": "5.8.3",
-    "vitest": "^3.2.4",
     "zod": "3.25.76"
   },
   "engines": {
@@ -69,6 +70,7 @@
   "keywords": [
     "ai",
     "harness",
-    "acp"
+    "acp",
+    "agent-client-protocol"
   ]
 }

@@ -1,15 +1,18 @@
 {
+  "extends": "./node_modules/@vercel/ai-tsconfig/ts-library.json",
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "strict": true,
-    "skipLibCheck": true,
-    "declaration": true,
-    "outDir": "dist",
+    "composite": true,
     "rootDir": "src",
-    "noEmit": true
+    "outDir": "dist"
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["src/**/*.test.ts"]
+  "exclude": [
+    "dist",
+    "build",
+    "node_modules",
+    "tsup.config.ts"
+  ],
+  "references": [
+    { "path": "../harness" },
+    { "path": "../provider-utils" }
+  ]
 }

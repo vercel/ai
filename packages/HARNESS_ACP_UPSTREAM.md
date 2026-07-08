@@ -12,10 +12,10 @@ Source of truth for early development: [ai-sdk-harnesses](https://github.com/akv
 
 ## Before opening PR to vercel/ai
 
-- [ ] Add changesets (`pnpm changeset`) — patch for each new package
-- [ ] Add provider docs under `content/docs`
-- [ ] Add harness-adapters table entry
-- [ ] Run `pnpm update-references` at monorepo root
+- [x] Add changesets (`pnpm changeset`) — patch for each new package
+- [x] Add provider docs under `content/providers/02-ai-sdk-harnesses`
+- [x] Add harness-adapters table entry
+- [x] Run `pnpm update-references` at monorepo root
 - [ ] `pnpm build` + `pnpm test` in each package
 - [ ] Open RFC issue linking production validation (personal-assistant coder PM)
 
@@ -23,4 +23,3 @@ Source of truth for early development: [ai-sdk-harnesses](https://github.com/akv
 
 - `@ai-sdk/harness-cursor-cloud` for `@cursor/sdk` (Pi-style host adapter)
 - Replay/rerun resume ladder parity with `harness-codex`
-- Grok OAuth bootstrap helper in package (document `sandboxConfig.onSession` pattern)

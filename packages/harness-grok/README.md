@@ -1,20 +1,18 @@
-# @akvilander/ai-sdk-harness-grok
+# @ai-sdk/harness-grok
 
 Grok Build harness for AI SDK `HarnessAgent` via `grok agent stdio` (ACP).
-
-Upstream target: `@ai-sdk/harness-grok`.
 
 ## Setup
 
 ```bash
-pnpm add @akvilander/ai-sdk-harness-grok @ai-sdk/harness @ai-sdk/sandbox-vercel
+pnpm add @ai-sdk/harness-grok @ai-sdk/harness @ai-sdk/sandbox-vercel
 ```
 
 ## Usage
 
 ```ts
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { grok } from '@akvilander/ai-sdk-harness-grok';
+import { grok } from '@ai-sdk/harness-grok';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
 const agent = new HarnessAgent({
@@ -41,7 +39,7 @@ createGrok({ auth: { apiKey: process.env.XAI_API_KEY } });
 ### OAuth (interactive)
 
 ```ts
-import { ensureGrokSandboxOAuth } from '@akvilander/ai-sdk-harness-grok';
+import { ensureGrokSandboxOAuth } from '@ai-sdk/harness-grok';
 
 const agent = new HarnessAgent({
   harness: createGrok(), // no auth → xai.oauth

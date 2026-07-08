@@ -79,13 +79,22 @@
       "path": "packages/groq"
     },
     {
+      "path": "packages/harness-acp"
+    },
+    {
       "path": "packages/harness-claude-code"
     },
     {
       "path": "packages/harness-codex"
     },
     {
+      "path": "packages/harness-cursor"
+    },
+    {
       "path": "packages/harness-deepagents"
+    },
+    {
+      "path": "packages/harness-grok"
     },
     {
       "path": "packages/harness-opencode"

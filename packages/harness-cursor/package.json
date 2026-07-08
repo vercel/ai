@@ -10,6 +10,11 @@
   "files": [
     "dist/**/*",
     "src",
+    "!src/**/*.test.ts",
+    "!src/**/*.test-d.ts",
+    "!src/**/__snapshots__",
+    "!src/**/__fixtures__",
+    "CHANGELOG.md",
     "README.md"
   ],
   "scripts": {
@@ -39,10 +44,8 @@
   "devDependencies": {
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
-    "del-cli": "^6.0.0",
     "tsup": "^8.5.1",
     "typescript": "5.8.3",
-    "vitest": "^3.2.4",
     "zod": "3.25.76"
   },
   "engines": {
