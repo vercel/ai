@@ -83,6 +83,33 @@ const googleVertex = createGoogleVertex({
 });
 ```
 
+In deployed Node.js environments where you cannot reference a local credentials
+file, store the service account JSON in a secret environment variable and pass
+the parsed credentials through `googleAuthOptions`:
+
+```ts
+import { createGoogleVertex } from '@ai-sdk/google-vertex';
+
+const credentials = JSON.parse(
+  process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON!,
+);
+
+const googleVertex = createGoogleVertex({
+  project: process.env.GOOGLE_VERTEX_PROJECT,
+  location: process.env.GOOGLE_VERTEX_LOCATION,
+  googleAuthOptions: {
+    credentials,
+    projectId: process.env.GOOGLE_VERTEX_PROJECT,
+  },
+});
+```
+
+<Note>
+  Do not commit service account JSON files to your repository. Keep them in your
+  deployment platform's secret store, or use `GOOGLE_APPLICATION_CREDENTIALS`
+  when your runtime can access a mounted credentials file.
+</Note>
+
 ##### Optional Provider Settings
 
 You can use the following optional settings to customize the provider instance:
