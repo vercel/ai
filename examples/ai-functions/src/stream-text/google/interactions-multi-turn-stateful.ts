@@ -18,9 +18,8 @@ run(async () => {
   }
   console.log();
 
-  const interactionId = (await turn1.providerMetadata)?.google?.interactionId as
-    | string
-    | undefined;
+  const interactionId = (await turn1.providerMetadata)?.google
+    ?.interactionId as string | undefined;
   console.log();
   console.log('Interaction id (turn 1):', interactionId);
   console.log();

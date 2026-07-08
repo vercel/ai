@@ -461,9 +461,8 @@ export class OpenTelemetry implements Telemetry {
       'gen_ai.request.presence_penalty': state.settings.presencePenalty as
         | number
         | undefined,
-      'gen_ai.request.temperature': (state.settings.temperature ?? undefined) as
-        | number
-        | undefined,
+      'gen_ai.request.temperature': (state.settings.temperature ??
+        undefined) as number | undefined,
       'gen_ai.request.top_k': state.settings.topK as number | undefined,
       'gen_ai.request.top_p': state.settings.topP as number | undefined,
       'gen_ai.input.messages': {
@@ -682,9 +681,8 @@ export class OpenTelemetry implements Telemetry {
       'gen_ai.request.stop_sequences': state.settings.stopSequences as
         | string[]
         | undefined,
-      'gen_ai.request.temperature': (state.settings.temperature ?? undefined) as
-        | number
-        | undefined,
+      'gen_ai.request.temperature': (state.settings.temperature ??
+        undefined) as number | undefined,
       'gen_ai.request.top_k': state.settings.topK as number | undefined,
       'gen_ai.request.top_p': state.settings.topP as number | undefined,
       'gen_ai.input.messages': {
