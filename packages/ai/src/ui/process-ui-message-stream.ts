@@ -749,6 +749,18 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               break;
             }
 
+            case 'tool-progress': {
+              const toolInvocation = getToolInvocation(chunk.toolCallId);
+              if (toolInvocation != null) {
+                if (toolInvocation.steps == null) {
+                  toolInvocation.steps = [];
+                }
+                toolInvocation.steps.push(chunk.progress);
+                write();
+              }
+              break;
+            }
+
             case 'tool-output-available': {
               const toolInvocation = getToolInvocation(chunk.toolCallId);
 

@@ -325,6 +325,14 @@ export function toUIMessageChunk<
       };
     }
 
+    case 'tool-progress': {
+      return {
+        type: 'tool-progress',
+        toolCallId: part.toolCallId,
+        progress: part.progress,
+      };
+    }
+
     case 'error': {
       return {
         type: 'error',

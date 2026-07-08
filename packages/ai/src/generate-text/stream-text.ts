@@ -178,6 +178,7 @@ const isOutputChunkType = {
   'tool-call': true,
   'tool-result': true,
   'tool-error': true,
+  'tool-progress': true,
   'tool-execution-end': false,
   'model-call-start': false,
   'model-call-response-metadata': false,
@@ -2085,7 +2086,8 @@ class DefaultStreamTextResult<
                     case 'tool-input-start':
                     case 'tool-input-end':
                     case 'tool-input-delta':
-                    case 'tool-approval-request': {
+                    case 'tool-approval-request':
+                    case 'tool-progress': {
                       controller.enqueue(chunk);
                       break;
                     }

@@ -142,7 +142,14 @@ export async function executeToolCall<TOOLS extends ToolSet>({
               });
 
               for await (const part of stream) {
-                if (part.type === 'preliminary') {
+                if (part.type === 'progress') {
+                  onPreliminaryToolResult?.({
+                    type: 'tool-progress',
+                    toolCallId,
+                    toolName,
+                    progress: part.progress,
+                  } as any);
+                } else if (part.type === 'preliminary') {
                   onPreliminaryToolResult?.({
                     ...toolCall,
                     type: 'tool-result',

@@ -29230,6 +29230,208 @@ describe('streamText', () => {
       expect(events).toEqual(['first', 'second']);
     });
   });
+
+  describe('streamText tool progress steps', () => {
+    it('should stream progress updates and final output for generator tool', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'stream-start', warnings: [] },
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'searchEngine',
+              input: `{ "query": "Vercel AI SDK" }`,
+            },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        _internal: {
+          generateId: mockId(),
+          generateCallId: () => 'test-telemetry-call-id',
+        },
+        tools: {
+          searchEngine: tool({
+            inputSchema: z.object({ query: z.string() }),
+            async *execute() {
+              yield { type: 'progress', status: 'Searching Google...' };
+              yield { type: 'progress', status: 'Summarizing results...' };
+              return 'final summary of search';
+            },
+          }),
+        },
+      });
+
+      expect(await convertReadableStreamToArray(result.fullStream))
+        .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "request": {
+                "body": undefined,
+                "messages": undefined,
+              },
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "input": {
+                "query": "Vercel AI SDK",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "call-1",
+              "toolName": "searchEngine",
+              "type": "tool-call",
+            },
+            {
+              "progress": {
+                "status": "Searching Google...",
+                "type": "progress",
+              },
+              "toolCallId": "call-1",
+              "toolName": "searchEngine",
+              "type": "tool-progress",
+            },
+            {
+              "progress": {
+                "status": "Summarizing results...",
+                "type": "progress",
+              },
+              "toolCallId": "call-1",
+              "toolName": "searchEngine",
+              "type": "tool-progress",
+            },
+            {
+              "dynamic": false,
+              "input": {
+                "query": "Vercel AI SDK",
+              },
+              "output": "final summary of search",
+              "toolCallId": "call-1",
+              "toolName": "searchEngine",
+              "type": "tool-result",
+            },
+            {
+              "finishReason": "stop",
+              "performance": {
+                "effectiveOutputTokensPerSecond": 0,
+                "effectiveTotalTokensPerSecond": 0,
+                "inputTokensPerSecond": 0,
+                "outputTokensPerSecond": 0,
+                "responseTimeMs": 0,
+                "stepTimeMs": 0,
+                "timeBetweenOutputChunksMs": undefined,
+                "timeToFirstOutputMs": 0,
+                "toolExecutionMs": {
+                  "call-1": 0,
+                },
+              },
+              "providerMetadata": undefined,
+              "rawFinishReason": "stop",
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "finish-step",
+              "usage": {
+                "inputTokenDetails": {
+                  "cacheReadTokens": undefined,
+                  "cacheWriteTokens": undefined,
+                  "noCacheTokens": 3,
+                },
+                "inputTokens": 3,
+                "outputTokenDetails": {
+                  "reasoningTokens": undefined,
+                  "textTokens": 10,
+                },
+                "outputTokens": 10,
+                "raw": undefined,
+                "totalTokens": 13,
+              },
+            },
+            {
+              "finishReason": "stop",
+              "rawFinishReason": "stop",
+              "totalUsage": {
+                "inputTokenDetails": {
+                  "cacheReadTokens": undefined,
+                  "cacheWriteTokens": undefined,
+                  "noCacheTokens": 3,
+                },
+                "inputTokens": 3,
+                "outputTokenDetails": {
+                  "reasoningTokens": undefined,
+                  "textTokens": 10,
+                },
+                "outputTokens": 10,
+                "totalTokens": 13,
+              },
+              "type": "finish",
+            },
+          ]
+        `);
+
+      expect(await convertReadableStreamToArray(result.toUIMessageStream()))
+        .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "input": {
+                "query": "Vercel AI SDK",
+              },
+              "toolCallId": "call-1",
+              "toolName": "searchEngine",
+              "type": "tool-input-available",
+            },
+            {
+              "progress": {
+                "status": "Searching Google...",
+                "type": "progress",
+              },
+              "toolCallId": "call-1",
+              "type": "tool-progress",
+            },
+            {
+              "progress": {
+                "status": "Summarizing results...",
+                "type": "progress",
+              },
+              "toolCallId": "call-1",
+              "type": "tool-progress",
+            },
+            {
+              "output": "final summary of search",
+              "toolCallId": "call-1",
+              "type": "tool-output-available",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "finishReason": "stop",
+              "type": "finish",
+            },
+          ]
+        `);
+    });
+  });
 });
 
 async function expectUndefinedUnhandledRejections({
