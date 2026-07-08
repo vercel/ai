@@ -342,8 +342,8 @@ import { mistral } from '@ai-sdk/mistral';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
-  model: mistral.embedding('mistral-embed'),
-  value: 'sunny day at the beach',
+  model: mistral.embedding('codestral-embed-2505'),
+  value: 'function add(a: number, b: number) { return a + b; }',
 });
 ```
 
