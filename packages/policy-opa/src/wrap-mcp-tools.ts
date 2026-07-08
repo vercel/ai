@@ -83,7 +83,25 @@ export function wrapMcpTools<
     const configured = Object.prototype.hasOwnProperty.call(approval, name)
       ? approval[name]
       : undefined;
-    filled[name] = configured ?? fallback;
+
+    if (configured == null) {
+      // Tool the user did not list: force it through the fallback.
+      filled[name] = fallback;
+    } else if (typeof configured === 'function') {
+      // Per-tool approval function: mirror the generic-function form so a
+      // "no opinion" result (`not-applicable`/`undefined`) is forced through
+      // the fallback instead of letting the tool run unapproved.
+      const original = configured as (
+        ...args: unknown[]
+      ) => Promise<unknown> | unknown;
+      filled[name] = async (...args: unknown[]) => {
+        const status = await original(...args);
+        return isNotApplicable(status) ? fallback : status;
+      };
+    } else {
+      // Static status the user explicitly configured: keep it as-is.
+      filled[name] = configured;
+    }
   }
 
   // `filled` is a plain per-tool map; cast to the SDK's map arm, which TS

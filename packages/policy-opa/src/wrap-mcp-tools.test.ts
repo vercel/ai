@@ -209,5 +209,98 @@ describe('wrapMcpTools', () => {
         expect(toolApproval.search).toBe('approved');
       });
     });
+
+    describe('per-tool approval functions', () => {
+      // A per-tool approval function that returns a "no opinion" result
+      // (`not-applicable`/`undefined`) must fall back to the default, exactly
+      // like the generic-function form. Otherwise the tool would resolve to
+      // `not-applicable` and run unapproved, defeating the wrapper's purpose.
+      it('forces a not-applicable result through the fallback', async () => {
+        const { toolApproval } = wrapMcpTools<Tools>(tools, {
+          search: (() => ({ type: 'not-applicable' })) as never,
+        });
+
+        if (typeof toolApproval === 'function') {
+          throw new Error('expected per-tool object form');
+        }
+
+        const entry = toolApproval.search;
+        if (typeof entry !== 'function') {
+          throw new Error('expected wrapped per-tool function');
+        }
+
+        const status = await (entry as (...args: unknown[]) => unknown)(
+          {},
+          {} as never,
+        );
+        expect(status).toBe('user-approval');
+      });
+
+      it('forces an undefined result through the configured default', async () => {
+        const { toolApproval } = wrapMcpTools<Tools>(
+          tools,
+          { search: (() => undefined) as never },
+          { default: 'denied' },
+        );
+
+        if (typeof toolApproval === 'function') {
+          throw new Error('expected per-tool object form');
+        }
+
+        const entry = toolApproval.search;
+        if (typeof entry !== 'function') {
+          throw new Error('expected wrapped per-tool function');
+        }
+
+        const status = await (entry as (...args: unknown[]) => unknown)(
+          {},
+          {} as never,
+        );
+        expect(status).toBe('denied');
+      });
+
+      it('passes a decision through unchanged when the function has an opinion', async () => {
+        const decision = { type: 'denied', reason: 'never' };
+        const { toolApproval } = wrapMcpTools<Tools>(tools, {
+          deleteRepo: (() => decision) as never,
+        });
+
+        if (typeof toolApproval === 'function') {
+          throw new Error('expected per-tool object form');
+        }
+
+        const entry = toolApproval.deleteRepo;
+        if (typeof entry !== 'function') {
+          throw new Error('expected wrapped per-tool function');
+        }
+
+        const status = await (entry as (...args: unknown[]) => unknown)(
+          {},
+          {} as never,
+        );
+        expect(status).toEqual(decision);
+      });
+
+      it('forwards input and options to the wrapped function', async () => {
+        const calls: unknown[][] = [];
+        const { toolApproval } = wrapMcpTools<Tools>(tools, {
+          search: ((...args: unknown[]) => {
+            calls.push(args);
+            return 'approved';
+          }) as never,
+        });
+
+        if (typeof toolApproval === 'function') {
+          throw new Error('expected per-tool object form');
+        }
+
+        const entry = toolApproval.search as (...args: unknown[]) => unknown;
+        const input = { arg: 'value' };
+        const options = { toolCallId: 'call-1' };
+        await entry(input, options as never);
+
+        expect(calls).toEqual([[input, options]]);
+      });
+    });
   });
 });
