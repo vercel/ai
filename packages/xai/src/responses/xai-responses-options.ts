@@ -1,6 +1,7 @@
 import { z } from 'zod/v4';
 
 export type XaiResponsesModelId =
+  | 'grok-4.5'
   | 'grok-4.3'
   | 'grok-4.20-0309-reasoning'
   | 'grok-4.20-0309-non-reasoning'

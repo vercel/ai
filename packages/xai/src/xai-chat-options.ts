@@ -2,6 +2,7 @@ import { z } from 'zod/v4';
 
 // https://docs.x.ai/docs/models
 export type XaiChatModelId =
+  | 'grok-4.5'
   | 'grok-4.3'
   | 'grok-4.20-0309-reasoning'
   | 'grok-4.20-0309-non-reasoning'
