@@ -385,6 +385,25 @@ describe('GatewayTranscriptionModel', () => {
       });
     });
 
+    it('should strip undefined header values before passing headers to the WebSocket constructor', async () => {
+      const model = createStreamingTestModel();
+
+      const result = await model.doStream({
+        audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+        inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+        // `Record<string, string | undefined>` is the documented way to unset
+        // a header; header-capable WebSocket implementations like `ws` throw
+        // on undefined header values (ERR_HTTP_INVALID_HEADER_VALUE).
+        headers: { 'Custom-Header': 'test-value', 'X-Unset-Header': undefined },
+      });
+
+      void result.stream.cancel();
+      const headers = MockWebSocket.instances[0].options?.headers ?? {};
+      expect(headers).not.toHaveProperty('X-Unset-Header');
+      expect(Object.values(headers)).not.toContain(undefined);
+      expect(headers).toMatchObject({ 'Custom-Header': 'test-value' });
+    });
+
     it('should send the session start frame on open', async () => {
       const model = createStreamingTestModel();
 
