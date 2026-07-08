@@ -342,10 +342,47 @@ import { mistral } from '@ai-sdk/mistral';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
-  model: mistral.embedding('mistral-embed'),
-  value: 'sunny day at the beach',
+  model: mistral.embedding('codestral-embed-2505'),
+  value: 'function add(a: number, b: number) { return a + b; }',
 });
 ```
+
+Mistral embedding models support additional provider options through
+`providerOptions.mistral`. You can validate them with
+`MistralEmbeddingModelOptions`:
+
+```ts
+import { mistral, type MistralEmbeddingModelOptions } from '@ai-sdk/mistral';
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: mistral.embedding('mistral-embed'),
+  value: 'sunny day at the beach',
+  providerOptions: {
+    mistral: {
+      metadata: { source: 'knowledge-base' },
+      outputDimension: 1024,
+      outputDtype: 'float',
+    } satisfies MistralEmbeddingModelOptions,
+  },
+});
+```
+
+The following optional provider options are available for Mistral embedding
+models:
+
+- **metadata** _Record&lt;string, unknown&gt;_
+
+  Additional metadata to attach to the embedding request.
+
+- **outputDimension** _number_
+
+  The dimension of the output embeddings when supported by the model.
+
+- **outputDtype** _string_
+
+  The data type of the output embeddings when supported by the model. Accepts
+  `'float'`, `'int8'`, `'uint8'`, `'binary'`, or `'ubinary'`.
 
 ### Model Capabilities
 
