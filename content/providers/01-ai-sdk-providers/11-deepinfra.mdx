@@ -128,7 +128,7 @@ You can create DeepInfra image models using the `.image()` factory method.
 For more on image generation with the AI SDK see [generateImage()](/docs/reference/ai-sdk-core/generate-image).
 
 ```ts
-import { deepInfra } from '@ai-sdk/deepinfra';
+import { deepInfra, type DeepInfraImageModelOptions } from '@ai-sdk/deepinfra';
 import { generateImage } from 'ai';
 
 const { image } = await generateImage({
@@ -159,11 +159,53 @@ const { image } = await generateImage({
   aspectRatio: '16:9',
   providerOptions: {
     deepinfra: {
-      num_inference_steps: 30, // Control the number of denoising steps (1-50)
-    },
+      num_inference_steps: 30,
+    } satisfies DeepInfraImageModelOptions,
   },
 });
 ```
+
+The following options are available via `providerOptions.deepinfra`. You can
+type them with `DeepInfraImageModelOptions`.
+
+- **negative_prompt** _string_
+
+  Text description of what to avoid in the generated image.
+
+- **num_inference_steps** _number_
+
+  Number of denoising steps for models that expose this option.
+
+- **guidance_scale** _number_
+
+  Guidance scale for models that expose this option.
+
+- **guidance** _number_
+
+  Guidance value for image edit models that expose this option.
+
+- **response_format** _'b64_json'_
+
+  Format for OpenAI-compatible image responses. DeepInfra currently supports
+  `b64_json`.
+
+- **quality** _string_
+
+  OpenAI-compatible image quality option.
+
+- **style** _string_
+
+  OpenAI-compatible image style option.
+
+- **user** _string_
+
+  Unique identifier for your end user.
+
+<Note>
+  DeepInfra image generation models expose model-specific parameters. Additional
+  fields can be passed through `providerOptions.deepinfra` and are validated by
+  DeepInfra.
+</Note>
 
 ### Image Editing
 
