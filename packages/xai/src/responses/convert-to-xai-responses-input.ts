@@ -3,7 +3,18 @@ import {
   type SharedV3Warning,
   type LanguageModelV3Message,
 } from '@ai-sdk/provider';
+<<<<<<< HEAD
 import { convertToBase64 } from '@ai-sdk/provider-utils';
+=======
+import {
+  convertToBase64,
+  getTopLevelMediaType,
+  parseProviderOptions,
+  resolveFullMediaType,
+  resolveProviderReference,
+} from '@ai-sdk/provider-utils';
+import { xaiFilePartProviderOptions } from '../xai-file-part-options';
+>>>>>>> 72eee24a7a (feat(provider/xai): support `imageDetail` provider option on image file parts (#16895))
 import type {
   XaiResponsesInput,
   XaiResponsesUserMessageContentPart,
@@ -48,6 +59,7 @@ export async function convertToXaiResponsesInput({
                     ? 'image/jpeg'
                     : block.mediaType;
 
+<<<<<<< HEAD
                 const imageUrl =
                   block.data instanceof URL
                     ? block.data.toString()
@@ -68,6 +80,38 @@ export async function convertToXaiResponsesInput({
                 throw new UnsupportedFunctionalityError({
                   functionality: `file part media type ${block.mediaType} as inline data (xAI Responses requires a URL or a Files API reference for non-image files)`,
                 });
+=======
+                    const filePartOptions = await parseProviderOptions({
+                      provider: 'xai',
+                      providerOptions: block.providerOptions,
+                      schema: xaiFilePartProviderOptions,
+                    });
+
+                    contentParts.push({
+                      type: 'input_image',
+                      image_url: imageUrl,
+                      ...(filePartOptions?.imageDetail != null && {
+                        detail: filePartOptions.imageDetail,
+                      }),
+                    });
+                  } else if (block.data.type === 'url') {
+                    // xAI's Responses API accepts non-image documents (PDF, text, CSV, etc.)
+                    // via `{ type: 'input_file', file_url }`. See
+                    // https://docs.x.ai/docs/guides/chat-with-files. Inline bytes for
+                    // non-image files are not supported by xAI; callers must upload via
+                    // the Files API and pass a provider reference (file_id) instead.
+                    contentParts.push({
+                      type: 'input_file',
+                      file_url: block.data.url.toString(),
+                    });
+                  } else {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: `file part media type ${block.mediaType} as inline data (xAI Responses requires a URL or a Files API reference for non-image files)`,
+                    });
+                  }
+                  break;
+                }
+>>>>>>> 72eee24a7a (feat(provider/xai): support `imageDetail` provider option on image file parts (#16895))
               }
               break;
             }

@@ -3,6 +3,7 @@ import {
   type SharedV3Warning,
   type LanguageModelV3Prompt,
 } from '@ai-sdk/provider';
+<<<<<<< HEAD
 import { convertToBase64 } from '@ai-sdk/provider-utils';
 import type { XaiChatPrompt } from './xai-chat-prompt';
 
@@ -10,6 +11,24 @@ export function convertToXaiChatMessages(prompt: LanguageModelV3Prompt): {
   messages: XaiChatPrompt;
   warnings: Array<SharedV3Warning>;
 } {
+=======
+import {
+  convertToBase64,
+  getTopLevelMediaType,
+  parseProviderOptions,
+  resolveFullMediaType,
+  resolveProviderReference,
+} from '@ai-sdk/provider-utils';
+import type { XaiChatPrompt, XaiUserMessageContent } from './xai-chat-prompt';
+import { xaiFilePartProviderOptions } from './xai-file-part-options';
+
+export async function convertToXaiChatMessages(
+  prompt: LanguageModelV4Prompt,
+): Promise<{
+  messages: XaiChatPrompt;
+  warnings: Array<SharedV4Warning>;
+}> {
+>>>>>>> 72eee24a7a (feat(provider/xai): support `imageDetail` provider option on image file parts (#16895))
   const messages: XaiChatPrompt = [];
   const warnings: Array<SharedV3Warning> = [];
 
@@ -26,6 +45,7 @@ export function convertToXaiChatMessages(prompt: LanguageModelV3Prompt): {
           break;
         }
 
+<<<<<<< HEAD
         messages.push({
           role: 'user',
           content: content.map(part => {
@@ -53,11 +73,70 @@ export function convertToXaiChatMessages(prompt: LanguageModelV3Prompt): {
                   throw new UnsupportedFunctionalityError({
                     functionality: `file part media type ${part.mediaType}`,
                   });
+=======
+        const userContent: Array<XaiUserMessageContent> = [];
+
+        for (const part of content) {
+          switch (part.type) {
+            case 'text': {
+              userContent.push({ type: 'text', text: part.text });
+              break;
+            }
+            case 'file': {
+              switch (part.data.type) {
+                case 'reference': {
+                  userContent.push({
+                    type: 'file',
+                    file: {
+                      file_id: resolveProviderReference({
+                        reference: part.data.reference,
+                        provider: 'xai',
+                      }),
+                    },
+                  });
+                  break;
+                }
+                case 'text': {
+                  throw new UnsupportedFunctionalityError({
+                    functionality: 'text file parts',
+                  });
+                }
+                case 'url':
+                case 'data': {
+                  if (getTopLevelMediaType(part.mediaType) === 'image') {
+                    const filePartOptions = await parseProviderOptions({
+                      provider: 'xai',
+                      providerOptions: part.providerOptions,
+                      schema: xaiFilePartProviderOptions,
+                    });
+
+                    userContent.push({
+                      type: 'image_url',
+                      image_url: {
+                        url:
+                          part.data.type === 'url'
+                            ? part.data.url.toString()
+                            : `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`,
+                        ...(filePartOptions?.imageDetail != null && {
+                          detail: filePartOptions.imageDetail,
+                        }),
+                      },
+                    });
+                  } else {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: `file part media type ${part.mediaType}`,
+                    });
+                  }
+                  break;
+>>>>>>> 72eee24a7a (feat(provider/xai): support `imageDetail` provider option on image file parts (#16895))
                 }
               }
+              break;
             }
-          }),
-        });
+          }
+        }
+
+        messages.push({ role: 'user', content: userContent });
 
         break;
       }

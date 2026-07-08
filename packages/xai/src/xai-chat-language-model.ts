@@ -105,7 +105,7 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
 
     // convert ai sdk messages to xai format
     const { messages, warnings: messageWarnings } =
-      convertToXaiChatMessages(prompt);
+      await convertToXaiChatMessages(prompt);
     warnings.push(...messageWarnings);
 
     // prepare tools for xai
