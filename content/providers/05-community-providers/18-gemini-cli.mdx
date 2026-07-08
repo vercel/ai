@@ -28,7 +28,7 @@ npm install ai-sdk-provider-gemini-cli@ai-sdk-v4 ai@^4.0.0
 
 ## Setup
 
-<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+<Tabs items={["pnpm", "npm", "yarn", "bun"]}>
   <Tab>
     <Snippet text="pnpm add ai-sdk-provider-gemini-cli" dark />
   </Tab>
@@ -48,29 +48,29 @@ npm install ai-sdk-provider-gemini-cli@ai-sdk-v4 ai@^4.0.0
 Import `createGeminiProvider` and create a provider instance with your authentication settings:
 
 ```ts
-import { createGeminiProvider } from 'ai-sdk-provider-gemini-cli';
+import { createGeminiProvider } from "ai-sdk-provider-gemini-cli";
 
 // OAuth authentication (default if authType omitted)
-const gemini = createGeminiProvider({ authType: 'oauth-personal' });
+const gemini = createGeminiProvider({ authType: "oauth-personal" });
 
 // API key authentication
 const gemini = createGeminiProvider({
-  authType: 'api-key', // or 'gemini-api-key'
+  authType: "api-key", // or 'gemini-api-key'
   apiKey: process.env.GEMINI_API_KEY,
 });
 
 // Vertex AI authentication
 const gemini = createGeminiProvider({
-  authType: 'vertex-ai',
+  authType: "vertex-ai",
   vertexAI: {
-    projectId: 'my-project',
-    location: 'us-central1',
+    projectId: "my-project",
+    location: "us-central1",
   },
 });
 
 // Google Auth Library
 const gemini = createGeminiProvider({
-  authType: 'google-auth-library',
+  authType: "google-auth-library",
   googleAuth: myGoogleAuthInstance,
 });
 ```
@@ -89,7 +89,7 @@ Authentication options:
 Create models that call Gemini through the CLI using the provider instance:
 
 ```ts
-const model = gemini('gemini-2.5-pro');
+const model = gemini("gemini-2.5-pro");
 ```
 
 Supported models:
@@ -103,29 +103,29 @@ Supported models:
 ### Example
 
 ```ts
-import { createGeminiProvider } from 'ai-sdk-provider-gemini-cli';
-import { generateText } from 'ai';
+import { createGeminiProvider } from "ai-sdk-provider-gemini-cli";
+import { generateText } from "ai";
 
 const gemini = createGeminiProvider({
-  authType: 'oauth-personal',
+  authType: "oauth-personal",
 });
 
 const { text } = await generateText({
-  model: gemini('gemini-2.5-pro'),
-  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  model: gemini("gemini-2.5-pro"),
+  prompt: "Write a vegetarian lasagna recipe for 4 people.",
 });
 ```
 
 ### Model Settings
 
 ```ts
-const model = gemini('gemini-3.1-pro-preview', {
+const model = gemini("gemini-3.1-pro-preview", {
   temperature: 0.7,
   topP: 0.95,
   topK: 40,
   maxOutputTokens: 8192,
   thinkingConfig: {
-    thinkingLevel: 'medium', // 'low' | 'medium' | 'high' | 'minimal'
+    thinkingLevel: "medium", // 'low' | 'medium' | 'high' | 'minimal'
   },
   verbose: true, // Enable debug logging
   logger: customLogger, // Custom logger (or false to disable)
@@ -134,13 +134,13 @@ const model = gemini('gemini-3.1-pro-preview', {
 
 ### Model Capabilities
 
-| Model                    | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| ------------------------ | ------------------- | ------------------- | ------------------- | ------------------- |
-| `gemini-3.1-pro-preview` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-3-pro-preview`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-3-flash-preview` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-2.5-pro`         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-2.5-flash`       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model                    | Image Input | Object Generation | Tool Usage | Tool Streaming |
+| ------------------------ | ----------- | ----------------- | ---------- | -------------- |
+| `gemini-3.1-pro-preview` | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-3-pro-preview`   | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-3-flash-preview` | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-2.5-pro`         | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-2.5-flash`       | <Check />   | <Check />         | <Check />  | <Check />      |
 
 <Note>
   Images must be provided as base64-encoded data. Image URLs are not supported.

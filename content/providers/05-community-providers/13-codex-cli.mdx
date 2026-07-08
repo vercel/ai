@@ -24,7 +24,7 @@ npm install ai-sdk-provider-codex-cli@ai-sdk-v5 ai@^5.0.0
 
 ## Setup
 
-<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+<Tabs items={["pnpm", "npm", "yarn", "bun"]}>
   <Tab>
     <Snippet text="pnpm add ai-sdk-provider-codex-cli" dark />
   </Tab>
@@ -44,19 +44,19 @@ npm install ai-sdk-provider-codex-cli@ai-sdk-v5 ai@^5.0.0
 You can import the default provider instance `codexCli` from `ai-sdk-provider-codex-cli`:
 
 ```ts
-import { codexCli } from 'ai-sdk-provider-codex-cli';
+import { codexCli } from "ai-sdk-provider-codex-cli";
 ```
 
 If you need a customized setup, you can import `createCodexCli` and provide default settings that apply to every model:
 
 ```ts
-import { createCodexCli } from 'ai-sdk-provider-codex-cli';
+import { createCodexCli } from "ai-sdk-provider-codex-cli";
 
 const codexCli = createCodexCli({
   defaultSettings: {
-    reasoningEffort: 'medium',
-    approvalMode: 'on-failure',
-    sandboxMode: 'workspace-write',
+    reasoningEffort: "medium",
+    approvalMode: "on-failure",
+    sandboxMode: "workspace-write",
     verbose: true,
   },
 });
@@ -65,10 +65,10 @@ const codexCli = createCodexCli({
 Or pass settings per-model:
 
 ```ts
-const model = codexCli('gpt-5.1-codex', {
-  reasoningEffort: 'high',
-  approvalMode: 'on-failure',
-  sandboxMode: 'workspace-write',
+const model = codexCli("gpt-5.1-codex", {
+  reasoningEffort: "high",
+  approvalMode: "on-failure",
+  sandboxMode: "workspace-write",
 });
 ```
 
@@ -86,7 +86,7 @@ Model settings:
 Create models that call GPT-5 through the Codex CLI using the provider instance:
 
 ```ts
-const model = codexCli('gpt-5.2-codex');
+const model = codexCli("gpt-5.2-codex");
 ```
 
 **Current Generation Models:**
@@ -107,21 +107,21 @@ const model = codexCli('gpt-5.2-codex');
 ### Example
 
 ```ts
-import { codexCli } from 'ai-sdk-provider-codex-cli';
-import { generateText } from 'ai';
+import { codexCli } from "ai-sdk-provider-codex-cli";
+import { generateText } from "ai";
 
 const { text } = await generateText({
-  model: codexCli('gpt-5.2-codex'),
-  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  model: codexCli("gpt-5.2-codex"),
+  prompt: "Write a vegetarian lasagna recipe for 4 people.",
 });
 ```
 
 ### Reasoning Configuration
 
 ```ts
-const model = codexCli('gpt-5.1-codex-max', {
-  reasoningEffort: 'high', // 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh'
-  reasoningSummary: 'detailed',
+const model = codexCli("gpt-5.1-codex-max", {
+  reasoningEffort: "high", // 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh'
+  reasoningSummary: "detailed",
 });
 ```
 
@@ -133,15 +133,15 @@ const model = codexCli('gpt-5.1-codex-max', {
 
 ### Model Capabilities
 
-| Model                | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| -------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `gpt-5.3-codex`      | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `gpt-5.2-codex`      | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `gpt-5.2`            | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `gpt-5.1-codex-max`  | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `gpt-5.1-codex-mini` | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `gpt-5.1`            | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `gpt-5.1-codex`      | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| Model                | Image Input | Object Generation | Tool Usage          | Tool Streaming      |
+| -------------------- | ----------- | ----------------- | ------------------- | ------------------- |
+| `gpt-5.3-codex`      | <Check />   | <Check />         | <Cross size={18} /> | <Cross size={18} /> |
+| `gpt-5.2-codex`      | <Check />   | <Check />         | <Cross size={18} /> | <Cross size={18} /> |
+| `gpt-5.2`            | <Check />   | <Check />         | <Cross size={18} /> | <Cross size={18} /> |
+| `gpt-5.1-codex-max`  | <Check />   | <Check />         | <Cross size={18} /> | <Cross size={18} /> |
+| `gpt-5.1-codex-mini` | <Check />   | <Check />         | <Cross size={18} /> | <Cross size={18} /> |
+| `gpt-5.1`            | <Check />   | <Check />         | <Cross size={18} /> | <Cross size={18} /> |
+| `gpt-5.1-codex`      | <Check />   | <Check />         | <Cross size={18} /> | <Cross size={18} /> |
 
 <Note>
   Tool Usage and Tool Streaming show ❌ because this provider does not support

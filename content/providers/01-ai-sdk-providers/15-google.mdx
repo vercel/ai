@@ -33,13 +33,13 @@ The Google provider is available in the `@ai-sdk/google` module. You can install
 You can import the default provider instance `google` from `@ai-sdk/google`:
 
 ```ts
-import { google } from '@ai-sdk/google';
+import { google } from "@ai-sdk/google";
 ```
 
 If you need a customized setup, you can import `createGoogle` from `@ai-sdk/google` and create a provider instance with your settings:
 
 ```ts
-import { createGoogle } from '@ai-sdk/google';
+import { createGoogle } from "@ai-sdk/google";
 
 const google = createGoogle({
   // custom settings
@@ -86,18 +86,18 @@ The first argument is the model id, e.g. `gemini-2.5-flash`.
 The models support tool calls and some have multi-modal capabilities.
 
 ```ts
-const model = google('gemini-2.5-flash');
+const model = google("gemini-2.5-flash");
 ```
 
 You can use Google language models to generate text with the `generateText` function:
 
 ```ts
-import { google } from '@ai-sdk/google';
-import { generateText } from 'ai';
+import { google } from "@ai-sdk/google";
+import { generateText } from "ai";
 
 const { text } = await generateText({
-  model: google('gemini-2.5-flash'),
-  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  model: google("gemini-2.5-flash"),
+  prompt: "Write a vegetarian lasagna recipe for 4 people.",
 });
 ```
 
@@ -109,9 +109,9 @@ Google also supports some model specific settings that are not part of the [stan
 You can pass them as an options argument:
 
 ```ts
-import { google, type GoogleLanguageModelOptions } from '@ai-sdk/google';
+import { google, type GoogleLanguageModelOptions } from "@ai-sdk/google";
 
-const model = google('gemini-2.5-flash');
+const model = google("gemini-2.5-flash");
 
 await generateText({
   model,
@@ -119,8 +119,8 @@ await generateText({
     google: {
       safetySettings: [
         {
-          category: 'HARM_CATEGORY_UNSPECIFIED',
-          threshold: 'BLOCK_LOW_AND_ABOVE',
+          category: "HARM_CATEGORY_UNSPECIFIED",
+          threshold: "BLOCK_LOW_AND_ABOVE",
         },
       ],
     } satisfies GoogleLanguageModelOptions,
@@ -149,9 +149,11 @@ The following optional provider options are available for Google models:
 - **safetySettings** _Array\<\{ category: string; threshold: string \}\>_
 
   Optional. Safety settings for the model.
+
   - **category** _string_
 
     The category of the safety setting. Can be one of the following:
+
     - `HARM_CATEGORY_UNSPECIFIED`
     - `HARM_CATEGORY_HATE_SPEECH`
     - `HARM_CATEGORY_DANGEROUS_CONTENT`
@@ -162,6 +164,7 @@ The following optional provider options are available for Google models:
   - **threshold** _string_
 
     The threshold of the safety setting. Can be one of the following:
+
     - `HARM_BLOCK_THRESHOLD_UNSPECIFIED`
     - `BLOCK_LOW_AND_ABOVE`
     - `BLOCK_MEDIUM_AND_ABOVE`
@@ -175,6 +178,7 @@ The following optional provider options are available for Google models:
 - **thinkingConfig** _\{ thinkingLevel?: 'minimal' | 'low' | 'medium' | 'high'; thinkingBudget?: number; includeThoughts?: boolean \}_
 
   Optional. Configuration for the model's thinking process. Only supported by specific [Google models](https://ai.google.dev/gemini-api/docs/thinking).
+
   - **thinkingLevel** _'minimal' | 'low' | 'medium' | 'high'_
 
     Optional. Controls the thinking depth for Gemini 3 models. Gemini 3.1 Pro supports 'low', 'medium', and 'high', Gemini 3 Pro supports 'low' and 'high', while Gemini 3 Flash supports all four levels: 'minimal', 'low', 'medium', and 'high'. Only supported by Gemini 3 models.
@@ -196,9 +200,11 @@ The following optional provider options are available for Google models:
 - **imageConfig** _\{ aspectRatio?: string, imageSize?: string \}_
 
   Optional. Configuration for the models image generation. Only supported by specific [Google models](https://ai.google.dev/gemini-api/docs/image-generation).
+
   - **aspectRatio** _string_
 
     Model defaults to generate 1:1 squares, or to matching the output image size to that of your input image. Can be one of the following:
+
     - 1:1
     - 2:3
     - 3:2
@@ -213,6 +219,7 @@ The following optional provider options are available for Google models:
   - **imageSize** _string_
 
     Controls the output image resolution. Defaults to 1K. Can be one of the following:
+
     - 1K
     - 2K
     - 4K
@@ -225,6 +232,7 @@ The following optional provider options are available for Google models:
 - **mediaResolution** _string_
 
   Optional. If specified, the media resolution specified will be used. Can be one of the following:
+
   - `MEDIA_RESOLUTION_UNSPECIFIED`
   - `MEDIA_RESOLUTION_LOW`
   - `MEDIA_RESOLUTION_MEDIUM`
@@ -263,18 +271,18 @@ The Gemini 2.5 and Gemini 3 series models use an internal "thinking process" tha
 For Gemini 3 models, use the `thinkingLevel` parameter to control the depth of reasoning:
 
 ```ts
-import { google, GoogleLanguageModelOptions } from '@ai-sdk/google';
-import { generateText } from 'ai';
+import { google, GoogleLanguageModelOptions } from "@ai-sdk/google";
+import { generateText } from "ai";
 
-const model = google('gemini-3.1-pro-preview');
+const model = google("gemini-3.1-pro-preview");
 
 const { text, reasoning } = await generateText({
   model: model,
-  prompt: 'What is the sum of the first 10 prime numbers?',
+  prompt: "What is the sum of the first 10 prime numbers?",
   providerOptions: {
     google: {
       thinkingConfig: {
-        thinkingLevel: 'high',
+        thinkingLevel: "high",
         includeThoughts: true,
       },
     } satisfies GoogleLanguageModelOptions,
@@ -291,14 +299,14 @@ console.log(reasoning); // Reasoning summary
 For Gemini 2.5 models, use the `thinkingBudget` parameter to control the number of thinking tokens:
 
 ```ts
-import { google, GoogleLanguageModelOptions } from '@ai-sdk/google';
-import { generateText } from 'ai';
+import { google, GoogleLanguageModelOptions } from "@ai-sdk/google";
+import { generateText } from "ai";
 
-const model = google('gemini-2.5-flash');
+const model = google("gemini-2.5-flash");
 
 const { text, reasoning } = await generateText({
   model: model,
-  prompt: 'What is the sum of the first 10 prime numbers?',
+  prompt: "What is the sum of the first 10 prime numbers?",
   providerOptions: {
     google: {
       thinkingConfig: {
@@ -319,23 +327,23 @@ console.log(reasoning); // Reasoning summary
 The Google provider supports file inputs, e.g. PDF files.
 
 ```ts
-import { google } from '@ai-sdk/google';
-import { generateText } from 'ai';
+import { google } from "@ai-sdk/google";
+import { generateText } from "ai";
 
 const result = await generateText({
-  model: google('gemini-2.5-flash'),
+  model: google("gemini-2.5-flash"),
   messages: [
     {
-      role: 'user',
+      role: "user",
       content: [
         {
-          type: 'text',
-          text: 'What is an embedding model according to this document?',
+          type: "text",
+          text: "What is an embedding model according to this document?",
         },
         {
-          type: 'file',
-          data: fs.readFileSync('./data/ai.pdf'),
-          mediaType: 'application/pdf',
+          type: "file",
+          data: fs.readFileSync("./data/ai.pdf"),
+          mediaType: "application/pdf",
         },
       ],
     },
@@ -346,23 +354,23 @@ const result = await generateText({
 You can also use YouTube URLs directly:
 
 ```ts
-import { google } from '@ai-sdk/google';
-import { generateText } from 'ai';
+import { google } from "@ai-sdk/google";
+import { generateText } from "ai";
 
 const result = await generateText({
-  model: google('gemini-2.5-flash'),
+  model: google("gemini-2.5-flash"),
   messages: [
     {
-      role: 'user',
+      role: "user",
       content: [
         {
-          type: 'text',
-          text: 'Summarize this video',
+          type: "text",
+          text: "Summarize this video",
         },
         {
-          type: 'file',
-          data: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-          mediaType: 'video/mp4',
+          type: "file",
+          data: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+          mediaType: "video/mp4",
         },
       ],
     },
@@ -397,26 +405,26 @@ To maximize cache hits with implicit caching:
   - Gemini 2.5 Pro: 2048 tokens minimum
 
 ```ts
-import { google } from '@ai-sdk/google';
-import { generateText } from 'ai';
+import { google } from "@ai-sdk/google";
+import { generateText } from "ai";
 
 // Structure prompts with consistent content at the beginning
 const baseContext =
-  'You are a cooking assistant with expertise in Italian cuisine. Here are 1000 lasagna recipes for reference...';
+  "You are a cooking assistant with expertise in Italian cuisine. Here are 1000 lasagna recipes for reference...";
 
 const { text: veggieLasagna } = await generateText({
-  model: google('gemini-2.5-pro'),
+  model: google("gemini-2.5-pro"),
   prompt: `${baseContext}\n\nWrite a vegetarian lasagna recipe for 4 people.`,
 });
 
 // Second request with same prefix - eligible for cache hit
 const { text: meatLasagna, providerMetadata } = await generateText({
-  model: google('gemini-2.5-pro'),
+  model: google("gemini-2.5-pro"),
   prompt: `${baseContext}\n\nWrite a meat lasagna recipe for 12 people.`,
 });
 
 // Check cached token count in usage metadata
-console.log('Cached tokens:', providerMetadata.google);
+console.log("Cached tokens:", providerMetadata.google);
 // e.g.
 // {
 //   groundingMetadata: null,
@@ -442,15 +450,15 @@ console.log('Cached tokens:', providerMetadata.google);
 For guaranteed cost savings, you can still use explicit caching with Gemini 2.5 and 2.0 models. See the [models page](https://ai.google.dev/gemini-api/docs/models) to check if caching is supported for the used model:
 
 ```ts
-import { google, type GoogleLanguageModelOptions } from '@ai-sdk/google';
-import { GoogleGenAI } from '@google/genai';
-import { generateText } from 'ai';
+import { google, type GoogleLanguageModelOptions } from "@ai-sdk/google";
+import { GoogleGenAI } from "@google/genai";
+import { generateText } from "ai";
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
 });
 
-const model = 'gemini-2.5-pro';
+const model = "gemini-2.5-pro";
 
 // Create a cache with the content you want to reuse
 const cache = await ai.caches.create({
@@ -458,17 +466,17 @@ const cache = await ai.caches.create({
   config: {
     contents: [
       {
-        role: 'user',
-        parts: [{ text: '1000 Lasagna Recipes...' }],
+        role: "user",
+        parts: [{ text: "1000 Lasagna Recipes..." }],
       },
     ],
-    ttl: '300s', // Cache expires after 5 minutes
+    ttl: "300s", // Cache expires after 5 minutes
   },
 });
 
 const { text: veggieLasagnaRecipe } = await generateText({
   model: google(model),
-  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  prompt: "Write a vegetarian lasagna recipe for 4 people.",
   providerOptions: {
     google: {
       cachedContent: cache.name,
@@ -478,7 +486,7 @@ const { text: veggieLasagnaRecipe } = await generateText({
 
 const { text: meatLasagnaRecipe } = await generateText({
   model: google(model),
-  prompt: 'Write a meat lasagna recipe for 12 people.',
+  prompt: "Write a meat lasagna recipe for 12 people.",
   providerOptions: {
     google: {
       cachedContent: cache.name,
@@ -494,14 +502,14 @@ With [Code Execution](https://ai.google.dev/gemini-api/docs/code-execution), cer
 You can enable code execution by adding the `code_execution` tool to your request.
 
 ```ts
-import { google } from '@ai-sdk/google';
-import { googleTools } from '@ai-sdk/google/internal';
-import { generateText } from 'ai';
+import { google } from "@ai-sdk/google";
+import { googleTools } from "@ai-sdk/google/internal";
+import { generateText } from "ai";
 
 const { text, toolCalls, toolResults } = await generateText({
-  model: google('gemini-2.5-pro'),
+  model: google("gemini-2.5-pro"),
   tools: { code_execution: google.tools.codeExecution({}) },
-  prompt: 'Use python to calculate the 20th fibonacci number.',
+  prompt: "Use python to calculate the 20th fibonacci number.",
 });
 ```
 
@@ -513,18 +521,18 @@ With [Google Search grounding](https://ai.google.dev/gemini-api/docs/google-sear
 the model has access to the latest information using Google Search.
 
 ```ts highlight="8,17-20"
-import { google } from '@ai-sdk/google';
-import { GoogleProviderMetadata } from '@ai-sdk/google';
-import { generateText } from 'ai';
+import { google } from "@ai-sdk/google";
+import { GoogleProviderMetadata } from "@ai-sdk/google";
+import { generateText } from "ai";
 
 const { text, sources, providerMetadata } = await generateText({
-  model: google('gemini-2.5-flash'),
+  model: google("gemini-2.5-flash"),
   tools: {
     google_search: google.tools.googleSearch({}),
   },
   prompt:
-    'List the top 5 San Francisco news from the past week.' +
-    'You must include the date of each article.',
+    "List the top 5 San Francisco news from the past week." +
+    "You must include the date of each article.",
 });
 
 // access the grounding metadata. Casting to the provider metadata type
@@ -539,12 +547,14 @@ The `googleSearch` tool accepts the following optional configuration options:
 - **searchTypes** _object_
 
   Enables specific search types. Both can be combined.
+
   - `webSearch`: Enable web search grounding (pass `{}` to enable). This is the default.
   - `imageSearch`: Enable [image search grounding](https://ai.google.dev/gemini-api/docs/image-generation#image-search) (pass `{}` to enable).
 
 - **timeRangeFilter** _object_
 
   Restricts search results to a specific time range. Both `startTime` and `endTime` are required.
+
   - `startTime`: Start time in ISO 8601 format (e.g. `'2025-01-01T00:00:00Z'`).
   - `endTime`: End time in ISO 8601 format (e.g. `'2025-12-31T23:59:59Z'`).
 
@@ -552,8 +562,8 @@ The `googleSearch` tool accepts the following optional configuration options:
 google.tools.googleSearch({
   searchTypes: { webSearch: {} },
   timeRangeFilter: {
-    startTime: '2025-01-01T00:00:00Z',
-    endTime: '2025-12-31T23:59:59Z',
+    startTime: "2025-01-01T00:00:00Z",
+    endTime: "2025-12-31T23:59:59Z",
   },
 });
 ```
@@ -563,10 +573,12 @@ When Google Search grounding is enabled, the model will include sources in the r
 Additionally, the grounding metadata includes detailed information about how search results were used to ground the model's response. Here are the available fields:
 
 - **`webSearchQueries`** (`string[] | null`)
+
   - Array of search queries used to retrieve information
   - Example: `["What's the weather in Chicago this weekend?"]`
 
 - **`searchEntryPoint`** (`{ renderedContent: string } | null`)
+
   - Contains the main search result content used as an entry point
   - The `renderedContent` field contains the formatted content
 
@@ -617,20 +629,20 @@ the model has access to a compliance-focused web index designed for highly-regul
 </Note>
 
 ```ts
-import { createGoogleVertex } from '@ai-sdk/google-vertex';
-import { generateText } from 'ai';
+import { createGoogleVertex } from "@ai-sdk/google-vertex";
+import { generateText } from "ai";
 
 const vertex = createGoogleVertex({
-  project: 'my-project',
-  location: 'us-central1',
+  project: "my-project",
+  location: "us-central1",
 });
 
 const { text, sources, providerMetadata } = await generateText({
-  model: vertex('gemini-2.5-flash'),
+  model: vertex("gemini-2.5-flash"),
   tools: {
     enterprise_web_search: vertex.tools.enterpriseWebSearch({}),
   },
-  prompt: 'What are the latest regulatory updates for financial services?',
+  prompt: "What are the latest regulatory updates for financial services?",
 });
 ```
 
@@ -645,15 +657,15 @@ Enterprise Web Search provides the following benefits:
 The [File Search tool](https://ai.google.dev/gemini-api/docs/file-search) lets Gemini retrieve context from your own documents that you have indexed in File Search stores. Only Gemini 2.5 and Gemini 3 models support this feature.
 
 ```ts highlight="9-13"
-import { google } from '@ai-sdk/google';
-import { generateText } from 'ai';
+import { google } from "@ai-sdk/google";
+import { generateText } from "ai";
 
 const { text, sources } = await generateText({
-  model: google('gemini-2.5-pro'),
+  model: google("gemini-2.5-pro"),
   tools: {
     file_search: google.tools.fileSearch({
       fileSearchStoreNames: [
-        'projects/my-project/locations/us/fileSearchStores/my-store',
+        "projects/my-project/locations/us/fileSearchStores/my-store",
       ],
       metadataFilter: 'author = "Robert Graves"',
       topK: 8,
@@ -672,11 +684,11 @@ Google provides a provider-defined URL context tool.
 The URL context tool allows you to provide specific URLs that you want the model to analyze directly in from the prompt.
 
 ```ts highlight="9,13-17"
-import { google } from '@ai-sdk/google';
-import { generateText } from 'ai';
+import { google } from "@ai-sdk/google";
+import { generateText } from "ai";
 
 const { text, sources, providerMetadata } = await generateText({
-  model: google('gemini-2.5-flash'),
+  model: google("gemini-2.5-flash"),
   prompt: `Based on the document: https://ai.google.dev/gemini-api/docs/url-context.
           Answer this question: How many links we can consume in one request?`,
   tools: {
@@ -750,11 +762,11 @@ With the URL context tool, you will also get the `groundingMetadata`.
 You can combine the URL context tool with search grounding to provide the model with the latest information from the web.
 
 ```ts highlight="9-10"
-import { google } from '@ai-sdk/google';
-import { generateText } from 'ai';
+import { google } from "@ai-sdk/google";
+import { generateText } from "ai";
 
 const { text, sources, providerMetadata } = await generateText({
-  model: google('gemini-2.5-flash'),
+  model: google("gemini-2.5-flash"),
   prompt: `Based on this context: https://ai-sdk.dev/providers/ai-sdk-providers/google, tell me how to use Gemini with AI SDK.
     Also, provide the latest news about AI SDK V5.`,
   tools: {
@@ -774,12 +786,12 @@ With [Google Maps grounding](https://ai.google.dev/gemini-api/docs/maps-groundin
 the model has access to Google Maps data for location-aware responses. This enables providing local data and geospatial context, such as finding nearby restaurants.
 
 ```ts highlight="7-16"
-import { google, type GoogleLanguageModelOptions } from '@ai-sdk/google';
-import { GoogleProviderMetadata } from '@ai-sdk/google';
-import { generateText } from 'ai';
+import { google, type GoogleLanguageModelOptions } from "@ai-sdk/google";
+import { GoogleProviderMetadata } from "@ai-sdk/google";
+import { generateText } from "ai";
 
 const { text, sources, providerMetadata } = await generateText({
-  model: google('gemini-2.5-flash'),
+  model: google("gemini-2.5-flash"),
   tools: {
     google_maps: google.tools.googleMaps({}),
   },
@@ -791,7 +803,7 @@ const { text, sources, providerMetadata } = await generateText({
     } satisfies GoogleLanguageModelOptions,
   },
   prompt:
-    'What are the best Italian restaurants within a 15-minute walk from here?',
+    "What are the best Italian restaurants within a 15-minute walk from here?",
 });
 
 const metadata = providerMetadata?.google as GoogleProviderMetadata | undefined;
@@ -833,26 +845,26 @@ This enables the model to provide answers based on your specific data sources an
 </Note>
 
 ```ts highlight="8,17-20"
-import { createGoogleVertex } from '@ai-sdk/google-vertex';
-import { GoogleProviderMetadata } from '@ai-sdk/google';
-import { generateText } from 'ai';
+import { createGoogleVertex } from "@ai-sdk/google-vertex";
+import { GoogleProviderMetadata } from "@ai-sdk/google";
+import { generateText } from "ai";
 
 const vertex = createGoogleVertex({
-  project: 'my-project',
-  location: 'us-central1',
+  project: "my-project",
+  location: "us-central1",
 });
 
 const { text, sources, providerMetadata } = await generateText({
-  model: vertex('gemini-2.5-flash'),
+  model: vertex("gemini-2.5-flash"),
   tools: {
     vertex_rag_store: vertex.tools.vertexRagStore({
       ragCorpus:
-        'projects/my-project/locations/us-central1/ragCorpora/my-rag-corpus',
+        "projects/my-project/locations/us-central1/ragCorpora/my-rag-corpus",
       topK: 5,
     }),
   },
   prompt:
-    'What are the key features of our product according to our documentation?',
+    "What are the key features of our product according to our documentation?",
 });
 
 // access the grounding metadata. Casting to the provider metadata type
@@ -867,6 +879,7 @@ When RAG Engine Grounding is enabled, the model will include sources from your R
 Additionally, the grounding metadata includes detailed information about how RAG results were used to ground the model's response. Here are the available fields:
 
 - **`groundingChunks`** (Array of chunk objects | null)
+
   - Contains the retrieved context chunks from your RAG corpus
   - Each chunk includes:
     - **`retrievedContext`**: Information about the retrieved context
@@ -918,6 +931,7 @@ Example response:
 The `vertexRagStore` tool accepts the following configuration options:
 
 - **`ragCorpus`** (`string`, required)
+
   - The RagCorpus resource name in the format: `projects/{project}/locations/{location}/ragCorpora/{rag_corpus}`
   - This identifies your specific RAG corpus to search against
 
@@ -930,18 +944,18 @@ The `vertexRagStore` tool accepts the following configuration options:
 Gemini models with image generation capabilities (e.g. `gemini-2.5-flash-image`) support generating images as part of a multimodal response. Images are exposed as files in the response.
 
 ```ts
-import { google } from '@ai-sdk/google';
-import { generateText } from 'ai';
+import { google } from "@ai-sdk/google";
+import { generateText } from "ai";
 
 const result = await generateText({
-  model: google('gemini-2.5-flash-image'),
+  model: google("gemini-2.5-flash-image"),
   prompt:
-    'Create a picture of a nano banana dish in a fancy restaurant with a Gemini theme',
+    "Create a picture of a nano banana dish in a fancy restaurant with a Gemini theme",
 });
 
 for (const file of result.files) {
-  if (file.mediaType.startsWith('image/')) {
-    console.log('Generated image:', file);
+  if (file.mediaType.startsWith("image/")) {
+    console.log("Generated image:", file);
   }
 }
 ```
@@ -1010,7 +1024,7 @@ You can disable structured outputs for object generation as a workaround:
 
 ```ts highlight="3,8"
 const { output } = await generateText({
-  model: google('gemini-2.5-flash'),
+  model: google("gemini-2.5-flash"),
   providerOptions: {
     google: {
       structuredOutputs: false,
@@ -1022,17 +1036,17 @@ const { output } = await generateText({
       age: z.number(),
       contact: z.union([
         z.object({
-          type: z.literal('email'),
+          type: z.literal("email"),
           value: z.string(),
         }),
         z.object({
-          type: z.literal('phone'),
+          type: z.literal("phone"),
           value: z.string(),
         }),
       ]),
     }),
   }),
-  prompt: 'Generate an example person for testing.',
+  prompt: "Generate an example person for testing.",
 });
 ```
 
@@ -1043,20 +1057,20 @@ The following Zod features are known to not work with Google:
 
 ### Model Capabilities
 
-| Model                                 | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      | Google Search       | URL Context         |
-| ------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `gemini-3.5-flash`                    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-3.1-pro-preview`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-3.1-flash-image-preview`      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-3.1-flash-lite-preview`       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-3-pro-preview`                | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-3-pro-image-preview`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-3-flash-preview`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-2.5-pro`                      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-2.5-flash`                    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-2.5-flash-lite`               | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-2.5-flash-lite-preview-06-17` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-2.0-flash`                    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model                                 | Image Input | Object Generation | Tool Usage | Tool Streaming | Google Search | URL Context |
+| ------------------------------------- | ----------- | ----------------- | ---------- | -------------- | ------------- | ----------- |
+| `gemini-3.5-flash`                    | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
+| `gemini-3.1-pro-preview`              | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
+| `gemini-3.1-flash-image-preview`      | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
+| `gemini-3.1-flash-lite-preview`       | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
+| `gemini-3-pro-preview`                | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
+| `gemini-3-pro-image-preview`          | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
+| `gemini-3-flash-preview`              | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
+| `gemini-2.5-pro`                      | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
+| `gemini-2.5-flash`                    | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
+| `gemini-2.5-flash-lite`               | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
+| `gemini-2.5-flash-lite-preview-06-17` | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
+| `gemini-2.0-flash`                    | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
 
 <Note>
   The table above lists popular models. Please see the [Google Generative AI
@@ -1073,9 +1087,9 @@ You can create models that call the [Gemini Live API](https://ai.google.dev/gemi
 using the `.experimental_realtime()` factory method.
 
 ```ts
-import { google } from '@ai-sdk/google';
+import { google } from "@ai-sdk/google";
 
-const model = google.experimental_realtime('gemini-3.1-flash-live-preview');
+const model = google.experimental_realtime("gemini-3.1-flash-live-preview");
 ```
 
 Realtime sessions run in the browser and require a short-lived token created on
@@ -1083,7 +1097,7 @@ your server with `google.experimental_realtime.getToken()`:
 
 ```ts
 const token = await google.experimental_realtime.getToken({
-  model: 'gemini-3.1-flash-live-preview',
+  model: "gemini-3.1-flash-live-preview",
 });
 ```
 
@@ -1102,18 +1116,18 @@ use when creating the token:
 import {
   google,
   type Experimental_GoogleRealtimeModelOptions as GoogleRealtimeModelOptions,
-} from '@ai-sdk/google';
+} from "@ai-sdk/google";
 
 const token = await google.experimental_realtime.getToken({
-  model: 'gemini-3.5-live-translate-preview',
+  model: "gemini-3.5-live-translate-preview",
   sessionConfig: {
-    outputModalities: ['audio'],
+    outputModalities: ["audio"],
     inputAudioTranscription: {},
     outputAudioTranscription: {},
     providerOptions: {
       google: {
         translationConfig: {
-          targetLanguageCode: 'pl',
+          targetLanguageCode: "pl",
           echoTargetLanguage: true,
         },
       } satisfies GoogleRealtimeModelOptions,
@@ -1140,12 +1154,12 @@ multimodal image output. It is reached via the `google.interactions(...)`
 factory:
 
 ```ts
-import { google } from '@ai-sdk/google';
-import { generateText } from 'ai';
+import { google } from "@ai-sdk/google";
+import { generateText } from "ai";
 
 const { text } = await generateText({
-  model: google.interactions('gemini-2.5-flash'),
-  prompt: 'Hello, how are you?',
+  model: google.interactions("gemini-2.5-flash"),
+  prompt: "Hello, how are you?",
 });
 ```
 
@@ -1173,15 +1187,15 @@ The Interactions model reads its options from the shared
 import {
   google,
   type GoogleLanguageModelInteractionsOptions,
-} from '@ai-sdk/google';
-import { generateText } from 'ai';
+} from "@ai-sdk/google";
+import { generateText } from "ai";
 
 await generateText({
-  model: google.interactions('gemini-2.5-flash'),
-  prompt: 'What color is the sky in one word?',
+  model: google.interactions("gemini-2.5-flash"),
+  prompt: "What color is the sky in one word?",
   providerOptions: {
     google: {
-      serviceTier: 'priority',
+      serviceTier: "priority",
     } satisfies GoogleLanguageModelInteractionsOptions,
   },
 });
@@ -1313,12 +1327,12 @@ next request only needs to send the new user message and the
 import {
   google,
   type GoogleLanguageModelInteractionsOptions,
-} from '@ai-sdk/google';
-import { generateText } from 'ai';
+} from "@ai-sdk/google";
+import { generateText } from "ai";
 
 const turn1 = await generateText({
-  model: google.interactions('gemini-2.5-flash'),
-  prompt: 'What are the three largest cities in Spain?',
+  model: google.interactions("gemini-2.5-flash"),
+  prompt: "What are the three largest cities in Spain?",
 });
 
 const interactionId = turn1.providerMetadata?.google?.interactionId as
@@ -1326,8 +1340,8 @@ const interactionId = turn1.providerMetadata?.google?.interactionId as
   | undefined;
 
 const turn2 = await generateText({
-  model: google.interactions('gemini-2.5-flash'),
-  prompt: 'What is the most famous landmark in the second one?',
+  model: google.interactions("gemini-2.5-flash"),
+  prompt: "What is the most famous landmark in the second one?",
   providerOptions: {
     google: {
       previousInteractionId: interactionId,
@@ -1343,15 +1357,15 @@ full message history on every turn (no `previousInteractionId`):
 import {
   google,
   type GoogleLanguageModelInteractionsOptions,
-} from '@ai-sdk/google';
-import { generateText, type ModelMessage } from 'ai';
+} from "@ai-sdk/google";
+import { generateText, type ModelMessage } from "ai";
 
 const messages: Array<ModelMessage> = [
-  { role: 'user', content: 'What are the three largest cities in Spain?' },
+  { role: "user", content: "What are the three largest cities in Spain?" },
 ];
 
 const turn1 = await generateText({
-  model: google.interactions('gemini-2.5-flash'),
+  model: google.interactions("gemini-2.5-flash"),
   messages,
   providerOptions: {
     google: { store: false } satisfies GoogleLanguageModelInteractionsOptions,
@@ -1360,12 +1374,12 @@ const turn1 = await generateText({
 
 messages.push(...turn1.responseMessages);
 messages.push({
-  role: 'user',
-  content: 'What is the most famous landmark in the second one?',
+  role: "user",
+  content: "What is the most famous landmark in the second one?",
 });
 
 const turn2 = await generateText({
-  model: google.interactions('gemini-2.5-flash'),
+  model: google.interactions("gemini-2.5-flash"),
   messages,
   providerOptions: {
     google: { store: false } satisfies GoogleLanguageModelInteractionsOptions,
@@ -1394,38 +1408,38 @@ helper are translated to Interactions `function` tool descriptors. Other
 tool kinds emit a warning and are dropped.
 
 ```ts
-import { google } from '@ai-sdk/google';
-import { generateText } from 'ai';
+import { google } from "@ai-sdk/google";
+import { generateText } from "ai";
 
 const { text, sources } = await generateText({
-  model: google.interactions('gemini-2.5-flash'),
+  model: google.interactions("gemini-2.5-flash"),
   tools: {
     google_search: google.tools.googleSearch({}),
   },
   prompt:
     "What's a notable AI development from this past week? " +
-    'Include the date for each item you mention.',
+    "Include the date for each item you mention.",
 });
 ```
 
 Function tools work the same way as on the standard provider:
 
 ```ts
-import { google } from '@ai-sdk/google';
-import { generateText, stepCountIs, tool } from 'ai';
-import { z } from 'zod';
+import { google } from "@ai-sdk/google";
+import { generateText, stepCountIs, tool } from "ai";
+import { z } from "zod";
 
 const weatherTool = tool({
-  description: 'Get the weather for a city.',
+  description: "Get the weather for a city.",
   inputSchema: z.object({ city: z.string() }),
   execute: async ({ city }) => `It is sunny in ${city}.`,
 });
 
 const { text, toolCalls } = await generateText({
-  model: google.interactions('gemini-2.5-flash'),
+  model: google.interactions("gemini-2.5-flash"),
   tools: { getWeather: weatherTool },
   stopWhen: stepCountIs(5),
-  prompt: 'What is the weather in San Francisco right now?',
+  prompt: "What is the weather in San Francisco right now?",
 });
 ```
 
@@ -1440,21 +1454,21 @@ place to set `aspectRatio`, `imageSize`, and `mimeType`.
 import {
   google,
   type GoogleLanguageModelInteractionsOptions,
-} from '@ai-sdk/google';
-import { generateText } from 'ai';
+} from "@ai-sdk/google";
+import { generateText } from "ai";
 
 const result = await generateText({
-  model: google.interactions('gemini-3-pro-image-preview'),
-  prompt: 'Generate an image of a comic cat in a spaceship.',
+  model: google.interactions("gemini-3-pro-image-preview"),
+  prompt: "Generate an image of a comic cat in a spaceship.",
   providerOptions: {
     google: {
-      responseFormat: [{ type: 'image' }],
+      responseFormat: [{ type: "image" }],
     } satisfies GoogleLanguageModelInteractionsOptions,
   },
 });
 
 for (const file of result.files) {
-  if (file.mediaType.startsWith('image/')) {
+  if (file.mediaType.startsWith("image/")) {
     // file.uint8Array | file.base64 | file.mediaType
   }
 }
@@ -1467,19 +1481,19 @@ fields to the same image entry:
 import {
   google,
   type GoogleLanguageModelInteractionsOptions,
-} from '@ai-sdk/google';
-import { generateText } from 'ai';
+} from "@ai-sdk/google";
+import { generateText } from "ai";
 
 const result = await generateText({
-  model: google.interactions('gemini-3-pro-image-preview'),
-  prompt: 'Generate a high-quality landscape photo of mountains at sunset.',
+  model: google.interactions("gemini-3-pro-image-preview"),
+  prompt: "Generate a high-quality landscape photo of mountains at sunset.",
   providerOptions: {
     google: {
       responseFormat: [
         {
-          type: 'image',
-          aspectRatio: '16:9',
-          imageSize: '4K',
+          type: "image",
+          aspectRatio: "16:9",
+          imageSize: "4K",
         },
       ],
     } satisfies GoogleLanguageModelInteractionsOptions,
@@ -1494,18 +1508,18 @@ text in `result.text` and the accompanying image(s) in `result.files`:
 import {
   google,
   type GoogleLanguageModelInteractionsOptions,
-} from '@ai-sdk/google';
-import { generateText } from 'ai';
+} from "@ai-sdk/google";
+import { generateText } from "ai";
 
 const result = await generateText({
-  model: google.interactions('gemini-2.5-flash-image'),
+  model: google.interactions("gemini-2.5-flash-image"),
   prompt:
-    'Tell me a three sentence bedtime story about a unicorn, accompanied by a suitable illustration.',
+    "Tell me a three sentence bedtime story about a unicorn, accompanied by a suitable illustration.",
   providerOptions: {
     google: {
       responseFormat: [
-        { type: 'text' },
-        { type: 'image', aspectRatio: '16:9' },
+        { type: "text" },
+        { type: "image", aspectRatio: "16:9" },
       ],
     } satisfies GoogleLanguageModelInteractionsOptions,
   },
@@ -1513,7 +1527,9 @@ const result = await generateText({
 
 console.log(result.text);
 
-const images = result.files.filter(file => file.mediaType.startsWith('image/'));
+const images = result.files.filter((file) =>
+  file.mediaType.startsWith("image/"),
+);
 // images[0].uint8Array | images[0].base64 | images[0].mediaType
 ```
 
@@ -1525,17 +1541,17 @@ output:
 import {
   google,
   type GoogleLanguageModelInteractionsOptions,
-} from '@ai-sdk/google';
-import { generateText } from 'ai';
+} from "@ai-sdk/google";
+import { generateText } from "ai";
 
-const model = google.interactions('gemini-3-pro-image-preview');
+const model = google.interactions("gemini-3-pro-image-preview");
 
 const turn1 = await generateText({
   model,
-  prompt: 'Generate an image of a comic cat in a spaceship.',
+  prompt: "Generate an image of a comic cat in a spaceship.",
   providerOptions: {
     google: {
-      responseFormat: [{ type: 'image' }],
+      responseFormat: [{ type: "image" }],
     } satisfies GoogleLanguageModelInteractionsOptions,
   },
 });
@@ -1546,10 +1562,10 @@ const interactionId = turn1.providerMetadata?.google?.interactionId as
 
 const turn2 = await generateText({
   model,
-  prompt: 'now make the cat red',
+  prompt: "now make the cat red",
   providerOptions: {
     google: {
-      responseFormat: [{ type: 'image' }],
+      responseFormat: [{ type: "image" }],
       previousInteractionId: interactionId,
     } satisfies GoogleLanguageModelInteractionsOptions,
   },
@@ -1565,15 +1581,15 @@ type-checks the agent name against the supported set:
 import {
   google,
   type GoogleLanguageModelInteractionsOptions,
-} from '@ai-sdk/google';
-import { generateText } from 'ai';
+} from "@ai-sdk/google";
+import { generateText } from "ai";
 
 const result = await generateText({
   model: google.interactions({
-    agent: 'deep-research-pro-preview-12-2025',
+    agent: "deep-research-pro-preview-12-2025",
   }),
   prompt:
-    'Briefly summarize the most-cited papers on retrieval-augmented generation since 2024 (2-3 sentences).',
+    "Briefly summarize the most-cited papers on retrieval-augmented generation since 2024 (2-3 sentences).",
   providerOptions: {
     google: {
       background: true,
@@ -1597,12 +1613,12 @@ The default polling timeout is 30 minutes; raise it via
 import {
   google,
   type GoogleLanguageModelInteractionsOptions,
-} from '@ai-sdk/google';
-import { generateText } from 'ai';
+} from "@ai-sdk/google";
+import { generateText } from "ai";
 
 await generateText({
-  model: google.interactions({ agent: 'deep-research-max-preview-04-2026' }),
-  prompt: 'Produce a long-form research brief on ...',
+  model: google.interactions({ agent: "deep-research-max-preview-04-2026" }),
+  prompt: "Produce a long-form research brief on ...",
   providerOptions: {
     google: {
       background: true,
@@ -1627,15 +1643,15 @@ The simplest form provisions a fresh sandbox:
 import {
   google,
   type GoogleLanguageModelInteractionsOptions,
-} from '@ai-sdk/google';
-import { generateText } from 'ai';
+} from "@ai-sdk/google";
+import { generateText } from "ai";
 
 const result = await generateText({
-  model: google.interactions({ agent: 'antigravity-preview-05-2026' }),
-  prompt: 'What is 2 + 2?',
+  model: google.interactions({ agent: "antigravity-preview-05-2026" }),
+  prompt: "What is 2 + 2?",
   providerOptions: {
     google: {
-      environment: 'remote',
+      environment: "remote",
     } satisfies GoogleLanguageModelInteractionsOptions,
   },
 });
@@ -1653,22 +1669,22 @@ const result = await generateText({
 import {
   google,
   type GoogleLanguageModelInteractionsOptions,
-} from '@ai-sdk/google';
-import { generateText } from 'ai';
+} from "@ai-sdk/google";
+import { generateText } from "ai";
 
 await generateText({
-  model: google.interactions({ agent: 'antigravity-preview-05-2026' }),
+  model: google.interactions({ agent: "antigravity-preview-05-2026" }),
   prompt:
-    'Read the file at /data/note.txt and tell me exactly what it contains.',
+    "Read the file at /data/note.txt and tell me exactly what it contains.",
   providerOptions: {
     google: {
       environment: {
-        type: 'remote',
+        type: "remote",
         sources: [
           {
-            type: 'inline',
-            content: 'hello from the AI SDK example\n',
-            target: '/data/note.txt',
+            type: "inline",
+            content: "hello from the AI SDK example\n",
+            target: "/data/note.txt",
           },
         ],
       },
@@ -1697,15 +1713,15 @@ known preset names):
 import {
   google,
   type GoogleLanguageModelInteractionsOptions,
-} from '@ai-sdk/google';
-import { generateText } from 'ai';
+} from "@ai-sdk/google";
+import { generateText } from "ai";
 
 const result = await generateText({
-  model: google.interactions({ managedAgent: 'my-custom-agent' }),
-  prompt: 'Hello!',
+  model: google.interactions({ managedAgent: "my-custom-agent" }),
+  prompt: "Hello!",
   providerOptions: {
     google: {
-      environment: 'remote',
+      environment: "remote",
     } satisfies GoogleLanguageModelInteractionsOptions,
   },
 });
@@ -1717,12 +1733,12 @@ const result = await generateText({
 `interactionId` on `providerMetadata.google` so callers can chain.
 
 ```ts
-import { google } from '@ai-sdk/google';
-import { streamText } from 'ai';
+import { google } from "@ai-sdk/google";
+import { streamText } from "ai";
 
 const result = streamText({
-  model: google.interactions('gemini-2.5-flash'),
-  prompt: 'Hello, how are you?',
+  model: google.interactions("gemini-2.5-flash"),
+  prompt: "Hello, how are you?",
 });
 
 for await (const textPart of result.textStream) {
@@ -1730,7 +1746,7 @@ for await (const textPart of result.textStream) {
 }
 
 const googleMetadata = (await result.providerMetadata)?.google;
-console.log('Interaction id:', googleMetadata?.interactionId);
+console.log("Interaction id:", googleMetadata?.interactionId);
 ```
 
 ## Gemma Models
@@ -1744,13 +1760,13 @@ The following Gemma models are available:
 Gemma models don't natively support the `systemInstruction` parameter, but the provider automatically handles system instructions by prepending them to the first user message. This allows you to use system instructions with Gemma models seamlessly:
 
 ```ts
-import { google } from '@ai-sdk/google';
-import { generateText } from 'ai';
+import { google } from "@ai-sdk/google";
+import { generateText } from "ai";
 
 const { text } = await generateText({
-  model: google('gemma-3-27b-it'),
-  system: 'You are a helpful assistant that responds concisely.',
-  prompt: 'What is machine learning?',
+  model: google("gemma-3-27b-it"),
+  system: "You are a helpful assistant that responds concisely.",
+  prompt: "What is machine learning?",
 });
 ```
 
@@ -1762,7 +1778,7 @@ You can create models that call the [Google Generative AI embeddings API](https:
 using the `.embedding()` factory method.
 
 ```ts
-const model = google.embedding('gemini-embedding-001');
+const model = google.embedding("gemini-embedding-001");
 ```
 
 The Google provider sends API calls to the right endpoint based on the type of embedding:
@@ -1773,19 +1789,19 @@ The Google provider sends API calls to the right endpoint based on the type of e
 Google embedding models support additional settings. You can pass them as an options argument:
 
 ```ts
-import { google, type GoogleEmbeddingModelOptions } from '@ai-sdk/google';
-import { embed } from 'ai';
+import { google, type GoogleEmbeddingModelOptions } from "@ai-sdk/google";
+import { embed } from "ai";
 
-const model = google.embedding('gemini-embedding-001');
+const model = google.embedding("gemini-embedding-001");
 
 const { embedding } = await embed({
   model,
-  value: 'sunny day at the beach',
+  value: "sunny day at the beach",
   providerOptions: {
     google: {
       outputDimensionality: 512, // optional, number of dimensions for the embedding
-      taskType: 'SEMANTIC_SIMILARITY', // optional, specifies the task type for generating embeddings
-      content: [[{ text: 'additional context' }]], // optional, per-value multimodal content (only 1 here, since `value` is only a single one)
+      taskType: "SEMANTIC_SIMILARITY", // optional, specifies the task type for generating embeddings
+      content: [[{ text: "additional context" }]], // optional, per-value multimodal content (only 1 here, since `value` is only a single one)
     } satisfies GoogleEmbeddingModelOptions,
   },
 });
@@ -1794,17 +1810,17 @@ const { embedding } = await embed({
 When using `embedMany`, provide per-value multimodal content via the `content` option. Each entry corresponds to a value at the same index; use `null` for text-only entries:
 
 ```ts
-import { google, type GoogleEmbeddingModelOptions } from '@ai-sdk/google';
-import { embedMany } from 'ai';
+import { google, type GoogleEmbeddingModelOptions } from "@ai-sdk/google";
+import { embedMany } from "ai";
 
 const { embeddings } = await embedMany({
-  model: google.embedding('gemini-embedding-2-preview'),
-  values: ['sunny day at the beach', 'rainy afternoon in the city'],
+  model: google.embedding("gemini-embedding-2-preview"),
+  values: ["sunny day at the beach", "rainy afternoon in the city"],
   providerOptions: {
     google: {
       // content array must have the same length as values
       content: [
-        [{ inlineData: { mimeType: 'image/png', data: '<base64>' } }], // pairs with values[0]
+        [{ inlineData: { mimeType: "image/png", data: "<base64>" } }], // pairs with values[0]
         null, // text-only, pairs with values[1]
       ],
     } satisfies GoogleEmbeddingModelOptions,
@@ -1821,6 +1837,7 @@ The following optional provider options are available for Google embedding model
 - **taskType**: _string_
 
   Optional. Specifies the task type for generating embeddings. Supported task types include:
+
   - `SEMANTIC_SIMILARITY`: Optimized for text similarity.
   - `CLASSIFICATION`: Optimized for text classification.
   - `CLUSTERING`: Optimized for clustering texts based on similarity.
@@ -1836,11 +1853,11 @@ The following optional provider options are available for Google embedding model
 
 ### Model Capabilities
 
-| Model                        | Default Dimensions | Custom Dimensions   | Multimodal          |
-| ---------------------------- | ------------------ | ------------------- | ------------------- |
-| `gemini-embedding-001`       | 3072               | <Check size={18} /> | <Cross size={18} /> |
-| `gemini-embedding-2`         | 3072               | <Check size={18} /> | <Check size={18} /> |
-| `gemini-embedding-2-preview` | 3072               | <Check size={18} /> | <Check size={18} /> |
+| Model                        | Default Dimensions | Custom Dimensions | Multimodal          |
+| ---------------------------- | ------------------ | ----------------- | ------------------- |
+| `gemini-embedding-001`       | 3072               | <Check />         | <Cross size={18} /> |
+| `gemini-embedding-2`         | 3072               | <Check />         | <Check />           |
+| `gemini-embedding-2-preview` | 3072               | <Check />         | <Check />           |
 
 ## Image Models
 
@@ -1857,28 +1874,28 @@ The Google provider supports two types of image models:
 [Imagen](https://ai.google.dev/gemini-api/docs/imagen) models are dedicated image generation models.
 
 ```ts
-import { google } from '@ai-sdk/google';
-import { generateImage } from 'ai';
+import { google } from "@ai-sdk/google";
+import { generateImage } from "ai";
 
 const { image } = await generateImage({
-  model: google.image('imagen-4.0-generate-001'),
-  prompt: 'A futuristic cityscape at sunset',
-  aspectRatio: '16:9',
+  model: google.image("imagen-4.0-generate-001"),
+  prompt: "A futuristic cityscape at sunset",
+  aspectRatio: "16:9",
 });
 ```
 
 Further configuration can be done using Google provider options. You can validate the provider options using the `GoogleImageModelOptions` type.
 
 ```ts
-import { google } from '@ai-sdk/google';
-import { GoogleImageModelOptions } from '@ai-sdk/google';
-import { generateImage } from 'ai';
+import { google } from "@ai-sdk/google";
+import { GoogleImageModelOptions } from "@ai-sdk/google";
+import { generateImage } from "ai";
 
 const { image } = await generateImage({
-  model: google.image('imagen-4.0-generate-001'),
+  model: google.image("imagen-4.0-generate-001"),
   providerOptions: {
     google: {
-      personGeneration: 'dont_allow',
+      personGeneration: "dont_allow",
     } satisfies GoogleImageModelOptions,
   },
   // ...
@@ -1908,29 +1925,29 @@ The following provider options are available for Imagen models:
 [Gemini image models](https://ai.google.dev/gemini-api/docs/image-generation) (e.g. `gemini-2.5-flash-image`) are technically multimodal output language models, but they can be used with the `generateImage()` function for a simpler image generation experience. Internally, the provider calls the language model API with `responseModalities: ['IMAGE']`.
 
 ```ts
-import { google } from '@ai-sdk/google';
-import { generateImage } from 'ai';
+import { google } from "@ai-sdk/google";
+import { generateImage } from "ai";
 
 const { image } = await generateImage({
-  model: google.image('gemini-2.5-flash-image'),
-  prompt: 'A photorealistic image of a cat wearing a wizard hat',
-  aspectRatio: '1:1',
+  model: google.image("gemini-2.5-flash-image"),
+  prompt: "A photorealistic image of a cat wearing a wizard hat",
+  aspectRatio: "1:1",
 });
 ```
 
 Gemini image models also support image editing by providing input images:
 
 ```ts
-import { google } from '@ai-sdk/google';
-import { generateImage } from 'ai';
-import fs from 'node:fs';
+import { google } from "@ai-sdk/google";
+import { generateImage } from "ai";
+import fs from "node:fs";
 
-const sourceImage = fs.readFileSync('./cat.png');
+const sourceImage = fs.readFileSync("./cat.png");
 
 const { image } = await generateImage({
-  model: google.image('gemini-2.5-flash-image'),
+  model: google.image("gemini-2.5-flash-image"),
   prompt: {
-    text: 'Add a small wizard hat to this cat',
+    text: "Add a small wizard hat to this cat",
     images: [sourceImage],
   },
 });
@@ -1939,14 +1956,14 @@ const { image } = await generateImage({
 You can also use URLs for input images:
 
 ```ts
-import { google } from '@ai-sdk/google';
-import { generateImage } from 'ai';
+import { google } from "@ai-sdk/google";
+import { generateImage } from "ai";
 
 const { image } = await generateImage({
-  model: google.image('gemini-2.5-flash-image'),
+  model: google.image("gemini-2.5-flash-image"),
   prompt: {
-    text: 'Add a small wizard hat to this cat',
-    images: ['https://example.com/cat.png'],
+    text: "Add a small wizard hat to this cat",
+    images: ["https://example.com/cat.png"],
   },
 });
 ```
@@ -1968,13 +1985,13 @@ const { image } = await generateImage({
 Gemini image models support [Google Search grounding](#google-search) through `providerOptions.google.googleSearch`. The value matches the args of `google.tools.googleSearch(...)`; pass `{}` to enable with defaults, or `{ searchTypes: { imageSearch: {} } }` to ground on reference photos.
 
 ```ts
-import { google } from '@ai-sdk/google';
-import { generateImage } from 'ai';
+import { google } from "@ai-sdk/google";
+import { generateImage } from "ai";
 
 const result = await generateImage({
-  model: google.image('gemini-3.1-flash-image-preview'),
+  model: google.image("gemini-3.1-flash-image-preview"),
   prompt:
-    'Search for live footage of the 2026 Super Bowl halftime show artist, then generate a close-up in space.',
+    "Search for live footage of the 2026 Super Bowl halftime show artist, then generate a close-up in space.",
   providerOptions: {
     google: {
       googleSearch: { searchTypes: { imageSearch: {} } },
@@ -1988,11 +2005,11 @@ console.log(result.providerMetadata?.google?.groundingMetadata);
 
 #### Gemini Image Model Capabilities
 
-| Model                            | Image Generation    | Image Editing       | Aspect Ratios                                       |
-| -------------------------------- | ------------------- | ------------------- | --------------------------------------------------- |
-| `gemini-2.5-flash-image`         | <Check size={18} /> | <Check size={18} /> | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
-| `gemini-3-pro-image-preview`     | <Check size={18} /> | <Check size={18} /> | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
-| `gemini-3.1-flash-image-preview` | <Check size={18} /> | <Check size={18} /> | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
+| Model                            | Image Generation | Image Editing | Aspect Ratios                                       |
+| -------------------------------- | ---------------- | ------------- | --------------------------------------------------- |
+| `gemini-2.5-flash-image`         | <Check />        | <Check />     | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
+| `gemini-3-pro-image-preview`     | <Check />        | <Check />     | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
+| `gemini-3.1-flash-image-preview` | <Check />        | <Check />     | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
 
 <Note>
   `gemini-3-pro-image-preview` supports additional features including up to 14
@@ -2009,20 +2026,20 @@ using the `.speech()` factory method.
 The first argument is the model id e.g. `gemini-2.5-flash-preview-tts`.
 
 ```ts
-const model = google.speech('gemini-2.5-flash-preview-tts');
+const model = google.speech("gemini-2.5-flash-preview-tts");
 ```
 
 The `voice` argument can be set to one of Gemini's [30 prebuilt voices](https://ai.google.dev/gemini-api/docs/speech-generation#voices)
 e.g. `Kore`, `Puck`, `Zephyr`, or `Charon`. Voice names are case-sensitive. It defaults to `Kore`.
 
 ```ts highlight="6"
-import { generateSpeech } from 'ai';
-import { google } from '@ai-sdk/google';
+import { generateSpeech } from "ai";
+import { google } from "@ai-sdk/google";
 
 const result = await generateSpeech({
-  model: google.speech('gemini-2.5-flash-preview-tts'),
-  text: 'Hello, world!',
-  voice: 'Kore', // Gemini voice name
+  model: google.speech("gemini-2.5-flash-preview-tts"),
+  text: "Hello, world!",
+  voice: "Kore", // Gemini voice name
 });
 ```
 
@@ -2039,23 +2056,23 @@ For multi-speaker dialogue, pass a `multiSpeakerVoiceConfig` through `providerOp
 name must match a name used in the input text. When set, it overrides the top-level `voice`.
 
 ```ts highlight="8-23"
-import { generateSpeech } from 'ai';
-import { google, type GoogleSpeechModelOptions } from '@ai-sdk/google';
+import { generateSpeech } from "ai";
+import { google, type GoogleSpeechModelOptions } from "@ai-sdk/google";
 
 const result = await generateSpeech({
-  model: google.speech('gemini-2.5-flash-preview-tts'),
-  text: 'Joe: How are you? Jane: Doing great, thanks!',
+  model: google.speech("gemini-2.5-flash-preview-tts"),
+  text: "Joe: How are you? Jane: Doing great, thanks!",
   providerOptions: {
     google: {
       multiSpeakerVoiceConfig: {
         speakerVoiceConfigs: [
           {
-            speaker: 'Joe',
-            voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } },
+            speaker: "Joe",
+            voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } },
           },
           {
-            speaker: 'Jane',
-            voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Puck' } },
+            speaker: "Jane",
+            voiceConfig: { prebuiltVoiceConfig: { voiceName: "Puck" } },
           },
         ],
       },
@@ -2072,8 +2089,8 @@ const result = await generateSpeech({
 
 ### Model Capabilities
 
-| Model                          | Multi-speaker       | Style via instructions |
-| ------------------------------ | ------------------- | ---------------------- |
-| `gemini-2.5-flash-preview-tts` | <Check size={18} /> | <Check size={18} />    |
-| `gemini-2.5-pro-preview-tts`   | <Check size={18} /> | <Check size={18} />    |
-| `gemini-3.1-flash-tts-preview` | <Check size={18} /> | <Check size={18} />    |
+| Model                          | Multi-speaker | Style via instructions |
+| ------------------------------ | ------------- | ---------------------- |
+| `gemini-2.5-flash-preview-tts` | <Check />     | <Check />              |
+| `gemini-2.5-pro-preview-tts`   | <Check />     | <Check />              |
+| `gemini-3.1-flash-tts-preview` | <Check />     | <Check />              |

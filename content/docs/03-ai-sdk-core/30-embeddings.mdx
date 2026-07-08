@@ -15,12 +15,12 @@ or phrases or clustering text.
 You can use it with embeddings models, e.g. `openai.embeddingModel('text-embedding-3-large')` or `mistral.embeddingModel('mistral-embed')`.
 
 ```tsx
-import { embed } from 'ai';
+import { embed } from "ai";
 
 // 'embedding' is a single embedding object (number[])
 const { embedding } = await embed({
-  model: 'openai/text-embedding-3-small',
-  value: 'sunny day at the beach',
+  model: "openai/text-embedding-3-small",
+  value: "sunny day at the beach",
 });
 ```
 
@@ -34,16 +34,16 @@ Similar to `embed`, you can use it with embeddings models,
 e.g. `openai.embeddingModel('text-embedding-3-large')` or `mistral.embeddingModel('mistral-embed')`.
 
 ```tsx
-import { embedMany } from 'ai';
+import { embedMany } from "ai";
 
 // 'embeddings' is an array of embedding objects (number[][]).
 // It is sorted in the same order as the input values.
 const { embeddings } = await embedMany({
-  model: 'openai/text-embedding-3-small',
+  model: "openai/text-embedding-3-small",
   values: [
-    'sunny day at the beach',
-    'rainy afternoon in the city',
-    'snowy night in the mountains',
+    "sunny day at the beach",
+    "rainy afternoon in the city",
+    "snowy night in the mountains",
   ],
 });
 ```
@@ -55,11 +55,11 @@ This is useful to e.g. find similar words or phrases in a dataset.
 You can also rank and filter related items based on their similarity.
 
 ```ts highlight={"1,9"}
-import { cosineSimilarity, embedMany } from 'ai';
+import { cosineSimilarity, embedMany } from "ai";
 
 const { embeddings } = await embedMany({
-  model: 'openai/text-embedding-3-small',
-  values: ['sunny day at the beach', 'rainy afternoon in the city'],
+  model: "openai/text-embedding-3-small",
+  values: ["sunny day at the beach", "rainy afternoon in the city"],
 });
 
 console.log(
@@ -73,11 +73,11 @@ Many providers charge based on the number of tokens used to generate embeddings.
 Both `embed` and `embedMany` provide token usage information in the `usage` property of the result object:
 
 ```ts highlight={"3,8"}
-import { embed } from 'ai';
+import { embed } from "ai";
 
 const { embedding, usage } = await embed({
-  model: 'openai/text-embedding-3-small',
-  value: 'sunny day at the beach',
+  model: "openai/text-embedding-3-small",
+  value: "sunny day at the beach",
 });
 
 console.log(usage); // { tokens: 10 }
@@ -90,11 +90,11 @@ console.log(usage); // { tokens: 10 }
 Embedding model settings can be configured using `providerOptions` for provider-specific parameters:
 
 ```ts highlight={"4-8"}
-import { embed } from 'ai';
+import { embed } from "ai";
 
 const { embedding } = await embed({
-  model: 'openai/text-embedding-3-small',
-  value: 'sunny day at the beach',
+  model: "openai/text-embedding-3-small",
+  value: "sunny day at the beach",
   providerOptions: {
     openai: {
       dimensions: 512, // Reduce embedding dimensions
@@ -110,15 +110,15 @@ Google's `gemini-embedding-2` model (also available as `gemini-embedding-2-previ
 The `embedMany` function now supports parallel processing with configurable `maxParallelCalls` to optimize performance:
 
 ```ts highlight={"3"}
-import { embedMany } from 'ai';
+import { embedMany } from "ai";
 
 const { embeddings, usage } = await embedMany({
   maxParallelCalls: 2, // Limit parallel requests
-  model: 'openai/text-embedding-3-small',
+  model: "openai/text-embedding-3-small",
   values: [
-    'sunny day at the beach',
-    'rainy afternoon in the city',
-    'snowy night in the mountains',
+    "sunny day at the beach",
+    "rainy afternoon in the city",
+    "snowy night in the mountains",
   ],
 });
 ```
@@ -130,11 +130,11 @@ that you can use to set the maximum number of retries for the embedding process.
 It defaults to `2` retries (3 attempts in total). You can set it to `0` to disable retries.
 
 ```ts highlight={"6"}
-import { embed } from 'ai';
+import { embed } from "ai";
 
 const { embedding } = await embed({
-  model: 'openai/text-embedding-3-small',
-  value: 'sunny day at the beach',
+  model: "openai/text-embedding-3-small",
+  value: "sunny day at the beach",
   maxRetries: 0, // Disable retries
 });
 ```
@@ -146,11 +146,11 @@ type [`AbortSignal`](https://developer.mozilla.org/en-US/docs/Web/API/AbortSigna
 that you can use to abort the embedding process or set a timeout.
 
 ```ts highlight={"6"}
-import { embed } from 'ai';
+import { embed } from "ai";
 
 const { embedding } = await embed({
-  model: 'openai/text-embedding-3-small',
-  value: 'sunny day at the beach',
+  model: "openai/text-embedding-3-small",
+  value: "sunny day at the beach",
   abortSignal: AbortSignal.timeout(1000), // Abort after 1 second
 });
 ```
@@ -161,12 +161,12 @@ Both `embed` and `embedMany` accept an optional `headers` parameter of type `Rec
 that you can use to add custom headers to the embedding request.
 
 ```ts highlight={"6"}
-import { embed } from 'ai';
+import { embed } from "ai";
 
 const { embedding } = await embed({
-  model: 'openai/text-embedding-3-small',
-  value: 'sunny day at the beach',
-  headers: { 'X-Custom-Header': 'custom-value' },
+  model: "openai/text-embedding-3-small",
+  value: "sunny day at the beach",
+  headers: { "X-Custom-Header": "custom-value" },
 });
 ```
 
@@ -175,11 +175,11 @@ const { embedding } = await embed({
 Both `embed` and `embedMany` return response information that includes the raw provider response:
 
 ```ts highlight={"3,8"}
-import { embed } from 'ai';
+import { embed } from "ai";
 
 const { embedding, response } = await embed({
-  model: 'openai/text-embedding-3-small',
-  value: 'sunny day at the beach',
+  model: "openai/text-embedding-3-small",
+  value: "sunny day at the beach",
 });
 
 console.log(response); // Raw provider response
@@ -198,16 +198,16 @@ import {
   embed,
   wrapEmbeddingModel,
   gateway,
-} from 'ai';
+} from "ai";
 
 const embeddingModelWithDefaults = wrapEmbeddingModel({
-  model: gateway.embeddingModel('google/gemini-embedding-001'),
+  model: gateway.embeddingModel("google/gemini-embedding-001"),
   middleware: defaultEmbeddingSettingsMiddleware({
     settings: {
       providerOptions: {
         google: {
           outputDimensionality: 256,
-          taskType: 'CLASSIFICATION',
+          taskType: "CLASSIFICATION",
         },
       },
     },
@@ -225,8 +225,8 @@ Several providers offer embedding models:
 | [OpenAI](/providers/ai-sdk-providers/openai#embedding-models)                 | `text-embedding-3-small`        | 1536                 | <Cross size={18} /> |
 | [OpenAI](/providers/ai-sdk-providers/openai#embedding-models)                 | `text-embedding-ada-002`        | 1536                 | <Cross size={18} /> |
 | [Google](/providers/ai-sdk-providers/google#embedding-models)                 | `gemini-embedding-001`          | 3072                 | <Cross size={18} /> |
-| [Google](/providers/ai-sdk-providers/google#embedding-models)                 | `gemini-embedding-2`            | 3072                 | <Check size={18} /> |
-| [Google](/providers/ai-sdk-providers/google#embedding-models)                 | `gemini-embedding-2-preview`    | 3072                 | <Check size={18} /> |
+| [Google](/providers/ai-sdk-providers/google#embedding-models)                 | `gemini-embedding-2`            | 3072                 | <Check />           |
+| [Google](/providers/ai-sdk-providers/google#embedding-models)                 | `gemini-embedding-2-preview`    | 3072                 | <Check />           |
 | [Mistral](/providers/ai-sdk-providers/mistral#embedding-models)               | `mistral-embed`                 | 1024                 | <Cross size={18} /> |
 | [Cohere](/providers/ai-sdk-providers/cohere#embedding-models)                 | `embed-english-v3.0`            | 1024                 | <Cross size={18} /> |
 | [Cohere](/providers/ai-sdk-providers/cohere#embedding-models)                 | `embed-multilingual-v3.0`       | 1024                 | <Cross size={18} /> |

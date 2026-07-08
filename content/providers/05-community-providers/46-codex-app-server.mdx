@@ -22,7 +22,7 @@ The [ai-sdk-provider-codex-app-server](https://github.com/pablof7z/ai-sdk-provid
 
 ## Setup
 
-<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+<Tabs items={["pnpm", "npm", "yarn", "bun"]}>
   <Tab>
     <Snippet text="pnpm add ai-sdk-provider-codex-app-server" dark />
   </Tab>
@@ -45,13 +45,13 @@ Import the default provider instance:
 import {
   createCodexAppServer,
   type Session,
-} from 'ai-sdk-provider-codex-app-server';
+} from "ai-sdk-provider-codex-app-server";
 
 let session: Session;
 
 const provider = createCodexAppServer({
   defaultSettings: {
-    onSessionCreated: s => {
+    onSessionCreated: (s) => {
       session = s;
     },
   },
@@ -66,30 +66,30 @@ The killer feature of this provider is the ability to inject messages while the 
 import {
   createCodexAppServer,
   type Session,
-} from 'ai-sdk-provider-codex-app-server';
-import { streamText } from 'ai';
+} from "ai-sdk-provider-codex-app-server";
+import { streamText } from "ai";
 
 let session: Session;
 
 const provider = createCodexAppServer({
   defaultSettings: {
-    onSessionCreated: s => {
+    onSessionCreated: (s) => {
       session = s;
     },
   },
 });
 
-const model = provider('gpt-5.1-codex-max');
+const model = provider("gpt-5.1-codex-max");
 
 // Start streaming
 const resultPromise = streamText({
   model,
-  prompt: 'Write a calculator in Python',
+  prompt: "Write a calculator in Python",
 });
 
 // Inject additional instructions mid-execution
 setTimeout(async () => {
-  await session.injectMessage('Also add a square root function');
+  await session.injectMessage("Also add a square root function");
 }, 2000);
 
 const result = await resultPromise;
@@ -121,14 +121,14 @@ interface Session {
 Discover available models and their capabilities:
 
 ```ts
-import { listModels } from 'ai-sdk-provider-codex-app-server';
+import { listModels } from "ai-sdk-provider-codex-app-server";
 
 const { models, defaultModel } = await listModels();
 
 for (const model of models) {
   console.log(`${model.id}: ${model.description}`);
-  const efforts = model.supportedReasoningEfforts.map(e => e.reasoningEffort);
-  console.log(`  Reasoning: ${efforts.join(', ')}`);
+  const efforts = model.supportedReasoningEfforts.map((e) => e.reasoningEffort);
+  console.log(`  Reasoning: ${efforts.join(", ")}`);
 }
 ```
 
@@ -138,10 +138,10 @@ for (const model of models) {
 interface CodexAppServerSettings {
   codexPath?: string; // Path to codex binary
   cwd?: string; // Working directory
-  approvalMode?: 'never' | 'on-request' | 'on-failure' | 'untrusted';
-  sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access';
-  reasoningEffort?: 'none' | 'low' | 'medium' | 'high';
-  threadMode?: 'persistent' | 'stateless';
+  approvalMode?: "never" | "on-request" | "on-failure" | "untrusted";
+  sandboxMode?: "read-only" | "workspace-write" | "danger-full-access";
+  reasoningEffort?: "none" | "low" | "medium" | "high";
+  threadMode?: "persistent" | "stateless";
   mcpServers?: Record<string, McpServerConfig>;
   verbose?: boolean;
   logger?: Logger | false;
@@ -158,8 +158,8 @@ interface CodexAppServerSettings {
 - **stateless**: Creates a fresh thread for each call
 
 ```ts
-const model = provider('gpt-5.1-codex-max', {
-  threadMode: 'stateless', // Fresh thread each call
+const model = provider("gpt-5.1-codex-max", {
+  threadMode: "stateless", // Fresh thread each call
 });
 ```
 
@@ -170,11 +170,11 @@ Override settings per call using `providerOptions`:
 ```ts
 const result = await streamText({
   model,
-  prompt: 'Analyze this code',
+  prompt: "Analyze this code",
   providerOptions: {
-    'codex-app-server': {
-      reasoningEffort: 'high',
-      threadMode: 'stateless',
+    "codex-app-server": {
+      reasoningEffort: "high",
+      threadMode: "stateless",
     },
   },
 });
@@ -182,22 +182,22 @@ const result = await streamText({
 
 ## Model Capabilities
 
-| Model                | Image Input         | Object Generation   | Tool Streaming      | Mid-Execution       |
-| -------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `gpt-5.3-codex`      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-5.2-codex`      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-5.1-codex-max`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-5.1-codex-mini` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model                | Image Input | Object Generation | Tool Streaming | Mid-Execution |
+| -------------------- | ----------- | ----------------- | -------------- | ------------- |
+| `gpt-5.3-codex`      | <Check />   | <Check />         | <Check />      | <Check />     |
+| `gpt-5.2-codex`      | <Check />   | <Check />         | <Check />      | <Check />     |
+| `gpt-5.1-codex-max`  | <Check />   | <Check />         | <Check />      | <Check />     |
+| `gpt-5.1-codex-mini` | <Check />   | <Check />         | <Check />      | <Check />     |
 
 ## Comparison with Codex CLI Provider
 
-| Feature              | Codex CLI Provider  | Codex App Server    |
-| -------------------- | ------------------- | ------------------- |
-| Mid-execution inject | <Cross size={18} /> | <Check size={18} /> |
-| Persistent threads   | <Cross size={18} /> | <Check size={18} /> |
-| Session control      | <Cross size={18} /> | <Check size={18} /> |
-| Tool streaming       | <Cross size={18} /> | <Check size={18} /> |
-| One-shot execution   | <Check size={18} /> | <Check size={18} /> |
+| Feature              | Codex CLI Provider  | Codex App Server |
+| -------------------- | ------------------- | ---------------- |
+| Mid-execution inject | <Cross size={18} /> | <Check />        |
+| Persistent threads   | <Cross size={18} /> | <Check />        |
+| Session control      | <Cross size={18} /> | <Check />        |
+| Tool streaming       | <Cross size={18} /> | <Check />        |
+| One-shot execution   | <Check />           | <Check />        |
 
 Use the **Codex CLI provider** for simple one-shot tasks. Use the **Codex App Server provider** when you need human-in-the-loop workflows, real-time course correction, or collaborative coding.
 

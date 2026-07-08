@@ -32,13 +32,13 @@ The Mixedbread provider is available in the `mixedbread-ai-provider` module. You
 You can import the default provider instance `mixedbread` from `mixedbread-ai-provider`:
 
 ```ts
-import { mixedbread } from 'mixedbread-ai-provider';
+import { mixedbread } from "mixedbread-ai-provider";
 ```
 
 If you need a customized setup, you can import `createMixedbread` from `mixedbread-ai-provider` and create a provider instance with your settings:
 
 ```ts
-import { createMixedbread } from 'mixedbread-ai-provider';
+import { createMixedbread } from "mixedbread-ai-provider";
 
 const mixedbread = createMixedbread({
   // custom settings
@@ -69,40 +69,40 @@ You can create models that call the [Mixedbread embeddings API](https://www.mixe
 using the `.embeddingModel()` factory method.
 
 ```ts
-import { mixedbread } from 'mixedbread-ai-provider';
+import { mixedbread } from "mixedbread-ai-provider";
 
 const embeddingModel = mixedbread.embeddingModel(
-  'mixedbread-ai/mxbai-embed-large-v1',
+  "mixedbread-ai/mxbai-embed-large-v1",
 );
 ```
 
 You can use Mixedbread embedding models to generate embeddings with the `embed` function:
 
 ```ts
-import { mixedbread } from 'mixedbread-ai-provider';
-import { embed } from 'ai';
+import { mixedbread } from "mixedbread-ai-provider";
+import { embed } from "ai";
 
 const { embedding } = await embed({
-  model: mixedbread.embeddingModel('mixedbread-ai/mxbai-embed-large-v1'),
-  value: 'sunny day at the beach',
+  model: mixedbread.embeddingModel("mixedbread-ai/mxbai-embed-large-v1"),
+  value: "sunny day at the beach",
 });
 ```
 
 Mixedbread embedding models support additional provider options that can be passed via `providerOptions.mixedbread`:
 
 ```ts
-import { mixedbread } from 'mixedbread-ai-provider';
-import { embed } from 'ai';
+import { mixedbread } from "mixedbread-ai-provider";
+import { embed } from "ai";
 
 const { embedding } = await embed({
-  model: mixedbread.embeddingModel('mixedbread-ai/mxbai-embed-large-v1'),
-  value: 'sunny day at the beach',
+  model: mixedbread.embeddingModel("mixedbread-ai/mxbai-embed-large-v1"),
+  value: "sunny day at the beach",
   providerOptions: {
     mixedbread: {
-      prompt: 'Generate embeddings for text',
+      prompt: "Generate embeddings for text",
       normalized: true,
       dimensions: 512,
-      encodingFormat: 'float16',
+      encodingFormat: "float16",
     },
   },
 });
@@ -128,9 +128,9 @@ The following provider options are available:
 
 | Model                             | Context Length | Dimension | Custom Dimensions   |
 | --------------------------------- | -------------- | --------- | ------------------- |
-| `mxbai-embed-large-v1`            | 512            | 1024      | <Check size={18} /> |
-| `mxbai-embed-2d-large-v1`         | 512            | 1024      | <Check size={18} /> |
-| `deepset-mxbai-embed-de-large-v1` | 512            | 1024      | <Check size={18} /> |
+| `mxbai-embed-large-v1`            | 512            | 1024      | <Check />           |
+| `mxbai-embed-2d-large-v1`         | 512            | 1024      | <Check />           |
+| `deepset-mxbai-embed-de-large-v1` | 512            | 1024      | <Check />           |
 | `mxbai-embed-xsmall-v1`           | 4096           | 384       | <Cross size={18} /> |
 
 <Note>

@@ -32,13 +32,13 @@ The AssemblyAI provider is available in the `@ai-sdk/assemblyai` module. You can
 You can import the default provider instance `assemblyai` from `@ai-sdk/assemblyai`:
 
 ```ts
-import { assemblyai } from '@ai-sdk/assemblyai';
+import { assemblyai } from "@ai-sdk/assemblyai";
 ```
 
 If you need a customized setup, you can import `createAssemblyAI` from `@ai-sdk/assemblyai` and create a provider instance with your settings:
 
 ```ts
-import { createAssemblyAI } from '@ai-sdk/assemblyai';
+import { createAssemblyAI } from "@ai-sdk/assemblyai";
 
 const assemblyai = createAssemblyAI({
   // custom settings, e.g.
@@ -72,7 +72,7 @@ using the `.transcription()` factory method.
 The first argument is the model id, e.g. `universal-3-5-pro`.
 
 ```ts
-const model = assemblyai.transcription('universal-3-5-pro');
+const model = assemblyai.transcription("universal-3-5-pro");
 ```
 
 The `best` model is a **deprecated** legacy model, sent using AssemblyAI's
@@ -89,14 +89,14 @@ using them emits an informational warning (not a deprecation) suggesting
 You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the `contentSafety` option will enable content safety filtering.
 
 ```ts highlight="7"
-import { transcribe } from 'ai';
-import { assemblyai } from '@ai-sdk/assemblyai';
-import { type AssemblyAITranscriptionModelOptions } from '@ai-sdk/assemblyai';
-import { readFile } from 'fs/promises';
+import { transcribe } from "ai";
+import { assemblyai } from "@ai-sdk/assemblyai";
+import { type AssemblyAITranscriptionModelOptions } from "@ai-sdk/assemblyai";
+import { readFile } from "fs/promises";
 
 const result = await transcribe({
-  model: assemblyai.transcription('universal-3-5-pro'),
-  audio: await readFile('audio.mp3'),
+  model: assemblyai.transcription("universal-3-5-pro"),
+  audio: await readFile("audio.mp3"),
   providerOptions: {
     assemblyai: {
       contentSafety: true,
@@ -372,13 +372,13 @@ Note: timings inside `providerMetadata` and `response.body` (e.g.
 whereas the top-level `segments` use **seconds**.
 
 ```ts
-import { transcribe } from 'ai';
-import { assemblyai } from '@ai-sdk/assemblyai';
-import { readFile } from 'fs/promises';
+import { transcribe } from "ai";
+import { assemblyai } from "@ai-sdk/assemblyai";
+import { readFile } from "fs/promises";
 
 const result = await transcribe({
-  model: assemblyai.transcription('universal-3-5-pro'),
-  audio: await readFile('audio.mp3'),
+  model: assemblyai.transcription("universal-3-5-pro"),
+  audio: await readFile("audio.mp3"),
   providerOptions: {
     assemblyai: {
       speakerLabels: true,
@@ -399,9 +399,9 @@ AssemblyAI's documentation for per-language availability.
 
 ### Model Capabilities
 
-| Model               | Transcription       | Duration            | Segments            | Language            |
-| ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `universal-3-5-pro` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `universal-3-pro`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `universal-2`       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `best`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model               | Transcription | Duration  | Segments  | Language  |
+| ------------------- | ------------- | --------- | --------- | --------- |
+| `universal-3-5-pro` | <Check />     | <Check /> | <Check /> | <Check /> |
+| `universal-3-pro`   | <Check />     | <Check /> | <Check /> | <Check /> |
+| `universal-2`       | <Check />     | <Check /> | <Check /> | <Check /> |
+| `best`              | <Check />     | <Check /> | <Check /> | <Check /> |

@@ -32,17 +32,17 @@ The Fal provider is available via the `@ai-sdk/fal` module. You can install it w
 You can import the default provider instance `fal` from `@ai-sdk/fal`:
 
 ```ts
-import { fal } from '@ai-sdk/fal';
+import { fal } from "@ai-sdk/fal";
 ```
 
 If you need a customized setup, you can import `createFal` and create a provider instance with your settings:
 
 ```ts
-import { createFal } from '@ai-sdk/fal';
+import { createFal } from "@ai-sdk/fal";
 
 const fal = createFal({
-  apiKey: 'your-api-key', // optional, defaults to FAL_API_KEY environment variable, falling back to FAL_KEY
-  baseURL: 'custom-url', // optional
+  apiKey: "your-api-key", // optional, defaults to FAL_API_KEY environment variable, falling back to FAL_KEY
+  baseURL: "custom-url", // optional
   headers: {
     /* custom headers */
   }, // optional
@@ -79,13 +79,13 @@ For more on image generation with the AI SDK see [generateImage()](/docs/referen
 ### Basic Usage
 
 ```ts
-import { fal } from '@ai-sdk/fal';
-import { generateImage } from 'ai';
-import fs from 'fs';
+import { fal } from "@ai-sdk/fal";
+import { generateImage } from "ai";
+import fs from "fs";
 
 const { image, providerMetadata } = await generateImage({
-  model: fal.image('fal-ai/flux/dev'),
-  prompt: 'A serene mountain landscape at sunset',
+  model: fal.image("fal-ai/flux/dev"),
+  prompt: "A serene mountain landscape at sunset",
 });
 
 const filename = `image-${Date.now()}.png`;
@@ -147,11 +147,11 @@ Transform existing images using text prompts.
 
 ```ts
 await generateImage({
-  model: fal.image('fal-ai/flux-pro/kontext/max'),
+  model: fal.image("fal-ai/flux-pro/kontext/max"),
   prompt: {
-    text: 'Put a donut next to the flour.',
+    text: "Put a donut next to the flour.",
     images: [
-      'https://v3.fal.media/files/rabbit/rmgBxhwGYb2d3pl3x9sKf_output.png',
+      "https://v3.fal.media/files/rabbit/rmgBxhwGYb2d3pl3x9sKf_output.png",
     ],
   },
 });
@@ -162,9 +162,9 @@ A mask can be passed as well
 
 ```ts
 await generateImage({
-  model: fal.image('fal-ai/flux-pro/kontext/max'),
+  model: fal.image("fal-ai/flux-pro/kontext/max"),
   prompt: {
-    text: 'Put a donut next to the flour.',
+    text: "Put a donut next to the flour.",
     images: [imageBuffer],
     mask: maskBuffer,
   },
@@ -213,19 +213,19 @@ using the `.transcription()` factory method.
 The first argument is the model id without the `fal-ai/` prefix e.g. `wizper`.
 
 ```ts
-const model = fal.transcription('wizper');
+const model = fal.transcription("wizper");
 ```
 
 You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the `batchSize` option will increase the number of audio chunks processed in parallel.
 
 ```ts highlight="6"
-import { transcribe } from 'ai';
-import { fal, type FalTranscriptionModelOptions } from '@ai-sdk/fal';
-import { readFile } from 'fs/promises';
+import { transcribe } from "ai";
+import { fal, type FalTranscriptionModelOptions } from "@ai-sdk/fal";
+import { readFile } from "fs/promises";
 
 const result = await transcribe({
-  model: fal.transcription('wizper'),
-  audio: await readFile('audio.mp3'),
+  model: fal.transcription("wizper"),
+  audio: await readFile("audio.mp3"),
   providerOptions: {
     fal: { batchSize: 10 } satisfies FalTranscriptionModelOptions,
   },
@@ -265,10 +265,10 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model     | Transcription       | Duration            | Segments            | Language            |
-| --------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `whisper` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `wizper`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model     | Transcription | Duration  | Segments  | Language  |
+| --------- | ------------- | --------- | --------- | --------- |
+| `whisper` | <Check />     | <Check /> | <Check /> | <Check /> |
+| `wizper`  | <Check />     | <Check /> | <Check /> | <Check /> |
 
 ## Speech Models
 
@@ -277,12 +277,12 @@ You can create models that call Fal text-to-speech endpoints using the `.speech(
 ### Basic Usage
 
 ```ts
-import { generateSpeech } from 'ai';
-import { fal } from '@ai-sdk/fal';
+import { generateSpeech } from "ai";
+import { fal } from "@ai-sdk/fal";
 
 const result = await generateSpeech({
-  model: fal.speech('fal-ai/minimax/speech-02-hd'),
-  text: 'Hello from the AI SDK!',
+  model: fal.speech("fal-ai/minimax/speech-02-hd"),
+  text: "Hello from the AI SDK!",
 });
 ```
 
@@ -303,6 +303,7 @@ const result = await generateSpeech({
 Pass provider-specific options via `providerOptions.fal` depending on the model:
 
 - **voice_setting** _object_
+
   - `voice_id` (string): predefined voice ID
   - `speed` (number): 0.5–2.0
   - `vol` (number): 0–10

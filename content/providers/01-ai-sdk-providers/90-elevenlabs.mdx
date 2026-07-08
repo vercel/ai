@@ -32,13 +32,13 @@ The ElevenLabs provider is available in the `@ai-sdk/elevenlabs` module. You can
 You can import the default provider instance `elevenLabs` from `@ai-sdk/elevenlabs`:
 
 ```ts
-import { elevenLabs } from '@ai-sdk/elevenlabs';
+import { elevenLabs } from "@ai-sdk/elevenlabs";
 ```
 
 If you need a customized setup, you can import `createElevenLabs` from `@ai-sdk/elevenlabs` and create a provider instance with your settings:
 
 ```ts
-import { createElevenLabs } from '@ai-sdk/elevenlabs';
+import { createElevenLabs } from "@ai-sdk/elevenlabs";
 
 const elevenLabs = createElevenLabs({
   // custom settings, e.g.
@@ -72,36 +72,36 @@ using the `.speech()` factory method.
 The first argument is the model id e.g. `eleven_multilingual_v2`.
 
 ```ts
-const model = elevenLabs.speech('eleven_multilingual_v2');
+const model = elevenLabs.speech("eleven_multilingual_v2");
 ```
 
 The `voice` argument can be set to a voice ID from the [ElevenLabs Voice Library](https://elevenlabs.io/app/voice-library).
 You can find voice IDs by selecting a voice in the library and copying its ID.
 
 ```ts highlight="6"
-import { generateSpeech } from 'ai';
-import { elevenLabs } from '@ai-sdk/elevenlabs';
+import { generateSpeech } from "ai";
+import { elevenLabs } from "@ai-sdk/elevenlabs";
 
 const result = await generateSpeech({
-  model: elevenLabs.speech('eleven_multilingual_v2'),
-  text: 'Hello, world!',
-  voice: '21m00Tcm4TlvDq8ikWAM', // Rachel voice
+  model: elevenLabs.speech("eleven_multilingual_v2"),
+  text: "Hello, world!",
+  voice: "21m00Tcm4TlvDq8ikWAM", // Rachel voice
 });
 ```
 
 You can also pass additional provider-specific options using the `providerOptions` argument:
 
 ```ts highlight="7-9"
-import { generateSpeech } from 'ai';
+import { generateSpeech } from "ai";
 import {
   elevenLabs,
   type ElevenLabsSpeechModelOptions,
-} from '@ai-sdk/elevenlabs';
+} from "@ai-sdk/elevenlabs";
 
 const result = await generateSpeech({
-  model: elevenLabs.speech('eleven_multilingual_v2'),
-  text: 'Hello, world!',
-  voice: '21m00Tcm4TlvDq8ikWAM',
+  model: elevenLabs.speech("eleven_multilingual_v2"),
+  text: "Hello, world!",
+  voice: "21m00Tcm4TlvDq8ikWAM",
   providerOptions: {
     elevenlabs: {
       voiceSettings: {
@@ -118,6 +118,7 @@ const result = await generateSpeech({
 
 - **voiceSettings** _object or null_  
   Optional. Voice settings that override stored settings for the given voice. These are applied only to the current request.
+
   - **stability** _double or null_  
     Optional. Determines how stable the voice is and the randomness between each generation. Lower values introduce broader emotional range; higher values result in a more monotonous voice.
   - **useSpeakerBoost** _boolean or null_  
@@ -130,6 +131,7 @@ const result = await generateSpeech({
 - **pronunciationDictionaryLocators** _array of objects or null_  
   Optional. A list of pronunciation dictionary locators to apply to the text, in order. Up to 3 locators per request.  
   Each locator object:
+
   - **pronunciationDictionaryId** _string_ (required)  
     The ID of the pronunciation dictionary.
   - **versionId** _string or null_ (optional)  
@@ -153,6 +155,7 @@ const result = await generateSpeech({
 - **applyTextNormalization** _enum_  
   Optional. Controls text normalization.  
   Allowed values: `'auto'` (default), `'on'`, `'off'`.
+
   - `'auto'`: System decides whether to apply normalization (e.g., spelling out numbers).
   - `'on'`: Always apply normalization.
   - `'off'`: Never apply normalization.  
@@ -166,16 +169,16 @@ const result = await generateSpeech({
 
 ### Model Capabilities
 
-| Model                    | Instructions        |
-| ------------------------ | ------------------- |
-| `eleven_v3`              | <Check size={18} /> |
-| `eleven_multilingual_v2` | <Check size={18} /> |
-| `eleven_flash_v2_5`      | <Check size={18} /> |
-| `eleven_flash_v2`        | <Check size={18} /> |
-| `eleven_turbo_v2_5`      | <Check size={18} /> |
-| `eleven_turbo_v2`        | <Check size={18} /> |
-| `eleven_monolingual_v1`  | <Check size={18} /> |
-| `eleven_multilingual_v1` | <Check size={18} /> |
+| Model                    | Instructions |
+| ------------------------ | ------------ |
+| `eleven_v3`              | <Check />    |
+| `eleven_multilingual_v2` | <Check />    |
+| `eleven_flash_v2_5`      | <Check />    |
+| `eleven_flash_v2`        | <Check />    |
+| `eleven_turbo_v2_5`      | <Check />    |
+| `eleven_turbo_v2`        | <Check />    |
+| `eleven_monolingual_v1`  | <Check />    |
+| `eleven_multilingual_v1` | <Check />    |
 
 ## Transcription Models
 
@@ -185,24 +188,24 @@ using the `.transcription()` factory method.
 The first argument is the model id e.g. `scribe_v1`.
 
 ```ts
-const model = elevenLabs.transcription('scribe_v1');
+const model = elevenLabs.transcription("scribe_v1");
 ```
 
 You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the input language in ISO-639-1 (e.g. `en`) format can sometimes improve transcription performance if known beforehand.
 
 ```ts highlight="6"
-import { transcribe } from 'ai';
+import { transcribe } from "ai";
 import {
   elevenLabs,
   type ElevenLabsTranscriptionModelOptions,
-} from '@ai-sdk/elevenlabs';
+} from "@ai-sdk/elevenlabs";
 
 const result = await transcribe({
-  model: elevenLabs.transcription('scribe_v1'),
+  model: elevenLabs.transcription("scribe_v1"),
   audio: new Uint8Array([1, 2, 3, 4]),
   providerOptions: {
     elevenlabs: {
-      languageCode: 'en',
+      languageCode: "en",
     } satisfies ElevenLabsTranscriptionModelOptions,
   },
 });
@@ -249,7 +252,7 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model                    | Transcription       | Duration            | Segments            | Language            |
-| ------------------------ | ------------------- | ------------------- | ------------------- | ------------------- |
-| `scribe_v1`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `scribe_v1_experimental` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model                    | Transcription | Duration  | Segments  | Language  |
+| ------------------------ | ------------- | --------- | --------- | --------- |
+| `scribe_v1`              | <Check />     | <Check /> | <Check /> | <Check /> |
+| `scribe_v1_experimental` | <Check />     | <Check /> | <Check /> | <Check /> |

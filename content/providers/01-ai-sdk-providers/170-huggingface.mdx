@@ -34,16 +34,16 @@ The Hugging Face provider is available via the `@ai-sdk/huggingface` module. You
 You can import the default provider instance `huggingFace` from `@ai-sdk/huggingface`:
 
 ```ts
-import { huggingFace } from '@ai-sdk/huggingface';
+import { huggingFace } from "@ai-sdk/huggingface";
 ```
 
 For custom configuration, you can import `createHuggingFace` and create a provider instance with your settings:
 
 ```ts
-import { createHuggingFace } from '@ai-sdk/huggingface';
+import { createHuggingFace } from "@ai-sdk/huggingface";
 
 const huggingFace = createHuggingFace({
-  apiKey: process.env.HUGGINGFACE_API_KEY ?? '',
+  apiKey: process.env.HUGGINGFACE_API_KEY ?? "",
 });
 ```
 
@@ -73,21 +73,21 @@ You can use the following optional settings to customize the Hugging Face provid
 You can create language models using a provider instance:
 
 ```ts
-import { huggingFace } from '@ai-sdk/huggingface';
-import { generateText } from 'ai';
+import { huggingFace } from "@ai-sdk/huggingface";
+import { generateText } from "ai";
 
 const { text } = await generateText({
-  model: huggingFace('deepseek-ai/DeepSeek-V3-0324'),
-  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  model: huggingFace("deepseek-ai/DeepSeek-V3-0324"),
+  prompt: "Write a vegetarian lasagna recipe for 4 people.",
 });
 ```
 
 You can also use the `.responses()` or `.languageModel()` factory methods:
 
 ```ts
-const model = huggingFace.responses('deepseek-ai/DeepSeek-V3-0324');
+const model = huggingFace.responses("deepseek-ai/DeepSeek-V3-0324");
 // or
-const model = huggingFace.languageModel('moonshotai/Kimi-K2-Instruct');
+const model = huggingFace.languageModel("moonshotai/Kimi-K2-Instruct");
 ```
 
 Hugging Face language models can be used in the `streamText` function
@@ -100,16 +100,16 @@ You can explore the latest and trending models with their capabilities, context 
 Hugging Face language models support provider-specific options that you can pass via `providerOptions.huggingface`:
 
 ```ts
-import { huggingFace } from '@ai-sdk/huggingface';
-import { generateText } from 'ai';
+import { huggingFace } from "@ai-sdk/huggingface";
+import { generateText } from "ai";
 
 const { text } = await generateText({
-  model: huggingFace('deepseek-ai/DeepSeek-R1'),
-  prompt: 'Explain the theory of relativity.',
+  model: huggingFace("deepseek-ai/DeepSeek-R1"),
+  prompt: "Explain the theory of relativity.",
   providerOptions: {
     huggingface: {
-      reasoningEffort: 'high',
-      instructions: 'Respond in a clear and educational manner.',
+      reasoningEffort: "high",
+      instructions: "Respond in a clear and educational manner.",
     },
   },
 });
@@ -138,23 +138,23 @@ The following provider options are available:
 For reasoning models like `deepseek-ai/DeepSeek-R1`, you can control the reasoning effort and access the model's reasoning process in the response:
 
 ```ts
-import { huggingFace } from '@ai-sdk/huggingface';
-import { streamText } from 'ai';
+import { huggingFace } from "@ai-sdk/huggingface";
+import { streamText } from "ai";
 
 const result = streamText({
-  model: huggingFace('deepseek-ai/DeepSeek-R1'),
-  prompt: 'How many r letters are in the word strawberry?',
+  model: huggingFace("deepseek-ai/DeepSeek-R1"),
+  prompt: "How many r letters are in the word strawberry?",
   providerOptions: {
     huggingface: {
-      reasoningEffort: 'high',
+      reasoningEffort: "high",
     },
   },
 });
 
 for await (const part of result.stream) {
-  if (part.type === 'reasoning') {
+  if (part.type === "reasoning") {
     console.log(`Reasoning: ${part.textDelta}`);
-  } else if (part.type === 'text-delta') {
+  } else if (part.type === "text-delta") {
     process.stdout.write(part.textDelta);
   }
 }
@@ -163,21 +163,21 @@ for await (const part of result.stream) {
 For non-streaming calls with `generateText`, the reasoning content is available in the `reasoning` field of the response:
 
 ```ts
-import { huggingFace } from '@ai-sdk/huggingface';
-import { generateText } from 'ai';
+import { huggingFace } from "@ai-sdk/huggingface";
+import { generateText } from "ai";
 
 const result = await generateText({
-  model: huggingFace('deepseek-ai/DeepSeek-R1'),
-  prompt: 'What is 25 * 37?',
+  model: huggingFace("deepseek-ai/DeepSeek-R1"),
+  prompt: "What is 25 * 37?",
   providerOptions: {
     huggingface: {
-      reasoningEffort: 'medium',
+      reasoningEffort: "medium",
     },
   },
 });
 
-console.log('Reasoning:', result.reasoning);
-console.log('Answer:', result.text);
+console.log("Reasoning:", result.reasoning);
+console.log("Answer:", result.text);
 ```
 
 ### Image Input
@@ -185,21 +185,21 @@ console.log('Answer:', result.text);
 For vision-capable models like `Qwen/Qwen2.5-VL-7B-Instruct`, you can pass images as part of the message content:
 
 ```ts
-import { huggingFace } from '@ai-sdk/huggingface';
-import { generateText } from 'ai';
-import { readFileSync } from 'fs';
+import { huggingFace } from "@ai-sdk/huggingface";
+import { generateText } from "ai";
+import { readFileSync } from "fs";
 
 const result = await generateText({
-  model: huggingFace('Qwen/Qwen2.5-VL-7B-Instruct'),
+  model: huggingFace("Qwen/Qwen2.5-VL-7B-Instruct"),
   messages: [
     {
-      role: 'user',
+      role: "user",
       content: [
-        { type: 'text', text: 'Describe this image in detail.' },
+        { type: "text", text: "Describe this image in detail." },
         {
-          type: 'file',
-          mediaType: 'image',
-          data: readFileSync('./image.png'),
+          type: "file",
+          mediaType: "image",
+          data: readFileSync("./image.png"),
         },
       ],
     },
@@ -219,21 +219,21 @@ You can also pass image URLs:
 
 ## Model Capabilities
 
-| Model                                           | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| ----------------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `meta-llama/Llama-3.1-8B-Instruct`              | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `meta-llama/Llama-3.1-70B-Instruct`             | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `meta-llama/Llama-3.3-70B-Instruct`             | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `meta-llama/Llama-4-Maverick-17B-128E-Instruct` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `deepseek-ai/DeepSeek-V3.1`                     | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `deepseek-ai/DeepSeek-V3-0324`                  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `deepseek-ai/DeepSeek-R1`                       | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `deepseek-ai/DeepSeek-R1-Distill-Llama-70B`     | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `Qwen/Qwen3-32B`                                | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `Qwen/Qwen3-Coder-480B-A35B-Instruct`           | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `Qwen/Qwen2.5-VL-7B-Instruct`                   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `google/gemma-3-27b-it`                         | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `moonshotai/Kimi-K2-Instruct`                   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model                                           | Image Input         | Object Generation | Tool Usage | Tool Streaming |
+| ----------------------------------------------- | ------------------- | ----------------- | ---------- | -------------- |
+| `meta-llama/Llama-3.1-8B-Instruct`              | <Cross size={18} /> | <Check />         | <Check />  | <Check />      |
+| `meta-llama/Llama-3.1-70B-Instruct`             | <Cross size={18} /> | <Check />         | <Check />  | <Check />      |
+| `meta-llama/Llama-3.3-70B-Instruct`             | <Cross size={18} /> | <Check />         | <Check />  | <Check />      |
+| `meta-llama/Llama-4-Maverick-17B-128E-Instruct` | <Cross size={18} /> | <Check />         | <Check />  | <Check />      |
+| `deepseek-ai/DeepSeek-V3.1`                     | <Cross size={18} /> | <Check />         | <Check />  | <Check />      |
+| `deepseek-ai/DeepSeek-V3-0324`                  | <Cross size={18} /> | <Check />         | <Check />  | <Check />      |
+| `deepseek-ai/DeepSeek-R1`                       | <Cross size={18} /> | <Check />         | <Check />  | <Check />      |
+| `deepseek-ai/DeepSeek-R1-Distill-Llama-70B`     | <Cross size={18} /> | <Check />         | <Check />  | <Check />      |
+| `Qwen/Qwen3-32B`                                | <Cross size={18} /> | <Check />         | <Check />  | <Check />      |
+| `Qwen/Qwen3-Coder-480B-A35B-Instruct`           | <Cross size={18} /> | <Check />         | <Check />  | <Check />      |
+| `Qwen/Qwen2.5-VL-7B-Instruct`                   | <Check />           | <Check />         | <Check />  | <Check />      |
+| `google/gemma-3-27b-it`                         | <Cross size={18} /> | <Check />         | <Check />  | <Check />      |
+| `moonshotai/Kimi-K2-Instruct`                   | <Cross size={18} /> | <Check />         | <Check />  | <Check />      |
 
 <Note>
   The table above lists popular models. You can explore all available models on
