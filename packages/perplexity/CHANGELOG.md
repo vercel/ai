@@ -1,5 +1,13 @@
 # @ai-sdk/perplexity
 
+## 4.0.7
+
+### Patch Changes
+
+- 8bc6172: feat(perplexity): add `PerplexityLanguageModelOptions` type and schema
+- Updated dependencies [ac306ed]
+  - @ai-sdk/provider-utils@5.0.6
+
 ## 4.0.6
 
 ### Patch Changes

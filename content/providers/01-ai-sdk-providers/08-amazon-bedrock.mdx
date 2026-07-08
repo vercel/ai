@@ -1048,10 +1048,13 @@ const { image } = await generateImage({
 });
 ```
 
-You can also pass the `providerOptions` object to the `generateImage` function to customize the generation behavior:
+You can also pass the `providerOptions` object to the `generateImage` function to customize the generation behavior. Use the `AmazonBedrockImageModelOptions` type to validate Amazon Bedrock image provider options. The preferred provider option key is `providerOptions.amazonBedrock`; the legacy `providerOptions.bedrock` key remains supported for backward compatibility:
 
 ```ts
-import { amazonBedrock } from '@ai-sdk/amazon-bedrock';
+import {
+  amazonBedrock,
+  type AmazonBedrockImageModelOptions,
+} from '@ai-sdk/amazon-bedrock';
 import { generateImage } from 'ai';
 
 const { image } = await generateImage({
@@ -1060,12 +1063,12 @@ const { image } = await generateImage({
   size: '512x512',
   seed: 42,
   providerOptions: {
-    bedrock: {
+    amazonBedrock: {
       quality: 'premium',
       negativeText: 'blurry, low quality',
       cfgScale: 7.5,
       style: 'PHOTOREALISM',
-    },
+    } satisfies AmazonBedrockImageModelOptions,
   },
 });
 ```
@@ -1114,18 +1117,18 @@ const { images } = await generateImage({
     images: [imageBuffer],
   },
   providerOptions: {
-    bedrock: {
+    amazonBedrock: {
       taskType: 'IMAGE_VARIATION',
-      similarityStrength: 0.7, // 0-1, higher = closer to original
+      similarityStrength: 0.7, // 0.2-1.0, higher = closer to original
       negativeText: 'bad quality, low resolution',
-    },
+    } satisfies AmazonBedrockImageModelOptions,
   },
 });
 ```
 
 - **similarityStrength** _number_
 
-  Controls how similar the output is to the input image. Values range from 0 to 1, where higher values produce results closer to the original.
+  Controls how similar the output is to the input image. Values range from 0.2 to 1.0, where higher values produce results closer to the original.
 
 #### Inpainting
 
@@ -1143,9 +1146,9 @@ const { images } = await generateImage({
     images: [imageBuffer],
   },
   providerOptions: {
-    bedrock: {
+    amazonBedrock: {
       maskPrompt: 'cat', // Describe what to replace
-    },
+    } satisfies AmazonBedrockImageModelOptions,
   },
   seed: 42,
 });
@@ -1185,11 +1188,11 @@ const { images } = await generateImage({
     images: [imageBuffer],
   },
   providerOptions: {
-    bedrock: {
+    amazonBedrock: {
       taskType: 'OUTPAINTING',
       maskPrompt: 'background',
       outPaintingMode: 'DEFAULT', // or 'PRECISE'
-    },
+    } satisfies AmazonBedrockImageModelOptions,
   },
 });
 ```
@@ -1211,9 +1214,9 @@ const { images } = await generateImage({
     images: [imageBuffer],
   },
   providerOptions: {
-    bedrock: {
+    amazonBedrock: {
       taskType: 'BACKGROUND_REMOVAL',
-    },
+    } satisfies AmazonBedrockImageModelOptions,
   },
 });
 ```
@@ -1237,7 +1240,7 @@ The following additional provider options are available for image editing:
 
 - **similarityStrength** _number_
 
-  For `IMAGE_VARIATION`: Controls similarity to the original (0-1).
+  For `IMAGE_VARIATION`: Controls similarity to the original (0.2-1.0).
 
 - **outPaintingMode** _string_
 

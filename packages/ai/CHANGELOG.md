@@ -1,5 +1,13 @@
 # ai
 
+## 7.0.18
+
+### Patch Changes
+
+- Updated dependencies [ac306ed]
+  - @ai-sdk/provider-utils@5.0.6
+  - @ai-sdk/gateway@4.0.14
+
 ## 7.0.17
 
 ### Patch Changes
