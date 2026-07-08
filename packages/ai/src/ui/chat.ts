@@ -254,6 +254,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   private sendAutomaticallyWhen?: ChatInit<UI_MESSAGE>['sendAutomaticallyWhen'];
 
   private activeResponse: ActiveResponse<UI_MESSAGE> | undefined = undefined;
+  private activeRequest: Promise<void> | undefined = undefined;
   private jobExecutor = new SerialJobExecutor();
 
   constructor({
@@ -586,9 +587,13 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   stop = async () => {
     if (this.status !== 'streaming' && this.status !== 'submitted') return;
 
+    const activeRequest = this.activeRequest;
+
     if (this.activeResponse?.abortController) {
       this.activeResponse.abortController.abort();
     }
+
+    await activeRequest;
   };
 
   private async shouldSendAutomatically(): Promise<boolean> {
@@ -606,7 +611,25 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     return result as boolean;
   }
 
-  private async makeRequest({
+  private async makeRequest(
+    options: {
+      trigger: 'submit-message' | 'resume-stream' | 'regenerate-message';
+      messageId?: string;
+    } & ChatRequestOptions,
+  ) {
+    const activeRequest = this.doMakeRequest(options);
+    this.activeRequest = activeRequest;
+
+    try {
+      await activeRequest;
+    } finally {
+      if (this.activeRequest === activeRequest) {
+        this.activeRequest = undefined;
+      }
+    }
+  }
+
+  private async doMakeRequest({
     trigger,
     metadata,
     headers,
@@ -735,7 +758,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       if (isAbort || (err as any).name === 'AbortError') {
         isAbort = true;
         this.setStatus({ status: 'ready' });
-        return null;
+        return;
       }
 
       isError = true;
