@@ -205,6 +205,33 @@ describe('serializeTranscriptionStreamPart', () => {
       '{"type":"response-metadata","timestamp":"2026-01-01T00:00:00.000Z","modelId":"openai/gpt-realtime-whisper"}',
     );
   });
+
+  it('should serialize Error payloads in error parts with their name and message', () => {
+    // `Error` properties are non-enumerable, so a plain JSON.stringify would
+    // serialize the payload to `{}` and lose the message end-to-end.
+    expect(
+      serializeTranscriptionStreamPart({
+        type: 'error',
+        error: new Error('rate limited'),
+      }),
+    ).toBe(
+      '{"type":"error","error":{"name":"Error","message":"rate limited"}}',
+    );
+  });
+
+  it('should round-trip an error part with an Error payload', () => {
+    expect(
+      parseTranscriptionStreamPart(
+        serializeTranscriptionStreamPart({
+          type: 'error',
+          error: new TypeError('bad input'),
+        }),
+      ),
+    ).toEqual({
+      type: 'error',
+      error: { name: 'TypeError', message: 'bad input' },
+    });
+  });
 });
 
 describe('parseTranscriptionStreamPart', () => {
@@ -283,5 +310,44 @@ describe('parseTranscriptionStreamPart', () => {
         JSON.stringify({ type: 'some-future-part' }),
       ),
     ).toBeUndefined();
+  });
+
+  // Known-type frames with a malformed shape (e.g. from a drifted server
+  // version) are rejected rather than passed through: downstream SDK code
+  // dereferences the required fields and would otherwise fail with an opaque
+  // TypeError mid-stream.
+  it.each<[string, Record<string, unknown>]>([
+    ['stream-start without warnings', { type: 'stream-start' }],
+    [
+      'stream-start with non-array warnings',
+      { type: 'stream-start', warnings: 'none' },
+    ],
+    ['transcript-delta without delta', { type: 'transcript-delta', id: 's1' }],
+    [
+      'transcript-delta with non-string delta',
+      { type: 'transcript-delta', delta: 42 },
+    ],
+    ['transcript-partial without text', { type: 'transcript-partial' }],
+    [
+      'transcript-partial with non-string text',
+      { type: 'transcript-partial', text: 42 },
+    ],
+    ['transcript-final without text', { type: 'transcript-final' }],
+    ['finish without text', { type: 'finish', segments: [] }],
+    ['finish without segments', { type: 'finish', text: 'Hello' }],
+    [
+      'finish with non-array segments',
+      { type: 'finish', text: 'Hello', segments: {} },
+    ],
+    [
+      'response-metadata with a non-string timestamp',
+      { type: 'response-metadata', timestamp: {} },
+    ],
+    [
+      'response-metadata with an unparsable timestamp',
+      { type: 'response-metadata', timestamp: 'not-a-date' },
+    ],
+  ])('should return undefined for %s', (_name, part) => {
+    expect(parseTranscriptionStreamPart(JSON.stringify(part))).toBeUndefined();
   });
 });

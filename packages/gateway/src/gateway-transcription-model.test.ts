@@ -627,6 +627,31 @@ describe('GatewayTranscriptionModel', () => {
       await assertion;
     });
 
+    it('should JSON-stringify object error part payloads without a message in the terminal error', async () => {
+      const model = createStreamingTestModel();
+
+      const result = await model.doStream({
+        audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+        inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      });
+
+      const partsPromise = convertReadableStreamToArray(result.stream);
+      const ws = MockWebSocket.instances[0];
+      ws.open();
+      await flush();
+
+      const assertion = expect(partsPromise).rejects.toSatisfy(
+        err =>
+          GatewayError.isInstance(err) &&
+          err.message.includes('{"code":"overloaded"}') &&
+          !err.message.includes('[object Object]'),
+      );
+      ws.message({ type: 'error', error: { code: 'overloaded' } });
+      await flush();
+      ws.onclose?.({});
+      await assertion;
+    });
+
     it('should error the stream with the generic message when the socket closes without finish or error part', async () => {
       const model = createStreamingTestModel();
 
