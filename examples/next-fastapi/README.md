@@ -7,15 +7,15 @@ These examples show you how to use the [AI SDK](https://ai-sdk.dev/docs) with [N
 Execute [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app) with [npm](https://docs.npmjs.com/cli/init), [Yarn](https://yarnpkg.com/lang/en/docs/cli/create/), or [pnpm](https://pnpm.io) to bootstrap the example:
 
 ```bash
-npx create-next-app --example https://github.com/vercel/ai/tree/main/examples/next-fastapi next-fastapi-app
+npx create-next-app --example https://github.com/vercel/ai --example-path examples/next-fastapi next-fastapi-app
 ```
 
 ```bash
-yarn create next-app --example https://github.com/vercel/ai/tree/main/examples/next-fastapi next-fastapi-app
+yarn create next-app --example https://github.com/vercel/ai --example-path examples/next-fastapi next-fastapi-app
 ```
 
 ```bash
-pnpm create next-app --example https://github.com/vercel/ai/tree/main/examples/next-fastapi next-fastapi-app
+pnpm create next-app --example https://github.com/vercel/ai --example-path examples/next-fastapi next-fastapi-app
 ```
 
 You will also need [Python 3.6+](https://www.python.org/downloads) and [virtualenv](https://virtualenv.pypa.io/en/latest/installation.html) installed to run the FastAPI server.
