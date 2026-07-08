@@ -73,10 +73,10 @@ You can use the following optional settings to customize the xAI provider instan
 ## Language Models
 
 You can create [xAI models](https://console.x.ai) using a provider instance. The
-first argument is the model id, e.g. `grok-4.20-non-reasoning`.
+first argument is the model id, e.g. `grok-4.5`.
 
 ```ts
-const model = xai('grok-4.20-non-reasoning');
+const model = xai('grok-4.5');
 ```
 
 <Note>
@@ -95,7 +95,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: xai('grok-4.20-non-reasoning'),
+  model: xai('grok-4.5'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -116,7 +116,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: xai('grok-4.3'),
+  model: xai('grok-4.5'),
   prompt: 'Explain quantum entanglement.',
   providerOptions: {
     xai: { reasoningEffort: 'medium' },
@@ -173,7 +173,7 @@ calling pattern.
 The xAI Responses API is the default when using `xai(modelId)` (since AI SDK 7). You can also use `xai.responses(modelId)` explicitly. This enables the model to autonomously orchestrate tool calls and research on xAI's servers.
 
 ```ts
-const model = xai.responses('grok-4.20-non-reasoning');
+const model = xai.responses('grok-4.5');
 ```
 
 The Responses API provides server-side tools that the model can autonomously execute during its reasoning process:
@@ -195,7 +195,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: xai.responses('grok-3'),
+  model: xai.responses('grok-4.5'),
   messages: [
     {
       role: 'user',
@@ -220,7 +220,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: xai('grok-4.3'),
+  model: xai('grok-4.5'),
   messages: [
     {
       role: 'user',
@@ -558,6 +558,7 @@ The following provider options are available:
 
 | Model                         | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      | Reasoning           |
 | ----------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `grok-4.5`                    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `grok-4.20-reasoning`         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `grok-4.20-non-reasoning`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 | `grok-4-1-fast-reasoning`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
