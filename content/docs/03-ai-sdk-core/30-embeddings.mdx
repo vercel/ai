@@ -123,6 +123,13 @@ const { embeddings, usage } = await embedMany({
 });
 ```
 
+`maxParallelCalls` controls how many embedding requests can run concurrently
+after `embedMany` has split the input by the model's maximum values-per-call
+limit. It does not limit the number of values per request and does not split by
+estimated token count. For providers with a total token limit per embedding
+request, pre-batch your input values to keep each request under that provider's
+limit.
+
 ### Retries
 
 Both `embed` and `embedMany` accept an optional `maxRetries` parameter of type `number`
