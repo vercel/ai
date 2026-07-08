@@ -26,16 +26,11 @@ export type XaiResponsesSystemMessage = {
 
 export type XaiResponsesUserMessageContentPart =
   | { type: 'input_text'; text: string }
-<<<<<<< HEAD
-  | { type: 'input_image'; image_url: string }
-=======
   | {
       type: 'input_image';
       image_url: string;
       detail?: 'low' | 'high' | 'auto';
     }
-  | { type: 'input_file'; file_id: string }
->>>>>>> 72eee24a7a (feat(provider/xai): support `imageDetail` provider option on image file parts (#16895))
   | { type: 'input_file'; file_url: string };
 
 export type XaiResponsesUserMessage = {

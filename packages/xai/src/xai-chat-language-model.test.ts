@@ -1216,7 +1216,7 @@ describe('XaiChatLanguageModel', () => {
               {
                 type: 'file',
                 mediaType: 'image/png',
-                data: { type: 'data', data: Buffer.from([0, 1, 2, 3]) },
+                data: Buffer.from([0, 1, 2, 3]),
                 providerOptions: { xai: { imageDetail: 'low' } },
               },
             ],
@@ -1253,7 +1253,7 @@ describe('XaiChatLanguageModel', () => {
               {
                 type: 'file',
                 mediaType: 'image/png',
-                data: { type: 'data', data: Buffer.from([0, 1, 2, 3]) },
+                data: Buffer.from([0, 1, 2, 3]),
               },
             ],
           },

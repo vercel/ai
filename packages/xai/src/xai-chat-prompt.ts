@@ -18,15 +18,10 @@ export interface XaiUserMessage {
 
 export type XaiUserMessageContent =
   | { type: 'text'; text: string }
-<<<<<<< HEAD
-  | { type: 'image_url'; image_url: { url: string } };
-=======
   | {
       type: 'image_url';
       image_url: { url: string; detail?: 'low' | 'high' | 'auto' };
-    }
-  | { type: 'file'; file: { file_id: string } };
->>>>>>> 72eee24a7a (feat(provider/xai): support `imageDetail` provider option on image file parts (#16895))
+    };
 
 export interface XaiAssistantMessage {
   role: 'assistant';
