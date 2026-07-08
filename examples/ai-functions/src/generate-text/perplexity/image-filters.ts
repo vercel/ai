@@ -1,4 +1,7 @@
-import { perplexity } from '@ai-sdk/perplexity';
+import {
+  perplexity,
+  type PerplexityLanguageModelOptions,
+} from '@ai-sdk/perplexity';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
@@ -12,7 +15,7 @@ run(async () => {
         return_images: true,
         image_domain_filter: ['nasa.gov', 'esa.int'],
         image_format_filter: ['jpeg', 'png'],
-      },
+      } satisfies PerplexityLanguageModelOptions,
     },
   });
 

@@ -1,4 +1,7 @@
-import { perplexity } from '@ai-sdk/perplexity';
+import {
+  perplexity,
+  type PerplexityLanguageModelOptions,
+} from '@ai-sdk/perplexity';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
@@ -13,7 +16,7 @@ run(async () => {
         web_search_options: {
           search_context_size: 'low',
         },
-      },
+      } satisfies PerplexityLanguageModelOptions,
     },
   });
 

@@ -1,4 +1,7 @@
-import { perplexity } from '@ai-sdk/perplexity';
+import {
+  perplexity,
+  type PerplexityLanguageModelOptions,
+} from '@ai-sdk/perplexity';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
@@ -19,7 +22,7 @@ run(async () => {
             longitude: -122.4194,
           },
         },
-      },
+      } satisfies PerplexityLanguageModelOptions,
     },
   });
 

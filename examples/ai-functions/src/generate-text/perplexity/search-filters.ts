@@ -1,4 +1,7 @@
-import { perplexity } from '@ai-sdk/perplexity';
+import {
+  perplexity,
+  type PerplexityLanguageModelOptions,
+} from '@ai-sdk/perplexity';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
@@ -16,7 +19,7 @@ run(async () => {
         ],
         search_language_filter: ['en'],
         search_after_date_filter: '1/1/2026',
-      },
+      } satisfies PerplexityLanguageModelOptions,
     },
   });
 
