@@ -134,6 +134,10 @@
               {
                 "name": "create${harnessId.toPascalCase()}",
                 "from": "./${harnessId}-harness"
+              },
+              {
+                "name": "VERSION",
+                "from": "./version"
               }
             ],
             "exportConstants": ["${harnessId.toCamelCase()}"],
@@ -143,7 +147,15 @@
                 "from": "./${harnessId}-harness"
               }
             ],
-            "haveFiles": ["${harnessId}-harness.ts"]
+            "haveFiles": ["${harnessId}-harness.ts", "version.ts"]
+          }
+        },
+        {
+          "name": "harness-version-file-must-export-version",
+          "description": "Every harness version file must export the package version.",
+          "for": { "files": ["version.ts"] },
+          "must": {
+            "exportConstants": ["VERSION"]
           }
         },
         {
@@ -175,7 +187,10 @@
           "description": "Every harness file must declare its built-in tools.",
           "for": { "files": ["${harnessId}-harness.ts"] },
           "must": {
-            "declareConstants": ["${harnessId.toConstantCase()}_BUILTIN_TOOLS"]
+            "declareConstants": [
+              "${harnessId.toConstantCase()}_CLIENT_APP",
+              "${harnessId.toConstantCase()}_BUILTIN_TOOLS"
+            ]
           }
         },
         {
@@ -198,6 +213,7 @@
           "for": { "files": ["${harnessId}-harness.ts"] },
           "must": {
             "useDeclarationOrder": [
+              "${harnessId.toConstantCase()}_CLIENT_APP",
               "${harnessId.toPascalCase()}HarnessSettings",
               "${harnessId.toConstantCase()}_BUILTIN_TOOLS",
               "${harnessId.toCamelCase()}BridgeCoordsSchema",

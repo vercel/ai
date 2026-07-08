@@ -1,5 +1,13 @@
 # @ai-sdk/harness-pi
 
+## 1.0.20
+
+### Patch Changes
+
+- b2d0306: feat(harness): send `User-Agent` and `x-client-app` headers in harness adapters
+- Updated dependencies [b7aa06a]
+  - @ai-sdk/harness@1.0.20
+
 ## 1.0.19
 
 ### Patch Changes

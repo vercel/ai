@@ -1,5 +1,12 @@
 # @ai-sdk/harness
 
+## 1.0.20
+
+### Patch Changes
+
+- b7aa06a: fix(harness): include step numbers on harness step-end telemetry events.
+  - ai@7.0.17
+
 ## 1.0.19
 
 ### Patch Changes
