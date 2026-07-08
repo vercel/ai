@@ -4814,6 +4814,185 @@ describe('doGenerate', () => {
     expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(true);
   });
 
+  it('should recover Nova malformed JSON response tool calls', async () => {
+    server.urls[novaGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                text: `<tools>
+<__function=json>
+<__parameter=category>billing</__parameter>
+<__parameter=priority>medium</__parameter>
+<__parameter=customer>{"name":"Alex","accountId":"acct_123","plan":"pro"}</__parameter>
+<__parameter=tags>["invoice","refund"]</__parameter>
+<__parameter=summary>Customer asks about a duplicate charge</__parameter>
+</__function>
+</tools>`,
+              },
+            ],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+        stopReason: 'malformed_tool_use',
+      },
+    };
+
+    const result = await novaModel.doGenerate({
+      prompt: [
+        { role: 'user', content: [{ type: 'text', text: 'Classify this' }] },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            category: { type: 'string' },
+            priority: { type: 'string' },
+            customer: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                accountId: { type: 'string' },
+                plan: { type: 'string' },
+              },
+              required: ['name', 'accountId', 'plan'],
+            },
+            tags: { type: 'array', items: { type: 'string' } },
+            summary: { type: 'string' },
+          },
+          required: ['category', 'priority', 'customer', 'tags', 'summary'],
+        },
+      },
+    });
+
+    expect(result.content).toEqual([
+      {
+        type: 'text',
+        text: JSON.stringify({
+          category: 'billing',
+          priority: 'medium',
+          customer: { name: 'Alex', accountId: 'acct_123', plan: 'pro' },
+          tags: ['invoice', 'refund'],
+          summary: 'Customer asks about a duplicate charge',
+        }),
+      },
+    ]);
+    expect(result.finishReason).toEqual({
+      unified: 'stop',
+      raw: 'malformed_tool_use',
+    });
+    expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(true);
+  });
+
+  it('should recover Nova malformed forced tool calls', async () => {
+    server.urls[novaGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                text: `<tools>
+<__function=lookupCustomer>
+<__parameter=customerId>"cust_123"</__parameter>
+<__parameter=includeHistory>true</__parameter>
+<__parameter=score>0.8</__parameter>
+</__function>
+</tools>`,
+              },
+            ],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 20, totalTokens: 24 },
+        stopReason: 'malformed_tool_use',
+      },
+    };
+
+    const result = await novaModel.doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: 'function',
+          name: 'lookupCustomer',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              customerId: { type: 'string' },
+              includeHistory: { type: 'boolean' },
+              score: { type: 'number' },
+            },
+            required: ['customerId'],
+          },
+        },
+      ],
+      toolChoice: { type: 'tool', toolName: 'lookupCustomer' },
+    });
+
+    expect(result.content).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'test-id',
+        toolName: 'lookupCustomer',
+        input: JSON.stringify({
+          customerId: 'cust_123',
+          includeHistory: true,
+          score: 0.8,
+        }),
+      },
+    ]);
+    expect(result.finishReason).toEqual({
+      unified: 'tool-calls',
+      raw: 'malformed_tool_use',
+    });
+  });
+
+  it('should not recover malformed tool text for unknown tools', async () => {
+    const text = `<tools>
+<__function=deleteCustomer>
+<__parameter=customerId>"cust_123"</__parameter>
+</__function>
+</tools>`;
+
+    server.urls[novaGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ text }],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 20, totalTokens: 24 },
+        stopReason: 'malformed_tool_use',
+      },
+    };
+
+    const result = await novaModel.doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: 'function',
+          name: 'lookupCustomer',
+          inputSchema: {
+            type: 'object',
+            properties: { customerId: { type: 'string' } },
+          },
+        },
+      ],
+    });
+
+    expect(result.content).toEqual([{ type: 'text', text }]);
+    expect(result.finishReason).toEqual({
+      unified: 'other',
+      raw: 'malformed_tool_use',
+    });
+  });
+
   it('should use native output_config.format for models with structured output support even without thinking enabled', async () => {
     server.urls[newerAnthropicGenerateUrl].response = {
       type: 'json-value',

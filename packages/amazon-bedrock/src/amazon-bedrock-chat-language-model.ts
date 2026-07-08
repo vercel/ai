@@ -52,6 +52,7 @@ import { convertToAmazonBedrockChatMessages } from './convert-to-amazon-bedrock-
 import { mapAmazonBedrockFinishReason } from './map-amazon-bedrock-finish-reason';
 import { isMistralModel, normalizeToolCallId } from './normalize-tool-call-id';
 import type { AmazonBedrockReasoningMetadata } from './amazon-bedrock-reasoning-metadata';
+import { parseMalformedToolCall } from './parse-malformed-tool-call';
 
 type AmazonBedrockChatConfig = {
   baseUrl: () => string;
@@ -497,11 +498,36 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
 
     const content: Array<LanguageModelV4Content> = [];
     let isJsonResponseFromTool = false;
+    let isMalformedToolUseRecovered = false;
+    const isMistral = isMistralModel(this.modelId);
+    const toolNames = new Set(
+      (args.toolConfig?.tools ?? []).flatMap(tool =>
+        'toolSpec' in tool ? [tool.toolSpec.name] : [],
+      ),
+    );
 
     // map response content to content array
     for (const part of response.output.message.content) {
       // text
       if (part.text != null) {
+        if (response.stopReason === 'malformed_tool_use') {
+          const parsedToolCall = await parseMalformedToolCall({
+            generateToolCallId: () =>
+              normalizeToolCallId(this.config.generateId(), isMistral),
+            isJsonResponseTool: toolName =>
+              usesJsonResponseTool && toolName === 'json',
+            text: part.text,
+            toolNames,
+          });
+
+          if (parsedToolCall != null) {
+            isMalformedToolUseRecovered = true;
+            isJsonResponseFromTool ||= parsedToolCall.isJsonResponseFromTool;
+            content.push(...parsedToolCall.content);
+            continue;
+          }
+        }
+
         content.push({ type: 'text', text: part.text });
       }
 
@@ -552,7 +578,6 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
             text: JSON.stringify(part.toolUse.input),
           });
         } else {
-          const isMistral = isMistralModel(this.modelId);
           const rawToolCallId =
             part.toolUse?.toolUseId ?? this.config.generateId();
           content.push({
@@ -615,6 +640,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
         unified: mapAmazonBedrockFinishReason(
           response.stopReason as AmazonBedrockStopReason,
           isJsonResponseFromTool,
+          isMalformedToolUseRecovered,
         ),
         raw: response.stopReason ?? undefined,
       },
