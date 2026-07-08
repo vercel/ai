@@ -1,5 +1,6 @@
 import {
   APICallError,
+  JSONParseError,
   type JSONValue,
   type LanguageModelV4,
   type LanguageModelV4Prompt,
@@ -1199,6 +1200,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
+              if (isMalformedResponseLifecycleParseError(chunk.error)) {
+                return;
+              }
+
               const error = isOpenAIChatCompletionChunk(chunk.rawValue)
                 ? createOpenAIResponsesChatCompletionsMismatchError({
                     value: chunk.rawValue,
@@ -2387,6 +2392,15 @@ function isErrorChunk(
   chunk: OpenAIResponsesChunk,
 ): chunk is OpenAIResponsesChunk & { type: 'error' } {
   return chunk.type === 'error';
+}
+
+function isMalformedResponseLifecycleParseError(error: unknown): boolean {
+  return (
+    JSONParseError.isInstance(error) &&
+    /^\s*\{\s*"type"\s*:\s*"response\.(?:created|in_progress|completed)"/.test(
+      error.text,
+    )
+  );
 }
 
 function isResponseOutputChunk(chunk: OpenAIResponsesChunk): boolean {

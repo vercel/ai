@@ -5772,6 +5772,86 @@ describe('OpenAIResponsesLanguageModel', () => {
       `);
     });
 
+    it('should ignore malformed response lifecycle chunks and continue streaming output', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:{"type":"response.created","response":{"id":"resp_truncated","created_at":1741269019,"model":"gpt-4o","instructions":"unterminated\n\n`,
+          `data:{"type":"response.output_item.added","output_index":0,"item":{"id":"msg_truncated","type":"message","status":"in_progress","role":"assistant","content":[]}}\n\n`,
+          `data:{"type":"response.content_part.added","item_id":"msg_truncated","output_index":0,"content_index":0,"part":{"type":"output_text","text":"","annotations":[],"logprobs":[]}}\n\n`,
+          `data:{"type":"response.output_text.delta","item_id":"msg_truncated","output_index":0,"content_index":0,"delta":"Hello","logprobs":[]}\n\n`,
+          `data:{"type":"response.in_progress","response":{"id":"resp_truncated","created_at":1741269019,"model":"gpt-4o","instructions":"unterminated\n\n`,
+          `data:{"type":"response.output_text.delta","item_id":"msg_truncated","output_index":0,"content_index":0,"delta":" world","logprobs":[]}\n\n`,
+          `data:{"type":"response.output_text.done","item_id":"msg_truncated","output_index":0,"content_index":0,"text":"Hello world"}\n\n`,
+          `data:{"type":"response.content_part.done","item_id":"msg_truncated","output_index":0,"content_index":0,"part":{"type":"output_text","text":"Hello world","annotations":[],"logprobs":[]}}\n\n`,
+          `data:{"type":"response.output_item.done","output_index":0,"item":{"id":"msg_truncated","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Hello world","annotations":[],"logprobs":[]}]}}\n\n`,
+          `data:{"type":"response.completed","response":{"id":"resp_truncated","created_at":1741269019,"model":"gpt-4o","instructions":"unterminated\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await createModel('gpt-4o').doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+
+      expect(events.filter(event => event.type === 'error')).toEqual([]);
+      expect(events).toEqual(
+        expect.arrayContaining([
+          {
+            type: 'text-delta',
+            id: 'msg_truncated',
+            delta: 'Hello',
+          },
+          {
+            type: 'text-delta',
+            id: 'msg_truncated',
+            delta: ' world',
+          },
+        ]),
+      );
+      expect(events.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: {
+          unified: 'other',
+          raw: undefined,
+        },
+      });
+    });
+
+    it('should report malformed output chunks as stream errors', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:{"type":"response.output_item.added","output_index":0,"item":{"id":"msg_malformed_output","type":"message","status":"in_progress","role":"assistant","content":[]}}\n\n`,
+          `data:{"type":"response.content_part.added","item_id":"msg_malformed_output","output_index":0,"content_index":0,"part":{"type":"output_text","text":"","annotations":[],"logprobs":[]}}\n\n`,
+          `data:{"type":"response.output_text.delta","item_id":"msg_malformed_output","delta":"unterminated\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await createModel('gpt-4o').doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+      const error = events.find(event => event.type === 'error')?.error;
+
+      expect(error).toMatchObject({
+        name: 'AI_JSONParseError',
+      });
+      expect(events.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: {
+          unified: 'error',
+          raw: undefined,
+        },
+      });
+    });
+
     describe('providerMetadata key based on provider string', () => {
       const streamingChunks = [
         `data:{"type":"response.created","response":{"id":"resp_67c9a81b6a048190a9ee441c5755a4e8","object":"response","created_at":1741269019,"status":"in_progress","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"gpt-4o-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0.3,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
