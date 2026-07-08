@@ -172,9 +172,48 @@ describe('convertToPerplexityMessages', () => {
       });
     });
 
-    it('accepts top-level-only "application" mediaType for PDF without error', () => {
+    it('converts top-level-only "application" mediaType PDF bytes to a file_url part', () => {
       const pdfBase64 = 'JVBERi0xLjQ=';
 
+      const result = convertToPerplexityMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'application',
+              data: { type: 'data' as const, data: pdfBase64 },
+              filename: 'doc.pdf',
+            },
+          ],
+        },
+      ]);
+
+      expect((result[0].content as unknown[])[0]).toEqual({
+        type: 'file_url',
+        file_url: { url: pdfBase64 },
+        file_name: 'doc.pdf',
+      });
+    });
+
+    it('throws for unsupported file media types instead of silently dropping them', () => {
+      expect(() =>
+        convertToPerplexityMessages([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'audio/mpeg',
+                data: { type: 'data' as const, data: 'AAAA' },
+              },
+            ],
+          },
+        ]),
+      ).toThrow(UnsupportedFunctionalityError);
+    });
+
+    it('throws for top-level-only "application" mediaType with a URL source', () => {
       expect(() =>
         convertToPerplexityMessages([
           {
@@ -183,13 +222,15 @@ describe('convertToPerplexityMessages', () => {
               {
                 type: 'file',
                 mediaType: 'application',
-                data: { type: 'data' as const, data: pdfBase64 },
-                filename: 'doc.pdf',
+                data: {
+                  type: 'url' as const,
+                  url: new URL('https://example.com/doc.pdf'),
+                },
               },
             ],
           },
         ]),
-      ).not.toThrow();
+      ).toThrow(UnsupportedFunctionalityError);
     });
 
     it('normalizes image/* wildcard via detection', () => {

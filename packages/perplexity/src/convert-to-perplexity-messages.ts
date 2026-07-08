@@ -57,7 +57,14 @@ export function convertToPerplexityMessages(
                   }
                   case 'url':
                   case 'data': {
-                    if (part.mediaType === 'application/pdf') {
+                    const isPdf =
+                      part.mediaType === 'application/pdf' ||
+                      (part.data.type === 'data' &&
+                        getTopLevelMediaType(part.mediaType) ===
+                          'application' &&
+                        resolveFullMediaType({ part }) === 'application/pdf');
+
+                    if (isPdf) {
                       return part.data.type === 'url'
                         ? {
                             type: 'file_url',
@@ -76,9 +83,9 @@ export function convertToPerplexityMessages(
                             },
                             file_name: part.filename || `document-${index}.pdf`,
                           };
-                    } else if (
-                      getTopLevelMediaType(part.mediaType) === 'image'
-                    ) {
+                    }
+
+                    if (getTopLevelMediaType(part.mediaType) === 'image') {
                       return part.data.type === 'url'
                         ? {
                             type: 'image_url',
@@ -97,7 +104,10 @@ export function convertToPerplexityMessages(
                             },
                           };
                     }
-                    return undefined;
+
+                    throw new UnsupportedFunctionalityError({
+                      functionality: `file part media type ${part.mediaType}`,
+                    });
                   }
                 }
               }
