@@ -5886,6 +5886,134 @@ describe('processUIMessageStream', () => {
         }
       `);
     });
+
+    it('should use tool metadata from tool output chunks', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'dynamic-call',
+          toolName: 'dynamicTool',
+          input: { query: 'dynamic' },
+          dynamic: true,
+        },
+        {
+          type: 'tool-output-available',
+          toolCallId: 'dynamic-call',
+          output: { result: 'dynamic result' },
+          dynamic: true,
+          toolMetadata: { downloadable: true },
+        },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'static-call',
+          toolName: 'staticTool',
+          input: { query: 'static' },
+        },
+        {
+          type: 'tool-output-available',
+          toolCallId: 'static-call',
+          output: { result: 'static result' },
+          toolMetadata: { cacheKey: 'static-result' },
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      const dynamicToolPart = state!.message.parts.find(
+        (part: any) => part.toolCallId === 'dynamic-call',
+      ) as any;
+      const staticToolPart = state!.message.parts.find(
+        (part: any) => part.toolCallId === 'static-call',
+      ) as any;
+
+      expect(dynamicToolPart.toolMetadata).toEqual({ downloadable: true });
+      expect(staticToolPart.toolMetadata).toEqual({
+        cacheKey: 'static-result',
+      });
+    });
+
+    it('should use tool metadata from tool output error chunks', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'dynamic-call',
+          toolName: 'dynamicTool',
+          input: { query: 'dynamic' },
+          dynamic: true,
+          toolMetadata: { source: 'input' },
+        },
+        {
+          type: 'tool-output-error',
+          toolCallId: 'dynamic-call',
+          errorText: 'dynamic failed',
+          dynamic: true,
+          toolMetadata: { source: 'dynamic-output-error' },
+        },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'static-call',
+          toolName: 'staticTool',
+          input: { query: 'static' },
+          toolMetadata: { source: 'input' },
+        },
+        {
+          type: 'tool-output-error',
+          toolCallId: 'static-call',
+          errorText: 'static failed',
+          toolMetadata: { source: 'static-output-error' },
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      const dynamicToolPart = state!.message.parts.find(
+        (part: any) => part.toolCallId === 'dynamic-call',
+      ) as any;
+      const staticToolPart = state!.message.parts.find(
+        (part: any) => part.toolCallId === 'static-call',
+      ) as any;
+
+      expect(dynamicToolPart.toolMetadata).toEqual({
+        source: 'dynamic-output-error',
+      });
+      expect(staticToolPart.toolMetadata).toEqual({
+        source: 'static-output-error',
+      });
+    });
   });
 
   it('should call onToolCall for client-executed tools', async () => {
