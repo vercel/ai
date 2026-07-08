@@ -1203,6 +1203,78 @@ describe('XaiChatLanguageModel', () => {
     });
   });
 
+  describe('image detail', () => {
+    it('should pass detail from the imageDetail provider option on image parts', async () => {
+      prepareJsonFixtureResponse('xai-text');
+
+      await model.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'What is in this image?' },
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: { type: 'data', data: Buffer.from([0, 1, 2, 3]) },
+                providerOptions: { xai: { imageDetail: 'low' } },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect((await server.calls[0].requestBodyJson).messages).toEqual([
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'What is in this image?' },
+            {
+              type: 'image_url',
+              image_url: {
+                url: 'data:image/png;base64,AAECAw==',
+                detail: 'low',
+              },
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should not set detail when the imageDetail provider option is not set', async () => {
+      prepareJsonFixtureResponse('xai-text');
+
+      await model.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'What is in this image?' },
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: { type: 'data', data: Buffer.from([0, 1, 2, 3]) },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect((await server.calls[0].requestBodyJson).messages).toEqual([
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'What is in this image?' },
+            {
+              type: 'image_url',
+              image_url: { url: 'data:image/png;base64,AAECAw==' },
+            },
+          ],
+        },
+      ]);
+    });
+  });
+
   describe('reasoning models', () => {
     const reasoningModel = new XaiChatLanguageModel('grok-3-mini', testConfig);
 
