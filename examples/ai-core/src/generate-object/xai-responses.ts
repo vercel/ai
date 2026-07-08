@@ -5,7 +5,7 @@ import { run } from '../lib/run';
 
 run(async () => {
   const result = await generateObject({
-    model: xai.responses('grok-3-beta'),
+    model: xai.responses('grok-4.5'),
     schema: z.object({
       recipe: z.object({
         name: z.string(),

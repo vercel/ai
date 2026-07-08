@@ -4,7 +4,7 @@ import { generateText } from 'ai';
 
 async function main() {
   const result = await generateText({
-    model: xai('grok-3-latest'),
+    model: xai('grok-4.5'),
     prompt: 'What are the latest developments in AI?',
     providerOptions: {
       xai: {

@@ -73,10 +73,10 @@ You can use the following optional settings to customize the xAI provider instan
 ## Language Models
 
 You can create [xAI models](https://console.x.ai) using a provider instance. The
-first argument is the model id, e.g. `grok-3`.
+first argument is the model id, e.g. `grok-4.5`.
 
 ```ts
-const model = xai('grok-3');
+const model = xai('grok-4.5');
 ```
 
 By default, `xai(modelId)` uses the Chat API. To use the Responses API with server-side agentic tools, explicitly use `xai.responses(modelId)`.
@@ -90,7 +90,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: xai('grok-3'),
+  model: xai('grok-4.5'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -153,7 +153,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: xai.responses('grok-2-vision-1212'),
+  model: xai.responses('grok-4.5'),
   messages: [
     {
       role: 'user',
@@ -628,6 +628,7 @@ console.log('Sources:', await result.sources);
 
 | Model                       | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      | Reasoning           |
 | --------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `grok-4.5`                  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `grok-4-fast-non-reasoning` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 | `grok-4-fast-reasoning`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `grok-code-fast-1`          | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |

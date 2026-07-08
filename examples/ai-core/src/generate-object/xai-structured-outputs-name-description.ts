@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 async function main() {
   const result = await generateObject({
-    model: xai('grok-3-beta'),
+    model: xai('grok-4.5'),
     schemaName: 'recipe',
     schemaDescription: 'A recipe for lasagna.',
     schema: z.object({

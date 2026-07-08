@@ -11,7 +11,7 @@ const createChatModel = (modelId: string) =>
 createFeatureTestSuite({
   name: 'Gateway',
   models: {
-    languageModels: [createChatModel('xai/grok-3-beta')],
+    languageModels: [createChatModel('xai/grok-4.5')],
   },
   timeout: 30000,
 })();
