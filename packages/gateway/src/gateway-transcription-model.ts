@@ -17,6 +17,7 @@ import {
   parseTranscriptionStreamPart,
   postJsonToApi,
   readWebSocketMessageText,
+  removeUndefinedEntries,
   resolve,
   TRANSCRIPTION_STREAM_AUDIO_DONE_FRAME_TYPE,
   TRANSCRIPTION_STREAM_START_FRAME_TYPE,
@@ -278,8 +279,11 @@ function createGatewayTranscriptionStream({
       try {
         const WebSocketConstructor = getWebSocketConstructor(webSocket);
         // Native `WebSocket` ignores headers (auth rides the subprotocols);
-        // header-capable implementations like `ws` forward them.
-        socket = new WebSocketConstructor(url, protocols, { headers });
+        // header-capable implementations like `ws` forward them — and throw
+        // on undefined header values, so those entries are stripped first.
+        socket = new WebSocketConstructor(url, protocols, {
+          headers: removeUndefinedEntries(headers),
+        });
       } catch (error) {
         finishWithError(error);
         return;
