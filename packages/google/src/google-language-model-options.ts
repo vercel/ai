@@ -111,6 +111,12 @@ export const googleLanguageModelOptions = lazySchema(() =>
         )
         .optional(),
 
+      /**
+       * Optional. Standalone safety threshold that is applied to all
+       * configurable harm categories (hate speech, dangerous content,
+       * harassment, sexually explicit). Ignored when `safetySettings`
+       * is provided; use `safetySettings` for per-category control.
+       */
       threshold: z
         .enum([
           'HARM_BLOCK_THRESHOLD_UNSPECIFIED',

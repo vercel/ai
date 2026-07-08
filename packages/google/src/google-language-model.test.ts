@@ -592,6 +592,70 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should expand the standalone threshold option into safetySettings for all configurable harm categories', async () => {
+    prepareJsonResponse({ content: 'test response' });
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          threshold: 'BLOCK_ONLY_HIGH',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      safetySettings: [
+        { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
+        {
+          category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+          threshold: 'BLOCK_ONLY_HIGH',
+        },
+        { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
+        {
+          category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+          threshold: 'BLOCK_ONLY_HIGH',
+        },
+      ],
+    });
+  });
+
+  it('should prefer explicit safetySettings over the standalone threshold option', async () => {
+    prepareJsonResponse({ content: 'test response' });
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          threshold: 'BLOCK_NONE',
+          safetySettings: [
+            {
+              category: 'HARM_CATEGORY_HARASSMENT',
+              threshold: 'BLOCK_ONLY_HIGH',
+            },
+          ],
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      safetySettings: [
+        { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
+      ],
+    });
+  });
+
+  it('should not send safetySettings when neither safetySettings nor threshold is specified', async () => {
+    prepareJsonResponse({ content: 'test response' });
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body).not.toHaveProperty('safetySettings');
+  });
+
   it('should not send serviceTier in request body when not specified', async () => {
     prepareJsonResponse({ content: 'test response' });
 
