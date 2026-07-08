@@ -1072,7 +1072,7 @@ const AmazonBedrockAdditionalModelResponseFieldsSchema = z
 const AmazonBedrockToolUseSchema = z.object({
   toolUseId: z.string(),
   name: z.string(),
-  input: z.unknown(),
+  input: z.unknown().optional(),
 });
 
 const AmazonBedrockReasoningTextSchema = z.object({

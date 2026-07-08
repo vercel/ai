@@ -16,7 +16,7 @@ run(async () => {
         }),
       }),
     }),
-    system: 'You are an art critic reviewing a piece of art.',
+    instructions: 'You are an art critic reviewing a piece of art.',
     messages: [
       {
         role: 'user',

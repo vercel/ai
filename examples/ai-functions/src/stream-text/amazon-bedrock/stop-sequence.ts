@@ -18,6 +18,6 @@ run(async () => {
   console.log('Finish reason:', await result.finishReason);
   console.log(
     'Stop sequence:',
-    (await result.providerMetadata)?.bedrock?.stopSequence,
+    (await result.finalStep).providerMetadata?.bedrock?.stopSequence,
   );
 });

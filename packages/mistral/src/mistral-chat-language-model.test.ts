@@ -153,6 +153,55 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should forward stopSequences as the Mistral stop parameter and not warn', async () => {
+    prepareJsonFixtureResponse('mistral-text');
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      stopSequences: ['foo', 'bar'],
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'mistral-small-latest',
+      messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      stop: ['foo', 'bar'],
+    });
+
+    expect(result.warnings).not.toContainEqual(
+      expect.objectContaining({
+        type: 'unsupported',
+        feature: 'stopSequences',
+      }),
+    );
+  });
+
+  it('should forward presencePenalty and frequencyPenalty without unsupported warnings', async () => {
+    prepareJsonFixtureResponse('mistral-text');
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      presencePenalty: 0.1,
+      frequencyPenalty: 0.2,
+    });
+
+    expect(result.warnings).not.toContainEqual(
+      expect.objectContaining({
+        type: 'unsupported',
+        feature: 'presencePenalty',
+      }),
+    );
+    expect(result.warnings).not.toContainEqual(
+      expect.objectContaining({
+        type: 'unsupported',
+        feature: 'frequencyPenalty',
+      }),
+    );
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      presence_penalty: 0.1,
+      frequency_penalty: 0.2,
+    });
+  });
+
   it('should pass headers', async () => {
     prepareJsonFixtureResponse('mistral-text');
 
@@ -279,6 +328,7 @@ describe('doGenerate', () => {
           "reasoning_effort": undefined,
           "response_format": undefined,
           "safe_prompt": undefined,
+          "stop": undefined,
           "temperature": undefined,
           "tool_choice": undefined,
           "tools": undefined,
@@ -326,6 +376,7 @@ describe('doGenerate', () => {
             "type": "json_object",
           },
           "safe_prompt": undefined,
+          "stop": undefined,
           "temperature": undefined,
           "tool_choice": undefined,
           "tools": undefined,
@@ -388,6 +439,7 @@ describe('doGenerate', () => {
             "type": "json_schema",
           },
           "safe_prompt": undefined,
+          "stop": undefined,
           "temperature": undefined,
           "tool_choice": undefined,
           "tools": undefined,
@@ -969,6 +1021,7 @@ describe('doStream', () => {
           "reasoning_effort": undefined,
           "response_format": undefined,
           "safe_prompt": undefined,
+          "stop": undefined,
           "stream": true,
           "temperature": undefined,
           "tool_choice": undefined,

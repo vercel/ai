@@ -10,13 +10,12 @@ import {
   type LanguageModel,
   type LanguageModelUsage,
   type ModelMessage,
-  type StepResult,
   type StopCondition,
   type ToolCallRepairFunction,
   type ToolChoice,
   type ToolSet,
 } from 'ai';
-import type { ProviderOptions, TelemetryOptions } from './workflow-agent.js';
+import type { ProviderOptions } from './workflow-agent.js';
 import {
   resolveSerializableTools,
   type SerializableToolDef,
@@ -50,10 +49,10 @@ export interface DoStreamStepOptions {
   maxRetries?: number;
   abortSignal?: AbortSignal;
   headers?: Record<string, string | undefined>;
+  reasoning?: LanguageModelV4CallOptions['reasoning'];
   providerOptions?: ProviderOptions;
   toolChoice?: ToolChoice<ToolSet>;
   includeRawChunks?: boolean;
-  telemetry?: TelemetryOptions;
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
   responseFormat?: LanguageModelV4CallOptions['responseFormat'];
 }
@@ -83,13 +82,35 @@ export interface StreamFinish {
   providerMetadata?: Record<string, unknown>;
 }
 
+/**
+ * Minimal aggregates needed to reconstruct a `StepResult` outside the step
+ * boundary. By returning only these fields (instead of a fully-populated
+ * StepResult plus the raw `chunks[]` array), the durable event log doesn't
+ * carry StepResult's redundant copies — `content`, the duplicate
+ * `toolCalls`/`dynamicToolCalls` lists, `reasoningText`, the always-empty
+ * `*ToolResults` arrays, and the per-chunk `chunks[]` snapshot the iterator
+ * never reads. The caller reconstructs the full StepResult via
+ * `buildStepResult`.
+ */
+export interface DoStreamStepRawResult {
+  text: string;
+  reasoning: Array<{ text: string }>;
+  responseMetadata?: { id?: string; timestamp?: Date; modelId?: string };
+  warnings?: unknown[];
+}
+
 export async function doStreamStep(
   conversationPrompt: LanguageModelV4Prompt,
   modelInit: LanguageModel,
   writable?: WritableStream<ModelCallStreamPart<ToolSet>>,
   serializedTools?: Record<string, SerializableToolDef>,
   options?: DoStreamStepOptions,
-) {
+): Promise<{
+  toolCalls: ParsedToolCall[];
+  finish: StreamFinish | undefined;
+  raw: DoStreamStepRawResult;
+  providerExecutedToolResults: Map<string, ProviderExecutedToolResult>;
+}> {
   'use step';
 
   // Resolve model inside step (must happen here for serialization boundary)
@@ -121,6 +142,7 @@ export async function doStreamStep(
     providerOptions: options?.providerOptions,
     abortSignal: options?.abortSignal,
     headers: options?.headers,
+    reasoning: options?.reasoning,
     maxOutputTokens: options?.maxOutputTokens,
     temperature: options?.temperature,
     topP: options?.topP,
@@ -140,7 +162,7 @@ export async function doStreamStep(
   >();
   let finish: StreamFinish | undefined;
 
-  // Aggregation for StepResult
+  // Minimal aggregation — only what buildStepResult needs outside the step.
   let text = '';
   const reasoningParts: Array<{ text: string }> = [];
   let responseMetadata:
@@ -229,95 +251,15 @@ export async function doStreamStep(
     writer?.releaseLock();
   }
 
-  // Build StepResult
-  const reasoningText = reasoningParts.map(r => r.text).join('') || undefined;
-
-  const step: StepResult<ToolSet, any> = {
-    callId: 'workflow-agent',
-    stepNumber: 0,
-    model: {
-      provider: responseMetadata?.modelId?.split(':')[0] ?? 'unknown',
-      modelId: responseMetadata?.modelId ?? 'unknown',
-    },
-    functionId: undefined,
-    metadata: undefined,
-    runtimeContext: undefined,
-    toolsContext: {},
-    content: [
-      ...(text ? [{ type: 'text' as const, text }] : []),
-      ...toolCalls
-        .filter(tc => !tc.invalid)
-        .map(tc => ({
-          type: 'tool-call' as const,
-          toolCallId: tc.toolCallId,
-          toolName: tc.toolName,
-          input: tc.input,
-          ...(tc.dynamic ? { dynamic: true as const } : {}),
-        })),
-    ],
-    text,
-    reasoning: reasoningParts.map(r => ({
-      type: 'reasoning' as const,
-      text: r.text,
-    })),
-    reasoningText,
-    files: [],
-    sources: [],
-    toolCalls: toolCalls
-      .filter(tc => !tc.invalid)
-      .map(tc => ({
-        type: 'tool-call' as const,
-        toolCallId: tc.toolCallId,
-        toolName: tc.toolName,
-        input: tc.input,
-        ...(tc.dynamic ? { dynamic: true as const } : {}),
-      })),
-    staticToolCalls: [],
-    dynamicToolCalls: toolCalls
-      .filter(tc => !tc.invalid && tc.dynamic)
-      .map(tc => ({
-        type: 'tool-call' as const,
-        toolCallId: tc.toolCallId,
-        toolName: tc.toolName,
-        input: tc.input,
-        dynamic: true as const,
-      })),
-    toolResults: [],
-    staticToolResults: [],
-    dynamicToolResults: [],
-    finishReason: finish?.finishReason ?? 'other',
-    rawFinishReason: finish?.rawFinishReason,
-    usage:
-      finish?.usage ??
-      ({
-        inputTokens: 0,
-        inputTokenDetails: {
-          noCacheTokens: undefined,
-          cacheReadTokens: undefined,
-          cacheWriteTokens: undefined,
-        },
-        outputTokens: 0,
-        outputTokenDetails: {
-          textTokens: undefined,
-          reasoningTokens: undefined,
-        },
-        totalTokens: 0,
-      } as LanguageModelUsage),
-    warnings,
-    request: { body: '' },
-    response: {
-      id: responseMetadata?.id ?? 'unknown',
-      timestamp: responseMetadata?.timestamp ?? new Date(),
-      modelId: responseMetadata?.modelId ?? 'unknown',
-      messages: [],
-    },
-    providerMetadata: finish?.providerMetadata ?? {},
-  } as StepResult<ToolSet, any>;
-
   return {
     toolCalls,
     finish,
-    step,
+    raw: {
+      text,
+      reasoning: reasoningParts,
+      responseMetadata,
+      warnings,
+    },
     providerExecutedToolResults,
   };
 }

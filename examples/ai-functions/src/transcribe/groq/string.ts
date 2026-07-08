@@ -1,5 +1,5 @@
 import { groq, type GroqTranscriptionModelOptions } from '@ai-sdk/groq';
-import { experimental_transcribe as transcribe } from 'ai';
+import { transcribe } from 'ai';
 import { readFile } from 'fs/promises';
 import { run } from '../../lib/run';
 

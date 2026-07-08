@@ -160,8 +160,16 @@ const myAnthropic = customProvider({
 });
 
 // usage:
-await uploadFile({ api: myOpenAI.files!(), data: fileData, filename: 'image.png' });
-await uploadSkill({ api: myAnthropic.skills!(), files: skillFiles, displayTitle: 'My Skill' });
+await uploadFile({
+  api: myOpenAI.files!(),
+  data: fileData,
+  filename: 'image.png',
+});
+await uploadSkill({
+  api: myAnthropic.skills!(),
+  files: skillFiles,
+  displayTitle: 'My Skill',
+});
 ```
 
 If no `files` or `skills` option is set but a `fallbackProvider` is configured, the custom provider will inherit those interfaces from the fallback.
@@ -258,7 +266,7 @@ const { image } = await generateImage({
 You can access video models by using the `videoModel` method on the registry.
 The provider id will become the prefix of the model id: `providerId:modelId`.
 
-```ts highlight={"5"}
+```ts highlight={"8"}
 import { experimental_generateVideo } from 'ai';
 import { fal } from '@ai-sdk/fal';
 import { createProviderRegistry } from 'ai';
@@ -276,9 +284,14 @@ const { videos } = await experimental_generateVideo({
 You can access a provider's files interface by calling `registry.files(providerId)`.
 This is useful when you want to upload files through a provider in the registry before referencing them in model requests.
 
-```ts highlight={"7,8"}
+```ts highlight={"12,17"}
 import { openai } from '@ai-sdk/openai';
-import { createProviderRegistry, customProvider, generateText, uploadFile } from 'ai';
+import {
+  createProviderRegistry,
+  customProvider,
+  generateText,
+  uploadFile,
+} from 'ai';
 
 const registry = createProviderRegistry({
   openai: customProvider({
@@ -311,7 +324,7 @@ const { text } = await generateText({
 
 You can access a provider's skills interface by calling `registry.skills(providerId)`.
 
-```ts highlight={"8"}
+```ts highlight={"7,12"}
 import { anthropic } from '@ai-sdk/anthropic';
 import { createProviderRegistry, customProvider, uploadSkill } from 'ai';
 

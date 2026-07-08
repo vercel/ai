@@ -35,7 +35,7 @@ run(async () => {
     },
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     if (part.type === 'tool-input-end') {
       console.log(
         `tool-input-end providerMetadata.openai: ${JSON.stringify(part.providerMetadata?.openai)}`,

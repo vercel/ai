@@ -7,7 +7,8 @@ run(async () => {
   const result = await generateText({
     model: google('gemini-2.5-flash-lite'),
     // Asking for JSON without specifying `output` is brittle, but still can be useful for model testing.
-    system: 'You are a helpful assistant. Provide the answer in JSON format.',
+    instructions:
+      'You are a helpful assistant. Provide the answer in JSON format.',
     prompt: 'What are the available exams?',
     tools: {
       getExams: tool({

@@ -24,7 +24,7 @@ export { newFunctionName as oldFunctionName } from './new-module';
 
 Only do this if it doesn't introduce meaningful technical debt. If it does, skip the alias — but **check with the user first** before making a clean break.
 
-### Modified message types  (e.g. in `@ai-sdk/provider-utils`)
+### Modified message types (e.g. in `@ai-sdk/provider-utils`)
 
 If modifying model message shapes (e.g. content part types in `packages/provider-utils/src/types/content-part.ts`):
 
@@ -39,6 +39,7 @@ The `provider` package defines the spec that provider implementers code against.
 Breaking changes _without_ maintaining temporary backward compatibility measures are more acceptable here than elsewhere, because the audience is smaller — far fewer developers implement their own providers than build features on top of the AI SDK.
 
 Rules:
+
 - **Only modify the latest spec version.** Older versioned spec interfaces must remain completely untouched.
 - Deprecated aliases are not required — a clean break is preferred to preserve spec clarity.
 - The current spec version is **not** the same as the current AI SDK major version number. If it's unclear which spec version to operate on, **ask the user before proceeding**.

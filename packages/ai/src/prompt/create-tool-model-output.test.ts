@@ -1,4 +1,4 @@
-import { tool, type Tool } from '@ai-sdk/provider-utils';
+import { tool, type Tool, type ToolResultOutput } from '@ai-sdk/provider-utils';
 import { createToolModelOutput } from './create-tool-model-output';
 import z from 'zod/v4';
 import { describe, it, expect } from 'vitest';
@@ -159,6 +159,40 @@ describe('createToolModelOutput', () => {
               "type": "text",
             },
           ],
+        }
+      `);
+    });
+  });
+
+  describe('this binding', () => {
+    // Guards against re-introducing a "this-binding guard" (e.g. destructuring
+    // `toModelOutput` off the tool before calling it), which would break
+    // class-based tools that rely on `this` in `toModelOutput`.
+    // See https://github.com/vercel/ai/pull/15917#discussion_r3376474765
+    it('should preserve `this` when calling a class-based tool.toModelOutput', async () => {
+      class WeatherTool {
+        readonly inputSchema = z.object({});
+        private readonly unit = '°C';
+
+        toModelOutput({ output }: { output: unknown }): ToolResultOutput {
+          // accesses `this.unit`, which requires `this` to be bound to the
+          // tool instance when `toModelOutput` is invoked.
+          return { type: 'text', value: `${output}${this.unit}` };
+        }
+      }
+
+      const result = await createToolModelOutput({
+        toolCallId: '123',
+        input: {},
+        output: '21',
+        tool: new WeatherTool(),
+        errorMode: 'none',
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "type": "text",
+          "value": "21°C",
         }
       `);
     });

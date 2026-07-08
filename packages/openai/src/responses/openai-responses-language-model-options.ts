@@ -156,13 +156,14 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
 
       /**
        * The set of extra fields to include in the response (advanced, usually not needed).
-       * Example values: 'reasoning.encrypted_content', 'file_search_call.results', 'message.output_text.logprobs'.
+       * Example values: 'reasoning.encrypted_content', 'file_search_call.results', 'web_search_call.results', 'message.output_text.logprobs'.
        */
       include: z
         .array(
           z.enum([
             'reasoning.encrypted_content', // handled internally by default, only needed for unknown reasoning models
             'file_search_call.results',
+            'web_search_call.results',
             'message.output_text.logprobs',
           ]),
         )
@@ -270,6 +271,15 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
       store: z.boolean().nullish(),
 
       /**
+       * Whether to pass through non-image file types as generic input files.
+       *
+       * By default, inline file inputs are restricted to images and PDFs.
+       * Enable this when the target OpenAI Responses model supports additional
+       * file media types, such as text/csv.
+       */
+      passThroughUnsupportedFiles: z.boolean().optional(),
+
+      /**
        * Whether to use strict JSON schema validation.
        * Defaults to `true`.
        */
@@ -328,6 +338,23 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
           }),
         )
         .nullish(),
+
+      /**
+       * Restrict the callable tools to a subset while keeping the full tools
+       * list intact, so prompt caching is preserved across requests with
+       * different allowlists.
+       *
+       * When set, this overrides the request-level `toolChoice` and emits
+       * `tool_choice: { type: "allowed_tools", mode, tools }` on the wire.
+       *
+       * @see https://developers.openai.com/api/reference/resources/responses/methods/create#(resource)%20responses%20%3E%20(model)%20tool_choice_allowed%20%3E%20(schema)
+       */
+      allowedTools: z
+        .object({
+          toolNames: z.array(z.string()).min(1),
+          mode: z.enum(['auto', 'required']).optional(),
+        })
+        .optional(),
     }),
   ),
 );

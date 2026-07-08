@@ -6,11 +6,14 @@ import {
 } from './gateway-provider';
 import { GatewayFetchMetadata } from './gateway-fetch-metadata';
 import { GatewaySpendReport } from './gateway-spend-report';
+import { GatewayGenerationInfoFetcher } from './gateway-generation-info';
 import { NoSuchModelError } from '@ai-sdk/provider';
 import { GatewayEmbeddingModel } from './gateway-embedding-model';
 import { GatewayImageModel } from './gateway-image-model';
 import { GatewayVideoModel } from './gateway-video-model';
 import { GatewayRerankingModel } from './gateway-reranking-model';
+import { GatewaySpeechModel } from './gateway-speech-model';
+import { GatewayTranscriptionModel } from './gateway-transcription-model';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import { resolve } from '@ai-sdk/provider-utils';
 import { GatewayLanguageModel } from './gateway-language-model';
@@ -33,6 +36,20 @@ vi.mock('./gateway-spend-report', () => ({
           await config.headers();
         }
         return mockGetSpendReport(params);
+      },
+    };
+  }),
+}));
+
+const mockGetGenerationInfo = vi.fn();
+vi.mock('./gateway-generation-info', () => ({
+  GatewayGenerationInfoFetcher: vi.fn(function (config: any) {
+    return {
+      getGenerationInfo: async (params: any) => {
+        if (config.headers && typeof config.headers === 'function') {
+          await config.headers();
+        }
+        return mockGetGenerationInfo(params);
       },
     };
   }),
@@ -157,6 +174,68 @@ function assertIsGatewayRerankingModelInternalConfig(
   }
 }
 
+type GatewaySpeechModelInternalConfig = {
+  provider: string;
+  baseURL: string;
+  headers: () => Promise<Record<string, string>>;
+  fetch?: typeof fetch;
+  o11yHeaders: () => Promise<Record<string, string>>;
+};
+
+function assertIsGatewaySpeechModelInternalConfig(
+  value: unknown,
+): asserts value is GatewaySpeechModelInternalConfig {
+  if (
+    !value ||
+    typeof value !== 'object' ||
+    typeof (value as { provider?: unknown }).provider !== 'string' ||
+    typeof (value as { baseURL?: unknown }).baseURL !== 'string' ||
+    typeof (value as { headers?: unknown }).headers !== 'function' ||
+    typeof (value as { o11yHeaders?: unknown }).o11yHeaders !== 'function'
+  ) {
+    throw new Error('Invalid GatewaySpeechModel configuration');
+  }
+}
+
+function getGatewaySpeechModelInternalConfig(
+  model: GatewaySpeechModel,
+): GatewaySpeechModelInternalConfig {
+  const config = Reflect.get(model as object, 'config');
+  assertIsGatewaySpeechModelInternalConfig(config);
+  return config;
+}
+
+type GatewayTranscriptionModelInternalConfig = {
+  provider: string;
+  baseURL: string;
+  headers: () => Promise<Record<string, string>>;
+  fetch?: typeof fetch;
+  o11yHeaders: () => Promise<Record<string, string>>;
+};
+
+function assertIsGatewayTranscriptionModelInternalConfig(
+  value: unknown,
+): asserts value is GatewayTranscriptionModelInternalConfig {
+  if (
+    !value ||
+    typeof value !== 'object' ||
+    typeof (value as { provider?: unknown }).provider !== 'string' ||
+    typeof (value as { baseURL?: unknown }).baseURL !== 'string' ||
+    typeof (value as { headers?: unknown }).headers !== 'function' ||
+    typeof (value as { o11yHeaders?: unknown }).o11yHeaders !== 'function'
+  ) {
+    throw new Error('Invalid GatewayTranscriptionModel configuration');
+  }
+}
+
+function getGatewayTranscriptionModelInternalConfig(
+  model: GatewayTranscriptionModel,
+): GatewayTranscriptionModelInternalConfig {
+  const config = Reflect.get(model as object, 'config');
+  assertIsGatewayTranscriptionModelInternalConfig(config);
+  return config;
+}
+
 function getGatewayRerankingModelInternalConfig(
   model: GatewayRerankingModel,
 ): GatewayRerankingModelInternalConfig {
@@ -174,6 +253,7 @@ describe('GatewayProvider', () => {
     mockGetAvailableModels.mockReturnValue({ models: [] });
     mockGetCredits.mockReturnValue({ balance: '100.00', total_used: '50.00' });
     mockGetSpendReport.mockReturnValue({ results: [] });
+    mockGetGenerationInfo.mockReturnValue({ id: 'gen_test' });
     if ('AI_GATEWAY_API_KEY' in process.env) {
       Reflect.deleteProperty(process.env, 'AI_GATEWAY_API_KEY');
     }
@@ -234,6 +314,95 @@ describe('GatewayProvider', () => {
         'ai-gateway-auth-method': 'oidc',
         'user-agent': 'ai-sdk/gateway/0.0.0-test',
       });
+    });
+
+    it('should use apiKey and teamIdOrSlug for language model requests', async () => {
+      const provider = createGateway({
+        apiKey: 'vca_test-token',
+        teamIdOrSlug: 'vercel',
+        headers: { 'Custom-Header': 'value' },
+      });
+
+      provider('test-model');
+
+      const constructorCall = vi.mocked(GatewayLanguageModel).mock.calls[0];
+      const config = constructorCall[1];
+      const headers = (await resolve(config.headers))!;
+
+      expect(headers).toEqual({
+        authorization: 'Bearer vca_test-token',
+        'custom-header': 'value',
+        'x-vercel-ai-gateway-team': 'vercel',
+        'ai-gateway-protocol-version': expect.any(String),
+        'ai-gateway-auth-method': 'api-key',
+        'user-agent': 'ai-sdk/gateway/0.0.0-test',
+      });
+      expect(getVercelOidcToken).not.toHaveBeenCalled();
+    });
+
+    it('should use apiKey and teamIdOrSlug for non-language model requests', async () => {
+      const provider = createGateway({
+        apiKey: 'vca_test-token',
+        teamIdOrSlug: 'vercel',
+      });
+
+      const model = provider.imageModel('google/imagen-4.0-generate');
+
+      if (!(model instanceof GatewayImageModel)) {
+        fail('Expected GatewayImageModel to be created');
+      }
+
+      const config = getGatewayImageModelInternalConfig(model);
+      const headers = await config.headers();
+
+      expect(headers).toMatchObject({
+        authorization: 'Bearer vca_test-token',
+        'x-vercel-ai-gateway-team': 'vercel',
+        'ai-gateway-auth-method': 'api-key',
+      });
+      expect(getVercelOidcToken).not.toHaveBeenCalled();
+    });
+
+    it('should pass teamIdOrSlug with URL-special characters as a header value', async () => {
+      const provider = createGateway({
+        apiKey: 'vca_test-token',
+        teamIdOrSlug: "team-o'brien",
+      });
+
+      provider('test-model');
+
+      const constructorCall = vi.mocked(GatewayLanguageModel).mock.calls[0];
+      const config = constructorCall[1];
+      const headers = (await resolve(config.headers))!;
+
+      expect(headers['x-vercel-ai-gateway-team']).toBe("team-o'brien");
+    });
+
+    it('should omit team header for apiKey requests without teamIdOrSlug', async () => {
+      const provider = createGateway({ apiKey: 'vca_test-token' });
+
+      provider('test-model');
+
+      const constructorCall = vi.mocked(GatewayLanguageModel).mock.calls[0];
+      const config = constructorCall[1];
+      const headers = (await resolve(config.headers))!;
+
+      expect(headers['authorization']).toBe('Bearer vca_test-token');
+      expect(headers).not.toHaveProperty('x-vercel-ai-gateway-team');
+    });
+
+    it('should pass teamIdOrSlug with OIDC requests', async () => {
+      const provider = createGateway({ teamIdOrSlug: 'vercel' });
+
+      provider('test-model');
+
+      const constructorCall = vi.mocked(GatewayLanguageModel).mock.calls[0];
+      const config = constructorCall[1];
+      const headers = (await resolve(config.headers))!;
+
+      expect(headers['authorization']).toBe('Bearer mock-oidc-token');
+      expect(headers['x-vercel-ai-gateway-team']).toBe('vercel');
+      expect(headers['ai-gateway-auth-method']).toBe('oidc');
     });
 
     it('should throw error when instantiated with new keyword', () => {
@@ -386,6 +555,122 @@ describe('GatewayProvider', () => {
       }
     });
 
+    it('should create GatewaySpeechModel for speechModel', () => {
+      const provider = createGateway({
+        baseURL: 'https://api.example.com',
+        apiKey: 'test-api-key',
+      });
+
+      const model = provider.speechModel('openai/tts-1');
+
+      if (!(model instanceof GatewaySpeechModel)) {
+        fail('Expected GatewaySpeechModel to be created');
+      }
+
+      const config = getGatewaySpeechModelInternalConfig(model);
+      expect(config.provider).toBe('gateway');
+      expect(config.baseURL).toBe('https://api.example.com');
+    });
+
+    it('should create GatewaySpeechModel for speech alias', () => {
+      const provider = createGateway({
+        baseURL: 'https://api.example.com',
+        apiKey: 'test-api-key',
+      });
+
+      const model = provider.speech('openai/tts-1');
+
+      if (!(model instanceof GatewaySpeechModel)) {
+        fail('Expected GatewaySpeechModel to be created');
+      }
+    });
+
+    it('should reuse gateway headers and fetch for speechModel', async () => {
+      const customFetch = vi.fn();
+      const provider = createGateway({
+        baseURL: 'https://api.example.com',
+        apiKey: 'test-api-key',
+        headers: { 'Custom-Header': 'value' },
+        fetch: customFetch,
+      });
+
+      const model = provider.speechModel('openai/tts-1');
+
+      if (!(model instanceof GatewaySpeechModel)) {
+        fail('Expected GatewaySpeechModel to be created');
+      }
+
+      const config = getGatewaySpeechModelInternalConfig(model);
+      const headers = await config.headers();
+
+      expect(headers).toEqual({
+        authorization: 'Bearer test-api-key',
+        'custom-header': 'value',
+        'ai-gateway-protocol-version': expect.any(String),
+        'ai-gateway-auth-method': 'api-key',
+        'user-agent': 'ai-sdk/gateway/0.0.0-test',
+      });
+      expect(config.fetch).toBe(customFetch);
+    });
+
+    it('should create GatewayTranscriptionModel for transcriptionModel', () => {
+      const provider = createGateway({
+        baseURL: 'https://api.example.com',
+        apiKey: 'test-api-key',
+      });
+
+      const model = provider.transcriptionModel('openai/gpt-4o-transcribe');
+
+      if (!(model instanceof GatewayTranscriptionModel)) {
+        fail('Expected GatewayTranscriptionModel to be created');
+      }
+
+      const config = getGatewayTranscriptionModelInternalConfig(model);
+      expect(config.provider).toBe('gateway');
+      expect(config.baseURL).toBe('https://api.example.com');
+    });
+
+    it('should create GatewayTranscriptionModel for transcription alias', () => {
+      const provider = createGateway({
+        baseURL: 'https://api.example.com',
+        apiKey: 'test-api-key',
+      });
+
+      const model = provider.transcription('openai/gpt-4o-transcribe');
+
+      if (!(model instanceof GatewayTranscriptionModel)) {
+        fail('Expected GatewayTranscriptionModel to be created');
+      }
+    });
+
+    it('should reuse gateway headers and fetch for transcriptionModel', async () => {
+      const customFetch = vi.fn();
+      const provider = createGateway({
+        baseURL: 'https://api.example.com',
+        apiKey: 'test-api-key',
+        headers: { 'Custom-Header': 'value' },
+        fetch: customFetch,
+      });
+
+      const model = provider.transcriptionModel('openai/gpt-4o-transcribe');
+
+      if (!(model instanceof GatewayTranscriptionModel)) {
+        fail('Expected GatewayTranscriptionModel to be created');
+      }
+
+      const config = getGatewayTranscriptionModelInternalConfig(model);
+      const headers = await config.headers();
+
+      expect(headers).toEqual({
+        authorization: 'Bearer test-api-key',
+        'custom-header': 'value',
+        'ai-gateway-protocol-version': expect.any(String),
+        'ai-gateway-auth-method': 'api-key',
+        'user-agent': 'ai-sdk/gateway/0.0.0-test',
+      });
+      expect(config.fetch).toBe(customFetch);
+    });
+
     it('should fetch available models', async () => {
       mockGetAvailableModels.mockReturnValue({ models: [] });
 
@@ -414,6 +699,7 @@ describe('GatewayProvider', () => {
         let currentTime = new Date('2024-01-01T00:00:00Z').getTime();
         const provider = createGateway({
           baseURL: 'https://api.example.com',
+          apiKey: 'test-api-key',
           metadataCacheRefreshMillis: 10000, // 10 seconds
           _internal: {
             currentDate: () => new Date(currentTime),
@@ -447,6 +733,7 @@ describe('GatewayProvider', () => {
         let currentTime = new Date('2024-01-01T00:00:00Z').getTime();
         const provider = createGateway({
           baseURL: 'https://api.example.com',
+          apiKey: 'test-api-key',
           _internal: {
             currentDate: () => new Date(currentTime),
           },
@@ -610,6 +897,34 @@ describe('GatewayProvider', () => {
       expect(config.baseURL).toBe('https://ai-gateway.vercel.sh/v4/ai');
     });
 
+    it('should expose speechModel on the default provider and construct model', () => {
+      expect(typeof gateway.speechModel).toBe('function');
+      const model = gateway.speechModel('openai/tts-1');
+
+      if (!(model instanceof GatewaySpeechModel)) {
+        fail('Expected GatewaySpeechModel to be created by default provider');
+      }
+
+      const config = getGatewaySpeechModelInternalConfig(model);
+      expect(config.provider).toBe('gateway');
+      expect(config.baseURL).toBe('https://ai-gateway.vercel.sh/v4/ai');
+    });
+
+    it('should expose transcriptionModel on the default provider and construct model', () => {
+      expect(typeof gateway.transcriptionModel).toBe('function');
+      const model = gateway.transcriptionModel('openai/gpt-4o-transcribe');
+
+      if (!(model instanceof GatewayTranscriptionModel)) {
+        fail(
+          'Expected GatewayTranscriptionModel to be created by default provider',
+        );
+      }
+
+      const config = getGatewayTranscriptionModelInternalConfig(model);
+      expect(config.provider).toBe('gateway');
+      expect(config.baseURL).toBe('https://ai-gateway.vercel.sh/v4/ai');
+    });
+
     it('should override default baseURL when provided', async () => {
       // Reset mocks
       vi.clearAllMocks();
@@ -666,6 +981,40 @@ describe('GatewayProvider', () => {
 
       // Verify getVercelOidcToken was never called
       expect(getVercelOidcToken).not.toHaveBeenCalled();
+    });
+
+    it('should use apiKey and teamIdOrSlug for getAvailableModels', async () => {
+      mockGetAvailableModels.mockReturnValue({ models: [] });
+
+      const testProvider = createGateway({
+        apiKey: 'vca_test-token',
+        teamIdOrSlug: 'vercel',
+      });
+
+      await testProvider.getAvailableModels();
+
+      const config = vi.mocked(GatewayFetchMetadata).mock.calls[0][0];
+      const headers = (await resolve(config.headers))!;
+
+      expect(headers['authorization']).toBe('Bearer vca_test-token');
+      expect(headers['x-vercel-ai-gateway-team']).toBe('vercel');
+      expect(getVercelOidcToken).not.toHaveBeenCalled();
+    });
+
+    it('should use OIDC and teamIdOrSlug for getAvailableModels when no apiKey is configured', async () => {
+      vi.mocked(getVercelOidcToken).mockResolvedValue('oidc-token');
+
+      const testProvider = createGateway({ teamIdOrSlug: 'vercel' });
+
+      await testProvider.getAvailableModels();
+
+      const config = vi.mocked(GatewayFetchMetadata).mock.calls[0][0];
+      const headers = (await resolve(config.headers))!;
+
+      expect(headers['authorization']).toBe('Bearer oidc-token');
+      expect(headers['ai-gateway-auth-method']).toBe('oidc');
+      expect(headers['x-vercel-ai-gateway-team']).toBe('vercel');
+      expect(getVercelOidcToken).toHaveBeenCalled();
     });
   });
 
@@ -899,13 +1248,18 @@ describe('GatewayProvider', () => {
             metadataCacheRefreshMillis: 0,
           });
 
-          if (testCase.expectSuccess) {
-            // Ensure the mock succeeds for successful test cases
-            mockGetAvailableModels.mockReturnValue({ models: [] });
+          provider('test-model');
+          const constructorCall = vi
+            .mocked(GatewayLanguageModel)
+            .mock.calls.at(-1)!;
+          const config = constructorCall[1];
 
-            // Test that provider can get available models (which requires auth)
-            const models = await provider.getAvailableModels();
-            expect(models).toBeDefined();
+          if (testCase.expectSuccess) {
+            const headers = (await resolve(config.headers))!;
+
+            expect(headers['ai-gateway-auth-method']).toBe(
+              testCase.expectedAuthMethod,
+            );
 
             // For OIDC tests, we need to verify the auth token function was called
             // which is indirectly tested by checking if getVercelOidcToken was called
@@ -919,16 +1273,8 @@ describe('GatewayProvider', () => {
               expect(getVercelOidcToken).not.toHaveBeenCalled();
             }
           } else {
-            // For failure cases, mock the metadata fetch to throw auth error
-            mockGetAvailableModels.mockImplementation(() => {
-              throw new GatewayAuthenticationError({
-                message: 'Authentication failed',
-                statusCode: 401,
-              });
-            });
-
             // Test failure cases
-            await expect(provider.getAvailableModels()).rejects.toThrow(
+            await expect(resolve(config.headers)).rejects.toThrow(
               /authentication|token/i,
             );
           }
@@ -995,29 +1341,13 @@ describe('GatewayProvider', () => {
         );
         vi.mocked(getVercelOidcToken).mockRejectedValue(oidcError);
 
-        vi.mocked(GatewayFetchMetadata).mockImplementation(function (
-          config: any,
-        ) {
-          return {
-            getAvailableModels: async () => {
-              if (config.headers && typeof config.headers === 'function') {
-                await config.headers();
-              }
-              return mockGetAvailableModels();
-            },
-            getCredits: async () => {
-              if (config.headers && typeof config.headers === 'function') {
-                await config.headers();
-              }
-              return mockGetCredits();
-            },
-          } as any;
-        });
-
         const provider = createGateway();
+        provider('test-model');
+        const constructorCall = vi.mocked(GatewayLanguageModel).mock.calls[0];
+        const config = constructorCall[1];
 
         try {
-          await provider.getAvailableModels();
+          await resolve(config.headers);
           fail('Expected an error to be thrown');
         } catch (error) {
           expect(GatewayAuthenticationError.isInstance(error)).toBe(true);
@@ -1093,9 +1423,16 @@ describe('GatewayProvider', () => {
         );
 
         const provider = createGateway();
-        const models = await provider.getAvailableModels();
+        provider('test-model');
 
-        expect(models).toBeDefined();
+        const constructorCall = vi.mocked(GatewayLanguageModel).mock.calls[0];
+        const config = constructorCall[1];
+        const headers = (await resolve(config.headers))!;
+
+        expect(headers['authorization']).toBe(
+          'Bearer vercel-deployment-oidc-token',
+        );
+        expect(headers['ai-gateway-auth-method']).toBe('oidc');
         expect(getVercelOidcToken).toHaveBeenCalled();
       });
 
@@ -1155,13 +1492,6 @@ describe('GatewayProvider', () => {
       );
     });
 
-    it('should handle authentication errors in getCredits', async () => {
-      const provider = createGateway();
-
-      const result = await provider.getCredits();
-      expect(result).toEqual({ balance: '100.00', total_used: '50.00' });
-    });
-
     it('should work with custom baseURL', async () => {
       const customBaseURL = 'https://custom-gateway.example.com/v4/ai';
       const provider = createGateway({
@@ -1178,7 +1508,7 @@ describe('GatewayProvider', () => {
       );
     });
 
-    it('should work with OIDC authentication', async () => {
+    it('should work with OIDC authentication in getCredits', async () => {
       vi.mocked(getVercelOidcToken).mockResolvedValue('oidc-token');
 
       const provider = createGateway();
@@ -1334,6 +1664,20 @@ describe('GatewayProvider', () => {
       ).rejects.toThrow('Reporting service unavailable');
     });
 
+    it('should work with OIDC authentication in spend reports', async () => {
+      vi.mocked(getVercelOidcToken).mockResolvedValue('oidc-token');
+
+      const provider = createGateway();
+
+      const report = await provider.getSpendReport({
+        startDate: '2026-03-01',
+        endDate: '2026-03-25',
+      });
+
+      expect(report).toBeDefined();
+      expect(getVercelOidcToken).toHaveBeenCalled();
+    });
+
     it('should be available on the provider interface', () => {
       const provider = createGateway({ apiKey: 'test-key' });
       expect(typeof provider.getSpendReport).toBe('function');
@@ -1341,6 +1685,35 @@ describe('GatewayProvider', () => {
 
     it('should be available on the default gateway export', () => {
       expect(typeof gateway.getSpendReport).toBe('function');
+    });
+  });
+
+  describe('getGenerationInfo method', () => {
+    it('should fetch generation info successfully', async () => {
+      const mockGenerationInfo = { id: 'gen_test' };
+      mockGetGenerationInfo.mockReturnValue(mockGenerationInfo);
+
+      const provider = createGateway({ apiKey: 'test-key' });
+
+      const generationInfo = await provider.getGenerationInfo({
+        id: 'gen_test',
+      });
+
+      expect(generationInfo).toEqual(mockGenerationInfo);
+      expect(mockGetGenerationInfo).toHaveBeenCalledWith({ id: 'gen_test' });
+    });
+
+    it('should work with OIDC authentication in generation info', async () => {
+      vi.mocked(getVercelOidcToken).mockResolvedValue('oidc-token');
+
+      const provider = createGateway();
+
+      const generationInfo = await provider.getGenerationInfo({
+        id: 'gen_test',
+      });
+
+      expect(generationInfo).toBeDefined();
+      expect(getVercelOidcToken).toHaveBeenCalled();
     });
   });
 

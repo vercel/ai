@@ -361,6 +361,33 @@ describe('GoogleImageModel', () => {
     });
   });
 
+  describe('googleSearch on Imagen', () => {
+    it('should emit an unsupported warning and not leak into parameters', async () => {
+      const result = await model.doGenerate({
+        prompt: 'A cute baby sea otter',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          google: { googleSearch: {} },
+        },
+      });
+
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'googleSearch',
+        details:
+          'Google Search grounding is only supported on Gemini image models.',
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.parameters.googleSearch).toBeUndefined();
+    });
+  });
+
   describe('Image Editing (Not Supported)', () => {
     it('should throw error when files are provided', async () => {
       await expect(
@@ -663,6 +690,128 @@ describe('GoogleImageModel (Gemini)', () => {
         details:
           'This model does not support the `size` option. Use `aspectRatio` instead.',
       });
+    });
+
+    it('should not send a tools field when googleSearch is not set', async () => {
+      prepareGeminiJsonResponse();
+
+      await geminiModel.doGenerate({
+        prompt: 'A beautiful sunset',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      const requestBody = await geminiServer.calls[0].requestBodyJson;
+      expect(requestBody.tools).toBeUndefined();
+    });
+
+    it('should forward providerOptions.google.googleSearch as the google_search tool', async () => {
+      prepareGeminiJsonResponse();
+
+      await geminiModel.doGenerate({
+        prompt: 'A beautiful sunset',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          google: {
+            googleSearch: { searchTypes: { imageSearch: {} } },
+          },
+        },
+      });
+
+      const requestBody = await geminiServer.calls[0].requestBodyJson;
+      expect(requestBody.tools).toStrictEqual([
+        { googleSearch: { searchTypes: { imageSearch: {} } } },
+      ]);
+    });
+
+    it('should not leak googleSearch into providerOptions passthrough', async () => {
+      prepareGeminiJsonResponse();
+
+      await geminiModel.doGenerate({
+        prompt: 'A beautiful sunset',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          google: {
+            googleSearch: {},
+          },
+        },
+      });
+
+      const requestBody = await geminiServer.calls[0].requestBodyJson;
+      expect(requestBody.generationConfig.googleSearch).toBeUndefined();
+    });
+
+    it('should forward groundingMetadata from the language-model response into providerMetadata.google', async () => {
+      const groundingMetadata = {
+        webSearchQueries: ['who performs at the 2026 super bowl halftime show'],
+        groundingChunks: [
+          { web: { uri: 'https://example.com/source', title: 'Example' } },
+        ],
+      };
+      geminiServer.urls[TEST_URL_GEMINI_IMAGE].response = {
+        type: 'json-value',
+        body: {
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    inlineData: {
+                      mimeType: 'image/png',
+                      data: 'base64-generated-image',
+                    },
+                  },
+                ],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              groundingMetadata,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 10,
+            candidatesTokenCount: 100,
+            totalTokenCount: 110,
+          },
+        },
+      };
+
+      const result = await geminiModel.doGenerate({
+        prompt: 'A beautiful sunset',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          google: { googleSearch: {} },
+        },
+      });
+
+      const googleMetadata = result.providerMetadata?.google as
+        | Record<string, unknown>
+        | undefined;
+      expect(googleMetadata?.groundingMetadata).toStrictEqual(
+        groundingMetadata,
+      );
+      // existing image metadata should be preserved alongside the LM metadata
+      expect(googleMetadata?.images).toStrictEqual([{}]);
     });
   });
 

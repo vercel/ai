@@ -47,7 +47,8 @@ run(async () => {
     process.stdout.write(textPart);
   }
 
-  const finishMessage = (await result.providerMetadata)?.vertex?.finishMessage;
+  const finishMessage = (await result.finalStep).providerMetadata?.vertex
+    ?.finishMessage;
 
   console.log();
   console.log('Finish Reason:', await result.rawFinishReason); // expect MALFORMED_FUNCTION_CALL; no response will be generated

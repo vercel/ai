@@ -64,22 +64,31 @@ export async function convertToOpenResponsesInput({
                 }
                 case 'url':
                 case 'data': {
-                  if (getTopLevelMediaType(part.mediaType) !== 'image') {
-                    warnings.push({
-                      type: 'other',
-                      message: `unsupported file content type: ${part.mediaType}`,
+                  const topLevel = getTopLevelMediaType(part.mediaType);
+
+                  if (topLevel === 'image') {
+                    userContent.push({
+                      type: 'input_image',
+                      ...(part.data.type === 'url'
+                        ? { image_url: part.data.url.toString() }
+                        : {
+                            image_url: `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`,
+                          }),
                     });
-                    break;
+                  } else if (part.data.type === 'url') {
+                    userContent.push({
+                      type: 'input_file',
+                      file_url: part.data.url.toString(),
+                    });
+                  } else {
+                    const fullMediaType = resolveFullMediaType({ part });
+                    userContent.push({
+                      type: 'input_file',
+                      filename: part.filename ?? 'data',
+                      file_data: `data:${fullMediaType};base64,${convertToBase64(part.data.data)}`,
+                    });
                   }
 
-                  userContent.push({
-                    type: 'input_image',
-                    ...(part.data.type === 'url'
-                      ? { image_url: part.data.url.toString() }
-                      : {
-                          image_url: `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`,
-                        }),
-                  });
                   break;
                 }
               }

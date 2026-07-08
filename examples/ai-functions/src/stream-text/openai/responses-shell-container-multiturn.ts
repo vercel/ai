@@ -28,12 +28,12 @@ run(async () => {
     },
     messages: [
       { role: 'user', content: 'Run uname -a' },
-      ...result1.response.messages,
+      ...result1.responseMessages,
       { role: 'user', content: 'What architecture do you run in?' },
     ],
   });
 
-  for await (const chunk of result2.fullStream) {
+  for await (const chunk of result2.stream) {
     switch (chunk.type) {
       case 'text-delta': {
         process.stdout.write(chunk.text);

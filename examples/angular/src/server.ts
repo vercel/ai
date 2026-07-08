@@ -1,5 +1,14 @@
 import type { OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
-import { convertToModelMessages, Output, isStepCount, streamText } from 'ai';
+import {
+  convertToModelMessages,
+  Output,
+  isStepCount,
+  pipeTextStreamToResponse,
+  pipeUIMessageStreamToResponse,
+  streamText,
+  toTextStream,
+  toUIMessageStream,
+} from 'ai';
 import 'dotenv/config';
 import express, { type Request, type Response } from 'express';
 import { z } from 'zod';
@@ -40,9 +49,14 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     },
   });
 
-  result.pipeUIMessageStreamToResponse(res, {
-    sendReasoning: true,
-    onError: error => (error instanceof Error ? error.message : String(error)),
+  pipeUIMessageStreamToResponse({
+    response: res,
+    stream: toUIMessageStream({
+      stream: result.stream,
+      sendReasoning: true,
+      onError: error =>
+        error instanceof Error ? error.message : String(error),
+    }),
   });
 });
 
@@ -54,7 +68,10 @@ app.post('/api/completion', async (req: Request, res: Response) => {
     prompt,
   });
 
-  result.pipeTextStreamToResponse(res);
+  pipeTextStreamToResponse({
+    response: res,
+    stream: toTextStream({ stream: result.stream }),
+  });
 });
 
 app.post('/api/analyze', async (req: Request, res: Response) => {
@@ -75,7 +92,10 @@ app.post('/api/analyze', async (req: Request, res: Response) => {
     prompt: `Analyze this content: ${prompt}`,
   });
 
-  result.pipeTextStreamToResponse(res);
+  pipeTextStreamToResponse({
+    response: res,
+    stream: toTextStream({ stream: result.stream }),
+  });
 });
 
 app.listen(3000, () => {

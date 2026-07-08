@@ -56,8 +56,10 @@ export async function embedMany({
   providerOptions,
   experimental_telemetry,
   telemetry = experimental_telemetry,
-  experimental_onStart: onStart,
-  experimental_onFinish: onFinish,
+  onStart,
+  experimental_onStart,
+  onEnd,
+  experimental_onEnd,
   _internal: { generateCallId = originalGenerateCallId } = {},
 }: {
   /**
@@ -118,13 +120,29 @@ export async function embedMany({
    * Callback that is called when the embedMany operation begins,
    * before the embedding model is called.
    */
+  onStart?: Callback<EmbedStartEvent>;
+
+  /**
+   * Callback that is called when the embedMany operation begins,
+   * before the embedding model is called.
+   *
+   * @deprecated Use `onStart` instead.
+   */
   experimental_onStart?: Callback<EmbedStartEvent>;
 
   /**
    * Callback that is called when the embedMany operation completes,
    * after all embedding model calls return.
    */
-  experimental_onFinish?: Callback<EmbedEndEvent>;
+  onEnd?: Callback<EmbedEndEvent>;
+
+  /**
+   * Callback that is called when the embedMany operation completes,
+   * after all embedding model calls return.
+   *
+   * @deprecated Use `onEnd` instead.
+   */
+  experimental_onEnd?: Callback<EmbedEndEvent>;
 
   /**
    * Internal. For test use only. May change without notice.
@@ -139,6 +157,8 @@ export async function embedMany({
     maxRetries: maxRetriesArg,
     abortSignal,
   });
+  const resolvedOnStart = onStart ?? experimental_onStart;
+  const resolvedOnEnd = onEnd ?? experimental_onEnd;
 
   const headersWithUserAgent = withUserAgentSuffix(
     headers ?? {},
@@ -162,7 +182,7 @@ export async function embedMany({
       headers: headersWithUserAgent,
       providerOptions,
     },
-    callbacks: [onStart, telemetryDispatcher.onStart],
+    callbacks: [resolvedOnStart, telemetryDispatcher.onStart],
   });
 
   try {
@@ -209,13 +229,13 @@ export async function embedMany({
               embeddings,
               usage,
             },
-            callbacks: [telemetryDispatcher.onEmbedFinish],
+            callbacks: [telemetryDispatcher.onEmbedEnd],
           });
 
           return {
             embeddings,
             usage,
-            warnings: modelResponse.warnings,
+            warnings: modelResponse.warnings ?? [],
             providerMetadata: modelResponse.providerMetadata,
             response: modelResponse.response,
           };
@@ -240,7 +260,7 @@ export async function embedMany({
           providerMetadata,
           response: [response],
         },
-        callbacks: [onFinish, telemetryDispatcher.onFinish],
+        callbacks: [resolvedOnEnd, telemetryDispatcher.onEnd],
       });
 
       return new DefaultEmbedManyResult({
@@ -311,13 +331,13 @@ export async function embedMany({
                 embeddings: chunkEmbeddings,
                 usage,
               },
-              callbacks: [telemetryDispatcher.onEmbedFinish],
+              callbacks: [telemetryDispatcher.onEmbedEnd],
             });
 
             return {
               embeddings: chunkEmbeddings,
               usage,
-              warnings: modelResponse.warnings,
+              warnings: modelResponse.warnings ?? [],
               providerMetadata: modelResponse.providerMetadata,
               response: modelResponse.response,
             };
@@ -366,7 +386,7 @@ export async function embedMany({
         providerMetadata,
         response: responses,
       },
-      callbacks: [onFinish, telemetryDispatcher.onFinish],
+      callbacks: [resolvedOnEnd, telemetryDispatcher.onEnd],
     });
 
     return new DefaultEmbedManyResult({

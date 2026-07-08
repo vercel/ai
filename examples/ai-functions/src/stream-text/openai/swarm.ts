@@ -5,12 +5,12 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const agentA = {
-    system: 'You are a helpful agent.',
+    instructions: 'You are a helpful agent.',
     activeTools: ['transferToAgentB'] as 'transferToAgentB'[],
   };
 
   const agentB = {
-    system: 'Only speak in Haikus.',
+    instructions: 'Only speak in Haikus.',
     activeTools: [],
   };
 

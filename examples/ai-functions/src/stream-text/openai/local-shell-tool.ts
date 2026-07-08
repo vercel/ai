@@ -24,7 +24,7 @@ README.md     build         data          node_modules  package.json  src       
     stopWhen: isStepCount(2),
   });
 
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     switch (chunk.type) {
       case 'text-delta': {
         process.stdout.write(chunk.text);

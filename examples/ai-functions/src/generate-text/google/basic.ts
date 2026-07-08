@@ -8,7 +8,7 @@ run(async () => {
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
-  const googleMetadata = result.providerMetadata?.google;
+  const googleMetadata = result.finalStep.providerMetadata?.google;
 
   console.log(result.text);
   console.log();

@@ -70,7 +70,7 @@ Please note the code for handling `undefined` values in the JSX.
 ```tsx filename='app/page.tsx'
 'use client';
 
-import { experimental_useObject as useObject } from '@ai-sdk/react';
+import { useObject } from '@ai-sdk/react';
 import { notificationSchema } from './api/use-object/schema';
 
 export default function Page() {
@@ -101,7 +101,7 @@ export default function Page() {
 On the server, we use [`streamText`](/docs/reference/ai-sdk-core/stream-text) with `Output.object` to stream the object generation process.
 
 ```typescript filename='app/api/use-object/route.ts'
-import { streamText, Output } from 'ai';
+import { streamText, Output, createTextStreamResponse, toTextStream } from 'ai';
 import { notificationSchema } from './schema';
 
 export const maxDuration = 30;
@@ -116,7 +116,9 @@ export async function POST(req: Request) {
       `Generate 3 notifications for a messages app in this context:` + context,
   });
 
-  return result.toTextStreamResponse();
+  return createTextStreamResponse({
+    stream: toTextStream({ stream: result.stream }),
+  });
 }
 ```
 
@@ -128,7 +130,7 @@ You can also use the `stop` function to stop the object generation process.
 ```tsx filename='app/page.tsx' highlight="7,16,21,24"
 'use client';
 
-import { experimental_useObject as useObject } from '@ai-sdk/react';
+import { useObject } from '@ai-sdk/react';
 import { notificationSchema } from './api/use-object/schema';
 
 export default function Page() {
@@ -191,7 +193,7 @@ On the client, you wrap the schema in `z.array()` to generate an array of object
 ```tsx filename='app/page.tsx'
 'use client';
 
-import { experimental_useObject as useObject } from '@ai-sdk/react';
+import { useObject } from '@ai-sdk/react';
 import { notificationSchema } from '../api/use-object/schema';
 import z from 'zod';
 
@@ -235,7 +237,7 @@ export default function Page() {
 On the server, specify `Output.array` to generate an array of objects.
 
 ```typescript filename='app/api/use-object/route.ts'
-import { streamText, Output } from 'ai';
+import { streamText, Output, createTextStreamResponse, toTextStream } from 'ai';
 import { notificationSchema } from './schema';
 
 export const maxDuration = 30;
@@ -250,7 +252,9 @@ export async function POST(req: Request) {
       `Generate 3 notifications for a messages app in this context:` + context,
   });
 
-  return result.toTextStreamResponse();
+  return createTextStreamResponse({
+    stream: toTextStream({ stream: result.stream }),
+  });
 }
 ```
 
@@ -263,7 +267,7 @@ export async function POST(req: Request) {
 ```tsx filename='app/page.tsx'
 'use client';
 
-import { experimental_useObject as useObject } from '@ai-sdk/react';
+import { useObject } from '@ai-sdk/react';
 import { z } from 'zod';
 
 export default function Page() {
@@ -301,7 +305,7 @@ export default function Page() {
 On the server, specify `Output.json()`.
 
 ```typescript filename='app/api/use-object/route.ts'
-import { streamText, Output } from 'ai';
+import { streamText, Output, createTextStreamResponse, toTextStream } from 'ai';
 
 export const maxDuration = 30;
 
@@ -316,6 +320,8 @@ export async function POST(req: Request) {
       context,
   });
 
-  return result.toTextStreamResponse();
+  return createTextStreamResponse({
+    stream: toTextStream({ stream: result.stream }),
+  });
 }
 ```

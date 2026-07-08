@@ -27,6 +27,9 @@ run(async () => {
   console.log(result.text);
   console.log();
   console.log('Token usage:', result.usage);
-  console.log('Cache token usage:', result.providerMetadata?.bedrock?.usage);
+  console.log(
+    'Cache token usage:',
+    result.finalStep.providerMetadata?.bedrock?.usage,
+  );
   console.log('Finish reason:', result.finishReason);
 });

@@ -6,7 +6,7 @@ run(async () => {
   const result = streamText({
     model: openai.responses('gpt-4o-mini'),
     maxOutputTokens: 100,
-    system: 'You are a helpful assistant.',
+    instructions: 'You are a helpful assistant.',
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

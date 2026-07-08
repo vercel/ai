@@ -15,7 +15,9 @@ run(async () => {
         reasoningSummary: 'auto',
       } satisfies OpenAILanguageModelResponsesOptions,
     },
-    includeRawChunks: true,
+    include: {
+      rawChunks: true,
+    },
   });
 
   let textChunkCount = 0;
@@ -24,7 +26,7 @@ run(async () => {
   let fullText = '';
   let fullReasoning = '';
 
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     if (chunk.type === 'raw') {
       rawChunkCount++;
       console.log(

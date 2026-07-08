@@ -14,7 +14,7 @@ run(async () => {
   let enteredReasoning = false;
   let enteredText = false;
 
-  for await (const delta of result.fullStream) {
+  for await (const delta of result.stream) {
     switch (delta.type) {
       case 'reasoning-delta':
         if (!enteredReasoning) {

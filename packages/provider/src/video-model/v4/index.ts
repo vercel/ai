@@ -5,3 +5,7 @@ export type {
   VideoModelV4VideoData as Experimental_VideoModelV4VideoData,
 } from './video-model-v4-result';
 export type { VideoModelV4File as Experimental_VideoModelV4File } from './video-model-v4-file';
+export type {
+  VideoModelV4FrameImage as Experimental_VideoModelV4FrameImage,
+  VideoModelV4FrameType as Experimental_VideoModelV4FrameType,
+} from './video-model-v4-frame-image';

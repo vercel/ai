@@ -40,7 +40,7 @@ run(async () => {
     },
     messages: [
       { role: 'user', content: 'Run uname -a' },
-      ...result1.response.messages,
+      ...result1.responseMessages,
       { role: 'user', content: 'What architecture do you run in?' },
     ],
     stopWhen: isStepCount(5),

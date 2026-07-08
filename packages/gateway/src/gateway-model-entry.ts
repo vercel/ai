@@ -4,7 +4,10 @@ export const KNOWN_MODEL_TYPES = [
   'embedding',
   'image',
   'language',
+  'realtime',
   'reranking',
+  'speech',
+  'transcription',
   'video',
 ] as const;
 

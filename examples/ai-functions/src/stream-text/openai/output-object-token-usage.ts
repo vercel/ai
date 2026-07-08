@@ -20,8 +20,11 @@ run(async () => {
 
   function recordUsage(usage: LanguageModelUsage) {
     console.log('Input tokens:', usage.inputTokens);
-    console.log('Cached input tokens:', usage.cachedInputTokens);
-    console.log('Reasoning tokens:', usage.reasoningTokens);
+    console.log(
+      'Cached input tokens:',
+      usage.inputTokenDetails.cacheReadTokens,
+    );
+    console.log('Reasoning tokens:', usage.outputTokenDetails.reasoningTokens);
     console.log('Output tokens:', usage.outputTokens);
     console.log('Total tokens:', usage.totalTokens);
   }

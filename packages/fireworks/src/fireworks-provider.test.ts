@@ -114,6 +114,14 @@ describe('FireworksProvider', () => {
       expect(model).toBeInstanceOf(OpenAICompatibleChatLanguageModel);
     });
 
+    it('should set includeUsage so streaming responses report token usage', () => {
+      const provider = createFireworks();
+      provider.chatModel('test-model');
+
+      const config = OpenAICompatibleChatLanguageModelMock.mock.calls[0][1];
+      expect(config.includeUsage).toBe(true);
+    });
+
     it('should pass transformRequestBody that converts thinking options', () => {
       const provider = createFireworks();
       provider.chatModel('test-model');
@@ -157,6 +165,98 @@ describe('FireworksProvider', () => {
         model: 'test-model',
         messages: [],
         thinking: { type: 'enabled' },
+      });
+    });
+
+    it('should map promptCacheKey to prompt_cache_key', () => {
+      const provider = createFireworks();
+      provider.chatModel('test-model');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const config = constructorCall[1];
+      const transformRequestBody = config.transformRequestBody;
+
+      const result = transformRequestBody({
+        model: 'test-model',
+        messages: [],
+        promptCacheKey: 'session-123',
+      });
+
+      expect(result).toEqual({
+        model: 'test-model',
+        messages: [],
+        prompt_cache_key: 'session-123',
+      });
+      expect(result).not.toHaveProperty('promptCacheKey');
+    });
+
+    it('should prefer promptCacheKey over raw prompt_cache_key', () => {
+      const provider = createFireworks();
+      provider.chatModel('test-model');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const config = constructorCall[1];
+      const transformRequestBody = config.transformRequestBody;
+
+      const result = transformRequestBody({
+        model: 'test-model',
+        messages: [],
+        prompt_cache_key: 'raw-session',
+        promptCacheKey: 'typed-session',
+      });
+
+      expect(result).toEqual({
+        model: 'test-model',
+        messages: [],
+        prompt_cache_key: 'typed-session',
+      });
+    });
+
+    it('should map serviceTier to service_tier', () => {
+      const provider = createFireworks();
+      provider.chatModel('test-model');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const config = constructorCall[1];
+      const transformRequestBody = config.transformRequestBody;
+
+      const result = transformRequestBody({
+        model: 'test-model',
+        messages: [],
+        serviceTier: 'priority',
+      });
+
+      expect(result).toEqual({
+        model: 'test-model',
+        messages: [],
+        service_tier: 'priority',
+      });
+      expect(result).not.toHaveProperty('serviceTier');
+    });
+
+    it('should prefer serviceTier over raw service_tier', () => {
+      const provider = createFireworks();
+      provider.chatModel('test-model');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const config = constructorCall[1];
+      const transformRequestBody = config.transformRequestBody;
+
+      const result = transformRequestBody({
+        model: 'test-model',
+        messages: [],
+        service_tier: 'standard',
+        serviceTier: 'priority',
+      });
+
+      expect(result).toEqual({
+        model: 'test-model',
+        messages: [],
+        service_tier: 'priority',
       });
     });
 
@@ -255,6 +355,16 @@ describe('FireworksProvider', () => {
       const model = provider.completionModel(modelId);
 
       expect(model).toBeInstanceOf(OpenAICompatibleCompletionLanguageModel);
+    });
+
+    it('should set includeUsage so streaming responses report token usage', () => {
+      const provider = createFireworks();
+      provider.completionModel('test-model');
+
+      const config = (
+        OpenAICompatibleCompletionLanguageModel as unknown as Mock
+      ).mock.calls[0][1];
+      expect(config.includeUsage).toBe(true);
     });
   });
 

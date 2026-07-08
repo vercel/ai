@@ -18,6 +18,8 @@ export {
 } from './detect-media-type';
 export { downloadBlob } from './download-blob';
 export { DownloadError } from './download-error';
+export { fetchWithValidatedRedirects } from './fetch-with-validated-redirects';
+export { extractLines } from './extract-lines';
 export * from './extract-response-headers';
 export * from './fetch-function';
 export { filterNullable } from './filter-nullable';
@@ -28,7 +30,9 @@ export { getRuntimeEnvironmentUserAgent } from './get-runtime-environment-user-a
 export type { HasRequiredKey } from './has-required-key';
 export { injectJsonInstructionIntoMessages } from './inject-json-instruction';
 export * from './is-abort-error';
+export { isBrowserRuntime } from './is-browser-runtime';
 export { isBuffer } from './is-buffer';
+export { isSameOrigin } from './is-same-origin';
 export { isNonNullable } from './is-non-nullable';
 export { isProviderReference } from './is-provider-reference';
 export { isUrlSupported } from './is-url-supported';
@@ -57,6 +61,7 @@ export {
   createProviderExecutedToolFactory,
   type ProviderExecutedToolFactory,
 } from './provider-executed-tool-factory';
+export { cancelResponseBody } from './cancel-response-body';
 export {
   DEFAULT_MAX_DOWNLOAD_SIZE,
   readResponseWithSizeLimit,
@@ -65,6 +70,7 @@ export * from './remove-undefined-entries';
 export * from './resolve';
 export { resolveFullMediaType } from './resolve-full-media-type';
 export { resolveProviderReference } from './resolve-provider-reference';
+export * from './retry-with-exponential-backoff';
 export * from './response-handler';
 export {
   asSchema,
@@ -78,6 +84,7 @@ export {
   type ValidationResult,
 } from './schema';
 export { serializeModelOptions } from './serialize-model-options';
+export { secureJsonParse } from './secure-json-parse';
 export {
   StreamingToolCallTracker,
   type StreamingToolCallDelta,
@@ -88,6 +95,13 @@ export * from './uint8-utils';
 export { validateDownloadUrl } from './validate-download-url';
 export * from './validate-types';
 export { VERSION } from './version';
+export {
+  getWebSocketConstructor,
+  readWebSocketMessageText,
+  toWebSocketUrl,
+  type WebSocketConstructor,
+  type WebSocketLike,
+} from './websocket';
 export { withUserAgentSuffix } from './with-user-agent-suffix';
 export * from './without-trailing-slash';
 

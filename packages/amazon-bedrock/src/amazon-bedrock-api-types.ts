@@ -179,7 +179,11 @@ export interface AmazonBedrockImageBlock {
 export interface AmazonBedrockToolResultBlock {
   toolResult: {
     toolUseId: string;
-    content: Array<AmazonBedrockTextBlock | AmazonBedrockImageBlock>;
+    content: Array<
+      | AmazonBedrockTextBlock
+      | AmazonBedrockImageBlock
+      | AmazonBedrockDocumentBlock
+    >;
   };
 }
 

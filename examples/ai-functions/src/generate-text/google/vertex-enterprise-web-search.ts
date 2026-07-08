@@ -3,7 +3,7 @@ import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const { text, sources, providerMetadata } = await generateText({
+  const result = await generateText({
     model: googleVertex('gemini-2.5-flash'),
     tools: {
       enterprise_web_search: googleVertex.tools.enterpriseWebSearch({}),
@@ -11,6 +11,8 @@ run(async () => {
     prompt: 'What are the latest FDA regulations for clinical trials?',
   });
 
+  const { text, sources } = result;
+  const providerMetadata = result.finalStep.providerMetadata;
   const groundingMetadata = providerMetadata?.vertex?.groundingMetadata as
     | { webSearchQueries?: string[] }
     | undefined;

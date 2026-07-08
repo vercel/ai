@@ -7,6 +7,7 @@ import type {
   LanguageModelV4GenerateResult,
   LanguageModelV4StreamPart,
   LanguageModelV4StreamResult,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -15,6 +16,7 @@ import {
   createJsonResponseHandler,
   generateId,
   isCustomReasoning,
+  mapReasoningToProviderEffort,
   parseProviderOptions,
   postJsonToApi,
   serializeModelOptions,
@@ -47,6 +49,7 @@ export type DeepSeekChatConfig = {
   headers?: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
+  supportsThinking?: boolean;
 };
 
 export class DeepSeekChatLanguageModel implements LanguageModelV4 {
@@ -119,13 +122,14 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
       responseFormat,
       modelId: this.modelId,
     });
+    const allWarnings: SharedV4Warning[] = [...warnings];
 
     if (topK != null) {
-      warnings.push({ type: 'unsupported', feature: 'topK' });
+      allWarnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
     if (seed != null) {
-      warnings.push({ type: 'unsupported', feature: 'seed' });
+      allWarnings.push({ type: 'unsupported', feature: 'seed' });
     }
 
     const {
@@ -136,6 +140,31 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
       tools,
       toolChoice,
     });
+
+    const thinking =
+      this.config.supportsThinking === false
+        ? undefined
+        : deepseekOptions.thinking?.type != null
+          ? { type: deepseekOptions.thinking.type }
+          : isCustomReasoning(reasoning)
+            ? { type: reasoning === 'none' ? 'disabled' : 'enabled' }
+            : undefined;
+
+    const reasoningEffort =
+      deepseekOptions.reasoningEffort ??
+      (isCustomReasoning(reasoning) && reasoning !== 'none'
+        ? mapReasoningToProviderEffort({
+            reasoning,
+            effortMap: {
+              minimal: 'low',
+              low: 'low',
+              medium: 'medium',
+              high: 'high',
+              xhigh: 'max',
+            },
+            warnings: allWarnings,
+          })
+        : undefined);
 
     return {
       args: {
@@ -151,14 +180,13 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
         messages,
         tools: deepseekTools,
         tool_choice: deepseekToolChoices,
-        thinking:
-          deepseekOptions.thinking?.type != null
-            ? { type: deepseekOptions.thinking.type }
-            : isCustomReasoning(reasoning)
-              ? { type: reasoning === 'none' ? 'disabled' : 'enabled' }
-              : undefined,
+        thinking,
+        ...(thinking?.type !== 'disabled' &&
+          reasoningEffort != null && {
+            reasoning_effort: reasoningEffort,
+          }),
       },
-      warnings: [...warnings, ...toolWarnings],
+      warnings: [...allWarnings, ...toolWarnings],
     };
   }
 

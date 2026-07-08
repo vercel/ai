@@ -1,6 +1,12 @@
 import type { MyUIMessage } from '@/util/chat-schema';
 import { readChat, saveChat } from '@util/chat-store';
-import { convertToModelMessages, generateId, streamText } from 'ai';
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  generateId,
+  streamText,
+  toUIMessageStream,
+} from 'ai';
 import { after } from 'next/server';
 import { createResumableStreamContext } from 'resumable-stream';
 import throttle from 'throttleit';
@@ -74,17 +80,20 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toUIMessageStreamResponse({
-    originalMessages: messages,
-    generateMessageId: generateId,
-    messageMetadata: ({ part }) => {
-      if (part.type === 'start') {
-        return { createdAt: Date.now() };
-      }
-    },
-    onFinish: ({ messages }) => {
-      saveChat({ id, messages, activeStreamId: null });
-    },
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({
+      stream: result.stream,
+      originalMessages: messages,
+      generateMessageId: generateId,
+      messageMetadata: ({ part }) => {
+        if (part.type === 'start') {
+          return { createdAt: Date.now() };
+        }
+      },
+      onFinish: ({ messages }) => {
+        saveChat({ id, messages, activeStreamId: null });
+      },
+    }),
     async consumeSseStream({ stream }) {
       const streamId = generateId();
 

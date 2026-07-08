@@ -1,3 +1,4 @@
+export { AnthropicFiles } from '../anthropic-files';
 export {
   AnthropicLanguageModel,
   /** @deprecated Use `AnthropicLanguageModel` instead. */
@@ -11,3 +12,4 @@ export type {
   AnthropicModelId as AnthropicMessagesModelId,
 } from '../anthropic-language-model-options';
 export { prepareTools } from '../anthropic-prepare-tools';
+export { AnthropicSkills } from '../skills/anthropic-skills';

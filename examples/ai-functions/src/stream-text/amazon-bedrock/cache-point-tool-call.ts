@@ -144,7 +144,7 @@ run(async () => {
 
   let fullResponse = '';
 
-  for await (const delta of result.fullStream) {
+  for await (const delta of result.stream) {
     switch (delta.type) {
       case 'text-delta': {
         fullResponse += delta.text;
@@ -174,5 +174,7 @@ run(async () => {
   messages.push(...(await result.response).messages);
 
   console.log('Messages:', messages[0].content);
-  console.log(JSON.stringify(result.providerMetadata, null, 2));
+  console.log(
+    JSON.stringify((await result.finalStep).providerMetadata, null, 2),
+  );
 });

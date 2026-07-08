@@ -8,7 +8,7 @@ import { print } from '../../lib/print';
 
 run(async () => {
   const result = await generateText({
-    model: anthropic('claude-opus-4-7'),
+    model: anthropic('claude-opus-4-8'),
     prompt: 'Research the pros and cons of Rust vs Go for building CLI tools.',
     maxRetries: 0,
     providerOptions: {

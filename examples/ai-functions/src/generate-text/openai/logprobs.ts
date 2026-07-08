@@ -17,7 +17,7 @@ run(async () => {
     },
   });
 
-  const providerMetadata = result.providerMetadata as
+  const providerMetadata = result.finalStep.providerMetadata as
     | OpenaiResponsesProviderMetadata
     | undefined;
   if (!providerMetadata) return;

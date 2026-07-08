@@ -930,6 +930,83 @@ describe('prepareTools', () => {
         }
       `);
     });
+
+    it('should correctly prepare advisor_20260301 with only the required model', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'anthropic.advisor_20260301',
+            name: 'advisor',
+            args: {
+              model: 'claude-opus-4-7',
+            },
+          },
+        ],
+        toolChoice: undefined,
+        supportsStructuredOutput: true,
+        supportsStrictTools: true,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {
+            "advisor-tool-2026-03-01",
+          },
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "model": "claude-opus-4-7",
+              "name": "advisor",
+              "type": "advisor_20260301",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should correctly prepare advisor_20260301 with all optional args', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'anthropic.advisor_20260301',
+            name: 'advisor',
+            args: {
+              model: 'claude-opus-4-7',
+              maxUses: 5,
+              caching: { type: 'ephemeral', ttl: '1h' },
+            },
+          },
+        ],
+        toolChoice: undefined,
+        supportsStructuredOutput: true,
+        supportsStrictTools: true,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {
+            "advisor-tool-2026-03-01",
+          },
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "caching": {
+                "ttl": "1h",
+                "type": "ephemeral",
+              },
+              "max_uses": 5,
+              "model": "claude-opus-4-7",
+              "name": "advisor",
+              "type": "advisor_20260301",
+            },
+          ],
+        }
+      `);
+    });
   });
 
   describe('deferLoading for function tools', () => {

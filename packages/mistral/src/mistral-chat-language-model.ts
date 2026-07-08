@@ -112,18 +112,6 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
       warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
-    if (frequencyPenalty != null) {
-      warnings.push({ type: 'unsupported', feature: 'frequencyPenalty' });
-    }
-
-    if (presencePenalty != null) {
-      warnings.push({ type: 'unsupported', feature: 'presencePenalty' });
-    }
-
-    if (stopSequences != null) {
-      warnings.push({ type: 'unsupported', feature: 'stopSequences' });
-    }
-
     const supportsReasoningEffort =
       this.modelId === 'mistral-small-latest' ||
       this.modelId === 'mistral-small-2603' ||
@@ -180,6 +168,11 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
       max_tokens: maxOutputTokens,
       temperature,
       top_p: topP,
+      ...(frequencyPenalty != null
+        ? { frequency_penalty: frequencyPenalty }
+        : {}),
+      ...(presencePenalty != null ? { presence_penalty: presencePenalty } : {}),
+      stop: stopSequences,
       random_seed: seed,
       reasoning_effort: resolvedReasoningEffort,
 

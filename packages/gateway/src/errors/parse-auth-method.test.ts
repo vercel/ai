@@ -1,12 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import {
   GATEWAY_AUTH_METHOD_HEADER,
-  parseAuthMethod,
-} from './parse-auth-method';
+  VERCEL_AI_GATEWAY_TEAM_HEADER,
+} from '../gateway-headers';
+import { parseAuthMethod } from './parse-auth-method';
 
-describe('GATEWAY_AUTH_METHOD_HEADER', () => {
-  it('should export the correct header name', () => {
+describe('gateway headers', () => {
+  it('should export the correct auth method header name', () => {
     expect(GATEWAY_AUTH_METHOD_HEADER).toBe('ai-gateway-auth-method');
+  });
+
+  it('should export the correct Vercel AI Gateway team header name', () => {
+    expect(VERCEL_AI_GATEWAY_TEAM_HEADER).toBe('x-vercel-ai-gateway-team');
   });
 });
 

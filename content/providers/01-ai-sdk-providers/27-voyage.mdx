@@ -112,7 +112,6 @@ The following provider options are available:
 - **inputType** _'query' | 'document' | null_
 
   Specifies the type of input passed to the model. Defaults to `null`.
-
   - `null`: The embedding model directly converts the inputs into numerical vectors.
   - `'query'`: Used for embeddings of search queries run against a vector DB to find relevant documents.
   - `'document'`: Used for embeddings stored in a vector database for search use-cases.
@@ -130,7 +129,6 @@ The following provider options are available:
 - **outputDtype** _'float' | 'int8' | 'uint8' | 'binary' | 'ubinary'_
 
   The data type for the output embeddings. Defaults to `'float'`.
-
   - `'float'`: 32-bit floating-point numbers.
   - `'int8'`, `'uint8'`: 8-bit integer types.
   - `'binary'`, `'ubinary'`: Bit-packed, quantized single-bit embedding values.
@@ -224,11 +222,11 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model              | Context Length |
-| ------------------ | -------------- |
-| `rerank-2.5`       | 32,000         |
-| `rerank-2.5-lite`  | 32,000         |
-| `rerank-2`         | 16,000         |
-| `rerank-2-lite`    | 8,000          |
-| `rerank-1`         | 8,000          |
-| `rerank-lite-1`    | 4,000          |
+| Model             | Context Length |
+| ----------------- | -------------- |
+| `rerank-2.5`      | 32,000         |
+| `rerank-2.5-lite` | 32,000         |
+| `rerank-2`        | 16,000         |
+| `rerank-2-lite`   | 8,000          |
+| `rerank-1`        | 8,000          |
+| `rerank-lite-1`   | 4,000          |

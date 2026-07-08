@@ -18,7 +18,7 @@ run(async () => {
   }
 
   console.log();
-  console.log('Provider metadata:', await result.providerMetadata);
+  console.log('Provider metadata:', (await result.finalStep).providerMetadata);
   console.log('Token usage:', await result.usage);
   console.log('Finish reason:', await result.finishReason);
 });

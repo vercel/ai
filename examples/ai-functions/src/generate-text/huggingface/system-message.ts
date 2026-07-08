@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 run(async () => {
   const result = await generateText({
     model: huggingFace('meta-llama/Llama-3.1-8B-Instruct'),
-    system:
+    instructions:
       'You are a helpful assistant that always responds in a pirate accent.',
     prompt: 'Tell me about the weather today.',
   });

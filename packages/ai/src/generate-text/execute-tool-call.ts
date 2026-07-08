@@ -2,15 +2,17 @@ import {
   executeTool,
   isExecutableTool,
   type Arrayable,
+  type Experimental_SandboxSession as SandboxSession,
   type InferToolInput,
   type InferToolSetContext,
-  type ToolSet,
   type ModelMessage,
+  type ToolSet,
 } from '@ai-sdk/provider-utils';
 import {
   getToolTimeoutMs,
   type TimeoutConfiguration,
 } from '../prompt/request-options';
+import type { TelemetryDispatcher } from '../telemetry/telemetry';
 import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { notify } from '../util/notify';
 import { now } from '../util/now';
@@ -35,7 +37,7 @@ import { validateToolContext } from './validate-tool-context';
  * 3. Handles streaming outputs via `onPreliminaryToolResult`
  * 4. Invokes `onToolExecutionEnd` callback with success or error result
  *
- * @returns The tool output (result or error), or undefined if the tool has no execute function.
+ * @returns The tool output with performance metrics, or undefined if the tool has no execute function.
  */
 export async function executeToolCall<TOOLS extends ToolSet>({
   toolCall,
@@ -45,10 +47,12 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   messages,
   abortSignal,
   timeout,
+  experimental_sandbox: sandbox,
   onPreliminaryToolResult,
   onToolExecutionStart,
   onToolExecutionEnd,
   executeToolInTelemetryContext = async ({ execute }) => await execute(),
+  runInTracingChannelSpan = async ({ execute }) => await execute(),
 }: {
   toolCall: TypedToolCall<TOOLS>;
   tools: TOOLS | undefined;
@@ -57,15 +61,27 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   abortSignal: AbortSignal | undefined;
   toolsContext: InferToolSetContext<TOOLS>;
   timeout?: TimeoutConfiguration<TOOLS>;
+  experimental_sandbox?: SandboxSession;
   onPreliminaryToolResult?: (result: TypedToolResult<TOOLS>) => void;
   onToolExecutionStart?: Arrayable<OnToolExecutionStartCallback<TOOLS>>;
   onToolExecutionEnd?: Arrayable<OnToolExecutionEndCallback<TOOLS>>;
-  executeToolInTelemetryContext?: <T>(params: {
-    callId: string;
-    toolCallId: string;
-    execute: () => PromiseLike<T>;
-  }) => PromiseLike<T>;
-}): Promise<ToolOutput<TOOLS> | undefined> {
+  executeToolInTelemetryContext?: <T>(
+    params: Partial<ToolExecutionStartEvent<TOOLS>> & {
+      callId: string;
+      toolCallId: string;
+      execute: () => PromiseLike<T>;
+    },
+  ) => PromiseLike<T>;
+  runInTracingChannelSpan?: NonNullable<
+    TelemetryDispatcher['runInTracingChannelSpan']
+  >;
+}): Promise<
+  | {
+      output: ToolOutput<TOOLS>;
+      toolExecutionMs: number;
+    }
+  | undefined
+> {
   const { toolName, toolCallId, input } = toolCall;
   const tool = tools?.[toolName];
 
@@ -79,109 +95,128 @@ export async function executeToolCall<TOOLS extends ToolSet>({
     contextSchema: tool.contextSchema,
   });
 
-  const baseCallbackEvent = {
-    callId,
+  const toolExecutionContext = {
     toolCall,
     messages,
     toolContext: context,
   };
+  const baseCallbackEvent = {
+    callId,
+    ...toolExecutionContext,
+  };
 
-  let output: unknown;
+  return await runInTracingChannelSpan({
+    type: 'executeTool',
+    event: baseCallbackEvent,
+    execute: async () => {
+      let output: unknown;
 
-  await notify({
-    event: baseCallbackEvent as ToolExecutionStartEvent<TOOLS>,
-    callbacks: onToolExecutionStart,
-  });
+      await notify({
+        event: baseCallbackEvent as ToolExecutionStartEvent<TOOLS>,
+        callbacks: onToolExecutionStart,
+      });
 
-  const toolTimeoutMs = getToolTimeoutMs<TOOLS>(timeout, toolName);
-  const toolAbortSignal = mergeAbortSignals(abortSignal, toolTimeoutMs);
+      const toolTimeoutMs = getToolTimeoutMs<TOOLS>(timeout, toolName);
+      const toolAbortSignal = mergeAbortSignals(abortSignal, toolTimeoutMs);
 
-  let durationMs = 0;
-  try {
-    // In order to correctly nest telemetry spans within tool calls spans, telemetry integrations need
-    // to be able to execute the tool call in a telemetry-integration-specific context.
-    //
-    // The call id and the tool call id are provided to the telemetry integration so that it can correctly
-    // identify the parent span.
-    await executeToolInTelemetryContext({
-      callId,
-      toolCallId,
-      execute: async () => {
-        const startTime = now();
-        try {
-          const stream = executeTool({
-            tool,
-            input: input as InferToolInput<typeof tool>,
-            options: {
-              toolCallId,
-              messages,
-              abortSignal: toolAbortSignal,
-              context,
-            },
-          });
-
-          for await (const part of stream) {
-            if (part.type === 'preliminary') {
-              onPreliminaryToolResult?.({
-                ...toolCall,
-                type: 'tool-result',
-                output: part.output,
-                preliminary: true,
+      let toolExecutionMs = 0;
+      try {
+        // Integration wrappers keep nested AI SDK calls associated with this tool execution.
+        await executeToolInTelemetryContext({
+          callId,
+          toolCallId,
+          ...(toolExecutionContext as Partial<ToolExecutionStartEvent<TOOLS>>),
+          execute: async () => {
+            const startTime = now();
+            try {
+              const stream = executeTool({
+                tool,
+                input: input as InferToolInput<typeof tool>,
+                options: {
+                  toolCallId,
+                  messages,
+                  abortSignal: toolAbortSignal,
+                  context,
+                  experimental_sandbox: sandbox,
+                },
               });
-            } else {
-              output = part.output;
+
+              for await (const part of stream) {
+                if (part.type === 'preliminary') {
+                  onPreliminaryToolResult?.({
+                    ...toolCall,
+                    type: 'tool-result',
+                    output: part.output,
+                    preliminary: true,
+                  });
+                } else {
+                  output = part.output;
+                }
+              }
+            } finally {
+              toolExecutionMs = now() - startTime;
             }
-          }
-        } finally {
-          durationMs = now() - startTime;
-        }
-      },
-    });
-  } catch (error) {
-    const toolError = {
-      type: 'tool-error',
-      toolCallId,
-      toolName,
-      input,
-      error,
-      dynamic: tool.type === 'dynamic',
-      ...(toolCall.providerMetadata != null
-        ? { providerMetadata: toolCall.providerMetadata }
-        : {}),
-    } as TypedToolError<TOOLS>;
+          },
+        });
+      } catch (error) {
+        const toolError = {
+          type: 'tool-error',
+          toolCallId,
+          toolName,
+          input,
+          error,
+          dynamic: tool.type === 'dynamic',
+          ...(toolCall.providerMetadata != null
+            ? { providerMetadata: toolCall.providerMetadata }
+            : {}),
+          ...(toolCall.toolMetadata != null
+            ? { toolMetadata: toolCall.toolMetadata }
+            : {}),
+        } as TypedToolError<TOOLS>;
 
-    await notify({
-      event: {
-        ...baseCallbackEvent,
-        toolOutput: toolError,
-        durationMs,
-      } as ToolExecutionEndEvent<TOOLS>,
-      callbacks: onToolExecutionEnd,
-    });
+        await notify({
+          event: {
+            ...baseCallbackEvent,
+            toolOutput: toolError,
+            toolExecutionMs,
+          } as ToolExecutionEndEvent<TOOLS>,
+          callbacks: onToolExecutionEnd,
+        });
 
-    return toolError;
-  }
+        return {
+          output: toolError,
+          toolExecutionMs,
+        };
+      }
 
-  const toolResult = {
-    type: 'tool-result',
-    toolCallId,
-    toolName,
-    input,
-    output,
-    dynamic: tool.type === 'dynamic',
-    ...(toolCall.providerMetadata != null
-      ? { providerMetadata: toolCall.providerMetadata }
-      : {}),
-  } as TypedToolResult<TOOLS>;
+      const toolResult = {
+        type: 'tool-result',
+        toolCallId,
+        toolName,
+        input,
+        output,
+        dynamic: tool.type === 'dynamic',
+        ...(toolCall.providerMetadata != null
+          ? { providerMetadata: toolCall.providerMetadata }
+          : {}),
+        ...(toolCall.toolMetadata != null
+          ? { toolMetadata: toolCall.toolMetadata }
+          : {}),
+      } as TypedToolResult<TOOLS>;
 
-  await notify({
-    event: {
-      ...baseCallbackEvent,
-      toolOutput: toolResult,
-      durationMs,
-    } as ToolExecutionEndEvent<TOOLS>,
-    callbacks: onToolExecutionEnd,
+      await notify({
+        event: {
+          ...baseCallbackEvent,
+          toolOutput: toolResult,
+          toolExecutionMs,
+        } as ToolExecutionEndEvent<TOOLS>,
+        callbacks: onToolExecutionEnd,
+      });
+
+      return {
+        output: toolResult,
+        toolExecutionMs,
+      };
+    },
   });
-
-  return toolResult;
 }

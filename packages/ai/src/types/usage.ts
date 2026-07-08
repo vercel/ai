@@ -59,16 +59,6 @@ export type LanguageModelUsage = {
   totalTokens: number | undefined;
 
   /**
-   * @deprecated Use outputTokenDetails.reasoningTokens instead.
-   */
-  reasoningTokens?: number | undefined;
-
-  /**
-   * @deprecated Use inputTokenDetails.cacheReadTokens instead.
-   */
-  cachedInputTokens?: number | undefined;
-
-  /**
    * Raw usage information from the provider.
    *
    * This is the usage information in the shape that the provider returns.
@@ -108,8 +98,6 @@ export function asLanguageModelUsage(
       usage.outputTokens.total,
     ),
     raw: usage.raw,
-    reasoningTokens: usage.outputTokens.reasoning,
-    cachedInputTokens: usage.inputTokens.cacheRead,
   };
 }
 
@@ -163,14 +151,6 @@ export function addLanguageModelUsage(
       ),
     },
     totalTokens: addTokenCounts(usage1.totalTokens, usage2.totalTokens),
-    reasoningTokens: addTokenCounts(
-      usage1.reasoningTokens,
-      usage2.reasoningTokens,
-    ),
-    cachedInputTokens: addTokenCounts(
-      usage1.cachedInputTokens,
-      usage2.cachedInputTokens,
-    ),
   };
 }
 

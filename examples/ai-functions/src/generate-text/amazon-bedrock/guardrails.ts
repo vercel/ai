@@ -23,5 +23,7 @@ run(async () => {
 
   console.log(result.text);
   console.log();
-  console.log(JSON.stringify(result.providerMetadata?.bedrock.trace, null, 2));
+  console.log(
+    JSON.stringify(result.finalStep.providerMetadata?.bedrock.trace, null, 2),
+  );
 });

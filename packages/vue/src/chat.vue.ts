@@ -1,6 +1,6 @@
 import {
   AbstractChat,
-  type ChatInit as BaseChatInit,
+  type ChatInit,
   type ChatState,
   type ChatStatus,
   type UIMessage,
@@ -57,10 +57,14 @@ class VueChatState<
   snapshot = <T>(value: T): T => value;
 }
 
+/**
+ * @deprecated Use the {@link useChat} composable instead. It exposes reactive
+ * refs and automatically recreates the chat when its init object changes.
+ */
 export class Chat<
   UI_MESSAGE extends UIMessage,
 > extends AbstractChat<UI_MESSAGE> {
-  constructor({ messages, ...init }: BaseChatInit<UI_MESSAGE>) {
+  constructor({ messages, ...init }: ChatInit<UI_MESSAGE>) {
     super({
       ...init,
       state: new VueChatState(messages),

@@ -761,8 +761,10 @@ describe('FireworksImageModel', () => {
         id: 'test-request-123',
       });
 
-      // Verify image download
+      // Verify image download — the result URL is on a foreign origin
+      // (example.com), so the API key must not be sent with the download.
       expect(server.calls[2].requestUrl).toBe('https://example.com/image.png');
+      expect(server.calls[2].requestHeaders['api-key']).toBeUndefined();
 
       // Verify result
       expect(result.images).toHaveLength(1);

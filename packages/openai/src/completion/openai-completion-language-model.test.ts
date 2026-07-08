@@ -2,10 +2,7 @@ import fs from 'node:fs';
 
 import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
-import {
-  convertReadableStreamToArray,
-  isNodeVersion,
-} from '@ai-sdk/provider-utils/test';
+import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createOpenAI } from '../openai-provider';
 import { describe, it, expect, vi } from 'vitest';
 
@@ -536,12 +533,35 @@ describe('doStream', () => {
     `);
   });
 
-  it('should handle error stream parts', async () => {
+  it('should throw an api error when the first stream chunk is an error', async () => {
     server.urls['https://api.openai.com/v1/completions'].response = {
       type: 'stream-chunks',
       chunks: [
         `data: {"error":{"message": "The server had an error processing your request. Sorry about that! You can retry your request, or contact us through our ` +
           `help center at help.openai.com if you keep seeing this error.","type":"server_error","param":null,"code":null}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    await expect(
+      model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      }),
+    ).rejects.toMatchObject({
+      message:
+        'The server had an error processing your request. Sorry about that! You can retry your request, or contact us through our help center at help.openai.com if you keep seeing this error.',
+      statusCode: 500,
+      isRetryable: true,
+    });
+  });
+
+  it('should forward error stream parts after output has started', async () => {
+    server.urls['https://api.openai.com/v1/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"cmpl-error-after-output","object":"text_completion","created":1711363440,"choices":[{"text":"Hello","index":0,"logprobs":null,"finish_reason":null}],"model":"gpt-3.5-turbo-instruct"}\n\n`,
+        `data: {"error":{"message":"stream failed after output","type":"server_error","param":null,"code":null}}\n\n`,
         'data: [DONE]\n\n',
       ],
     };
@@ -558,13 +578,32 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
+          "id": "cmpl-error-after-output",
+          "modelId": "gpt-3.5-turbo-instruct",
+          "timestamp": 2024-03-25T10:44:00.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Hello",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
           "error": {
             "code": null,
-            "message": "The server had an error processing your request. Sorry about that! You can retry your request, or contact us through our help center at help.openai.com if you keep seeing this error.",
+            "message": "stream failed after output",
             "param": null,
             "type": "server_error",
           },
           "type": "error",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
         },
         {
           "finishReason": {
@@ -594,20 +633,18 @@ describe('doStream', () => {
     `);
   });
 
-  it.skipIf(isNodeVersion(20))(
-    'should handle unparsable stream parts',
-    async () => {
-      server.urls['https://api.openai.com/v1/completions'].response = {
-        type: 'stream-chunks',
-        chunks: [`data: {unparsable}\n\n`, 'data: [DONE]\n\n'],
-      };
+  it('should handle unparsable stream parts', async () => {
+    server.urls['https://api.openai.com/v1/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [`data: {unparsable}\n\n`, 'data: [DONE]\n\n'],
+    };
 
-      const { stream } = await model.doStream({
-        prompt: TEST_PROMPT,
-        includeRawChunks: false,
-      });
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
 
-      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
         [
           {
             "type": "stream-start",
@@ -644,8 +681,7 @@ describe('doStream', () => {
           },
         ]
       `);
-    },
-  );
+  });
 
   it('should send request body', async () => {
     prepareChunksFixtureResponse('openai-completion-text');

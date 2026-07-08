@@ -10,7 +10,7 @@ describe('convertToLanguageModelPrompt', () => {
     it('should convert a string system message', async () => {
       const result = await convertToLanguageModelPrompt({
         prompt: {
-          system: 'INSTRUCTIONS',
+          instructions: 'INSTRUCTIONS',
           messages: [{ role: 'user', content: 'Hello, world!' }],
         },
         supportedUrls: {},
@@ -40,7 +40,7 @@ describe('convertToLanguageModelPrompt', () => {
     it('should convert a SystemModelMessage system message', async () => {
       const result = await convertToLanguageModelPrompt({
         prompt: {
-          system: {
+          instructions: {
             role: 'system',
             content: 'INSTRUCTIONS',
             providerOptions: { test: { value: 'test' } },
@@ -79,7 +79,7 @@ describe('convertToLanguageModelPrompt', () => {
     it('should convert an array of SystemModelMessage system messages', async () => {
       const result = await convertToLanguageModelPrompt({
         prompt: {
-          system: [
+          instructions: [
             { role: 'system', content: 'INSTRUCTIONS' },
             { role: 'system', content: 'INSTRUCTIONS 2' },
           ],
@@ -117,10 +117,23 @@ describe('convertToLanguageModelPrompt', () => {
   });
 
   describe('user message', () => {
+    let mockProcessEmitWarning: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      mockProcessEmitWarning = vi
+        .spyOn(process, 'emitWarning')
+        .mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      mockProcessEmitWarning.mockRestore();
+    });
+
     describe('image parts', () => {
       it('should download images for user image parts with URLs when model does not support image URLs', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
+            instructions: undefined,
             messages: [
               {
                 role: 'user',
@@ -160,6 +173,7 @@ describe('convertToLanguageModelPrompt', () => {
       it('should download images for user image parts with string URLs when model does not support image URLs', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
+            instructions: undefined,
             messages: [
               {
                 role: 'user',
@@ -200,6 +214,7 @@ describe('convertToLanguageModelPrompt', () => {
         const providerRef = { openai: 'file-abc123', anthropic: 'file-xyz789' };
         const result = await convertToLanguageModelPrompt({
           prompt: {
+            instructions: undefined,
             messages: [
               {
                 role: 'user',
@@ -237,6 +252,7 @@ describe('convertToLanguageModelPrompt', () => {
       it('should pass through URLs when the model supports a particular URL', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
+            instructions: undefined,
             messages: [
               {
                 role: 'user',
@@ -276,6 +292,7 @@ describe('convertToLanguageModelPrompt', () => {
       it('should download the URL as an asset when the model does not support a URL', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
+            instructions: undefined,
             messages: [
               {
                 role: 'user',
@@ -320,6 +337,7 @@ describe('convertToLanguageModelPrompt', () => {
         const base64Data = 'SGVsbG8sIFdvcmxkIQ=='; // "Hello, World!" in base64
         const result = await convertToLanguageModelPrompt({
           prompt: {
+            instructions: undefined,
             messages: [
               {
                 role: 'user',
@@ -357,6 +375,7 @@ describe('convertToLanguageModelPrompt', () => {
         const uint8Data = new Uint8Array([72, 101, 108, 108, 111]); // "Hello" in ASCII
         const result = await convertToLanguageModelPrompt({
           prompt: {
+            instructions: undefined,
             messages: [
               {
                 role: 'user',
@@ -396,6 +415,7 @@ describe('convertToLanguageModelPrompt', () => {
       it('should download files for user file parts with URL objects when model does not support downloads', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
+            instructions: undefined,
             messages: [
               {
                 role: 'user',
@@ -436,6 +456,7 @@ describe('convertToLanguageModelPrompt', () => {
       it('should download files for user file parts with string URLs when model does not support downloads', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
+            instructions: undefined,
             messages: [
               {
                 role: 'user',
@@ -476,6 +497,7 @@ describe('convertToLanguageModelPrompt', () => {
       it('should download files for user file parts with string URLs when model does not support the particular URL', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
+            instructions: undefined,
             messages: [
               {
                 role: 'user',
@@ -521,6 +543,7 @@ describe('convertToLanguageModelPrompt', () => {
       it('does not download URLs for user file parts for URL objects when model does support the URL', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
+            instructions: undefined,
             messages: [
               {
                 role: 'user',
@@ -563,6 +586,7 @@ describe('convertToLanguageModelPrompt', () => {
       it('it should default to downloading the URL when the model does not provider a supportsUrl function', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
+            instructions: undefined,
             messages: [
               {
                 role: 'user',
@@ -603,6 +627,7 @@ describe('convertToLanguageModelPrompt', () => {
       it('should handle file parts with filename', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
+            instructions: undefined,
             messages: [
               {
                 role: 'user',
@@ -641,6 +666,7 @@ describe('convertToLanguageModelPrompt', () => {
       it('should preserve filename when downloading file from URL', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
+            instructions: undefined,
             messages: [
               {
                 role: 'user',
@@ -683,6 +709,7 @@ describe('convertToLanguageModelPrompt', () => {
       it('should prioritize user-provided mediaType over downloaded file mediaType', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
+            instructions: undefined,
             messages: [
               {
                 role: 'user',
@@ -736,6 +763,7 @@ describe('convertToLanguageModelPrompt', () => {
       it('should use downloaded file mediaType as fallback when user provides generic mediaType', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
+            instructions: undefined,
             messages: [
               {
                 role: 'user',
@@ -791,6 +819,7 @@ describe('convertToLanguageModelPrompt', () => {
         const providerRef = { openai: 'file-abc123', anthropic: 'file-xyz789' };
         const result = await convertToLanguageModelPrompt({
           prompt: {
+            instructions: undefined,
             messages: [
               {
                 role: 'user',
@@ -829,6 +858,7 @@ describe('convertToLanguageModelPrompt', () => {
       it('should add provider options to messages', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
+            instructions: undefined,
             messages: [
               {
                 role: 'user',
@@ -893,6 +923,7 @@ describe('convertToLanguageModelPrompt', () => {
 
       const result = await convertToLanguageModelPrompt({
         prompt: {
+          instructions: undefined,
           messages: [
             {
               role: 'user',
@@ -981,6 +1012,7 @@ describe('convertToLanguageModelPrompt', () => {
     it('should combine 2 consecutive tool messages into a single tool message', async () => {
       const result = await convertToLanguageModelPrompt({
         prompt: {
+          instructions: undefined,
           messages: [
             {
               role: 'assistant',
@@ -1076,6 +1108,7 @@ describe('convertToLanguageModelPrompt', () => {
 
       const result = await convertToLanguageModelPrompt({
         prompt: {
+          instructions: undefined,
           messages: [
             {
               role: 'user',
@@ -1117,11 +1150,219 @@ describe('convertToLanguageModelPrompt', () => {
         },
       ]);
     });
+
+    it('should download URL content in tool results', async () => {
+      const mockDownload = vi.fn().mockResolvedValue([
+        {
+          url: new URL('https://example.com/image.png'),
+          data: new Uint8Array([0, 1, 2, 3]),
+          mediaType: 'image/png',
+        },
+      ]);
+
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          instructions: undefined,
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'toolCallId',
+                  toolName: 'toolName',
+                  input: {},
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolName: 'toolName',
+                  toolCallId: 'toolCallId',
+                  output: {
+                    type: 'content',
+                    value: [
+                      {
+                        type: 'file',
+                        mediaType: 'image/png',
+                        data: {
+                          type: 'url',
+                          url: new URL('https://example.com/image.png'),
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+        supportedUrls: {},
+        download: mockDownload,
+      });
+
+      expect(mockDownload).toHaveBeenCalledOnce();
+      expect(mockDownload).toHaveBeenCalledWith([
+        {
+          url: new URL('https://example.com/image.png'),
+          isUrlSupportedByModel: false,
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'toolCallId',
+              toolName: 'toolName',
+              input: {},
+              providerExecuted: undefined,
+              providerOptions: undefined,
+            },
+          ],
+          providerOptions: undefined,
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'toolCallId',
+              toolName: 'toolName',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'file',
+                    mediaType: 'image/png',
+                    data: {
+                      type: 'data',
+                      data: new Uint8Array([0, 1, 2, 3]),
+                    },
+                    filename: undefined,
+                    providerOptions: undefined,
+                  },
+                ],
+              },
+              providerOptions: undefined,
+            },
+          ],
+          providerOptions: undefined,
+        },
+      ]);
+    });
+
+    it('should download URL content in assistant tool results', async () => {
+      const mockDownload = vi.fn().mockResolvedValue([
+        {
+          url: new URL('https://example.com/assistant-image.png'),
+          data: new Uint8Array([4, 5, 6, 7]),
+          mediaType: 'image/png',
+        },
+      ]);
+
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          instructions: undefined,
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolName: 'toolName',
+                  toolCallId: 'toolCallId',
+                  output: {
+                    type: 'content',
+                    value: [
+                      {
+                        type: 'file',
+                        mediaType: 'image/png',
+                        data: {
+                          type: 'url',
+                          url: new URL(
+                            'https://example.com/assistant-image.png',
+                          ),
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+        supportedUrls: {},
+        download: mockDownload,
+      });
+
+      expect(mockDownload).toHaveBeenCalledOnce();
+      expect(mockDownload).toHaveBeenCalledWith([
+        {
+          url: new URL('https://example.com/assistant-image.png'),
+          isUrlSupportedByModel: false,
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "content",
+                  "value": [
+                    {
+                      "data": {
+                        "data": Uint8Array [
+                          4,
+                          5,
+                          6,
+                          7,
+                        ],
+                        "type": "data",
+                      },
+                      "filename": undefined,
+                      "mediaType": "image/png",
+                      "providerOptions": undefined,
+                      "type": "file",
+                    },
+                  ],
+                },
+                "providerOptions": undefined,
+                "toolCallId": "toolCallId",
+                "toolName": "toolName",
+                "type": "tool-result",
+              },
+            ],
+            "providerOptions": undefined,
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
   });
 });
 
 describe('convertToLanguageModelMessage', () => {
   describe('user message', () => {
+    let mockProcessEmitWarning: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      mockProcessEmitWarning = vi
+        .spyOn(process, 'emitWarning')
+        .mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      mockProcessEmitWarning.mockRestore();
+    });
+
     describe('text parts', () => {
       it('should filter out empty text parts', async () => {
         const result = convertToLanguageModelMessage({
@@ -2767,6 +3008,10 @@ describe('convertToLanguageModelMessage', () => {
     });
 
     it('should include multipart content', () => {
+      const mockProcessEmitWarning = vi
+        .spyOn(process, 'emitWarning')
+        .mockImplementation(() => {});
+
       const result = convertToLanguageModelMessage({
         message: {
           role: 'tool',
@@ -2818,6 +3063,8 @@ describe('convertToLanguageModelMessage', () => {
         },
         downloadedAssets: {},
       });
+
+      mockProcessEmitWarning.mockRestore();
 
       expect(result).toMatchInlineSnapshot(`
         {

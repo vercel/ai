@@ -1,14 +1,19 @@
 import {
+  createJsonErrorResponseHandler,
+  createJsonResponseHandler,
   loadOptionalSetting,
+  postJsonToApi,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
 import { asGatewayError, GatewayAuthenticationError } from './errors';
 import {
   GATEWAY_AUTH_METHOD_HEADER,
-  parseAuthMethod,
-} from './errors/parse-auth-method';
+  VERCEL_AI_GATEWAY_TEAM_HEADER,
+} from './gateway-headers';
+import { parseAuthMethod } from './errors/parse-auth-method';
 import {
   GatewayFetchMetadata,
   type GatewayFetchMetadataResponse,
@@ -29,9 +34,15 @@ import { GatewayEmbeddingModel } from './gateway-embedding-model';
 import { GatewayImageModel } from './gateway-image-model';
 import { GatewayVideoModel } from './gateway-video-model';
 import { GatewayRerankingModel } from './gateway-reranking-model';
+import { GatewaySpeechModel } from './gateway-speech-model';
+import { GatewayTranscriptionModel } from './gateway-transcription-model';
+import { GatewayRealtimeModel } from './gateway-realtime-model';
 import type { GatewayEmbeddingModelId } from './gateway-embedding-model-settings';
 import type { GatewayImageModelId } from './gateway-image-model-settings';
 import type { GatewayRerankingModelId } from './gateway-reranking-model-settings';
+import type { GatewaySpeechModelId } from './gateway-speech-model-settings';
+import type { GatewayTranscriptionModelId } from './gateway-transcription-model-settings';
+import type { GatewayRealtimeModelId } from './gateway-realtime-model-settings';
 import type { GatewayVideoModelId } from './gateway-video-model-settings';
 import { gatewayTools } from './gateway-tools';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
@@ -41,7 +52,11 @@ import type {
   EmbeddingModelV4,
   ImageModelV4,
   RerankingModelV4,
+  SpeechModelV4,
+  TranscriptionModelV4,
   Experimental_VideoModelV4,
+  Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
+  Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
   ProviderV4,
 } from '@ai-sdk/provider';
 import { VERSION } from './version';
@@ -131,6 +146,34 @@ export interface GatewayProvider extends ProviderV4 {
   rerankingModel(modelId: GatewayRerankingModelId): RerankingModelV4;
 
   /**
+   * Creates a model for text-to-speech generation.
+   */
+  speech(modelId: GatewaySpeechModelId): SpeechModelV4;
+
+  /**
+   * Creates a model for text-to-speech generation.
+   */
+  speechModel(modelId: GatewaySpeechModelId): SpeechModelV4;
+
+  /**
+   * Creates a model for audio transcription.
+   */
+  transcription(modelId: GatewayTranscriptionModelId): TranscriptionModelV4;
+
+  /**
+   * Creates a model for audio transcription.
+   */
+  transcriptionModel(
+    modelId: GatewayTranscriptionModelId,
+  ): TranscriptionModelV4;
+
+  /**
+   * Creates an experimental realtime model for bidirectional audio/text
+   * communication over WebSocket, normalized through the AI Gateway.
+   */
+  experimental_realtime: RealtimeFactoryV4;
+
+  /**
    * Gateway-specific tools executed server-side.
    */
   tools: typeof gatewayTools;
@@ -138,14 +181,21 @@ export interface GatewayProvider extends ProviderV4 {
 
 export interface GatewayProviderSettings {
   /**
-   * The base URL prefix for API calls. Defaults to `https://ai-gateway.vercel.sh/v1/ai`.
+   * The base URL prefix for API calls. Defaults to `https://ai-gateway.vercel.sh/v4/ai`.
    */
   baseURL?: string;
 
   /**
-   * API key that is being sent using the `Authorization` header.
+   * API key or Vercel access token that is being sent using the `Authorization`
+   * header. It defaults to the `AI_GATEWAY_API_KEY` environment variable.
    */
   apiKey?: string;
+
+  /**
+   * Vercel team ID or slug to scope requests for access tokens that can access
+   * multiple teams.
+   */
+  teamIdOrSlug?: string;
 
   /**
    * Custom headers to include in the requests.
@@ -173,6 +223,12 @@ export interface GatewayProviderSettings {
 
 const AI_GATEWAY_PROTOCOL_VERSION = '0.0.1';
 
+/** Response shape of `POST /v1/realtime/client-secrets`. `expiresAt` is epoch seconds. */
+const gatewayClientSecretResponseSchema = z.object({
+  token: z.string(),
+  expiresAt: z.number().nullish(),
+});
+
 /**
  * Create a remote provider instance.
  */
@@ -189,18 +245,26 @@ export function createGateway(
     withoutTrailingSlash(options.baseURL) ??
     'https://ai-gateway.vercel.sh/v4/ai';
 
+  const createAuthHeaders = (auth: {
+    token: string;
+    authMethod: 'api-key' | 'oidc';
+  }) =>
+    withUserAgentSuffix(
+      {
+        Authorization: `Bearer ${auth.token}`,
+        'ai-gateway-protocol-version': AI_GATEWAY_PROTOCOL_VERSION,
+        [GATEWAY_AUTH_METHOD_HEADER]: auth.authMethod,
+        ...(options.teamIdOrSlug != null
+          ? { [VERCEL_AI_GATEWAY_TEAM_HEADER]: options.teamIdOrSlug }
+          : {}),
+        ...options.headers,
+      },
+      `ai-sdk/gateway/${VERSION}`,
+    );
+
   const getHeaders = async () => {
     try {
-      const auth = await getGatewayAuthToken(options);
-      return withUserAgentSuffix(
-        {
-          Authorization: `Bearer ${auth.token}`,
-          'ai-gateway-protocol-version': AI_GATEWAY_PROTOCOL_VERSION,
-          [GATEWAY_AUTH_METHOD_HEADER]: auth.authMethod,
-          ...options.headers,
-        },
-        `ai-sdk/gateway/${VERSION}`,
-      );
+      return createAuthHeaders(await getGatewayAuthToken(options));
     } catch (error) {
       throw GatewayAuthenticationError.createContextualError({
         apiKeyProvided: false,
@@ -208,6 +272,62 @@ export function createGateway(
         statusCode: 401,
         cause: error,
       });
+    }
+  };
+
+  const getRealtimeAuthToken = async () => {
+    try {
+      return await getGatewayAuthToken(options);
+    } catch (error) {
+      throw GatewayAuthenticationError.createContextualError({
+        apiKeyProvided: false,
+        oidcTokenProvided: false,
+        statusCode: 401,
+        cause: error,
+      });
+    }
+  };
+
+  // Mints a short-lived realtime client secret (`vcst_`) via the Gateway's
+  // `/v1/realtime/client-secrets` route, authenticated with the long-lived
+  // Gateway credential. Server-side only (asserted) — the credential never
+  // belongs in a browser; the browser receives only the minted token. The
+  // mint route lives at the gateway origin's `/v1/realtime/client-secrets`,
+  // not under the realtime `baseURL` path (which targets `/v4/ai`), so the
+  // URL is resolved against the origin.
+  const mintRealtimeClientSecret = async (params: {
+    modelId: string;
+    expiresAfterSeconds?: number;
+  }): Promise<{ token: string; expiresAt?: number }> => {
+    assertGatewayRealtimeServerEnvironment();
+    const auth = await getRealtimeAuthToken();
+    const headers = createAuthHeaders(auth);
+    const url = new URL('/v1/realtime/client-secrets', baseURL).toString();
+    try {
+      const { value } = await postJsonToApi({
+        url,
+        headers,
+        body: {
+          model: params.modelId,
+          ...(params.expiresAfterSeconds != null && {
+            expiresIn: params.expiresAfterSeconds,
+          }),
+        },
+        successfulResponseHandler: createJsonResponseHandler(
+          gatewayClientSecretResponseSchema,
+        ),
+        failedResponseHandler: createJsonErrorResponseHandler({
+          errorSchema: z.any(),
+          errorToMessage: data => data,
+        }),
+        fetch: options.fetch,
+      });
+      return {
+        token: value.token,
+        ...(value.expiresAt != null && { expiresAt: value.expiresAt }),
+      };
+    } catch (error) {
+      throw await asGatewayError(error, await parseAuthMethod(headers));
     }
   };
 
@@ -378,6 +498,57 @@ export function createGateway(
   };
   provider.rerankingModel = createRerankingModel;
   provider.reranking = createRerankingModel;
+  const createSpeechModel = (modelId: GatewaySpeechModelId) => {
+    return new GatewaySpeechModel(modelId, {
+      provider: 'gateway',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+      o11yHeaders: createO11yHeaders(),
+    });
+  };
+  provider.speechModel = createSpeechModel;
+  provider.speech = createSpeechModel;
+  const createTranscriptionModel = (modelId: GatewayTranscriptionModelId) => {
+    return new GatewayTranscriptionModel(modelId, {
+      provider: 'gateway',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+      o11yHeaders: createO11yHeaders(),
+    });
+  };
+  provider.transcriptionModel = createTranscriptionModel;
+  provider.transcription = createTranscriptionModel;
+
+  // No server-environment guard here: building the realtime model is just the
+  // event codec + WebSocket-config helper, which the browser legitimately
+  // needs to drive the transport with a server-minted client secret. The
+  // server-only boundary is enforced on minting itself
+  // (`mintRealtimeClientSecret`), which requires the Gateway credential.
+  const createRealtimeModel = (modelId: GatewayRealtimeModelId) =>
+    new GatewayRealtimeModel(modelId, {
+      provider: 'gateway.realtime',
+      baseURL,
+      teamIdOrSlug: options.teamIdOrSlug,
+      createClientSecret: mintRealtimeClientSecret,
+    });
+  provider.experimental_realtime = Object.assign(
+    (modelId: GatewayRealtimeModelId) => createRealtimeModel(modelId),
+    {
+      getToken: async (tokenOptions: RealtimeFactoryV4GetTokenOptions) => {
+        const { model: modelId, ...secretOptions } = tokenOptions;
+        const model = createRealtimeModel(modelId);
+        const secret = await model.doCreateClientSecret(secretOptions);
+        return {
+          token: secret.token,
+          url: secret.url,
+          ...(secret.expiresAt != null && { expiresAt: secret.expiresAt }),
+        };
+      },
+    },
+  ) as RealtimeFactoryV4;
+
   provider.chat = provider.languageModel;
   provider.embedding = provider.embeddingModel;
   provider.image = provider.imageModel;
@@ -408,4 +579,12 @@ export async function getGatewayAuthToken(
     token: oidcToken,
     authMethod: 'oidc',
   };
+}
+
+function assertGatewayRealtimeServerEnvironment(): void {
+  if (typeof globalThis.window !== 'undefined') {
+    throw new Error(
+      'AI Gateway realtime client secrets must be minted server-side: minting needs your Gateway credential, which must never reach the browser. Call gateway.experimental_realtime.getToken() from your server and pass the returned token to the client.',
+    );
+  }
 }

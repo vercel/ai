@@ -10,6 +10,13 @@ export const SUPPORTED_PROTOCOL_VERSIONS = [
   '2024-11-05',
 ];
 
+export type McpProviderMetadata = {
+  clientName?: string;
+  title?: string;
+  toolName?: string;
+  app?: JSONObject;
+};
+
 /** MCP tool metadata - keys should follow MCP _meta key format specification */
 const ToolMetaSchema = z.optional(z.record(z.string(), z.unknown()));
 export type ToolMeta = z.infer<typeof ToolMetaSchema>;
@@ -91,6 +98,7 @@ const ElicitationCapabilitySchema = z
 const ServerCapabilitiesSchema = z.looseObject({
   experimental: z.optional(z.object({}).loose()),
   logging: z.optional(z.object({}).loose()),
+  completions: z.optional(z.object({}).loose()),
   prompts: z.optional(
     z.looseObject({
       listChanged: z.optional(z.boolean()),
@@ -234,10 +242,24 @@ const EmbeddedResourceSchema = z
     resource: z.union([TextResourceContentsSchema, BlobResourceContentsSchema]),
   })
   .loose();
+const ResourceLinkContentSchema = z
+  .object({
+    type: z.literal('resource_link'),
+    uri: z.string(),
+    name: z.string(),
+    description: z.optional(z.string()),
+    mimeType: z.optional(z.string()),
+  })
+  .loose();
 
 export const CallToolResultSchema = ResultSchema.extend({
   content: z.array(
-    z.union([TextContentSchema, ImageContentSchema, EmbeddedResourceSchema]),
+    z.union([
+      TextContentSchema,
+      ImageContentSchema,
+      EmbeddedResourceSchema,
+      ResourceLinkContentSchema,
+    ]),
   ),
   /**
    * @see https://modelcontextprotocol.io/specification/2025-06-18/server/tools#structured-content
@@ -275,6 +297,52 @@ export const ReadResourceResultSchema = ResultSchema.extend({
 });
 export type ReadResourceResult = z.infer<typeof ReadResourceResultSchema>;
 
+// Completions
+const PromptReferenceSchema = z
+  .object({
+    type: z.literal('ref/prompt'),
+    name: z.string(),
+  })
+  .loose();
+
+const ResourceReferenceSchema = z
+  .object({
+    type: z.literal('ref/resource'),
+    uri: z.string(),
+  })
+  .loose();
+
+const CompletionArgumentSchema = z
+  .object({
+    name: z.string(),
+    value: z.string(),
+  })
+  .loose();
+
+export const CompleteRequestParamsSchema = BaseParamsSchema.extend({
+  ref: z.union([PromptReferenceSchema, ResourceReferenceSchema]),
+  argument: CompletionArgumentSchema,
+  context: z.optional(
+    z
+      .object({
+        arguments: z.record(z.string(), z.string()),
+      })
+      .loose(),
+  ),
+});
+export type CompleteRequestParams = z.infer<typeof CompleteRequestParamsSchema>;
+
+export const CompleteResultSchema = ResultSchema.extend({
+  completion: z
+    .object({
+      values: z.array(z.string()).max(100),
+      total: z.optional(z.number().int()),
+      hasMore: z.optional(z.boolean()),
+    })
+    .loose(),
+});
+export type CompleteResult = z.infer<typeof CompleteResultSchema>;
+
 // Prompts
 const PromptArgumentSchema = z
   .object({
@@ -306,6 +374,7 @@ const PromptMessageSchema = z
       TextContentSchema,
       ImageContentSchema,
       EmbeddedResourceSchema,
+      ResourceLinkContentSchema,
     ]),
   })
   .loose();

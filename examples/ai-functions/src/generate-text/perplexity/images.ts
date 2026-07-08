@@ -18,5 +18,5 @@ run(async () => {
   console.log();
   console.log('Token usage:', result.usage);
   console.log('Finish reason:', result.finishReason);
-  console.log('Metadata:', result.providerMetadata);
+  console.log('Metadata:', result.finalStep.providerMetadata);
 });
