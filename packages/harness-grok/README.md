@@ -25,8 +25,35 @@ const agent = new HarnessAgent({
 
 ## Authentication
 
-- `XAI_API_KEY` — headless API key auth (`xai.api_key`)
-- Without API key — OAuth (`xai.oauth`); run device login in `sandboxConfig.onSession` before the first turn
+Both paths are supported:
+
+| Path | Host env | ACP auth | Sandbox setup |
+|------|----------|----------|---------------|
+| **API key** | `XAI_API_KEY` | `xai.api_key` | Key forwarded into sandbox automatically |
+| **OAuth** | omit `XAI_API_KEY` | `xai.oauth` | `ensureGrokSandboxOAuth()` in `sandboxConfig.onSession` |
+
+### API key (headless / CI)
+
+```ts
+createGrok({ auth: { apiKey: process.env.XAI_API_KEY } });
+```
+
+### OAuth (interactive)
+
+```ts
+import { ensureGrokSandboxOAuth } from '@akvilander/ai-sdk-harness-grok';
+
+const agent = new HarnessAgent({
+  harness: createGrok(), // no auth → xai.oauth
+  sandbox,
+  sandboxConfig: {
+    onSession: async ({ session, sessionWorkDir }) => {
+      const oauth = await ensureGrokSandboxOAuth({ session, sessionWorkDir });
+      if (!oauth.ready) throw new Error(oauth.question); // contains device login URL
+    },
+  },
+});
+```
 
 ## Settings
 
