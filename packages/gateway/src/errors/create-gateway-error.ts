@@ -9,6 +9,14 @@ import {
   modelNotFoundParamSchema,
 } from './gateway-model-not-found-error';
 import { GatewayInternalServerError } from './gateway-internal-server-error';
+<<<<<<< HEAD
+=======
+import { GatewayFailedDependencyError } from './gateway-failed-dependency-error';
+import {
+  GatewayForbiddenError,
+  forbiddenParamSchema,
+} from './gateway-forbidden-error';
+>>>>>>> 2bfb16aff2 (Backport: feat(gateway): expose ruleId on GatewayForbiddenError so callers can identify which routing rule denied a request (#16936))
 import { GatewayResponseError } from './gateway-response-error';
 import {
   type InferValidator,
@@ -76,9 +84,39 @@ export async function createGatewayErrorFromResponse({
       });
     }
     case 'internal_server_error':
+<<<<<<< HEAD
       return new GatewayInternalServerError({ message, statusCode, cause });
     case 'forbidden':
       return new GatewayForbiddenError({ message, statusCode, cause });
+=======
+      return new GatewayInternalServerError({
+        message,
+        statusCode,
+        cause,
+        generationId,
+      });
+    case 'failed_dependency':
+      return new GatewayFailedDependencyError({
+        message,
+        statusCode,
+        cause,
+        generationId,
+      });
+    case 'forbidden': {
+      const ruleResult = await safeValidateTypes({
+        value: validatedResponse.error.param,
+        schema: forbiddenParamSchema,
+      });
+
+      return new GatewayForbiddenError({
+        message,
+        statusCode,
+        cause,
+        generationId,
+        ruleId: ruleResult.success ? ruleResult.value.ruleId : undefined,
+      });
+    }
+>>>>>>> 2bfb16aff2 (Backport: feat(gateway): expose ruleId on GatewayForbiddenError so callers can identify which routing rule denied a request (#16936))
     default:
       return new GatewayInternalServerError({ message, statusCode, cause });
   }
