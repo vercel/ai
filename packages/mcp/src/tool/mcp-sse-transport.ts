@@ -145,6 +145,7 @@ export class SseMCPTransport implements MCPTransport {
             .pipeThrough(new EventSourceParserStream());
 
           const reader = stream.getReader();
+          void reader.closed.catch(() => {});
 
           const processEvents = async () => {
             try {

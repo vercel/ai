@@ -326,6 +326,7 @@ export class HttpMCPTransport implements MCPTransport {
             .pipeThrough(new TextDecoderStream())
             .pipeThrough(new EventSourceParserStream());
           const reader = stream.getReader();
+          void reader.closed.catch(() => {});
 
           const processEvents = async () => {
             try {
@@ -486,6 +487,7 @@ export class HttpMCPTransport implements MCPTransport {
         .pipeThrough(new TextDecoderStream())
         .pipeThrough(new EventSourceParserStream());
       const reader = stream.getReader();
+      void reader.closed.catch(() => {});
 
       const processEvents = async () => {
         try {
