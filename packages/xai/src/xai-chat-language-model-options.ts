@@ -59,8 +59,10 @@ export const xaiLanguageModelChatOptions = z.object({
    * - `medium`: More thinking for less-latency-sensitive applications.
    * - `high`: Uses more reasoning tokens for deeper thinking.
    *
-   * Note: Not every Grok model accepts every value. Refer to xAI's docs for
-   * the values supported by your selected model.
+   * Note: Not every Grok model accepts `reasoningEffort`.
+   * `grok-4.20-reasoning`, `grok-4.20-non-reasoning`, and their dated
+   * variants reject the parameter for every value. Refer to xAI's docs for the
+   * values supported by your selected model.
    *
    * @see https://docs.x.ai/docs/guides/reasoning
    */

@@ -16,6 +16,8 @@ export const xaiLanguageModelResponsesOptions = z.object({
    * Possible values are `none` (disables reasoning entirely; supported by
    * `grok-4.3` and newer reasoning models), `low` (uses fewer reasoning
    * tokens), `medium`, and `high` (uses more reasoning tokens).
+   * `grok-4.20-reasoning`, `grok-4.20-non-reasoning`, and their dated
+   * variants reject the parameter for every value.
    *
    * @see https://docs.x.ai/docs/guides/reasoning
    */

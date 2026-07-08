@@ -138,7 +138,9 @@ Supported values:
   tasks.
 
 <Note>
-  Not every Grok model accepts every value. See xAI's [reasoning
+  Not every Grok model accepts `reasoningEffort`. In particular,
+  `grok-4.20-reasoning`, `grok-4.20-non-reasoning`, and their dated variants
+  reject the parameter for every value. See xAI's [reasoning
   docs](https://docs.x.ai/docs/guides/reasoning) for the values supported by
   your selected model. `'none'` requires `grok-4.3` or newer.
 </Note>
@@ -477,7 +479,7 @@ import { xai, type XaiLanguageModelResponsesOptions } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: xai.responses('grok-4.20-non-reasoning'),
+  model: xai.responses('grok-4.3'),
   providerOptions: {
     xai: {
       reasoningEffort: 'high',
@@ -491,7 +493,7 @@ The following provider options are available:
 
 - **reasoningEffort** _'none' | 'low' | 'medium' | 'high'_
 
-  Control the reasoning effort for the model. See [Reasoning Effort](#reasoning-effort) for details on each value. `'none'` disables reasoning entirely (requires `grok-4.3` or newer).
+  Control the reasoning effort for models that support the parameter. See [Reasoning Effort](#reasoning-effort) for details on each value. `grok-4.20-reasoning`, `grok-4.20-non-reasoning`, and their dated variants do not accept `reasoningEffort`. `'none'` disables reasoning entirely (requires `grok-4.3` or newer).
 
 - **logprobs** _boolean_
 
