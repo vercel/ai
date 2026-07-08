@@ -517,6 +517,13 @@ export type TextStreamToolResultPart<TOOLS extends ToolSet> = {
   type: 'tool-result';
 } & TypedToolResult<TOOLS>;
 
+export type TextStreamToolProgressPart = {
+  type: 'tool-progress';
+  toolCallId: string;
+  toolName: string;
+  progress: unknown;
+};
+
 export type TextStreamToolErrorPart<TOOLS extends ToolSet> = {
   type: 'tool-error';
 } & TypedToolError<TOOLS>;
@@ -589,6 +596,7 @@ export type TextStreamPart<TOOLS extends ToolSet> =
   | TextStreamReasoningFilePart
   | TextStreamToolCallPart<TOOLS>
   | TextStreamToolResultPart<TOOLS>
+  | TextStreamToolProgressPart
   | TextStreamToolErrorPart<TOOLS>
   | TextStreamToolOutputDeniedPart<TOOLS>
   | TextStreamToolApprovalRequestPart<TOOLS>

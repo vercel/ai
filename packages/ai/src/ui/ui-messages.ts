@@ -293,6 +293,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
    * Whether the tool call was executed by the provider.
    */
   providerExecuted?: boolean;
+  steps?: unknown[];
 } & (
   | {
       state: 'input-streaming';
@@ -421,6 +422,7 @@ export type DynamicToolUIPart = {
    * Whether the tool call was executed by the provider.
    */
   providerExecuted?: boolean;
+  steps?: unknown[];
 } & (
   | {
       state: 'input-streaming';

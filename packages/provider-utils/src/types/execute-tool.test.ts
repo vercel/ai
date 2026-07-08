@@ -121,4 +121,35 @@ describe('executeTool', () => {
       { type: 'final', output: 'Berlin:req-2:2' },
     ]);
   });
+
+  it('yields progress events and final return value for generator-based tool execution', async () => {
+    const generatorTool = tool({
+      inputSchema: z.object({}),
+      execute: async function* () {
+        yield { type: 'progress', message: 'Step 1' };
+        yield { type: 'progress', message: 'Step 2' };
+        return 'final result';
+      },
+    });
+
+    const results: Array<any> = [];
+
+    for await (const result of executeTool({
+      tool: generatorTool as any,
+      input: {},
+      options: {
+        toolCallId: 'tool-call-1',
+        messages: [],
+        context: undefined,
+      },
+    })) {
+      results.push(result);
+    }
+
+    expect(results).toEqual([
+      { type: 'progress', progress: { type: 'progress', message: 'Step 1' } },
+      { type: 'progress', progress: { type: 'progress', message: 'Step 2' } },
+      { type: 'final', output: 'final result' },
+    ]);
+  });
 });
