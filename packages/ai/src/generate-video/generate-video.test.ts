@@ -1203,13 +1203,13 @@ describe('experimental_generateVideo', () => {
     });
 
     it('should detect video media type from binary inputReferences without object form', async () => {
-      let capturedArgs!: Parameters<Experimental_VideoModelV4['doGenerate']>[0];
+      let capturedArgs!: Parameters<Experimental_VideoModelV3['doGenerate']>[0];
       const mp4Bytes = new Uint8Array([
         0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70,
       ]);
 
       await experimental_generateVideo({
-        model: new MockVideoModelV4({
+        model: new MockVideoModelV3({
           doGenerate: async args => {
             capturedArgs = args;
             return createMockResponse({
@@ -1233,10 +1233,10 @@ describe('experimental_generateVideo', () => {
     });
 
     it('should carry mediaType from the object form for URL references', async () => {
-      let capturedArgs!: Parameters<Experimental_VideoModelV4['doGenerate']>[0];
+      let capturedArgs!: Parameters<Experimental_VideoModelV3['doGenerate']>[0];
 
       await experimental_generateVideo({
-        model: new MockVideoModelV4({
+        model: new MockVideoModelV3({
           doGenerate: async args => {
             capturedArgs = args;
             return createMockResponse({

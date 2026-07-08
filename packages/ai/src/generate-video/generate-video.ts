@@ -220,20 +220,7 @@ export async function experimental_generateVideo({
   const { prompt, image } = normalizePrompt(promptArg);
 
   const normalizedFrameImages:
-<<<<<<< HEAD
     | Array<Experimental_VideoModelV3FrameImage>
-    | undefined = frameImages?.map(frame => ({
-    image: normalizeImageData(frame.image),
-    frameType: frame.frameType,
-  }));
-
-  const normalizedInputReferences:
-    | Array<Experimental_VideoModelV3File>
-    | undefined = inputReferences?.map(reference =>
-    normalizeImageData(reference),
-  );
-=======
-    | Array<Experimental_VideoModelV4FrameImage>
     | undefined = frameImages?.flatMap(frame => {
     const normalizedImage = normalizeImageData(frame.image);
     return normalizedImage != null
@@ -242,12 +229,11 @@ export async function experimental_generateVideo({
   });
 
   const normalizedInputReferences:
-    | Array<Experimental_VideoModelV4File>
+    | Array<Experimental_VideoModelV3File>
     | undefined = inputReferences?.flatMap(reference => {
     const normalized = normalizeReferenceData(reference);
     return normalized != null ? [normalized] : [];
   });
->>>>>>> 0f93c57d1b (support video reference input for r2v (#16328))
 
   const effectiveInputReferences =
     normalizedFrameImages != null && normalizedFrameImages.length > 0
@@ -468,8 +454,9 @@ function detectFileMediaType(
   restrictToImages: boolean,
 ): string {
   const detected = restrictToImages
-    ? detectMediaType({ data, topLevelType: 'image' })
-    : detectMediaType({ data });
+    ? detectMediaType({ data, signatures: imageMediaTypeSignatures })
+    : (detectMediaType({ data, signatures: imageMediaTypeSignatures }) ??
+      detectMediaType({ data, signatures: videoMediaTypeSignatures }));
   return detected ?? 'image/png';
 }
 
@@ -479,12 +466,8 @@ function detectFileMediaType(
  */
 function normalizeImageData(
   dataContent: DataContent,
-<<<<<<< HEAD
-): Experimental_VideoModelV3File {
-=======
   { restrictToImages = true }: { restrictToImages?: boolean } = {},
-): Experimental_VideoModelV4File | undefined {
->>>>>>> 0f93c57d1b (support video reference input for r2v (#16328))
+): Experimental_VideoModelV3File | undefined {
   if (typeof dataContent === 'string') {
     if (
       dataContent.startsWith('http://') ||
@@ -509,15 +492,7 @@ function normalizeImageData(
     const bytes = convertBase64ToUint8Array(dataContent);
     return {
       type: 'file',
-<<<<<<< HEAD
-      mediaType:
-        detectMediaType({
-          data: bytes,
-          signatures: imageMediaTypeSignatures,
-        }) ?? 'image/png',
-=======
       mediaType: detectFileMediaType(bytes, restrictToImages),
->>>>>>> 0f93c57d1b (support video reference input for r2v (#16328))
       data: bytes,
     };
   }
@@ -538,7 +513,7 @@ function normalizeImageData(
 }
 
 /**
- * Normalizes a reference input into a {@link Experimental_VideoModelV4File},
+ * Normalizes a reference input into a {@link Experimental_VideoModelV3File},
  * accepting either a plain {@link DataContent} or the object form that carries
  * an explicit `mediaType`.
  */
@@ -549,7 +524,7 @@ function normalizeReferenceData(
         data: DataContent;
         mediaType?: string;
       },
-): Experimental_VideoModelV4File | undefined {
+): Experimental_VideoModelV3File | undefined {
   const isObjectForm =
     typeof reference === 'object' &&
     reference != null &&
@@ -571,16 +546,8 @@ function normalizeReferenceData(
   }
 
   return {
-<<<<<<< HEAD
-    type: 'file',
-    mediaType:
-      detectMediaType({ data: bytes, signatures: imageMediaTypeSignatures }) ??
-      'image/png',
-    data: bytes,
-=======
     ...normalized,
     ...(reference.mediaType != null ? { mediaType: reference.mediaType } : {}),
->>>>>>> 0f93c57d1b (support video reference input for r2v (#16328))
   };
 }
 

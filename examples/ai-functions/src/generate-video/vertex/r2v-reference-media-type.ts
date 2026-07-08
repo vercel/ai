@@ -1,5 +1,5 @@
 import {
-  googleVertex,
+  vertex,
   type GoogleVertexVideoModelOptions,
 } from '@ai-sdk/google-vertex';
 import { experimental_generateVideo as generateVideo } from 'ai';
@@ -15,7 +15,7 @@ run(async () => {
     'Generating reference-to-video with explicit mediaType on Vertex Veo...',
     () =>
       generateVideo({
-        model: googleVertex.video('veo-3.1-generate-001'),
+        model: vertex.video('veo-3.1-generate-001'),
         prompt:
           'The two characters meet and walk together through a sunny park',
         inputReferences: [

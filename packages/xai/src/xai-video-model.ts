@@ -11,7 +11,6 @@ import {
   delay,
   type FetchFunction,
   getFromApi,
-  getTopLevelMediaType,
   parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
@@ -63,14 +62,15 @@ function resolveStartImage(
   return getFirstFrameImage(options) ?? options.image;
 }
 
-<<<<<<< HEAD
-function fileToXaiImageUrl(file: Experimental_VideoModelV3File): string {
-=======
-const isVideoFile = (file: Experimental_VideoModelV4File): boolean =>
+function getTopLevelMediaType(mediaType: string): string {
+  const slashIndex = mediaType.indexOf('/');
+  return slashIndex === -1 ? mediaType : mediaType.substring(0, slashIndex);
+}
+
+const isVideoFile = (file: Experimental_VideoModelV3File): boolean =>
   file.mediaType != null && getTopLevelMediaType(file.mediaType) === 'video';
 
-function fileToXaiImageUrl(file: Experimental_VideoModelV4File): string {
->>>>>>> 0f93c57d1b (support video reference input for r2v (#16328))
+function fileToXaiImageUrl(file: Experimental_VideoModelV3File): string {
   if (file.type === 'url') {
     return file.url;
   }
@@ -89,7 +89,7 @@ function fileToXaiImageUrl(file: Experimental_VideoModelV4File): string {
 function resolveReferenceImages(
   options: XaiVideoDoGenerateOptions,
   xaiOptions: XaiParsedVideoModelOptions | undefined,
-  warnings: SharedV4Warning[],
+  warnings: SharedV3Warning[],
 ): Array<{ url: string }> | undefined {
   if (options.inputReferences != null && options.inputReferences.length > 0) {
     const imageReferences = options.inputReferences.filter(reference => {

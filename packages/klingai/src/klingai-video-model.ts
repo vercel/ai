@@ -12,11 +12,7 @@ import {
   delay,
   type FetchFunction,
   getFromApi,
-<<<<<<< HEAD
   lazySchema,
-=======
-  getTopLevelMediaType,
->>>>>>> 0f93c57d1b (support video reference input for r2v (#16328))
   parseProviderOptions,
   postJsonToApi,
   type Resolvable,
@@ -38,22 +34,22 @@ function fileToImageString(file: Experimental_VideoModelV3File): string {
     : convertUint8ArrayToBase64(file.data);
 }
 
+function getTopLevelMediaType(mediaType: string): string {
+  const slashIndex = mediaType.indexOf('/');
+  return slashIndex === -1 ? mediaType : mediaType.substring(0, slashIndex);
+}
+
 /**
  * KlingAI does not support video reference inputs. This detects whether a file
  * is a video so it can be guarded against and excluded.
  */
-const isVideoFile = (file: Experimental_VideoModelV4File): boolean =>
+const isVideoFile = (file: Experimental_VideoModelV3File): boolean =>
   file.mediaType != null && getTopLevelMediaType(file.mediaType) === 'video';
 
 function getReferenceImages(
-<<<<<<< HEAD
   options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
+  warnings: SharedV3Warning[],
 ): Array<Experimental_VideoModelV3File> | undefined {
-=======
-  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
-  warnings: SharedV4Warning[],
-): Array<Experimental_VideoModelV4File> | undefined {
->>>>>>> 0f93c57d1b (support video reference input for r2v (#16328))
   if (options.frameImages != null && options.frameImages.length > 0) {
     return undefined;
   }
@@ -87,14 +83,9 @@ function getFirstFrameImage(
 }
 
 function resolveStartImage(
-<<<<<<< HEAD
   options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
+  warnings: SharedV3Warning[],
 ): Experimental_VideoModelV3File | undefined {
-  return getFirstFrameImage(options) ?? options.image;
-=======
-  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
-  warnings: SharedV4Warning[],
-): Experimental_VideoModelV4File | undefined {
   const startImage = getFirstFrameImage(options) ?? options.image;
 
   if (startImage != null && isVideoFile(startImage)) {
@@ -108,13 +99,12 @@ function resolveStartImage(
   }
 
   return startImage;
->>>>>>> 0f93c57d1b (support video reference input for r2v (#16328))
 }
 
 function resolveImageTail(
   options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
   klingaiOptions: KlingAIVideoModelOptions | undefined,
-  warnings: SharedV4Warning[],
+  warnings: SharedV3Warning[],
 ): string | undefined {
   const lastFrame = options.frameImages?.find(
     frame => frame.frameType === 'last_frame',

@@ -11,11 +11,7 @@ import {
   createJsonResponseHandler,
   delay,
   getFromApi,
-<<<<<<< HEAD
   lazySchema,
-=======
-  getTopLevelMediaType,
->>>>>>> 0f93c57d1b (support video reference input for r2v (#16328))
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -139,21 +135,19 @@ function resolveStartImage(
   return getFirstFrameImage(options) ?? options.image;
 }
 
-<<<<<<< HEAD
-function resolveReferenceImages(
-  options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
-  byteDanceOptions: ByteDanceVideoProviderOptions | undefined,
-): string[] {
-=======
-const isVideoFile = (f: Experimental_VideoModelV4File) =>
+function getTopLevelMediaType(mediaType: string): string {
+  const slashIndex = mediaType.indexOf('/');
+  return slashIndex === -1 ? mediaType : mediaType.substring(0, slashIndex);
+}
+
+const isVideoFile = (f: Experimental_VideoModelV3File) =>
   f.mediaType != null && getTopLevelMediaType(f.mediaType) === 'video';
 
 function resolveReferenceContent(
-  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
-  byteDanceOptions: ByteDanceVideoModelOptions | undefined,
-  warnings: SharedV4Warning[],
+  options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
+  byteDanceOptions: ByteDanceVideoProviderOptions | undefined,
+  warnings: SharedV3Warning[],
 ): Array<Record<string, unknown>> {
->>>>>>> 0f93c57d1b (support video reference input for r2v (#16328))
   if (options.frameImages != null && options.frameImages.length > 0) {
     return [];
   }

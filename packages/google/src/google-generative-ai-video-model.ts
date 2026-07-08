@@ -127,7 +127,6 @@ function convertProviderReferenceImage(
         bytesBase64Encoded: refImg.bytesBase64Encoded,
         mimeType: 'image/png',
       },
-      referenceType: 'asset',
     };
   }
 
@@ -137,7 +136,6 @@ function convertProviderReferenceImage(
         gcsUri: refImg.gcsUri,
         mimeType: 'image/png',
       },
-      referenceType: 'asset',
     };
   }
 
@@ -149,7 +147,7 @@ function convertInputReferenceImage(
   warnings: SharedV3Warning[],
 ): Record<string, unknown> | undefined {
   const image = convertFileToGoogleImage(file, warnings);
-  return image != null ? { image, referenceType: 'asset' } : undefined;
+  return image != null ? { image } : undefined;
 }
 
 export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV3 {
