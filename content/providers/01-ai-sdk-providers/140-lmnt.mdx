@@ -32,13 +32,13 @@ The LMNT provider is available in the `@ai-sdk/lmnt` module. You can install it 
 You can import the default provider instance `lmnt` from `@ai-sdk/lmnt`:
 
 ```ts
-import { lmnt } from '@ai-sdk/lmnt';
+import { lmnt } from "@ai-sdk/lmnt";
 ```
 
 If you need a customized setup, you can import `createLMNT` from `@ai-sdk/lmnt` and create a provider instance with your settings:
 
 ```ts
-import { createLMNT } from '@ai-sdk/lmnt';
+import { createLMNT } from "@ai-sdk/lmnt";
 
 const lmnt = createLMNT({
   // custom settings, e.g.
@@ -72,35 +72,35 @@ using the `.speech()` factory method.
 The first argument is the model id e.g. `aurora`.
 
 ```ts
-const model = lmnt.speech('aurora');
+const model = lmnt.speech("aurora");
 ```
 
 The `voice` parameter can be set to a voice ID from LMNT. You can find available voices in the [LMNT documentation](https://docs.lmnt.com/api-reference/voices/list-voices).
 
 ```ts highlight="7"
-import { generateSpeech } from 'ai';
-import { lmnt } from '@ai-sdk/lmnt';
+import { generateSpeech } from "ai";
+import { lmnt } from "@ai-sdk/lmnt";
 
 const result = await generateSpeech({
-  model: lmnt.speech('aurora'),
-  text: 'Hello, world!',
-  voice: 'ava',
-  language: 'en',
+  model: lmnt.speech("aurora"),
+  text: "Hello, world!",
+  voice: "ava",
+  language: "en",
 });
 ```
 
 You can also pass additional provider-specific options using the `providerOptions` argument:
 
 ```ts highlight="10-14"
-import { generateSpeech } from 'ai';
-import { lmnt } from '@ai-sdk/lmnt';
-import { type LMNTSpeechModelOptions } from '@ai-sdk/lmnt';
+import { generateSpeech } from "ai";
+import { lmnt } from "@ai-sdk/lmnt";
+import { type LMNTSpeechModelOptions } from "@ai-sdk/lmnt";
 
 const result = await generateSpeech({
-  model: lmnt.speech('aurora'),
-  text: 'Hello, world!',
-  voice: 'ava',
-  language: 'en',
+  model: lmnt.speech("aurora"),
+  text: "Hello, world!",
+  voice: "ava",
+  language: "en",
   providerOptions: {
     lmnt: {
       conversational: true,
@@ -148,7 +148,7 @@ The LMNT provider accepts the following options via `providerOptions.lmnt`:
 
 ### Model Capabilities
 
-| Model      | Instructions        |
-| ---------- | ------------------- |
-| `aurora`   | <Cross size={18} /> |
-| `blizzard` | <Cross size={18} /> |
+| Model      | Instructions |
+| ---------- | ------------ |
+| `aurora`   | <Cross />    |
+| `blizzard` | <Cross />    |
