@@ -1,12 +1,12 @@
 import { z } from 'zod/v4';
 import { GatewayError } from './gateway-error';
-import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
+import { lazyValidator, zodSchema } from '@ai-sdk/provider-utils';
 
 const name = 'GatewayForbiddenError';
 const marker = `vercel.ai.gateway.error.${name}`;
 const symbol = Symbol.for(marker);
 
-export const forbiddenParamSchema = lazySchema(() =>
+export const forbiddenParamSchema = lazyValidator(() =>
   zodSchema(
     z.object({
       ruleId: z.string(),
@@ -29,25 +29,15 @@ export class GatewayForbiddenError extends GatewayError {
     message = 'Forbidden',
     statusCode = 403,
     cause,
-<<<<<<< HEAD
-=======
-    generationId,
     ruleId,
->>>>>>> 2bfb16aff2 (Backport: feat(gateway): expose ruleId on GatewayForbiddenError so callers can identify which routing rule denied a request (#16936))
   }: {
     message?: string;
     statusCode?: number;
     cause?: unknown;
-<<<<<<< HEAD
-  } = {}) {
-    super({ message, statusCode, cause });
-=======
-    generationId?: string;
     ruleId?: string;
   } = {}) {
-    super({ message, statusCode, cause, generationId });
+    super({ message, statusCode, cause });
     this.ruleId = ruleId;
->>>>>>> 2bfb16aff2 (Backport: feat(gateway): expose ruleId on GatewayForbiddenError so callers can identify which routing rule denied a request (#16936))
   }
 
   static isInstance(error: unknown): error is GatewayForbiddenError {
