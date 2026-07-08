@@ -1,10 +1,10 @@
 import {
-  EventSourceParserStream,
   withUserAgentSuffix,
   getRuntimeEnvironmentUserAgent,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { MCPClientError } from '../error/mcp-client-error';
+import { JsonEventSourceParserStream } from './json-event-source-parser-stream';
 import {
   parseJSONRPCMessage,
   validateJSONRPCMessage,
@@ -324,7 +324,7 @@ export class HttpMCPTransport implements MCPTransport {
 
           const stream = response.body
             .pipeThrough(new TextDecoderStream())
-            .pipeThrough(new EventSourceParserStream());
+            .pipeThrough(new JsonEventSourceParserStream());
           const reader = stream.getReader();
 
           const processEvents = async () => {
@@ -484,7 +484,7 @@ export class HttpMCPTransport implements MCPTransport {
 
       const stream = response.body
         .pipeThrough(new TextDecoderStream())
-        .pipeThrough(new EventSourceParserStream());
+        .pipeThrough(new JsonEventSourceParserStream());
       const reader = stream.getReader();
 
       const processEvents = async () => {

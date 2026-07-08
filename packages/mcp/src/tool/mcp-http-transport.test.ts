@@ -159,6 +159,130 @@ describe('HttpMCPTransport', () => {
     await client.close();
   });
 
+  it('should initialize MCP client from SSE response missing the frame terminator when the connection stays open', async () => {
+    // https://github.com/vercel/ai/issues/16865
+    const controller = new TestResponseController();
+
+    server.urls['http://localhost:4000/stream'].response = ({ callNumber }) => {
+      switch (callNumber) {
+        case 0:
+          return { type: 'error', status: 405 };
+        case 1:
+          return {
+            type: 'controlled-stream',
+            controller,
+            headers: { 'content-type': 'text/event-stream' },
+          };
+        case 2:
+          return { type: 'empty', status: 202 };
+        default:
+          return { type: 'empty', status: 200 };
+      }
+    };
+
+    const clientPromise = createMCPClient({
+      transport: {
+        type: 'http',
+        url: 'http://localhost:4000/stream',
+      },
+    });
+
+    await vi.waitFor(() => {
+      expect(server.calls[1]?.requestMethod).toBe('POST');
+    });
+
+    // single trailing newline, no blank-line frame terminator,
+    // and the connection stays open
+    controller.write(
+      `data: ${JSON.stringify({
+        jsonrpc: '2.0',
+        id: 0,
+        result: {
+          protocolVersion: LATEST_PROTOCOL_VERSION,
+          capabilities: {},
+          serverInfo: { name: 'test-server', version: '1.0.0' },
+        },
+      })}\n`,
+    );
+
+    const client = await clientPromise;
+    expect(client.serverInfo).toEqual({
+      name: 'test-server',
+      version: '1.0.0',
+    });
+
+    await client.close();
+  });
+
+  it('should handle SSE response missing the frame terminator when the stream closes', async () => {
+    transport = new HttpMCPTransport({ url: 'http://localhost:4000/stream' });
+    const controller = new TestResponseController();
+
+    server.urls['http://localhost:4000/stream'].response = ({ callNumber }) => {
+      switch (callNumber) {
+        case 0:
+          return { type: 'error', status: 405 };
+        case 1:
+          return {
+            type: 'controlled-stream',
+            controller,
+            headers: { 'content-type': 'text/event-stream' },
+          };
+        default:
+          return { type: 'empty', status: 200 };
+      }
+    };
+
+    await transport.start();
+
+    const msgPromise = new Promise(resolve => {
+      transport.onmessage = msg => resolve(msg);
+    });
+
+    await transport.send({
+      jsonrpc: '2.0' as const,
+      method: 'initialize',
+      id: 2,
+      params: {},
+    });
+
+    // no trailing newline at all before the stream closes
+    controller.write(
+      `data: ${JSON.stringify({ jsonrpc: '2.0', id: 2, result: { ok: true } })}`,
+    );
+    controller.close();
+
+    expect(await msgPromise).toEqual({
+      jsonrpc: '2.0',
+      id: 2,
+      result: { ok: true },
+    });
+  });
+
+  it('should handle inbound SSE messages missing the frame terminator', async () => {
+    const controller = new TestResponseController();
+    server.urls['http://localhost:4000/mcp'].response = {
+      type: 'controlled-stream',
+      controller,
+      headers: { 'content-type': 'text/event-stream' },
+    };
+
+    const message = { jsonrpc: '2.0' as const, id: 1, result: { ok: true } };
+    const messagePromise = new Promise(resolve => {
+      transport.onmessage = msg => resolve(msg);
+    });
+
+    await transport.start();
+    await vi.waitFor(() => {
+      expect(server.calls[0]?.requestMethod).toBe('GET');
+    });
+
+    // single trailing newline, no blank line, connection stays open
+    controller.write(`data: ${JSON.stringify(message)}\n`);
+
+    expect(await messagePromise).toEqual(message);
+  });
+
   it('should (re)open inbound SSE after 202 Accepted', async () => {
     const controller = new TestResponseController();
 
