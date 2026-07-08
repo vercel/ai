@@ -248,28 +248,3 @@ export class StructuredObject<
     this.#store.loading = false;
   };
 }
-
-// deprecated exports
-
-/**
- * @deprecated Use `StructuredObject` instead.
- */
-const Experimental_StructuredObject = StructuredObject;
-/**
- * @deprecated Use `StructuredObject` instead.
- */
-type Experimental_StructuredObject<
-  SCHEMA extends FlexibleSchema,
-  RESULT = InferSchema<SCHEMA>,
-  INPUT = unknown,
-> = StructuredObject<SCHEMA, RESULT, INPUT>;
-export { Experimental_StructuredObject };
-
-/**
- * @deprecated Use `StructuredObjectOptions` instead.
- */
-type Experimental_StructuredObjectOptions<
-  SCHEMA extends FlexibleSchema,
-  RESULT = InferSchema<SCHEMA>,
-> = StructuredObjectOptions<SCHEMA, RESULT>;
-export type { Experimental_StructuredObjectOptions };

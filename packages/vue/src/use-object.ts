@@ -224,29 +224,3 @@ export function useObject<
     clear,
   };
 }
-
-// deprecated exports
-
-/**
- * @deprecated Use `useObject` instead.
- */
-const experimental_useObject = useObject;
-export { experimental_useObject };
-
-/**
- * @deprecated Use `UseObjectOptions` instead.
- */
-type Experimental_UseObjectOptions<
-  SCHEMA extends FlexibleSchema,
-  RESULT,
-> = UseObjectOptions<SCHEMA, RESULT>;
-export type { Experimental_UseObjectOptions };
-
-/**
- * @deprecated Use `UseObjectHelpers` instead.
- */
-type Experimental_UseObjectHelpers<RESULT, INPUT> = UseObjectHelpers<
-  RESULT,
-  INPUT
->;
-export type { Experimental_UseObjectHelpers };

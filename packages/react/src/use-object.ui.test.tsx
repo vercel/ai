@@ -6,7 +6,8 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
-import { experimental_useObject, useObject } from './use-object';
+import { experimental_useObject } from './index';
+import { useObject } from './use-object';
 
 const server = createTestServer({
   '/api/use-object': {},
